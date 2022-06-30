@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Timers;
@@ -21,9 +22,10 @@ namespace ThirtyDollarWebsiteConverter
             if (!HasFiles()) await DownloadFiles();
             await LoadSamplesIntoMemory();
             
-            var list = new List<string> {"../../../catastrophe_tdw_v2.🗿"};
+            //var list = new List<string> {"../../../catastrophe_tdw_v2.🗿"};
             //var list = new List<string> {"../../../It has to be this way [Metal Gear Rising Revengeance].🗿"};
             //var list = new List<string> {"../../../big shot [Deltarune].🗿"};
+            var list = new List<string> {"../../../watery graves [Plants vs. Zombies].🗿"};
             var output = new List<string>();
             foreach (var arg in args)
                 try
@@ -49,13 +51,11 @@ namespace ThirtyDollarWebsiteConverter
                     Console.WriteLine($"Failed to open file in predefined list: \"{arg}\" - Exception: {e}");
                 }
 
-            foreach (var yes in output)
+            foreach (var encoder in output.Select(Composition.FromString).Select(comp => new PcmEncoder
             {
-                var comp = Composition.FromString(yes);
-                var encoder = new PcmEncoder
-                {
-                    Composition = comp
-                };
+                Composition = comp
+            }))
+            {
                 encoder.Start();
                 await encoder.Play();
             }
@@ -88,7 +88,7 @@ namespace ThirtyDollarWebsiteConverter
             foreach (var file in LongThings.AudioFiles)
             {
                 var httpRequest = $"https://dankest.gq/ThirtyDollarWebsiteSounds/{file}.wav";
-                // All the files have different sample rates and channels, so I reencoded them all to 48000Hz - 1 channels.
+                // All the files have different sample rates and channels, so I reencoded them all to 48000Hz - 1 channel.
                 DownloadFile = $"./Sounds/{file}.wav";
                 if (File.Exists(DownloadFile)) continue;
                 var client = new WebClient(); //I don't care that it's obselete. fuck off, i have my progress changed event. /s I am lazy.
