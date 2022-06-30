@@ -10,7 +10,7 @@ This project is an experiment (which isn't completed yet, to see the things that
 
 To use the audio made by this project, you need to open it in Audacity using Import > Raw Data, and using the settings: 
 
-"Encoding: Singned 16-bit PCM", 
+"Encoding: Signed 16-bit PCM", 
 
 "Byte order: Little Endian", 
 
@@ -45,6 +45,8 @@ Timing the track: Done, but really funky at the moment.
 
 Audio output quality: Garbage, constantly clipping. Sounds like Fishers' Price toys.
 
-Loops and things: Not stable, constanctly cause errors with the result.
+Loops and things: Not stable, constantly cause errors with the result.
 
 Changing speed of samples: Works, but needs fine tuning to get the octaves right.
+
+Changing volumes: Not implemented, yet.
