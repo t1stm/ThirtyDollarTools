@@ -176,23 +176,25 @@ namespace ThirtyDollarWebsiteConverter
                     // Speed Math
                     if (ev.Value > 0)
                     {
+                        var tmp = ev.Value;
                         var dev2 = SampleRate / 2;
-                        while (ev.Value > 12)
+                        while (tmp > 12)
                         {
                             dev2 /= 2;
-                            ev.Value -= 12;
+                            tmp -= 12;
                         }
-                        targetRate = (uint) (SampleRate - dev2 * (ev.Value / 12));
+                        targetRate = (uint) (SampleRate - dev2 * (tmp / 12));
                     }
                     else
                     {
+                        var tmp = ev.Value;
                         var by2 = SampleRate * 2;
-                        while (ev.Value < -12)
+                        while (tmp < -12)
                         {
                             by2 *= 2;
-                            ev.Value += 12;
+                            tmp += 12;
                         }
-                        var tmp = (uint) Math.Abs(ev.Value);
+                        tmp = Math.Abs(ev.Value);
                         if (tmp == 0) targetRate = by2;
                         else targetRate = (uint) (SampleRate + by2 * 0.5 * (tmp * 0.083D));
                     }
@@ -286,7 +288,7 @@ namespace ThirtyDollarWebsiteConverter
             return outputSize;
         }
 
-        public void Play()
+        public void Play(int num)
         {
             /*var prg = new Process
             {
@@ -312,7 +314,7 @@ namespace ThirtyDollarWebsiteConverter
             
             await prg.WaitForExitAsync();*/
 
-            var stream = new BinaryWriter(File.Open("./out.wav", FileMode.Create));
+            var stream = new BinaryWriter(File.Open($"./out-{num}.wav", FileMode.Create));
             foreach (var data in PcmBytes) stream.Write(data);
             stream.Close();
         }

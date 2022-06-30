@@ -21,43 +21,57 @@ namespace ThirtyDollarWebsiteConverter
         {
             if (!HasFiles()) await DownloadFiles();
             await LoadSamplesIntoMemory();
-            
-            //var list = new List<string> {"../../../catastrophe_tdw_v2.🗿"};
-            //var list = new List<string> {"../../../It has to be this way [Metal Gear Rising Revengeance].🗿"};
-            var list = new List<string> {"../../../big shot [Deltarune].🗿"};
-            //var list = new List<string> {"../../../watery graves [Plants vs. Zombies].🗿"};
+            var list = new List<string>
+            {
+                "../../../big shot [Deltarune].🗿",
+                "../../../It has to be this way [Metal Gear Rising Revengeance].🗿",
+                "../../../watery graves [Plants vs. Zombies].🗿",
+                "../../../catastrophe_tdw_v2.🗿"
+            };
             var output = new List<string>();
             foreach (var arg in args)
                 try
                 {
-                    if (!File.Exists(arg)) continue;
+                    if (!File.Exists(arg))
+                    {
+                        Console.WriteLine($"File: \"{arg}\" doesn't exist.");
+                        continue;
+                    }
                     var file = await File.ReadAllTextAsync(arg);
                     output.Add(file);
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Failed to open file in args: \"{arg}\" - Exception: {e}");
+                    throw;
                 }
 
             foreach (var arg in list)
                 try
                 {
-                    if (!File.Exists(arg)) continue;
+                    if (!File.Exists(arg))
+                    {
+                        Console.WriteLine($"File: \"{arg}\" doesn't exist.");
+                        continue;
+                    }
                     var file = await File.ReadAllTextAsync(arg);
                     output.Add(file);
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine($"Failed to open file in predefined list: \"{arg}\" - Exception: {e}");
+                    throw;
                 }
 
+            var num = 1;
             foreach (var encoder in output.Select(Composition.FromString).Select(comp => new PcmEncoder
             {
                 Composition = comp
             }))
             {
                 encoder.Start();
-                encoder.Play();
+                encoder.Play(num);
+                num++;
             }
             
             Console.WriteLine("Finished Executing.");
@@ -91,7 +105,8 @@ namespace ThirtyDollarWebsiteConverter
                 // All the files have different sample rates and channels, so I reencoded them all to 48000Hz - 1 channel.
                 DownloadFile = $"./Sounds/{file}.wav";
                 if (File.Exists(DownloadFile)) continue;
-                var client = new WebClient(); //I don't care that it's obselete. fuck off, i have my progress changed event. /s I am lazy.
+                var client =
+                    new WebClient(); //I don't care that it's obselete. fuck off, i have my progress changed event. /s I am lazy.
                 //TODO: Update to HttpClient.
                 client.DownloadProgressChanged += (_, args) => { DownloadPercent = args.ProgressPercentage; };
                 await client.DownloadFileTaskAsync(httpRequest, $"./Sounds/{file}.wav");
