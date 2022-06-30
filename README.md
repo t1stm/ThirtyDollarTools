@@ -47,6 +47,6 @@ Audio output quality: Garbage, constantly clipping. Sounds like Fishers' Price t
 
 Loops and things: Not stable, constantly cause errors with the result.
 
-Changing speed of samples: Works, but needs fine tuning to get the octaves right.
+Changing speed of samples: Working with the intended (site's) behavior.
 
 Changing volumes: Working.
