@@ -49,4 +49,4 @@ Loops and things: Not stable, constantly cause errors with the result.
 
 Changing speed of samples: Works, but needs fine tuning to get the octaves right.
 
-Changing volumes: Not implemented, yet.
+Changing volumes: Working.
