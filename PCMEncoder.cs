@@ -172,32 +172,8 @@ namespace ThirtyDollarWebsiteConverter
                         continue;
                     }
 
-                    uint targetRate;
-                    // Speed Math
-                    if (ev.Value > 0)
-                    {
-                        var tmp = ev.Value;
-                        var dev2 = SampleRate / 2;
-                        while (tmp > 12)
-                        {
-                            dev2 /= 2;
-                            tmp -= 12;
-                        }
-                        targetRate = (uint) (SampleRate - dev2 * (tmp / 12));
-                    }
-                    else
-                    {
-                        var tmp = ev.Value;
-                        var by2 = SampleRate * 2;
-                        while (tmp < -12)
-                        {
-                            by2 *= 2;
-                            tmp += 12;
-                        }
-                        tmp = Math.Abs(ev.Value);
-                        if (tmp == 0) targetRate = by2;
-                        else targetRate = (uint) (SampleRate + by2 * 0.5 * (tmp * 0.083D));
-                    }
+                    var scale = Math.Pow(2, ev.Value / 12);
+                    uint targetRate = (uint) (SampleRate / scale);
                     //Console.WriteLine($"Processing: {ev.SampleId}, {ev.SampleLength}, {++TimesExec}, {ev.Value}, {ev.ValueTimes}");
                     var sampleData = Resample(Program.Samples[ev.SampleId], SampleRate, targetRate, Channels);
                     samples.Add(new ProcessedSample
