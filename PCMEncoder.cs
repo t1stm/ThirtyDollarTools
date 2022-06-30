@@ -11,18 +11,9 @@ namespace ThirtyDollarWebsiteConverter
         private const uint SampleRate = 48000; //Hz
         private const int Channels = 1;
         private List<short> PcmBytes { get; } = new();
-        private List<int> Triggers { get; } = new();
         public Composition? Composition { get; init; }
         
         public static ulong TimesExec { get; set; }
-
-        private void AddTrigger(int position)
-        {
-            lock (Triggers)
-            {
-                Triggers.Add(position);
-            }
-        }
 
         private void AddOrChangeByte(short pcmByte, int index)
         {
@@ -94,6 +85,7 @@ namespace ThirtyDollarWebsiteConverter
                                 if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget) continue;
                                 i = j - 1;
                             }
+                            Console.WriteLine($"Going to element: ({i}) - {Composition.Events[i]}");
                             continue;
                     
                         case SoundEvent.LoopTarget:
@@ -110,6 +102,7 @@ namespace ThirtyDollarWebsiteConverter
                             //i = Triggers[(int) ev.Value - 1] - 1;
                             i = Composition.Events.IndexOf(Composition.Events.First(r =>
                                 r.SoundEvent == SoundEvent.SetTarget && (int) r.Value == (int) ev.Value)) - 1;
+                            Console.WriteLine($"Jumping to element: ({i}) - {Composition.Events[i]}");
                             count--;
                             continue;
                         
