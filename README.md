@@ -2,7 +2,7 @@
 
 Hello! If you're reading this then you're searching for things related to the Thirty Dollar Website https://thirtydollar.website/ and found this project. 
 
-This project is an experiment to see how to work with PCM audio. It takes a .🗿 file and uses it's data to form a playable track. 
+This project is an experiment (which isn't completed yet, to see the things that I've done look at the bottom of the README) to see how to work with PCM audio. It takes a .🗿 file and uses it's data to form a playable track. 
 
 (Will be added in the future, as it now outputs raw PCM instead of the WAVE format) 
 
@@ -30,3 +30,17 @@ Radiotomatosauce99 - "It has to be this way [Metal Gear Rising Revengeance].🗿
 Xenon Neko - "catastrophe_tdw_v2.🗿" Link: https://www.youtube.com/watch?v=UqqMvkD1QMg
 
 Me - other sequence files.
+
+
+
+
+
+Things that are currently working great or not so great:
+
+Serializing the composition: Finished.
+
+Timing the track: Done, but really funky at the moment.
+
+Audio output quality: Garbage, constantly clipping. Sounds like Fishers' Price toys.
+
+Loops and things: Not stable, constanctly cause errors with the result.
