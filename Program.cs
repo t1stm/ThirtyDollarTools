@@ -23,10 +23,10 @@ namespace ThirtyDollarWebsiteConverter
             await LoadSamplesIntoMemory();
             var list = new List<string>
             {
-                "../../../big shot [Deltarune].🗿",
-                "../../../It has to be this way [Metal Gear Rising Revengeance].🗿",
-                "../../../watery graves [Plants vs. Zombies].🗿",
-                "../../../catastrophe_tdw_v2.🗿"
+                "../../../Included Sequences/big shot [Deltarune].🗿",
+                "../../../Included Sequences/It has to be this way [Metal Gear Rising Revengeance].🗿",
+                "../../../Included Sequences/watery graves [Plants vs. Zombies].🗿",
+                "../../../Included Sequences/catastrophe_tdw_v2.🗿"
             };
             var output = new List<string>();
             foreach (var arg in args)
