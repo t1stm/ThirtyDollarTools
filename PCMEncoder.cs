@@ -12,7 +12,7 @@ namespace ThirtyDollarWebsiteConverter
         private const int Channels = 1;
         private List<short> PcmBytes { get; } = new();
         public Composition? Composition { get; init; }
-        
+
         public static ulong TimesExec { get; set; }
 
         private void AddOrChangeByte(short pcmByte, int index)
@@ -24,23 +24,23 @@ namespace ThirtyDollarWebsiteConverter
                     int a = pcmByte;
                     int b = PcmBytes[index];
                     int m;
-                    
+
                     a += 32768;
                     b += 32768;
-                    
-                    if (a < 32768 || b < 32768) {
+
+                    if (a < 32768 || b < 32768)
                         m = a * b / 32768;
-                    } else {
+                    else
                         m = 2 * (a + b) - a * b / 32768 - 65536;
-                    }
                     if (m == 65536) m = 65535;
                     m -= 32768;
-                    
+
                     PcmBytes[index] = (short) m;
-                    
+
                     //PcmBytes[index] = (short) ((pcmByte + PcmBytes[index]) / 2);
                     return;
                 }
+
                 if (index >= PcmBytes.Count) FillWithZeros(index);
                 PcmBytes[index] = pcmByte;
             }
@@ -50,10 +50,7 @@ namespace ThirtyDollarWebsiteConverter
         {
             lock (PcmBytes)
             {
-                while (index >= PcmBytes.Count)
-                {
-                    PcmBytes.Add(0);
-                }
+                while (index >= PcmBytes.Count) PcmBytes.Add(0);
             }
         }
 
@@ -62,7 +59,8 @@ namespace ThirtyDollarWebsiteConverter
             var bpm = 300.0;
             ulong placement = 1;
             var count = Composition?.Events.Count ?? 0;
-            for (int i = 0; i < Composition?.Events.Count; i++)
+            double volume = 100;
+            for (var i = 0; i < Composition?.Events.Count; i++)
             {
                 var ev = Composition.Events[i];
                 try
@@ -80,22 +78,15 @@ namespace ThirtyDollarWebsiteConverter
                             count--;
                             if (ev.Value <= 0) continue;
                             ev.Value--;
-                            for (int j = i; j > 0; j--)
+                            for (var j = i; j > 0; j--)
                             {
                                 if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget) continue;
                                 i = j - 1;
                             }
+
                             Console.WriteLine($"Going to element: ({i}) - {Composition.Events[i]}");
                             continue;
-                    
-                        case SoundEvent.LoopTarget:
-                            count--;
-                            continue;
-                    
-                        case SoundEvent.SetTarget:
-                            count--;
-                            continue;
-                        
+
                         case SoundEvent.JumpToTarget:
                             if (ev.Loop == 0) continue;
                             ev.Loop--;
@@ -105,23 +96,25 @@ namespace ThirtyDollarWebsiteConverter
                             Console.WriteLine($"Jumping to element: ({i}) - {Composition.Events[i]}");
                             count--;
                             continue;
-                        
-                        case SoundEvent.CutAllSounds:
-                            count--;
-                            continue;
-                        
-                        case SoundEvent.None:
-                            count--;
-                            continue;
-                        
+
                         case SoundEvent.Pause:
-                            placement++;
+                            placement += 1;
+                            count--;
+                            continue;
+
+                        case SoundEvent.Volume:
+                            if (ev.ValueTimes) volume *= ev.Value;
+                            else volume = ev.Value;
+                            continue;
+                        
+                        case SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget:
                             count--;
                             continue;
                     }
-                    
+
                     List<Event> processAtTheSameTime = new() {Composition.Events[i]};
-                    while (i < Composition.Events.Count - 1 && Composition.Events[i + 1].SoundEvent == SoundEvent.Combine)
+                    while (i < Composition.Events.Count - 1 &&
+                           Composition.Events[i + 1].SoundEvent == SoundEvent.Combine)
                     {
                         processAtTheSameTime.Add(Composition.Events[i + 2]);
                         i += 2;
@@ -136,8 +129,10 @@ namespace ThirtyDollarWebsiteConverter
                     var scale = (int) (median * placement);
 
                     var index = scale - scale % 2;
-                    Console.WriteLine($"Processing Events: ({placement} - {count}) \"{processAtTheSameTime.ListElements()}\"");
-                    HandleProcessing(processAtTheSameTime, index, breakEarly ? (int) median : -1);
+                    Console.WriteLine(
+                        $"Processing Events: [{scale}] - ({placement} - {count}) \"{processAtTheSameTime.ListElements()}\"");
+                    //Console.ReadLine();
+                    HandleProcessing(processAtTheSameTime, index, breakEarly ? (int) median : -1, volume);
                     if (ev.Loop > 1)
                     {
                         ev.Loop--;
@@ -158,15 +153,15 @@ namespace ThirtyDollarWebsiteConverter
             public int ProcessedChunks { get; set; }
             public int SampleLength => SampleData?.Length ?? 0;
         }
-        
-        private void HandleProcessing(IReadOnlyList<Event> events, int index, int breakAtIndex)
+
+        private void HandleProcessing(IReadOnlyList<Event> events, int index, int breakAtIndex, double volume)
         {
             try
             {
                 var biggest = events.Select(ev => ev.SampleLength).Prepend(0).Max();
 
                 List<ProcessedSample> samples = new();
-                
+
                 foreach (var ev in events)
                 {
                     if (ev.Value == 0)
@@ -177,8 +172,31 @@ namespace ThirtyDollarWebsiteConverter
                         });
                         continue;
                     }
-                    var times = 1 - ev.Value * 0.05;
-                    var targetRate = (uint) (times < 0 ? 0.05 : times  * SampleRate);
+
+                    uint targetRate;
+                    // Speed Math
+                    if (ev.Value > 0)
+                    {
+                        var dev2 = SampleRate / 2;
+                        while (ev.Value > 12)
+                        {
+                            dev2 /= 2;
+                            ev.Value -= 12;
+                        }
+                        targetRate = (uint) (SampleRate - dev2 * (ev.Value / 12));
+                    }
+                    else
+                    {
+                        var by2 = SampleRate * 2;
+                        while (ev.Value < -12)
+                        {
+                            by2 *= 2;
+                            ev.Value += 12;
+                        }
+                        var tmp = (uint) Math.Abs(ev.Value);
+                        if (tmp == 0) targetRate = by2;
+                        else targetRate = (uint) (SampleRate + by2 * 0.5 * (tmp * 0.083D));
+                    }
                     //Console.WriteLine($"Processing: {ev.SampleId}, {ev.SampleLength}, {++TimesExec}, {ev.Value}, {ev.ValueTimes}");
                     var sampleData = Resample(Program.Samples[ev.SampleId], SampleRate, targetRate, Channels);
                     samples.Add(new ProcessedSample
@@ -216,12 +234,9 @@ namespace ThirtyDollarWebsiteConverter
                         final = m;
                     }
 
-                    if (breakAtIndex != -1 && i == breakAtIndex) return; 
-                    AddOrChangeByte((short) final, index + i);
-                    foreach (var ev in samples)
-                    {
-                        ev.ProcessedChunks++;
-                    }
+                    if (breakAtIndex != -1 && i == breakAtIndex) return;
+                    AddOrChangeByte((short) (final * volume / 100), index + i);
+                    foreach (var ev in samples) ev.ProcessedChunks++;
                 }
             }
             catch (Exception e)
@@ -246,7 +261,9 @@ namespace ThirtyDollarWebsiteConverter
             }
         }
 
-        private unsafe ulong Resample16B(short* input, short* output, uint inSampleRate, uint outSampleRate, ulong inputSize, uint channels) 
+        // Original Source: https://github.com/cpuimage/resampler
+        private unsafe ulong Resample16B(short* input, short* output, uint inSampleRate, uint outSampleRate,
+            ulong inputSize, uint channels)
         {
             var outputSize = (ulong) (inputSize * (double) outSampleRate / inSampleRate);
             outputSize -= outputSize % channels;
@@ -257,18 +274,20 @@ namespace ThirtyDollarWebsiteConverter
             const double normFixed = 1.0 / ((ulong) 1 << 32);
             var step = (ulong) (stepDist * fixedFraction + 0.5);
             ulong curOffset = 0;
-            for (uint i = 0; i < outputSize; i += 1) {
-                for (uint c = 0; c < channels; c += 1) {
-                    *output++ = (short) (input[c] + (input[c + channels] - input[c]) * ((curOffset >> 32) + (curOffset & (fixedFraction - 1)) * normFixed));
-                }
+            for (uint i = 0; i < outputSize; i += 1)
+            {
+                for (uint c = 0; c < channels; c += 1)
+                    *output++ = (short) (input[c] + (input[c + channels] - input[c]) *
+                        ((curOffset >> 32) + (curOffset & (fixedFraction - 1)) * normFixed));
                 curOffset += step;
                 input += (curOffset >> 32) * channels;
                 curOffset &= fixedFraction - 1;
             }
+
             return outputSize;
         }
 
-        public async Task Play()
+        public void Play()
         {
             /*var prg = new Process
             {
@@ -295,12 +314,8 @@ namespace ThirtyDollarWebsiteConverter
             await prg.WaitForExitAsync();*/
 
             var stream = new BinaryWriter(File.Open("./out.wav", FileMode.Create));
-            foreach (var data in PcmBytes)
-            {
-                stream.Write(data);
-            }
+            foreach (var data in PcmBytes) stream.Write(data);
             stream.Close();
-
         }
     }
 }

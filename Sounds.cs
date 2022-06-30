@@ -165,6 +165,7 @@ namespace ThirtyDollarWebsiteConverter
         JumpToTarget,
         SetTarget,
         Pause,
+        Volume,
         None
     }
 
@@ -176,6 +177,7 @@ namespace ThirtyDollarWebsiteConverter
             {
                 "last" => SoundEvent.None,
                 "!loopmany" => SoundEvent.GoToLoop,
+                "!volume" => SoundEvent.Volume,
                 "!flash" => SoundEvent.None,
                 "!combine" => SoundEvent.Combine,
                 "!speed" => SoundEvent.Speed,

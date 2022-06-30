@@ -24,8 +24,8 @@ namespace ThirtyDollarWebsiteConverter
             
             //var list = new List<string> {"../../../catastrophe_tdw_v2.🗿"};
             //var list = new List<string> {"../../../It has to be this way [Metal Gear Rising Revengeance].🗿"};
-            //var list = new List<string> {"../../../big shot [Deltarune].🗿"};
-            var list = new List<string> {"../../../watery graves [Plants vs. Zombies].🗿"};
+            var list = new List<string> {"../../../big shot [Deltarune].🗿"};
+            //var list = new List<string> {"../../../watery graves [Plants vs. Zombies].🗿"};
             var output = new List<string>();
             foreach (var arg in args)
                 try
@@ -57,7 +57,7 @@ namespace ThirtyDollarWebsiteConverter
             }))
             {
                 encoder.Start();
-                await encoder.Play();
+                encoder.Play();
             }
             
             Console.WriteLine("Finished Executing.");

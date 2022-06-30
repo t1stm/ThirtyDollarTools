@@ -342,6 +342,7 @@ namespace ThirtyDollarWebsiteConverter
                 SoundEvent.JumpToTarget => "expr",
                 SoundEvent.SetTarget => "expr",
                 SoundEvent.None => "none",
+                SoundEvent.Volume => "volume",
                 _ => throw new ArgumentOutOfRangeException(nameof(ev), ev, null)
             };
         }
