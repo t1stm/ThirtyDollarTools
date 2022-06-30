@@ -1,0 +1,358 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+
+namespace ThirtyDollarWebsiteConverter
+{
+    public class PcmEncoder
+    {
+        private const uint SampleRate = 48000; //Hz
+        private const int Channels = 1;
+        private List<short> PcmBytes { get; } = new();
+        private List<int> Triggers { get; } = new();
+        public Composition? Composition { get; init; }
+        
+        public static ulong TimesExec { get; set; }
+
+        private void AddTrigger(int position)
+        {
+            lock (Triggers)
+            {
+                Triggers.Add(position);
+            }
+        }
+
+        private void AddOrChangeByte(short pcmByte, int index)
+        {
+            lock (PcmBytes)
+            {
+                if (index < PcmBytes.Count)
+                {
+                    int a = pcmByte;
+                    int b = PcmBytes[index];
+                    int m;
+                    
+                    a += 32768;
+                    b += 32768;
+                    
+                    if (a < 32768 || b < 32768) {
+                        m = a * b / 32768;
+                    } else {
+                        m = 2 * (a + b) - a * b / 32768 - 65536;
+                    }
+                    if (m == 65536) m = 65535;
+                    m -= 32768;
+                    
+                    PcmBytes[index] = (short) m;
+                    
+                    //PcmBytes[index] = (short) ((pcmByte + PcmBytes[index]) / 2);
+                    return;
+                }
+                if (index >= PcmBytes.Count) FillWithZeros(index);
+                PcmBytes[index] = pcmByte;
+            }
+        }
+
+        private void FillWithZeros(int index)
+        {
+            lock (PcmBytes)
+            {
+                while (index >= PcmBytes.Count)
+                {
+                    PcmBytes.Add(0);
+                }
+            }
+        }
+
+        public void Start()
+        {
+            var bpm = 300.0;
+            ulong placement = 1;
+            var count = Composition?.Events.Count ?? 0;
+            for (int i = 0; i < Composition?.Events.Count; i++)
+            {
+                var ev = Composition.Events[i];
+                try
+                {
+                    switch (ev.SoundEvent)
+                    {
+                        case SoundEvent.Speed:
+                            if (ev.ValueTimes) bpm *= ev.Value;
+                            else bpm = ev.Value;
+                            count--;
+                            Console.WriteLine($"BPM is now: {bpm}");
+                            continue;
+
+                        case SoundEvent.GoToLoop:
+                            count--;
+                            if (ev.Value <= 0) continue;
+                            ev.Value--;
+                            for (int j = i; j > 0; j--)
+                            {
+                                if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget) continue;
+                                i = j - 1;
+                            }
+                            continue;
+                    
+                        case SoundEvent.LoopTarget:
+                            count--;
+                            continue;
+                    
+                        case SoundEvent.SetTarget:
+                            count--;
+                            continue;
+                        
+                        case SoundEvent.JumpToTarget:
+                            if (ev.Loop == 0) continue;
+                            ev.Loop--;
+                            //i = Triggers[(int) ev.Value - 1] - 1;
+                            i = Composition.Events.IndexOf(Composition.Events.First(r =>
+                                r.SoundEvent == SoundEvent.SetTarget && (int) r.Value == (int) ev.Value)) - 1;
+                            count--;
+                            continue;
+                        
+                        case SoundEvent.CutAllSounds:
+                            count--;
+                            continue;
+                        
+                        case SoundEvent.None:
+                            count--;
+                            continue;
+                        
+                        case SoundEvent.Pause:
+                            placement++;
+                            count--;
+                            continue;
+                    }
+                    
+                    List<Event> processAtTheSameTime = new() {Composition.Events[i]};
+                    while (i < Composition.Events.Count - 1 && Composition.Events[i + 1].SoundEvent == SoundEvent.Combine)
+                    {
+                        processAtTheSameTime.Add(Composition.Events[i + 2]);
+                        i += 2;
+                    }
+
+                    var breakEarly = i + count < Composition?.Events.Count &&
+                                     Composition?.Events[i + 1].SoundEvent == SoundEvent.CutAllSounds;
+
+                    count -= processAtTheSameTime.Count;
+                    placement++;
+                    var median = SampleRate / (bpm / 60);
+                    var scale = (int) (median * placement);
+
+                    var index = scale - scale % 2;
+                    Console.WriteLine($"Processing Events: ({placement} - {count}) \"{processAtTheSameTime.ListElements()}\"");
+                    HandleProcessing(processAtTheSameTime, index, breakEarly ? (int) median : -1);
+                    if (ev.Loop > 1)
+                    {
+                        ev.Loop--;
+                        i--;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            }
+        }
+
+        private class ProcessedSample
+        {
+            public short[]? SampleData { get; init; }
+            public int ProcessedChunks { get; set; }
+            public int SampleLength => SampleData?.Length ?? 0;
+        }
+        
+        private void HandleProcessing(IReadOnlyList<Event> events, int index, int breakAtIndex)
+        {
+            try
+            {
+                var biggest = events.Select(ev => ev.SampleLength).Prepend(0).Max();
+
+                List<ProcessedSample> samples = new();
+                
+                foreach (var ev in events)
+                {
+                    if (ev.Value == 0)
+                    {
+                        samples.Add(new ProcessedSample
+                        {
+                            SampleData = Program.Samples[ev.SampleId]
+                        });
+                        continue;
+                    }
+                    var times = 1 - ev.Value * 0.05;
+                    var targetRate = (uint) (times < 0 ? 0.05 : times  * SampleRate);
+                    //Console.WriteLine($"Processing: {ev.SampleId}, {ev.SampleLength}, {++TimesExec}, {ev.Value}, {ev.ValueTimes}");
+                    var sampleData = Resample(Program.Samples[ev.SampleId], SampleRate, targetRate, Channels);
+                    samples.Add(new ProcessedSample
+                    {
+                        SampleData = sampleData
+                    });
+                }
+
+                for (var i = 0; i < biggest; i++)
+                {
+                    var el = samples.Where(q => q.ProcessedChunks < q.SampleLength).ToList();
+                    var final = 0;
+
+                    foreach (var r in el)
+                    {
+                        if (el.Count == 1)
+                        {
+                            final = r.SampleData?[r.ProcessedChunks] ?? 0;
+                            continue;
+                        }
+
+                        var a = final;
+                        int b = r.SampleData?[r.ProcessedChunks] ?? 0;
+                        int m;
+
+                        a += 32768;
+                        b += 32768;
+
+                        if (a < 32768 || b < 32768)
+                            m = a * b / 32768;
+                        else
+                            m = 2 * (a + b) - a * b / 32768 - 65536;
+                        if (m == 65536) m = 65535;
+                        m -= 32768;
+                        final = m;
+                    }
+
+                    if (breakAtIndex != -1 && i == breakAtIndex) return; 
+                    AddOrChangeByte((short) final, index + i);
+                    foreach (var ev in samples)
+                    {
+                        ev.ProcessedChunks++;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        private unsafe short[] Resample(short[] samples, uint sampleRate, uint targetSampleRate, uint channels)
+        {
+            fixed (short* vals = samples)
+            {
+                var length = Resample16B(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
+                    channels);
+                short[] alloc = new short[(int) length];
+                fixed (short* output = alloc)
+                {
+                    Resample16B(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
+                }
+
+                return alloc;
+            }
+        }
+
+        private unsafe ulong Resample16B(short* input, short* output, uint inSampleRate, uint outSampleRate, ulong inputSize, uint channels) 
+        {
+            var outputSize = (ulong) (inputSize * (double) outSampleRate / inSampleRate);
+            outputSize -= outputSize % channels;
+            if (output == null)
+                return outputSize;
+            var stepDist = (double) inSampleRate / outSampleRate;
+            const ulong fixedFraction = (ulong) 1 << 32;
+            const double normFixed = 1.0 / ((ulong) 1 << 32);
+            var step = (ulong) (stepDist * fixedFraction + 0.5);
+            ulong curOffset = 0;
+            for (uint i = 0; i < outputSize; i += 1) {
+                for (uint c = 0; c < channels; c += 1) {
+                    *output++ = (short) (input[c] + (input[c + channels] - input[c]) * ((curOffset >> 32) + (curOffset & (fixedFraction - 1)) * normFixed));
+                }
+                curOffset += step;
+                input += (curOffset >> 32) * channels;
+                curOffset &= fixedFraction - 1;
+            }
+            return outputSize;
+        }
+
+        public async Task Play()
+        {
+            /*var prg = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "/usr/bin/mpv",
+                    Arguments = "--player-operation-mode=pseudo-gui -",
+                    RedirectStandardInput = true,
+                    UseShellExecute = false
+                }
+            };
+            prg.Start();
+
+            for (var i = 0; i < PcmBytes.Count; i++)
+            {
+                await prg.StandardInput.WriteAsync((char) PcmBytes[i]);
+                
+                while (i + 1 == PcmBytes.Count && !Exited)
+                {
+                    await Task.Delay(4);
+                }
+            }
+            
+            await prg.WaitForExitAsync();*/
+
+            var stream = new BinaryWriter(File.Open("./out.wav", FileMode.Create));
+            foreach (var data in PcmBytes)
+            {
+                stream.Write(data);
+            }
+            stream.Close();
+
+        }
+        private static unsafe T[] AllocateArray<T>(void* source, int length) //Stolen from StackOverflow: cringe
+        {
+            var type = typeof(T);
+            var sizeInBytes =  Marshal.SizeOf(typeof(T));
+
+            T[] output = new T[length];
+
+            if (type.IsPrimitive)
+            {
+                // Make sure the array won't be moved around by the GC 
+                var handle = GCHandle.Alloc(output, GCHandleType.Pinned);
+
+                var destination = (byte*)handle.AddrOfPinnedObject().ToPointer();
+                var byteLength = length * sizeInBytes;
+
+                // There are faster ways to do this, particularly by using wider types or by 
+                // handling special lengths.
+                for (int i = 0; i < byteLength; i++)
+                    destination[i] = ((byte*) source)[i];
+
+                handle.Free();
+            }
+            else if (type.IsValueType)
+            {
+                if (!type.IsLayoutSequential && !type.IsExplicitLayout)
+                {
+                    throw new InvalidOperationException($"{type} does not define a StructLayout attribute");
+                }
+                var sourcePtr = new IntPtr(source);
+
+                for (int i = 0; i < length; i++)
+                {
+                    var p = new IntPtr((byte*)source + i * sizeInBytes);
+
+                    output[i] = (T) Marshal.PtrToStructure(p, typeof(T))! ?? throw new InvalidOperationException();
+                }
+            }
+            else 
+            {
+                throw new InvalidOperationException($"{type} is not supported");
+            }
+
+            return output;
+        }
+    }
+}
