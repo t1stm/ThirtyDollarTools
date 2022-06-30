@@ -9,3 +9,14 @@ To use the audio made by this project, you need to open it in Audacity using Imp
 "Encoding: Singned 16-bit PCM", "Byte order: Little Endian", "Channels: 1", or use it in something else that supports raw PCM.
  
 If you want to help, please feel free to submit pull requests, as I am rather incompetent in working with PCM samples and audio in general.
+
+
+Sources for the included .🗿 files:
+
+Radiotomatosauce99 - "big shot [Deltarune].🗿" Link: https://www.youtube.com/watch?v=_D9RL5X4c2M
+
+Radiotomatosauce99 - "It has to be this way [Metal Gear Rising Revengeance].🗿" Link: https://www.youtube.com/watch?v=3ISh6lAK0kI
+
+Xenon Neko - "catastrophe_tdw_v2.🗿" Link: https://www.youtube.com/watch?v=UqqMvkD1QMg
+
+Me - other sequence files.
