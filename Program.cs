@@ -21,12 +21,13 @@ namespace ThirtyDollarWebsiteConverter
         {
             if (!HasFiles()) await DownloadFiles();
             await LoadSamplesIntoMemory();
+            bool isInBinFolder = Directory.GetCurrentDirectory() == "bin";
             var list = new List<string>
             {
-                "../../../Included Sequences/big shot [Deltarune].🗿",
-                "../../../Included Sequences/It has to be this way [Metal Gear Rising Revengeance].🗿",
-                "../../../Included Sequences/watery graves [Plants vs. Zombies].🗿",
-                "../../../Included Sequences/catastrophe_tdw_v2.🗿"
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/big shot [Deltarune].🗿",
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/It has to be this way [Metal Gear Rising Revengeance].🗿",
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/watery graves [Plants vs. Zombies].🗿",
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/catastrophe_tdw_v2.🗿"
             };
             var output = new List<string>();
             foreach (var arg in args)
