@@ -21,7 +21,7 @@ namespace ThirtyDollarWebsiteConverter
         {
             if (!HasFiles()) await DownloadFiles();
             await LoadSamplesIntoMemory();
-            bool isInBinFolder = Directory.GetCurrentDirectory() == "bin";
+            var isInBinFolder = Directory.GetCurrentDirectory() == "bin";
             var list = new List<string>
             {
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/big shot [Deltarune].🗿",
@@ -87,7 +87,7 @@ namespace ThirtyDollarWebsiteConverter
             }
 
             var read = Directory.GetFiles("./Sounds");
-            return read.Length == 155;
+            return read.Length >= 155;
         }
 
         private static async Task DownloadFiles()
@@ -119,6 +119,7 @@ namespace ThirtyDollarWebsiteConverter
 
         private static async Task LoadSamplesIntoMemory()
         {
+            int time = 0;
             foreach (var file in LongThings.AudioFiles)
             {
                 if (file == "last")
@@ -127,12 +128,28 @@ namespace ThirtyDollarWebsiteConverter
                     continue;
                 }
                 var fileStream = await File.ReadAllBytesAsync($"./Sounds/{file}.wav");
-                var buf = fileStream[88..];
+                var offset = 0;
+                
+                for (var i = 0; i < fileStream.Length; i++)
+                {
+                    if (fileStream[i] != 0x64 && fileStream[i + 1] != 0x61 && fileStream[i + 2] != 0x74 &&
+                        fileStream[i + 3] != 0x61) continue; // Data Header in Hex Bytes
+                    offset = i * 6 + 8;
+                    Console.WriteLine($"Offset is: {offset}");
+                    break;
+                }
+
+                if (offset == 0) throw new FileLoadException("Unable to find \"data\" header.");
+
+                var buf = fileStream[offset..];
+                
                 short[] buffer = new short[buf.Length / 2];
                 for (var i = 0; i < buf.Length / 2; i++)
-                    buffer[i] = (short) ((buf[i * 2] & 0xff) | (buf[i * 2 + 1] << 8));
+                    //buffer[i] = (short) ((buf[i * 2] & 0xff) | (buf[i * 2 + 1] << 8));
+                    buffer[i] = BitConverter.ToInt16(buf, i * 2);
                 Samples.Add(buffer);
                 Console.WriteLine($"Reading sample: {file}.wav");
+                time++;
             }
             Console.WriteLine($"Samples: {Samples.Count}");
         }

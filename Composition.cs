@@ -13,7 +13,7 @@ namespace ThirtyDollarWebsiteConverter
                 SoundEvent = SoundEvent.Speed,
                 Value = 300,
                 Loop = 1,
-                ValueTimes = false
+                ValueScale = ValueScale.None
             }
         };
         
@@ -26,12 +26,16 @@ namespace ThirtyDollarWebsiteConverter
             {
                 var splitForPitch = text.Split('@');
                 var splitForRepeats = text.Split('=');
-                var pitch = 0.0;
-                var pitchTimes = false;
+                var value = 0.0;
+                var scale = ValueScale.None;
                 try
                 {
-                    if (splitForPitch.Length > 1) pitch = double.Parse(splitForPitch[1].Split('=')[0]);
-                    if (splitForPitch.Length > 2) pitchTimes = true;
+                    if (splitForPitch.Length > 1) value = double.Parse(splitForPitch[1].Split('=')[0]);
+                    if (splitForPitch.Length > 2)
+                    {
+                        scale = splitForPitch[1] switch {"x" => ValueScale.Times, "+" => ValueScale.Add, _ => ValueScale.None};
+                        Console.WriteLine($"Setting pitch to: {scale}");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -44,10 +48,10 @@ namespace ThirtyDollarWebsiteConverter
                 if (splitForRepeats.Length > 1) times = int.Parse(splitForRepeats.Last());
                 var newEvent = new Event
                 {
-                    Value = pitch,
+                    Value = value,
                     SoundEvent = Sounds.FromString(yes),
                     Loop = times,
-                    ValueTimes = pitchTimes
+                    ValueScale = scale
                 };
                 comp.Events.Add(newEvent);
             }

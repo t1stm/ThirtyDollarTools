@@ -20,19 +20,19 @@ namespace ThirtyDollarWebsiteConverter
             {
                 if (index < PcmBytes.Count)
                 {
-                    int a = pcmByte;
-                    int b = PcmBytes[index];
-                    int m;
+                    float a = pcmByte;
+                    float b = PcmBytes[index];
+                    float m;
 
-                    a += 32768;
-                    b += 32768;
+                    a += 32768f;
+                    b += 32768f;
 
-                    if (a < 32768 || b < 32768)
-                        m = a * b / 32768;
+                    if (a < 32768f || b < 32768f)
+                        m = a * b / 32768f;
                     else
-                        m = 2 * (a + b) - a * b / 32768 - 65536;
-                    if (m == 65536) m = 65535;
-                    m -= 32768;
+                        m = 2 * (a + b) - a * b / 32768f - 65536f;
+                    if (m >= 65535f) m = 65535f;
+                    m -= 32768f;
 
                     PcmBytes[index] = (short) m;
 
@@ -55,11 +55,35 @@ namespace ThirtyDollarWebsiteConverter
 
         public void Start()
         {
+            if (Composition == null) throw new Exception("Null Composition");
             var bpm = 300.0;
-            ulong placement = 1;
-            var count = Composition?.Events.Count ?? 0;
+            double placement = 0;
+            var count = Composition.Events.Count;
             double volume = 100;
-            for (var i = 0; i < Composition?.Events.Count; i++)
+            foreach (var ev in Composition.Events) //Quick pass for volume
+            {
+                switch (ev.SoundEvent)
+                {
+                    case SoundEvent.Volume:
+                        switch (ev.ValueScale)
+                        {
+                            case ValueScale.Times:
+                                volume *= ev.Value;
+                                break;
+                            case ValueScale.Add:
+                                volume += ev.Value;
+                                break;
+                            case ValueScale.None:
+                                volume = ev.Value;
+                                break;
+                        }
+                        break;
+                }
+                ev.Volume = volume;
+            }
+            
+            Composition.Events.RemoveAll(e => e.SoundEvent == SoundEvent.Volume);
+            for (var i = 0; i < Composition!.Events.Count; i++)
             {
                 var ev = Composition.Events[i];
                 try
@@ -67,8 +91,18 @@ namespace ThirtyDollarWebsiteConverter
                     switch (ev.SoundEvent)
                     {
                         case SoundEvent.Speed:
-                            if (ev.ValueTimes) bpm *= ev.Value;
-                            else bpm = ev.Value;
+                            switch (ev.ValueScale)
+                            {
+                                case ValueScale.Times:
+                                    bpm *= ev.Value;
+                                    break;
+                                case ValueScale.Add:
+                                    bpm += ev.Value;
+                                    break;
+                                case ValueScale.None:
+                                    bpm = ev.Value;
+                                    break;
+                            }
                             count--;
                             Console.WriteLine($"BPM is now: {bpm}");
                             continue;
@@ -100,13 +134,8 @@ namespace ThirtyDollarWebsiteConverter
                             placement += 1;
                             count--;
                             continue;
-
-                        case SoundEvent.Volume:
-                            if (ev.ValueTimes) volume *= ev.Value;
-                            else volume = ev.Value;
-                            continue;
                         
-                        case SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget:
+                        case SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
                             count--;
                             continue;
                     }
@@ -123,15 +152,14 @@ namespace ThirtyDollarWebsiteConverter
                                      Composition?.Events[i + 1].SoundEvent == SoundEvent.CutAllSounds;
 
                     count -= processAtTheSameTime.Count;
-                    placement++;
                     var median = SampleRate / (bpm / 60);
                     var scale = (int) (median * placement);
-
-                    var index = scale - scale % 2;
+                    var index = scale + scale % 2;
                     Console.WriteLine(
                         $"Processing Events: [{scale}] - ({placement} - {count}) \"{processAtTheSameTime.ListElements()}\"");
                     //Console.ReadLine();
-                    HandleProcessing(processAtTheSameTime, index, breakEarly ? (int) median : -1, volume);
+                    HandleProcessing(processAtTheSameTime, index, breakEarly ? (int) median : -1);
+                    placement++;
                     if (ev.Loop > 1)
                     {
                         ev.Loop--;
@@ -151,9 +179,10 @@ namespace ThirtyDollarWebsiteConverter
             public short[]? SampleData { get; init; }
             public int ProcessedChunks { get; set; }
             public int SampleLength => SampleData?.Length ?? 0;
+            public double Volume { get; init; }
         }
 
-        private void HandleProcessing(IReadOnlyList<Event> events, int index, int breakAtIndex, double volume)
+        private void HandleProcessing(IReadOnlyList<Event> events, int index, int breakAtIndex)
         {
             try
             {
@@ -167,7 +196,8 @@ namespace ThirtyDollarWebsiteConverter
                     {
                         samples.Add(new ProcessedSample
                         {
-                            SampleData = Program.Samples[ev.SampleId]
+                            SampleData = Program.Samples[ev.SampleId],
+                            Volume = ev.Volume
                         });
                         continue;
                     }
@@ -178,41 +208,42 @@ namespace ThirtyDollarWebsiteConverter
                     var sampleData = Resample(Program.Samples[ev.SampleId], SampleRate, targetRate, Channels);
                     samples.Add(new ProcessedSample
                     {
-                        SampleData = sampleData
+                        SampleData = sampleData,
+                        Volume = ev.Volume
                     });
                 }
 
                 for (var i = 0; i < biggest; i++)
                 {
                     var el = samples.Where(q => q.ProcessedChunks < q.SampleLength).ToList();
-                    var final = 0;
+                    float final = 0;
 
                     foreach (var r in el)
                     {
                         if (el.Count == 1)
                         {
-                            final = r.SampleData?[r.ProcessedChunks] ?? 0;
+                            final = (float) ((r.SampleData?[r.ProcessedChunks] ?? 0) * (r.Volume * 0.5 / 100));
                             continue;
                         }
-
+                        
                         var a = final;
-                        int b = r.SampleData?[r.ProcessedChunks] ?? 0;
-                        int m;
+                        var b = (float) (r.SampleData?[r.ProcessedChunks] * (r.Volume * 0.5 / 100) ?? 0);
+                        float m;
 
-                        a += 32768;
-                        b += 32768;
+                        a += 32768f;
+                        b += 32768f;
 
-                        if (a < 32768 || b < 32768)
-                            m = a * b / 32768;
+                        if (a < 32768f || b < 32768f)
+                            m = a * b / 32768f;
                         else
-                            m = 2 * (a + b) - a * b / 32768 - 65536;
-                        if (m == 65536) m = 65535;
-                        m -= 32768;
+                            m = 2 * (a + b) - a * b / 32768f - 65536f;
+                        if (m >= 65535f) m = 65535f;
+                        m -= 32768f;
                         final = m;
                     }
 
                     if (breakAtIndex != -1 && i == breakAtIndex) return;
-                    AddOrChangeByte((short) (final * volume / 100), index + i);
+                    AddOrChangeByte((short) final, index + i);
                     foreach (var ev in samples) ev.ProcessedChunks++;
                 }
             }
@@ -228,7 +259,7 @@ namespace ThirtyDollarWebsiteConverter
             {
                 var length = Resample16B(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
                     channels);
-                short[] alloc = new short[(int) length];
+                short[] alloc = new short[length];
                 fixed (short* output = alloc)
                 {
                     Resample16B(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
@@ -291,8 +322,31 @@ namespace ThirtyDollarWebsiteConverter
             await prg.WaitForExitAsync();*/
 
             var stream = new BinaryWriter(File.Open($"./out-{num}.wav", FileMode.Create));
+            AddWavHeader(stream);
+            stream.Write((short) 0);
             foreach (var data in PcmBytes) stream.Write(data);
             stream.Close();
+        }
+
+        private void AddWavHeader(BinaryWriter writer)
+        {
+            writer.Write(new[]{'R','I','F','F'}); // RIFF Chunk Descriptor
+            writer.Write(4 + 8 + 16 + 8 + PcmBytes.Count * 2); // Sub Chunk 1 Size
+            //Chunk Size 4 bytes.
+            writer.Write(new[]{'W','A','V','E'});
+            // fmt sub-chunk
+            writer.Write(new[]{'f','m','t',' '});
+            writer.Write(16); // Sub Chunk 1 Size
+            writer.Write((short) 1); // Audio Format 1 = PCM
+            writer.Write((short) Channels); // Audio Channels
+            writer.Write(SampleRate); // Sample Rate
+            writer.Write(SampleRate * Channels * 2 /* Bytes */); // Byte Rate
+            writer.Write((short) (Channels * 2)); // Block Align
+            writer.Write((short) 16); // Bits per Sample
+            // data sub-chunk
+            writer.Write(new[]{'d','a','t','a'});
+            writer.Write(PcmBytes.Count * Channels * 2); // Sub Chunk 2 Size.
+            
         }
     }
 }
