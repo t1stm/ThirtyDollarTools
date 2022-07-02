@@ -187,6 +187,7 @@ namespace ThirtyDollarWebsiteConverter
                 "!target" => SoundEvent.SetTarget,
                 "!jump" => SoundEvent.JumpToTarget,
                 "_pause" => SoundEvent.Pause,
+                "!stop" => SoundEvent.Pause,
                 "boom" => SoundEvent.VineBoom,
                 "bruh" => SoundEvent.BruhSoundEffectNumber2,
                 "bong" => SoundEvent.Bong,

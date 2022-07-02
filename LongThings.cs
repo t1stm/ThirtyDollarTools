@@ -174,7 +174,7 @@ namespace ThirtyDollarWebsiteConverter
             "last"
         };
 
-        public static string GetFilename(this SoundEvent ev)
+        private static string GetFilename(this SoundEvent ev)
         {
             return ev switch
             {

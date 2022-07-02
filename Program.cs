@@ -24,10 +24,12 @@ namespace ThirtyDollarWebsiteConverter
             var isInBinFolder = Directory.GetCurrentDirectory() == "bin";
             var list = new List<string>
             {
-                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/big shot [Deltarune].🗿",
-                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/It has to be this way [Metal Gear Rising Revengeance].🗿",
-                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/watery graves [Plants vs. Zombies].🗿",
-                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/catastrophe_tdw_v2.🗿"
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Domburg) bad apple full.🗿",
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) big shot [Deltarune].🗿",
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) It has to be this way [Metal Gear Rising Revengeance].🗿",
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) watery graves [Plants vs. Zombies].🗿",
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Xenon Neko) catastrophe_tdw_v2.🗿",
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(K0KINNIE) 30 dollar bullet hell.🗿"
             };
             var output = new List<string>();
             foreach (var arg in args)
@@ -134,7 +136,6 @@ namespace ThirtyDollarWebsiteConverter
                     if (fileStream[i] != 0x64 && fileStream[i + 1] != 0x61 && fileStream[i + 2] != 0x74 &&
                         fileStream[i + 3] != 0x61) continue; // Data Header in Hex Bytes
                     offset = i * 6 + 8;
-                    Console.WriteLine($"Offset is: {offset}");
                     break;
                 }
 

@@ -57,7 +57,7 @@ namespace ThirtyDollarWebsiteConverter
         {
             if (Composition == null) throw new Exception("Null Composition");
             var bpm = 300.0;
-            double placement = 1;
+            ulong position = (ulong) (SampleRate / (bpm / 60));
             var count = Composition.Events.Count;
             double volume = 100;
             foreach (var ev in Composition.Events) //Quick pass for volume
@@ -81,8 +81,8 @@ namespace ThirtyDollarWebsiteConverter
                 }
                 ev.Volume = volume;
             }
-            
-            Composition.Events.RemoveAll(e => e.SoundEvent == SoundEvent.Volume);
+
+            Composition.Events.RemoveAll(e => e.SoundEvent is SoundEvent.Volume or SoundEvent.None);
             for (var i = 0; i < Composition!.Events.Count; i++)
             {
                 var ev = Composition.Events[i];
@@ -109,8 +109,8 @@ namespace ThirtyDollarWebsiteConverter
 
                         case SoundEvent.GoToLoop:
                             count--;
-                            if (ev.Value <= 0) continue;
-                            ev.Value--;
+                            if (ev.Loop <= 0) continue;
+                            ev.Loop--;
                             for (var j = i; j > 0; j--)
                             {
                                 if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget) continue;
@@ -118,21 +118,36 @@ namespace ThirtyDollarWebsiteConverter
                             }
 
                             Console.WriteLine($"Going to element: ({i}) - {Composition.Events[i]}");
+                            //
                             continue;
 
                         case SoundEvent.JumpToTarget:
-                            if (ev.Loop == 0) continue;
+                            if (ev.Loop <= 0) continue;
                             ev.Loop--;
                             //i = Triggers[(int) ev.Value - 1] - 1;
-                            i = Composition.Events.IndexOf(Composition.Events.First(r =>
-                                r.SoundEvent == SoundEvent.SetTarget && (int) r.Value == (int) ev.Value)) - 1;
+                            var item = Composition.Events.FirstOrDefault(r =>
+                                r.SoundEvent == SoundEvent.SetTarget && (int) r.Value == (int) ev.Value);
+                            if (item == null)
+                            {
+                                Console.WriteLine($"Unable to target with id: {ev.Value}");
+                                continue;
+                            }
+                            i = Composition.Events.IndexOf(item) - 1;
                             Console.WriteLine($"Jumping to element: ({i}) - {Composition.Events[i]}");
                             count--;
+                            //
                             continue;
 
                         case SoundEvent.Pause:
-                            placement += 1;
+                            Console.WriteLine($"Pausing for: {ev.Loop} beats.");
+                            var oldLoop = ev.Loop;
+                            while (ev.Loop >= 1)
+                            {
+                                ev.Loop--;
+                                position += (ulong) (SampleRate / (bpm / 60));
+                            }
                             count--;
+                            ev.Loop = oldLoop;
                             continue;
                         
                         case SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
@@ -141,25 +156,33 @@ namespace ThirtyDollarWebsiteConverter
                     }
 
                     List<Event> processAtTheSameTime = new() {Composition.Events[i]};
-                    while (i < Composition.Events.Count - 1 &&
-                           Composition.Events[i + 1].SoundEvent == SoundEvent.Combine)
+                    while (i < Composition.Events.Count - 1)
                     {
+                        if (Composition.Events[i + 1].SoundEvent != SoundEvent.Combine) break;
+                        if (Composition.Events[i + 2].SoundEvent == SoundEvent.Pause)
+                        {
+                            i += 2;
+                            var oldLoop = ev.Loop;
+                            while (ev.Loop >= 1)
+                            {
+                                ev.Loop--;
+                                position += (ulong) (SampleRate / (bpm / 60));
+                            }
+                            ev.Loop = oldLoop;
+                            continue;
+                        }
                         processAtTheSameTime.Add(Composition.Events[i + 2]);
                         i += 2;
                     }
 
                     var breakEarly = i + count < Composition?.Events.Count &&
                                      Composition?.Events[i + 1].SoundEvent == SoundEvent.CutAllSounds;
-
-                    count -= processAtTheSameTime.Count;
-                    var median = SampleRate / (bpm / 60);
-                    var scale = (int) (median * placement);
-                    var index = scale - scale % 2;
+                    position += (ulong) (SampleRate / (bpm / 60));
+                    var index = (int) (position - position % 2);
                     Console.WriteLine(
-                        $"Processing Events: [{scale}] - ({placement} - {count}) \"{processAtTheSameTime.ListElements()}\"");
+                        $"Processing Events: [{index}] - \"{processAtTheSameTime.ListElements()}\"");
                     //Console.ReadLine();
-                    HandleProcessing(processAtTheSameTime, index, breakEarly ? (int) median : -1);
-                    placement++;
+                    HandleProcessing(processAtTheSameTime, index, breakEarly ? (int) (SampleRate / (bpm / 60)) : -1);
                     if (ev.Loop > 1)
                     {
                         ev.Loop--;
