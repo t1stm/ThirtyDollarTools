@@ -33,8 +33,7 @@ namespace ThirtyDollarWebsiteConverter
                     if (splitForPitch.Length > 1) value = double.Parse(splitForPitch[1].Split('=')[0]);
                     if (splitForPitch.Length > 2)
                     {
-                        scale = splitForPitch[1] switch {"x" => ValueScale.Times, "+" => ValueScale.Add, _ => ValueScale.None};
-                        Console.WriteLine($"Setting pitch to: {scale}");
+                        scale = splitForPitch[2] switch {"x" => ValueScale.Times, "+" => ValueScale.Add, _ => ValueScale.None};
                     }
                 }
                 catch (Exception e)

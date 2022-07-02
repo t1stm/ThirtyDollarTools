@@ -57,7 +57,7 @@ namespace ThirtyDollarWebsiteConverter
         {
             if (Composition == null) throw new Exception("Null Composition");
             var bpm = 300.0;
-            double placement = 0;
+            double placement = 1;
             var count = Composition.Events.Count;
             double volume = 100;
             foreach (var ev in Composition.Events) //Quick pass for volume
@@ -154,7 +154,7 @@ namespace ThirtyDollarWebsiteConverter
                     count -= processAtTheSameTime.Count;
                     var median = SampleRate / (bpm / 60);
                     var scale = (int) (median * placement);
-                    var index = scale + scale % 2;
+                    var index = scale - scale % 2;
                     Console.WriteLine(
                         $"Processing Events: [{scale}] - ({placement} - {count}) \"{processAtTheSameTime.ListElements()}\"");
                     //Console.ReadLine();

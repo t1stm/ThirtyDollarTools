@@ -119,7 +119,6 @@ namespace ThirtyDollarWebsiteConverter
 
         private static async Task LoadSamplesIntoMemory()
         {
-            int time = 0;
             foreach (var file in LongThings.AudioFiles)
             {
                 if (file == "last")
@@ -149,7 +148,6 @@ namespace ThirtyDollarWebsiteConverter
                     buffer[i] = BitConverter.ToInt16(buf, i * 2);
                 Samples.Add(buffer);
                 Console.WriteLine($"Reading sample: {file}.wav");
-                time++;
             }
             Console.WriteLine($"Samples: {Samples.Count}");
         }
