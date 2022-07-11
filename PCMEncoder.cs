@@ -9,7 +9,7 @@ namespace ThirtyDollarWebsiteConverter
     {
         private const uint SampleRate = 48000; //Hz
         private const int Channels = 1;
-        private List<short> PcmBytes { get; } = new();
+        private List<float> PcmBytes { get; } = new();
         public Composition? Composition { get; init; }
 
         public static ulong TimesExec { get; set; }
@@ -20,29 +20,50 @@ namespace ThirtyDollarWebsiteConverter
             {
                 if (index < PcmBytes.Count)
                 {
-                    float a = pcmByte;
-                    float b = PcmBytes[index];
-                    float m;
-
-                    a += 32768f;
-                    b += 32768f;
-
-                    if (a < 32768f || b < 32768f)
-                        m = a * b / 32768f;
-                    else
-                        m = 2 * (a + b) - a * b / 32768f - 65536f;
-                    if (m >= 65535f) m = 65535f;
-                    m -= 32768f;
-
-                    PcmBytes[index] = (short) m;
-
-                    //PcmBytes[index] = (short) ((pcmByte + PcmBytes[index]) / 2);
+                    PcmBytes[index] = MixSamples(pcmByte, PcmBytes[index]);
                     return;
                 }
 
                 if (index >= PcmBytes.Count) FillWithZeros(index);
                 PcmBytes[index] = pcmByte;
             }
+        }
+        
+        private void AddOrChangeByte(float pcmByte, int index)
+        {
+            lock (PcmBytes)
+            {
+                if (index < PcmBytes.Count)
+                {
+                    PcmBytes[index] = MixSamples(pcmByte, PcmBytes[index]);
+                    return;
+                }
+
+                if (index >= PcmBytes.Count) FillWithZeros(index);
+                PcmBytes[index] = pcmByte;
+            }
+        }
+        
+        private short MixSamples(short sampleOne, short sampleTwo) {
+            float a = sampleOne;
+            float b = sampleTwo;
+            float m;
+
+            a += 32768f;
+            b += 32768f;
+
+            if (a < 32768f || b < 32768f)
+                m = a * b / 32768f;
+            else
+                m = 2 * (a + b) - a * b / 32768f - 65536f;
+            if (m >= 65535f) m = 65535f;
+            m -= 32768f;
+            return (short) m;
+        }
+
+        private float MixSamples(float sampleOne, float sampleTwo)
+        {
+            return sampleOne + sampleTwo;
         }
 
         private void FillWithZeros(int index)
@@ -245,28 +266,17 @@ namespace ThirtyDollarWebsiteConverter
                     {
                         if (el.Count == 1)
                         {
-                            final = (float) ((r.SampleData?[r.ProcessedChunks] ?? 0) * (r.Volume * 0.5 / 100));
+                            final = (float) ((r.SampleData?[r.ProcessedChunks] ?? 0) * (r.Volume * 0.5 / 100)) / 32768f;
                             continue;
                         }
                         
                         var a = final;
-                        var b = (float) (r.SampleData?[r.ProcessedChunks] * (r.Volume * 0.5 / 100) ?? 0);
-                        float m;
-
-                        a += 32768f;
-                        b += 32768f;
-
-                        if (a < 32768f || b < 32768f)
-                            m = a * b / 32768f;
-                        else
-                            m = 2 * (a + b) - a * b / 32768f - 65536f;
-                        if (m >= 65535f) m = 65535f;
-                        m -= 32768f;
-                        final = m;
+                        var b = (float) (r.SampleData?[r.ProcessedChunks] * (r.Volume * 0.5 / 100) ?? 0) / 32768f;
+                        final = MixSamples(a, b);
                     }
 
                     if (breakAtIndex != -1 && i == breakAtIndex) return;
-                    AddOrChangeByte((short) final, index + i);
+                    AddOrChangeByte(final, index + i);
                     foreach (var ev in samples) ev.ProcessedChunks++;
                 }
             }
@@ -275,17 +285,33 @@ namespace ThirtyDollarWebsiteConverter
                 Console.WriteLine(e);
             }
         }
+        
+        private unsafe float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate, uint channels)
+        {
+            fixed (float* vals = samples)
+            {
+                var length = Resample32BitFloat(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
+                    channels);
+                float[] alloc = new float[length];
+                fixed (float* output = alloc)
+                {
+                    Resample32BitFloat(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
+                }
+
+                return alloc;
+            }
+        }
 
         private unsafe short[] Resample(short[] samples, uint sampleRate, uint targetSampleRate, uint channels)
         {
             fixed (short* vals = samples)
             {
-                var length = Resample16B(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
+                var length = Resample16Bit(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
                     channels);
                 short[] alloc = new short[length];
                 fixed (short* output = alloc)
                 {
-                    Resample16B(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
+                    Resample16Bit(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
                 }
 
                 return alloc;
@@ -293,7 +319,36 @@ namespace ThirtyDollarWebsiteConverter
         }
 
         // Original Source: https://github.com/cpuimage/resampler
-        private unsafe ulong Resample16B(short* input, short* output, uint inSampleRate, uint outSampleRate,
+        
+        private unsafe ulong Resample32BitFloat(float *input, float* output, uint inSampleRate, uint outSampleRate, ulong inputSize, uint channels) {
+            
+            if (input == null)
+                return 0;
+            var outputSize = (ulong) (inputSize * (double) outSampleRate / inSampleRate);
+            outputSize -= outputSize % channels;
+            if (output == null)
+                return outputSize;
+            var stepDist = inSampleRate / (double) outSampleRate;
+            const ulong fixedFraction = (ulong) 1 << 32;
+            const double normFixed = 1.0 / ((ulong) 1 << 32);
+            var step = (ulong) (stepDist * fixedFraction + 0.5);
+            ulong curOffset = 0;
+            for (uint i = 0; i < outputSize; i += 1) {
+                for (uint c = 0; c < channels; c += 1) {
+                    *output++ = (float) (input[c] + (input[c + channels] - input[c]) * (
+                                (curOffset >> 32) + (curOffset & (fixedFraction - 1)) * normFixed
+                            )
+                        );
+                }
+                curOffset += step;
+                input += (curOffset >> 32) * channels;
+                curOffset &= fixedFraction - 1;
+            }
+            return outputSize;
+            
+        }
+        
+        private unsafe ulong Resample16Bit(short* input, short* output, uint inSampleRate, uint outSampleRate,
             ulong inputSize, uint channels)
         {
             var outputSize = (ulong) (inputSize * (double) outSampleRate / inSampleRate);
@@ -343,11 +398,11 @@ namespace ThirtyDollarWebsiteConverter
             }
             
             await prg.WaitForExitAsync();*/
-
+            PcmBytes.NormalizeVolume();
             var stream = new BinaryWriter(File.Open($"./out-{num}.wav", FileMode.Create));
             AddWavHeader(stream);
             stream.Write((short) 0);
-            foreach (var data in PcmBytes) stream.Write(data);
+            foreach (var data in PcmBytes) stream.Write((short) (data * 32768));
             stream.Close();
         }
 

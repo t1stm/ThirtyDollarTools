@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace ThirtyDollarWebsiteConverter
 {
     public enum SoundEvent
@@ -345,6 +349,16 @@ namespace ThirtyDollarWebsiteConverter
                 "minecraft_bell" => SoundEvent.BellMinecraft,
                 _ => null
             };
+        }
+        
+        // Interesting placement, but I can't place it anywhere else.
+        public static void NormalizeVolume(this List<float> list)
+        {
+            var max = list.Max(Math.Abs);
+            for (var index = 0; index < list.Count; index++)
+            {
+                list[index] = list[index] * (1 / max);
+            }
         }
     }
 }

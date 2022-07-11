@@ -45,10 +45,12 @@ namespace ThirtyDollarWebsiteConverter
                 var times = 1;
                 var yes = splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForPitch[0];
                 if (splitForRepeats.Length > 1) times = int.Parse(splitForRepeats.Last());
+                var sound = Sounds.FromString(yes);
+                if (sound == SoundEvent.Pause) times = (int) (value > 0 ? value : times);
                 var newEvent = new Event
                 {
                     Value = value,
-                    SoundEvent = Sounds.FromString(yes),
+                    SoundEvent = sound,
                     Loop = times,
                     ValueScale = scale
                 };
