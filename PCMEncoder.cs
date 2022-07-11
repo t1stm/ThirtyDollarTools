@@ -134,11 +134,15 @@ namespace ThirtyDollarWebsiteConverter
                             ev.Loop--;
                             for (var j = i; j > 0; j--)
                             {
-                                if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget) continue;
+                                if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget)
+                                {
+                                    continue;
+                                }
                                 i = j - 1;
+                                break; // Ooga booga, I am retarded. I've been debugging this for loop for two hours now. How could've I forgotten to add the break?
                             }
 
-                            Console.WriteLine($"Going to element: ({i}) - {Composition.Events[i]}");
+                            Console.WriteLine($"Going to element: ({i + 1}) - \"{Composition.Events[i + 1]}\"");
                             //
                             continue;
 

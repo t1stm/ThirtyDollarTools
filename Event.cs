@@ -11,7 +11,7 @@ namespace ThirtyDollarWebsiteConverter
         public ValueScale ValueScale { get; init; }
         public override string ToString()
         {
-            return $"Event: {SoundEvent}, Value: {Value}{(ValueScale == ValueScale.Times ? 'x' : (char) 0)}, Loops: {Loop}";
+            return $"Event: \"{SoundEvent.ToString() ?? "No Event"}\", Value: {Value}{(ValueScale == ValueScale.Times ? 'x' : (char) 0)}, Loops: {Loop}";
         }
     }
 
