@@ -25,16 +25,16 @@ namespace ThirtyDollarWebsiteConverter
             for (var index = 0; index < split.Length; index++)
             {
                 var text = split[index];
-                var splitForPitch = text.Split('@');
+                var splitForValue = text.Split('@');
                 var splitForRepeats = text.Split('=');
                 var value = 0.0;
                 var scale = ValueScale.None;
                 try
                 {
-                    if (splitForPitch.Length > 1) value = double.Parse(splitForPitch[1].Split('=')[0]);
-                    if (splitForPitch.Length > 2)
+                    if (splitForValue.Length > 1) value = double.Parse(splitForValue[1].Split('=')[0]);
+                    if (splitForValue.Length > 2)
                     {
-                        scale = splitForPitch[2] switch
+                        scale = splitForValue[2] switch
                         {
                             "x" => ValueScale.Times, "+" => ValueScale.Add, _ => ValueScale.None
                         };
@@ -46,16 +46,16 @@ namespace ThirtyDollarWebsiteConverter
                     throw;
                 }
 
-                var times = 1;
-                var yes = splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForPitch[0];
-                if (splitForRepeats.Length > 1) times = int.Parse(splitForRepeats.Last());
+                var loopTimes = 1;
+                var yes = splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForValue[0];
+                if (splitForRepeats.Length > 1) loopTimes = int.Parse(splitForRepeats.Last());
                 var sound = Sounds.FromString(yes);
-                if (sound == SoundEvent.Pause) times = (int) (value > 0 ? value : times);
+                if (sound == SoundEvent.Pause && text.Contains('=')) loopTimes = (int) (value > 0 ? value : loopTimes);
                 var newEvent = new Event
                 {
                     Value = value,
                     SoundEvent = sound,
-                    Loop = times,
+                    Loop = loopTimes,
                     ValueScale = scale
                 };
                 comp.Events.Add(newEvent);

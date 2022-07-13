@@ -12,23 +12,6 @@ namespace ThirtyDollarWebsiteConverter
         private List<float> PcmBytes { get; } = new();
         public Composition? Composition { get; init; }
 
-        public static ulong TimesExec { get; set; }
-
-        private void AddOrChangeByte(short pcmByte, int index)
-        {
-            lock (PcmBytes)
-            {
-                if (index < PcmBytes.Count)
-                {
-                    PcmBytes[index] = MixSamples(pcmByte, PcmBytes[index]);
-                    return;
-                }
-
-                if (index >= PcmBytes.Count) FillWithZeros(index);
-                PcmBytes[index] = pcmByte;
-            }
-        }
-        
         private void AddOrChangeByte(float pcmByte, int index)
         {
             lock (PcmBytes)
@@ -44,22 +27,6 @@ namespace ThirtyDollarWebsiteConverter
             }
         }
         
-        private short MixSamples(short sampleOne, short sampleTwo) {
-            float a = sampleOne;
-            float b = sampleTwo;
-            float m;
-
-            a += 32768f;
-            b += 32768f;
-
-            if (a < 32768f || b < 32768f)
-                m = a * b / 32768f;
-            else
-                m = 2 * (a + b) - a * b / 32768f - 65536f;
-            if (m >= 65535f) m = 65535f;
-            m -= 32768f;
-            return (short) m;
-        }
 
         private float MixSamples(float sampleOne, float sampleTwo)
         {
@@ -74,36 +41,45 @@ namespace ThirtyDollarWebsiteConverter
             }
         }
 
+        private void CalculateVolume()
+        {
+            if (Composition == null) throw new Exception("Null Composition");
+            double volume = 100;
+            lock (Composition.Events)
+            {
+                foreach (var ev in Composition.Events) //Quick pass for volume
+                {
+                    switch (ev.SoundEvent)
+                    {
+                        case SoundEvent.Volume:
+                            switch (ev.ValueScale)
+                            {
+                                case ValueScale.Times:
+                                    volume *= ev.Value;
+                                    break;
+                                case ValueScale.Add:
+                                    volume += ev.Value;
+                                    break;
+                                case ValueScale.None:
+                                    volume = ev.Value;
+                                    break;
+                            }
+                            break;
+                    }
+                    ev.Volume = volume;
+                }
+                Composition.Events.RemoveAll(e => e.SoundEvent is SoundEvent.Volume);
+            }
+        }
+        
         public void Start()
         {
             if (Composition == null) throw new Exception("Null Composition");
             var bpm = 300.0;
-            ulong position = (ulong) (SampleRate / (bpm / 60));
+            var position = (ulong) (SampleRate / (bpm / 60));
             var count = Composition.Events.Count;
-            double volume = 100;
-            foreach (var ev in Composition.Events) //Quick pass for volume
-            {
-                switch (ev.SoundEvent)
-                {
-                    case SoundEvent.Volume:
-                        switch (ev.ValueScale)
-                        {
-                            case ValueScale.Times:
-                                volume *= ev.Value;
-                                break;
-                            case ValueScale.Add:
-                                volume += ev.Value;
-                                break;
-                            case ValueScale.None:
-                                volume = ev.Value;
-                                break;
-                        }
-                        break;
-                }
-                ev.Volume = volume;
-            }
-
-            Composition.Events.RemoveAll(e => e.SoundEvent is SoundEvent.Volume or SoundEvent.None);
+            CalculateVolume();
+            
             for (var i = 0; i < Composition!.Events.Count; i++)
             {
                 var ev = Composition.Events[i];
@@ -143,7 +119,6 @@ namespace ThirtyDollarWebsiteConverter
                             }
 
                             Console.WriteLine($"Going to element: ({i + 1}) - \"{Composition.Events[i + 1]}\"");
-                            //
                             continue;
 
                         case SoundEvent.JumpToTarget:
@@ -178,36 +153,21 @@ namespace ThirtyDollarWebsiteConverter
                         case SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
                             count--;
                             continue;
-                    }
-
-                    List<Event> processAtTheSameTime = new() {Composition.Events[i]};
-                    while (i < Composition.Events.Count - 1)
-                    {
-                        if (Composition.Events[i + 1].SoundEvent != SoundEvent.Combine) break;
-                        if (Composition.Events[i + 2].SoundEvent == SoundEvent.Pause)
-                        {
-                            i += 2;
-                            var oldLoop = ev.Loop;
-                            while (ev.Loop >= 1)
-                            {
-                                ev.Loop--;
-                                position += (ulong) (SampleRate / (bpm / 60));
-                            }
-                            ev.Loop = oldLoop;
+                        
+                        case SoundEvent.Combine:
+                            position -= (ulong) (SampleRate / (bpm / 60));
                             continue;
-                        }
-                        processAtTheSameTime.Add(Composition.Events[i + 2]);
-                        i += 2;
+                        
+                        default: 
+                            position += (ulong) (SampleRate / (bpm / 60));
+                            break;
                     }
 
                     var breakEarly = i + count < Composition?.Events.Count &&
                                      Composition?.Events[i + 1].SoundEvent == SoundEvent.CutAllSounds;
-                    position += (ulong) (SampleRate / (bpm / 60));
                     var index = (int) (position - position % 2);
-                    Console.WriteLine(
-                        $"Processing Events: [{index}] - \"{processAtTheSameTime.ListElements()}\"");
-                    //Console.ReadLine();
-                    HandleProcessing(processAtTheSameTime, index, breakEarly ? (int) (SampleRate / (bpm / 60)) : -1);
+                    Console.WriteLine($"Processing Event: [{index}] - \"{ev}\"");
+                    HandleProcessing(ev, index, breakEarly ? (int) (SampleRate / (bpm / 60)) : -1);
                     if (ev.Loop > 1)
                     {
                         ev.Loop--;
@@ -230,63 +190,30 @@ namespace ThirtyDollarWebsiteConverter
             public double Volume { get; init; }
         }
 
-        private void HandleProcessing(IReadOnlyList<Event> events, int index, int breakAtIndex)
+        private void HandleProcessing(Event ev, int index, int breakAtIndex)
         {
             try
             {
-                var biggest = events.Select(ev => ev.SampleLength).Prepend(0).Max();
-
-                List<ProcessedSample> samples = new();
-
-                foreach (var ev in events)
+                ProcessedSample sample = ev.Value == 0 ? new ProcessedSample
                 {
-                    if (ev.Value == 0)
-                    {
-                        samples.Add(new ProcessedSample
-                        {
-                            SampleData = Program.Samples[ev.SampleId],
-                            Volume = ev.Volume
-                        });
-                        continue;
-                    }
-
-                    var scale = Math.Pow(2, ev.Value / 12);
-                    uint targetRate = (uint) (SampleRate / scale);
-                    //Console.WriteLine($"Processing: {ev.SampleId}, {ev.SampleLength}, {++TimesExec}, {ev.Value}, {ev.ValueTimes}");
-                    var sampleData = Resample(Program.Samples[ev.SampleId], SampleRate, targetRate, Channels);
-                    samples.Add(new ProcessedSample
-                    {
-                        SampleData = sampleData,
-                        Volume = ev.Volume
-                    });
-                }
-
-                for (var i = 0; i < biggest; i++)
+                    SampleData = Program.Samples[ev.SampleId],
+                    Volume = ev.Volume
+                } : new ProcessedSample
                 {
-                    var el = samples.Where(q => q.ProcessedChunks < q.SampleLength).ToList();
-                    float final = 0;
+                    SampleData = Resample(Program.Samples[ev.SampleId], SampleRate, (uint) (SampleRate / Math.Pow(2, ev.Value / 12)), Channels),
+                    Volume = ev.Volume
+                };
 
-                    foreach (var r in el)
-                    {
-                        if (el.Count == 1)
-                        {
-                            final = (float) ((r.SampleData?[r.ProcessedChunks] ?? 0) * (r.Volume * 0.5 / 100)) / 32768f;
-                            continue;
-                        }
-                        
-                        var a = final;
-                        var b = (float) (r.SampleData?[r.ProcessedChunks] * (r.Volume * 0.5 / 100) ?? 0) / 32768f;
-                        final = MixSamples(a, b);
-                    }
-
-                    if (breakAtIndex != -1 && i == breakAtIndex) return;
-                    AddOrChangeByte(final, index + i);
-                    foreach (var ev in samples) ev.ProcessedChunks++;
+                var size = breakAtIndex == -1 ? sample.SampleLength : breakAtIndex;
+                for (sample.ProcessedChunks = 0; sample.ProcessedChunks < size; sample.ProcessedChunks++)
+                {
+                    if (breakAtIndex != -1 && sample.ProcessedChunks >= breakAtIndex) return;
+                    AddOrChangeByte((float) ((sample.SampleData?[sample.ProcessedChunks] ?? 0) * (sample.Volume * 0.5 / 100)) / 32768f, index + sample.ProcessedChunks);
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Console.WriteLine($"Processing failed: \"{e}\"");
             }
         }
         
@@ -379,29 +306,6 @@ namespace ThirtyDollarWebsiteConverter
 
         public void Play(int num)
         {
-            /*var prg = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "/usr/bin/mpv",
-                    Arguments = "--player-operation-mode=pseudo-gui -",
-                    RedirectStandardInput = true,
-                    UseShellExecute = false
-                }
-            };
-            prg.Start();
-
-            for (var i = 0; i < PcmBytes.Count; i++)
-            {
-                await prg.StandardInput.WriteAsync((char) PcmBytes[i]);
-                
-                while (i + 1 == PcmBytes.Count && !Exited)
-                {
-                    await Task.Delay(4);
-                }
-            }
-            
-            await prg.WaitForExitAsync();*/
             PcmBytes.NormalizeVolume();
             var stream = new BinaryWriter(File.Open($"./out-{num}.wav", FileMode.Create));
             AddWavHeader(stream);
