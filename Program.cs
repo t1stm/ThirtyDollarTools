@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Timers;
+using Microsoft.Win32.SafeHandles;
 
 namespace ThirtyDollarWebsiteConverter
 {
     internal static class Program
     {
-        private static int DownloadPercent { get; set; }
+        private static double DownloadPercent { get; set; }
         private static string? DownloadFile { get; set; }
 
         private const char EmptyBlock = '□', FullBlock = '■';
@@ -94,26 +96,41 @@ namespace ThirtyDollarWebsiteConverter
 
         private static async Task DownloadFiles()
         {
-            var timer = new Timer {Interval = 4};
+            var timer = new Timer {Interval = 1 /* Miliseconds */};
             timer.Elapsed += (_, _) =>
             {
                 Console.Clear();
                 Console.WriteLine("Downloading Items:\n" +
-                                  $"({GenerateProgressbar(DownloadPercent, 100, 40)}) {DownloadPercent}% - {DownloadFile}");
+                                  $"({GenerateProgressbar(DownloadPercent, 100, 40)}) {DownloadPercent:F}% - {DownloadFile}");
             };
             timer.Start();
             foreach (var file in LongThings.AudioFiles)
             {
-                var httpRequest = $"https://dankest.gq/ThirtyDollarWebsiteSounds/{file}.wav";
+                if (file == "last") continue;
+                //var requestUrl = $"https://thirtydollar.website/sounds/{file}.wav";
+                var requestUrl = $"https://dankest.gq/ThirtyDollarWebsiteSounds/{file}.wav";
                 // All the files have different sample rates and channels, so I reencoded them all to 48000Hz - 1 channel.
                 DownloadFile = $"./Sounds/{file}.wav";
                 if (File.Exists(DownloadFile)) continue;
-                var client =
-                    new WebClient(); //I don't care that it's obselete. fuck off, i have my progress changed event. /s I am lazy.
-                //TODO: Update to HttpClient.
-                client.DownloadProgressChanged += (_, args) => { DownloadPercent = args.ProgressPercentage; };
-                await client.DownloadFileTaskAsync(httpRequest, $"./Sounds/{file}.wav");
-                await Task.Delay(500);
+                //byte[] buffer = new byte[1024];
+                var client = new HttpClient();
+                await using var stream = await client.GetStreamAsync(requestUrl);
+                await using FileStream fs = File.Open($"./Sounds/{file}.wav", FileMode.Create);
+                /*double totalReadBytes = 0;
+                double totalBytes = client.MaxResponseContentBufferSize;
+                while(true)
+                {
+                    long readBytes = await stream.ReadAsync(buffer);
+                    if (readBytes == 0)
+                    {
+                        break;
+                    }
+                    totalReadBytes += readBytes;
+                    DownloadPercent = (totalBytes - totalReadBytes) / totalBytes * 100;
+                    await fs.WriteAsync(buffer);
+                }*/ // I wonder why this doesn't work. But hey, at least Stream.CopyTo works!
+                await stream.CopyToAsync(fs);
+                fs.Close();
             }
 
             timer.Dispose();
@@ -139,7 +156,7 @@ namespace ThirtyDollarWebsiteConverter
                     break;
                 }
 
-                if (offset == 0) throw new FileLoadException("Unable to find \"data\" header.");
+                if (offset == 0) throw new FileLoadException($"Unable to find \"data\" header for file: \"{file}.wav\".");
 
                 var buf = fileStream[offset..];
                 
@@ -153,7 +170,7 @@ namespace ThirtyDollarWebsiteConverter
             Console.WriteLine($"Samples: {Samples.Count}");
         }
 
-        private static string GenerateProgressbar(long current, long total, int length = 32)
+        private static string GenerateProgressbar(double current, long total, int length = 32)
         {
             Span<char> prg = stackalloc char[length];
 
