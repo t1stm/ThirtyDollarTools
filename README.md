@@ -26,21 +26,3 @@ Domburg - "bad apple full.🗿" Link: https://www.youtube.com/watch?v=Yw4bhbjBRG
 K0KINNIE - "30 dollar bullet hell.🗿" Link: https://www.youtube.com/watch?v=LLo0nga3idQ
 
 Me - other sequence files.
-
-
-
-
-
-Things that are currently working great or not so great:
-
-Serializing the composition: Finished.
-
-Timing the track: Done, but really funky at the moment.
-
-Audio output quality: Garbage, constantly clipping. Sounds like Fishers' Price toys.
-
-Loops and things: Not stable, constantly cause errors with the result.
-
-Changing speed of samples: Working with the intended (site's) behavior.
-
-Changing volumes: Working.
