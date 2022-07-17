@@ -4,7 +4,7 @@ namespace ThirtyDollarWebsiteConverter
     {
         public SoundEvent? SoundEvent { get; init; }
         public int SampleId => (int?) SoundEvent ?? 0;
-        public int SampleLength => SampleId > Program.Samples.Count ? 0 : Program.Samples[SampleId].Length;
+        public long SampleLength => SampleId > Program.Samples.Count ? 0 : Program.Samples[SampleId].LongLength;
         public double Value { get; set; }
         public int Loop { get; set; } = 1;
         public double Volume { get; set; } = 100;

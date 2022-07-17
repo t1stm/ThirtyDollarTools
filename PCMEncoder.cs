@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -9,20 +8,20 @@ namespace ThirtyDollarWebsiteConverter
     {
         private const uint SampleRate = 48000; //Hz
         private const int Channels = 1;
-        private List<float> PcmBytes { get; } = new();
+        private float[] PcmBytes { get; set; } = new float[1024];
         public Composition? Composition { get; init; }
 
-        private void AddOrChangeByte(float pcmByte, int index)
+        private void AddOrChangeByte(float pcmByte, ulong index)
         {
             lock (PcmBytes)
             {
-                if (index < PcmBytes.Count)
+                if (index < (ulong) PcmBytes.LongLength)
                 {
                     PcmBytes[index] = MixSamples(pcmByte, PcmBytes[index]);
                     return;
                 }
 
-                if (index >= PcmBytes.Count) FillWithZeros(index);
+                if (index >= (ulong) PcmBytes.LongLength) FillWithZeros(index);
                 PcmBytes[index] = pcmByte;
             }
         }
@@ -33,11 +32,16 @@ namespace ThirtyDollarWebsiteConverter
             return sampleOne + sampleTwo;
         }
 
-        private void FillWithZeros(int index)
+        private void FillWithZeros(ulong index)
         {
             lock (PcmBytes)
             {
-                while (index >= PcmBytes.Count) PcmBytes.Add(0);
+                var old = PcmBytes;
+                PcmBytes = new float[(ulong) (index * 1.5)];
+                for (ulong i = 0; i < (ulong) old.LongLength; i++)
+                {
+                    PcmBytes[i] = old[i];
+                }
             }
         }
 
@@ -150,7 +154,15 @@ namespace ThirtyDollarWebsiteConverter
                             ev.Loop = oldLoop;
                             continue;
                         
-                        case SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
+                        case SoundEvent.CutAllSounds:
+                            position += (ulong) (SampleRate / (bpm / 60));
+                            for (var e = position; e < (ulong) PcmBytes.LongLength; e++)
+                            {
+                                PcmBytes[e] = 0;
+                            }
+                            continue;
+                        
+                        case SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
                             count--;
                             continue;
                         
@@ -165,7 +177,7 @@ namespace ThirtyDollarWebsiteConverter
 
                     var breakEarly = i + count < Composition?.Events.Count &&
                                      Composition?.Events[i + 1].SoundEvent == SoundEvent.CutAllSounds;
-                    var index = (int) (position - position % 2);
+                    var index = position - position % 2;
                     Console.WriteLine($"Processing Event: [{index}] - \"{ev}\"");
                     HandleProcessing(ev, index, breakEarly ? (int) (SampleRate / (bpm / 60)) : -1);
                     if (ev.Loop > 1)
@@ -185,12 +197,12 @@ namespace ThirtyDollarWebsiteConverter
         private class ProcessedSample
         {
             public short[]? SampleData { get; init; }
-            public int ProcessedChunks { get; set; }
-            public int SampleLength => SampleData?.Length ?? 0;
+            public ulong ProcessedChunks { get; set; }
+            public ulong SampleLength => (ulong) (SampleData?.LongLength ?? 0);
             public double Volume { get; init; }
         }
 
-        private void HandleProcessing(Event ev, int index, int breakAtIndex)
+        private void HandleProcessing(Event ev, ulong index, long breakAtIndex)
         {
             try
             {
@@ -204,10 +216,10 @@ namespace ThirtyDollarWebsiteConverter
                     Volume = ev.Volume
                 };
 
-                var size = breakAtIndex == -1 ? sample.SampleLength : breakAtIndex;
+                var size = breakAtIndex == -1 ? sample.SampleLength : (ulong) breakAtIndex;
                 for (sample.ProcessedChunks = 0; sample.ProcessedChunks < size; sample.ProcessedChunks++)
                 {
-                    if (breakAtIndex != -1 && sample.ProcessedChunks >= breakAtIndex) return;
+                    if (breakAtIndex != -1 && sample.ProcessedChunks >= (ulong) breakAtIndex) return;
                     AddOrChangeByte((float) ((sample.SampleData?[sample.ProcessedChunks] ?? 0) * (sample.Volume * 0.5 / 100)) / 32768f, index + sample.ProcessedChunks);
                 }
             }
@@ -307,6 +319,7 @@ namespace ThirtyDollarWebsiteConverter
         public void Play(int num)
         {
             PcmBytes.NormalizeVolume();
+            PcmBytes = PcmBytes.TrimEnd();
             var stream = new BinaryWriter(File.Open($"./out-{num}.wav", FileMode.Create));
             AddWavHeader(stream);
             stream.Write((short) 0);
@@ -317,7 +330,7 @@ namespace ThirtyDollarWebsiteConverter
         private void AddWavHeader(BinaryWriter writer)
         {
             writer.Write(new[]{'R','I','F','F'}); // RIFF Chunk Descriptor
-            writer.Write(4 + 8 + 16 + 8 + PcmBytes.Count * 2); // Sub Chunk 1 Size
+            writer.Write(4 + 8 + 16 + 8 + PcmBytes.Length * 2); // Sub Chunk 1 Size
             //Chunk Size 4 bytes.
             writer.Write(new[]{'W','A','V','E'});
             // fmt sub-chunk
@@ -331,7 +344,7 @@ namespace ThirtyDollarWebsiteConverter
             writer.Write((short) 16); // Bits per Sample
             // data sub-chunk
             writer.Write(new[]{'d','a','t','a'});
-            writer.Write(PcmBytes.Count * Channels * 2); // Sub Chunk 2 Size.
+            writer.Write(PcmBytes.Length * Channels * 2); // Sub Chunk 2 Size.
             
         }
     }
