@@ -10,7 +10,7 @@ For now it only outputs .wav files, but I will add support for more formats in t
  
 If you want to help, please feel free to submit pull requests, as I am rather incompetent in working with PCM samples and audio in general.
 
-NOTE: If you want to help me develop this program, but can't code, please submit sequences using pull requests.
+NOTE: If you want to help me develop this program, but can't code, please submit sequences using pull requests, or send them to me on Discord: t1stm#0329
 
 
 Sources for the included .🗿 files:
