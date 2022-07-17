@@ -25,7 +25,6 @@ namespace ThirtyDollarWebsiteConverter
                 PcmBytes[index] = pcmByte;
             }
         }
-        
 
         private float MixSamples(float sampleOne, float sampleTwo)
         {
@@ -144,22 +143,18 @@ namespace ThirtyDollarWebsiteConverter
 
                         case SoundEvent.Pause:
                             Console.WriteLine($"Pausing for: {ev.Loop} beats.");
-                            var oldLoop = ev.Loop;
                             while (ev.Loop >= 1)
                             {
                                 ev.Loop--;
                                 position += (ulong) (SampleRate / (bpm / 60));
                             }
+
+                            ev.Loop = ev.OriginalLoop;
                             count--;
-                            ev.Loop = oldLoop;
                             continue;
                         
                         case SoundEvent.CutAllSounds:
-                            position += (ulong) (SampleRate / (bpm / 60));
-                            for (var e = position; e < (ulong) PcmBytes.LongLength; e++)
-                            {
-                                PcmBytes[e] = 0;
-                            }
+                            count--;
                             continue;
                         
                         case SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
@@ -184,7 +179,9 @@ namespace ThirtyDollarWebsiteConverter
                     {
                         ev.Loop--;
                         i--;
+                        continue;
                     }
+                    ev.Loop = ev.OriginalLoop;
                 }
                 catch (Exception e)
                 {
@@ -226,22 +223,6 @@ namespace ThirtyDollarWebsiteConverter
             catch (Exception e)
             {
                 Console.WriteLine($"Processing failed: \"{e}\"");
-            }
-        }
-        
-        private unsafe float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate, uint channels)
-        {
-            fixed (float* vals = samples)
-            {
-                var length = Resample32BitFloat(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
-                    channels);
-                float[] alloc = new float[length];
-                fixed (float* output = alloc)
-                {
-                    Resample32BitFloat(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
-                }
-
-                return alloc;
             }
         }
 

@@ -56,6 +56,7 @@ namespace ThirtyDollarWebsiteConverter
                     Value = value,
                     SoundEvent = sound,
                     Loop = loopTimes,
+                    OriginalLoop = loopTimes,
                     ValueScale = scale
                 };
                 comp.Events.Add(newEvent);
