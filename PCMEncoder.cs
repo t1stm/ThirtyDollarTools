@@ -154,6 +154,10 @@ namespace ThirtyDollarWebsiteConverter
                             continue;
                         
                         case SoundEvent.CutAllSounds:
+                            for (var j = position + (ulong) (SampleRate / (bpm / 60)); j < (ulong) PcmBytes.LongLength; j++)
+                            {
+                                PcmBytes[j] = 0;
+                            }
                             count--;
                             continue;
                         
@@ -169,12 +173,10 @@ namespace ThirtyDollarWebsiteConverter
                             position += (ulong) (SampleRate / (bpm / 60));
                             break;
                     }
-
-                    var breakEarly = i + count < Composition?.Events.Count &&
-                                     Composition?.Events[i + 1].SoundEvent == SoundEvent.CutAllSounds;
+                    
                     var index = position - position % 2;
                     Console.WriteLine($"Processing Event: [{index}] - \"{ev}\"");
-                    HandleProcessing(ev, index, breakEarly ? (int) (SampleRate / (bpm / 60)) : -1);
+                    HandleProcessing(ev, index, -1);
                     if (ev.Loop > 1)
                     {
                         ev.Loop--;
@@ -297,15 +299,28 @@ namespace ThirtyDollarWebsiteConverter
             return outputSize;
         }
 
-        public void Play(int num)
+        public void WriteAsWavFile(string location)
         {
             PcmBytes.NormalizeVolume();
             PcmBytes = PcmBytes.TrimEnd();
-            var stream = new BinaryWriter(File.Open($"./out-{num}.wav", FileMode.Create));
+            var stream = new BinaryWriter(File.Open(location, FileMode.Create));
             AddWavHeader(stream);
             stream.Write((short) 0);
             foreach (var data in PcmBytes) stream.Write((short) (data * 32768));
             stream.Close();
+        }
+        
+        public MemoryStream WriteAsWavStream()
+        {
+            var ms = new MemoryStream();
+            PcmBytes.NormalizeVolume();
+            PcmBytes = PcmBytes.TrimEnd();
+            var stream = new BinaryWriter(ms);
+            AddWavHeader(stream);
+            stream.Write((short) 0);
+            foreach (var data in PcmBytes) stream.Write((short) (data * 32768));
+            stream.Close();
+            return ms;
         }
 
         private void AddWavHeader(BinaryWriter writer)

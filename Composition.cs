@@ -50,7 +50,7 @@ namespace ThirtyDollarWebsiteConverter
                 var yes = splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForValue[0];
                 if (splitForRepeats.Length > 1) loopTimes = int.Parse(splitForRepeats.Last());
                 var sound = Sounds.FromString(yes);
-                if (sound == SoundEvent.Pause && text.Contains('=')) loopTimes = (int) (value > 0 ? value : loopTimes);
+                if (sound == SoundEvent.Pause && yes == "_pause" && text.Contains('=') || yes == "!stop" && text.Contains('@')) loopTimes = (int) (value > 0 ? value : loopTimes);
                 var newEvent = new Event
                 {
                     Value = value,

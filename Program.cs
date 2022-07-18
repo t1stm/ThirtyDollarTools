@@ -73,7 +73,7 @@ namespace ThirtyDollarWebsiteConverter
             }))
             {
                 encoder.Start();
-                encoder.Play(num);
+                encoder.WriteAsWavFile($"./{num}.wav");
                 num++;
             }
             
