@@ -183,7 +183,7 @@ namespace ThirtyDollarWebsiteConverter
                             break;
                     }
 
-                    var index = position - position % 2;
+                    var index = position;
                     Console.WriteLine($"Processing Event: [{index}] - \"{ev}\"");
                     HandleProcessing(ev, index, -1);
                     switch (ev.SoundEvent)
