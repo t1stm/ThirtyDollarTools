@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Timers;
 using ThirtyDollarConverter;
 using ThirtyDollarParser;
 
