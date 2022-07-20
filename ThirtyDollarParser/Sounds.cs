@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ThirtyDollarWebsiteConverter
+namespace ThirtyDollarParser
 {
     public enum SoundEvent
     {

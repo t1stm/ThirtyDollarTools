@@ -12,4 +12,22 @@
       <Folder Include="Included Sequences" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="ThirtyDollarParser\**" />
+      <Compile Remove="ThirtyDollarConverter\**" />
+      <Compile Remove="ThirtyDollarApp\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="ThirtyDollarParser\**" />
+      <EmbeddedResource Remove="ThirtyDollarConverter\**" />
+      <EmbeddedResource Remove="ThirtyDollarApp\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="ThirtyDollarParser\**" />
+      <None Remove="ThirtyDollarConverter\**" />
+      <None Remove="ThirtyDollarApp\**" />
+    </ItemGroup>
+
 </Project>

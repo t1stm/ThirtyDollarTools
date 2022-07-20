@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ThirtyDollarWebsiteConverter
+namespace ThirtyDollarParser
 {
     public class Composition
     {
@@ -22,9 +22,8 @@ namespace ThirtyDollarWebsiteConverter
             var comp = new Composition();
             var split = data.Split('|');
 
-            for (var index = 0; index < split.Length; index++)
+            foreach (var text in split)
             {
-                var text = split[index];
                 var splitForValue = text.Split('@');
                 var splitForRepeats = text.Split('=');
                 var value = 0.0;

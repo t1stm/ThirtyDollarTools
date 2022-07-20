@@ -1,15 +1,26 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ThirtyDollarParser;
 
-namespace ThirtyDollarWebsiteConverter
+namespace ThirtyDollarConverter
 {
     public class PcmEncoder
     {
         private const uint SampleRate = 48000; //Hz
         private const int Channels = 1;
+
+        public PcmEncoder(SampleHolder samples, Composition composition)
+        {
+            Holder = samples;
+            Composition = composition;
+        }
+
         private float[] PcmBytes { get; set; } = new float[1024];
-        public Composition? Composition { get; init; }
+        private Composition Composition { get; }
+        private SampleHolder Holder { get; }
+        private List<short[]> Samples => Holder.SampleList;
 
         private void AddOrChangeByte(float pcmByte, ulong index)
         {
@@ -83,7 +94,6 @@ namespace ThirtyDollarWebsiteConverter
             if (Composition == null) throw new Exception("Null Composition");
             var bpm = 300.0;
             var position = (ulong) (SampleRate / (bpm / 60));
-            var count = Composition.Events.Count;
             CalculateVolume();
 
             for (var i = 0; i < Composition!.Events.Count; i++)
@@ -107,12 +117,10 @@ namespace ThirtyDollarWebsiteConverter
                                     break;
                             }
 
-                            count--;
                             Console.WriteLine($"BPM is now: {bpm}");
                             continue;
 
                         case SoundEvent.GoToLoop:
-                            count--;
                             if (ev.Loop <= 0) continue;
                             ev.Loop--;
                             for (var j = i; j > 0; j--)
@@ -143,7 +151,6 @@ namespace ThirtyDollarWebsiteConverter
 
                             i = Composition.Events.IndexOf(item) - 1;
                             Console.WriteLine($"Jumping to element: ({i}) - {Composition.Events[i]}");
-                            count--;
                             //
                             continue;
 
@@ -156,7 +163,6 @@ namespace ThirtyDollarWebsiteConverter
                             }
 
                             ev.Loop = ev.OriginalLoop;
-                            count--;
                             continue;
 
                         case SoundEvent.CutAllSounds:
@@ -167,11 +173,9 @@ namespace ThirtyDollarWebsiteConverter
                                 PcmBytes[j] = 0;
                             }
 
-                            count--;
                             continue;
 
                         case SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
-                            count--;
                             continue;
 
                         case SoundEvent.Combine:
@@ -224,10 +228,10 @@ namespace ThirtyDollarWebsiteConverter
             try
             {
                 ProcessedSample sample = ev.Value == 0
-                    ? new ProcessedSample {SampleData = Program.Samples[ev.SampleId], Volume = ev.Volume}
+                    ? new ProcessedSample {SampleData = Samples[ev.SampleId], Volume = ev.Volume}
                     : new ProcessedSample
                     {
-                        SampleData = Resample(Program.Samples[ev.SampleId], SampleRate,
+                        SampleData = Resample(Samples[ev.SampleId], SampleRate,
                             (uint) (SampleRate / Math.Pow(2, ev.Value / 12)), Channels),
                         Volume = ev.Volume
                     };
