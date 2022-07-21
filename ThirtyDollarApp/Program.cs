@@ -75,7 +75,7 @@ namespace ThirtyDollarApp
                 }
 
             var num = 0;
-            foreach (var encoder in output.Select(Composition.FromString).Select(comp => new PcmEncoder(Holder, comp)))
+            foreach (var encoder in output.Select(Composition.FromString).Select(comp => new PcmEncoder(Holder, comp, Console.WriteLine)))
             {
                 encoder.Start();
                 encoder.WriteAsWavFile($"./{list[num].Split('/').Last()}.wav");

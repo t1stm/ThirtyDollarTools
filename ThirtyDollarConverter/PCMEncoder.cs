@@ -11,16 +11,18 @@ namespace ThirtyDollarConverter
         private const uint SampleRate = 48000; //Hz
         private const int Channels = 1;
 
-        public PcmEncoder(SampleHolder samples, Composition composition)
+        public PcmEncoder(SampleHolder samples, Composition composition, Action<string>? loggerAction = null)
         {
             Holder = samples;
             Composition = composition;
+            Log = loggerAction ?? new Action<string>(_ => {  });
         }
 
         private float[] PcmBytes { get; set; } = new float[1024];
         private Composition Composition { get; }
         private SampleHolder Holder { get; }
         private List<short[]> Samples => Holder.SampleList;
+        private Action<string> Log { get; }
 
         private void AddOrChangeByte(float pcmByte, ulong index)
         {
@@ -37,7 +39,7 @@ namespace ThirtyDollarConverter
             }
         }
 
-        private float MixSamples(float sampleOne, float sampleTwo)
+        private static float MixSamples(float sampleOne, float sampleTwo)
         {
             return sampleOne + sampleTwo;
         }
@@ -99,118 +101,110 @@ namespace ThirtyDollarConverter
             for (var i = 0; i < Composition!.Events.Count; i++)
             {
                 var ev = Composition.Events[i];
-                try
+                switch (ev.SoundEvent)
                 {
-                    switch (ev.SoundEvent)
-                    {
-                        case SoundEvent.Speed:
-                            switch (ev.ValueScale)
+                    case SoundEvent.Speed:
+                        switch (ev.ValueScale)
+                        {
+                            case ValueScale.Times:
+                                bpm *= ev.Value;
+                                break;
+                            case ValueScale.Add:
+                                bpm += ev.Value;
+                                break;
+                            case ValueScale.None:
+                                bpm = ev.Value;
+                                break;
+                        }
+
+                        Log($"BPM is now: {bpm}");
+                        continue;
+
+                    case SoundEvent.GoToLoop:
+                        if (ev.Loop <= 0) continue;
+                        ev.Loop--;
+                        for (var j = i; j > 0; j--)
+                        {
+                            if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget)
                             {
-                                case ValueScale.Times:
-                                    bpm *= ev.Value;
-                                    break;
-                                case ValueScale.Add:
-                                    bpm += ev.Value;
-                                    break;
-                                case ValueScale.None:
-                                    bpm = ev.Value;
-                                    break;
-                            }
-
-                            Console.WriteLine($"BPM is now: {bpm}");
-                            continue;
-
-                        case SoundEvent.GoToLoop:
-                            if (ev.Loop <= 0) continue;
-                            ev.Loop--;
-                            for (var j = i; j > 0; j--)
-                            {
-                                if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget)
-                                {
-                                    continue;
-                                }
-
-                                i = j - 1;
-                                break; // Ooga booga, I am retarded. I've been debugging this for loop for two hours now. How could've I forgotten to add the break?
-                            }
-
-                            Console.WriteLine($"Going to element: ({i + 1}) - \"{Composition.Events[i + 1]}\"");
-                            continue;
-
-                        case SoundEvent.JumpToTarget:
-                            if (ev.Loop <= 0) continue;
-                            ev.Loop--;
-                            //i = Triggers[(int) ev.Value - 1] - 1;
-                            var item = Composition.Events.FirstOrDefault(r =>
-                                r.SoundEvent == SoundEvent.SetTarget && (int) r.Value == (int) ev.Value);
-                            if (item == null)
-                            {
-                                Console.WriteLine($"Unable to target with id: {ev.Value}");
                                 continue;
                             }
 
-                            i = Composition.Events.IndexOf(item) - 1;
-                            Console.WriteLine($"Jumping to element: ({i}) - {Composition.Events[i]}");
-                            //
-                            continue;
-
-                        case SoundEvent.Pause:
-                            Console.WriteLine($"Pausing for: {ev.Loop} beats.");
-                            while (ev.Loop >= 1)
-                            {
-                                ev.Loop--;
-                                position += (ulong) (SampleRate / (bpm / 60));
-                            }
-
-                            ev.Loop = ev.OriginalLoop;
-                            continue;
-
-                        case SoundEvent.CutAllSounds:
-                            for (var j = position + (ulong) (SampleRate / (bpm / 60));
-                                j < (ulong) PcmBytes.LongLength;
-                                j++)
-                            {
-                                PcmBytes[j] = 0;
-                            }
-
-                            continue;
-
-                        case SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
-                            continue;
-
-                        case SoundEvent.Combine:
-                            position -= (ulong) (SampleRate / (bpm / 60));
-                            continue;
-
-                        default:
-                            position += (ulong) (SampleRate / (bpm / 60));
+                            i = j - 1;
                             break;
-                    }
+                        }
 
-                    var index = position;
-                    Console.WriteLine($"Processing Event: [{index}] - \"{ev}\"");
-                    HandleProcessing(ev, index, -1);
-                    switch (ev.SoundEvent)
-                    {
-                        case not (SoundEvent.Speed or SoundEvent.GoToLoop or SoundEvent.JumpToTarget or SoundEvent.Pause
-                            or SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or
-                            SoundEvent.SetTarget or SoundEvent.Volume or SoundEvent.Combine):
-                            
-                            if (ev.Loop > 1)
-                            {
-                                ev.Loop--;
-                                i--;
-                                continue;
-                            }
+                        Log($"Going to element: ({i + 1}) - \"{Composition.Events[i + 1]}\"");
+                        continue;
 
-                            ev.Loop = ev.OriginalLoop;
+                    case SoundEvent.JumpToTarget:
+                        if (ev.Loop <= 0) continue;
+                        ev.Loop--;
+                        //i = Triggers[(int) ev.Value - 1] - 1;
+                        var item = Composition.Events.FirstOrDefault(r =>
+                            r.SoundEvent == SoundEvent.SetTarget && (int) r.Value == (int) ev.Value);
+                        if (item == null)
+                        {
+                            Log($"Unable to target with id: {ev.Value}");
                             continue;
-                    }
+                        }
+
+                        i = Composition.Events.IndexOf(item) - 1;
+                        Log($"Jumping to element: ({i}) - {Composition.Events[i]}");
+                        //
+                        continue;
+
+                    case SoundEvent.Pause:
+                        Log($"Pausing for: {ev.Loop} beats.");
+                        while (ev.Loop >= 1)
+                        {
+                            ev.Loop--;
+                            position += (ulong) (SampleRate / (bpm / 60));
+                        }
+
+                        ev.Loop = ev.OriginalLoop;
+                        continue;
+
+                    case SoundEvent.CutAllSounds:
+                        for (var j = position + (ulong) (SampleRate / (bpm / 60));
+                            j < (ulong) PcmBytes.LongLength;
+                            j++)
+                        {
+                            PcmBytes[j] = 0;
+                        }
+
+                        continue;
+
+                    case SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
+                        continue;
+
+                    case SoundEvent.Combine:
+                        position -= (ulong) (SampleRate / (bpm / 60));
+                        continue;
+
+                    default:
+                        position += (ulong) (SampleRate / (bpm / 60));
+                        break;
                 }
-                catch (Exception e)
+
+                var index = position;
+                Log($"Processing Event: [{index}] - \"{ev}\"");
+                HandleProcessing(ev, index, -1);
+                switch (ev.SoundEvent)
                 {
-                    Console.WriteLine(e);
-                    throw;
+                    case not (SoundEvent.Speed or SoundEvent.GoToLoop or SoundEvent.JumpToTarget or SoundEvent.Pause
+                        or SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or
+                        SoundEvent.SetTarget or SoundEvent.Volume or SoundEvent.Combine):
+                            
+                        if (ev.Loop > 1)
+                        {
+                            ev.Loop--;
+                            i--;
+                            continue;
+                        }
+
+                        ev.Loop = ev.OriginalLoop;
+                        continue;
                 }
             }
         }
@@ -232,7 +226,7 @@ namespace ThirtyDollarConverter
                     : new ProcessedSample
                     {
                         SampleData = Resample(Samples[ev.SampleId], SampleRate,
-                            (uint) (SampleRate / Math.Pow(2, ev.Value / 12)), Channels),
+                            (uint) (SampleRate / Math.Pow(2, ev.Value / 12)), 1),
                         Volume = ev.Volume
                     };
 
@@ -247,7 +241,7 @@ namespace ThirtyDollarConverter
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Processing failed: \"{e}\"");
+                Log($"Processing failed: \"{e}\"");
             }
         }
 
@@ -328,7 +322,13 @@ namespace ThirtyDollarConverter
             var stream = new BinaryWriter(File.Open(location, FileMode.Create));
             AddWavHeader(stream);
             stream.Write((short) 0);
-            foreach (var data in PcmBytes) stream.Write((short) (data * 32768));
+            foreach (var data in PcmBytes)
+            {
+                for (var i = 0; i < Channels; i++)
+                {
+                    stream.Write((short) (data * 32768));
+                }
+            }
             stream.Close();
         }
 
@@ -340,7 +340,13 @@ namespace ThirtyDollarConverter
             var stream = new BinaryWriter(ms);
             AddWavHeader(stream);
             stream.Write((short) 0);
-            foreach (var data in PcmBytes) stream.Write((short) (data * 32768));
+            foreach (var data in PcmBytes)
+            {
+                for (var i = 0; i < Channels; i++)
+                {
+                    stream.Write((short) (data * 32768));
+                }
+            }
             stream.Close();
             return ms;
         }
