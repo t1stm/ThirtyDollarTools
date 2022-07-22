@@ -41,7 +41,7 @@ namespace ThirtyDollarApp
             foreach (var arg in args)
                 try
                 {
-                    if (!File.Exists(arg))
+                    if (!File.Exists(arg) || Directory.Exists(arg))
                     {
                         Console.WriteLine($"File: \"{arg}\" doesn't exist.");
                         continue;
