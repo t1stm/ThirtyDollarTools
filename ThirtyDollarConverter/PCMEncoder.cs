@@ -21,7 +21,7 @@ namespace ThirtyDollarConverter
         private float[] PcmBytes { get; set; } = new float[1024];
         private Composition Composition { get; }
         private SampleHolder Holder { get; }
-        private List<short[]> Samples => Holder.SampleList;
+        private Dictionary<Sound, short[]?> Samples => Holder.SampleList;
         private Action<string> Log { get; }
 
         private void AddOrChangeByte(float pcmByte, ulong index)
@@ -63,11 +63,11 @@ namespace ThirtyDollarConverter
             double volume = 100;
             lock (Composition.Events)
             {
-                foreach (var ev in Composition.Events) //Quick pass for volume
+                foreach (var ev in Composition.Events) // Quick pass for volume
                 {
                     switch (ev.SoundEvent)
                     {
-                        case SoundEvent.Volume:
+                        case "!volume":
                             switch (ev.ValueScale)
                             {
                                 case ValueScale.Times:
@@ -87,7 +87,7 @@ namespace ThirtyDollarConverter
                     ev.Volume = volume;
                 }
 
-                Composition.Events.RemoveAll(e => e.SoundEvent is SoundEvent.Volume);
+                Composition.Events.RemoveAll(e => e.SoundEvent == "!volume");
             }
         }
 
@@ -96,6 +96,7 @@ namespace ThirtyDollarConverter
             if (Composition == null) throw new Exception("Null Composition");
             var bpm = 300.0;
             var position = (ulong) (SampleRate / (bpm / 60));
+            var transpose = 0.0;
             CalculateVolume();
 
             for (var i = 0; i < Composition!.Events.Count; i++)
@@ -103,7 +104,7 @@ namespace ThirtyDollarConverter
                 var ev = Composition.Events[i];
                 switch (ev.SoundEvent)
                 {
-                    case SoundEvent.Speed:
+                    case "!speed":
                         switch (ev.ValueScale)
                         {
                             case ValueScale.Times:
@@ -120,12 +121,12 @@ namespace ThirtyDollarConverter
                         Log($"BPM is now: {bpm}");
                         continue;
 
-                    case SoundEvent.GoToLoop:
+                    case "!loopmany" or "!loop":
                         if (ev.Loop <= 0) continue;
                         ev.Loop--;
                         for (var j = i; j > 0; j--)
                         {
-                            if (Composition.Events[j].SoundEvent != SoundEvent.LoopTarget)
+                            if (Composition.Events[j].SoundEvent != "!looptarget")
                             {
                                 continue;
                             }
@@ -137,12 +138,12 @@ namespace ThirtyDollarConverter
                         Log($"Going to element: ({i + 1}) - \"{Composition.Events[i + 1]}\"");
                         continue;
 
-                    case SoundEvent.JumpToTarget:
+                    case "!jump":
                         if (ev.Loop <= 0) continue;
                         ev.Loop--;
                         //i = Triggers[(int) ev.Value - 1] - 1;
                         var item = Composition.Events.FirstOrDefault(r =>
-                            r.SoundEvent == SoundEvent.SetTarget && (int) r.Value == (int) ev.Value);
+                            r.SoundEvent == "!target" && (int) r.Value == (int) ev.Value);
                         if (item == null)
                         {
                             Log($"Unable to target with id: {ev.Value}");
@@ -154,7 +155,7 @@ namespace ThirtyDollarConverter
                         //
                         continue;
 
-                    case SoundEvent.Pause:
+                    case "_pause" or "!stop":
                         Log($"Pausing for: {ev.Loop} beats.");
                         while (ev.Loop >= 1)
                         {
@@ -165,7 +166,7 @@ namespace ThirtyDollarConverter
                         ev.Loop = ev.OriginalLoop;
                         continue;
 
-                    case SoundEvent.CutAllSounds:
+                    case "!cut":
                         for (var j = position + (ulong) (SampleRate / (bpm / 60));
                             j < (ulong) PcmBytes.LongLength;
                             j++)
@@ -175,11 +176,26 @@ namespace ThirtyDollarConverter
 
                         continue;
 
-                    case SoundEvent.None or SoundEvent.LoopTarget or SoundEvent.SetTarget or SoundEvent.Volume:
+                    case "" or "!looptarget" or "!target" or "!volume" or "!flash" or "!bg":
                         continue;
 
-                    case SoundEvent.Combine:
+                    case "!combine":
                         position -= (ulong) (SampleRate / (bpm / 60));
+                        continue;
+                    
+                    case "!transpose":
+                        switch (ev.ValueScale)
+                        {
+                            case ValueScale.Times:
+                                transpose *= ev.Value;
+                                continue;
+                            case ValueScale.Add:
+                                transpose += ev.Value;
+                                continue;
+                            case ValueScale.None:
+                                transpose = ev.Value;
+                                continue;
+                        }
                         continue;
 
                     default:
@@ -189,13 +205,11 @@ namespace ThirtyDollarConverter
 
                 var index = position;
                 Log($"Processing Event: [{index}] - \"{ev}\"");
-                HandleProcessing(ev, index, -1);
+                HandleProcessing(ev, index, -1, transpose);
                 switch (ev.SoundEvent)
                 {
-                    case not (SoundEvent.Speed or SoundEvent.GoToLoop or SoundEvent.JumpToTarget or SoundEvent.Pause
-                        or SoundEvent.CutAllSounds or SoundEvent.None or SoundEvent.LoopTarget or
-                        SoundEvent.SetTarget or SoundEvent.Volume or SoundEvent.Combine):
-                            
+                    case not ("!transpose" or "!loopmany" or "!volume" or "!flash" or "!combine" or "!speed" or
+                        "!looptarget" or "!loop" or "!cut" or "!target" or "!jump" or "_pause" or "!stop"):
                         if (ev.Loop > 1)
                         {
                             ev.Loop--;
@@ -217,16 +231,18 @@ namespace ThirtyDollarConverter
             public double Volume { get; init; }
         }
 
-        private void HandleProcessing(Event ev, ulong index, long breakAtIndex)
+        private void HandleProcessing(Event ev, ulong index, long breakAtIndex, double transpose)
         {
             try
             {
-                ProcessedSample sample = ev.Value == 0
-                    ? new ProcessedSample {SampleData = Samples[ev.SampleId], Volume = ev.Volume}
+                var (_, value) = Samples.AsParallel().FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent);
+                if (value == null) throw new NullReferenceException($"Sample data is null for event: \"{ev}\", Samples Count is: {Samples.Count}");
+                ProcessedSample sample = ev.Value == 0 && transpose == 0.0
+                    ? new ProcessedSample {SampleData = value, Volume = ev.Volume}
                     : new ProcessedSample
                     {
-                        SampleData = Resample(Samples[ev.SampleId], SampleRate,
-                            (uint) (SampleRate / Math.Pow(2, ev.Value / 12)), 1),
+                        SampleData = Resample(value, SampleRate,
+                            (uint) (SampleRate / Math.Pow(2, (ev.Value + transpose) / 12)), 1),
                         Volume = ev.Volume
                     };
 

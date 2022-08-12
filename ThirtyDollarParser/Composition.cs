@@ -10,20 +10,32 @@ namespace ThirtyDollarParser
         {
             new Event
             {
-                SoundEvent = SoundEvent.Speed,
+                SoundEvent = "!speed",
                 Value = 300,
                 Loop = 1,
                 ValueScale = ValueScale.None
             }
         };
-        
+
         public static Composition FromString(string data)
         {
             var comp = new Composition();
-            var split = data.Split('|');
-
-            foreach (var text in split)
+            var split = data.Replace("!divider", "").Split('|');
+            foreach (var orText in split)
             {
+                var text = orText;
+                if (string.IsNullOrEmpty(text)) continue;
+                if (text.StartsWith("!pulse") || text.StartsWith("!bg") || text.StartsWith("!flash"))
+                {
+                    // Skipping color line due to no current support.
+                    continue;
+                }
+
+                if (text[1..].Count(ch => ch == '!') > 0)
+                {
+                    // Text contains more than one parameter on event without divider. Adding the first event only.
+                    text = text[..text[1..].IndexOf('!')]; 
+                }
                 var splitForValue = text.Split('@');
                 var splitForRepeats = text.Split('=');
                 var value = 0.0;
@@ -46,10 +58,9 @@ namespace ThirtyDollarParser
                 }
 
                 var loopTimes = 1;
-                var yes = splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForValue[0];
+                var sound = (splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForValue[0]).Trim();
                 if (splitForRepeats.Length > 1) loopTimes = int.Parse(splitForRepeats.Last());
-                var sound = Sounds.FromString(yes);
-                if (sound == SoundEvent.Pause && yes == "_pause" && text.Contains('=') || yes == "!stop" && text.Contains('@')) loopTimes = (int) (value > 0 ? value : loopTimes);
+                if (sound == "_pause" && text.Contains('=') || sound == "!stop" && text.Contains('@')) loopTimes = (int) (value > 0 ? value : loopTimes);
                 var newEvent = new Event
                 {
                     Value = value,

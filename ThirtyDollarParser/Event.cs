@@ -2,8 +2,7 @@ namespace ThirtyDollarParser
 {
     public class Event
     {
-        public SoundEvent? SoundEvent { get; init; }
-        public int SampleId => (int?) SoundEvent ?? 0;
+        public string? SoundEvent { get; init; }
         public double Value { get; set; }
         public int OriginalLoop { get; set; } = 1;
         public int Loop { get; set; } = 1;
@@ -11,7 +10,7 @@ namespace ThirtyDollarParser
         public ValueScale ValueScale { get; init; }
         public override string ToString()
         {
-            return $"Event: \"{SoundEvent.ToString() ?? "No Event"}\", Value: {Value}{(ValueScale == ValueScale.Times ? 'x' : (char) 0)}, Loops: {Loop}";
+            return $"Event: \"{SoundEvent ?? "Null event."}\", Value: {Value}{(ValueScale == ValueScale.Times ? 'x' : (char) 0)}, Loops: {Loop}";
         }
     }
 
