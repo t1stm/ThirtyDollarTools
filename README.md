@@ -21,6 +21,8 @@ Radiotomatosauce99 - "It has to be this way [Metal Gear Rising Revengeance].🗿
 
 Radiotomatosauce99 - "watery graves [Plants vs. Zombies].🗿" Link: https://www.youtube.com/watch?v=cAANIc7RPhs
 
+Radiotomatosauce99 - "TLT FNAF 1.🗿" Link: https://www.youtube.com/watch?v=dnr55bAMxHw
+
 Xenon Neko - "catastrophe_tdw_v2.🗿" Link: https://www.youtube.com/watch?v=UqqMvkD1QMg
 
 Domburg - "bad apple full.🗿" Link: https://www.youtube.com/watch?v=Yw4bhbjBRG8
