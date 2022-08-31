@@ -4,6 +4,8 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using ThirtyDollarEncoder.PCM;
+using ThirtyDollarEncoder.Wave;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarConverter
@@ -13,7 +15,7 @@ namespace ThirtyDollarConverter
         private const string ThirtyDollarWebsiteUrl = "https://thirtydollar.website";
         public string DownloadFile { get; private set; } = "";
         public int DownloadPercent { get; private set; } = 0;
-        public readonly Dictionary<Sound, short[]?> SampleList = new();
+        public readonly Dictionary<Sound, PcmDataHolder> SampleList = new();
 
         public async Task LoadSampleList()
         {
@@ -26,7 +28,7 @@ namespace ThirtyDollarConverter
 
             foreach (var sound in sounds)
             {
-                SampleList.Add(sound, null);
+                SampleList.Add(sound, new PcmDataHolder());
             }
         }
         
@@ -49,7 +51,7 @@ namespace ThirtyDollarConverter
             foreach (var (sound, _) in SampleList)
             {
                 var file = sound.Id;
-                //var requestUrl = $"https://thirtydollar.website/sounds/{file}.wav";
+                //var requestUrl = $"{ThirtyDollarWebsiteUrl}/sounds/{file}.wav";
                 var requestUrl = $"https://dankest.gq/ThirtyDollarWebsiteSounds/{file}.wav";
                 // All the files have different sample rates and channels, so I reencoded them all to 48000Hz - 1 channel.
                 DownloadFile = $"./Sounds/{file}.wav";
@@ -63,33 +65,14 @@ namespace ThirtyDollarConverter
             }
         }
 
-        public async Task LoadSamplesIntoMemory()
+        public void LoadSamplesIntoMemory()
         {
-            foreach (var file in SampleList)
+            foreach (var (key, _) in SampleList)
             {
-                var fileStream = await File.ReadAllBytesAsync($"./Sounds/{file.Key.Id}.wav");
-                var offset = 0;
-
-                for (var i = 0; i < fileStream.Length; i++)
-                {
-                    if (fileStream[i] != 0x64 && fileStream[i + 1] != 0x61 && fileStream[i + 2] != 0x74 &&
-                        fileStream[i + 3] != 0x61)
-                        continue; // Data Header in Hex Bytes
-                    offset = i * 6 + 8;
-                    break;
-                }
-
-                if (offset == 0)
-                    throw new FileLoadException($"Unable to find \"data\" header for file: \"{file.Key.Id}.wav\".");
-
-                var buf = fileStream[offset..];
-
-                short[] buffer = new short[buf.Length / 2];
-                for (var i = 0; i < buf.Length / 2; i++)
-                    //buffer[i] = (short) ((buf[i * 2] & 0xff) | (buf[i * 2 + 1] << 8));
-                    buffer[i] = BitConverter.ToInt16(buf, i * 2);
-                SampleList[file.Key] = buffer;
-                Console.WriteLine($"Reading sample: {file}.wav");
+                var fileStream = File.OpenRead($"./Sounds/{key.Id}.wav");
+                var decoder = new WaveDecoder();
+                Console.WriteLine($"Reading sample: {key.Filename}.wav");
+                SampleList[key] = decoder.Read(fileStream);
             }
 
             Console.WriteLine($"Samples: {SampleList.Count}");

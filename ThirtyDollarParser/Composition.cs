@@ -12,7 +12,7 @@ namespace ThirtyDollarParser
             {
                 SoundEvent = "!speed",
                 Value = 300,
-                Loop = 1,
+                PlayTimes = 1,
                 ValueScale = ValueScale.None
             }
         };
@@ -65,7 +65,7 @@ namespace ThirtyDollarParser
                 {
                     Value = value,
                     SoundEvent = sound,
-                    Loop = loopTimes,
+                    PlayTimes = loopTimes,
                     OriginalLoop = loopTimes,
                     ValueScale = scale
                 };

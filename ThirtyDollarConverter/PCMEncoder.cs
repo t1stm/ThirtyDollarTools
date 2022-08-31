@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarConverter
@@ -21,7 +22,7 @@ namespace ThirtyDollarConverter
         private float[] PcmBytes { get; set; } = new float[1024];
         private Composition Composition { get; }
         private SampleHolder Holder { get; }
-        private Dictionary<Sound, short[]?> Samples => Holder.SampleList;
+        private Dictionary<Sound, PcmDataHolder> Samples => Holder.SampleList;
         private Action<string> Log { get; }
 
         private void AddOrChangeByte(float pcmByte, ulong index)
@@ -122,8 +123,8 @@ namespace ThirtyDollarConverter
                         continue;
 
                     case "!loopmany" or "!loop":
-                        if (ev.Loop <= 0) continue;
-                        ev.Loop--;
+                        if (ev.PlayTimes <= 0) continue;
+                        ev.PlayTimes--;
                         for (var j = i; j > 0; j--)
                         {
                             if (Composition.Events[j].SoundEvent != "!looptarget")
@@ -139,8 +140,8 @@ namespace ThirtyDollarConverter
                         continue;
 
                     case "!jump":
-                        if (ev.Loop <= 0) continue;
-                        ev.Loop--;
+                        if (ev.PlayTimes <= 0) continue;
+                        ev.PlayTimes--;
                         //i = Triggers[(int) ev.Value - 1] - 1;
                         var item = Composition.Events.FirstOrDefault(r =>
                             r.SoundEvent == "!target" && (int) r.Value == (int) ev.Value);
@@ -156,14 +157,14 @@ namespace ThirtyDollarConverter
                         continue;
 
                     case "_pause" or "!stop":
-                        Log($"Pausing for: {ev.Loop} beats.");
-                        while (ev.Loop >= 1)
+                        Log($"Pausing for: {ev.PlayTimes} beats.");
+                        while (ev.PlayTimes >= 1)
                         {
-                            ev.Loop--;
+                            ev.PlayTimes--;
                             position += (ulong) (SampleRate / (bpm / 60));
                         }
 
-                        ev.Loop = ev.OriginalLoop;
+                        ev.PlayTimes = ev.OriginalLoop;
                         continue;
 
                     case "!cut":
@@ -210,14 +211,14 @@ namespace ThirtyDollarConverter
                 {
                     case not ("!transpose" or "!loopmany" or "!volume" or "!flash" or "!combine" or "!speed" or
                         "!looptarget" or "!loop" or "!cut" or "!target" or "!jump" or "_pause" or "!stop"):
-                        if (ev.Loop > 1)
+                        if (ev.PlayTimes > 1)
                         {
-                            ev.Loop--;
+                            ev.PlayTimes--;
                             i--;
                             continue;
                         }
 
-                        ev.Loop = ev.OriginalLoop;
+                        ev.PlayTimes = ev.OriginalLoop;
                         continue;
                 }
             }
@@ -225,7 +226,7 @@ namespace ThirtyDollarConverter
 
         private class ProcessedSample
         {
-            public short[]? SampleData { get; init; }
+            public float[]? SampleData { get; init; }
             public ulong ProcessedChunks { get; set; }
             public ulong SampleLength => (ulong) (SampleData?.LongLength ?? 0);
             public double Volume { get; init; }
@@ -236,23 +237,22 @@ namespace ThirtyDollarConverter
             try
             {
                 var (_, value) = Samples.AsParallel().FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent);
-                if (value == null) throw new NullReferenceException($"Sample data is null for event: \"{ev}\", Samples Count is: {Samples.Count}");
-                ProcessedSample sample = ev.Value == 0 && transpose == 0.0
-                    ? new ProcessedSample {SampleData = value, Volume = ev.Volume}
-                    : new ProcessedSample
-                    {
-                        SampleData = Resample(value, SampleRate,
-                            (uint) (SampleRate / Math.Pow(2, (ev.Value + transpose) / 12)), 1),
-                        Volume = ev.Volume
-                    };
+                Log($"PCM: Channels: {value.Channels}, Encoding: {value.Encoding}, SampleRate: {value.SampleRate}");
+                var sampleData = value.ReadAsFloat32Array(Channels > 1);
+                if (sampleData == null) throw new NullReferenceException($"Sample data is null for event: \"{ev}\", Samples Count is: {Samples.Count}");
+                sampleData = Resample(sampleData, value.SampleRate, (uint) (SampleRate / Math.Pow(2, (ev.Value + transpose) / 12)), Channels);
+                ProcessedSample sample = new()
+                {
+                    SampleData = sampleData,
+                    Volume = ev.Volume
+                };
 
                 var size = breakAtIndex == -1 ? sample.SampleLength : (ulong) breakAtIndex;
                 for (sample.ProcessedChunks = 0; sample.ProcessedChunks < size; sample.ProcessedChunks++)
                 {
                     if (breakAtIndex != -1 && sample.ProcessedChunks >= (ulong) breakAtIndex) return;
                     AddOrChangeByte(
-                        (float) ((sample.SampleData?[sample.ProcessedChunks] ?? 0) * (sample.Volume * 0.5 / 100)) /
-                        32768f, index + sample.ProcessedChunks);
+                        (float) ((sample.SampleData?[sample.ProcessedChunks] ?? 0) * (sample.Volume * 0.5 / 100)), index + sample.ProcessedChunks);
                 }
             }
             catch (Exception e)
@@ -260,17 +260,19 @@ namespace ThirtyDollarConverter
                 Log($"Processing failed: \"{e}\"");
             }
         }
+        
 
-        private unsafe short[] Resample(short[] samples, uint sampleRate, uint targetSampleRate, uint channels)
+        private unsafe float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate, uint channels)
         {
-            fixed (short* vals = samples)
+            if (sampleRate == targetSampleRate) return samples;
+            fixed (float* vals = samples)
             {
-                var length = Resample16Bit(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
+                var length = Resample32BitFloat(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
                     channels);
-                short[] alloc = new short[length];
-                fixed (short* output = alloc)
+                float[] alloc = new float[length];
+                fixed (float* output = alloc)
                 {
-                    Resample16Bit(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
+                    Resample32BitFloat(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
                 }
 
                 return alloc;
@@ -320,7 +322,7 @@ namespace ThirtyDollarConverter
             ulong curOffset = 0;
             for (uint i = 0; i < outputSize; i += 1)
             {
-                for (uint c = 0; c < channels; c += 1)
+                for (uint c = 0; c < channels; c += 1) 
                     *output++ = (short) (input[c] + (input[c + channels] - input[c]) *
                         ((curOffset >> 32) + (curOffset & (fixedFraction - 1)) * normFixed));
                 curOffset += step;

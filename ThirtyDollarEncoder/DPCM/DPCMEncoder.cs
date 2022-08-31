@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ThirtyDollarEncoder.PCM;
 
 namespace ThirtyDollarEncoder.DPCM
 {
@@ -28,7 +29,7 @@ namespace ThirtyDollarEncoder.DPCM
             return null;
         }
 
-        public short[]? DecodeToPcm(IEnumerable<byte> data, PCMSettings settings)
+        public short[]? DecodeToPcm(IEnumerable<byte> data, PcmDataHolder dataHolder)
         {
             var audio = data.ToArray(); // I hope that it's audio.
             

@@ -25,12 +25,13 @@ namespace ThirtyDollarApp
             };
             await Holder.LoadSampleList();
             await Holder.DownloadFiles();
-            await Holder.LoadSamplesIntoMemory();
+            Holder.LoadSamplesIntoMemory();
             Console.Clear();
 
             var isInBinFolder = Directory.GetCurrentDirectory() == "bin";
             var list = new List<string>
             {
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) the world revolving (full).🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Domburg) bad apple full.🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) big shot [Deltarune].🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) It has to be this way [Metal Gear Rising Revengeance].🗿",
