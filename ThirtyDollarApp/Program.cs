@@ -16,13 +16,14 @@ namespace ThirtyDollarApp
 
         private static async Task Main(string[] args)
         {
-            var timer = new System.Timers.Timer {Interval = 1};
+            /*var timer = new System.Timers.Timer {Interval = 1};
             timer.Elapsed += (_, _) =>
             {
                 Console.Clear();
                 Console.WriteLine($"Downloading File: \"{Holder.DownloadFile}\"\n" +
                                   $"({GenerateProgressbar(Holder.DownloadPercent, 100)}) ({Holder.DownloadPercent}% - 100%)");
-            };
+            };*/
+            // Deprecated, will fix later.
             await Holder.LoadSampleList();
             await Holder.DownloadFiles();
             Holder.LoadSamplesIntoMemory();

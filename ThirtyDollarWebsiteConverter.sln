@@ -1,12 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarParser", "ThirtyDollarParser\ThirtyDollarParser.csproj", "{0E225E10-F638-497A-881D-8358D21FE31A}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarParser", "ThirtyDollarParser\ThirtyDollarParser.csproj", "{0E225E10-F638-497A-881D-8358D21FE31A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarApp", "ThirtyDollarApp\ThirtyDollarApp.csproj", "{F7EBBD6D-965A-487D-A775-73B6778144F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarDebugApp", "ThirtyDollarApp\ThirtyDollarDebugApp.csproj", "{F7EBBD6D-965A-487D-A775-73B6778144F8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter", "ThirtyDollarConverter\ThirtyDollarConverter.csproj", "{B878BC71-E458-4630-82C2-9FF42408BB58}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarConverter", "ThirtyDollarConverter\ThirtyDollarConverter.csproj", "{B878BC71-E458-4630-82C2-9FF42408BB58}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarEncoder", "ThirtyDollarEncoder\ThirtyDollarEncoder.csproj", "{19D1A131-E40C-456B-A336-744A2FBA4EA7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarEncoder", "ThirtyDollarEncoder\ThirtyDollarEncoder.csproj", "{19D1A131-E40C-456B-A336-744A2FBA4EA7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarWindowsGuiApp", "ThirtyDollarWindowsGuiApp\ThirtyDollarWindowsGuiApp.csproj", "{B4D7219F-8B53-4718-9A83-C634FD7F01D0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +35,15 @@ Global
 		{19D1A131-E40C-456B-A336-744A2FBA4EA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19D1A131-E40C-456B-A336-744A2FBA4EA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{19D1A131-E40C-456B-A336-744A2FBA4EA7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4D7219F-8B53-4718-9A83-C634FD7F01D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4D7219F-8B53-4718-9A83-C634FD7F01D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4D7219F-8B53-4718-9A83-C634FD7F01D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4D7219F-8B53-4718-9A83-C634FD7F01D0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6333FB59-4D9A-4BD9-B36A-A62CD5648003}
 	EndGlobalSection
 EndGlobal

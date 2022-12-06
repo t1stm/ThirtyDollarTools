@@ -12,13 +12,17 @@ namespace ThirtyDollarConverter
 {
     public class SampleHolder
     {
-        private const string ThirtyDollarWebsiteUrl = "https://thirtydollar.website";
-        public string DownloadFile { get; private set; } = "";
-        public int DownloadPercent { get; private set; } = 0;
+        private string ThirtyDollarWebsiteUrl { get; init; } = "https://thirtydollar.website";
+        private string DownloadSampleUrl { get; init; } = "https://dankest.gq/ThirtyDollarWebsiteSounds";
+        private string DownloadLocation { get; init; } = "./Sounds";
+
+        public Action<string, int, int>? DownloadUpdate = null;
+
         public readonly Dictionary<Sound, PcmDataHolder> SampleList = new();
 
         public async Task LoadSampleList()
         {
+            // TODO: Add error or implement solution when offline.
             var client = new HttpClient();
             var sounds = await client.GetFromJsonAsync<Sound[]>($"{ThirtyDollarWebsiteUrl}/sounds.json");
             if (sounds == null)
@@ -32,36 +36,36 @@ namespace ThirtyDollarConverter
             }
         }
         
-        private bool HasFiles()
+        public bool DownloadedAllFiles()
         {
-            if (!Directory.Exists("./Sounds"))
+            if (!Directory.Exists(DownloadLocation))
             {
-                Directory.CreateDirectory("./Sounds");
+                Directory.CreateDirectory(DownloadLocation);
                 return false;
             }
 
-            var read = Directory.GetFiles("./Sounds");
+            var read = Directory.GetFiles(DownloadLocation);
             return read.Length >= SampleList.Count;
         }
         
         public async Task DownloadFiles()
         {
-            if (HasFiles()) return;
+            if (DownloadedAllFiles()) return;
             var client = new HttpClient();
+            var i = 0;
+            var count = SampleList.Count;
             foreach (var (sound, _) in SampleList)
             {
                 var file = sound.Id;
-                //var requestUrl = $"{ThirtyDollarWebsiteUrl}/sounds/{file}.wav";
-                var requestUrl = $"https://dankest.gq/ThirtyDollarWebsiteSounds/{file}.wav";
-                // All the files have different sample rates and channels, so I reencoded them all to 48000Hz - 1 channel.
-                DownloadFile = $"./Sounds/{file}.wav";
-                if (File.Exists(DownloadFile)) continue;
-                //byte[] buffer = new byte[1024];
-                Console.WriteLine($"Downloading: \"{requestUrl}\"");
+                var requestUrl = $"{DownloadSampleUrl}/{file}.wav";
+                var dll = $"{DownloadLocation}/{file}.wav";
+                if (File.Exists(dll)) continue;
+                DownloadUpdate?.Invoke(sound?.Filename ?? "Empty filename.doesnt_exist", i, count);
                 await using var stream = await client.GetStreamAsync(requestUrl);
-                await using FileStream fs = File.Open($"./Sounds/{file}.wav", FileMode.Create);
+                await using FileStream fs = File.Open($"{DownloadLocation}/{file}.wav", FileMode.Create);
                 await stream.CopyToAsync(fs);
                 fs.Close();
+                i++;
             }
         }
 
@@ -69,7 +73,7 @@ namespace ThirtyDollarConverter
         {
             foreach (var (key, _) in SampleList)
             {
-                var fileStream = File.OpenRead($"./Sounds/{key.Id}.wav");
+                var fileStream = File.OpenRead($"{DownloadLocation}/{key.Id}.wav");
                 var decoder = new WaveDecoder();
                 Console.WriteLine($"Reading sample: {key.Filename}.wav");
                 SampleList[key] = decoder.Read(fileStream);
