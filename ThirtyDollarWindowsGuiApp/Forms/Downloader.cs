@@ -24,7 +24,7 @@ namespace ThirtyDollarWindowsGuiApp.Forms
             var holder = Program.SampleHolder;
             holder.DownloadUpdate = (sound, index, count) =>
             {
-                downloadBarLabel.Text = $"Items: {index + 1} - {count}";
+                downloadBarLabel.Text = $"Downloading: ({index + 1}) - ({count})";
                 downloadBar.Value = index;
                 downloadBar.Maximum = count;
                 downloadBoxLog.Text += $"Downloading: ({index + 1}) - ({count}): \"{sound}\"{Environment.NewLine}";
@@ -34,7 +34,7 @@ namespace ThirtyDollarWindowsGuiApp.Forms
             Downloading = true;
             await holder.DownloadFiles();
             Downloading = false;
-            MessageBox.Show("All samples have been downloaded.", "Success!", MessageBoxButtons.OK);
+            MessageBox.Show("All samples have been downloaded.", "Success!", MessageBoxButtons.OK, MessageBoxIcon.Information);
             Close();
         }
 

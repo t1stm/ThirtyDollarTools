@@ -12,11 +12,12 @@ namespace ThirtyDollarConverter
         private const uint SampleRate = 48000; //Hz
         private const int Channels = 1;
 
-        public PcmEncoder(SampleHolder samples, Composition composition, Action<string>? loggerAction = null)
+        public PcmEncoder(SampleHolder samples, Composition composition, Action<string>? loggerAction = null, Action<int, int>? indexReport = null)
         {
             Holder = samples;
             Composition = composition;
             Log = loggerAction ?? new Action<string>(_ => {  });
+            IndexReport = indexReport ?? new Action<int, int>((_, _) => { });
         }
 
         private float[] PcmBytes { get; set; } = new float[1024];
@@ -24,6 +25,8 @@ namespace ThirtyDollarConverter
         private SampleHolder Holder { get; }
         private Dictionary<Sound, PcmDataHolder> Samples => Holder.SampleList;
         private Action<string> Log { get; }
+
+        private Action<int, int> IndexReport { get; }
 
         private void AddOrChangeByte(float pcmByte, ulong index)
         {
@@ -103,6 +106,7 @@ namespace ThirtyDollarConverter
             for (var i = 0; i < Composition!.Events.Count; i++)
             {
                 var ev = Composition.Events[i];
+                IndexReport(i, Composition!.Events.Count);
                 switch (ev.SoundEvent)
                 {
                     case "!speed":

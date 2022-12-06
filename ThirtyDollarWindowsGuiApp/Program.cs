@@ -9,7 +9,7 @@ namespace ThirtyDollarWindowsGuiApp
     {
         public static ProgramSettings Settings = null!;
         private const string SettingsFileLocation = "./ProgramSettings.json";
-        public readonly static SampleHolder SampleHolder = new();
+        public static SampleHolder SampleHolder = null!;
 
         /// <summary>
         ///  The main entry point for the application.
@@ -18,9 +18,20 @@ namespace ThirtyDollarWindowsGuiApp
         static void Main()
         {
             LoadSettings();
+            ApplySettings();
 
             ApplicationConfiguration.Initialize();
             Application.Run(new MainWindow());
+        }
+
+        private static void ApplySettings()
+        {
+            SampleHolder = new SampleHolder()
+            {
+                DownloadLocation = Settings.AudioFileLocation,
+                DownloadSampleUrl = Settings.SampleBaseUrl,
+                ThirtyDollarWebsiteUrl = Settings.ThirtyDollarSiteUrl
+            };
         }
 
         private static void LoadSettings()
@@ -35,7 +46,10 @@ namespace ThirtyDollarWindowsGuiApp
             }
             using var writeFileStream = File.OpenWrite(SettingsFileLocation);
             Settings = new ProgramSettings();
-            JsonSerializer.Serialize(writeFileStream, Settings);
+            JsonSerializer.Serialize(writeFileStream, Settings, new JsonSerializerOptions()
+            {
+                WriteIndented = true, // To make it easy for a person to edit the file.
+            });
             Console.WriteLine("Created settings file.");
         }
     }

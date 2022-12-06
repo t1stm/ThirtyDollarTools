@@ -94,9 +94,9 @@
             this.downloadBarLabel.AutoSize = true;
             this.downloadBarLabel.Location = new System.Drawing.Point(12, 270);
             this.downloadBarLabel.Name = "downloadBarLabel";
-            this.downloadBarLabel.Size = new System.Drawing.Size(114, 15);
+            this.downloadBarLabel.Size = new System.Drawing.Size(139, 15);
             this.downloadBarLabel.TabIndex = 5;
-            this.downloadBarLabel.Text = "Items: Not Updating";
+            this.downloadBarLabel.Text = "Status: Not Downloading";
             // 
             // downloadButton
             // 
@@ -120,6 +120,10 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBox2);
             this.Controls.Add(this.textBox1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MaximizeBox = false;
+            this.MaximumSize = new System.Drawing.Size(400, 386);
+            this.MinimumSize = new System.Drawing.Size(400, 386);
             this.Name = "Downloader";
             this.Text = "Downloader";
             this.ResumeLayout(false);

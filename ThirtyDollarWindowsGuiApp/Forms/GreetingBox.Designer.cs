@@ -97,6 +97,7 @@
             // 
             // GreetingBox
             // 
+            this.AcceptButton = this.GotItButton;
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Window;
@@ -106,7 +107,9 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.MaximizeBox = false;
+            this.MaximumSize = new System.Drawing.Size(500, 260);
             this.MinimizeBox = false;
+            this.MinimumSize = new System.Drawing.Size(500, 260);
             this.Name = "GreetingBox";
             this.Padding = new System.Windows.Forms.Padding(10);
             this.ShowIcon = false;

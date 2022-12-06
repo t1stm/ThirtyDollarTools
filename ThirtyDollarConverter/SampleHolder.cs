@@ -12,9 +12,9 @@ namespace ThirtyDollarConverter
 {
     public class SampleHolder
     {
-        private string ThirtyDollarWebsiteUrl { get; init; } = "https://thirtydollar.website";
-        private string DownloadSampleUrl { get; init; } = "https://dankest.gq/ThirtyDollarWebsiteSounds";
-        private string DownloadLocation { get; init; } = "./Sounds";
+        public string ThirtyDollarWebsiteUrl { private get; init; } = "https://thirtydollar.website";
+        public string DownloadSampleUrl { private get; init; } = "https://dankest.gq/ThirtyDollarWebsiteSounds";
+        public string DownloadLocation { private get; init; } = "./Sounds";
 
         public Action<string, int, int>? DownloadUpdate = null;
 
