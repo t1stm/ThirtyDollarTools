@@ -7,8 +7,8 @@ namespace ThirtyDollarEncoder.PCM
         public Encoding Encoding { get; set; }
         public byte[]? AudioData { get; set; }
         public AdditionalData? AdditionalData { get; set; } = null;
-        public float[]? FloatData = null;
-        public short[]? ShortData = null;
+        public AudioData<float>? FloatData = null;
+        public AudioData<short>? ShortData = null;
         public readonly object LockObject = new();
     }
 

@@ -13,7 +13,8 @@ namespace ThirtyDollarConverter
     public class SampleHolder
     {
         public string ThirtyDollarWebsiteUrl { private get; init; } = "https://thirtydollar.website";
-        public string DownloadSampleUrl { private get; init; } = "https://dankest.gq/ThirtyDollarWebsiteSounds";
+        //public string DownloadSampleUrl { private get; init; } = "https://dankest.gq/ThirtyDollarWebsiteSounds";
+        public string DownloadSampleUrl { private get; init; } = "https://thirtydollar.website/sounds";
         public string DownloadLocation { private get; init; } = "./Sounds";
 
         public Action<string, int, int>? DownloadUpdate = null;

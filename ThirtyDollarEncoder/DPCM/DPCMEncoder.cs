@@ -28,12 +28,5 @@ namespace ThirtyDollarEncoder.DPCM
             // For now this won't do anything so don't expect too much. I am currently experimenting.
             return null;
         }
-
-        public short[]? DecodeToPcm(IEnumerable<byte> data, PcmDataHolder dataHolder)
-        {
-            var audio = data.ToArray(); // I hope that it's audio.
-            
-            return null;
-        }
     }
 }

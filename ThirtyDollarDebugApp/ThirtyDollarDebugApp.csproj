@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
+      <ProjectReference Include="..\ThirtyDollarParser\ThirtyDollarParser.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Compile Remove="Sounds\**" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <EmbeddedResource Remove="Sounds\**" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <None Remove="Sounds\**" />
+      <None Remove="(Domburg) bad apple full.🗿.wav" />
+      <None Remove="(K0KINNIE) 30 dollar bullet hell.🗿.wav" />
+      <None Remove="(Radiotomatosauce99) big shot [Deltarune].🗿.wav" />
+      <None Remove="(Radiotomatosauce99) It has to be this way [Metal Gear Rising Revengeance].🗿.wav" />
+      <None Remove="(Radiotomatosauce99) the world revolving (full).🗿.wav" />
+      <None Remove="(Radiotomatosauce99) TLT FNAF 1.🗿.wav" />
+      <None Remove="(Radiotomatosauce99) watery graves [Plants vs. Zombies].🗿.wav" />
+      <None Remove="(Xenon Neko) catastrophe_tdw_v2.🗿.wav" />
+      <None Remove="(FiveSixEP) Rush E Hard.🗿.wav" />
+    </ItemGroup>
+
+</Project>

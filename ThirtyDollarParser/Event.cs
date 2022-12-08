@@ -12,6 +12,19 @@ namespace ThirtyDollarParser
         {
             return $"Event: \"{SoundEvent ?? "Null event."}\", Value: {Value}{(ValueScale == ValueScale.Times ? 'x' : (char) 0)}, PlayTimes: {PlayTimes}";
         }
+
+        public Event Copy()
+        {
+            return new()
+            {
+                SoundEvent = SoundEvent,
+                Value = Value,
+                OriginalLoop = OriginalLoop,
+                PlayTimes = PlayTimes,
+                Volume = Volume,
+                ValueScale = ValueScale
+            };
+        }
     }
 
     public enum ValueScale

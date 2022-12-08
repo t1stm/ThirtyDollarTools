@@ -6,7 +6,7 @@ namespace ThirtyDollarParser
 {
     public class Composition
     {
-        public List<Event> Events { get; } = new()
+        public List<Event> Events { get; init; } = new()
         {
             new Event
             {
@@ -17,13 +17,21 @@ namespace ThirtyDollarParser
             }
         };
 
+        public Composition Copy()
+        {
+            return new()
+            {
+                Events = Events.Select(r => r.Copy()).ToList()
+            };
+        }
+
         public static Composition FromString(string data)
         {
             var comp = new Composition();
             var split = data.Replace("!divider", "").Split('|');
-            foreach (var orText in split)
+            foreach (var originalText in split)
             {
-                var text = orText;
+                var text = originalText;
                 if (string.IsNullOrEmpty(text)) continue;
                 if (text.StartsWith("!pulse") || text.StartsWith("!bg") || text.StartsWith("!flash"))
                 {
@@ -40,12 +48,14 @@ namespace ThirtyDollarParser
                 var splitForRepeats = text.Split('=');
                 var value = 0.0;
                 var scale = ValueScale.None;
+                var loopTimes = 1;
                 try
                 {
                     if (splitForValue.Length > 1) value = double.Parse(splitForValue[1].Split('=')[0]);
                     if (splitForValue.Length > 2)
                     {
-                        scale = splitForValue[2] switch
+                        var scaleString = splitForValue[2].Split('=');
+                        scale = scaleString[0] switch
                         {
                             "x" => ValueScale.Times, "+" => ValueScale.Add, _ => ValueScale.None
                         };
@@ -56,8 +66,7 @@ namespace ThirtyDollarParser
                     Console.WriteLine(e + $"\n{text}");
                     throw;
                 }
-
-                var loopTimes = 1;
+                
                 var sound = (splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForValue[0]).Trim();
                 if (splitForRepeats.Length > 1) loopTimes = int.Parse(splitForRepeats.Last());
                 if (sound == "_pause" && text.Contains('=') || sound == "!stop" && text.Contains('@')) loopTimes = (int) (value > 0 ? value : loopTimes);
