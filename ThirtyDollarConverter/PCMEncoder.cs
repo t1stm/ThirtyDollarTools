@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
 
@@ -9,37 +10,39 @@ namespace ThirtyDollarConverter
 {
     public class PcmEncoder
     {
+        // Export Settings
         private const uint SampleRate = 48000; //Hz
-        private const int Channels = 1;
+        private const int Channels = 2;
 
-        public PcmEncoder(SampleHolder samples, Composition composition, Action<string>? loggerAction = null, Action<int, int>? indexReport = null)
+        public PcmEncoder(SampleHolder samples, Composition composition, Action<string>? loggerAction = null,
+            Action<int, int>? indexReport = null)
         {
             Holder = samples;
             Composition = composition;
-            Log = loggerAction ?? new Action<string>(_ => {  });
+            Log = loggerAction ?? new Action<string>(_ => { });
             IndexReport = indexReport ?? new Action<int, int>((_, _) => { });
         }
 
-        private float[] PcmBytes { get; set; } = new float[1024];
+        private List<float[]> PcmBytes { get; set; } = new();
         private Composition Composition { get; }
         private SampleHolder Holder { get; }
         private Dictionary<Sound, PcmDataHolder> Samples => Holder.SampleList;
         private Action<string> Log { get; }
-
         private Action<int, int> IndexReport { get; }
+        private readonly Thread[] Threads = new Thread[Channels];
 
-        private void AddOrChangeByte(float pcmByte, ulong index)
+        private void AddOrChangeByte(int channelIndex, float pcmByte, ulong index)
         {
-            lock (PcmBytes)
+            lock (PcmBytes[channelIndex])
             {
-                if (index < (ulong) PcmBytes.LongLength)
+                if (index < (ulong) PcmBytes[channelIndex].LongLength)
                 {
-                    PcmBytes[index] = MixSamples(pcmByte, PcmBytes[index]);
+                    PcmBytes[channelIndex][index] = MixSamples(pcmByte, PcmBytes[channelIndex][index]);
                     return;
                 }
 
-                if (index >= (ulong) PcmBytes.LongLength) FillWithZeros(index);
-                PcmBytes[index] = pcmByte;
+                if (index >= (ulong) PcmBytes[channelIndex].LongLength) FillWithZeros(channelIndex, index);
+                PcmBytes[channelIndex][index] = pcmByte;
             }
         }
 
@@ -48,26 +51,26 @@ namespace ThirtyDollarConverter
             return sampleOne + sampleTwo;
         }
 
-        private void FillWithZeros(ulong index)
+        private void FillWithZeros(int channelIndex, ulong index)
         {
-            lock (PcmBytes)
+            lock (PcmBytes[channelIndex])
             {
-                var old = PcmBytes;
-                PcmBytes = new float[(ulong) (index * 1.5)];
+                var old = PcmBytes[channelIndex];
+                PcmBytes[channelIndex] = new float[(ulong) (index * 1.5)];
                 for (ulong i = 0; i < (ulong) old.LongLength; i++)
                 {
-                    PcmBytes[i] = old[i];
+                    PcmBytes[channelIndex][i] = old[i];
                 }
             }
         }
 
-        private void CalculateVolume()
+        private void CalculateVolume(Composition composition)
         {
-            if (Composition == null) throw new Exception("Null Composition");
+            if (composition == null) throw new Exception("Null Composition");
             double volume = 100;
-            lock (Composition.Events)
+            lock (composition.Events)
             {
-                foreach (var ev in Composition.Events) // Quick pass for volume
+                foreach (var ev in composition.Events) // Quick pass for volume
                 {
                     switch (ev.SoundEvent)
                     {
@@ -91,22 +94,43 @@ namespace ThirtyDollarConverter
                     ev.Volume = volume;
                 }
 
-                Composition.Events.RemoveAll(e => e.SoundEvent == "!volume");
+                composition.Events.RemoveAll(e => e.SoundEvent == "!volume");
             }
         }
 
         public void Start()
         {
+            for (var i = 0; i < Channels; i++)
+            {
+                var threadIndex = i;
+                Threads[i] = new Thread(() => ProcessOnThread(threadIndex));
+                PcmBytes.Add(new float[1024]);
+            }
+
+            foreach (var thread in Threads)
+            {
+                thread.Start();
+            }
+
+            foreach (var thread in Threads)
+            {
+                thread.Join();
+            }
+        }
+
+        public void ProcessOnThread(int channelIndex)
+        {
             if (Composition == null) throw new Exception("Null Composition");
+            var composition = Composition.Copy();
             var bpm = 300.0;
             var position = (ulong) (SampleRate / (bpm / 60));
             var transpose = 0.0;
-            CalculateVolume();
+            CalculateVolume(composition);
 
-            for (var i = 0; i < Composition!.Events.Count; i++)
+            for (var i = 0; i < composition!.Events.Count; i++)
             {
-                var ev = Composition.Events[i];
-                IndexReport(i, Composition!.Events.Count);
+                var ev = composition.Events[i];
+                IndexReport(i, composition!.Events.Count);
                 switch (ev.SoundEvent)
                 {
                     case "!speed":
@@ -123,7 +147,7 @@ namespace ThirtyDollarConverter
                                 break;
                         }
 
-                        Log($"BPM is now: {bpm}");
+                        Log($"({channelIndex}): BPM is now: {bpm}");
                         continue;
 
                     case "!loopmany" or "!loop":
@@ -131,7 +155,7 @@ namespace ThirtyDollarConverter
                         ev.PlayTimes--;
                         for (var j = i; j > 0; j--)
                         {
-                            if (Composition.Events[j].SoundEvent != "!looptarget")
+                            if (composition.Events[j].SoundEvent != "!looptarget")
                             {
                                 continue;
                             }
@@ -140,14 +164,14 @@ namespace ThirtyDollarConverter
                             break;
                         }
 
-                        Log($"Going to element: ({i + 1}) - \"{Composition.Events[i + 1]}\"");
+                        Log($"({channelIndex}): Going to element: ({i + 1}) - \"{composition.Events[i + 1]}\"");
                         continue;
 
                     case "!jump":
                         if (ev.PlayTimes <= 0) continue;
                         ev.PlayTimes--;
                         //i = Triggers[(int) ev.Value - 1] - 1;
-                        var item = Composition.Events.FirstOrDefault(r =>
+                        var item = composition.Events.FirstOrDefault(r =>
                             r.SoundEvent == "!target" && (int) r.Value == (int) ev.Value);
                         if (item == null)
                         {
@@ -155,13 +179,13 @@ namespace ThirtyDollarConverter
                             continue;
                         }
 
-                        i = Composition.Events.IndexOf(item) - 1;
-                        Log($"Jumping to element: ({i}) - {Composition.Events[i]}");
+                        i = composition.Events.IndexOf(item) - 1;
+                        Log($"({channelIndex}): Jumping to element: ({i}) - {composition.Events[i]}");
                         //
                         continue;
 
                     case "_pause" or "!stop":
-                        Log($"Pausing for: {ev.PlayTimes} beats.");
+                        Log($"({channelIndex}): Pausing for: {ev.PlayTimes} beats.");
                         while (ev.PlayTimes >= 1)
                         {
                             ev.PlayTimes--;
@@ -173,10 +197,11 @@ namespace ThirtyDollarConverter
 
                     case "!cut":
                         for (var j = position + (ulong) (SampleRate / (bpm / 60));
-                            j < (ulong) PcmBytes.LongLength;
+                            j < (ulong) PcmBytes[channelIndex].LongLength;
                             j++)
                         {
-                            PcmBytes[j] = 0;
+                            //TODO: Implement a better muting method.
+                            PcmBytes[channelIndex][j] = 0;
                         }
 
                         continue;
@@ -187,7 +212,7 @@ namespace ThirtyDollarConverter
                     case "!combine":
                         position -= (ulong) (SampleRate / (bpm / 60));
                         continue;
-                    
+
                     case "!transpose":
                         switch (ev.ValueScale)
                         {
@@ -201,6 +226,7 @@ namespace ThirtyDollarConverter
                                 transpose = ev.Value;
                                 continue;
                         }
+
                         continue;
 
                     default:
@@ -209,8 +235,8 @@ namespace ThirtyDollarConverter
                 }
 
                 var index = position;
-                Log($"Processing Event: [{index}] - \"{ev}\"");
-                HandleProcessing(ev, index, -1, transpose);
+                //Log($"({channelIndex}): Processing Event: [{index}] - \"{ev}\"");
+                HandleProcessing(channelIndex, ev, index, -1, transpose);
                 switch (ev.SoundEvent)
                 {
                     case not ("!transpose" or "!loopmany" or "!volume" or "!flash" or "!combine" or "!speed" or
@@ -236,18 +262,19 @@ namespace ThirtyDollarConverter
             public double Volume { get; init; }
         }
 
-        private void HandleProcessing(Event ev, ulong index, long breakAtIndex, double transpose)
+        private void HandleProcessing(int channelIndex, Event ev, ulong index, long breakAtIndex, double transpose)
         {
             try
             {
                 var (_, value) = Samples.AsParallel().FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent);
-                Log($"PCM: Channels: {value.Channels}, Encoding: {value.Encoding}, SampleRate: {value.SampleRate}");
                 var sampleData = value.ReadAsFloat32Array(Channels > 1);
-                if (sampleData == null) throw new NullReferenceException($"Sample data is null for event: \"{ev}\", Samples Count is: {Samples.Count}");
-                sampleData = Resample(sampleData, value.SampleRate, (uint) (SampleRate / Math.Pow(2, (ev.Value + transpose) / 12)), Channels);
+                if (sampleData == null)
+                    throw new NullReferenceException(
+                        $"Sample data is null for event: \"{ev}\", Samples Count is: {Samples.Count}");
                 ProcessedSample sample = new()
                 {
-                    SampleData = sampleData,
+                    SampleData = Resample(sampleData.GetChannel(channelIndex), value.SampleRate,
+                        (uint) (SampleRate / Math.Pow(2, (ev.Value + transpose) / 12)), 1),
                     Volume = ev.Volume
                 };
 
@@ -256,7 +283,9 @@ namespace ThirtyDollarConverter
                 {
                     if (breakAtIndex != -1 && sample.ProcessedChunks >= (ulong) breakAtIndex) return;
                     AddOrChangeByte(
-                        (float) ((sample.SampleData?[sample.ProcessedChunks] ?? 0) * (sample.Volume * 0.5 / 100)), index + sample.ProcessedChunks);
+                        channelIndex,
+                        (float) ((sample.SampleData?[sample.ProcessedChunks] ?? 0) * (sample.Volume * 0.5 / 100)),
+                        index + sample.ProcessedChunks);
                 }
             }
             catch (Exception e)
@@ -264,7 +293,7 @@ namespace ThirtyDollarConverter
                 Log($"Processing failed: \"{e}\"");
             }
         }
-        
+
 
         private unsafe float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate, uint channels)
         {
@@ -276,7 +305,8 @@ namespace ThirtyDollarConverter
                 float[] alloc = new float[length];
                 fixed (float* output = alloc)
                 {
-                    Resample32BitFloat(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength, channels);
+                    Resample32BitFloat(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength,
+                        channels);
                 }
 
                 return alloc;
@@ -326,7 +356,7 @@ namespace ThirtyDollarConverter
             ulong curOffset = 0;
             for (uint i = 0; i < outputSize; i += 1)
             {
-                for (uint c = 0; c < channels; c += 1) 
+                for (uint c = 0; c < channels; c += 1)
                     *output++ = (short) (input[c] + (input[c + channels] - input[c]) *
                         ((curOffset >> 32) + (curOffset & (fixedFraction - 1)) * normFixed));
                 curOffset += step;
@@ -339,22 +369,33 @@ namespace ThirtyDollarConverter
 
         public void WriteAsWavFile(string location)
         {
-            PcmBytes.NormalizeVolume();
-            PcmBytes = PcmBytes.TrimEnd();
+            for (var i = 0; i < PcmBytes.Count; i++)
+            {
+                var arr = PcmBytes[i];
+                arr.NormalizeVolume();
+                PcmBytes[i] = arr.TrimEnd();
+            }
+
             var stream = new BinaryWriter(File.Open(location, FileMode.Create));
             AddWavHeader(stream);
             stream.Write((short) 0);
-            foreach (var data in PcmBytes)
+
+            var maxLength = PcmBytes.Max(r => r.Length);
+
+            for (var i = 0; i < maxLength; i++)
             {
-                for (var i = 0; i < Channels; i++)
+                for (var j = 0; j < Channels; j++)
                 {
-                    stream.Write((short) (data * 32768));
+                    if (PcmBytes[j].Length > i)
+                        stream.Write((short) (PcmBytes[j][i] * 32768));
+                    else stream.Write((short) 0);
                 }
             }
+
             stream.Close();
         }
 
-        public MemoryStream WriteAsWavStream()
+        /*public MemoryStream WriteAsWavStream()
         {
             var ms = new MemoryStream();
             PcmBytes.NormalizeVolume();
@@ -371,12 +412,13 @@ namespace ThirtyDollarConverter
             }
             stream.Close();
             return ms;
-        }
+        }*/
 
         private void AddWavHeader(BinaryWriter writer)
         {
+            var length = PcmBytes.Max(r => r.Length) * Channels;
             writer.Write(new[] {'R', 'I', 'F', 'F'}); // RIFF Chunk Descriptor
-            writer.Write(4 + 8 + 16 + 8 + PcmBytes.Length * 2); // Sub Chunk 1 Size
+            writer.Write(4 + 8 + 16 + 8 + length * 2); // Sub Chunk 1 Size
             //Chunk Size 4 bytes.
             writer.Write(new[] {'W', 'A', 'V', 'E'});
             // fmt sub-chunk
@@ -390,7 +432,7 @@ namespace ThirtyDollarConverter
             writer.Write((short) 16); // Bits per Sample
             // data sub-chunk
             writer.Write(new[] {'d', 'a', 't', 'a'});
-            writer.Write(PcmBytes.Length * Channels * 2); // Sub Chunk 2 Size.
+            writer.Write(length * 2); // Sub Chunk 2 Size.
         }
     }
 }

@@ -7,6 +7,7 @@ namespace ThirtyDollarEncoder.Wave
     public class WaveDecoder
     {
         // Shamefully copied from NAudio.
+        // Here goes copyright infringement.
         private long riffFileSize;
         private long dataChunkLength;
         private PcmDataHolder Holder = new();
@@ -83,7 +84,7 @@ namespace ThirtyDollarEncoder.Wave
         private void ReadDs64StandardChunk(BinaryReader reader)
         {
             if (reader.ReadInt32() != HeaderToInt("ds64")) throw new FileLoadException("Supplied data doesn't have \"ds64\" chunk.");
-            int chunkSize = reader.ReadInt32();
+            var chunkSize = reader.ReadInt32();
             riffFileSize = reader.ReadInt64();
             dataChunkLength = reader.ReadInt64();
             var sampleCount = reader.ReadInt64(); // I don't know why this isn't used in NAudio.
