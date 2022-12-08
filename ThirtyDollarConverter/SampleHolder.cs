@@ -78,6 +78,7 @@ namespace ThirtyDollarConverter
                 var decoder = new WaveDecoder();
                 Console.WriteLine($"Reading sample: {key.Filename}.wav");
                 SampleList[key] = decoder.Read(fileStream);
+                SampleList[key].ReadAsFloat32Array(true);
             }
 
             Console.WriteLine($"Samples: {SampleList.Count}");

@@ -32,10 +32,10 @@ namespace ThirtyDollarApp
             var isInBinFolder = Directory.GetCurrentDirectory() == "bin";
             var list = new List<string>
             {
+                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) the world revolving (full).🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(FiveSixEP) Rush E Hard.🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Domburg) bad apple full.🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) big shot [Deltarune].🗿",
-                $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) the world revolving (full).🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) It has to be this way [Metal Gear Rising Revengeance].🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) watery graves [Plants vs. Zombies].🗿",
                 $"{(isInBinFolder ? "../../.." : ".")}/Included Sequences/(Radiotomatosauce99) TLT FNAF 1.🗿",

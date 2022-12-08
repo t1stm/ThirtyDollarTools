@@ -109,6 +109,7 @@ namespace ThirtyDollarWindowsGuiApp.Forms
             if (string.IsNullOrEmpty(saveLocationBox.Text)) 
             {
                 MessageBox.Show("The save location isn't set. Please set it.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _running = false;
                 return;
             }
             try
@@ -152,7 +153,7 @@ namespace ThirtyDollarWindowsGuiApp.Forms
             }
             catch (Exception exc)
             {
-                MessageBox.Show(exc.Message.ToString(), "An exception occured. This is usually bad.", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(exc.Message, "An exception occured. This is usually bad.", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             stopwatch.Stop();
             logBox.Text += Environment.NewLine + $"Encoding Finished. Took: {stopwatch.Elapsed:c}";
