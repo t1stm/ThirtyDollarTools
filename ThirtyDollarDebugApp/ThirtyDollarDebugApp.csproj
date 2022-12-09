@@ -31,6 +31,7 @@
       <None Remove="(Radiotomatosauce99) watery graves [Plants vs. Zombies].🗿.wav" />
       <None Remove="(Xenon Neko) catastrophe_tdw_v2.🗿.wav" />
       <None Remove="(FiveSixEP) Rush E Hard.🗿.wav" />
+      <None Remove="output.txt" />
     </ItemGroup>
 
 </Project>

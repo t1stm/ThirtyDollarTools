@@ -60,7 +60,6 @@ namespace ThirtyDollarApp
                     Console.WriteLine($"Failed to open file in args: \"{arg}\" - Exception: {e}");
                     throw;
                 }
-
             foreach (var arg in list)
                 try
                 {
@@ -80,7 +79,11 @@ namespace ThirtyDollarApp
                 }
 
             var num = 0;
-            foreach (var encoder in output.Select(Composition.FromString).Select(comp => new PcmEncoder(Holder, comp, Console.WriteLine)))
+            foreach (var encoder in output.Select(Composition.FromString).Select(comp => new PcmEncoder(Holder, comp, new EncoderSettings
+            {
+                SampleRate = 48000,
+                Channels = 2
+            }, Console.WriteLine)))
             {
                 encoder.Start();
                 encoder.WriteAsWavFile($"./{list[num].Split('/').Last()}.wav");

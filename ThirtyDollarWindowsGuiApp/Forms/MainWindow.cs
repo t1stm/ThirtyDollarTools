@@ -147,7 +147,11 @@ namespace ThirtyDollarWindowsGuiApp.Forms
             stopwatch.Start();
             try
             {
-                var encoder = new PcmEncoder(Program.SampleHolder, composition, logCheckbox.Checked ? logAction : null, indexAction);
+                var encoder = new PcmEncoder(Program.SampleHolder, composition, new EncoderSettings()
+                {
+                    Channels = 2,
+                    SampleRate = 48000
+                }, logCheckbox.Checked ? logAction : null, indexAction);
                 encoder.Start();
                 encoder.WriteAsWavFile(saveLocationBox.Text);
             }

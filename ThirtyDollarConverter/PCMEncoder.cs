@@ -10,26 +10,27 @@ namespace ThirtyDollarConverter
 {
     public class PcmEncoder
     {
-        // Export Settings
-        private const uint SampleRate = 48000; //Hz
-        private const int Channels = 2;
-
-        public PcmEncoder(SampleHolder samples, Composition composition, Action<string>? loggerAction = null,
+        public PcmEncoder(SampleHolder samples, Composition composition, EncoderSettings settings, Action<string>? loggerAction = null,
             Action<int, int>? indexReport = null)
         {
             Holder = samples;
             Composition = composition;
             Log = loggerAction ?? new Action<string>(_ => { });
             IndexReport = indexReport ?? new Action<int, int>((_, _) => { });
+            SampleRate = settings.SampleRate;
+            Channels = settings.Channels;
+            Threads = new Thread[Channels];
         }
-
+        
+        private readonly int SampleRate;
+        private readonly int Channels;
         private List<float[]> PcmBytes { get; set; } = new();
         private Composition Composition { get; }
         private SampleHolder Holder { get; }
         private Dictionary<Sound, PcmDataHolder> Samples => Holder.SampleList;
         private Action<string> Log { get; }
         private Action<int, int> IndexReport { get; }
-        private readonly Thread[] Threads = new Thread[Channels];
+        private readonly Thread[] Threads;
 
         private void AddOrChangeByte(int channelIndex, float pcmByte, ulong index)
         {
@@ -64,7 +65,7 @@ namespace ThirtyDollarConverter
             }
         }
 
-        private void CalculateVolume(Composition composition)
+        private static void CalculateVolume(Composition composition)
         {
             if (composition == null) throw new Exception("Null Composition");
             double volume = 100;
@@ -129,6 +130,7 @@ namespace ThirtyDollarConverter
 
             for (var i = 0; i < composition!.Events.Count; i++)
             {
+                var index = position;
                 var ev = composition.Events[i];
                 IndexReport(i, composition!.Events.Count);
                 switch (ev.SoundEvent)
@@ -233,9 +235,8 @@ namespace ThirtyDollarConverter
                         position += (ulong) (SampleRate / (bpm / 60));
                         break;
                 }
-
-                var index = position;
-                //Log($"({channelIndex}): Processing Event: [{index}] - \"{ev}\"");
+                
+                Log($"({channelIndex}): Processing Event: [{index}] - \"{ev}\"");
                 HandleProcessing(channelIndex, ev, index, -1, transpose);
                 switch (ev.SoundEvent)
                 {
