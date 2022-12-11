@@ -6,7 +6,7 @@ namespace ThirtyDollarParser
     {
         [JsonPropertyName("id"), JsonInclude]
         public string? Id { get; init; }
-        [JsonPropertyName("Emoji"), JsonInclude]
+        [JsonPropertyName("emoji"), JsonInclude]
         public string? Emoji { get; init; }
         [JsonPropertyName("name"), JsonInclude]
         public string? Name { get; init; }

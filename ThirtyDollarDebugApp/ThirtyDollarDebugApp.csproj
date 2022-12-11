@@ -32,6 +32,14 @@
       <None Remove="(Xenon Neko) catastrophe_tdw_v2.🗿.wav" />
       <None Remove="(FiveSixEP) Rush E Hard.🗿.wav" />
       <None Remove="output.txt" />
+      <None Remove="Soulless5_P1-4.🗿" />
+      <None Remove="Soulless5_P1-4.🗿.wav" />
+      <None Remove="Soulless5_P2-4.🗿" />
+      <None Remove="Soulless5_P2-4.🗿.wav" />
+      <None Remove="Soulless5_P3-4.🗿" />
+      <None Remove="Soulless5_P3-4.🗿.wav" />
+      <None Remove="Soulless5_P4-4.🗿" />
+      <None Remove="Soulless5_P4-4.🗿.wav" />
     </ItemGroup>
 
 </Project>

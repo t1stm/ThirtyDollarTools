@@ -236,7 +236,7 @@ namespace ThirtyDollarConverter
                         break;
                 }
                 
-                Log($"({channelIndex}): Processing Event: [{index}] - \"{ev}\"");
+                //Log($"({channelIndex}): Processing Event: [{index}] - \"{ev}\"");
                 HandleProcessing(channelIndex, ev, index, -1, transpose);
                 switch (ev.SoundEvent)
                 {
@@ -267,7 +267,7 @@ namespace ThirtyDollarConverter
         {
             try
             {
-                var (_, value) = Samples.AsParallel().FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent);
+                var (_, value) = Samples.AsParallel().FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent || pair.Key.Id == ev.SoundEvent);
                 var sampleData = value.ReadAsFloat32Array(Channels > 1);
                 if (sampleData == null)
                     throw new NullReferenceException(
