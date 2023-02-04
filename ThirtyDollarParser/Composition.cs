@@ -68,7 +68,7 @@ namespace ThirtyDollarParser
                 }
                 
                 var sound = (splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForValue[0]).Trim();
-                if (splitForRepeats.Length > 1) loopTimes = int.Parse(splitForRepeats.Last());
+                if (splitForRepeats.Length > 1) loopTimes = (int) Math.Floor(double.Parse(splitForRepeats.Last()));
                 if (sound == "_pause" && text.Contains('=') || sound == "!stop" && text.Contains('@')) loopTimes = (int) (value > 0 ? value : loopTimes);
                 var newEvent = new Event
                 {

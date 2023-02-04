@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarWindowsGuiApp",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarDebugApp", "ThirtyDollarDebugApp\ThirtyDollarDebugApp.csproj", "{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer", "ThirtyDollarVisualizer\ThirtyDollarVisualizer.csproj", "{5ECD91C4-8558-4274-AD0E-2C0B0C122466}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5ECD91C4-8558-4274-AD0E-2C0B0C122466}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5ECD91C4-8558-4274-AD0E-2C0B0C122466}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5ECD91C4-8558-4274-AD0E-2C0B0C122466}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5ECD91C4-8558-4274-AD0E-2C0B0C122466}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

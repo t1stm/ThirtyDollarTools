@@ -7,7 +7,7 @@ namespace ThirtyDollarConverter
     {
         public static void NormalizeVolume(this float[] arr)
         {
-            var max = arr.Max(Math.Abs);
+            var max = arr.Length < 1 ? 0 : arr.Max(Math.Abs);
             for (var index = 0UL; index < (ulong) arr.LongLength; index++)
             {
                 arr[index] *= 1 / (float) (max + 0.02);
@@ -22,12 +22,10 @@ namespace ThirtyDollarConverter
                 if (arr[i] != 0f) break;
                 length--;
             }
-            var newArr = new float[length];
-            for (long i = 0; i < length; i++)
-            {
-                newArr[i] = arr[i];
-            }
-            return newArr;
+
+            float[] destination = new float[length];
+            Array.Copy(arr, destination, length);
+            return destination;
         }
     }
 }

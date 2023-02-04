@@ -31,7 +31,7 @@ namespace ThirtyDollarConverter
             var response = await client.GetByteArrayAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
             var dll = $"{DownloadLocation}/sounds.json";
             await using var fileStream = new FileStream(dll, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
-            await fileStream.ReadAsync(response);
+            await fileStream.WriteAsync(response);
             await fileStream.FlushAsync();
             await fileStream.DisposeAsync();
             fileStream.Close();
