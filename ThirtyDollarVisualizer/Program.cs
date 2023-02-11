@@ -1,6 +1,19 @@
-// This program uses the OpenTK boilerplate code.
+using OpenTK.Mathematics;
+using OpenTK.Windowing.Desktop;
 
-using ThirtyDollarVisualizer;
+namespace ThirtyDollarVisualizer
+{
+    public class Program
+    {
+        public static void Main()
+        {
+            var settings = new NativeWindowSettings
+            {
+                Size = new Vector2i(800, 600)
+            };
 
-using Window window = new(800, 600, "Test");
-window.Run();
+            using var window = new Window(GameWindowSettings.Default, settings);
+            window.Run();
+        }
+    }
+}

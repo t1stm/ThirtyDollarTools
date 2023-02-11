@@ -5,25 +5,19 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="OpenTK" Version="4.7.5" />
-      <PackageReference Include="OpenTK.GLControl" Version="3.3.3" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Remove="shader.frag" />
-      <Content Include="shader.frag">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
     </ItemGroup>
 
     <ItemGroup>
         <None Remove="shader.vert" />
-        <Content Include="shader.vert">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="OpenTK" Version="4.7.5" />
     </ItemGroup>
 
 </Project>
