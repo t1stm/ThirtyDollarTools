@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using OpenTK.Graphics.OpenGL;
 
 namespace ThirtyDollarVisualizer
@@ -40,6 +41,14 @@ namespace ThirtyDollarVisualizer
             GL.DeleteShader(fragment);
             
             return program;
+        }
+
+        public static int FromFiles(string vertexShaderPath, string fragmentShaderPath)
+        {
+            var vertexShader = File.ReadAllText(vertexShaderPath);
+            var fragmentShader = File.ReadAllText(fragmentShaderPath);
+            
+            return Create(vertexShader, fragmentShader);
         }
     }
 }

@@ -34,24 +34,8 @@ namespace ThirtyDollarVisualizer
             
             GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, sizeof(float) * VERTEX_COUNT,0);
             GL.EnableVertexAttribArray(0);
-            
-            #region Vertex Shader
-            const string vertexShader = @"#version 330 core
 
-layout(location = 0) in vec4 position;
-void main() {
-    gl_Position = position;
-}";
-            #endregion
-            #region Fragment Shader
-            const string fragmentShader = @"#version 330 core
-layout(location = 0) out vec4 color;
-void main() {
-    color = vec4(1.0, 0.0, 0.0, 1.0);
-}";
-            #endregion
-            
-            var shader = Shader.Create(vertexShader, fragmentShader);
+            var shader = Shader.FromFiles("./Assets/shader.vert", "./Assets/shader.frag");
             GL.UseProgram(shader);
             
             base.OnLoad();
