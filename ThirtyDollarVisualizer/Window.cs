@@ -35,8 +35,8 @@ namespace ThirtyDollarVisualizer
             GL.VertexAttribPointer(0, 2, VertexAttribPointerType.Float, false, sizeof(float) * VERTEX_COUNT,0);
             GL.EnableVertexAttribArray(0);
 
-            var shader = Shader.FromFiles("./Assets/shader.vert", "./Assets/shader.frag");
-            GL.UseProgram(shader);
+            var shader = Shader.FromFiles("./Assets/Shaders/shader.vert", "./Assets/Shaders/shader.frag");
+            shader.Use();
             
             base.OnLoad();
         }

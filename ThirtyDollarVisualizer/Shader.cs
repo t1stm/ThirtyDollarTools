@@ -4,8 +4,10 @@ using OpenTK.Graphics.OpenGL;
 
 namespace ThirtyDollarVisualizer
 {
-    public static class Shader
+    public class Shader
     {
+        public int Program;
+        
         private static int Compile(ShaderType type, string code)
         {
             const int FAIL = 0;
@@ -43,12 +45,22 @@ namespace ThirtyDollarVisualizer
             return program;
         }
 
-        public static int FromFiles(string vertexShaderPath, string fragmentShaderPath)
+        public static Shader FromFiles(string vertexShaderPath, string fragmentShaderPath)
         {
             var vertexShader = File.ReadAllText(vertexShaderPath);
             var fragmentShader = File.ReadAllText(fragmentShaderPath);
+
+            var shader = new Shader
+            {
+                Program = Create(vertexShader, fragmentShader)
+            };
             
-            return Create(vertexShader, fragmentShader);
+            return shader;
+        }
+
+        public void Use()
+        {
+            GL.UseProgram(Program);
         }
     }
 }

@@ -10,10 +10,10 @@
 
     <ItemGroup>
       <None Remove="shader.frag" />
-      <None Update="Assets\shader.frag">
+      <None Update="Assets\Shaders\shader.frag">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Update="Assets\shader.vert">
+      <None Update="Assets\Shaders\shader.vert">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
