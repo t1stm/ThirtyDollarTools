@@ -15,19 +15,10 @@ namespace ThirtyDollarVisualizer
             GL.BufferData(BufferTarget.ArrayBuffer, data.Length * size, data, BufferUsageHint.StaticDraw);
         }
 
-        public void Bind()
-        {
-            GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
-        }
+        public void Bind() => GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
 
-        public void Unbind()
-        {
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-        }
-        
-        ~VertexBuffer()
-        {
-            GL.DeleteBuffer(_vbo);
-        }
+        public void Unbind() => GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+
+        ~VertexBuffer() => GL.DeleteBuffer(_vbo);
     }
 }

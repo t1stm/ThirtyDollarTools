@@ -39,7 +39,6 @@ namespace ThirtyDollarVisualizer
         protected override void OnLoad()
         {
             GL.ClearColor(.0f, .0f, .0f,1.0f);
-            const int VERTEX_COUNT = 2;
             float[] positions =
             {
                 -0.5f, -0.5f,
@@ -55,20 +54,19 @@ namespace ThirtyDollarVisualizer
             
             _vao = new VertexArray<float>();
             _vbo = new VertexBuffer<float>(positions);
+            _ibo = new IndexBuffer(indices);
             
             var layout = new VertexBufferLayout();
             layout.PushFloat(2);
             _vao.AddBuffer(_vbo, layout);
-            
-            _ibo = new IndexBuffer(indices);
 
             _shader = Shader.FromFiles("./Assets/Shaders/shader.vert", "./Assets/Shaders/shader.frag");
             _stopwatch.Start();
             
-            GL.UseProgram(0);
-            GL.BindVertexArray(0);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+            _shader.Unbind();
+            _vao.Unbind();
+            _vbo.Unbind();
+            _ibo.Unbind();
             
             CheckErrors();
             
@@ -79,21 +77,15 @@ namespace ThirtyDollarVisualizer
         {
             GL.Clear(ClearBufferMask.ColorBufferBit);
             ClearAllErrors();
-            _shader.Use();
+            _shader.Bind();
             
-            var location = GL.GetUniformLocation(_shader.Program, "u_Color");
-            Debug.Assert(location != -1);
-
             // Oh my god! It's the LGBTQ lights.
             var r = (float) Math.Abs(Math.Cos(_stopwatch.ElapsedMilliseconds / 500f));
             var g = (float) Math.Abs(Math.Sin(_stopwatch.ElapsedMilliseconds / 500f));
             var b = (float) Math.Abs(Math.Sin(_stopwatch.ElapsedMilliseconds / 500f + 2));
-            GL.Uniform4(location, r, g, b, 1.0f);
-            
-            _vao.Bind();
-            _ibo.Bind();
-            
-            GL.DrawElements(PrimitiveType.Triangles, 6, DrawElementsType.UnsignedInt, 0);
+            _shader.SetUniform4("u_Color", r, g, b, 1.0f);
+
+            Renderer.Draw(_vao, _ibo, _shader);
             CheckErrors();
             
             SwapBuffers();

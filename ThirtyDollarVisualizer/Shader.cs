@@ -1,14 +1,26 @@
+#nullable enable
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer
 {
+    public struct ShaderData
+    {
+        public string? FilePath;
+        public string Code;
+        public ShaderType Type;
+    }
     public class Shader
     {
-        public int Program;
-        
-        private static int Compile(ShaderType type, string code)
+        private int Program;
+        private ShaderData[] _sources = Array.Empty<ShaderData>();
+        private Dictionary<string, int> _uniformLocations = new();
+
+        private static int CompileShader(ShaderType type, string code)
         {
             const int FAIL = 0;
             var shader = GL.CreateShader(type);
@@ -20,27 +32,26 @@ namespace ThirtyDollarVisualizer
             if (result != FAIL) return shader;
             
             GL.GetShaderInfoLog(shader, out var message);
-            Console.WriteLine($"\'{type}\' compilation failed with message: \"{message}\"");
             GL.DeleteShader(shader);
-            
-            return 0;
+            throw new Exception($"\'{type}\' compilation failed with message: \"{message}\"");
         }
         
-        public static int Create(string vertexShader, string fragmentShader)
+        public static int CreateShaderProgram(params ShaderData[] shaderFiles)
         {
+            
             var program = GL.CreateProgram();
+            
+            foreach (var shaderFile in shaderFiles)
+            {
+                var compiledShader = CompileShader(shaderFile.Type, shaderFile.Code);
 
-            var vertex = Compile(ShaderType.VertexShader, vertexShader);
-            var fragment = Compile(ShaderType.FragmentShader, fragmentShader);
+                GL.AttachShader(program, compiledShader);
+
+                GL.LinkProgram(program);
+                GL.ValidateProgram(program);
             
-            GL.AttachShader(program, vertex);
-            GL.AttachShader(program, fragment);
-            
-            GL.LinkProgram(program);
-            GL.ValidateProgram(program);
-            
-            GL.DeleteShader(vertex);
-            GL.DeleteShader(fragment);
+                GL.DeleteShader(compiledShader);
+            }
             
             return program;
         }
@@ -49,18 +60,57 @@ namespace ThirtyDollarVisualizer
         {
             var vertexShader = File.ReadAllText(vertexShaderPath);
             var fragmentShader = File.ReadAllText(fragmentShaderPath);
+            var sources = new ShaderData[]
+            {
+                new()
+                {
+                    FilePath = vertexShaderPath,
+                    Code = vertexShader,
+                    Type = ShaderType.VertexShader
+                },
+                new()
+                {
+                    FilePath = fragmentShaderPath,
+                    Code = fragmentShader,
+                    Type = ShaderType.FragmentShader
+                }
+            };
 
             var shader = new Shader
             {
-                Program = Create(vertexShader, fragmentShader)
+                Program = CreateShaderProgram(sources),
+                _sources = sources
             };
             
             return shader;
         }
 
-        public void Use()
+        public void SetUniform4(string name, Color4 color)
         {
-            GL.UseProgram(Program);
+            var location = GetUniformLocation(name);
+            GL.Uniform4(location, color);
         }
+
+        public int GetUniformLocation(string name)
+        {
+            bool found;
+            int location;
+            lock (_uniformLocations)
+            {
+                found = _uniformLocations.TryGetValue(name, out location);
+            }
+            if (found) return location;
+            location = GL.GetUniformLocation(Program, name);
+            if (location == -1) throw new Exception(
+                $"Uniform \'{name}\' wasn't found in files \"{_sources.Select(r => $"{r.FilePath} ").ToArray().ToString()?.Trim()}\".");
+            lock (_uniformLocations)
+            {
+                _uniformLocations.Add(name, location);
+            }
+            return location;
+        }
+        public void SetUniform4(string name, float r, float g, float b, float a) => SetUniform4(name, new Color4(r, g, b, a));
+        public void Bind() => GL.UseProgram(Program);
+        public void Unbind() => GL.UseProgram(0);
     }
 }

@@ -27,19 +27,10 @@ namespace ThirtyDollarVisualizer
             }
         }
 
-        public void Bind()
-        {
-            GL.BindVertexArray(_vao);
-        }
-        
-        public void Unbind()
-        {
-            GL.BindVertexArray(0);
-        }
+        public void Bind() => GL.BindVertexArray(_vao);
 
-        ~VertexArray()
-        {
-            GL.DeleteVertexArray(_vao);
-        }
+        public void Unbind() => GL.BindVertexArray(0);
+
+        ~VertexArray() => GL.DeleteVertexArray(_vao);
     }
 }
