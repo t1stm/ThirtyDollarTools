@@ -12,9 +12,9 @@ namespace ThirtyDollarVisualizer
         {
         }
         
-        private VertexBuffer<float> _vbo;
-        private IndexBuffer _ibo;
-        private VertexArray<float> _vao;
+        private VertexBuffer<float> _vbo = null!;
+        private IndexBuffer _ibo = null!;
+        private VertexArray<float> _vao = null!;
         private Shader _shader = null!;
         private readonly Stopwatch _stopwatch = new();
 
@@ -82,7 +82,7 @@ namespace ThirtyDollarVisualizer
             // Oh my god! It's the LGBTQ lights.
             var r = (float) Math.Abs(Math.Cos(_stopwatch.ElapsedMilliseconds / 500f));
             var g = (float) Math.Abs(Math.Sin(_stopwatch.ElapsedMilliseconds / 500f));
-            var b = (float) Math.Abs(Math.Sin(_stopwatch.ElapsedMilliseconds / 500f + 2));
+            var b = (float) Math.Abs(Math.Sin(_stopwatch.ElapsedMilliseconds / 500f + 0.5));
             _shader.SetUniform4("u_Color", r, g, b, 1.0f);
 
             Renderer.Draw(_vao, _ibo, _shader);

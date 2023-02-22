@@ -26,4 +26,10 @@
       <PackageReference Include="OpenTK" Version="4.7.5" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="Assets\Textures\moai.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>

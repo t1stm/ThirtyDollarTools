@@ -353,7 +353,7 @@ namespace ThirtyDollarConverter
                 for (var i = 0; i < channelCount; i++)
                 {
                     audioData.Samples[i] = Resample(sampleData.GetChannel(i), value.SampleRate,
-                        (uint) (SampleRate / Math.Pow(2, ev.Value / 12)), 1);
+                        (uint) (SampleRate / Math.Pow(2, ev.Value / 12)));
                 }
 
                 return audioData;
@@ -365,80 +365,37 @@ namespace ThirtyDollarConverter
 
             return AudioData<float>.Empty(channelCount);
         }
-
-
-        private unsafe float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate, uint channels)
+        
+        // AI will rule us all some day.
+        // AKA: Source - OpenAI ChatGPT
+        private static float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate)
         {
-            if (sampleRate == targetSampleRate) return samples;
-            fixed (float* vals = samples)
+            var oldSize = (ulong) samples.LongLength;
+            var durationSecs = (float) oldSize / sampleRate;
+            var newSize = (ulong) (durationSecs * targetSampleRate);
+
+            float[] resampled = new float[newSize];
+
+            for (ulong i = 0; i < newSize; i++)
             {
-                var length = Resample32BitFloat(vals, null, sampleRate, targetSampleRate, (ulong) samples.LongLength,
-                    channels);
-                float[] alloc = new float[length];
-                fixed (float* output = alloc)
+                var timeSecs = (float) i / targetSampleRate;
+                var index = (ulong) (timeSecs * sampleRate);
+
+                var frac = timeSecs * sampleRate - index;
+                if (index < oldSize - 1)
                 {
-                    Resample32BitFloat(vals, output, sampleRate, targetSampleRate, (ulong) samples.LongLength,
-                        channels);
+                    resampled[i] = samples[index] * (1 - frac) + samples[index + 1] * frac;
                 }
-
-                return alloc;
-            }
-        }
-
-        // Original Source: https://github.com/cpuimage/resampler
-
-        private unsafe ulong Resample32BitFloat(float* input, float* output, uint inSampleRate, uint outSampleRate,
-            ulong inputSize, uint channels)
-        {
-            if (input == null) return 0;
-            var outputSize = (ulong) (inputSize * (double) outSampleRate / inSampleRate);
-            outputSize -= outputSize % channels;
-            if (output == null) return outputSize;
-            var stepDist = inSampleRate / (double) outSampleRate;
-            const ulong fixedFraction = (ulong) 1 << 32;
-            const double normFixed = 1.0 / ((ulong) 1 << 32);
-            var step = (ulong) (stepDist * fixedFraction + 0.5);
-            ulong curOffset = 0;
-            for (uint i = 0; i < outputSize; i += 1)
-            {
-                for (uint c = 0; c < channels; c += 1)
+                else
                 {
-                    *output++ = (float) (input[c] + (input[c + channels] - input[c]) *
-                        ((curOffset >> 32) + (curOffset & (fixedFraction - 1)) * normFixed));
+                    resampled[i] = samples[index];
                 }
-
-                curOffset += step;
-                input += (curOffset >> 32) * channels;
-                curOffset &= fixedFraction - 1;
             }
 
-            return outputSize;
+            return resampled;
         }
-
-        private unsafe ulong Resample16Bit(short* input, short* output, uint inSampleRate, uint outSampleRate,
-            ulong inputSize, uint channels)
-        {
-            var outputSize = (ulong) (inputSize * (double) outSampleRate / inSampleRate);
-            outputSize -= outputSize % channels;
-            if (output == null) return outputSize;
-            var stepDist = (double) inSampleRate / outSampleRate;
-            const ulong fixedFraction = (ulong) 1 << 32;
-            const double normFixed = 1.0 / ((ulong) 1 << 32);
-            var step = (ulong) (stepDist * fixedFraction + 0.5);
-            ulong curOffset = 0;
-            for (uint i = 0; i < outputSize; i += 1)
-            {
-                for (uint c = 0; c < channels; c += 1)
-                    *output++ = (short) (input[c] + (input[c + channels] - input[c]) *
-                        ((curOffset >> 32) + (curOffset & (fixedFraction - 1)) * normFixed));
-                curOffset += step;
-                input += (curOffset >> 32) * channels;
-                curOffset &= fixedFraction - 1;
-            }
-
-            return outputSize;
-        }
-
+        
+        
         public void WriteAsWavFile(string location, AudioData<float> data)
         {
             var samples = data.Samples;
