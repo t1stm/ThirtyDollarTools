@@ -123,47 +123,59 @@ namespace ThirtyDollarWindowsGuiApp.Forms
                 _running = false;
                 throw;
             }
-            const int reduceUpdateCount = 32; // I just like this number.
-            var currentUpdate = 0;
             var buffer = "";
-            var indexAction = new Action<int, int>((index, count) => 
+            var val = 0ul;
+            var max = 100ul;
+            var indexAction = new Action<ulong, ulong>((index, count) =>
             {
-                if (currentUpdate++ < reduceUpdateCount) return;
-                currentUpdate = 0;
-                progressBar.Value = index;
-                progressBar.Maximum = count;
+                val = index;
+                max = count;
             });
             var logAction = new Action<string>(str =>
             {
-                buffer += Environment.NewLine + str;
-                if (currentUpdate++ < reduceUpdateCount) return;
-                logBox.Text += buffer;
-                buffer = "";
-                logBox.SelectionStart = logBox.Text.Length;
-                logBox.ScrollToCaret();
+                buffer += str + Environment.NewLine;
             });
             logBox.Text = "Starting encode." + Environment.NewLine;
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            try
+            var task = new Task(() =>
             {
-                var encoder = new PcmEncoder(Program.SampleHolder, composition, new EncoderSettings()
+                try
                 {
-                    Channels = 2,
-                    SampleRate = 48000
-                }, logCheckbox.Checked ? logAction : null, indexAction);
-                encoder.Start();
-                encoder.WriteAsWavFile(saveLocationBox.Text);
-            }
-            catch (Exception exc)
+                    var encoder = new PcmEncoder(Program.SampleHolder, composition, new EncoderSettings()
+                    {
+                        Channels = 2,
+                        SampleRate = 48000
+                    }, logCheckbox.Checked ? logAction : null, indexAction);
+                    var sampled = encoder.SampleComposition(encoder.Composition);
+                    encoder.WriteAsWavFile(saveLocationBox.Text, sampled);
+                }
+                catch (Exception exc)
+                {
+                    MessageBox.Show(exc.Message, "An exception occured. This is usually bad.", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    _running = false;
+                }
+            });
+            task.Start();
+            while (_running)
             {
-                MessageBox.Show(exc.Message, "An exception occured. This is usually bad.", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Task.Delay(66).Wait();
+                progressBar.Value = Math.Clamp((int) val, 0, progressBar.Maximum);
+                progressBar.Maximum = Math.Clamp((int) max, progressBar.Value, int.MaxValue);
+                if (string.IsNullOrEmpty(buffer)) continue;
+                logBox.Text += Environment.NewLine + buffer;
+                buffer = "";
+                logBox.SelectionStart = logBox.Text.Length;
+                logBox.ScrollToCaret();
             }
             stopwatch.Stop();
             logBox.Text += Environment.NewLine + $"Encoding Finished. Took: {stopwatch.Elapsed:c}";
             logBox.SelectionStart = logBox.Text.Length;
             logBox.ScrollToCaret();
-            _running = false;
+
             progressBar.Value = 0;
             progressBar.Maximum = 100;
         }

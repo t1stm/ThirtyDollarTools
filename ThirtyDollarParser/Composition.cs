@@ -6,7 +6,7 @@ namespace ThirtyDollarParser
 {
     public class Composition
     {
-        public List<Event> Events { get; init; } = new()
+        public Event[] Events { get; set; } = new[]
         {
             new Event
             {
@@ -21,7 +21,7 @@ namespace ThirtyDollarParser
         {
             return new()
             {
-                Events = Events.Select(r => r.Copy()).ToList()
+                Events = Events.Select(r => r.Copy()).ToArray()
             };
         }
 
@@ -29,6 +29,7 @@ namespace ThirtyDollarParser
         {
             var comp = new Composition();
             var split = data.Replace("!divider", "").Split('|');
+            var list = new List<Event>();
             foreach (var originalText in split)
             {
                 var text = originalText;
@@ -78,9 +79,9 @@ namespace ThirtyDollarParser
                     OriginalLoop = loopTimes,
                     ValueScale = scale
                 };
-                comp.Events.Add(newEvent);
+                list.Add(newEvent);
             }
-
+            comp.Events = list.ToArray();
             return comp;
         }
     }

@@ -14,9 +14,9 @@ namespace ThirtyDollarApp
 
         private static async Task Main(string[] args)
         {
-            //var isInBinFolder = Directory.GetCurrentDirectory() == "bin";
-            //var workingDirectory = $"{(isInBinFolder ? "../../.." : ".")}";
-            const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarDebugApp";
+            var isInBinFolder = Directory.GetCurrentDirectory() == "bin";
+            var workingDirectory = $"{(isInBinFolder ? "../../.." : ".")}";
+            //const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarDebugApp";
             var sequenceDirectory = $"{workingDirectory}/Included Sequences";
             
             var holder = new SampleHolder
