@@ -120,7 +120,7 @@ public class PcmEncoder
         return new Tuple<List<ProcessedEvent>, Queue<Placement>>(processedEvents, queue);
     }
 
-    private async Task<AudioData<float>> GenerateAudioData(IEnumerable<Placement> queue,
+    private async Task<AudioData<float>> GenerateAudioData(Queue<Placement> queue,
         IReadOnlyCollection<ProcessedEvent> processedEvents,
         CancellationToken? cancellationToken = null)
     {
@@ -135,19 +135,19 @@ public class PcmEncoder
         for (var j = 0; j < Channels; j++)
         {
             var i = j;
+            var local_j = j;
             encodeTasks[i] = new Task(() =>
             {
-                var j = 0ul;
-                foreach (var thing in queue) // I can't name things...
+                foreach (var placement in queue)
                 {
-                    Log($"({i}) Processing: {thing.Index}");
-                    var ev = thing.Event;
+                    Log($"({i}) Processing: {placement.Index}");
+                    var ev = placement.Event;
                     if (ev.SoundEvent == "#!cut")
                     {
                         var end = (ulong)audioData.Samples[i].LongLength;
                         lock (audioData.Samples[i])
                         {
-                            for (var k = thing.Index; k < end; k++)
+                            for (var k = placement.Index; k < end; k++)
                                 audioData.Samples[i][k] = 0f;
                         }
 
@@ -159,25 +159,28 @@ public class PcmEncoder
                             .AudioData;
 
                     var data = sample.GetChannel(i);
-                    RenderSample(data, ref audioData.Samples[i], thing.Index, ev.Volume);
-                    encodeIndices[i] = j;
+                    RenderSample(data, ref audioData.Samples[i], placement.Index, ev.Volume);
+                    encodeIndices[i] = (ulong) local_j;
                 }
             });
             encodeTasks[i].Start();
         }
 
         var finished = false;
-        var waiter = new Task(async () =>
+
+        async void WaitFinish()
         {
             foreach (var task in encodeTasks) await task.WaitAsync(token);
             finished = true;
-        });
+        }
+
+        var waiter = new Task(WaitFinish);
         waiter.Start();
 
-        while (!finished)
+        while (!finished && !token.IsCancellationRequested)
         {
-            IndexReport(Sum(encodeIndices) / (ulong)encodeIndices.Length, (ulong)count);
-            await Task.Delay(66);
+            IndexReport(Sum(encodeIndices) / (ulong) encodeIndices.Length, (ulong) count);
+            await Task.Delay(66, token);
         }
 
         return audioData;
@@ -186,7 +189,7 @@ public class PcmEncoder
     private static ulong Sum(ulong[] source)
     {
         ulong result = 0;
-        for (ulong i = 0; i < (ulong)source.LongLength; i++) result += source[i];
+        for (ulong i = 0; i < (ulong) source.LongLength; i++) result += source[i];
         return result;
     }
 
@@ -197,7 +200,7 @@ public class PcmEncoder
         var position = (ulong)(SampleRate / (bpm / 60));
         var transpose = 0.0;
         var volume = 100.0;
-        var count = (ulong)composition!.Events.LongLength;
+        var count = (ulong) composition.Events.LongLength;
 
         for (var i = 0ul; i < count; i++)
         {

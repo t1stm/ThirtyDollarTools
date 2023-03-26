@@ -28,8 +28,14 @@ internal static class Program
         Directory.CreateDirectory("./Export");
 
         var output = new List<CompositionFile>();
-        output.AddRange(await ReadFileList(args));
-        output.AddRange(await ReadFileList(list));
+        if (args.Length > 0)
+        {
+            output.AddRange(await ReadFileList(args));
+        }
+        else
+        {
+            output.AddRange(await ReadFileList(list));
+        }
 
         foreach (var file in output)
         {
