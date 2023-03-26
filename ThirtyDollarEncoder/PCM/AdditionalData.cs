@@ -1,7 +1,6 @@
-namespace ThirtyDollarEncoder.PCM
+namespace ThirtyDollarEncoder.PCM;
+
+public class AdditionalData
 {
-    public class AdditionalData
-    {
-        // To be added.
-    }
+    // To be added.
 }

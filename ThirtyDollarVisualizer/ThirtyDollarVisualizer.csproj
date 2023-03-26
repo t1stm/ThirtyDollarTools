@@ -9,27 +9,27 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Remove="shader.frag" />
-      <None Update="Assets\Shaders\shader.frag">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Update="Assets\Shaders\shader.vert">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <None Remove="shader.frag"/>
+        <None Update="Assets\Shaders\shader.frag">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Update="Assets\Shaders\shader.vert">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="shader.vert" />
+        <None Remove="shader.vert"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="OpenTK" Version="4.7.5" />
+        <PackageReference Include="OpenTK" Version="4.7.5"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="Assets\Textures\moai.png">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
+        <Content Include="Assets\Textures\moai.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
 </Project>

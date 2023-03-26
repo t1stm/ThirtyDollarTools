@@ -1,8 +1,7 @@
-namespace ThirtyDollarConverter
+namespace ThirtyDollarConverter;
+
+public struct EncoderSettings
 {
-    public struct EncoderSettings
-    {
-        public int SampleRate;
-        public int Channels;
-    }
+    public int SampleRate;
+    public int Channels;
 }

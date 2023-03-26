@@ -1,10 +1,9 @@
 using ThirtyDollarParser;
 
-namespace ThirtyDollarConverter
+namespace ThirtyDollarConverter;
+
+public struct Placement
 {
-    public struct Placement
-    {
-        public ulong Index;
-        public Event Event;
-    }
+    public ulong Index;
+    public Event Event;
 }
