@@ -13,12 +13,12 @@ namespace ThirtyDollarConverter
     public class PcmEncoder
     {
         public PcmEncoder(SampleHolder samples, Composition composition, EncoderSettings settings, Action<string>? loggerAction = null,
-            Action<ulong, ulong>? indexReport = null)
+            Action<int, int>? indexReport = null)
         {
             Holder = samples;
             Composition = composition;
             Log = loggerAction ?? new Action<string>(_ => { });
-            IndexReport = indexReport ?? new Action<ulong, ulong>((_, _) => { });
+            IndexReport = indexReport ?? new Action<int, int>((_, _) => { });
             SampleRate = settings.SampleRate;
             Channels = settings.Channels;
             switch (Channels)
@@ -36,7 +36,7 @@ namespace ThirtyDollarConverter
         public Composition Composition { get; }
         private Dictionary<Sound, PcmDataHolder> Samples => Holder.SampleList;
         private Action<string> Log { get; }
-        private Action<ulong, ulong> IndexReport { get; }
+        private Action<int, int> IndexReport { get; }
 
         public AudioData<float> SampleComposition(Composition composition, int threadCount = -1)
         {
@@ -86,7 +86,7 @@ namespace ThirtyDollarConverter
                 if (ev.SoundEvent == "#!cut") continue;
                 lock (processedEvents)
                 {
-                    if (processedEvents.Any(r => r.Name == ev.SoundEvent && Math.Abs(r.Value - ev.Value) < 0.5))
+                    if (processedEvents.Any(r => r.Name == ev.SoundEvent && Math.Abs(r.Value - ev.Value) < 1))
                         continue;
                 }
 
@@ -129,19 +129,15 @@ namespace ThirtyDollarConverter
             var audioData = AudioData<float>.Empty((uint) Channels);
 
             var encodeTasks = new Task[Channels];
-            var encodeIndices = new ulong[Channels];
-
-            var count = queue.LongCount();
 
             for (var j = 0; j < Channels; j++)
             {
                 var i = j;
                 encodeTasks[i] = new Task(() =>
                 {
-                    var j = 0ul;
                     foreach (var thing in queue) // I can't name things...
                     {
-                        Log($"({i}) Processing: {thing.Index}");
+                        //Console.WriteLine($"({i}) Processing: {thing.Index}");
                         var ev = thing.Event;
                         if (ev.SoundEvent == "#!cut")
                         {
@@ -160,40 +156,17 @@ namespace ThirtyDollarConverter
 
                         var data = sample.GetChannel(i);
                         RenderSample(data, ref audioData.Samples[i], thing.Index, ev.Volume);
-                        encodeIndices[i] = j;
                     }
                 });
                 encodeTasks[i].Start();
             }
 
-            bool finished = false;
-            var waiter = new Task(async () =>
+            foreach (var task in encodeTasks)
             {
-                foreach (var task in encodeTasks)
-                {
-                    await task.WaitAsync(token);
-                }
-                finished = true;
-            });
-            waiter.Start();
-
-            while (!finished)
-            {
-                IndexReport(Sum(encodeIndices) / (ulong) encodeIndices.Length, (ulong) count);
-                await Task.Delay(66);
+                await task.WaitAsync(token);
             }
 
             return audioData;
-        }
-
-        private static ulong Sum(ulong[] source)
-        {
-            ulong result = 0;
-            for (ulong i = 0; i < (ulong) source.LongLength; i++)
-            {
-                result += source[i];
-            }
-            return result;
         }
 
         public IEnumerable<Placement> CalculatePlacement(Composition composition)
@@ -203,13 +176,12 @@ namespace ThirtyDollarConverter
             var position = (ulong) (SampleRate / (bpm / 60));
             var transpose = 0.0;
             var volume = 100.0;
-            var count = (ulong) composition!.Events.LongLength;
 
-            for (var i = 0ul; i < count; i++)
+            for (var i = 0; i < composition!.Events.Count; i++)
             {
                 var index = position;
                 var ev = composition.Events[i];
-                IndexReport(i, count);
+                IndexReport(i, composition!.Events.Count);
                 switch (ev.SoundEvent)
                 {
                     case "!speed":
@@ -242,7 +214,6 @@ namespace ThirtyDollarConverter
                                 volume = ev.Value;
                                 break;
                         }
-                        Log($"Changing sample volume to: \'{volume}\'");
                         continue;
 
                     case "!loopmany" or "!loop":
@@ -273,20 +244,13 @@ namespace ThirtyDollarConverter
                             Log($"Unable to jump to target with id: {ev.Value}");
                             continue;
                         }
-                        var search = Array.IndexOf(composition.Events, item) - 1; 
-                        if (search == -1) 
-                        {
-                            Log("Unable to find event:");
-                            continue;
-                        }
 
-                        i = (ulong) search;
+                        i = composition.Events.IndexOf(item) - 1;
                         Log($"Jumping to element: ({i}) - {composition.Events[i]}");
-                        
+                        //
                         continue;
 
                     case "_pause" or "!stop":
-                        Log($"Pausing for: \'{ev.PlayTimes}\' beats");
                         while (ev.PlayTimes >= 1)
                         {
                             ev.PlayTimes--;
@@ -306,7 +270,7 @@ namespace ThirtyDollarConverter
                             },
                             Index = index
                         };
-                        Log($"Cutting audio at: \'{index + SampleRate / (bpm / 60)}\'");
+                        
                         continue;
 
                     case "" or "!looptarget" or "!target" or "!volume" or "!flash" or "!bg":
@@ -329,7 +293,7 @@ namespace ThirtyDollarConverter
                                 transpose = ev.Value;
                                 continue;
                         }
-                        Log($"Transposing samples by: \'{transpose}\'");
+
                         continue;
 
                     default:
@@ -340,13 +304,11 @@ namespace ThirtyDollarConverter
                 var copy = ev.Copy();
                 copy.Volume = volume;
                 copy.Value += transpose;
-                var placement = new Placement
+                yield return new Placement
                 {
                     Index = index,
                     Event = copy
                 };
-                Log($"Found placement of event: \'{placement.Event}\'");
-                yield return placement;
                 switch (ev.SoundEvent)
                 {
                     case not ("!transpose" or "!loopmany" or "!volume" or "!flash" or "!combine" or "!speed" or
