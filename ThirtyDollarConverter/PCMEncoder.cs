@@ -125,30 +125,29 @@ public class PcmEncoder
         CancellationToken? cancellationToken = null)
     {
         var token = cancellationToken ?? CancellationToken.None;
-        var audioData = AudioData<float>.Empty((uint)Channels);
+        var audioData = AudioData<float>.Empty((uint) Channels);
 
         var encodeTasks = new Task[Channels];
         var encodeIndices = new ulong[Channels];
-
+        
         var count = queue.LongCount();
 
-        for (var j = 0; j < Channels; j++)
+        for (var channelIndex = 0; channelIndex < Channels; channelIndex++)
         {
-            var i = j;
-            var local_j = j;
-            encodeTasks[i] = new Task(() =>
+            var indexCopy = channelIndex;
+            encodeTasks[indexCopy] = new Task(() =>
             {
                 foreach (var placement in queue)
                 {
-                    Log($"({i}) Processing: {placement.Index}");
+                    //Log($"({indexCopy}) Processing: {placement.Index}");
                     var ev = placement.Event;
                     if (ev.SoundEvent == "#!cut")
                     {
-                        var end = (ulong)audioData.Samples[i].LongLength;
-                        lock (audioData.Samples[i])
+                        var end = (ulong)audioData.Samples[indexCopy].LongLength;
+                        lock (audioData.Samples[indexCopy])
                         {
                             for (var k = placement.Index; k < end; k++)
-                                audioData.Samples[i][k] = 0f;
+                                audioData.Samples[indexCopy][k] = 0f;
                         }
 
                         continue;
@@ -158,12 +157,12 @@ public class PcmEncoder
                         processedEvents.First(r => r.Name == ev.SoundEvent && Math.Abs(r.Value - ev.Value) < 1)
                             .AudioData;
 
-                    var data = sample.GetChannel(i);
-                    RenderSample(data, ref audioData.Samples[i], placement.Index, ev.Volume);
-                    encodeIndices[i] = (ulong) local_j;
+                    var data = sample.GetChannel(indexCopy);
+                    RenderSample(data, ref audioData.Samples[indexCopy], placement.Index, ev.Volume);
+                    encodeIndices[indexCopy] = placement.Index;
                 }
             });
-            encodeTasks[i].Start();
+            encodeTasks[indexCopy].Start();
         }
 
         var finished = false;
@@ -189,8 +188,9 @@ public class PcmEncoder
     private static ulong Sum(ulong[] source)
     {
         ulong result = 0;
-        for (ulong i = 0; i < (ulong) source.LongLength; i++) result += source[i];
-        return result;
+        for (ulong i = 0; i < (ulong) source.LongLength; i++) 
+            result += source[i] / 1000;
+        return result * 1000;
     }
 
     public IEnumerable<Placement> CalculatePlacement(Composition composition)
@@ -240,7 +240,7 @@ public class PcmEncoder
                             break;
                     }
 
-                    Log($"Changing sample volume to: \'{volume}\'");
+                    //Log($"Changing sample volume to: \'{volume}\'");
                     continue;
 
                 case "!loopmany" or "!loop":
@@ -343,7 +343,7 @@ public class PcmEncoder
                 Index = index,
                 Event = copy
             };
-            Log($"Found placement of event: \'{placement.Event}\'");
+            //Log($"Found placement of event: \'{placement.Event}\'");
             yield return placement;
             switch (ev.SoundEvent)
             {

@@ -12,7 +12,7 @@ internal static class Program
         //var isInBinFolder = Directory.GetCurrentDirectory() == "bin";
         //var workingDirectory = $"{(isInBinFolder ? "../../.." : ".")}";
         const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarDebugApp";
-        var sequenceDirectory = $"{workingDirectory}/Included Sequences";
+        const string sequenceDirectory = $"{workingDirectory}/Included Sequences";
 
         var holder = new SampleHolder
         {

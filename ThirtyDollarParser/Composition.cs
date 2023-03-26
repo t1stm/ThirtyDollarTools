@@ -62,8 +62,14 @@ public class Composition
 
             var sound = (splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForValue[0]).Trim();
             if (splitForRepeats.Length > 1) loopTimes = (int)Math.Floor(double.Parse(splitForRepeats.Last()));
-            if ((sound == "_pause" && text.Contains('=')) || (sound == "!stop" && text.Contains('@')))
+            
+            if ((sound == "_pause" && text.Contains('=')) ||
+                (sound == "!stop" && text.Contains('@')) ||
+                sound is "!loop" or "!loopmany")
+            {
                 loopTimes = (int)(value > 0 ? value : loopTimes);
+            }
+            
             var newEvent = new Event
             {
                 Value = value,
