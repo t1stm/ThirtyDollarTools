@@ -12,7 +12,8 @@ public static class Program
     {
         var settings = new NativeWindowSettings
         {
-            Size = new Vector2i(800, 600)
+            MinimumSize = new Vector2i(640, 360),
+            AspectRatio = (16, 9)
         };
 
         using var window = new Window(GameWindowSettings.Default, settings);

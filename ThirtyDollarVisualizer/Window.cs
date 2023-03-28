@@ -94,7 +94,9 @@ public class Window : GameWindow
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         var mouse = MouseState;
-
+        
+        
+        
         base.OnUpdateFrame(args);
     }
 
