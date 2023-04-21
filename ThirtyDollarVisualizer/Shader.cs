@@ -81,10 +81,22 @@ public class Shader
         return shader;
     }
 
+    public void SetUniform1(string name, int value)
+    {
+        var location = GetUniformLocation(name);
+        GL.Uniform1(location, value);
+    }
+    
     public void SetUniform4(string name, Color4 color)
     {
         var location = GetUniformLocation(name);
         GL.Uniform4(location, color);
+    }
+
+    public void SetUniformMatrix4(string name, Matrix4 matrix)
+    {
+        var location = GetUniformLocation(name);
+        GL.UniformMatrix4(location, true, ref matrix);
     }
 
     public int GetUniformLocation(string name)
@@ -100,7 +112,7 @@ public class Shader
         location = GL.GetUniformLocation(Program, name);
         if (location == -1)
             throw new Exception(
-                $"Uniform \'{name}\' wasn't found in files \"{_sources.Select(r => $"{r.FilePath} ").ToArray().ToString()?.Trim()}\".");
+                $"Uniform \'{name}\' wasn't found in files \"{string.Join(' ', _sources.Select(r => $"{r.FilePath} "))}\".");
         lock (_uniformLocations)
         {
             _uniformLocations.Add(name, location);

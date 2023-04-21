@@ -39,10 +39,10 @@ public class Window : GameWindow
         GL.ClearColor(.0f, .0f, .0f, 1.0f);
         float[] positions =
         {
-            -0.5f, -0.5f,
-            0.5f, -0.5f,
-            0.5f, 0.5f,
-            -0.5f, 0.5f
+            -0.5f, -0.5f, 0f, 0f,
+            0.5f, -0.5f, 1f, 0f,
+            0.5f, 0.5f, 1f, 1f,
+            -0.5f, 0.5f, 0f, 1f
         };
 
         uint[] indices =
@@ -57,10 +57,16 @@ public class Window : GameWindow
 
         var layout = new VertexBufferLayout();
         layout.PushFloat(2);
+        layout.PushFloat(2);
         _vao.AddBuffer(_vbo, layout);
 
         _shader = Shader.FromFiles("./Assets/Shaders/shader.vert", "./Assets/Shaders/shader.frag");
         _stopwatch.Start();
+
+        var texture = new Texture("Assets/Textures/moai.png");
+        texture.Bind();
+        _shader.SetUniform1("u_Texture", 0);
+        //_shader.SetUniformMatrix4("u_MVP", trans);
 
         _shader.Unbind();
         _vao.Unbind();
@@ -78,12 +84,6 @@ public class Window : GameWindow
         ClearAllErrors();
         _shader.Bind();
 
-        // Oh my god! It's the LGBTQ lights.
-        var r = (float)Math.Abs(Math.Cos(_stopwatch.ElapsedMilliseconds / 500f));
-        var g = (float)Math.Abs(Math.Sin(_stopwatch.ElapsedMilliseconds / 500f));
-        var b = (float)Math.Abs(Math.Sin(_stopwatch.ElapsedMilliseconds / 500f + 0.5));
-        _shader.SetUniform4("u_Color", r, g, b, 1.0f);
-
         Renderer.Draw(_vao, _ibo, _shader);
         CheckErrors();
 
@@ -94,7 +94,6 @@ public class Window : GameWindow
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         var mouse = MouseState;
-        
         
         
         base.OnUpdateFrame(args);

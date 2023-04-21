@@ -10,12 +10,6 @@
 
     <ItemGroup>
         <None Remove="shader.frag" />
-        <None Update="Assets\Shaders\shader.frag">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Assets\Shaders\shader.vert">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -23,13 +17,25 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="OpenTK" Version="4.7.5" />
-        <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
+        <PackageReference Include="OpenTK" Version="4.7.7" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
     </ItemGroup>
 
     <ItemGroup>
         <Content Include="Assets\Textures\moai.png">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <None Remove="Assets\Fonts\VarelaRound-Regular.ttf" />
+        <Content Include="Assets\Fonts\VarelaRound-Regular.ttf">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <None Remove="Assets\Shaders\shader.frag" />
+        <Content Include="Assets\Shaders\shader.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <None Remove="Assets\Shaders\shader.vert" />
+        <Content Include="Assets\Shaders\shader.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
 
