@@ -1,100 +1,101 @@
-using System;
-using System.IO;
 using ThirtyDollarEncoder.PCM;
+using Encoding = System.Text.Encoding;
 
-namespace ThirtyDollarEncoder.Wave
+namespace ThirtyDollarEncoder.Wave;
+
+public class WaveDecoder
 {
-    public class WaveDecoder
+    private long dataChunkLength;
+
+    private readonly PcmDataHolder Holder = new();
+
+    // Shamefully copied from NAudio.
+    // Here goes copyright infringement.
+    private long riffFileSize;
+
+    private static int HeaderToInt(string header)
     {
-        // Shamefully copied from NAudio.
-        // Here goes copyright infringement.
-        private long riffFileSize;
-        private long dataChunkLength;
-        private PcmDataHolder Holder = new();
-        private static int HeaderToInt(string header) => BitConverter.ToInt32(System.Text.Encoding.UTF8.GetBytes(header)[..4], 0);
-        
-        public PcmDataHolder Read(Stream inputStream)
+        return BitConverter.ToInt32(Encoding.UTF8.GetBytes(header)[..4], 0);
+    }
+
+    public PcmDataHolder Read(Stream inputStream)
+    {
+        var reader = new BinaryReader(inputStream);
+        var header = ReadRiffHeader(reader);
+        riffFileSize = reader.ReadUInt32();
+
+        if (reader.ReadInt32() != HeaderToInt("WAVE"))
+            throw new FileLoadException("Supplied data doesn't have \"WAVE\" header.");
+        switch (header)
         {
-            var reader = new BinaryReader(inputStream);
-            var header = ReadRiffHeader(reader);
-            riffFileSize = reader.ReadUInt32();
-
-            if (reader.ReadInt32() != HeaderToInt("WAVE")) throw new FileLoadException("Supplied data doesn't have \"WAVE\" header.");
-            switch (header)
-            {
-                case 2:
-                    ReadDs64StandardChunk(reader);
-                    break;
-                case 0:
-                    throw new FileLoadException("Supplied data doesn't have \"RIFF\" header.");
-            }
-
-            var dataChunkId = HeaderToInt("data");
-            var formatChunkId = HeaderToInt("fmt ");
-            var stopPosition = Math.Min(riffFileSize + 8, inputStream.Length);
-            //long dataChunkPosition = -1;
-            while (inputStream.Position <= stopPosition - 8)
-            {
-                var chunkID = reader.ReadInt32();
-                var chunkLength = reader.ReadUInt32();
-                if (chunkID == formatChunkId)
-                {
-                    if (chunkLength > int.MaxValue)
-                        throw new InvalidDataException($"Format chunk length must be between 0 and {int.MaxValue}.");
-                    ReadWaveFormat(reader, (int) chunkLength);
-                    continue;
-                }
-                if (chunkID != dataChunkId) continue;
-                if (header != 2)
-                {
-                    dataChunkLength = chunkLength;
-                }
+            case 2:
+                ReadDs64StandardChunk(reader);
                 break;
-            }
-
-            var bytes = new byte[dataChunkLength];
-            reader.Read(bytes);
-            reader.Close();
-            Holder.AudioData = bytes;
-            return Holder;
+            case 0:
+                throw new FileLoadException("Supplied data doesn't have \"RIFF\" header.");
         }
 
-        private void ReadWaveFormat(BinaryReader reader, int chunkLength)
+        var dataChunkId = HeaderToInt("data");
+        var formatChunkId = HeaderToInt("fmt ");
+        var stopPosition = Math.Min(riffFileSize + 8, inputStream.Length);
+        //long dataChunkPosition = -1;
+        while (inputStream.Position <= stopPosition - 8)
         {
-            if (chunkLength < 16)
-                throw new InvalidDataException("Invalid WaveFormat Structure");
-            var waveFormatTag = reader.ReadUInt16();
-            if (waveFormatTag != 0x0001)
+            var chunkID = reader.ReadInt32();
+            var chunkLength = reader.ReadUInt32();
+            if (chunkID == formatChunkId)
             {
-                Console.WriteLine("File is probably not int PCM.");
+                if (chunkLength > int.MaxValue)
+                    throw new InvalidDataException($"Format chunk length must be between 0 and {int.MaxValue}.");
+                ReadWaveFormat(reader, (int)chunkLength);
+                continue;
             }
-            Holder.Channels = (uint) reader.ReadInt16();
-            Holder.SampleRate = (uint) reader.ReadInt32();
-            var averageBytesPerSecond = reader.ReadInt32();
-            var blockAlign = reader.ReadInt16();
-            Holder.Encoding = (Encoding) reader.ReadInt16();
-            if (chunkLength <= 16) return;
-            var extraSize = reader.ReadInt16();
-            if (extraSize == chunkLength - 18) return;
-            extraSize = (short) (chunkLength - 18);
-            var extraData = new byte[extraSize];
-            reader.Read(extraData, 0, extraSize);
+
+            if (chunkID != dataChunkId) continue;
+            if (header != 2) dataChunkLength = chunkLength;
+            break;
         }
 
-        private void ReadDs64StandardChunk(BinaryReader reader)
-        {
-            if (reader.ReadInt32() != HeaderToInt("ds64")) throw new FileLoadException("Supplied data doesn't have \"ds64\" chunk.");
-            var chunkSize = reader.ReadInt32();
-            riffFileSize = reader.ReadInt64();
-            dataChunkLength = reader.ReadInt64();
-            var sampleCount = reader.ReadInt64(); // I don't know why this isn't used in NAudio.
-            var excess = reader.ReadBytes(chunkSize - 24);
-        }
+        var bytes = new byte[dataChunkLength];
+        reader.Read(bytes);
+        reader.Close();
+        Holder.AudioData = bytes;
+        return Holder;
+    }
 
-        public int ReadRiffHeader(BinaryReader reader)
-        {
-            var header = reader.ReadInt32();
-            return header == HeaderToInt("RF64") ? 2 : header == HeaderToInt("RIFF") ? 1 : 0;
-        }
+    private void ReadWaveFormat(BinaryReader reader, int chunkLength)
+    {
+        if (chunkLength < 16)
+            throw new InvalidDataException("Invalid WaveFormat Structure");
+        var waveFormatTag = reader.ReadUInt16();
+        if (waveFormatTag != 0x0001) Console.WriteLine("File is probably not int PCM.");
+        Holder.Channels = (uint)reader.ReadInt16();
+        Holder.SampleRate = (uint)reader.ReadInt32();
+        var averageBytesPerSecond = reader.ReadInt32();
+        var blockAlign = reader.ReadInt16();
+        Holder.Encoding = (PCM.Encoding)reader.ReadInt16();
+        if (chunkLength <= 16) return;
+        var extraSize = reader.ReadInt16();
+        if (extraSize == chunkLength - 18) return;
+        extraSize = (short)(chunkLength - 18);
+        var extraData = new byte[extraSize];
+        reader.Read(extraData, 0, extraSize);
+    }
+
+    private void ReadDs64StandardChunk(BinaryReader reader)
+    {
+        if (reader.ReadInt32() != HeaderToInt("ds64"))
+            throw new FileLoadException("Supplied data doesn't have \"ds64\" chunk.");
+        var chunkSize = reader.ReadInt32();
+        riffFileSize = reader.ReadInt64();
+        dataChunkLength = reader.ReadInt64();
+        var sampleCount = reader.ReadInt64(); // I don't know why this isn't used in NAudio.
+        var excess = reader.ReadBytes(chunkSize - 24);
+    }
+
+    public int ReadRiffHeader(BinaryReader reader)
+    {
+        var header = reader.ReadInt32();
+        return header == HeaderToInt("RF64") ? 2 : header == HeaderToInt("RIFF") ? 1 : 0;
     }
 }
