@@ -1,15 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net7.0</TargetFramework>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ThirtyDollarEncoder\ThirtyDollarEncoder.csproj"/>
-        <ProjectReference Include="..\ThirtyDollarParser\ThirtyDollarParser.csproj"/>
+        <ProjectReference Include="..\ThirtyDollarEncoder\ThirtyDollarEncoder.csproj" />
+        <ProjectReference Include="..\ThirtyDollarParser\ThirtyDollarParser.csproj" />
     </ItemGroup>
 
 </Project>

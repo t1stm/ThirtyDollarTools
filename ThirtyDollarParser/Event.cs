@@ -6,7 +6,7 @@ public class Event
     public double Value { get; set; }
     public int OriginalLoop { get; set; } = 1;
     public int PlayTimes { get; set; } = 1;
-    public double Volume { get; set; } = 100;
+    public double? Volume { get; set; }
     public ValueScale ValueScale { get; init; }
 
     public override string ToString()
