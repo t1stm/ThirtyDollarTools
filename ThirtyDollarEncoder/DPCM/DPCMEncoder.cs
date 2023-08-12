@@ -1,28 +1,36 @@
 namespace ThirtyDollarEncoder.DPCM;
 
 // This class is a meme / shitpost.
-public class DPCMEncoder
+public static class DPCMEncoder
 {
-    public byte[]? Encode(IEnumerable<float> data)
+    public static byte[] Encode(IEnumerable<float> data)
     {
         return Encode(data.Select(b => (short)(b * 32768)));
     }
 
-    public byte[]? Encode(IEnumerable<short> data)
+    public static byte[] Encode(IEnumerable<short> data)
     {
+        const byte step_interval = 8;
+        
         var audio = data.ToArray();
-        short oldSample = 0;
-        ushort placement = 0;
-        var output = new byte[(int)(audio.LongLength / 8) + 1];
-        for (long i = 0; i < audio.LongLength; i++)
-        {
-            var j = (int)Math.Floor((decimal)(i * 0.125));
-            output[j] |= (byte)(output[j] | ((oldSample > audio[i] ? 0 : 1) << placement));
-            if (++placement > 8) placement = 0;
-            oldSample = audio[i];
-        }
+        short old_sample = 0;
 
-        // For now this won't do anything so don't expect too much. I am currently experimenting.
-        return null;
+        var byte_position = 0;
+        
+        var output = new byte[audio.LongLength];
+        for (long i = 0; i < audio.LongLength; i++, 
+             byte_position = byte_position + 1 >= 8 ? 0 : byte_position + 1)
+        {
+            // TODO: Fix
+            short sample = output[i];
+            var delta_sample = (short) (sample - old_sample);
+
+            var is_positive = delta_sample << 7 == 1;
+            
+            output[i] = (byte) (delta_sample << byte_position);
+            old_sample = (short) (sample + delta_sample);
+        }
+        
+        return output;
     }
 }

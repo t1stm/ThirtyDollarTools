@@ -9,8 +9,6 @@ internal static class Program
 
     private static async Task Main(string[] args)
     {
-        //var isInBinFolder = Directory.GetCurrentDirectory() == "bin";
-        //var workingDirectory = $"{(isInBinFolder ? "../../.." : ".")}";
         const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarDebugApp";
         const string sequenceDirectory = $"{workingDirectory}/Included Sequences";
 

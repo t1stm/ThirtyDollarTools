@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ThirtyDollarConverter.Resamplers;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
 
@@ -13,8 +14,8 @@ namespace ThirtyDollarConverter;
 public class PcmEncoder
 {
     private readonly int Channels;
-
     private readonly int SampleRate;
+    private readonly IResampler Resampler;
 
     public PcmEncoder(SampleHolder samples, Composition composition, EncoderSettings settings,
         Action<string>? loggerAction = null,
@@ -26,6 +27,8 @@ public class PcmEncoder
         IndexReport = indexReport ?? new Action<ulong, ulong>((_, _) => { });
         SampleRate = settings.SampleRate;
         Channels = settings.Channels;
+        Resampler = settings.Resampler;
+        
         switch (Channels)
         {
             case < 1:
@@ -98,7 +101,7 @@ public class PcmEncoder
                        throw new Exception(
                            $"Event name is null at index: \'{current.Index}\' after placement pass."),
                 Value = ev.Value,
-                Volume = ev.Volume,
+                Volume = ev.Volume ?? 100,
                 AudioData = AudioData<float>.Empty((uint)Channels)
             };
 
@@ -158,7 +161,7 @@ public class PcmEncoder
                             .AudioData;
 
                     var data = sample.GetChannel(indexCopy);
-                    RenderSample(data, ref audioData.Samples[indexCopy], placement.Index, ev.Volume);
+                    RenderSample(data, ref audioData.Samples[indexCopy], placement.Index, ev.Volume ?? 100);
                     encodeIndices[indexCopy] = placement.Index;
                 }
             });
@@ -269,14 +272,14 @@ public class PcmEncoder
                         continue;
                     }
 
-                    var search = Array.IndexOf(composition.Events, item) - 1;
+                    var search = Array.IndexOf(composition.Events, item);
                     if (search == -1)
                     {
-                        Log("Unable to find event:");
+                        Log("Unable to find event: ");
                         continue;
                     }
 
-                    i = (ulong)search;
+                    i = (ulong) search;
                     Log($"Jumping to element: ({i}) - {composition.Events[i]}");
 
                     continue;
@@ -336,7 +339,7 @@ public class PcmEncoder
 
             // To avoid modifying the original event.
             var copy = ev.Copy();
-            copy.Volume = volume;
+            copy.Volume ??= volume;
             copy.Value += transpose;
             var placement = new Placement
             {
@@ -377,7 +380,7 @@ public class PcmEncoder
             var audioData = new AudioData<float>(channelCount);
 
             for (var i = 0; i < channelCount; i++)
-                audioData.Samples[i] = Resample(sampleData.GetChannel(i), value.SampleRate,
+                audioData.Samples[i] = Resampler.Resample(sampleData.GetChannel(i), value.SampleRate,
                     (uint)(SampleRate / Math.Pow(2, ev.Value / 12)));
 
             return audioData;
@@ -389,32 +392,6 @@ public class PcmEncoder
 
         return AudioData<float>.Empty(channelCount);
     }
-
-    // AI will rule us all some day.
-    // AKA: Source - OpenAI ChatGPT
-    private static float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate)
-    {
-        var oldSize = (ulong)samples.LongLength;
-        var durationSecs = (float)oldSize / sampleRate;
-        var newSize = (ulong)(durationSecs * targetSampleRate);
-
-        var resampled = new float[newSize];
-
-        for (ulong i = 0; i < newSize; i++)
-        {
-            var timeSecs = (float)i / targetSampleRate;
-            var index = (ulong)(timeSecs * sampleRate);
-
-            var frac = timeSecs * sampleRate - index;
-            if (index < oldSize - 1)
-                resampled[i] = samples[index] * (1 - frac) + samples[index + 1] * frac;
-            else
-                resampled[i] = samples[index];
-        }
-
-        return resampled;
-    }
-
 
     public void WriteAsWavFile(string location, AudioData<float> data)
     {
@@ -439,25 +416,6 @@ public class PcmEncoder
 
         stream.Close();
     }
-
-    /*public MemoryStream WriteAsWavStream()
-    {
-        var ms = new MemoryStream();
-        PcmBytes.NormalizeVolume();
-        PcmBytes = PcmBytes.TrimEnd();
-        var stream = new BinaryWriter(ms);
-        AddWavHeader(stream);
-        stream.Write((short) 0);
-        foreach (var data in PcmBytes)
-        {
-            for (var i = 0; i < Channels; i++)
-            {
-                stream.Write((short) (data * 32768));
-            }
-        }
-        stream.Close();
-        return ms;
-    }*/
 
     private void AddWavHeader(BinaryWriter writer, int dataLength)
     {
