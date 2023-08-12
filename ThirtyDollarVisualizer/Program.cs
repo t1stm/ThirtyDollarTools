@@ -1,5 +1,4 @@
-using OpenTK.Mathematics;
-using OpenTK.Windowing.Desktop;
+using Silk.NET.Windowing;
 
 // Warm thanks to The Cherno
 // https://youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2
@@ -10,13 +9,13 @@ public static class Program
 {
     public static void Main()
     {
-        var settings = new NativeWindowSettings
-        {
-            MinimumSize = new Vector2i(640, 360),
-            AspectRatio = (16, 9)
-        };
+        var options = WindowOptions.Default;
 
-        using var window = new Window(GameWindowSettings.Default, settings);
+        var window = Window.Create(options);
+
+        var manager = new Manager(window);
+
         window.Run();
+        window.Dispose();
     }
 }

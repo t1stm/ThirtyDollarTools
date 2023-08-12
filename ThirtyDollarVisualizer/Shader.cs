@@ -1,6 +1,7 @@
 #nullable enable
-using OpenTK.Graphics.OpenGL;
-using OpenTK.Mathematics;
+
+using System.Numerics;
+using Silk.NET.OpenGL;
 
 namespace ThirtyDollarVisualizer;
 
@@ -15,44 +16,51 @@ public class Shader
 {
     private ShaderData[] _sources = Array.Empty<ShaderData>();
     private readonly Dictionary<string, int> _uniformLocations = new();
-    private int Program;
+    private uint Program;
 
-    private static int CompileShader(ShaderType type, string code)
+    private readonly GL Gl;
+
+    public Shader(GL gl)
+    {
+        Gl = gl;
+    }
+
+    private uint CompileShader(ShaderType type, string code)
     {
         const int FAIL = 0;
-        var shader = GL.CreateShader(type);
+        var shader = Gl.CreateShader(type);
 
-        GL.ShaderSource(shader, code);
-        GL.CompileShader(shader);
+        Gl.ShaderSource(shader, code);
+        Gl.CompileShader(shader);
 
-        GL.GetShader(shader, ShaderParameter.CompileStatus, out var result);
+        Gl.GetShader(shader, ShaderParameterName.CompileStatus, out var result);
         if (result != FAIL) return shader;
 
-        GL.GetShaderInfoLog(shader, out var message);
-        GL.DeleteShader(shader);
+        Gl.GetShaderInfoLog(shader, out var message);
+        Gl.DeleteShader(shader);
         throw new Exception($"\'{type}\' compilation failed with message: \"{message}\"");
     }
 
-    public static int CreateShaderProgram(params ShaderData[] shaderFiles)
+    public uint CreateShaderProgram(params ShaderData[] shaderFiles)
     {
-        var program = GL.CreateProgram();
+        var program = Gl.CreateProgram();
 
         foreach (var shaderFile in shaderFiles)
         {
             var compiledShader = CompileShader(shaderFile.Type, shaderFile.Code);
 
-            GL.AttachShader(program, compiledShader);
+            Gl.AttachShader(program, compiledShader);
 
-            GL.LinkProgram(program);
-            GL.ValidateProgram(program);
+            Gl.LinkProgram(program);
+            Gl.ValidateProgram(program);
 
-            GL.DeleteShader(compiledShader);
+            Gl.DeleteShader(compiledShader);
         }
 
         return program;
     }
 
-    public static Shader FromFiles(string vertexShaderPath, string fragmentShaderPath)
+    public static Shader FromFiles(GL gl, string vertexShaderPath, string fragmentShaderPath)
     {
         var vertexShader = File.ReadAllText(vertexShaderPath);
         var fragmentShader = File.ReadAllText(fragmentShaderPath);
@@ -72,11 +80,12 @@ public class Shader
             }
         };
 
-        var shader = new Shader
+        var shader = new Shader(gl)
         {
-            Program = CreateShaderProgram(sources),
             _sources = sources
         };
+
+        shader.Program = shader.CreateShaderProgram(sources);
 
         return shader;
     }
@@ -84,19 +93,19 @@ public class Shader
     public void SetUniform1(string name, int value)
     {
         var location = GetUniformLocation(name);
-        GL.Uniform1(location, value);
+        Gl.Uniform1(location, value);
     }
     
-    public void SetUniform4(string name, Color4 color)
+    public void SetUniform4(string name, Vector4 color)
     {
         var location = GetUniformLocation(name);
-        GL.Uniform4(location, color);
+        Gl.Uniform4(location, color);
     }
 
-    public void SetUniformMatrix4(string name, Matrix4 matrix)
+    public void SetUniformMatrix4(string name, ReadOnlySpan<float> matrix)
     {
         var location = GetUniformLocation(name);
-        GL.UniformMatrix4(location, true, ref matrix);
+        Gl.UniformMatrix4(location, true, matrix);
     }
 
     public int GetUniformLocation(string name)
@@ -109,7 +118,7 @@ public class Shader
         }
 
         if (found) return location;
-        location = GL.GetUniformLocation(Program, name);
+        location = Gl.GetUniformLocation(Program, name);
         if (location == -1)
             throw new Exception(
                 $"Uniform \'{name}\' wasn't found in files \"{string.Join(' ', _sources.Select(r => $"{r.FilePath} "))}\".");
@@ -123,16 +132,16 @@ public class Shader
 
     public void SetUniform4(string name, float r, float g, float b, float a)
     {
-        SetUniform4(name, new Color4(r, g, b, a));
+        SetUniform4(name, new Vector4(r, g, b, a));
     }
 
     public void Bind()
     {
-        GL.UseProgram(Program);
+        Gl.UseProgram(Program);
     }
 
     public void Unbind()
     {
-        GL.UseProgram(0);
+        Gl.UseProgram(0);
     }
 }

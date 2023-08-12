@@ -1,37 +1,46 @@
-using OpenTK.Graphics.OpenGL;
+using System.Runtime.InteropServices;
+using Silk.NET.OpenGL;
 
 namespace ThirtyDollarVisualizer;
 
 public class IndexBuffer
 {
-    private readonly int _count;
+    private readonly uint _count;
     private readonly uint _ibo;
 
-    public IndexBuffer(uint[] data)
+    private readonly GL Gl;
+
+    public unsafe IndexBuffer(GL gl, uint[] data)
     {
-        _count = data.Length;
-        GL.GenBuffers(1, out _ibo);
-        GL.BindBuffer(BufferTarget.ElementArrayBuffer, _ibo);
-        GL.BufferData(BufferTarget.ElementArrayBuffer, _count * sizeof(uint), data, BufferUsageHint.StaticDraw);
+        Gl = gl;
+        
+        _count = (uint) data.Length;
+        Gl.GenBuffers(1, out _ibo);
+        Gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, _ibo);
+
+        fixed (uint* pointer = data)
+        {
+            Gl.BufferData(BufferTargetARB.ElementArrayBuffer, _count * sizeof(uint), pointer, BufferUsageARB.StaticDraw);
+        }
     }
 
     public void Bind()
     {
-        GL.BindBuffer(BufferTarget.ElementArrayBuffer, _ibo);
+        Gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, _ibo);
     }
 
     public void Unbind()
     {
-        GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
+        Gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, 0);
     }
 
-    public int GetCount()
+    public uint GetCount()
     {
         return _count;
     }
 
     ~IndexBuffer()
     {
-        GL.DeleteBuffer(_ibo);
+        Gl.DeleteBuffer(_ibo);
     }
 }

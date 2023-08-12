@@ -1,24 +1,26 @@
-using OpenTK.Graphics.OpenGL;
+using Silk.NET.OpenGL;
 
 namespace ThirtyDollarVisualizer;
 
 public class Texture
 {
     private readonly byte[] TextureData;
-    private readonly int Width;
-    private readonly int Height;
-    private int TextureId;
+    private readonly uint Width;
+    private readonly uint Height;
+    private uint TextureId;
 
+    private readonly GL Gl;
     
-    public Texture(string path)
+    public Texture(GL gl, string path)
     {
+        Gl = gl;
         if (!File.Exists(path)) throw new FileNotFoundException(
             $"Texture file for path \'{path}\' not found. Working directory is \'{Directory.GetCurrentDirectory()}\'.");
         
         var image = Image.Load<Rgba32>(path);
 
-        Width = image.Width;
-        Height = image.Height;
+        Width = (uint) image.Width;
+        Height = (uint) image.Height;
 
         var data = TextureData = new byte[4 * image.Width * image.Height];
 
@@ -32,36 +34,39 @@ public class Texture
         TextureData = Array.Empty<byte>();
     }
 
-    private void LoadTexture()
+    private unsafe void LoadTexture()
     {
-        var texture = TextureId = GL.GenTexture();
-        GL.BindTexture(TextureTarget.Texture2D, texture);
+        var texture = TextureId = Gl.GenTexture();
+        Gl.BindTexture(TextureTarget.Texture2D, texture);
         
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int) TextureMinFilter.Linear);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int) TextureMagFilter.Linear);
+        Gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int) TextureMinFilter.Linear);
+        Gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int) TextureMagFilter.Linear);
         
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int) TextureWrapMode.Clamp);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Clamp);
+        Gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int) TextureWrapMode.ClampToBorder);
+        Gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int) TextureWrapMode.ClampToBorder);
 
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Width, Height, 0, 
-            PixelFormat.Rgba, PixelType.UnsignedByte, TextureData);
+        fixed (byte* pointer = TextureData)
+        {
+            Gl.TexImage2D(GLEnum.Texture, 0, InternalFormat.Rgba, Width, Height, 0, 
+                PixelFormat.Rgba, PixelType.UnsignedByte, pointer);
+        }
         
         Unbind();
     }
 
     public void Bind(TextureUnit textureUnit = TextureUnit.Texture0)
     {
-        GL.ActiveTexture(textureUnit);
-        GL.BindTexture(TextureTarget.Texture2D, TextureId);
+        Gl.ActiveTexture(textureUnit);
+        Gl.BindTexture(TextureTarget.Texture2D, TextureId);
     }
 
-    public static void Unbind()
+    public void Unbind()
     {
-        GL.BindTexture(TextureTarget.Texture2D,0);
+        Gl.BindTexture(TextureTarget.Texture2D,0);
     }
 
     ~Texture()
     {
-        GL.DeleteTexture(TextureId);
+        Gl.DeleteTexture(TextureId);
     }
 }

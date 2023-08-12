@@ -1,44 +1,46 @@
-using OpenTK.Graphics.OpenGL;
+using Silk.NET.OpenGL;
 
 namespace ThirtyDollarVisualizer;
 
-public class VertexArray<T> where T : struct
+public class VertexArray
 {
-    private readonly int _vao;
-
-    public VertexArray()
+    private readonly uint _vao;
+    private readonly GL Gl;
+    
+    public VertexArray(GL gl)
     {
-        _vao = GL.GenVertexArray();
-        GL.BindVertexArray(_vao);
+        Gl = gl;
+        _vao = Gl.GenVertexArray();
+        Gl.BindVertexArray(_vao);
     }
 
-    public void AddBuffer(VertexBuffer<T> vb, VertexBufferLayout layout)
+    public unsafe void AddBuffer(VertexBuffer vb, VertexBufferLayout layout)
     {
         Bind();
         vb.Bind();
         var elements = layout.GetElements();
         var offset = 0;
-        for (var i = 0; i < elements.Count; i++)
+        for (uint i = 0; i < elements.Count; i++)
         {
-            var el = elements[i];
-            GL.EnableVertexAttribArray(i);
-            GL.VertexAttribPointer(i, el.Count, el.Type, el.Normalized, layout.GetStride(), offset);
+            var el = elements[(int) i];
+            Gl.EnableVertexAttribArray(i);
+            Gl.VertexAttribPointer(i, el.Count, el.Type, el.Normalized, (uint) layout.GetStride(), (void*) offset);
             offset += el.Count * el.Type.GetSize();
         }
     }
 
     public void Bind()
     {
-        GL.BindVertexArray(_vao);
+        Gl.BindVertexArray(_vao);
     }
 
     public void Unbind()
     {
-        GL.BindVertexArray(0);
+        Gl.BindVertexArray(0);
     }
 
     ~VertexArray()
     {
-        GL.DeleteVertexArray(_vao);
+        Gl.DeleteVertexArray(_vao);
     }
 }

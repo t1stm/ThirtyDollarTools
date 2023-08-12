@@ -1,32 +1,37 @@
 using System.Runtime.InteropServices;
-using OpenTK.Graphics.OpenGL;
+using Silk.NET.OpenGL;
 
 namespace ThirtyDollarVisualizer;
 
-public class VertexBuffer<T> where T : struct
+public class VertexBuffer
 {
     private readonly uint _vbo;
+    private readonly GL Gl;
 
-    public VertexBuffer(T[] data)
+    public unsafe VertexBuffer(GL gl, float[] data)
     {
-        var size = Marshal.SizeOf<T>();
-        GL.GenBuffers(1, out _vbo);
-        GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
-        GL.BufferData(BufferTarget.ArrayBuffer, data.Length * size, data, BufferUsageHint.StaticDraw);
+        Gl = gl;
+        var size = (long) Marshal.SizeOf<float>();
+        Gl.GenBuffers(1, out _vbo);
+        Gl.BindBuffer(BufferTargetARB.ArrayBuffer, _vbo);
+        fixed (void* pointer = data)
+        {
+            Gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint) (data.LongLength * size), pointer, BufferUsageARB.StaticDraw);
+        }
     }
 
     public void Bind()
     {
-        GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo);
+        Gl.BindBuffer(BufferTargetARB.ArrayBuffer, _vbo);
     }
 
     public void Unbind()
     {
-        GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+        Gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
     }
 
     ~VertexBuffer()
     {
-        GL.DeleteBuffer(_vbo);
+        Gl.DeleteBuffer(_vbo);
     }
 }
