@@ -37,51 +37,80 @@ public class Composition
             if (text[1..].Count(ch => ch == '!') > 0)
                 // Text contains more than one parameter on event without divider. Adding the first event only.
                 text = text[..text[1..].IndexOf('!')];
-            var splitForValue = text.Split('@');
-            var splitForRepeats = text.Split('=');
-            var value = 0.0;
-            var scale = ValueScale.None;
-            var loopTimes = 1;
-            try
-            {
-                if (splitForValue.Length > 1) value = double.Parse(splitForValue[1].Split('=')[0]);
-                if (splitForValue.Length > 2)
-                {
-                    var scaleString = splitForValue[2].Split('=');
-                    scale = scaleString[0] switch
-                    {
-                        "x" => ValueScale.Times, "+" => ValueScale.Add, _ => ValueScale.None
-                    };
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e + $"\n{text}");
-                throw;
-            }
 
-            var sound = (splitForRepeats.Length > 1 ? splitForRepeats[0].Split("@")[0] : splitForValue[0]).Trim();
-            if (splitForRepeats.Length > 1) loopTimes = (int)Math.Floor(double.Parse(splitForRepeats.Last()));
-            
-            if ((sound == "_pause" && text.Contains('=')) ||
-                (sound == "!stop" && text.Contains('@')) ||
-                sound is "!loop" or "!loopmany")
-            {
-                loopTimes = (int)(value > 0 ? value : loopTimes);
-            }
-            
-            var newEvent = new Event
-            {
-                Value = value,
-                SoundEvent = sound,
-                PlayTimes = loopTimes,
-                OriginalLoop = loopTimes,
-                ValueScale = scale
-            };
-            list.Add(newEvent);
+            var new_event = ParseEvent(text);
+            list.Add(new_event);
         }
 
         comp.Events = list.ToArray();
         return comp;
+    }
+
+    private static Event ParseEvent(string text)
+    {
+        var split_for_value = text.Split('@');
+        var split_for_repeats = text.Split('=');
+        var value = 0.0;
+        double? event_volume = null;
+        var scale = ValueScale.None;
+        var loop_times = 1;
+        try
+        {
+            // Case !event@16
+            if (split_for_value.Length > 1)
+            {
+                var temporary_extract = split_for_value[1].Split('=')[0];
+                var possibly_value = temporary_extract.Split('%');
+                value = double.Parse(possibly_value[0]);
+
+                if (possibly_value.Length > 1)
+                {
+                    event_volume = double.Parse(possibly_value[1]);
+                }
+            }
+            
+            // Case !event@16@x
+            if (split_for_value.Length > 2)
+            {
+                var temporary_split = split_for_value[2].Split('=')[0];
+                var possibly_value = temporary_split.Split('%');
+                scale = possibly_value[0] switch
+                {
+                    "x" => ValueScale.Times, "+" => ValueScale.Add, _ => ValueScale.None
+                };
+                
+                if (possibly_value.Length > 1)
+                {
+                    event_volume = double.Parse(possibly_value[1]);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e + $"\n{text}");
+            throw;
+        }
+
+        var sound = (split_for_repeats.Length > 1 ? split_for_repeats[0].Split("@")[0] : split_for_value[0]).Trim();
+        if (split_for_repeats.Length > 1) loop_times = (int)Math.Floor(double.Parse(split_for_repeats.Last()));
+            
+        if ((sound == "_pause" && text.Contains('=')) ||
+            (sound == "!stop" && text.Contains('@')) ||
+            sound is "!loop" or "!loopmany")
+        {
+            loop_times = (int)(value > 0 ? value : loop_times);
+        }
+            
+        var new_event = new Event
+        {
+            Value = value,
+            SoundEvent = sound,
+            PlayTimes = loop_times,
+            OriginalLoop = loop_times,
+            ValueScale = scale,
+            Volume = event_volume
+        };
+
+        return new_event;
     }
 }
