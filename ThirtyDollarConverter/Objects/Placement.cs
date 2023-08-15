@@ -1,6 +1,6 @@
 using ThirtyDollarParser;
 
-namespace ThirtyDollarConverter;
+namespace ThirtyDollarConverter.Objects;
 
 public struct Placement
 {

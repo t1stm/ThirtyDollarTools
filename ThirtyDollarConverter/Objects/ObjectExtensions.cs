@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace ThirtyDollarConverter;
+namespace ThirtyDollarConverter.Objects;
 
 public static class ObjectExtensions
 {

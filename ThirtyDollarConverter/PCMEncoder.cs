@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ThirtyDollarConverter.Resamplers;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
 
@@ -13,21 +13,28 @@ namespace ThirtyDollarConverter;
 
 public class PcmEncoder
 {
-    private readonly int Channels;
-    private readonly int SampleRate;
-    private readonly IResampler Resampler;
-
+    private readonly uint Channels;
+    private readonly uint SampleRate;
+    private readonly SampleProcessor SampleProcessor;
+    private SampleHolder Holder { get; }
+    public Composition Composition { get; }
+    private Action<string> Log { get; }
+    private Action<ulong, ulong> IndexReport { get; }
+    private PlacementCalculator PlacementCalculator { get; }
+    
     public PcmEncoder(SampleHolder samples, Composition composition, EncoderSettings settings,
         Action<string>? loggerAction = null,
         Action<ulong, ulong>? indexReport = null)
     {
         Holder = samples;
         Composition = composition;
+        Channels = settings.Channels;
+        SampleRate = settings.SampleRate;
+
         Log = loggerAction ?? new Action<string>(_ => { });
         IndexReport = indexReport ?? new Action<ulong, ulong>((_, _) => { });
-        SampleRate = settings.SampleRate;
-        Channels = settings.Channels;
-        Resampler = settings.Resampler;
+        SampleProcessor = new SampleProcessor(Holder.SampleList, settings, Log);
+        PlacementCalculator = new PlacementCalculator(settings);
         
         switch (Channels)
         {
@@ -38,16 +45,10 @@ public class PcmEncoder
         }
     }
 
-    private SampleHolder Holder { get; }
-    public Composition Composition { get; }
-    private Dictionary<Sound, PcmDataHolder> Samples => Holder.SampleList;
-    private Action<string> Log { get; }
-    private Action<ulong, ulong> IndexReport { get; }
-
     public AudioData<float> SampleComposition(Composition composition, int threadCount = -1)
     {
         var copy = composition.Copy(); // To avoid making any changes to the original composition.
-        var placement = CalculatePlacement(copy);
+        var placement = PlacementCalculator.Calculate(copy);
 
         var (processedEvents, queue) = GetAudioSamples(threadCount, placement).Result;
 
@@ -102,12 +103,12 @@ public class PcmEncoder
                            $"Event name is null at index: \'{current.Index}\' after placement pass."),
                 Value = ev.Value,
                 Volume = ev.Volume ?? 100,
-                AudioData = AudioData<float>.Empty((uint)Channels)
+                AudioData = AudioData<float>.Empty(Channels)
             };
 
             var thread = threads[currentThread] = new Task(() =>
             {
-                processed.AudioData = HandleEvent(ev, (uint)Channels);
+                processed.AudioData = SampleProcessor.ProcessEvent(ev);
                 lock (processedEvents)
                 {
                     processedEvents.Add(processed);
@@ -128,7 +129,7 @@ public class PcmEncoder
         CancellationToken? cancellationToken = null)
     {
         var token = cancellationToken ?? CancellationToken.None;
-        var audioData = AudioData<float>.Empty((uint) Channels);
+        var audioData = AudioData<float>.Empty(Channels);
 
         var encodeTasks = new Task[Channels];
         var encodeIndices = new ulong[Channels];
@@ -140,9 +141,13 @@ public class PcmEncoder
             var indexCopy = channelIndex;
             encodeTasks[indexCopy] = new Task(() =>
             {
+                ulong current_index = 0;
+                var length = (ulong) queue.LongCount();
+                
                 foreach (var placement in queue)
                 {
                     //Log($"({indexCopy}) Processing: {placement.Index}");
+                    //IndexReport(current_index, length);
                     var ev = placement.Event;
                     if (ev.SoundEvent == "#!cut")
                     {
@@ -163,6 +168,7 @@ public class PcmEncoder
                     var data = sample.GetChannel(indexCopy);
                     RenderSample(data, ref audioData.Samples[indexCopy], placement.Index, ev.Volume ?? 100);
                     encodeIndices[indexCopy] = placement.Index;
+                    current_index++;
                 }
             });
             encodeTasks[indexCopy].Start();
@@ -194,203 +200,6 @@ public class PcmEncoder
         for (ulong i = 0; i < (ulong) source.LongLength; i++) 
             result += source[i] / 1000;
         return result * 1000;
-    }
-
-    public IEnumerable<Placement> CalculatePlacement(Composition composition)
-    {
-        if (composition == null) throw new Exception("Null Composition");
-        var bpm = 300.0;
-        var position = (ulong)(SampleRate / (bpm / 60));
-        var transpose = 0.0;
-        var volume = 100.0;
-        var count = (ulong) composition.Events.LongLength;
-
-        for (var i = 0ul; i < count; i++)
-        {
-            var index = position;
-            var ev = composition.Events[i];
-            IndexReport(i, count);
-            switch (ev.SoundEvent)
-            {
-                case "!speed":
-                    switch (ev.ValueScale)
-                    {
-                        case ValueScale.Times:
-                            bpm *= ev.Value;
-                            break;
-                        case ValueScale.Add:
-                            bpm += ev.Value;
-                            break;
-                        case ValueScale.None:
-                            bpm = ev.Value;
-                            break;
-                    }
-
-                    Log($"BPM is now: {bpm}");
-                    continue;
-
-                case "!volume":
-                    switch (ev.ValueScale)
-                    {
-                        case ValueScale.Times:
-                            volume *= ev.Value;
-                            break;
-                        case ValueScale.Add:
-                            volume += ev.Value;
-                            break;
-                        case ValueScale.None:
-                            volume = ev.Value;
-                            break;
-                    }
-
-                    //Log($"Changing sample volume to: \'{volume}\'");
-                    continue;
-
-                case "!loopmany" or "!loop":
-                    if (ev.PlayTimes <= 0) continue;
-                    ev.PlayTimes--;
-                    for (var j = i; j > 0; j--)
-                    {
-                        if (composition.Events[j].SoundEvent != "!looptarget") continue;
-
-                        i = j - 1;
-                        break;
-                    }
-
-                    Log($"Going to element: ({i + 1}) - \"{composition.Events[i + 1]}\"");
-                    continue;
-
-                case "!jump":
-                    if (ev.PlayTimes <= 0) continue;
-                    ev.PlayTimes--;
-                    //i = Triggers[(int) ev.Value - 1] - 1;
-                    var item = composition.Events.FirstOrDefault(r =>
-                        r.SoundEvent == "!target" && (int)r.Value == (int)ev.Value);
-                    if (item == null)
-                    {
-                        Log($"Unable to jump to target with id: {ev.Value}");
-                        continue;
-                    }
-
-                    var search = Array.IndexOf(composition.Events, item);
-                    if (search == -1)
-                    {
-                        Log("Unable to find event: ");
-                        continue;
-                    }
-
-                    i = (ulong) search;
-                    Log($"Jumping to element: ({i}) - {composition.Events[i]}");
-
-                    continue;
-
-                case "_pause" or "!stop":
-                    Log($"Pausing for: \'{ev.PlayTimes}\' beats");
-                    while (ev.PlayTimes >= 1)
-                    {
-                        ev.PlayTimes--;
-                        position += (ulong)(SampleRate / (bpm / 60));
-                    }
-
-                    ev.PlayTimes = ev.OriginalLoop;
-                    continue;
-
-                case "!cut":
-                    yield return new Placement
-                    {
-                        Event = new Event
-                        {
-                            SoundEvent = "#!cut",
-                            Value = index + SampleRate / (bpm / 60)
-                        },
-                        Index = index
-                    };
-                    Log($"Cutting audio at: \'{index + SampleRate / (bpm / 60)}\'");
-                    continue;
-
-                case "" or "!looptarget" or "!target" or "!volume" or "!flash" or "!bg":
-                    continue;
-
-                case "!combine":
-                    position -= (ulong)(SampleRate / (bpm / 60));
-                    continue;
-
-                case "!transpose":
-                    switch (ev.ValueScale)
-                    {
-                        case ValueScale.Times:
-                            transpose *= ev.Value;
-                            continue;
-                        case ValueScale.Add:
-                            transpose += ev.Value;
-                            continue;
-                        case ValueScale.None:
-                            transpose = ev.Value;
-                            continue;
-                    }
-
-                    Log($"Transposing samples by: \'{transpose}\'");
-                    continue;
-
-                default:
-                    position += (ulong)(SampleRate / (bpm / 60));
-                    break;
-            }
-
-            // To avoid modifying the original event.
-            var copy = ev.Copy();
-            copy.Volume ??= volume;
-            copy.Value += transpose;
-            var placement = new Placement
-            {
-                Index = index,
-                Event = copy
-            };
-            //Log($"Found placement of event: \'{placement.Event}\'");
-            yield return placement;
-            switch (ev.SoundEvent)
-            {
-                case not ("!transpose" or "!loopmany" or "!volume" or "!flash" or "!combine" or "!speed" or
-                    "!looptarget" or "!loop" or "!cut" or "!target" or "!jump" or "_pause" or "!stop"):
-                    if (ev.PlayTimes > 1)
-                    {
-                        ev.PlayTimes--;
-                        i--;
-                        continue;
-                    }
-
-                    ev.PlayTimes = ev.OriginalLoop;
-                    continue;
-            }
-        }
-    }
-
-    private AudioData<float> HandleEvent(Event ev, uint channelCount)
-    {
-        try
-        {
-            var (_, value) = Samples.AsParallel()
-                .FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent || pair.Key.Id == ev.SoundEvent);
-            if (value == null) throw new Exception($"Sound Event: \'{ev.SoundEvent}\' is null.");
-            var sampleData = value.ReadAsFloat32Array(Channels > 1);
-            if (sampleData == null)
-                throw new NullReferenceException(
-                    $"Sample data is null for event: \"{ev}\", Samples Count is: {Samples.Count}");
-
-            var audioData = new AudioData<float>(channelCount);
-
-            for (var i = 0; i < channelCount; i++)
-                audioData.Samples[i] = Resampler.Resample(sampleData.GetChannel(i), value.SampleRate,
-                    (uint)(SampleRate / Math.Pow(2, ev.Value / 12)));
-
-            return audioData;
-        }
-        catch (Exception e)
-        {
-            Log($"Processing failed: \"{e}\"");
-        }
-
-        return AudioData<float>.Empty(channelCount);
     }
 
     public void WriteAsWavFile(string location, AudioData<float> data)

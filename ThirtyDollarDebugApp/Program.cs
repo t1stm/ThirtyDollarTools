@@ -1,4 +1,5 @@
 using ThirtyDollarConverter;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarApp;

@@ -1,4 +1,5 @@
 using ThirtyDollarConverter;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.DPCM;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;

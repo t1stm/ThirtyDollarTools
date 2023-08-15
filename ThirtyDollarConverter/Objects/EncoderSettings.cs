@@ -1,10 +1,10 @@
 using ThirtyDollarConverter.Resamplers;
 
-namespace ThirtyDollarConverter;
+namespace ThirtyDollarConverter.Objects;
 
 public class EncoderSettings
 {
-    public int SampleRate;
-    public int Channels;
+    public uint SampleRate;
+    public uint Channels;
     public readonly IResampler Resampler = new LinearResampler();
 }
