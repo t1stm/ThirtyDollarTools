@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer", "T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarEncoder.Tests", "ThirtyDollarEncoder.Tests\ThirtyDollarEncoder.Tests.csproj", "{FE2C6896-F05A-4CBA-A0C8-E969FBC0803C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarAvaloniaUi", "ThirtyDollarAvaloniaUi\ThirtyDollarAvaloniaUi.csproj", "{25200C66-0009-4F41-BAC5-0FC955FB9029}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{FE2C6896-F05A-4CBA-A0C8-E969FBC0803C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE2C6896-F05A-4CBA-A0C8-E969FBC0803C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE2C6896-F05A-4CBA-A0C8-E969FBC0803C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25200C66-0009-4F41-BAC5-0FC955FB9029}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25200C66-0009-4F41-BAC5-0FC955FB9029}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25200C66-0009-4F41-BAC5-0FC955FB9029}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25200C66-0009-4F41-BAC5-0FC955FB9029}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
