@@ -1,6 +1,6 @@
 ﻿using ReactiveUI;
 
-namespace ThirtyDollarAvaloniaUi.ViewModels;
+namespace ThirtyDollarGUI.ViewModels;
 
 public class ViewModelBase : ReactiveObject
 {

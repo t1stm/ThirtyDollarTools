@@ -2,7 +2,7 @@
 using Avalonia.ReactiveUI;
 using System;
 
-namespace ThirtyDollarAvaloniaUi;
+namespace ThirtyDollarGUI;
 
 internal static class Program
 {

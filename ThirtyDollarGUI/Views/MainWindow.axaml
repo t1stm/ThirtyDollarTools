@@ -1,0 +1,58 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ThirtyDollarGUI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:services="clr-namespace:ThirtyDollarGUI.Services"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="640"
+        x:Class="ThirtyDollarGUI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/moai.png"
+        Title="Thirty Dollar Converter"
+        MinHeight="640"
+        MinWidth="480"
+        Width="480"
+        Height="640"
+        services:DialogService.Register="{Binding}">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+    
+    <StackPanel Margin="20">
+        <TextBlock Margin="0,5">Composition Location</TextBlock>
+        <StackPanel>
+            <TextBox Watermark="Choose composition location..." 
+                     Text="{Binding SequenceFileLocation}"/>
+            <Button Content="Select" Margin="0,10" HorizontalAlignment="Right"
+                    Command="{Binding Select_CompositionFileLocation}"/>
+        </StackPanel>
+        
+        <TextBlock Margin="0,5">Export Location</TextBlock>
+        <StackPanel>
+            <TextBox Watermark="Choose export location..." 
+                     Text="{Binding ExportFileLocation}"/>
+            <Button Content="Select" Margin="0,10" HorizontalAlignment="Right" 
+                    Command="{Binding Select_ExportFileLocation}"/>
+        </StackPanel>
+        
+        <TextBlock Text="Logs:" Margin="0, 10"/>
+        <Panel Height="250">
+            <TextBox Watermark="Logs go here..." TextWrapping="Wrap" 
+                     Text="{Binding Log}"
+                     IsReadOnly="True"/>
+        </Panel>
+        
+        <ProgressBar Margin="0, 20" Height="20" 
+                     Value="{Binding ProgressBarValue}" 
+                     Minimum="0" Maximum="100"/>
+        
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <Button>Start Encoding</Button>
+            <Panel Width="20"/>
+            <Button>Preview Sequence</Button>
+        </StackPanel>
+    </StackPanel>
+    
+    
+</Window>

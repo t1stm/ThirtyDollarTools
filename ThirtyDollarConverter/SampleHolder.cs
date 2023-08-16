@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -13,7 +14,6 @@ namespace ThirtyDollarConverter;
 public class SampleHolder
 {
     public readonly Dictionary<Sound, PcmDataHolder> SampleList = new();
-
     public Action<string, int, int>? DownloadUpdate = null;
 
     public string ThirtyDollarWebsiteUrl { private get; init; } = "https://thirtydollar.website";
@@ -74,7 +74,7 @@ public class SampleHolder
             i++;
         }
     }
-
+    
     public void LoadSamplesIntoMemory()
     {
         foreach (var (key, _) in SampleList)

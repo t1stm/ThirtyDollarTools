@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
-namespace ThirtyDollarAvaloniaUi.Views;
+namespace ThirtyDollarGUI.Views;
 
 public partial class Greeter : Window
 {

@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer", "T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarEncoder.Tests", "ThirtyDollarEncoder.Tests\ThirtyDollarEncoder.Tests.csproj", "{FE2C6896-F05A-4CBA-A0C8-E969FBC0803C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarAvaloniaUi", "ThirtyDollarAvaloniaUi\ThirtyDollarAvaloniaUi.csproj", "{25200C66-0009-4F41-BAC5-0FC955FB9029}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarGUI", "ThirtyDollarGUI\ThirtyDollarGUI.csproj", "{25200C66-0009-4F41-BAC5-0FC955FB9029}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
