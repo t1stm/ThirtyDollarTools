@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using System.Text;
 using ThirtyDollarEncoder.PCM;
 using Encoding = System.Text.Encoding;
 
@@ -42,6 +44,11 @@ public class WaveDecoder
         while (inputStream.Position <= stopPosition - 8)
         {
             var chunkID = reader.ReadInt32();
+            
+            Span<int> testing_span = new[] {chunkID}; 
+            var chunk_bytes = MemoryMarshal.AsBytes(testing_span);
+            var chunk_name = Encoding.ASCII.GetString(chunk_bytes);
+            
             var chunkLength = reader.ReadUInt32();
             if (chunkID == formatChunkId)
             {
@@ -51,7 +58,11 @@ public class WaveDecoder
                 continue;
             }
 
-            if (chunkID != dataChunkId) continue;
+            if (chunkID != dataChunkId)
+            {
+                inputStream.Position += chunkLength;
+                continue;
+            }
             if (header != 2) dataChunkLength = chunkLength;
             break;
         }
