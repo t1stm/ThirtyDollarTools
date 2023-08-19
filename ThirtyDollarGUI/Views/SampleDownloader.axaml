@@ -7,6 +7,8 @@
         x:Class="ThirtyDollarGUI.Views.SampleDownloader"
         x:DataType="vm:DownloaderViewModel"
         Title="Before we continue..."
+        MinWidth="250"
+        MinHeight="350"
         Width="250"
         Height="350">
         
@@ -21,15 +23,14 @@
                 FontSize="10"
                 Margin="20"/>
             
-            <Panel Margin="20,0" Height="100">
-                <TextBox Watermark="Log..." 
-                         Text="{Binding Log}"
+            <ScrollViewer Margin="20,0" Height="100">
+                <TextBlock Text="{Binding Log}"
                          FontSize="12"/>
-            </Panel>
+            </ScrollViewer>
             <ProgressBar Value="{Binding ProgressBarValue}" 
                          Margin="20" Height="16" 
                          Minimum="0" Maximum="100"/>
             
-            <Button HorizontalAlignment="Center">Download All Samples</Button>
+            <Button HorizontalAlignment="Center" Command="{Binding Download_Button_Handle}">Download All Samples</Button>
         </StackPanel>
 </Window>

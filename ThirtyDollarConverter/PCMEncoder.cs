@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -34,7 +33,7 @@ public class PcmEncoder
         Log = loggerAction ?? new Action<string>(_ => { });
         IndexReport = indexReport ?? new Action<ulong, ulong>((_, _) => { });
         SampleProcessor = new SampleProcessor(Holder.SampleList, settings, Log);
-        PlacementCalculator = new PlacementCalculator(settings);
+        PlacementCalculator = new PlacementCalculator(settings, Log);
         
         switch (Channels)
         {
@@ -55,11 +54,11 @@ public class PcmEncoder
         for (var i = 0; i < processedEvents.Count; i++)
         {
             var ev = processedEvents[i];
-            Console.WriteLine(
+            Log(
                 $"({i}): Event: \'{ev.Name}\' {ev.AudioData.Samples[0].Length} - [{ev.Value}] - ({ev.Volume})");
         }
 
-        Console.WriteLine("Constructing audio.");
+        Log("Constructing audio.");
         var audioData = GenerateAudioData(queue, processedEvents).Result;
         return audioData;
     }
@@ -91,7 +90,7 @@ public class PcmEncoder
             if (ev.SoundEvent == "#!cut") continue;
             lock (processedEvents)
             {
-                if (processedEvents.Any(r => r.Name == ev.SoundEvent && Math.Abs(r.Value - ev.Value) < 0.5))
+                if (processedEvents.Any(r => r.Name == ev.SoundEvent && Math.Abs(r.Value - ev.Value) < 0.01))
                     continue;
             }
 
@@ -147,7 +146,7 @@ public class PcmEncoder
                 foreach (var placement in queue)
                 {
                     //Log($"({indexCopy}) Processing: {placement.Index}");
-                    //IndexReport(current_index, length);
+                    IndexReport(current_index, length);
                     var ev = placement.Event;
                     if (ev.SoundEvent == "#!cut")
                     {
@@ -223,12 +222,13 @@ public class PcmEncoder
                 stream.Write((short)(samples[j][i] * 32768));
             else stream.Write((short)0);
 
+        stream.Flush();
         stream.Close();
     }
 
     private void AddWavHeader(BinaryWriter writer, int dataLength)
     {
-        var length = dataLength * Channels;
+        var length = dataLength * (int)Channels;
         writer.Write(new[] { 'R', 'I', 'F', 'F' }); // RIFF Chunk Descriptor
         writer.Write(4 + 8 + 16 + 8 + length * 2); // Sub Chunk 1 Size
         //Chunk Size 4 bytes.
@@ -238,8 +238,8 @@ public class PcmEncoder
         writer.Write(16); // Sub Chunk 1 Size
         writer.Write((short)1); // Audio Format 1 = PCM
         writer.Write((short)Channels); // Audio Channels
-        writer.Write(SampleRate); // Sample Rate
-        writer.Write(SampleRate * Channels * 2 /* Bytes */); // Byte Rate
+        writer.Write((int)SampleRate); // Sample Rate
+        writer.Write((int)SampleRate * (int)Channels * 2 /* Bytes */); // Byte Rate
         writer.Write((short)(Channels * 2)); // Block Align
         writer.Write((short)16); // Bits per Sample
         // data sub-chunk

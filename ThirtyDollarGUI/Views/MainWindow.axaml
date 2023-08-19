@@ -37,20 +37,19 @@
         </StackPanel>
         
         <TextBlock Text="Logs:" Margin="0, 10"/>
-        <Panel Height="250">
-            <TextBox Watermark="Logs go here..." TextWrapping="Wrap" 
-                     Text="{Binding Log}"
-                     IsReadOnly="True"/>
-        </Panel>
+        <ScrollViewer AllowAutoHide="False" Height="250" ScrollChanged="ScrollViewer_OnScrollChanged">
+            <TextBlock TextWrapping="Wrap" 
+                     Text="{Binding Log}"/>
+        </ScrollViewer>
         
         <ProgressBar Margin="0, 20" Height="20" 
                      Value="{Binding ProgressBarValue}" 
                      Minimum="0" Maximum="100"/>
         
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button>Start Encoding</Button>
+            <Button Command="{Binding StartEncoder}">Start Encoding</Button>
             <Panel Width="20"/>
-            <Button>Preview Sequence</Button>
+            <Button Command="{Binding PreviewSequence}">Preview Sequence</Button>
         </StackPanel>
     </StackPanel>
     

@@ -24,6 +24,7 @@ public class SampleHolder
 
     public async Task LoadSampleList()
     {
+        SampleList.Clear();
         // TODO: Add error or implement solution when offline.
         DownloadedAllFiles();
         Console.WriteLine("Downloading sounds.json file.");

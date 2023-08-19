@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Platform.Storage;
 using ReactiveUI;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
@@ -15,12 +16,13 @@ public class MainWindowViewModel : ViewModelBase
 {
     private string? sequence_file_location = "";
     private string? export_file_location = "";
-    private string? log = "";
+    private string? log = "Logs go here...";
     private int progress_bar_value;
 
-    private SampleHolder sample_holder;
+    private readonly SampleHolder sample_holder;
     private Composition? composition;
     private PcmEncoder? encoder;
+    private bool encode_running;
 
     public bool IsSequenceLocationGood = true;
     public bool IsExportLocationGood = true;
@@ -28,30 +30,7 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         sample_holder = new SampleHolder();
-
-        var downloader_view_model = new DownloaderViewModel(sample_holder);
-        
-        var sample_downloader = new SampleDownloader
-        {
-            DataContext = downloader_view_model
-        };
-        
-        sample_downloader.Show();
-    }
-
-    private void DownloadMessageHandler(string sample, int current, int max)
-    {
-        CreateLog($"[({current}) - ({max})] Downloading \'{sample}\'.");
-    }
-
-    private async void DownloadTask()
-    {
-        sample_holder.DownloadUpdate = DownloadMessageHandler;
-        await sample_holder.LoadSampleList();
-        await sample_holder.DownloadFiles();
-        sample_holder.LoadSamplesIntoMemory();
-        
-        CreateLog("Loaded all samples into memory.");
+        CheckSampleAvailability();
     }
     
     public string? SequenceFileLocation
@@ -90,18 +69,57 @@ public class MainWindowViewModel : ViewModelBase
 
     public async void Select_CompositionFileLocation()
     {
-        var open_file_dialog = await this.OpenFileDialogAsync("Select sequence file.");
+        var file_picker_types = new[] { 
+            new FilePickerFileType("Thirty Dollar Website Sequence")
+            {
+                MimeTypes = new [] {"text/plain"},
+                Patterns = new [] {"*.🗿"}
+            },
+            new FilePickerFileType("Any File")
+            {
+                Patterns = new [] {"*.*"}
+            }
+        };
+        var open_file_dialog = await this.OpenFileDialogAsync("Select sequence file.", file_picker_types);
         if (open_file_dialog == null) return;
 
-        SequenceFileLocation = open_file_dialog.FirstOrDefault()?.ToString();
+        SequenceFileLocation = open_file_dialog.FirstOrDefault();
     }
     
     public async void Select_ExportFileLocation()
     {
-        var save_file_dialog = await this.SaveFileDialogAsync("Select export location.");
-        if (save_file_dialog == null) return;
+        var file_picker_types = new[] { new FilePickerFileType("RIFF WAVE File")
+        {
+            MimeTypes = new [] {"audio/wav"},
+            Patterns = new [] {"*.wav"}
+        } };
+        var save_file_dialog = await this.SaveFileDialogAsync("Select export location.", file_picker_types);
+        ExportFileLocation = save_file_dialog;
+    }
+    
+    
+    private async void CheckSampleAvailability()
+    {
+        await sample_holder.LoadSampleList();
+        if (!sample_holder.DownloadedAllFiles())
+        {
+            DownloadSamples();
+            return;
+        }
+        
+        sample_holder.LoadSamplesIntoMemory();
+        CreateLog("Loaded all samples into memory.");
+    }
 
-        ExportFileLocation = save_file_dialog.ToString();
+    private void DownloadSamples()
+    {
+        var downloader_view_model = new DownloaderViewModel(sample_holder);
+        var sample_downloader = new SampleDownloader
+        {
+            DataContext = downloader_view_model
+        };
+        
+        sample_downloader.Show();
     }
 
     private void CreateLog(string message)
@@ -119,6 +137,8 @@ public class MainWindowViewModel : ViewModelBase
             
             var read = await File.ReadAllTextAsync(sequence_file_location);
             composition = Composition.FromString(read);
+            
+            CreateLog($"Preloaded composition located in: \'{sequence_file_location}\'");
         }
         catch (Exception e)
         {
@@ -129,13 +149,13 @@ public class MainWindowViewModel : ViewModelBase
 
     private void UpdateProgressBar(ulong current, ulong max)
     {
-        var percent = Math.Floor(100f * ((float) current / max));
+        var percent = Math.Ceiling(100f * ((float) current / max));
 
         var integer = (int) percent;
         ProgressBarValue = integer;
     }
 
-    public void StartEncoder()
+    public async void StartEncoder()
     {
         if (composition == null)
         {
@@ -143,15 +163,47 @@ public class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        if (!IsExportLocationGood || export_file_location == null)
+        {
+            CreateLog("The selected export location is bad. Please select a new one.");
+            return;
+        }
+
+        if (encode_running)
+        {
+            CreateLog("An encode is currently running.");
+            return;
+        }
+
+        encode_running = true;
+
         void index_report(ulong current, ulong max)
         {
             UpdateProgressBar(current, max);
         }
         
-        var settings = new EncoderSettings();
+        var settings = new EncoderSettings
+        {
+            Channels = 2,
+            SampleRate = 48000
+        };
 
+        CreateLog("Started encoding.");
         encoder = new PcmEncoder(sample_holder, composition, settings, CreateLog, index_report);
-        encoder.SampleComposition(composition);
+
+        await Task.Run(() =>
+        {
+            EncoderStart(encoder, composition);
+        });
+    }
+
+    private void EncoderStart(PcmEncoder pcm_encoder, Composition local_composition)
+    {
+        var output = pcm_encoder.SampleComposition(local_composition);
+        CreateLog("Finished encoding.");
+
+        pcm_encoder.WriteAsWavFile(export_file_location ?? throw new Exception("Export path is null."), output);
+        encode_running = false;
     }
 
     public void PreviewSequence()

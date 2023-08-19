@@ -6,6 +6,8 @@
         x:Class="ThirtyDollarGUI.Views.Greeter"
         Icon="/Assets/moai.png"
         Title="Hello!"
+        MinWidth="300"
+        MinHeight="450"
         Width="300"
         Height="450"
         
