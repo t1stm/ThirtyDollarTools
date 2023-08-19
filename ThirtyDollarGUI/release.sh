@@ -2,11 +2,13 @@
 
 rm -rf ./bin/Release
 
-dotnet publish -c Release -r linux-x64
-dotnet publish -c Release -r win-x64
+platforms=("linux-x64" "win-x64" "osx-x64" "osx-arm64")
 
-dotnet publish -c Release -r osx-x64
-dotnet publish -c Release -r osx-arm64
+for platform in "${platforms[@]}"; do
+
+dotnet publish -c Release -r "$platform" --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+
+done;
 
 cd ./bin/Release/net7.0/ || exit
 

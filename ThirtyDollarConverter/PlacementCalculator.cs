@@ -87,6 +87,8 @@ public class PlacementCalculator
                     {
                         i = 0;
                     }
+                    
+                    position += (ulong)(SampleRate / (bpm / 60));
 
                     Log($"Going to element: ({i + 1}) - \"{composition.Events[i + 1]}\"");
                     continue;
