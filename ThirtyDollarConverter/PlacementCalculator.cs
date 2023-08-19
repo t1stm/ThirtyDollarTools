@@ -86,9 +86,8 @@ public class PlacementCalculator
                     if (i == old_i)
                     {
                         i = 0;
+                        position += (ulong)(SampleRate / (bpm / 60));
                     }
-                    
-                    position += (ulong)(SampleRate / (bpm / 60));
 
                     Log($"Going to element: ({i + 1}) - \"{composition.Events[i + 1]}\"");
                     continue;
@@ -112,8 +111,23 @@ public class PlacementCalculator
                         continue;
                     }
 
+                    var old_index = i;
+                    
                     i = (ulong) search;
-                    Log($"Jumping to element: ({i}) - {composition.Events[i]}");
+                    var found_event = composition.Events[i];
+                    
+                    if (i + 1 < count && (long)old_index - 1 > 0)
+                    {
+                        var previous_event = composition.Events[old_index - 1].SoundEvent; 
+                        var next_event = composition.Events[i + 1].SoundEvent; 
+                        if (previous_event is "!combine" or "" && 
+                            next_event is "!combine" or "")
+                        {
+                            position += (ulong)(SampleRate / (bpm / 60));
+                        }
+                    }
+                    
+                    Log($"Jumping to element: ({i}) - {found_event}");
 
                     continue;
 
@@ -142,6 +156,16 @@ public class PlacementCalculator
                     continue;
 
                 case "" or "!looptarget" or "!target" or "!volume" or "!flash" or "!bg":
+                    if (i + 1 < count && (long)i - 1 > 0)
+                    {
+                        var previous_event = composition.Events[i - 1].SoundEvent; 
+                        var next_event = composition.Events[i + 1].SoundEvent; 
+                        if (previous_event is "!combine" && 
+                            next_event is "!combine")
+                        {
+                            position += (ulong)(SampleRate / (bpm / 60));
+                        }
+                    }
                     continue;
 
                 case "!combine":
