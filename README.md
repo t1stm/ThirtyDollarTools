@@ -10,14 +10,14 @@ For now it only outputs .wav audio files, but I will add support for more format
 
 ## Running The Program.
 
-Using this application is quite simple. **If you're on Windows, you can hop onto the [releases tab](https://github.com/t1stm/ThirtyDollarWebsiteConverter/tags "Releases page link"), and download the latest copy of the compiled application.**
-If you're using an other operating system, you can either run the Windows application in [WINE](https://www.winehq.org/ "Wine Is Not an Emulator") or compile the project manually and use the command line debug app.
+Using this application is quite simple. **If you're running Windows, OSX arm64 or x64, or Linux x64, you can hop onto the [releases tab](https://github.com/t1stm/ThirtyDollarWebsiteConverter/tags "Releases page link"), and download the latest copy of the compiled application.**
+If you're using an other operating system, you can either run the Windows release of the application in [WINE](https://www.winehq.org/ "Wine Is Not an Emulator") or compile the project manually and use the command line debug app.
 
 If you want a more in-depth explanation, please follow the links for your operating system.
 
-In-depth explanation for Windows GUI: **To be added.**
+In-depth explanation for the Cross Platform GUI: **To be added.**
 
-In-depth explanation for Linux / MacOS? / Windows CLI?: **To be added.**
+In-depth explanation for Linux CLI / MacOS CLI? / Windows CLI?: **To be added.**
 
 That's it. Thank you for reading this.
 
