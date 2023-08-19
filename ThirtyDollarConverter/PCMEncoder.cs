@@ -151,10 +151,22 @@ public class PcmEncoder
                     if (ev.SoundEvent == "#!cut")
                     {
                         var end = (ulong)audioData.Samples[indexCopy].LongLength;
+                        var real_cut = (ulong)(placement.Index + SampleRate * 0.025); // 25ms
+                        var delta = real_cut - placement.Index;
+                        
                         lock (audioData.Samples[indexCopy])
                         {
-                            for (var k = placement.Index; k < end; k++)
-                                audioData.Samples[indexCopy][k] = 0f;
+                            var delta_time = 0;
+                            for (var k = placement.Index; k < real_cut; k++)
+                            {
+                                audioData.Samples[indexCopy][k] *= 1 - (float) delta_time / delta;
+                                delta_time++;
+                            }
+
+                            for (var cut = real_cut; cut < end; cut++)
+                            {
+                                audioData.Samples[indexCopy][cut] = 0f;
+                            }
                         }
 
                         continue;
