@@ -72,12 +72,20 @@ public class PlacementCalculator
                 case "!loopmany" or "!loop":
                     if (ev.PlayTimes <= 0) continue;
                     ev.PlayTimes--;
+
+                    var old_i = i;
+                    
                     for (var j = i; j > 0; j--)
                     {
                         if (composition.Events[j].SoundEvent != "!looptarget") continue;
 
                         i = j - 1;
                         break;
+                    }
+
+                    if (i == old_i)
+                    {
+                        i = 0;
                     }
 
                     Log($"Going to element: ({i + 1}) - \"{composition.Events[i + 1]}\"");
