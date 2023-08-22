@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -16,29 +15,41 @@ public class SampleHolder
     public readonly Dictionary<Sound, PcmDataHolder> SampleList = new();
     public Action<string, int, int>? DownloadUpdate = null;
 
-    public string ThirtyDollarWebsiteUrl { private get; init; } = "https://thirtydollar.website";
-
-    //public string DownloadSampleUrl { private get; init; } = "https://dankest.gq/ThirtyDollarWebsiteSounds";
-    public string DownloadSampleUrl { private get; init; } = "https://thirtydollar.website/sounds";
-    public string DownloadLocation { private get; init; } = "./Sounds";
+    public const string ThirtyDollarWebsiteUrl = "https://thirtydollar.website";
+    public const string DownloadSampleUrl = "https://thirtydollar.website/sounds";
+    public string DownloadLocation { get; init; } = "./Sounds";
 
     public async Task LoadSampleList()
     {
+        var sample_list_location = $"{DownloadLocation}/sounds.json";
         SampleList.Clear();
-        // TODO: Add error or implement solution when offline.
         DownloadedAllFiles();
-        Console.WriteLine("Downloading sounds.json file.");
+        
+        Console.WriteLine("Loading sounds.json file.");
         var client = new HttpClient();
-        var response = await client.GetByteArrayAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
-        var dll = $"{DownloadLocation}/sounds.json";
-        await using var fileStream = new FileStream(dll, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
-        await fileStream.WriteAsync(response);
-        await fileStream.FlushAsync();
-        await fileStream.DisposeAsync();
-        fileStream.Close();
-        var sounds = JsonSerializer.Deserialize<Sound[]>(response);
+        try
+        {
+            var response = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
+
+            await using var download_file_stream = File.Open(sample_list_location, FileMode.Create,
+                FileAccess.ReadWrite, FileShare.ReadWrite);
+            await response.CopyToAsync(download_file_stream);
+            await download_file_stream.FlushAsync();
+            await download_file_stream.DisposeAsync();
+            download_file_stream.Close();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Trying to reach the Thirty Dollar Website failed with error \'{e}\'. Trying to use the cache instead.");
+            if (!File.Exists(sample_list_location)) 
+                throw new InvalidProgramException("Cache file \'sounds.json\' not found.");
+        }
+
+        await using var open_file_stream = File.Open(sample_list_location, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+        var sounds = await JsonSerializer.DeserializeAsync<Sound[]>(open_file_stream);
+        
         if (sounds == null)
-            throw new HttpRequestException("Request to Thirty Dollar Website: Deserialized Sounds.json is null.");
+            throw new HttpRequestException("Loading Thirty Dollar Website Sounds failed with error: \'Deserialized contents of sounds.json are empty.\'");
 
         foreach (var sound in sounds) SampleList.Add(sound, new PcmDataHolder());
     }
