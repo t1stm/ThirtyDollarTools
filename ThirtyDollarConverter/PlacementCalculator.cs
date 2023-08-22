@@ -28,6 +28,8 @@ public class PlacementCalculator
         var volume = 100.0;
         var count = (ulong) composition.Events.LongLength;
 
+        var is_previous_settings_event = false;
+
         for (var i = 0ul; i < count; i++)
         {
             var index = position;
@@ -36,6 +38,7 @@ public class PlacementCalculator
             switch (ev.SoundEvent)
             {
                 case "!speed":
+                    is_previous_settings_event = true;
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Times:
@@ -53,6 +56,7 @@ public class PlacementCalculator
                     continue;
 
                 case "!volume":
+                    is_previous_settings_event = true;
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Times:
@@ -70,6 +74,7 @@ public class PlacementCalculator
                     continue;
 
                 case "!loopmany" or "!loop":
+                    is_previous_settings_event = true;
                     if (ev.PlayTimes <= 0) continue;
                     ev.PlayTimes--;
 
@@ -89,10 +94,11 @@ public class PlacementCalculator
                         position += (ulong)(SampleRate / (bpm / 60));
                     }
 
-                    Log($"Going to element: ({i + 1}) - \"{composition.Events[i + 1]}\"");
+                    Log($"Going to element: ({i}) - \"{composition.Events[i]}\"");
                     continue;
 
                 case "!jump":
+                    is_previous_settings_event = true;
                     if (ev.PlayTimes <= 0) continue;
                     ev.PlayTimes--;
                     //i = Triggers[(int) ev.Value - 1] - 1;
@@ -110,22 +116,9 @@ public class PlacementCalculator
                         Log("Unable to find event: ");
                         continue;
                     }
-
-                    var old_index = i;
                     
                     i = (ulong) search;
                     var found_event = composition.Events[i];
-                    
-                    if (i + 1 < count && (long)old_index - 1 > 0)
-                    {
-                        var previous_event = composition.Events[old_index - 1].SoundEvent; 
-                        var next_event = composition.Events[i + 1].SoundEvent; 
-                        if (previous_event is "!combine" or "" && 
-                            next_event is "!combine" or "")
-                        {
-                            position += (ulong)(SampleRate / (bpm / 60));
-                        }
-                    }
                     
                     Log($"Jumping to element: ({i}) - {found_event}");
 
@@ -143,6 +136,7 @@ public class PlacementCalculator
                     continue;
 
                 case "!cut":
+                    is_previous_settings_event = true;
                     yield return new Placement
                     {
                         Event = new Event
@@ -156,23 +150,18 @@ public class PlacementCalculator
                     continue;
 
                 case "" or "!looptarget" or "!target" or "!volume" or "!flash" or "!bg":
-                    if (i + 1 < count && (long)i - 1 > 0)
-                    {
-                        var previous_event = composition.Events[i - 1].SoundEvent; 
-                        var next_event = composition.Events[i + 1].SoundEvent; 
-                        if (previous_event is "!combine" && 
-                            next_event is "!combine")
-                        {
-                            position += (ulong)(SampleRate / (bpm / 60));
-                        }
-                    }
+                    is_previous_settings_event = true;
                     continue;
 
                 case "!combine":
+                    if (is_previous_settings_event) continue;
+                    
+                    is_previous_settings_event = true;
                     position -= (ulong)(SampleRate / (bpm / 60));
                     continue;
 
                 case "!transpose":
+                    is_previous_settings_event = true;
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Times:
@@ -185,7 +174,7 @@ public class PlacementCalculator
                             transpose = ev.Value;
                             continue;
                     }
-
+                    
                     Log($"Transposing samples by: \'{transpose}\'");
                     continue;
 
@@ -217,6 +206,7 @@ public class PlacementCalculator
                     }
 
                     ev.PlayTimes = ev.OriginalLoop;
+                    is_previous_settings_event = false;
                     continue;
             }
         }
