@@ -10,12 +10,22 @@
         MinHeight="450"
         Width="300"
         Height="450"
-        
+
         TransparencyLevelHint="AcrylicBlur"
         Background="Transparent"
         
         ExtendClientAreaToDecorationsHint="True">
         
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="#31313A"
+                    TintOpacity="1"
+                    MaterialOpacity="0.60" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top">
                 <Image Margin="0,20,0,0" Source="avares://ThirtyDollarGUI/Assets/moai.png" Width="150" Height="150" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                 <TextBlock Margin="0,10" Text="Welcome!" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24" FontWeight="Bold"/>
@@ -25,4 +35,5 @@
                 
                 <Button Content="Continue" Click="ContinueButton_Click" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="10"/>
         </StackPanel>
+    </Panel>
 </Window>

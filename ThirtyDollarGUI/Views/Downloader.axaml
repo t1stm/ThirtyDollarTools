@@ -1,0 +1,48 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ThirtyDollarGUI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="250" d:DesignHeight="350"
+        x:Class="ThirtyDollarGUI.Views.Downloader"
+        x:DataType="vm:DownloaderViewModel"
+        Title="Before we continue..."
+        MinWidth="250"
+        MinHeight="350"
+        Width="250"
+        Height="350">
+        
+        <Panel>
+            <ExperimentalAcrylicBorder IsHitTestVisible="False">
+                <ExperimentalAcrylicBorder.Material>
+                    <ExperimentalAcrylicMaterial
+                        BackgroundSource="Digger"
+                        TintColor="#31313A"
+                        TintOpacity="1"
+                        MaterialOpacity="0.60" />
+                </ExperimentalAcrylicBorder.Material>
+            </ExperimentalAcrylicBorder>
+            
+            <StackPanel>
+                <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center"
+                           Text="Before we continue..."
+                           FontSize="20" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="{Binding DownloadText}"
+                    TextWrapping="Wrap"
+                    FontSize="10"
+                    Margin="20"/>
+            
+                <ScrollViewer Margin="20,0" Height="100">
+                    <TextBlock Text="{Binding Log}"
+                               FontSize="12"/>
+                </ScrollViewer>
+                <ProgressBar Value="{Binding ProgressBarValue}" 
+                             Margin="20" Height="16" 
+                             Minimum="0" Maximum="100"/>
+            
+                <Button HorizontalAlignment="Center" Command="{Binding Download_Button_Handle}">Download All Samples</Button>
+            </StackPanel>
+        </Panel>
+</Window>

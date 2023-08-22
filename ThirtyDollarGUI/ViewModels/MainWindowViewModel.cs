@@ -16,7 +16,7 @@ public class MainWindowViewModel : ViewModelBase
 {
     private string? sequence_file_location = "";
     private string? export_file_location = "";
-    private string? log = "Logs go here...";
+    private string? log = $"Logs go here...{Environment.NewLine}";
     private int progress_bar_value;
 
     private readonly SampleHolder sample_holder;
@@ -114,7 +114,7 @@ public class MainWindowViewModel : ViewModelBase
     private void DownloadSamples()
     {
         var downloader_view_model = new DownloaderViewModel(sample_holder);
-        var sample_downloader = new SampleDownloader
+        var sample_downloader = new Downloader
         {
             DataContext = downloader_view_model
         };
@@ -208,6 +208,12 @@ public class MainWindowViewModel : ViewModelBase
 
     public void PreviewSequence()
     {
+        var downloader = new Downloader
+        {
+            DataContext = new DownloaderViewModel(sample_holder, DownloaderMode.Images)
+        };
+        
+        downloader.Show();
         
     }
 }

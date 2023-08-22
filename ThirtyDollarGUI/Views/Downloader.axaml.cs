@@ -4,9 +4,9 @@ using Avalonia.Markup.Xaml;
 
 namespace ThirtyDollarGUI.Views;
 
-public partial class SampleDownloader : Window
+public partial class Downloader : Window
 {
-    public SampleDownloader()
+    public Downloader()
     {
         InitializeComponent();
     }
