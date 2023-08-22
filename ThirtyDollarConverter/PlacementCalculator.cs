@@ -11,6 +11,13 @@ public class PlacementCalculator
     private uint SampleRate { get; }
     private Action<string> Log { get; }
     private Action<ulong, ulong> IndexReport { get; }
+    
+    /// <summary>
+    /// Creates a calculator that gets the placement of a composition.
+    /// </summary>
+    /// <param name="encoderSettings">Encoder settings to base the placement on.</param>
+    /// <param name="log">Action that handles log messages.</param>
+    /// <param name="indexReport">Action that recieves encode progress.</param>
     public PlacementCalculator(EncoderSettings encoderSettings, Action<string>? log = null,
         Action<ulong, ulong>? indexReport = null)
     {
@@ -19,6 +26,12 @@ public class PlacementCalculator
         SampleRate = encoderSettings.SampleRate;
     }
     
+    /// <summary>
+    /// Calculates the placement of a composition.
+    /// </summary>
+    /// <param name="composition">The composition you want to calculate.</param>
+    /// <returns>The calculated placement.</returns>
+    /// <exception cref="Exception">Exception thats thrown when the composition has a problem.</exception>
     public IEnumerable<Placement> Calculate(Composition composition)
     {
         if (composition == null) throw new Exception("Null Composition");

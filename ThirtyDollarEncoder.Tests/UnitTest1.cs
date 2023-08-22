@@ -32,7 +32,7 @@ public class Tests
         var decoded = DPCMDecoder.DecodeToPcm(left_channel);
         var audio = decoded.ReadAsFloat32Array(false) ?? throw new NullReferenceException();
         
-        var enc = new PcmEncoder(null!, null!, new EncoderSettings
+        var enc = new PcmEncoder(null!, new EncoderSettings
         {
             SampleRate = 48000,
             Channels = 1

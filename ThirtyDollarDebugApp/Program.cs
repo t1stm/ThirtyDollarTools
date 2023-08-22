@@ -41,13 +41,13 @@ internal static class Program
             if (file.Location.Contains("LICENSE")) continue;
             var composition = Composition.FromString(file.Data);
 
-            var encoder = new PcmEncoder(holder, composition, new EncoderSettings
+            var encoder = new PcmEncoder(holder, new EncoderSettings
             {
                 SampleRate = 48000,
                 Channels = 2
             }, Console.WriteLine);
 
-            var audioData = encoder.SampleComposition(encoder.Composition); // Shame on me...
+            var audioData = encoder.SampleComposition(composition); // Shame on me...
             encoder.WriteAsWavFile($"./Export/{file.Location.Split('/').Last()}.wav", audioData);
         }
 

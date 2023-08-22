@@ -189,7 +189,7 @@ public class MainWindowViewModel : ViewModelBase
         };
 
         CreateLog("Started encoding.");
-        encoder = new PcmEncoder(sample_holder, composition, settings, CreateLog, index_report);
+        encoder = new PcmEncoder(sample_holder, settings, CreateLog, index_report);
 
         await Task.Run(() =>
         {

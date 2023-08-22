@@ -12,21 +12,29 @@ namespace ThirtyDollarConverter;
 
 public class PcmEncoder
 {
+    private readonly EncoderSettings Settings;
     private readonly uint Channels;
     private readonly uint SampleRate;
     private readonly SampleProcessor SampleProcessor;
     private SampleHolder Holder { get; }
-    public Composition Composition { get; }
     private Action<string> Log { get; }
     private Action<ulong, ulong> IndexReport { get; }
     private PlacementCalculator PlacementCalculator { get; }
     
-    public PcmEncoder(SampleHolder samples, Composition composition, EncoderSettings settings,
+    /// <summary>
+    /// Creates a TDW composition encoder.
+    /// </summary>
+    /// <param name="samples">The sample holder that stores the sequence's samples.</param>
+    /// <param name="settings">The encoder's settings.</param>
+    /// <param name="loggerAction">Action that handles log messages.</param>
+    /// <param name="indexReport">Action that recieves encode progress.</param>
+    /// <exception cref="Exception">Exception that is thrown when the amount of channels is invalid.</exception>
+    public PcmEncoder(SampleHolder samples, EncoderSettings settings,
         Action<string>? loggerAction = null,
         Action<ulong, ulong>? indexReport = null)
     {
+        Settings = settings;
         Holder = samples;
-        Composition = composition;
         Channels = settings.Channels;
         SampleRate = settings.SampleRate;
 
@@ -43,7 +51,13 @@ public class PcmEncoder
                 throw new Exception("Having more than two audio channels isn't currently supported.");
         }
     }
-
+    
+    /// <summary>
+    /// This method starts the encoding process.
+    /// </summary>
+    /// <param name="composition">The composition you want to encode.</param>
+    /// <param name="threadCount">How many threads to use for resampling.</param>
+    /// <returns>An AudioData object that stores the encoded audio.</returns>
     public AudioData<float> SampleComposition(Composition composition, int threadCount = -1)
     {
         var copy = composition.Copy(); // To avoid making any changes to the original composition.
@@ -63,6 +77,14 @@ public class PcmEncoder
         return audioData;
     }
 
+    /// <summary>
+    /// This method gets all resampled audio samples.
+    /// </summary>
+    /// <param name="threadCount">How many threads to use for resampling.</param>
+    /// <param name="placement">The calculated placement for each event.</param>
+    /// <param name="cancellationToken">Optional cancellation token that allows the resampling process to stop.</param>
+    /// <returns>A Tuple containing the processed events and a queue of their placement.</returns>
+    /// <exception cref="Exception">Edge case that only can happen if something is wrong with the program.</exception>
     private async Task<Tuple<List<ProcessedEvent>, Queue<Placement>>> GetAudioSamples(int threadCount,
         IEnumerable<Placement> placement,
         CancellationToken? cancellationToken = null)
@@ -123,6 +145,13 @@ public class PcmEncoder
         return new Tuple<List<ProcessedEvent>, Queue<Placement>>(processedEvents, queue);
     }
 
+    /// <summary>
+    /// This method creates the final audio.
+    /// </summary>
+    /// <param name="queue">The placement of each event.</param>
+    /// <param name="processedEvents">The resampled sounds.</param>
+    /// <param name="cancellationToken">A token that cancels the waiting task.</param>
+    /// <returns>An AudioData object that stores the encoded audio.</returns>
     private async Task<AudioData<float>> GenerateAudioData(Queue<Placement> queue,
         IReadOnlyCollection<ProcessedEvent> processedEvents,
         CancellationToken? cancellationToken = null)
@@ -151,7 +180,7 @@ public class PcmEncoder
                     if (ev.SoundEvent == "#!cut")
                     {
                         var end = (ulong)audioData.Samples[indexCopy].LongLength;
-                        var real_cut = (ulong)(placement.Index + SampleRate * 0.025); // 25ms
+                        var real_cut = placement.Index + SampleRate * (Settings.CutDelayMs / 1000);
                         var delta = real_cut - placement.Index;
                         
                         lock (audioData.Samples[indexCopy])
@@ -213,6 +242,11 @@ public class PcmEncoder
         return result * 1000;
     }
 
+    /// <summary>
+    /// Exports an AudioData object as a WAVE file.
+    /// </summary>
+    /// <param name="location">The location you want to export to.</param>
+    /// <param name="data">The AudioData object.</param>
     public void WriteAsWavFile(string location, AudioData<float> data)
     {
         var samples = data.Samples;
@@ -238,6 +272,11 @@ public class PcmEncoder
         stream.Close();
     }
 
+    /// <summary>
+    /// This method adds the RIFF WAVE header to an empty file.
+    /// </summary>
+    /// <param name="writer">An open BinaryWriter</param>
+    /// <param name="dataLength">Length of the audio data.</param>
     private void AddWavHeader(BinaryWriter writer, int dataLength)
     {
         var length = dataLength * (int)Channels;
@@ -268,7 +307,14 @@ public class PcmEncoder
     }
 
     #region Sample Processing Methods
-
+    
+    /// <summary>
+    /// Adds a source audio data array to a destination.
+    /// </summary>
+    /// <param name="source">The source audio data you want to add.</param>
+    /// <param name="destination">The destination you want to add to.</param>
+    /// <param name="index">The index of the destination you want to start on.</param>
+    /// <param name="volume">The volume of the source audio while being added.</param>
     private static void RenderSample(float[] source, ref float[] destination, ulong index, double volume)
     {
         lock (destination)
@@ -281,6 +327,12 @@ public class PcmEncoder
         }
     }
 
+    /// <summary>
+    /// Modifies the destination audio with a sample.
+    /// </summary>
+    /// <param name="destination">The destination audio array.</param>
+    /// <param name="data">The index of the destination you want to add to.</param>
+    /// <param name="index">The index to the destination</param>
     private static void ModifyAt(ref float[] destination, float data, ulong index)
     {
         lock (destination)
@@ -296,12 +348,22 @@ public class PcmEncoder
         }
     }
 
+    /// <summary>
+    /// Wrapper method for mixing samples. (to easily implement another mixing standard if needed)
+    /// </summary>
+    /// <param name="sampleOne">The first sample</param>
+    /// <param name="sampleTwo">The second sample.</param>
+    /// <returns>The mixed sample.</returns>
     private static float MixSamples(float sampleOne, float sampleTwo)
     {
         return sampleOne + sampleTwo;
     }
-
-
+    
+    /// <summary>
+    /// Fills an array with zeros starting from the index.
+    /// </summary>
+    /// <param name="data">The destination.</param>
+    /// <param name="index">The index to start from.</param>
     private static void FillWithZeros(ref float[] data, ulong index)
     {
         var old = data;

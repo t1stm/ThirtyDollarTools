@@ -19,6 +19,11 @@ public class SampleHolder
     public const string DownloadSampleUrl = "https://thirtydollar.website/sounds";
     public string DownloadLocation { get; init; } = "./Sounds";
 
+    /// <summary>
+    /// Loads all Thirty Dollar Website sounds to this object.
+    /// </summary>
+    /// <exception cref="InvalidProgramException">Exception thrown when the application is offline and the sounds.json file doens't exist.</exception>
+    /// <exception cref="Exception">Exception thrown when there's an error reading the sounds list.</exception>
     public async Task LoadSampleList()
     {
         var sample_list_location = $"{DownloadLocation}/sounds.json";
@@ -49,11 +54,15 @@ public class SampleHolder
         var sounds = await JsonSerializer.DeserializeAsync<Sound[]>(open_file_stream);
         
         if (sounds == null)
-            throw new HttpRequestException("Loading Thirty Dollar Website Sounds failed with error: \'Deserialized contents of sounds.json are empty.\'");
+            throw new Exception("Loading Thirty Dollar Website Sounds failed with error: \'Deserialized contents of sounds.json are empty.\'");
 
         foreach (var sound in sounds) SampleList.Add(sound, new PcmDataHolder());
     }
 
+    /// <summary>
+    /// Checks if the output directory exists and if not creates it, then checks if all samples have been downloaded.
+    /// </summary>
+    /// <returns>Whether all samples have been downloaded.</returns>
     public bool DownloadedAllFiles()
     {
         if (!Directory.Exists(DownloadLocation))
@@ -66,6 +75,9 @@ public class SampleHolder
         return read.Length >= SampleList.Count;
     }
 
+    /// <summary>
+    /// Downloads all sounds to the download folder.
+    /// </summary>
     public async Task DownloadFiles()
     {
         if (DownloadedAllFiles()) return;
@@ -87,6 +99,10 @@ public class SampleHolder
         }
     }
     
+    /// <summary>
+    /// Loads all sounds into memory.
+    /// </summary>
+    /// <exception cref="Exception">Exception that's thrown when a sound is empty.</exception>
     public void LoadSamplesIntoMemory()
     {
         foreach (var (key, _) in SampleList)

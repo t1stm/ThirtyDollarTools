@@ -15,6 +15,12 @@ public class SampleProcessor
     private readonly EncoderSettings Settings;
     private IResampler Resampler { get; }
 
+    /// <summary>
+    /// Creates a helper that helps resample an event to a given octave.
+    /// </summary>
+    /// <param name="sample_holder">The loaded samples.</param>
+    /// <param name="settings">The encoder's settings.</param>
+    /// <param name="logger">Action that handles log messages.</param>
     public SampleProcessor(Dictionary<Sound, PcmDataHolder> sample_holder, EncoderSettings settings, Action<string>? logger = null)
     {
         Samples = sample_holder;
@@ -23,6 +29,13 @@ public class SampleProcessor
         Log = logger ?? new Action<string>(_ => { });
     }
     
+    /// <summary>
+    /// Resamples a given event.
+    /// </summary>
+    /// <param name="ev">The event you want to resample.</param>
+    /// <returns>The audio data of the resampled event.</returns>
+    /// <exception cref="Exception">Exception thrown when the event's PcmDataHolder is null.</exception>
+    /// <exception cref="NullReferenceException">Exception thrown when the event's audio data in the holder is null.</exception>
     public AudioData<float> ProcessEvent(Event ev)
     {
         try

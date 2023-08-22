@@ -21,6 +21,11 @@ public class Composition
         };
     }
 
+    /// <summary>
+    /// Parses a composition stored in a string.
+    /// </summary>
+    /// <param name="data">The string containing the composition.</param>
+    /// <returns>The parsed composition.</returns>
     public static Composition FromString(string data)
     {
         var comp = new Composition();
@@ -46,6 +51,11 @@ public class Composition
         return comp;
     }
 
+    /// <summary>
+    /// Parses a single event.
+    /// </summary>
+    /// <param name="text">The string of the event.</param>
+    /// <returns>The parsed event.</returns>
     private static Event ParseEvent(string text)
     {
         var split_for_value = text.Split('@');
