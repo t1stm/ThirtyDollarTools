@@ -6,12 +6,18 @@ using ThirtyDollarParser;
 
 namespace ThirtyDollarConverter;
 
+enum EventType
+{
+    Action,
+    Sound
+}
+
 public class PlacementCalculator
 {
     private uint SampleRate { get; }
     private Action<string> Log { get; }
     private Action<ulong, ulong> IndexReport { get; }
-    
+
     /// <summary>
     /// Creates a calculator that gets the placement of a composition.
     /// </summary>
@@ -21,11 +27,11 @@ public class PlacementCalculator
     public PlacementCalculator(EncoderSettings encoderSettings, Action<string>? log = null,
         Action<ulong, ulong>? indexReport = null)
     {
-        Log = log ?? (_ => {});
-        IndexReport = indexReport ?? ((_, _) => {});
+        Log = log ?? (_ => { });
+        IndexReport = indexReport ?? ((_, _) => { });
         SampleRate = encoderSettings.SampleRate;
     }
-    
+
     /// <summary>
     /// Calculates the placement of a composition.
     /// </summary>
@@ -36,22 +42,61 @@ public class PlacementCalculator
     {
         if (composition == null) throw new Exception("Null Composition");
         var bpm = 300.0;
-        var position = (ulong)(SampleRate / (bpm / 60));
         var transpose = 0.0;
         var volume = 100.0;
-        var count = (ulong) composition.Events.LongLength;
+        var count = (ulong)composition.Events.LongLength;
+        var position = (ulong)(SampleRate / (bpm / 60));
 
-        var is_previous_settings_event = false;
+        // I have given up on reverse engineering my own parser.
+        // Here goes GD Colon's code.
+        // - t1stm
 
-        for (var i = 0ul; i < count; i++)
+        var scrub_pos = 0ul;
+        var loop_target = 0ul;
+        var index = 0ul;
+        var scrubbing = false;
+
+        while (index < count)
         {
-            var index = position;
-            var ev = composition.Events[i];
-            IndexReport(i, count);
+            var ev = composition.Events[index];
+            IndexReport(index, count);
+            var event_type = ev.SoundEvent is "_pause" || (ev.SoundEvent?.StartsWith('!') ?? true) ? EventType.Action : EventType.Sound;
+            var increment_timer = false;
+
+            if (scrubbing && index == scrub_pos) scrubbing = false;
+
+            if (event_type == EventType.Sound)
+            {
+                var next_event = index + 1 < count ? composition.Events[index + 1].SoundEvent : null;
+                increment_timer = next_event is not "!combine";
+                
+                var copy = ev.Copy();
+                copy.Volume ??= volume;
+                copy.Value += transpose;
+                var placement = new Placement
+                {
+                    Index = position,
+                    Event = copy
+                };
+                
+                if (!scrubbing) yield return placement;
+
+                if (ev.PlayTimes > 1)
+                {
+                    increment_timer = true;
+                    index--;
+                }
+                
+                if (increment_timer) position += (ulong)(SampleRate / (bpm / 60));
+                
+                ev.PlayTimes--;
+                index++;
+                continue;
+            }
+
             switch (ev.SoundEvent)
             {
                 case "!speed":
-                    is_previous_settings_event = true;
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Times:
@@ -66,10 +111,9 @@ public class PlacementCalculator
                     }
 
                     Log($"BPM is now: {bpm}");
-                    continue;
+                    break;
 
                 case "!volume":
-                    is_previous_settings_event = true;
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Times:
@@ -83,145 +127,122 @@ public class PlacementCalculator
                             break;
                     }
 
-                    //Log($"Changing sample volume to: \'{volume}\'");
-                    continue;
-
-                case "!loopmany" or "!loop":
-                    is_previous_settings_event = true;
-                    if (ev.PlayTimes <= 0) continue;
-                    ev.PlayTimes--;
-
-                    var old_i = i;
-                    
-                    for (var j = i; j > 0; j--)
+                    break;
+                
+                case "_pause": 
+                case "!stop":
+                    while (ev.PlayTimes > 0)
                     {
-                        if (composition.Events[j].SoundEvent != "!looptarget") continue;
-
-                        i = j - 1;
-                        break;
-                    }
-
-                    if (i == old_i)
-                    {
-                        i = 0;
                         position += (ulong)(SampleRate / (bpm / 60));
-                    }
 
-                    Log($"Going to element: ({i}) - \"{composition.Events[i]}\"");
-                    continue;
+                        ev.PlayTimes--;
+                        if (ev.PlayTimes < 0) ev.PlayTimes = 0;
+                    }
+                    break;
+                    
+                case "!loopmany":
+                    if (ev.PlayTimes > 0)
+                    {
+                        ev.PlayTimes--;
+                        index = loop_target - 1;
+                            
+                        Untrigger(composition, index, new[] { "!loopmany" });
+                        Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
+                    }
+                    break;
+                    
+                case "!loop":
+                    if (!ev.Triggered)
+                    {
+                        ev.Triggered = true;
+                        index = loop_target - 1;
+                            
+                        Untrigger(composition, index, new[] { "!loopmany", "!loop" });
+                        Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
+                    }
+                    break;
 
                 case "!jump":
-                    is_previous_settings_event = true;
-                    if (ev.PlayTimes <= 0) continue;
+                    if (ev.PlayTimes <= 0) break;
                     ev.PlayTimes--;
-                    //i = Triggers[(int) ev.Value - 1] - 1;
+                        
                     var item = composition.Events.FirstOrDefault(r =>
-                        r.SoundEvent == "!target" && (int)r.Value == (int)ev.Value);
+                        r.SoundEvent == "!target" && (int) r.Value == (int) ev.Value && r.Triggered == false);
                     if (item == null)
                     {
                         Log($"Unable to jump to target with id: {ev.Value}");
-                        continue;
+                        break;
                     }
 
                     var search = Array.IndexOf(composition.Events, item);
                     if (search == -1)
                     {
-                        Log("Unable to find event: ");
-                        continue;
-                    }
-                    
-                    i = (ulong) search;
-                    var found_event = composition.Events[i];
-                    
-                    Log($"Jumping to element: ({i}) - {found_event}");
-
-                    continue;
-
-                case "_pause" or "!stop":
-                    Log($"Pausing for: \'{ev.PlayTimes}\' beats");
-                    while (ev.PlayTimes >= 1)
-                    {
-                        ev.PlayTimes--;
-                        position += (ulong)(SampleRate / (bpm / 60));
+                        Untrigger(composition, 0, new[] { "!loop", "!loopmany", "!jump", "!target" });
+                        break;
                     }
 
-                    ev.PlayTimes = ev.OriginalLoop;
-                    continue;
+                    index = (ulong) search - 1;
+                    var found_event = composition.Events[index];
+
+                    Untrigger(composition, index, new[] { "!loop", "!loopmany", "!jump", "!target" });
+                    Log($"Jumping to element: ({index}) - {found_event}");
+                    break;
 
                 case "!cut":
-                    is_previous_settings_event = true;
                     yield return new Placement
                     {
                         Event = new Event
                         {
                             SoundEvent = "#!cut",
-                            Value = index + SampleRate / (bpm / 60)
+                            Value = position + SampleRate / (bpm / 60)
                         },
-                        Index = index
+                        Index = position
                     };
-                    Log($"Cutting audio at: \'{index + SampleRate / (bpm / 60)}\'");
-                    continue;
+                    Log($"Cutting audio at: \'{position + SampleRate / (bpm / 60)}\'");
+                    break;
 
-                case "" or "!looptarget" or "!target" or "!volume" or "!flash" or "!bg":
-                    is_previous_settings_event = true;
-                    continue;
-
-                case "!combine":
-                    if (is_previous_settings_event) continue;
+                case "!looptarget":
+                    loop_target = index;
+                    break;
                     
-                    is_previous_settings_event = true;
-                    position -= (ulong)(SampleRate / (bpm / 60));
-                    continue;
+                case "!target":
+                    break;
+                
+                case "" or "!volume" or "!flash" or "!bg" or "!combine" or "!startpos":
+                    break;
 
                 case "!transpose":
-                    is_previous_settings_event = true;
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Times:
                             transpose *= ev.Value;
-                            continue;
+                            break;
                         case ValueScale.Add:
                             transpose += ev.Value;
-                            continue;
+                            break;
                         case ValueScale.None:
                             transpose = ev.Value;
-                            continue;
+                            break;
                     }
-                    
-                    Log($"Transposing samples by: \'{transpose}\'");
-                    continue;
 
-                default:
-                    position += (ulong)(SampleRate / (bpm / 60));
+                    Log($"Transposing samples by: \'{transpose}\'");
                     break;
             }
 
-            // To avoid modifying the original event.
-            var copy = ev.Copy();
-            copy.Volume ??= volume;
-            copy.Value += transpose;
-            var placement = new Placement
-            {
-                Index = index,
-                Event = copy
-            };
-            //Log($"Found placement of event: \'{placement.Event}\'");
-            yield return placement;
-            switch (ev.SoundEvent)
-            {
-                case not ("!transpose" or "!loopmany" or "!volume" or "!flash" or "!combine" or "!speed" or
-                    "!looptarget" or "!loop" or "!cut" or "!target" or "!jump" or "_pause" or "!stop"):
-                    if (ev.PlayTimes > 1)
-                    {
-                        ev.PlayTimes--;
-                        i--;
-                        continue;
-                    }
+            index++;
+            if (!scrubbing && increment_timer) position += (ulong) (SampleRate / (bpm / 60));
+        }
+    }
 
-                    ev.PlayTimes = ev.OriginalLoop;
-                    is_previous_settings_event = false;
-                    continue;
-            }
+    private static void Untrigger(Composition composition, ulong index, string?[] except)
+    {
+        for (var i = index - 1; i < (ulong) composition.Events.LongLength; i++)
+        {
+            var current_event = composition.Events[i];
+            if (except.Any(r => r == current_event.SoundEvent)) continue;
+
+            current_event.Triggered = false;
+            current_event.PlayTimes = current_event.OriginalLoop;
         }
     }
 }

@@ -33,6 +33,11 @@ public class Event
     public ValueScale ValueScale { get; init; }
 
     /// <summary>
+    /// Special boolean for single loop and jump events.
+    /// </summary>
+    public bool Triggered { get; set; }
+
+    /// <summary>
     /// Creates an easily loggable string for this event.
     /// </summary>
     /// <returns>A log string.</returns>
