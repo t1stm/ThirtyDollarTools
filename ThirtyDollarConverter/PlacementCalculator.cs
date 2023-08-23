@@ -239,6 +239,12 @@ public class PlacementCalculator
         }
     }
 
+    /// <summary>
+    /// Method ported from GD Colon's site. Untriggers all samples from the starting index to the end.
+    /// </summary>
+    /// <param name="composition">Reference to the composition.</param>
+    /// <param name="index">The index to start from.</param>
+    /// <param name="except">An array of strings containing events to ignore.</param>
     private static void Untrigger(ref Composition composition, ulong index, string?[] except)
     {
         if (index == 0) index++;
