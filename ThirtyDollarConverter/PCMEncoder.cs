@@ -63,7 +63,7 @@ public class PcmEncoder
         var copy = composition.Copy(); // To avoid making any changes to the original composition.
         var placement = PlacementCalculator.Calculate(copy);
 
-        var (processedEvents, queue) = GetAudioSamples(threadCount, placement).Result;
+        var (processedEvents, queue) = GetAudioSamples(threadCount, placement.ToArray()).Result;
 
         for (var i = 0; i < processedEvents.Count; i++)
         {
@@ -86,7 +86,7 @@ public class PcmEncoder
     /// <returns>A Tuple containing the processed events and a queue of their placement.</returns>
     /// <exception cref="Exception">Edge case that only can happen if something is wrong with the program.</exception>
     private async Task<Tuple<List<ProcessedEvent>, Queue<Placement>>> GetAudioSamples(int threadCount,
-        IEnumerable<Placement> placement,
+        Placement[] placement,
         CancellationToken? cancellationToken = null)
     {
         var token = cancellationToken ?? CancellationToken.None;
@@ -102,8 +102,9 @@ public class PcmEncoder
         var queue = new Queue<Placement>();
 
         var currentThread = 0;
-        foreach (var current in placement)
+        for (ulong i = 0; i < (ulong) placement.LongLength; i++)
         {
+            var current = placement[i];
             // Wait for the previous thread to finish its work.
             await threads[currentThread].WaitAsync(token);
 

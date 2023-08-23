@@ -62,6 +62,7 @@ public class PlacementCalculator
             IndexReport(index, count);
             var event_type = ev.SoundEvent is "_pause" || (ev.SoundEvent?.StartsWith('!') ?? true) ? EventType.Action : EventType.Sound;
             var increment_timer = false;
+            var modify_index = true;
 
             if (scrubbing && index == scrub_pos) scrubbing = false;
 
@@ -144,6 +145,11 @@ public class PlacementCalculator
                     if (ev.PlayTimes > 0)
                     {
                         ev.PlayTimes--;
+                        if (loop_target == 0)
+                        {
+                            loop_target = 1;
+                            modify_index = false;
+                        }
                         index = loop_target - 1;
                             
                         Untrigger(composition, index, new[] { "!loopmany" });
@@ -155,6 +161,11 @@ public class PlacementCalculator
                     if (!ev.Triggered)
                     {
                         ev.Triggered = true;
+                        if (loop_target == 0)
+                        {
+                            loop_target = 1;
+                            modify_index = false;
+                        }
                         index = loop_target - 1;
                             
                         Untrigger(composition, index, new[] { "!loopmany", "!loop" });
@@ -181,7 +192,7 @@ public class PlacementCalculator
                         break;
                     }
 
-                    index = (ulong) search - 1;
+                    index = (ulong) search;
                     var found_event = composition.Events[index];
 
                     Untrigger(composition, index, new[] { "!loop", "!loopmany", "!jump", "!target" });
@@ -229,7 +240,7 @@ public class PlacementCalculator
                     break;
             }
 
-            index++;
+            if (modify_index) index++;
             if (!scrubbing && increment_timer) position += (ulong) (SampleRate / (bpm / 60));
         }
     }

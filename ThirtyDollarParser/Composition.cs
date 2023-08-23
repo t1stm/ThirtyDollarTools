@@ -2,16 +2,7 @@ namespace ThirtyDollarParser;
 
 public class Composition
 {
-    public Event[] Events { get; set; } =
-    {
-        new()
-        {
-            SoundEvent = "!speed",
-            Value = 300,
-            PlayTimes = 1,
-            ValueScale = ValueScale.None
-        }
-    };
+    public Event[] Events { get; set; } = Array.Empty<Event>();
 
     public Composition Copy()
     {
