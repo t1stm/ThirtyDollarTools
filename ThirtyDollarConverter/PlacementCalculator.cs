@@ -150,9 +150,9 @@ public class PlacementCalculator
                             loop_target = 1;
                             modify_index = false;
                         }
-                        index = loop_target - 1;
+                        index = loop_target;
                             
-                        Untrigger(composition, index, new[] { "!loopmany" });
+                        Untrigger(ref composition, index, new[] { "!loopmany" });
                         Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
                     }
                     break;
@@ -166,9 +166,9 @@ public class PlacementCalculator
                             loop_target = 1;
                             modify_index = false;
                         }
-                        index = loop_target - 1;
+                        index = loop_target;
                             
-                        Untrigger(composition, index, new[] { "!loopmany", "!loop" });
+                        Untrigger(ref composition, index, new[] { "!loopmany", "!loop" });
                         Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
                     }
                     break;
@@ -188,14 +188,14 @@ public class PlacementCalculator
                     var search = Array.IndexOf(composition.Events, item);
                     if (search == -1)
                     {
-                        Untrigger(composition, 0, new[] { "!loop", "!loopmany", "!jump", "!target" });
+                        Untrigger(ref composition, 0, new[] { "!loop", "!loopmany", "!jump", "!target" });
                         break;
                     }
 
                     index = (ulong) search;
                     var found_event = composition.Events[index];
 
-                    Untrigger(composition, index, new[] { "!loop", "!loopmany", "!jump", "!target" });
+                    Untrigger(ref composition, index, new[] { "!loop", "!loopmany", "!jump", "!target" });
                     Log($"Jumping to element: ({index}) - {found_event}");
                     break;
 
@@ -245,8 +245,9 @@ public class PlacementCalculator
         }
     }
 
-    private static void Untrigger(Composition composition, ulong index, string?[] except)
+    private static void Untrigger(ref Composition composition, ulong index, string?[] except)
     {
+        if (index == 0) index++;
         for (var i = index - 1; i < (ulong) composition.Events.LongLength; i++)
         {
             var current_event = composition.Events[i];
