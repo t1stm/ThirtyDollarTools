@@ -25,7 +25,8 @@ public class Composition
         foreach (var originalText in split)
         {
             var text = originalText;
-            if (string.IsNullOrEmpty(text) || text is "\n") continue;
+            text = text.Replace("\n", "");
+            if (string.IsNullOrEmpty(text)) continue;
             if (text.StartsWith("!pulse") || text.StartsWith("!bg") || text.StartsWith("!flash"))
                 // Skipping color line due to no current support.
                 continue;
