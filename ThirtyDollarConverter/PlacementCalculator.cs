@@ -150,7 +150,7 @@ public class PlacementCalculator
                             loop_target = 1;
                             modify_index = false;
                         }
-                        index = loop_target;
+                        index = loop_target - 1;
                             
                         Untrigger(ref composition, index, new[] { "!loopmany" });
                         Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
@@ -166,7 +166,7 @@ public class PlacementCalculator
                             loop_target = 1;
                             modify_index = false;
                         }
-                        index = loop_target;
+                        index = loop_target - 1;
                             
                         Untrigger(ref composition, index, new[] { "!loopmany", "!loop" });
                         Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
