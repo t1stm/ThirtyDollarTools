@@ -145,12 +145,9 @@ public class PlacementCalculator
                     if (ev.PlayTimes > 0)
                     {
                         ev.PlayTimes--;
-                        if (loop_target == 0)
-                        {
-                            loop_target = 1;
-                            modify_index = false;
-                        }
-                        index = loop_target - 1;
+                        
+                        modify_index = false;
+                        index = loop_target;
                             
                         Untrigger(ref composition, index, new[] { "!loopmany" });
                         Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
@@ -161,12 +158,9 @@ public class PlacementCalculator
                     if (!ev.Triggered)
                     {
                         ev.Triggered = true;
-                        if (loop_target == 0)
-                        {
-                            loop_target = 1;
-                            modify_index = false;
-                        }
-                        index = loop_target - 1;
+                        
+                        modify_index = false;
+                        index = loop_target;
                             
                         Untrigger(ref composition, index, new[] { "!loopmany", "!loop" });
                         Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
