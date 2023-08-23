@@ -1,0 +1,51 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ThirtyDollarGUI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="200" d:DesignHeight="350"
+        x:Class="ThirtyDollarGUI.Views.ExportSettings"
+        x:DataType="vm:ExportSettingsViewModel"
+        Title="Export Settings"
+        Icon="/Assets/moai.png"
+        MinHeight="350"
+        MinWidth="400"
+        Height="350"
+        Width="400">
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="#31313A"
+                    TintOpacity="1"
+                    MaterialOpacity="0.60" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+        
+        <StackPanel>
+            <StackPanel Margin="20">
+                <TextBlock FontSize="11">Sample Rate</TextBlock>
+                <TextBox Text="{Binding SampleRateText}"></TextBox>
+            </StackPanel>
+            <StackPanel Margin="20">
+                <TextBlock FontSize="11">Channels</TextBlock>
+                <TextBox Text="{Binding ChannelsText}"></TextBox>
+            </StackPanel>
+            <StackPanel Margin="20">
+                <TextBlock FontSize="11">Cut Event Delay</TextBlock>
+                <TextBox Text="{Binding CutDelayText}"></TextBox>
+            </StackPanel>
+            <StackPanel Margin="20">
+                <TextBlock FontSize="11">Resampler</TextBlock>
+                <ComboBox SelectedItem="{Binding SelectedExportSettings}" ItemsSource="{Binding ListItems}" MaxDropDownHeight="200">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <ComboBoxItem Content="{Binding ResamplerName}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+        </StackPanel>
+    </Panel>
+</Window>

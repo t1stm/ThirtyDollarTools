@@ -7,6 +7,7 @@
         x:Class="ThirtyDollarGUI.Views.Downloader"
         x:DataType="vm:DownloaderViewModel"
         Title="Before we continue..."
+        Icon="/Assets/moai.png"
         MinWidth="250"
         MinHeight="350"
         Width="250"

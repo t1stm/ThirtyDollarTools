@@ -22,6 +22,12 @@ public class MainWindowViewModel : ViewModelBase
     private readonly SampleHolder sample_holder;
     private Composition? composition;
     private PcmEncoder? encoder;
+    private EncoderSettings encoder_settings = new()
+    {
+        Channels = 2,
+        SampleRate = 48000
+    };
+    
     private bool encode_running;
 
     public bool IsSequenceLocationGood = true;
@@ -181,20 +187,24 @@ public class MainWindowViewModel : ViewModelBase
         {
             UpdateProgressBar(current, max);
         }
-        
-        var settings = new EncoderSettings
-        {
-            Channels = 2,
-            SampleRate = 48000
-        };
 
         CreateLog("Started encoding.");
-        encoder = new PcmEncoder(sample_holder, settings, CreateLog, index_report);
+        encoder = new PcmEncoder(sample_holder, encoder_settings, CreateLog, index_report);
 
         await Task.Run(() =>
         {
             EncoderStart(encoder, composition);
         });
+    }
+
+    public void ExportSettings()
+    {
+        var export_settings = new ExportSettings
+        {
+            DataContext = new ExportSettingsViewModel(encoder_settings)
+        };
+        
+        export_settings.Show();
     }
 
     private void EncoderStart(PcmEncoder pcm_encoder, Composition local_composition)

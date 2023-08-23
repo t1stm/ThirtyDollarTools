@@ -22,5 +22,5 @@ public class EncoderSettings
     /// <summary>
     /// Select the resampler you want to use.
     /// </summary>
-    public readonly IResampler Resampler = new LinearResampler();
+    public IResampler Resampler = new LinearResampler();
 }

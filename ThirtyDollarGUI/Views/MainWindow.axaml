@@ -59,6 +59,8 @@
             <Button Command="{Binding StartEncoder}">Start Encoding</Button>
             <Panel Width="20"/>
             <Button Command="{Binding PreviewSequence}">Preview Sequence</Button>
+            <Panel Width="20"/>
+            <Button Command="{Binding ExportSettings}">Export Settings</Button>
         </StackPanel>
     </StackPanel>
     </Panel>
