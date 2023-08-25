@@ -131,7 +131,10 @@ public class MainWindowViewModel : ViewModelBase
     private void CreateLog(string message)
     {
         var current_time = DateTime.Now;
+        Log ??= "";
         Log += $"[{current_time:HH:mm:ss}] {message}\n";
+        if (Log.Length > 10000)
+            Log = Log[^(Log.Length - 10000)..];
     }
 
     private async void ReadComposition()

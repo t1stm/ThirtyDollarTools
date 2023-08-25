@@ -1,125 +1,77 @@
-using System.Diagnostics;
-using Silk.NET.Maths;
-using Silk.NET.OpenGL;
-using Silk.NET.Windowing;
+using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.Desktop;
+using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Objects.Planes;
 
 namespace ThirtyDollarVisualizer;
 
-public class Manager
+public class Manager : GameWindow
 {
-    private readonly Stopwatch _stopwatch = new();
-    private Shader _shader = null!;
+    private readonly int Width;
+    private readonly int Height;
+    
+    private static readonly List<Renderable> render_objects = new();
+    private static Camera Camera = null!;
 
-    private IndexBuffer _ibo = null!;
-    private VertexArray _vao = null!;
-    private VertexBuffer _vbo = null!;
-    
-    private GL Gl = null!;
-    private readonly IWindow Window;
-    private Renderer Renderer = null!;
-    
-    public Manager(IWindow window)
+    public Manager(int width, int height, string title) : base(GameWindowSettings.Default,
+        new NativeWindowSettings { Size = (width, height), Title = title })
     {
-        Window = window;
-        Window.Load += OnLoad;
-        Window.Render += OnRenderFrame;
-        Window.Update += OnUpdateFrame;
-        Window.Closing += OnUnload;
-        Window.Resize += OnResize;
+        Width = width;
+        Height = height;
     }
 
-    ~Manager()
+    private static void ClearAllErrors()
     {
-        Window.Load -= OnLoad;
-        Window.Render -= OnRenderFrame;
-        Window.Update -= OnUpdateFrame;
-        Window.Closing -= OnUnload;
-    }
-    
-    private void ClearAllErrors()
-    {
-        while (Gl.GetError() != (GLEnum) ErrorCode.NoError)
+        while (GL.GetError() != ErrorCode.NoError)
         {
-            // Ignored
         }
     }
 
-    private void CheckErrors()
+    private static void CheckErrors()
     {
-        GLEnum errorCode;
-        while ((errorCode = Gl.GetError()) != (GLEnum) ErrorCode.NoError)
-            Console.WriteLine($"[OpenGL Error]: (0x{(int) errorCode:x8}) \'{errorCode}\'");
+        ErrorCode errorCode;
+        while ((errorCode = GL.GetError()) != ErrorCode.NoError)
+            Console.WriteLine($"[OpenGL Error]: (0x{(int)errorCode:x8}) \'{errorCode}\'");
     }
 
-    protected void OnLoad()
+    protected override void OnLoad()
     {
-        Gl = GL.GetApi(Window);
-        Renderer = new Renderer(Gl);
+        CheckErrors();
+        var plane_size = new Vector2(256f, 256f);
         
-        Gl.ClearColor(.0f, .0f, .0f, 1.0f);
-        float[] positions =
-        {
-            -0.5f, -0.5f, 0f, 0f,
-            0.5f, -0.5f, 1f, 0f,
-            0.5f, 0.5f, 1f, 1f,
-            -0.5f, 0.5f, 0f, 1f
-        };
+        var plane = new ColoredPlane( new Vector4(1, 0, 0, 1), plane_size);
+        render_objects.Add(plane);
 
-        uint[] indices =
-        {
-            0, 1, 2,
-            2, 3, 0
-        };
-
-        _vao = new VertexArray(Gl);
-        _vbo = new VertexBuffer(Gl, positions);
-        _ibo = new IndexBuffer(Gl, indices);
-
-        var layout = new VertexBufferLayout();
-        layout.PushFloat(2);
-        layout.PushFloat(2);
-        _vao.AddBuffer(_vbo, layout);
-
-        _shader = Shader.FromFiles(Gl,"./Assets/Shaders/shader.vert", "./Assets/Shaders/shader.frag");
-        _stopwatch.Start();
-
-        var texture = new Texture(Gl, "Assets/Textures/moai.png");
-        texture.Bind();
-        _shader.SetUniform1("u_Texture", 0);
-        //_shader.SetUniformMatrix4("u_MVP", trans);
-
-        _shader.Unbind();
-        _vao.Unbind();
-        _vbo.Unbind();
-        _ibo.Unbind();
-
+        Camera = new Camera(new Vector3(0, 0, 0), new Vector3(0, 0, 0), Vector3.UnitY, Width, Height);
+        
         CheckErrors();
+        base.OnLoad();
     }
 
-    protected void OnRenderFrame(double obj)
+    protected override void OnResize(ResizeEventArgs e)
     {
-        Gl.Clear(ClearBufferMask.ColorBufferBit);
-        ClearAllErrors();
-        _shader.Bind();
-
-        Renderer.Draw(_vao, _ibo, _shader);
-        CheckErrors();
+        base.OnResize(e);
+        
+        Camera.Width = e.Width;
+        Camera.Height = e.Height;
     }
 
-    protected void OnUpdateFrame(double obj)
+    protected override void OnRenderFrame(FrameEventArgs args)
+    {
+        GL.Clear(ClearBufferMask.ColorBufferBit);
+        GL.ClearColor(.0f, .0f, .0f,1f);
+
+        foreach (var renderable in render_objects)
+        {
+            CheckErrors();
+            renderable.Render(Camera);
+        }
+    }
+
+    protected override void OnUpdateFrame(FrameEventArgs args)
     {
         
-    }
-
-    protected void OnResize(Vector2D<int> dimensions)
-    {
-        Gl.Viewport(0, 0, (uint) dimensions.X, (uint) dimensions.Y);
-    }
-
-    protected void OnUnload()
-    {
-        Gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
-        Gl.BindVertexArray(0);
-        Gl.UseProgram(0);
     }
 }

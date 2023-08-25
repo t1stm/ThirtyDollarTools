@@ -162,8 +162,6 @@ public class PcmEncoder
 
         var encodeTasks = new Task[Channels];
         var encodeIndices = new ulong[Channels];
-        
-        var count = queue.LongCount();
 
         for (var channelIndex = 0; channelIndex < Channels; channelIndex++)
         {
@@ -172,11 +170,15 @@ public class PcmEncoder
             {
                 ulong current_index = 0;
                 var length = (ulong) queue.LongCount();
+                var update_n_length = (ulong) Math.Ceiling((double)length / 100);
                 
                 foreach (var placement in queue)
                 {
-                    //Log($"({indexCopy}) Processing: {placement.Index}");
-                    IndexReport(current_index, length);
+                    if (current_index != 0 && current_index % update_n_length == 0)
+                    {
+                        IndexReport(current_index, length);
+                    }
+                    
                     var ev = placement.Event;
                     if (ev.SoundEvent == "#!cut")
                     {
@@ -211,26 +213,11 @@ public class PcmEncoder
                     encodeIndices[indexCopy] = placement.Index;
                     current_index++;
                 }
-            });
+            }, token);
             encodeTasks[indexCopy].Start();
         }
 
-        var finished = false;
-
-        async void WaitFinish()
-        {
-            foreach (var task in encodeTasks) await task.WaitAsync(token);
-            finished = true;
-        }
-
-        var waiter = new Task(WaitFinish);
-        waiter.Start();
-
-        while (!finished && !token.IsCancellationRequested)
-        {
-            IndexReport(Sum(encodeIndices) / (ulong) encodeIndices.Length, (ulong) count);
-            await Task.Delay(66, token);
-        }
+        await Task.WhenAll(encodeTasks);
 
         return audioData;
     }
@@ -263,14 +250,23 @@ public class PcmEncoder
         AddWavHeader(stream, maxLength);
         stream.Write((short)0);
 
+        var every_n_report = maxLength / 200; // 200 calls.
         for (var i = 0; i < maxLength; i++)
-        for (var j = 0; j < Channels; j++)
-            if (samples[j].Length > i)
-                stream.Write((short)(samples[j][i] * 32768));
-            else stream.Write((short)0);
+        {
+            if (i % every_n_report == 0)
+            {
+                IndexReport((ulong)i, (ulong)maxLength);
+            }
+            for (var j = 0; j < Channels; j++)
+                if (samples[j].Length > i)
+                    stream.Write((short)(samples[j][i] * 32768));
+                else stream.Write((short)0);
+        }
 
         stream.Flush();
         stream.Close();
+
+        Log("Saved audio file.");
     }
 
     /// <summary>

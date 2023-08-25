@@ -1,33 +1,12 @@
-using Silk.NET.OpenGL;
+using OpenTK.Graphics.OpenGL;
 
-namespace ThirtyDollarVisualizer;
-
-public class VertexBufferElement
-{
-    public int Count;
-    public bool Normalized;
-    public VertexAttribPointerType Type;
-}
-
-public static class VertexBufferExtensions
-{
-    public static int GetSize(this VertexAttribPointerType type)
-    {
-        return type switch
-        {
-            VertexAttribPointerType.Float => sizeof(float),
-            VertexAttribPointerType.UnsignedInt => sizeof(uint),
-            VertexAttribPointerType.UnsignedByte => sizeof(byte),
-            _ => 0
-        };
-    }
-}
+namespace ThirtyDollarVisualizer.Renderer;
 
 public class VertexBufferLayout
 {
     private readonly List<VertexBufferElement> _elements = new();
     private int _stride;
-
+    
     public void PushFloat(int count)
     {
         _elements.Add(new VertexBufferElement

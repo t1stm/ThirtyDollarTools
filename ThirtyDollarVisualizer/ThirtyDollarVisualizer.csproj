@@ -17,12 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Silk.NET.Core" Version="2.17.1" />
-        <PackageReference Include="Silk.NET.Input" Version="2.17.1" />
-        <PackageReference Include="Silk.NET.Maths" Version="2.17.1" />
-        <PackageReference Include="Silk.NET.OpenGL" Version="2.17.1" />
-        <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.17.1" />
-        <PackageReference Include="Silk.NET.Windowing" Version="2.17.1" />
+        <PackageReference Include="OpenTK" Version="4.8.0" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
     </ItemGroup>
 
@@ -42,6 +37,19 @@
         <Content Include="Assets\Shaders\shader.vert">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+        <None Remove="Assets\Shaders\colored.frag" />
+        <Content Include="Assets\Shaders\colored.frag">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <None Remove="Assets\Shaders\colored.vert" />
+        <Content Include="Assets\Shaders\colored.vert">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+
+
     </ItemGroup>
+
+
+
 
 </Project>
