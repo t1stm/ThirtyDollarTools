@@ -12,38 +12,35 @@ public class Camera
     public float AspectRatio { get; set; }
     public float Zoom { get; set; }
     
-    private int _width;
-    private int _height = 1;
+    public Vector2i Viewport;
 
     public int Width
     {
-        get => _width;
+        get => Viewport.X;
         set
         {
-            _width = value;
+            Viewport.X = value;
             AspectRatio = (float)Width / Height;
         }
     }
 
     public int Height
     {
-        get => _height;
+        get => Viewport.Y;
         set
         {
-            _height = value;
+            Viewport.Y = value;
             AspectRatio = (float)Width / Height;
         }
     }
 
-    public Camera(Vector3 position, Vector3 front, Vector3 up, int width, int height)
+    public Camera(Vector3 position, Vector3 front, Vector3 up, Vector2i viewport)
     {
         Position = position;
         Front = front;
         Up = up;
         
-        // Used the private field on purpose.
-        _width = width;
-        Height = height;
+        Viewport = viewport;
     }
 
     public void ModifyZoom(float zoomAmount)

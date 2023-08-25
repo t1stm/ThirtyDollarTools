@@ -1,6 +1,8 @@
 
 
 using OpenTK.Graphics.OpenGL;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace ThirtyDollarVisualizer.Objects;
 

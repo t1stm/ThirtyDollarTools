@@ -9,20 +9,22 @@ public class ColoredPlane : Renderable
     private readonly BufferObject<uint> _ebo;
     private readonly BufferObject<float> _vbo;
     private readonly VertexArrayObject<float> _vao;
-    private readonly Shader _shader;
-    private readonly Vector2 _scale;
+    public Shader _shader;
     private readonly Vector4 _color;
 
-    public ColoredPlane(Vector4 color, Vector2 width_height)
+    public ColoredPlane(Vector4 color, Vector2 position, Vector2 width_height)
     {
-        _scale = width_height;
+        var (x, y) = position;
+        var (w, h) = width_height;
+
         var vertices = new[] {
-            -0.5f, -0.5f,
-            0.5f, -0.5f,
-            0.5f, 0.5f,
-            -0.5f, 0.5f
+             x, y + h,
+             x + w, y + h,
+             x + w, y,
+             x, y
         };
-        var indices = new uint[] { 0,1,2, 2,3,0 };
+        
+        var indices = new uint[] { 0,1,2, 0,2,3 };
 
         _vao = new VertexArrayObject<float>();
         _vbo = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
@@ -44,6 +46,7 @@ public class ColoredPlane : Renderable
         _shader.Use();
 
         _shader.SetUniform("u_Color", _color);
+        _shader.SetUniform("u_ViewportSize", camera.Viewport);
         
         GL.DrawElements(PrimitiveType.Triangles, _ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
     }
@@ -51,6 +54,11 @@ public class ColoredPlane : Renderable
     public override void SetPosition(Vector3 position)
     {
         Position = position;
+    }
+
+    public override void UpdateShader(Shader shader)
+    {
+        _shader = shader;
     }
 
     public override void Dispose()

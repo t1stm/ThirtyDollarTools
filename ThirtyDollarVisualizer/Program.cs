@@ -7,7 +7,7 @@ public static class Program
 {
     public static void Main()
     {
-        var manager = new Manager(854,480, "Thirty Dollar Visualizer");
+        var manager = new Manager(1920,900, "Thirty Dollar Visualizer");
         manager.Run();
     }
 }

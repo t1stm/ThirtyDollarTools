@@ -13,4 +13,9 @@ public abstract class Renderable
     {
         // Add implementation where needed.
     }
+
+    public virtual void UpdateShader(Shader shader)
+    {
+        // Default: ignore.
+    }
 }
