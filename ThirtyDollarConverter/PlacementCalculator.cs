@@ -77,6 +77,7 @@ public class PlacementCalculator
                 var placement = new Placement
                 {
                     Index = position,
+                    SequenceIndex = index,
                     Event = copy
                 };
                 
@@ -132,11 +133,12 @@ public class PlacementCalculator
                 
                 case "_pause": 
                 case "!stop":
-                    while (ev.PlayTimes > 0)
+                    if (ev.PlayTimes > 0)
                     {
-                        position += (ulong)(SampleRate / (bpm / 60));
+                        var multiplier = Math.Min(ev.Value, 1);
+                        position += (ulong)(multiplier * SampleRate / (bpm / 60));
 
-                        ev.PlayTimes--;
+                        ev.PlayTimes -= 1;
                         if (ev.PlayTimes < 0) ev.PlayTimes = 0;
                     }
                     break;
@@ -201,7 +203,8 @@ public class PlacementCalculator
                             SoundEvent = "#!cut",
                             Value = position + SampleRate / (bpm / 60)
                         },
-                        Index = position
+                        Index = position,
+                        SequenceIndex = index
                     };
                     Log($"Cutting audio at: \'{position + SampleRate / (bpm / 60)}\'");
                     break;
@@ -233,7 +236,14 @@ public class PlacementCalculator
                     Log($"Transposing samples by: \'{transpose}\'");
                     break;
             }
-
+                
+            if (!scrubbing) yield return new Placement
+            {
+                Index = position,
+                SequenceIndex = index,
+                Event = ev,
+                Audible = false
+            };
             if (modify_index) index++;
             if (!scrubbing && increment_timer) position += (ulong) (SampleRate / (bpm / 60));
         }

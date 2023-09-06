@@ -110,7 +110,7 @@ public class PcmEncoder
 
             var ev = current.Event;
             queue.Enqueue(current);
-            if (ev.SoundEvent == "#!cut") continue;
+            if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev.SoundEvent is "#!cut") continue;
             lock (processedEvents)
             {
                 if (processedEvents.Any(r => r.Name == ev.SoundEvent && Math.Abs(r.Value - ev.Value) < 0.01))
@@ -172,7 +172,7 @@ public class PcmEncoder
                 var length = (ulong) queue.LongCount();
                 var update_n_length = (ulong) Math.Ceiling((double)length / 100);
                 
-                foreach (var placement in queue)
+                foreach (var placement in queue.Where(placement => placement.Audible))
                 {
                     if (current_index != 0 && current_index % update_n_length == 0)
                     {
