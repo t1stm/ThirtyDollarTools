@@ -133,17 +133,11 @@ public class Manager : GameWindow
         Log("Loading sounds");
         
         #endregion
-        
-        #region Audio
-        AudioContext.Create();
-        AudioContext.GlobalVolume = .25f;
 
         Task.Run(async () =>
         {
             await load_audio();
         }).Wait();
-        
-        #endregion
         
         CheckErrors();
         base.OnLoad();
@@ -202,6 +196,9 @@ public class Manager : GameWindow
             }, Log);
 
             var (processed_samples, _) = await pcm_encoder.GetAudioSamples(-1, _placement, CancellationToken.None);
+            
+            AudioContext.Create(processed_samples.Count + 16);
+            AudioContext.GlobalVolume = .25f;
         
             foreach (var ev in processed_samples)
             {

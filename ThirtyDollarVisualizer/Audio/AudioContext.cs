@@ -9,11 +9,16 @@ public static class AudioContext
     public static float GlobalVolume { get; set; } = 1f;
     public static int SampleRate = 48000;
     public static int UpdateRate = 1000; // Hz
-    public static void Create()
+    
+    /// <summary>
+    /// Creates a global audio context.
+    /// </summary>
+    /// <param name="sources">The maxiumum sound sources at a given moment.</param>
+    public static void Create(int sources = 1024)
     {
         device = ALC.OpenDevice(null);
         context = ALC.CreateContext(device, 
-            new ALContextAttributes(SampleRate, null, 256 * 4, UpdateRate, false));
+            new ALContextAttributes(SampleRate, null, sources, UpdateRate, false));
         
         ALC.MakeContextCurrent(context);
         
