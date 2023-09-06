@@ -7,7 +7,9 @@ namespace ThirtyDollarVisualizer.Objects;
 public class Texture : IDisposable
 {
     private readonly int _handle;
-
+    public int Width;
+    public int Height;
+    
     public unsafe Texture(string path)
     {
         _handle = GL.GenTexture();
@@ -15,6 +17,9 @@ public class Texture : IDisposable
 
         using (var img = Image.Load<Rgba32>(path))
         {
+            Width = img.Width;
+            Height = img.Height;
+            
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, img.Width, img.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, 0);
 
             img.ProcessPixelRows(accessor =>
@@ -34,6 +39,8 @@ public class Texture : IDisposable
 
     public unsafe Texture(Span<byte> data, int width, int height)
     {
+        Width = width;
+        Height = height;
         _handle = GL.GenTexture();
         Bind();
 

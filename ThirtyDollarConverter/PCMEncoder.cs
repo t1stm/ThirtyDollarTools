@@ -85,7 +85,7 @@ public class PcmEncoder
     /// <param name="cancellationToken">Optional cancellation token that allows the resampling process to stop.</param>
     /// <returns>A Tuple containing the processed events and a queue of their placement.</returns>
     /// <exception cref="Exception">Edge case that only can happen if something is wrong with the program.</exception>
-    private async Task<Tuple<List<ProcessedEvent>, Queue<Placement>>> GetAudioSamples(int threadCount,
+    public async Task<Tuple<List<ProcessedEvent>, Queue<Placement>>> GetAudioSamples(int threadCount,
         Placement[] placement,
         CancellationToken? cancellationToken = null)
     {
@@ -295,7 +295,7 @@ public class PcmEncoder
         writer.Write(length * 2); // Sub Chunk 2 Size.
     }
 
-    private struct ProcessedEvent
+    public struct ProcessedEvent
     {
         public string Name;
         public double Value;

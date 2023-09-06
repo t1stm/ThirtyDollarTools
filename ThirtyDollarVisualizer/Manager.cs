@@ -5,7 +5,10 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarConverter.Resamplers;
+using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
+using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Positioning;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
@@ -17,21 +20,26 @@ public class Manager : GameWindow
 {
     private static readonly List<Renderable> render_objects = new();
     private static readonly List<Renderable> tdw_images = new();
+    private Dictionary<string, Dictionary<double, AudibleSample>> ProcessedSamples = new();
+    
     private static Camera Camera = null!;
     private readonly int Height;
     private readonly string? _composition_location;
     private readonly int Width;
     private readonly Stopwatch _timing_stopwatch = new();
+    private readonly Action<string> Log = Console.WriteLine;
+    private readonly Action LogClear = Console.Clear;
 
     private ColoredPlane _background = null!;
     private ColoredPlane _visible_area = null!;
-    
+
     private Composition _composition = null!;
     private Placement[] _placement = null!;
 
     private int global_i;
     private float y_position;
     private bool updating_position;
+    private bool updating_background;
 
     public Manager(int width, int height, string title, string? composition_location = null) : base(new GameWindowSettings
         {
@@ -58,8 +66,6 @@ public class Manager : GameWindow
         
         CheckErrors();
 
-        /*const string comp_location = 
-            "/home/kris/tdw/tau2.5.9.🗿";*/
         var comp_location = _composition_location ?? 
                             "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarDebugApp/Included Sequences/(cyvos) Avicii - Sunset Jesus.🗿";
         _composition = Composition.FromString(File.ReadAllText(comp_location));
@@ -71,10 +77,12 @@ public class Manager : GameWindow
 
         _placement = calculator.Calculate(_composition).ToArray();
 
-        var camera_position = new Vector3(0, -500, 0);
-        y_position = -300f;
+        #region Textures
         
-        Console.WriteLine("Loaded sequence and placement.");
+        y_position = -300f;
+        var camera_position = new Vector3(0, y_position, 0);
+
+        Log("Loaded sequence and placement.");
         
         _background = new ColoredPlane(new Vector4(0.21f,0.22f,0.24f, 1f), new Vector3(0, 0, 1f), new Vector2(Width, Height));
         _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(375,0,0.5f), new Vector2i(1165, Height));
@@ -92,15 +100,15 @@ public class Manager : GameWindow
 
         tdw_images.EnsureCapacity(_composition.Events.Length);
 
-        foreach (var placement in _composition.Events)
+        foreach (var ev in _composition.Events)
         {
-            if (string.IsNullOrEmpty(placement.SoundEvent) || placement.SoundEvent.StartsWith("#"))
+            if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith("#"))
             {
                 i++;
                 continue;
             }
             
-            var image = "./Images/" + placement.SoundEvent?.Replace("!", "action_") + ".png";
+            var image = "./Images/" + ev.SoundEvent?.Replace("!", "action_") + ".png";
             
             texture_cache.TryGetValue(image, out var texture);
             if (texture == null)
@@ -111,15 +119,31 @@ public class Manager : GameWindow
 
             tdw_images.Add(new TexturedPlane(texture, flex_box.AddBox(wh), wh));
 
-            if (placement.SoundEvent is "!divider")
+            if (ev.SoundEvent is "!divider")
             {
                 flex_box.NewLine();
                 flex_box.NewLine();
             }
             i++;
         }
-        
+
         Camera = new Camera(camera_position, new Vector3(0, 0, 0), Vector3.UnitY, new Vector2i(Width, Height));
+        
+        Log("Loaded textures.");
+        Log("Loading sounds");
+        
+        #endregion
+        
+        #region Audio
+        AudioContext.Create();
+        AudioContext.GlobalVolume = .25f;
+
+        Task.Run(async () =>
+        {
+            await load_audio();
+        }).Wait();
+        
+        #endregion
         
         CheckErrors();
         base.OnLoad();
@@ -134,23 +158,22 @@ public class Manager : GameWindow
 
             while (i < len)
             {
-                if (i % 256 == 0)
+                if (i - old > 64)
                 {
                     Console.Clear();
                     Console.WriteLine($"({i}) - ({_composition.Events.LongLength}) ");
+                    old = i;
                 }
                 
                 Console.Write(new string('-', (int) (i - old)));
-                old = i;
-
                 await Task.Delay(33);
             }
         }
 
         async void waiter()
         {
-            Console.Clear();
-            Console.WriteLine("Finished preparing.");
+            LogClear();
+            Log("Finished preparing.");
 
             for (var j = 0; j < 3; j++)
             {
@@ -159,7 +182,47 @@ public class Manager : GameWindow
             }
             
             _timing_stopwatch.Start();
-            Console.WriteLine("Starting stopwatch.");
+            Log("Starting stopwatch.");
+        }
+
+        async Task load_audio()
+        {
+            var sample_holder = new SampleHolder();
+            sample_holder.DownloadedAllFiles();
+            
+            await sample_holder.LoadSampleList();
+            sample_holder.LoadSamplesIntoMemory();
+
+            var pcm_encoder = new PcmEncoder(sample_holder, new EncoderSettings
+            {
+                SampleRate = (uint) AudioContext.SampleRate,
+                Channels = 2,
+                CutDelayMs = 250,
+                Resampler = new LinearResampler()
+            }, Log);
+
+            var (processed_samples, _) = await pcm_encoder.GetAudioSamples(-1, _placement, CancellationToken.None);
+        
+            foreach (var ev in processed_samples)
+            {
+                var value = ev.Value;
+                var name = ev.Name;
+
+                if (ProcessedSamples.TryGetValue(name, out var value_dictionary))
+                {
+                    if (value_dictionary.ContainsKey(value)) continue;
+                }
+
+                if (value_dictionary == null)
+                {
+                    value_dictionary = new Dictionary<double, AudibleSample>();
+                    ProcessedSamples.Add(name, value_dictionary);
+                }
+            
+                var sample = new AudibleSample(ev.AudioData);
+            
+                value_dictionary.Add(value, sample);
+            }
         }
     }
 
@@ -223,7 +286,7 @@ public class Manager : GameWindow
         updating_position = false;
     }
 
-    private async void Fade(Renderable renderable)
+    private static async void Fade(Renderable renderable)
     {
         const float max_decrease = 100f;
         const float steps = 100;
@@ -239,12 +302,21 @@ public class Manager : GameWindow
 
     private async void ChangeBackground(Vector4 color, float seconds)
     {
+        if (updating_background)
+        {
+            updating_background = false;
+            await Task.Delay(34);
+            ChangeBackground(color, seconds);
+            return;
+        }
+        
         var stopwatch = new Stopwatch();
         stopwatch.Start();
         var old_color = _background.GetColor();
 
+        updating_background = true;
         float elapsed;
-        while ((elapsed = stopwatch.ElapsedMilliseconds / 1000f) < seconds)
+        while ((elapsed = stopwatch.ElapsedMilliseconds / 1000f) < seconds && updating_background)
         {
             var delta = (float) Math.Clamp(elapsed / seconds, 0.01, 1);
             
@@ -252,7 +324,29 @@ public class Manager : GameWindow
             await Task.Delay(33);
         }
 
+        updating_background = false;
         stopwatch.Stop();
+    }
+
+    private void PlayPlacement(Placement placement)
+    {
+        var ev = placement.Event;
+
+        var name = ev.SoundEvent;
+        var value = ev.Value;
+
+        if (name == null) return;
+
+        if (!ProcessedSamples.TryGetValue(name, out var value_dictionary)) return;
+        if (!value_dictionary.TryGetValue(value, out var sample)) return;
+        
+        sample.SetVolume((float) (ev.Volume / 100d ?? .5d));
+        sample.PlaySample();
+    }
+
+    private void CutSounds()
+    {
+        
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args)
@@ -260,6 +354,7 @@ public class Manager : GameWindow
         while (global_i < _placement.LongLength)
         {
             var placement = _placement[global_i];
+            
             var renderable = tdw_images.ElementAtOrDefault((int) placement.SequenceIndex);
             if (renderable == null) break;
 
@@ -267,6 +362,11 @@ public class Manager : GameWindow
             y_position = position.Y - Height / 2f;
 
             if (placement.Index > (ulong) ((float)_timing_stopwatch.ElapsedMilliseconds * 48000 / 1000)) break;
+            
+            if (placement.Audible)
+            {
+                PlayPlacement(placement);
+            }
 
             new Task(Bounce).Start();
             if (placement.Event.SoundEvent?.StartsWith('!') ?? false)
@@ -298,7 +398,7 @@ public class Manager : GameWindow
 
             async void Bounce()
             {
-                Console.WriteLine($"Bouncing: {placement.Event}");
+                Log($"Bouncing: {placement.Event}");
                 for (var i = 0d; i < 240; i++)
                 {
                     var scale = (float) Math.Sin(Math.PI * (i / 240));
@@ -308,9 +408,15 @@ public class Manager : GameWindow
             }
         }
 
-        if (global_i > _placement.LongLength)
+        if (global_i >= _placement.LongLength)
         {
-            Console.WriteLine("Reached the end of composition.");
+            Log("Reached the end of composition.");
         }
+    }
+
+    public override void Close()
+    {
+        AudioContext.Destroy();
+        base.Close();
     }
 }
