@@ -7,11 +7,7 @@ public class Camera
     public Vector3 Position { get; set; }
     public Vector3 Front { get; set; }
     public Vector3 Up { get; private set; }
-    public float Yaw { get; set; } = -90f;
-    public float Pitch { get; set; }
     public float AspectRatio { get; set; }
-    public float Zoom { get; set; }
-    
     public Vector2i Viewport;
 
     public int Width
@@ -21,6 +17,7 @@ public class Camera
         {
             Viewport.X = value;
             AspectRatio = (float)Width / Height;
+            UpdateMatrices();
         }
     }
 
@@ -31,6 +28,7 @@ public class Camera
         {
             Viewport.Y = value;
             AspectRatio = (float)Width / Height;
+            UpdateMatrices();
         }
     }
 
@@ -39,36 +37,25 @@ public class Camera
         Position = position;
         Front = front;
         Up = up;
-        
         Viewport = viewport;
     }
 
-    public void ModifyZoom(float zoomAmount)
+    private Matrix4 view_matrix;
+    private Matrix4 projection_matrix;
+    
+    public void UpdateMatrices()
     {
-        Zoom = Math.Clamp(Zoom - zoomAmount, 1.0f, 45f);
-    }
-
-    public void ModifyDirection(float xOffset, float yOffset)
-    {
-        Yaw += xOffset;
-        Pitch -= yOffset;
-        Pitch = Math.Clamp(Pitch, -89f, 89f);
-
-        var cameraDirection = Vector3.Zero;
-        cameraDirection.X = MathF.Cos(MathHelper.DegreesToRadians(Yaw)) * MathF.Cos(MathHelper.DegreesToRadians(Pitch));
-        cameraDirection.Y = MathF.Sin(MathHelper.DegreesToRadians(Pitch));
-        cameraDirection.Z = MathF.Sin(MathHelper.DegreesToRadians(Yaw)) * MathF.Cos(MathHelper.DegreesToRadians(Pitch));
-
-        Front = Vector3.Normalize(cameraDirection);
+        view_matrix = Matrix4.LookAt(Position, Position + Front, Up);
+        projection_matrix = Matrix4.CreateOrthographicOffCenter(0f, Width, 0f, Height, 0.1f, 100f);
     }
 
     public Matrix4 GetViewMatrix()
     {
-        return Matrix4.LookAt(Position, Position + Front, Up);
+        return view_matrix;
     }
 
     public Matrix4 GetProjectionMatrix()
     {
-        return Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(Zoom), AspectRatio, 0.1f, 100.0f);
+        return projection_matrix;
     }
 }

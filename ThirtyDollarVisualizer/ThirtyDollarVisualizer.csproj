@@ -9,47 +9,44 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Remove="shader.frag" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Remove="shader.vert" />
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="OpenTK" Version="4.8.0" />
+        <PackageReference Include="SharpFont" Version="4.0.1" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="Assets\Textures\moai.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
         <None Remove="Assets\Fonts\VarelaRound-Regular.ttf" />
         <Content Include="Assets\Fonts\VarelaRound-Regular.ttf">
           <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
-        <None Remove="Assets\Shaders\shader.frag" />
-        <Content Include="Assets\Shaders\shader.frag">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <None Remove="Assets\Shaders\textured.frag" />
+        <Content Include="Assets\Shaders\textured.frag">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <None Remove="Assets\Shaders\shader.vert" />
-        <Content Include="Assets\Shaders\shader.vert">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <None Remove="Assets\Shaders\textured.vert" />
+        <Content Include="Assets\Shaders\textured.vert">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Content>
-        <None Remove="Assets\Shaders\colored.frag" />
-        <Content Include="Assets\Shaders\colored.frag">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-        <None Remove="Assets\Shaders\colored.vert" />
-        <Content Include="Assets\Shaders\colored.vert">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-
-
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="Assets\Shaders\colored.vert" />
+      <Content Include="Assets\Shaders\colored.vert">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+      <None Remove="Assets\Shaders\colored.frag" />
+      <Content Include="Assets\Shaders\colored.frag">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="Assets\Textures\moai.png">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
 
-
+    <ItemGroup>
+        <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
+    </ItemGroup>
 </Project>

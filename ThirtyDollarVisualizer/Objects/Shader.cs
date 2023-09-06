@@ -5,10 +5,18 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public class Shader : IDisposable
 {
-    private int _handle;
+    private readonly int _handle;
+    private static readonly Dictionary<(string, string), Shader> CachedShaders = new();
 
     public Shader(string vertexPath, string fragmentPath)
     {
+        CachedShaders.TryGetValue((vertexPath, fragmentPath), out var shader);
+        if (shader != null)
+        {
+            _handle = shader._handle;
+            return;
+        }
+        
         var vertex = LoadShader(ShaderType.VertexShader, vertexPath);
         var fragment = LoadShader(ShaderType.FragmentShader, fragmentPath);
         _handle = GL.CreateProgram();
@@ -29,6 +37,8 @@ public class Shader : IDisposable
         
         GL.DeleteShader(vertex);
         GL.DeleteShader(fragment);
+        
+        CachedShaders.Add((vertexPath, fragmentPath), this);
     }
 
     public void Use()

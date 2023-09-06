@@ -1,8 +1,12 @@
+using System.Diagnostics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
+using ThirtyDollarConverter;
+using ThirtyDollarConverter.Objects;
+using ThirtyDollarParser;
+using ThirtyDollarVisualizer.Helpers.Positioning;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
@@ -12,15 +16,32 @@ namespace ThirtyDollarVisualizer;
 public class Manager : GameWindow
 {
     private static readonly List<Renderable> render_objects = new();
+    private static readonly List<Renderable> tdw_images = new();
     private static Camera Camera = null!;
     private readonly int Height;
+    private readonly string? _composition_location;
     private readonly int Width;
+    private readonly Stopwatch _timing_stopwatch = new();
 
-    public Manager(int width, int height, string title) : base(GameWindowSettings.Default,
+    private ColoredPlane _background = null!;
+    private ColoredPlane _visible_area = null!;
+    
+    private Composition _composition = null!;
+    private Placement[] _placement = null!;
+
+    private int global_i;
+    private float y_position;
+    private bool updating_position;
+
+    public Manager(int width, int height, string title, string? composition_location = null) : base(new GameWindowSettings
+        {
+            UpdateFrequency = 240
+        },
         new NativeWindowSettings { Size = (width, height), Title = title })
     {
         Width = width;
         Height = height;
+        _composition_location = composition_location;
     }
 
     private static void CheckErrors()
@@ -32,31 +53,127 @@ public class Manager : GameWindow
 
     protected override void OnLoad()
     {
-        CheckErrors();
-        render_objects.Add(new ColoredPlane(new Vector4(1, 0, 0, 1), 
-            new Vector2(100f, 100f), new Vector2(256f, 256f)));
-        render_objects.Add(new ColoredPlane(new Vector4(0, 1, 0, 1), 
-            new Vector2(400f, 100f), new Vector2(256f, 256f)));
-        render_objects.Add(new ColoredPlane(new Vector4(0, 0, 1, 1), 
-            new Vector2(100f, 400f), new Vector2(256f, 256f)));
+        GL.Enable(EnableCap.Blend);
+        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         
+        CheckErrors();
 
-        Camera = new Camera(new Vector3(0, 0, 0), new Vector3(0, 0, 0), Vector3.UnitY, new Vector2i(Width, Height));
+        /*const string comp_location = 
+            "/home/kris/tdw/tau2.5.9.🗿";*/
+        var comp_location = _composition_location ?? 
+                            "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarDebugApp/Included Sequences/(cyvos) Avicii - Sunset Jesus.🗿";
+        _composition = Composition.FromString(File.ReadAllText(comp_location));
+        
+        var calculator = new PlacementCalculator(new EncoderSettings
+        {
+            SampleRate = 48000
+        });
 
+        _placement = calculator.Calculate(_composition).ToArray();
+
+        var camera_position = new Vector3(0, -500, 0);
+        y_position = -300f;
+        
+        Console.WriteLine("Loaded sequence and placement.");
+        
+        _background = new ColoredPlane(new Vector4(0.21f,0.22f,0.24f, 1f), new Vector3(0, 0, 1f), new Vector2(Width, Height));
+        _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(375,0,0.5f), new Vector2i(1165, Height));
+        
+        render_objects.Add(_background);
+        render_objects.Add(_visible_area);
+        
+        var flex_box = new FlexBox(new Vector2i(375,0), new Vector2i(1600, Height), 10);
+        var wh = new Vector2i(86,86);
+
+        Dictionary<string, Texture> texture_cache = new();
+
+        var i = 0ul;
+        new Task(UpdateChecker).Start();
+
+        tdw_images.EnsureCapacity(_composition.Events.Length);
+
+        foreach (var placement in _composition.Events)
+        {
+            if (string.IsNullOrEmpty(placement.SoundEvent) || placement.SoundEvent.StartsWith("#"))
+            {
+                i++;
+                continue;
+            }
+            
+            var image = "./Images/" + placement.SoundEvent?.Replace("!", "action_") + ".png";
+            
+            texture_cache.TryGetValue(image, out var texture);
+            if (texture == null)
+            {
+                texture = new Texture(image);
+                texture_cache.Add(image, texture);
+            }
+
+            tdw_images.Add(new TexturedPlane(texture, flex_box.AddBox(wh), wh));
+
+            if (placement.SoundEvent is "!divider")
+            {
+                flex_box.NewLine();
+                flex_box.NewLine();
+            }
+            i++;
+        }
+        
+        Camera = new Camera(camera_position, new Vector3(0, 0, 0), Vector3.UnitY, new Vector2i(Width, Height));
+        
         CheckErrors();
         base.OnLoad();
+
+        new Task(waiter).Start();
+        return;
+
+        async void UpdateChecker()
+        {
+            var len = (ulong)_composition.Events.LongLength;
+            var old = 0ul;
+
+            while (i < len)
+            {
+                if (i % 256 == 0)
+                {
+                    Console.Clear();
+                    Console.WriteLine($"({i}) - ({_composition.Events.LongLength}) ");
+                }
+                
+                Console.Write(new string('-', (int) (i - old)));
+                old = i;
+
+                await Task.Delay(33);
+            }
+        }
+
+        async void waiter()
+        {
+            Console.Clear();
+            Console.WriteLine("Finished preparing.");
+
+            for (var j = 0; j < 3; j++)
+            {
+                Console.WriteLine(3 - j);
+                await Task.Delay(1000);
+            }
+            
+            _timing_stopwatch.Start();
+            Console.WriteLine("Starting stopwatch.");
+        }
     }
 
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
-        var resize = new Vector2i(e.Width, e.Width);
+        var resize = new Vector2i(e.Width, e.Height);
 
         Camera.Viewport = resize;
+        GL.Viewport(0,0, e.Width, e.Height);
     }
 
     protected override void OnRenderFrame(FrameEventArgs args)
-    {
+    { 
         GL.Clear(ClearBufferMask.ColorBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 1f);
 
@@ -65,20 +182,135 @@ public class Manager : GameWindow
             CheckErrors();
             renderable.Render(Camera);
         }
+        
+        foreach (var renderable in tdw_images)
+        {
+            CheckErrors();
+
+            var position = renderable.GetPosition();
+            var scale = renderable.GetScale();
+            
+            // Bounds checks for viewport.
+
+            if (position.X + scale.X < Camera.Position.X || position.X - scale.X > Camera.Position.X + Width) continue;
+            if (position.Y + scale.Y < Camera.Position.Y || position.Y - scale.Y > Camera.Position.Y + Height) continue;
+
+            renderable.Render(Camera);
+        }
 
         SwapBuffers();
     }
 
+    private async void SmoothScrollCamera()
+    {
+        if (updating_position) return;
+        updating_position = true;
+
+        var scroll_y = 1f;
+        
+        while (Math.Abs(scroll_y) > 0.05f)
+        {
+            var current_y = Camera.Position.Y;
+            var delta_y = y_position - current_y;
+
+            scroll_y = delta_y / 120f;
+            current_y += scroll_y;
+            Camera.Position = current_y * Vector3.UnitY;
+            
+            await Task.Delay(1);
+        }
+
+        updating_position = false;
+    }
+
+    private async void Fade(Renderable renderable)
+    {
+        const float max_decrease = 100f;
+        const float steps = 100;
+        
+        for (var i = 0f; i < steps; i++)
+        {
+            var color = new Vector4(0,0,0, Math.Max(i * (max_decrease / steps) / 255f, 0f));
+            
+            renderable.SetColor(color);
+            await Task.Delay(1);
+        }
+    }
+
+    private async void ChangeBackground(Vector4 color, float seconds)
+    {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        var old_color = _background.GetColor();
+
+        float elapsed;
+        while ((elapsed = stopwatch.ElapsedMilliseconds / 1000f) < seconds)
+        {
+            var delta = (float) Math.Clamp(elapsed / seconds, 0.01, 1);
+            
+            _background.SetColor(old_color + color * delta);
+            await Task.Delay(33);
+        }
+
+        stopwatch.Stop();
+    }
+
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
-        var state = KeyboardState.IsKeyPressed(Keys.R);
-
-        if (!state) return;
-        
-        Console.WriteLine("Updating shaders.");
-        foreach (var renderable in render_objects)
+        while (global_i < _placement.LongLength)
         {
-            renderable.UpdateShader(new Shader("./Assets/Shaders/colored.vert", "./Assets/Shaders/colored.frag"));
+            var placement = _placement[global_i];
+            var renderable = tdw_images.ElementAtOrDefault((int) placement.SequenceIndex);
+            if (renderable == null) break;
+
+            var position = renderable.GetPosition();
+            y_position = position.Y - Height / 2f;
+
+            if (placement.Index > (ulong) ((float)_timing_stopwatch.ElapsedMilliseconds * 48000 / 1000)) break;
+
+            new Task(Bounce).Start();
+            if (placement.Event.SoundEvent?.StartsWith('!') ?? false)
+            {
+                new Task(() => Fade(renderable)).Start();
+            }
+
+            if (placement.Event.SoundEvent is "!bg")
+            {
+                var parsed_value = (long)placement.Event.Value;
+                
+                var r = (byte) parsed_value;
+                var g = (byte) (parsed_value >> 8);
+                var b = (byte) (parsed_value >> 16);
+                var color = new Vector4(r / 256f, b / 256f, g / 256f, 1f);
+
+                var seconds = (parsed_value >> 24) / 1000f;
+                
+                new Task(() => ChangeBackground(color, seconds)).Start();
+            }
+            
+            // TODO: implement behavior for !pulse
+            // TODO: add audio output with OpenAL
+            
+            new Task(SmoothScrollCamera).Start();
+            
+            global_i++;
+            continue;
+
+            async void Bounce()
+            {
+                Console.WriteLine($"Bouncing: {placement.Event}");
+                for (var i = 0d; i < 240; i++)
+                {
+                    var scale = (float) Math.Sin(Math.PI * (i / 240));
+                    renderable.SetOffset(Vector3.UnitY * scale * 20);
+                    await Task.Delay(2);
+                }
+            }
+        }
+
+        if (global_i > _placement.LongLength)
+        {
+            Console.WriteLine("Reached the end of composition.");
         }
     }
 }

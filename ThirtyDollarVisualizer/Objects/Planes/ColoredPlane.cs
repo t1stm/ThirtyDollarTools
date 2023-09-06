@@ -9,19 +9,20 @@ public class ColoredPlane : Renderable
     private readonly BufferObject<uint> _ebo;
     private readonly BufferObject<float> _vbo;
     private readonly VertexArrayObject<float> _vao;
-    public Shader _shader;
-    private readonly Vector4 _color;
 
-    public ColoredPlane(Vector4 color, Vector2 position, Vector2 width_height)
+    public ColoredPlane(Vector4 color, Vector3 position, Vector2 width_height)
     {
-        var (x, y) = position;
+        var (x, y,z ) = position;
         var (w, h) = width_height;
+        Position = new Vector3(x, y, 0);
+        Scale = new Vector3(w, h, 0);
+        Offset = Vector3.Zero;
 
         var vertices = new[] {
-             x, y + h,
-             x + w, y + h,
-             x + w, y,
-             x, y
+             x, y + h, z,
+             x + w, y + h, z,
+             x + w, y, z,
+             x, y, z
         };
         
         var indices = new uint[] { 0,1,2, 0,2,3 };
@@ -30,23 +31,29 @@ public class ColoredPlane : Renderable
         _vbo = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
 
         var layout = new VertexBufferLayout();
-        layout.PushFloat(2);
+        layout.PushFloat(3); // xyz vertex coords
         _vao.AddBuffer(_vbo, layout);
 
         _ebo = new BufferObject<uint>(indices, BufferTarget.ElementArrayBuffer);
         
-        _shader = new Shader("./Assets/Shaders/colored.vert", "./Assets/Shaders/colored.frag");
-        _color = color;
+        Shader = new Shader("./Assets/Shaders/colored.vert", "./Assets/Shaders/colored.frag");
+        Color = color;
+    }
+
+    public override Vector3 GetScale()
+    {
+        return Scale;
     }
 
     public override void Render(Camera camera)
     {
         _vao.Bind();
         _ebo.Bind();
-        _shader.Use();
+        Shader.Use();
 
-        _shader.SetUniform("u_Color", _color);
-        _shader.SetUniform("u_ViewportSize", camera.Viewport);
+        Shader.SetUniform("u_Color", Color);
+        Shader.SetUniform("u_ViewportSize", camera.Viewport);
+        Shader.SetUniform("u_OffsetRelative", Offset);
         
         GL.DrawElements(PrimitiveType.Triangles, _ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
     }
@@ -55,17 +62,27 @@ public class ColoredPlane : Renderable
     {
         Position = position;
     }
-
-    public override void UpdateShader(Shader shader)
+    
+    public override void SetOffset(Vector3 position)
     {
-        _shader = shader;
+        Offset = position;
+    }
+    
+    public override void SetColor(Vector4 color)
+    {
+        Color = color;
+    }
+
+    public override void ChangeShader(Shader shader)
+    {
+        Shader = shader;
     }
 
     public override void Dispose()
     {
         _vao.Dispose();
         _ebo.Dispose();
-        _shader.Dispose();
+        Shader.Dispose();
         _vbo.Dispose();
     }
 }

@@ -5,9 +5,16 @@ namespace ThirtyDollarVisualizer;
 
 public static class Program
 {
-    public static void Main()
+    public static void Main(string[] args)
     {
-        var manager = new Manager(1920,900, "Thirty Dollar Visualizer");
+        if (args.Length < 1)
+        {
+            Console.WriteLine("No composition specified.");
+            return;
+        }
+        var composition = args[0]; 
+        
+        var manager = new Manager(1920,840, "Thirty Dollar Visualizer", composition);
         manager.Run();
     }
 }

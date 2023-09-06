@@ -5,7 +5,12 @@ namespace ThirtyDollarParser;
 public class Sound
 {
     /// <summary>
-    /// Thumbnail url for emoji sounds.
+    /// Thumbnail url for PNG emoji sounds.
+    /// </summary>
+    private const string Twemoji_PNG_URL = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72";
+    
+    /// <summary>
+    /// Thumbnail url for SVG emoji sounds.
     /// </summary>
     private const string Twemoji_SVG_URL = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg";
 
@@ -50,5 +55,5 @@ public class Sound
     /// </summary>
     public string Icon_URL => Emoji == null ? 
         $"{Thirty_Dollar_Asset_URL}/{Id}.png" : 
-        $"{Twemoji_SVG_URL}/{char.ConvertToUtf32(Emoji, 0).ToString("X").ToLower()}.svg";
+        $"{Twemoji_PNG_URL}/{char.ConvertToUtf32(Emoji, 0).ToString("X").ToLower()}.png";
 }

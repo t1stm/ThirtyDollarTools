@@ -88,7 +88,7 @@ public class DownloaderViewModel : ViewModelBase
         foreach (var (sound, _) in sample_holder.SampleList)
         {
             var filename = sound.Filename;
-            var file_extension = sound.Emoji == null ? "png" : "svg";
+            const string file_extension = "png";
 
             var download_location = $"{images_location}/{filename}.{file_extension}";
             DownloadMessageHandler($"{filename}.{file_extension}", current, total_length);
