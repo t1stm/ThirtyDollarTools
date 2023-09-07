@@ -1,31 +1,73 @@
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects;
 
 public abstract class Renderable
 {
-    protected Vector3 Position;
-    protected Vector3 Scale;
-    protected Vector3 Offset;
-    protected Vector4 Color;
+    protected Vector3 Position { get; set; }
+    protected Vector3 Scale { get; set; }
+    protected Vector3 Offset { get; set; }
+    protected Vector4 Color { get; set; }
+    
     protected Shader Shader = null!;
+    
+    protected BufferObject<uint>? Ebo;
+    protected BufferObject<float>? Vbo;
+    protected VertexArrayObject<float>? Vao;
+
+    protected readonly object LockObject = new();
+
+    /// <summary>
+    /// A boolean made for external use.
+    /// </summary>
+    public bool IsBeingUpdated = false;
 
     public abstract void Render(Camera camera);
-    public abstract void SetOffset(Vector3 position);
-    public abstract void SetPosition(Vector3 position);
-    public abstract void SetColor(Vector4 color);
+    public virtual void Dispose() {}
+    public void ChangeShader(Shader shader) => Shader = shader;
+    public abstract void UpdateVertices();
 
-    public virtual void Dispose()
+    public Vector3 GetScale()
     {
-        // Add implementation where needed.
+        lock (LockObject)
+            return Scale;
+    }
+    public Vector3 GetPosition()
+    {
+        lock (LockObject)
+            return Position;
+    }
+    public Vector4 GetColor()
+    {
+        lock (LockObject)
+            return Color;
+    }
+    
+    public void SetOffset(Vector3 position)
+    {
+        lock (LockObject)
+            Offset = position;
+    }
+    public void SetPosition(Vector3 position)
+    {
+        lock (LockObject)
+            Position = position;
+        
+        UpdateVertices();
     }
 
-    public virtual void ChangeShader(Shader shader)
+    public void SetScale(Vector3 scale)
     {
-        // Default: ignore.
+        lock (LockObject)
+            Scale = scale;
+        
+        UpdateVertices();
     }
 
-    public virtual Vector3 GetScale() => Scale;
-    public virtual Vector3 GetPosition() => Position;
-    public virtual Vector4 GetColor() => Color;
+    public void SetColor(Vector4 color)
+    {
+        lock (LockObject)
+            Color = color;
+    }
 }

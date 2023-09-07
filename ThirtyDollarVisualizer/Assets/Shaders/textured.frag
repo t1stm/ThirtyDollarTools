@@ -16,8 +16,6 @@ void main() {
     float texture_alpha = texture_color.a;
     float overlay_alpha = u_OverlayColor.a;
     
-    float mixed_alpha = texture_alpha + overlay_alpha * (1.0 - texture_alpha);
-    
     vec4 mixed_color;
     
     if (texture_alpha < 0.01) {

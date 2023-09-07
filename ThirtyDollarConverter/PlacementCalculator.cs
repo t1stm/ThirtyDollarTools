@@ -133,13 +133,14 @@ public class PlacementCalculator
                 
                 case "_pause": 
                 case "!stop":
-                    if (ev.PlayTimes > 0)
+                    var working_value = ev.Value;
+                    while (ev.PlayTimes > 0)
                     {
-                        var multiplier = Math.Min(ev.Value, 1);
+                        var multiplier = Math.Min(working_value, 1);
                         position += (ulong)(multiplier * SampleRate / (bpm / 60));
 
                         ev.PlayTimes -= 1;
-                        if (ev.PlayTimes < 0) ev.PlayTimes = 0;
+                        working_value -= 1;
                     }
                     break;
                     

@@ -9,6 +9,8 @@ public class Camera
     public Vector3 Up { get; private set; }
     public float AspectRatio { get; set; }
     public Vector2i Viewport;
+    
+    public bool IsBeingUpdated { get; set; }
 
     public int Width
     {

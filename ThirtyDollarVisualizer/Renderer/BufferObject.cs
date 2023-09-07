@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL;
 
 namespace ThirtyDollarVisualizer.Renderer;
 
-public class BufferObject<TDataType> where TDataType : unmanaged
+public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
 {
     private readonly uint _handle;
     private readonly BufferTarget _bufferType;
@@ -32,10 +32,6 @@ public class BufferObject<TDataType> where TDataType : unmanaged
     public void Dispose()
     {
         GL.DeleteBuffer(_handle);
-    }
-
-    ~BufferObject()
-    {
-        Dispose();
+        GC.SuppressFinalize(this);
     }
 }

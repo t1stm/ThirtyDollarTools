@@ -3,15 +3,16 @@ using ThirtyDollarEncoder.PCM;
 
 namespace ThirtyDollarVisualizer.Audio;
 
-public class AudibleSample
+public class AudibleSample : IDisposable
 {
     private readonly float[] intertweened_audio;
-    private int _audio_source;
     private int _audio_buffer;
-    private ALFormat _format;
+    private int _audio_source;
+    private readonly ALFormat _format;
     public float _volume => AudioContext.GlobalVolume * _relative_volume;
     public float _relative_volume = .5f;
 
+    private bool _destroy = false;
     public static bool CheckErrors()
     {
         var has_error = false;
@@ -57,11 +58,8 @@ public class AudibleSample
 
     public void Cache()
     {
-        _audio_source = AL.GenSource();
         _audio_buffer = AL.GenBuffer();
-        
         AL.BufferData(_audio_buffer, _format, intertweened_audio, AudioContext.SampleRate);
-        AL.Source(_audio_source, ALSourcei.Buffer, _audio_buffer);
     }
 
     public void SetVolume(float volume = 0.5f)
@@ -69,18 +67,48 @@ public class AudibleSample
         _relative_volume = volume;
     }
 
-    public void PlaySample()
+    public async Task PlaySample()
     {
         CheckErrors();
-        AL.Source(_audio_source, ALSourcef.Gain, _volume);
+        _audio_source = AL.GenSource();
+        var source = _audio_source;
         
-        AL.SourceRewind(_audio_source);
-        AL.SourcePlay(_audio_source);
+        AL.Source(source, ALSourcei.Buffer, _audio_buffer);
+        AL.Source(source, ALSourcef.Gain, _volume);
+        AL.SourcePlay(source);
+        
+        while (!_destroy)
+        {
+            AL.GetSource(source, ALGetSourcei.SourceState, out var state);
+
+            if ((ALSourceState) state != ALSourceState.Stopped)
+            {
+                await Task.Delay(166);
+                continue;
+            }
+            
+            AL.DeleteSource(source);
+            break;
+        }
+    }
+
+    public void Stop()
+    {
+        AL.SourceStop(_audio_source);
     }
 
     public void Destroy()
     {
-        AL.DeleteSource(_audio_source);
+        if (_audio_buffer == -1) return;
+
+        _destroy = true;
         AL.DeleteBuffer(_audio_buffer);
+        _audio_buffer = -1;
+    }
+
+    public void Dispose()
+    {
+        Destroy();
+        GC.SuppressFinalize(this);
     }
 }

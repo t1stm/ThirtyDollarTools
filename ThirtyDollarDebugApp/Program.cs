@@ -44,7 +44,8 @@ internal static class Program
             var encoder = new PcmEncoder(holder, new EncoderSettings
             {
                 SampleRate = 48000,
-                Channels = 2
+                Channels = 2,
+                CutDelayMs = 300
             }, Console.WriteLine);
 
             var audioData = encoder.SampleComposition(composition); // Shame on me...
