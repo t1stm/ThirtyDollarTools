@@ -37,10 +37,7 @@ public class Manager : GameWindow
 
         foreach (var scene in Scenes)
         {
-            Task.Run(() =>
-            {
-                scene.Init();
-            });
+            scene.Init();
         }
     }
 
