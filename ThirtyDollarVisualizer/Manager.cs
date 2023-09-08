@@ -1,7 +1,8 @@
+using System.ComponentModel;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
-using ThirtyDollarVisualizer.Audio;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Objects.Text;
 using ThirtyDollarVisualizer.Scenes;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
@@ -16,7 +17,7 @@ public class Manager : GameWindow
         {
             UpdateFrequency = 1000
         },
-        new NativeWindowSettings { Size = (width, height), Title = title })
+        new NativeWindowSettings { Size = (width, height), Title = title, APIVersion = Version.Parse("4.6")})
     {
     }
 
@@ -39,7 +40,7 @@ public class Manager : GameWindow
 
         foreach (var scene in Scenes)
         {
-            scene.Init();
+            scene.Init(this);
         }
 
         foreach (var scene in Scenes)
@@ -76,11 +77,22 @@ public class Manager : GameWindow
         {
             scene.Update();
         }
+
+        if (!KeyboardState.IsKeyDown(Keys.Escape)) return;
+        
+        foreach (var scene in Scenes)
+        {
+            scene.Close();
+        }
     }
 
-    public override void Close()
+    protected override void OnClosing(CancelEventArgs e)
     {
-        AudioContext.Destroy();
-        base.Close();
+        base.OnClosing(e);
+
+        foreach (var scene in Scenes)
+        {
+            scene.Close();
+        }
     }
 }

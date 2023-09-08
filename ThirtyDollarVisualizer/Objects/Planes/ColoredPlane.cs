@@ -20,6 +20,11 @@ public sealed class ColoredPlane : Renderable
         Color = color;
     }
 
+    public ColoredPlane(Vector4 color, Vector3 position, Vector2 width_height, Shader? shader) : this(color, position, width_height)
+    {
+        Shader = shader ?? Shader;
+    }
+
     public override void UpdateVertices()
     {
         lock (LockObject)

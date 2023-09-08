@@ -52,6 +52,12 @@ public abstract class Renderable
             return Color;
     }
     
+    public Vector3 GetOffset()
+    {
+        lock (LockObject)
+            return Offset;
+    }
+    
     public void SetOffset(Vector3 position)
     {
         lock (LockObject)

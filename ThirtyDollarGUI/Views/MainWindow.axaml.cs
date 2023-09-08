@@ -11,6 +11,5 @@ public partial class MainWindow : Window
 
     private void ScrollViewer_OnScrollChanged(object? sender, ScrollChangedEventArgs e)
     {
-        var position = e.ToString();
     }
 }

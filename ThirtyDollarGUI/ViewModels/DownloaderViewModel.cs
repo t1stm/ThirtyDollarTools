@@ -20,6 +20,28 @@ public class DownloaderViewModel : ViewModelBase
     private readonly SampleHolder sample_holder;
     private bool download_running;
     public DownloaderMode DownloadMode;
+    public Action? OnFinishDownloading { get; init; }
+    
+    public static readonly string[] ActionsArray = {
+        "action_bg.png",
+        "action_combine.png",
+        "action_cut.png",
+        "action_divider.png",
+        "action_flash.png",
+        "action_jump.png",
+        "action_loop.png",
+        "action_loopmany.png",
+        "action_looptarget.png",
+        "action_pulse.png",
+        "action_speed.png",
+        "action_startpos.png",
+        "action_stop.png",
+        "action_target.png",
+        "action_transpose.png",
+        "action_volume.png"
+    };
+    
+    public string ImagesLocation => $"{sample_holder.DownloadLocation}/Images";
     
     public DownloaderViewModel(SampleHolder sample_holder, DownloaderMode downloadMode = DownloaderMode.Samples)
     {
@@ -76,21 +98,21 @@ public class DownloaderViewModel : ViewModelBase
     private async Task DownloadImagesTask()
     {
         var current = 0;
-        var total_length = sample_holder.SampleList.Count;
-        var images_location = $"{sample_holder.DownloadLocation}/Images";
-        if (!Directory.Exists(images_location))
+        var total_length = sample_holder.SampleList.Count + ActionsArray.Length;
+        
+        if (!Directory.Exists(ImagesLocation))
         {
-            Directory.CreateDirectory(images_location);
+            Directory.CreateDirectory(ImagesLocation);
         }
 
         var http_client = new HttpClient();
-        
+
         foreach (var (sound, _) in sample_holder.SampleList)
         {
             var filename = sound.Filename;
             const string file_extension = "png";
 
-            var download_location = $"{images_location}/{filename}.{file_extension}";
+            var download_location = $"{ImagesLocation}/{filename}.{file_extension}";
             DownloadMessageHandler($"{filename}.{file_extension}", current, total_length);
 
             if (File.Exists(download_location))
@@ -100,6 +122,26 @@ public class DownloaderViewModel : ViewModelBase
             }
 
             var stream = await http_client.GetStreamAsync(sound.Icon_URL);
+            await using var fs = File.Open(download_location, FileMode.CreateNew);
+            await stream.CopyToAsync(fs);
+            
+            fs.Close();
+            current++;
+        }
+
+        foreach (var action in ActionsArray)
+        {
+            var file_name = $"{action}";
+            var download_location = $"{ImagesLocation}/{file_name}";
+            
+            DownloadMessageHandler(file_name, current, total_length);
+            if (File.Exists(download_location))
+            {
+                current++;
+                continue;
+            }
+
+            await using var stream = await http_client.GetStreamAsync($"{SampleHolder.ThirtyDollarWebsiteUrl}/assets/{file_name}");
             await using var fs = File.Open(download_location, FileMode.CreateNew);
             await stream.CopyToAsync(fs);
             
@@ -124,7 +166,8 @@ public class DownloaderViewModel : ViewModelBase
                 await DownloadImagesTask();
                 break;
         }
-        
+
         download_running = false;
+        OnFinishDownloading?.Invoke();
     }
 }

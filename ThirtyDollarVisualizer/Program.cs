@@ -21,26 +21,20 @@ public static class Program
     {
         string? composition = null;
         var no_audio = false;
-        
+
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
             {
                 composition = options.Input;
                 no_audio = options.NoAudio;
-                
-            })
-            .WithNotParsed(errors =>
-            {
-                foreach (var error in errors)
-                {
-                    Console.WriteLine(error.ToString());
-                }
-            });
-        
-        
-        var manager = new Manager(1920,840, "Thirty Dollar Visualizer");
 
-        var tdw_application = new ThirtyDollarApplication(1920, 840, composition)
+            });
+
+        if (composition == null) return;
+        
+        var manager = new Manager(1600,840, "Thirty Dollar Visualizer");
+
+        var tdw_application = new ThirtyDollarApplication(1600, 840, composition)
         {
             PlayAudio = !no_audio
         };

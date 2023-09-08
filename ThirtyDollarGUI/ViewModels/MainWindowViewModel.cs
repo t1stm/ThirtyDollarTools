@@ -3,12 +3,16 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
+using OpenTK.Graphics.OpenGL;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using ReactiveUI;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarGUI.Helper;
 using ThirtyDollarGUI.Views;
 using ThirtyDollarParser;
+using ThirtyDollarVisualizer;
+using ThirtyDollarVisualizer.Scenes;
 
 namespace ThirtyDollarGUI.ViewModels;
 
@@ -221,12 +225,52 @@ public class MainWindowViewModel : ViewModelBase
 
     public void PreviewSequence()
     {
-        var downloader = new Downloader
+        var downloader = new Downloader();
+        var data_context = new DownloaderViewModel(sample_holder, DownloaderMode.Images)
         {
-            DataContext = new DownloaderViewModel(sample_holder, DownloaderMode.Images)
+            OnFinishDownloading = download_continue
         };
-        
-        downloader.Show();
-        
+
+        downloader.DataContext = data_context;
+
+        if (!Directory.Exists(data_context.ImagesLocation) || 
+            Directory.GetFiles(data_context.ImagesLocation).Length <= sample_holder.SampleList.Count + DownloaderViewModel.ActionsArray.Length)
+        {
+            downloader.Show();
+            return;
+        }
+
+        download_continue();
+        return;
+
+        void download_continue()
+        {
+            downloader.Close();
+
+            var w = 1600;
+            var h = 900;
+
+            var application = new ThirtyDollarApplication(w, h, sequence_file_location)
+            {
+                SampleHolder = sample_holder,
+                RenderableSize = 64,
+                MarginBetweenRenderables = 6,
+                ElementsOnSingleLine = 16,
+
+                BackgroundVertexShaderLocation = null,
+                BackgroundFragmentShaderLocation = null,
+                PlayAudio = true
+            };
+
+            var manager = new Manager(w, h, "Thirty Dollar Visualizer")
+            {
+                Scenes = { application }
+            };
+
+            GLFW.Init();
+            GL.LoadBindings(new GLFWBindingsContext());
+            
+            manager.Run();
+        }
     }
 }

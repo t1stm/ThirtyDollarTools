@@ -6,7 +6,7 @@ namespace ThirtyDollarVisualizer.Helpers.Color;
 
 public static class ColorTools
 {
-    private static readonly Vector4 FadeColor = new(0, 0, 0, 0.6f);
+    private static readonly Vector4 FadeColor = new(0, 0, 0, 0.4f);
     
     public static async void Fade(Renderable renderable)
     {
