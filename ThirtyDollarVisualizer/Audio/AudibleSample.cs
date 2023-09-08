@@ -12,20 +12,17 @@ public class AudibleSample : IDisposable
     public float _volume => AudioContext.GlobalVolume * _relative_volume;
     public float _relative_volume = .5f;
 
-    private bool _destroy = false;
-    public static bool CheckErrors()
+    private bool _destroy;
+
+    public static void CheckErrors()
     {
-        var has_error = false;
         ALError error;
         while ((error = AL.GetError()) != ALError.NoError)
         {
-            has_error = true;
-            Console.WriteLine($"[OpenAL Error]: (0x{(int)error:x8}) \'{error}\'");
+            Console.WriteLine($"({DateTime.Now:G}): [OpenAL Error]: (0x{(int)error:x8}) \'{error}\'");
         }
-
-        return has_error;
     }
-    
+
     public AudibleSample(AudioData<float> data)
     {
         var length = data.Samples[0].LongLength;
@@ -77,16 +74,18 @@ public class AudibleSample : IDisposable
         AL.Source(source, ALSourcef.Gain, _volume);
         AL.SourcePlay(source);
         
-        while (!_destroy)
+        while (true)
         {
+            if (_destroy) break;
             AL.GetSource(source, ALGetSourcei.SourceState, out var state);
 
             if ((ALSourceState) state != ALSourceState.Stopped)
             {
-                await Task.Delay(166);
+                await Task.Delay(33);
                 continue;
             }
-            
+
+            if (_destroy) break;
             AL.DeleteSource(source);
             break;
         }
@@ -94,7 +93,8 @@ public class AudibleSample : IDisposable
 
     public void Stop()
     {
-        AL.SourceStop(_audio_source);
+        _destroy = true;
+        AL.DeleteSource(_audio_source);
     }
 
     public void Destroy()

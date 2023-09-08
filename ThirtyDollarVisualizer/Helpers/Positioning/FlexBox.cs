@@ -28,7 +28,7 @@ public class FlexBox
 
     public Vector3 AddBox(Vector2i size)
     {
-        if (CurrentX + size.X + MarginPixels > Width)
+        if (CurrentX + size.X + MarginPixels > Width + X + 1)
         {
             CurrentX = X + MarginPixels;
             CurrentY += MaxHeight + MarginPixels;

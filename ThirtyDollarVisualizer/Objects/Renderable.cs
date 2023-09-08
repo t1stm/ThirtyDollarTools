@@ -5,6 +5,7 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public abstract class Renderable
 {
+    public List<Renderable> Children = new();
     protected Vector3 Position { get; set; }
     protected Vector3 Scale { get; set; }
     protected Vector3 Offset { get; set; }
@@ -23,7 +24,14 @@ public abstract class Renderable
     /// </summary>
     public bool IsBeingUpdated = false;
 
-    public abstract void Render(Camera camera);
+    public virtual void Render(Camera camera)
+    {
+        foreach (var child in Children)
+        {
+            child.Render(camera);
+        }
+    }
+    
     public virtual void Dispose() {}
     public void ChangeShader(Shader shader) => Shader = shader;
     public abstract void UpdateVertices();
@@ -48,6 +56,11 @@ public abstract class Renderable
     {
         lock (LockObject)
             Offset = position;
+
+        foreach (var child in Children)
+        {
+            child.SetOffset(position);
+        }
     }
     public void SetPosition(Vector3 position)
     {

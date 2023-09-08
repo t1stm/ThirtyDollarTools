@@ -9,35 +9,28 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="CommandLineParser" Version="2.9.1" />
         <PackageReference Include="OpenTK" Version="4.8.0" />
-        <PackageReference Include="SharpFont" Version="4.0.1" />
+        <PackageReference Include="SixLabors.Fonts" Version="1.0.0" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
+        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0" />
     </ItemGroup>
 
     <ItemGroup>
         <None Remove="Assets\Fonts\VarelaRound-Regular.ttf" />
-        <Content Include="Assets\Fonts\VarelaRound-Regular.ttf">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
         <None Remove="Assets\Shaders\textured.frag" />
-        <Content Include="Assets\Shaders\textured.frag">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
+        <EmbeddedResource Include="Assets\Shaders\textured.frag" />
         <None Remove="Assets\Shaders\textured.vert" />
-        <Content Include="Assets\Shaders\textured.vert">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
+        <EmbeddedResource Include="Assets\Shaders\textured.vert" />
+        <None Remove="Assets\Fonts\Lato-Regular.ttf" />
+        <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="Assets\Shaders\colored.vert" />
-      <Content Include="Assets\Shaders\colored.vert">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
+      <EmbeddedResource Include="Assets\Shaders\colored.vert" />
       <None Remove="Assets\Shaders\colored.frag" />
-      <Content Include="Assets\Shaders\colored.frag">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
+      <EmbeddedResource Include="Assets\Shaders\colored.frag" />
     </ItemGroup>
 
     <ItemGroup>

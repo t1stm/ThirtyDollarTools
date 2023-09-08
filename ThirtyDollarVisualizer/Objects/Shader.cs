@@ -1,3 +1,4 @@
+using System.Reflection;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
@@ -113,14 +114,30 @@ public class Shader : IDisposable
 
     private int LoadShader(ShaderType type, string path)
     {
-        var src = File.ReadAllText(path);
+        string source;
+
+        if (File.Exists(path))
+        {
+            source = File.ReadAllText(path);
+        }
+        else
+        {
+            var stream = Assembly.GetExecutingAssembly()
+                .GetManifestResourceStream(path);
+
+            if (stream == null) throw new FileNotFoundException($"Unable to find shader \'{path}\' in assembly or real path.");
+            
+            using var stream_reader = new StreamReader(stream);
+            source = stream_reader.ReadToEnd();
+        }
+        
         var handle = GL.CreateShader(type);
-        GL.ShaderSource(handle, src);
+        GL.ShaderSource(handle, source);
         GL.CompileShader(handle);
         var infoLog = GL.GetShaderInfoLog(handle);
         if (!string.IsNullOrWhiteSpace(infoLog))
         {
-            throw new Exception($"Error compiling shader of type {type}, failed with error {infoLog}");
+            throw new Exception($"Error compiling shader \'{path}\' of type {type}, failed with error {infoLog}");
         }
 
         return handle;

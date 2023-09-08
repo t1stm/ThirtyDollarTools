@@ -18,7 +18,7 @@ public sealed class TexturedPlane : Renderable
         
         UpdateVertices();
         
-        Shader = new Shader("./Assets/Shaders/textured.vert", "./Assets/Shaders/textured.frag");
+        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert", "ThirtyDollarVisualizer.Assets.Shaders.textured.frag");
         Color = new Vector4(0, 0, 0, 0);
         
         _texture = texture;
@@ -71,6 +71,8 @@ public sealed class TexturedPlane : Renderable
         
             GL.DrawElements(PrimitiveType.Triangles, Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
         }
+        
+        base.Render(camera);
     }
 
     public override void Dispose()

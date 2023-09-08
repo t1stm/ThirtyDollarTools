@@ -1,20 +1,52 @@
 // Warm thanks to The Cherno
 // https://youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2
 
+using CommandLine;
+using ThirtyDollarVisualizer.Scenes;
+
 namespace ThirtyDollarVisualizer;
 
 public static class Program
 {
+    public class Options
+    {
+        [Option('i', "composition", Required = true, HelpText = "The composition's location.")]
+        public string? Input { get; set; }
+
+        [Option("no-audio", HelpText = "Disable audio playback.")]
+        public bool NoAudio { get; set; }
+    }
+    
     public static void Main(string[] args)
     {
-        if (args.Length < 1)
-        {
-            Console.WriteLine("No composition specified.");
-            return;
-        }
-        var composition = args[0]; 
+        string? composition = null;
+        var no_audio = false;
         
-        var manager = new Manager(1920,840, "Thirty Dollar Visualizer", composition);
+        Parser.Default.ParseArguments<Options>(args)
+            .WithParsed(options =>
+            {
+                composition = options.Input;
+                no_audio = options.NoAudio;
+                
+            })
+            .WithNotParsed(errors =>
+            {
+                foreach (var error in errors)
+                {
+                    Console.WriteLine(error.ToString());
+                }
+            });
+        
+        
+        var manager = new Manager(1920,840, "Thirty Dollar Visualizer");
+
+        var tdw_application = new ThirtyDollarApplication(1920, 840, composition)
+        {
+            PlayAudio = !no_audio
+        };
+
+        manager.Scenes.Add(tdw_application);
+        
         manager.Run();
     }
 }

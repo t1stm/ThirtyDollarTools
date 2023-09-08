@@ -2,6 +2,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Objects.Text;
 using ThirtyDollarVisualizer.Scenes;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
 
@@ -9,15 +10,14 @@ namespace ThirtyDollarVisualizer;
 
 public class Manager : GameWindow
 {
-    private readonly List<IScene> Scenes = new();
+    public readonly List<IScene> Scenes = new();
 
-    public Manager(int width, int height, string title, string? composition_location = null) : base(new GameWindowSettings
+    public Manager(int width, int height, string title) : base(new GameWindowSettings
         {
             UpdateFrequency = 1000
         },
         new NativeWindowSettings { Size = (width, height), Title = title })
     {
-        Scenes.Add(new ThirtyDollarApplication(width, height, composition_location));
     }
 
     public static void CheckErrors()
@@ -34,10 +34,17 @@ public class Manager : GameWindow
         
         CheckErrors();
         base.OnLoad();
+        
+        Fonts.Initialize();
 
         foreach (var scene in Scenes)
         {
             scene.Init();
+        }
+
+        foreach (var scene in Scenes)
+        {
+            scene.Start();
         }
     }
 
@@ -67,10 +74,7 @@ public class Manager : GameWindow
     {
         foreach (var scene in Scenes)
         {
-            Task.Run(() =>
-            {
-                scene.Update();
-            });
+            scene.Update();
         }
     }
 

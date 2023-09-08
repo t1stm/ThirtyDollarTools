@@ -1,6 +1,6 @@
-
-
 using OpenTK.Graphics.OpenGL;
+using SixLabors.Fonts;
+using SixLabors.ImageSharp.Drawing.Processing;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -10,30 +10,40 @@ public class Texture : IDisposable
     public int Width;
     public int Height;
     
-    public unsafe Texture(string path)
+    public Texture(string path)
     {
         _handle = GL.GenTexture();
         Bind();
 
         using (var img = Image.Load<Rgba32>(path))
         {
-            Width = img.Width;
-            Height = img.Height;
-            
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, img.Width, img.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, 0);
-
-            img.ProcessPixelRows(accessor =>
-            {
-                for (var y = 0; y < accessor.Height; y++)
-                {
-                    fixed (void* data = accessor.GetRowSpan(y))
-                    {
-                        GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, y, accessor.Width, 1, PixelFormat.Rgba, PixelType.UnsignedByte, new IntPtr(data));
-                    }
-                }
-            });
+            LoadImage(img);
         }
 
+        SetParameters();
+    }
+
+    public Texture(Font font, string text, Color? color = null)
+    {
+        _handle = GL.GenTexture();
+        Bind();
+
+        var options = new TextOptions(font);
+        var rect = TextMeasurer.MeasureAdvance(text, options);
+        
+        using Image<Rgba32> image = new((int) Math.Ceiling(rect.Width), (int) Math.Ceiling(rect.Height), Color.Transparent);
+
+        var point = PointF.Empty;
+
+        color ??= Color.White;
+        
+        image.Mutate(x => 
+                x.DrawText(text, font, Color.Black, point)
+                .GaussianBlur(1)
+                .DrawText(text, font, (Color) color, point)
+            );
+        
+        LoadImage(image);
         SetParameters();
     }
 
@@ -47,8 +57,28 @@ public class Texture : IDisposable
         fixed (void* d = &data[0])
         {
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, new IntPtr(d));
-            SetParameters();
         }
+        
+        SetParameters();
+    }
+
+    private unsafe void LoadImage(Image<Rgba32> img)
+    {
+        Width = img.Width;
+        Height = img.Height;
+            
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, img.Width, img.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, 0);
+
+        img.ProcessPixelRows(accessor =>
+        {
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                fixed (void* data = accessor.GetRowSpan(y))
+                {
+                    GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, y, accessor.Width, 1, PixelFormat.Rgba, PixelType.UnsignedByte, new IntPtr(data));
+                }
+            }
+        });
     }
 
     private static void SetParameters()

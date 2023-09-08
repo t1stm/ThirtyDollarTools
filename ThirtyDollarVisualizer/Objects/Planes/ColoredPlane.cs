@@ -16,7 +16,7 @@ public sealed class ColoredPlane : Renderable
         
         UpdateVertices();
         
-        Shader = new Shader("./Assets/Shaders/colored.vert", "./Assets/Shaders/colored.frag");
+        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.colored.vert", "ThirtyDollarVisualizer.Assets.Shaders.colored.frag");
         Color = color;
     }
 
@@ -63,6 +63,8 @@ public sealed class ColoredPlane : Renderable
         
             GL.DrawElements(PrimitiveType.Triangles, Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
         }
+        
+        base.Render(camera);
     }
 
     public override void Dispose()
