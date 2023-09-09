@@ -10,8 +10,8 @@ void main() {
     float pixel_x = aPosition.x + u_OffsetRelative.x + u_OffsetRelative.x + u_CameraPosition.x;
     float pixel_y = (u_ViewportSize.y - aPosition.y) + u_OffsetRelative.y + u_CameraPosition.y;
 
-    float nx = pixel_x / u_ViewportSize.x * 2f - 1f;
-    float ny = pixel_y / u_ViewportSize.y * 2f - 1f;
+    float nx = pixel_x / u_ViewportSize.x * 2.0 - 1.0;
+    float ny = pixel_y / u_ViewportSize.y * 2.0 - 1.0;
     
-    gl_Position = vec4(nx, ny, aPosition.z, 1f);
+    gl_Position = vec4(nx, ny, aPosition.z, 1.0);
 }
