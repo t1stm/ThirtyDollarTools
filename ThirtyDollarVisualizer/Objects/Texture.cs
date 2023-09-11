@@ -1,3 +1,4 @@
+using System.Reflection;
 using OpenTK.Graphics.OpenGL;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -14,13 +15,29 @@ public class Texture : IDisposable
     {
         _handle = GL.GenTexture();
         Bind();
+        
+        Stream source;
 
-        using (var img = Image.Load<Rgba32>(path))
+        if (File.Exists(path))
+        {
+            source = File.OpenRead(path);
+        }
+        else
+        {
+            var stream = Assembly.GetExecutingAssembly()
+                .GetManifestResourceStream(path);
+
+            source = stream ?? throw new FileNotFoundException($"Unable to find texture \'{path}\' in assembly or real path.");
+        }
+
+        using (var img = Image.Load<Rgba32>(source))
         {
             LoadImage(img);
         }
 
         SetParameters();
+        
+        source.Dispose();
     }
 
     public Texture(Font font, string text, Color? color = null)

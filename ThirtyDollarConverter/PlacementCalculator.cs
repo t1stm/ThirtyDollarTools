@@ -6,7 +6,7 @@ using ThirtyDollarParser;
 
 namespace ThirtyDollarConverter;
 
-enum EventType
+internal enum EventType
 {
     Action,
     Sound
@@ -148,6 +148,13 @@ public class PlacementCalculator
                     if (ev.PlayTimes > 0)
                     {
                         ev.PlayTimes--;
+                        yield return new Placement
+                        {
+                            Index = position,
+                            SequenceIndex = index,
+                            Event = ev,
+                            Audible = false
+                        };
                         
                         modify_index = false;
                         index = loop_target;
@@ -161,6 +168,13 @@ public class PlacementCalculator
                     if (!ev.Triggered)
                     {
                         ev.Triggered = true;
+                        yield return new Placement
+                        {
+                            Index = position,
+                            SequenceIndex = index,
+                            Event = ev,
+                            Audible = false
+                        };
                         
                         modify_index = false;
                         index = loop_target;
@@ -188,6 +202,14 @@ public class PlacementCalculator
                         Untrigger(ref composition, 0, new[] { "!loop", "!loopmany", "!jump", "!target" });
                         break;
                     }
+                    
+                    yield return new Placement
+                    {
+                        Index = position,
+                        SequenceIndex = index,
+                        Event = ev,
+                        Audible = false
+                    };
 
                     index = (ulong) search;
                     var found_event = composition.Events[index];

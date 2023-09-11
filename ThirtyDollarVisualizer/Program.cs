@@ -2,6 +2,7 @@
 // https://youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2
 
 using CommandLine;
+using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Scenes;
 
 namespace ThirtyDollarVisualizer;
@@ -15,28 +16,47 @@ public static class Program
 
         [Option("no-audio", HelpText = "Disable audio playback.")]
         public bool NoAudio { get; set; }
+        
+        [Option('w', "width", HelpText = "The width of the render window.")]
+        public int? Width { get; set; }
+        [Option('h', "height", HelpText = "The height of the render window.")]
+        public int? Height { get; set; }
+
+        [Option('c', "--camera_follow_mode", HelpText = "Controls how the camera behaves. Values: \"tdw\", \"line\"")]
+        public string? CameraFollowMode { get; set; }
     }
     
     public static void Main(string[] args)
     {
         string? composition = null;
         var no_audio = false;
+        var width = 1600;
+        var height = 840;
+        var follow_mode = CameraFollowMode.TDW_Like;
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
             {
                 composition = options.Input;
                 no_audio = options.NoAudio;
+                width = options.Width ?? width;
+                height = options.Height ?? height;
 
+                follow_mode = options.CameraFollowMode switch
+                {
+                    "line" => CameraFollowMode.Current_Line,
+                    _ => CameraFollowMode.TDW_Like
+                };
             });
 
         if (composition == null) return;
         
-        var manager = new Manager(1600,840, "Thirty Dollar Visualizer");
+        var manager = new Manager(width,height, "Thirty Dollar Visualizer");
 
         var tdw_application = new ThirtyDollarApplication(1600, 840, composition)
         {
-            PlayAudio = !no_audio
+            PlayAudio = !no_audio,
+            CameraFollowMode = follow_mode
         };
 
         manager.Scenes.Add(tdw_application);

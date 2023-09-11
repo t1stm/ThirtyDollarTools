@@ -25,6 +25,8 @@
         <EmbeddedResource Include="Assets\Shaders\textured.vert" />
         <None Remove="Assets\Fonts\Lato-Regular.ttf" />
         <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf" />
+        <None Remove="Assets\Fonts\Lato-Bold.ttf" />
+        <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf" />
     </ItemGroup>
 
     <ItemGroup>
@@ -35,9 +37,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="Assets\Textures\moai.png">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Content>
+      <EmbeddedResource Include="Assets\Textures\moai.png" />
     </ItemGroup>
 
     <ItemGroup>

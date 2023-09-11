@@ -1,7 +1,6 @@
 #version 330 core
 
 in vec2 fragment_coords;
-in vec2 normalized_coords;
 
 uniform sampler2D u_Texture;
 uniform float u_BorderRadius;

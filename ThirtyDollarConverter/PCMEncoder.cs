@@ -168,12 +168,25 @@ public class PcmEncoder
             var indexCopy = channelIndex;
             encodeTasks[indexCopy] = new Task(() =>
             {
+                var old_placement = 0ul;
+                var difference = 0u;
+                
                 ulong current_index = 0;
                 var length = (ulong) queue.LongCount();
                 var update_n_length = (ulong) Math.Ceiling((double)length / 100);
                 
                 foreach (var placement in queue.Where(placement => placement.Audible))
                 {
+                    if (placement.Index != old_placement)
+                    {
+                        old_placement = placement.Index;
+                        difference = 0;
+                    }
+                    else
+                    {
+                        difference += Settings.CombineDelayMs * SampleRate / 1000;
+                    }
+                    
                     if (current_index != 0 && current_index % update_n_length == 0)
                     {
                         IndexReport(current_index, length);
@@ -209,7 +222,7 @@ public class PcmEncoder
                             .AudioData;
 
                     var data = sample.GetChannel(indexCopy);
-                    RenderSample(data, ref audioData.Samples[indexCopy], placement.Index, ev.Volume ?? 100);
+                    RenderSample(data, ref audioData.Samples[indexCopy], placement.Index + difference, ev.Volume ?? 100);
                     encodeIndices[indexCopy] = placement.Index;
                     current_index++;
                 }

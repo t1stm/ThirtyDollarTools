@@ -11,13 +11,15 @@ using ThirtyDollarVisualizer.Helpers.Color;
 using ThirtyDollarVisualizer.Helpers.Positioning;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Objects.Text;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
 public class ThirtyDollarApplication : IScene
 {
-    private static readonly List<Renderable> render_objects = new();
+    private static readonly List<Renderable> start_objects = new();
+    private static readonly List<Renderable> static_objects = new();
     private static readonly List<Renderable> tdw_images = new();
     private readonly Stopwatch _timing_stopwatch = new();
     private int Video_I;
@@ -54,9 +56,10 @@ public class ThirtyDollarApplication : IScene
     
     public bool PlayAudio { get; init; }
     public SampleHolder? SampleHolder { get; set; }
-    public int RenderableSize { get; set; } = 64;
-    public int MarginBetweenRenderables { get; set; } = 6;
+    public int RenderableSize { get; init; } = 64;
+    public int MarginBetweenRenderables { get; init; } = 6;
     public int ElementsOnSingleLine { get; init; } = 16;
+    public CameraFollowMode CameraFollowMode { get; init; } = CameraFollowMode.TDW_Like;
     public string? BackgroundVertexShaderLocation { get; init; }
     public string? BackgroundFragmentShaderLocation { get; init; }
     public Action<string> Log { get; init; } = log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); };
@@ -74,8 +77,8 @@ public class ThirtyDollarApplication : IScene
         _composition_location = composition_location;
 
         TargetY = -300f;
-        var camera_position = new Vector3(0, TargetY, 0);
-        Camera = new Camera(camera_position, new Vector3(0, 0, 0), Vector3.UnitY, new Vector2i(Width, Height));
+        var camera_position = new Vector3(0,TargetY,0);
+        Camera = new Camera(camera_position, -Vector3.UnitZ, Vector3.UnitY, new Vector2i(Width, Height));
     }
 
     /// <summary>
@@ -108,11 +111,12 @@ public class ThirtyDollarApplication : IScene
         _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), new Vector3(0, 0, 1f),
             new Vector2(Width, Height),
             optional_shader);
+        
         _flash_overlay = new ColoredPlane(new Vector4(1f, 1f, 1f, 0f), new Vector3(0, 0, 0.75f),
             new Vector2(Width, Height));
 
-        render_objects.Add(_background);
-        render_objects.Add(_flash_overlay);
+        static_objects.Add(_background);
+        static_objects.Add(_flash_overlay);
 
         PlayfieldWidth = ElementsOnSingleLine * (RenderableSize + MarginBetweenRenderables) + MarginBetweenRenderables +
                          15 /*px Padding in the site. */;
@@ -128,11 +132,25 @@ public class ThirtyDollarApplication : IScene
 
         _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(LeftMargin, 0, 0.5f),
             new Vector2i(PlayfieldWidth, Height));
-        render_objects.Add(_visible_area);
+        static_objects.Add(_visible_area);
 
         tdw_images.EnsureCapacity(_composition.Events.Length);
-
+        
         var font_family = Fonts.GetFontFamily();
+        var greeting_font = font_family.CreateFont(36, FontStyle.Bold);
+
+        var greeting_texture = new Texture(greeting_font, "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER");
+        var moai = new Texture("ThirtyDollarVisualizer.Assets.Textures.moai.png");
+        
+        start_objects.Add(new TexturedPlane(greeting_texture, new Vector3(Width / 2f - greeting_texture.Width / 2f, -200,0.25f), 
+            (greeting_texture.Width, greeting_texture.Height)));
+        
+        start_objects.Add(new TexturedPlane(moai, new Vector3(Width / 2f - greeting_texture.Width / 2f - greeting_texture.Height, -200, 0.25f), 
+            new Vector2(greeting_texture.Height,greeting_texture.Height)));
+        
+        start_objects.Add(new TexturedPlane(moai, new Vector3(Width / 2f + greeting_texture.Width / 2f, -200, 0.25f), 
+            new Vector2(greeting_texture.Height,greeting_texture.Height)));
+        
         var font = font_family.CreateFont(16, FontStyle.Bold);
 
         var volume_font = font_family.CreateFont(11, FontStyle.Bold);
@@ -250,7 +268,6 @@ public class ThirtyDollarApplication : IScene
         }
 
         var box_position = flex_box.AddBox(wh);
-
         var plane_position = new Vector3(box_position);
 
         switch (aspect_ratio)
@@ -366,7 +383,7 @@ public class ThirtyDollarApplication : IScene
         #endregion
 
 
-        plane.UpdateVertices();
+        plane.SetVertices();
         tdw_images.Add(plane);
 
         if (ev.SoundEvent is not "!divider") return;
@@ -415,7 +432,6 @@ public class ThirtyDollarApplication : IScene
 
     public void Resize(int w, int h)
     {
-        _timing_stopwatch.Stop();
         CancelAllAnimations = true;
 
         Thread.Sleep(33);
@@ -446,32 +462,44 @@ public class ThirtyDollarApplication : IScene
         
         foreach (var image in tdw_images)
         {
-            var original_offset = image.GetOffset();
+            var original_offset = image.GetTranslation();
             var new_offset = new Vector3(original_offset)
             {
-                X = (current_margin - LeftMargin) / 2
+                X = current_margin - LeftMargin
             };
 
-            image.SetOffset(new_offset);
+            image.SetTranslation(new_offset);
         }
         
         CancelAllAnimations = false;
-        _timing_stopwatch.Start();
     }
 
     public void Start()
     {
-        _timing_stopwatch.Start();
-        Task.Run(AudioHandler, Token);
+        Task.Run(async () =>
+        {
+            await Task.Delay(3000, Token);
+            
+            _timing_stopwatch.Start();
+            AudioHandler();
+        }, Token);
     }
 
     public void Render()
     {
         if (!FinishedInitializing) return;
-        foreach (var renderable in render_objects)
+        
+        foreach (var renderable in static_objects)
         {
             Manager.CheckErrors();
-            renderable.Render(Camera);
+            
+            var new_position = new Vector3(renderable.GetTranslation())
+            {
+                Y = Camera.Position.Y
+            };
+
+            renderable.SetTranslation(new_position);
+            RenderRenderable(renderable);
         }
 
         var size_renderable = RenderableSize + MarginBetweenRenderables;
@@ -487,23 +515,32 @@ public class ThirtyDollarApplication : IScene
 
         for (var i = new_start; i < new_end; i++)
         {
-            RenderRenderable(i);
+            var renderable = tdw_images[i];
+            RenderRenderable(renderable);
+        }
+        
+        foreach (var renderable in start_objects)
+        {
+            RenderRenderable(renderable);
         }
 
         return;
 
-        void RenderRenderable(int index)
+        void RenderRenderable(Renderable renderable)
         {
-            var renderable = tdw_images[index];
+            
             Manager.CheckErrors();
 
             var position = renderable.GetPosition();
+            var translation = renderable.GetTranslation();
+            
             var scale = renderable.GetScale();
-
+            var place = position + translation;
+            
             // Bounds checks for viewport.
 
-            if (position.X + scale.X < Camera.Position.X || position.X - scale.X > Camera.Position.X + Width) return;
-            if (position.Y + scale.Y < Camera.Position.Y || position.Y - scale.Y > Camera.Position.Y + Height) return;
+            if (place.X + scale.X < Camera.Position.X || place.X - scale.X > Camera.Position.X + Width) return;
+            if (place.Y + scale.Y < Camera.Position.Y || place.Y - scale.Y > Camera.Position.Y + Height) return;
 
             renderable.Render(Camera);
         }
@@ -609,17 +646,39 @@ public class ThirtyDollarApplication : IScene
             var renderable = tdw_images.ElementAtOrDefault((int)placement.SequenceIndex);
             if (renderable == null) break;
 
-            var position = renderable.GetPosition();
+            var position = renderable.GetPosition() + renderable.GetTranslation();
             var scale = renderable.GetScale();
-            TargetY = position.Y + scale.Y - Height / 2f;
+
+            var current_Y = position.Y + scale.Y;
+
+            switch (CameraFollowMode)
+            {
+                case CameraFollowMode.TDW_Like:
+                {
+                    if (current_Y > Camera.Position.Y + 5 * (Height / 6f) || current_Y < Camera.Position.Y)
+                    {
+                        TargetY = current_Y - Height / 6f;
+                    }
+                    break;
+                }
+
+                case CameraFollowMode.Current_Line:
+                {
+                    TargetY = current_Y + Height / 2f;
+                    break;
+                }
+            }
 
             if (placement.Index > (ulong)((float)_timing_stopwatch.ElapsedMilliseconds * TimingSampleRate / 1000)) return;
-
-            Task.Run(Bounce, Token);
             
             if (placement.Event.SoundEvent?.StartsWith('!') ?? false)
             {
                 Task.Run(() => ColorTools.Fade(renderable), Token);
+                Task.Run(() => ExpandReturn(renderable), Token);
+            }
+            else if (placement.Event.SoundEvent is not "#!cut")
+            {
+                Task.Run(() => Bounce(renderable), Token);
             }
 
             switch (placement.Event.SoundEvent)
@@ -653,41 +712,72 @@ public class ThirtyDollarApplication : IScene
             }
 
             Task.Run(async () => await SmoothScrollCamera(Camera), Token);
-            continue;
-
-            async void Bounce()
-            {
-                var original_offset = renderable.GetOffset();
-                
-                for (var i = 0d; i < 240; i++)
-                {
-                    if (CancelAllAnimations)
-                    {
-                        renderable.SetOffset(original_offset);
-                        await Task.Delay(2, Token);
-                        
-                        original_offset = renderable.GetOffset();
-                        continue;
-                    }
-                    var factor = (float)Math.Sin(Math.PI * (i / 240));
-                    var new_position = new Vector3(original_offset)
-                    {
-                        Y = factor * 20
-                    };
-
-                    renderable.SetOffset(new_position);
-                    await Task.Delay(2, Token);
-                }
-
-                original_offset.Y = 0;
-                renderable.SetOffset(original_offset);
-            }
         }
 
         if (Video_I > _placement.LongLength)
         {
             Manager?.Close();
         }
+    }
+
+    private async void ExpandReturn(Renderable renderable)
+    {
+        var original_scale = renderable.GetScale();
+        var original_position = renderable.GetPosition();
+        
+        for (var i = 0d; i < 240; i++)
+        {
+            if (CancelAllAnimations)
+            {
+                renderable.SetScale(original_scale);
+                renderable.SetPosition(original_position);
+                return;
+            }
+            
+            var factor = (float) Math.Sin(Math.PI * (i / 240));
+            var scale_factor = 1 + factor * .10f;
+
+            var new_scale = original_scale * scale_factor;
+            var new_translation = new Vector3(original_position);
+            new_translation.X -= factor * 0.05f * original_scale.X;
+            new_translation.Y -= factor * 0.05f * original_scale.Y;
+            
+            renderable.SetScale(new_scale);
+            renderable.SetPosition(new_translation);
+            
+            await Task.Delay(1, Token);
+        }
+        
+        renderable.SetScale(original_scale);
+        renderable.SetPosition(original_position);
+    }
+    
+    private async void Bounce(Renderable renderable)
+    {
+        var original_offset = renderable.GetTranslation();
+                
+        for (var i = 0d; i < 240; i++)
+        {
+            if (CancelAllAnimations)
+            {
+                renderable.SetTranslation(original_offset);
+                await Task.Delay(2, Token);
+                        
+                original_offset = renderable.GetTranslation();
+                continue;
+            }
+            var factor = (float)Math.Sin(Math.PI * (i / 240));
+            var new_position = new Vector3(original_offset)
+            {
+                Y = - factor * 20
+            };
+
+            renderable.SetTranslation(new_position);
+            await Task.Delay(2, Token);
+        }
+
+        original_offset.Y = 0;
+        renderable.SetTranslation(original_offset);
     }
 
     public void Close()

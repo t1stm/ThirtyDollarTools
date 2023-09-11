@@ -8,9 +8,9 @@
         x:DataType="vm:ExportSettingsViewModel"
         Title="Export Settings"
         Icon="/Assets/moai.png"
-        MinHeight="350"
+        MinHeight="400"
         MinWidth="400"
-        Height="350"
+        Height="400"
         Width="400">
     <Panel>
         <ExperimentalAcrylicBorder IsHitTestVisible="False">
@@ -23,20 +23,24 @@
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
         
-        <StackPanel>
-            <StackPanel Margin="20">
+        <StackPanel Margin="10">
+            <StackPanel Margin="10">
                 <TextBlock FontSize="11">Sample Rate</TextBlock>
                 <TextBox Text="{Binding SampleRateText}"></TextBox>
             </StackPanel>
-            <StackPanel Margin="20">
+            <StackPanel Margin="10">
                 <TextBlock FontSize="11">Channels</TextBlock>
                 <TextBox Text="{Binding ChannelsText}"></TextBox>
             </StackPanel>
-            <StackPanel Margin="20">
+            <StackPanel Margin="10">
                 <TextBlock FontSize="11">Cut Event Delay</TextBlock>
                 <TextBox Text="{Binding CutDelayText}"></TextBox>
             </StackPanel>
-            <StackPanel Margin="20">
+            <StackPanel Margin="10">
+                <TextBlock FontSize="11">Combine Event Delay</TextBlock>
+                <TextBox Text="{Binding CombineDelayText}"></TextBox>
+            </StackPanel>
+            <StackPanel Margin="10">
                 <TextBlock FontSize="11">Resampler</TextBlock>
                 <ComboBox SelectedItem="{Binding SelectedExportSettings}" ItemsSource="{Binding ListItems}" MaxDropDownHeight="200">
                     <ComboBox.ItemTemplate>

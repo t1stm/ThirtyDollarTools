@@ -84,6 +84,7 @@ public class Manager : GameWindow
         {
             scene.Close();
         }
+        Close();
     }
 
     protected override void OnClosing(CancelEventArgs e)

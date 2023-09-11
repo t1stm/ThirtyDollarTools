@@ -36,6 +36,12 @@ public partial class ExportSettingsViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref EncoderSettings.CutDelayMs, value);
     }
     
+    public uint CombineDelayMs
+    {
+        get => EncoderSettings.CombineDelayMs;
+        set => this.RaiseAndSetIfChanged(ref EncoderSettings.CombineDelayMs, value);
+    }
+    
     [GeneratedRegex("^[0-9]+$")]
     private static partial Regex NumberRegex();
 
@@ -44,6 +50,12 @@ public partial class ExportSettingsViewModel : ViewModelBase
         get => SampleRate.ToString();
         set
         {
+            if (string.IsNullOrEmpty(value))
+            {
+                SampleRate = 0;
+                return;
+            }
+            
             var regex = NumberRegex();
             if (!regex.IsMatch(value)) return;
 
@@ -57,6 +69,12 @@ public partial class ExportSettingsViewModel : ViewModelBase
         get => Channels.ToString();
         set
         {
+            if (string.IsNullOrEmpty(value))
+            {
+                Channels = 0;
+                return;
+            }
+            
             var regex = NumberRegex();
             if (!regex.IsMatch(value)) return;
 
@@ -70,11 +88,36 @@ public partial class ExportSettingsViewModel : ViewModelBase
         get => CutDelayMs.ToString();
         set
         {
+            if (string.IsNullOrEmpty(value))
+            {
+                CutDelayMs = 0;
+                return;
+            }
+            
             var regex = NumberRegex();
             if (!regex.IsMatch(value)) return;
 
             var parsed = uint.Parse(value);
             CutDelayMs = parsed;
+        }
+    }
+    
+    public string CombineDelayText
+    {
+        get => CombineDelayMs.ToString();
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                CombineDelayMs = 0;
+                return;
+            }
+            
+            var regex = NumberRegex();
+            if (!regex.IsMatch(value)) return;
+
+            var parsed = uint.Parse(value);
+            CombineDelayMs = parsed;
         }
     }
 

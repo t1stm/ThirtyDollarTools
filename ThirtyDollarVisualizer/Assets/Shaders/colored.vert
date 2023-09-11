@@ -1,17 +1,11 @@
 #version 330 core
 
-layout (location = 0) in vec4 aPosition;
+layout (location = 0) in vec3 aPosition;
 
-uniform vec2 u_ViewportSize;
-uniform vec3 u_OffsetRelative;
-uniform vec3 u_CameraPosition;
+uniform mat4 u_Model;
+uniform mat4 u_Projection;
 
 void main() {
-    float pixel_x = aPosition.x + u_OffsetRelative.x + u_OffsetRelative.x + u_CameraPosition.x;
-    float pixel_y = (u_ViewportSize.y - aPosition.y) + u_OffsetRelative.y + u_CameraPosition.y;
-
-    float nx = pixel_x / u_ViewportSize.x * 2.0 - 1.0;
-    float ny = pixel_y / u_ViewportSize.y * 2.0 - 1.0;
-    
-    gl_Position = vec4(nx, ny, aPosition.z, 1.0);
+    vec4 final_coords = u_Projection * u_Model * vec4(aPosition, 1.0);
+    gl_Position = final_coords;
 }

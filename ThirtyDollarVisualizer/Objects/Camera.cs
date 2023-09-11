@@ -4,12 +4,22 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public class Camera
 {
-    public Vector3 Position { get; set; }
+
+    private Vector3 _position;
+
+    public Vector3 Position
+    {
+        get => _position;
+        set
+        {
+            _position = value;
+            UpdateMatrix();
+        }
+    }
+
     public Vector3 Front { get; set; }
     public Vector3 Up { get; private set; }
-    public float AspectRatio { get; set; }
     public Vector2i Viewport;
-
     public bool IsBeingUpdated { get; set; } = false;
 
     public int Width
@@ -18,8 +28,7 @@ public class Camera
         set
         {
             Viewport.X = value;
-            AspectRatio = (float)Width / Height;
-            UpdateMatrices();
+            UpdateMatrix();
         }
     }
 
@@ -29,10 +38,10 @@ public class Camera
         set
         {
             Viewport.Y = value;
-            AspectRatio = (float)Width / Height;
-            UpdateMatrices();
+            UpdateMatrix();
         }
     }
+    private Matrix4 projection_matrix;
 
     public Camera(Vector3 position, Vector3 front, Vector3 up, Vector2i viewport)
     {
@@ -40,20 +49,16 @@ public class Camera
         Front = front;
         Up = up;
         Viewport = viewport;
+        
+        UpdateMatrix();
     }
 
-    private Matrix4 view_matrix;
-    private Matrix4 projection_matrix;
-    
-    public void UpdateMatrices()
+    public void UpdateMatrix()
     {
-        view_matrix = Matrix4.LookAt(Position, Position + Front, Up);
-        projection_matrix = Matrix4.CreateOrthographicOffCenter(0f, Width, 0f, Height, 0.1f, 100f);
-    }
-
-    public Matrix4 GetViewMatrix()
-    {
-        return view_matrix;
+        projection_matrix = Matrix4.CreateOrthographicOffCenter(
+            Position.X, Position.X + Width, 
+            Position.Y + Height, Position.Y, 
+            -10f, 10f);
     }
 
     public Matrix4 GetProjectionMatrix()
