@@ -664,7 +664,7 @@ public class ThirtyDollarApplication : IScene
 
                 case CameraFollowMode.Current_Line:
                 {
-                    TargetY = current_Y + Height / 2f;
+                    TargetY = current_Y - Height / 2f;
                     break;
                 }
             }

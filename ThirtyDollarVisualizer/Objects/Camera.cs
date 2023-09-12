@@ -20,6 +20,8 @@ public class Camera
     public Vector3 Front { get; set; }
     public Vector3 Up { get; private set; }
     public Vector2i Viewport;
+
+    public float Scale = 1f;
     public bool IsBeingUpdated { get; set; } = false;
 
     public int Width
@@ -59,6 +61,8 @@ public class Camera
             Position.X, Position.X + Width, 
             Position.Y + Height, Position.Y, 
             -10f, 10f);
+        
+        projection_matrix *= Matrix4.CreateScale(Scale);
     }
 
     public Matrix4 GetProjectionMatrix()
