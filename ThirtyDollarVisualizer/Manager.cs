@@ -13,9 +13,9 @@ public class Manager : GameWindow
 {
     public readonly List<IScene> Scenes = new();
 
-    public Manager(int width, int height, string title) : base(new GameWindowSettings
+    public Manager(int width, int height, string title, int? fps = null) : base(new GameWindowSettings
         {
-            UpdateFrequency = 1000
+            UpdateFrequency = fps ?? 0
         },
         new NativeWindowSettings { Size = (width, height), Title = title, APIVersion = Version.Parse("4.6")})
     {

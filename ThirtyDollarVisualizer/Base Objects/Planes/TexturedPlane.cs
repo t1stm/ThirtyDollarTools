@@ -4,7 +4,7 @@ using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects.Planes;
 
-public sealed class TexturedPlane : Renderable
+public class TexturedPlane : Renderable
 {
     private readonly Texture _texture;
     private static bool AreVerticesGenerated;
@@ -18,7 +18,6 @@ public sealed class TexturedPlane : Renderable
         _scale = new Vector3(width_height.X, width_height.Y, 0);
         
         if (!AreVerticesGenerated) SetVertices();
-        UpdateModel();
         
         Vao = Static_Vao;
         Vbo = Static_Vbo;
@@ -30,7 +29,7 @@ public sealed class TexturedPlane : Renderable
         _texture = texture;
     }
 
-    public override void SetVertices()
+    private void SetVertices()
     {
         lock (LockObject)
         {

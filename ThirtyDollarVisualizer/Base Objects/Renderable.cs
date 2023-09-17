@@ -75,7 +75,6 @@ public abstract class Renderable
     }
     
     public void ChangeShader(Shader shader) => Shader = shader;
-    public abstract void SetVertices();
     
     public Vector4 GetColor()
     {
