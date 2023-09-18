@@ -5,7 +5,7 @@ namespace ThirtyDollarVisualizer.Animations;
 
 public class ExpandAnimation : Animation
 {
-    private const int AnimationLengthMs = 500;
+    private const int AnimationLengthMs = 250;
     private const float ExpandSize = .10f;
     private const float ExpandHalf = ExpandSize / 2f;
     

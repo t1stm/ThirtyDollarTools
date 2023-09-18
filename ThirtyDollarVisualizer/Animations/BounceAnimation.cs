@@ -16,7 +16,7 @@ public class BounceAnimation : Animation
         CallbackOnFinish = finish_callback;
     }
 
-    public override Vector3 GetTransform_Multiply(Renderable renderable)
+    public override Vector3 GetTransform_Add(Renderable renderable)
     {
         if (!TimingStopwatch.IsRunning) return Vector3.Zero;
         

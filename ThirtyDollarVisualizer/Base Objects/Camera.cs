@@ -4,7 +4,6 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public class Camera
 {
-
     private Vector3 _position;
 
     public Vector3 Position
@@ -60,7 +59,7 @@ public class Camera
         projection_matrix = Matrix4.CreateOrthographicOffCenter(
             Position.X, Position.X + Width, 
             Position.Y + Height, Position.Y, 
-            -10f, 10f);
+            -1f, 1f);
         
         projection_matrix *= Matrix4.CreateScale(Scale);
     }

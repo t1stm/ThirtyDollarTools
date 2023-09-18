@@ -441,6 +441,8 @@ public class ThirtyDollarApplication : IScene
 
         Camera.Viewport = resize;
         GL.Viewport(0, 0, w, h);
+        
+        Camera.UpdateMatrix();
 
         if (!FinishedInitializing) return;
 
@@ -508,7 +510,8 @@ public class ThirtyDollarApplication : IScene
             };
 
             renderable.SetTranslation(new_position);
-            RenderRenderable(renderable);
+            
+            renderable.Render(Camera);
         }
 
         var size_renderable = RenderableSize + MarginBetweenRenderables;
@@ -560,19 +563,20 @@ public class ThirtyDollarApplication : IScene
         if (camera.IsBeingUpdated) return;
         camera.IsBeingUpdated = true;
 
-        var scroll_y = 1f;
-
-        while (Math.Abs(scroll_y) > 0.05f)
+        do
         {
             var current_y = camera.Position.Y;
             var delta_y = TargetY - current_y;
+            delta_y -= delta_y % 1f;
 
-            scroll_y = delta_y / 120f;
+            var scroll_y = delta_y / 120f;
+            if (Math.Abs(scroll_y) < 1f) break;
+            
             current_y += scroll_y;
             camera.Position = current_y * Vector3.UnitY;
-            
+
             await Task.Delay(1, Token);
-        }
+        } while (true);
 
         camera.IsBeingUpdated = false;
     }
@@ -677,6 +681,8 @@ public class ThirtyDollarApplication : IScene
                     break;
                 }
             }
+
+            TargetY -= TargetY % 1f;
 
             if (placement.Index > (ulong)((float)_timing_stopwatch.ElapsedMilliseconds * TimingSampleRate / 1000)) return;
             

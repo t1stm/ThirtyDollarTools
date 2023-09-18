@@ -32,7 +32,8 @@ public class Manager : GameWindow
     {
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        
+        GL.Enable(EnableCap.Multisample);
+
         CheckErrors();
         base.OnLoad();
         
