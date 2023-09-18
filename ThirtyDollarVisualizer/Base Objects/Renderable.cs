@@ -1,4 +1,5 @@
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects;
@@ -45,7 +46,7 @@ public abstract class Renderable
     /// </summary>
     public bool IsBeingUpdated = false;
 
-    protected virtual void UpdateModel()
+    protected virtual void UpdateModel(params Animation[] animations)
     {
         var model = Matrix4.Identity;
 
@@ -53,10 +54,73 @@ public abstract class Renderable
         var scale = GetScale();
         var translation = GetTranslation();
 
-        model *= Matrix4.CreateScale(scale);
-        model *= Matrix4.CreateTranslation(position + translation);
+        var final_translation = position + translation;
+        var final_scale = scale;
+        var final_rotation = _rotation;
+        
+        foreach (var animation in animations)
+        {
+            ComputeAnimation(animation, ref final_translation, ref final_scale, ref final_rotation);
+        }
+        
+        model *= Matrix4.CreateScale(final_scale);
+        model *= Matrix4.CreateTranslation(final_translation);
+        
+        model *= Matrix4.CreateRotationX(final_rotation.X) * 
+                 Matrix4.CreateRotationY(final_rotation.Y) * 
+                 Matrix4.CreateRotationZ(final_rotation.Z);
 
         SetModel(model);
+    }
+
+    private void ComputeAnimation(Animation animation, ref Vector3 final_translation, ref Vector3 final_scale,
+        ref Vector3 final_rotation)
+    {
+        var bit_stack = animation.Features;
+
+        if (bit_stack.IsEnabled(AnimationFeature.Transform_Multiply))
+        {
+            var transform_multiply = animation.GetTransform_Multiply(this);
+            if (transform_multiply != Vector3.One)
+                final_translation *= transform_multiply;
+        }
+
+        if (bit_stack.IsEnabled(AnimationFeature.Transform_Add))
+        {
+            var transform_add = animation.GetTransform_Add(this);
+            if (transform_add != Vector3.One)
+                final_translation += transform_add;
+        }
+
+        if (bit_stack.IsEnabled(AnimationFeature.Scale_Multiply))
+        {
+            var s = animation.GetScale_Multiply(this);
+
+            if (s != Vector3.One)
+                final_scale *= s;
+        }
+
+        if (bit_stack.IsEnabled(AnimationFeature.Scale_Add))
+        {
+            var s = animation.GetScale_Add(this);
+
+            if (s != Vector3.One)
+                final_scale += s;
+        }
+
+        if (bit_stack.IsEnabled(AnimationFeature.Rotation_Add))
+        {
+            var rotation = animation.GetRotation_XYZ(this);
+
+            if (rotation != Vector3.Zero)
+                final_rotation += rotation;
+        }
+
+        if (!bit_stack.IsEnabled(AnimationFeature.Color_Add)) return;
+
+        var color_change = animation.GetColor_Add(this);
+        if (color_change != Vector4.Zero)
+            Color = color_change;
     }
 
     public virtual void Render(Camera camera)

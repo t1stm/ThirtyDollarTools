@@ -21,6 +21,8 @@ public static class ColorTools
 
     public static async Task ChangeColor(Renderable renderable, Vector4 old_color, Vector4 color, float duration_seconds)
     {
+        // TODO: port this to use the Animation abstract class
+        
         if (renderable.IsBeingUpdated)
         {
             renderable.IsBeingUpdated = false;

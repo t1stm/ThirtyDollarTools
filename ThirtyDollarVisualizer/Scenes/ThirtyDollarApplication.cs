@@ -20,7 +20,7 @@ public class ThirtyDollarApplication : IScene
 {
     private static readonly List<Renderable> start_objects = new();
     private static readonly List<Renderable> static_objects = new();
-    private static readonly List<Renderable> tdw_images = new();
+    private static readonly List<SoundRenderable> tdw_images = new();
     private readonly Stopwatch _timing_stopwatch = new();
     private readonly Stopwatch _open_stopwatch = new();
     private int Video_I;
@@ -53,7 +53,6 @@ public class ThirtyDollarApplication : IScene
     // This is currently a hack, but I can't think of any other way to fix this without restructuring the code.
     private int DividerCount;
     private bool FinishedInitializing;
-    private bool CancelAllAnimations;
     private int LeftMargin;
     private long CurrentResizeFrame;
     
@@ -294,7 +293,7 @@ public class ThirtyDollarApplication : IScene
             }
         }
 
-        var plane = new TexturedPlane(texture, plane_position, width_height);
+        var plane = new SoundRenderable(texture, plane_position, width_height);
 
         #region Value Text
 
@@ -469,8 +468,6 @@ public class ThirtyDollarApplication : IScene
         var current_update = CurrentResizeFrame = _open_stopwatch.ElapsedMilliseconds;
         Task.Run(() =>
         {
-            CancelAllAnimations = true;
-            
             foreach (var image in tdw_images)
             {
                 if (CurrentResizeFrame != current_update) break;
@@ -483,8 +480,6 @@ public class ThirtyDollarApplication : IScene
 
                 image.SetTranslation(new_offset);
             }
-
-            CancelAllAnimations = false;
         }, Token);
     }
 
@@ -657,11 +652,11 @@ public class ThirtyDollarApplication : IScene
         {
             var placement = _placement[Video_I];
 
-            var renderable = tdw_images.ElementAtOrDefault((int)placement.SequenceIndex);
-            if (renderable == null) break;
+            var element = tdw_images.ElementAtOrDefault((int)placement.SequenceIndex);
+            if (element == null) break;
 
-            var position = renderable.GetPosition() + renderable.GetTranslation();
-            var scale = renderable.GetScale();
+            var position = element.GetPosition() + element.GetTranslation();
+            var scale = element.GetScale();
 
             var current_Y = position.Y + scale.Y;
 
@@ -687,12 +682,12 @@ public class ThirtyDollarApplication : IScene
             
             if (placement.Event.SoundEvent?.StartsWith('!') ?? false)
             {
-                Task.Run(() => ColorTools.Fade(renderable), Token);
-                Task.Run(() => ExpandReturn(renderable), Token);
+                Task.Run(() => ColorTools.Fade(element), Token);
+                element.Expand();
             }
             else if (placement.Event.SoundEvent is not "#!cut")
             {
-                Task.Run(() => Bounce(renderable), Token);
+                element.Bounce();
             }
 
             switch (placement.Event.SoundEvent)
@@ -732,43 +727,6 @@ public class ThirtyDollarApplication : IScene
         {
             Manager?.Close();
         }
-    }
-
-    private async void ExpandReturn(Renderable renderable)
-    {
-        var original_scale = renderable.GetScale();
-        var original_position = renderable.GetPosition();
-        
-        for (var i = 0d; i < 240; i++)
-        {
-            if (CancelAllAnimations)
-            {
-                renderable.SetScale(original_scale);
-                renderable.SetPosition(original_position);
-                return;
-            }
-            
-            var factor = (float) Math.Sin(Math.PI * (i / 240));
-            var scale_factor = 1 + factor * .10f;
-
-            var new_scale = original_scale * scale_factor;
-            var new_translation = new Vector3(original_position);
-            new_translation.X -= factor * 0.05f * original_scale.X;
-            new_translation.Y -= factor * 0.05f * original_scale.Y;
-            
-            renderable.SetScale(new_scale);
-            renderable.SetPosition(new_translation);
-            
-            await Task.Delay(1, Token);
-        }
-        
-        renderable.SetScale(original_scale);
-        renderable.SetPosition(original_position);
-    }
-    
-    private async void Bounce(Renderable renderable)
-    {
-        
     }
 
     public void Close()

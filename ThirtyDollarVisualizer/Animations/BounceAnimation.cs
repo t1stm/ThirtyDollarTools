@@ -1,11 +1,14 @@
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Objects;
 
 namespace ThirtyDollarVisualizer.Animations;
 
 public class BounceAnimation : Animation
 {
-    public BounceAnimation() : base(500)
+    private const int AnimationLengthMs = 500;
+    public BounceAnimation() : base(AnimationLengthMs)
     {
+        Features = (int) AnimationFeature.Transform_Add;
     }
 
     public BounceAnimation(Action finish_callback): this()
@@ -13,7 +16,7 @@ public class BounceAnimation : Animation
         CallbackOnFinish = finish_callback;
     }
 
-    public override Vector3 GetTransform()
+    public override Vector3 GetTransform_Multiply(Renderable renderable)
     {
         if (!TimingStopwatch.IsRunning) return Vector3.Zero;
         
