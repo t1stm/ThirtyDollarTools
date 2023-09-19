@@ -58,13 +58,14 @@ public class ThirtyDollarApplication : IScene
     
     public bool PlayAudio { get; init; }
     public SampleHolder? SampleHolder { get; set; }
-    public int RenderableSize { get; init; } = 64;
-    public int MarginBetweenRenderables { get; init; } = 6;
+    public int RenderableSize { get; set; } = 64;
+    public int MarginBetweenRenderables { get; set; } = 6;
     public int ElementsOnSingleLine { get; init; } = 16;
     public CameraFollowMode CameraFollowMode { get; init; } = CameraFollowMode.TDW_Like;
     public string? BackgroundVertexShaderLocation { get; init; }
     public string? BackgroundFragmentShaderLocation { get; init; }
     public Action<string> Log { get; init; } = log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); };
+    public float Scale { get; set; } = 1f;
 
     /// <summary>
     /// Creates a composition visualizer.
@@ -90,6 +91,9 @@ public class ThirtyDollarApplication : IScene
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public void Init(Manager manager)
     {
+        RenderableSize = (int)(RenderableSize * Scale);
+        MarginBetweenRenderables = (int)(MarginBetweenRenderables * Scale);
+        
         Manager = manager;
         var comp_location = _composition_location ?? throw new Exception("Location is not specified.");
         _composition = Composition.FromString(File.ReadAllText(comp_location));
@@ -123,9 +127,9 @@ public class ThirtyDollarApplication : IScene
         static_objects.Add(_flash_overlay);
 
         PlayfieldWidth = ElementsOnSingleLine * (RenderableSize + MarginBetweenRenderables) + MarginBetweenRenderables +
-                         15 /*px Padding in the site. */;
+                         (int) (15 * Scale) /*px Padding in the site. */;
 
-        LeftMargin = (int)((float)Width / 2 - (float)PlayfieldWidth / 2);
+        LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2);
 
         var flex_box = new FlexBox(new Vector2i(LeftMargin + 7, 0),
             new Vector2i(PlayfieldWidth + MarginBetweenRenderables, Height), MarginBetweenRenderables);
@@ -141,11 +145,14 @@ public class ThirtyDollarApplication : IScene
         tdw_images.EnsureCapacity(_composition.Events.Length);
         
         var font_family = Fonts.GetFontFamily();
-        var greeting_font = font_family.CreateFont(36, FontStyle.Bold);
+        var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
 
         var greeting_texture = new Texture(greeting_font, "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER");
         var moai = new Texture("ThirtyDollarVisualizer.Assets.Textures.moai.png");
 
+        moai.Width = (int)(moai.Width * Scale);
+        moai.Height = (int)(moai.Height * Scale);
+        
         _greeting = new TexturedPlane(greeting_texture,
             new Vector3(Width / 2f - greeting_texture.Width / 2f, -200, 0.25f),
             (greeting_texture.Width, greeting_texture.Height));
@@ -158,9 +165,9 @@ public class ThirtyDollarApplication : IScene
         
         start_objects.Add(_greeting);
         
-        var font = font_family.CreateFont(16, FontStyle.Bold);
+        var font = font_family.CreateFont(16 * Scale, FontStyle.Bold);
 
-        var volume_font = font_family.CreateFont(11, FontStyle.Bold);
+        var volume_font = font_family.CreateFont(11 * Scale, FontStyle.Bold);
         var volume_color = new Rgba32(204, 204, 204, 1f);
 
         var i = 0ul;

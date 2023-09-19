@@ -33,7 +33,7 @@ public class BounceAnimation : Animation
         }
         
         var factor = (float)Math.Sin(Math.PI * normalized);
-        transformation.Y = -factor * 20;
+        transformation.Y = -factor * renderable.GetScale().Y / 4;
         
         return transformation;
     }

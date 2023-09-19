@@ -29,6 +29,10 @@ public static class Program
         [Option('f', "fps-limit",
             HelpText = "The fps cap of the renderer. Valid values are 0 - 500. Setting this to 0 removes the fps cap.")]
         public int? FPS { get; set; }
+        
+        [Option('s', "scale",
+            HelpText = "Changes the camera viewport zoom.")]
+        public int? Scale { get; set; }
     }
     
     public static void Main(string[] args)
@@ -39,6 +43,7 @@ public static class Program
         var height = 840;
         var follow_mode = CameraFollowMode.TDW_Like;
         int? fps = null;
+        float? scale = null;
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -48,6 +53,7 @@ public static class Program
                 width = options.Width ?? width;
                 height = options.Height ?? height;
                 fps = options.FPS ?? 60;
+                scale = options.Scale;
                 
                 follow_mode = options.CameraFollowMode switch
                 {
@@ -63,7 +69,8 @@ public static class Program
         var tdw_application = new ThirtyDollarApplication(width, height, composition)
         {
             PlayAudio = !no_audio,
-            CameraFollowMode = follow_mode
+            CameraFollowMode = follow_mode,
+            Scale = scale ?? 1f
         };
 
         manager.Scenes.Add(tdw_application);
