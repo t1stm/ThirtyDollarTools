@@ -11,7 +11,7 @@ public static class Program
 {
     public class Options
     {
-        [Option('i', "composition", Required = true, HelpText = "The composition's location.")]
+        [Option('i', "composition", HelpText = "The composition's location.")]
         public string? Input { get; set; }
 
         [Option("no-audio", HelpText = "Disable audio playback.")]
@@ -61,8 +61,6 @@ public static class Program
                     _ => CameraFollowMode.TDW_Like
                 };
             });
-
-        if (composition == null) return;
         
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps);
 

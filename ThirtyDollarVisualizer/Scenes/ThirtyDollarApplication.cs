@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
@@ -23,6 +24,7 @@ public class ThirtyDollarApplication : IScene
     private static readonly List<SoundRenderable> tdw_images = new();
     private readonly Stopwatch _timing_stopwatch = new();
     private readonly Stopwatch _open_stopwatch = new();
+    private TimeSpan _open_time;
     private int Video_I;
 
     private readonly AudioContext AudioContext = new();
@@ -42,13 +44,13 @@ public class ThirtyDollarApplication : IScene
     private TexturedPlane _greeting = null!;
 
     private Composition _composition = null!;
-    private readonly string? _composition_location;
+    private string? _composition_location;
     private Placement[] _placement = null!;
     private const int TimingSampleRate = 100_000;
 
     private CancellationToken Token => TokenSource.Token;
     private readonly CancellationTokenSource TokenSource = new();
-    private Manager? Manager;
+    private Manager Manager = null!;
 
     // This is currently a hack, but I can't think of any other way to fix this without restructuring the code.
     private int DividerCount;
@@ -65,7 +67,7 @@ public class ThirtyDollarApplication : IScene
     public string? BackgroundVertexShaderLocation { get; init; }
     public string? BackgroundFragmentShaderLocation { get; init; }
     public Action<string> Log { get; init; } = log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); };
-    public float Scale { get; set; } = 1f;
+    public float Scale { get; init; } = 1f;
 
     /// <summary>
     /// Creates a composition visualizer.
@@ -91,20 +93,11 @@ public class ThirtyDollarApplication : IScene
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public void Init(Manager manager)
     {
+        _open_time = _open_stopwatch.Elapsed;
         RenderableSize = (int)(RenderableSize * Scale);
         MarginBetweenRenderables = (int)(MarginBetweenRenderables * Scale);
         
         Manager = manager;
-        var comp_location = _composition_location ?? throw new Exception("Location is not specified.");
-        _composition = Composition.FromString(File.ReadAllText(comp_location));
-
-        var calculator = new PlacementCalculator(new EncoderSettings
-        {
-            SampleRate = TimingSampleRate,
-            CombineDelayMs = 0
-        });
-
-        _placement = calculator.Calculate(_composition).ToArray();
 
         #region Textures
 
@@ -141,8 +134,6 @@ public class ThirtyDollarApplication : IScene
         _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(LeftMargin, 0, 0.5f),
             new Vector2i(PlayfieldWidth, Height));
         static_objects.Add(_visible_area);
-
-        tdw_images.EnsureCapacity(_composition.Events.Length);
         
         var font_family = Fonts.GetFontFamily();
         var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
@@ -170,8 +161,21 @@ public class ThirtyDollarApplication : IScene
         var volume_font = font_family.CreateFont(11 * Scale, FontStyle.Bold);
         var volume_color = new Rgba32(204, 204, 204, 1f);
 
-        var i = 0ul;
-        Task.Run(UpdateChecker, Token);
+
+        if (_composition_location == null)
+        {
+            var dnd_texture = new Texture(greeting_font, "Drop a file on the window to start.");
+            var drag_n_drop = new SoundRenderable(dnd_texture,
+                new Vector3(Width / 2f - dnd_texture.Width / 2f, 0, 0.25f),
+                new Vector2(dnd_texture.Width, dnd_texture.Height));
+            
+            tdw_images.Add(drag_n_drop);
+            drag_n_drop.UpdateModel();
+            
+            FinishedInitializing = true;
+            _placement = Array.Empty<Placement>();
+            return;
+        }
 
         Task.Run(async () =>
         {
@@ -192,6 +196,22 @@ public class ThirtyDollarApplication : IScene
                 sample_holder.LoadSamplesIntoMemory();
             }
         }, Token).Wait(Token);
+        
+        var comp_location = _composition_location;
+        _composition = Composition.FromString(File.ReadAllText(comp_location));
+        
+        tdw_images.EnsureCapacity(_composition.Events.Length);
+
+        var calculator = new PlacementCalculator(new EncoderSettings
+        {
+            SampleRate = TimingSampleRate,
+            CombineDelayMs = 0
+        });
+
+        _placement = calculator.Calculate(_composition).ToArray();
+        
+        var i = 0ul;
+        Task.Run(UpdateChecker, Token);
 
         foreach (var ev in _composition.Events)
         {
@@ -407,6 +427,8 @@ public class ThirtyDollarApplication : IScene
 
     private async Task LoadAudio()
     {
+        ProcessedBuffers.Clear();
+        
         var pcm_encoder = new PcmEncoder(SampleHolder ?? throw new Exception("Sample holder is null."), new EncoderSettings
         {
             SampleRate = (uint)AudioContext.SampleRate,
@@ -416,7 +438,7 @@ public class ThirtyDollarApplication : IScene
         }, Log);
 
         var (processed_samples, _) = await pcm_encoder.GetAudioSamples(-1, _placement, CancellationToken.None);
-
+        
         AudioContext.Create(processed_samples.Count * 2);
         AudioContext.GlobalVolume = .25f;
 
@@ -494,11 +516,16 @@ public class ThirtyDollarApplication : IScene
 
     public void Start()
     {
+        if (_composition_location == null) return;
+
+        var current_open_time = _open_time;
+        
         Task.Run(async () =>
         {
             await Task.Delay(3000, Token);
+            if (current_open_time != _open_time) return;
             
-            _timing_stopwatch.Start();
+            _timing_stopwatch.Restart();
             AudioHandler();
         }, Token);
     }
@@ -626,8 +653,11 @@ public class ThirtyDollarApplication : IScene
 
     private void AudioHandler()
     {
+        var current_open_time = _open_time;
         while (Audio_I < _placement.LongLength && !Token.IsCancellationRequested)
         {
+            if (current_open_time != _open_time) break;
+            
             var placement = _placement[Audio_I];
             if (placement.Index > (ulong)((float)_timing_stopwatch.ElapsedMilliseconds * TimingSampleRate / 1000))
             {
@@ -738,12 +768,40 @@ public class ThirtyDollarApplication : IScene
 
         if (Video_I > _placement.LongLength)
         {
-            Manager?.Close();
+            Manager.Close();
         }
     }
 
     public void Close()
     {
-        _timing_stopwatch.Stop();
+        _timing_stopwatch.Reset();
+    }
+
+    public void FileDrop(string? location)
+    {
+        TargetY = -300f;
+        Camera.Position = new Vector3(0, TargetY, 0);
+        
+        _timing_stopwatch.Reset();
+        Video_I = Audio_I = 0;
+        
+        tdw_images.Clear();
+        static_objects.Clear();
+        start_objects.Clear();
+
+        CutSounds();
+
+        _composition_location = location;
+        Init(Manager);
+        
+        Resize(Width, Height);
+        
+        Start();
+    }
+
+    public void Input(KeyboardState state)
+    {
+        if (!state.IsKeyDown(Keys.R)) return;
+        FileDrop(_composition_location);
     }
 }

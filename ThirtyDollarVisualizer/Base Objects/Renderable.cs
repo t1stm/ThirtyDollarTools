@@ -46,7 +46,7 @@ public abstract class Renderable
     /// </summary>
     public bool IsBeingUpdated = false;
 
-    protected virtual void UpdateModel(params Animation[] animations)
+    public virtual void UpdateModel(params Animation[] animations)
     {
         var model = Matrix4.Identity;
 
@@ -54,22 +54,32 @@ public abstract class Renderable
         var scale = GetScale();
         var translation = GetTranslation();
 
-        var final_translation = position + translation;
-        var final_scale = scale;
-        var final_rotation = _rotation;
+        var temp_translation = Vector3.Zero;
+        var temp_scale = Vector3.One;
+        var temp_rotation = Vector3.Zero;
         
         foreach (var animation in animations)
         {
-            ComputeAnimation(animation, ref final_translation, ref final_scale, ref final_rotation);
+            ComputeAnimation(animation, ref temp_translation, ref temp_scale, ref temp_rotation);
         }
         
+        var final_translation = position + translation + temp_translation;
+        var final_scale = scale * temp_scale;
+        var final_rotation = _rotation + temp_rotation;
+        
         model *= Matrix4.CreateScale(final_scale);
-        model *= Matrix4.CreateTranslation(final_translation);
         
         model *= Matrix4.CreateRotationX(final_rotation.X) * 
                  Matrix4.CreateRotationY(final_rotation.Y) * 
                  Matrix4.CreateRotationZ(final_rotation.Z);
 
+        model *= Matrix4.CreateTranslation(final_translation);
+        
+        foreach (var renderable in Children)
+        {
+            renderable.UpdateModel(animations);
+        }
+        
         SetModel(model);
     }
 
@@ -172,14 +182,8 @@ public abstract class Renderable
     
     public void SetModel(Matrix4 model)
     {
-        lock (LockObject)
+       lock (LockObject)
             Model = model;
-
-        foreach (var child in Children)
-        {
-            child.SetTranslation(GetTranslation());
-            child.SetRotation(GetRotation());
-        }
     }
 
     public void SetColor(Vector4 color)
@@ -202,6 +206,11 @@ public abstract class Renderable
             _translation = translation;
         
         UpdateModel();
+
+        foreach (var renderable in Children)
+        {
+            renderable.SetTranslation(translation);
+        }
     }
     
     public void SetScale(Vector3 scale)

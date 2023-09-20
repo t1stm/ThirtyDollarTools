@@ -6,11 +6,11 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public class SoundRenderable : TexturedPlane
 {
-    private readonly Animation BounceAnimation;
-    private readonly Animation ExpandAnimation;
+    private readonly BounceAnimation BounceAnimation;
+    private readonly ExpandAnimation ExpandAnimation;
     public SoundRenderable(Texture texture, Vector3 position, Vector2 width_height) : base(texture, position, width_height)
     {
-        BounceAnimation = new BounceAnimation(() =>
+        BounceAnimation = new BounceAnimation(GetScale().Y / 4f, () =>
         {
             UpdateModel();
         });
@@ -25,6 +25,7 @@ public class SoundRenderable : TexturedPlane
         {
             UpdateModel(BounceAnimation, ExpandAnimation);
         }
+
         base.Render(camera);
     }
 

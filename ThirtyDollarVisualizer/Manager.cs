@@ -79,6 +79,13 @@ public class Manager : GameWindow
             scene.Update();
         }
 
+        if (!KeyboardState.IsAnyKeyDown) return;
+        
+        foreach (var scene in Scenes)
+        {
+            scene.Input(KeyboardState);
+        }
+        
         if (!KeyboardState.IsKeyDown(Keys.Escape)) return;
         
         foreach (var scene in Scenes)
@@ -86,6 +93,17 @@ public class Manager : GameWindow
             scene.Close();
         }
         Close();
+    }
+
+    protected override void OnFileDrop(FileDropEventArgs e)
+    {
+        base.OnFileDrop(e);
+        if (e.FileNames.Length < 1) return;
+        
+        foreach (var scene in Scenes)
+        {
+            scene.FileDrop(e.FileNames[0]);
+        }
     }
 
     protected override void OnClosing(CancelEventArgs e)

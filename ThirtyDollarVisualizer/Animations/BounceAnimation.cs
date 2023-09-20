@@ -6,12 +6,14 @@ namespace ThirtyDollarVisualizer.Animations;
 public class BounceAnimation : Animation
 {
     private const int AnimationLengthMs = 500;
-    public BounceAnimation() : base(AnimationLengthMs)
+    private readonly float Final_Y;
+    public BounceAnimation(float final_y) : base(AnimationLengthMs)
     {
         Features = (int) AnimationFeature.Transform_Add;
+        Final_Y = final_y;
     }
 
-    public BounceAnimation(Action finish_callback): this()
+    public BounceAnimation(float final_y, Action finish_callback): this(final_y)
     {
         CallbackOnFinish = finish_callback;
     }
@@ -33,7 +35,7 @@ public class BounceAnimation : Animation
         }
         
         var factor = (float)Math.Sin(Math.PI * normalized);
-        transformation.Y = -factor * renderable.GetScale().Y / 4;
+        transformation.Y = -factor * Final_Y;
         
         return transformation;
     }

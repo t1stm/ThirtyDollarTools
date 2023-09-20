@@ -1,3 +1,5 @@
+using OpenTK.Windowing.GraphicsLibraryFramework;
+
 namespace ThirtyDollarVisualizer.Scenes;
 
 public interface IScene
@@ -29,4 +31,12 @@ public interface IScene
     /// Method called before the main window closes.
     /// </summary>
     public void Close();
+    
+    /// <summary>
+    /// Triggered when a file is dropped on the window.
+    /// </summary>
+    /// <param name="location">The location of the dropped file.</param>
+    public void FileDrop(string location);
+
+    public void Input(KeyboardState state);
 }
