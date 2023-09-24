@@ -25,7 +25,7 @@ public class Composition
         foreach (var originalText in split)
         {
             var text = originalText;
-            text = text.Replace("\n", "");
+            text = text.Replace("\n", "").Trim();
             if (string.IsNullOrEmpty(text)) continue;
 
             if (text[1..].Any(ch => ch == '!'))

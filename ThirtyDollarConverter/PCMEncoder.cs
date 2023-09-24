@@ -130,10 +130,20 @@ public class PcmEncoder
 
             var thread = threads[currentThread] = new Task(() =>
             {
-                processed.AudioData = SampleProcessor.ProcessEvent(ev);
-                lock (processedEvents)
+                try
                 {
-                    processedEvents.Add(processed);
+                    processed.AudioData = SampleProcessor.ProcessEvent(ev);
+                    lock (processedEvents)
+                    {
+                        processedEvents.Add(processed);
+                    }
+                }
+                catch (Exception)
+                {
+                    lock (processedEvents)
+                    {
+                        processedEvents.Add(processed);
+                    }
                 }
             });
             thread.Start();

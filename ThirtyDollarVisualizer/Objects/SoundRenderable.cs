@@ -8,22 +8,27 @@ public class SoundRenderable : TexturedPlane
 {
     private readonly BounceAnimation BounceAnimation;
     private readonly ExpandAnimation ExpandAnimation;
+    private readonly FadeAnimation FadeAnimation;
     public SoundRenderable(Texture texture, Vector3 position, Vector2 width_height) : base(texture, position, width_height)
     {
-        BounceAnimation = new BounceAnimation(GetScale().Y / 4f, () =>
+        BounceAnimation = new BounceAnimation(GetScale().Y / 5f, () =>
         {
-            UpdateModel();
+            UpdateModel(false);
         });
         ExpandAnimation = new ExpandAnimation(() =>
         {
-            UpdateModel();
+            UpdateModel(false);
+        });
+        FadeAnimation = new FadeAnimation(() =>
+        {
+            UpdateModel(false);
         });
     }
     public override void Render(Camera camera)
     {
-        if (BounceAnimation.IsRunning || ExpandAnimation.IsRunning)
+        if (BounceAnimation.IsRunning || ExpandAnimation.IsRunning || FadeAnimation.IsRunning)
         {
-            UpdateModel(BounceAnimation, ExpandAnimation);
+            UpdateModel(false, BounceAnimation, ExpandAnimation, FadeAnimation);
         }
 
         base.Render(camera);
@@ -37,5 +42,10 @@ public class SoundRenderable : TexturedPlane
     public void Expand()
     {
         ExpandAnimation.StartAnimation();
+    }
+
+    public void Fade()
+    {
+        FadeAnimation.StartAnimation();
     }
 }

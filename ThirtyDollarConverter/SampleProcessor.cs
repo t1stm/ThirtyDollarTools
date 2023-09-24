@@ -42,7 +42,7 @@ public class SampleProcessor
         {
             var (_, value) = Samples.AsParallel()
                 .FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent || pair.Key.Id == ev.SoundEvent);
-            if (value == null) throw new Exception($"Sound Event: \'{ev.SoundEvent}\' is null.");
+            if (value == null) throw new Exception($"Data for sound event: \'{ev.SoundEvent}\' is null.");
             var sampleData = value.ReadAsFloat32Array(Settings.Channels > 1);
             if (sampleData == null)
                 throw new NullReferenceException(

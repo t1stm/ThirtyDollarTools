@@ -3,7 +3,6 @@
 in vec2 fragment_coords;
 
 uniform sampler2D u_Texture;
-uniform float u_BorderRadius;
 uniform vec4 u_OverlayColor;
 
 out vec4 color;

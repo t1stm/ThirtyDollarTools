@@ -46,8 +46,11 @@ public abstract class Renderable
     /// </summary>
     public bool IsBeingUpdated = false;
 
-    public virtual void UpdateModel(params Animation[] animations)
+    private bool IsChild;
+
+    public virtual void UpdateModel(bool is_child, params Animation[] animations)
     {
+        IsChild = is_child;
         var model = Matrix4.Identity;
 
         var position = GetPosition();
@@ -60,7 +63,10 @@ public abstract class Renderable
         
         foreach (var animation in animations)
         {
-            ComputeAnimation(animation, ref temp_translation, ref temp_scale, ref temp_rotation);
+            if (IsChild && animation.AffectsChildren || !IsChild)
+            {
+                ComputeAnimation(animation, ref temp_translation, ref temp_scale, ref temp_rotation);
+            }
         }
         
         var final_translation = position + translation + temp_translation;
@@ -77,7 +83,7 @@ public abstract class Renderable
         
         foreach (var renderable in Children)
         {
-            renderable.UpdateModel(animations);
+            renderable.UpdateModel(true, animations);
         }
         
         SetModel(model);
@@ -126,9 +132,9 @@ public abstract class Renderable
                 final_rotation += rotation;
         }
 
-        if (!bit_stack.IsEnabled(AnimationFeature.Color_Add)) return;
+        if (!bit_stack.IsEnabled(AnimationFeature.Color_Value)) return;
 
-        var color_change = animation.GetColor_Add(this);
+        var color_change = animation.GetColor_Value(this);
         if (color_change != Vector4.Zero)
             Color = color_change;
     }
@@ -197,7 +203,7 @@ public abstract class Renderable
         lock (LockObject)
             _position = position;
         
-        UpdateModel();
+        UpdateModel(IsChild);
     }
     
     public void SetTranslation(Vector3 translation)
@@ -205,7 +211,7 @@ public abstract class Renderable
         lock (LockObject)
             _translation = translation;
         
-        UpdateModel();
+        UpdateModel(IsChild);
 
         foreach (var renderable in Children)
         {
@@ -218,7 +224,7 @@ public abstract class Renderable
         lock (LockObject)
             _scale = scale;
         
-        UpdateModel();
+        UpdateModel(IsChild);
     }
     
     public void SetRotation(Vector3 value)
@@ -226,6 +232,6 @@ public abstract class Renderable
         lock (LockObject)
             _rotation = value;
         
-        UpdateModel();
+        UpdateModel(IsChild);
     }
 }

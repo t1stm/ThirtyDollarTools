@@ -42,6 +42,7 @@ public class AudibleBuffer : IDisposable
 
     public void PlaySample(AudioContext context, Action? callback_when_finished = null)
     {
+        var audio_context = context.context;
         var source = AL.GenSource();
 
         if (!AL.IsSource(source))
@@ -72,6 +73,7 @@ public class AudibleBuffer : IDisposable
         Task.Run(async () =>
         {
             await Task.Delay(length);
+            if (context.context != audio_context) return;
             
             AL.DeleteSource(source);
             context.CheckErrors();

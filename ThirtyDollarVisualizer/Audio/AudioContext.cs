@@ -5,10 +5,10 @@ namespace ThirtyDollarVisualizer.Audio;
 public class AudioContext
 {
     private ALDevice device;
-    private ALContext context;
+    public ALContext context;
     public float GlobalVolume { get; set; } = .5f;
     public int SampleRate = 48000;
-    public int UpdateRate = 500; // Hz
+    public int UpdateRate = 48000; // Hz
     
     /// <summary>
     /// Creates a global audio context.
@@ -18,13 +18,12 @@ public class AudioContext
     {
         device = ALC.OpenDevice(null);
         context = ALC.CreateContext(device, 
-            new ALContextAttributes(SampleRate, null, sources, UpdateRate, true));
+            new ALContextAttributes(SampleRate, null, sources, UpdateRate, false));
         
         ALC.MakeContextCurrent(context);
         
         AL.Listener(ALListenerf.Gain, GlobalVolume);
     }
-
     /// <summary>
     /// Destroys the global audio context.
     /// </summary>

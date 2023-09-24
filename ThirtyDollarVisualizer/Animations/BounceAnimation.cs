@@ -5,7 +5,7 @@ namespace ThirtyDollarVisualizer.Animations;
 
 public class BounceAnimation : Animation
 {
-    private const int AnimationLengthMs = 500;
+    private const int AnimationLengthMs = 400;
     private readonly float Final_Y;
     public BounceAnimation(float final_y) : base(AnimationLengthMs)
     {

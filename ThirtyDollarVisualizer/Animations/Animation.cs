@@ -12,6 +12,7 @@ public abstract class Animation
     public int Features = (int) AnimationFeature.None;
 
     public bool IsRunning => TimingStopwatch.IsRunning;
+    public bool AffectsChildren = true;
 
     protected Animation(int animation_length_ms): this(TimeSpan.FromMilliseconds(animation_length_ms))
     {
@@ -63,7 +64,7 @@ public abstract class Animation
     /// </summary>
     /// <param name="renderable">The renderable the animation is used on.</param>
     /// <returns>A vector containing the color difference.</returns>
-    public virtual Vector4 GetColor_Add(Renderable renderable) => Vector4.Zero;
+    public virtual Vector4 GetColor_Value(Renderable renderable) => Vector4.Zero;
     
     /// <summary>
     /// Executes a given animation.

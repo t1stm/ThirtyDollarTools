@@ -10,6 +10,7 @@ using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Color;
 using ThirtyDollarVisualizer.Helpers.Positioning;
+using ThirtyDollarVisualizer.Helpers.Timing;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Settings;
@@ -22,8 +23,9 @@ public class ThirtyDollarApplication : IScene
     private static readonly List<Renderable> start_objects = new();
     private static readonly List<Renderable> static_objects = new();
     private static readonly List<SoundRenderable> tdw_images = new();
-    private readonly Stopwatch _timing_stopwatch = new();
+    private readonly SeekableStopwatch _timing_stopwatch = new();
     private readonly Stopwatch _open_stopwatch = new();
+    private readonly Stopwatch _seek_stopwatch = new();
     private TimeSpan _open_time;
     private int Video_I;
 
@@ -57,11 +59,13 @@ public class ThirtyDollarApplication : IScene
     private bool FinishedInitializing;
     private int LeftMargin;
     private long CurrentResizeFrame;
+    private ulong LastDividerIndex;
+    private bool OpenAudioHandler;
     
     public bool PlayAudio { get; init; }
     public SampleHolder? SampleHolder { get; set; }
     public int RenderableSize { get; set; } = 64;
-    public int MarginBetweenRenderables { get; set; } = 6;
+    public int MarginBetweenRenderables { get; set; } = 12;
     public int ElementsOnSingleLine { get; init; } = 16;
     public CameraFollowMode CameraFollowMode { get; init; } = CameraFollowMode.TDW_Like;
     public string? BackgroundVertexShaderLocation { get; init; }
@@ -85,6 +89,7 @@ public class ThirtyDollarApplication : IScene
         var camera_position = new Vector3(0,TargetY,0);
         Camera = new Camera(camera_position, -Vector3.UnitZ, Vector3.UnitY, new Vector2i(Width, Height));
         _open_stopwatch.Start();
+        _seek_stopwatch.Start();
     }
 
     /// <summary>
@@ -109,12 +114,12 @@ public class ThirtyDollarApplication : IScene
             optional_shader = new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation);
         }
 
-        _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), new Vector3(0, 0, 1f),
-            new Vector2(Width, Height),
+        _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), new Vector3(-Width, -Height, 1f),
+            new Vector2(Width * 2, Height * 2),
             optional_shader);
         
-        _flash_overlay = new ColoredPlane(new Vector4(1f, 1f, 1f, 0f), new Vector3(0, 0, 0.75f),
-            new Vector2(Width, Height));
+        _flash_overlay = new ColoredPlane(new Vector4(1f, 1f, 1f, 0f), new Vector3(-Width, -Height, 0.75f),
+            new Vector2(Width * 2, Height * 2));
 
         static_objects.Add(_background);
         static_objects.Add(_flash_overlay);
@@ -130,9 +135,10 @@ public class ThirtyDollarApplication : IScene
 
         Dictionary<string, Texture> texture_cache = new();
         Dictionary<string, Texture> value_text_cache = new();
+        Dictionary<string, Texture> volume_text_cache = new();
 
-        _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(LeftMargin, 0, 0.5f),
-            new Vector2i(PlayfieldWidth, Height));
+        _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(LeftMargin, -Height, 0.5f),
+            new Vector2i(PlayfieldWidth, Height * 2));
         static_objects.Add(_visible_area);
         
         var font_family = Fonts.GetFontFamily();
@@ -170,7 +176,7 @@ public class ThirtyDollarApplication : IScene
                 new Vector2(dnd_texture.Width, dnd_texture.Height));
             
             tdw_images.Add(drag_n_drop);
-            drag_n_drop.UpdateModel();
+            drag_n_drop.UpdateModel(false);
             
             FinishedInitializing = true;
             _placement = Array.Empty<Placement>();
@@ -221,7 +227,7 @@ public class ThirtyDollarApplication : IScene
                 continue;
             }
 
-            CreateEventRenderable(ev, texture_cache, wh, flex_box, value_text_cache, font, volume_color, volume_font);
+            CreateEventRenderable(ev, texture_cache, wh, flex_box, value_text_cache, volume_text_cache, font, volume_color, volume_font);
             i++;
         }
 
@@ -257,7 +263,7 @@ public class ThirtyDollarApplication : IScene
             }
         }
     }
-    
+
     /// <summary>
     /// Creates a Thirty Dollar Website renderable with the texture of the event and it's value and volume as children.
     /// </summary>
@@ -265,14 +271,15 @@ public class ThirtyDollarApplication : IScene
     /// <param name="texture_cache">The texture cache.</param>
     /// <param name="wh">The dimensions of a single event.</param>
     /// <param name="flex_box">A flexbox orderer.</param>
-    /// <param name="value_text_cache">The cache for the textures of the value and the volume.</param>
+    /// <param name="value_text_cache">The cache for the textures of the values.</param>
+    /// <param name="volume_text_cache">The cache for the textures of the elements' volumes.</param>
     /// <param name="font">The font you want to use for the generated textures.</param>
     /// <param name="volume_color">The color of the volume font.</param>
     /// <param name="volume_font">The volume font.</param>
     /// <exception cref="Exception"></exception>
     private void CreateEventRenderable(Event ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
         FlexBox flex_box,
-        IDictionary<string, Texture> value_text_cache, Font font, Rgba32 volume_color, Font volume_font)
+        IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font, Rgba32 volume_color, Font volume_font)
     {
         var image = $"{SampleHolder!.DownloadLocation}/Images/" + ev.SoundEvent?.Replace("!", "action_") + ".png";
 
@@ -368,7 +375,7 @@ public class ThirtyDollarApplication : IScene
             var text_position = new Vector3
             {
                 X = plane_position.X + width_height.X / 2f - value_texture.Width / 2f,
-                Y = box_position.Y + RenderableSize + MarginBetweenRenderables - value_texture.Height,
+                Y = box_position.Y + RenderableSize - value_texture.Height / 2f,
                 Z = box_position.Z
             };
             text_position.Z -= 0.1f;
@@ -390,11 +397,11 @@ public class ThirtyDollarApplication : IScene
 
             if (ev.Value != 0)
             {
-                value_text_cache.TryGetValue(volume_text, out volume_texture);
+                volume_text_cache.TryGetValue(volume_text, out volume_texture);
                 if (volume_texture == null)
                 {
                     volume_texture = new Texture(volume_font, volume_text);
-                    value_text_cache.Add(volume_text, volume_texture);
+                    volume_text_cache.Add(volume_text, volume_texture);
                 }
             }
 
@@ -439,6 +446,7 @@ public class ThirtyDollarApplication : IScene
 
         var (processed_samples, _) = await pcm_encoder.GetAudioSamples(-1, _placement, CancellationToken.None);
         
+        AudioContext.Destroy();
         AudioContext.Create(processed_samples.Count * 2);
         AudioContext.GlobalVolume = .25f;
 
@@ -476,19 +484,20 @@ public class ThirtyDollarApplication : IScene
         if (!FinishedInitializing) return;
 
         var background = _background.GetScale();
-        _background.SetScale((w, h, background.Z));
+        _background.SetScale((w * 2, h * 2, background.Z));
 
         var flash = _flash_overlay.GetScale();
-        _flash_overlay.SetScale((w, h, flash.Z));
+        _flash_overlay.SetScale((w * 2, h * 2, flash.Z));
 
         var visible = _visible_area.GetScale();
-        _visible_area.SetScale((visible.X, h, visible.Z));
+        _visible_area.SetScale((visible.X, h * 2, visible.Z));
 
         var greeting_translation = _greeting.GetTranslation();
         _greeting.SetTranslation(greeting_translation - new Vector3((Width - w) / 2f, (Height - h) / 2f, 0));
         
         var visible_position = _visible_area.GetPosition();
         visible_position.X = w / 2f - visible.X / 2;
+        visible_position.Y = -h;
         _visible_area.SetPosition(visible_position);
 
         var current_margin = visible_position.X;
@@ -540,7 +549,7 @@ public class ThirtyDollarApplication : IScene
             
             var new_position = new Vector3(renderable.GetTranslation())
             {
-                Y = Camera.Position.Y
+                Y = Camera.Position.Y + Height / 2f
             };
 
             renderable.SetTranslation(new_position);
@@ -654,6 +663,7 @@ public class ThirtyDollarApplication : IScene
     private void AudioHandler()
     {
         var current_open_time = _open_time;
+        OpenAudioHandler = true;
         while (Audio_I < _placement.LongLength && !Token.IsCancellationRequested)
         {
             if (current_open_time != _open_time) break;
@@ -666,9 +676,15 @@ public class ThirtyDollarApplication : IScene
                 continue;
             }
 
-            if (placement.Event.SoundEvent is "!cut")
+            switch (placement.Event.SoundEvent)
             {
-                CutSounds();
+                case "!cut":
+                    CutSounds();
+                    break;
+                
+                case "!divider":
+                    LastDividerIndex = placement.SequenceIndex;
+                    break;
             }
 
             if ((placement.Event.SoundEvent?.StartsWith('!') ?? true) || placement.Event.SoundEvent is "#!cut")
@@ -684,6 +700,7 @@ public class ThirtyDollarApplication : IScene
 
             Audio_I++;
         }
+        OpenAudioHandler = false;
     }
 
     public void Update()
@@ -691,6 +708,11 @@ public class ThirtyDollarApplication : IScene
         if (!FinishedInitializing) return;
         for (; Video_I < _placement.LongLength; Video_I++)
         {
+            if (!OpenAudioHandler)
+            {
+                Task.Run(AudioHandler, Token);
+            }
+            
             var placement = _placement[Video_I];
 
             var element = tdw_images.ElementAtOrDefault((int)placement.SequenceIndex);
@@ -705,9 +727,9 @@ public class ThirtyDollarApplication : IScene
             {
                 case CameraFollowMode.TDW_Like:
                 {
-                    if (current_Y > Camera.Position.Y + 5 * (Height / 6f) || current_Y < Camera.Position.Y)
+                    if (current_Y > Camera.Position.Y + Height - RenderableSize - MarginBetweenRenderables || current_Y < Camera.Position.Y || placement.Event.SoundEvent is "!divider")
                     {
-                        TargetY = current_Y - Height / 6f;
+                        TargetY = current_Y - RenderableSize - MarginBetweenRenderables;
                     }
                     break;
                 }
@@ -725,7 +747,7 @@ public class ThirtyDollarApplication : IScene
             
             if (placement.Event.SoundEvent?.StartsWith('!') ?? false)
             {
-                Task.Run(() => ColorTools.Fade(element), Token);
+                element.Fade();
                 element.Expand();
             }
             else if (placement.Event.SoundEvent is not "#!cut")
@@ -765,11 +787,6 @@ public class ThirtyDollarApplication : IScene
 
             Task.Run(async () => await SmoothScrollCamera(Camera), Token);
         }
-
-        if (Video_I > _placement.LongLength)
-        {
-            Manager.Close();
-        }
     }
 
     public void Close()
@@ -801,7 +818,105 @@ public class ThirtyDollarApplication : IScene
 
     public void Input(KeyboardState state)
     {
-        if (!state.IsKeyDown(Keys.R)) return;
+        const int seek_timeout = 250;
+        const int seek_length = 1000;
+        
+        switch (state.IsKeyPressed(Keys.Space))
+        {
+            case true when _timing_stopwatch.IsRunning:
+                _timing_stopwatch.Stop();
+                break;
+            
+            case true when !_timing_stopwatch.IsRunning:
+                _timing_stopwatch.Start();
+                break;
+        }
+
+        var elapsed = _timing_stopwatch.ElapsedMilliseconds;
+        if (state.IsKeyDown(Keys.Left) && _seek_stopwatch.ElapsedMilliseconds > seek_timeout)
+        {
+            _seek_stopwatch.Restart();
+            var change = elapsed - seek_length;
+            
+            var (placement, i) = _placement.Select((placement, i) => (placement , i))
+                .MinBy(stack => Math.Abs((long) stack.placement.Index * 1000 / TimingSampleRate - change));
+            var placement_index = placement?.Index ?? 0;
+            
+            _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+            Audio_I = Video_I = i;
+        }
+
+        if (state.IsKeyDown(Keys.Right) && _seek_stopwatch.ElapsedMilliseconds > seek_timeout)
+        {
+            _seek_stopwatch.Restart();
+            var change = elapsed + seek_length;
+            
+            var (placement, i) = _placement.Select((placement, i) => (placement , i))
+                .MinBy(stack => Math.Abs((long) stack.placement.Index * 1000 / TimingSampleRate - change));
+            var placement_index = placement?.Index ?? 0;
+            
+            _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+            Audio_I = Video_I = i;
+        }
+
+        if (state.IsKeyDown(Keys.Up) && _seek_stopwatch.ElapsedMilliseconds > seek_timeout)
+        {
+            _seek_stopwatch.Restart();
+            var current_i = Math.Min(Audio_I, _placement.Length - 1);
+            int i;
+
+            Placement? placement = null;
+
+            for (i = current_i; i > 0; i--)
+            {
+                var placement_i = _placement[i];
+
+                if (placement_i.Event.SoundEvent is not "!divider") continue;
+                if (placement_i.SequenceIndex == LastDividerIndex) continue;
+
+                placement = placement_i;
+                break;
+            }
+
+            if (placement == null)
+            {
+                placement = _placement.First();
+                i = 0;
+            }
+            
+            var placement_index = placement.Index;
+            
+            _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+            Audio_I = Video_I = i;
+        }
+
+        if (state.IsKeyDown(Keys.Down) && _seek_stopwatch.ElapsedMilliseconds > seek_timeout)
+        {
+            _seek_stopwatch.Restart();
+            int i;
+            var current_i = Math.Min(Audio_I, _placement.Length - 1);
+            
+            Placement? placement = null;
+
+            for (i = current_i; i < _placement.LongLength; i++)
+            {
+                var placement_i = _placement[i];
+
+                if (placement_i.Event.SoundEvent is not "!divider") continue;
+                if (placement_i.SequenceIndex == LastDividerIndex) continue;
+
+                placement = placement_i;
+                break;
+            }
+
+            placement ??= _placement[i - 1];
+            var placement_index = placement.Index;
+            
+            _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+            Audio_I = Video_I = i;
+        }
+
+        if (!state.IsKeyPressed(Keys.R)) return;
         FileDrop(_composition_location);
     }
 }
