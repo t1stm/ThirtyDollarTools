@@ -16,11 +16,11 @@ public class DollarStoreCamera : Camera
 
     public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float margin_from_sides = 0)
     {
-        var top = position.Y + scale.Y > VirtualPosition.Y + margin_from_sides;
-        var bottom = position.Y < VirtualPosition.Y + Height - margin_from_sides;
+        var top = position.Y + scale.Y > Position.Y + margin_from_sides;
+        var bottom = position.Y < Position.Y + Height - margin_from_sides;
         
-        var left = position.X + scale.X > VirtualPosition.X - margin_from_sides;
-        var right = position.X < VirtualPosition.X + Width - margin_from_sides;
+        var left = position.X + scale.X > Position.X - margin_from_sides;
+        var right = position.X < Position.X + Width - margin_from_sides;
 
         return !(top && bottom && left && right);
     }
