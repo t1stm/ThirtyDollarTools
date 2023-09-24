@@ -859,7 +859,7 @@ public class ThirtyDollarApplication : IScene
             Audio_I = Video_I = i;
         }
 
-        if (state.IsKeyDown(Keys.Up) && _seek_stopwatch.ElapsedMilliseconds > seek_timeout)
+        if (state.IsKeyPressed(Keys.Up))
         {
             _seek_stopwatch.Restart();
             var current_i = Math.Min(Audio_I, _placement.Length - 1);
@@ -890,7 +890,7 @@ public class ThirtyDollarApplication : IScene
             Audio_I = Video_I = i;
         }
 
-        if (state.IsKeyDown(Keys.Down) && _seek_stopwatch.ElapsedMilliseconds > seek_timeout)
+        if (state.IsKeyPressed(Keys.Down))
         {
             _seek_stopwatch.Restart();
             int i;
