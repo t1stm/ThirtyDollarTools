@@ -34,10 +34,9 @@ public class ThirtyDollarApplication : IScene
     private readonly List<AudibleBuffer> ActiveSamples = new();
     private int Audio_I;
 
-    private static Camera Camera = null!;
+    private static DollarStoreCamera Camera = null!;
     private int Width;
     private int Height;
-    private float TargetY;
     private int PlayfieldWidth;
 
     private ColoredPlane _background = null!;
@@ -67,7 +66,7 @@ public class ThirtyDollarApplication : IScene
     public int RenderableSize { get; set; } = 64;
     public int MarginBetweenRenderables { get; set; } = 12;
     public int ElementsOnSingleLine { get; init; } = 16;
-    public CameraFollowMode CameraFollowMode { get; init; } = CameraFollowMode.TDW_Like;
+    public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDW_Like;
     public string? BackgroundVertexShaderLocation { get; init; }
     public string? BackgroundFragmentShaderLocation { get; init; }
     public Action<string> Log { get; init; } = log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); };
@@ -84,10 +83,9 @@ public class ThirtyDollarApplication : IScene
         Width = width;
         Height = height;
         _composition_location = composition_location;
-
-        TargetY = -300f;
-        var camera_position = new Vector3(0,TargetY,0);
-        Camera = new Camera(camera_position, -Vector3.UnitZ, Vector3.UnitY, new Vector2i(Width, Height));
+        
+        var camera_position = new Vector3(0,-300f,0);
+        Camera = new DollarStoreCamera(camera_position, new Vector2i(Width, Height));
         _open_stopwatch.Start();
         _seek_stopwatch.Start();
     }
@@ -356,6 +354,14 @@ public class ThirtyDollarApplication : IScene
             case "!volume":
                 value += "%";
                 break;
+            
+            case "!pulse":
+                var parsed_value = (long) ev.Value;
+                var repeats = (byte)parsed_value;
+                var pulse_times = (short)(parsed_value >> 8);
+
+                value = $"{repeats}, {pulse_times}";
+                break;
         }
 
         Texture? value_texture = null;
@@ -601,29 +607,6 @@ public class ThirtyDollarApplication : IScene
         }
     }
 
-    private async Task SmoothScrollCamera(Camera camera)
-    {
-        if (camera.IsBeingUpdated) return;
-        camera.IsBeingUpdated = true;
-
-        do
-        {
-            var current_y = camera.Position.Y;
-            var delta_y = TargetY - current_y;
-            delta_y -= delta_y % 1f;
-
-            var scroll_y = delta_y / 120f;
-            if (Math.Abs(scroll_y) < 1f) break;
-            
-            current_y += scroll_y;
-            camera.Position = current_y * Vector3.UnitY;
-
-            await Task.Delay(1, Token);
-        } while (true);
-
-        camera.IsBeingUpdated = false;
-    }
-
     private void PlayPlacement(Placement placement)
     {
         var ev = placement.Event;
@@ -663,6 +646,7 @@ public class ThirtyDollarApplication : IScene
     private void AudioHandler()
     {
         var current_open_time = _open_time;
+        if (OpenAudioHandler) return;
         OpenAudioHandler = true;
         while (Audio_I < _placement.LongLength && !Token.IsCancellationRequested)
         {
@@ -708,6 +692,7 @@ public class ThirtyDollarApplication : IScene
         if (!FinishedInitializing) return;
         for (; Video_I < _placement.LongLength; Video_I++)
         {
+            Camera.Update();
             if (!OpenAudioHandler)
             {
                 Task.Run(AudioHandler, Token);
@@ -721,27 +706,23 @@ public class ThirtyDollarApplication : IScene
             var position = element.GetPosition() + element.GetTranslation();
             var scale = element.GetScale();
 
-            var current_Y = position.Y + scale.Y;
-
             switch (CameraFollowMode)
             {
                 case CameraFollowMode.TDW_Like:
                 {
-                    if (current_Y > Camera.Position.Y + Height - RenderableSize - MarginBetweenRenderables || current_Y < Camera.Position.Y || placement.Event.SoundEvent is "!divider")
+                    if (Camera.IsOutsideOfCameraView(position, scale, RenderableSize) || placement.Event.SoundEvent is "!divider")
                     {
-                        TargetY = current_Y - RenderableSize - MarginBetweenRenderables;
+                        Camera.ScrollTo(position * Vector3.UnitY + scale * Vector3.UnitY);
                     }
                     break;
                 }
 
                 case CameraFollowMode.Current_Line:
                 {
-                    TargetY = current_Y - Height / 2f;
+                    Camera.ScrollTo(position * Vector3.UnitY + Vector3.UnitY * (Height / 2f));
                     break;
                 }
             }
-
-            TargetY -= TargetY % 1f;
 
             if (placement.Index > (ulong)((float)_timing_stopwatch.ElapsedMilliseconds * TimingSampleRate / 1000)) return;
             
@@ -784,8 +765,6 @@ public class ThirtyDollarApplication : IScene
 
                 // TODO: implement behavior for !pulse
             }
-
-            Task.Run(async () => await SmoothScrollCamera(Camera), Token);
         }
     }
 
@@ -796,8 +775,7 @@ public class ThirtyDollarApplication : IScene
 
     public void FileDrop(string? location)
     {
-        TargetY = -300f;
-        Camera.Position = new Vector3(0, TargetY, 0);
+        Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height));
         
         _timing_stopwatch.Reset();
         Video_I = Audio_I = 0;
@@ -831,6 +809,13 @@ public class ThirtyDollarApplication : IScene
                 _timing_stopwatch.Start();
                 break;
         }
+
+        CameraFollowMode = state.IsKeyPressed(Keys.C) switch
+        {
+            true when CameraFollowMode is CameraFollowMode.Current_Line => CameraFollowMode.TDW_Like,
+            true when CameraFollowMode is CameraFollowMode.TDW_Like => CameraFollowMode.Current_Line,
+            _ => CameraFollowMode
+        };
 
         var elapsed = _timing_stopwatch.ElapsedMilliseconds;
         if (state.IsKeyDown(Keys.Left) && _seek_stopwatch.ElapsedMilliseconds > seek_timeout)

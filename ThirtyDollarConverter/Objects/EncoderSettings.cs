@@ -21,10 +21,10 @@ public class EncoderSettings
 
     
     /// <summary>
-    /// Due to the nature of the TDW, some compositions sound wrong when played perfectly.
+    /// Due to the nature of the TDW before the Thirty Dollar Rewrite got merged, some compositions sound wrong when played perfectly.
     /// This controls how much time after the combine event, a sound is played.
     /// </summary>
-    public uint CombineDelayMs = 4;
+    public uint CombineDelayMs = 0;
     
     /// <summary>
     /// Select the resampler you want to use.

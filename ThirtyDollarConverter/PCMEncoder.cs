@@ -228,7 +228,7 @@ public class PcmEncoder
                     }
 
                     var sample =
-                        processedEvents.First(r => r.Name == ev.SoundEvent && Math.Abs(r.Value - ev.Value) < 1)
+                        processedEvents.First(r => r.Name == ev.SoundEvent && Math.Abs(r.Value - ev.Value) < 0.01f)
                             .AudioData;
 
                     var data = sample.GetChannel(indexCopy);
