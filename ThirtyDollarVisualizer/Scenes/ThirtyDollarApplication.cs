@@ -60,6 +60,7 @@ public class ThirtyDollarApplication : IScene
     private long CurrentResizeFrame;
     private ulong LastDividerIndex;
     private bool OpenAudioHandler;
+    private float LastBPM = 300f;
     
     public bool PlayAudio { get; init; }
     public SampleHolder? SampleHolder { get; set; }
@@ -162,9 +163,8 @@ public class ThirtyDollarApplication : IScene
         
         var font = font_family.CreateFont(16 * Scale, FontStyle.Bold);
 
-        var volume_font = font_family.CreateFont(11 * Scale, FontStyle.Bold);
+        var volume_font = font_family.CreateFont(13 * Scale, FontStyle.Bold);
         var volume_color = new Rgba32(204, 204, 204, 1f);
-
 
         if (_composition_location == null)
         {
@@ -381,7 +381,7 @@ public class ThirtyDollarApplication : IScene
             var text_position = new Vector3
             {
                 X = plane_position.X + width_height.X / 2f - value_texture.Width / 2f,
-                Y = box_position.Y + RenderableSize - value_texture.Height / 2f,
+                Y = box_position.Y + RenderableSize - 10f * Scale,
                 Z = box_position.Z
             };
             text_position.Z -= 0.1f;
@@ -415,7 +415,7 @@ public class ThirtyDollarApplication : IScene
             {
                 var text_position = new Vector3
                 {
-                    X = box_position.X + width_height.X - volume_texture.Width / 2f,
+                    X = box_position.X + RenderableSize - volume_texture.Width,
                     Y = box_position.Y,
                     Z = box_position.Z
                 };
@@ -710,10 +710,11 @@ public class ThirtyDollarApplication : IScene
             {
                 case CameraFollowMode.TDW_Like:
                 {
-                    if (Camera.IsOutsideOfCameraView(position, scale, RenderableSize) || placement.Event.SoundEvent is "!divider")
-                    {
-                        Camera.ScrollTo(position * Vector3.UnitY + scale * Vector3.UnitY);
-                    }
+                    float margin = RenderableSize;
+                    
+                    if (!Camera.IsOutsideOfCameraView(position, scale, margin) && placement.Event.SoundEvent is not "!divider") break;
+                    
+                    Camera.ScrollTo(new Vector3(0, position.Y - margin, 0f));
                     break;
                 }
 
@@ -738,6 +739,22 @@ public class ThirtyDollarApplication : IScene
 
             switch (placement.Event.SoundEvent)
             {
+                case "!speed":
+                {
+                    var val = (float) placement.Event.Value;
+                    
+                    LastBPM = placement.Event.ValueScale switch
+                    {
+                        ValueScale.Add => LastBPM + val,
+                        ValueScale.None => val,
+                        ValueScale.Times => LastBPM * val,
+                        
+                        _ => LastBPM
+                    };
+                    
+                    break;
+                }
+                
                 case "!bg":
                 {
                     var parsed_value = (long)placement.Event.Value;
@@ -763,7 +780,15 @@ public class ThirtyDollarApplication : IScene
                     break;
                 }
 
-                // TODO: implement behavior for !pulse
+                case "!pulse":
+                {
+                    var parsed_value = (long) placement.Event.Value;
+                    var repeats = (byte)parsed_value;
+                    float frequency = (short)(parsed_value >> 8);
+                    
+                    Camera.Pulse(repeats, frequency * 1000f / (LastBPM / 60));
+                    break;
+                }
             }
         }
     }

@@ -6,8 +6,8 @@ namespace ThirtyDollarVisualizer.Objects;
 public class DollarStoreCamera : Camera
 {
     private Vector3 VirtualPosition;
-
     private const float ScrollLengthMs = 120f;
+    private DateTime LastScaleUpdate = DateTime.Now;
     
     public DollarStoreCamera(Vector3 position, Vector2i viewport) : base(position, -Vector3.UnitZ, Vector3.UnitY, viewport)
     {
@@ -16,13 +16,13 @@ public class DollarStoreCamera : Camera
 
     public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float margin_from_sides = 0)
     {
-        var top = position.Y + scale.Y > Position.Y + margin_from_sides;
-        var bottom = position.Y < Position.Y + Height - margin_from_sides;
+        var collide_top = position.Y < VirtualPosition.Y + margin_from_sides;
+        var collide_bottom = position.Y + scale.Y > VirtualPosition.Y + Height - margin_from_sides;
         
-        var left = position.X + scale.X > Position.X - margin_from_sides;
-        var right = position.X < Position.X + Width - margin_from_sides;
+        var collide_left = position.X < VirtualPosition.X + margin_from_sides;
+        var collide_right = position.X + scale.X > VirtualPosition.X + Width - margin_from_sides;
 
-        return !(top && bottom && left && right);
+        return collide_top || collide_bottom || collide_left || collide_right;
     }
 
     public void ScrollTo(Vector3 position)
@@ -39,22 +39,65 @@ public class DollarStoreCamera : Camera
         {
             var current_y = Position.Y;
             var delta_y = VirtualPosition.Y - current_y;
-            delta_y -= delta_y % 1f;
 
+            if (Math.Abs(delta_y) < 1f) break;
             var scroll_y = delta_y / ScrollLengthMs;
-            if (Math.Abs(scroll_y) < 1f) break;
-            
+
             current_y += scroll_y;
             Position = current_y * Vector3.UnitY;
 
             await Task.Delay(1);
         } while (true);
 
+        Position = VirtualPosition;
+
         IsBeingUpdated = false;
+    }
+
+    private async void AsyncPulse(int times, float delay_ms)
+    {
+        var t = times;
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        
+        const float max_add_scale = .05f;
+        var now = LastScaleUpdate = DateTime.Now;
+        do
+        {
+            if (now != LastScaleUpdate) break;
+            
+            var elapsed = stopwatch.ElapsedMilliseconds;
+            var factor = elapsed / delay_ms;
+            if (factor > 1)
+            {
+                t--;
+                factor = 1;
+                stopwatch.Restart();
+            }
+            
+            var zoom = 1 + (float) Math.Sin(Math.PI * factor) * max_add_scale;
+            Scale = zoom;
+            UpdateMatrix();
+            
+            await Task.Delay(1);
+        } while (t > 0);
+
+        if (now == LastScaleUpdate)
+        {
+            Scale = 1f;
+            UpdateMatrix();   
+        }
+        
+        stopwatch.Reset();
     }
 
     public void Update()
     {
         AsyncUpdate();
+    }
+
+    public void Pulse(int times = 1, float frequency = 0)
+    {
+        AsyncPulse(times, frequency);
     }
 }

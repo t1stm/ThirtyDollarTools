@@ -56,12 +56,28 @@ public class Camera
 
     public void UpdateMatrix()
     {
-        projection_matrix = Matrix4.CreateOrthographicOffCenter(
-            Position.X, Position.X + Width, 
-            Position.Y + Height, Position.Y, 
-            -1f, 1f);
+        var left = Position.X;
+        var top = Position.Y;
         
-        projection_matrix *= Matrix4.CreateScale(Scale);
+        var right = Position.X + Width;
+        var bottom = Position.Y + Height;
+
+        if (Math.Abs(Scale - 1) > 0.01f)
+        {
+            var add_left = Width - Width / Scale;
+            var add_top = Height - Height / Scale;
+
+            add_left /= 2;
+            add_top /= 2;
+
+            left += add_left;
+            top += add_top;
+
+            right -= add_left;
+            bottom -= add_top;
+        }
+        
+        projection_matrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top,-1f, 1f);
     }
 
     public Matrix4 GetProjectionMatrix()
