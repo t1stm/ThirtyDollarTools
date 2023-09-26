@@ -26,6 +26,5 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
-        <ProjectReference Include="..\ThirtyDollarVisualizer\ThirtyDollarVisualizer.csproj" />
     </ItemGroup>
 </Project>

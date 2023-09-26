@@ -18,7 +18,7 @@ internal static class Program
             DownloadLocation = $"{workingDirectory}/Sounds"
         };
         await holder.LoadSampleList();
-        await holder.DownloadFiles();
+        await holder.DownloadSamples();
         holder.LoadSamplesIntoMemory();
         Console.Clear();
 

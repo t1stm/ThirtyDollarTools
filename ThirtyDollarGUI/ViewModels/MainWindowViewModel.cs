@@ -1,18 +1,15 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
-using OpenTK.Graphics.OpenGL;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using ReactiveUI;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarGUI.Helper;
 using ThirtyDollarGUI.Views;
 using ThirtyDollarParser;
-using ThirtyDollarVisualizer;
-using ThirtyDollarVisualizer.Scenes;
 
 namespace ThirtyDollarGUI.ViewModels;
 
@@ -233,8 +230,8 @@ public class MainWindowViewModel : ViewModelBase
 
         downloader.DataContext = data_context;
 
-        if (!Directory.Exists(data_context.ImagesLocation) || 
-            Directory.GetFiles(data_context.ImagesLocation).Length <= sample_holder.SampleList.Count + DownloaderViewModel.ActionsArray.Length)
+        if (!Directory.Exists(sample_holder.ImagesLocation) || 
+            Directory.GetFiles(sample_holder.ImagesLocation).Length <= sample_holder.SampleList.Count + SampleHolder.ActionsArray.Length)
         {
             downloader.Show();
             return;
@@ -247,30 +244,25 @@ public class MainWindowViewModel : ViewModelBase
         {
             downloader.Close();
 
-            var w = 1600;
-            var h = 900;
-
-            var application = new ThirtyDollarApplication(w, h, sequence_file_location)
-            {
-                SampleHolder = sample_holder,
-                RenderableSize = 64,
-                MarginBetweenRenderables = 6,
-                ElementsOnSingleLine = 16,
-
-                BackgroundVertexShaderLocation = null,
-                BackgroundFragmentShaderLocation = null,
-                PlayAudio = true
-            };
-
-            var manager = new Manager(w, h, "Thirty Dollar Visualizer")
-            {
-                Scenes = { application }
-            };
-
-            GLFW.Init();
-            GL.LoadBindings(new GLFWBindingsContext());
+            string? visualizer_filename = null;
+            var gui_location = Process.GetCurrentProcess().MainModule?.FileName.Replace("ThirtyDollarGUI", "");
             
-            manager.Run();
+            if (File.Exists($"{gui_location}/ThirtyDollarVisualizer")) visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer";
+            if (File.Exists($"{gui_location}/ThirtyDollarVisualizer.exe")) visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer.exe";
+
+            if (visualizer_filename == null)
+            {
+                CreateLog($"Unable to find the visualizer executable in the directory of the GUI. Location: \'{gui_location}\'");
+                return;
+            }
+
+            var start_info = new ProcessStartInfo
+            {
+                FileName = visualizer_filename,
+                Arguments = $"-i \"{sequence_file_location}\""
+            };
+
+            Process.Start(start_info);
         }
     }
 }

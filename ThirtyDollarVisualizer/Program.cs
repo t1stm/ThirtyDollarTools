@@ -61,6 +61,12 @@ public static class Program
                     _ => CameraFollowMode.TDW_Like
                 };
             });
+
+        if (composition != null && !File.Exists(composition))
+        {
+            Console.WriteLine("Unable to find specified composition. Running a specified composition.");
+            composition = null;
+        }
         
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps);
 

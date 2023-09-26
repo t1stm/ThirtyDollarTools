@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using ReactiveUI;
 using ThirtyDollarConverter;
+using ThirtyDollarGUI.Helper;
 
 namespace ThirtyDollarGUI.ViewModels;
 
@@ -21,27 +22,6 @@ public class DownloaderViewModel : ViewModelBase
     private bool download_running;
     public DownloaderMode DownloadMode;
     public Action? OnFinishDownloading { get; init; }
-    
-    public static readonly string[] ActionsArray = {
-        "action_bg.png",
-        "action_combine.png",
-        "action_cut.png",
-        "action_divider.png",
-        "action_flash.png",
-        "action_jump.png",
-        "action_loop.png",
-        "action_loopmany.png",
-        "action_looptarget.png",
-        "action_pulse.png",
-        "action_speed.png",
-        "action_startpos.png",
-        "action_stop.png",
-        "action_target.png",
-        "action_transpose.png",
-        "action_volume.png"
-    };
-    
-    public string ImagesLocation => $"{sample_holder.DownloadLocation}/Images";
     
     public DownloaderViewModel(SampleHolder sample_holder, DownloaderMode downloadMode = DownloaderMode.Samples)
     {
@@ -89,7 +69,7 @@ public class DownloaderViewModel : ViewModelBase
     private async Task DownloadSamplesTask()
     {
         sample_holder.DownloadUpdate = DownloadMessageHandler;
-        await sample_holder.DownloadFiles();
+        await sample_holder.DownloadSamples();
         sample_holder.LoadSamplesIntoMemory();
         
         CreateLog("Loaded all samples into memory.");
@@ -98,11 +78,11 @@ public class DownloaderViewModel : ViewModelBase
     private async Task DownloadImagesTask()
     {
         var current = 0;
-        var total_length = sample_holder.SampleList.Count + ActionsArray.Length;
+        var total_length = sample_holder.SampleList.Count + SampleHolder.ActionsArray.Length;
         
-        if (!Directory.Exists(ImagesLocation))
+        if (!Directory.Exists(sample_holder.ImagesLocation))
         {
-            Directory.CreateDirectory(ImagesLocation);
+            Directory.CreateDirectory(sample_holder.ImagesLocation);
         }
 
         var http_client = new HttpClient();
@@ -112,7 +92,7 @@ public class DownloaderViewModel : ViewModelBase
             var filename = sound.Filename;
             const string file_extension = "png";
 
-            var download_location = $"{ImagesLocation}/{filename}.{file_extension}";
+            var download_location = $"{sample_holder.ImagesLocation}/{filename}.{file_extension}";
             DownloadMessageHandler($"{filename}.{file_extension}", current, total_length);
 
             if (File.Exists(download_location))
@@ -129,10 +109,10 @@ public class DownloaderViewModel : ViewModelBase
             current++;
         }
 
-        foreach (var action in ActionsArray)
+        foreach (var action in SampleHolder.ActionsArray)
         {
             var file_name = $"{action}";
-            var download_location = $"{ImagesLocation}/{file_name}";
+            var download_location = $"{sample_holder.ImagesLocation}/{file_name}";
             
             DownloadMessageHandler(file_name, current, total_length);
             if (File.Exists(download_location))

@@ -195,9 +195,10 @@ public class ThirtyDollarApplication : IScene
                 await sample_holder.LoadSampleList();
                 if (!sample_holder.DownloadedAllFiles())
                 {
-                    await sample_holder.DownloadFiles();
+                    await sample_holder.DownloadSamples();
                 }
                 sample_holder.LoadSamplesIntoMemory();
+                await sample_holder.DownloadImages();
             }
         }, Token).Wait(Token);
         

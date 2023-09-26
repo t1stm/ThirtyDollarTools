@@ -18,7 +18,27 @@ public class SampleHolder
     public const string ThirtyDollarWebsiteUrl = "https://thirtydollar.website";
     public const string DownloadSampleUrl = "https://thirtydollar.website/sounds";
     public string DownloadLocation { get; init; } = "./Sounds";
+    public string ImagesLocation => $"{DownloadLocation}/Images";
 
+    public static readonly string[] ActionsArray =
+    {
+        "action_bg.png",
+        "action_combine.png",
+        "action_cut.png",
+        "action_divider.png",
+        "action_flash.png",
+        "action_jump.png",
+        "action_loop.png",
+        "action_loopmany.png",
+        "action_looptarget.png",
+        "action_pulse.png",
+        "action_speed.png",
+        "action_startpos.png",
+        "action_stop.png",
+        "action_target.png",
+        "action_transpose.png",
+        "action_volume.png"
+    };
     /// <summary>
     /// Loads all Thirty Dollar Website sounds to this object.
     /// </summary>
@@ -68,6 +88,7 @@ public class SampleHolder
         if (!Directory.Exists(DownloadLocation))
         {
             Directory.CreateDirectory(DownloadLocation);
+            Directory.CreateDirectory(ImagesLocation);
             return false;
         }
 
@@ -78,7 +99,7 @@ public class SampleHolder
     /// <summary>
     /// Downloads all sounds to the download folder.
     /// </summary>
-    public async Task DownloadFiles()
+    public async Task DownloadSamples()
     {
         if (DownloadedAllFiles()) return;
         var client = new HttpClient();
@@ -96,6 +117,54 @@ public class SampleHolder
             await stream.CopyToAsync(fs);
             fs.Close();
             i++;
+        }
+    }
+
+    public async Task DownloadImages()
+    {
+        var client = new HttpClient();
+        if (SampleList.Count < 1)
+        {
+            await LoadSampleList();
+        }
+        
+        if (!DownloadedAllFiles())
+        {
+            await DownloadSamples();
+        }
+
+        foreach (var (sound, _) in SampleList)
+        {
+            var filename = sound.Filename;
+            const string file_extension = "png";
+
+            var download_location = $"{ImagesLocation}/{filename}.{file_extension}";
+
+            if (File.Exists(download_location)) continue;
+            
+            Console.WriteLine($"Downloading image: \'{sound.Icon_URL}\'");
+            
+            var stream = await client.GetStreamAsync(sound.Icon_URL);
+            await using var fs = File.Open(download_location, FileMode.CreateNew);
+            await stream.CopyToAsync(fs);
+            
+            fs.Close();
+        }
+
+        foreach (var action in ActionsArray)
+        {
+            var file_name = $"{action}";
+            var download_location = $"{ImagesLocation}/{file_name}";
+            
+            if (File.Exists(download_location)) continue;
+            
+            Console.WriteLine($"Downloading image: \'{ThirtyDollarWebsiteUrl}/assets/{file_name}\'");
+            
+            await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}");
+            await using var fs = File.Open(download_location, FileMode.CreateNew);
+            await stream.CopyToAsync(fs);
+            
+            fs.Close();
         }
     }
     
