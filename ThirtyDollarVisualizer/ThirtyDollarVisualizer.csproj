@@ -11,8 +11,8 @@
 
     <ItemGroup>
         <PackageReference Include="CommandLineParser" Version="2.9.1" />
+        <PackageReference Include="OpenAL.Soft" Version="1.19.1" />
         <PackageReference Include="OpenTK" Version="4.8.0" />
-        <PackageReference Include="PortAudioSharp2" Version="0.4.0" />
         <PackageReference Include="SixLabors.Fonts" Version="1.0.0" />
         <PackageReference Include="SixLabors.ImageSharp" Version="3.0.1" />
         <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0" />

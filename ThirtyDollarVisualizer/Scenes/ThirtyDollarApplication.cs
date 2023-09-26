@@ -491,10 +491,12 @@ public class ThirtyDollarApplication : IScene
 
         var background = _background.GetScale();
         _background.SetScale((w * 2, h * 2, background.Z));
+        _background.SetPosition((-w, -h, 0));
 
         var flash = _flash_overlay.GetScale();
         _flash_overlay.SetScale((w * 2, h * 2, flash.Z));
-
+        _flash_overlay.SetPosition((-w, -h, 0));
+        
         var visible = _visible_area.GetScale();
         _visible_area.SetScale((visible.X, h * 2, visible.Z));
 
