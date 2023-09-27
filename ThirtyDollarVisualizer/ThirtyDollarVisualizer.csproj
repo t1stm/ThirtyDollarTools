@@ -45,8 +45,4 @@
     <ItemGroup>
         <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Helpers\Vectors\" />
-    </ItemGroup>
 </Project>

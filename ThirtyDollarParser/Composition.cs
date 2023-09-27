@@ -1,8 +1,11 @@
+using System.Globalization;
+
 namespace ThirtyDollarParser;
 
 public class Composition
 {
     public Event[] Events { get; set; } = Array.Empty<Event>();
+    private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
 
     public Composition Copy()
     {
@@ -80,11 +83,11 @@ public class Composition
             {
                 var temporary_extract = split_for_value[1].Split('=')[0];
                 var possibly_value = temporary_extract.Split('%');
-                value = double.Parse(possibly_value[0]);
+                value = double.Parse(possibly_value[0],NumberStyles.Any, CultureInfo);
 
                 if (possibly_value.Length > 1)
                 {
-                    event_volume = double.Parse(possibly_value[1]);
+                    event_volume = double.Parse(possibly_value[1], NumberStyles.Any, CultureInfo);
                 }
             }
             
@@ -100,7 +103,7 @@ public class Composition
                 
                 if (possibly_value.Length > 1)
                 {
-                    event_volume = double.Parse(possibly_value[1]);
+                    event_volume = double.Parse(possibly_value[1],NumberStyles.Any, CultureInfo);
                 }
             }
         }
@@ -111,7 +114,7 @@ public class Composition
         }
 
         var sound = (split_for_repeats.Length > 1 ? split_for_repeats[0].Split("@")[0] : split_for_value[0]).Trim();
-        if (split_for_repeats.Length > 1) loop_times = (int)Math.Floor(double.Parse(split_for_repeats.Last()));
+        if (split_for_repeats.Length > 1) loop_times = (int)Math.Floor(double.Parse(split_for_repeats.Last(),NumberStyles.Any, CultureInfo));
             
         if ((sound == "_pause" && text.Contains('=')) ||
             (sound == "!stop" && text.Contains('@')) ||
@@ -173,7 +176,7 @@ public class Composition
                 throw new Exception($"Parsing RGB colors in \'!bg\' action failed: \'{e}\'");
             }
 
-            if (!double.TryParse(split_data[1], out var parsed_fade_time))
+            if (!double.TryParse(split_data[1], NumberStyles.Any, CultureInfo, out var parsed_fade_time))
                 throw new Exception("Unable to parse fade time.");
 
             // Prepare fade time for encode
@@ -189,11 +192,11 @@ public class Composition
         else // Action is pulse.
         {
             var count = split_data[0];
-            if (!double.TryParse(count, out var pulse_times)) 
+            if (!double.TryParse(count, NumberStyles.Any, CultureInfo, out var pulse_times)) 
                 throw new Exception("Unable to parse \'!pulse\' action pulses.");
 
             var frequency = split_data[1];
-            if (!double.TryParse(frequency, out var repeats)) 
+            if (!double.TryParse(frequency, NumberStyles.Any, CultureInfo, out var repeats)) 
                 throw new Exception("Unable to parse \'!pulse\' action pulses.");
 
             // No need to store decimal places as the site ignores them anyways.
