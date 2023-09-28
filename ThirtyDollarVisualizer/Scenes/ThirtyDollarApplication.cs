@@ -60,6 +60,7 @@ public class ThirtyDollarApplication : IScene
     private long CurrentResizeFrame;
     private ulong LastDividerIndex;
     private bool OpenAudioHandler;
+    private bool UpdatedRenderableScale;
     
     // These are needed for some events, because I don't want to pollute the placement events. They're polluted enough as they are.
     private float LastBPM = 300f;
@@ -101,8 +102,12 @@ public class ThirtyDollarApplication : IScene
     public void Init(Manager manager)
     {
         _open_time = _open_stopwatch.Elapsed;
-        RenderableSize = (int)(RenderableSize * Scale);
-        MarginBetweenRenderables = (int)(MarginBetweenRenderables * Scale);
+        if (!UpdatedRenderableScale)
+        {
+            RenderableSize = (int)(RenderableSize * Scale);
+            MarginBetweenRenderables = (int)(MarginBetweenRenderables * Scale);
+            UpdatedRenderableScale = true;
+        }
         
         Manager = manager;
 
@@ -744,7 +749,7 @@ public class ThirtyDollarApplication : IScene
 
                 case CameraFollowMode.Current_Line:
                 {
-                    Camera.ScrollTo(position * Vector3.UnitY + Vector3.UnitY * (Height / 2f));
+                    Camera.ScrollTo(position * Vector3.UnitY - Vector3.UnitY * (Height / 2f));
                     break;
                 }
             }
