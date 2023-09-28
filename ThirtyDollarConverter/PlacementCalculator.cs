@@ -17,6 +17,7 @@ public class PlacementCalculator
     private uint SampleRate { get; }
     private Action<string> Log { get; }
     private Action<ulong, ulong> IndexReport { get; }
+    private bool AddVisualTimings { get; }
 
     /// <summary>
     /// Creates a calculator that gets the placement of a composition.
@@ -30,6 +31,7 @@ public class PlacementCalculator
         Log = log ?? (_ => { });
         IndexReport = indexReport ?? ((_, _) => { });
         SampleRate = encoderSettings.SampleRate;
+        AddVisualTimings = encoderSettings.AddVisualEvents;
     }
 
     /// <summary>
@@ -139,6 +141,17 @@ public class PlacementCalculator
                         var multiplier = Math.Min(working_value, 1);
                         position += (ulong)(multiplier * SampleRate / (bpm / 60));
 
+                        if (AddVisualTimings)
+                        {
+                            yield return new Placement
+                            {
+                                Index = position,
+                                SequenceIndex = index,
+                                Event = ev.Copy(),
+                                Audible = false
+                            };
+                        }
+                        
                         ev.PlayTimes -= 1;
                         working_value -= 1;
                     }
@@ -152,7 +165,7 @@ public class PlacementCalculator
                         {
                             Index = position,
                             SequenceIndex = index,
-                            Event = ev,
+                            Event = ev.Copy(),
                             Audible = false
                         };
                         

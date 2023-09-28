@@ -6,7 +6,7 @@ namespace ThirtyDollarVisualizer.Objects.Planes;
 
 public class TexturedPlane : Renderable
 {
-    private readonly Texture _texture;
+    protected Texture? _texture;
     private static bool AreVerticesGenerated;
     private static VertexArrayObject<float> Static_Vao = null!;
     private static BufferObject<float> Static_Vbo = null!;
@@ -66,8 +66,10 @@ public class TexturedPlane : Renderable
             if (Ebo == null || Vao == null) return;
             Vao.Bind();
             Ebo.Bind();
-        
-            _texture.Bind();
+
+            if (_texture == null) return;
+            
+            _texture?.Bind();
             Shader.Use();
 
             Shader.SetUniform("u_Model", Model);
@@ -88,4 +90,14 @@ public class TexturedPlane : Renderable
             Shader.Dispose();
         }
     }
+
+    public void SetTexture(Texture? texture)
+    {
+        lock (LockObject)
+        {
+            _texture = texture;
+        }
+    }
+
+    public Texture? GetTexture => _texture;
 }

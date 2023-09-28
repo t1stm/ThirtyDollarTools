@@ -1,9 +1,9 @@
 namespace ThirtyDollarEncoder.PCM;
 
-public class AudioData<T>
+public class AudioData<T> : IDisposable
 {
     public readonly uint ChannelCount;
-    public readonly T[][] Samples;
+    public T[][] Samples;
 
     public AudioData(uint channelCount)
     {
@@ -23,5 +23,11 @@ public class AudioData<T>
     public T[] GetChannel(int index)
     {
         return Samples[index];
+    }
+
+    public void Dispose()
+    {
+        Samples = Array.Empty<T[]>();
+        GC.SuppressFinalize(this);
     }
 }

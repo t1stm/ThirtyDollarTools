@@ -29,4 +29,9 @@ public class EncoderSettings
     /// Select the resampler you want to use.
     /// </summary>
     public IResampler Resampler = new LinearResampler();
+
+    /// <summary>
+    /// This adds calculated timings to the placement.
+    /// </summary>
+    public bool AddVisualEvents { get; set; }
 }

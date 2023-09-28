@@ -119,5 +119,6 @@ public class Texture : IDisposable
     public void Dispose()
     {
         GL.DeleteTexture(_handle);
+        GC.SuppressFinalize(this);
     }
 }

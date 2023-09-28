@@ -60,7 +60,10 @@ public class ThirtyDollarApplication : IScene
     private long CurrentResizeFrame;
     private ulong LastDividerIndex;
     private bool OpenAudioHandler;
+    
+    // These are needed for some events, because I don't want to pollute the placement events. They're polluted enough as they are.
     private float LastBPM = 300f;
+    private readonly Dictionary<string, Texture> ValueTextCache = new();
     
     public bool PlayAudio { get; init; }
     public SampleHolder? SampleHolder { get; set; }
@@ -133,7 +136,6 @@ public class ThirtyDollarApplication : IScene
         var wh = new Vector2i(RenderableSize, RenderableSize);
 
         Dictionary<string, Texture> texture_cache = new();
-        Dictionary<string, Texture> value_text_cache = new();
         Dictionary<string, Texture> volume_text_cache = new();
 
         _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(LeftMargin, -Height, 0.5f),
@@ -210,7 +212,8 @@ public class ThirtyDollarApplication : IScene
         var calculator = new PlacementCalculator(new EncoderSettings
         {
             SampleRate = TimingSampleRate,
-            CombineDelayMs = 0
+            CombineDelayMs = 0,
+            AddVisualEvents = true
         });
 
         _placement = calculator.Calculate(_composition).ToArray();
@@ -226,8 +229,25 @@ public class ThirtyDollarApplication : IScene
                 continue;
             }
 
-            CreateEventRenderable(ev, texture_cache, wh, flex_box, value_text_cache, volume_text_cache, font, volume_color, volume_font);
+            CreateEventRenderable(ev, texture_cache, wh, flex_box, ValueTextCache, volume_text_cache, font, volume_color, volume_font);
             i++;
+        }
+
+        var max_decreasing_event = _composition.Events.MaxBy(r =>
+        {
+            if (r.SoundEvent is not "!stop" and not "!loopmany") return 0;
+            return r.Value;
+        });
+
+        var textures = max_decreasing_event?.Value ?? 0;
+        
+        for (var val = (int) textures - 1; val >= 0; val--)
+        {
+            var search = val.ToString();
+            if (ValueTextCache.ContainsKey(search)) continue;
+
+            var texture = new Texture(font, search);
+            ValueTextCache.Add(search, texture);
         }
 
         Log("Loaded textures.");
@@ -388,6 +408,7 @@ public class ThirtyDollarApplication : IScene
             text_position.Z -= 0.1f;
 
             var text = new TexturedPlane(value_texture, text_position, (value_texture.Width, value_texture.Height));
+            plane.SetValueRenderable(text);
             plane.Children.Add(text);
         }
 
@@ -790,6 +811,12 @@ public class ThirtyDollarApplication : IScene
                     float frequency = (short)(parsed_value >> 8);
                     
                     Camera.Pulse(repeats, frequency * 1000f / (LastBPM / 60));
+                    break;
+                }
+
+                case "!stop" or "!loopmany":
+                {
+                    element.SetValue(placement.Event, ValueTextCache);
                     break;
                 }
             }
