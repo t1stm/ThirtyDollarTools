@@ -58,7 +58,7 @@ public class SoundRenderable : TexturedPlane
         FadeAnimation.StartAnimation();
     }
 
-    public void SetValue(Event _event, Dictionary<string, Texture> generated_textures)
+    public void SetValue(Event _event, Dictionary<string, Texture> generated_textures, ValueChangeWrapMode value_change_wrap_mode)
     {
         if (ValueRenderable is null) return;
         
@@ -70,11 +70,21 @@ public class SoundRenderable : TexturedPlane
         
         if (_event.PlayTimes == 0)
         {
-            texture = generated_textures[_event.OriginalLoop.ToString()];
+            texture = value_change_wrap_mode switch
+            {
+                ValueChangeWrapMode.ResetToDefault => generated_textures[_event.OriginalLoop.ToString()],
+                _ => null
+            };
         }
 
         var this_position = GetPosition();
         var this_scale = GetScale();
+
+        if (texture == null)
+        {
+            ValueRenderable.SetTexture(texture);
+            return;
+        }
 
         if (texture.Width != old_texture?.Width)
         {

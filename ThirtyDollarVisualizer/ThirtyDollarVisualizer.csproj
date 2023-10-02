@@ -7,6 +7,7 @@
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+        <ApplicationIcon>Assets\Textures\moai.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>

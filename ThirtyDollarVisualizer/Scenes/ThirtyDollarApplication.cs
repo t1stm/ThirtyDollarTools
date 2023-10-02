@@ -6,6 +6,8 @@ using SixLabors.Fonts;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Resamplers;
+using ThirtyDollarEncoder.PCM;
+using ThirtyDollarEncoder.Wave;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Color;
@@ -46,6 +48,9 @@ public class ThirtyDollarApplication : IScene
 
     private Composition _composition = null!;
     private string? _composition_location;
+    private DateTime _composition_date_modified = DateTime.MinValue;
+    private readonly Stopwatch _file_modified_stopwatch = new();
+    
     private Placement[] _placement = null!;
     private const int TimingSampleRate = 100_000;
 
@@ -61,6 +66,8 @@ public class ThirtyDollarApplication : IScene
     private ulong LastDividerIndex;
     private bool OpenAudioHandler;
     private bool UpdatedRenderableScale;
+
+    private BackingAudio? BackingAudio;
     
     // These are needed for some events, because I don't want to pollute the placement events. They're polluted enough as they are.
     private float LastBPM = 300f;
@@ -93,6 +100,10 @@ public class ThirtyDollarApplication : IScene
         Camera = new DollarStoreCamera(camera_position, new Vector2i(Width, Height));
         _open_stopwatch.Start();
         _seek_stopwatch.Start();
+        _file_modified_stopwatch.Start();
+        
+        AudioContext.Destroy();
+        AudioContext.Create();
     }
 
     /// <summary>
@@ -210,7 +221,19 @@ public class ThirtyDollarApplication : IScene
         }, Token).Wait(Token);
         
         var comp_location = _composition_location;
-        _composition = Composition.FromString(File.ReadAllText(comp_location));
+        try
+        {
+            _composition = Composition.FromString(File.ReadAllText(comp_location));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return;
+        }
+        finally
+        {
+            _composition_date_modified = File.GetLastWriteTime(_composition_location);
+        }
         
         tdw_images.EnsureCapacity(_composition.Events.Length);
 
@@ -226,42 +249,57 @@ public class ThirtyDollarApplication : IScene
         var i = 0ul;
         Task.Run(UpdateChecker, Token);
 
-        foreach (var ev in _composition.Events)
+        try
         {
-            if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith("#"))
+            foreach (var ev in _composition.Events)
             {
+                if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith("#"))
+                {
+                    i++;
+                    continue;
+                }
+
+                CreateEventRenderable(ev, texture_cache, wh, flex_box, ValueTextCache, volume_text_cache, font,
+                    volume_color, volume_font);
                 i++;
-                continue;
             }
 
-            CreateEventRenderable(ev, texture_cache, wh, flex_box, ValueTextCache, volume_text_cache, font, volume_color, volume_font);
-            i++;
+            var max_decreasing_event = _composition.Events.MaxBy(r =>
+            {
+                if (r.SoundEvent is not "!stop" and not "!loopmany") return 0;
+                return r.Value;
+            });
+
+            var textures = max_decreasing_event?.Value ?? 0;
+
+            for (var val = (int)textures - 1; val >= 0; val--)
+            {
+                var search = val.ToString();
+                if (ValueTextCache.ContainsKey(search)) continue;
+
+                var texture = new Texture(font, search);
+                ValueTextCache.Add(search, texture);
+            }
+
+            if (!ValueTextCache.ContainsKey("0"))
+            {
+                ValueTextCache.Add("0", new Texture(font, "0"));
+            }
         }
-
-        var max_decreasing_event = _composition.Events.MaxBy(r =>
+        catch (Exception e)
         {
-            if (r.SoundEvent is not "!stop" and not "!loopmany") return 0;
-            return r.Value;
-        });
-
-        var textures = max_decreasing_event?.Value ?? 0;
-        
-        for (var val = (int) textures - 1; val >= 0; val--)
-        {
-            var search = val.ToString();
-            if (ValueTextCache.ContainsKey(search)) continue;
-
-            var texture = new Texture(font, search);
-            ValueTextCache.Add(search, texture);
+            Console.WriteLine(e);
+            return;
         }
-
-        Log("Loaded textures.");
-        Log("Loading sounds.");
+        finally
+        {
+            Log("Loaded textures.");
+            Log("Loading sounds.");
+            Task.Run(async () => { await LoadAudio(); }, Token).Wait(Token);
+        }
 
         #endregion
-
-        Task.Run(async () => { await LoadAudio(); }, Token).Wait(Token);
-
+        
         Manager.CheckErrors();
         FinishedInitializing = true;
         return;
@@ -478,9 +516,6 @@ public class ThirtyDollarApplication : IScene
         }, Log);
 
         var (processed_samples, _) = await pcm_encoder.GetAudioSamples(-1, _placement, CancellationToken.None);
-        
-        AudioContext.Destroy();
-        AudioContext.Create(processed_samples.Count * 2);
         AudioContext.GlobalVolume = .25f;
 
         foreach (var ev in processed_samples)
@@ -719,6 +754,14 @@ public class ThirtyDollarApplication : IScene
     public void Update()
     {
         if (!FinishedInitializing) return;
+        HandleCompositionUpdate();
+        Log($"Timing stopwatch: {_timing_stopwatch.Elapsed} / Placement: {_placement.Length} / Audio: {Audio_I} / Video: {Video_I}");
+        
+        if (Audio_I >= _placement.LongLength && _timing_stopwatch.IsRunning)
+        {
+            _timing_stopwatch.Stop();
+        }
+        
         for (; Video_I < _placement.LongLength; Video_I++)
         {
             Camera.Update();
@@ -726,6 +769,12 @@ public class ThirtyDollarApplication : IScene
             {
                 Task.Run(AudioHandler, Token);
             }
+
+            if (BackingAudio != null)
+            {
+                BackingAudio.UpdatePlayState(_timing_stopwatch.IsRunning);
+                BackingAudio.SyncTime(_timing_stopwatch.Elapsed);
+            } 
             
             var placement = _placement[Video_I];
 
@@ -819,13 +868,60 @@ public class ThirtyDollarApplication : IScene
                     break;
                 }
 
-                case "!stop" or "!loopmany":
+                case "!loopmany":
                 {
-                    element.SetValue(placement.Event, ValueTextCache);
+                    element.SetValue(placement.Event, ValueTextCache, ValueChangeWrapMode.RemoveTexture);
+                    break;
+                }
+                
+                case "!stop":
+                {
+                    element.SetValue(placement.Event, ValueTextCache, ValueChangeWrapMode.ResetToDefault);
                     break;
                 }
             }
         }
+        
+    }
+
+    private void HandleCompositionUpdate()
+    {
+        const int update_frequency_ms = 100;
+        if (_file_modified_stopwatch.ElapsedMilliseconds < update_frequency_ms) return;
+        if (_composition_location == null) return;
+        
+        var m_date = File.GetLastWriteTime(_composition_location);
+        if (m_date.Equals(_composition_date_modified)) return;
+
+        Log("Change detected in composition. Updating.");
+
+        _composition_date_modified = m_date;
+        var was_running = _timing_stopwatch.IsRunning;
+        
+        Manager.RenderBlock.Wait(Token);
+        _timing_stopwatch.Stop();
+        try
+        {
+            FileDrop(_composition_location, false);
+        }
+        finally
+        {
+            Manager.RenderBlock.Release();
+        }
+        
+        if (Audio_I >= _placement.Length)
+        {
+            Audio_I = _placement.Length - 1;
+            Video_I = Audio_I;
+        }
+        
+        var placement = _placement[Math.Clamp(Audio_I - 1, 0, _placement.Length - 1)];
+        var placement_index = placement.Index;
+            
+        _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+        
+        if (was_running) _timing_stopwatch.Start();
+        _file_modified_stopwatch.Restart();
     }
 
     public void Close()
@@ -835,10 +931,39 @@ public class ThirtyDollarApplication : IScene
 
     public void FileDrop(string? location)
     {
-        Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height));
+        if (location?.EndsWith(".wav") ?? false)
+        {
+            UpdateBackingTrack(location);
+            return;
+        }
         
-        _timing_stopwatch.Reset();
-        Video_I = Audio_I = 0;
+        FileDrop(location, true);
+    }
+
+    private void UpdateBackingTrack(string location)
+    {
+        BackingAudio?.Dispose();
+
+        var decoder = new WaveDecoder();
+        var file_stream = File.OpenRead(location);
+        var pcm_data = decoder.Read(file_stream);
+
+        var audio = pcm_data.ReadAsFloat32Array(true);
+
+        if (audio == null) return;
+        BackingAudio = new BackingAudio(audio, (int) pcm_data.SampleRate);
+        
+        BackingAudio.PlaySample(AudioContext, () => {});
+    }
+
+    private void FileDrop(string? location, bool reset_time)
+    {
+        if (reset_time)
+        {
+            Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height));
+            _timing_stopwatch.Reset();
+            Video_I = Audio_I = 0;
+        }
         
         tdw_images.Clear();
         static_objects.Clear();
@@ -846,12 +971,14 @@ public class ThirtyDollarApplication : IScene
 
         CutSounds();
 
+        var old_location = _composition_location;
         _composition_location = location;
         Init(Manager);
         
         Resize(Width, Height);
         
-        Start();
+        if (old_location != location || reset_time)
+            Start();
     }
 
     public void Input(KeyboardState state)

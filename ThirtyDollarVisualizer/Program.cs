@@ -1,9 +1,13 @@
 // Warm thanks to The Cherno
 // https://youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2
 
+using System.Reflection;
+using System.Runtime.InteropServices;
 using CommandLine;
+using OpenTK.Windowing.Common.Input;
 using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Scenes;
+using Image = SixLabors.ImageSharp.Image;
 
 namespace ThirtyDollarVisualizer;
 
@@ -67,8 +71,15 @@ public static class Program
             Console.WriteLine("Unable to find specified composition. Running a specified composition.");
             composition = null;
         }
+
+        var icon_stream = Image.Load<Rgba32>(Assembly.GetExecutingAssembly()
+            .GetManifestResourceStream("ThirtyDollarVisualizer.Assets.Textures.moai.png")!);
+
+        icon_stream.DangerousTryGetSinglePixelMemory(out var memory);
+        var icon_bytes = MemoryMarshal.AsBytes(memory.Span).ToArray();
+        var icon = new WindowIcon(new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
         
-        var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps);
+        var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
 
         var tdw_application = new ThirtyDollarApplication(width, height, composition)
         {

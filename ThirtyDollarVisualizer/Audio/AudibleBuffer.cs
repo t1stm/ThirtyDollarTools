@@ -5,8 +5,8 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class AudibleBuffer : IDisposable
 {
-    private int _audio_buffer;
-    private readonly List<int> _audio_sources = new();
+    protected int AudioBuffer;
+    protected readonly List<int> AudioSources = new();
     public float _volume => _relative_volume;
     public float _relative_volume = .5f;
 
@@ -31,8 +31,8 @@ public class AudibleBuffer : IDisposable
             }
         }
 
-        _audio_buffer = AL.GenBuffer();
-        AL.BufferData(_audio_buffer, format, samples, sample_rate);
+        AudioBuffer = AL.GenBuffer();
+        AL.BufferData(AudioBuffer, format, samples, sample_rate);
     }
 
     public void SetVolume(float volume = 0.5f)
@@ -40,7 +40,7 @@ public class AudibleBuffer : IDisposable
         _relative_volume = volume;
     }
 
-    public void PlaySample(AudioContext context, Action? callback_when_finished = null)
+    public void PlaySample(AudioContext context, Action? callback_when_finished = null, bool auto_remove = true)
     {
         var audio_context = context.context;
         var source = AL.GenSource();
@@ -50,21 +50,21 @@ public class AudibleBuffer : IDisposable
             Console.WriteLine($"({DateTime.Now:G}): [OpenAL Error]: Audio source ID isn't a valid source.");
             return;
         }
-        lock (_audio_sources)
-            _audio_sources.Add(source);
+        lock (AudioSources)
+            AudioSources.Add(source);
 
-        var size = AL.GetBuffer(_audio_buffer, ALGetBufferi.Size);
+        var size = AL.GetBuffer(AudioBuffer, ALGetBufferi.Size);
         
-        var bits = AL.GetBuffer(_audio_buffer, ALGetBufferi.Bits);
-        var channels = AL.GetBuffer(_audio_buffer, ALGetBufferi.Channels);
-        var frequency = AL.GetBuffer(_audio_buffer, ALGetBufferi.Frequency);
+        var bits = AL.GetBuffer(AudioBuffer, ALGetBufferi.Bits);
+        var channels = AL.GetBuffer(AudioBuffer, ALGetBufferi.Channels);
+        var frequency = AL.GetBuffer(AudioBuffer, ALGetBufferi.Frequency);
 
         var size_per_channel = (float) size / channels;
         var samples = size_per_channel / (bits / 8f);
         
         var length = (int) (1000f * (samples / frequency));
         
-        AL.Source(source, ALSourcei.Buffer, _audio_buffer);
+        AL.Source(source, ALSourcei.Buffer, AudioBuffer);
         AL.Source(source, ALSourcef.Gain, _volume);
         
         AL.SourcePlay(source);
@@ -72,22 +72,24 @@ public class AudibleBuffer : IDisposable
 
         Task.Run(async () =>
         {
+            if (!auto_remove) return;
+            
             await Task.Delay(length);
             if (context.context != audio_context) return;
             
             AL.DeleteSource(source);
             context.CheckErrors();
 
-            lock (_audio_sources)
-                _audio_sources.Remove(source);
+            lock (AudioSources)
+                AudioSources.Remove(source);
             callback_when_finished?.Invoke();
         });
     }
 
     public void Stop()
     {
-        lock (_audio_sources)
-            foreach (var audio_source in _audio_sources)
+        lock (AudioSources)
+            foreach (var audio_source in AudioSources)
             {
                 if (!AL.IsSource(audio_source)) return;
                 AL.SourceStop(audio_source);
@@ -96,16 +98,16 @@ public class AudibleBuffer : IDisposable
 
     public void Destroy()
     {
-        lock (_audio_sources)
-            foreach (var audio_source in _audio_sources)
+        lock (AudioSources)
+            foreach (var audio_source in AudioSources)
             {
                 if (!AL.IsSource(audio_source)) return;
                 AL.SourceStop(audio_source);
             }
 
-        if (!AL.IsBuffer(_audio_buffer)) return;
-        AL.DeleteBuffer(_audio_buffer);
-        _audio_buffer = -1;
+        if (!AL.IsBuffer(AudioBuffer)) return;
+        AL.DeleteBuffer(AudioBuffer);
+        AudioBuffer = -1;
     }
 
     public void Dispose()

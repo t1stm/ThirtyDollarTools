@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Objects.Text;
@@ -12,12 +13,19 @@ namespace ThirtyDollarVisualizer;
 public class Manager : GameWindow
 {
     public readonly List<IScene> Scenes = new();
+    public readonly SemaphoreSlim RenderBlock = new(1);
 
-    public Manager(int width, int height, string title, int? fps = null) : base(new GameWindowSettings
+    public Manager(int width, int height, string title, int? fps = null, WindowIcon? icon = null) : base(new GameWindowSettings
         {
             UpdateFrequency = fps ?? 0
         },
-        new NativeWindowSettings { Size = (width, height), Title = title, APIVersion = Version.Parse("4.6")})
+        new NativeWindowSettings
+        {
+            Size = (width, height), 
+            Title = title, 
+            APIVersion = new Version(4,6), 
+            Icon = icon
+        })
     {
     }
 
@@ -60,7 +68,9 @@ public class Manager : GameWindow
     }
 
     protected override void OnRenderFrame(FrameEventArgs args)
-    { 
+    {
+        RenderBlock.Wait();
+        
         GL.Clear(ClearBufferMask.ColorBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 1f);
 
@@ -70,6 +80,7 @@ public class Manager : GameWindow
         }
 
         SwapBuffers();
+        RenderBlock.Release();
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args)

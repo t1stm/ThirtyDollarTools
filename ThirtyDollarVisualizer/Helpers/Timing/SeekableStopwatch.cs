@@ -2,6 +2,7 @@ namespace ThirtyDollarVisualizer.Helpers.Timing;
 
 public class SeekableStopwatch
 {
+    protected readonly SemaphoreSlim Lock = new(1);
     protected DateTime StartTime = DateTime.MinValue;
     protected DateTime? StopTime;
     protected TimeSpan LastValue = TimeSpan.Zero;
@@ -15,6 +16,7 @@ public class SeekableStopwatch
 
     public void Start()
     {
+        if (Running) return;
         if (StartTime == DateTime.MinValue)
             Restart();
         Running = true;
@@ -22,42 +24,67 @@ public class SeekableStopwatch
 
     public void Restart()
     {
+        Lock.Wait();
+        
         Running = true;
         StopTime = null;
         StartTime = GetCurrentTime();
+
+        Lock.Release();
     }
 
     public void Reset()
     {
+        Lock.Wait();
+        
         Running = false;
         StopTime = null;
         LastValue = TimeSpan.Zero;
+
+        Lock.Release();
     }
 
     public void Stop()
     {
         if (!Running) return;
+
+        Lock.Wait();
         
         Running = false;
         StopTime = DateTime.Now;
+
+        Lock.Release();
     }
 
     public void Seek(long delta)
     {
-        StopTime = null;
+        Lock.Wait();
+        
         var wanted_time = TimeSpan.FromMilliseconds(delta);
         LastValue = wanted_time;
         
         var current = GetCurrentTime();
         var delta_time = current - wanted_time;
         StartTime = delta_time;
+
+        if (StopTime != null)
+        {
+            StopTime = current;
+        }
+
+        Lock.Release();
     }
 
     public TimeSpan Elapsed
     {
         get
         {
-            if (!Running) return LastValue;
+            Lock.Wait();
+            if (!Running)
+            {
+                Lock.Release();
+                return LastValue;
+            }
 
             var current_time = GetCurrentTime();
             
@@ -67,9 +94,10 @@ public class SeekableStopwatch
                 StopTime = null;
             }
             
-            LastValue = current_time - StartTime;
-        
-            return LastValue;
+            var val = LastValue = current_time - StartTime;
+            
+            Lock.Release();
+            return val;
         }
     }
 
