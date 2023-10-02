@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using ThirtyDollarConverter.Objects;
@@ -168,7 +169,11 @@ public class PcmEncoder
         CancellationToken? cancellationToken = null)
     {
         var token = cancellationToken ?? CancellationToken.None;
-        var audioData = AudioData<float>.Empty(Channels);
+        var last_placement = queue.Last();
+        
+        var big_event = processedEvents.MaxBy(e => e.AudioData.GetLength());
+        var audioData = AudioData<float>.WithLength(Channels, 
+            (int) last_placement.Index + big_event.AudioData.GetLength());
 
         var encodeTasks = new Task[Channels];
         var encodeIndices = new ulong[Channels];
@@ -244,15 +249,7 @@ public class PcmEncoder
 
         return audioData;
     }
-
-    private static ulong Sum(ulong[] source)
-    {
-        ulong result = 0;
-        for (ulong i = 0; i < (ulong) source.LongLength; i++) 
-            result += source[i] / 1000;
-        return result * 1000;
-    }
-
+    
     /// <summary>
     /// Exports an AudioData object as a WAVE file.
     /// </summary>
@@ -337,13 +334,29 @@ public class PcmEncoder
     /// <param name="volume">The volume of the source audio while being added.</param>
     private static void RenderSample(float[] source, ref float[] destination, ulong index, double volume)
     {
-        lock (destination)
+        var segment = new ArraySegment<float>(destination);
+        
+        var d_slice = segment.Slice((int)index, source.Length);
+        var chunk_size = Vector<float>.Count;
+        
+        for (var i = 0; i < d_slice.Count - d_slice.Count % chunk_size; i += chunk_size)
         {
-            for (ulong i = 0; i < (ulong)source.LongLength; i++)
-            {
-                var data = source[i];
-                ModifyAt(ref destination, (float)(data * (volume / 100)), index + i);
-            }
+            var i_chunk = i + chunk_size;
+            var d = d_slice[i..i_chunk];
+            
+            var d_vector = new Vector<float>(d);
+            var s_vector = new Vector<float>(source[i..i_chunk]);
+
+            var src = s_vector * ((float) volume / 100f);
+            var final = src + d_vector;
+            
+            final.CopyTo(d);
+        }
+
+        for (var i = d_slice.Count - d_slice.Count % chunk_size; i < d_slice.Count; i++)
+        {
+            var src = source[i] * ((float)volume / 100f);
+            d_slice[i] += src;
         }
     }
 
