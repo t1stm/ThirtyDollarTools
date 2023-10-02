@@ -19,11 +19,20 @@ public class AudioData<T> : IDisposable
 
         return data;
     }
+    
+    public static AudioData<float> WithLength(uint channels, int length)
+    {
+        var data = new AudioData<float>(channels);
+        for (var i = 0; i < channels; i++) data.Samples[i] = new float[length];
+        return data;
+    }
 
     public T[] GetChannel(int index)
     {
         return Samples[index];
     }
+
+    public int GetLength() => GetChannel(0).Length;
 
     public void Dispose()
     {
