@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <PackageReference Include="CommandLineParser" Version="2.9.1" />
+        <PackageReference Include="ImGui.NET" Version="1.89.9.2" />
         <PackageReference Include="OpenAL.Soft" Version="1.19.1" />
         <PackageReference Include="OpenTK" Version="4.8.0" />
         <PackageReference Include="OpenTK.redist.glfw" Version="3.3.8.39" />
