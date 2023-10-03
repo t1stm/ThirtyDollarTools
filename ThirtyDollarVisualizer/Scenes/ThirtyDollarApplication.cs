@@ -37,8 +37,8 @@ public class ThirtyDollarApplication : IScene
     private int Audio_I;
 
     private static DollarStoreCamera Camera = null!;
-    private int Width;
-    private int Height;
+    public int Width;
+    public int Height;
     private int PlayfieldWidth;
 
     private ColoredPlane _background = null!;
