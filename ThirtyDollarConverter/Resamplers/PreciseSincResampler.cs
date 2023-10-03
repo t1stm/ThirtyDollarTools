@@ -5,7 +5,7 @@ namespace ThirtyDollarConverter.Resamplers;
 [Obsolete("Please do not use this resampler, because it currently doesn't work.")]
 public class PreciseSincResampler : IResampler
 {
-    public float[] Resample(Span<float> samples, uint sampleRate, uint targetSampleRate)
+    public float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate)
     {
         var resampled_samples = new float[samples.Length * targetSampleRate / sampleRate];
 

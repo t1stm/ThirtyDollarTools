@@ -4,7 +4,7 @@ namespace ThirtyDollarConverter.Resamplers;
 
 public class NoInterpolationResampler : IResampler
 {
-    public float[] Resample(Span<float> samples, uint sampleRate, uint targetSampleRate)
+    public float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate)
     {
         var increment = (float) targetSampleRate / sampleRate;
         
@@ -14,7 +14,7 @@ public class NoInterpolationResampler : IResampler
         for (ulong i = 0; i < resampled_size; i++)
         {
             var current_index = Math.Floor(i / increment);
-            var current_sample = samples[(int) Math.Clamp(current_index, 0, samples.Length - 1)];
+            var current_sample = samples[(ulong) Math.Clamp(current_index, 0, samples.Length - 1)];
             
             resampled[i] = current_sample;
         }

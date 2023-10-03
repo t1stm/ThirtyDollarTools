@@ -1,5 +1,3 @@
-using System;
-
 namespace ThirtyDollarConverter.Resamplers;
 
 public interface IResampler
@@ -11,5 +9,5 @@ public interface IResampler
     /// <param name="sampleRate">The original sample rate.</param>
     /// <param name="targetSampleRate">The target sample rate.</param>
     /// <returns></returns>
-    float[] Resample(Span<float> samples, uint sampleRate, uint targetSampleRate);
+    float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate);
 }

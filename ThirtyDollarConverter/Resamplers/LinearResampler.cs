@@ -1,21 +1,19 @@
-using System;
-
 namespace ThirtyDollarConverter.Resamplers;
 
 public class LinearResampler : IResampler
 {
-    public float[] Resample(Span<float> samples, uint sampleRate, uint targetSampleRate)
+    public float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate)
     {
-        var oldSize = samples.Length;
+        var oldSize = (ulong)samples.LongLength;
         var durationSecs = (float)oldSize / sampleRate;
-        var newSize = (int)(durationSecs * targetSampleRate);
+        var newSize = (ulong)(durationSecs * targetSampleRate);
 
         var resampled = new float[newSize];
 
-        for (var i = 0; i < newSize; i++)
+        for (ulong i = 0; i < newSize; i++)
         {
             var timeSecs = (float) i / targetSampleRate;
-            var index = (int) (timeSecs * sampleRate);
+            var index = (ulong) (timeSecs * sampleRate);
 
             var frac = timeSecs * sampleRate - index;
             if (index < oldSize - 1)
