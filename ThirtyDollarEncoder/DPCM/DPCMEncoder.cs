@@ -3,12 +3,12 @@ namespace ThirtyDollarEncoder.DPCM;
 // This class is a meme / shitpost.
 public static class DPCMEncoder
 {
-    public static byte[] Encode(IEnumerable<float> data)
+    public static byte[] Encode(ReadOnlySpan<float> data)
     {
-        return Encode(data.Select(b => (short)(b * 32768)));
+        return Encode(data.ToArray().Select(b => (short)(b * 32768)).ToArray());
     }
 
-    public static byte[] Encode(IEnumerable<short> data)
+    public static byte[] Encode(ReadOnlySpan<short> data)
     {
         const byte step_interval = 8;
         

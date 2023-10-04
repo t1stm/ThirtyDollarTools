@@ -332,28 +332,26 @@ public class PcmEncoder
     /// <param name="destination">The destination you want to add to.</param>
     /// <param name="index">The index of the destination you want to start on.</param>
     /// <param name="volume">The volume of the source audio while being added.</param>
-    private static void RenderSample(float[] source, ref float[] destination, ulong index, double volume)
+    private static void RenderSample(Span<float> source, ref float[] destination, ulong index, double volume)
     {
-        var segment = new ArraySegment<float>(destination);
-        
-        var d_slice = segment.Slice((int)index, source.Length);
+        var d_slice = destination.AsSpan().Slice((int)index, source.Length);
         var chunk_size = Vector<float>.Count;
         
-        for (var i = 0; i < d_slice.Count - d_slice.Count % chunk_size; i += chunk_size)
+        for (var i = 0; i < d_slice.Length - d_slice.Length % chunk_size; i += chunk_size)
         {
             var i_chunk = i + chunk_size;
             var d = d_slice[i..i_chunk];
             
             var d_vector = new Vector<float>(d);
             var s_vector = new Vector<float>(source[i..i_chunk]);
-
+            
             var src = s_vector * ((float) volume / 100f);
             var final = src + d_vector;
             
             final.CopyTo(d);
         }
 
-        for (var i = d_slice.Count - d_slice.Count % chunk_size; i < d_slice.Count; i++)
+        for (var i = d_slice.Length - d_slice.Length % chunk_size; i < d_slice.Length; i++)
         {
             var src = source[i] * ((float)volume / 100f);
             d_slice[i] += src;
