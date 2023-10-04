@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Numerics;
 
 namespace ThirtyDollarConverter.Objects;
 
@@ -12,7 +13,22 @@ public static class ObjectExtensions
     public static void NormalizeVolume(this float[] arr)
     {
         var max = arr.Length < 1 ? 0 : arr.Max(Math.Abs);
-        for (var index = 0UL; index < (ulong)arr.LongLength; index++) arr[index] *= 1 / (float)(max + 0.02);
+        var chunk_size = Vector<float>.Count;
+        var span = arr.AsSpan();
+        
+        for (var i = 0; i < arr.Length - arr.Length % chunk_size; i += chunk_size)
+        {
+            var chunk = span[i..chunk_size];
+            var vector = new Vector<float>(chunk);
+
+            var final = Vector.Multiply(vector, 1f / (max + 0.02f));
+            final.CopyTo(chunk);
+        }
+
+        for (var i = arr.Length - arr.Length % chunk_size; i < arr.Length; i++)
+        {
+            span[i] *= 1f / (max + 0.02f);
+        }
     }
 
     /// <summary>
@@ -22,15 +38,14 @@ public static class ObjectExtensions
     /// <returns>The trimmed array.</returns>
     public static float[] TrimEnd(this float[] arr)
     {
-        var length = arr.LongLength - 1;
-        for (var i = arr.LongLength - 1; i > 0; i--)
+        var length = arr.Length - 1;
+        for (var i = arr.Length - 1; i > 0; i--)
         {
             if (arr[i] != 0f) break;
             length--;
         }
-
-        var destination = new float[length];
-        Array.Copy(arr, destination, length);
-        return destination;
+        
+        Array.Resize(ref arr, length);
+        return arr;
     }
 }
