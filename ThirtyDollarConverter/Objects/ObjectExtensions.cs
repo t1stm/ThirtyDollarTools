@@ -18,7 +18,7 @@ public static class ObjectExtensions
         
         for (var i = 0; i < arr.Length - arr.Length % chunk_size; i += chunk_size)
         {
-            var chunk = span[i..chunk_size];
+            var chunk = span[i..];
             var vector = new Vector<float>(chunk);
 
             var final = Vector.Multiply(vector, 1f / (max + 0.02f));
