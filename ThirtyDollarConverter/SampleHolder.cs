@@ -182,7 +182,7 @@ public class SampleHolder
             SampleList[key] = decoder.Read(fileStream);
             SampleList[key].ReadAsFloat32Array(true);
 
-            if (SampleList[key].FloatData?.GetChannel(0).LongLength == 0)
+            if (SampleList[key].FloatData?.GetChannel(0).Length == 0)
             {
                 throw new Exception($"Sample \'{key.Filename}.wav\' is empty.");
             }

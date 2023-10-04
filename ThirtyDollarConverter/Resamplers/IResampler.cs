@@ -1,3 +1,5 @@
+using System;
+
 namespace ThirtyDollarConverter.Resamplers;
 
 public interface IResampler
@@ -6,8 +8,9 @@ public interface IResampler
     /// Method that resamples given audio data to another sample rate.
     /// </summary>
     /// <param name="samples">The original sample data.</param>
-    /// <param name="sampleRate">The original sample rate.</param>
-    /// <param name="targetSampleRate">The target sample rate.</param>
+    /// <param name="sample_rate">The original sample rate.</param>
+    /// <param name="target_sample_rate">The target sample rate.</param>
     /// <returns></returns>
-    float[] Resample(float[] samples, uint sampleRate, uint targetSampleRate);
+    float[] Resample(Span<float> samples, uint sample_rate, uint target_sample_rate);
+    double[] Resample(Span<double> samples, uint sample_rate, uint target_sample_rate);
 }

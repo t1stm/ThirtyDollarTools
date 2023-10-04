@@ -27,7 +27,7 @@ public class AudioData<T> : IDisposable
         return data;
     }
 
-    public T[] GetChannel(int index)
+    public Span<T> GetChannel(int index)
     {
         return Samples[index];
     }
