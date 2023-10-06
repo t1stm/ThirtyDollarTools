@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Windows -->
+        <None Update="bass.dll" Condition="'$(OS)' == 'Windows_NT'" CopyToOutputDirectory="PreserveNewest" />
+
+        <!-- macOS -->
+        <None Update="libbass.dylib" Condition="'$(OS)' == 'Darwin'" CopyToOutputDirectory="PreserveNewest" />
+
+        <!-- Linux -->
+        <None Update="libbass.so" Condition="'$(OS)' == 'Unix'" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <PackageReference Include="ManagedBass" Version="3.1.1" />
+    </ItemGroup>
+
+</Project>
