@@ -14,7 +14,7 @@ public class OpenALBuffer : AudibleBuffer
     public OpenALBuffer(AudioContext context, AudioData<float> sample_data, int sample_rate)
     {
         var length = sample_data.Samples[0].LongLength;
-        var channels = sample_data.ChannelCount;
+        var channels = (int) sample_data.ChannelCount;
         _context = context;
 
         var format = channels switch
@@ -24,12 +24,14 @@ public class OpenALBuffer : AudibleBuffer
             _ => throw new ArgumentOutOfRangeException(nameof(sample_data), "The given channels count is invalid.")
         };
 
-        var samples = new float[(int)length * (int)channels];
+        var samples = new float[(int)length * channels];
+        var samples_span = samples.AsSpan();
         for (var i = 0; i < length; i++)
         {
             for (var j = 0; j < channels; j++)
             {
-                samples[i * channels + j] = sample_data.Samples[i % channels][i];
+                var idx = i * channels + j;
+                samples_span[idx] = sample_data.Samples[i % channels][i];
             }
         }
 
