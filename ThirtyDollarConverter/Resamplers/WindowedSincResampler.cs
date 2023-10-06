@@ -25,7 +25,22 @@ public class WindowedSincResampler : IResampler
     
     public float[] Resample(Span<float> samples, uint sample_rate, uint target_sample_rate)
     {
-        throw new NotSupportedException("This resampler doesn't support single precision data.");
+        var factor = target_sample_rate / sample_rate;
+        var outputLength = samples.Length * factor;
+        var output = new float[outputLength];
+
+        for (var i = 0; i < outputLength; i++)
+        {
+            var t = i / (double)factor;
+            double sum = 0;
+            for (var j = 0; j < samples.Length; j++)
+            {
+                sum += samples[j] * WindowedSinc(t - j, samples.Length);
+            }
+            output[i] = (float) sum;
+        }
+
+        return output;
     }
 
     public double[] Resample(Span<double> samples, uint sample_rate, uint target_sample_rate)
