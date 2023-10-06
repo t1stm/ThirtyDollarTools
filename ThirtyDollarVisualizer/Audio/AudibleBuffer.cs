@@ -1,113 +1,70 @@
-using OpenTK.Audio.OpenAL;
+using ManagedBass;
 using ThirtyDollarEncoder.PCM;
 
 namespace ThirtyDollarVisualizer.Audio;
 
 public class AudibleBuffer : IDisposable
 {
-    protected int AudioBuffer;
-    protected readonly List<int> AudioSources = new();
+    protected readonly int SampleHandle;
+    private readonly SampleInfo SampleInfo;
     public float _volume => _relative_volume;
     public float _relative_volume = .5f;
 
-    public AudibleBuffer(AudioData<float> data, int sample_rate)
+    public AudibleBuffer(AudioData<float> data, int sample_rate, int max_count = 65535)
     {
-        var length = data.Samples[0].LongLength;
-        var channels = data.ChannelCount;
+        var length = data.GetLength();
+        var channels = (int) data.ChannelCount;
 
-        var format = channels switch
-        {
-            1 => ALFormat.MonoFloat32Ext,
-            2 => ALFormat.StereoFloat32Ext,
-            _ => throw new ArgumentOutOfRangeException(nameof(data), "The given channels count is invalid.")
-        };
-
-        var samples = new float[(int)length * (int)channels];
+        var samples = new float[length * channels];
+        var samples_span = samples.AsSpan();
         for (var i = 0; i < length; i++)
         {
             for (var j = 0; j < channels; j++)
             {
-                samples[i * channels + j] = data.Samples[i % channels][i];
+                var idx = i * channels + j;
+                samples_span[idx] = data.Samples[i % channels][i];
             }
         }
 
-        AudioBuffer = AL.GenBuffer();
-        AL.BufferData(AudioBuffer, format, samples, sample_rate);
+        var sample = Bass.CreateSample(length * channels * sizeof(float), sample_rate, channels, 65535, BassFlags.Float);
+        Bass.SampleSetData(sample, samples);
+        SampleHandle = sample;
+        SampleInfo = new SampleInfo
+        {
+            Frequency = sample_rate,
+            Volume = _volume,
+            Flags = BassFlags.Float,
+            Length = length * channels * sizeof(float),
+            Max = max_count,
+            Channels = 2,
+            Mode3D = Mode3D.Off
+        };
+        
+        Bass.SampleSetInfo(SampleHandle, SampleInfo);
     }
 
     public void SetVolume(float volume = 0.5f)
     {
         _relative_volume = volume;
+        
+        SampleInfo.Volume = _volume;
+        Bass.SampleSetInfo(SampleHandle, SampleInfo);
     }
 
     public void PlaySample(AudioContext context, Action? callback_when_finished = null, bool auto_remove = true)
     {
-        var audio_context = context.context;
-        var source = AL.GenSource();
-
-        if (!AL.IsSource(source))
-        {
-            Console.WriteLine($"({DateTime.Now:G}): [OpenAL Error]: Audio source ID isn't a valid source.");
-            return;
-        }
-        lock (AudioSources)
-            AudioSources.Add(source);
-
-        var size = AL.GetBuffer(AudioBuffer, ALGetBufferi.Size);
-        
-        var bits = AL.GetBuffer(AudioBuffer, ALGetBufferi.Bits);
-        var channels = AL.GetBuffer(AudioBuffer, ALGetBufferi.Channels);
-        var frequency = AL.GetBuffer(AudioBuffer, ALGetBufferi.Frequency);
-
-        var size_per_channel = (float) size / channels;
-        var samples = size_per_channel / (bits / 8f);
-        
-        var length = (int) (1000f * (samples / frequency));
-        
-        AL.Source(source, ALSourcei.Buffer, AudioBuffer);
-        AL.Source(source, ALSourcef.Gain, _volume);
-        
-        AL.SourcePlay(source);
-        context.CheckErrors();
-
-        Task.Run(async () =>
-        {
-            if (!auto_remove) return;
-            
-            await Task.Delay(length);
-            if (context.context != audio_context) return;
-            
-            AL.DeleteSource(source);
-            context.CheckErrors();
-
-            lock (AudioSources)
-                AudioSources.Remove(source);
-            callback_when_finished?.Invoke();
-        });
+        var channel = Bass.SampleGetChannel(SampleHandle);
+        Bass.ChannelPlay(channel);
     }
 
     public void Stop()
     {
-        lock (AudioSources)
-            foreach (var audio_source in AudioSources)
-            {
-                if (!AL.IsSource(audio_source)) return;
-                AL.SourceStop(audio_source);
-            }
+        Bass.SampleStop(SampleHandle);
     }
 
     public void Destroy()
     {
-        lock (AudioSources)
-            foreach (var audio_source in AudioSources)
-            {
-                if (!AL.IsSource(audio_source)) return;
-                AL.SourceStop(audio_source);
-            }
-
-        if (!AL.IsBuffer(AudioBuffer)) return;
-        AL.DeleteBuffer(AudioBuffer);
-        AudioBuffer = -1;
+        Bass.SampleFree(SampleHandle);
     }
 
     public void Dispose()

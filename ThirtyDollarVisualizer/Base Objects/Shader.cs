@@ -47,64 +47,70 @@ public class Shader : IDisposable
         GL.UseProgram(_handle);
     }
 
-    public void SetUniform(string name, int value)
+    public bool SetUniform(string name, int value)
     {
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
-            throw new Exception($"{name} uniform not found on shader.");
+            return false;
         }
         GL.Uniform1(location, value);
+        return true;
     }
 
-    public void SetUniform(string name, Vector2 value)
+    public bool SetUniform(string name, Vector2 value)
     {
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
-            throw new Exception($"{name} uniform not found on shader.");
+            return false;
         }
         GL.Uniform2(location, value);
+        return true;
     }
 
-    public void SetUniform(string name, Vector3 value)
+    public bool SetUniform(string name, Vector3 value)
     {
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
-            throw new Exception($"{name} uniform not found on shader.");
+            return false;
         }
         GL.Uniform3(location, value);
+        return true;
     }
 
-    public void SetUniform(string name, Vector4 value)
+    public bool SetUniform(string name, Vector4 value)
     {
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
-            throw new Exception($"{name} uniform not found on shader.");
+            return false;
         }
         GL.Uniform4(location, value);
+        return true;
     }
 
-    public unsafe void SetUniform(string name, Matrix4 value)
+    public unsafe bool SetUniform(string name, Matrix4 value)
     {
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
-            throw new Exception($"{name} uniform not found on shader.");
+            return false;
         }
         GL.UniformMatrix4(location, 1, false, (float*) &value);
+        return true;
     }
 
-    public void SetUniform(string name, float value)
+    public bool SetUniform(string name, float value)
     {
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
-            throw new Exception($"{name} uniform not found on shader.");
+            return false;
         }
         GL.Uniform1(location, value);
+        return true;
     }
 
     public void Dispose()

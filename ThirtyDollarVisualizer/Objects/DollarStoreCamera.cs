@@ -1,17 +1,20 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Scenes;
 
 namespace ThirtyDollarVisualizer.Objects;
 
 public class DollarStoreCamera : Camera
 {
     private Vector3 VirtualPosition;
+    private readonly ThirtyDollarApplication Manager;
     private const float ScrollLengthMs = 120f;
     private DateTime LastScaleUpdate = DateTime.Now;
     
-    public DollarStoreCamera(Vector3 position, Vector2i viewport) : base(position, -Vector3.UnitZ, Vector3.UnitY, viewport)
+    public DollarStoreCamera(Vector3 position, Vector2i viewport, ThirtyDollarApplication manager) : base(position, -Vector3.UnitZ, Vector3.UnitY, viewport)
     {
         VirtualPosition = position;
+        Manager = manager;
     }
 
     public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float margin_from_sides = 0)
@@ -99,5 +102,10 @@ public class DollarStoreCamera : Camera
     public void Pulse(int times = 1, float frequency = 0)
     {
         AsyncPulse(times, frequency);
+    }
+    
+    public float GetRunningTime()
+    {
+        return Manager._timing_stopwatch.ElapsedMilliseconds;
     }
 }

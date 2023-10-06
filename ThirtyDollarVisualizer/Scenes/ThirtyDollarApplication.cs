@@ -25,7 +25,7 @@ public class ThirtyDollarApplication : IScene
     private static readonly List<Renderable> start_objects = new();
     private static readonly List<Renderable> static_objects = new();
     private static readonly List<SoundRenderable> tdw_images = new();
-    private readonly SeekableStopwatch _timing_stopwatch = new();
+    public readonly SeekableStopwatch _timing_stopwatch = new();
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_stopwatch = new();
     private TimeSpan _open_time;
@@ -97,7 +97,7 @@ public class ThirtyDollarApplication : IScene
         _composition_location = composition_location;
         
         var camera_position = new Vector3(0,-300f,0);
-        Camera = new DollarStoreCamera(camera_position, new Vector2i(Width, Height));
+        Camera = new DollarStoreCamera(camera_position, new Vector2i(Width, Height), this);
         _open_stopwatch.Start();
         _seek_stopwatch.Start();
         _file_modified_stopwatch.Start();
@@ -755,7 +755,7 @@ public class ThirtyDollarApplication : IScene
     {
         if (!FinishedInitializing) return;
         HandleCompositionUpdate();
-        Log($"Timing stopwatch: {_timing_stopwatch.Elapsed} / Placement: {_placement.Length} / Audio: {Audio_I} / Video: {Video_I}");
+        //Log($"Timing stopwatch: {_timing_stopwatch.Elapsed} / Placement: {_placement.Length} / Audio: {Audio_I} / Video: {Video_I}");
         
         if (Audio_I >= _placement.LongLength && _timing_stopwatch.IsRunning)
         {
@@ -960,7 +960,7 @@ public class ThirtyDollarApplication : IScene
     {
         if (reset_time)
         {
-            Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height));
+            Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height), this);
             _timing_stopwatch.Reset();
             Video_I = Audio_I = 0;
         }
