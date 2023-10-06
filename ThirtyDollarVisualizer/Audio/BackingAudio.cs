@@ -1,71 +1,45 @@
-using ManagedBass;
 using ThirtyDollarEncoder.PCM;
 
 namespace ThirtyDollarVisualizer.Audio;
 
-public class BackingAudio : AudibleBuffer
+public class BackingAudio
 {
     private readonly int _sample_rate;
     private readonly int _channels;
-    public BackingAudio(AudioData<float> data, int sample_rate) : base(data, sample_rate, 1)
+    private AudioContext _context;
+    private AudibleBuffer _buffer;
+    public BackingAudio(AudioContext context, AudioData<float> data, int sample_rate)
     {
         _sample_rate = sample_rate;
         _channels = (int) data.ChannelCount;
+        _context = context;
+        _buffer = context.GetBufferObject(data, sample_rate);
     }
 
-    public float GetCurrentTime()
+    public long GetCurrentTime()
     {
-        var channels = Bass.SampleGetChannels(SampleHandle);
-        var length = Bass.ChannelGetPosition(channels[0]);
-        return length / (1f * _sample_rate * sizeof(float) * _channels);
+        return _buffer.GetTime_Milliseconds();
     }
 
-    public void Play(AudioContext context)
+    public void Play()
     {
-        PlaySample(context, null, false);
+        _buffer.Play();
     }
 
     public void SyncTime(TimeSpan player_time)
     {
-        var time = GetCurrentTime();
+        var time = GetCurrentTime() / 1000f;
         
         var delta = Math.Abs(time - (float)player_time.TotalSeconds);
         if (!(delta > 0.050f)) return; // 50 milliseconds 
         
-        var channels = Bass.SampleGetChannels(SampleHandle);
-        foreach (var channel in channels)
-        {
-            var position = (long)(player_time.TotalSeconds * (_sample_rate * _channels) * sizeof(float));
-            Console.WriteLine($"{DateTime.Now} OOS / Delta: {delta} / Time: {time} / Position: {position}");
-            Bass.ChannelSetPosition(channel, position);
-        }
+        var position = (long)(player_time.TotalSeconds * 1000);
+        Console.WriteLine($"{DateTime.Now} OOS / Delta: {delta} / Time: {time} / Position: {position}");
+        _buffer.SeekTime_Milliseconds(position);
     }
 
     public void UpdatePlayState(bool playing)
     {
-        switch (playing)
-        {
-            case true:
-            {
-                var channels = Bass.SampleGetChannels(SampleHandle);
-                foreach (var channel in channels)
-                {
-                    Bass.ChannelPlay(channel);
-                }
-
-                break;
-            }
-            
-            case false:
-            {
-                var channels = Bass.SampleGetChannels(SampleHandle);
-                foreach (var channel in channels)
-                {
-                    Bass.ChannelPause(channel);
-                }
-
-                break;
-            }
-        }
+        _buffer.SetPause(!playing);
     }
 }

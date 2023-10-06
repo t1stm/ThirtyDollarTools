@@ -113,7 +113,10 @@ public class Manager : GameWindow
         
         foreach (var scene in Scenes)
         {
-            scene.FileDrop(e.FileNames[0]);
+            foreach (var file in e.FileNames)
+            {
+                scene.FileDrop(file);
+            }
         }
     }
 
