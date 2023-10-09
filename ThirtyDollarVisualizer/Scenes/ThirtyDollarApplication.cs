@@ -693,7 +693,12 @@ public class ThirtyDollarApplication : IScene
         if (!ProcessedBuffers.TryGetValue(name, out var value_dictionary)) return;
         if (!value_dictionary.TryGetValue(value, out var buffer)) return;
 
-        buffer.SetVolume((float)(ev.Volume / 100d ?? .5d));
+        var final_volume = (float)(ev.Volume / 100f ?? .5d);
+        if (final_volume > 1f)
+        {
+            final_volume = (float) Math.Sqrt(final_volume);
+        }
+        buffer.SetVolume(final_volume);
 
         buffer.Play(remove_current_sample);
         lock (ActiveSamples) ActiveSamples.Add(buffer);

@@ -12,7 +12,7 @@ public class BassAudioContext : AudioContext
     public override bool Create()
     {
         var successful_init = Bass.Init(-1, SampleRate);
-        Bass.Volume = GlobalVolume;
+        Bass.GlobalSampleVolume = (int)(GlobalVolume * 10000);
         Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
 
         return successful_init;
