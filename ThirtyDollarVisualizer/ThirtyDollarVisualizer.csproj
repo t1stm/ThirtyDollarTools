@@ -45,5 +45,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
+        <ProjectReference Include="..\BASS.Redist\BASS.Redist.csproj" />
     </ItemGroup>
 </Project>

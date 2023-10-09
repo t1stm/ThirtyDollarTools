@@ -147,6 +147,8 @@ public abstract class Renderable
         }
     }
 
+    public abstract void SetShaderUniforms(Camera camera);
+
     public virtual void Dispose()
     {
         Ebo?.Dispose();

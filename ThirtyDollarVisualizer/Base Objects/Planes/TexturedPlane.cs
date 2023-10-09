@@ -71,16 +71,20 @@ public class TexturedPlane : Renderable
             
             _texture?.Bind();
             Shader.Use();
-
-            Shader.SetUniform("u_Model", Model);
-            Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
-            
-            Shader.SetUniform("u_OverlayColor", Color);
+            SetShaderUniforms(camera);
 
             GL.DrawElements(PrimitiveType.Triangles, Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
         }
         
         base.Render(camera);
+    }
+
+    public override void SetShaderUniforms(Camera camera)
+    {
+        
+        Shader.SetUniform("u_Model", Model);
+        Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
+        Shader.SetUniform("u_OverlayColor", Color);
     }
 
     public override void Dispose()

@@ -1,5 +1,6 @@
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarConverter.Resamplers;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarApp;
@@ -45,7 +46,8 @@ internal static class Program
             {
                 SampleRate = 48000,
                 Channels = 2,
-                CutDelayMs = 300
+                CutDelayMs = 300,
+                Resampler = new LinearResampler()
             }, Console.WriteLine);
 
             var audioData = encoder.SampleComposition(composition); // Shame on me...

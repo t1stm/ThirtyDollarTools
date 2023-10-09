@@ -25,13 +25,13 @@ public class ThirtyDollarApplication : IScene
     private static readonly List<Renderable> start_objects = new();
     private static readonly List<Renderable> static_objects = new();
     private static readonly List<SoundRenderable> tdw_images = new();
-    private readonly SeekableStopwatch _timing_stopwatch = new();
+    public readonly SeekableStopwatch _timing_stopwatch = new();
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_stopwatch = new();
     private TimeSpan _open_time;
     private int Video_I;
 
-    private readonly AudioContext AudioContext = new();
+    private readonly AudioContext _context;
     private readonly Dictionary<string, Dictionary<double, AudibleBuffer>> ProcessedBuffers = new();
     private readonly List<AudibleBuffer> ActiveSamples = new();
     private int Audio_I;
@@ -97,13 +97,23 @@ public class ThirtyDollarApplication : IScene
         _composition_location = composition_location;
         
         var camera_position = new Vector3(0,-300f,0);
-        Camera = new DollarStoreCamera(camera_position, new Vector2i(Width, Height));
+        Camera = new DollarStoreCamera(camera_position, new Vector2i(Width, Height), this);
         _open_stopwatch.Start();
         _seek_stopwatch.Start();
         _file_modified_stopwatch.Start();
-        
-        AudioContext.Destroy();
-        AudioContext.Create();
+
+        _context = new BassAudioContext();
+        var success = _context.Create();
+        if (!success)
+        {
+            _context = new OpenALContext();
+            success = _context.Create();
+        }
+
+        if (!success)
+        {
+            Log("Unable to initialize audio device.");
+        }
     }
 
     /// <summary>
@@ -509,14 +519,14 @@ public class ThirtyDollarApplication : IScene
         
         var pcm_encoder = new PcmEncoder(SampleHolder ?? throw new Exception("Sample holder is null."), new EncoderSettings
         {
-            SampleRate = (uint)AudioContext.SampleRate,
+            SampleRate = (uint)_context.SampleRate,
             Channels = 2,
-            CutDelayMs = 250,
+            CutDelayMs = 0,
             Resampler = new LinearResampler()
         }, Log);
 
         var (processed_samples, _) = await pcm_encoder.GetAudioSamples(-1, _placement, CancellationToken.None);
-        AudioContext.GlobalVolume = .25f;
+        _context.GlobalVolume = .25f;
 
         foreach (var ev in processed_samples)
         {
@@ -534,7 +544,7 @@ public class ThirtyDollarApplication : IScene
                 ProcessedBuffers.Add(name, value_dictionary);
             }
 
-            var sample = new AudibleBuffer(ev.AudioData, AudioContext.SampleRate);
+            var sample = _context.GetBufferObject(ev.AudioData, _context.SampleRate);
 
             value_dictionary.Add(value, sample);
         }
@@ -683,9 +693,14 @@ public class ThirtyDollarApplication : IScene
         if (!ProcessedBuffers.TryGetValue(name, out var value_dictionary)) return;
         if (!value_dictionary.TryGetValue(value, out var buffer)) return;
 
-        buffer.SetVolume((float)(ev.Volume / 100d ?? .5d));
+        var final_volume = (float)(ev.Volume / 100f ?? .5d);
+        if (final_volume > 1f)
+        {
+            final_volume = (float) Math.Sqrt(final_volume);
+        }
+        buffer.SetVolume(final_volume);
 
-        buffer.PlaySample(AudioContext, remove_current_sample);
+        buffer.Play(remove_current_sample);
         lock (ActiveSamples) ActiveSamples.Add(buffer);
 
         return;
@@ -719,7 +734,7 @@ public class ThirtyDollarApplication : IScene
             var placement = _placement[Audio_I];
             if (placement.Index > (ulong)((float)_timing_stopwatch.ElapsedMilliseconds * TimingSampleRate / 1000))
             {
-                AudioContext.CheckErrors();
+                _context.CheckErrors();
                 Thread.Sleep(1);
                 continue;
             }
@@ -755,7 +770,7 @@ public class ThirtyDollarApplication : IScene
     {
         if (!FinishedInitializing) return;
         HandleCompositionUpdate();
-        Log($"Timing stopwatch: {_timing_stopwatch.Elapsed} / Placement: {_placement.Length} / Audio: {Audio_I} / Video: {Video_I}");
+        //Log($"Timing stopwatch: {_timing_stopwatch.Elapsed} / Placement: {_placement.Length} / Audio: {Audio_I} / Video: {Video_I}");
         
         if (Audio_I >= _placement.LongLength && _timing_stopwatch.IsRunning)
         {
@@ -942,8 +957,6 @@ public class ThirtyDollarApplication : IScene
 
     private void UpdateBackingTrack(string location)
     {
-        BackingAudio?.Dispose();
-
         var decoder = new WaveDecoder();
         var file_stream = File.OpenRead(location);
         var pcm_data = decoder.Read(file_stream);
@@ -951,16 +964,16 @@ public class ThirtyDollarApplication : IScene
         var audio = pcm_data.ReadAsFloat32Array(true);
 
         if (audio == null) return;
-        BackingAudio = new BackingAudio(audio, (int) pcm_data.SampleRate);
+        BackingAudio = new BackingAudio(_context, audio, (int) pcm_data.SampleRate);
         
-        BackingAudio.PlaySample(AudioContext, () => {});
+        BackingAudio.Play();
     }
 
     private void FileDrop(string? location, bool reset_time)
     {
         if (reset_time)
         {
-            Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height));
+            Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height), this);
             _timing_stopwatch.Reset();
             Video_I = Audio_I = 0;
         }

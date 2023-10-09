@@ -69,8 +69,7 @@ public class ColoredPlane : Renderable
             Ebo.Bind();
             Shader.Use();
 
-            Shader.SetUniform("u_Model", Model);
-            Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
+            SetShaderUniforms(camera);
             
             Shader.SetUniform("u_Color", Color);
 
@@ -78,6 +77,16 @@ public class ColoredPlane : Renderable
         }
         
         base.Render(camera);
+    }
+
+    public override void SetShaderUniforms(Camera camera)
+    {
+        Shader.SetUniform("u_Model", Model);
+        Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
+        if (camera is DollarStoreCamera camera_30)
+        {
+            Shader.SetUniform("u_Time", camera_30.GetRunningTime());
+        }
     }
 
     public override void Dispose()

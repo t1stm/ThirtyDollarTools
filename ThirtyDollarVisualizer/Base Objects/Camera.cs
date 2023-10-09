@@ -50,7 +50,7 @@ public class Camera
         Front = front;
         Up = up;
         Viewport = viewport;
-        
+
         UpdateMatrix();
     }
 
