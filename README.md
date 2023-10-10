@@ -1,48 +1,39 @@
-# Thirty Dollar Website Converter
+# Thirty Dollar Tools
 
-Hello! If you're reading this then you're searching for things related to the Thirty Dollar Website https://thirtydollar.website/ and found this project. 
+This project contains tools related to the 
+[Thirty Dollar Website](https://thirtydollar.website/) 
+that help the creators to make better and more complex covers,
+and the users to have more fun experiencing _"particle accelerators"_ 
+and public covers.
 
-This project is an experiment to learn how to work with PCM audio. **It takes a .🗿 file and uses it's data to form a playable track.** 
+## Projects you're most likely going to be interested in: 
 
-For now it only outputs .wav audio files, but I will add support for more formats in the future (MP3 and FLAC).
+## Thirty Dollar Visualizer
 
----
+![Animated WebP of the visualizer playing "Haunted House" covered by "mossan_"](Screenshots/visualizer-demo.webp)
+The **Thirty Dollar Visualizer** is a tool that replicates the **Thirty Dollar Website's playback**.
+It plays compositions using multiple CPU threads allowing it to
+achieve much higher note density and performance, than the website can achieve.
 
-## Running The Program.
+[More info about the visualizer here.](ThirtyDollarVisualizer/README.md)
 
-Using this application is quite simple. **If you're running Windows, OSX arm64 or x64, or Linux x64, you can hop onto the [releases tab](https://github.com/t1stm/ThirtyDollarWebsiteConverter/tags "Releases page link"), and download the latest copy of the compiled application.**
-If you're using an other operating system, you can either run the Windows release of the application in [WINE](https://www.winehq.org/ "Wine Is Not an Emulator") or compile the project manually and use the command line debug app.
+## Thirty Dollar Converter
+![Screenshot of the GUI](Screenshots/converter-sample.png)
 
-If you want a more in-depth explanation, please follow the links for your operating system.
+The **Thirty Dollar Converter** is a tool that perfectly 
+outputs a Thirty Dollar Composition to a WAVE audio file.
 
-In-depth explanation for the Cross Platform GUI: **To be added.**
+The only limitation is your system's RAM capacity and 
+the time you can leave your device powered on.
 
-In-depth explanation for Linux CLI / MacOS CLI? / Windows CLI?: **To be added.**
+[See more info about the visualizer here.](ThirtyDollarGUI/README.md)
 
-That's it. Thank you for reading this.
+[_Or if you're interested in the CLI program, here._](ThirtyDollarDebugApp/README.md)
 
----
+## Download
 
-## Sources For The Included .🗿 Files in the Debug App:
+If you want to download these tools, you can visit the
+[release tab](https://github.com/t1stm/ThirtyDollarTools/releases) and download the 
+latest copy of the compiled projects, or you can compile this project from source code.
 
-Radiotomatosauce99 - "big shot [Deltarune].🗿" Link: [YouTube](https://www.youtube.com/watch?v=_D9RL5X4c2M)
-
-Radiotomatosauce99 - "It has to be this way [Metal Gear Rising Revengeance].🗿" Link: [YouTube](https://www.youtube.com/watch?v=3ISh6lAK0kI)
-
-Radiotomatosauce99 - "watery graves [Plants vs. Zombies].🗿" Link: [YouTube](https://www.youtube.com/watch?v=cAANIc7RPhs)
-
-Radiotomatosauce99 - "TLT FNAF 1.🗿" Link: [YouTube](https://www.youtube.com/watch?v=dnr55bAMxHw)
-
-Radiotomatosauce99 - "the world revolving (full).🗿" Link: [YouTube](https://www.youtube.com/watch?v=M93mt3NzkmM)
-
-Xenon Neko - "catastrophe_tdw_v2.🗿" Link: [YouTube](https://www.youtube.com/watch?v=UqqMvkD1QMg)
-
-Domburg - "bad apple full.🗿" Link: [YouTube](https://www.youtube.com/watch?v=Yw4bhbjBRG8)
-
-K0KINNIE - "30 dollar bullet hell.🗿" Link: [YouTube](https://www.youtube.com/watch?v=LLo0nga3idQ)
-
-FiveSixEP - "Rush E Hard.🗿" Link: [YouTube](https://www.youtube.com/watch?v=DELXz4Jzhfs)
-
-Me - other sequence files.
-
-
+The officially supported operating systems are Windows x64, macOS x64/ARM and Linux x64
