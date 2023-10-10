@@ -12,8 +12,13 @@ public class BassAudioContext : AudioContext
     public override bool Create()
     {
         var successful_init = Bass.Init(-1, SampleRate);
+        
+        Bass.DeviceBufferLength = 16;
+        Bass.PlaybackBufferLength = 128;
+        
         Bass.GlobalSampleVolume = (int)(GlobalVolume * 10000);
         Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
+        Bass.Configure(Configuration.TruePlayPosition, 0);
 
         return successful_init;
     }

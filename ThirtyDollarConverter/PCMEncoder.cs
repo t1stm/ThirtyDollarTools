@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ThirtyDollarConverter.Objects;
@@ -267,8 +268,7 @@ public class PcmEncoder
 
         var stream = new BinaryWriter(File.Open(location, FileMode.Create));
         var maxLength = samples.Max(r => r.Length);
-        AddWavHeader(stream, maxLength);
-        stream.Write((short)0);
+        AddWavHeader<float>(stream, maxLength);
 
         var every_n_report = maxLength / 200; // 200 calls.
         for (var i = 0; i < maxLength; i++)
@@ -277,10 +277,8 @@ public class PcmEncoder
             {
                 IndexReport((ulong)i, (ulong)maxLength);
             }
-            for (var j = 0; j < Channels; j++)
-                if (samples[j].Length > i)
-                    stream.Write((short)(samples[j][i] * 32768));
-                else stream.Write((short)0);
+            for (var j = 0; j < Channels; j++) 
+                stream.Write(samples[j].Length > i ? samples[j][i] : 0f);
         }
 
         stream.Flush();
@@ -293,10 +291,12 @@ public class PcmEncoder
     /// This method adds the RIFF WAVE header to an empty file.
     /// </summary>
     /// <param name="writer">An open BinaryWriter</param>
-    /// <param name="dataLength">Length of the audio data.</param>
-    private void AddWavHeader(BinaryWriter writer, int dataLength)
+    /// <param name="data_length">Length of the audio data.</param>
+    private void AddWavHeader<T>(BinaryWriter writer, int data_length) where T : struct
     {
-        var length = dataLength * (int)Channels;
+        var is_float = typeof(T) == typeof(float) || typeof(T) == typeof(double);
+        var byte_size = Marshal.SizeOf<T>();
+        var length = data_length * (int)Channels;
         writer.Write(new[] { 'R', 'I', 'F', 'F' }); // RIFF Chunk Descriptor
         writer.Write(4 + 8 + 16 + 8 + length * 2); // Sub Chunk 1 Size
         //Chunk Size 4 bytes.
@@ -304,15 +304,15 @@ public class PcmEncoder
         // fmt sub-chunk
         writer.Write(new[] { 'f', 'm', 't', ' ' });
         writer.Write(16); // Sub Chunk 1 Size
-        writer.Write((short)1); // Audio Format 1 = PCM
+        writer.Write((short)(is_float ? 3 : 1)); // Audio Format 1 = PCM / 3 = Float
         writer.Write((short)Channels); // Audio Channels
         writer.Write((int)SampleRate); // Sample Rate
-        writer.Write((int)SampleRate * (int)Channels * 2 /* Bytes */); // Byte Rate
-        writer.Write((short)(Channels * 2)); // Block Align
-        writer.Write((short)16); // Bits per Sample
+        writer.Write((int)(SampleRate * Channels * byte_size /* Bytes */)); // Byte Rate
+        writer.Write((short)(Channels * byte_size)); // Block Align
+        writer.Write((short)(byte_size * 8)); // Bits per Sample
         // data sub-chunk
         writer.Write(new[] { 'd', 'a', 't', 'a' });
-        writer.Write(length * 2); // Sub Chunk 2 Size.
+        writer.Write(length * byte_size); // Sub Chunk 2 Size.
     }
 
     public struct ProcessedEvent
@@ -336,6 +336,11 @@ public class PcmEncoder
     {
         var d_slice = destination.AsSpan().Slice((int)index, source.Length);
         var chunk_size = Vector<float>.Count;
+        var final_volume = (float)volume / 100f;
+        if (final_volume > 1f)
+        {
+            final_volume = (float)Math.Sqrt(final_volume);
+        }
         
         for (var i = 0; i < d_slice.Length - d_slice.Length % chunk_size; i += chunk_size)
         {
@@ -345,7 +350,7 @@ public class PcmEncoder
             var d_vector = new Vector<float>(d);
             var s_vector = new Vector<float>(source[i..i_chunk]);
             
-            var src = s_vector * ((float) volume / 100f);
+            var src = s_vector * final_volume;
             var final = src + d_vector;
             
             final.CopyTo(d);
@@ -353,53 +358,9 @@ public class PcmEncoder
 
         for (var i = d_slice.Length - d_slice.Length % chunk_size; i < d_slice.Length; i++)
         {
-            var src = source[i] * ((float)volume / 100f);
+            var src = source[i] * final_volume;
             d_slice[i] += src;
         }
-    }
-
-    /// <summary>
-    /// Modifies the destination audio with a sample.
-    /// </summary>
-    /// <param name="destination">The destination audio array.</param>
-    /// <param name="data">The index of the destination you want to add to.</param>
-    /// <param name="index">The index to the destination</param>
-    private static void ModifyAt(ref float[] destination, float data, ulong index)
-    {
-        lock (destination)
-        {
-            if (index < (ulong)destination.LongLength)
-            {
-                destination[index] = MixSamples(data, destination[index]);
-                return;
-            }
-
-            if (index >= (ulong)destination.LongLength) FillWithZeros(ref destination, index);
-            destination[index] = data;
-        }
-    }
-
-    /// <summary>
-    /// Wrapper method for mixing samples. (to easily implement another mixing standard if needed)
-    /// </summary>
-    /// <param name="sampleOne">The first sample</param>
-    /// <param name="sampleTwo">The second sample.</param>
-    /// <returns>The mixed sample.</returns>
-    private static float MixSamples(float sampleOne, float sampleTwo)
-    {
-        return sampleOne + sampleTwo;
-    }
-    
-    /// <summary>
-    /// Fills an array with zeros starting from the index.
-    /// </summary>
-    /// <param name="data">The destination.</param>
-    /// <param name="index">The index to start from.</param>
-    private static void FillWithZeros(ref float[] data, ulong index)
-    {
-        var old = data;
-        data = new float[(ulong)(index * 1.5)];
-        for (ulong i = 0; i < (ulong)old.LongLength; i++) data[i] = old[i];
     }
 
     #endregion

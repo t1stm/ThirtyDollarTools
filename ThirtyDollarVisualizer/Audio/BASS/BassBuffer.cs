@@ -28,7 +28,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
                 samples_span[idx] = data.Samples[i % channels][i];
             }
         }
-
+        
         var sample = Bass.CreateSample(length * channels * sizeof(float), sample_rate, channels, max_count, BassFlags.Float);
         Bass.SampleSetData(sample, samples);
         SampleHandle = sample;
@@ -58,6 +58,23 @@ public class BassBuffer : AudibleBuffer, IDisposable
     {
         var channel = Bass.SampleGetChannel(SampleHandle);
         Bass.ChannelPlay(channel);
+
+        Task.Run(async () =>
+        {
+            var running = true;
+            while (running)
+            {
+                await Task.Delay(1);
+
+                var state = Bass.ChannelIsActive(channel);
+                if (state != PlaybackState.Playing)
+                {
+                    running = false;
+                }
+            }
+            if (auto_remove)
+                callback_when_finished?.Invoke();
+        });
     }
 
     public override void Stop()
