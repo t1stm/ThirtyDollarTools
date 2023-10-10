@@ -17,6 +17,8 @@ achieve much higher note density and performance, than the website can achieve.
 
 [More info about the visualizer here.](ThirtyDollarVisualizer/README.md)
 
+![Screenshot of the visualizer playing "Haunted House" covered by "mossan_"](Screenshots/visualizer-running.png)
+
 ## Thirty Dollar Converter
 ![Screenshot of the GUI](Screenshots/converter-sample.png)
 
