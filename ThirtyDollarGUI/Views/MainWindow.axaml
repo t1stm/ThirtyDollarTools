@@ -13,7 +13,11 @@
         MinWidth="480"
         Width="480"
         Height="640"
-        services:DialogService.Register="{Binding}">
+        services:DialogService.Register="{Binding}"
+        
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>

@@ -13,7 +13,6 @@
 
         TransparencyLevelHint="AcrylicBlur"
         Background="Transparent"
-        
         ExtendClientAreaToDecorationsHint="True">
         
     <Panel>
