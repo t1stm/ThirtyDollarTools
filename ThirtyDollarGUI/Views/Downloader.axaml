@@ -11,7 +11,11 @@
         MinWidth="250"
         MinHeight="350"
         Width="250"
-        Height="350">
+        Height="350"
+        
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
         
         <Panel>
             <ExperimentalAcrylicBorder IsHitTestVisible="False">
