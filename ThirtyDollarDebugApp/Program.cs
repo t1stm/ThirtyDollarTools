@@ -59,7 +59,8 @@ internal static class Program
             encoder.WriteAsWavFile($"./Export/{file.Location.Split('/').Last()}.wav", audioData);
         }
 
-        Console.WriteLine("Finished Executing.");
+        Console.WriteLine("Finished Executing. Press any key to exit.");
+        Console.ReadLine();
     }
 
     private static void ClearLine()
