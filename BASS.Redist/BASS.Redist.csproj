@@ -3,8 +3,6 @@
     <PropertyGroup>
         <TargetFramework>net7.0</TargetFramework>
         <OutputType>Library</OutputType>
-        <AssemblyTitle>BASS.Redist</AssemblyTitle>
-        <AssemblyName>ThirtyDollarTools.BASS.Redist</AssemblyName>
     </PropertyGroup>
 
     <PropertyGroup Label="Nuget">
@@ -15,19 +13,26 @@
         <IncludeBuildOutput>false</IncludeBuildOutput>
     </PropertyGroup>
 
-    <ItemGroup>
-        <None Include="runtimes\**\native\*" CopyToOutputDirectory="Always">
-            <Pack>True</Pack>
-            <PackagePath>runtimes</PackagePath>
-        </None>
-        <None Include="_._">
-            <!-- I added this because the osu!framework repo has this. 
-            Read: "https://github.com/ppy/osu-framework/blob/master/osu.Framework.NativeLibs/osu.Framework.NativeLibs.csproj" -->
-            <Pack>true</Pack>
-            <PackagePath>lib\$(TargetFramework)</PackagePath>
-        </None>
+    <ItemGroup Condition=" '$(OS)' == 'Windows_NT' And '$(Platform)' != 'x86'">
+        <None Include="runtimes\win-x64\**" CopyToOutputDirectory="Always" />
     </ItemGroup>
 
+    <ItemGroup Condition=" '$(OS)' == 'Windows_NT' And '$(Platform)' == 'x86' ">
+        <None Include="runtimes\win-x86\**" CopyToOutputDirectory="Always" />
+    </ItemGroup>
+
+    <ItemGroup Condition=" '$(OS)' == 'OSX' ">
+        <None Include="runtimes\osx\**" CopyToOutputDirectory="Always" />
+    </ItemGroup>
+
+    <ItemGroup Condition=" '$(OS)' == 'Unix' And '$(Platform)' != 'x86' ">
+        <None Include="runtimes\linux-x64\**" CopyToOutputDirectory="Always" />
+    </ItemGroup>
+
+    <ItemGroup Condition=" '$(OS)' == 'Unix' And '$(Platform)' == 'x86' ">
+        <None Include="runtimes\linux-x86\**" CopyToOutputDirectory="Always" />
+    </ItemGroup>
+    
     <ItemGroup>
       <PackageReference Include="ManagedBass" Version="3.1.1" />
     </ItemGroup>

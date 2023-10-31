@@ -22,6 +22,11 @@ public class BassAudioContext : AudioContext
             Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
             Bass.Configure(Configuration.TruePlayPosition, 0);
 
+            if (!successful_init)
+            {
+                CheckErrors();
+            }
+
             return successful_init;
         }
         catch (Exception e)
