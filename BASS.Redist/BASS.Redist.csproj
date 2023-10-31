@@ -2,21 +2,31 @@
 
     <PropertyGroup>
         <TargetFramework>net7.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+        <OutputType>Library</OutputType>
+        <AssemblyTitle>BASS.Redist</AssemblyTitle>
+        <AssemblyName>ThirtyDollarTools.BASS.Redist</AssemblyName>
+    </PropertyGroup>
+
+    <PropertyGroup Label="Nuget">
+        <IsPackable>true</IsPackable>
+        <Title>BASS.Redist</Title>
+        <Description>BASS DLLs for different operating systems.</Description>
+        <PackageId>ThirtyDollarTools.BASS.Redist</PackageId>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
     </PropertyGroup>
 
     <ItemGroup>
-        <!-- Windows -->
-        <None Update="bass.dll" Condition="'$(OS)' == 'Windows_NT'" CopyToOutputDirectory="PreserveNewest" />
-
-        <!-- macOS -->
-        <None Update="libbass.dylib" Condition="'$(OS)' == 'Darwin'" CopyToOutputDirectory="PreserveNewest" />
-
-        <!-- Linux -->
-        <None Update="libbass.so" Condition="'$(OS)' == 'Unix'" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="runtimes\**\native\*" CopyToOutputDirectory="Always">
+            <Pack>True</Pack>
+            <PackagePath>runtimes</PackagePath>
+        </None>
+        <None Include="_._">
+            <!-- I added this because the osu!framework repo has this. 
+            Read: "https://github.com/ppy/osu-framework/blob/master/osu.Framework.NativeLibs/osu.Framework.NativeLibs.csproj" -->
+            <Pack>true</Pack>
+            <PackagePath>lib\$(TargetFramework)</PackagePath>
+        </None>
     </ItemGroup>
-
 
     <ItemGroup>
       <PackageReference Include="ManagedBass" Version="3.1.1" />

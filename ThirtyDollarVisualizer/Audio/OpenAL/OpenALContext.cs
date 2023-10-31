@@ -14,15 +14,23 @@ public class OpenALContext : AudioContext
     /// </summary>
     public override bool Create()
     {
-        device = ALC.OpenDevice(null);
-        if (device == ALDevice.Null) return false;
-        context = ALC.CreateContext(device, 
-            new ALContextAttributes(SampleRate, null, 1024, UpdateRate, false));
-        
-        ALC.MakeContextCurrent(context);
-        
-        AL.Listener(ALListenerf.Gain, GlobalVolume);
-        return true;
+        try
+        {
+            device = ALC.OpenDevice(null);
+            if (device == ALDevice.Null) return false;
+            context = ALC.CreateContext(device,
+                new ALContextAttributes(SampleRate, null, 1024, UpdateRate, false));
+
+            ALC.MakeContextCurrent(context);
+
+            AL.Listener(ALListenerf.Gain, GlobalVolume);
+            return true;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"[OpenAL Error]: {e}");
+            return false;
+        }
     }
     /// <summary>
     /// Destroys the global audio context.

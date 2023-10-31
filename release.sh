@@ -2,10 +2,6 @@
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 NET_FOLDER="net7.0"
-
-rm -rf "${SCRIPT_DIR:?}/bin"
-mkdir "$SCRIPT_DIR/bin"
-
 platforms=("linux-x64" "win-x64" "osx-x64" "osx-arm64")
 
 publish() {
@@ -34,9 +30,14 @@ copy_releases() {
 
 zip_releases() {
   for platform in "${platforms[@]}"; do
-    zip -rj9 "$SCRIPT_DIR/bin/$platform.zip" "$SCRIPT_DIR/bin/$platform/"
+    cd "$SCRIPT_DIR/bin/$platform/publish" || exit
+    zip -r9 "$SCRIPT_DIR/bin/$platform.zip" "."
+    cd - || exit
   done;
 }
+
+rm -rf "${SCRIPT_DIR:?}/bin"
+mkdir "$SCRIPT_DIR/bin"
 
 cd ./ThirtyDollarGUI || exit
 publish

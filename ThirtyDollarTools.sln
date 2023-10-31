@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarConverter", "Th
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarEncoder", "ThirtyDollarEncoder\ThirtyDollarEncoder.csproj", "{19D1A131-E40C-456B-A336-744A2FBA4EA7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarWindowsGuiApp", "ThirtyDollarWindowsGuiApp\ThirtyDollarWindowsGuiApp.csproj", "{B4D7219F-8B53-4718-9A83-C634FD7F01D0}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarDebugApp", "ThirtyDollarDebugApp\ThirtyDollarDebugApp.csproj", "{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer", "ThirtyDollarVisualizer\ThirtyDollarVisualizer.csproj", "{5ECD91C4-8558-4274-AD0E-2C0B0C122466}"
@@ -41,10 +39,6 @@ Global
 		{19D1A131-E40C-456B-A336-744A2FBA4EA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19D1A131-E40C-456B-A336-744A2FBA4EA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{19D1A131-E40C-456B-A336-744A2FBA4EA7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B4D7219F-8B53-4718-9A83-C634FD7F01D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B4D7219F-8B53-4718-9A83-C634FD7F01D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B4D7219F-8B53-4718-9A83-C634FD7F01D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B4D7219F-8B53-4718-9A83-C634FD7F01D0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}.Release|Any CPU.ActiveCfg = Release|Any CPU

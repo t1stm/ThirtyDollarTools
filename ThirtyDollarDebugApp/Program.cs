@@ -11,7 +11,7 @@ internal static class Program
 
     private static async Task Main(string[] args)
     {
-        const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarDebugApp";
+        const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarTools/ThirtyDollarDebugApp";
         const string sequenceDirectory = $"{workingDirectory}/Included Sequences";
 
         var holder = new SampleHolder
@@ -37,6 +37,7 @@ internal static class Program
             output.AddRange(await ReadFileList(list));
         }
 
+        const int statusbar_length = 64;
         foreach (var file in output)
         {
             if (file.Location.Contains("LICENSE")) continue;
@@ -48,7 +49,11 @@ internal static class Program
                 Channels = 2,
                 CutDelayMs = 300,
                 Resampler = new LinearResampler()
-            }, Console.WriteLine);
+            }, Console.WriteLine, (current, total) =>
+            {
+                ClearLine();
+                Console.Write(GenerateProgressbar(current, (long) total, statusbar_length));
+            });
 
             var audioData = encoder.SampleComposition(composition); // Shame on me...
             encoder.WriteAsWavFile($"./Export/{file.Location.Split('/').Last()}.wav", audioData);
@@ -57,6 +62,11 @@ internal static class Program
         Console.WriteLine("Finished Executing.");
     }
 
+    private static void ClearLine()
+    {
+        do { Console.Write("\b \b"); } while (Console.CursorLeft > 0);
+    }
+    
     private static async Task<List<CompositionFile>> ReadFileList(IEnumerable<string> array)
     {
         var output = new List<CompositionFile>();

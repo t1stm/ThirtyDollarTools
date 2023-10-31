@@ -646,7 +646,7 @@ public class ThirtyDollarApplication : IScene
             Math.Max(Math.Max((int)Camera.Position.Y / size_renderable, 0) * repeats_renderable - dividers_size, 0);
         var new_end = Math.Min(tdw_images.Count,
             (int)(repeats_renderable * (Camera.Position.Y / size_renderable) +
-                  (int)(repeats_renderable * ((float)Height / size_renderable) * 1.25)));
+                  (int)(repeats_renderable * ((float)Height / size_renderable) * 1.25f)));
 
         for (var i = new_start; i < new_end; i++)
         {
@@ -727,6 +727,11 @@ public class ThirtyDollarApplication : IScene
         var current_open_time = _open_time;
         if (OpenAudioHandler) return;
         OpenAudioHandler = true;
+        lock (ActiveSamples)
+        {
+            ActiveSamples.Clear();
+        }
+        
         while (Audio_I < _placement.LongLength && !Token.IsCancellationRequested)
         {
             if (current_open_time != _open_time) break;

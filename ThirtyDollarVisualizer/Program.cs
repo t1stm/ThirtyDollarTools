@@ -36,7 +36,7 @@ public static class Program
         
         [Option('s', "scale",
             HelpText = "Changes the camera viewport zoom.")]
-        public int? Scale { get; set; }
+        public float? Scale { get; set; }
     }
     
     public static void Main(string[] args)

@@ -11,16 +11,24 @@ public class BassAudioContext : AudioContext
     /// </summary>
     public override bool Create()
     {
-        var successful_init = Bass.Init(-1, SampleRate);
+        try
+        {
+            var successful_init = Bass.Init(-1, SampleRate);
         
-        Bass.DeviceBufferLength = 16;
-        Bass.PlaybackBufferLength = 128;
+            Bass.DeviceBufferLength = 16;
+            Bass.PlaybackBufferLength = 128;
         
-        Bass.GlobalSampleVolume = (int)(GlobalVolume * 10000);
-        Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
-        Bass.Configure(Configuration.TruePlayPosition, 0);
+            Bass.GlobalSampleVolume = (int)(GlobalVolume * 10000);
+            Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
+            Bass.Configure(Configuration.TruePlayPosition, 0);
 
-        return successful_init;
+            return successful_init;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"[BASS Error]: {e}");
+            return false;
+        }
     }
     /// <summary>
     /// Destroys the global audio context.

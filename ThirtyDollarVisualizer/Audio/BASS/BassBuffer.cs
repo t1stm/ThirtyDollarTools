@@ -56,6 +56,11 @@ public class BassBuffer : AudibleBuffer, IDisposable
 
     public override void Play(Action? callback_when_finished = null, bool auto_remove = true)
     {
+        if (Bass.CPUUsage > 95d)
+        {
+            Console.WriteLine($"[BASS] CPU usage break point reached: {Bass.CPUUsage}% CPU");
+            return;
+        }
         var channel = Bass.SampleGetChannel(SampleHandle);
         Bass.ChannelPlay(channel);
 
