@@ -62,7 +62,7 @@ public class PlacementCalculator
         {
             var ev = composition.Events[index];
             IndexReport(index, count);
-            var event_type = ev.SoundEvent is "_pause" || (ev.SoundEvent?.StartsWith('!') ?? true) ? EventType.Action : EventType.Sound;
+            var event_type = ev.SoundEvent?.StartsWith('!') ?? true ? EventType.Action : EventType.Sound;
             var increment_timer = false;
             var modify_index = true;
 
@@ -80,7 +80,8 @@ public class PlacementCalculator
                 {
                     Index = position,
                     SequenceIndex = index,
-                    Event = copy
+                    Event = copy,
+                    Audible = ev.SoundEvent is not "_pause"
                 };
                 
                 if (!scrubbing) yield return placement;
@@ -132,8 +133,7 @@ public class PlacementCalculator
                     }
 
                     break;
-                
-                case "_pause": 
+
                 case "!stop":
                     var working_value = ev.Value;
                     while (ev.PlayTimes > 0)
