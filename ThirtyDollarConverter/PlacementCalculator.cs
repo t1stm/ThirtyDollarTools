@@ -202,7 +202,7 @@ public class PlacementCalculator
                     ev.PlayTimes--;
                         
                     var item = composition.Events.FirstOrDefault(r =>
-                        r.SoundEvent == "!target" && (int) r.Value == (int) ev.Value && r.Triggered == false);
+                        r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && r.Triggered == false);
                     if (item == null)
                     {
                         Log($"Unable to jump to target with id: {ev.Value}");
