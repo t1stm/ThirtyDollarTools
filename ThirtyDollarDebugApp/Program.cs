@@ -101,8 +101,9 @@ internal static class Program
         Span<char> prg = stackalloc char[length];
 
         var increment = total / length;
-        var display = (int)(current / increment);
+        var display = (int)Math.Floor(current / increment);
         display = display > length ? length : display;
+        if (display < 0) display = 0;
         for (var i = 0; i < display; i++) prg[i] = FullBlock;
 
         for (var i = display; i < length; i++) prg[i] = EmptyBlock;
