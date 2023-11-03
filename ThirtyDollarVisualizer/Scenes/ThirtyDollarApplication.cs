@@ -274,12 +274,8 @@ public class ThirtyDollarApplication : IScene
                 i++;
             }
 
-            var max_decreasing_event = _composition.Events.MaxBy(r =>
-            {
-                if (r.SoundEvent is not "!stop" and not "!loopmany") return 0;
-                return r.Value;
-            });
-
+            var max_decreasing_event = _composition.Events.Where(r => r.SoundEvent is "!stop" or "!loopmany").MaxBy(r => r.Value);
+            
             var textures = max_decreasing_event?.Value ?? 0;
 
             for (var val = (int)textures - 1; val >= 0; val--)
