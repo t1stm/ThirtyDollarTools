@@ -11,6 +11,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
     public float _relative_volume = .5f;
     
     private readonly AudioContext _context;
+    private readonly List<int> _active_channels = new();
 
     public BassBuffer(AudioContext context, AudioData<float> data, int sample_rate, int max_count = 65535)
     {
@@ -54,31 +55,42 @@ public class BassBuffer : AudibleBuffer, IDisposable
         Bass.SampleSetInfo(SampleHandle, SampleInfo);
     }
 
+    private void HandleBufferOverflow()
+    {
+        lock (_active_channels)
+        {
+            var count = _active_channels.Count;
+            var divide = Math.Max(1, count / 32);
+
+            var taken = _active_channels.Take(divide).ToArray();
+            foreach (var channel in taken)
+            {
+                Bass.ChannelStop(channel);
+                _active_channels.Remove(channel);
+            }
+        }
+    }
+
     public override void Play(Action? callback_when_finished = null, bool auto_remove = true)
     {
-        if (Bass.CPUUsage > 95d)
+        if (Bass.CPUUsage > 75d)
         {
-            Console.WriteLine($"[BASS] CPU usage break point reached: {Bass.CPUUsage}% CPU");
-            return;
+            Console.WriteLine($"[BASS] CPU usage reached: {Bass.CPUUsage:0.##}% CPU. Cutting old sounds.");
+            HandleBufferOverflow();
         }
+        
         var channel = Bass.SampleGetChannel(SampleHandle);
         Bass.ChannelPlay(channel);
-
+        lock (_active_channels) _active_channels.Add(channel);
+        var byte_length = Bass.ChannelGetLength(channel);
+        var seconds = Bass.ChannelBytes2Seconds(channel, byte_length);
+        
         Task.Run(async () =>
         {
-            var running = true;
-            while (running)
-            {
-                await Task.Delay(1);
-
-                var state = Bass.ChannelIsActive(channel);
-                if (state != PlaybackState.Playing)
-                {
-                    running = false;
-                }
-            }
-            if (auto_remove)
-                callback_when_finished?.Invoke();
+            await Task.Delay((int) (seconds * 1000));
+            callback_when_finished?.Invoke();
+            lock (_active_channels) 
+                if (_active_channels.Contains(channel)) _active_channels.Remove(channel);
         });
     }
 
@@ -143,5 +155,10 @@ public class BassBuffer : AudibleBuffer, IDisposable
                 break;
             }
         }
+    }
+
+    ~BassBuffer()
+    {
+        Dispose();
     }
 }
