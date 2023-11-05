@@ -1,36 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
+    <PropertyGroup Label="Project">
         <TargetFramework>net7.0</TargetFramework>
         <OutputType>Library</OutputType>
     </PropertyGroup>
 
-    <PropertyGroup Label="Nuget">
-        <IsPackable>true</IsPackable>
-        <Title>BASS.Redist</Title>
-        <Description>BASS DLLs for different operating systems.</Description>
-        <PackageId>ThirtyDollarTools.BASS.Redist</PackageId>
-        <IncludeBuildOutput>false</IncludeBuildOutput>
-    </PropertyGroup>
-
-    <ItemGroup Condition=" '$(OS)' == 'Windows_NT' And '$(Platform)' != 'x86'">
-        <None Include="runtimes\win-x64\**" CopyToOutputDirectory="Always" />
-    </ItemGroup>
-
-    <ItemGroup Condition=" '$(OS)' == 'Windows_NT' And '$(Platform)' == 'x86' ">
-        <None Include="runtimes\win-x86\**" CopyToOutputDirectory="Always" />
-    </ItemGroup>
-
-    <ItemGroup Condition=" '$(OS)' == 'OSX' ">
-        <None Include="runtimes\osx\**" CopyToOutputDirectory="Always" />
-    </ItemGroup>
-
-    <ItemGroup Condition=" '$(OS)' == 'Unix' And '$(Platform)' != 'x86' ">
-        <None Include="runtimes\linux-x64\**" CopyToOutputDirectory="Always" />
-    </ItemGroup>
-
-    <ItemGroup Condition=" '$(OS)' == 'Unix' And '$(Platform)' == 'x86' ">
-        <None Include="runtimes\linux-x86\**" CopyToOutputDirectory="Always" />
+    <ItemGroup>
+        <Content Include="*.dll" CopyToOutputDirectory="Always"/>
+        <Content Include="*.so" CopyToOutputDirectory="Always"/>
+        <Content Include="*.dylib" CopyToOutputDirectory="Always"/>
     </ItemGroup>
     
     <ItemGroup>

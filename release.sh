@@ -31,6 +31,7 @@ copy_releases() {
 zip_releases() {
   for platform in "${platforms[@]}"; do
     cd "$SCRIPT_DIR/bin/$platform/publish" || exit
+    rm -rf "./runtimes" || exit
     zip -r9 "$SCRIPT_DIR/bin/$platform.zip" "."
     cd - || exit
   done;
