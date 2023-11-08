@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using CommandLine;
 using OpenTK.Windowing.Common.Input;
+using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Scenes;
 using Image = SixLabors.ImageSharp.Image;
@@ -37,12 +38,16 @@ public static class Program
         [Option('s', "scale",
             HelpText = "Changes the camera viewport zoom.")]
         public float? Scale { get; set; }
+        
+        [Option("audio-backend", HelpText = "Changes the audio backend the application uses. Values: \"bass\", \"openal\"")]
+        public string? AudioBackend { get; set; }
     }
     
     public static void Main(string[] args)
     {
         string? composition = null;
-        var no_audio = false;
+        bool no_audio;
+        AudioContext? audio_context = null;
         var width = 1600;
         var height = 840;
         var follow_mode = CameraFollowMode.TDW_Like;
@@ -64,6 +69,14 @@ public static class Program
                     "line" => CameraFollowMode.Current_Line,
                     _ => CameraFollowMode.TDW_Like
                 };
+
+                audio_context = no_audio
+                    ? null
+                    : options.AudioBackend switch
+                    {
+                        "openal" => new OpenALContext(),
+                        _ => new BassAudioContext()
+                    };
             });
 
         if (composition != null && !File.Exists(composition))
@@ -81,9 +94,8 @@ public static class Program
         
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
 
-        var tdw_application = new ThirtyDollarApplication(width, height, composition)
+        var tdw_application = new ThirtyDollarApplication(width, height, composition, audio_context)
         {
-            PlayAudio = !no_audio,
             CameraFollowMode = follow_mode,
             Scale = scale ?? 1f
         };

@@ -140,7 +140,10 @@ public class PlacementCalculator
                     {
                         var multiplier = Math.Min(working_value, 1);
                         position += (ulong)(multiplier * SampleRate / (bpm / 60));
-
+                        
+                        ev.PlayTimes -= 1;
+                        working_value -= 1;
+                        
                         if (AddVisualTimings)
                         {
                             yield return new Placement
@@ -151,9 +154,6 @@ public class PlacementCalculator
                                 Audible = false
                             };
                         }
-                        
-                        ev.PlayTimes -= 1;
-                        working_value -= 1;
                     }
                     break;
                     

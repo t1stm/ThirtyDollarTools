@@ -31,7 +31,7 @@ public class ThirtyDollarApplication : IScene
     private TimeSpan _open_time;
     private int Video_I;
 
-    private readonly AudioContext _context;
+    private readonly AudioContext? _context;
     private readonly Dictionary<string, Dictionary<double, AudibleBuffer>> ProcessedBuffers = new();
     private readonly List<AudibleBuffer> ActiveSamples = new();
     private int Audio_I;
@@ -73,7 +73,6 @@ public class ThirtyDollarApplication : IScene
     private float LastBPM = 300f;
     private readonly Dictionary<string, Texture> ValueTextCache = new();
     
-    public bool PlayAudio { get; init; }
     public SampleHolder? SampleHolder { get; set; }
     public int RenderableSize { get; set; } = 64;
     public int MarginBetweenRenderables { get; set; } = 12;
@@ -90,7 +89,8 @@ public class ThirtyDollarApplication : IScene
     /// <param name="width">The width of the visualizer.</param>
     /// <param name="height">The height of the visualizer.</param>
     /// <param name="composition_location">The location of the composition.</param>
-    public ThirtyDollarApplication(int width, int height, string? composition_location)
+    /// <param name="audio_context">The audio context the application will use.</param>
+    public ThirtyDollarApplication(int width, int height, string? composition_location, AudioContext? audio_context = null)
     {
         Width = width;
         Height = height;
@@ -102,7 +102,13 @@ public class ThirtyDollarApplication : IScene
         _seek_stopwatch.Start();
         _file_modified_stopwatch.Start();
 
-        _context = new BassAudioContext();
+        _context = audio_context;
+        if (_context == null)
+        {
+            Log("No audio context selected.");
+            return;
+        }
+        
         var success = _context.Create();
         if (!success)
         {
@@ -511,6 +517,7 @@ public class ThirtyDollarApplication : IScene
 
     private async Task LoadAudio()
     {
+        if (_context == null) return;
         ProcessedBuffers.Clear();
         
         var pcm_encoder = new PcmEncoder(SampleHolder ?? throw new Exception("Sample holder is null."), new EncoderSettings
@@ -720,6 +727,8 @@ public class ThirtyDollarApplication : IScene
 
     private void AudioHandler()
     {
+        if (_context == null) return;
+        
         var current_open_time = _open_time;
         if (OpenAudioHandler) return;
         OpenAudioHandler = true;
@@ -757,7 +766,7 @@ public class ThirtyDollarApplication : IScene
                 continue;
             }
 
-            if (placement.Audible && PlayAudio)
+            if (placement.Audible)
             {
                 PlayPlacement(placement);
             }
