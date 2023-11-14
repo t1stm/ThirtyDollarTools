@@ -10,6 +10,8 @@ public class ColoredPlane : Renderable
     private static VertexArrayObject<float> Static_Vao = null!;
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
+
+    public float BorderRadius = 0f;
     
     public ColoredPlane(Vector4 color, Vector3 position, Vector2 width_height)
     {
@@ -68,11 +70,8 @@ public class ColoredPlane : Renderable
             Vao.Bind();
             Ebo.Bind();
             Shader.Use();
-
             SetShaderUniforms(camera);
             
-            Shader.SetUniform("u_Color", Color);
-
             GL.DrawElements(PrimitiveType.Triangles, Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
         }
         
@@ -81,6 +80,11 @@ public class ColoredPlane : Renderable
 
     public override void SetShaderUniforms(Camera camera)
     {
+        Shader.SetUniform("u_Color", Color);
+        Shader.SetUniform("u_BorderRadiusPx", BorderRadius);
+        Shader.SetUniform("u_PositionPx", _position.Xy + _translation.Xy);
+        Shader.SetUniform("u_ScalePx", _scale.Xy);
+        
         Shader.SetUniform("u_Model", Model);
         Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
         if (camera is DollarStoreCamera camera_30)
