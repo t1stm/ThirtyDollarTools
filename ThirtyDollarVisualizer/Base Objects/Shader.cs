@@ -7,6 +7,10 @@ namespace ThirtyDollarVisualizer.Objects;
 public class Shader : IDisposable
 {
     private readonly int _handle;
+    /// <summary>
+    /// Controls whether the shader throws errors on missing uniforms.
+    /// </summary>
+    private bool IsPedantic = false;
     private static readonly Dictionary<(string, string), Shader> CachedShaders = new();
 
     public Shader(string vertexPath, string fragmentPath)
@@ -52,6 +56,7 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
+            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
         GL.Uniform1(location, value);
@@ -63,6 +68,7 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
+            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
         GL.Uniform2(location, value);
@@ -74,6 +80,7 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
+            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
         GL.Uniform3(location, value);
@@ -85,6 +92,7 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
+            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
         GL.Uniform4(location, value);
@@ -96,6 +104,7 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
+            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
         GL.UniformMatrix4(location, 1, false, (float*) &value);
@@ -107,6 +116,7 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(_handle, name);
         if (location == -1)
         {
+            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
         GL.Uniform1(location, value);
@@ -118,7 +128,7 @@ public class Shader : IDisposable
         GL.DeleteProgram(_handle);
     }   
 
-    private int LoadShader(ShaderType type, string path)
+    private static int LoadShader(ShaderType type, string path)
     {
         string source;
 
