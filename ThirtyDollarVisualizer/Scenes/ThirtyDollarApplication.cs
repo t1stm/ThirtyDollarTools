@@ -22,10 +22,10 @@ namespace ThirtyDollarVisualizer.Scenes;
 
 public class ThirtyDollarApplication : IScene
 {
-    private static readonly List<Renderable> start_objects = new();
-    private static readonly List<Renderable> static_objects = new();
-    private static readonly List<SoundRenderable> tdw_images = new();
-    public readonly SeekableStopwatch _timing_stopwatch = new();
+    private readonly List<Renderable> start_objects = new();
+    private readonly List<Renderable> static_objects = new();
+    private readonly List<SoundRenderable> tdw_images = new();
+    public readonly SeekableStopwatch TimingStopwatch = new();
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_stopwatch = new();
     private TimeSpan _open_time;
@@ -36,7 +36,7 @@ public class ThirtyDollarApplication : IScene
     private readonly List<AudibleBuffer> ActiveSamples = new();
     private int Audio_I;
 
-    private static DollarStoreCamera Camera = null!;
+    private DollarStoreCamera Camera;
     private int Width;
     private int Height;
     private int PlayfieldWidth;
@@ -617,7 +617,7 @@ public class ThirtyDollarApplication : IScene
             await Task.Delay(3000, Token);
             if (current_open_time != _open_time) return;
             
-            _timing_stopwatch.Restart();
+            TimingStopwatch.Restart();
             AudioHandler();
         }, Token);
     }
@@ -742,7 +742,7 @@ public class ThirtyDollarApplication : IScene
             if (current_open_time != _open_time) break;
             
             var placement = _placement[Audio_I];
-            if (placement.Index > (ulong)((float)_timing_stopwatch.ElapsedMilliseconds * TimingSampleRate / 1000))
+            if (placement.Index > (ulong)((float)TimingStopwatch.ElapsedMilliseconds * TimingSampleRate / 1000))
             {
                 _context.CheckErrors();
                 Thread.Sleep(1);
@@ -782,9 +782,9 @@ public class ThirtyDollarApplication : IScene
         HandleCompositionUpdate();
         //Log($"Timing stopwatch: {_timing_stopwatch.Elapsed} / Placement: {_placement.Length} / Audio: {Audio_I} / Video: {Video_I}");
         
-        if (Audio_I >= _placement.LongLength && _timing_stopwatch.IsRunning)
+        if (Audio_I >= _placement.LongLength && TimingStopwatch.IsRunning)
         {
-            _timing_stopwatch.Stop();
+            TimingStopwatch.Stop();
         }
         
         for (; Video_I < _placement.LongLength; Video_I++)
@@ -797,8 +797,8 @@ public class ThirtyDollarApplication : IScene
 
             if (BackingAudio != null)
             {
-                BackingAudio.UpdatePlayState(_timing_stopwatch.IsRunning);
-                BackingAudio.SyncTime(_timing_stopwatch.Elapsed);
+                BackingAudio.UpdatePlayState(TimingStopwatch.IsRunning);
+                BackingAudio.SyncTime(TimingStopwatch.Elapsed);
             } 
             
             var placement = _placement[Video_I];
@@ -828,7 +828,7 @@ public class ThirtyDollarApplication : IScene
                 }
             }
 
-            if (placement.Index > (ulong)((float)_timing_stopwatch.ElapsedMilliseconds * TimingSampleRate / 1000)) return;
+            if (placement.Index > (ulong)((float)TimingStopwatch.ElapsedMilliseconds * TimingSampleRate / 1000)) return;
             
             if (placement.Event.SoundEvent?.StartsWith('!') ?? false)
             {
@@ -921,10 +921,10 @@ public class ThirtyDollarApplication : IScene
         Log("Change detected in composition. Updating.");
 
         _composition_date_modified = m_date;
-        var was_running = _timing_stopwatch.IsRunning;
+        var was_running = TimingStopwatch.IsRunning;
         
         Manager.RenderBlock.Wait(Token);
-        _timing_stopwatch.Stop();
+        TimingStopwatch.Stop();
         try
         {
             FileDrop(_composition_location, false);
@@ -943,15 +943,15 @@ public class ThirtyDollarApplication : IScene
         var placement = _placement[Math.Clamp(Audio_I - 1, 0, _placement.Length - 1)];
         var placement_index = placement.Index;
             
-        _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+        TimingStopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
         
-        if (was_running) _timing_stopwatch.Start();
+        if (was_running) TimingStopwatch.Start();
         _file_modified_stopwatch.Restart();
     }
 
     public void Close()
     {
-        _timing_stopwatch.Reset();
+        TimingStopwatch.Reset();
     }
 
     public void FileDrop(string? location)
@@ -984,7 +984,7 @@ public class ThirtyDollarApplication : IScene
         if (reset_time)
         {
             Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height), this);
-            _timing_stopwatch.Reset();
+            TimingStopwatch.Reset();
             Video_I = Audio_I = 0;
         }
         
@@ -1011,12 +1011,12 @@ public class ThirtyDollarApplication : IScene
         
         switch (state.IsKeyPressed(Keys.Space))
         {
-            case true when _timing_stopwatch.IsRunning:
-                _timing_stopwatch.Stop();
+            case true when TimingStopwatch.IsRunning:
+                TimingStopwatch.Stop();
                 break;
             
-            case true when !_timing_stopwatch.IsRunning:
-                _timing_stopwatch.Start();
+            case true when !TimingStopwatch.IsRunning:
+                TimingStopwatch.Start();
                 break;
         }
 
@@ -1027,7 +1027,7 @@ public class ThirtyDollarApplication : IScene
             _ => CameraFollowMode
         };
 
-        var elapsed = _timing_stopwatch.ElapsedMilliseconds;
+        var elapsed = TimingStopwatch.ElapsedMilliseconds;
         if (state.IsKeyDown(Keys.Left) && _seek_stopwatch.ElapsedMilliseconds > seek_timeout)
         {
             _seek_stopwatch.Restart();
@@ -1037,7 +1037,7 @@ public class ThirtyDollarApplication : IScene
                 .MinBy(stack => Math.Abs((long) stack.placement.Index * 1000 / TimingSampleRate - change));
             var placement_index = placement?.Index ?? 0;
             
-            _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+            TimingStopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
             Audio_I = Video_I = i;
         }
 
@@ -1050,7 +1050,7 @@ public class ThirtyDollarApplication : IScene
                 .MinBy(stack => Math.Abs((long) stack.placement.Index * 1000 / TimingSampleRate - change));
             var placement_index = placement?.Index ?? 0;
             
-            _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+            TimingStopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
             Audio_I = Video_I = i;
         }
 
@@ -1081,7 +1081,7 @@ public class ThirtyDollarApplication : IScene
             
             var placement_index = placement.Index;
             
-            _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+            TimingStopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
             Audio_I = Video_I = i;
         }
 
@@ -1107,7 +1107,7 @@ public class ThirtyDollarApplication : IScene
             placement ??= _placement[i - 1];
             var placement_index = placement.Index;
             
-            _timing_stopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
+            TimingStopwatch.Seek((long) placement_index * 1000 / TimingSampleRate);
             Audio_I = Video_I = i;
         }
 

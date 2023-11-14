@@ -106,6 +106,6 @@ public class DollarStoreCamera : Camera
     
     public float GetRunningTime()
     {
-        return Manager._timing_stopwatch.ElapsedMilliseconds;
+        return Manager.TimingStopwatch.ElapsedMilliseconds;
     }
 }
