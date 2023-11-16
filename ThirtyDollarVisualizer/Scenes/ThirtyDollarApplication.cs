@@ -22,6 +22,7 @@ namespace ThirtyDollarVisualizer.Scenes;
 
 public class ThirtyDollarApplication : IScene
 {
+    private static Texture? MissingTexture;
     private readonly List<Renderable> start_objects = new();
     private readonly List<Renderable> static_objects = new();
     private readonly List<SoundRenderable> tdw_images = new();
@@ -128,6 +129,7 @@ public class ThirtyDollarApplication : IScene
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public void Init(Manager manager)
     {
+        MissingTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
         _open_time = _open_stopwatch.Elapsed;
         if (!UpdatedRenderableScale)
         {
@@ -359,7 +361,9 @@ public class ThirtyDollarApplication : IScene
 
         if (!File.Exists(image))
         {
-            throw new Exception($"Image asset for event \'{ev.SoundEvent}\' not found.");
+            if (MissingTexture == null) throw new Exception("Texture for missing elements isn't loaded.");
+            Log($"Asset: \'{image}\' not found.");
+            texture_cache.TryAdd(image, MissingTexture);
         }
 
         texture_cache.TryGetValue(image, out var texture);
@@ -415,6 +419,7 @@ public class ThirtyDollarApplication : IScene
         {
             ValueScale.Add => "+" + value,
             ValueScale.Times => "×" + value,
+            ValueScale.Divide => "/" + value,
             _ => value
         };
 
@@ -476,32 +481,24 @@ public class ThirtyDollarApplication : IScene
             var volume = ev.Volume ?? throw new Exception("Invalid volume check.");
             var volume_text = volume.ToString("0.##") + "%";
 
-            Texture? volume_texture = null;
-
-            if (ev.Value != 0)
+            volume_text_cache.TryGetValue(volume_text, out var volume_texture);
+            if (volume_texture == null)
             {
-                volume_text_cache.TryGetValue(volume_text, out volume_texture);
-                if (volume_texture == null)
-                {
-                    volume_texture = new Texture(volume_font, volume_text);
-                    volume_text_cache.Add(volume_text, volume_texture);
-                }
+                volume_texture = new Texture(volume_font, volume_text);
+                volume_text_cache.Add(volume_text, volume_texture);
             }
 
-            if (volume_texture != null)
+            var text_position = new Vector3
             {
-                var text_position = new Vector3
-                {
-                    X = box_position.X + RenderableSize - volume_texture.Width,
-                    Y = box_position.Y,
-                    Z = box_position.Z
-                };
-                text_position.Z -= 0.5f;
+                X = box_position.X + RenderableSize - volume_texture.Width,
+                Y = box_position.Y,
+                Z = box_position.Z
+            };
+            text_position.Z -= 0.5f;
 
-                var text = new TexturedPlane(volume_texture, text_position,
-                    (volume_texture.Width, volume_texture.Height));
-                plane.Children.Add(text);
-            }
+            var text = new TexturedPlane(volume_texture, text_position,
+                (volume_texture.Width, volume_texture.Height));
+            plane.Children.Add(text);
         }
 
         #endregion

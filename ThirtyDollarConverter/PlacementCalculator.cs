@@ -104,6 +104,9 @@ public class PlacementCalculator
                 case "!speed":
                     switch (ev.ValueScale)
                     {
+                        case ValueScale.Divide:
+                            bpm /= ev.Value;
+                            break;
                         case ValueScale.Times:
                             bpm *= ev.Value;
                             break;
@@ -121,6 +124,9 @@ public class PlacementCalculator
                 case "!volume":
                     switch (ev.ValueScale)
                     {
+                        case ValueScale.Divide:
+                            volume /= ev.Value;
+                            break;
                         case ValueScale.Times:
                             volume *= ev.Value;
                             break;
@@ -258,6 +264,9 @@ public class PlacementCalculator
                 case "!transpose":
                     switch (ev.ValueScale)
                     {
+                        case ValueScale.Divide:
+                            transpose /= ev.Value;
+                            break;
                         case ValueScale.Times:
                             transpose *= ev.Value;
                             break;

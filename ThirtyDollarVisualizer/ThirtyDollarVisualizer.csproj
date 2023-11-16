@@ -30,6 +30,8 @@
         <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf" />
         <None Remove="Assets\Fonts\Lato-Bold.ttf" />
         <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf" />
+        <None Remove="Assets\Textures\action_missing.png" />
+        <EmbeddedResource Include="Assets\Textures\action_missing.png" />
     </ItemGroup>
 
     <ItemGroup>

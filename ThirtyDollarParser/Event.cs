@@ -67,6 +67,7 @@ public class Event
 
 public enum ValueScale
 {
+    Divide,
     Times,
     Add,
     None

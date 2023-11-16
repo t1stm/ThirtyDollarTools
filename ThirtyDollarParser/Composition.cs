@@ -98,7 +98,7 @@ public class Composition
                 var possibly_value = temporary_split.Split('%');
                 scale = possibly_value[0] switch
                 {
-                    "x" => ValueScale.Times, "+" => ValueScale.Add, _ => ValueScale.None
+                    "x" => ValueScale.Times, "+" => ValueScale.Add, "/" => ValueScale.Divide, _ => ValueScale.None
                 };
                 
                 if (possibly_value.Length > 1)
