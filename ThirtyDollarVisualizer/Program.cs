@@ -16,7 +16,7 @@ public static class Program
 {
     public class Options
     {
-        [Option('i', "composition", HelpText = "The composition's location.")]
+        [Option('i', "sequence", HelpText = "The sequence's location.")]
         public string? Input { get; set; }
 
         [Option("no-audio", HelpText = "Disable audio playback.")]
@@ -45,7 +45,7 @@ public static class Program
     
     public static void Main(string[] args)
     {
-        string? composition = null;
+        string? sequence = null;
         bool no_audio;
         AudioContext? audio_context = null;
         var width = 1600;
@@ -57,7 +57,7 @@ public static class Program
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
             {
-                composition = options.Input;
+                sequence = options.Input;
                 no_audio = options.NoAudio;
                 width = options.Width ?? width;
                 height = options.Height ?? height;
@@ -79,10 +79,10 @@ public static class Program
                     };
             });
 
-        if (composition != null && !File.Exists(composition))
+        if (sequence != null && !File.Exists(sequence))
         {
-            Console.WriteLine("Unable to find specified composition. Running a specified composition.");
-            composition = null;
+            Console.WriteLine("Unable to find specified sequence. Running without a specified sequence.");
+            sequence = null;
         }
 
         var icon_stream = Image.Load<Rgba32>(Assembly.GetExecutingAssembly()
@@ -94,7 +94,7 @@ public static class Program
         
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
 
-        var tdw_application = new ThirtyDollarApplication(width, height, composition, audio_context)
+        var tdw_application = new ThirtyDollarApplication(width, height, sequence, audio_context)
         {
             CameraFollowMode = follow_mode,
             Scale = scale ?? 1f
