@@ -33,12 +33,12 @@
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
     <StackPanel Margin="20">
-        <TextBlock Margin="0,5">Composition Location</TextBlock>
+        <TextBlock Margin="0,5">Sequence Location</TextBlock>
         <StackPanel>
-            <TextBox Watermark="Choose composition location..." 
+            <TextBox Watermark="Choose sequence location..." 
                      Text="{Binding SequenceFileLocation}"/>
             <Button Content="Select" Margin="0,10" HorizontalAlignment="Right"
-                    Command="{Binding Select_CompositionFileLocation}"/>
+                    Command="{Binding Select_SequenceFileLocation}"/>
         </StackPanel>
         
         <TextBlock Margin="0,5">Export Location</TextBlock>

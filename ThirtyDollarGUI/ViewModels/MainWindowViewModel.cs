@@ -21,7 +21,7 @@ public class MainWindowViewModel : ViewModelBase
     private int progress_bar_value;
 
     private readonly SampleHolder sample_holder;
-    private Composition? composition;
+    private Sequence? sequence;
     private PcmEncoder? encoder;
     private EncoderSettings encoder_settings = new()
     {
@@ -48,7 +48,7 @@ public class MainWindowViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref sequence_file_location, value);
             IsSequenceLocationGood = this.RaiseAndSetIfChanged(ref IsSequenceLocationGood,
                 !string.IsNullOrEmpty(value) && File.Exists(value));
-            new Task(ReadComposition).Start();
+            new Task(ReadSequence).Start();
         }
     }
 
@@ -74,7 +74,7 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref log, value);
     }
 
-    public async void Select_CompositionFileLocation()
+    public async void Select_SequenceFileLocation()
     {
         var file_picker_types = new[] { 
             new FilePickerFileType("Thirty Dollar Website Sequence")
@@ -108,11 +108,8 @@ public class MainWindowViewModel : ViewModelBase
     private async void CheckSampleAvailability()
     {
         await sample_holder.LoadSampleList();
-        if (!sample_holder.DownloadedAllFiles())
-        {
-            DownloadSamples();
-            return;
-        }
+        sample_holder.PrepareDirectory();
+        DownloadSamples();
         
         sample_holder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");
@@ -138,7 +135,7 @@ public class MainWindowViewModel : ViewModelBase
             Log = Log[^(Log.Length - 10000)..];
     }
 
-    private async void ReadComposition()
+    private async void ReadSequence()
     {
         try
         {
@@ -146,14 +143,14 @@ public class MainWindowViewModel : ViewModelBase
             if (!File.Exists(sequence_file_location)) return;
             
             var read = await File.ReadAllTextAsync(sequence_file_location);
-            composition = Composition.FromString(read);
+            sequence = Sequence.FromString(read);
             
-            CreateLog($"Preloaded composition located in: \'{sequence_file_location}\'");
+            CreateLog($"Preloaded sequence located in: \'{sequence_file_location}\'");
         }
         catch (Exception e)
         {
             this.RaiseAndSetIfChanged(ref IsSequenceLocationGood, false);
-            CreateLog($"Error when reading composition: \'{e}\'");
+            CreateLog($"Error when reading sequence: \'{e}\'");
         }
     }
 
@@ -167,7 +164,7 @@ public class MainWindowViewModel : ViewModelBase
 
     public async void StartEncoder()
     {
-        if (composition == null)
+        if (sequence == null)
         {
             CreateLog("No export location selected.");
             return;
@@ -187,17 +184,12 @@ public class MainWindowViewModel : ViewModelBase
 
         encode_running = true;
 
-        void index_report(ulong current, ulong max)
-        {
-            UpdateProgressBar(current, max);
-        }
-
         CreateLog("Started encoding.");
-        encoder = new PcmEncoder(sample_holder, encoder_settings, CreateLog, index_report);
+        encoder = new PcmEncoder(sample_holder, encoder_settings, CreateLog, UpdateProgressBar);
 
         await Task.Run(() =>
         {
-            EncoderStart(encoder, composition);
+            EncoderStart(encoder, sequence);
         });
     }
 
@@ -211,9 +203,9 @@ public class MainWindowViewModel : ViewModelBase
         export_settings.Show();
     }
 
-    private void EncoderStart(PcmEncoder pcm_encoder, Composition local_composition)
+    private void EncoderStart(PcmEncoder pcm_encoder, Sequence localSequence)
     {
-        var output = pcm_encoder.SampleComposition(local_composition);
+        var output = pcm_encoder.GetSequenceAudio(localSequence);
         CreateLog("Finished encoding.");
 
         pcm_encoder.WriteAsWavFile(export_file_location ?? throw new Exception("Export path is null."), output);
