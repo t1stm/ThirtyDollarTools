@@ -48,6 +48,11 @@ public abstract class Renderable
 
     private bool IsChild;
 
+    /// <summary>
+    /// Updates the current renderable's model for the MVP rendering method.
+    /// </summary>
+    /// <param name="is_child">Whether the current renderable is a child of an other renderable.</param>
+    /// <param name="animations">The animations the current renderable will use.</param>
     public virtual void UpdateModel(bool is_child, params Animation[] animations)
     {
         IsChild = is_child;
@@ -89,6 +94,13 @@ public abstract class Renderable
         SetModel(model);
     }
 
+    /// <summary>
+    /// Computes a given animation.
+    /// </summary>
+    /// <param name="animation">The given animation.</param>
+    /// <param name="final_translation">Reference to the final translation.</param>
+    /// <param name="final_scale">Reference to the final scale.</param>
+    /// <param name="final_rotation">Reference to the final rotation.</param>
     private void ComputeAnimation(Animation animation, ref Vector3 final_translation, ref Vector3 final_scale,
         ref Vector3 final_rotation)
     {
@@ -139,6 +151,10 @@ public abstract class Renderable
             Color = color_change;
     }
 
+    /// <summary>
+    /// Renders a given renderable using the projection matrix from the camera.
+    /// </summary>
+    /// <param name="camera">The camera you want to use.</param>
     public virtual void Render(Camera camera)
     {
         foreach (var child in Children)
@@ -147,8 +163,18 @@ public abstract class Renderable
         }
     }
 
-    public abstract void SetShaderUniforms(Camera camera);
+    /// <summary>
+    /// Method that sets the shader's uniforms if overriden.
+    /// </summary>
+    /// <param name="camera">The camera that contains main projection matrix.</param>
+    public virtual void SetShaderUniforms(Camera camera)
+    {
+        // Implement if needed.
+    }
 
+    /// <summary>
+    /// A method that disposes the objects.
+    /// </summary>
     public virtual void Dispose()
     {
         Ebo?.Dispose();
@@ -156,58 +182,117 @@ public abstract class Renderable
         Vao?.Dispose();
     }
     
+    /// <summary>
+    /// Changes the Renderable's shader to the given one.
+    /// </summary>
+    /// <param name="shader">The given shader.</param>
     public void ChangeShader(Shader shader) => Shader = shader;
     
+    /// <summary>
+    /// Gets the renderable's color.
+    /// </summary>
+    /// <returns></returns>
     public Vector4 GetColor()
     {
         lock (LockObject)
             return Color;
     }
 
+    /// <summary>
+    /// Gets the renderable's position.
+    /// </summary>
+    /// <returns>A Vector3 representing the position.</returns>
     public Vector3 GetPosition()
     {
         lock (LockObject)
             return _position;
     }
     
+    /// <summary>
+    /// Gets the renderable's translation.
+    /// </summary>
+    /// <returns>A Vector3 representing the translation.</returns>
     public Vector3 GetTranslation()
     {
         lock (LockObject)
             return _translation;
     }
 
+    /// <summary>
+    /// Gets the renderable's scale.
+    /// </summary>
+    /// <returns>A Vector3 representing the scale.</returns>
     public Vector3 GetScale()
     {
         lock (LockObject)
             return _scale;
     }
 
+    /// <summary>
+    /// Gets the renderable's rotation.
+    /// </summary>
+    /// <returns>A Vector3 representing the rotation.</returns>
     public Vector3 GetRotation()
     {
         lock (LockObject)
             return _rotation;
     }
     
+    /// <summary>
+    /// Sets the renderable's model.
+    /// <param name="model">The model.</param>
+    /// </summary>
     public void SetModel(Matrix4 model)
     {
        lock (LockObject)
             Model = model;
     }
 
+    /// <summary>
+    /// Sets the renderable's model.
+    /// <param name="color">The color.</param>
+    /// </summary>
     public void SetColor(Vector4 color)
     {
         lock (LockObject)
             Color = color;
     }
 
-    public void SetPosition(Vector3 position)
+    /// <summary>
+    /// Sets the renderable's position.
+    /// </summary>
+    /// <param name="position">The position.</param>
+    /// <param name="align">The align type.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Invalid PositionAlign given.</exception>
+    public void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
     {
         lock (LockObject)
-            _position = position;
+        {
+            _position = align switch
+            {
+                PositionAlign.TopLeft => position,
+                PositionAlign.TopCenter => position - _scale.X / 2f * Vector3.UnitX,
+                PositionAlign.TopRight => position - _scale.X * Vector3.UnitX,
+                
+                PositionAlign.MiddleLeft => position + _scale.Y / 2f * Vector3.UnitY,
+                PositionAlign.Center => position + _scale.Y / 2f * Vector3.UnitY - _scale.X / 2f * Vector3.UnitX,
+                PositionAlign.MiddleRight => position + _scale.Y / 2f * Vector3.UnitY - _scale.X * Vector3.UnitX,
+                
+                PositionAlign.BottomLeft => position + _scale.Y * Vector3.UnitY,
+                PositionAlign.BottomCenter => position + _scale.Y * Vector3.UnitY - _scale.X / 2f * Vector3.UnitX,
+                PositionAlign.BottomRight => position + _scale.Y * Vector3.UnitY - _scale.X * Vector3.UnitX,
+                _ => throw new ArgumentOutOfRangeException(nameof(align), align,
+                    "Invalid Position Align in set position method.")
+            };
+        }
         
         UpdateModel(IsChild);
     }
     
+    /// <summary>
+    /// Sets the renderable's translation.
+    /// </summary>
+    /// <param name="translation">The translation.</param>
     public void SetTranslation(Vector3 translation)
     {
         lock (LockObject)
@@ -221,6 +306,10 @@ public abstract class Renderable
         }
     }
     
+    /// <summary>
+    /// Sets the renderable's scale.
+    /// </summary>
+    /// <param name="scale">The scale.</param>
     public void SetScale(Vector3 scale)
     {
         lock (LockObject)
@@ -229,6 +318,10 @@ public abstract class Renderable
         UpdateModel(IsChild);
     }
     
+    /// <summary>
+    /// Sets the renderable's rotation.
+    /// </summary>
+    /// <param name="value">The rotation.</param>
     public void SetRotation(Vector3 value)
     {
         lock (LockObject)
@@ -236,4 +329,91 @@ public abstract class Renderable
         
         UpdateModel(IsChild);
     }
+}
+
+public static class RenderableExtensions
+{
+    /// <summary>
+    /// Gives a Renderable object with its position set to the value you give.
+    /// </summary>
+    /// <param name="renderable">The source renderable.</param>
+    /// <param name="position">The new position.</param>
+    /// <param name="align">The position's align.</param>
+    /// <returns>The source renderable with the new position set.</returns>
+    public static Renderable WithPosition(this Renderable renderable, Vector3 position, PositionAlign align = PositionAlign.TopLeft)
+    {
+        renderable.SetPosition(position, align);
+        return renderable;
+    }
+    
+    /// <summary>
+    /// Gives a Renderable object with its translation set to the value you give.
+    /// </summary>
+    /// <param name="renderable">The source renderable.</param>
+    /// <param name="translation">The new translation.</param>
+    /// <returns>The source renderable with the new translation set.</returns>
+    public static Renderable WithTranslation(this Renderable renderable, Vector3 translation)
+    {
+        renderable.SetTranslation(translation);
+        return renderable;
+    }
+    
+    /// <summary>
+    /// Gives a Renderable object with its rotation set to the value you give.
+    /// </summary>
+    /// <param name="renderable">The source renderable.</param>
+    /// <param name="rotation">The new rotation.</param>
+    /// <returns>The source renderable with the new rotation set.</returns>
+    public static Renderable WithRotation(this Renderable renderable, Vector3 rotation)
+    {
+        renderable.SetRotation(rotation);
+        return renderable;
+    }
+    
+    /// <summary>
+    /// Gives a Renderable object with its scale set to the value you give.
+    /// </summary>
+    /// <param name="renderable">The source renderable.</param>
+    /// <param name="scale">The new scale.</param>
+    /// <returns>The source renderable with the new scale set.</returns>
+    public static Renderable WithScale(this Renderable renderable, Vector3 scale)
+    {
+        renderable.SetScale(scale);
+        return renderable;
+    }
+    
+    /// <summary>
+    /// Gives a Renderable object with its color set to the value you give.
+    /// </summary>
+    /// <param name="renderable">The source renderable.</param>
+    /// <param name="color">The new color.</param>
+    /// <returns>The source renderable with the new color set.</returns>
+    public static Renderable WithColor(this Renderable renderable, Vector4 color)
+    {
+        renderable.SetColor(color);
+        return renderable;
+    }
+}
+
+/// <summary>
+/// Enum that sets how a position is interpreted.
+/// </summary>
+public enum PositionAlign : byte
+{
+    // These values follow bitwise rules.
+    // Let's say that we have a byte 0000_0000
+    // We only use the first six bits for the location.
+    // Reading the value from right to left, the first three bits are for the X-axis,
+    // and the second three for the Y-axis.
+    
+    // Example: TopRight: 001_001, TopCenter 001_010, Center 010_010, BottomLeft 100_100
+    TopLeft = 8 ^ 4,
+    TopCenter = 8 ^ 2,
+    TopRight = 8 ^ 1,
+    MiddleLeft = 16 ^ 4,
+    Center = 16 ^ 2,
+    MiddleRight = 16 ^ 1,
+    BottomLeft = 32 ^ 4,
+    BottomCenter = 32 ^ 2,
+    BottomRight = 32 ^ 1
 }
