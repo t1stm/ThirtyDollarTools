@@ -27,7 +27,7 @@ internal static class Program
 
         Directory.CreateDirectory("./Export");
 
-        var output = new List<CompositionFile>();
+        var output = new List<SequenceFile>();
         if (args.Length > 0)
         {
             output.AddRange(await ReadFileList(args));
@@ -41,7 +41,7 @@ internal static class Program
         foreach (var file in output)
         {
             if (file.Location.Contains("LICENSE")) continue;
-            var composition = Composition.FromString(file.Data);
+            var sequence = Sequence.FromString(file.Data);
 
             var encoder = new PcmEncoder(holder, new EncoderSettings
             {
@@ -55,7 +55,7 @@ internal static class Program
                 Console.Write(GenerateProgressbar(current, (long) total, statusbar_length));
             });
 
-            var audioData = encoder.SampleComposition(composition); // Shame on me...
+            var audioData = encoder.GetSequenceAudio(sequence); // Shame on me...
             encoder.WriteAsWavFile($"./Export/{file.Location.Split('/').Last()}.wav", audioData);
         }
 
@@ -68,9 +68,9 @@ internal static class Program
         do { Console.Write("\b \b"); } while (Console.CursorLeft > 0);
     }
     
-    private static async Task<List<CompositionFile>> ReadFileList(IEnumerable<string> array)
+    private static async Task<List<SequenceFile>> ReadFileList(IEnumerable<string> array)
     {
-        var output = new List<CompositionFile>();
+        var output = new List<SequenceFile>();
         foreach (var location in array)
             try
             {
@@ -81,7 +81,7 @@ internal static class Program
                 }
 
                 var data = await File.ReadAllTextAsync(location);
-                output.Add(new CompositionFile
+                output.Add(new SequenceFile
                 {
                     Location = location,
                     Data = data
@@ -111,7 +111,7 @@ internal static class Program
         return prg.ToString();
     }
 
-    private struct CompositionFile
+    private struct SequenceFile
     {
         public string Location;
         public string Data;
