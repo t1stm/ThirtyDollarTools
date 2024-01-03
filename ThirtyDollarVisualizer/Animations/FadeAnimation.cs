@@ -5,7 +5,7 @@ namespace ThirtyDollarVisualizer.Animations;
 
 public class FadeAnimation : Animation
 {
-    private static readonly Vector4 FadedColor = new(0, 0, 0, 0.4f);
+    private static readonly Vector4 FadedColor = new(0, 0, 0, 0.3f);
     
     public FadeAnimation(Action action) : this()
     {
