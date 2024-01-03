@@ -46,7 +46,7 @@ public class Sound
     public string? Source { get; init; }
 
     /// <summary>
-    /// How the sound is interpreted by the composition and the sound server.
+    /// How the sound is interpreted by the sequence and the sound server.
     /// </summary>
     public string? Filename => Emoji ?? Id;
 

@@ -1,41 +1,64 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace ThirtyDollarParser;
 
-public class Composition
+public class Sequence
 {
     public Event[] Events { get; set; } = Array.Empty<Event>();
+    public readonly Dictionary<string, Event[]> Definitions = new();
+    
     private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
 
-    public Composition Copy()
+    public Sequence Copy()
     {
-        return new Composition
+        return new Sequence
         {
             Events = Events.Select(r => r.Copy()).ToArray()
         };
     }
 
     /// <summary>
-    /// Parses a composition stored in a string.
+    /// Parses a sequence stored in a string.
     /// </summary>
-    /// <param name="data">The string containing the composition.</param>
-    /// <returns>The parsed composition.</returns>
-    public static Composition FromString(string data)
+    /// <param name="data">The string containing the sequence.</param>
+    /// <returns>The parsed sequence.</returns>
+    public static Sequence FromString(string data)
     {
-        var comp = new Composition();
+        var comp = new Sequence();
         var split = data.Split('|');
         var list = new List<Event>();
-        foreach (var originalText in split)
+
+        using var enumerator = split.AsEnumerable().GetEnumerator();
+        while (enumerator.MoveNext())
         {
-            var text = originalText;
+            var text = enumerator.Current;
+            
             text = text.Replace("\n", "").Trim();
             if (string.IsNullOrEmpty(text)) continue;
+            if (text.StartsWith('#'))
+            {
+                var special_match = Regex.Match(text, @"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)");
+                if (!special_match.Success) continue;
+                
+                if (special_match.Groups["name"].Value == "define")
+                {
+                    if (!enumerator.MoveNext()) continue;
+                    
+                    var defines = ParseDefines(in enumerator);
+                    var define_name = special_match.Groups["value"].Value;
+    
+                    comp.Definitions.Add(define_name, defines);
+                    continue;
+                }
+            }
 
             if (text[1..].Any(ch => ch == '!'))
                 // Text contains more than one parameter on event without divider. Adding the first event only.
                 text = text[..text[1..].IndexOf('!')];
-
+            
             var new_event = ParseEvent(text);
+            
             if (new_event.SoundEvent?.StartsWith('!') ?? false)
             {
                 list.Add(new_event);
@@ -48,12 +71,65 @@ public class Composition
             new_event.PlayTimes = 1;
             for (var i = 0; i < repeats; i++)
             {
+                if (ProcessDefines(comp, new_event, list)) continue;
                 list.Add(new_event.Copy());
             }
         }
 
         comp.Events = list.ToArray();
         return comp;
+    }
+    
+    private static Event[] ParseDefines(in IEnumerator<string> enumerator)
+    {
+        var events = new List<Event>();
+
+        while (true)
+        {
+            var text = enumerator.Current;
+            if (text.Trim() == "#enddefine") break;
+            
+            events.Add(ParseEvent(text));
+            if (!enumerator.MoveNext()) break;
+        }
+        
+        return events.ToArray();
+    }
+
+    private static bool ProcessDefines(Sequence comp, Event new_event, List<Event> list)
+    {
+        if (!comp.Definitions.TryGetValue(new_event.SoundEvent ?? "", out var events)) return false;
+        var copy = events.Select(r => r.Copy()).ToArray();
+
+        if (new_event is { Value: 0, ValueScale: ValueScale.None or ValueScale.Add })
+        {
+            goto return_path;
+        }
+
+        var val = new_event.Value;
+        foreach (var ev in copy)
+        {
+            if (ev.SoundEvent is "!combine") continue;
+            switch (new_event.ValueScale)
+            {
+                case ValueScale.None:
+                case ValueScale.Add:
+                    ev.Value += val;
+                    break;
+
+                case ValueScale.Divide:
+                    ev.Value /= val;
+                    break;
+
+                case ValueScale.Times:
+                    ev.Value *= val;
+                    break;
+            }
+        }
+
+        return_path:
+        list.AddRange(copy);
+        return true;
     }
 
     /// <summary>
