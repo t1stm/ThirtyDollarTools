@@ -38,5 +38,15 @@ public interface IScene
     /// <param name="location">The location of the dropped file.</param>
     public void FileDrop(string location);
 
-    public void Input(KeyboardState state);
+    /// <summary>
+    /// Event triggered when a keyboard button is pressed.
+    /// </summary>
+    /// <param name="state">A copy of the KeyboardState.</param>
+    public void Keyboard(KeyboardState state);
+
+    /// <summary>
+    /// Event triggered when a pointing device is interacted with.
+    /// </summary>
+    /// <param name="state">A copy of the MouseState.</param>
+    public void Mouse(MouseState state);
 }
