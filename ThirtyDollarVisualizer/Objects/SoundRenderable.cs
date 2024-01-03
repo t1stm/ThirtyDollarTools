@@ -91,14 +91,13 @@ public class SoundRenderable : TexturedPlane
             var new_scale = (texture.Width, texture.Height, 0);
             ValueRenderable.SetScale(new_scale);
 
-            var new_position_x = this_position.X + this_scale.X / 2f - new_scale.Width / 2f;
+            var new_position_x = this_position.X + this_scale.X / 2f;
             var new_position = new Vector3(ValueRenderable.GetPosition())
             {
                 X = new_position_x
             };
             
-            ValueRenderable.SetPosition(new_position);
-            ValueRenderable.SetTranslation(ValueRenderable.GetTranslation() * (Vector3.UnitY + Vector3.UnitZ));
+            ValueRenderable.SetPosition(new_position, PositionAlign.TopCenter);
         }
         
         ValueRenderable?.SetTexture(texture);
