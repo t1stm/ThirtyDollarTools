@@ -2,19 +2,12 @@ using ThirtyDollarEncoder.PCM;
 
 namespace ThirtyDollarVisualizer.Audio;
 
-public class BackingAudio
+public class BackingAudio(AudioContext context, AudioData<float> data, int sample_rate)
 {
-    private readonly int _sample_rate;
-    private readonly int _channels;
-    private AudioContext _context;
-    private AudibleBuffer _buffer;
-    public BackingAudio(AudioContext context, AudioData<float> data, int sample_rate)
-    {
-        _sample_rate = sample_rate;
-        _channels = (int) data.ChannelCount;
-        _context = context;
-        _buffer = context.GetBufferObject(data, sample_rate);
-    }
+    private readonly int _sample_rate = sample_rate;
+    private readonly int _channels = (int) data.ChannelCount;
+    private AudioContext _context = context;
+    private readonly AudibleBuffer _buffer = context.GetBufferObject(data, sample_rate);
 
     public long GetCurrentTime()
     {
