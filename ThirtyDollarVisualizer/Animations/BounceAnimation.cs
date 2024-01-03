@@ -33,8 +33,22 @@ public class BounceAnimation : Animation
             CallbackOnFinish?.Invoke();
             normalized = 1;
         }
+
+        float factor;
+
+        // Animation: % max, ease out on start, ease in after %
+        const float max_percent = 0.4f;
+        if (normalized < max_percent)
+        {
+            var temp_val = normalized / max_percent / 2f;
+            factor = (float) Math.Sin(Math.PI * temp_val);
+        }
+        else
+        {
+            var temp_val = 0.5f + (normalized - max_percent) / (1f - max_percent) * 0.5f;
+            factor = 1f - (float) Math.Cos(Math.PI * (1f - temp_val));
+        }
         
-        var factor = (float)Math.Sin(Math.PI * normalized);
         transformation.Y = -factor * Final_Y;
         
         return transformation;
