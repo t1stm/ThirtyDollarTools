@@ -23,7 +23,7 @@ public class Event
     public int PlayTimes { get; set; } = 1;
     
     /// <summary>
-    /// The volume of the current sample. Null when the sample is following the default composition volume.
+    /// The volume of the current sample. Null when the sample is following the default sequence volume.
     /// </summary>
     public double? Volume { get; set; }
     
