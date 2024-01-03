@@ -12,10 +12,10 @@ public class EncoderBenchmark
     private PcmEncoder _encoder = null!;
     private SampleHolder _holder = null!;
 
-    [Params("ThirtyDollarBenchmarks.Compositions.particle-accelerator.🗿",
-        "ThirtyDollarBenchmarks.Compositions.sounds.🗿")]
-    public string _composition_location;
-    private Composition _composition;
+    [Params("ThirtyDollarBenchmarks.Sequences.particle-accelerator.🗿",
+        "ThirtyDollarBenchmarks.Sequences.sounds.🗿")]
+    public string _sequence_location;
+    private Sequence _sequence;
 
     private static Stream GetResource(string location)
     {
@@ -52,35 +52,35 @@ public class EncoderBenchmark
         
         Task.Run(async () =>
         {
-            _holder.DownloadedAllFiles();
+            _holder.PrepareDirectory();
             await _holder.LoadSampleList();
             await _holder.DownloadSamples();
         }).Wait();
         
         _holder.LoadSamplesIntoMemory();
-        var stream = GetResource(_composition_location);
+        var stream = GetResource(_sequence_location);
         var reader = new StreamReader(stream);
 
-        var composition_text= reader.ReadToEnd();
-        _composition = Composition.FromString(composition_text);
+        var sequence_text= reader.ReadToEnd();
+        _sequence = Sequence.FromString(sequence_text);
     }
     
     [Benchmark]
     public void Standard_PCM_Encoder_OneThread()
     {
-        _encoder.SampleComposition(_composition, 1);
+        _encoder.GetSequenceAudio(_sequence, 1);
     }
 
     [Benchmark]
     public void Standard_PCM_Encoder_NoSave()
     {
-        _encoder.SampleComposition(_composition);
+        _encoder.GetSequenceAudio(_sequence);
     }
     
     [Benchmark]
     public void Standard_PCM_Encoder_Save()
     {
-        var sampled = _encoder.SampleComposition(_composition);
+        var sampled = _encoder.GetSequenceAudio(_sequence);
         var tmp = Path.GetTempFileName();
         _encoder.WriteAsWavFile(tmp, sampled);
         
