@@ -7,6 +7,8 @@ public static class Fonts
 {
     private static FontCollection? Collection;
     private static FontFamily? CurrentFamily;
+    private static CharacterCache? CharacterCache;
+    
     public static void Initialize()
     {
         Collection = new FontCollection();
@@ -19,9 +21,10 @@ public static class Fonts
         if (!Collection.TryGet(font_name, out var family)) throw new Exception($"Unable to find font: {font_name}"); 
         
         CurrentFamily = family;
+        CharacterCache = new CharacterCache(family);
     }
 
-    private static void AddFont(IFontCollection collection, string location)
+    private static void AddFont(FontCollection collection, string location)
     {
         using var stream = Assembly.GetExecutingAssembly()
             .GetManifestResourceStream(location);
@@ -34,5 +37,11 @@ public static class Fonts
     {
         if (CurrentFamily == null) Initialize();
         return (FontFamily) CurrentFamily!;
+    }
+
+    public static CharacterCache GetCharacterCache()
+    {
+        if (CurrentFamily == null) Initialize();
+        return CharacterCache!;
     }
 }
