@@ -10,24 +10,21 @@ using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
 
 namespace ThirtyDollarVisualizer;
 
-public class Manager : GameWindow
+public class Manager(int width, int height, string title, int? fps = null, WindowIcon? icon = null)
+    : GameWindow(new GameWindowSettings
+    {
+        UpdateFrequency = fps ?? 0
+    },
+    new NativeWindowSettings
+    {
+        Size = (width, height), 
+        Title = title, 
+        APIVersion = new Version(4,6), 
+        Icon = icon
+    })
 {
     public readonly List<IScene> Scenes = new();
     public readonly SemaphoreSlim RenderBlock = new(1);
-
-    public Manager(int width, int height, string title, int? fps = null, WindowIcon? icon = null) : base(new GameWindowSettings
-        {
-            UpdateFrequency = fps ?? 0
-        },
-        new NativeWindowSettings
-        {
-            Size = (width, height), 
-            Title = title, 
-            APIVersion = new Version(4,6), 
-            Icon = icon
-        })
-    {
-    }
 
     public static void CheckErrors()
     {
@@ -90,11 +87,15 @@ public class Manager : GameWindow
             scene.Update();
         }
 
-        if (!KeyboardState.IsAnyKeyDown) return;
+        if (KeyboardState.IsAnyKeyDown) 
+            foreach (var scene in Scenes)
+            {
+                scene.Keyboard(KeyboardState);
+            }
         
         foreach (var scene in Scenes)
         {
-            scene.Input(KeyboardState);
+            scene.Mouse(MouseState);
         }
         
         if (!KeyboardState.IsKeyDown(Keys.Escape)) return;
