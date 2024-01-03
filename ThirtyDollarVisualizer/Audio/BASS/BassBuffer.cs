@@ -79,6 +79,8 @@ public class BassBuffer : AudibleBuffer, IDisposable
             HandleBufferOverflow();
         }
         
+        if (_volume < 0.01f) return;
+        
         var channel = Bass.SampleGetChannel(SampleHandle);
         Bass.ChannelPlay(channel);
         lock (_active_channels) _active_channels.Add(channel);
@@ -89,8 +91,8 @@ public class BassBuffer : AudibleBuffer, IDisposable
         {
             await Task.Delay((int) (seconds * 1000));
             callback_when_finished?.Invoke();
-            lock (_active_channels) 
-                if (_active_channels.Contains(channel)) _active_channels.Remove(channel);
+            lock (_active_channels)
+               _active_channels.Remove(channel);
         });
     }
 
