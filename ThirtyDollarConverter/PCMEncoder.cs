@@ -24,7 +24,7 @@ public class PcmEncoder
     private PlacementCalculator PlacementCalculator { get; }
     
     /// <summary>
-    /// Creates a TDW composition encoder.
+    /// Creates a TDW sequence encoder.
     /// </summary>
     /// <param name="samples">The sample holder that stores the sequence's samples.</param>
     /// <param name="settings">The encoder's settings.</param>
@@ -57,12 +57,12 @@ public class PcmEncoder
     /// <summary>
     /// This method starts the encoding process.
     /// </summary>
-    /// <param name="composition">The composition you want to encode.</param>
+    /// <param name="sequence">The sequence you want to encode.</param>
     /// <param name="threadCount">How many threads to use for resampling.</param>
     /// <returns>An AudioData object that stores the encoded audio.</returns>
-    public AudioData<float> SampleComposition(Composition composition, int threadCount = -1)
+    public AudioData<float> GetSequenceAudio(Sequence sequence, int threadCount = -1)
     {
-        var copy = composition.Copy(); // To avoid making any changes to the original composition.
+        var copy = sequence.Copy(); // To avoid making any changes to the original sequence.
         var placement = PlacementCalculator.Calculate(copy);
 
         var (processedEvents, queue) = GetAudioSamples(threadCount, placement.ToArray()).Result;

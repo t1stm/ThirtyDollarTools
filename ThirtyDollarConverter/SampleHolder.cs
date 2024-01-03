@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -48,7 +49,7 @@ public class SampleHolder
     {
         var sample_list_location = $"{DownloadLocation}/sounds.json";
         SampleList.Clear();
-        DownloadedAllFiles();
+        PrepareDirectory();
         
         Console.WriteLine("Loading sounds.json file.");
         var client = new HttpClient();
@@ -83,17 +84,12 @@ public class SampleHolder
     /// Checks if the output directory exists and if not creates it, then checks if all samples have been downloaded.
     /// </summary>
     /// <returns>Whether all samples have been downloaded.</returns>
-    public bool DownloadedAllFiles()
+    public void PrepareDirectory()
     {
-        if (!Directory.Exists(DownloadLocation))
-        {
-            Directory.CreateDirectory(DownloadLocation);
-            Directory.CreateDirectory(ImagesLocation);
-            return false;
-        }
+        if (Directory.Exists(DownloadLocation)) return;
 
-        var read = Directory.GetFiles(DownloadLocation);
-        return read.Length >= SampleList.Count;
+        Directory.CreateDirectory(DownloadLocation);
+        Directory.CreateDirectory(ImagesLocation);
     }
 
     /// <summary>
@@ -101,7 +97,6 @@ public class SampleHolder
     /// </summary>
     public async Task DownloadSamples()
     {
-        if (DownloadedAllFiles()) return;
         var client = new HttpClient();
         var i = 0;
         var count = SampleList.Count;
@@ -127,11 +122,9 @@ public class SampleHolder
         {
             await LoadSampleList();
         }
-        
-        if (!DownloadedAllFiles())
-        {
-            await DownloadSamples();
-        }
+
+        PrepareDirectory();
+        await DownloadSamples();
 
         foreach (var (sound, _) in SampleList)
         {

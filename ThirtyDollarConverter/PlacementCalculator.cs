@@ -20,7 +20,7 @@ public class PlacementCalculator
     private bool AddVisualTimings { get; }
 
     /// <summary>
-    /// Creates a calculator that gets the placement of a composition.
+    /// Creates a calculator that gets the placement of a sequence.
     /// </summary>
     /// <param name="encoderSettings">Encoder settings to base the placement on.</param>
     /// <param name="log">Action that handles log messages.</param>
@@ -35,18 +35,18 @@ public class PlacementCalculator
     }
 
     /// <summary>
-    /// Calculates the placement of a composition.
+    /// Calculates the placement of a sequence.
     /// </summary>
-    /// <param name="composition">The composition you want to calculate.</param>
+    /// <param name="sequence">The sequence you want to calculate.</param>
     /// <returns>The calculated placement.</returns>
-    /// <exception cref="Exception">Exception thats thrown when the composition has a problem.</exception>
-    public IEnumerable<Placement> Calculate(Composition composition)
+    /// <exception cref="Exception">Exception thats thrown when the sequence has a problem.</exception>
+    public IEnumerable<Placement> Calculate(Sequence sequence)
     {
-        if (composition == null) throw new Exception("Null Composition");
+        if (sequence == null) throw new Exception("Null Sequence");
         var bpm = 300.0;
         var transpose = 0.0;
         var volume = 100.0;
-        var count = (ulong)composition.Events.LongLength;
+        var count = (ulong)sequence.Events.LongLength;
         var position = (ulong)(SampleRate / (bpm / 60));
 
         // I have given up on reverse engineering my own parser.
@@ -60,7 +60,7 @@ public class PlacementCalculator
 
         while (index < count)
         {
-            var ev = composition.Events[index];
+            var ev = sequence.Events[index];
             IndexReport(index, count);
             var event_type = ev.SoundEvent?.StartsWith('!') ?? true ? EventType.Action : EventType.Sound;
             var increment_timer = false;
@@ -70,7 +70,7 @@ public class PlacementCalculator
 
             if (event_type == EventType.Sound)
             {
-                var next_event = index + 1 < count ? composition.Events[index + 1].SoundEvent : null;
+                var next_event = index + 1 < count ? sequence.Events[index + 1].SoundEvent : null;
                 increment_timer = next_event is not "!combine";
                 
                 var copy = ev.Copy();
@@ -178,8 +178,8 @@ public class PlacementCalculator
                         modify_index = false;
                         index = loop_target;
                             
-                        Untrigger(ref composition, index, new[] { "!loopmany" });
-                        Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
+                        Untrigger(ref sequence, index, new[] { "!loopmany" });
+                        Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
                     }
                     break;
                     
@@ -198,8 +198,8 @@ public class PlacementCalculator
                         modify_index = false;
                         index = loop_target;
                             
-                        Untrigger(ref composition, index, new[] { "!loopmany", "!loop" });
-                        Log($"Going to element: ({index}) - \"{composition.Events[index]}\"");
+                        Untrigger(ref sequence, index, new[] { "!loopmany", "!loop" });
+                        Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
                     }
                     break;
 
@@ -207,7 +207,7 @@ public class PlacementCalculator
                     if (ev.PlayTimes <= 0) break;
                     ev.PlayTimes--;
                         
-                    var item = composition.Events.FirstOrDefault(r =>
+                    var item = sequence.Events.FirstOrDefault(r =>
                         r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && r.Triggered == false);
                     if (item == null)
                     {
@@ -215,10 +215,10 @@ public class PlacementCalculator
                         break;
                     }
 
-                    var search = Array.IndexOf(composition.Events, item);
+                    var search = Array.IndexOf(sequence.Events, item);
                     if (search == -1)
                     {
-                        Untrigger(ref composition, 0, new[] { "!loop", "!loopmany", "!jump", "!target" });
+                        Untrigger(ref sequence, 0, new[] { "!loop", "!loopmany", "!jump", "!target" });
                         break;
                     }
                     
@@ -231,9 +231,9 @@ public class PlacementCalculator
                     };
 
                     index = (ulong) search;
-                    var found_event = composition.Events[index];
+                    var found_event = sequence.Events[index];
 
-                    Untrigger(ref composition, index, new[] { "!loop", "!loopmany", "!jump", "!target" });
+                    Untrigger(ref sequence, index, new[] { "!loop", "!loopmany", "!jump", "!target" });
                     Log($"Jumping to element: ({index}) - {found_event}");
                     break;
 
@@ -297,15 +297,15 @@ public class PlacementCalculator
     /// <summary>
     /// Method ported from GD Colon's site. Untriggers all samples from the starting index to the end.
     /// </summary>
-    /// <param name="composition">Reference to the composition.</param>
+    /// <param name="sequence">Reference to the sequence.</param>
     /// <param name="index">The index to start from.</param>
     /// <param name="except">An array of strings containing events to ignore.</param>
-    private static void Untrigger(ref Composition composition, ulong index, string?[] except)
+    private static void Untrigger(ref Sequence sequence, ulong index, string?[] except)
     {
         if (index == 0) index++;
-        for (var i = index - 1; i < (ulong) composition.Events.LongLength; i++)
+        for (var i = index - 1; i < (ulong) sequence.Events.LongLength; i++)
         {
-            var current_event = composition.Events[i];
+            var current_event = sequence.Events[i];
             if (except.Any(r => r == current_event.SoundEvent)) continue;
 
             current_event.Triggered = false;
