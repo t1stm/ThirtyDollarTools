@@ -7,6 +7,20 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public class Texture : IDisposable
 {
+    private static Texture? _transparent1x1;
+
+    public static Texture Transparent1x1
+    {
+        get
+        {
+            if (_transparent1x1 != null) return _transparent1x1;
+            Span<byte> bytes = stackalloc byte[1];
+            _transparent1x1 = new Texture(bytes, 1, 1);
+
+            return _transparent1x1;
+        }
+    }
+
     private readonly int _handle;
     public int Width;
     public int Height;
@@ -46,10 +60,19 @@ public class Texture : IDisposable
         Bind();
 
         var options = new TextOptions(font);
-        var rect = TextMeasurer.MeasureAdvance(text, options);
-        
-        using Image<Rgba32> image = new((int) Math.Ceiling(rect.Width), (int) Math.Ceiling(rect.Height), Color.Transparent);
+        var rect = TextMeasurer.MeasureSize(text, options);
 
+        var c_w = Math.Ceiling(rect.Width);
+        var c_h = Math.Ceiling(rect.Height);
+        
+        using Image<Rgba32> image = new((int) Math.Max(c_w, 1), (int) Math.Max(c_h, 1), Color.Transparent);
+        if (c_w < 1 || c_h < 1)
+        {
+            LoadImage(image);
+            SetParameters();
+            return;
+        }
+        
         var point = PointF.Empty;
 
         color ??= Color.White;
