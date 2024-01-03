@@ -11,9 +11,9 @@ public class ColoredPlane : Renderable
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
 
-    public float BorderRadius = 0f;
+    public float BorderRadius;
     
-    public ColoredPlane(Vector4 color, Vector3 position, Vector2 width_height)
+    public ColoredPlane(Vector4 color, Vector3 position, Vector2 width_height, float border_radius = 0f)
     {
         _position = new Vector3(position);
         _scale = new Vector3(width_height.X, width_height.Y, 0);
@@ -26,6 +26,8 @@ public class ColoredPlane : Renderable
         
         Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.colored.vert", "ThirtyDollarVisualizer.Assets.Shaders.colored.frag");
         Color = color;
+        
+        BorderRadius = border_radius;
     }
 
     public ColoredPlane(Vector4 color, Vector3 position, Vector2 width_height, Shader? shader) : this(color, position, width_height)
@@ -87,10 +89,6 @@ public class ColoredPlane : Renderable
         
         Shader.SetUniform("u_Model", Model);
         Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
-        if (camera is DollarStoreCamera camera_30)
-        {
-            Shader.SetUniform("u_Time", camera_30.GetRunningTime());
-        }
     }
 
     public override void Dispose()

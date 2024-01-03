@@ -29,6 +29,10 @@ public class TexturedPlane : Renderable
         _texture = texture;
     }
 
+    public TexturedPlane() : this(Texture.Transparent1x1, Vector3.Zero, Vector2.One)
+    {
+    }
+
     private void SetVertices()
     {
         lock (LockObject)
@@ -81,7 +85,6 @@ public class TexturedPlane : Renderable
 
     public override void SetShaderUniforms(Camera camera)
     {
-        
         Shader.SetUniform("u_Model", Model);
         Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
         Shader.SetUniform("u_OverlayColor", Color);
