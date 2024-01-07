@@ -192,7 +192,7 @@ public abstract class Renderable
     /// Gets the renderable's color.
     /// </summary>
     /// <returns></returns>
-    public Vector4 GetColor()
+    public virtual Vector4 GetColor()
     {
         lock (LockObject)
             return Color;
@@ -202,7 +202,7 @@ public abstract class Renderable
     /// Gets the renderable's position.
     /// </summary>
     /// <returns>A Vector3 representing the position.</returns>
-    public Vector3 GetPosition()
+    public virtual Vector3 GetPosition()
     {
         lock (LockObject)
             return _position;
@@ -212,7 +212,7 @@ public abstract class Renderable
     /// Gets the renderable's translation.
     /// </summary>
     /// <returns>A Vector3 representing the translation.</returns>
-    public Vector3 GetTranslation()
+    public virtual Vector3 GetTranslation()
     {
         lock (LockObject)
             return _translation;
@@ -222,7 +222,7 @@ public abstract class Renderable
     /// Gets the renderable's scale.
     /// </summary>
     /// <returns>A Vector3 representing the scale.</returns>
-    public Vector3 GetScale()
+    public virtual Vector3 GetScale()
     {
         lock (LockObject)
             return _scale;
@@ -232,7 +232,7 @@ public abstract class Renderable
     /// Gets the renderable's rotation.
     /// </summary>
     /// <returns>A Vector3 representing the rotation.</returns>
-    public Vector3 GetRotation()
+    public virtual Vector3 GetRotation()
     {
         lock (LockObject)
             return _rotation;
@@ -242,7 +242,7 @@ public abstract class Renderable
     /// Sets the renderable's model.
     /// <param name="model">The model.</param>
     /// </summary>
-    public void SetModel(Matrix4 model)
+    public virtual void SetModel(Matrix4 model)
     {
        lock (LockObject)
             Model = model;
@@ -252,7 +252,7 @@ public abstract class Renderable
     /// Sets the renderable's model.
     /// <param name="color">The color.</param>
     /// </summary>
-    public void SetColor(Vector4 color)
+    public virtual void SetColor(Vector4 color)
     {
         lock (LockObject)
             Color = color;
@@ -264,7 +264,7 @@ public abstract class Renderable
     /// <param name="position">The position.</param>
     /// <param name="align">The align type.</param>
     /// <exception cref="ArgumentOutOfRangeException">Invalid PositionAlign given.</exception>
-    public void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
+    public virtual void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
     {
         lock (LockObject)
         {
@@ -293,7 +293,7 @@ public abstract class Renderable
     /// Sets the renderable's translation.
     /// </summary>
     /// <param name="translation">The translation.</param>
-    public void SetTranslation(Vector3 translation)
+    public virtual void SetTranslation(Vector3 translation)
     {
         lock (LockObject)
             _translation = translation;
@@ -310,7 +310,7 @@ public abstract class Renderable
     /// Sets the renderable's scale.
     /// </summary>
     /// <param name="scale">The scale.</param>
-    public void SetScale(Vector3 scale)
+    public virtual void SetScale(Vector3 scale)
     {
         lock (LockObject)
             _scale = scale;
@@ -322,7 +322,7 @@ public abstract class Renderable
     /// Sets the renderable's rotation.
     /// </summary>
     /// <param name="value">The rotation.</param>
-    public void SetRotation(Vector3 value)
+    public virtual void SetRotation(Vector3 value)
     {
         lock (LockObject)
             _rotation = value;

@@ -1,24 +1,90 @@
+using System.Diagnostics;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Objects.Text;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
 public class UnThirtyDollarApplication : IScene
 {
-    public readonly SequencePlayer SequencePlayer = new();
-    private DollarStoreCamera Camera = new DollarStoreCamera(Vector3.Zero, (1920, 1080));
+    public SequencePlayer SequencePlayer;
+    private DollarStoreCamera Camera;
     private readonly List<Renderable> static_objects = new();
+    private List<ColoredPlane> key_objects = new();
     private Manager Manager = null!;
+    private DynamicText _dynamic_text = null!;
+    private Stopwatch _open_stopwatch = new();
+    private readonly Shader _bordered_shader = new("ThirtyDollarVisualizer.Assets.Shaders.bordered.vert", 
+        "ThirtyDollarVisualizer.Assets.Shaders.bordered.frag");
 
     private int Width;
     private int Height;
+    private ColoredPlane _background = null!;
+
+    public UnThirtyDollarApplication(int width, int height, AudioContext? audio_context)
+    {
+        Width = width;
+        Height = height;
+        Camera = new DollarStoreCamera(Vector3.Zero, (Width, Height));
+        
+        SequencePlayer = new SequencePlayer(audio_context);
+    }
 
     public void Init(Manager manager)
     {
         Manager = manager;
-        Camera = new DollarStoreCamera(Vector3.Zero, (Width, Height));
+        Manager.RenderBlock.Wait();
+        _dynamic_text = new DynamicText
+        {
+            FontStyle = FontStyle.Bold,
+            FontSizePx = 36f,
+            Value = "New init."
+        };
+        _dynamic_text.SetPosition((Width / 2f, Height / 2f, 0), PositionAlign.Center);
+        _open_stopwatch.Restart();
+
+        _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), new Vector3(0,0, -1f),
+            new Vector2(Width, Height));
+        _background.UpdateModel(false);
+        
+        var min_v = -20;
+        var max_v = 20;
+
+        var delta = Math.Abs(min_v) + max_v * 1f;
+        var width_single = Width / delta;
+        var height = 200;
+
+        var renderables = new List<ColoredPlane>();
+        
+        float w = 0;
+        for (var i = min_v; i <= max_v; i++)
+        {
+            var plane = new MidiKey((0.1f, 0.1f, 0.1f, 1f), (w, 0, 0), (width_single, height), _bordered_shader)
+                {
+                    BorderColor = (1f, 0f, 0f, 1f),
+                    BorderSizePx = 12f
+                };
+            
+            renderables.Add(plane);
+            plane.UpdateModel(false);
+
+            var static_text = new StaticText
+            {
+                FontStyle = FontStyle.Bold,
+                FontSizePx = 16f,
+                Value = $"{i}"
+            }.WithPosition((w, 200,0), PositionAlign.BottomLeft);
+            plane.Children.Add(static_text);
+            
+            w += width_single;
+        }
+
+        key_objects = renderables;
+        Manager.RenderBlock.Release();
     }
 
     public void Start()
@@ -27,10 +93,19 @@ public class UnThirtyDollarApplication : IScene
 
     public void Render()
     {
+        Manager.CheckErrors();
+        _dynamic_text.Render(Camera);
+        _background.Render(Camera);
+
+        foreach (var renderable in key_objects)
+        {
+            renderable.Render(Camera);
+        }
     }
 
     public void Update()
     {
+        _dynamic_text.SetTextContents($"Test {_open_stopwatch.Elapsed}");
     }
 
     public void Resize(int w, int h)

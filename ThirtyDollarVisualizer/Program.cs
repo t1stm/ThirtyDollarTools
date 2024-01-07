@@ -101,6 +101,9 @@ public static class Program
         };
 
         manager.Scenes.Add(tdw_application);
+
+        /*var un30_dollar_application = new UnThirtyDollarApplication(width, height, audio_context);
+        manager.Scenes.Add(un30_dollar_application);*/
         
         manager.Run();
     }
