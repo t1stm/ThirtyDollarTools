@@ -11,7 +11,8 @@ public class SequencePlayer
     protected readonly SemaphoreSlim UpdateLock = new(1);
     protected readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly Action<string>? Log;
-
+    protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
+    
     protected BufferHolder BufferHolder;
     protected TimedEvents Events;
     protected BackingAudio? BackingAudio;
@@ -23,6 +24,11 @@ public class SequencePlayer
     private bool _update_running;
     private bool _dead;
 
+    /// <summary>
+    /// Creates a player that plays Thirty Dollar sequences.
+    /// </summary>
+    /// <param name="context">The audio context you want to use.</param>
+    /// <param name="log_action">The logging action.</param>
     public SequencePlayer(AudioContext? context = null, Action<string>? log_action = null)
     {
         BufferHolder = new BufferHolder();
@@ -54,6 +60,36 @@ public class SequencePlayer
 
         Log?.Invoke("Unable to initialize the audio device.");
         return null;
+    }
+
+    /// <summary>
+    /// Subscribes a given event_name to a action, which is invoked when the event is played.
+    /// </summary>
+    /// <param name="event_name">The event's name.</param>
+    /// <param name="action">The action you want to execute on encountering it.</param>
+    public void SubscribeActionToEvent(string event_name, Action<Placement, int> action)
+    {
+        if (EventActions.TryAdd(event_name, action)) return;
+        if (!EventActions.ContainsKey(event_name)) return;
+        
+        EventActions[event_name] = action;
+    }
+
+    /// <summary>
+    /// Removes a subscribed action.
+    /// </summary>
+    /// <param name="event_name">The event's name you want to remove.</param>
+    public void RemoveSubscription(string event_name)
+    {
+        EventActions.Remove(event_name);
+    }
+
+    /// <summary>
+    /// Clears all subscriptions.
+    /// </summary>
+    public void ClearSubscriptions()
+    {
+        EventActions.Clear();
     }
 
     public SeekableStopwatch GetTimingStopwatch() => TimingStopwatch;
@@ -122,9 +158,7 @@ public class SequencePlayer
         BufferHolder = holder;
         Events = events;
         UpdateLock.Release();
-
-        await Stop();
-        await Seek(0);
+        
     }
 
     protected void AlignToTime()
@@ -212,12 +246,26 @@ public class SequencePlayer
             {
                 case "!cut":
                     CutSounds();
-                    continue;
-                
-                case "!divider":
-                    //LastDividerIndex = placement.SequenceIndex;
-                    continue;
+                    break;
             }
+
+            var idx = end_idx;
+            // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
+            if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
+            {
+                Task.Run(() =>
+                {
+                    explicit_action.Invoke(placement, idx);
+                });
+            }
+            
+            // Normal pass.
+            if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
+            
+            Task.Run(() =>
+            {
+                event_action.Invoke(placement, idx);
+            });
         }
         
         PlacementIndex = end_idx;
@@ -274,7 +322,8 @@ public class SequencePlayer
     ~SequencePlayer()
     {
         UpdateLock.Wait();
-        
+
+        ClearSubscriptions();
         _update_running = false;
         _dead = true;
         
