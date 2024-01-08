@@ -45,7 +45,15 @@ public class DynamicText : Renderable, IText
         var cache = Fonts.GetCharacterCache();
         var textures = text.Select(c => cache.Get(c, _font_size_px, FontStyle)).ToArray();
         lock (TexturedPlanes)
-            TexturedPlanes = new TexturedPlane[textures.Length];
+            if (TexturedPlanes.Length != textures.Length)
+            {
+                TexturedPlanes = new TexturedPlane[textures.Length];
+                for (var index = 0; index < TexturedPlanes.Length; index++)
+                {
+                    TexturedPlanes[index] = new TexturedPlane(Texture.Transparent1x1, 
+                        (0,0,0), (1,1));
+                }
+            }
         
         var x = _position.X;
         var y = _position.Y;
@@ -68,10 +76,13 @@ public class DynamicText : Renderable, IText
                 x = start_X;
             }
 
-            var plane = new TexturedPlane(texture, (x, y, z), (w, h));
+            TexturedPlane plane;
             lock (TexturedPlanes)
-                TexturedPlanes[i] = plane;
-            plane.UpdateModel(false);
+                plane = TexturedPlanes[i];
+            
+            plane.SetTexture(texture);
+            plane.SetPosition((x,y,z));
+            plane.SetScale((w,h,0));
             
             x += w;
             max_x = Math.Max(max_x, x);
