@@ -12,9 +12,13 @@ uniform vec4 u_BorderColor;
 void main() {
     vec2 coords = gl_FragCoord.xy;
     
-    bool insideBorder = all(
-        greaterThanEqual(coords, u_PositionPx + u_BorderSizePx) &&
-        lessThanEqual(coords, u_PositionPx + u_ScalePx - u_BorderSizePx));
+    bool check_start = coords.x < (u_PositionPx.x + u_BorderSizePx) || 
+        coords.y < (u_PositionPx.y + u_BorderSizePx);
     
-    color = insideBorder ? u_BorderColor : u_Color;
+    bool check_end = coords.x > (u_PositionPx.x + u_ScalePx.x - u_BorderSizePx) || 
+        coords.y > (u_PositionPx.y + u_ScalePx.y - u_BorderSizePx);
+    
+    bool is_border = check_start && check_end;
+    
+    color = is_border ? u_BorderColor : u_Color;
 }
