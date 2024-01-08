@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
@@ -14,12 +15,10 @@ public class UnThirtyDollarApplication : IScene
     public SequencePlayer SequencePlayer;
     private DollarStoreCamera Camera;
     private readonly List<Renderable> static_objects = new();
-    private List<ColoredPlane> key_objects = new();
+    private List<MidiKey> key_objects = new();
     private Manager Manager = null!;
     private DynamicText _dynamic_text = null!;
     private Stopwatch _open_stopwatch = new();
-    private readonly Shader _bordered_shader = new("ThirtyDollarVisualizer.Assets.Shaders.bordered.vert", 
-        "ThirtyDollarVisualizer.Assets.Shaders.bordered.frag");
 
     private int Width;
     private int Height;
@@ -44,30 +43,54 @@ public class UnThirtyDollarApplication : IScene
             FontSizePx = 36f,
             Value = "New init."
         };
-        _dynamic_text.SetPosition((Width / 2f, Height / 2f, 0), PositionAlign.Center);
+        _dynamic_text.SetPosition((Width / 2f, Height / 2f, 0f), PositionAlign.Center);
         _open_stopwatch.Restart();
 
-        _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), new Vector3(0,0, -1f),
+        _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), 
+            new Vector3(0,0, 0f),
             new Vector2(Width, Height));
         _background.UpdateModel(false);
         
-        var min_v = -20;
-        var max_v = 20;
+        Manager.RenderBlock.Release();
+        SetPianoKeys();
+
+        Task.Run(async () =>
+        {
+            await Task.Delay(1000);
+            while (Manager.Exists)
+                for (var i = 0; i < key_objects.Count; i++)
+                {
+                    Console.WriteLine($"[UnThirtyDollarApplication] Pressing piano key {i}");
+                    var keys = key_objects[i];
+                    keys.Press(333);
+                    await Task.Delay(250);
+                }
+        });
+    }
+
+    private void SetPianoKeys()
+    {
+        Manager.RenderBlock.Wait();
+        var min_v = -4;
+        var max_v = 4;
 
         var delta = Math.Abs(min_v) + max_v * 1f;
-        var width_single = Width / delta;
+        var temp_width_single = Width / delta;
+        var temp_width = Width - temp_width_single;
+        var width_single = temp_width / delta;
         var height = 200;
+        var position_y = Height - height;
 
-        var renderables = new List<ColoredPlane>();
+        var renderables = new List<MidiKey>();
         
         float w = 0;
         for (var i = min_v; i <= max_v; i++)
         {
-            var plane = new MidiKey((0.1f, 0.1f, 0.1f, 1f), (w, 0, 0), (width_single, height), _bordered_shader)
-                {
-                    BorderColor = (1f, 0f, 0f, 1f),
-                    BorderSizePx = 12f
-                };
+            var plane = new MidiKey((0.1f, 0.1f, 0.1f, 1f), (w, position_y, 0), (width_single, height))
+            {
+                BorderColor = (1f, 0f, 0f, 1f),
+                BorderSizePx = 2f
+            };
             
             renderables.Add(plane);
             plane.UpdateModel(false);
@@ -77,7 +100,7 @@ public class UnThirtyDollarApplication : IScene
                 FontStyle = FontStyle.Bold,
                 FontSizePx = 16f,
                 Value = $"{i}"
-            }.WithPosition((w, 200,0), PositionAlign.BottomLeft);
+            }.WithPosition((w + width_single / 2f, position_y + 10f,0), PositionAlign.TopCenter);
             plane.Children.Add(static_text);
             
             w += width_single;
@@ -94,8 +117,8 @@ public class UnThirtyDollarApplication : IScene
     public void Render()
     {
         Manager.CheckErrors();
-        _dynamic_text.Render(Camera);
         _background.Render(Camera);
+        _dynamic_text.Render(Camera);
 
         foreach (var renderable in key_objects)
         {
@@ -113,6 +136,9 @@ public class UnThirtyDollarApplication : IScene
         Width = w;
         Height = h;
         Camera = new DollarStoreCamera(Vector3.Zero, (Width, Height));
+        _background.SetScale((Width,Height,1f));
+        GL.Viewport(0,0, Width, Height);
+        SetPianoKeys();
     }
 
     public void Close()
