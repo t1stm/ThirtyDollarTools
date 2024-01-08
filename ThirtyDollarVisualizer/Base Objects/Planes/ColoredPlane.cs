@@ -93,9 +93,5 @@ public class ColoredPlane : Renderable
 
     public override void Dispose()
     {
-        lock (LockObject)
-        {
-            Shader.Dispose();
-        }
     }
 }

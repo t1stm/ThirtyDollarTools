@@ -92,10 +92,6 @@ public class TexturedPlane : Renderable
 
     public override void Dispose()
     {
-        lock (LockObject)
-        {
-            Shader.Dispose();
-        }
     }
 
     public void SetTexture(Texture? texture)
