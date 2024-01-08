@@ -110,6 +110,8 @@ public class MainWindowViewModel : ViewModelBase
         await sample_holder.LoadSampleList();
         sample_holder.PrepareDirectory();
         DownloadSamples();
+
+        if (!await sample_holder.DownloadSamples(true)) return; 
         
         sample_holder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");

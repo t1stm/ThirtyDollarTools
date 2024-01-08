@@ -14,21 +14,15 @@ public enum DownloaderMode
     Images
 }
 
-public class DownloaderViewModel : ViewModelBase
+public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode downloadMode = DownloaderMode.Samples)
+    : ViewModelBase
 {
     private string? _log = $"Logs go here...{Environment.NewLine}";
     private int progress_bar_value;
-    private readonly SampleHolder sample_holder;
     private bool download_running;
-    public DownloaderMode DownloadMode;
+    public DownloaderMode DownloadMode = downloadMode;
     public Action? OnFinishDownloading { get; init; }
-    
-    public DownloaderViewModel(SampleHolder sample_holder, DownloaderMode downloadMode = DownloaderMode.Samples)
-    {
-        this.sample_holder = sample_holder;
-        DownloadMode = downloadMode;
-    }
-    
+
     public string? Log
     {
         get => _log;

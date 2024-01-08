@@ -95,7 +95,7 @@ public class SampleHolder
     /// <summary>
     /// Downloads all sounds to the download folder.
     /// </summary>
-    public async Task DownloadSamples()
+    public async Task<bool> DownloadSamples(bool check_only = false)
     {
         var client = new HttpClient();
         var i = 0;
@@ -105,7 +105,10 @@ public class SampleHolder
             var file = sound.Id;
             var requestUrl = $"{DownloadSampleUrl}/{file}.wav";
             var dll = $"{DownloadLocation}/{file}.wav";
+            
             if (File.Exists(dll)) continue;
+            if (check_only) return false;
+            
             DownloadUpdate?.Invoke(sound.Filename ?? "Empty filename.doesnt_exist", i, count);
             await using var stream = await client.GetStreamAsync(requestUrl);
             await using var fs = File.Open($"{DownloadLocation}/{file}.wav", FileMode.Create);
@@ -113,6 +116,8 @@ public class SampleHolder
             fs.Close();
             i++;
         }
+
+        return true;
     }
 
     public async Task DownloadImages()
