@@ -1,4 +1,5 @@
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Objects.Planes;
 
 namespace ThirtyDollarVisualizer.Objects;
@@ -7,13 +8,49 @@ public class MidiKey : ColoredPlane
 {
     public Vector4 BorderColor = Vector4.Zero;
     public float BorderSizePx = 0f;
+    private readonly MidiKeyPressAnimation PressAnimation;
     
     public MidiKey(Vector4 color, Vector3 position, Vector2 width_height, float border_radius = 0) : base(color, position, width_height, border_radius)
     {
+        PressAnimation = new MidiKeyPressAnimation(133, () =>
+        {
+            UpdateModel(false);
+        })
+        {
+            ReleasedColor = color,
+            AffectsChildren = false
+        };
+        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.bordered.vert", 
+            "ThirtyDollarVisualizer.Assets.Shaders.bordered.frag");
     }
 
     public MidiKey(Vector4 color, Vector3 position, Vector2 width_height, Shader? shader) : base(color, position, width_height, shader)
     {
+        PressAnimation = new MidiKeyPressAnimation(133, () =>
+        {
+            UpdateModel(false);
+        })
+        {
+            ReleasedColor = color
+        };
+        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.bordered.vert", 
+            "ThirtyDollarVisualizer.Assets.Shaders.bordered.frag");
+    }
+
+    public void Press(long length_ms)
+    {
+        PressAnimation.PressedColor = BorderColor;
+        PressAnimation.PressedLength = length_ms;
+        PressAnimation.StartAnimation();
+    }
+
+    public override void Render(Camera camera)
+    {
+        if (PressAnimation.IsRunning)
+        {
+            UpdateModel(false, PressAnimation);
+        }
+        base.Render(camera);
     }
 
     public override void SetShaderUniforms(Camera camera)
