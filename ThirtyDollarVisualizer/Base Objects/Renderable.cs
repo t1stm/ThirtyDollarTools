@@ -329,6 +329,11 @@ public abstract class Renderable
         
         UpdateModel(IsChild);
     }
+
+    ~Renderable()
+    {
+        Children.Clear();
+    }
 }
 
 public static class RenderableExtensions
