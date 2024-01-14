@@ -46,6 +46,11 @@ public abstract class Renderable
     /// </summary>
     public bool IsBeingUpdated = false;
 
+    /// <summary>
+    /// Sets whether this renderable calls it's render method.
+    /// </summary>
+    public bool IsVisible = true;
+
     private bool IsChild;
 
     /// <summary>

@@ -3,9 +3,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
-using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarConverter.Resamplers;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;
 using ThirtyDollarParser;
@@ -19,17 +17,14 @@ using ThirtyDollarVisualizer.Objects.Text;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
-public class ThirtyDollarApplication : IScene
+public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
     private static Texture? MissingTexture;
     private readonly List<Renderable> start_objects = new();
     private readonly List<Renderable> static_objects = new();
-    private Memory<SoundRenderable> TDW_images;
+    private Memory<SoundRenderable>  TDW_images;
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_delay_stopwatch = new();
-
-    public readonly SequencePlayer SequencePlayer;
-    private readonly AudioContext? _context;
 
     private DollarStoreCamera Camera;
     private int Width;
@@ -40,13 +35,8 @@ public class ThirtyDollarApplication : IScene
     private ColoredPlane _flash_overlay = null!;
     private ColoredPlane _visible_area = null!;
     private Renderable _greeting = null!;
-
-    private Sequence _sequence = null!;
-    private string? _sequence_location;
-    private DateTime _sequence_date_modified = DateTime.MinValue;
-    private readonly Stopwatch _file_modified_stopwatch = new();
+    private SoundRenderable _drag_n_drop = null!;
     
-    private Placement[] _placement = null!;
     private const int TimingSampleRate = 100_000;
 
     private CancellationToken Token => TokenSource.Token;
@@ -67,15 +57,14 @@ public class ThirtyDollarApplication : IScene
     private float LastBPM = 300f;
     private readonly Dictionary<string, Texture> ValueTextCache = new();
     private bool _reset_time;
-
-    public SampleHolder? SampleHolder { get; set; }
+    private Dictionary<string, Texture> _texture_cache;
+    private Dictionary<string, Texture> _volume_text_cache;
     public int RenderableSize { get; set; } = 64;
     public int MarginBetweenRenderables { get; set; } = 12;
     public int ElementsOnSingleLine { get; init; } = 16;
     public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDW_Like;
     public string? BackgroundVertexShaderLocation { get; init; }
     public string? BackgroundFragmentShaderLocation { get; init; }
-    public Action<string> Log { get; init; } = log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); };
     public float Scale { get; init; } = 1f;
 
     /// <summary>
@@ -85,21 +74,18 @@ public class ThirtyDollarApplication : IScene
     /// <param name="height">The height of the visualizer.</param>
     /// <param name="sequenceLocation">The location of the sequence.</param>
     /// <param name="audio_context">The audio context the application will use.</param>
-    public ThirtyDollarApplication(int width, int height, string? sequenceLocation, AudioContext? audio_context = null)
+    public ThirtyDollarApplication(int width, int height, string? sequenceLocation, 
+        AudioContext? audio_context = null) : base(audio_context)
     {
         Width = width;
         Height = height;
         _sequence_location = sequenceLocation;
         
-        var camera_position = new Vector3(0,-300f,0);
-        Camera = new DollarStoreCamera(camera_position, new Vector2i(Width, Height));
+        Camera = new DollarStoreCamera((0,-300f,0), new Vector2i(Width, Height));
         _open_stopwatch.Start();
         _seek_delay_stopwatch.Start();
-        _file_modified_stopwatch.Start();
 
         _reset_time = true;
-        _context = audio_context;
-        SequencePlayer = new SequencePlayer();
     }
 
     /// <summary>
@@ -111,6 +97,9 @@ public class ThirtyDollarApplication : IScene
         if (_reset_time)
             SequencePlayer.Stop().GetAwaiter().GetResult();
         
+        static_objects.Clear();
+        start_objects.Clear();
+        
         MissingTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
         if (!UpdatedRenderableScale)
         {
@@ -119,16 +108,12 @@ public class ThirtyDollarApplication : IScene
             UpdatedRenderableScale = true;
         }
 
-        var tdw_images = new List<SoundRenderable>();
-        
         Manager = manager;
-
-        #region Textures
 
         Log("Loaded sequence and placement.");
 
         Shader? optional_shader = null;
-        if (BackgroundVertexShaderLocation != null && BackgroundFragmentShaderLocation != null)
+        if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
         {
             optional_shader = new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation);
         }
@@ -148,13 +133,6 @@ public class ThirtyDollarApplication : IScene
 
         LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2);
 
-        var flex_box = new FlexBox(new Vector2i(LeftMargin + 7, 0),
-            new Vector2i(PlayfieldWidth + MarginBetweenRenderables, Height), MarginBetweenRenderables);
-        var wh = new Vector2i(RenderableSize, RenderableSize);
-
-        Dictionary<string, Texture> texture_cache = new();
-        Dictionary<string, Texture> volume_text_cache = new();
-
         _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(LeftMargin, -Height, 0.5f),
             new Vector2i(PlayfieldWidth, Height * 2));
         static_objects.Add(_visible_area);
@@ -165,96 +143,86 @@ public class ThirtyDollarApplication : IScene
         _greeting = new StaticText
         {
             FontStyle = FontStyle.Bold,
-            FontSizePx = 36f,
+            FontSizePx = 36f * Scale,
             Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
         }.WithPosition((Width / 2f, - 200f, 0.25f), PositionAlign.Center);
         
         start_objects.Add(_greeting);
-        
-        var font = font_family.CreateFont(16 * Scale, FontStyle.Bold);
-
-        var volume_font = font_family.CreateFont(13 * Scale, FontStyle.Bold);
-        var volume_color = new Rgba32(204, 204, 204, 1f);
 
         if (_sequence_location == null)
         {
             var dnd_texture = new Texture(greeting_font, "Drop a file on the window to start.");
-            var drag_n_drop = new SoundRenderable(dnd_texture,
+            _drag_n_drop = new SoundRenderable(dnd_texture,
                 new Vector3(Width / 2f - dnd_texture.Width / 2f, 0, 0.25f),
                 new Vector2(dnd_texture.Width, dnd_texture.Height));
             
-            start_objects.Add(drag_n_drop);
-            drag_n_drop.UpdateModel(false);
+            _greeting.Children.Add(_drag_n_drop);
+            start_objects.Add(_drag_n_drop);
+            _drag_n_drop.UpdateModel(false);
             
             FinishedInitializing = true;
-            _placement = Array.Empty<Placement>();
             return;
         }
-
-        Task.Run(async () =>
-        {
-            var sample_holder = SampleHolder;
-            if (sample_holder == null)
-            {
-                SampleHolder = sample_holder = new SampleHolder();
-                sample_holder.DownloadUpdate = (sample, current, count) =>
-                {
-                    Log($"({current} - {count}): Downloading: \'{sample}\'");
-                };
-
-                await sample_holder.LoadSampleList();
-                sample_holder.PrepareDirectory();
-                await sample_holder.DownloadSamples();
-                sample_holder.LoadSamplesIntoMemory();
-                await sample_holder.DownloadImages();
-            }
-        }, Token).Wait(Token);
         
-        var comp_location = _sequence_location;
         try
         {
-            _sequence = Sequence.FromString(File.ReadAllText(comp_location));
+            UpdateSequence(_sequence_location).GetAwaiter().GetResult();
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
             return;
         }
-        finally
-        {
-            _sequence_date_modified = File.GetLastWriteTime(_sequence_location);
-        }
         
-        tdw_images.EnsureCapacity(_sequence.Events.Length);
-
-        var calculator = new PlacementCalculator(new EncoderSettings
-        {
-            SampleRate = TimingSampleRate,
-            CombineDelayMs = 0,
-            AddVisualEvents = true
-        });
-
-        _placement = calculator.Calculate(_sequence).ToArray();
+        Manager.CheckErrors();
+        FinishedInitializing = true;
+    }
+    
+    protected override void HandleAfterSequenceUpdate(TimedEvents events)
+    {
+        Manager.RenderBlock.Wait(Token);
+        FinishedInitializing = false;
+        _drag_n_drop.IsVisible = false;
+        Manager.MakeThreadContextCurrent();
+        Camera = new DollarStoreCamera((0,-300f,0), new Vector2i(Width, Height));
         
-        var i = 0ul;
-        Task.Run(UpdateChecker, Token);
+        var tdw_images = new List<SoundRenderable>();
+        var font_family = Fonts.GetFontFamily();
+        
+        var flex_box = new FlexBox(new Vector2i(LeftMargin + 7, 0),
+            new Vector2i(PlayfieldWidth + MarginBetweenRenderables, Height), MarginBetweenRenderables);
+        var wh = new Vector2i(RenderableSize, RenderableSize);
+
+        _texture_cache = new Dictionary<string, Texture>();
+        _volume_text_cache = new Dictionary<string, Texture>();
+        
+        var font = font_family.CreateFont(16 * Scale, FontStyle.Bold);
+
+        var volume_font = font_family.CreateFont(13 * Scale, FontStyle.Bold);
+        var volume_color = new Rgba32(204, 204, 204, 1f);
 
         try
         {
-            foreach (var ev in _sequence.Events)
+            foreach (var placement in events.Placement)
             {
+                var ev = placement.Event;
                 if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith('#'))
                 {
-                    i++;
                     continue;
                 }
 
-                CreateEventRenderable(tdw_images, ev, texture_cache, wh, flex_box, ValueTextCache, volume_text_cache, font,
-                    volume_color, volume_font);
-                i++;
+                try
+                {
+                    CreateEventRenderable(tdw_images, ev, _texture_cache, wh, flex_box, ValueTextCache, _volume_text_cache, font,
+                        volume_color, volume_font);
+                }
+                finally
+                {
+                    Manager.CheckErrors();
+                }
             }
 
-            var max_decreasing_event = _sequence.Events.Where(r => r.SoundEvent is "!stop" or "!loopmany").MaxBy(r => r.Value);
+            var max_decreasing_event = events.Sequence.Events.Where(r => r.SoundEvent is "!stop" or "!loopmany").MaxBy(r => r.Value);
             
             var textures = max_decreasing_event?.Value ?? 0;
 
@@ -275,58 +243,30 @@ public class ThirtyDollarApplication : IScene
         catch (Exception e)
         {
             Console.WriteLine(e);
-            return;
         }
-        finally
-        {
-            Log("Loaded textures.");
-            Log("Loading sounds.");
-            TDW_images = tdw_images.ToArray();
-            Task.Run(async () => { await LoadAudio(); }, Token).Wait(Token);
-        }
-
-        #endregion
         
-        Manager.CheckErrors();
+        TDW_images = tdw_images.ToArray();
+
+        SequencePlayer.Start().GetAwaiter().GetResult();
         FinishedInitializing = true;
-        return;
-
-        async void UpdateChecker()
-        {
-            var len = (ulong)_sequence.Events.LongLength;
-            var old = 0ul;
-
-            ulong j;
-
-            while ((j = i) < len)
-            {
-                if (j - old > 64)
-                {
-                    Console.Clear();
-                    Console.WriteLine($"({j}) - ({_sequence.Events.LongLength}) ");
-                    old = j;
-                }
-
-                Console.Write(new string('-', (int)(j - old)));
-                await Task.Delay(33, Token);
-            }
-        }
+        Manager.RenderBlock.Release();
+    }
+    
+    protected override void SetSequencePlayerSubscriptions(SequencePlayer player)
+    {
+        player.SubscribeActionToEvent(string.Empty, NormalSubscription);
+        player.SubscribeActionToEvent("!speed", SpeedEventHandler);
+        player.SubscribeActionToEvent("!bg", BackgroundEventHandler);
+        player.SubscribeActionToEvent("!flash", FlashEventHandler);
+        player.SubscribeActionToEvent("!pulse", PulseEventHandler);
+        player.SubscribeActionToEvent("!loopmany", LoopManyEventHandler);
+        player.SubscribeActionToEvent("!stop", StopEventHandler);
+        player.SubscribeActionToEvent("!divider", DividerEventHandler);
     }
 
     /// <summary>
-    /// Creates a Thirty Dollar Website renderable with the texture of the event and it's value and volume as children.
+    /// Creates a Thirty Dollar Website renderable with the texture of the event and its value and volume as children.
     /// </summary>
-    /// <param name="tdw_images">The renderable list you want to add to.</param>
-    /// <param name="ev">The event.</param>
-    /// <param name="texture_cache">The texture cache.</param>
-    /// <param name="wh">The dimensions of a single event.</param>
-    /// <param name="flex_box">A flexbox orderer.</param>
-    /// <param name="value_text_cache">The cache for the textures of the values.</param>
-    /// <param name="volume_text_cache">The cache for the textures of the elements' volumes.</param>
-    /// <param name="font">The font you want to use for the generated textures.</param>
-    /// <param name="volume_color">The color of the volume font.</param>
-    /// <param name="volume_font">The volume font.</param>
-    /// <exception cref="Exception"></exception>
     private void CreateEventRenderable(ICollection<SoundRenderable> tdw_images, Event ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
         FlexBox flex_box,
         IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font, Rgba32 volume_color, Font volume_font)
@@ -431,7 +371,7 @@ public class ThirtyDollarApplication : IScene
             }
         }
 
-        if (value_texture != null)
+        if (value_texture is not null)
         {
             var text_position = new Vector3
             {
@@ -484,69 +424,6 @@ public class ThirtyDollarApplication : IScene
         flex_box.NewLine();
         flex_box.NewLine();
         DividerCount++;
-    }
-
-    private async Task LoadAudio()
-    {
-        if (_context == null) return;
-        var holder = new BufferHolder(new Dictionary<string, Dictionary<double, AudibleBuffer>>());
-        
-        var pcm_encoder = new PcmEncoder(SampleHolder ?? throw new Exception("Sample holder is null."), new EncoderSettings
-        {
-            SampleRate = (uint)_context.SampleRate,
-            Channels = 2,
-            CutDelayMs = 0,
-            Resampler = new LinearResampler()
-        }, Log);
-
-        var (processed_samples, _) = await pcm_encoder.GetAudioSamples(-1, _placement, CancellationToken.None);
-        _context.GlobalVolume = .25f;
-
-        foreach (var ev in processed_samples)
-        {
-            var value = ev.Value;
-            var name = ev.Name;
-
-            if (holder.ProcessedBuffers.TryGetValue(name, out var value_dictionary))
-            {
-                if (value_dictionary.ContainsKey(value)) continue;
-            }
-
-            if (value_dictionary == null)
-            {
-                value_dictionary = new Dictionary<double, AudibleBuffer>();
-                holder.ProcessedBuffers.Add(name, value_dictionary);
-            }
-
-            var sample = _context.GetBufferObject(ev.AudioData, _context.SampleRate);
-            value_dictionary.Add(value, sample);
-        }
-
-        await SequencePlayer.UpdateSequence(holder, new TimedEvents
-        {
-            Placement = _placement,
-            TimingSampleRate = TimingSampleRate
-        });
-        
-        SequencePlayer.ClearSubscriptions();
-        SetSequenceSubscriptions(SequencePlayer);
-        
-        if (_reset_time)
-            await SequencePlayer.Start();
-
-        _reset_time = true;
-    }
-
-    private void SetSequenceSubscriptions(SequencePlayer player)
-    {
-        player.SubscribeActionToEvent(string.Empty, NormalSubscription);
-        player.SubscribeActionToEvent("!speed", SpeedEventHandler);
-        player.SubscribeActionToEvent("!bg", BackgroundEventHandler);
-        player.SubscribeActionToEvent("!flash", FlashEventHandler);
-        player.SubscribeActionToEvent("!pulse", PulseEventHandler);
-        player.SubscribeActionToEvent("!loopmany", LoopManyEventHandler);
-        player.SubscribeActionToEvent("!stop", StopEventHandler);
-        player.SubscribeActionToEvent("!divider", DividerEventHandler);
     }
 
     private SoundRenderable? GetRenderable(Placement placement)
@@ -729,7 +606,14 @@ public class ThirtyDollarApplication : IScene
     public void Start()
     {
         if (_sequence_location == null) return;
-        SequencePlayer.RestartAfter(3000).GetAwaiter().GetResult();
+        SequencePlayer.Stop().GetAwaiter();
+        Task.Run(start, Token);
+        return;
+
+        async void start()
+        {
+            await SequencePlayer.RestartAfter(3000);
+        }
     }
 
     public void Render()
@@ -802,41 +686,15 @@ public class ThirtyDollarApplication : IScene
     public void Update()
     {
         if (!FinishedInitializing) return;
-        HandleSequenceUpdate();
+        HandleIfSequenceUpdate();
         Camera.Update();
 
         var stopwatch = SequencePlayer.GetTimingStopwatch();
-        if (BackingAudio != null)
+        if (BackingAudio is not null)
         {
             BackingAudio.UpdatePlayState(stopwatch.IsRunning);
             BackingAudio.SyncTime(stopwatch.Elapsed);
         }
-    }
-
-    private void HandleSequenceUpdate()
-    {
-        const int update_frequency_ms = 100;
-        if (_file_modified_stopwatch.ElapsedMilliseconds < update_frequency_ms) return;
-        if (_sequence_location == null) return;
-        
-        var m_date = File.GetLastWriteTime(_sequence_location);
-        if (m_date.Equals(_sequence_date_modified)) return;
-
-        Log("Change detected in sequence. Updating.");
-
-        _sequence_date_modified = m_date;
-        
-        Manager.RenderBlock.Wait(Token);
-        try
-        {
-            FileDrop(_sequence_location, false);
-        }
-        finally
-        {
-            Manager.RenderBlock.Release();
-        }
-        
-        _file_modified_stopwatch.Restart();
     }
 
     public void Close()
@@ -874,18 +732,11 @@ public class ThirtyDollarApplication : IScene
         if (reset_time)
         {
             Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height));
-            SequencePlayer.Restart().GetAwaiter().GetResult();
         }
-
-        TDW_images = new Memory<SoundRenderable>();
-        static_objects.Clear();
-        start_objects.Clear();
-
-        var old_location = _sequence_location;
-        _sequence_location = location;
-        Init(Manager);
         
-        Resize(Width, Height);
+        var old_location = _sequence_location;
+        if (location is not null)
+            UpdateSequence(location).GetAwaiter().GetResult();
         
         if (old_location != location || reset_time)
             Start();
@@ -930,7 +781,7 @@ public class ThirtyDollarApplication : IScene
             _seek_delay_stopwatch.Restart();
             var change = elapsed - seek_length;
             
-            var (placement, i) = _placement.Select((placement, i) => (placement , i))
+            var (placement, i) = TimedEvents.Placement.Select((placement, i) => (placement , i))
                 .MinBy(stack => Math.Abs((long) stack.placement.Index * 1000 / TimingSampleRate - change));
             var placement_index = placement?.Index ?? 0;
             
@@ -942,7 +793,7 @@ public class ThirtyDollarApplication : IScene
             _seek_delay_stopwatch.Restart();
             var change = elapsed + seek_length;
             
-            var (placement, i) = _placement.Select((placement, i) => (placement , i))
+            var (placement, i) = TimedEvents.Placement.Select((placement, i) => (placement , i))
                 .MinBy(stack => Math.Abs((long) stack.placement.Index * 1000 / TimingSampleRate - change));
             var placement_index = placement?.Index ?? 0;
             

@@ -1,4 +1,5 @@
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Audio.FeatureFlags;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Helpers.Timing;
@@ -7,9 +8,9 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class SequencePlayer
 {
+    public readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly SeekableStopwatch TimingStopwatch = new();
     protected readonly SemaphoreSlim UpdateLock = new(1);
-    protected readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly Action<string>? Log;
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
     
@@ -339,6 +340,7 @@ public enum PlayerErrors
 
 public struct TimedEvents
 {
+    public Sequence Sequence;
     public Placement[] Placement;
     public int TimingSampleRate;
 }

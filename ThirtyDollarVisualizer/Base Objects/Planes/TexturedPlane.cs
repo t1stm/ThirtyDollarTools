@@ -65,6 +65,8 @@ public class TexturedPlane : Renderable
 
     public override void Render(Camera camera)
     {
+        if (!IsVisible) return;
+        
         lock (LockObject)
         {
             if (Ebo == null || Vao == null) return;
@@ -73,7 +75,7 @@ public class TexturedPlane : Renderable
 
             if (_texture == null) return;
             
-            _texture?.Bind();
+            _texture.Bind();
             Shader.Use();
             SetShaderUniforms(camera);
 

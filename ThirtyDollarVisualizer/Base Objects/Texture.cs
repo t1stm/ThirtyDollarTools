@@ -28,6 +28,7 @@ public class Texture : IDisposable
     public Texture(string path)
     {
         _handle = GL.GenTexture();
+        if (_handle == 0) throw new Exception("Unable to generate texture handle."); 
         Bind();
         
         Stream source;
@@ -57,6 +58,7 @@ public class Texture : IDisposable
     public Texture(Font font, string text, Color? color = null)
     {
         _handle = GL.GenTexture();
+        if (_handle == 0) throw new Exception("Unable to generate texture handle."); 
         Bind();
 
         var options = new TextOptions(font);
@@ -92,6 +94,7 @@ public class Texture : IDisposable
         Width = width;
         Height = height;
         _handle = GL.GenTexture();
+        if (_handle == 0) throw new Exception("Unable to generate texture handle."); 
         Bind();
 
         fixed (void* d = &data[0])
