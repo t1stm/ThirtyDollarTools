@@ -25,8 +25,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 {
     public readonly List<IScene> Scenes = new();
     public readonly SemaphoreSlim RenderBlock = new(1);
-    private readonly Dictionary<int, IGraphicsContext> GraphicsContexts = new();
-
+    
     public static void CheckErrors()
     {
         ErrorCode errorCode;
@@ -54,9 +53,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         {
             scene.Start();
         }
-
-        var thread_id = Environment.CurrentManagedThreadId;
-        GraphicsContexts.Add(thread_id, Context);
     }
 
     protected override void OnResize(ResizeEventArgs e)
@@ -71,7 +67,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         RenderBlock.Wait();
-        MakeThreadContextCurrent();
+        Context.MakeCurrent();
         
         GL.Clear(ClearBufferMask.ColorBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 1f);
@@ -134,21 +130,5 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         {
             scene.Close();
         }
-    }
-
-    public unsafe IGraphicsContext GetGraphicsContext()
-    {
-        var thread_id = Environment.CurrentManagedThreadId;
-        if (GraphicsContexts.TryGetValue(thread_id, out var context)) return context;
-
-        context = new GLFWGraphicsContext(WindowPtr);
-        GraphicsContexts.Add(thread_id, context);
-        return context;
-    }
-
-    public void MakeThreadContextCurrent()
-    {
-        var context = GetGraphicsContext();
-        context.MakeCurrent();
     }
 }

@@ -57,8 +57,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private float LastBPM = 300f;
     private readonly Dictionary<string, Texture> ValueTextCache = new();
     private bool _reset_time;
-    private Dictionary<string, Texture> _texture_cache;
-    private Dictionary<string, Texture> _volume_text_cache;
+    private Dictionary<string, Texture> _texture_cache = null!;
+    private Dictionary<string, Texture> _volume_text_cache = null!;
     public int RenderableSize { get; set; } = 64;
     public int MarginBetweenRenderables { get; set; } = 12;
     public int ElementsOnSingleLine { get; init; } = 16;
@@ -183,7 +183,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Manager.RenderBlock.Wait(Token);
         FinishedInitializing = false;
         _drag_n_drop.IsVisible = false;
-        Manager.MakeThreadContextCurrent();
         Camera = new DollarStoreCamera((0,-300f,0), new Vector2i(Width, Height));
         
         var tdw_images = new List<SoundRenderable>();
@@ -375,13 +374,14 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         {
             var text_position = new Vector3
             {
-                X = plane_position.X + width_height.X / 2f - value_texture.Width / 2f,
-                Y = box_position.Y + RenderableSize - 10f * Scale,
-                Z = box_position.Z
+                X = plane_position.X + width_height.X / 2f,
+                Y = box_position.Y + RenderableSize - MarginBetweenRenderables + 1 * Scale,
+                Z = box_position.Z - 0.1f
             };
-            text_position.Z -= 0.1f;
 
-            var text = new TexturedPlane(value_texture, text_position, (value_texture.Width, value_texture.Height));
+            var text = new TexturedPlane(value_texture, Vector3.Zero, (value_texture.Width, value_texture.Height));
+            text.SetPosition(text_position, PositionAlign.TopCenter);
+            
             plane.SetValueRenderable(text);
             plane.Children.Add(text);
         }

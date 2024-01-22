@@ -1,5 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects.Planes;
@@ -74,6 +75,9 @@ public class TexturedPlane : Renderable
             Ebo.Bind();
 
             if (_texture == null) return;
+            
+            if (_texture.NeedsLoading())
+                _texture.LoadOpenGLTexture();
             
             _texture.Bind();
             Shader.Use();
