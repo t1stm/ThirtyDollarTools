@@ -4,6 +4,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Text;
 using ThirtyDollarVisualizer.Scenes;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
@@ -25,6 +26,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 {
     public readonly List<IScene> Scenes = new();
     public readonly SemaphoreSlim RenderBlock = new(1);
+    public readonly Queue<Texture> TexturePreloadQueue = new();
     
     public static void CheckErrors()
     {
@@ -83,6 +85,13 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
+        Context.MakeCurrent();
+        while (TexturePreloadQueue.TryDequeue(out var texture))
+        {
+            if (texture.NeedsLoading())
+                texture.LoadOpenGLTexture();
+        }
+        
         foreach (var scene in Scenes)
         {
             scene.Update();
@@ -130,5 +139,10 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         {
             scene.Close();
         }
+    }
+
+    public void QueueTexture(Texture texture)
+    {
+        TexturePreloadQueue.Enqueue(texture);
     }
 }

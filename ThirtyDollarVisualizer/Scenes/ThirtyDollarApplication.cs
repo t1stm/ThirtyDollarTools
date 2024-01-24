@@ -100,7 +100,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         static_objects.Clear();
         start_objects.Clear();
         
-        MissingTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
         if (!UpdatedRenderableScale)
         {
             RenderableSize = (int)(RenderableSize * Scale);
@@ -109,6 +108,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         Manager = manager;
+        if (MissingTexture is null)
+        {
+            MissingTexture = new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
+            Manager.QueueTexture(MissingTexture);
+        }
 
         Log("Loaded sequence and placement.");
 
@@ -140,18 +144,22 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var font_family = Fonts.GetFontFamily();
         var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
 
-        _greeting = new StaticText
+        var greeting = new StaticText
         {
             FontStyle = FontStyle.Bold,
             FontSizePx = 36f * Scale,
             Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
-        }.WithPosition((Width / 2f, - 200f, 0.25f), PositionAlign.Center);
+        };
+        Manager.QueueTexture(greeting.GetTexture()!);
+
+        _greeting = greeting.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
         
         start_objects.Add(_greeting);
 
         if (_sequence_location == null)
         {
             var dnd_texture = new Texture(greeting_font, "Drop a file on the window to start.");
+            Manager.QueueTexture(dnd_texture);
             _drag_n_drop = new SoundRenderable(dnd_texture,
                 new Vector3(Width / 2f - dnd_texture.Width / 2f, 0, 0.25f),
                 new Vector2(dnd_texture.Width, dnd_texture.Height));
@@ -188,7 +196,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var tdw_images = new List<SoundRenderable>();
         var font_family = Fonts.GetFontFamily();
         
-        var flex_box = new FlexBox(new Vector2i(LeftMargin + 7, 0),
+        var flex_box = new FlexBox(new Vector2i((int)(LeftMargin + 7 * Scale), 0),
             new Vector2i(PlayfieldWidth + MarginBetweenRenderables, Height), MarginBetweenRenderables);
         var wh = new Vector2i(RenderableSize, RenderableSize);
 
@@ -212,7 +220,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
                 try
                 {
-                    CreateEventRenderable(tdw_images, ev, _texture_cache, wh, flex_box, ValueTextCache, _volume_text_cache, font,
+                    CreateEventRenderable(tdw_images, ev, _texture_cache, wh, flex_box, 
+                        ValueTextCache, _volume_text_cache, font,
                         volume_color, volume_font);
                 }
                 finally
@@ -231,12 +240,15 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 if (ValueTextCache.ContainsKey(search)) continue;
 
                 var texture = new Texture(font, search);
+                Manager.QueueTexture(texture);
                 ValueTextCache.Add(search, texture);
             }
 
             if (!ValueTextCache.ContainsKey("0"))
             {
-                ValueTextCache.Add("0", new Texture(font, "0"));
+                var texture = new Texture(font, "0");
+                Manager.QueueTexture(texture);
+                ValueTextCache.Add("0", texture);
             }
         }
         catch (Exception e)
@@ -283,6 +295,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (texture == null)
         {
             texture = new Texture(image);
+            Manager.QueueTexture(texture);
             texture_cache.Add(image, texture);
         }
 
@@ -366,6 +379,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             if (value_texture == null)
             {
                 value_texture = new Texture(font, value, volume_color);
+                Manager.QueueTexture(texture);
                 value_text_cache.Add(value, value_texture);
             }
         }
@@ -399,6 +413,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             if (volume_texture == null)
             {
                 volume_texture = new Texture(volume_font, volume_text);
+                Manager.QueueTexture(texture);
                 volume_text_cache.Add(volume_text, volume_texture);
             }
 

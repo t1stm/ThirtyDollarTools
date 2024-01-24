@@ -65,7 +65,7 @@ public class SoundRenderable : TexturedPlane
         Fade();
         Expand();
 
-        var old_texture = ValueRenderable.GetTexture;
+        var old_texture = ValueRenderable.GetTexture();
         var texture = generated_textures[_event.PlayTimes.ToString()];
         
         if (_event.PlayTimes == 0)

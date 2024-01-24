@@ -43,6 +43,9 @@ public class Texture : IDisposable
         }
 
         texture_data = Image.Load<Rgba32>(source);
+        Width = texture_data.Width;
+        Height = texture_data.Height;
+        
         source.Dispose();
     }
 
@@ -55,6 +58,8 @@ public class Texture : IDisposable
         var c_h = Math.Ceiling(rect.Height);
         
         texture_data = new Image<Rgba32>((int) Math.Max(c_w, 1), (int) Math.Max(c_h, 1), Color.Transparent);
+        Width = texture_data.Width;
+        Height = texture_data.Height;
         
         var point = PointF.Empty;
 
@@ -93,11 +98,8 @@ public class Texture : IDisposable
         Console.WriteLine($"Loading texture handle: {_handle}");
         if (_handle == 0) throw new Exception("Unable to generate texture handle."); 
         Bind();
-        
-        Width = img.Width;
-        Height = img.Height;
             
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, img.Width, img.Height, 
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, Width, Height, 
             0, PixelFormat.Rgba, PixelType.UnsignedByte, 0);
 
         img.ProcessPixelRows(accessor =>

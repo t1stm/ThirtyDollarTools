@@ -51,7 +51,7 @@ public abstract class Renderable
     /// </summary>
     public bool IsVisible = true;
 
-    private bool IsChild;
+    public bool IsChild;
 
     /// <summary>
     /// Updates the current renderable's model for the MVP rendering method.

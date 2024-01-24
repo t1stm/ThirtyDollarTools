@@ -1,6 +1,5 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects.Planes;
@@ -56,7 +55,7 @@ public class TexturedPlane : Renderable
 
             var layout = new VertexBufferLayout();
             layout.PushFloat(3); // xyz vertex coords
-            layout.PushFloat(2); // wh vertex coords
+            layout.PushFloat(2); // wh frag coords
             Static_Vao.AddBuffer(Static_Vbo, layout);
 
             Static_Ebo = new BufferObject<uint>(indices, BufferTarget.ElementArrayBuffer);
@@ -74,12 +73,13 @@ public class TexturedPlane : Renderable
             Vao.Bind();
             Ebo.Bind();
 
-            if (_texture == null) return;
+            var texture = _texture;
+            if (texture == null || texture.NeedsLoading())
+            {
+                texture = Texture.Transparent1x1;
+            }
             
-            if (_texture.NeedsLoading())
-                _texture.LoadOpenGLTexture();
-            
-            _texture.Bind();
+            texture.Bind();
             Shader.Use();
             SetShaderUniforms(camera);
 
@@ -108,5 +108,5 @@ public class TexturedPlane : Renderable
         }
     }
 
-    public Texture? GetTexture => _texture;
+    public Texture? GetTexture() => _texture;
 }
