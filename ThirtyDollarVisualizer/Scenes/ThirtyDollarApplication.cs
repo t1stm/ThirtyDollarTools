@@ -191,7 +191,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Manager.RenderBlock.Wait(Token);
         FinishedInitializing = false;
         _drag_n_drop.IsVisible = false;
-        Camera = new DollarStoreCamera((0,-300f,0), new Vector2i(Width, Height));
+        Camera.ScrollTo((0,-300,0));
+        _background.SetColor(new Vector4(0.21f, 0.22f, 0.24f, 1f));
         
         var tdw_images = new List<SoundRenderable>();
         var font_family = Fonts.GetFontFamily();
@@ -210,24 +211,16 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         try
         {
-            foreach (var placement in events.Placement)
+            foreach (var ev in events.Sequence.Events)
             {
-                var ev = placement.Event;
                 if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith('#'))
                 {
                     continue;
                 }
 
-                try
-                {
-                    CreateEventRenderable(tdw_images, ev, _texture_cache, wh, flex_box, 
-                        ValueTextCache, _volume_text_cache, font,
-                        volume_color, volume_font);
-                }
-                finally
-                {
-                    Manager.CheckErrors();
-                }
+                CreateEventRenderable(tdw_images, ev, _texture_cache, wh, flex_box,
+                    ValueTextCache, _volume_text_cache, font,
+                    volume_color, volume_font);
             }
 
             var max_decreasing_event = events.Sequence.Events.Where(r => r.SoundEvent is "!stop" or "!loopmany").MaxBy(r => r.Value);
@@ -433,7 +426,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         #endregion
         
         tdw_images.Add(plane);
-
+        plane.UpdateModel(false);
+        
         if (ev.SoundEvent is not "!divider") return;
 
         flex_box.NewLine();
@@ -616,6 +610,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 image.SetTranslation(new_offset);
             }
         }, Token);
+        
+        LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2); 
     }
 
     public void Start()
@@ -744,10 +740,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private void FileDrop(string? location, bool reset_time)
     {
         _reset_time = reset_time;
-        if (reset_time)
-        {
-            Camera = new DollarStoreCamera((0, -300f, 0), (Width, Height));
-        }
         
         var old_location = _sequence_location;
         if (location is not null)

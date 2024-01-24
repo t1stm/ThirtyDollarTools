@@ -10,7 +10,7 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
 {
     protected readonly SequencePlayer SequencePlayer = new();
     protected readonly Action<string> Log = logging_action ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
-    protected SampleHolder? SampleHolder = new();
+    protected SampleHolder? SampleHolder;
     protected TimedEvents TimedEvents = new()
     {
         Placement = Array.Empty<Placement>(),
@@ -45,9 +45,9 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         SampleHolder.LoadSamplesIntoMemory();
     }
 
-    protected SampleHolder GetSampleHolder()
+    protected async Task<SampleHolder> GetSampleHolder()
     {
-        if (SampleHolder == null) Task.Run(CreateSampleHolder).Wait();
+        if (SampleHolder == null) await CreateSampleHolder();
         return SampleHolder!;
     }
     
@@ -85,8 +85,7 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         TimedEvents.Placement = placement;
         TimedEvents.Sequence = sequence;
         
-        await CreateSampleHolder();
-        var sample_holder = GetSampleHolder();
+        var sample_holder = await GetSampleHolder().ConfigureAwait(true);
         var buffer_holder = new BufferHolder();
 
         var audio_context = SequencePlayer.GetContext();

@@ -69,7 +69,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         RenderBlock.Wait();
-        Context.MakeCurrent();
         
         GL.Clear(ClearBufferMask.ColorBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 1f);
@@ -85,7 +84,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
-        Context.MakeCurrent();
         while (TexturePreloadQueue.TryDequeue(out var texture))
         {
             if (texture.NeedsLoading())

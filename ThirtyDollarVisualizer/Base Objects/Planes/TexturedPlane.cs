@@ -74,9 +74,14 @@ public class TexturedPlane : Renderable
             Ebo.Bind();
 
             var texture = _texture;
-            if (texture == null || texture.NeedsLoading())
+            if (texture == null)
             {
                 texture = Texture.Transparent1x1;
+            }
+
+            if (texture.NeedsLoading())
+            {
+                texture.LoadOpenGLTexture();
             }
             
             texture.Bind();

@@ -24,6 +24,7 @@ public class SequencePlayer
 
     private bool _update_running;
     private bool _dead;
+    private bool _cut_sounds;
 
     /// <summary>
     /// Creates a player that plays Thirty Dollar sequences.
@@ -158,8 +159,9 @@ public class SequencePlayer
         
         BufferHolder = holder;
         Events = events;
-        UpdateLock.Release();
         
+        AlignToTime();
+        UpdateLock.Release();
     }
 
     protected void AlignToTime()
@@ -192,12 +194,10 @@ public class SequencePlayer
         {
             try
             {
-                await UpdateLock.WaitAsync();
-                PlaybackUpdate();
-
+                await PlaybackUpdate();
                 await Task.Delay(1);
             }
-            finally
+            catch
             {
                 UpdateLock.Release();
             }
@@ -221,60 +221,67 @@ public class SequencePlayer
         Greeting.GreetingType = type;
     }
 
-    protected void PlaybackUpdate()
+    protected async Task PlaybackUpdate()
     {
-        var placement_span = Events.Placement.AsSpan();
-        var current_idx = PlacementIndex;
-        int end_idx;
-        
-        var end_placement = placement_span[^1];
-        var end_time = end_placement.Index;
-
-        if (TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f + 1000 > end_time)
+        try
         {
-            TimingStopwatch.Seek((long) (end_time * 1000f / Events.TimingSampleRate) + 100);
-        }
+            await UpdateLock.WaitAsync();
+            var placement_memory = Events.Placement.AsMemory();
+            var current_idx = PlacementIndex;
+            int end_idx;
 
-        for (end_idx = current_idx; end_idx < placement_span.Length; end_idx++)
-        {
-            var placement = placement_span[end_idx];
-            if (placement.Index > (ulong)((float)TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f))
+            var end_placement = placement_memory.Span[^1];
+            var end_time = end_placement.Index;
+
+            if (TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f + 1000 > end_time)
             {
-                break;
+                TimingStopwatch.Seek((long)(end_time * 1000f / Events.TimingSampleRate) + 100);
             }
 
-            switch (placement.Event.SoundEvent)
+            for (end_idx = current_idx; end_idx < placement_memory.Length; end_idx++)
             {
-                case "!cut":
-                    CutSounds();
-                    break;
-            }
-
-            var idx = end_idx;
-            // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
-            if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
-            {
-                Task.Run(() =>
+                var placement = placement_memory.Span[end_idx];
+                if (placement.Index >
+                    (ulong)((float)TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f))
                 {
-                    explicit_action.Invoke(placement, idx);
-                });
-            }
-            
-            // Normal pass.
-            if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
-            
-            Task.Run(() =>
-            {
-                event_action.Invoke(placement, idx);
-            });
-        }
-        
-        PlacementIndex = end_idx;
+                    break;
+                }
 
-        var length = end_idx - current_idx;
-        if (length < 1) return;
+                switch (placement.Event.SoundEvent)
+                {
+                    case "!cut":
+                        CutSounds();
+                        break;
+                }
+
+                var idx = end_idx;
+                // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
+                if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
+                {
+                    await Task.Run(() => { explicit_action.Invoke(placement, (int)placement.SequenceIndex); })
+                        .ConfigureAwait(false);
+                }
+
+
+                // Normal pass.
+                if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
+
+                await Task.Run(() => { event_action.Invoke(placement, (int)placement.SequenceIndex); })
+                    .ConfigureAwait(false);
+            }
+
+            PlacementIndex = end_idx;
+
         
-        PlayBatch(placement_span.Slice(current_idx, length));
+            var length = end_idx - current_idx;
+            if (length < 1) return;
+
+            PlayBatch(placement_memory.Span.Slice(current_idx, length));
+        }
+        finally
+        {
+            UpdateLock.Release();
+        }
     }
 
     protected void PlayBatch(Span<Placement> batch)
@@ -286,6 +293,11 @@ public class SequencePlayer
             var batch_span = new Span<AudibleBuffer>(new AudibleBuffer[batch.Length]);
             for (var i = 0; i < batch_span.Length; i++)
             {
+                if (_cut_sounds)
+                {
+                    _cut_sounds = false;
+                    return;
+                }
                 var el = batch[i];
                 if (!el.Audible || !BufferHolder.TryGetBuffer(el.Event.SoundEvent ?? "", el.Event.Value, out var buffer))
                 {
