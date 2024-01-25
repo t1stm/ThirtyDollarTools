@@ -544,7 +544,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public void Resize(int w, int h)
     {
-        LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2);
         var resize = new Vector2i(w, h);
 
         Camera.Viewport = resize;
@@ -583,6 +582,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         Width = w;
         Height = h;
+        LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2);
         
         var current_update = CurrentResizeFrame = _open_stopwatch.ElapsedMilliseconds;
         
