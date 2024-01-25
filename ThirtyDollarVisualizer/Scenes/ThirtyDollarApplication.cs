@@ -47,6 +47,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int DividerCount;
     private bool FinishedInitializing;
     private int LeftMargin;
+    private int CreationLeftMargin;
     private long CurrentResizeFrame;
     private ulong LastDividerIndex;
     private bool UpdatedRenderableScale;
@@ -108,11 +109,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         Manager = manager;
-        if (MissingTexture is null)
-        {
-            MissingTexture = new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
-            Manager.QueueTexture(MissingTexture);
-        }
+        MissingTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
 
         Log("Loaded sequence and placement.");
 
@@ -150,7 +147,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             FontSizePx = 36f * Scale,
             Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
         };
-        Manager.QueueTexture(greeting.GetTexture()!);
 
         _greeting = greeting.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
         
@@ -159,7 +155,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (_sequence_location == null)
         {
             var dnd_texture = new Texture(greeting_font, "Drop a file on the window to start.");
-            Manager.QueueTexture(dnd_texture);
             _drag_n_drop = new SoundRenderable(dnd_texture,
                 new Vector3(Width / 2f - dnd_texture.Width / 2f, 0, 0.25f),
                 new Vector2(dnd_texture.Width, dnd_texture.Height));
@@ -188,7 +183,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     
     protected override void HandleAfterSequenceUpdate(TimedEvents events)
     {
-        Manager.RenderBlock.Wait(Token);
         FinishedInitializing = false;
         _drag_n_drop.IsVisible = false;
         Camera.ScrollTo((0,-300,0));
@@ -196,7 +190,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         var tdw_images = new List<SoundRenderable>();
         var font_family = Fonts.GetFontFamily();
-        
+
+        CreationLeftMargin = LeftMargin;
         var flex_box = new FlexBox(new Vector2i((int)(LeftMargin + 7 * Scale), 0),
             new Vector2i(PlayfieldWidth + MarginBetweenRenderables, Height), MarginBetweenRenderables);
         var wh = new Vector2i(RenderableSize, RenderableSize);
@@ -233,14 +228,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 if (ValueTextCache.ContainsKey(search)) continue;
 
                 var texture = new Texture(font, search);
-                Manager.QueueTexture(texture);
                 ValueTextCache.Add(search, texture);
             }
 
             if (!ValueTextCache.ContainsKey("0"))
             {
                 var texture = new Texture(font, "0");
-                Manager.QueueTexture(texture);
                 ValueTextCache.Add("0", texture);
             }
         }
@@ -249,8 +242,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             Console.WriteLine(e);
         }
         
+        Manager.RenderBlock.Wait(Token);
         TDW_images = tdw_images.ToArray();
-
         SequencePlayer.Start().GetAwaiter().GetResult();
         FinishedInitializing = true;
         Manager.RenderBlock.Release();
@@ -288,7 +281,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (texture == null)
         {
             texture = new Texture(image);
-            Manager.QueueTexture(texture);
             texture_cache.Add(image, texture);
         }
 
@@ -372,7 +364,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             if (value_texture == null)
             {
                 value_texture = new Texture(font, value, volume_color);
-                Manager.QueueTexture(texture);
                 value_text_cache.Add(value, value_texture);
             }
         }
@@ -406,7 +397,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             if (volume_texture == null)
             {
                 volume_texture = new Texture(volume_font, volume_text);
-                Manager.QueueTexture(texture);
                 volume_text_cache.Add(volume_text, volume_texture);
             }
 
@@ -454,7 +444,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         switch (CameraFollowMode)
         {
-            case CameraFollowMode.TDW_Like when SequencePlayer.GetTimingStopwatch().IsRunning:
+            case CameraFollowMode.TDW_Like:
             {
                 float margin = RenderableSize;
                     
@@ -464,7 +454,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 break;
             }
 
-            case CameraFollowMode.Current_Line when SequencePlayer.GetTimingStopwatch().IsRunning:
+            case CameraFollowMode.Current_Line:
             {
                 Camera.ScrollTo(position * Vector3.UnitY - Vector3.UnitY * (Height / 2f));
                 break;
@@ -474,9 +464,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void NormalSubscription(Placement placement, int index)
     {
-        CameraBoundsCheck(placement);
         var element = GetRenderable(placement);
         if (element == null) return;
+        CameraBoundsCheck(placement);
         
         if (placement.Event.SoundEvent?.StartsWith('!') ?? false)
         {
@@ -554,6 +544,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public void Resize(int w, int h)
     {
+        LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2);
         var resize = new Vector2i(w, h);
 
         Camera.Viewport = resize;
@@ -604,14 +595,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 var original_offset = image.GetTranslation();
                 var new_offset = new Vector3(original_offset)
                 {
-                    X = current_margin - LeftMargin
+                    X = current_margin - CreationLeftMargin
                 };
 
                 image.SetTranslation(new_offset);
             }
         }, Token);
-        
-        LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2); 
     }
 
     public void Start()
@@ -740,6 +729,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private void FileDrop(string? location, bool reset_time)
     {
         _reset_time = reset_time;
+        Camera.ScrollTo((0,-300,0));
         
         var old_location = _sequence_location;
         if (location is not null)

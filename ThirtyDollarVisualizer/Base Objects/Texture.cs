@@ -95,7 +95,7 @@ public class Texture : IDisposable
         var img = texture_data;
         _handle = GL.GenTexture();
         
-        Console.WriteLine($"Loading texture handle: {_handle}");
+        Console.WriteLine($"[Texture Handler] Loading texture handle: {_handle}");
         if (_handle == 0) throw new Exception("Unable to generate texture handle."); 
         Bind();
             

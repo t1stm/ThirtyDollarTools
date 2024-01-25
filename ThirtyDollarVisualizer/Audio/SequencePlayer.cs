@@ -120,6 +120,16 @@ public class SequencePlayer
         await UpdateLock.WaitAsync();
         TimingStopwatch.Seek(milliseconds);
         AlignToTime();
+        if (!EventActions.TryGetValue(string.Empty, out var event_action))
+        {
+            UpdateLock.Release();
+            return;
+        }
+
+        var placement = Events.Placement[PlacementIndex];
+        await Task.Run(() => { event_action.Invoke(placement, (int)placement.SequenceIndex); })
+            .ConfigureAwait(false);
+        
         UpdateLock.Release();
     }
     
@@ -192,15 +202,8 @@ public class SequencePlayer
             
         while (_update_running && !_dead)
         {
-            try
-            {
-                await PlaybackUpdate();
-                await Task.Delay(1);
-            }
-            catch
-            {
-                UpdateLock.Release();
-            }
+            await PlaybackUpdate();
+            await Task.Delay(1);
         }
     }
 
