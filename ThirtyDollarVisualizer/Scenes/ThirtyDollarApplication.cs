@@ -25,6 +25,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private Memory<SoundRenderable>  TDW_images;
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_delay_stopwatch = new();
+    private readonly Stopwatch _file_update_stopwatch = new();
 
     private DollarStoreCamera Camera;
     private int Width;
@@ -85,6 +86,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Camera = new DollarStoreCamera((0,-300f,0), new Vector2i(Width, Height));
         _open_stopwatch.Start();
         _seek_delay_stopwatch.Start();
+        _file_update_stopwatch.Start();
 
         _reset_time = true;
     }
@@ -244,7 +246,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         Manager.RenderBlock.Wait(Token);
         TDW_images = tdw_images.ToArray();
-        SequencePlayer.Start().GetAwaiter().GetResult();
         FinishedInitializing = true;
         Manager.RenderBlock.Release();
     }
@@ -686,7 +687,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public void Update()
     {
         if (!FinishedInitializing) return;
-        HandleIfSequenceUpdate();
+        if (_file_update_stopwatch.ElapsedMilliseconds > 250)
+        {
+            HandleIfSequenceUpdate();
+        }
+        
         Camera.Update();
 
         var stopwatch = SequencePlayer.GetTimingStopwatch();

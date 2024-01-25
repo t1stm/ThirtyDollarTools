@@ -50,29 +50,33 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         if (SampleHolder == null) await CreateSampleHolder();
         return SampleHolder!;
     }
-    
+
     /// <summary>
     /// This method updates the current sequence.
     /// </summary>
     /// <param name="location">The location of the sequence you want to use.</param>
-    public virtual async Task UpdateSequence(string location)
+    /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
+    public virtual async Task UpdateSequence(string location, bool restart_player = true)
     {
         var file_data = await File.ReadAllTextAsync(location);
         var sequence = Sequence.FromString(file_data);
-        await UpdateSequence(sequence);
+        await UpdateSequence(sequence, restart_player);
+        _sequence_date_modified = File.GetLastWriteTime(location);
         _sequence_location = location;
     }
-    
+
     /// <summary>
     /// This method updates the current sequence.
     /// </summary>
     /// <param name="sequence">The sequence you want to use.</param>
-    public virtual async Task UpdateSequence(Sequence sequence)
+    /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
+    public virtual async Task UpdateSequence(Sequence sequence, bool restart_player = true)
     {
         const int update_rate = 100_000;
         _sequence_location = null;
 
-        await SequencePlayer.Stop();
+        if (restart_player)
+            await SequencePlayer.Stop();
 
         var calculator = new PlacementCalculator(new EncoderSettings
         {
@@ -123,7 +127,8 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         SetSequencePlayerSubscriptions(SequencePlayer);
         
         HandleAfterSequenceUpdate(TimedEvents);
-        await SequencePlayer.Start();
+        if (restart_player)
+            await SequencePlayer.Start();
     }
 
     /// <summary>
@@ -139,11 +144,14 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
     protected abstract void SetSequencePlayerSubscriptions(SequencePlayer player);
 
     /// <summary>
-    /// Call this when you want to check if the sequence is updated and you want to update it.
+    /// Call this when you want to check if the sequence is updated and you want to update it if it is.
     /// </summary>
     protected virtual void HandleIfSequenceUpdate()
     {
         if (_sequence_location == null) return;
-        
+        var modify_time = File.GetLastWriteTime(_sequence_location);
+
+        if (_sequence_date_modified == modify_time) return;
+        UpdateSequence(_sequence_location, false).GetAwaiter().GetResult();
     }
 }
