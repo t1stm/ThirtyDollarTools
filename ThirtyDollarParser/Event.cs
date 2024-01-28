@@ -5,37 +5,37 @@ public class Event
     /// <summary>
     /// The sound name of the current event.
     /// </summary>
-    public string? SoundEvent { get; init; }
-    
+    public string? SoundEvent;
+
     /// <summary>
     /// The value of the current event. Used for many different things.
     /// </summary>
-    public double Value { get; set; }
+    public double Value;
     
     /// <summary>
     /// Original loop value of the event. Do not modify.
     /// </summary>
-    public int OriginalLoop { get; set; } = 1;
+    public int OriginalLoop = 1;
     
     /// <summary>
     /// Loop value of the event. Can be modified as long as it's restored from original loop after finishing.
     /// </summary>
-    public int PlayTimes { get; set; } = 1;
-    
+    public int PlayTimes = 1;
+
     /// <summary>
     /// The volume of the current sample. Null when the sample is following the default sequence volume.
     /// </summary>
-    public double? Volume { get; set; }
-    
+    public double? Volume;
+
     /// <summary>
     /// The scale of the value.
     /// </summary>
-    public ValueScale ValueScale { get; init; }
+    public ValueScale ValueScale;
 
     /// <summary>
     /// Special boolean for single loop and jump events.
     /// </summary>
-    public bool Triggered { get; set; }
+    public bool Triggered;
 
     /// <summary>
     /// Creates an easily loggable string for this event.
@@ -51,7 +51,7 @@ public class Event
     /// Creates an identical copy of an event.
     /// </summary>
     /// <returns>The copy of the event.</returns>
-    public Event Copy()
+    public virtual Event Copy()
     {
         return new Event
         {
