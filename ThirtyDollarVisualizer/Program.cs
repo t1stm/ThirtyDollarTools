@@ -105,6 +105,11 @@ public static class Program
         /*var un30_dollar_application = new UnThirtyDollarApplication(width, height, audio_context);
         manager.Scenes.Add(un30_dollar_application);*/
         
+        if (sequence != null)
+        {
+            
+        }
+        
         manager.Run();
     }
 }

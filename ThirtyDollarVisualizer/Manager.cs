@@ -25,7 +25,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 {
     public readonly List<IScene> Scenes = new();
     public readonly SemaphoreSlim RenderBlock = new(1);
-
+    
     public static void CheckErrors()
     {
         ErrorCode errorCode;
@@ -70,13 +70,13 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         
         GL.Clear(ClearBufferMask.ColorBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 1f);
-
+        
         foreach (var scene in Scenes)
         {
             scene.Render();
         }
 
-        SwapBuffers();
+        Context.SwapBuffers();
         RenderBlock.Release();
     }
 

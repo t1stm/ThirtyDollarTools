@@ -46,7 +46,12 @@ public abstract class Renderable
     /// </summary>
     public bool IsBeingUpdated = false;
 
-    private bool IsChild;
+    /// <summary>
+    /// Sets whether this renderable calls it's render method.
+    /// </summary>
+    public bool IsVisible = true;
+
+    public bool IsChild;
 
     /// <summary>
     /// Updates the current renderable's model for the MVP rendering method.

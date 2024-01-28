@@ -37,6 +37,15 @@ zip_releases() {
   done;
 }
 
+if [ "$#" -gt 0 ]; then
+  for arg in "$@"; do
+    if [ "$arg" == "--zip-only" ]; then
+      zip_releases
+      exit
+    fi  
+  done;
+fi
+
 rm -rf "${SCRIPT_DIR:?}/bin"
 mkdir "$SCRIPT_DIR/bin"
 
@@ -50,4 +59,11 @@ publish
 
 create_release_dirs
 copy_releases
-zip_releases
+
+if [ "$#" -gt 0 ]; then
+  for arg in "$@"; do
+    if [ "$arg" == "-z" ]; then
+      zip_releases
+    fi  
+  done;
+fi

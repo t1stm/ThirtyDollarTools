@@ -3,6 +3,8 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
+using ThirtyDollarConverter;
+using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
@@ -10,9 +12,8 @@ using ThirtyDollarVisualizer.Objects.Text;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
-public class UnThirtyDollarApplication : IScene
+public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
-    public SequencePlayer SequencePlayer;
     private DollarStoreCamera Camera;
     private readonly List<Renderable> static_objects = new();
     private List<MidiKey> key_objects = new();
@@ -29,8 +30,6 @@ public class UnThirtyDollarApplication : IScene
         Width = width;
         Height = height;
         Camera = new DollarStoreCamera(Vector3.Zero, (Width, Height));
-        
-        SequencePlayer = new SequencePlayer(audio_context);
     }
 
     public void Init(Manager manager)
@@ -68,11 +67,9 @@ public class UnThirtyDollarApplication : IScene
         });
     }
 
-    private void SetPianoKeys()
+    private void SetPianoKeys(int min_v = -4, int max_v = 4)
     {
         Manager.RenderBlock.Wait();
-        var min_v = -4;
-        var max_v = 4;
 
         var delta = Math.Abs(min_v) + max_v * 1f;
         var temp_width_single = Width / delta;
@@ -108,6 +105,14 @@ public class UnThirtyDollarApplication : IScene
 
         key_objects = renderables;
         Manager.RenderBlock.Release();
+    }
+    
+    protected override void HandleAfterSequenceUpdate(TimedEvents events)
+    {
+    }
+
+    protected override void SetSequencePlayerSubscriptions(SequencePlayer player)
+    {
     }
 
     public void Start()

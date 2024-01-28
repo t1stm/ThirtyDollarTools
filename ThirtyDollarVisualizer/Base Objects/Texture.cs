@@ -21,15 +21,13 @@ public class Texture : IDisposable
         }
     }
 
-    private readonly int _handle;
+    private int? _handle;
+    private Image<Rgba32>? texture_data;
     public int Width;
     public int Height;
     
     public Texture(string path)
     {
-        _handle = GL.GenTexture();
-        Bind();
-        
         Stream source;
 
         if (File.Exists(path))
@@ -44,47 +42,36 @@ public class Texture : IDisposable
             source = stream ?? throw new FileNotFoundException($"Unable to find texture \'{path}\' in assembly or real path.");
         }
 
-        using (var img = Image.Load<Rgba32>(source))
-        {
-            LoadImage(img);
-        }
-
-        SetParameters();
+        texture_data = Image.Load<Rgba32>(source);
+        Width = texture_data.Width;
+        Height = texture_data.Height;
         
         source.Dispose();
     }
 
     public Texture(Font font, string text, Color? color = null)
     {
-        _handle = GL.GenTexture();
-        Bind();
-
         var options = new TextOptions(font);
         var rect = TextMeasurer.MeasureSize(text, options);
 
         var c_w = Math.Ceiling(rect.Width);
         var c_h = Math.Ceiling(rect.Height);
         
-        using Image<Rgba32> image = new((int) Math.Max(c_w, 1), (int) Math.Max(c_h, 1), Color.Transparent);
-        if (c_w < 1 || c_h < 1)
-        {
-            LoadImage(image);
-            SetParameters();
-            return;
-        }
+        texture_data = new Image<Rgba32>((int) Math.Max(c_w, 1), (int) Math.Max(c_h, 1), Color.Transparent);
+        Width = texture_data.Width;
+        Height = texture_data.Height;
         
         var point = PointF.Empty;
 
         color ??= Color.White;
+
+        var cast_color = (Color) color;
         
-        image.Mutate(x => 
+        texture_data.Mutate(x => 
                 x.DrawText(text, font, Color.Black, point)
-                .GaussianBlur(1)
-                .DrawText(text, font, (Color) color, point)
+                .GaussianBlur(1f)
+                .DrawText(text, font, cast_color, point)
             );
-        
-        LoadImage(image);
-        SetParameters();
     }
 
     public unsafe Texture(Span<byte> data, int width, int height)
@@ -92,22 +79,28 @@ public class Texture : IDisposable
         Width = width;
         Height = height;
         _handle = GL.GenTexture();
+        if (_handle == 0) throw new Exception("Unable to generate texture handle."); 
         Bind();
 
         fixed (void* d = &data[0])
         {
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, new IntPtr(d));
         }
-        
-        SetParameters();
     }
 
-    private unsafe void LoadImage(Image<Rgba32> img)
+    private unsafe void LoadImage()
     {
-        Width = img.Width;
-        Height = img.Height;
+        if (texture_data is null) throw new Exception("No texture data available.");
+        
+        var img = texture_data;
+        _handle = GL.GenTexture();
+        
+        Console.WriteLine($"[Texture Handler] Loading texture handle: {_handle}");
+        if (_handle == 0) throw new Exception("Unable to generate texture handle."); 
+        Bind();
             
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, img.Width, img.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, 0);
+        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, Width, Height, 
+            0, PixelFormat.Rgba, PixelType.UnsignedByte, 0);
 
         img.ProcessPixelRows(accessor =>
         {
@@ -119,6 +112,17 @@ public class Texture : IDisposable
                 }
             }
         });
+        
+        texture_data.Dispose();
+        texture_data = null;
+    }
+
+    public bool NeedsLoading() => !_handle.HasValue;
+
+    public void LoadOpenGLTexture()
+    {
+        LoadImage();
+        SetParameters();
     }
 
     private static void SetParameters()
@@ -135,13 +139,15 @@ public class Texture : IDisposable
 
     public void Bind(TextureUnit textureSlot = TextureUnit.Texture0)
     {
+        if (!_handle.HasValue) return;
         GL.ActiveTexture(textureSlot);
-        GL.BindTexture(TextureTarget.Texture2D, _handle);
+        GL.BindTexture(TextureTarget.Texture2D, _handle.Value);
     }
 
     public void Dispose()
     {
-        GL.DeleteTexture(_handle);
+        if (_handle.HasValue)
+            GL.DeleteTexture(_handle.Value);
         GC.SuppressFinalize(this);
     }
 }

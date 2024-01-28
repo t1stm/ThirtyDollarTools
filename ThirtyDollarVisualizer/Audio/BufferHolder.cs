@@ -6,6 +6,10 @@ public readonly struct BufferHolder(Dictionary<string, Dictionary<double, Audibl
 {
     public readonly Dictionary<string, Dictionary<double, AudibleBuffer>> ProcessedBuffers = processedBuffers;
 
+    public BufferHolder() : this(new Dictionary<string, Dictionary<double, AudibleBuffer>>())
+    {
+    }
+
     public AudibleBuffer GetBuffer(string event_name, double event_value)
     {
         return ProcessedBuffers[event_name][event_value];
