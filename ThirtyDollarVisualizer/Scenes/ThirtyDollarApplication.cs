@@ -22,21 +22,21 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private static Texture? MissingTexture;
     private readonly List<Renderable> start_objects = new();
     private readonly List<Renderable> static_objects = new();
-    private Memory<SoundRenderable>  TDW_images;
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_delay_stopwatch = new();
     private readonly Stopwatch _file_update_stopwatch = new();
-
-    private DollarStoreCamera Camera;
+    private readonly DollarStoreCamera Camera;
+    
     private int Width;
     private int Height;
     private int PlayfieldWidth;
+    private Memory<SoundRenderable>  TDW_images;
 
     private ColoredPlane _background = null!;
     private ColoredPlane _flash_overlay = null!;
     private ColoredPlane _visible_area = null!;
-    private Renderable _greeting = null!;
-    private SoundRenderable _drag_n_drop = null!;
+    private Renderable? _greeting;
+    private SoundRenderable? _drag_n_drop;
     
     private const int TimingSampleRate = 100_000;
 
@@ -150,11 +150,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
         };
 
-        _greeting = greeting.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
+        _greeting ??= greeting.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
         
         start_objects.Add(_greeting);
 
-        if (_sequence_location == null)
+        if (_drag_n_drop == null)
         {
             var dnd_texture = new Texture(greeting_font, "Drop a file on the window to start.");
             _drag_n_drop = new SoundRenderable(dnd_texture,
@@ -164,7 +164,10 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             _greeting.Children.Add(_drag_n_drop);
             start_objects.Add(_drag_n_drop);
             _drag_n_drop.UpdateModel(false);
-            
+        }
+        
+        if (_sequence_location == null)
+        {
             FinishedInitializing = true;
             return;
         }
@@ -186,7 +189,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     protected override void HandleAfterSequenceUpdate(TimedEvents events)
     {
         FinishedInitializing = false;
-        _drag_n_drop.IsVisible = false;
+        if (_drag_n_drop != null)
+            _drag_n_drop.IsVisible = false;
         Camera.ScrollTo((0,-300,0));
         _background.SetColor(new Vector4(0.21f, 0.22f, 0.24f, 1f));
         

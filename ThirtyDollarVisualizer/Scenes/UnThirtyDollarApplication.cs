@@ -14,7 +14,6 @@ namespace ThirtyDollarVisualizer.Scenes;
 
 public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
-    private SampleHolder? sample_holder; 
     private DollarStoreCamera Camera;
     private readonly List<Renderable> static_objects = new();
     private List<MidiKey> key_objects = new();
