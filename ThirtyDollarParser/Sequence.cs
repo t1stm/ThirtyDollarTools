@@ -1,5 +1,7 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarParser;
 
@@ -7,6 +9,7 @@ public class Sequence
 {
     public Event[] Events { get; set; } = Array.Empty<Event>();
     public readonly Dictionary<string, Event[]> Definitions = new();
+    public readonly HashSet<string> SeparatedChannels = new();
     
     private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
 
@@ -25,7 +28,7 @@ public class Sequence
     /// <returns>The parsed sequence.</returns>
     public static Sequence FromString(string data)
     {
-        var comp = new Sequence();
+        var sequence = new Sequence();
         var split = data.Split('|');
         var list = new List<Event>();
 
@@ -38,19 +41,8 @@ public class Sequence
             if (string.IsNullOrEmpty(text)) continue;
             if (text.StartsWith('#'))
             {
-                var special_match = Regex.Match(text, @"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)");
-                if (!special_match.Success) continue;
-                
-                if (special_match.Groups["name"].Value == "define")
-                {
-                    if (!enumerator.MoveNext()) continue;
-                    
-                    var defines = ParseDefines(in enumerator);
-                    var define_name = special_match.Groups["value"].Value;
-    
-                    comp.Definitions.Add(define_name, defines);
-                    continue;
-                }
+                if (TryDefine(text, enumerator, sequence)) continue;
+                if (TryIndividualCut(text, sequence, list)) continue;
             }
 
             if (text[1..].Any(ch => ch == '!'))
@@ -71,15 +63,58 @@ public class Sequence
             new_event.PlayTimes = 1;
             for (var i = 0; i < repeats; i++)
             {
-                if (ProcessDefines(comp, new_event, list)) continue;
+                if (ProcessDefines(sequence, new_event, list)) continue;
                 list.Add(new_event.Copy());
             }
         }
 
-        comp.Events = list.ToArray();
-        return comp;
+        sequence.Events = list.ToArray();
+        return sequence;
+    }
+
+    private static bool TryDefine(string text, IEnumerator<string> enumerator, Sequence comp)
+    {
+        var special_match = Regex.Match(text, @"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)");
+        if (!special_match.Success) return true;
+
+        if (special_match.Groups["name"].Value != "define") return false;
+        if (!enumerator.MoveNext()) return true;
+
+        var defines = ParseDefines(in enumerator);
+        var define_name = special_match.Groups["value"].Value;
+
+        comp.Definitions.Add(define_name, defines);
+        return true;
     }
     
+    private static bool TryIndividualCut(string text, Sequence sequence, List<Event> event_list)
+    {
+        var match = Regex.Match(text, @"^#icut\((?<events>[^)]+)\)");
+        if (!match.Success) return false;
+        if (!match.Groups["events"].Success) return false;
+
+        var cut_events = match.Groups["events"].Value;
+        var split_events = cut_events.Split(',');
+        
+        for (var i = 0; i < split_events.Length; i++)
+        {
+            var name = split_events[i];
+            split_events[i] = name.Trim();
+        }
+
+        var hash_set = new HashSet<string>();
+        
+        var new_event = new IndividualCutEvent(hash_set);
+        event_list.Add(new_event);
+        
+        foreach (var ev in split_events)
+        {
+            sequence.SeparatedChannels.Add(ev);
+        }
+        
+        return true;
+    }
+
     private static Event[] ParseDefines(in IEnumerator<string> enumerator)
     {
         var events = new List<Event>();

@@ -2,9 +2,9 @@ namespace ThirtyDollarParser.Custom_Events;
 
 public class IndividualCutEvent : Event
 {
-    public readonly string[] CutSounds;
+    public readonly HashSet<string> CutSounds;
 
-    public IndividualCutEvent(string[] cut_sounds)
+    public IndividualCutEvent(HashSet<string> cut_sounds)
     {
         SoundEvent = "#icut";
         Value = 0;
