@@ -275,7 +275,6 @@ public class SequencePlayer
                         break;
                 }
 
-                var idx = end_idx;
                 // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
                 if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
                 {
