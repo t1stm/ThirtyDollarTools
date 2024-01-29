@@ -1,12 +1,13 @@
 namespace ThirtyDollarParser.Custom_Events;
 
-public class IndividualCutEvent : Event
+public class IndividualCutEvent : Event, ICustomEvent
 {
     public readonly HashSet<string> CutSounds;
 
     public IndividualCutEvent(HashSet<string> cut_sounds)
     {
-        SoundEvent = "#icut";
+        SoundEvent ??= "#icut";
+        ValueScale = ValueScale.None;
         Value = 0;
         CutSounds = cut_sounds;
     }

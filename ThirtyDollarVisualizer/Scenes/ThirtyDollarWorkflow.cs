@@ -11,6 +11,7 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
     protected readonly SequencePlayer SequencePlayer = new();
     protected readonly Action<string> Log = logging_action ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
     protected SampleHolder? SampleHolder;
+    private SemaphoreSlim SampleHolderLock = new(1);
     protected TimedEvents TimedEvents = new()
     {
         Placement = Array.Empty<Placement>(),
@@ -47,8 +48,16 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
 
     protected async Task<SampleHolder> GetSampleHolder()
     {
-        if (SampleHolder == null) await CreateSampleHolder();
-        return SampleHolder!;
+        try
+        {
+            await SampleHolderLock.WaitAsync();
+            if (SampleHolder == null) await CreateSampleHolder();
+            return SampleHolder!;
+        }
+        finally
+        {
+            SampleHolderLock.Release();
+        }
     }
 
     /// <summary>

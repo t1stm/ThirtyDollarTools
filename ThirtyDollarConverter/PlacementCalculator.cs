@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter;
 
@@ -62,7 +63,7 @@ public class PlacementCalculator
         {
             var ev = sequence.Events[index];
             IndexReport(index, count);
-            var event_type = ev.SoundEvent?.StartsWith('!') ?? true ? EventType.Action : EventType.Sound;
+            var event_type = (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomEvent ? EventType.Action : EventType.Sound;
             var increment_timer = false;
             var modify_index = true;
 

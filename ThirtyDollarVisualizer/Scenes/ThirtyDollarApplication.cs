@@ -7,6 +7,7 @@ using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Color;
 using ThirtyDollarVisualizer.Helpers.Positioning;
@@ -97,6 +98,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public void Init(Manager manager)
     {
+        GetSampleHolder().GetAwaiter();
         if (_reset_time)
             SequencePlayer.Stop().GetAwaiter().GetResult();
         
@@ -214,7 +216,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         {
             foreach (var ev in events.Sequence.Events)
             {
-                if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith('#'))
+                if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith('#') && ev is not ICustomEvent)
                 {
                     continue;
                 }
@@ -361,15 +363,23 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 break;
         }
 
+        var polluted_value_texture = false;
+        if (texture == MissingTexture)
+        {
+            value = $"{ev.SoundEvent}@{value}";
+            polluted_value_texture = true;
+        }
+
         Texture? value_texture = null;
 
-        if (ev.Value != 0 && ev.SoundEvent is not "_pause" || ev.SoundEvent is "!transpose")
+        if ((ev.Value != 0 || polluted_value_texture) && ev.SoundEvent is not "_pause" || ev.SoundEvent is "!transpose")
         {
             value_text_cache.TryGetValue(value, out value_texture);
             if (value_texture == null)
             {
                 value_texture = new Texture(font, value, volume_color);
-                value_text_cache.Add(value, value_texture);
+                if (!polluted_value_texture) 
+                    value_text_cache.Add(value, value_texture);
             }
         }
 
@@ -434,7 +444,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         var len = TDW_images.Length;
         var placement_idx = (int) placement.SequenceIndex;
-        var element = placement_idx > len || placement_idx < 0 ? null : TDW_images.Span[placement_idx];
+        var element = placement_idx >= len || placement_idx < 0 ? null : 
+            TDW_images.Span[placement_idx];
 
         return element;
     }

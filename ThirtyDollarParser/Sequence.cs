@@ -102,9 +102,12 @@ public class Sequence
             split_events[i] = name.Trim();
         }
 
-        var hash_set = new HashSet<string>();
+        var hash_set = new HashSet<string>(split_events);
         
-        var new_event = new IndividualCutEvent(hash_set);
+        var new_event = new IndividualCutEvent(hash_set)
+        {
+            SoundEvent = text
+        };
         event_list.Add(new_event);
         
         foreach (var ev in split_events)
