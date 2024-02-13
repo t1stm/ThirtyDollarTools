@@ -47,7 +47,7 @@ internal static class Program
             {
                 SampleRate = 48000,
                 Channels = 2,
-                CutFadeLengthMs = 300,
+                CutFadeLengthMs = 50,
                 Resampler = new HermiteResampler()
             }, Console.WriteLine, (current, total) =>
             {

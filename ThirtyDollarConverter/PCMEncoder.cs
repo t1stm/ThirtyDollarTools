@@ -272,7 +272,38 @@ public class PcmEncoder
                 // if not starting on this chunk, ignore it
                 if (current_start < start) continue;
                 
-                // TODO: implement !cut behavior
+                /* TODO: current cut implementation breaks when the cut is near the end of the chunk.
+                   TODO: implement a solution that can be continued from another chunk */
+                const int WANTED_ZERO_SAMPLES = 4096;
+                var zero_samples = 0;
+
+                var end_i = end;
+                for (var i = current_start; i < end; i++)
+                {
+                    if (zero_samples > WANTED_ZERO_SAMPLES)
+                    {
+                        end_i = i;
+                        break;
+                    }
+                    
+                    if (channel_data[i] != 0f) zero_samples = 0;
+                    zero_samples++;
+                }
+
+                var cut_fade_ms = (int) Settings.CutFadeLengthMs;
+                var cut_fade_length = (int)(cut_fade_ms * (float) SampleRate / 1000f);
+                var cut_start = current_start - cut_fade_length;
+                
+                for (var i = 0; i < cut_fade_length; i++)
+                {
+                    var delta = (float) i / cut_fade_length;
+                    channel_data[cut_start + i] *= (float) Math.Sqrt(1 - delta);
+                }
+
+                for (var i = current_start; i < end_i; i++)
+                {
+                    channel_data[i] = 0;
+                }
                 
                 continue;
             }
