@@ -17,7 +17,7 @@ public class EncoderSettings
     /// <summary>
     /// How long the cut event lowers the event's volume before absolutely stopping it. Value is in milliseconds.
     /// </summary>
-    public uint CutDelayMs = 25;
+    public uint CutFadeLengthMs = 25;
     
     /// <summary>
     /// Due to the nature of the TDW before the Thirty Dollar Rewrite got merged, some sequences sound wrong when played perfectly.

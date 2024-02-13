@@ -106,15 +106,16 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         {
             SampleRate = (uint) audio_context.SampleRate,
             Channels = 2,
-            Resampler = new LinearResampler()
+            Resampler = new HermiteResampler()
         });
 
-        var (samples, _) = await pcm_encoder.GetAudioSamples(-1, placement);
+        var samples = await pcm_encoder.GetAudioSamples(TimedEvents);
         
         foreach (var ev in samples)
         {
-            var value = ev.Value;
-            var name = ev.Name;
+            var val = ev.Value;
+            var value = val.Value;
+            var name = val.Name ?? string.Empty;
 
             if (buffer_holder.ProcessedBuffers.TryGetValue(name, out var value_dictionary))
             {
@@ -127,7 +128,7 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
                 buffer_holder.ProcessedBuffers.Add(name, value_dictionary);
             }
 
-            var sample = audio_context.GetBufferObject(ev.AudioData, audio_context.SampleRate);
+            var sample = audio_context.GetBufferObject(val.AudioData, audio_context.SampleRate);
             value_dictionary.Add(value, sample);
         }
         

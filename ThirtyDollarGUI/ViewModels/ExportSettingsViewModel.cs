@@ -7,39 +7,32 @@ using ThirtyDollarGUI.Services;
 
 namespace ThirtyDollarGUI.ViewModels;
 
-public partial class ExportSettingsViewModel : ViewModelBase
+public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : ViewModelBase
 {
-    private readonly EncoderSettings EncoderSettings;
-    public ObservableCollection<ResamplerModel> ListItems { get; }
-    
-    public ExportSettingsViewModel(EncoderSettings encoderSettings)
-    {
-        EncoderSettings = encoderSettings;
-        ListItems = new ObservableCollection<ResamplerModel>(ResamplerService.GetItems());
-    }
+    public ObservableCollection<ResamplerModel> ListItems { get; } = new(ResamplerService.GetItems());
 
     public uint SampleRate
     {
-        get => EncoderSettings.SampleRate;
-        set => this.RaiseAndSetIfChanged(ref EncoderSettings.SampleRate, value);
+        get => encoderSettings.SampleRate;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.SampleRate, value);
     }
     
     public uint Channels
     {
-        get => EncoderSettings.Channels;
-        set => this.RaiseAndSetIfChanged(ref EncoderSettings.Channels, value);
+        get => encoderSettings.Channels;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.Channels, value);
     }
     
     public uint CutDelayMs
     {
-        get => EncoderSettings.CutDelayMs;
-        set => this.RaiseAndSetIfChanged(ref EncoderSettings.CutDelayMs, value);
+        get => encoderSettings.CutFadeLengthMs;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.CutFadeLengthMs, value);
     }
     
     public uint CombineDelayMs
     {
-        get => EncoderSettings.CombineDelayMs;
-        set => this.RaiseAndSetIfChanged(ref EncoderSettings.CombineDelayMs, value);
+        get => encoderSettings.CombineDelayMs;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.CombineDelayMs, value);
     }
     
     [GeneratedRegex("^[0-9]+$")]
@@ -123,11 +116,11 @@ public partial class ExportSettingsViewModel : ViewModelBase
 
     public ResamplerModel SelectedExportSettings
     {
-        get => new(EncoderSettings.Resampler);
+        get => new(encoderSettings.Resampler);
         set
         {
             var resampler = value.Resampler;
-            EncoderSettings.Resampler = this.RaiseAndSetIfChanged(ref EncoderSettings.Resampler, resampler);
+            encoderSettings.Resampler = this.RaiseAndSetIfChanged(ref encoderSettings.Resampler, resampler);
         }
     }
 }

@@ -63,6 +63,19 @@ public class Event
             ValueScale = ValueScale
         };
     }
+
+    public void Deconstruct(out string? event_name, out double event_value)
+    {
+        event_name = SoundEvent;
+        event_value = Value;
+    }
+    
+    public void Deconstruct(out string? event_name, out double event_value, out double? event_volume)
+    {
+        event_name = SoundEvent;
+        event_value = Value;
+        event_volume = Volume;
+    }
 }
 
 public enum ValueScale

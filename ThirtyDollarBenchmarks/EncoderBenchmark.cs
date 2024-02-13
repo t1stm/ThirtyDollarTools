@@ -44,7 +44,7 @@ public class EncoderBenchmark
         {
             SampleRate = 48000,
             Channels = 2,
-            CutDelayMs = 250,
+            CutFadeLengthMs = 250,
             CombineDelayMs = 0,
             Resampler = new LinearResampler(),
             AddVisualEvents = false
@@ -66,21 +66,21 @@ public class EncoderBenchmark
     }
     
     [Benchmark]
-    public void Standard_PCM_Encoder_OneThread()
+    public async Task Standard_PCM_Encoder_OneThread()
     {
-        _encoder.GetSequenceAudio(_sequence, 1);
+        await _encoder.GetSequenceAudio(_sequence);
     }
 
     [Benchmark]
-    public void Standard_PCM_Encoder_NoSave()
+    public async Task Standard_PCM_Encoder_NoSave()
     {
-        _encoder.GetSequenceAudio(_sequence);
+        await _encoder.GetSequenceAudio(_sequence);
     }
     
     [Benchmark]
-    public void Standard_PCM_Encoder_Save()
+    public async Task Standard_PCM_Encoder_Save()
     {
-        var sampled = _encoder.GetSequenceAudio(_sequence);
+        var sampled = await _encoder.GetSequenceAudio(_sequence);
         var tmp = Path.GetTempFileName();
         _encoder.WriteAsWavFile(tmp, sampled);
         

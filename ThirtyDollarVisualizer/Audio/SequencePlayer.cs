@@ -1,5 +1,4 @@
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio.FeatureFlags;
 using ThirtyDollarVisualizer.Audio.Null;
@@ -370,11 +369,4 @@ public enum PlayerErrors
 {
     None, 
     NoContext
-}
-
-public struct TimedEvents
-{
-    public Sequence Sequence;
-    public Placement[] Placement;
-    public int TimingSampleRate;
 }

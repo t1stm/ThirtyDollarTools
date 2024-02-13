@@ -100,6 +100,8 @@ public class PlacementCalculator
                 continue;
             }
 
+            var audible = false;
+
             switch (ev.SoundEvent)
             {
                 case "!speed":
@@ -239,16 +241,7 @@ public class PlacementCalculator
                     break;
 
                 case "!cut":
-                    yield return new Placement
-                    {
-                        Event = new Event
-                        {
-                            SoundEvent = "#!cut",
-                            Value = position + SampleRate / (bpm / 60)
-                        },
-                        Index = position,
-                        SequenceIndex = index
-                    };
+                    audible = true;
                     Log($"Cutting audio at: \'{position + SampleRate / (bpm / 60)}\'");
                     break;
 
@@ -288,7 +281,7 @@ public class PlacementCalculator
                 Index = position,
                 SequenceIndex = index,
                 Event = ev,
-                Audible = false
+                Audible = audible
             };
             if (modify_index) index++;
             if (!scrubbing && increment_timer) position += (ulong) (SampleRate / (bpm / 60));

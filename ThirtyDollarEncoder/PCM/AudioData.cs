@@ -11,11 +11,11 @@ public class AudioData<T> : IDisposable
         Samples = new T[ChannelCount][];
     }
 
-    public static AudioData<float> Empty(uint channelCount)
+    public static AudioData<float> Empty(uint channel_count)
     {
         var empty = Array.Empty<float>();
-        var data = new AudioData<float>(channelCount);
-        for (var i = 0; i < channelCount; i++) data.Samples[i] = empty;
+        var data = new AudioData<float>(channel_count);
+        for (var i = 0; i < channel_count; i++) data.Samples[i] = empty;
 
         return data;
     }
@@ -27,9 +27,10 @@ public class AudioData<T> : IDisposable
         return data;
     }
 
-    public Span<T> GetChannel(int index)
+    public T[] GetChannel(int index)
     {
-        return Samples[index];
+        lock (Samples)
+            return Samples[index];
     }
 
     public int GetLength() => GetChannel(0).Length;

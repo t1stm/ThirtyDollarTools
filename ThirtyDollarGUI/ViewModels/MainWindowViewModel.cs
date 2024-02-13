@@ -189,9 +189,9 @@ public class MainWindowViewModel : ViewModelBase
         CreateLog("Started encoding.");
         encoder = new PcmEncoder(sample_holder, encoder_settings, CreateLog, UpdateProgressBar);
 
-        await Task.Run(() =>
+        await Task.Run(async () =>
         {
-            EncoderStart(encoder, sequence);
+            await EncoderStart(encoder, sequence);
         });
     }
 
@@ -205,9 +205,9 @@ public class MainWindowViewModel : ViewModelBase
         export_settings.Show();
     }
 
-    private void EncoderStart(PcmEncoder pcm_encoder, Sequence localSequence)
+    private async Task EncoderStart(PcmEncoder pcm_encoder, Sequence localSequence)
     {
-        var output = pcm_encoder.GetSequenceAudio(localSequence);
+        var output = await pcm_encoder.GetSequenceAudio(localSequence);
         CreateLog("Finished encoding.");
 
         pcm_encoder.WriteAsWavFile(export_file_location ?? throw new Exception("Export path is null."), output);
