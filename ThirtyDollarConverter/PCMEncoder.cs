@@ -356,7 +356,7 @@ public class PcmEncoder
 
     private void HandleCut(int start, int end, int current_start, Span<float> mix_slice)
     {
-        const int WANTED_ZERO_SAMPLES = 4096;
+        var WANTED_ZERO_SAMPLES = 4096 * SampleRate / 48000;
         var norm_start = current_start - start;
         var norm_end = end - start;
 
@@ -377,7 +377,7 @@ public class PcmEncoder
         }
 
         var cut_fade_ms = (int)Settings.CutFadeLengthMs;
-        var cut_fade_length = (int)Settings.SampleRate * cut_fade_ms / 1000;
+        var cut_fade_length = (int)(Settings.SampleRate / 1000) * cut_fade_ms;
         var cut_fade_end = norm_start + cut_fade_length;
 
         int cut_i;
