@@ -43,18 +43,9 @@ public class Sequence
             if (text.StartsWith('#'))
             {
                 if (TryDefine(text, enumerator, sequence)) continue;
-                if (TryIndividualCut(text, sequence, out var new_individual_cut_event))
-                {
-                    list.Add(new_individual_cut_event);
-                    continue;
-                }
             }
-
-            if (text[1..].Any(ch => ch == '!'))
-                // Text contains more than one parameter on event without divider. Adding the first event only.
-                text = text[..text[1..].IndexOf('!')];
             
-            var new_event = ParseEvent(text);
+            var new_event = ParseEvent(text, sequence);
             
             if (new_event.SoundEvent?.StartsWith('!') ?? false)
             {
@@ -78,7 +69,7 @@ public class Sequence
         return sequence;
     }
 
-    private static bool TryDefine(string text, IEnumerator<string> enumerator, Sequence comp)
+    private static bool TryDefine(string text, IEnumerator<string> enumerator, Sequence sequence)
     {
         var special_match = Regex.Match(text, @"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)");
         if (!special_match.Success) return true;
@@ -86,10 +77,10 @@ public class Sequence
         if (special_match.Groups["name"].Value != "define") return false;
         if (!enumerator.MoveNext()) return true;
 
-        var defines = ParseDefines(in enumerator);
+        var defines = ParseDefines(in enumerator, sequence);
         var define_name = special_match.Groups["value"].Value;
 
-        comp.Definitions.Add(define_name, defines);
+        sequence.Definitions.Add(define_name, defines);
         return true;
     }
     
@@ -125,16 +116,17 @@ public class Sequence
         return true;
     }
 
-    private static BaseEvent[] ParseDefines(in IEnumerator<string> enumerator)
+    private static BaseEvent[] ParseDefines(in IEnumerator<string> enumerator, Sequence sequence)
     {
         var events = new List<BaseEvent>();
 
         while (true)
         {
             var text = enumerator.Current;
-            if (text.Trim() == "#enddefine") break;
+            var trimmed = text.Trim();
+            if (trimmed == "#enddefine") break;
             
-            events.Add(ParseEvent(text));
+            events.Add(ParseEvent(trimmed, sequence));
             if (!enumerator.MoveNext()) break;
         }
         
@@ -151,8 +143,19 @@ public class Sequence
             pan = panned_event.Pan;
         }
         
-        var array = events.Select(r => new PannedEvent(r)).ToArray();
-        
+        var array = new BaseEvent[events.Length];
+        for (var i = 0; i < events.Length; i++)
+        {
+            var _event = events[i];
+
+            array[i] = _event switch
+            {
+                NormalEvent => new PannedEvent(_event),
+                IndividualCutEvent ice => ice.Copy(),
+                _ => _event.Copy()
+            };
+        }
+
         if (new_event is { Value: 0, ValueScale: ValueScale.None or ValueScale.Add, Volume: null or 100d } && pan == 0f)
         {
             goto return_path;
@@ -161,8 +164,11 @@ public class Sequence
         var val = new_event.Value;
         foreach (var ev in array)
         {
-            if (ev.SoundEvent is "!combine") continue;
-            ev.Pan = pan;
+            if (ev.SoundEvent is "!combine" && ev is ICustomActionEvent) continue;
+            if (ev is PannedEvent _panned)
+            {
+                _panned.Pan = pan;
+            }
             
             switch (new_event.ValueScale)
             {
@@ -202,9 +208,15 @@ public class Sequence
     /// Parses a single event.
     /// </summary>
     /// <param name="text">The string of the event.</param>
+    /// <param name="sequence">The sequence that is going to be parsed.</param>
     /// <returns>The parsed event.</returns>
-    private static BaseEvent ParseEvent(string text)
+    private static BaseEvent ParseEvent(string text, Sequence sequence)
     {
+        if (TryIndividualCut(text, sequence, out var new_individual_cut_event))
+        {
+            return new_individual_cut_event;
+        }
+        
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
         {
             // Special color lines get their own parser. 🗿
