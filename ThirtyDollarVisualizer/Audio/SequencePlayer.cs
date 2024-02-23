@@ -340,6 +340,15 @@ public class SequencePlayer
             var tuple = (name, buffer);
             lock (ActiveSamples)
                 ActiveSamples.Add(tuple);
+
+            if (placement.Event is PannedEvent panned_event)
+            {
+                buffer.SetPan(panned_event.Pan);
+            }
+            else
+            {
+                buffer.SetPan(0f);
+            }
             
             buffer.SetVolume((float) (placement.Event.Volume ?? 100d) / 100f);
             buffer.Play(remove_callback);

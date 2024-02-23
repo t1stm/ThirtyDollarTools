@@ -9,4 +9,5 @@ public abstract class AudibleBuffer
     public abstract void SetVolume(float volume);
     public abstract void Delete();
     public abstract void SetPause(bool state);
+    public abstract void SetPan(float pan);
 }

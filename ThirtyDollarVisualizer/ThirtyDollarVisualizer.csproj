@@ -33,6 +33,8 @@
         <None Remove="Assets\Fonts\Lato-Bold.ttf" />
         <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf" />
         <EmbeddedResource Include="Assets\Textures\action_missing.png" />
+        <None Remove="Assets\Textures\action_icut.png" />
+        <EmbeddedResource Include="Assets\Textures\action_icut.png" />
     </ItemGroup>
 
     <ItemGroup>

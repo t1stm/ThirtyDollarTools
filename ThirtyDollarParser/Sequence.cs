@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using ThirtyDollarParser.Custom_Events;
@@ -7,9 +6,9 @@ namespace ThirtyDollarParser;
 
 public class Sequence
 {
-    public Event[] Events { get; set; } = Array.Empty<Event>();
-    public readonly Dictionary<string, Event[]> Definitions = new();
-    public readonly HashSet<string> SeparatedChannels = new();
+    public BaseEvent[] Events { get; set; } = Array.Empty<BaseEvent>();
+    public Dictionary<string, BaseEvent[]> Definitions = new();
+    public HashSet<string> SeparatedChannels = new();
     
     private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
 
@@ -17,7 +16,9 @@ public class Sequence
     {
         return new Sequence
         {
-            Events = Events.Select(r => r.Copy()).ToArray()
+            Events = Events.Select(r => r.Copy()).ToArray(),
+            Definitions = Definitions,
+            SeparatedChannels = SeparatedChannels
         };
     }
 
@@ -30,7 +31,7 @@ public class Sequence
     {
         var sequence = new Sequence();
         var split = data.Split('|');
-        var list = new List<Event>();
+        var list = new List<BaseEvent>();
 
         using var enumerator = split.AsEnumerable().GetEnumerator();
         while (enumerator.MoveNext())
@@ -42,7 +43,11 @@ public class Sequence
             if (text.StartsWith('#'))
             {
                 if (TryDefine(text, enumerator, sequence)) continue;
-                if (TryIndividualCut(text, sequence, list)) continue;
+                if (TryIndividualCut(text, sequence, out var new_individual_cut_event))
+                {
+                    list.Add(new_individual_cut_event);
+                    continue;
+                }
             }
 
             if (text[1..].Any(ch => ch == '!'))
@@ -64,7 +69,8 @@ public class Sequence
             for (var i = 0; i < repeats; i++)
             {
                 if (ProcessDefines(sequence, new_event, list)) continue;
-                list.Add(new_event.Copy());
+                var copy = new_event.Copy();
+                list.Add(copy);
             }
         }
 
@@ -87,8 +93,10 @@ public class Sequence
         return true;
     }
     
-    private static bool TryIndividualCut(string text, Sequence sequence, List<Event> event_list)
+    private static bool TryIndividualCut(string text, Sequence sequence, out BaseEvent new_event)
     {
+        new_event = NormalEvent.Empty;
+        
         var match = Regex.Match(text, @"^#icut\((?<events>[^)]+)\)");
         if (!match.Success) return false;
         if (!match.Groups["events"].Success) return false;
@@ -104,11 +112,10 @@ public class Sequence
 
         var hash_set = new HashSet<string>(split_events);
         
-        var new_event = new IndividualCutEvent(hash_set)
+        new_event = new IndividualCutEvent(hash_set)
         {
             SoundEvent = text
         };
-        event_list.Add(new_event);
         
         foreach (var ev in split_events)
         {
@@ -118,9 +125,9 @@ public class Sequence
         return true;
     }
 
-    private static Event[] ParseDefines(in IEnumerator<string> enumerator)
+    private static BaseEvent[] ParseDefines(in IEnumerator<string> enumerator)
     {
-        var events = new List<Event>();
+        var events = new List<BaseEvent>();
 
         while (true)
         {
@@ -134,20 +141,29 @@ public class Sequence
         return events.ToArray();
     }
 
-    private static bool ProcessDefines(Sequence comp, Event new_event, List<Event> list)
+    private static bool ProcessDefines(Sequence comp, BaseEvent new_event, List<BaseEvent> list)
     {
         if (!comp.Definitions.TryGetValue(new_event.SoundEvent ?? "", out var events)) return false;
-        var copy = events.Select(r => r.Copy()).ToArray();
 
-        if (new_event is { Value: 0, ValueScale: ValueScale.None or ValueScale.Add })
+        var pan = 0f;
+        if (new_event is PannedEvent panned_event)
+        {
+            pan = panned_event.Pan;
+        }
+        
+        var array = events.Select(r => new PannedEvent(r)).ToArray();
+        
+        if (new_event is { Value: 0, ValueScale: ValueScale.None or ValueScale.Add, Volume: null or 100d } && pan == 0f)
         {
             goto return_path;
         }
 
         var val = new_event.Value;
-        foreach (var ev in copy)
+        foreach (var ev in array)
         {
             if (ev.SoundEvent is "!combine") continue;
+            ev.Pan = pan;
+            
             switch (new_event.ValueScale)
             {
                 case ValueScale.None:
@@ -163,10 +179,22 @@ public class Sequence
                     ev.Value *= val;
                     break;
             }
+            
+            if (new_event.Volume is null or 100d) continue;
+            
+            switch (ev.Volume)
+            {
+                case null:
+                    ev.Volume = new_event.Volume;
+                    break;
+                default:
+                    ev.Volume *= new_event.Volume / 100d;
+                    break;
+            }
         }
 
         return_path:
-        list.AddRange(copy);
+        list.AddRange(array);
         return true;
     }
 
@@ -175,7 +203,7 @@ public class Sequence
     /// </summary>
     /// <param name="text">The string of the event.</param>
     /// <returns>The parsed event.</returns>
-    private static Event ParseEvent(string text)
+    private static BaseEvent ParseEvent(string text)
     {
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
         {
@@ -183,79 +211,83 @@ public class Sequence
             return ParseColorEvent(text);
         }
         
-        var split_for_value = text.Split('@');
-        var split_for_repeats = text.Split('=');
-        var value = 0.0;
-        double? event_volume = null;
-        var scale = ValueScale.None;
-        var loop_times = 1;
+        // Modifiers that separate the sound name from the other parameters.
+        const string modifiers = "@%^=";
+
+        // All Regex patterns.
+        const string sound_name_regex = $"^[^{modifiers}]*";
+        const string value_regex = "@[-0-9.]+";
+        const string value_scale_regex = $"@[-0-9.]+@[^{modifiers}]+";
+        const string volume_regex = "%[-0-9.]+";
+        const string loop_times_regex = "=[0-9]+";
         
-        try
-        {
-            // Case !event@16
-            if (split_for_value.Length > 1)
-            {
-                var temporary_extract = split_for_value[1].Split('=')[0];
-                var possibly_value = temporary_extract.Split('%');
-                value = double.Parse(possibly_value[0],NumberStyles.Any, CultureInfo);
+        // Custom event Regex patterns here.
+        const string pan_regex = @"\^[-0-9.]+";
 
-                if (possibly_value.Length > 1)
-                {
-                    event_volume = double.Parse(possibly_value[1], NumberStyles.Any, CultureInfo);
-                }
-            }
-            
-            // Case !event@16@x
-            if (split_for_value.Length > 2)
-            {
-                var temporary_split = split_for_value[2].Split('=')[0];
-                var possibly_value = temporary_split.Split('%');
-                scale = possibly_value[0] switch
-                {
-                    "x" => ValueScale.Times, "+" => ValueScale.Add, "/" => ValueScale.Divide, _ => ValueScale.None
-                };
-                
-                if (possibly_value.Length > 1)
-                {
-                    event_volume = double.Parse(possibly_value[1],NumberStyles.Any, CultureInfo);
-                }
-            }
-        }
-        catch (Exception e)
+        var sound_name_match = Regex.Match(text, sound_name_regex, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        var sound = sound_name_match.Success ? sound_name_match.Value.Trim() : string.Empty;
+
+        var value_match = Regex.Match(text, value_regex);
+        var value = value_match.Success ? double.Parse(value_match.Value[1..]) : 0;
+
+        var value_scale_match = Regex.Match(text, value_scale_regex);
+        var scale = ValueScale.None;
+        if (value_scale_match.Success)
         {
-            Console.WriteLine(e + $"\n{text}");
-            throw;
+            var value_scale_string = value_scale_match.Value;
+            scale = value_scale_string[^1] switch
+            {
+                'x' => ValueScale.Times,
+                '+' => ValueScale.Add,
+                '/' => ValueScale.Divide,
+                _ => ValueScale.None
+            };
         }
 
-        var sound = (split_for_repeats.Length > 1 ? split_for_repeats[0].Split("@")[0] : split_for_value[0]).Trim();
-        if (split_for_repeats.Length > 1) loop_times = (int)Math.Floor(double.Parse(split_for_repeats.Last(),NumberStyles.Any, CultureInfo));
-            
-        if ((sound == "_pause" && text.Contains('=')) ||
-            (sound == "!stop" && text.Contains('@')) ||
-            sound is "!loop" or "!loopmany")
-        {
+        var loop_times_match = Regex.Match(text, loop_times_regex);
+        var loop_times = loop_times_match.Success ? int.Parse(loop_times_match.Value[1..]) : 1;
+        
+        var volume_match = Regex.Match(text, volume_regex);
+        double? event_volume = volume_match.Success ? double.Parse(volume_match.Value[1..]) : null;
+
+        var pan_match = Regex.Match(text, pan_regex);
+        var pan = pan_match.Success ? float.Parse(pan_match.Value[1..]) : 0f;
+
+        if (sound is "!loopmany" or "!loop" or "!stop" or "_pause") 
             loop_times = (int)(value > 0 ? value : loop_times);
-        }
 
-        if (sound is "_pause" or "!stop" && value == 0)
+        if (pan == 0f)
         {
-            value = 1;
-        }
-            
-        var new_event = new Event
-        {
-            Value = value,
-            SoundEvent = sound,
-            PlayTimes = loop_times,
-            OriginalLoop = loop_times,
-            ValueScale = scale,
-            Volume = event_volume
-        };
+            var new_event = new NormalEvent
+            {
+                Value = value,
+                SoundEvent = sound,
+                PlayTimes = loop_times,
+                OriginalLoop = loop_times,
+                ValueScale = scale,
+                Volume = event_volume
+            };
 
-        return new_event;
+            return new_event;
+        }
+        else
+        {
+            var new_event = new PannedEvent
+            {
+                Pan = pan,
+                Value = value,
+                SoundEvent = sound,
+                PlayTimes = loop_times,
+                OriginalLoop = loop_times,
+                ValueScale = scale,
+                Volume = event_volume
+            };
+
+            return new_event;
+        }
     }
 
-    public static Event ParseColorEvent(string text)
+    public static NormalEvent ParseColorEvent(string text)
     {
         var split_for_value = text.Split('@');
         var action = split_for_value[0];
@@ -320,7 +352,7 @@ public class Sequence
             value = p_short << 8 | r_byte;
         }
         
-        var new_event = new Event
+        var new_event = new NormalEvent
         {
             Value = value,
             SoundEvent = action,

@@ -36,7 +36,7 @@ public class SampleProcessor
     /// <returns>The audio data of the resampled event.</returns>
     /// <exception cref="Exception">Exception thrown when the event's PcmDataHolder is null.</exception>
     /// <exception cref="NullReferenceException">Exception thrown when the event's audio data in the holder is null.</exception>
-    public AudioData<float> ProcessEvent(Event ev)
+    public AudioData<float> ProcessEvent(BaseEvent ev)
     {
         try
         {

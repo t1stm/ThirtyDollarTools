@@ -58,7 +58,7 @@ public class SoundRenderable : TexturedPlane
         FadeAnimation.StartAnimation();
     }
 
-    public void SetValue(Event _event, Dictionary<string, Texture> generated_textures, ValueChangeWrapMode value_change_wrap_mode)
+    public void SetValue(BaseEvent _event, Dictionary<string, Texture> generated_textures, ValueChangeWrapMode value_change_wrap_mode)
     {
         if (ValueRenderable is null) return;
         

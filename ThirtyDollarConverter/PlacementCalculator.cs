@@ -20,6 +20,10 @@ public class PlacementCalculator
     private Action<ulong, ulong> IndexReport { get; }
     private bool AddVisualTimings { get; }
 
+    private static readonly string[] jump_untriggers = { "!loop", "!loopmany", "!jump", "!target" };
+    private static readonly string[] loop_untriggers = { "!loopmany", "!loop" };
+    private static readonly string[] loopmany_untriggers = { "!loopmany" };
+
     /// <summary>
     /// Creates a calculator that gets the placement of a sequence.
     /// </summary>
@@ -63,7 +67,8 @@ public class PlacementCalculator
         {
             var ev = sequence.Events[index];
             IndexReport(index, count);
-            var event_type = (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomEvent ? EventType.Action : EventType.Sound;
+            var event_type = (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomActionEvent ? EventType.Action : EventType.Sound;
+            
             var increment_timer = false;
             var modify_index = true;
 
@@ -100,7 +105,7 @@ public class PlacementCalculator
                 continue;
             }
 
-            var audible = false;
+            var audible = ev is ICustomActionEvent and ICustomAudibleEvent;
 
             switch (ev.SoundEvent)
             {
@@ -181,7 +186,7 @@ public class PlacementCalculator
                         modify_index = false;
                         index = loop_target;
                             
-                        Untrigger(ref sequence, index, new[] { "!loopmany" });
+                        Untrigger(ref sequence, index, loopmany_untriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
                     }
                     break;
@@ -201,7 +206,7 @@ public class PlacementCalculator
                         modify_index = false;
                         index = loop_target;
                             
-                        Untrigger(ref sequence, index, new[] { "!loopmany", "!loop" });
+                        Untrigger(ref sequence, index, loop_untriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
                     }
                     break;
@@ -221,7 +226,7 @@ public class PlacementCalculator
                     var search = Array.IndexOf(sequence.Events, item);
                     if (search == -1)
                     {
-                        Untrigger(ref sequence, 0, new[] { "!loop", "!loopmany", "!jump", "!target" });
+                        Untrigger(ref sequence, 0, jump_untriggers);
                         break;
                     }
                     
@@ -236,7 +241,7 @@ public class PlacementCalculator
                     index = (ulong) search;
                     var found_event = sequence.Events[index];
 
-                    Untrigger(ref sequence, index, new[] { "!loop", "!loopmany", "!jump", "!target" });
+                    Untrigger(ref sequence, index, jump_untriggers);
                     Log($"Jumping to element: ({index}) - {found_event}");
                     break;
 

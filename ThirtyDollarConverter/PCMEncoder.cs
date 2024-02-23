@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter;
 
@@ -89,7 +90,7 @@ public class PcmEncoder
     {
         var placement = events.Placement;
         // Get only unique events. Duplicates get removed.
-        var event_dictionary = new Dictionary<(string event_name, double event_value), Event>();
+        var event_dictionary = new Dictionary<(string event_name, double event_value), BaseEvent>();
 
         foreach (var p in placement)
         {
@@ -98,7 +99,7 @@ public class PcmEncoder
             var ev = p.Event;
             var event_name = ev.SoundEvent ?? string.Empty;
             var event_value = ev.Value;
-            if (event_name == "!cut") continue;
+            if (event_name == "!cut" || ev is ICustomActionEvent) continue;
             
             event_dictionary.TryAdd((event_name, event_value), ev);
         }
@@ -176,7 +177,7 @@ public class PcmEncoder
 
         // Wait for all tasks to finish.
         await Task.WhenAll(channels);
-        return audio_data;
+        return mixer.MixDown();
     }
 
     /// <summary>
@@ -239,6 +240,7 @@ public class PcmEncoder
             if (!current.Audible) continue;
             
             // extract event values
+            var current_event = current.Event;
             var (event_name, event_value, event_volume) = current.Event;
             event_name ??= string.Empty;
             event_volume ??= 100d;
@@ -266,45 +268,34 @@ public class PcmEncoder
             var current_start = (int) current.Index;
             if (current_start >= end) break;
 
+            // put pan variable here to be used later
+            var pan = 0f;
+
+            switch (current_event)
+            {
+                // handle #icut event
+                case IndividualCutEvent individual_cut_event:
+                {
+                    foreach (var cut_track in from sound in individual_cut_event.CutSounds 
+                             where mixer.HasTrack(sound) select mixer.GetTrack(sound))
+                    {
+                        var cut_slice = cut_track.GetChannel(channel).AsSpan()[start..end];
+                        HandleCut(start, end, current_start, cut_slice);
+                    }
+                    continue;
+                }
+
+                case PannedEvent panned_event:
+                {
+                    pan = Math.Clamp(panned_event.Pan, -1f, 1f);
+                    break;
+                }
+            }
+
             // handle !cut event
             if (event_name == "!cut")
             {
-                // if not starting on this chunk, ignore it
-                if (current_start < start) continue;
-                
-                /* TODO: current cut implementation breaks when the cut is near the end of the chunk.
-                   TODO: implement a solution that can be continued from another chunk */
-                const int WANTED_ZERO_SAMPLES = 4096;
-                var zero_samples = 0;
-
-                var end_i = end;
-                for (var i = current_start; i < end; i++)
-                {
-                    if (zero_samples > WANTED_ZERO_SAMPLES)
-                    {
-                        end_i = i;
-                        break;
-                    }
-                    
-                    if (channel_data[i] != 0f) zero_samples = 0;
-                    zero_samples++;
-                }
-
-                var cut_fade_ms = (int) Settings.CutFadeLengthMs;
-                var cut_fade_length = (int)(cut_fade_ms * (float) SampleRate / 1000f);
-                var cut_start = current_start - cut_fade_length;
-                
-                for (var i = 0; i < cut_fade_length; i++)
-                {
-                    var delta = (float) i / cut_fade_length;
-                    channel_data[cut_start + i] *= (float) Math.Sqrt(1 - delta);
-                }
-
-                for (var i = current_start; i < end_i; i++)
-                {
-                    channel_data[i] = 0;
-                }
-                
+                HandleCut(start, end, current_start, mix_slice);
                 continue;
             }
 
@@ -336,12 +327,76 @@ public class PcmEncoder
             {
                 delta_end = mix_slice.Length;
             }
+
+            var volume = event_volume.Value;
+            
+            switch (pan)
+            {
+                // Channel = Right
+                case < 0 when channel == 1:
+                {
+                    var percent_dim = 1f + pan;
+                    volume *= Math.Sqrt(percent_dim);
+                    break;
+                }
+                    
+                // Channel = Left
+                case > 0 when channel == 0:
+                {
+                    var percent_dim = 1f - pan;
+                    volume *= Math.Sqrt(percent_dim);
+                    break;
+                }
+            }
             
             RenderSample(current_channel, mix_slice, delta_start, 
-                event_volume.Value, delta_end, offset);
+                volume, delta_end, offset);
         }
     }
-    
+
+    private void HandleCut(int start, int end, int current_start, Span<float> mix_slice)
+    {
+        const int WANTED_ZERO_SAMPLES = 4096;
+        var norm_start = current_start - start;
+        var norm_end = end - start;
+
+        var zero_samples = 0;
+        var zero_index = norm_end;
+        for (var i = 0; i < norm_end; i++)
+        {
+            if (zero_samples >= WANTED_ZERO_SAMPLES)
+            {
+                zero_index = i;
+                break;
+            }
+
+            zero_samples++;
+
+            if (mix_slice[i] == 0f) continue;
+            zero_samples = 0;
+        }
+
+        var cut_fade_ms = (int)Settings.CutFadeLengthMs;
+        var cut_fade_length = (int)Settings.SampleRate * cut_fade_ms / 1000;
+        var cut_fade_end = norm_start + cut_fade_length;
+
+        int cut_i;
+        for (cut_i = norm_start; cut_i < cut_fade_end; cut_i++)
+        {
+            if (cut_i < 0 || cut_i >= zero_index) continue;
+            var norm_i = cut_fade_end - cut_i;
+
+            var delta = (float)norm_i / cut_fade_length;
+            mix_slice[cut_i] *= 1f - delta;
+        }
+
+        for (var i = cut_i; i < zero_index; i++)
+        {
+            if (i < 0) continue;
+            mix_slice[i] = 0f;
+        }
+    }
+
     /// <summary>
     /// Exports an AudioData object as a WAVE file.
     /// </summary>

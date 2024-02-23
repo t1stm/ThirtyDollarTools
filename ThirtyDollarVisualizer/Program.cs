@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using CommandLine;
 using OpenTK.Windowing.Common.Input;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Scenes;
 using Image = SixLabors.ImageSharp.Image;
@@ -71,9 +72,10 @@ public static class Program
                 };
 
                 audio_context = no_audio
-                    ? null
+                    ? new NullAudioContext()
                     : options.AudioBackend switch
                     {
+                        "null" => new NullAudioContext(),
                         "openal" => new OpenALContext(),
                         _ => new BassAudioContext()
                     };

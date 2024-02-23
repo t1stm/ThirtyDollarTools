@@ -21,6 +21,7 @@ namespace ThirtyDollarVisualizer.Scenes;
 public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
     private static Texture? MissingTexture;
+    private static Texture? ICutTexture;
     private readonly List<Renderable> start_objects = new();
     private readonly List<Renderable> static_objects = new();
     private readonly Stopwatch _open_stopwatch = new();
@@ -114,6 +115,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         Manager = manager;
         MissingTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
+        ICutTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_icut.png");
 
         Log("Loaded sequence and placement.");
 
@@ -216,7 +218,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         {
             foreach (var ev in events.Sequence.Events)
             {
-                if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith('#') && ev is not ICustomEvent)
+                if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent)
                 {
                     continue;
                 }
@@ -271,7 +273,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <summary>
     /// Creates a Thirty Dollar Website renderable with the texture of the event and its value and volume as children.
     /// </summary>
-    private void CreateEventRenderable(ICollection<SoundRenderable> tdw_images, Event ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
+    private void CreateEventRenderable(ICollection<SoundRenderable> tdw_images, BaseEvent ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
         FlexBox flex_box,
         IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font, Rgba32 volume_color, Font volume_font)
     {
@@ -279,9 +281,19 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         if (!File.Exists(image))
         {
-            if (MissingTexture == null) throw new Exception("Texture for missing elements isn't loaded.");
-            Log($"Asset: \'{image}\' not found.");
-            texture_cache.TryAdd(image, MissingTexture);
+            switch (ev)
+            {
+                case IndividualCutEvent:
+                    if (ICutTexture == null) throw new Exception("Texture for individual cutting elements isn't loaded.");
+                    texture_cache.TryAdd(image, ICutTexture);
+                    break;
+                
+                default:
+                    if (MissingTexture == null) throw new Exception("Texture for missing elements isn't loaded.");
+                    Log($"Asset: \'{image}\' not found.");
+                    texture_cache.TryAdd(image, MissingTexture);
+                    break;
+            }
         }
 
         texture_cache.TryGetValue(image, out var texture);
@@ -406,7 +418,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (ev.Volume is not null and not 100d)
         {
             var volume = ev.Volume ?? throw new Exception("Invalid volume check.");
-            var volume_text = volume.ToString("0.##") + "%";
+            var volume_text = volume.ToString("0") + "%";
 
             volume_text_cache.TryGetValue(volume_text, out var volume_texture);
             if (volume_texture == null)
@@ -425,6 +437,52 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
             var text = new TexturedPlane(volume_texture, text_position,
                 (volume_texture.Width, volume_texture.Height));
+            plane.Children.Add(text);
+        }
+
+        #endregion
+
+        #region Pan Text
+        
+        var pan = 0f;
+        if (ev is PannedEvent panned_event)
+        {
+            pan = panned_event.Pan;
+        }
+
+        if (pan != 0f)
+        {
+            var pan_text = Math.Abs(pan).ToString(".#");
+
+            switch (pan)
+            {
+                case < 0:
+                    pan_text += "|";
+                    break;
+                
+                case > 0:
+                    pan_text = "|" + pan_text;
+                    break;
+            }
+            
+            volume_text_cache.TryGetValue(pan_text, out var pan_texture);
+            
+            if (pan_texture == null)
+            {
+                pan_texture = new Texture(volume_font, pan_text);
+                volume_text_cache.Add(pan_text, pan_texture);
+            }
+
+            var text_position = new Vector3
+            {
+                X = box_position.X,
+                Y = box_position.Y,
+                Z = box_position.Z
+            };
+            text_position.Z -= 0.5f;
+            
+            var text = new TexturedPlane(pan_texture, text_position,
+                (pan_texture.Width, pan_texture.Height));
             plane.Children.Add(text);
         }
 
@@ -484,12 +542,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (element == null) return;
         CameraBoundsCheck(placement);
         
-        if (placement.Event.SoundEvent?.StartsWith('!') ?? false)
+        if ((placement.Event.SoundEvent?.StartsWith('!') ?? false) || placement.Event is ICustomActionEvent)
         {
             element.Fade();
             element.Expand();
         }
-        else if (placement.Event.SoundEvent is not "#!cut")
+        else if (placement.Event is not ICustomActionEvent)
         {
             element.Bounce();
         }

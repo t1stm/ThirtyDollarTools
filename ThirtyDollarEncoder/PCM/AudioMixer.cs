@@ -5,7 +5,7 @@ namespace ThirtyDollarEncoder.PCM;
 
 public class AudioMixer
 {
-    private readonly ConcurrentDictionary<(string, AudioLayout), AudioData<float>> Tracks = new();
+    private readonly ConcurrentDictionary<(string, AudioLayout audio_layout), AudioData<float>> Tracks = new();
     private readonly AudioLayout DefaultLayout;
     private readonly int Length;
     public readonly IMixingMethod MixingMethod = new BasicMixer();
@@ -19,11 +19,14 @@ public class AudioMixer
 
     public AudioData<float> MixDown()
     {
-        var mixed = MixingMethod.MixTracks(GetTracks());
+        var tracks = GetTracks();
+        if (tracks.Length < 1) return tracks[0].Item2;
+        
+        var mixed = MixingMethod.MixTracks(tracks);
         return mixed;
     }
 
-    public (AudioLayout, AudioData<float>)[] GetTracks()
+    public (AudioLayout audio_layout, AudioData<float> audio_data)[] GetTracks()
     {
         lock (Tracks)
         {
@@ -36,6 +39,14 @@ public class AudioMixer
             }
 
             return array;
+        }
+    }
+    
+    public bool HasTrack(string sound, AudioLayout layout = AudioLayout.Audio_LR)
+    {
+        lock (Tracks)
+        {
+            return Tracks.ContainsKey((sound, layout));
         }
     }
 

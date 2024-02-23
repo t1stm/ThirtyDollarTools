@@ -1,7 +1,13 @@
 namespace ThirtyDollarParser;
 
-public class Event
+public abstract class BaseEvent
 {
+    /// <summary>
+    /// A method that gives a copy of the current event with no addresses shared between the two objects.
+    /// </summary>
+    /// <returns>A copy.</returns>
+    public abstract BaseEvent Copy();
+    
     /// <summary>
     /// The sound name of the current event.
     /// </summary>
@@ -36,34 +42,7 @@ public class Event
     /// Special boolean for single loop and jump events.
     /// </summary>
     public bool Triggered;
-
-    /// <summary>
-    /// Creates an easily loggable string for this event.
-    /// </summary>
-    /// <returns>A log string.</returns>
-    public override string ToString()
-    {
-        return
-            $"Event: \"{SoundEvent ?? "Null event."}\", Value: {Value}{(ValueScale == ValueScale.Times ? 'x' : (char)0)}, PlayTimes: {PlayTimes}";
-    }
-
-    /// <summary>
-    /// Creates an identical copy of an event.
-    /// </summary>
-    /// <returns>The copy of the event.</returns>
-    public virtual Event Copy()
-    {
-        return new Event
-        {
-            SoundEvent = SoundEvent,
-            Value = Value,
-            OriginalLoop = OriginalLoop,
-            PlayTimes = PlayTimes,
-            Volume = Volume,
-            ValueScale = ValueScale
-        };
-    }
-
+    
     public void Deconstruct(out string? event_name, out double event_value)
     {
         event_name = SoundEvent;
@@ -76,12 +55,4 @@ public class Event
         event_value = Value;
         event_volume = Volume;
     }
-}
-
-public enum ValueScale
-{
-    Divide,
-    Times,
-    Add,
-    None
 }
