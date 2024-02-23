@@ -216,7 +216,7 @@ public class PcmEncoder
             var end_idx = i * chunk_size;
 
             var start = (int)start_idx;
-            var end = (int)Math.Min(end_idx, length);
+            var end = Math.Min((int) end_idx, length);
             
             Console.WriteLine($"Processing chunk. i: {i} Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
             if (start > length)
@@ -386,8 +386,8 @@ public class PcmEncoder
             if (cut_i < 0 || cut_i >= zero_index) continue;
             var norm_i = cut_fade_end - cut_i;
 
-            var delta = (float)norm_i / cut_fade_length;
-            mix_slice[cut_i] *= 1f - delta;
+            var delta = (float) norm_i / cut_fade_length;
+            mix_slice[cut_i] *= delta;
         }
 
         for (var i = cut_i; i < zero_index; i++)
