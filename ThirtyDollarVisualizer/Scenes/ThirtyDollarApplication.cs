@@ -28,6 +28,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private readonly Stopwatch _seek_delay_stopwatch = new();
     private readonly Stopwatch _file_update_stopwatch = new();
     private readonly DollarStoreCamera Camera;
+    private readonly DollarStoreCamera StaticCamera;
     
     private int Width;
     private int Height;
@@ -37,6 +38,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private ColoredPlane _background = null!;
     private ColoredPlane _flash_overlay = null!;
     private ColoredPlane _visible_area = null!;
+    private DynamicText _log_text = new();
     private Renderable? _greeting;
     private SoundRenderable? _drag_n_drop;
     
@@ -48,7 +50,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     // This is currently a hack, but I can't think of any other way to fix this without restructuring the code.
     private int DividerCount;
-    private bool FinishedInitializing;
     private int LeftMargin;
     private int CreationLeftMargin;
     private long CurrentResizeFrame;
@@ -86,6 +87,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _sequence_location = sequenceLocation;
         
         Camera = new DollarStoreCamera((0,-300f,0), new Vector2i(Width, Height));
+        StaticCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height));
         _open_stopwatch.Start();
         _seek_delay_stopwatch.Start();
         _file_update_stopwatch.Start();
@@ -147,16 +149,19 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var font_family = Fonts.GetFontFamily();
         var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
 
-        var greeting = new StaticText
+        _greeting ??= new StaticText
         {
             FontStyle = FontStyle.Bold,
             FontSizePx = 36f * Scale,
             Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
-        };
+        }.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
 
-        _greeting ??= greeting.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
+        _log_text.SetPosition((20,20,0));
+        _log_text.SetFontSize(48f);
+        _log_text.FontStyle = FontStyle.Bold;
         
         start_objects.Add(_greeting);
+        static_objects.Add(_log_text);
 
         if (_drag_n_drop == null)
         {
@@ -172,7 +177,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         if (_sequence_location == null)
         {
-            FinishedInitializing = true;
             return;
         }
         
@@ -187,12 +191,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
         
         Manager.CheckErrors();
-        FinishedInitializing = true;
     }
     
     protected override void HandleAfterSequenceUpdate(TimedEvents events)
     {
-        FinishedInitializing = false;
+        Manager.RenderBlock.Wait(Token);
         if (_drag_n_drop != null)
             _drag_n_drop.IsVisible = false;
         Camera.ScrollTo((0,-300,0));
@@ -213,6 +216,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         var volume_font = font_family.CreateFont(13 * Scale, FontStyle.Bold);
         var volume_color = new Rgba32(204, 204, 204, 1f);
+
+        Manager.RenderBlock.Release();
 
         try
         {
@@ -253,8 +258,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
         
         Manager.RenderBlock.Wait(Token);
+        _log_text.SetTextContents("");
         TDW_images = tdw_images.ToArray();
-        FinishedInitializing = true;
         Manager.RenderBlock.Release();
     }
     
@@ -597,6 +602,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         float frequency = (short)(parsed_value >> 8);
                     
         Camera.Pulse(repeats, frequency * 1000f / (LastBPM / 60));
+        StaticCamera.Pulse(repeats, frequency * 1000f / (LastBPM / 60));
     }
 
     private void LoopManyEventHandler(Placement placement, int index)
@@ -620,12 +626,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         var resize = new Vector2i(w, h);
 
-        Camera.Viewport = resize;
+        StaticCamera.Viewport = Camera.Viewport = resize;
         GL.Viewport(0, 0, w, h);
         
         Camera.UpdateMatrix();
-
-        if (!FinishedInitializing) return;
+        StaticCamera.UpdateMatrix();
 
         var background = _background.GetScale();
         _background.SetScale((w * 2, h * 2, background.Z));
@@ -680,20 +685,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public void Start()
     {
         if (_sequence_location == null) return;
-        SequencePlayer.Stop().GetAwaiter();
-        Task.Run(start, Token);
-        return;
-
-        async void start()
-        {
-            await SequencePlayer.RestartAfter(3000);
-        }
+        SequencePlayer.Stop().GetAwaiter().GetResult();
+        SequencePlayer.Start().GetAwaiter().GetResult();
     }
 
     public void Render()
     {
-        if (!FinishedInitializing) return;
-
         var camera_x = Camera.Position.X;
         var camera_y = Camera.Position.Y;
         var camera_xw = camera_x + Width;
@@ -702,15 +699,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         foreach (var renderable in static_objects)
         {
             Manager.CheckErrors();
-            
-            var new_position = new Vector3(renderable.GetTranslation())
-            {
-                Y = Camera.Position.Y + Height
-            };
-
-            renderable.SetTranslation(new_position);
-            
-            renderable.Render(Camera);
+            renderable.Render(StaticCamera);
         }
 
         var size_renderable = RenderableSize + MarginBetweenRenderables;
@@ -759,7 +748,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public void Update()
     {
-        if (!FinishedInitializing) return;
         if (_file_update_stopwatch.ElapsedMilliseconds > 250)
         {
             HandleIfSequenceUpdate();
@@ -810,11 +798,17 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Camera.ScrollTo((0,-300,0));
         
         var old_location = _sequence_location;
-        if (location is not null)
-            UpdateSequence(location).GetAwaiter().GetResult();
+        if (location is null) return;
         
-        if (old_location != location || reset_time)
-            Start();
+        Task.Run(async () =>
+        {
+            _log_text.SetTextContents("Loading...");
+            await UpdateSequence(location);
+            if (old_location != location || reset_time)
+                Start();
+            
+            _log_text.SetTextContents("");
+        }, Token);
     }
     
     public void Mouse(MouseState state)

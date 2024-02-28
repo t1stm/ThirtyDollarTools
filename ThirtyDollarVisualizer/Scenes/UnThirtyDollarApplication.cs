@@ -171,11 +171,14 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Camera.ScrollTo((0,-300,0));
         
         var old_location = _sequence_location;
-        if (location is not null)
-            UpdateSequence(location).GetAwaiter().GetResult();
-        
-        if (old_location != location || reset_time)
-            Start();
+        if (location is null) return;
+
+        Task.Run(async () =>
+        {
+            await UpdateSequence(location);
+            if (old_location != location || reset_time)
+                Start();
+        });
     }
     
     public void Mouse(MouseState state)

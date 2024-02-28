@@ -97,9 +97,9 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         TimedEvents.TimingSampleRate = update_rate;
         TimedEvents.Placement = placement;
         TimedEvents.Sequence = sequence;
-
+        
+        HandleAfterSequenceUpdate(TimedEvents);
         var sample_holder = await GetSampleHolder();
-        var buffer_holder = new BufferHolder();
 
         var audio_context = SequencePlayer.GetContext();
         var pcm_encoder = new PcmEncoder(sample_holder, new EncoderSettings
@@ -110,6 +110,7 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         });
 
         var samples = await pcm_encoder.GetAudioSamples(TimedEvents);
+        var buffer_holder = new BufferHolder();
         
         foreach (var ev in samples)
         {
@@ -117,26 +118,17 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
             var value = val.Value;
             var name = val.Name ?? string.Empty;
 
-            if (buffer_holder.ProcessedBuffers.TryGetValue(name, out var value_dictionary))
-            {
-                if (value_dictionary.ContainsKey(value)) continue;
-            }
-
-            if (value_dictionary == null)
-            {
-                value_dictionary = new Dictionary<double, AudibleBuffer>();
-                buffer_holder.ProcessedBuffers.Add(name, value_dictionary);
-            }
+            if (buffer_holder.ProcessedBuffers.ContainsKey((name, value))) 
+                continue;
 
             var sample = audio_context.GetBufferObject(val.AudioData, audio_context.SampleRate);
-            value_dictionary.Add(value, sample);
+            buffer_holder.ProcessedBuffers.Add((name, value), sample);
         }
         
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents);
         SequencePlayer.ClearSubscriptions();
         SetSequencePlayerSubscriptions(SequencePlayer);
         
-        HandleAfterSequenceUpdate(TimedEvents);
         if (restart_player)
             await SequencePlayer.Start();
     }
