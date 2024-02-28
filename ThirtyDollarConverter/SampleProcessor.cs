@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using ThirtyDollarConverter.Objects;
@@ -10,7 +11,7 @@ namespace ThirtyDollarConverter;
 
 public class SampleProcessor
 {
-    private readonly Dictionary<Sound, PcmDataHolder> Samples;
+    private readonly ConcurrentDictionary<Sound, PcmDataHolder> Samples;
     private readonly Action<string> Log;
     private readonly EncoderSettings Settings;
     private IResampler Resampler { get; }
@@ -21,7 +22,7 @@ public class SampleProcessor
     /// <param name="sample_holder">The loaded samples.</param>
     /// <param name="settings">The encoder's settings.</param>
     /// <param name="logger">Action that handles log messages.</param>
-    public SampleProcessor(Dictionary<Sound, PcmDataHolder> sample_holder, EncoderSettings settings, Action<string>? logger = null)
+    public SampleProcessor(ConcurrentDictionary<Sound, PcmDataHolder> sample_holder, EncoderSettings settings, Action<string>? logger = null)
     {
         Samples = sample_holder;
         Settings = settings;
@@ -40,8 +41,7 @@ public class SampleProcessor
     {
         try
         {
-            var (_, value) = Samples.AsParallel()
-                .FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent || pair.Key.Id == ev.SoundEvent);
+            var (_, value) = Samples.FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent || pair.Key.Id == ev.SoundEvent);
             if (value == null) throw new Exception($"Data for sound event: \'{ev.SoundEvent}\' is null.");
             var sampleData = value.ReadAsFloat32Array(Settings.Channels > 1);
             if (sampleData == null)

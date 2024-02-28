@@ -2,26 +2,26 @@ using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer.Objects;
 
-public class Camera
+public abstract class Camera
 {
     private Vector3 _position;
 
     public Vector3 Position
     {
         get => _position;
-        set
+        protected set
         {
             _position = value;
             UpdateMatrix();
         }
     }
 
-    public Vector3 Front { get; set; }
-    public Vector3 Up { get; private set; }
+    protected Vector3 Front { get; set; } = -Vector3.UnitZ;
+    protected Vector3 Up { get; set; } = Vector3.UnitY;
     public Vector2i Viewport;
 
-    public float Scale = 1f;
-    public bool IsBeingUpdated { get; set; } = false;
+    protected float Scale = 1f;
+    protected bool IsBeingUpdated { get; set; } = false;
 
     public int Width
     {
@@ -44,17 +44,13 @@ public class Camera
     }
     private Matrix4 projection_matrix;
 
-    public Camera(Vector3 position, Vector3 front, Vector3 up, Vector2i viewport)
+    protected Camera(Vector3 position, Vector2i viewport)
     {
         Position = position;
-        Front = front;
-        Up = up;
         Viewport = viewport;
-
-        UpdateMatrix();
     }
 
-    public void UpdateMatrix()
+    public virtual void UpdateMatrix()
     {
         var left = Position.X;
         var top = Position.Y;
@@ -80,7 +76,7 @@ public class Camera
         projection_matrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top,-1f, 1f);
     }
 
-    public Matrix4 GetProjectionMatrix()
+    public virtual Matrix4 GetProjectionMatrix()
     {
         return projection_matrix;
     }

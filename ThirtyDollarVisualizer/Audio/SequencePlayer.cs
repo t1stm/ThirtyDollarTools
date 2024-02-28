@@ -281,7 +281,6 @@ public class SequencePlayer
                         .ConfigureAwait(false);
                 }
 
-
                 // Normal pass.
                 if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
 
@@ -290,8 +289,7 @@ public class SequencePlayer
             }
 
             PlacementIndex = end_idx;
-
-        
+            
             var length = end_idx - current_idx;
             if (length < 1) return;
 

@@ -11,7 +11,7 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
     protected readonly SequencePlayer SequencePlayer = new();
     protected readonly Action<string> Log = logging_action ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
     protected SampleHolder? SampleHolder;
-    private SemaphoreSlim SampleHolderLock = new(1);
+    private readonly SemaphoreSlim SampleHolderLock = new(1);
     protected TimedEvents TimedEvents = new()
     {
         Placement = Array.Empty<Placement>(),
@@ -97,8 +97,8 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         TimedEvents.TimingSampleRate = update_rate;
         TimedEvents.Placement = placement;
         TimedEvents.Sequence = sequence;
-        
-        var sample_holder = await GetSampleHolder().ConfigureAwait(true);
+
+        var sample_holder = await GetSampleHolder();
         var buffer_holder = new BufferHolder();
 
         var audio_context = SequencePlayer.GetContext();

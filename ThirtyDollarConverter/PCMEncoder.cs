@@ -218,7 +218,7 @@ public class PcmEncoder
             var start = (int)start_idx;
             var end = Math.Min((int) end_idx, length);
             
-            Console.WriteLine($"Processing chunk. i: {i} Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
+            Log($"Processing chunk. i: {i} Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
             if (start > length)
             {
                 return ValueTask.CompletedTask;

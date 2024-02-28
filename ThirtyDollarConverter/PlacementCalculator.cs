@@ -91,16 +91,7 @@ public class PlacementCalculator
                 };
                 
                 if (!scrubbing) yield return placement;
-
-                if (ev.PlayTimes > 1)
-                {
-                    increment_timer = true;
-                    index--;
-                }
-                
                 if (increment_timer) position += (ulong)(SampleRate / (bpm / 60));
-                
-                ev.PlayTimes--;
                 index++;
                 continue;
             }

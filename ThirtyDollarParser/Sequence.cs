@@ -164,7 +164,7 @@ public class Sequence
         var val = new_event.Value;
         foreach (var ev in array)
         {
-            if (ev.SoundEvent is "!combine" || ev is ICustomActionEvent) continue;
+            if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
             if (ev is PannedEvent _panned)
             {
                 _panned.Pan = pan;
