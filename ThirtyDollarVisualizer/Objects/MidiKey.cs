@@ -10,7 +10,7 @@ public class MidiKey : ColoredPlane
     public float BorderSizePx = 0f;
     private readonly MidiKeyPressAnimation PressAnimation;
     
-    public MidiKey(Vector4 color, Vector3 position, Vector2 width_height, float border_radius = 0) : base(color, position, width_height, border_radius)
+    public MidiKey(Vector4 color, Vector3 position, Vector3 scale, float border_radius = 0) : base(color, position, scale, border_radius)
     {
         PressAnimation = new MidiKeyPressAnimation(133, () =>
         {
@@ -24,7 +24,7 @@ public class MidiKey : ColoredPlane
             "ThirtyDollarVisualizer.Assets.Shaders.bordered.frag");
     }
 
-    public MidiKey(Vector4 color, Vector3 position, Vector2 width_height, Shader? shader) : base(color, position, width_height, shader)
+    public MidiKey(Vector4 color, Vector3 position, Vector3 scale, Shader? shader) : base(color, position, scale, shader)
     {
         PressAnimation = new MidiKeyPressAnimation(133, () =>
         {

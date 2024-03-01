@@ -85,7 +85,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         float w = 0;
         for (var i = min_v; i <= max_v; i++)
         {
-            var plane = new MidiKey((0.1f, 0.1f, 0.1f, 1f), (w, position_y, 0), (width_single, height))
+            var plane = new MidiKey((0.1f, 0.1f, 0.1f, 1f), (w, position_y, 0), (width_single, height, 0))
             {
                 BorderColor = (0.5f, 0.5f, 0.5f, 1f),
                 BorderSizePx = 2f

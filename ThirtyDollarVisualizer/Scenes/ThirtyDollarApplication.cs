@@ -128,11 +128,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), new Vector3(-Width, -Height, 1f),
-            new Vector2(Width * 2, Height * 2),
+            new Vector3(Width * 2, Height * 2, 0),
             optional_shader);
         
         _flash_overlay = new ColoredPlane(new Vector4(1f, 1f, 1f, 0f), new Vector3(-Width, -Height, 0.75f),
-            new Vector2(Width * 2, Height * 2));
+            new Vector3(Width * 2, Height * 2,0));
 
         static_objects.Add(_background);
         static_objects.Add(_flash_overlay);
@@ -143,7 +143,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2);
 
         _visible_area = new ColoredPlane(new Vector4(0, 0, 0, 0.25f), new Vector3(LeftMargin, -Height, 0.5f),
-            new Vector2i(PlayfieldWidth, Height * 2));
+            new Vector3(PlayfieldWidth, Height * 2, 0));
         static_objects.Add(_visible_area);
         
         var font_family = Fonts.GetFontFamily();
