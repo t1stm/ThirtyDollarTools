@@ -4,8 +4,8 @@ in vec2 fragment_coords;
 out vec4 color;
 
 uniform vec4 u_Color;
-uniform vec2 u_PositionPx;
-uniform vec2 u_ScalePx;
+uniform vec3 u_PositionPx;
+uniform vec3 u_ScalePx;
 uniform float u_BorderRadiusPx;
 
 float roundedBoxSDF(vec2 center, vec2 size, float radius) {
@@ -22,7 +22,7 @@ void main() {
 
     vec2 lower_left = vec2(u_PositionPx.x, u_PositionPx.y - u_ScalePx.y);
 
-    float distance = roundedBoxSDF(gl_FragCoord.xy - lower_left - (u_ScalePx / 2.0f), u_ScalePx / 2.0f, u_BorderRadiusPx);
+    float distance = roundedBoxSDF(gl_FragCoord.xy - lower_left - (u_ScalePx.xy / 2.0f), u_ScalePx.xy / 2.0f, u_BorderRadiusPx);
     float smoothedAlpha = 1.0f - smoothstep(0.0f, edgeSoftness * 2.0f, distance);
     color = vec4(u_Color.rgb, smoothedAlpha);
 }
