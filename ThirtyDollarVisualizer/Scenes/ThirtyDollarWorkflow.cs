@@ -98,7 +98,10 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         TimedEvents.Placement = placement;
         TimedEvents.Sequence = sequence;
         
-        HandleAfterSequenceUpdate(TimedEvents);
+        HandleAfterSequenceLoad(TimedEvents);
+        SequencePlayer.ClearSubscriptions();
+        SetSequencePlayerSubscriptions(SequencePlayer);
+        
         var sample_holder = await GetSampleHolder();
 
         var audio_context = SequencePlayer.GetContext();
@@ -126,18 +129,16 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         }
         
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents);
-        SequencePlayer.ClearSubscriptions();
-        SetSequencePlayerSubscriptions(SequencePlayer);
         
         if (restart_player)
             await SequencePlayer.Start();
     }
 
     /// <summary>
-    /// Called after the sequence has finished loading.
+    /// Called after the sequence has finished loading, but before the audio events have finished processing.
     /// </summary>
     /// <param name="events">The events the sequence contains.</param>
-    protected abstract void HandleAfterSequenceUpdate(TimedEvents events);
+    protected abstract void HandleAfterSequenceLoad(TimedEvents events);
     
     /// <summary>
     /// Called by the abstract class in order to use the implementation, when the SequencePlayer is created.

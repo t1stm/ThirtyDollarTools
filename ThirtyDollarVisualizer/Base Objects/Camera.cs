@@ -4,20 +4,20 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public abstract class Camera
 {
-    private Vector3 _position;
+    protected Vector3 _position;
 
     public Vector3 Position
     {
         get => _position;
-        protected set
+        set
         {
             _position = value;
             UpdateMatrix();
         }
     }
 
-    protected Vector3 Front { get; set; } = -Vector3.UnitZ;
-    protected Vector3 Up { get; set; } = Vector3.UnitY;
+    public Vector3 Front { get; set; } = -Vector3.UnitZ;
+    public Vector3 Up { get; set; } = Vector3.UnitY;
     public Vector2i Viewport;
 
     protected float Scale = 1f;

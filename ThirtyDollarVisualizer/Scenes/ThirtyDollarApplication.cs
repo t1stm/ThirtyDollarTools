@@ -22,8 +22,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
     private static Texture? MissingTexture;
     private static Texture? ICutTexture;
-    private readonly List<Renderable> start_objects = new();
-    private readonly List<Renderable> static_objects = new();
+    protected readonly List<Renderable> start_objects = new();
+    protected readonly List<Renderable> static_objects = new();
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_delay_stopwatch = new();
     private readonly Stopwatch _file_update_stopwatch = new();
@@ -33,12 +33,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int Width;
     private int Height;
     private int PlayfieldWidth;
-    private Memory<SoundRenderable>  TDW_images;
+    protected Memory<SoundRenderable>  TDW_images;
 
     private ColoredPlane _background = null!;
     private ColoredPlane _flash_overlay = null!;
     private ColoredPlane _visible_area = null!;
-    private DynamicText _log_text = new();
+    private readonly DynamicText _log_text = new();
     private Renderable? _greeting;
     private SoundRenderable? _drag_n_drop;
     
@@ -99,7 +99,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// This method loads the sequence, textures and sounds.
     /// </summary>
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
-    public void Init(Manager manager)
+    public virtual void Init(Manager manager)
     {
         GetSampleHolder().GetAwaiter();
         if (_reset_time)
@@ -193,7 +193,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Manager.CheckErrors();
     }
     
-    protected override void HandleAfterSequenceUpdate(TimedEvents events)
+    protected override void HandleAfterSequenceLoad(TimedEvents events)
     {
         Manager.RenderBlock.Wait(Token);
         if (_drag_n_drop != null)
@@ -258,7 +258,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
         
         Manager.RenderBlock.Wait(Token);
-        _log_text.SetTextContents("");
         TDW_images = tdw_images.ToArray();
         Manager.RenderBlock.Release();
     }
@@ -278,7 +277,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <summary>
     /// Creates a Thirty Dollar Website renderable with the texture of the event and its value and volume as children.
     /// </summary>
-    private void CreateEventRenderable(ICollection<SoundRenderable> tdw_images, BaseEvent ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
+    protected virtual void CreateEventRenderable(ICollection<SoundRenderable> tdw_images, BaseEvent ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
         FlexBox flex_box,
         IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font, Rgba32 volume_color, Font volume_font)
     {
@@ -622,7 +621,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         LastDividerIndex = placement.SequenceIndex;
     }
 
-    public void Resize(int w, int h)
+    public virtual void Resize(int w, int h)
     {
         var resize = new Vector2i(w, h);
 
@@ -689,7 +688,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         SequencePlayer.Start().GetAwaiter().GetResult();
     }
 
-    public void Render()
+    public virtual void Render()
     {
         var camera_x = Camera.Position.X;
         var camera_y = Camera.Position.Y;
@@ -746,7 +745,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
     }
 
-    public void Update()
+    public virtual void Update()
     {
         if (_file_update_stopwatch.ElapsedMilliseconds > 250)
         {
@@ -803,15 +802,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Task.Run(async () =>
         {
             _log_text.SetTextContents("Loading...");
-            await UpdateSequence(location);
-            if (old_location != location || reset_time)
-                Start();
-            
+            await UpdateSequence(location, old_location != location || reset_time);
             _log_text.SetTextContents("");
         }, Token);
     }
     
-    public void Mouse(MouseState state)
+    public virtual void Mouse(MouseState state)
     {
         var scroll = state.ScrollDelta;
         if (scroll != Vector2.Zero)
@@ -823,7 +819,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
     }
 
-    public async void Keyboard(KeyboardState state)
+    public virtual async void Keyboard(KeyboardState state)
     {
         const int seek_timeout = 250;
         const int seek_length = 1000;
