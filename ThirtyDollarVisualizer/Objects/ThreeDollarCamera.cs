@@ -53,7 +53,7 @@ public sealed class ThreeDollarCamera : Camera
         
         public Matrix4 GetViewMatrix()
         {
-            return Matrix4.LookAt(Position, Position + Front, Up);
+            return Matrix4.Identity * Matrix4.LookAt(Position, Position + Front, Up);
         }
         
         public override Matrix4 GetProjectionMatrix()
@@ -71,5 +71,9 @@ public sealed class ThreeDollarCamera : Camera
             
             Right = Vector3.Normalize(Vector3.Cross(_front, Vector3.UnitY));
             Up = Vector3.Normalize(Vector3.Cross(Right, _front));
+        }
+
+        public override void UpdateMatrix()
+        {
         }
 }

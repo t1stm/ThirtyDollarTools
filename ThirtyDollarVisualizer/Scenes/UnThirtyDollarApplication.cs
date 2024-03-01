@@ -62,7 +62,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), 
             new Vector3(0,0, 0f),
-            new Vector2(Width, Height));
+            new Vector3(Width, Height,0));
         _background.UpdateModel(false);
         
         Manager.RenderBlock.Release();
@@ -114,7 +114,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Manager.RenderBlock.Release();
     }
     
-    protected override void HandleAfterSequenceUpdate(TimedEvents events)
+    protected override void HandleAfterSequenceLoad(TimedEvents events)
     {
         SetPianoKeys();
     }
@@ -175,9 +175,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         Task.Run(async () =>
         {
-            await UpdateSequence(location);
-            if (old_location != location || reset_time)
-                Start();
+            await UpdateSequence(location, old_location != location || reset_time);
         });
     }
     
