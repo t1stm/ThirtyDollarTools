@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using ManagedBass;
 using ThirtyDollarEncoder.PCM;
 
@@ -14,25 +15,28 @@ public class BassBuffer : AudibleBuffer, IDisposable
     private readonly AudioContext _context;
     private readonly List<int> _active_channels = new();
 
-    public BassBuffer(AudioContext context, AudioData<float> data, int sample_rate, int max_count = 65535)
+    public unsafe BassBuffer(AudioContext context, AudioData<float> data, int sample_rate, int max_count = 65535)
     {
         var length = data.GetLength();
         var channels = (int) data.ChannelCount;
         _context = context;
 
-        var samples = new float[length * channels];
-        var samples_span = samples.AsSpan();
+        Span<float> samples = new float[length * channels];
         for (var i = 0; i < length; i++)
         {
             for (var j = 0; j < channels; j++)
             {
                 var idx = i * channels + j;
-                samples_span[idx] = data.Samples[i % channels][i];
+                samples[idx] = data.Samples[i % channels][i];
             }
         }
         
         var sample = Bass.CreateSample(length * channels * sizeof(float), sample_rate, channels, max_count, BassFlags.Float);
-        Bass.SampleSetData(sample, samples);
+        fixed (void* s = samples)
+        {
+            Bass.SampleSetData(sample, new IntPtr(s));
+        }
+        
         SampleHandle = sample;
         SampleInfo = new SampleInfo
         {
