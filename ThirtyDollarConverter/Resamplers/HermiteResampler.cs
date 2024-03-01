@@ -34,7 +34,7 @@ public class HermiteResampler : IResampler
         var length = samples.Length;
         var span = samples.Span;
 
-        var p = new double[4];
+        Span<double> p = stackalloc double[4];
 
         for (var i = 0; i < 4; i++)
         {
