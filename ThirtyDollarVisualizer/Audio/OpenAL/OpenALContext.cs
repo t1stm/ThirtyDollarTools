@@ -24,6 +24,7 @@ public class OpenALContext : AudioContext
             ALC.MakeContextCurrent(context);
 
             AL.Listener(ALListenerf.Gain, GlobalVolume);
+            AL.Listener(ALListener3f.Position, 0f,0f,0f);
             return true;
         }
         catch (Exception e)

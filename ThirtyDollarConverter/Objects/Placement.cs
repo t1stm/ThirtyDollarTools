@@ -15,7 +15,7 @@ public class Placement
     /// <summary>
     /// The event this placement holds.
     /// </summary>
-    public Event Event;
+    public BaseEvent Event = NormalEvent.Empty;
     /// <summary>
     /// Whether the event is processed by the PCM Encoder.
     /// </summary>

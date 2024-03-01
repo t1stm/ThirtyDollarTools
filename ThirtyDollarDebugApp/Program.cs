@@ -47,20 +47,20 @@ internal static class Program
             {
                 SampleRate = 48000,
                 Channels = 2,
-                CutDelayMs = 300,
-                Resampler = new LinearResampler()
+                CutFadeLengthMs = 10,
+                Resampler = new HermiteResampler()
             }, Console.WriteLine, (current, total) =>
             {
                 ClearLine();
                 Console.Write(GenerateProgressbar(current, (long) total, statusbar_length));
             });
 
-            var audioData = encoder.GetSequenceAudio(sequence); // Shame on me...
+            var audioData = await encoder.GetSequenceAudio(sequence); // Shame on me...
             encoder.WriteAsWavFile($"./Export/{file.Location.Split('/').Last()}.wav", audioData);
         }
 
         Console.WriteLine("Finished Executing. Press any key to exit.");
-        Console.ReadLine();
+        // Console.ReadLine();
     }
 
     private static void ClearLine()

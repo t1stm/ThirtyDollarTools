@@ -11,11 +11,11 @@ public class TexturedPlane : Renderable
     private static VertexArrayObject<float> Static_Vao = null!;
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
-
-    public TexturedPlane(Texture texture, Vector3 position, Vector2 width_height)
+    
+    public TexturedPlane(Texture texture, Vector3 position, Vector3 scale)
     {
         _position = new Vector3(position);
-        _scale = new Vector3(width_height.X, width_height.Y, 0);
+        _scale = scale;
         
         if (!AreVerticesGenerated) SetVertices();
         
@@ -30,6 +30,11 @@ public class TexturedPlane : Renderable
     }
 
     public TexturedPlane() : this(Texture.Transparent1x1, Vector3.Zero, Vector2.One)
+    {
+    }
+    
+    public TexturedPlane(Texture texture, Vector3 position, Vector2 scale) :
+        this(texture, position, new Vector3(scale))
     {
     }
 

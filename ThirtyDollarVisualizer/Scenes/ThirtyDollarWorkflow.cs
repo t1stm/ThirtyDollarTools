@@ -11,6 +11,7 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
     protected readonly SequencePlayer SequencePlayer = new();
     protected readonly Action<string> Log = logging_action ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
     protected SampleHolder? SampleHolder;
+    private readonly SemaphoreSlim SampleHolderLock = new(1);
     protected TimedEvents TimedEvents = new()
     {
         Placement = Array.Empty<Placement>(),
@@ -47,8 +48,16 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
 
     protected async Task<SampleHolder> GetSampleHolder()
     {
-        if (SampleHolder == null) await CreateSampleHolder();
-        return SampleHolder!;
+        try
+        {
+            await SampleHolderLock.WaitAsync();
+            if (SampleHolder == null) await CreateSampleHolder();
+            return SampleHolder!;
+        }
+        finally
+        {
+            SampleHolderLock.Release();
+        }
     }
 
     /// <summary>
@@ -89,53 +98,47 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
         TimedEvents.Placement = placement;
         TimedEvents.Sequence = sequence;
         
-        var sample_holder = await GetSampleHolder().ConfigureAwait(true);
-        var buffer_holder = new BufferHolder();
+        HandleAfterSequenceLoad(TimedEvents);
+        SequencePlayer.ClearSubscriptions();
+        SetSequencePlayerSubscriptions(SequencePlayer);
+        
+        var sample_holder = await GetSampleHolder();
 
         var audio_context = SequencePlayer.GetContext();
         var pcm_encoder = new PcmEncoder(sample_holder, new EncoderSettings
         {
             SampleRate = (uint) audio_context.SampleRate,
             Channels = 2,
-            Resampler = new LinearResampler()
+            Resampler = new HermiteResampler()
         });
 
-        var (samples, _) = await pcm_encoder.GetAudioSamples(-1, placement);
+        var samples = await pcm_encoder.GetAudioSamples(TimedEvents);
+        var buffer_holder = new BufferHolder();
         
         foreach (var ev in samples)
         {
-            var value = ev.Value;
-            var name = ev.Name;
+            var val = ev.Value;
+            var value = val.Value;
+            var name = val.Name ?? string.Empty;
 
-            if (buffer_holder.ProcessedBuffers.TryGetValue(name, out var value_dictionary))
-            {
-                if (value_dictionary.ContainsKey(value)) continue;
-            }
+            if (buffer_holder.ProcessedBuffers.ContainsKey((name, value))) 
+                continue;
 
-            if (value_dictionary == null)
-            {
-                value_dictionary = new Dictionary<double, AudibleBuffer>();
-                buffer_holder.ProcessedBuffers.Add(name, value_dictionary);
-            }
-
-            var sample = audio_context.GetBufferObject(ev.AudioData, audio_context.SampleRate);
-            value_dictionary.Add(value, sample);
+            var sample = audio_context.GetBufferObject(val.AudioData, audio_context.SampleRate);
+            buffer_holder.ProcessedBuffers.Add((name, value), sample);
         }
         
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents);
-        SequencePlayer.ClearSubscriptions();
-        SetSequencePlayerSubscriptions(SequencePlayer);
         
-        HandleAfterSequenceUpdate(TimedEvents);
         if (restart_player)
             await SequencePlayer.Start();
     }
 
     /// <summary>
-    /// Called after the sequence has finished loading.
+    /// Called after the sequence has finished loading, but before the audio events have finished processing.
     /// </summary>
     /// <param name="events">The events the sequence contains.</param>
-    protected abstract void HandleAfterSequenceUpdate(TimedEvents events);
+    protected abstract void HandleAfterSequenceLoad(TimedEvents events);
     
     /// <summary>
     /// Called by the abstract class in order to use the implementation, when the SequencePlayer is created.

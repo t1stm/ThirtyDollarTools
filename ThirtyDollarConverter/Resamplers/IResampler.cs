@@ -11,6 +11,6 @@ public interface IResampler
     /// <param name="sample_rate">The original sample rate.</param>
     /// <param name="target_sample_rate">The target sample rate.</param>
     /// <returns></returns>
-    float[] Resample(Span<float> samples, uint sample_rate, uint target_sample_rate);
-    double[] Resample(Span<double> samples, uint sample_rate, uint target_sample_rate);
+    float[] Resample(Memory<float> samples, uint sample_rate, uint target_sample_rate);
+    double[] Resample(Memory<double> samples, uint sample_rate, uint target_sample_rate);
 }

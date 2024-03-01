@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace ThirtyDollarConverter;
 
 public class SampleHolder
 {
-    public readonly Dictionary<Sound, PcmDataHolder> SampleList = new();
+    public readonly ConcurrentDictionary<Sound, PcmDataHolder> SampleList = new();
     public Action<string, int, int>? DownloadUpdate = null;
 
     public const string ThirtyDollarWebsiteUrl = "https://thirtydollar.website";
@@ -77,7 +78,7 @@ public class SampleHolder
         if (sounds == null)
             throw new Exception("Loading Thirty Dollar Website Sounds failed with error: \'Deserialized contents of sounds.json are empty.\'");
 
-        foreach (var sound in sounds) SampleList.Add(sound, new PcmDataHolder());
+        foreach (var sound in sounds) SampleList.TryAdd(sound, new PcmDataHolder());
     }
 
     /// <summary>

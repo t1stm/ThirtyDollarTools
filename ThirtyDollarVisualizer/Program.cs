@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using CommandLine;
 using OpenTK.Windowing.Common.Input;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Scenes;
 using Image = SixLabors.ImageSharp.Image;
@@ -71,9 +72,10 @@ public static class Program
                 };
 
                 audio_context = no_audio
-                    ? null
+                    ? new NullAudioContext()
                     : options.AudioBackend switch
                     {
+                        "null" => new NullAudioContext(),
                         "openal" => new OpenALContext(),
                         _ => new BassAudioContext()
                     };
@@ -102,13 +104,8 @@ public static class Program
 
         manager.Scenes.Add(tdw_application);
 
-        /*var un30_dollar_application = new UnThirtyDollarApplication(width, height, audio_context);
+        /*var un30_dollar_application = new ThreeDollarWebsite(width, height, audio_context);
         manager.Scenes.Add(un30_dollar_application);*/
-        
-        if (sequence != null)
-        {
-            
-        }
         
         manager.Run();
     }

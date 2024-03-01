@@ -3,31 +3,37 @@ using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer.Objects;
 
-public class DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport)
-    : Camera(VirtualPosition, -Vector3.UnitZ, Vector3.UnitY, viewport)
+public sealed class DollarStoreCamera : Camera
 {
     private const float ScrollLengthMs = 120f;
     private DateTime LastScaleUpdate = DateTime.Now;
+    private Vector3 _virtualPosition;
+
+    public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport) : base(VirtualPosition, viewport)
+    {
+        _virtualPosition = VirtualPosition;
+        UpdateMatrix();
+    }
 
     public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float margin_from_sides = 0)
     {
-        var collide_top = position.Y < VirtualPosition.Y + margin_from_sides;
-        var collide_bottom = position.Y + scale.Y > VirtualPosition.Y + Height - margin_from_sides;
+        var collide_top = position.Y < _virtualPosition.Y + margin_from_sides;
+        var collide_bottom = position.Y + scale.Y > _virtualPosition.Y + Height - margin_from_sides;
         
-        var collide_left = position.X < VirtualPosition.X + margin_from_sides;
-        var collide_right = position.X + scale.X > VirtualPosition.X + Width - margin_from_sides;
+        var collide_left = position.X < _virtualPosition.X + margin_from_sides;
+        var collide_right = position.X + scale.X > _virtualPosition.X + Width - margin_from_sides;
 
         return collide_top || collide_bottom || collide_left || collide_right;
     }
 
     public void ScrollTo(Vector3 position)
     {
-        VirtualPosition = position;
+        _virtualPosition = position;
     }
     
     public void ScrollDelta(Vector3 delta)
     {
-        VirtualPosition += delta;
+        _virtualPosition += delta;
     }
 
     private async void AsyncUpdate()
@@ -38,7 +44,7 @@ public class DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport)
         do
         {
             var current_y = Position.Y;
-            var delta_y = VirtualPosition.Y - current_y;
+            var delta_y = _virtualPosition.Y - current_y;
 
             if (Math.Abs(delta_y) < 1f) break;
             var scroll_y = delta_y / ScrollLengthMs;
@@ -49,7 +55,7 @@ public class DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport)
             await Task.Delay(1);
         } while (true);
 
-        Position = VirtualPosition;
+        Position = _virtualPosition;
 
         IsBeingUpdated = false;
     }

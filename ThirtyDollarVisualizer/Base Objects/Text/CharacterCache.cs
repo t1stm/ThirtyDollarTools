@@ -11,6 +11,8 @@ public class CharacterCache(FontFamily font_family)
     {
         lock (Letters)
         {
+            if (character == '\n') return Texture.Transparent1x1;
+            
             if (!Letters.TryGetValue(font_style, out var letters))
             {
                 letters = new Dictionary<float, Dictionary<char, Texture>>();

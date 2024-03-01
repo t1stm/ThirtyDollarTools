@@ -1,5 +1,5 @@
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio.FeatureFlags;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Helpers.Timing;
@@ -19,7 +19,7 @@ public class SequencePlayer
     protected BackingAudio? BackingAudio;
     protected PlayerErrors Errors = PlayerErrors.None;
     public int PlacementIndex { get; private set; }
-    protected readonly List<AudibleBuffer> ActiveSamples = new(256);
+    protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
     protected readonly Greeting? Greeting;
 
     private bool _update_running;
@@ -211,8 +211,20 @@ public class SequencePlayer
     {
         lock (ActiveSamples)
         {
-            foreach (var buffer in ActiveSamples)
+            foreach (var (_, buffer) in ActiveSamples)
             {
+                buffer.Stop();
+            }
+        }
+    }
+
+    public void IndividualCutSamples(HashSet<string> cut_samples)
+    {
+        lock (ActiveSamples)
+        {
+            foreach (var (event_name, buffer) in ActiveSamples)
+            {
+                if (!cut_samples.Contains(event_name)) continue;
                 buffer.Stop();
             }
         }
@@ -250,6 +262,11 @@ public class SequencePlayer
                     break;
                 }
 
+                if (placement.Event is IndividualCutEvent ice)
+                {
+                    IndividualCutSamples(ice.CutSounds);
+                }
+                
                 switch (placement.Event.SoundEvent)
                 {
                     case "!cut":
@@ -257,14 +274,12 @@ public class SequencePlayer
                         break;
                 }
 
-                var idx = end_idx;
                 // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
                 if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
                 {
                     await Task.Run(() => { explicit_action.Invoke(placement, (int)placement.SequenceIndex); })
                         .ConfigureAwait(false);
                 }
-
 
                 // Normal pass.
                 if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
@@ -274,8 +289,7 @@ public class SequencePlayer
             }
 
             PlacementIndex = end_idx;
-
-        
+            
             var length = end_idx - current_idx;
             if (length < 1) return;
 
@@ -319,9 +333,20 @@ public class SequencePlayer
         {
             if (!placement.Audible || 
                 !BufferHolder.TryGetBuffer(placement.Event.SoundEvent ?? "", placement.Event.Value, out var buffer)) continue;
-            
+
+            var name = placement.Event.SoundEvent ?? "";
+            var tuple = (name, buffer);
             lock (ActiveSamples)
-                ActiveSamples.Add(buffer);
+                ActiveSamples.Add(tuple);
+
+            if (placement.Event is PannedEvent panned_event)
+            {
+                buffer.SetPan(panned_event.Pan);
+            }
+            else
+            {
+                buffer.SetPan(0f);
+            }
             
             buffer.SetVolume((float) (placement.Event.Volume ?? 100d) / 100f);
             buffer.Play(remove_callback);
@@ -330,7 +355,7 @@ public class SequencePlayer
             void remove_callback()
             {
                 lock (ActiveSamples)
-                    ActiveSamples.Remove(buffer);
+                    ActiveSamples.Remove(tuple);
             }
         }
     }
@@ -351,11 +376,4 @@ public enum PlayerErrors
 {
     None, 
     NoContext
-}
-
-public struct TimedEvents
-{
-    public Sequence Sequence;
-    public Placement[] Placement;
-    public int TimingSampleRate;
 }

@@ -13,10 +13,10 @@ public class ColoredPlane : Renderable
 
     public float BorderRadius;
     
-    public ColoredPlane(Vector4 color, Vector3 position, Vector2 width_height, float border_radius = 0f)
+    public ColoredPlane(Vector4 color, Vector3 position, Vector3 scale, float border_radius = 0f)
     {
-        _position = new Vector3(position);
-        _scale = new Vector3(width_height.X, width_height.Y, 0);
+        _position = position;
+        _scale = scale;
         
         if (!AreVerticesGenerated) SetVertices();
         
@@ -30,7 +30,7 @@ public class ColoredPlane : Renderable
         BorderRadius = border_radius;
     }
 
-    public ColoredPlane(Vector4 color, Vector3 position, Vector2 width_height, Shader? shader) : this(color, position, width_height)
+    public ColoredPlane(Vector4 color, Vector3 position, Vector3 scale, Shader? shader) : this(color, position, scale)
     {
         Shader = shader ?? Shader;
     }

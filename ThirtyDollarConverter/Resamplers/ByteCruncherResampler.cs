@@ -10,8 +10,9 @@ public class ByteCruncherResampler : IResampler
         this.bits_per_sample = bits_per_sample;
     }
     
-    public float[] Resample(Span<float> samples, uint sample_rate, uint target_sample_rate)
+    public float[] Resample(Memory<float> samples, uint sample_rate, uint target_sample_rate)
     {
+        var span = samples.Span;
         var increment = (float) target_sample_rate / sample_rate;
         
         var resampled_size = (ulong) Math.Ceiling((double) increment * samples.Length);
@@ -20,7 +21,7 @@ public class ByteCruncherResampler : IResampler
         for (ulong i = 0; i < resampled_size; i++)
         {
             var current_index = Math.Floor(i / increment);
-            var current_sample = samples[(int) Math.Clamp(current_index, 0, samples.Length - 1)];
+            var current_sample = span[(int) Math.Clamp(current_index, 0, samples.Length - 1)];
             
             var crunched = (int) (current_sample * bits_per_sample);
             resampled[i] = crunched / bits_per_sample;
@@ -29,8 +30,9 @@ public class ByteCruncherResampler : IResampler
         return resampled;
     }
 
-    public double[] Resample(Span<double> samples, uint sample_rate, uint target_sample_rate)
+    public double[] Resample(Memory<double> samples, uint sample_rate, uint target_sample_rate)
     {
+        var span = samples.Span;
         var increment = (double) target_sample_rate / sample_rate;
         
         var resampled_size = (ulong) Math.Ceiling(increment * samples.Length);
@@ -39,7 +41,7 @@ public class ByteCruncherResampler : IResampler
         for (ulong i = 0; i < resampled_size; i++)
         {
             var current_index = Math.Floor(i / increment);
-            var current_sample = samples[(int) Math.Clamp(current_index, 0, samples.Length - 1)];
+            var current_sample = span[(int) Math.Clamp(current_index, 0, samples.Length - 1)];
             
             var crunched = (int) (current_sample * bits_per_sample);
             resampled[i] = crunched / bits_per_sample;

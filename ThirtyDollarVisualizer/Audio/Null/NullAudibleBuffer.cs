@@ -40,4 +40,8 @@ public class NullAudibleBuffer : AudibleBuffer
     public override void SetPause(bool state)
     {
     }
+
+    public override void SetPan(float pan)
+    {
+    }
 }
