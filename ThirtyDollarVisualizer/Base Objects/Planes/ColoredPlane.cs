@@ -84,8 +84,8 @@ public class ColoredPlane : Renderable
     {
         Shader.SetUniform("u_Color", Color);
         Shader.SetUniform("u_BorderRadiusPx", BorderRadius);
-        Shader.SetUniform("u_PositionPx", _position.Xy + _translation.Xy);
-        Shader.SetUniform("u_ScalePx", _scale.Xy);
+        Shader.SetUniform("u_PositionPx", _position + _translation);
+        Shader.SetUniform("u_ScalePx", _scale);
         
         Shader.SetUniform("u_Model", Model);
         Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
