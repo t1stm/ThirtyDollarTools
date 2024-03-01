@@ -9,6 +9,8 @@ namespace ThirtyDollarVisualizer.Objects.Text;
 /// </summary>
 public class DynamicText : Renderable, IText
 {
+    private readonly SemaphoreSlim _lock = new(1);
+    
     public string Value
     {
         get => _value;
@@ -44,52 +46,58 @@ public class DynamicText : Renderable, IText
     {
         var cache = Fonts.GetCharacterCache();
         var textures = text.Select(c => cache.Get(c, _font_size_px, FontStyle)).ToArray();
-        lock (TexturedPlanes)
+
+        _lock.Wait();
+        try
+        {
             if (TexturedPlanes.Length != textures.Length)
             {
                 TexturedPlanes = new TexturedPlane[textures.Length];
                 for (var index = 0; index < TexturedPlanes.Length; index++)
                 {
-                    TexturedPlanes[index] = new TexturedPlane(Texture.Transparent1x1, 
-                        (0,0,0), (1,1));
+                    TexturedPlanes[index] = new TexturedPlane(Texture.Transparent1x1,
+                        (0, 0, 0), (1, 1));
                 }
             }
-        
-        var x = _position.X;
-        var y = _position.Y;
-        var z = _position.Z;
-        
-        var start_X = x;
-        var max_x = 0f;
-        var max_y = 0f;
-        
-        for (var i = 0; i < textures.Length; i++)
-        {
-            var texture = textures[i];
-            var character = text[i];
-            var w = texture.Width;
-            var h = texture.Height;
 
-            if (character == '\n')
+            var x = _position.X;
+            var y = _position.Y;
+            var z = _position.Z;
+
+            var start_X = x;
+            var max_x = 0f;
+            var max_y = 0f;
+
+            for (var i = 0; i < textures.Length; i++)
             {
-                y += FontSizePx;
-                x = start_X;
+                var texture = textures[i];
+                var character = text[i];
+                var w = texture.Width;
+                var h = texture.Height;
+
+                if (character == '\n')
+                {
+                    y += FontSizePx;
+                    x = start_X;
+                }
+
+                var plane = TexturedPlanes[i];
+
+                plane.SetTexture(texture);
+                plane.SetPosition((x, y, z));
+                plane.SetScale((w, h, 0));
+
+                x += w;
+                max_x = Math.Max(max_x, x);
+                max_y = Math.Max(max_y, y + h);
             }
 
-            TexturedPlane plane;
-            lock (TexturedPlanes)
-                plane = TexturedPlanes[i];
-            
-            plane.SetTexture(texture);
-            plane.SetPosition((x,y,z));
-            plane.SetScale((w,h,0));
-            
-            x += w;
-            max_x = Math.Max(max_x, x);
-            max_y = Math.Max(max_y, y + h);
+            _scale = (max_x, max_y, 1);
         }
-
-        _scale = (max_x, max_y, 1);
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public override void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
@@ -100,11 +108,13 @@ public class DynamicText : Renderable, IText
 
     public override void Render(Camera camera)
     {
-        lock (TexturedPlanes)
+        _lock.Wait();
         foreach (var plane in TexturedPlanes)
         {
             plane.Render(camera);
         }
+
+        _lock.Release();
         
         base.Render(camera);
     }
