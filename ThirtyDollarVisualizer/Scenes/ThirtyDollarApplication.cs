@@ -250,9 +250,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
         
         Camera.ScrollTo((0,-300,0));
-        ColorTools.ChangeColor(_background, new Vector4(0.21f, 0.22f, 0.24f, 1f), 1f).GetAwaiter();
+        ColorTools.ChangeColor(_background, new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.66f).GetAwaiter();
         
-        var tdw_images = new List<SoundRenderable>();
+        var tdw_images = new SoundRenderable[events.Sequence.Events.Length];
         var font_family = Fonts.GetFontFamily();
 
         CreationLeftMargin = LeftMargin;
@@ -272,14 +272,16 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         try
         {
-            foreach (var ev in events.Sequence.Events)
+            for (var i = 0; i < events.Sequence.Events.Length; i++)
             {
-                if (string.IsNullOrEmpty(ev.SoundEvent) || ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent)
+                var ev = events.Sequence.Events[i];
+                if (string.IsNullOrEmpty(ev.SoundEvent) ||
+                    ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent)
                 {
                     continue;
                 }
 
-                CreateEventRenderable(tdw_images, ev, _texture_cache, wh, flex_box,
+                CreateEventRenderable(tdw_images, i, ev, _texture_cache, wh, flex_box,
                     ValueTextCache, _volume_text_cache, font,
                     volume_color, volume_font);
             }
@@ -309,7 +311,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
         
         Manager.RenderBlock.Wait(Token);
-        TDW_images = tdw_images.ToArray();
+        TDW_images = tdw_images;
         Manager.RenderBlock.Release();
     }
     
@@ -339,7 +341,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <summary>
     /// Creates a Thirty Dollar Website renderable with the texture of the event and its value and volume as children.
     /// </summary>
-    protected virtual void CreateEventRenderable(ICollection<SoundRenderable> tdw_images, BaseEvent ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
+    protected virtual void CreateEventRenderable(SoundRenderable[] tdw_images, int index, BaseEvent ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
         FlexBox flex_box,
         IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font, Rgba32 volume_color, Font volume_font)
     {
@@ -554,7 +556,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         #endregion
         
-        tdw_images.Add(plane);
+        tdw_images[index] = plane;
         plane.UpdateModel(false);
         
         if (ev.SoundEvent is not "!divider") return;
