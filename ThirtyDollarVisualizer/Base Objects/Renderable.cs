@@ -279,13 +279,13 @@ public abstract class Renderable
                 PositionAlign.TopCenter => position - _scale.X / 2f * Vector3.UnitX,
                 PositionAlign.TopRight => position - _scale.X * Vector3.UnitX,
                 
-                PositionAlign.MiddleLeft => position + _scale.Y / 2f * Vector3.UnitY,
-                PositionAlign.Center => position + _scale.Y / 2f * Vector3.UnitY - _scale.X / 2f * Vector3.UnitX,
-                PositionAlign.MiddleRight => position + _scale.Y / 2f * Vector3.UnitY - _scale.X * Vector3.UnitX,
+                PositionAlign.MiddleLeft => position - _scale.Y / 2f * Vector3.UnitY,
+                PositionAlign.Center => position - _scale.Y / 2f * Vector3.UnitY - _scale.X / 2f * Vector3.UnitX,
+                PositionAlign.MiddleRight => position - _scale.Y / 2f * Vector3.UnitY - _scale.X * Vector3.UnitX,
                 
-                PositionAlign.BottomLeft => position + _scale.Y * Vector3.UnitY,
-                PositionAlign.BottomCenter => position + _scale.Y * Vector3.UnitY - _scale.X / 2f * Vector3.UnitX,
-                PositionAlign.BottomRight => position + _scale.Y * Vector3.UnitY - _scale.X * Vector3.UnitX,
+                PositionAlign.BottomLeft => position - _scale.Y * Vector3.UnitY,
+                PositionAlign.BottomCenter => position - _scale.Y * Vector3.UnitY - _scale.X / 2f * Vector3.UnitX,
+                PositionAlign.BottomRight => position - _scale.Y * Vector3.UnitY - _scale.X * Vector3.UnitX,
                 _ => throw new ArgumentOutOfRangeException(nameof(align), align,
                     "Invalid Position Align in set position method.")
             };
