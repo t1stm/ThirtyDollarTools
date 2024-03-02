@@ -20,7 +20,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         Size = (width, height), 
         Title = title, 
         APIVersion = new Version(4,6), 
-        Icon = icon
+        Icon = icon,
+        Vsync = fps == null ? VSyncMode.On : VSyncMode.Off
     })
 {
     public readonly List<IScene> Scenes = new();

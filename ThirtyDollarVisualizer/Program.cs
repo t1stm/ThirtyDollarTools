@@ -62,7 +62,7 @@ public static class Program
                 no_audio = options.NoAudio;
                 width = options.Width ?? width;
                 height = options.Height ?? height;
-                fps = options.FPS ?? 60;
+                fps = options.FPS;
                 scale = options.Scale;
                 
                 follow_mode = options.CameraFollowMode switch
