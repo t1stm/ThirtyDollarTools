@@ -55,7 +55,7 @@ public class Texture : IDisposable
     public Texture(Font font, string text, Color? color = null)
     {
         var options = new TextOptions(font);
-        var rect = TextMeasurer.MeasureSize(text, options);
+        var rect = TextMeasurer.MeasureAdvance(text, options);
 
         var c_w = Math.Ceiling(rect.Width);
         var c_h = Math.Ceiling(rect.Height);
