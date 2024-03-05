@@ -3,6 +3,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
+using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;

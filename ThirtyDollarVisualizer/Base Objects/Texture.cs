@@ -1,7 +1,10 @@
 using System.Reflection;
 using OpenTK.Graphics.OpenGL;
 using SixLabors.Fonts;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -14,7 +17,7 @@ public class Texture : IDisposable
         get
         {
             if (_transparent1x1 != null) return _transparent1x1;
-            Span<byte> bytes = stackalloc byte[1];
+            Span<byte> bytes = stackalloc byte[4] { 0, 0, 0, 0 };
             _transparent1x1 = new Texture(bytes, 1, 1);
 
             return _transparent1x1;

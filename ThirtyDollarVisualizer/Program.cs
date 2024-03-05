@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using CommandLine;
 using OpenTK.Windowing.Common.Input;
+using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Objects.Settings;
@@ -29,7 +30,7 @@ public static class Program
         [Option('h', "height", HelpText = "The height of the render window.")]
         public int? Height { get; set; }
 
-        [Option('c', "camera_follow_mode", HelpText = "Controls how the camera behaves. Values: \"tdw\", \"line\"")]
+        [Option('c', "camera-follow-mode", HelpText = "Controls how the camera behaves. Values: \"tdw\", \"line\"")]
         public string? CameraFollowMode { get; set; }
 
         [Option('f', "fps-limit",
