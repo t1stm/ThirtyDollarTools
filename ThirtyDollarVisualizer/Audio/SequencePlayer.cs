@@ -41,13 +41,16 @@ public class SequencePlayer
         };
         Log = log_action;
         
-        var c = context ?? GetAvailableContext();
+        var c = context;
+        c?.Create();
+        c ??= GetAvailableContext();
+
         if (c == null)
         {
             Errors = PlayerErrors.NoContext;
             return;
         }
-        
+
         AudioContext = c;
         Greeting = new Greeting(AudioContext, BufferHolder);
         TimingStopwatch.Reset();
