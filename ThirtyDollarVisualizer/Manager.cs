@@ -17,7 +17,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     },
     new NativeWindowSettings
     {
-        Size = (width, height), 
+        ClientSize = (width, height), 
         Title = title, 
         APIVersion = new Version(4,6), 
         Icon = icon,
