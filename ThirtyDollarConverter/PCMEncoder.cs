@@ -372,7 +372,7 @@ public class PcmEncoder
 
             zero_samples++;
 
-            if (i < 0 || mix_slice[i] == 0f) continue;
+            if (i >= 0 && mix_slice[i] == 0f) continue;
             zero_samples = 0;
         }
 
