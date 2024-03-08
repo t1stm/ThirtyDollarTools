@@ -183,7 +183,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     """
         }.WithPosition((10, 250f, 0));
 
-        const string version_string = "1.0.0-rc10";
+        const string version_string = "1.0.0-rc10.1";
         var text = new StaticText
         {
             FontStyle = FontStyle.Bold,
