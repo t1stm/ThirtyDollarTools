@@ -68,7 +68,7 @@ public class Texture : IDisposable
 
         color ??= Color.White;
 
-        var cast_color = (Color) color;
+        var cast_color = color.Value;
         
         texture_data.Mutate(x => 
                 x.DrawText(text, font, Color.Black, point)

@@ -109,9 +109,11 @@ public class MainWindowViewModel : ViewModelBase
     {
         await sample_holder.LoadSampleList();
         sample_holder.PrepareDirectory();
-        DownloadSamples();
-
-        if (!await sample_holder.DownloadSamples(true)) return; 
+        if (!await sample_holder.DownloadSamples(true))
+        {
+            DownloadSamples();
+            return;
+        }
         
         sample_holder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");
@@ -239,10 +241,8 @@ public class MainWindowViewModel : ViewModelBase
             downloader.Close();
 
             string? visualizer_filename = null;
-            var gui_location = Process.GetCurrentProcess().MainModule?.FileName;
-            if (gui_location.Contains("ThirtyDollarGUI.exe")) gui_location = gui_location.Replace("ThirtyDollarGUI.exe", "");
-            else gui_location = gui_location.Replace("ThirtyDollarGUI", "");
-
+            var gui_location = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+            gui_location = gui_location.Replace(gui_location.Contains("ThirtyDollarGUI.exe") ? "ThirtyDollarGUI.exe" : "ThirtyDollarGUI", "");
 
             if (File.Exists($"{gui_location}/ThirtyDollarVisualizer")) visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer";
             if (File.Exists($"{gui_location}/ThirtyDollarVisualizer.exe")) visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer.exe";

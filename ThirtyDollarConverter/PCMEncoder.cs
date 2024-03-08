@@ -192,7 +192,7 @@ public class PcmEncoder
     {
         var length = mixer.GetLength();
         var min_length_per_thread = Math.Min(1 << 15, length);
-        var working_threads = 128;
+        var working_threads = Settings.MultithreadingSlices;
 
         var min_length_for_working_threads = min_length_per_thread * working_threads;
         while (min_length_for_working_threads > length && working_threads > 1)
@@ -362,7 +362,7 @@ public class PcmEncoder
 
         var zero_samples = 0;
         var zero_index = norm_end;
-        for (var i = 0; i < norm_end; i++)
+        for (var i = norm_start; i < norm_end; i++)
         {
             if (zero_samples >= WANTED_ZERO_SAMPLES)
             {

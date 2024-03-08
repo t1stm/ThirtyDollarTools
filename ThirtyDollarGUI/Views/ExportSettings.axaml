@@ -46,6 +46,10 @@
                 <TextBox Text="{Binding CombineDelayText}"></TextBox>
             </StackPanel>
             <StackPanel Margin="10">
+                <TextBlock FontSize="11">Encoding Slices Count</TextBlock>
+                <TextBox Text="{Binding EncodeSlicesCountText}"></TextBox>
+            </StackPanel>
+            <StackPanel Margin="10">
                 <TextBlock FontSize="11">Resampler</TextBlock>
                 <ComboBox SelectedItem="{Binding SelectedExportSettings}" ItemsSource="{Binding ListItems}" MaxDropDownHeight="200">
                     <ComboBox.ItemTemplate>

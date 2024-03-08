@@ -10,7 +10,7 @@ public class OpenALBuffer : AudibleBuffer
     private readonly AudioContext _context;
     private List<int> AudioSources = new();
     public int AudioBuffer { get; set; }
-    private float _pan;
+    private float _pan = 0f;
 
     public OpenALBuffer(AudioContext context, AudioData<float> sample_data, int sample_rate)
     {
@@ -64,6 +64,7 @@ public class OpenALBuffer : AudibleBuffer
         var length = (int) (1000f * (samples / frequency));
         
         AL.Source(source, ALSourcei.Buffer, AudioBuffer);
+        
         AL.Source(source, ALSourcef.Gain, _volume);
         AL.Source(source, ALSource3f.Position, _pan,0,0);
         

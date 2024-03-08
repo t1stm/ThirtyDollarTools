@@ -29,6 +29,12 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         set => this.RaiseAndSetIfChanged(ref encoderSettings.CutFadeLengthMs, value);
     }
     
+    public int EncodeSlicesCount
+    {
+        get => encoderSettings.MultithreadingSlices;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.MultithreadingSlices, value);
+    }
+    
     public uint CombineDelayMs
     {
         get => encoderSettings.CombineDelayMs;
@@ -111,6 +117,25 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
 
             var parsed = uint.Parse(value);
             CombineDelayMs = parsed;
+        }
+    }
+    
+    public string EncodeSlicesCountText
+    {
+        get => EncodeSlicesCount.ToString();
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                EncodeSlicesCount = 0;
+                return;
+            }
+            
+            var regex = NumberRegex();
+            if (!regex.IsMatch(value)) return;
+
+            var parsed = int.Parse(value);
+            EncodeSlicesCount = parsed;
         }
     }
 

@@ -6,10 +6,10 @@ using ThirtyDollarVisualizer.Audio;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
-public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null)
+public abstract class ThirtyDollarWorkflow
 {
-    protected readonly SequencePlayer SequencePlayer = new();
-    protected readonly Action<string> Log = logging_action ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
+    protected readonly SequencePlayer SequencePlayer;
+    protected readonly Action<string> Log;
     protected SampleHolder? SampleHolder;
     private readonly SemaphoreSlim SampleHolderLock = new(1);
     protected TimedEvents TimedEvents = new()
@@ -21,9 +21,10 @@ public abstract class ThirtyDollarWorkflow(Action<string>? logging_action = null
     protected string? _sequence_location;
     protected DateTime _sequence_date_modified = DateTime.MinValue;
 
-    public ThirtyDollarWorkflow(AudioContext? context) : this()
+    public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? logging_action = null)
     {
         SequencePlayer = new SequencePlayer(context);
+        Log = logging_action ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
     }
     
     /// <summary>

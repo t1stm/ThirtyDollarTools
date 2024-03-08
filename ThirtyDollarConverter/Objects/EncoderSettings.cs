@@ -5,6 +5,11 @@ namespace ThirtyDollarConverter.Objects;
 public class EncoderSettings
 {
     /// <summary>
+    /// How many slices to separate the sequence in for multithreading.
+    /// </summary>
+    public int MultithreadingSlices = 128;
+    
+    /// <summary>
     /// The sample rate to export in.
     /// </summary>
     public uint SampleRate;

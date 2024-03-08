@@ -22,6 +22,7 @@ public class OpenALContext : AudioContext
                 new ALContextAttributes(SampleRate, null, 1024, UpdateRate, false));
 
             ALC.MakeContextCurrent(context);
+            AL.DistanceModel(ALDistanceModel.LinearDistanceClamped);
 
             AL.Listener(ALListenerf.Gain, GlobalVolume);
             AL.Listener(ALListener3f.Position, 0f,0f,0f);

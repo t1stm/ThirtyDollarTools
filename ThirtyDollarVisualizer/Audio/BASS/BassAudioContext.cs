@@ -50,7 +50,7 @@ public class BassAudioContext : AudioContext
     {
         Errors error;
         var has_error = false;
-
+        
         while ((error = Bass.LastError) != Errors.OK)
         {
             Console.WriteLine($"[BASS Error]: {error}");

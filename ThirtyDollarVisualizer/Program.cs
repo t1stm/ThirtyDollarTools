@@ -78,7 +78,8 @@ public static class Program
                     {
                         "null" => new NullAudioContext(),
                         "openal" => new OpenALContext(),
-                        _ => new BassAudioContext()
+                        "bass" => new BassAudioContext(),
+                        _ => null
                     };
             });
 
