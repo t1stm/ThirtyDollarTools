@@ -152,8 +152,9 @@ public class PcmEncoder
         
         var big_event = processed_events.Values.MaxBy(e => e.AudioData.GetLength());
         if (big_event == null) throw new Exception("No processed events.");
-        
-        var length = (int)last_placement.Index + big_event.AudioData.GetLength();
+
+        var big_event_length = big_event.AudioData.GetLength();
+        var length = (int)last_placement.Index + big_event_length;
         var audio_data = AudioData<float>.WithLength(Channels, length);
 
         var mixer = new AudioMixer(audio_data);
@@ -171,7 +172,7 @@ public class PcmEncoder
 
             channels[index] = Task.Run(async () =>
             {
-                await ProcessChannel(mixer, index, events, processed_events);
+                await ProcessChannel(mixer, index, events, processed_events, big_event_length);
             }, token);
         }
 
@@ -187,8 +188,9 @@ public class PcmEncoder
     /// <param name="channel">The channel ID.</param>
     /// <param name="events">The calculated events.</param>
     /// <param name="processed_events">The processed events for the sequence.</param>
+    /// <param name="biggest_event_length">The sequence's biggest event's length.</param>
     private async Task ProcessChannel(AudioMixer mixer, int channel, TimedEvents events,
-        Dictionary<(string, double), ProcessedEvent> processed_events)
+        Dictionary<(string, double), ProcessedEvent> processed_events, int biggest_event_length)
     {
         var length = mixer.GetLength();
         var min_length_per_thread = Math.Min(1 << 15, length);
@@ -218,19 +220,22 @@ public class PcmEncoder
             var start = (int)start_idx;
             var end = Math.Min((int) end_idx, length);
             
-            Log($"Processing chunk. i: {i} Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
             if (start > length)
             {
                 return ValueTask.CompletedTask;
             }
+
+            var start_time = DateTime.Now;
+            ProcessChunk(start, end, mixer, channel, events, processed_events, biggest_event_length);
+            var end_time = DateTime.Now;
+            Log($@"Processed chunk i: {i} in {end_time - start_time:ss\.ffff} s. Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
             
-            ProcessChunk(start, end, mixer, channel, events, processed_events);
             return ValueTask.CompletedTask;
         });
     }
 
     private void ProcessChunk(int start, int end, AudioMixer mixer, int channel,
-        TimedEvents events, Dictionary<(string, double), ProcessedEvent> processed_events)
+        TimedEvents events, Dictionary<(string, double), ProcessedEvent> processed_events, int biggest_event_length)
     {
         var placement = events.Placement.AsSpan();
         
@@ -266,6 +271,7 @@ public class PcmEncoder
 
             // get current event start.
             var current_start = (int) current.Index;
+            if (current_start < start - biggest_event_length) continue;
             if (current_start >= end) break;
 
             // put pan variable here to be used later
