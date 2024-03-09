@@ -3,6 +3,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
@@ -421,39 +422,50 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             ValueScale.Divide => "/" + value,
             _ => value
         };
-
+        
+        var polluted_value_texture = false;
+        Texture? value_texture = null;
+        
         switch (ev.SoundEvent)
         {
             case "!bg":
             {
-                var seconds = ((long)ev.Value >> 24) / 1000f;
+                var parsed_value = (long)ev.Value;
+                var seconds = (parsed_value >> 24) / 1000f;
                 value = seconds.ToString("0.##");
+                
+                var r = (byte)parsed_value;
+                var g = (byte)(parsed_value >> 8);
+                var b = (byte)(parsed_value >> 16);
+
+                value_texture = new Texture(font, new Rgb24(r, g, b), value);
                 break;
             }
             
             case "!volume":
+            {
                 value += "%";
                 break;
+            }
             
             case "!pulse":
-                var parsed_value = (long) ev.Value;
+            {
+                var parsed_value = (long)ev.Value;
                 var repeats = (byte)parsed_value;
                 var pulse_times = (short)(parsed_value >> 8);
 
                 value = $"{repeats}, {pulse_times}";
                 break;
+            }
         }
-
-        var polluted_value_texture = false;
+        
         if (texture == MissingTexture)
         {
             value = $"{ev.SoundEvent}@{value}";
             polluted_value_texture = true;
         }
 
-        Texture? value_texture = null;
-
-        if ((ev.Value != 0 || polluted_value_texture) && ev.SoundEvent is not "_pause" || ev.SoundEvent is "!transpose")
+        if (value_texture == null && (ev.Value != 0 || polluted_value_texture) && ev.SoundEvent is not "_pause" || ev.SoundEvent is "!transpose")
         {
             value_text_cache.TryGetValue(value, out value_texture);
             if (value_texture == null)
