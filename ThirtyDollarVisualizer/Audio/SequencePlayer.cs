@@ -13,6 +13,7 @@ public class SequencePlayer
     protected readonly SemaphoreSlim UpdateLock = new(1);
     protected readonly Action<string>? Log;
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
+    protected readonly long[] Bookmarks = new long[10];
     
     protected BufferHolder BufferHolder;
     protected TimedEvents Events;
@@ -237,6 +238,26 @@ public class SequencePlayer
     {
         if (Greeting == null) return;
         Greeting.GreetingType = type;
+    }
+    
+    public async Task<long> SeekToBookmark(int bookmark_index)
+    {
+        var bookmark_time = Bookmarks[bookmark_index];
+        
+        await Seek(bookmark_time);
+        return bookmark_time;
+    }
+
+    public long SetBookmark(int bookmark_index)
+    {
+        var current_time = TimingStopwatch.ElapsedMilliseconds;
+        Bookmarks[bookmark_index] = current_time;
+        return current_time;
+    }
+
+    public void ClearBookmark(int bookmark_index)
+    {
+        Bookmarks[bookmark_index] = 0;
     }
 
     protected async Task PlaybackUpdate()

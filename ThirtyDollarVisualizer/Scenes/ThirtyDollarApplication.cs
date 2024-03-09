@@ -48,6 +48,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         FontStyle = FontStyle.Bold
     };
+
+    private ulong _update_id; 
     private Renderable? _greeting;
     private SoundRenderable? _drag_n_drop;
     private Renderable? _controls_text;
@@ -332,10 +334,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     protected void SetStatusMessage(string message, int hide_after_ms = 2000)
     {
         _update_text.SetTextContents(message);
+        var old_id = ++_update_id;
         Task.Run(async () =>
         {
             await Task.Delay(hide_after_ms, Token);
-            if (_update_text.Value == message)
+            if (old_id == _update_id)
                 _update_text.SetTextContents(string.Empty);
         }, Token);
     }
@@ -929,6 +932,34 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             true when CameraFollowMode is CameraFollowMode.None => CameraFollowMode.Current_Line,
             _ => CameraFollowMode
         };
+        
+        if (state.IsKeyDown(Keys.LeftShift) && state.IsKeyDown(Keys.LeftControl))
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                var key = (Keys)((int) Keys.D0 + i);
+                if (!state.IsKeyPressed(key)) continue;
+                var bookmark_time = SequencePlayer.SetBookmark(i);
+                SetStatusMessage($"[Playback] Setting Bookmark {i} To: {bookmark_time}ms");
+            }
+        }
+        else if (state.IsKeyDown(Keys.LeftControl))
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                var key = (Keys)((int) Keys.D0 + i);
+                if (!state.IsKeyPressed(key)) continue;
+                SequencePlayer.ClearBookmark(i);
+                SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
+            }
+        }
+        else for (var i = 0; i < 10; i++)
+        {
+            var key = (Keys)((int) Keys.D0 + i);
+            if (!state.IsKeyPressed(key)) continue;
+            var time = await SequencePlayer.SeekToBookmark(i);
+            SetStatusMessage($"[Playback] Seeking To Bookmark {i}: {time}ms");
+        }
 
         if (old_camera != CameraFollowMode)
         {
