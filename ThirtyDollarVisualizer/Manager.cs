@@ -96,7 +96,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         
         foreach (var scene in Scenes)
         {
-            scene.Mouse(MouseState);
+            scene.Mouse(MouseState, KeyboardState);
         }
         
         if (!KeyboardState.IsKeyDown(Keys.Escape)) return;

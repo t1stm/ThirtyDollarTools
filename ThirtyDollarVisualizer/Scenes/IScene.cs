@@ -47,6 +47,7 @@ public interface IScene
     /// <summary>
     /// Event triggered when a pointing device is interacted with.
     /// </summary>
-    /// <param name="state">A copy of the MouseState.</param>
-    public void Mouse(MouseState state);
+    /// <param name="mouse_state">A copy of the MouseState.</param>
+    /// <param name="keyboard_state">A copy of the KeyboardState.</param>
+    public void Mouse(MouseState mouse_state, KeyboardState keyboard_state);
 }

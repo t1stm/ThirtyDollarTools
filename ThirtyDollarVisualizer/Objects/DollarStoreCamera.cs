@@ -81,7 +81,7 @@ public sealed class DollarStoreCamera : Camera
                 stopwatch.Restart();
             }
             
-            var zoom = 1 + (float) Math.Sin(Math.PI * factor) * max_add_scale;
+            var zoom = RenderScale + (float) Math.Sin(Math.PI * factor) * max_add_scale;
             Scale = zoom;
             UpdateMatrix();
             
@@ -90,7 +90,7 @@ public sealed class DollarStoreCamera : Camera
 
         if (now == LastScaleUpdate)
         {
-            Scale = 1f;
+            Scale = RenderScale;
             UpdateMatrix();   
         }
         

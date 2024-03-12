@@ -21,6 +21,7 @@ public abstract class Camera
     public Vector2i Viewport;
 
     protected float Scale = 1f;
+    protected float RenderScale = 1f;
     protected bool IsBeingUpdated { get; set; } = false;
 
     public int Width
@@ -58,7 +59,7 @@ public abstract class Camera
         var right = Position.X + Width;
         var bottom = Position.Y + Height;
 
-        if (Math.Abs(Scale - 1) > 0.01f)
+        if (Math.Abs(Scale - 1) > 0.001f)
         {
             var add_left = Width - Width / Scale;
             var add_top = Height - Height / Scale;
@@ -80,4 +81,12 @@ public abstract class Camera
     {
         return projection_matrix;
     }
+
+    public void SetRenderScale(float scale)
+    {
+        RenderScale = Scale = scale;
+        UpdateMatrix();
+    }
+
+    public float GetRenderScale() => RenderScale;
 }

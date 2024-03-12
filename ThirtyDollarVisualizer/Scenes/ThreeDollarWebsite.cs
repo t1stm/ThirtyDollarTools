@@ -105,22 +105,21 @@ public class ThreeDollarWebsite : ThirtyDollarApplication
         GL.Viewport(0,0,w,h);
     }
 
-    public override void Mouse(MouseState state)
+    public override void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
     {
-        var mouse = state;
         const float sensitivity = 0.05f;
         
         if (_first_move) // This bool variable is initially set to true.
         {
-            _last_pos = new Vector2(mouse.X, mouse.Y);
+            _last_pos = new Vector2(mouse_state.X, mouse_state.Y);
             _first_move = false;
         }
         else
         {
             // Calculate the offset of the mouse position
-            var deltaX = mouse.X - _last_pos.X;
-            var deltaY = mouse.Y - _last_pos.Y;
-            _last_pos = new Vector2(mouse.X, mouse.Y);
+            var deltaX = mouse_state.X - _last_pos.X;
+            var deltaY = mouse_state.Y - _last_pos.Y;
+            _last_pos = new Vector2(mouse_state.X, mouse_state.Y);
 
             // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
             _camera.Yaw += deltaX * sensitivity;

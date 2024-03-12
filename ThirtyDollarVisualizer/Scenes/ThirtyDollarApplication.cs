@@ -3,7 +3,6 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
-using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
@@ -26,11 +25,13 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private static Texture? ICutTexture;
     protected readonly List<Renderable> start_objects = new();
     protected readonly List<Renderable> static_objects = new();
+    protected readonly List<Renderable> text_objects = new();
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_delay_stopwatch = new();
     private readonly Stopwatch _file_update_stopwatch = new();
     private readonly DollarStoreCamera Camera;
     private readonly DollarStoreCamera StaticCamera;
+    private readonly DollarStoreCamera TextCamera;
     
     private int Width;
     private int Height;
@@ -67,7 +68,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int CreationLeftMargin;
     private long CurrentResizeFrame;
     private ulong LastDividerIndex;
-    private bool UpdatedRenderableScale;
 
     private BackingAudio? BackingAudio;
     
@@ -83,7 +83,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDW_Like;
     public string? BackgroundVertexShaderLocation { get; init; }
     public string? BackgroundFragmentShaderLocation { get; init; }
-    public float Scale { get; init; } = 1f;
+    public float Zoom { get; set; } = 1f;
+    public float Scale { get; set; } = 1f;
 
     /// <summary>
     /// Creates a TDW sequence visualizer.
@@ -101,6 +102,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         Camera = new DollarStoreCamera((0,-300f,0), new Vector2i(Width, Height));
         StaticCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height));
+        TextCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height));
+        
         _open_stopwatch.Start();
         _seek_delay_stopwatch.Start();
         _file_update_stopwatch.Start();
@@ -120,13 +123,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         static_objects.Clear();
         start_objects.Clear();
-        
-        if (!UpdatedRenderableScale)
-        {
-            RenderableSize = (int)(RenderableSize * Scale);
-            MarginBetweenRenderables = (int)(MarginBetweenRenderables * Scale);
-            UpdatedRenderableScale = true;
-        }
 
         Manager = manager;
         MissingTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
@@ -151,7 +147,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         static_objects.Add(_flash_overlay);
 
         PlayfieldWidth = ElementsOnSingleLine * (RenderableSize + MarginBetweenRenderables) + MarginBetweenRenderables +
-                         (int) (15 * Scale) /*px Padding in the site. */;
+                         15 /*px Padding in the site. */;
 
         LeftMargin = (int)((float)Width / 2 - (float) PlayfieldWidth / 2);
 
@@ -160,12 +156,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         static_objects.Add(_visible_area);
         
         var font_family = Fonts.GetFontFamily();
-        var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
+        var greeting_font = font_family.CreateFont(36, FontStyle.Bold);
 
         _greeting ??= new StaticText
         {
             FontStyle = FontStyle.Bold,
-            FontSizePx = 36f * Scale,
+            FontSizePx = 36f,
             Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
         }.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
 
@@ -175,8 +171,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             Value = """
                     All controls:
                     
-                    Scroll -> Scroll view up / down.
-                    Up / Down -> Control application volume.
+                    Scroll -> Scroll up / down.
+                    Ctrl+Scroll -> Change the zoom.
+                    Up / Down -> Control the application's volume.
                     Left / Right -> Seek the sequence.
                     R -> Reload the current sequence.
                     C -> Change the camera modes.
@@ -184,7 +181,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     Escape -> Close the program.
                     
                     """
-        }.WithPosition((10, 250f, 0));
+        }.WithPosition((10, 0f, 0));
 
         const string version_string = "1.0.0-rc10.1";
         var text = new StaticText
@@ -203,18 +200,20 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                      """
         };
         
-        _version_text ??= text.WithPosition((10, Height - 300f, 0), PositionAlign.BottomLeft);
+        _version_text ??= text.WithPosition((10, Height, 0), PositionAlign.BottomLeft);
         
-        start_objects.Add(_controls_text);
-        start_objects.Add(_version_text);
+        text_objects.Add(_controls_text);
+        text_objects.Add(_version_text);
 
         _log_text.SetPosition((20,20,0));
         _log_text.SetFontSize(48f);
         _log_text.FontStyle = FontStyle.Bold;
         
-        static_objects.Add(_log_text);
-        static_objects.Add(_update_text);
+        text_objects.Add(_log_text);
+        text_objects.Add(_update_text);
         _update_text.SetPosition((10,10,0));
+
+        UpdateStaticRenderables(Width, Height, Zoom);
 
         if (_drag_n_drop == null)
         {
@@ -252,24 +251,31 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         {
             renderable.IsVisible = false;
         }
+
+        if (_controls_text != null && _version_text != null)
+        {
+            _controls_text.IsVisible = false;
+            _version_text.IsVisible = false;
+        }
         
         Camera.ScrollTo((0,-300,0));
         ColorTools.ChangeColor(_background, new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.66f).GetAwaiter();
+        DividerCount = 0;
         
         var tdw_images = new SoundRenderable[events.Sequence.Events.Length];
         var font_family = Fonts.GetFontFamily();
 
         CreationLeftMargin = LeftMargin;
-        var flex_box = new FlexBox(new Vector2i((int)(LeftMargin + 7 * Scale), 0),
+        var flex_box = new FlexBox(new Vector2i(LeftMargin + 7, 0),
             new Vector2i(PlayfieldWidth + MarginBetweenRenderables, Height), MarginBetweenRenderables);
         var wh = new Vector2i(RenderableSize, RenderableSize);
 
         _texture_cache = new Dictionary<string, Texture>();
         _volume_text_cache = new Dictionary<string, Texture>();
         
-        var font = font_family.CreateFont(16 * Scale, FontStyle.Bold);
+        var font = font_family.CreateFont(16, FontStyle.Bold);
 
-        var volume_font = font_family.CreateFont(13 * Scale, FontStyle.Bold);
+        var volume_font = font_family.CreateFont(13, FontStyle.Bold);
         var volume_color = new Rgba32(204, 204, 204, 1f);
 
         Manager.RenderBlock.Release();
@@ -333,14 +339,19 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     protected void SetStatusMessage(string message, int hide_after_ms = 2000)
     {
+        if (_update_text.Value == message) return;
         _update_text.SetTextContents(message);
-        var old_id = ++_update_id;
-        Task.Run(async () =>
+        unchecked
         {
-            await Task.Delay(hide_after_ms, Token);
-            if (old_id == _update_id)
-                _update_text.SetTextContents(string.Empty);
-        }, Token);
+            var old_id = ++_update_id;
+            Task.Run(async () =>
+            {
+                if (hide_after_ms < 0) return;
+                await Task.Delay(hide_after_ms, Token);
+                if (old_id == _update_id)
+                    _update_text.SetTextContents(string.Empty);
+            }, Token);
+        }
     }
 
     /// <summary>
@@ -484,7 +495,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             var text_position = new Vector3
             {
                 X = plane_position.X + width_height.X / 2f,
-                Y = box_position.Y + RenderableSize - MarginBetweenRenderables + 1 * Scale,
+                Y = box_position.Y + RenderableSize - MarginBetweenRenderables + 1,
                 Z = box_position.Z - 0.1f
             };
 
@@ -705,27 +716,14 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         var resize = new Vector2i(w, h);
 
-        StaticCamera.Viewport = Camera.Viewport = resize;
+        TextCamera.Viewport = StaticCamera.Viewport = Camera.Viewport = resize;
         GL.Viewport(0, 0, w, h);
         
         Camera.UpdateMatrix();
         StaticCamera.UpdateMatrix();
+        TextCamera.UpdateMatrix();
 
-        var background = _background.GetScale();
-        _background.SetScale((w * 2, h * 2, background.Z));
-        _background.SetPosition((-w, -h, 0));
-
-        var flash = _flash_overlay.GetScale();
-        _flash_overlay.SetScale((w * 2, h * 2, flash.Z));
-        _flash_overlay.SetPosition((-w, -h, 0));
-        
-        var visible = _visible_area.GetScale();
-        _visible_area.SetScale((visible.X, h * 2, visible.Z));
-        
-        var visible_position = _visible_area.GetPosition();
-        visible_position.X = w / 2f - visible.X / 2;
-        visible_position.Y = -h;
-        _visible_area.SetPosition(visible_position);
+        var visible_position = UpdateStaticRenderables(w, h, Zoom);
 
         var current_margin = visible_position.X;
         
@@ -739,8 +737,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
         
         _greeting?.SetPosition(_greeting.GetPosition() - (Width - w) / 2f * Vector3.UnitX);
-        _controls_text?.SetPosition((10,-200f,0));
-        _version_text?.SetPosition((10, h - 300f - 10f, 0), PositionAlign.BottomLeft);
+        _controls_text?.SetPosition((10,150,0));
+        _version_text?.SetPosition((10, h - 10f, 0), PositionAlign.BottomLeft);
         
         Width = w;
         Height = h;
@@ -766,6 +764,33 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }, Token);
     }
 
+    private Vector3 UpdateStaticRenderables(int w, int h, float scale)
+    {
+        Camera.SetRenderScale(scale);
+        StaticCamera.SetRenderScale(scale);
+        scale = Math.Min(scale, 1f);
+        var width_scale = Width / scale - Width;
+        var height_scale = Height / scale - Height;
+        
+        var background = _background.GetScale();
+        _background.SetScale((w + width_scale, h + height_scale, background.Z));
+        _background.SetPosition((-width_scale / 2f, -height_scale / 2f, 0));
+
+        var flash = _flash_overlay.GetScale();
+        _flash_overlay.SetScale((w + width_scale, h + height_scale, flash.Z));
+        _flash_overlay.SetPosition((-width_scale, -height_scale, 0));
+
+        var visible = _visible_area.GetScale();
+        _visible_area.SetScale((visible.X, h + height_scale * 2, visible.Z));
+
+        var visible_position = _visible_area.GetPosition();
+        visible_position.X = w / 2f - visible.X / 2;
+        visible_position.Y = -height_scale;
+        
+        _visible_area.SetPosition(visible_position);
+        return visible_position;
+    }
+
     public void Start()
     {
         if (_sequence_location == null) return;
@@ -775,14 +800,22 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public virtual void Render()
     {
-        var camera_x = Camera.Position.X;
+        Manager.CheckErrors();
+        
+        var clamped_scale = Math.Min(Zoom, 1f);
+        var width_scale = Width / clamped_scale - Width;
+        var height_scale = Height / clamped_scale - Height;
+        
+        var camera_x = Camera.Position.X - width_scale;
         var camera_y = Camera.Position.Y;
-        var camera_xw = camera_x + Width;
+        var camera_xw = camera_x + Width + width_scale;
         var camera_yh = camera_y + Height;
+        
+        camera_y -= height_scale;
+        camera_yh += height_scale;
         
         foreach (var renderable in static_objects)
         {
-            Manager.CheckErrors();
             renderable.Render(StaticCamera);
         }
         
@@ -791,24 +824,31 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var size_renderable = RenderableSize + MarginBetweenRenderables;
         var repeats_renderable = PlayfieldWidth / size_renderable;
 
-        var dividers_size = repeats_renderable * DividerCount * 2;
+        var padding_rows = repeats_renderable * 2;
+        var dividers_size = size_renderable * DividerCount;
         var tdw_span = TDW_images.Span;
+        
+        var start = (int) Math.Max(0, repeats_renderable * (camera_y / size_renderable) - dividers_size - padding_rows);
+        
+        var end = (int) Math.Min(TDW_images.Length,
+            repeats_renderable * (camera_y / size_renderable) + 
+            repeats_renderable * ((Height + height_scale) / size_renderable / clamped_scale) + 
+            padding_rows);
 
-        var new_start =
-            Math.Max(Math.Max((int)camera_y / size_renderable, 0) * repeats_renderable - dividers_size, 0);
-        var new_end = Math.Min(TDW_images.Length,
-            (int)(repeats_renderable * (camera_y / size_renderable) +
-                  (int)(repeats_renderable * ((float)Height / size_renderable) * 1.25f)));
-
-        for (var i = new_start; i < new_end; i++)
+        for (var i = start; i < end; i++)
         {
             var renderable = tdw_span[i];
             RenderRenderable(renderable);
         }
-        
+
         foreach (var renderable in start_objects)
         {
             RenderRenderable(renderable);
+        }
+
+        foreach (var renderable in text_objects)
+        {
+            renderable.Render(TextCamera);
         }
 
         return;
@@ -894,21 +934,42 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }, Token);
     }
     
-    public virtual void Mouse(MouseState state)
+    public virtual void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
     {
-        var scroll = state.ScrollDelta;
-        if (scroll != Vector2.Zero)
+        var scroll = mouse_state.ScrollDelta;
+        if (scroll == Vector2.Zero) return;
+        
+        var new_delta = Vector3.UnitY * (scroll.Y * 100f);
+
+        if (keyboard_state.IsKeyDown(Keys.LeftControl))
         {
-            var new_delta = Vector3.UnitY * (scroll.Y * 100f);
             
+        }
+        else
+        {
             Camera.ScrollDelta(new_delta);
             Camera.Update();
         }
     }
 
+    protected void HandleZoomControl(float scale)
+    {
+        const float stepping = .05f;
+        var camera_scale = Camera.GetRenderScale();
+        Zoom = Math.Max(camera_scale + scale * stepping, stepping);
+        UpdateStaticRenderables(Width, Height, Zoom);
+        SetStatusMessage($"[Camera]: Setting zoom to: {Zoom:0.##%}");
+    }
+
+    protected bool IsSeekTimeoutPassed(int divide = 1) {
+        const int seek_timeout = 250;
+        return _seek_delay_stopwatch.ElapsedMilliseconds > seek_timeout / divide;
+    }
+    
+    protected void ResrtartSeekTimer() => _seek_delay_stopwatch.Restart();
+
     public virtual async void Keyboard(KeyboardState state)
     {
-        const int seek_timeout = 250;
         const int seek_length = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
         
@@ -952,6 +1013,18 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 SequencePlayer.ClearBookmark(i);
                 SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
             }
+
+            if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
+            {
+                ResrtartSeekTimer();
+                HandleZoomControl(+1);
+            }
+
+            if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
+            {
+                ResrtartSeekTimer();
+                HandleZoomControl(-1);
+            }
         }
         else for (var i = 0; i < 10; i++)
         {
@@ -967,9 +1040,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         var elapsed = stopwatch.ElapsedMilliseconds;
-        if (state.IsKeyDown(Keys.Left) && _seek_delay_stopwatch.ElapsedMilliseconds > seek_timeout)
+        if (state.IsKeyDown(Keys.Left) && IsSeekTimeoutPassed())
         {
-            _seek_delay_stopwatch.Restart();
+            ResrtartSeekTimer();
             var change = elapsed - seek_length;
             
             var (placement, i) = TimedEvents.Placement.Select((placement, i) => (placement , i))
@@ -981,9 +1054,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             await SequencePlayer.Seek(ms);
         }
 
-        if (state.IsKeyDown(Keys.Right) && _seek_delay_stopwatch.ElapsedMilliseconds > seek_timeout)
+        if (state.IsKeyDown(Keys.Right) && IsSeekTimeoutPassed())
         {
-            _seek_delay_stopwatch.Restart();
+            ResrtartSeekTimer();
             var change = elapsed + seek_length;
             
             var (placement, i) = TimedEvents.Placement.Select((placement, i) => (placement , i))
@@ -995,16 +1068,16 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             await SequencePlayer.Seek(ms);
         }
         
-        if (state.IsKeyDown(Keys.Up) && _seek_delay_stopwatch.ElapsedMilliseconds > seek_timeout / 7)
+        if (state.IsKeyDown(Keys.Up) && IsSeekTimeoutPassed(7))
         {
-            _seek_delay_stopwatch.Restart();
+            ResrtartSeekTimer();
             SequencePlayer.AudioContext.GlobalVolume += 0.01f;
             SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.AudioContext.GlobalVolume * 100:0.##}%");
         }
 
-        if (state.IsKeyDown(Keys.Down) && _seek_delay_stopwatch.ElapsedMilliseconds > seek_timeout / 7)
+        if (state.IsKeyDown(Keys.Down) && IsSeekTimeoutPassed(7))
         {
-            _seek_delay_stopwatch.Restart();
+            ResrtartSeekTimer();
             SequencePlayer.AudioContext.GlobalVolume = Math.Max(0f, SequencePlayer.AudioContext.GlobalVolume - 0.01f);
             SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.AudioContext.GlobalVolume * 100:0.##}%");
         }

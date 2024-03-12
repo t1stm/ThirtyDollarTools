@@ -66,10 +66,10 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _background.UpdateModel(false);
         
         Manager.RenderBlock.Release();
-        SetPianoKeys();
+        SetMidiKeys();
     }
 
-    private void SetPianoKeys(int min_v = -4, int max_v = 4)
+    private void SetMidiKeys(int min_v = -4, int max_v = 4)
     {
         Manager.RenderBlock.Wait();
 
@@ -116,7 +116,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     
     protected override void HandleAfterSequenceLoad(TimedEvents events)
     {
-        SetPianoKeys();
+        SetMidiKeys();
     }
 
     protected override void SetSequencePlayerSubscriptions(SequencePlayer player)
@@ -153,7 +153,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _background.SetScale((Width,Height,1f));
         
         GL.Viewport(0,0, Width, Height);
-        SetPianoKeys();
+        SetMidiKeys();
     }
 
     public void Close()
@@ -179,7 +179,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         });
     }
     
-    public void Mouse(MouseState state)
+    public void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
     {
     }
 
