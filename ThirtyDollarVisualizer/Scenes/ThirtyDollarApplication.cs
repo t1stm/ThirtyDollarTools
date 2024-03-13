@@ -1000,8 +1000,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             {
                 var key = (Keys)((int) Keys.D0 + i);
                 if (!state.IsKeyPressed(key)) continue;
-                var bookmark_time = SequencePlayer.SetBookmark(i);
-                SetStatusMessage($"[Playback] Setting Bookmark {i} To: {bookmark_time}ms");
+                SequencePlayer.ClearBookmark(i);
+                SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
             }
         }
         else if (state.IsKeyDown(Keys.LeftControl))
@@ -1010,8 +1010,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             {
                 var key = (Keys)((int) Keys.D0 + i);
                 if (!state.IsKeyPressed(key)) continue;
-                SequencePlayer.ClearBookmark(i);
-                SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
+                var bookmark_time = SequencePlayer.SetBookmark(i);
+                SetStatusMessage($"[Playback] Setting Bookmark {i} To: {bookmark_time}ms");
             }
 
             if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
