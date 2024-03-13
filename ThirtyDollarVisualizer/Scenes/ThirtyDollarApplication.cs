@@ -943,7 +943,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         if (keyboard_state.IsKeyDown(Keys.LeftControl))
         {
-            
+            HandleZoomControl(scroll.Y);
         }
         else
         {
