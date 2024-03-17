@@ -167,7 +167,8 @@ public class Sequence
             if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
             if (ev is PannedEvent _panned)
             {
-                _panned.Pan = pan;
+                var new_pan = Math.Clamp(pan + _panned.Pan, -1f, 1f);
+                _panned.Pan = new_pan;
             }
             
             switch (new_event.ValueScale)
