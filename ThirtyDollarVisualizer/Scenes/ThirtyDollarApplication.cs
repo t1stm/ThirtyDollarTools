@@ -361,7 +361,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         FlexBox flex_box,
         IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font, Rgba32 volume_color, Font volume_font)
     {
-        var image = $"{SampleHolder!.DownloadLocation}/Images/" + ev.SoundEvent?.Replace("!", "action_") + ".png";
+        var dll_location = SampleHolder!.DownloadLocation;
+        var image = $"{dll_location}/Images/" + ev.SoundEvent?.Replace("!", "action_") + ".png";
 
         if (!File.Exists(image))
         {
@@ -440,9 +441,22 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var polluted_value_texture = false;
         Texture? value_texture = null;
         
-        switch (ev.SoundEvent)
+        switch (ev)
         {
-            case "!bg":
+            case IndividualCutEvent ice:
+            {
+                polluted_value_texture = true;
+                var cut_sounds = ice.CutSounds.ToArray();
+                var available_textures =
+                    cut_sounds.Where(r => File.Exists($"{dll_location}/Images/{r}.png"));
+
+                var textures = available_textures.Select(t => new Texture($"{dll_location}/Images/{t}.png")).ToArray();
+                value_texture = new Texture(textures, 2);
+                
+                break;
+            }
+            
+            case { SoundEvent: "!bg" }:
             {
                 var parsed_value = (long)ev.Value;
                 var seconds = (parsed_value >> 24) / 1000f;
@@ -456,13 +470,13 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 break;
             }
             
-            case "!volume":
+            case { SoundEvent: "!volume" }:
             {
                 value += "%";
                 break;
             }
             
-            case "!pulse":
+            case { SoundEvent: "!pulse" }:
             {
                 var parsed_value = (long)ev.Value;
                 var repeats = (byte)parsed_value;
@@ -778,7 +792,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         var flash = _flash_overlay.GetScale();
         _flash_overlay.SetScale((w + width_scale, h + height_scale, flash.Z));
-        _flash_overlay.SetPosition((-width_scale, -height_scale, 0));
+        _flash_overlay.SetPosition((-width_scale / 2f, -height_scale / 2f, 0));
 
         var visible = _visible_area.GetScale();
         _visible_area.SetScale((visible.X, h + height_scale * 2, visible.Z));

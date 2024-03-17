@@ -123,6 +123,56 @@ public class Texture : IDisposable
         Height = texture_data.Height;
     }
 
+    public Texture(IReadOnlyCollection<Texture> textures, float gap_px)
+    {
+        var texture_count = textures.Count;
+        const int size_w = 15;
+        const int max_images_per_line = 3;
+        
+        if (texture_count < 1)
+        {
+            texture_data = Transparent1x1.texture_data;
+            Width = Height = 1;
+            return;
+        }
+        
+        var width = texture_count <= max_images_per_line ? texture_count * (size_w + gap_px) : max_images_per_line * (size_w + gap_px);
+        var height = (int)Math.Max(size_w, Math.Ceiling((float) texture_count / max_images_per_line) * (size_w + gap_px));
+        var image = new Image<Rgba32>((int) width, height);
+        
+        var x = 0;
+        var y = 0;
+        
+        foreach (var t in textures)
+        {
+            var x1 = x;
+            var y1 = y;
+            
+            var texture = t.GetData();
+            if (texture == null) continue;
+
+            var t_height = (int)(size_w / ((float)texture.Width / texture.Height));
+            texture.Mutate(r => r.Resize(size_w, t_height));
+
+            var offset = (size_w - t_height) / 2;
+            
+            image.Mutate(r =>
+                r.DrawImage(texture, new Point(x1, y1 + offset), 1f)
+                );
+            
+            x += (int) (size_w + gap_px);
+            if (x + size_w <= width) continue;
+            
+            x = 0;
+            y += (int) (size_w + gap_px);
+            if (y > 140) break;
+        }
+
+        texture_data = image;
+        Width = image.Width;
+        Height = image.Height;
+    }
+
     public unsafe Texture(Span<byte> data, int width, int height)
     {
         Width = width;
@@ -175,6 +225,12 @@ public class Texture : IDisposable
         LoadImage();
         SetParameters();
     }
+
+    /// <summary>
+    /// Get the texture if not yet loaded by OpenGL. Returns null otherwise.
+    /// </summary>
+    /// <returns>The texture data or null.</returns>
+    public Image<Rgba32>? GetData() => texture_data;
 
     private static void SetParameters()
     {
