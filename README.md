@@ -28,7 +28,7 @@ outputs a Thirty Dollar Composition to a WAVE audio file.
 The only limitation is your system's RAM capacity and 
 the time you can leave your device powered on.
 
-[See more info about the visualizer here.](ThirtyDollarGUI/README.md)
+[See more info about the converter here.](ThirtyDollarGUI/README.md)
 
 [_Or if you're interested in the CLI program, here._](ThirtyDollarDebugApp/README.md)
 
