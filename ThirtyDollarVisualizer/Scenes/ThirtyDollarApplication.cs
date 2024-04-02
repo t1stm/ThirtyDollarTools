@@ -215,6 +215,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         UpdateStaticRenderables(Width, Height, Zoom);
 
+        Log = str => SetStatusMessage(str);
+
         if (_drag_n_drop == null)
         {
             var dnd_texture = new Texture(greeting_font, "Drop a file on the window to start.");
@@ -980,7 +982,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         return _seek_delay_stopwatch.ElapsedMilliseconds > seek_timeout / divide;
     }
     
-    protected void ResrtartSeekTimer() => _seek_delay_stopwatch.Restart();
+    protected void RestartSeekTimer() => _seek_delay_stopwatch.Restart();
 
     public virtual async void Keyboard(KeyboardState state)
     {
@@ -1030,13 +1032,13 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
             if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
             {
-                ResrtartSeekTimer();
+                RestartSeekTimer();
                 HandleZoomControl(+1);
             }
 
             if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
             {
-                ResrtartSeekTimer();
+                RestartSeekTimer();
                 HandleZoomControl(-1);
             }
         }
@@ -1056,7 +1058,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var elapsed = stopwatch.ElapsedMilliseconds;
         if (state.IsKeyDown(Keys.Left) && IsSeekTimeoutPassed())
         {
-            ResrtartSeekTimer();
+            RestartSeekTimer();
             var change = elapsed - seek_length;
             
             var (placement, i) = TimedEvents.Placement.Select((placement, i) => (placement , i))
@@ -1070,7 +1072,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         if (state.IsKeyDown(Keys.Right) && IsSeekTimeoutPassed())
         {
-            ResrtartSeekTimer();
+            RestartSeekTimer();
             var change = elapsed + seek_length;
             
             var (placement, i) = TimedEvents.Placement.Select((placement, i) => (placement , i))
@@ -1084,14 +1086,14 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         if (state.IsKeyDown(Keys.Up) && IsSeekTimeoutPassed(7))
         {
-            ResrtartSeekTimer();
+            RestartSeekTimer();
             SequencePlayer.AudioContext.GlobalVolume += 0.01f;
             SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.AudioContext.GlobalVolume * 100:0.##}%");
         }
 
         if (state.IsKeyDown(Keys.Down) && IsSeekTimeoutPassed(7))
         {
-            ResrtartSeekTimer();
+            RestartSeekTimer();
             SequencePlayer.AudioContext.GlobalVolume = Math.Max(0f, SequencePlayer.AudioContext.GlobalVolume - 0.01f);
             SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.AudioContext.GlobalVolume * 100:0.##}%");
         }

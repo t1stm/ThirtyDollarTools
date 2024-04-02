@@ -35,6 +35,8 @@
         <EmbeddedResource Include="Assets\Textures\action_missing.png" />
         <None Remove="Assets\Textures\action_icut.png" />
         <EmbeddedResource Include="Assets\Textures\action_icut.png" />
+        <None Remove="Assets\Fonts\Twemoji.Mozilla.ttf" />
+        <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf" />
     </ItemGroup>
 
     <ItemGroup>

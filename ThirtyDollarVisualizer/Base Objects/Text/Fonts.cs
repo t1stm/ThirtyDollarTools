@@ -16,12 +16,15 @@ public static class Fonts
 
         AddFont(Collection, "ThirtyDollarVisualizer.Assets.Fonts.Lato-Regular.ttf");
         AddFont(Collection, "ThirtyDollarVisualizer.Assets.Fonts.Lato-Bold.ttf");
+        AddFont(Collection, "ThirtyDollarVisualizer.Assets.Fonts.Twemoji.Mozilla.ttf");
         
-        const string font_name = "Lato";
-        if (!Collection.TryGet(font_name, out var family)) throw new Exception($"Unable to find font: {font_name}"); 
+        const string text_font = "Lato";
+        const string emoji_font = "Twemoji Mozilla";
+        if (!Collection.TryGet(text_font, out var text_family)) throw new Exception($"Unable to find font: {text_font}");
+        if (!Collection.TryGet(emoji_font, out var emoji_family)) throw new Exception($"Unable to find font: {emoji_font}"); 
         
-        CurrentFamily = family;
-        CharacterCache = new CharacterCache(family);
+        CurrentFamily = text_family;
+        CharacterCache = new CharacterCache(text_family, emoji_family);
     }
 
     private static void AddFont(FontCollection collection, string location)
@@ -29,7 +32,7 @@ public static class Fonts
         using var stream = Assembly.GetExecutingAssembly()
             .GetManifestResourceStream(location);
 
-        if (stream == null) throw new NullReferenceException("This project was compiled without the \'Lato-Regular\' font.");
+        if (stream == null) throw new NullReferenceException($"This project was compiled without the \'{location}\' font.");
         collection.Add(stream);
     }
 

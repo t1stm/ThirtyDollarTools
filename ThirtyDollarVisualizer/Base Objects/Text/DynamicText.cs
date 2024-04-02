@@ -45,8 +45,23 @@ public class DynamicText : Renderable, IText
     protected void SetTextTextures(string text)
     {
         var cache = Fonts.GetCharacterCache();
-        var textures = text.Select(c => cache.Get(c, _font_size_px, FontStyle)).ToArray();
+        var textures_array = new Texture[text.Length];
+        var real_i = 0;
+        
+        for (var i = 0; i < text.Length; i++)
+        {
+            var c = text[i];
+            if (char.IsSurrogate(c) && i + 1 < text.Length && char.IsSurrogatePair(c, text[i + 1]))
+            {
+                var emoji = text.Substring(i, 2);
+                textures_array[real_i++] = cache.GetEmoji(emoji, _font_size_px, FontStyle);
+                i++;
+                continue;
+            }
+            textures_array[real_i++] = cache.Get(c, _font_size_px, FontStyle);
+        }
 
+        var textures = textures_array.AsSpan()[..real_i];
         _lock.Wait();
         try
         {

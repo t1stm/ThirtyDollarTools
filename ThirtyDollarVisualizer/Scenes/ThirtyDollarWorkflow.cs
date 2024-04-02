@@ -9,7 +9,7 @@ namespace ThirtyDollarVisualizer.Scenes;
 public abstract class ThirtyDollarWorkflow
 {
     protected readonly SequencePlayer SequencePlayer;
-    protected readonly Action<string> Log;
+    protected Action<string> Log;
     protected SampleHolder? SampleHolder;
     private readonly SemaphoreSlim SampleHolderLock = new(1);
     protected TimedEvents TimedEvents = new()

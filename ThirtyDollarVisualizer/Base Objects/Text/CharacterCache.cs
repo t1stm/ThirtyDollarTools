@@ -2,9 +2,10 @@ using SixLabors.Fonts;
 
 namespace ThirtyDollarVisualizer.Objects.Text;
 
-public class CharacterCache(FontFamily font_family)
+public class CharacterCache(FontFamily font_family, FontFamily emoji_family)
 {
     public readonly Dictionary<FontStyle, Dictionary<float, Dictionary<char, Texture>>> Letters = new();
+    public readonly Dictionary<string, Texture> Emojis = new();
     public FontFamily FontFamily => font_family;
 
     public Texture Get(char character, float font_size, FontStyle font_style = FontStyle.Regular)
@@ -38,6 +39,16 @@ public class CharacterCache(FontFamily font_family)
                 
         texture = new Texture(font, new string(character, 1));
         chars.TryAdd(character, texture);
+        return texture;
+    }
+
+    public Texture GetEmoji(string emoji, float font_size, FontStyle font_style)
+    {
+        if (Emojis.TryGetValue(emoji, out var texture)) return texture;
+        var font = emoji_family.CreateFont(font_size, font_style);
+
+        texture = new Texture(font, emoji);
+        Emojis.TryAdd(emoji, texture);
         return texture;
     }
 }
