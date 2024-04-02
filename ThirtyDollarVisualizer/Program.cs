@@ -27,6 +27,9 @@ public static class Program
         int? fps = null;
         float? scale = null;
         string? greeting = null;
+        int? event_size = null;
+        int? event_margin = null;
+        int? line_amount = null;
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -37,6 +40,10 @@ public static class Program
                 height = options.Height ?? height;
                 fps = options.FPS;
                 scale = options.Scale;
+                greeting = options.Greeting;
+                event_size = options.EventSize;
+                event_margin = options.EventMargin;
+                line_amount = options.LineAmount;
 
                 follow_mode = options.CameraFollowMode switch
                 {
@@ -53,7 +60,6 @@ public static class Program
                         "bass" => new BassAudioContext(),
                         _ => null
                     };
-                greeting = options.Greeting;
             });
 
         if (sequence != null && !File.Exists(sequence))
@@ -76,7 +82,10 @@ public static class Program
         {
             CameraFollowMode = follow_mode,
             Scale = scale ?? 1f,
-            Greeting = greeting
+            Greeting = greeting,
+            ElementsOnSingleLine = line_amount ?? 16,
+            RenderableSize = event_size ?? 64,
+            MarginBetweenRenderables = event_margin ?? 12
         };
 
         manager.Scenes.Add(tdw_application);
@@ -120,5 +129,14 @@ public static class Program
             HelpText =
                 "Changes the default \'DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER\' greeting. Supports emojis.")]
         public string? Greeting { get; set; }
+
+        [Option("event-size", HelpText = "Changes how big the events are in pixels.")]
+        public int? EventSize { get; set; }
+        
+        [Option("event-margin", HelpText = "Changes the distance between events in pixels.")]
+        public int? EventMargin { get; set; }
+        
+        [Option("line-amount", HelpText = "Changes how many events are on a single line.")]
+        public int? LineAmount { get; set; }
     }
 }

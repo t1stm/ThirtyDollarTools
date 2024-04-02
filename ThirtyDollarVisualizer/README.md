@@ -28,4 +28,8 @@ I'll now showcase all available launch options for the more advanced users.
 |            | `--audio-backend`      | Changes the audio backend. Possible values are "bass" or "openal".                                        | "bass"        |
 |            | `--no-audio`           | Disables all audio processing and playback.                                                               | unset         |
 |            | `--greeting`           | Changes the greeting at the start of the visualizer.                                                      | unset         |
+|            | `--event-size`         | Changes how big the events are in pixels.                                                                 | unset         |
+|            | `--event-margin`       | Changes how big the gap is between events in pixels.                                                      | unset         |
+|            | `--line-amount`        | Changes the maximum amount of events that can be on a single line.                                        | unset         |
+
 
