@@ -5,12 +5,12 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class OpenALContext : AudioContext
 {
-    private ALDevice device;
     public ALContext context;
+    private ALDevice device;
     public int UpdateRate = 48000; // Hz
-    
+
     /// <summary>
-    /// Creates a global audio context.
+    ///     Creates a global audio context.
     /// </summary>
     public override bool Create()
     {
@@ -25,7 +25,7 @@ public class OpenALContext : AudioContext
             AL.DistanceModel(ALDistanceModel.LinearDistanceClamped);
 
             AL.Listener(ALListenerf.Gain, GlobalVolume);
-            AL.Listener(ALListener3f.Position, 0f,0f,0f);
+            AL.Listener(ALListener3f.Position, 0f, 0f, 0f);
             return true;
         }
         catch (Exception e)
@@ -34,8 +34,9 @@ public class OpenALContext : AudioContext
             return false;
         }
     }
+
     /// <summary>
-    /// Destroys the global audio context.
+    ///     Destroys the global audio context.
     /// </summary>
     public override void Destroy()
     {
@@ -43,9 +44,9 @@ public class OpenALContext : AudioContext
         ALC.DestroyContext(context);
         ALC.CloseDevice(device);
     }
-    
+
     /// <summary>
-    /// Checks if there are any OpenAL errors.
+    ///     Checks if there are any OpenAL errors.
     /// </summary>
     public override bool CheckErrors()
     {
@@ -54,7 +55,8 @@ public class OpenALContext : AudioContext
         while ((error = AL.GetError()) != ALError.NoError)
         {
             has_error = true;
-            Console.WriteLine($"({DateTime.Now:G}): [OpenAL Error]: (0x{(int)error:x8}) \'{AL.GetErrorString(error)}\'");
+            Console.WriteLine(
+                $"({DateTime.Now:G}): [OpenAL Error]: (0x{(int)error:x8}) \'{AL.GetErrorString(error)}\'");
         }
 
         AlcError alc_error;

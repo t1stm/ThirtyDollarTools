@@ -15,17 +15,12 @@ internal enum EventType
 
 public class PlacementCalculator
 {
-    private uint SampleRate { get; }
-    private Action<string> Log { get; }
-    private Action<ulong, ulong> IndexReport { get; }
-    private bool AddVisualTimings { get; }
-
     private static readonly string[] jump_untriggers = { "!loop", "!loopmany", "!jump", "!target" };
     private static readonly string[] loop_untriggers = { "!loopmany", "!loop" };
     private static readonly string[] loopmany_untriggers = { "!loopmany" };
 
     /// <summary>
-    /// Creates a calculator that gets the placement of a sequence.
+    ///     Creates a calculator that gets the placement of a sequence.
     /// </summary>
     /// <param name="encoderSettings">Encoder settings to base the placement on.</param>
     /// <param name="log">Action that handles log messages.</param>
@@ -39,8 +34,13 @@ public class PlacementCalculator
         AddVisualTimings = encoderSettings.AddVisualEvents;
     }
 
+    private uint SampleRate { get; }
+    private Action<string> Log { get; }
+    private Action<ulong, ulong> IndexReport { get; }
+    private bool AddVisualTimings { get; }
+
     /// <summary>
-    /// Calculates the placement of a sequence.
+    ///     Calculates the placement of a sequence.
     /// </summary>
     /// <param name="sequence">The sequence you want to calculate.</param>
     /// <returns>The calculated placement.</returns>
@@ -67,8 +67,10 @@ public class PlacementCalculator
         {
             var ev = sequence.Events[index];
             IndexReport(index, count);
-            var event_type = (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomActionEvent ? EventType.Action : EventType.Sound;
-            
+            var event_type = (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomActionEvent
+                ? EventType.Action
+                : EventType.Sound;
+
             var increment_timer = false;
             var modify_index = true;
 
@@ -78,7 +80,7 @@ public class PlacementCalculator
             {
                 var next_event = index + 1 < count ? sequence.Events[index + 1].SoundEvent : null;
                 increment_timer = next_event is not "!combine";
-                
+
                 var copy = ev.Copy();
                 copy.Volume ??= volume;
                 copy.Value += transpose;
@@ -89,7 +91,7 @@ public class PlacementCalculator
                     Event = copy,
                     Audible = ev.SoundEvent is not "_pause"
                 };
-                
+
                 if (!scrubbing) yield return placement;
                 if (increment_timer) position += (ulong)(SampleRate / (bpm / 60));
                 index++;
@@ -145,12 +147,11 @@ public class PlacementCalculator
                     {
                         var multiplier = Math.Min(working_value, 1);
                         position += (ulong)(multiplier * SampleRate / (bpm / 60));
-                        
+
                         ev.PlayTimes -= 1;
                         working_value -= 1;
-                        
+
                         if (AddVisualTimings)
-                        {
                             yield return new Placement
                             {
                                 Index = position,
@@ -158,10 +159,10 @@ public class PlacementCalculator
                                 Event = ev.Copy(),
                                 Audible = false
                             };
-                        }
                     }
+
                     break;
-                    
+
                 case "!loopmany":
                     if (ev.PlayTimes > 0)
                     {
@@ -173,15 +174,16 @@ public class PlacementCalculator
                             Event = ev.Copy(),
                             Audible = false
                         };
-                        
+
                         modify_index = false;
                         index = loop_target;
-                            
+
                         Untrigger(ref sequence, index, loopmany_untriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
                     }
+
                     break;
-                    
+
                 case "!loop":
                     if (!ev.Triggered)
                     {
@@ -193,19 +195,20 @@ public class PlacementCalculator
                             Event = ev,
                             Audible = false
                         };
-                        
+
                         modify_index = false;
                         index = loop_target;
-                            
+
                         Untrigger(ref sequence, index, loop_untriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
                     }
+
                     break;
 
                 case "!jump":
                     if (ev.PlayTimes <= 0) break;
                     ev.PlayTimes--;
-                        
+
                     var item = sequence.Events.FirstOrDefault(r =>
                         r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && r.Triggered == false);
                     if (item == null)
@@ -220,7 +223,7 @@ public class PlacementCalculator
                         Untrigger(ref sequence, 0, jump_untriggers);
                         break;
                     }
-                    
+
                     yield return new Placement
                     {
                         Index = position,
@@ -229,7 +232,7 @@ public class PlacementCalculator
                         Audible = false
                     };
 
-                    index = (ulong) search;
+                    index = (ulong)search;
                     var found_event = sequence.Events[index];
 
                     Untrigger(ref sequence, index, jump_untriggers);
@@ -244,10 +247,10 @@ public class PlacementCalculator
                 case "!looptarget":
                     loop_target = index;
                     break;
-                    
+
                 case "!target":
                     break;
-                
+
                 case "" or "!volume" or "!flash" or "!bg" or "!combine" or "!startpos":
                     break;
 
@@ -271,21 +274,22 @@ public class PlacementCalculator
                     Log($"Transposing samples by: \'{transpose}\'");
                     break;
             }
-                
-            if (!scrubbing) yield return new Placement
-            {
-                Index = position,
-                SequenceIndex = index,
-                Event = ev,
-                Audible = audible
-            };
+
+            if (!scrubbing)
+                yield return new Placement
+                {
+                    Index = position,
+                    SequenceIndex = index,
+                    Event = ev,
+                    Audible = audible
+                };
             if (modify_index) index++;
-            if (!scrubbing && increment_timer) position += (ulong) (SampleRate / (bpm / 60));
+            if (!scrubbing && increment_timer) position += (ulong)(SampleRate / (bpm / 60));
         }
     }
 
     /// <summary>
-    /// Method ported from GD Colon's site. Untriggers all samples from the starting index to the end.
+    ///     Method ported from GD Colon's site. Untriggers all samples from the starting index to the end.
     /// </summary>
     /// <param name="sequence">Reference to the sequence.</param>
     /// <param name="index">The index to start from.</param>
@@ -293,7 +297,7 @@ public class PlacementCalculator
     private static void Untrigger(ref Sequence sequence, ulong index, string?[] except)
     {
         if (index == 0) index++;
-        for (var i = index - 1; i < (ulong) sequence.Events.LongLength; i++)
+        for (var i = index - 1; i < (ulong)sequence.Events.LongLength; i++)
         {
             var current_event = sequence.Events[i];
             if (except.Any(r => r == current_event.SoundEvent)) continue;

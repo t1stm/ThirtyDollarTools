@@ -5,6 +5,17 @@ namespace ThirtyDollarVisualizer.Objects;
 public abstract class Camera
 {
     protected Vector3 _position;
+    private Matrix4 projection_matrix;
+    protected float RenderScale = 1f;
+
+    protected float Scale = 1f;
+    public Vector2i Viewport;
+
+    protected Camera(Vector3 position, Vector2i viewport)
+    {
+        Position = position;
+        Viewport = viewport;
+    }
 
     public Vector3 Position
     {
@@ -18,11 +29,7 @@ public abstract class Camera
 
     public Vector3 Front { get; set; } = -Vector3.UnitZ;
     public Vector3 Up { get; set; } = Vector3.UnitY;
-    public Vector2i Viewport;
-
-    protected float Scale = 1f;
-    protected float RenderScale = 1f;
-    protected bool IsBeingUpdated { get; set; } = false;
+    protected bool IsBeingUpdated { get; set; }
 
     public int Width
     {
@@ -43,19 +50,12 @@ public abstract class Camera
             UpdateMatrix();
         }
     }
-    private Matrix4 projection_matrix;
-
-    protected Camera(Vector3 position, Vector2i viewport)
-    {
-        Position = position;
-        Viewport = viewport;
-    }
 
     public virtual void UpdateMatrix()
     {
         var left = Position.X;
         var top = Position.Y;
-        
+
         var right = Position.X + Width;
         var bottom = Position.Y + Height;
 
@@ -73,8 +73,8 @@ public abstract class Camera
             right -= add_left;
             bottom -= add_top;
         }
-        
-        projection_matrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top,-1f, 1f);
+
+        projection_matrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top, -1f, 1f);
     }
 
     public virtual Matrix4 GetProjectionMatrix()
@@ -88,5 +88,8 @@ public abstract class Camera
         UpdateMatrix();
     }
 
-    public float GetRenderScale() => RenderScale;
+    public float GetRenderScale()
+    {
+        return RenderScale;
+    }
 }

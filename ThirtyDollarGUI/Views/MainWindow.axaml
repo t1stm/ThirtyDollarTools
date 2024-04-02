@@ -14,13 +14,13 @@
         Width="480"
         Height="640"
         services:DialogService.Register="{Binding}"
-        
+
         TransparencyLevelHint="AcrylicBlur"
         Background="Transparent"
         ExtendClientAreaToDecorationsHint="True">
 
     <Design.DataContext>
-        <vm:MainWindowViewModel/>
+        <vm:MainWindowViewModel />
     </Design.DataContext>
     <Panel>
         <ExperimentalAcrylicBorder IsHitTestVisible="False">
@@ -32,41 +32,41 @@
                     MaterialOpacity="0.60" />
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
-    <StackPanel Margin="20">
-        <TextBlock Margin="0,5">Sequence Location</TextBlock>
-        <StackPanel>
-            <TextBox Watermark="Choose sequence location..." 
-                     Text="{Binding SequenceFileLocation}"/>
-            <Button Content="Select" Margin="0,10" HorizontalAlignment="Right"
-                    Command="{Binding Select_SequenceFileLocation}"/>
+        <StackPanel Margin="20">
+            <TextBlock Margin="0,5">Sequence Location</TextBlock>
+            <StackPanel>
+                <TextBox Watermark="Choose sequence location..."
+                         Text="{Binding SequenceFileLocation}" />
+                <Button Content="Select" Margin="0,10" HorizontalAlignment="Right"
+                        Command="{Binding Select_SequenceFileLocation}" />
+            </StackPanel>
+
+            <TextBlock Margin="0,5">Export Location</TextBlock>
+            <StackPanel>
+                <TextBox Watermark="Choose export location..."
+                         Text="{Binding ExportFileLocation}" />
+                <Button Content="Select" Margin="0,10" HorizontalAlignment="Right"
+                        Command="{Binding Select_ExportFileLocation}" />
+            </StackPanel>
+
+            <TextBlock Text="Logs:" Margin="0, 10" />
+            <ScrollViewer AllowAutoHide="False" Height="250" ScrollChanged="ScrollViewer_OnScrollChanged">
+                <TextBlock TextWrapping="Wrap"
+                           Text="{Binding Log}" />
+            </ScrollViewer>
+
+            <ProgressBar Margin="0, 20" Height="20"
+                         Value="{Binding ProgressBarValue}"
+                         Minimum="0" Maximum="100" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Command="{Binding StartEncoder}">Start Encoding</Button>
+                <Panel Width="20" />
+                <Button Command="{Binding PreviewSequence}">Preview Sequence</Button>
+                <Panel Width="20" />
+                <Button Command="{Binding ExportSettings}">Export Settings</Button>
+            </StackPanel>
         </StackPanel>
-        
-        <TextBlock Margin="0,5">Export Location</TextBlock>
-        <StackPanel>
-            <TextBox Watermark="Choose export location..." 
-                     Text="{Binding ExportFileLocation}"/>
-            <Button Content="Select" Margin="0,10" HorizontalAlignment="Right" 
-                    Command="{Binding Select_ExportFileLocation}"/>
-        </StackPanel>
-        
-        <TextBlock Text="Logs:" Margin="0, 10"/>
-        <ScrollViewer AllowAutoHide="False" Height="250" ScrollChanged="ScrollViewer_OnScrollChanged">
-            <TextBlock TextWrapping="Wrap" 
-                     Text="{Binding Log}"/>
-        </ScrollViewer>
-        
-        <ProgressBar Margin="0, 20" Height="20" 
-                     Value="{Binding ProgressBarValue}" 
-                     Minimum="0" Maximum="100"/>
-        
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-            <Button Command="{Binding StartEncoder}">Start Encoding</Button>
-            <Panel Width="20"/>
-            <Button Command="{Binding PreviewSequence}">Preview Sequence</Button>
-            <Panel Width="20"/>
-            <Button Command="{Binding ExportSettings}">Export Settings</Button>
-        </StackPanel>
-    </StackPanel>
     </Panel>
-    
+
 </Window>

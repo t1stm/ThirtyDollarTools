@@ -11,7 +11,7 @@ public class VertexArrayObject<TVertexType> where TVertexType : unmanaged
         _vao = GL.GenVertexArray();
         Bind();
     }
-    
+
     public void AddBuffer(BufferObject<TVertexType> vbo, VertexBufferLayout layout)
     {
         Bind();
@@ -20,7 +20,7 @@ public class VertexArrayObject<TVertexType> where TVertexType : unmanaged
         var offset = 0;
         for (uint i = 0; i < elements.Count; i++)
         {
-            var el = elements[(int) i];
+            var el = elements[(int)i];
             GL.EnableVertexAttribArray(i);
             GL.VertexAttribPointer(i, el.Count, el.Type, el.Normalized, layout.GetStride(), offset);
             offset += el.Count * el.Type.GetSize();

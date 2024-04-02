@@ -1,6 +1,6 @@
 namespace ThirtyDollarParser.Custom_Events;
 
-public class BookmarkEvent: BaseEvent, IHiddenEvent, ICustomActionEvent
+public class BookmarkEvent : BaseEvent, IHiddenEvent, ICustomActionEvent
 {
     public override BookmarkEvent Copy()
     {

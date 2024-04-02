@@ -13,7 +13,7 @@ public partial class Greeter : Window
     {
         throw new Exception("Do not use this constructor please.");
     }
-    
+
     public Greeter(MainWindow mainWindow)
     {
         MainWindow = mainWindow;

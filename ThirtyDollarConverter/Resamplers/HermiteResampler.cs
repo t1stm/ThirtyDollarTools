@@ -8,10 +8,8 @@ public class HermiteResampler : IResampler
     {
         var span = samples.Span;
         if (sample_rate == target_sample_rate)
-        {
             // No resampling needed
             return span.ToArray();
-        }
 
         var new_length = (int)Math.Ceiling(span.Length * (double)target_sample_rate / sample_rate);
         var resampled = new float[new_length];
@@ -27,6 +25,11 @@ public class HermiteResampler : IResampler
         }
 
         return resampled;
+    }
+
+    public double[] Resample(Memory<double> samples, uint sample_rate, uint target_sample_rate)
+    {
+        return null!;
     }
 
     private static float HermiteInterpolation(Memory<float> samples, int start_index, double fraction)
@@ -54,10 +57,5 @@ public class HermiteResampler : IResampler
         var c3 = 0.5 * (p[3] - p[0]) + 1.5 * (p[1] - p[2]);
 
         return (float)(c3 * fraction * fraction * fraction + c2 * fraction * fraction + c1 * fraction + c0);
-    }
-
-    public double[] Resample(Memory<double> samples, uint sample_rate, uint target_sample_rate)
-    {
-        return null!;
     }
 }

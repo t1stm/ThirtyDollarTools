@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using ManagedBass;
 using ThirtyDollarEncoder.PCM;
 
@@ -6,37 +5,35 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class BassBuffer : AudibleBuffer, IDisposable
 {
+    private readonly List<int> _active_channels = new();
+
+    private readonly AudioContext _context;
     protected readonly int SampleHandle;
     private readonly SampleInfo SampleInfo;
-    public float _volume => _relative_volume * _context.GlobalVolume;
-    public float _relative_volume = .5f;
     private float _pan = 0.5f;
-    
-    private readonly AudioContext _context;
-    private readonly List<int> _active_channels = new();
+    public float _relative_volume = .5f;
 
     public unsafe BassBuffer(AudioContext context, AudioData<float> data, int sample_rate, int max_count = 65535)
     {
         var length = data.GetLength();
-        var channels = (int) data.ChannelCount;
+        var channels = (int)data.ChannelCount;
         _context = context;
 
         Span<float> samples = new float[length * channels];
         for (var i = 0; i < length; i++)
+        for (var j = 0; j < channels; j++)
         {
-            for (var j = 0; j < channels; j++)
-            {
-                var idx = i * channels + j;
-                samples[idx] = data.Samples[i % channels][i];
-            }
+            var idx = i * channels + j;
+            samples[idx] = data.Samples[i % channels][i];
         }
-        
-        var sample = Bass.CreateSample(length * channels * sizeof(float), sample_rate, channels, max_count, BassFlags.Float);
+
+        var sample = Bass.CreateSample(length * channels * sizeof(float), sample_rate, channels, max_count,
+            BassFlags.Float);
         fixed (void* s = samples)
         {
             Bass.SampleSetData(sample, new IntPtr(s));
         }
-        
+
         SampleHandle = sample;
         SampleInfo = new SampleInfo
         {
@@ -48,14 +45,22 @@ public class BassBuffer : AudibleBuffer, IDisposable
             Channels = 2,
             Mode3D = Mode3D.Off
         };
-        
+
         Bass.SampleSetInfo(SampleHandle, SampleInfo);
+    }
+
+    public float _volume => _relative_volume * _context.GlobalVolume;
+
+    public void Dispose()
+    {
+        Delete();
+        GC.SuppressFinalize(this);
     }
 
     public override void SetVolume(float volume)
     {
         _relative_volume = volume;
-        
+
         SampleInfo.Volume = _volume;
         Bass.SampleSetInfo(SampleHandle, SampleInfo);
     }
@@ -83,23 +88,29 @@ public class BassBuffer : AudibleBuffer, IDisposable
             Console.WriteLine($"[BASS] CPU usage reached: {Bass.CPUUsage:0.##}% CPU. Cutting old sounds.");
             HandleBufferOverflow();
         }
-        
+
         if (_volume < 0.01f) return;
-        
+
         var channel = Bass.SampleGetChannel(SampleHandle);
-        if (Math.Abs(_pan - 0.5f) > 0.01f) 
+        if (Math.Abs(_pan - 0.5f) > 0.01f)
             Bass.ChannelSetAttribute(channel, ChannelAttribute.Pan, _pan);
         Bass.ChannelPlay(channel);
-        lock (_active_channels) _active_channels.Add(channel);
+        lock (_active_channels)
+        {
+            _active_channels.Add(channel);
+        }
+
         var byte_length = Bass.ChannelGetLength(channel);
         var seconds = Bass.ChannelBytes2Seconds(channel, byte_length);
-        
+
         Task.Run(async () =>
         {
-            await Task.Delay((int) (seconds * 1000));
+            await Task.Delay((int)(seconds * 1000));
             callback_when_finished?.Invoke();
             lock (_active_channels)
-               _active_channels.Remove(channel);
+            {
+                _active_channels.Remove(channel);
+            }
         });
     }
 
@@ -132,12 +143,6 @@ public class BassBuffer : AudibleBuffer, IDisposable
         Bass.SampleFree(SampleHandle);
     }
 
-    public void Dispose()
-    {
-        Delete();
-        GC.SuppressFinalize(this);
-    }
-    
     public override void SetPan(float pan)
     {
         pan = Math.Max(-1, Math.Min(1, pan));
@@ -151,21 +156,15 @@ public class BassBuffer : AudibleBuffer, IDisposable
             case false:
             {
                 var channels = Bass.SampleGetChannels(SampleHandle);
-                foreach (var channel in channels)
-                {
-                    Bass.ChannelPlay(channel);
-                }
+                foreach (var channel in channels) Bass.ChannelPlay(channel);
 
                 break;
             }
-            
+
             case true:
             {
                 var channels = Bass.SampleGetChannels(SampleHandle);
-                foreach (var channel in channels)
-                {
-                    Bass.ChannelPause(channel);
-                }
+                foreach (var channel in channels) Bass.ChannelPause(channel);
 
                 break;
             }

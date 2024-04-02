@@ -15,27 +15,23 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
     private static Texture? MissingTexture;
     private static Texture? ICutTexture;
-    private readonly Dictionary<string, Texture> ValueTextCache = new();
     private readonly List<Renderable> static_objects = new();
-
-    private DollarStoreCamera Camera;
-    private List<MidiKey> key_objects = new();
-    private Memory<SoundRenderable> TDW_images = Memory<SoundRenderable>.Empty;
-    private Manager Manager = null!;
-    private DynamicText _dynamic_text = null!;
-    private Stopwatch _open_stopwatch = new();
-
-    private int Width;
-    private int Height;
+    private readonly Dictionary<string, Texture> ValueTextCache = new();
     private ColoredPlane _background = null!;
+    private DynamicText _dynamic_text = null!;
+    private readonly Stopwatch _open_stopwatch = new();
     private Dictionary<string, Texture> _texture_cache = new();
     private Dictionary<string, Texture> _volume_text_cache = new();
+
+    private DollarStoreCamera Camera;
     private int DividerCount;
+    private int Height;
+    private List<MidiKey> key_objects = new();
+    private Manager Manager = null!;
     private float Scale = 1f;
-    
-    public int RenderableSize { get; set; } = 64;
-    public int MarginBetweenRenderables { get; set; } = 12;
-    public int ElementsOnSingleLine { get; init; } = 16;
+    private readonly Memory<SoundRenderable> TDW_images = Memory<SoundRenderable>.Empty;
+
+    private int Width;
 
     public UnThirtyDollarApplication(int width, int height, AudioContext? audio_context)
     {
@@ -43,6 +39,10 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Height = height;
         Camera = new DollarStoreCamera(Vector3.Zero, (Width, Height));
     }
+
+    public int RenderableSize { get; set; } = 64;
+    public int MarginBetweenRenderables { get; set; } = 12;
+    public int ElementsOnSingleLine { get; init; } = 16;
 
     public void Init(Manager manager)
     {
@@ -56,72 +56,17 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         };
         _dynamic_text.SetPosition((0, 0, 0f), PositionAlign.Center);
         _open_stopwatch.Restart();
-        
+
         MissingTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
         ICutTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_icut.png");
 
-        _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), 
-            new Vector3(0,0, 0f),
-            new Vector3(Width, Height,0));
+        _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f),
+            new Vector3(0, 0, 0f),
+            new Vector3(Width, Height, 0));
         _background.UpdateModel(false);
-        
+
         Manager.RenderBlock.Release();
         SetMidiKeys();
-    }
-
-    private void SetMidiKeys(int min_v = -4, int max_v = 4)
-    {
-        Manager.RenderBlock.Wait();
-
-        var delta = Math.Abs(min_v) + max_v * 1f;
-        var temp_width_single = Width / delta;
-        var temp_width = Width - temp_width_single;
-        var width_single = temp_width / delta;
-        var height = 70;
-        var position_y = Height - height;
-
-        var renderables = new List<MidiKey>();
-        
-        float w = 0;
-        for (var i = min_v; i <= max_v; i++)
-        {
-            var plane = new MidiKey((0.1f, 0.1f, 0.1f, 1f), (w, position_y, 0), (width_single, height, 0))
-            {
-                BorderColor = (0.5f, 0.5f, 0.5f, 1f),
-                BorderSizePx = 2f
-            };
-            
-            renderables.Add(plane);
-            plane.UpdateModel(false);
-
-            var static_text = new StaticText
-            {
-                FontStyle = FontStyle.Bold,
-                FontSizePx = 16f,
-                Value = $"{i}"
-            }.WithPosition((w + width_single / 2f, position_y + 10f,0), PositionAlign.TopCenter);
-            plane.Children.Add(static_text);
-            
-            w += width_single;
-        }
-
-        foreach (var renderable in TDW_images.Span)
-        {
-            renderable.Render(Camera);
-        }
-
-        key_objects = renderables;
-        Manager.RenderBlock.Release();
-    }
-    
-    protected override void HandleAfterSequenceLoad(TimedEvents events)
-    {
-        SetMidiKeys();
-    }
-
-    protected override void SetSequencePlayerSubscriptions(SequencePlayer player)
-    {
-        
     }
 
     public void Start()
@@ -134,10 +79,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _background.Render(Camera);
         _dynamic_text.Render(Camera);
 
-        foreach (var renderable in key_objects)
-        {
-            renderable.Render(Camera);
-        }
+        foreach (var renderable in key_objects) renderable.Render(Camera);
     }
 
     public void Update()
@@ -150,35 +92,21 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Width = w;
         Height = h;
         Camera = new DollarStoreCamera(Vector3.Zero, (Width, Height));
-        _background.SetScale((Width,Height,1f));
-        
-        GL.Viewport(0,0, Width, Height);
+        _background.SetScale((Width, Height, 1f));
+
+        GL.Viewport(0, 0, Width, Height);
         SetMidiKeys();
     }
 
     public void Close()
     {
-        
     }
 
     public void FileDrop(string? location)
     {
         FileDrop(location, true);
     }
-    
-    private void FileDrop(string? location, bool reset_time)
-    {
-        Camera.ScrollTo((0,-300,0));
-        
-        var old_location = _sequence_location;
-        if (location is null) return;
 
-        Task.Run(async () =>
-        {
-            await UpdateSequence(location, old_location != location || reset_time);
-        });
-    }
-    
     public void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
     {
     }
@@ -194,5 +122,66 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         if (!state.IsKeyPressed(Keys.R)) return;
         FileDrop(_sequence_location, true);
+    }
+
+    private void SetMidiKeys(int min_v = -4, int max_v = 4)
+    {
+        Manager.RenderBlock.Wait();
+
+        var delta = Math.Abs(min_v) + max_v * 1f;
+        var temp_width_single = Width / delta;
+        var temp_width = Width - temp_width_single;
+        var width_single = temp_width / delta;
+        var height = 70;
+        var position_y = Height - height;
+
+        var renderables = new List<MidiKey>();
+
+        float w = 0;
+        for (var i = min_v; i <= max_v; i++)
+        {
+            var plane = new MidiKey((0.1f, 0.1f, 0.1f, 1f), (w, position_y, 0), (width_single, height, 0))
+            {
+                BorderColor = (0.5f, 0.5f, 0.5f, 1f),
+                BorderSizePx = 2f
+            };
+
+            renderables.Add(plane);
+            plane.UpdateModel(false);
+
+            var static_text = new StaticText
+            {
+                FontStyle = FontStyle.Bold,
+                FontSizePx = 16f,
+                Value = $"{i}"
+            }.WithPosition((w + width_single / 2f, position_y + 10f, 0), PositionAlign.TopCenter);
+            plane.Children.Add(static_text);
+
+            w += width_single;
+        }
+
+        foreach (var renderable in TDW_images.Span) renderable.Render(Camera);
+
+        key_objects = renderables;
+        Manager.RenderBlock.Release();
+    }
+
+    protected override void HandleAfterSequenceLoad(TimedEvents events)
+    {
+        SetMidiKeys();
+    }
+
+    protected override void SetSequencePlayerSubscriptions(SequencePlayer player)
+    {
+    }
+
+    private void FileDrop(string? location, bool reset_time)
+    {
+        Camera.ScrollTo((0, -300, 0));
+
+        var old_location = _sequence_location;
+        if (location is null) return;
+
+        Task.Run(async () => { await UpdateSequence(location, old_location != location || reset_time); });
     }
 }

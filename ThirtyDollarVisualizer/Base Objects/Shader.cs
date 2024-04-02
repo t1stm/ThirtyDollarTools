@@ -6,12 +6,13 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public class Shader : IDisposable
 {
-    private readonly int _handle;
-    /// <summary>
-    /// Controls whether the shader throws errors on missing uniforms.
-    /// </summary>
-    private bool IsPedantic = false;
     private static readonly Dictionary<(string, string), Shader> CachedShaders = new();
+    private readonly int _handle;
+
+    /// <summary>
+    ///     Controls whether the shader throws errors on missing uniforms.
+    /// </summary>
+    private readonly bool IsPedantic = false;
 
     public Shader(string vertexPath, string fragmentPath)
     {
@@ -21,29 +22,32 @@ public class Shader : IDisposable
             _handle = shader._handle;
             return;
         }
-        
+
         var vertex = LoadShader(ShaderType.VertexShader, vertexPath);
         var fragment = LoadShader(ShaderType.FragmentShader, fragmentPath);
         _handle = GL.CreateProgram();
-        
+
         GL.AttachShader(_handle, vertex);
         GL.AttachShader(_handle, fragment);
-        
+
         GL.LinkProgram(_handle);
         GL.GetProgram(_handle, GetProgramParameterName.LinkStatus, out var link_status);
-        
+
         if (link_status == 0)
-        {
             throw new Exception($"Program failed to link with error: {GL.GetProgramInfoLog(_handle)}");
-        }
-        
+
         GL.DetachShader(_handle, vertex);
         GL.DetachShader(_handle, fragment);
-        
+
         GL.DeleteShader(vertex);
         GL.DeleteShader(fragment);
-        
+
         CachedShaders.Add((vertexPath, fragmentPath), this);
+    }
+
+    public void Dispose()
+    {
+        GL.DeleteProgram(_handle);
     }
 
     public void Use()
@@ -59,6 +63,7 @@ public class Shader : IDisposable
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
+
         GL.Uniform1(location, value);
         return true;
     }
@@ -71,6 +76,7 @@ public class Shader : IDisposable
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
+
         GL.Uniform2(location, value);
         return true;
     }
@@ -83,6 +89,7 @@ public class Shader : IDisposable
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
+
         GL.Uniform3(location, value);
         return true;
     }
@@ -95,6 +102,7 @@ public class Shader : IDisposable
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
+
         GL.Uniform4(location, value);
         return true;
     }
@@ -107,7 +115,8 @@ public class Shader : IDisposable
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
-        GL.UniformMatrix4(location, 1, false, (float*) &value);
+
+        GL.UniformMatrix4(location, 1, false, (float*)&value);
         return true;
     }
 
@@ -119,14 +128,10 @@ public class Shader : IDisposable
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
+
         GL.Uniform1(location, value);
         return true;
     }
-
-    public void Dispose()
-    {
-        GL.DeleteProgram(_handle);
-    }   
 
     private static int LoadShader(ShaderType type, string path)
     {
@@ -141,20 +146,19 @@ public class Shader : IDisposable
             var stream = Assembly.GetExecutingAssembly()
                 .GetManifestResourceStream(path);
 
-            if (stream == null) throw new FileNotFoundException($"Unable to find shader \'{path}\' in assembly or real path.");
-            
+            if (stream == null)
+                throw new FileNotFoundException($"Unable to find shader \'{path}\' in assembly or real path.");
+
             using var stream_reader = new StreamReader(stream);
             source = stream_reader.ReadToEnd();
         }
-        
+
         var handle = GL.CreateShader(type);
         GL.ShaderSource(handle, source);
         GL.CompileShader(handle);
         var infoLog = GL.GetShaderInfoLog(handle);
         if (!string.IsNullOrWhiteSpace(infoLog))
-        {
             throw new Exception($"Error compiling shader \'{path}\' of type {type}, failed with error {infoLog}");
-        }
 
         return handle;
     }

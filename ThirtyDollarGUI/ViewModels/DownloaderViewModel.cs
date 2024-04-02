@@ -4,7 +4,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using ReactiveUI;
 using ThirtyDollarConverter;
-using ThirtyDollarGUI.Helper;
 
 namespace ThirtyDollarGUI.ViewModels;
 
@@ -18,9 +17,9 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
     : ViewModelBase
 {
     private string? _log = $"Logs go here...{Environment.NewLine}";
-    private int progress_bar_value;
     private bool download_running;
     public DownloaderMode DownloadMode = downloadMode;
+    private int progress_bar_value;
     public Action? OnFinishDownloading { get; init; }
 
     public string? Log
@@ -40,24 +39,24 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
         DownloaderMode.Samples => "This is probably the first time this program has been run. " +
                                   "In order to operate, this program needs to download all the samples that the Thirty Dollar Website has. " +
                                   "You can download them using the button below.",
-                                  
+
         DownloaderMode.Images => "This is probably the first time this program has needed to use images. " +
-                                  "In order to operate, this program needs to download all the images that samples in the Thirty Dollar Website have. " +
-                                  "You can download them using the button below.",
-        
+                                 "In order to operate, this program needs to download all the images that samples in the Thirty Dollar Website have. " +
+                                 "You can download them using the button below.",
+
         _ => throw new ArgumentOutOfRangeException(nameof(DownloadMode), "how")
     };
-    
+
     private void CreateLog(string message)
     {
         var current_time = DateTime.Now;
         Log += $"[{current_time:HH:mm:ss}] {message}\n";
     }
-    
+
     private void DownloadMessageHandler(string thing, int current, int max)
     {
         CreateLog($"[({current}) - ({max})] Downloading \'{thing}\'.");
-        ProgressBarValue = (int) Math.Floor(current * 100f / max);
+        ProgressBarValue = (int)Math.Floor(current * 100f / max);
     }
 
     private async Task DownloadSamplesTask()
@@ -65,7 +64,7 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
         sample_holder.DownloadUpdate = DownloadMessageHandler;
         await sample_holder.DownloadSamples();
         sample_holder.LoadSamplesIntoMemory();
-        
+
         CreateLog("Loaded all samples into memory.");
     }
 
@@ -73,11 +72,8 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
     {
         var current = 0;
         var total_length = sample_holder.SampleList.Count + SampleHolder.ActionsArray.Length;
-        
-        if (!Directory.Exists(sample_holder.ImagesLocation))
-        {
-            Directory.CreateDirectory(sample_holder.ImagesLocation);
-        }
+
+        if (!Directory.Exists(sample_holder.ImagesLocation)) Directory.CreateDirectory(sample_holder.ImagesLocation);
 
         var http_client = new HttpClient();
 
@@ -98,7 +94,7 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
             var stream = await http_client.GetStreamAsync(sound.Icon_URL);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
             await stream.CopyToAsync(fs);
-            
+
             fs.Close();
             current++;
         }
@@ -107,7 +103,7 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
         {
             var file_name = $"{action}";
             var download_location = $"{sample_holder.ImagesLocation}/{file_name}";
-            
+
             DownloadMessageHandler(file_name, current, total_length);
             if (File.Exists(download_location))
             {
@@ -115,19 +111,20 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
                 continue;
             }
 
-            await using var stream = await http_client.GetStreamAsync($"{SampleHolder.ThirtyDollarWebsiteUrl}/assets/{file_name}");
+            await using var stream =
+                await http_client.GetStreamAsync($"{SampleHolder.ThirtyDollarWebsiteUrl}/assets/{file_name}");
             await using var fs = File.Open(download_location, FileMode.CreateNew);
             await stream.CopyToAsync(fs);
-            
+
             fs.Close();
             current++;
         }
     }
-    
+
     public async void Download_Button_Handle()
     {
         if (download_running) return;
-        
+
         download_running = true;
 
         switch (DownloadMode)
@@ -135,7 +132,7 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
             case DownloaderMode.Samples:
                 await DownloadSamplesTask();
                 break;
-            
+
             case DownloaderMode.Images:
                 await DownloadImagesTask();
                 break;

@@ -6,11 +6,10 @@ namespace ThirtyDollarParser;
 
 public class Sequence
 {
-    public BaseEvent[] Events { get; set; } = Array.Empty<BaseEvent>();
+    private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
     public Dictionary<string, BaseEvent[]> Definitions = new();
     public HashSet<string> SeparatedChannels = new();
-    
-    private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
+    public BaseEvent[] Events { get; set; } = Array.Empty<BaseEvent>();
 
     public Sequence Copy()
     {
@@ -23,7 +22,7 @@ public class Sequence
     }
 
     /// <summary>
-    /// Parses a sequence stored in a string.
+    ///     Parses a sequence stored in a string.
     /// </summary>
     /// <param name="data">The string containing the sequence.</param>
     /// <returns>The parsed sequence.</returns>
@@ -37,24 +36,23 @@ public class Sequence
         while (enumerator.MoveNext())
         {
             var text = enumerator.Current;
-            
+
             text = text.Replace("\n", "").Trim();
             if (string.IsNullOrEmpty(text)) continue;
             if (text.StartsWith('#'))
-            {
-                if (TryDefine(text, enumerator, sequence)) continue;
-            }
-            
+                if (TryDefine(text, enumerator, sequence))
+                    continue;
+
             var new_event = ParseEvent(text, sequence);
-            
+
             if (new_event.SoundEvent?.StartsWith('!') ?? false)
             {
                 list.Add(new_event);
                 continue;
             }
-            
+
             var repeats = new_event.PlayTimes;
-            
+
             new_event.OriginalLoop = 1;
             new_event.PlayTimes = 1;
             for (var i = 0; i < repeats; i++)
@@ -83,18 +81,18 @@ public class Sequence
         sequence.Definitions.Add(define_name, defines);
         return true;
     }
-    
+
     private static bool TryIndividualCut(string text, Sequence sequence, out BaseEvent new_event)
     {
         new_event = NormalEvent.Empty;
-        
+
         var match = Regex.Match(text, @"^#icut\((?<events>[^)]+)\)");
         if (!match.Success) return false;
         if (!match.Groups["events"].Success) return false;
 
         var cut_events = match.Groups["events"].Value;
         var split_events = cut_events.Split(',');
-        
+
         for (var i = 0; i < split_events.Length; i++)
         {
             var name = split_events[i];
@@ -102,24 +100,21 @@ public class Sequence
         }
 
         var hash_set = new HashSet<string>(split_events);
-        
+
         new_event = new IndividualCutEvent(hash_set)
         {
             SoundEvent = text
         };
-        
-        foreach (var ev in split_events)
-        {
-            sequence.SeparatedChannels.Add(ev);
-        }
-        
+
+        foreach (var ev in split_events) sequence.SeparatedChannels.Add(ev);
+
         return true;
     }
-    
+
     private static bool TryBookmark(string text, out BaseEvent new_event)
     {
         new_event = NormalEvent.Empty;
-        
+
         var match = Regex.Match(text, @"^#bookmark\((?<index>[^)]+)\)");
         if (!match.Success) return false;
         if (!match.Groups["index"].Success) return false;
@@ -143,11 +138,11 @@ public class Sequence
             var text = enumerator.Current;
             var trimmed = text.Trim();
             if (trimmed == "#enddefine") break;
-            
+
             events.Add(ParseEvent(trimmed, sequence));
             if (!enumerator.MoveNext()) break;
         }
-        
+
         return events.ToArray();
     }
 
@@ -156,11 +151,8 @@ public class Sequence
         if (!comp.Definitions.TryGetValue(new_event.SoundEvent ?? "", out var events)) return false;
 
         var pan = 0f;
-        if (new_event is PannedEvent panned_event)
-        {
-            pan = panned_event.Pan;
-        }
-        
+        if (new_event is PannedEvent panned_event) pan = panned_event.Pan;
+
         var array = new BaseEvent[events.Length];
         for (var i = 0; i < events.Length; i++)
         {
@@ -174,10 +166,9 @@ public class Sequence
             };
         }
 
-        if (new_event is { Value: 0, ValueScale: ValueScale.None or ValueScale.Add, Volume: null or 100d } && pan == 0f)
-        {
-            goto return_path;
-        }
+        if (new_event is
+                { Value: 0, ValueScale: ValueScale.None or ValueScale.Add, Volume: null or 100d } &&
+            pan == 0f) goto return_path;
 
         var val = new_event.Value;
         foreach (var ev in array)
@@ -188,7 +179,7 @@ public class Sequence
                 var new_pan = Math.Clamp(pan + _panned.Pan, -1f, 1f);
                 _panned.Pan = new_pan;
             }
-            
+
             switch (new_event.ValueScale)
             {
                 case ValueScale.None:
@@ -204,9 +195,9 @@ public class Sequence
                     ev.Value *= val;
                     break;
             }
-            
+
             if (new_event.Volume is null or 100d) continue;
-            
+
             switch (ev.Volume)
             {
                 case null:
@@ -224,29 +215,21 @@ public class Sequence
     }
 
     /// <summary>
-    /// Parses a single event.
+    ///     Parses a single event.
     /// </summary>
     /// <param name="text">The string of the event.</param>
     /// <param name="sequence">The sequence that is going to be parsed.</param>
     /// <returns>The parsed event.</returns>
     private static BaseEvent ParseEvent(string text, Sequence sequence)
     {
-        if (TryIndividualCut(text, sequence, out var new_individual_cut_event))
-        {
-            return new_individual_cut_event;
-        }
-        
-        if (TryBookmark(text, out var bookmark_event))
-        {
-            return bookmark_event;
-        }
-        
+        if (TryIndividualCut(text, sequence, out var new_individual_cut_event)) return new_individual_cut_event;
+
+        if (TryBookmark(text, out var bookmark_event)) return bookmark_event;
+
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
-        {
             // Special color lines get their own parser. 🗿
             return ParseColorEvent(text);
-        }
-        
+
         // Modifiers that separate the sound name from the other parameters.
         const string modifiers = "@%^=";
 
@@ -256,7 +239,7 @@ public class Sequence
         const string value_scale_regex = $"@[-0-9.]+@[^{modifiers}]+";
         const string volume_regex = "%[-0-9.]+";
         const string loop_times_regex = "=[0-9]+";
-        
+
         // Custom event Regex patterns here.
         const string pan_regex = @"\^[-0-9.]+";
 
@@ -282,7 +265,7 @@ public class Sequence
 
         var loop_times_match = Regex.Match(text, loop_times_regex);
         var loop_times = loop_times_match.Success ? int.Parse(loop_times_match.Value[1..]) : 1;
-        
+
         var volume_match = Regex.Match(text, volume_regex);
         double? event_volume = volume_match.Success ? double.Parse(volume_match.Value[1..]) : null;
 
@@ -339,18 +322,16 @@ public class Sequence
         double value;
 
         if (split_for_value.Length < 2)
-        {
-            throw new Exception("A color event doesn't have a proper format. The format must be: \'!event@#rgb_or_num, number\'");
-        }
+            throw new Exception(
+                "A color event doesn't have a proper format. The format must be: \'!event@#rgb_or_num, number\'");
 
         var important_text = split_for_value[1];
         var split_data = important_text.Split(',');
 
         if (split_data.Length < 2)
-        {
-            throw new Exception("A color event doesn't have a proper format. The format must be: \'!event@#rgb_or_num, number\'");
-        }
-        
+            throw new Exception(
+                "A color event doesn't have a proper format. The format must be: \'!event@#rgb_or_num, number\'");
+
         if (action is "!bg")
         {
             // Yes I created a custom encoding format for a RGB color and a decimal number. sue me
@@ -372,31 +353,31 @@ public class Sequence
 
             // Prepare fade time for encode
             var fade_time = TruncateToThreeDecimals(parsed_fade_time);
-            
+
             // Make the number take up only 21 bits.
-            var encoded_fade_time = (long) Math.Clamp(fade_time * 1000, 0, 128000);
-            
+            var encoded_fade_time = (long)Math.Clamp(fade_time * 1000, 0, 128000);
+
             // Encode the value.
-            var value_holder = encoded_fade_time << 24 | (uint) (b << 16) | (uint) (g << 8) | r; 
+            var value_holder = (encoded_fade_time << 24) | (uint)(b << 16) | (uint)(g << 8) | r;
             value = value_holder;
         }
         else // Action is pulse.
         {
             var count = split_data[0];
-            if (!double.TryParse(count, NumberStyles.Any, CultureInfo, out var pulse_times)) 
+            if (!double.TryParse(count, NumberStyles.Any, CultureInfo, out var pulse_times))
                 throw new Exception("Unable to parse \'!pulse\' action pulses.");
 
             var frequency = split_data[1];
-            if (!double.TryParse(frequency, NumberStyles.Any, CultureInfo, out var repeats)) 
+            if (!double.TryParse(frequency, NumberStyles.Any, CultureInfo, out var repeats))
                 throw new Exception("Unable to parse \'!pulse\' action pulses.");
 
             // No need to store decimal places as the site ignores them anyways.
-            var r_byte = (byte) repeats;
-            var p_short = (short) pulse_times;
+            var r_byte = (byte)repeats;
+            var p_short = (short)pulse_times;
 
-            value = p_short << 8 | r_byte;
+            value = (p_short << 8) | r_byte;
         }
-        
+
         var new_event = new NormalEvent
         {
             Value = value,
@@ -408,7 +389,7 @@ public class Sequence
         };
         return new_event;
     }
-    
+
     private static double TruncateToThreeDecimals(double d)
     {
         return Math.Truncate(d * 1000) / 1000;

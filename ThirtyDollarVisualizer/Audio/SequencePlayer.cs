@@ -8,27 +8,26 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class SequencePlayer
 {
+    protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
     public readonly AudioContext AudioContext = new NullAudioContext();
+    protected readonly long[] Bookmarks = new long[10];
+    protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
+    protected readonly Greeting? Greeting;
+    protected readonly Action<string>? Log;
     protected readonly SeekableStopwatch TimingStopwatch = new();
     protected readonly SemaphoreSlim UpdateLock = new(1);
-    protected readonly Action<string>? Log;
-    protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
-    protected readonly long[] Bookmarks = new long[10];
-    
-    protected BufferHolder BufferHolder;
-    protected TimedEvents Events;
-    protected BackingAudio? BackingAudio;
-    protected PlayerErrors Errors = PlayerErrors.None;
-    public int PlacementIndex { get; private set; }
-    protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
-    protected readonly Greeting? Greeting;
+    private bool _cut_sounds;
+    private bool _dead;
 
     private bool _update_running;
-    private bool _dead;
-    private bool _cut_sounds;
+    protected BackingAudio? BackingAudio;
+
+    protected BufferHolder BufferHolder;
+    protected PlayerErrors Errors = PlayerErrors.None;
+    protected TimedEvents Events;
 
     /// <summary>
-    /// Creates a player that plays Thirty Dollar sequences.
+    ///     Creates a player that plays Thirty Dollar sequences.
     /// </summary>
     /// <param name="context">The audio context you want to use.</param>
     /// <param name="log_action">The logging action.</param>
@@ -41,7 +40,7 @@ public class SequencePlayer
             TimingSampleRate = 100_000
         };
         Log = log_action;
-        
+
         var c = context;
         c?.Create();
         c ??= GetAvailableContext();
@@ -57,6 +56,8 @@ public class SequencePlayer
         TimingStopwatch.Reset();
     }
 
+    public int PlacementIndex { get; private set; }
+
     protected AudioContext? GetAvailableContext()
     {
         AudioContext context;
@@ -69,7 +70,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    /// Subscribes a given event_name to a action, which is invoked when the event is played.
+    ///     Subscribes a given event_name to a action, which is invoked when the event is played.
     /// </summary>
     /// <param name="event_name">The event's name.</param>
     /// <param name="action">The action you want to execute on encountering it.</param>
@@ -77,12 +78,12 @@ public class SequencePlayer
     {
         if (EventActions.TryAdd(event_name, action)) return;
         if (!EventActions.ContainsKey(event_name)) return;
-        
+
         EventActions[event_name] = action;
     }
 
     /// <summary>
-    /// Removes a subscribed action.
+    ///     Removes a subscribed action.
     /// </summary>
     /// <param name="event_name">The event's name you want to remove.</param>
     public void RemoveSubscription(string event_name)
@@ -91,16 +92,23 @@ public class SequencePlayer
     }
 
     /// <summary>
-    /// Clears all subscriptions.
+    ///     Clears all subscriptions.
     /// </summary>
     public void ClearSubscriptions()
     {
         EventActions.Clear();
     }
 
-    public SeekableStopwatch GetTimingStopwatch() => TimingStopwatch;
-    public AudioContext GetContext() => AudioContext;
-    
+    public SeekableStopwatch GetTimingStopwatch()
+    {
+        return TimingStopwatch;
+    }
+
+    public AudioContext GetContext()
+    {
+        return AudioContext;
+    }
+
     public async Task Restart()
     {
         await UpdateLock.WaitAsync();
@@ -133,10 +141,10 @@ public class SequencePlayer
         var placement = Events.Placement[PlacementIndex];
         await Task.Run(() => { event_action.Invoke(placement, (int)placement.SequenceIndex); })
             .ConfigureAwait(false);
-        
+
         UpdateLock.Release();
     }
-    
+
     public async Task Start()
     {
         await (Greeting?.PlayWaitFinish() ?? Task.CompletedTask);
@@ -144,7 +152,7 @@ public class SequencePlayer
         AlignToTime();
         UpdateLoop();
     }
-    
+
     public async Task Stop()
     {
         await UpdateLock.WaitAsync();
@@ -159,7 +167,7 @@ public class SequencePlayer
             case true:
                 TimingStopwatch.Stop();
                 break;
-            
+
             case false:
                 TimingStopwatch.Start();
                 break;
@@ -170,10 +178,10 @@ public class SequencePlayer
     {
         await UpdateLock.WaitAsync();
         CutSounds();
-        
+
         BufferHolder = holder;
         Events = events;
-        
+
         AlignToTime();
         UpdateLock.Release();
     }
@@ -188,22 +196,22 @@ public class SequencePlayer
         for (var i = 0; i < span.Length; i++)
         {
             var placement = span[i];
-            
-            var time = Math.Abs((long) placement.Index * 1000 / Events.TimingSampleRate - current_time);
+
+            var time = Math.Abs((long)placement.Index * 1000 / Events.TimingSampleRate - current_time);
             if (time >= min_time) continue;
-            
+
             min_time = time;
             idx = i;
         }
 
         PlacementIndex = idx;
     }
-    
+
     protected async void UpdateLoop()
     {
         if (_update_running) return;
         _update_running = true;
-            
+
         while (_update_running && !_dead)
         {
             await PlaybackUpdate();
@@ -215,10 +223,7 @@ public class SequencePlayer
     {
         lock (ActiveSamples)
         {
-            foreach (var (_, buffer) in ActiveSamples)
-            {
-                buffer.Stop();
-            }
+            foreach (var (_, buffer) in ActiveSamples) buffer.Stop();
         }
     }
 
@@ -239,11 +244,11 @@ public class SequencePlayer
         if (Greeting == null) return;
         Greeting.GreetingType = type;
     }
-    
+
     public async Task<long> SeekToBookmark(int bookmark_index)
     {
         var bookmark_time = Bookmarks[bookmark_index];
-        
+
         await Seek(bookmark_time);
         return bookmark_time;
     }
@@ -254,7 +259,7 @@ public class SequencePlayer
         SetBookmarkTo(bookmark_index, current_time);
         return current_time;
     }
-    
+
     public void SetBookmarkTo(int bookmark_index, long milliseconds)
     {
         Bookmarks[bookmark_index] = milliseconds;
@@ -278,24 +283,17 @@ public class SequencePlayer
             var end_time = end_placement.Index;
 
             if (TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f + 1000 > end_time)
-            {
                 TimingStopwatch.Seek((long)(end_time * 1000f / Events.TimingSampleRate) + 100);
-            }
 
             for (end_idx = current_idx; end_idx < placement_memory.Length; end_idx++)
             {
                 var placement = placement_memory.Span[end_idx];
                 if (placement.Index >
                     (ulong)((float)TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f))
-                {
                     break;
-                }
 
-                if (placement.Event is IndividualCutEvent ice)
-                {
-                    IndividualCutSamples(ice.CutSounds);
-                }
-                
+                if (placement.Event is IndividualCutEvent ice) IndividualCutSamples(ice.CutSounds);
+
                 switch (placement.Event.SoundEvent)
                 {
                     case "!cut":
@@ -305,10 +303,8 @@ public class SequencePlayer
 
                 // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
                 if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
-                {
                     await Task.Run(() => { explicit_action.Invoke(placement, (int)placement.SequenceIndex); })
                         .ConfigureAwait(false);
-                }
 
                 // Normal pass.
                 if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
@@ -318,7 +314,7 @@ public class SequencePlayer
             }
 
             PlacementIndex = end_idx;
-            
+
             var length = end_idx - current_idx;
             if (length < 1) return;
 
@@ -333,7 +329,7 @@ public class SequencePlayer
     protected void PlayBatch(Span<Placement> batch)
     {
         if (batch.Length < 1) return;
-        
+
         if (AudioContext is IBatchSupported batch_supported)
         {
             var batch_span = new Span<AudibleBuffer>(new AudibleBuffer[batch.Length]);
@@ -344,13 +340,15 @@ public class SequencePlayer
                     _cut_sounds = false;
                     return;
                 }
+
                 var el = batch[i];
-                if (!el.Audible || !BufferHolder.TryGetBuffer(el.Event.SoundEvent ?? "", el.Event.Value, out var buffer))
+                if (!el.Audible ||
+                    !BufferHolder.TryGetBuffer(el.Event.SoundEvent ?? "", el.Event.Value, out var buffer))
                 {
                     batch_span[i] = NullAudibleBuffer.EmptyBuffer;
                     continue;
                 }
-                
+
                 batch_span[i] = buffer;
             }
 
@@ -360,31 +358,32 @@ public class SequencePlayer
 
         foreach (var placement in batch)
         {
-            if (!placement.Audible || 
-                !BufferHolder.TryGetBuffer(placement.Event.SoundEvent ?? "", placement.Event.Value, out var buffer)) continue;
+            if (!placement.Audible ||
+                !BufferHolder.TryGetBuffer(placement.Event.SoundEvent ?? "", placement.Event.Value, out var buffer))
+                continue;
 
             var name = placement.Event.SoundEvent ?? "";
             var tuple = (name, buffer);
             lock (ActiveSamples)
+            {
                 ActiveSamples.Add(tuple);
+            }
 
             if (placement.Event is PannedEvent panned_event)
-            {
                 buffer.SetPan(panned_event.Pan);
-            }
             else
-            {
                 buffer.SetPan(0f);
-            }
-            
-            buffer.SetVolume((float) (placement.Event.Volume ?? 100d) / 100f);
+
+            buffer.SetVolume((float)(placement.Event.Volume ?? 100d) / 100f);
             buffer.Play(remove_callback);
             continue;
 
             void remove_callback()
             {
                 lock (ActiveSamples)
+                {
                     ActiveSamples.Remove(tuple);
+                }
             }
         }
     }
@@ -396,13 +395,13 @@ public class SequencePlayer
         ClearSubscriptions();
         _update_running = false;
         _dead = true;
-        
+
         UpdateLock.Release();
     }
 }
 
 public enum PlayerErrors
 {
-    None, 
+    None,
     NoContext
 }

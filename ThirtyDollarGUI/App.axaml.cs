@@ -6,7 +6,7 @@ using ThirtyDollarGUI.Views;
 
 namespace ThirtyDollarGUI;
 
-public partial class App : Application
+public class App : Application
 {
     public override void Initialize()
     {
@@ -25,14 +25,11 @@ public partial class App : Application
         {
             DataContext = new MainWindowViewModel()
         };
-        
+
         var greeter = new Greeter(main_window);
         desktop.MainWindow = greeter;
-        
-        main_window.Closing += (_, _) =>
-        {
-            greeter.Close();
-        };
+
+        main_window.Closing += (_, _) => { greeter.Close(); };
 
         base.OnFrameworkInitializationCompleted();
     }

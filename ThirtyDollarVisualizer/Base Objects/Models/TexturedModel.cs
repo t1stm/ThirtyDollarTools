@@ -1,6 +1,3 @@
 namespace ThirtyDollarVisualizer.Objects.Models;
 
-public class TexturedModel
-{
-    
-}
+public class TexturedModel;

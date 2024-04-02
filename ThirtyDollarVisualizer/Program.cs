@@ -16,38 +16,6 @@ namespace ThirtyDollarVisualizer;
 
 public static class Program
 {
-    public class Options
-    {
-        [Option('i', "sequence", HelpText = "The sequence's location.")]
-        public string? Input { get; set; }
-
-        [Option("no-audio", HelpText = "Disable audio playback.")]
-        public bool NoAudio { get; set; }
-        
-        [Option('w', "width", HelpText = "The width of the render window.")]
-        public int? Width { get; set; }
-        
-        [Option('h', "height", HelpText = "The height of the render window.")]
-        public int? Height { get; set; }
-
-        [Option('c', "camera-follow-mode", HelpText = "Controls how the camera behaves. Values: \"tdw\", \"line\"")]
-        public string? CameraFollowMode { get; set; }
-
-        [Option('f', "fps-limit",
-            HelpText = "The fps cap of the renderer. Valid values are 0 - 500. Setting this to 0 removes the fps cap.")]
-        public int? FPS { get; set; }
-        
-        [Option('s', "scale",
-            HelpText = "Changes the camera viewport zoom.")]
-        public float? Scale { get; set; }
-        
-        [Option("audio-backend", HelpText = "Changes the audio backend the application uses. Values: \"bass\", \"openal\"")]
-        public string? AudioBackend { get; set; }
-        
-        [Option("greeting", HelpText = "Changes the default \'DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER\' greeting. Supports emojis.")]
-        public string? Greeting { get; set; }
-    }
-    
     public static void Main(string[] args)
     {
         string? sequence = null;
@@ -69,7 +37,7 @@ public static class Program
                 height = options.Height ?? height;
                 fps = options.FPS;
                 scale = options.Scale;
-                
+
                 follow_mode = options.CameraFollowMode switch
                 {
                     "line" => CameraFollowMode.Current_Line,
@@ -99,8 +67,9 @@ public static class Program
 
         icon_stream.DangerousTryGetSinglePixelMemory(out var memory);
         var icon_bytes = MemoryMarshal.AsBytes(memory.Span).ToArray();
-        var icon = new WindowIcon(new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
-        
+        var icon = new WindowIcon(
+            new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
+
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
 
         var tdw_application = new ThirtyDollarApplication(width, height, sequence, audio_context)
@@ -114,7 +83,42 @@ public static class Program
 
         /*var un30_dollar_application = new ThreeDollarWebsite(width, height, audio_context);
         manager.Scenes.Add(un30_dollar_application);*/
-        
+
         manager.Run();
+    }
+
+    public class Options
+    {
+        [Option('i', "sequence", HelpText = "The sequence's location.")]
+        public string? Input { get; set; }
+
+        [Option("no-audio", HelpText = "Disable audio playback.")]
+        public bool NoAudio { get; set; }
+
+        [Option('w', "width", HelpText = "The width of the render window.")]
+        public int? Width { get; set; }
+
+        [Option('h', "height", HelpText = "The height of the render window.")]
+        public int? Height { get; set; }
+
+        [Option('c', "camera-follow-mode", HelpText = "Controls how the camera behaves. Values: \"tdw\", \"line\"")]
+        public string? CameraFollowMode { get; set; }
+
+        [Option('f', "fps-limit",
+            HelpText = "The fps cap of the renderer. Valid values are 0 - 500. Setting this to 0 removes the fps cap.")]
+        public int? FPS { get; set; }
+
+        [Option('s', "scale",
+            HelpText = "Changes the camera viewport zoom.")]
+        public float? Scale { get; set; }
+
+        [Option("audio-backend",
+            HelpText = "Changes the audio backend the application uses. Values: \"bass\", \"openal\"")]
+        public string? AudioBackend { get; set; }
+
+        [Option("greeting",
+            HelpText =
+                "Changes the default \'DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER\' greeting. Supports emojis.")]
+        public string? Greeting { get; set; }
     }
 }

@@ -17,7 +17,7 @@ void main() {
         color = u_Color;
         return;
     }
-    
+
     float edgeSoftness = 0.5f;
 
     vec2 lower_left = vec2(u_PositionPx.x, u_PositionPx.y - u_ScalePx.y);

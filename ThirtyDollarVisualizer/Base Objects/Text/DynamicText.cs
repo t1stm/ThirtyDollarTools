@@ -5,18 +5,23 @@ using ThirtyDollarVisualizer.Objects.Planes;
 namespace ThirtyDollarVisualizer.Objects.Text;
 
 /// <summary>
-/// A renderable that is more expensive to be rendered but cheap to be edited, intended to be used for text that is changed often.
+///     A renderable that is more expensive to be rendered but cheap to be edited, intended to be used for text that is
+///     changed often.
 /// </summary>
 public class DynamicText : Renderable, IText
 {
     private readonly SemaphoreSlim _lock = new(1);
-    
+    private float _font_size_px = 14f;
+
+    private string _value = string.Empty;
+    private TexturedPlane[] TexturedPlanes = Array.Empty<TexturedPlane>();
+
     public string Value
     {
         get => _value;
         set => SetTextContents(value);
     }
-    
+
     public float FontSizePx
     {
         get => _font_size_px;
@@ -24,16 +29,6 @@ public class DynamicText : Renderable, IText
     }
 
     public FontStyle FontStyle { get; set; } = FontStyle.Regular;
-    
-    private string _value = string.Empty;
-    private float _font_size_px = 14f;
-    private TexturedPlane[] TexturedPlanes = Array.Empty<TexturedPlane>();
-
-    public void SetFontSize(float font_size_px)
-    {
-        _font_size_px = font_size_px;
-        SetTextContents(Value);
-    }
 
     public void SetTextContents(string text)
     {
@@ -42,12 +37,18 @@ public class DynamicText : Renderable, IText
         _value = text;
     }
 
+    public void SetFontSize(float font_size_px)
+    {
+        _font_size_px = font_size_px;
+        SetTextContents(Value);
+    }
+
     protected void SetTextTextures(string text)
     {
         var cache = Fonts.GetCharacterCache();
         var textures_array = new Texture[text.Length];
         var real_i = 0;
-        
+
         for (var i = 0; i < text.Length; i++)
         {
             var c = text[i];
@@ -58,6 +59,7 @@ public class DynamicText : Renderable, IText
                 i++;
                 continue;
             }
+
             textures_array[real_i++] = cache.Get(c, _font_size_px, FontStyle);
         }
 
@@ -69,10 +71,8 @@ public class DynamicText : Renderable, IText
             {
                 TexturedPlanes = new TexturedPlane[textures.Length];
                 for (var index = 0; index < TexturedPlanes.Length; index++)
-                {
                     TexturedPlanes[index] = new TexturedPlane(Texture.Transparent1x1,
                         (0, 0, 0), (1, 1));
-                }
             }
 
             var x = _position.X;
@@ -124,13 +124,10 @@ public class DynamicText : Renderable, IText
     public override void Render(Camera camera)
     {
         _lock.Wait();
-        foreach (var plane in TexturedPlanes)
-        {
-            plane.Render(camera);
-        }
+        foreach (var plane in TexturedPlanes) plane.Render(camera);
 
         _lock.Release();
-        
+
         base.Render(camera);
     }
 }

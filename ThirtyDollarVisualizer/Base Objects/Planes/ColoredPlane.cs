@@ -12,21 +12,22 @@ public class ColoredPlane : Renderable
     private static BufferObject<uint> Static_Ebo = null!;
 
     public float BorderRadius;
-    
+
     public ColoredPlane(Vector4 color, Vector3 position, Vector3 scale, float border_radius = 0f)
     {
         _position = position;
         _scale = scale;
-        
+
         if (!AreVerticesGenerated) SetVertices();
-        
+
         Vao = Static_Vao;
         Vbo = Static_Vbo;
         Ebo = Static_Ebo;
-        
-        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.colored.vert", "ThirtyDollarVisualizer.Assets.Shaders.colored.frag");
+
+        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.colored.vert",
+            "ThirtyDollarVisualizer.Assets.Shaders.colored.frag");
         Color = color;
-        
+
         BorderRadius = border_radius;
     }
 
@@ -41,8 +42,9 @@ public class ColoredPlane : Renderable
         {
             var (x, y, z) = (0f, 0f, 0);
             var (w, h) = (1f, 1f);
-        
-            var vertices = new[] {
+
+            var vertices = new[]
+            {
                 x, y + h, z,
                 x + w, y + h, z,
                 x + w, y, z,
@@ -68,15 +70,15 @@ public class ColoredPlane : Renderable
         lock (LockObject)
         {
             if (Ebo == null || Vao == null) return;
-        
+
             Vao.Bind();
             Ebo.Bind();
             Shader.Use();
             SetShaderUniforms(camera);
-            
+
             GL.DrawElements(PrimitiveType.Triangles, Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
         }
-        
+
         base.Render(camera);
     }
 
@@ -86,7 +88,7 @@ public class ColoredPlane : Renderable
         Shader.SetUniform("u_BorderRadiusPx", BorderRadius);
         Shader.SetUniform("u_PositionPx", _position + _translation);
         Shader.SetUniform("u_ScalePx", _scale);
-        
+
         Shader.SetUniform("u_Model", Model);
         Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
     }

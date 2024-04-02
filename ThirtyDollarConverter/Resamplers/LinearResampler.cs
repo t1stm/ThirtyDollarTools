@@ -15,8 +15,8 @@ public class LinearResampler : IResampler
 
         for (var i = 0; i < new_size; i++)
         {
-            var timeSecs = (float) i / target_sample_rate;
-            var index = (int) (timeSecs * sample_rate);
+            var timeSecs = (float)i / target_sample_rate;
+            var index = (int)(timeSecs * sample_rate);
 
             var frac = timeSecs * sample_rate - index;
             if (index < old_size - 1)
@@ -27,7 +27,7 @@ public class LinearResampler : IResampler
 
         return resampled;
     }
-    
+
     public double[] Resample(Memory<double> samples, uint sample_rate, uint target_sample_rate)
     {
         var old_size = samples.Length;
@@ -39,8 +39,8 @@ public class LinearResampler : IResampler
 
         for (var i = 0; i < new_size; i++)
         {
-            var timeSecs = (double) i / target_sample_rate;
-            var index = (int) (timeSecs * sample_rate);
+            var timeSecs = (double)i / target_sample_rate;
+            var index = (int)(timeSecs * sample_rate);
 
             var frac = timeSecs * sample_rate - index;
             if (index < old_size - 1)

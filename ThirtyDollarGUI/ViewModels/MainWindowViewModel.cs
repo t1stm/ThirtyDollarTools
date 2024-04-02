@@ -15,31 +15,32 @@ namespace ThirtyDollarGUI.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private string? sequence_file_location = "";
-    private string? export_file_location = "";
-    private string? log = $"Logs go here...{Environment.NewLine}";
-    private int progress_bar_value;
-
     private readonly SampleHolder sample_holder;
-    private Sequence? sequence;
+
+    private bool encode_running;
     private PcmEncoder? encoder;
-    private EncoderSettings encoder_settings = new()
+
+    private readonly EncoderSettings encoder_settings = new()
     {
         Channels = 2,
         SampleRate = 48000
     };
-    
-    private bool encode_running;
+
+    private string? export_file_location = "";
+    public bool IsExportLocationGood = true;
 
     public bool IsSequenceLocationGood = true;
-    public bool IsExportLocationGood = true;
+    private string? log = $"Logs go here...{Environment.NewLine}";
+    private int progress_bar_value;
+    private Sequence? sequence;
+    private string? sequence_file_location = "";
 
     public MainWindowViewModel()
     {
         sample_holder = new SampleHolder();
         CheckSampleAvailability();
     }
-    
+
     public string? SequenceFileLocation
     {
         get => sequence_file_location;
@@ -76,15 +77,16 @@ public class MainWindowViewModel : ViewModelBase
 
     public async void Select_SequenceFileLocation()
     {
-        var file_picker_types = new[] { 
+        var file_picker_types = new[]
+        {
             new FilePickerFileType("Thirty Dollar Website Sequence")
             {
-                MimeTypes = new [] {"text/plain"},
-                Patterns = new [] {"*.🗿"}
+                MimeTypes = new[] { "text/plain" },
+                Patterns = new[] { "*.🗿" }
             },
             new FilePickerFileType("Any File")
             {
-                Patterns = new [] {"*.*"}
+                Patterns = new[] { "*.*" }
             }
         };
         var open_file_dialog = await this.OpenFileDialogAsync("Select sequence file.", file_picker_types);
@@ -92,19 +94,22 @@ public class MainWindowViewModel : ViewModelBase
 
         SequenceFileLocation = open_file_dialog.FirstOrDefault();
     }
-    
+
     public async void Select_ExportFileLocation()
     {
-        var file_picker_types = new[] { new FilePickerFileType("RIFF WAVE File")
+        var file_picker_types = new[]
         {
-            MimeTypes = new [] {"audio/wav"},
-            Patterns = new [] {"*.wav"}
-        } };
+            new FilePickerFileType("RIFF WAVE File")
+            {
+                MimeTypes = new[] { "audio/wav" },
+                Patterns = new[] { "*.wav" }
+            }
+        };
         var save_file_dialog = await this.SaveFileDialogAsync("Select export location.", file_picker_types);
         ExportFileLocation = save_file_dialog;
     }
-    
-    
+
+
     private async void CheckSampleAvailability()
     {
         await sample_holder.LoadSampleList();
@@ -114,7 +119,7 @@ public class MainWindowViewModel : ViewModelBase
             DownloadSamples();
             return;
         }
-        
+
         sample_holder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");
     }
@@ -126,7 +131,7 @@ public class MainWindowViewModel : ViewModelBase
         {
             DataContext = downloader_view_model
         };
-        
+
         sample_downloader.Show();
     }
 
@@ -145,10 +150,10 @@ public class MainWindowViewModel : ViewModelBase
         {
             if (sequence_file_location == null) return;
             if (!File.Exists(sequence_file_location)) return;
-            
+
             var read = await File.ReadAllTextAsync(sequence_file_location);
             sequence = Sequence.FromString(read);
-            
+
             CreateLog($"Preloaded sequence located in: \'{sequence_file_location}\'");
         }
         catch (Exception e)
@@ -160,9 +165,9 @@ public class MainWindowViewModel : ViewModelBase
 
     private void UpdateProgressBar(ulong current, ulong max)
     {
-        var percent = Math.Ceiling(100f * ((float) current / max));
+        var percent = Math.Ceiling(100f * ((float)current / max));
 
-        var integer = (int) percent;
+        var integer = (int)percent;
         ProgressBarValue = integer;
     }
 
@@ -191,10 +196,7 @@ public class MainWindowViewModel : ViewModelBase
         CreateLog("Started encoding.");
         encoder = new PcmEncoder(sample_holder, encoder_settings, CreateLog, UpdateProgressBar);
 
-        await Task.Run(async () =>
-        {
-            await EncoderStart(encoder, sequence);
-        });
+        await Task.Run(async () => { await EncoderStart(encoder, sequence); });
     }
 
     public void ExportSettings()
@@ -203,7 +205,7 @@ public class MainWindowViewModel : ViewModelBase
         {
             DataContext = new ExportSettingsViewModel(encoder_settings)
         };
-        
+
         export_settings.Show();
     }
 
@@ -226,8 +228,9 @@ public class MainWindowViewModel : ViewModelBase
 
         downloader.DataContext = data_context;
 
-        if (!Directory.Exists(sample_holder.ImagesLocation) || 
-            Directory.GetFiles(sample_holder.ImagesLocation).Length <= sample_holder.SampleList.Count + SampleHolder.ActionsArray.Length)
+        if (!Directory.Exists(sample_holder.ImagesLocation) ||
+            Directory.GetFiles(sample_holder.ImagesLocation).Length <=
+            sample_holder.SampleList.Count + SampleHolder.ActionsArray.Length)
         {
             downloader.Show();
             return;
@@ -242,14 +245,19 @@ public class MainWindowViewModel : ViewModelBase
 
             string? visualizer_filename = null;
             var gui_location = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
-            gui_location = gui_location.Replace(gui_location.Contains("ThirtyDollarGUI.exe") ? "ThirtyDollarGUI.exe" : "ThirtyDollarGUI", "");
+            gui_location =
+                gui_location.Replace(
+                    gui_location.Contains("ThirtyDollarGUI.exe") ? "ThirtyDollarGUI.exe" : "ThirtyDollarGUI", "");
 
-            if (File.Exists($"{gui_location}/ThirtyDollarVisualizer")) visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer";
-            if (File.Exists($"{gui_location}/ThirtyDollarVisualizer.exe")) visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer.exe";
+            if (File.Exists($"{gui_location}/ThirtyDollarVisualizer"))
+                visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer";
+            if (File.Exists($"{gui_location}/ThirtyDollarVisualizer.exe"))
+                visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer.exe";
 
             if (visualizer_filename == null)
             {
-                CreateLog($"Unable to find the visualizer executable in the directory of the GUI. Location: \'{gui_location}\'");
+                CreateLog(
+                    $"Unable to find the visualizer executable in the directory of the GUI. Location: \'{gui_location}\'");
                 return;
             }
 

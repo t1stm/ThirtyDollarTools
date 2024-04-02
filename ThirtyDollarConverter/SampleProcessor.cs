@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Resamplers;
@@ -11,27 +10,29 @@ namespace ThirtyDollarConverter;
 
 public class SampleProcessor
 {
-    private readonly ConcurrentDictionary<Sound, PcmDataHolder> Samples;
     private readonly Action<string> Log;
+    private readonly ConcurrentDictionary<Sound, PcmDataHolder> Samples;
     private readonly EncoderSettings Settings;
-    private IResampler Resampler { get; }
 
     /// <summary>
-    /// Creates a helper that helps resample an event to a given octave.
+    ///     Creates a helper that helps resample an event to a given octave.
     /// </summary>
     /// <param name="sample_holder">The loaded samples.</param>
     /// <param name="settings">The encoder's settings.</param>
     /// <param name="logger">Action that handles log messages.</param>
-    public SampleProcessor(ConcurrentDictionary<Sound, PcmDataHolder> sample_holder, EncoderSettings settings, Action<string>? logger = null)
+    public SampleProcessor(ConcurrentDictionary<Sound, PcmDataHolder> sample_holder, EncoderSettings settings,
+        Action<string>? logger = null)
     {
         Samples = sample_holder;
         Settings = settings;
         Resampler = settings.Resampler;
         Log = logger ?? new Action<string>(_ => { });
     }
-    
+
+    private IResampler Resampler { get; }
+
     /// <summary>
-    /// Resamples a given event.
+    ///     Resamples a given event.
     /// </summary>
     /// <param name="ev">The event you want to resample.</param>
     /// <returns>The audio data of the resampled event.</returns>
@@ -41,7 +42,8 @@ public class SampleProcessor
     {
         try
         {
-            var (_, value) = Samples.FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent || pair.Key.Id == ev.SoundEvent);
+            var (_, value) =
+                Samples.FirstOrDefault(pair => pair.Key.Filename == ev.SoundEvent || pair.Key.Id == ev.SoundEvent);
             if (value == null) throw new Exception($"Data for sound event: \'{ev.SoundEvent}\' is null.");
             var sampleData = value.ReadAsFloat32Array(Settings.Channels > 1);
             if (sampleData == null)

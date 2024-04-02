@@ -12,42 +12,42 @@
         MinHeight="350"
         Width="250"
         Height="350"
-        
+
         TransparencyLevelHint="AcrylicBlur"
         Background="Transparent"
         ExtendClientAreaToDecorationsHint="True">
-        
-        <Panel>
-            <ExperimentalAcrylicBorder IsHitTestVisible="False">
-                <ExperimentalAcrylicBorder.Material>
-                    <ExperimentalAcrylicMaterial
-                        BackgroundSource="Digger"
-                        TintColor="#31313A"
-                        TintOpacity="1"
-                        MaterialOpacity="0.60" />
-                </ExperimentalAcrylicBorder.Material>
-            </ExperimentalAcrylicBorder>
-            
-            <StackPanel>
-                <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center"
-                           Text="Before we continue..."
-                           FontSize="20" />
-                <TextBlock
-                    HorizontalAlignment="Center"
-                    Text="{Binding DownloadText}"
-                    TextWrapping="Wrap"
-                    FontSize="10"
-                    Margin="20"/>
-            
-                <ScrollViewer Margin="20,0" Height="100">
-                    <TextBlock Text="{Binding Log}"
-                               FontSize="12"/>
-                </ScrollViewer>
-                <ProgressBar Value="{Binding ProgressBarValue}" 
-                             Margin="20" Height="16" 
-                             Minimum="0" Maximum="100"/>
-            
-                <Button HorizontalAlignment="Center" Command="{Binding Download_Button_Handle}">Download All Samples</Button>
-            </StackPanel>
-        </Panel>
+
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="#31313A"
+                    TintOpacity="1"
+                    MaterialOpacity="0.60" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+
+        <StackPanel>
+            <TextBlock Margin="0,10,0,0" HorizontalAlignment="Center"
+                       Text="Before we continue..."
+                       FontSize="20" />
+            <TextBlock
+                HorizontalAlignment="Center"
+                Text="{Binding DownloadText}"
+                TextWrapping="Wrap"
+                FontSize="10"
+                Margin="20" />
+
+            <ScrollViewer Margin="20,0" Height="100">
+                <TextBlock Text="{Binding Log}"
+                           FontSize="12" />
+            </ScrollViewer>
+            <ProgressBar Value="{Binding ProgressBarValue}"
+                         Margin="20" Height="16"
+                         Minimum="0" Maximum="100" />
+
+            <Button HorizontalAlignment="Center" Command="{Binding Download_Button_Handle}">Download All Samples</Button>
+        </StackPanel>
+    </Panel>
 </Window>

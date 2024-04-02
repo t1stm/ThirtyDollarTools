@@ -6,8 +6,8 @@ namespace ThirtyDollarVisualizer.Objects;
 public sealed class DollarStoreCamera : Camera
 {
     private const float ScrollLengthMs = 120f;
-    private DateTime LastScaleUpdate = DateTime.Now;
     private Vector3 _virtualPosition;
+    private DateTime LastScaleUpdate = DateTime.Now;
 
     public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport) : base(VirtualPosition, viewport)
     {
@@ -19,7 +19,7 @@ public sealed class DollarStoreCamera : Camera
     {
         var collide_top = position.Y < _virtualPosition.Y + margin_from_sides;
         var collide_bottom = position.Y + scale.Y > _virtualPosition.Y + Height - margin_from_sides;
-        
+
         var collide_left = position.X < _virtualPosition.X + margin_from_sides;
         var collide_right = position.X + scale.X > _virtualPosition.X + Width - margin_from_sides;
 
@@ -30,7 +30,7 @@ public sealed class DollarStoreCamera : Camera
     {
         _virtualPosition = position;
     }
-    
+
     public void ScrollDelta(Vector3 delta)
     {
         _virtualPosition += delta;
@@ -65,13 +65,13 @@ public sealed class DollarStoreCamera : Camera
         var t = times;
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        
+
         const float max_add_scale = .05f;
         var now = LastScaleUpdate = DateTime.Now;
         do
         {
             if (now != LastScaleUpdate) break;
-            
+
             var elapsed = stopwatch.ElapsedMilliseconds;
             var factor = elapsed / delay_ms;
             if (factor > 1)
@@ -80,20 +80,20 @@ public sealed class DollarStoreCamera : Camera
                 factor = 1;
                 stopwatch.Restart();
             }
-            
-            var zoom = RenderScale + (float) Math.Sin(Math.PI * factor) * max_add_scale;
+
+            var zoom = RenderScale + (float)Math.Sin(Math.PI * factor) * max_add_scale;
             Scale = zoom;
             UpdateMatrix();
-            
+
             await Task.Delay(1);
         } while (t > 0);
 
         if (now == LastScaleUpdate)
         {
             Scale = RenderScale;
-            UpdateMatrix();   
+            UpdateMatrix();
         }
-        
+
         stopwatch.Reset();
     }
 

@@ -11,6 +11,12 @@ public class AudioData<T> : IDisposable
         Samples = new T[ChannelCount][];
     }
 
+    public void Dispose()
+    {
+        Samples = Array.Empty<T[]>();
+        GC.SuppressFinalize(this);
+    }
+
     public static AudioData<float> Empty(uint channel_count)
     {
         var empty = Array.Empty<float>();
@@ -19,7 +25,7 @@ public class AudioData<T> : IDisposable
 
         return data;
     }
-    
+
     public static AudioData<float> WithLength(uint channels, int length)
     {
         var data = new AudioData<float>(channels);
@@ -30,14 +36,13 @@ public class AudioData<T> : IDisposable
     public T[] GetChannel(int index)
     {
         lock (Samples)
+        {
             return Samples[index];
+        }
     }
 
-    public int GetLength() => GetChannel(0).Length;
-
-    public void Dispose()
+    public int GetLength()
     {
-        Samples = Array.Empty<T[]>();
-        GC.SuppressFinalize(this);
+        return GetChannel(0).Length;
     }
 }

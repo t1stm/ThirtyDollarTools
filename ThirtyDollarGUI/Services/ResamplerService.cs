@@ -6,11 +6,14 @@ namespace ThirtyDollarGUI.Services;
 
 public static class ResamplerService
 {
-    public static IEnumerable<ResamplerModel> GetItems() => new ResamplerModel[]
+    public static IEnumerable<ResamplerModel> GetItems()
     {
-        new(new HermiteResampler()),
-        new(new LinearResampler()),
-        new(new NoInterpolationResampler()),
-        new(new ByteCruncherResampler())
-    };
+        return new ResamplerModel[]
+        {
+            new(new HermiteResampler()),
+            new(new LinearResampler()),
+            new(new NoInterpolationResampler()),
+            new(new ByteCruncherResampler())
+        };
+    }
 }

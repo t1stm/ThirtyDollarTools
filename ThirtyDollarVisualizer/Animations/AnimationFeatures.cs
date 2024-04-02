@@ -1,8 +1,8 @@
 namespace ThirtyDollarVisualizer.Animations;
 
 /// <summary>
-/// All features an animation can have.
-/// Used in the renderer with if checks.
+///     All features an animation can have.
+///     Used in the renderer with if checks.
 /// </summary>
 public enum AnimationFeature
 {
@@ -18,7 +18,7 @@ public enum AnimationFeature
 public static class FeatureExtensions
 {
     /// <summary>
-    /// Checks if the current animation feature is in a bit stack.
+    ///     Checks if the current animation feature is in a bit stack.
     /// </summary>
     /// <param name="feature">The feature you want to check for.</param>
     /// <param name="bit_stack">The bit stack.</param>
@@ -27,9 +27,9 @@ public static class FeatureExtensions
     {
         return (bit_stack & (int)feature) != 0;
     }
-    
+
     /// <summary>
-    /// Checks if the current integer has an animation feature enabled.
+    ///     Checks if the current integer has an animation feature enabled.
     /// </summary>
     /// <param name="bit_stack">The integer you want to check.</param>
     /// <param name="feature">The animation feature you want to check.</param>

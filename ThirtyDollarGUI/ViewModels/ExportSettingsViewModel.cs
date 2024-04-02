@@ -16,33 +16,30 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         get => encoderSettings.SampleRate;
         set => this.RaiseAndSetIfChanged(ref encoderSettings.SampleRate, value);
     }
-    
+
     public uint Channels
     {
         get => encoderSettings.Channels;
         set => this.RaiseAndSetIfChanged(ref encoderSettings.Channels, value);
     }
-    
+
     public uint CutDelayMs
     {
         get => encoderSettings.CutFadeLengthMs;
         set => this.RaiseAndSetIfChanged(ref encoderSettings.CutFadeLengthMs, value);
     }
-    
+
     public int EncodeSlicesCount
     {
         get => encoderSettings.MultithreadingSlices;
         set => this.RaiseAndSetIfChanged(ref encoderSettings.MultithreadingSlices, value);
     }
-    
+
     public uint CombineDelayMs
     {
         get => encoderSettings.CombineDelayMs;
         set => this.RaiseAndSetIfChanged(ref encoderSettings.CombineDelayMs, value);
     }
-    
-    [GeneratedRegex("^[0-9]+$")]
-    private static partial Regex NumberRegex();
 
     public string SampleRateText
     {
@@ -54,7 +51,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
                 SampleRate = 0;
                 return;
             }
-            
+
             var regex = NumberRegex();
             if (!regex.IsMatch(value)) return;
 
@@ -62,7 +59,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
             SampleRate = parsed;
         }
     }
-    
+
     public string ChannelsText
     {
         get => Channels.ToString();
@@ -73,7 +70,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
                 Channels = 0;
                 return;
             }
-            
+
             var regex = NumberRegex();
             if (!regex.IsMatch(value)) return;
 
@@ -81,7 +78,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
             Channels = parsed;
         }
     }
-    
+
     public string CutDelayText
     {
         get => CutDelayMs.ToString();
@@ -92,7 +89,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
                 CutDelayMs = 0;
                 return;
             }
-            
+
             var regex = NumberRegex();
             if (!regex.IsMatch(value)) return;
 
@@ -100,7 +97,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
             CutDelayMs = parsed;
         }
     }
-    
+
     public string CombineDelayText
     {
         get => CombineDelayMs.ToString();
@@ -111,7 +108,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
                 CombineDelayMs = 0;
                 return;
             }
-            
+
             var regex = NumberRegex();
             if (!regex.IsMatch(value)) return;
 
@@ -119,7 +116,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
             CombineDelayMs = parsed;
         }
     }
-    
+
     public string EncodeSlicesCountText
     {
         get => EncodeSlicesCount.ToString();
@@ -130,7 +127,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
                 EncodeSlicesCount = 0;
                 return;
             }
-            
+
             var regex = NumberRegex();
             if (!regex.IsMatch(value)) return;
 
@@ -148,4 +145,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
             encoderSettings.Resampler = this.RaiseAndSetIfChanged(ref encoderSettings.Resampler, resampler);
         }
     }
+
+    [GeneratedRegex("^[0-9]+$")]
+    private static partial Regex NumberRegex();
 }

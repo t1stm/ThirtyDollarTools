@@ -6,6 +6,15 @@ namespace ThirtyDollarGUI.Models;
 
 public class ResamplerModel
 {
+    public readonly IResampler Resampler;
+
+    public ResamplerModel(IResampler resampler)
+    {
+        Resampler = resampler;
+    }
+
+    public string? ResamplerName => GetReadableTypeName(Resampler.GetType())?.Split('.').Last();
+
     private static string? GetReadableTypeName(Type type)
     {
         if (!type.IsGenericType) return type.FullName;
@@ -16,14 +25,5 @@ public class ResamplerModel
         genericTypeName = genericTypeName[..genericTypeName.IndexOf('`')];
         var argumentTypeNames = genericArguments.Select(GetReadableTypeName);
         return $"{genericTypeName}<{string.Join(", ", argumentTypeNames)}>";
-
-    }
-
-    public readonly IResampler Resampler;
-    public string? ResamplerName => GetReadableTypeName(Resampler.GetType())?.Split('.').Last();
-
-    public ResamplerModel(IResampler resampler)
-    {
-        Resampler = resampler;
     }
 }

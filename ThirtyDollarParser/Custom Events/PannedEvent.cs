@@ -3,14 +3,15 @@ namespace ThirtyDollarParser.Custom_Events;
 public class PannedEvent : BaseEvent, ICustomAudibleEvent
 {
     /// <summary>
-    /// Factor that shows in which direction the audio is panned. -1 - left, 0 - centered, 1 - right and values in between mix between them.
+    ///     Factor that shows in which direction the audio is panned. -1 - left, 0 - centered, 1 - right and values in between
+    ///     mix between them.
     /// </summary>
     public float Pan;
 
     public PannedEvent()
     {
     }
-    
+
     public PannedEvent(BaseEvent base_event)
     {
         SoundEvent = base_event.SoundEvent;

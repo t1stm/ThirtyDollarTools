@@ -10,9 +10,9 @@
         <Content Include="*.so" CopyToOutputDirectory="Always"/>
         <Content Include="*.dylib" CopyToOutputDirectory="Always"/>
     </ItemGroup>
-    
+
     <ItemGroup>
-      <PackageReference Include="ManagedBass" Version="3.1.1" />
+        <PackageReference Include="ManagedBass" Version="3.1.1"/>
     </ItemGroup>
 
 </Project>

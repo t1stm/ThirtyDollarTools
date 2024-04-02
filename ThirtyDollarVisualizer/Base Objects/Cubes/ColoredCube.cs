@@ -1,6 +1,3 @@
 namespace ThirtyDollarVisualizer.Objects;
 
-public class ColoredCube
-{
-    
-}
+public class ColoredCube;

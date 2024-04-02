@@ -9,17 +9,15 @@ namespace ThirtyDollarGUI.Helper;
 
 public static class DialogHelper
 {
-    public static async Task<IEnumerable<string>?> OpenFileDialogAsync(this object? context, string? title = null, IReadOnlyList<FilePickerFileType>? file_types = null)
+    public static async Task<IEnumerable<string>?> OpenFileDialogAsync(this object? context, string? title = null,
+        IReadOnlyList<FilePickerFileType>? file_types = null)
     {
-        if (context == null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
-        
+        if (context == null) throw new ArgumentNullException(nameof(context));
+
         var top_level = DialogService.GetTopLevelForContext(context);
 
         if (top_level == null) return null;
-        
+
         var storage_files = await top_level.StorageProvider.OpenFilePickerAsync(
             new FilePickerOpenOptions
             {
@@ -28,16 +26,14 @@ public static class DialogHelper
                 FileTypeFilter = file_types
             });
 
-        
+
         return storage_files.Select(s => s.TryGetLocalPath()!);
     }
-    
-    public static async Task<string> SaveFileDialogAsync(this object? context, string? title = null, IReadOnlyList<FilePickerFileType>? file_types = null)
+
+    public static async Task<string> SaveFileDialogAsync(this object? context, string? title = null,
+        IReadOnlyList<FilePickerFileType>? file_types = null)
     {
-        if (context == null)
-        {
-            throw new ArgumentNullException(nameof(context));
-        }
+        if (context == null) throw new ArgumentNullException(nameof(context));
 
         var top_level = DialogService.GetTopLevelForContext(context);
 

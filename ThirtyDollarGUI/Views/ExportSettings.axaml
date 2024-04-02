@@ -12,11 +12,11 @@
         MinWidth="400"
         Height="400"
         Width="400"
-        
+
         TransparencyLevelHint="AcrylicBlur"
         Background="Transparent"
         ExtendClientAreaToDecorationsHint="True">
-    
+
     <Panel>
         <ExperimentalAcrylicBorder IsHitTestVisible="False">
             <ExperimentalAcrylicBorder.Material>
@@ -27,34 +27,35 @@
                     MaterialOpacity="0.60" />
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
-        
+
         <StackPanel Margin="10">
             <StackPanel Margin="10">
                 <TextBlock FontSize="11">Sample Rate</TextBlock>
-                <TextBox Text="{Binding SampleRateText}"></TextBox>
+                <TextBox Text="{Binding SampleRateText}" />
             </StackPanel>
             <StackPanel Margin="10">
                 <TextBlock FontSize="11">Channels</TextBlock>
-                <TextBox Text="{Binding ChannelsText}"></TextBox>
+                <TextBox Text="{Binding ChannelsText}" />
             </StackPanel>
             <StackPanel Margin="10">
                 <TextBlock FontSize="11">Cut Event Delay</TextBlock>
-                <TextBox Text="{Binding CutDelayText}"></TextBox>
+                <TextBox Text="{Binding CutDelayText}" />
             </StackPanel>
             <StackPanel Margin="10">
                 <TextBlock FontSize="11">Combine Event Delay</TextBlock>
-                <TextBox Text="{Binding CombineDelayText}"></TextBox>
+                <TextBox Text="{Binding CombineDelayText}" />
             </StackPanel>
             <StackPanel Margin="10">
                 <TextBlock FontSize="11">Encoding Slices Count</TextBlock>
-                <TextBox Text="{Binding EncodeSlicesCountText}"></TextBox>
+                <TextBox Text="{Binding EncodeSlicesCountText}" />
             </StackPanel>
             <StackPanel Margin="10">
                 <TextBlock FontSize="11">Resampler</TextBlock>
-                <ComboBox SelectedItem="{Binding SelectedExportSettings}" ItemsSource="{Binding ListItems}" MaxDropDownHeight="200">
+                <ComboBox SelectedItem="{Binding SelectedExportSettings}" ItemsSource="{Binding ListItems}"
+                          MaxDropDownHeight="200">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <ComboBoxItem Content="{Binding ResamplerName}"/>
+                            <ComboBoxItem Content="{Binding ResamplerName}" />
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>

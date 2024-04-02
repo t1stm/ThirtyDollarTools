@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Text;
 using ThirtyDollarEncoder.PCM;
 using Encoding = System.Text.Encoding;
 
@@ -7,9 +6,8 @@ namespace ThirtyDollarEncoder.Wave;
 
 public class WaveDecoder
 {
-    private long dataChunkLength;
-
     private readonly PcmDataHolder Holder = new();
+    private long dataChunkLength;
 
     // Shamefully copied from NAudio.
     // Here goes copyright infringement.
@@ -44,11 +42,11 @@ public class WaveDecoder
         while (inputStream.Position <= stopPosition - 8)
         {
             var chunkID = reader.ReadInt32();
-            
-            Span<int> testing_span = new[] {chunkID}; 
+
+            Span<int> testing_span = new[] { chunkID };
             var chunk_bytes = MemoryMarshal.AsBytes(testing_span);
             var chunk_name = Encoding.ASCII.GetString(chunk_bytes);
-            
+
             var chunkLength = reader.ReadUInt32();
             if (chunkID == formatChunkId)
             {
@@ -63,12 +61,13 @@ public class WaveDecoder
                 inputStream.Position += chunkLength;
                 continue;
             }
+
             if (header != 2) dataChunkLength = chunkLength;
             break;
         }
 
         var bytes = new byte[dataChunkLength];
-        reader.Read(bytes);
+        var read = reader.Read(bytes);
         reader.Close();
         Holder.AudioData = bytes;
         return Holder;
@@ -90,7 +89,7 @@ public class WaveDecoder
         if (extraSize == chunkLength - 18) return;
         extraSize = (short)(chunkLength - 18);
         var extraData = new byte[extraSize];
-        reader.Read(extraData, 0, extraSize);
+        var read = reader.Read(extraData, 0, extraSize);
     }
 
     private void ReadDs64StandardChunk(BinaryReader reader)

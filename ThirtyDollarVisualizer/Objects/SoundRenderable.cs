@@ -10,30 +10,22 @@ public class SoundRenderable : TexturedPlane
     private readonly BounceAnimation BounceAnimation;
     private readonly ExpandAnimation ExpandAnimation;
     private readonly FadeAnimation FadeAnimation;
+
+    public SoundRenderable(Texture texture, Vector3 position, Vector2 width_height) : base(texture, position,
+        width_height)
+    {
+        BounceAnimation = new BounceAnimation(GetScale().Y / 5f, () => { UpdateModel(false); });
+        ExpandAnimation = new ExpandAnimation(() => { UpdateModel(false); });
+        FadeAnimation = new FadeAnimation(() => { UpdateModel(false); });
+    }
+
     private TexturedPlane? ValueRenderable { get; set; }
 
-    public SoundRenderable(Texture texture, Vector3 position, Vector2 width_height) : base(texture, position, width_height)
-    {
-        BounceAnimation = new BounceAnimation(GetScale().Y / 5f, () =>
-        {
-            UpdateModel(false);
-        });
-        ExpandAnimation = new ExpandAnimation(() =>
-        {
-            UpdateModel(false);
-        });
-        FadeAnimation = new FadeAnimation(() =>
-        {
-            UpdateModel(false);
-        });
-    }
     public override void Render(Camera camera)
     {
         if (BounceAnimation.IsRunning || ExpandAnimation.IsRunning || FadeAnimation.IsRunning)
-        {
             UpdateModel(false, BounceAnimation, ExpandAnimation, FadeAnimation);
-        }
-        
+
         ValueRenderable?.Render(camera);
         base.Render(camera);
     }
@@ -58,28 +50,24 @@ public class SoundRenderable : TexturedPlane
         FadeAnimation.StartAnimation();
     }
 
-    public void SetValue(BaseEvent _event, Dictionary<string, Texture> generated_textures, ValueChangeWrapMode value_change_wrap_mode)
+    public void SetValue(BaseEvent _event, Dictionary<string, Texture> generated_textures,
+        ValueChangeWrapMode value_change_wrap_mode)
     {
         if (ValueRenderable is null) return;
-        
+
         Fade();
         Expand();
 
         var old_texture = ValueRenderable.GetTexture();
         var found_texture = generated_textures.TryGetValue(_event.PlayTimes.ToString(), out var texture);
-        if (!found_texture)
-        {
-            texture = Texture.Transparent1x1;
-        }
-        
+        if (!found_texture) texture = Texture.Transparent1x1;
+
         if (_event.PlayTimes == 0)
-        {
             texture = value_change_wrap_mode switch
             {
                 ValueChangeWrapMode.ResetToDefault => generated_textures[_event.OriginalLoop.ToString()],
                 _ => null
             };
-        }
 
         var this_position = GetPosition();
         var this_scale = GetScale();
@@ -100,10 +88,10 @@ public class SoundRenderable : TexturedPlane
             {
                 X = new_position_x
             };
-            
+
             ValueRenderable.SetPosition(new_position, PositionAlign.TopCenter);
         }
-        
+
         ValueRenderable?.SetTexture(texture);
     }
 }

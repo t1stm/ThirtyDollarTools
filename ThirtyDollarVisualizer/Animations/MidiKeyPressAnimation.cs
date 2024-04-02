@@ -5,9 +5,9 @@ namespace ThirtyDollarVisualizer.Animations;
 
 public class MidiKeyPressAnimation : Animation
 {
-    public long PressedLength = 1000;
     public int FadeTime = 500;
     public Vector4 PressedColor = Vector4.One;
+    public long PressedLength = 1000;
     public Vector4 ReleasedColor = (0, 0, 0, 1f);
 
     public MidiKeyPressAnimation(int fade_time, Action? finish_callback = null) : base(fade_time)
@@ -25,8 +25,8 @@ public class MidiKeyPressAnimation : Animation
 
         time -= PressedLength;
         if (time < FadeTime)
-            return Vector4.Lerp(PressedColor, ReleasedColor, Math.Max(0f, (float) time / FadeTime));
-        
+            return Vector4.Lerp(PressedColor, ReleasedColor, Math.Max(0f, (float)time / FadeTime));
+
         TimingStopwatch.Stop();
         CallbackOnFinish?.Invoke();
         return ReleasedColor;

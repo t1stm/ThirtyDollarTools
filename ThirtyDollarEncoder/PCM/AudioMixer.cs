@@ -5,10 +5,10 @@ namespace ThirtyDollarEncoder.PCM;
 
 public class AudioMixer
 {
-    private readonly ConcurrentDictionary<(string, AudioLayout audio_layout), AudioData<float>> Tracks = new();
     private readonly AudioLayout DefaultLayout;
     private readonly int Length;
     public readonly IMixingMethod MixingMethod = new BasicMixer();
+    private readonly ConcurrentDictionary<(string, AudioLayout audio_layout), AudioData<float>> Tracks = new();
 
     public AudioMixer(AudioData<float> default_channel, AudioLayout default_layout = AudioLayout.Audio_LR)
     {
@@ -21,7 +21,7 @@ public class AudioMixer
     {
         var tracks = GetTracks();
         if (tracks.Length < 1) return tracks[0].Item2;
-        
+
         var mixed = MixingMethod.MixTracks(tracks);
         return mixed;
     }
@@ -30,18 +30,14 @@ public class AudioMixer
     {
         lock (Tracks)
         {
-
             var array = new (AudioLayout, AudioData<float>)[Tracks.Count];
             var i = 0;
-            foreach (var ((_, layout), audio_data) in Tracks)
-            {
-                array[i++] = (layout, audio_data);
-            }
+            foreach (var ((_, layout), audio_data) in Tracks) array[i++] = (layout, audio_data);
 
             return array;
         }
     }
-    
+
     public bool HasTrack(string sound, AudioLayout layout = AudioLayout.Audio_LR)
     {
         lock (Tracks)
@@ -52,9 +48,12 @@ public class AudioMixer
 
     public AudioData<float> GetTrackOrDefault(string track_name, AudioLayout layout = AudioLayout.Audio_LR)
     {
-        lock(Tracks)
-            return Tracks.TryGetValue((track_name, layout), out var found_channel) ? 
-                found_channel : Tracks[(string.Empty, DefaultLayout)];
+        lock (Tracks)
+        {
+            return Tracks.TryGetValue((track_name, layout), out var found_channel)
+                ? found_channel
+                : Tracks[(string.Empty, DefaultLayout)];
+        }
     }
 
     public AudioData<float> GetTrack(string track_name, AudioLayout layout = AudioLayout.Audio_LR)
@@ -64,7 +63,7 @@ public class AudioMixer
             if (!Tracks.TryGetValue((track_name, layout), out var found_channel))
                 throw new ArgumentException(
                     $"Unable to find track: \'{track_name}\' with layout: \'{layout}\'");
-            
+
             return found_channel;
         }
     }
@@ -73,38 +72,46 @@ public class AudioMixer
     {
         if (audio_data.GetLength() != Length)
             throw new Exception("Added track doesn't have the same length as the default track.");
-        
-        lock(Tracks)
+
+        lock (Tracks)
+        {
             return Tracks.TryAdd((track_name, layout), audio_data);
+        }
     }
 
     public AudioData<float> GetDefault()
     {
         lock (Tracks)
+        {
             return Tracks[(string.Empty, DefaultLayout)];
+        }
     }
-    public int GetLength() => Length;
+
+    public int GetLength()
+    {
+        return Length;
+    }
 }
 
 public enum AudioLayout
 {
     /// <summary>
-    /// Uses only one channel of the AudioData&lt;float&gt;. Assumes the channel is left only.
+    ///     Uses only one channel of the AudioData&lt;float&gt;. Assumes the channel is left only.
     /// </summary>
     Audio_L,
-    
+
     /// <summary>
-    /// Uses only one channel of the AudioData&lt;float&gt;. Assumes the channel is right only.
+    ///     Uses only one channel of the AudioData&lt;float&gt;. Assumes the channel is right only.
     /// </summary>
     Audio_R,
-    
+
     /// <summary>
-    /// Uses only one channel of the AudioData&lt;float&gt;. Outputs to both LR.
+    ///     Uses only one channel of the AudioData&lt;float&gt;. Outputs to both LR.
     /// </summary>
     Audio_Mono,
-    
+
     /// <summary>
-    /// Uses two channels of the AudioData&lt;float&gt;. Outputs to both LR.
+    ///     Uses two channels of the AudioData&lt;float&gt;. Outputs to both LR.
     /// </summary>
     Audio_LR
 }

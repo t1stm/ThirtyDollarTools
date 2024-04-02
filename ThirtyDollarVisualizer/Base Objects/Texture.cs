@@ -14,22 +14,10 @@ public class Texture : IDisposable
 {
     private static Texture? _transparent1x1;
 
-    public static Texture Transparent1x1
-    {
-        get
-        {
-            if (_transparent1x1 != null) return _transparent1x1;
-            Span<byte> bytes = stackalloc byte[4] { 0, 0, 0, 0 };
-            _transparent1x1 = new Texture(bytes, 1, 1);
-
-            return _transparent1x1;
-        }
-    }
-
     private int? _handle;
+    public int Height;
     private Image<Rgba32>? texture_data;
     public int Width;
-    public int Height;
 
     public Texture(string path)
     {
@@ -59,7 +47,7 @@ public class Texture : IDisposable
     {
         var options = new TextOptions(font)
         {
-            FallbackFontFamilies = new []
+            FallbackFontFamilies = new[]
             {
                 Fonts.GetEmojiFamily()
             }
@@ -79,9 +67,9 @@ public class Texture : IDisposable
         color ??= Color.White;
 
         var cast_color = color.Value;
-        
-        texture_data.Mutate(x => 
-                x.DrawText(text, font, Color.Black, point)
+
+        texture_data.Mutate(x =>
+            x.DrawText(text, font, Color.Black, point)
                 .GaussianBlur(1f)
                 .DrawText(text, font, cast_color, point)
         );
@@ -91,7 +79,7 @@ public class Texture : IDisposable
     {
         var options = new TextOptions(font)
         {
-            FallbackFontFamilies = new []
+            FallbackFontFamilies = new[]
             {
                 Fonts.GetEmojiFamily()
             }
@@ -141,26 +129,29 @@ public class Texture : IDisposable
         var texture_count = textures.Count;
         const int size_w = 15;
         const int max_images_per_line = 3;
-        
+
         if (texture_count < 1)
         {
             texture_data = Transparent1x1.texture_data;
             Width = Height = 1;
             return;
         }
-        
-        var width = texture_count <= max_images_per_line ? texture_count * (size_w + gap_px) : max_images_per_line * (size_w + gap_px);
-        var height = (int)Math.Max(size_w, Math.Ceiling((float) texture_count / max_images_per_line) * (size_w + gap_px));
-        var image = new Image<Rgba32>((int) width, height);
-        
+
+        var width = texture_count <= max_images_per_line
+            ? texture_count * (size_w + gap_px)
+            : max_images_per_line * (size_w + gap_px);
+        var height = (int)Math.Max(size_w,
+            Math.Ceiling((float)texture_count / max_images_per_line) * (size_w + gap_px));
+        var image = new Image<Rgba32>((int)width, height);
+
         var x = 0;
         var y = 0;
-        
+
         foreach (var t in textures)
         {
             var x1 = x;
             var y1 = y;
-            
+
             var texture = t.GetData();
             if (texture == null) continue;
 
@@ -168,16 +159,16 @@ public class Texture : IDisposable
             texture.Mutate(r => r.Resize(size_w, t_height));
 
             var offset = (size_w - t_height) / 2;
-            
+
             image.Mutate(r =>
                 r.DrawImage(texture, new Point(x1, y1 + offset), 1f)
-                );
-            
-            x += (int) (size_w + gap_px);
+            );
+
+            x += (int)(size_w + gap_px);
             if (x + size_w <= width) continue;
-            
+
             x = 0;
-            y += (int) (size_w + gap_px);
+            y += (int)(size_w + gap_px);
             if (y > 140) break;
         }
 
@@ -201,6 +192,25 @@ public class Texture : IDisposable
         }
     }
 
+    public static Texture Transparent1x1
+    {
+        get
+        {
+            if (_transparent1x1 != null) return _transparent1x1;
+            Span<byte> bytes = stackalloc byte[4] { 0, 0, 0, 0 };
+            _transparent1x1 = new Texture(bytes, 1, 1);
+
+            return _transparent1x1;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_handle.HasValue)
+            GL.DeleteTexture(_handle.Value);
+        GC.SuppressFinalize(this);
+    }
+
     private unsafe void LoadImage()
     {
         if (texture_data is null) throw new Exception("No texture data available.");
@@ -218,20 +228,21 @@ public class Texture : IDisposable
         img.ProcessPixelRows(accessor =>
         {
             for (var y = 0; y < accessor.Height; y++)
-            {
                 fixed (void* data = accessor.GetRowSpan(y))
                 {
                     GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, y, accessor.Width, 1, PixelFormat.Rgba,
                         PixelType.UnsignedByte, new IntPtr(data));
                 }
-            }
         });
 
         texture_data.Dispose();
         texture_data = null;
     }
 
-    public bool NeedsLoading() => !_handle.HasValue;
+    public bool NeedsLoading()
+    {
+        return !_handle.HasValue;
+    }
 
     public void LoadOpenGLTexture()
     {
@@ -240,10 +251,13 @@ public class Texture : IDisposable
     }
 
     /// <summary>
-    /// Get the texture if not yet loaded by OpenGL. Returns null otherwise.
+    ///     Get the texture if not yet loaded by OpenGL. Returns null otherwise.
     /// </summary>
     /// <returns>The texture data or null.</returns>
-    public Image<Rgba32>? GetData() => texture_data;
+    public Image<Rgba32>? GetData()
+    {
+        return texture_data;
+    }
 
     private static void SetParameters()
     {
@@ -263,12 +277,5 @@ public class Texture : IDisposable
         if (!_handle.HasValue) return;
         GL.ActiveTexture(textureSlot);
         GL.BindTexture(TextureTarget.Texture2D, _handle.Value);
-    }
-
-    public void Dispose()
-    {
-        if (_handle.HasValue)
-            GL.DeleteTexture(_handle.Value);
-        GC.SuppressFinalize(this);
     }
 }

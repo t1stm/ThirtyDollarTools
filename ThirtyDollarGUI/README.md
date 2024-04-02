@@ -7,7 +7,9 @@ Converts TDW sequences and TDWex sequences to audible file formats (currently on
 ## Usage
 
 ### Downloading And Running
-You can get a _compiled_ copy of this application at the [releases tab](https://github.com/t1stm/ThirtyDollarTools/releases). 
+
+You can get a _compiled_ copy of this application at
+the [releases tab](https://github.com/t1stm/ThirtyDollarTools/releases).
 Once you've downloaded it, you can open the ThirtyDollarGUI executable, and if it's your first time running it,
 make it to download all TDW samples, by pressing the download button.
 
@@ -34,7 +36,6 @@ I'll now explain the fields, and if you aren't interested skip over to the **Enc
 
 ![Export Settings](../Screenshots/converter-extended-options.png)
 
-
 | Field Name              | Description                                                                                                                                                                 | Default Value     |
 |-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
 | `Sample Rate`           | Changes the exported audio file's sample rate.                                                                                                                              | 48000             |
@@ -46,6 +47,7 @@ I'll now explain the fields, and if you aren't interested skip over to the **Enc
 
 ### Encoding
 
-You can now press the `Start Encoding` button, and after waiting a bit you should see `Saved audio file`. This means the file is exported.
+You can now press the `Start Encoding` button, and after waiting a bit you should see `Saved audio file`. This means the
+file is exported.
 
 ![Finished](../Screenshots/converter-finished-export.png)

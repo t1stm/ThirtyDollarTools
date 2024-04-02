@@ -12,21 +12,21 @@ namespace ThirtyDollarVisualizer;
 
 public class Manager(int width, int height, string title, int? fps = null, WindowIcon? icon = null)
     : GameWindow(new GameWindowSettings
-    {
-        UpdateFrequency = fps ?? 0
-    },
-    new NativeWindowSettings
-    {
-        ClientSize = (width, height),
-        Title = title, 
-        APIVersion = new Version(3,2), 
-        Icon = icon,
-        Vsync = fps == null ? VSyncMode.On : VSyncMode.Off
-    })
+        {
+            UpdateFrequency = fps ?? 0
+        },
+        new NativeWindowSettings
+        {
+            ClientSize = (width, height),
+            Title = title,
+            APIVersion = new Version(3, 2),
+            Icon = icon,
+            Vsync = fps == null ? VSyncMode.On : VSyncMode.Off
+        })
 {
-    public readonly List<IScene> Scenes = new();
     public readonly SemaphoreSlim RenderBlock = new(1);
-    
+    public readonly List<IScene> Scenes = new();
+
     public static void CheckErrors()
     {
         ErrorCode errorCode;
@@ -42,40 +42,28 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
         CheckErrors();
         base.OnLoad();
-        
+
         Fonts.Initialize();
 
-        foreach (var scene in Scenes)
-        {
-            scene.Init(this);
-        }
+        foreach (var scene in Scenes) scene.Init(this);
 
-        foreach (var scene in Scenes)
-        {
-            scene.Start();
-        }
+        foreach (var scene in Scenes) scene.Start();
     }
 
     protected override void OnResize(ResizeEventArgs e)
     {
         base.OnResize(e);
-        foreach (var scene in Scenes)
-        {
-            scene.Resize(e.Width, e.Height);
-        }
+        foreach (var scene in Scenes) scene.Resize(e.Width, e.Height);
     }
 
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         RenderBlock.Wait();
-        
+
         GL.Clear(ClearBufferMask.ColorBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 1f);
-        
-        foreach (var scene in Scenes)
-        {
-            scene.Render();
-        }
+
+        foreach (var scene in Scenes) scene.Render();
 
         Context.SwapBuffers();
         RenderBlock.Release();
@@ -83,28 +71,17 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
-        foreach (var scene in Scenes)
-        {
-            scene.Update();
-        }
+        foreach (var scene in Scenes) scene.Update();
 
-        if (KeyboardState.IsAnyKeyDown) 
+        if (KeyboardState.IsAnyKeyDown)
             foreach (var scene in Scenes)
-            {
                 scene.Keyboard(KeyboardState);
-            }
-        
-        foreach (var scene in Scenes)
-        {
-            scene.Mouse(MouseState, KeyboardState);
-        }
-        
+
+        foreach (var scene in Scenes) scene.Mouse(MouseState, KeyboardState);
+
         if (!KeyboardState.IsKeyDown(Keys.Escape)) return;
-        
-        foreach (var scene in Scenes)
-        {
-            scene.Close();
-        }
+
+        foreach (var scene in Scenes) scene.Close();
         Close();
     }
 
@@ -112,23 +89,16 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     {
         base.OnFileDrop(e);
         if (e.FileNames.Length < 1) return;
-        
+
         foreach (var scene in Scenes)
-        {
-            foreach (var file in e.FileNames)
-            {
-                scene.FileDrop(file);
-            }
-        }
+        foreach (var file in e.FileNames)
+            scene.FileDrop(file);
     }
 
     protected override void OnClosing(CancelEventArgs e)
     {
         base.OnClosing(e);
 
-        foreach (var scene in Scenes)
-        {
-            scene.Close();
-        }
+        foreach (var scene in Scenes) scene.Close();
     }
 }

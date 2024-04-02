@@ -6,7 +6,7 @@ public class VertexBufferLayout
 {
     private readonly List<VertexBufferElement> _elements = new();
     private int _stride;
-    
+
     public void PushFloat(int count)
     {
         _elements.Add(new VertexBufferElement

@@ -5,6 +5,10 @@ namespace ThirtyDollarVisualizer.Audio.Null;
 
 public class NullAudioContext : AudioContext, IBatchSupported
 {
+    public void PlayBatch(Span<AudibleBuffer> buffers)
+    {
+    }
+
     public override bool Create()
     {
         return false;
@@ -22,9 +26,5 @@ public class NullAudioContext : AudioContext, IBatchSupported
     public override AudibleBuffer GetBufferObject(AudioData<float> sample_data, int sample_rate)
     {
         return new NullAudibleBuffer(sample_data, sample_rate);
-    }
-
-    public void PlayBatch(Span<AudibleBuffer> buffers)
-    {
     }
 }

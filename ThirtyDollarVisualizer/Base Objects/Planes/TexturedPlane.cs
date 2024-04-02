@@ -6,33 +6,34 @@ namespace ThirtyDollarVisualizer.Objects.Planes;
 
 public class TexturedPlane : Renderable
 {
-    protected Texture? _texture;
     private static bool AreVerticesGenerated;
     private static VertexArrayObject<float> Static_Vao = null!;
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
-    
+    protected Texture? _texture;
+
     public TexturedPlane(Texture texture, Vector3 position, Vector3 scale)
     {
         _position = new Vector3(position);
         _scale = scale;
-        
+
         if (!AreVerticesGenerated) SetVertices();
-        
+
         Vao = Static_Vao;
         Vbo = Static_Vbo;
         Ebo = Static_Ebo;
-        
-        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert", "ThirtyDollarVisualizer.Assets.Shaders.textured.frag");
+
+        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
+            "ThirtyDollarVisualizer.Assets.Shaders.textured.frag");
         Color = new Vector4(0, 0, 0, 0);
-        
+
         _texture = texture;
     }
 
     public TexturedPlane() : this(Texture.Transparent1x1, Vector3.Zero, Vector2.One)
     {
     }
-    
+
     public TexturedPlane(Texture texture, Vector3 position, Vector2 scale) :
         this(texture, position, new Vector3(scale))
     {
@@ -44,13 +45,14 @@ public class TexturedPlane : Renderable
         {
             var (x, y, z) = (0f, 0f, 0);
             var (w, h) = (1f, 1f);
-            
-            var vertices = new[] {
+
+            var vertices = new[]
+            {
                 // Position         // Texture Coordinates
-                x, y + h, z,           0.0f, 1.0f,  // Bottom-left
-                x + w, y + h, z,       1.0f, 1.0f,  // Bottom-right
-                x + w, y, z,           1.0f, 0.0f,  // Top-right
-                x, y, z,               0.0f, 0.0f   // Top-left
+                x, y + h, z, 0.0f, 1.0f, // Bottom-left
+                x + w, y + h, z, 1.0f, 1.0f, // Bottom-right
+                x + w, y, z, 1.0f, 0.0f, // Top-right
+                x, y, z, 0.0f, 0.0f // Top-left
             };
 
             var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
@@ -71,7 +73,7 @@ public class TexturedPlane : Renderable
     public override void Render(Camera camera)
     {
         if (!IsVisible) return;
-        
+
         lock (LockObject)
         {
             if (Ebo == null || Vao == null) return;
@@ -79,23 +81,17 @@ public class TexturedPlane : Renderable
             Ebo.Bind();
 
             var texture = _texture;
-            if (texture == null)
-            {
-                texture = Texture.Transparent1x1;
-            }
+            if (texture == null) texture = Texture.Transparent1x1;
 
-            if (texture.NeedsLoading())
-            {
-                texture.LoadOpenGLTexture();
-            }
-            
+            if (texture.NeedsLoading()) texture.LoadOpenGLTexture();
+
             texture.Bind();
             Shader.Use();
             SetShaderUniforms(camera);
 
             GL.DrawElements(PrimitiveType.Triangles, Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
         }
-        
+
         base.Render(camera);
     }
 
@@ -118,5 +114,8 @@ public class TexturedPlane : Renderable
         }
     }
 
-    public Texture? GetTexture() => _texture;
+    public Texture? GetTexture()
+    {
+        return _texture;
+    }
 }

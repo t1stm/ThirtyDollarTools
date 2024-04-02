@@ -5,13 +5,16 @@ namespace ThirtyDollarVisualizer.Audio;
 public class Greeting(AudioContext context, BufferHolder holder)
 {
     private GreetingType _greeting;
+    public int LengthMiliseconds;
+
     public GreetingType GreetingType
     {
         get => _greeting;
         set => SetBuffer(value);
     }
+
     public AudibleBuffer? AudibleBuffer { get; set; }
-    public int LengthMiliseconds;
+
     public void SetBuffer(GreetingType greeting)
     {
         _greeting = greeting;
@@ -24,10 +27,10 @@ public class Greeting(AudioContext context, BufferHolder holder)
 
         var greeting_name = $"greeting_{(int)greeting}";
         holder.TryGetBuffer(greeting_name, 0, out var buffer);
-        
+
         var audio_data = AudioData<float>.Empty(2);
         var sample_rate = 48000;
-        
+
         AudibleBuffer = context.GetBufferObject(audio_data, sample_rate);
         LengthMiliseconds = audio_data.GetLength() * 1000 / sample_rate;
     }
@@ -39,12 +42,12 @@ public class Greeting(AudioContext context, BufferHolder holder)
     }
 }
 
-public enum GreetingType : int
+public enum GreetingType
 {
     None,
     DontLectureMeWithYour30DollarHaircut = 1,
     HowYouGonnaTalkBehindMyBackWhenYouDeadassBuiltLikeA = 2,
     WhitePeopleBeLike = 3,
-    
+
     DontLectureMeWithYour30DollarVisualizer = 4
 }

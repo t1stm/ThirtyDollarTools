@@ -29,13 +29,9 @@ internal static class Program
 
         var output = new List<SequenceFile>();
         if (args.Length > 0)
-        {
             output.AddRange(await ReadFileList(args));
-        }
         else
-        {
             output.AddRange(await ReadFileList(list));
-        }
 
         const int statusbar_length = 64;
         foreach (var file in output)
@@ -52,7 +48,7 @@ internal static class Program
             }, Console.WriteLine, (current, total) =>
             {
                 ClearLine();
-                Console.Write(GenerateProgressbar(current, (long) total, statusbar_length));
+                Console.Write(GenerateProgressbar(current, (long)total, statusbar_length));
             });
 
             var audioData = await encoder.GetSequenceAudio(sequence); // Shame on me...
@@ -65,9 +61,12 @@ internal static class Program
 
     private static void ClearLine()
     {
-        do { Console.Write("\b \b"); } while (Console.CursorLeft > 0);
+        do
+        {
+            Console.Write("\b \b");
+        } while (Console.CursorLeft > 0);
     }
-    
+
     private static async Task<List<SequenceFile>> ReadFileList(IEnumerable<string> array)
     {
         var output = new List<SequenceFile>();

@@ -7,7 +7,7 @@ namespace ThirtyDollarConverter.Objects;
 public static class ObjectExtensions
 {
     /// <summary>
-    /// Normalizes the volume in an audio data array.
+    ///     Normalizes the volume in an audio data array.
     /// </summary>
     /// <param name="arr">The target array.</param>
     public static void NormalizeVolume(this float[] arr)
@@ -15,7 +15,7 @@ public static class ObjectExtensions
         var max = arr.Length < 1 ? 0 : arr.Max(Math.Abs);
         var chunk_size = Vector<float>.Count;
         var span = arr.AsSpan();
-        
+
         for (var i = 0; i < arr.Length - arr.Length % chunk_size; i += chunk_size)
         {
             var chunk = span[i..];
@@ -25,14 +25,11 @@ public static class ObjectExtensions
             final.CopyTo(chunk);
         }
 
-        for (var i = arr.Length - arr.Length % chunk_size; i < arr.Length; i++)
-        {
-            span[i] *= 1f / (max + 0.02f);
-        }
+        for (var i = arr.Length - arr.Length % chunk_size; i < arr.Length; i++) span[i] *= 1f / (max + 0.02f);
     }
 
     /// <summary>
-    /// Trims empty samples in the end of an audio data array.
+    ///     Trims empty samples in the end of an audio data array.
     /// </summary>
     /// <param name="arr">The target array.</param>
     /// <returns>The trimmed array.</returns>
@@ -44,7 +41,7 @@ public static class ObjectExtensions
             if (arr[i] != 0f) break;
             length--;
         }
-        
+
         Array.Resize(ref arr, length);
         return arr;
     }

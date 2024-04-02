@@ -16,7 +16,7 @@ public class Tests
     [SetUp]
     public void Setup()
     {
-        using var fs = File.OpenRead(TestingFileLocation); 
+        using var fs = File.OpenRead(TestingFileLocation);
         var decoder = new WaveDecoder();
         var data = decoder.Read(fs);
 
@@ -28,10 +28,10 @@ public class Tests
     {
         var left_channel = DPCMEncoder.Encode(TestingData.GetChannel(0));
         File.WriteAllBytes("./funny.dpcm", left_channel);
-        
+
         var decoded = DPCMDecoder.DecodeToPcm(left_channel);
         var audio = decoded.ReadAsFloat32Array(false) ?? throw new NullReferenceException();
-        
+
         var enc = new PcmEncoder(null!, new EncoderSettings
         {
             SampleRate = 48000,
