@@ -43,6 +43,9 @@ public static class Program
         
         [Option("audio-backend", HelpText = "Changes the audio backend the application uses. Values: \"bass\", \"openal\"")]
         public string? AudioBackend { get; set; }
+        
+        [Option("greeting", HelpText = "Changes the default \'DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER\' greeting. Supports emojis.")]
+        public string? Greeting { get; set; }
     }
     
     public static void Main(string[] args)
@@ -55,6 +58,7 @@ public static class Program
         var follow_mode = CameraFollowMode.TDW_Like;
         int? fps = null;
         float? scale = null;
+        string? greeting = null;
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -81,6 +85,7 @@ public static class Program
                         "bass" => new BassAudioContext(),
                         _ => null
                     };
+                greeting = options.Greeting;
             });
 
         if (sequence != null && !File.Exists(sequence))
@@ -101,7 +106,8 @@ public static class Program
         var tdw_application = new ThirtyDollarApplication(width, height, sequence, audio_context)
         {
             CameraFollowMode = follow_mode,
-            Scale = scale ?? 1f
+            Scale = scale ?? 1f,
+            Greeting = greeting
         };
 
         manager.Scenes.Add(tdw_application);

@@ -16,14 +16,15 @@ I'll now showcase all available launch options for the more advanced users.
 
 ### Launch Options
 
-| Short Name      | Long Name                   | Description                                                                                               | Default Value |
-|-----------------|-----------------------------|-----------------------------------------------------------------------------------------------------------|---------------|
-| `-i`            | `--sequence`                | Sets the sequence the visualizer will start playing when opened.                                          | unset         |
-| `-w`            | `--width`                   | Sets the width of the window.                                                                             | 1600          |
-| `-h`            | `--height`                  | Sets the height of the window.                                                                            | 840           |
-| `-c`            | `--camera-follow-mode`      | Mode: Possible values are "tdw" or "line".                                                                | "tdw"         |
-| `-f`            | `--fps-limit`               | Sets the FPS limit of the window. If unset, the window uses VSync. If set to 0, the fps limit is removed. | unset         |
-| `-s`            | `--scale`                   | Changes the zoom/scale of all sequence objects.                                                           | 1.0           |
-|                 | `--audio-backend`           | Changes the audio backend. Possible values are "bass" or "openal".                                        | "bass"        |
-|                 | `--no-audio`                | Disables all audio processing and playback.                                                               | unset         |
+| Short Name      | Long Name              | Description                                                                                               | Default Value |
+|-----------------|------------------------|-----------------------------------------------------------------------------------------------------------|---------------|
+| `-i`            | `--sequence`           | Sets the sequence the visualizer will start playing when opened.                                          | unset         |
+| `-w`            | `--width`              | Sets the width of the window.                                                                             | 1600          |
+| `-h`            | `--height`             | Sets the height of the window.                                                                            | 840           |
+| `-c`            | `--camera-follow-mode` | Mode: Possible values are "tdw" or "line".                                                                | "tdw"         |
+| `-f`            | `--fps-limit`          | Sets the FPS limit of the window. If unset, the window uses VSync. If set to 0, the fps limit is removed. | unset         |
+| `-s`            | `--scale`              | Changes the zoom/scale of all sequence objects.                                                           | 1.0           |
+|                 | `--audio-backend`      | Changes the audio backend. Possible values are "bass" or "openal".                                        | "bass"        |
+|                 | `--no-audio`           | Disables all audio processing and playback.                                                               | unset         |
+|                 | `--greeting`           | Changes the greeting at the start of the visualizer.                                                      | unset         |
 

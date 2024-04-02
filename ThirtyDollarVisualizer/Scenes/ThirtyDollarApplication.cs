@@ -85,6 +85,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public string? BackgroundFragmentShaderLocation { get; init; }
     public float Zoom { get; set; } = 1f;
     public float Scale { get; set; } = 1f;
+    public string? Greeting { get; set; } = null;
 
     /// <summary>
     /// Creates a TDW sequence visualizer.
@@ -158,11 +159,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var font_family = Fonts.GetFontFamily();
         var greeting_font = font_family.CreateFont(36, FontStyle.Bold);
 
-        _greeting ??= new StaticText
+        _greeting ??= new DynamicText
         {
             FontStyle = FontStyle.Bold,
             FontSizePx = 36f,
-            Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
+            Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
         }.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
 
         _controls_text ??= new StaticText
