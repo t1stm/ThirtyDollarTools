@@ -115,6 +115,24 @@ public class Sequence
         
         return true;
     }
+    
+    private static bool TryBookmark(string text, out BaseEvent new_event)
+    {
+        new_event = NormalEvent.Empty;
+        
+        var match = Regex.Match(text, @"^#bookmark\((?<index>[^)]+)\)");
+        if (!match.Success) return false;
+        if (!match.Groups["index"].Success) return false;
+
+        var string_value = match.Groups["index"].Value;
+        if (!int.TryParse(string_value, out var val)) return false;
+
+        new_event = new BookmarkEvent
+        {
+            Value = val
+        };
+        return true;
+    }
 
     private static BaseEvent[] ParseDefines(in IEnumerator<string> enumerator, Sequence sequence)
     {
@@ -218,6 +236,11 @@ public class Sequence
             return new_individual_cut_event;
         }
         
+        if (TryBookmark(text, out var bookmark_event))
+        {
+            return bookmark_event;
+        }
+        
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
         {
             // Special color lines get their own parser. 🗿
@@ -266,8 +289,17 @@ public class Sequence
         var pan_match = Regex.Match(text, pan_regex);
         var pan = pan_match.Success ? float.Parse(pan_match.Value[1..]) : 0f;
 
-        if (sound is "!loopmany" or "!loop" or "!stop" or "_pause") 
-            loop_times = (int)(value > 0 ? value : loop_times);
+        switch (sound)
+        {
+            case "!loopmany" or "!loop" or "!stop" or "_pause":
+                loop_times = (int)(value > 0 ? value : loop_times);
+                break;
+            case "#bookmark":
+                return new BookmarkEvent
+                {
+                    Value = value
+                };
+        }
 
         if (pan == 0f)
         {

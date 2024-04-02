@@ -36,7 +36,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int Width;
     private int Height;
     private int PlayfieldWidth;
-    protected Memory<SoundRenderable>  TDW_images;
+    protected Memory<SoundRenderable?>  TDW_images;
 
     private ColoredPlane _background = null!;
     private ColoredPlane _flash_overlay = null!;
@@ -267,7 +267,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         ColorTools.ChangeColor(_background, new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.66f).GetAwaiter();
         DividerCount = 0;
         
-        var tdw_images = new SoundRenderable[events.Sequence.Events.Length];
+        var tdw_images = new SoundRenderable?[events.Sequence.Events.Length];
         var font_family = Fonts.GetFontFamily();
 
         CreationLeftMargin = LeftMargin;
@@ -285,13 +285,15 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         Task.Run(() =>
         {
-            foreach (var placement in events.Placement.Where(p => p.Event is {SoundEvent: "!divider", Value: > 0 and < 9}))
+            foreach (var placement in events.Placement.Where(p =>
+                         p.Event is { SoundEvent: "!divider", Value: > 0 and <= 9 }
+                             or BookmarkEvent { Value: >= 0 and <= 9 }))
             {
                 if (Token.IsCancellationRequested) return;
                 var time = placement.Index * 1000f / events.TimingSampleRate;
                 var idx = (int)placement.Event.Value;
-                
-                SequencePlayer.SetBookmarkTo(idx, (long) time);
+
+                SequencePlayer.SetBookmarkTo(idx, (long)time);
             }
         }, Token);
         
@@ -301,7 +303,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             {
                 var ev = events.Sequence.Events[i];
                 if (string.IsNullOrEmpty(ev.SoundEvent) ||
-                    ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent)
+                    ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent || ev is IHiddenEvent)
                 {
                     continue;
                 }
@@ -372,7 +374,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <summary>
     /// Creates a Thirty Dollar Website renderable with the texture of the event and its value and volume as children.
     /// </summary>
-    protected virtual void CreateEventRenderable(SoundRenderable[] tdw_images, int index, BaseEvent ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
+    protected virtual void CreateEventRenderable(SoundRenderable?[] tdw_images, int index, BaseEvent ev, IDictionary<string, Texture> texture_cache, Vector2i wh,
         FlexBox flex_box,
         IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font, Rgba32 volume_color, Font volume_font)
     {
@@ -780,6 +782,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         {
             foreach (var image in TDW_images.Span)
             {
+                if (image is null) continue;
+                
                 if (CurrentResizeFrame != current_update) break;
                 
                 var original_offset = image.GetTranslation();
@@ -867,6 +871,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         for (var i = start; i < end; i++)
         {
             var renderable = tdw_span[i];
+            if (renderable is null) continue;
             RenderRenderable(renderable);
         }
 
