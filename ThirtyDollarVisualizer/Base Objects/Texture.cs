@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using ThirtyDollarVisualizer.Helpers.Textures;
+using ThirtyDollarVisualizer.Objects.Text;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -56,7 +57,13 @@ public class Texture : IDisposable
 
     public Texture(Font font, string text, Color? color = null)
     {
-        var options = new TextOptions(font);
+        var options = new TextOptions(font)
+        {
+            FallbackFontFamilies = new []
+            {
+                Fonts.GetEmojiFamily()
+            }
+        };
         var rect = TextMeasurer.MeasureAdvance(text, options);
 
         var c_w = Math.Ceiling(rect.Width);
@@ -82,7 +89,13 @@ public class Texture : IDisposable
 
     public Texture(Font font, Color circle_color, string text, Color? text_color = null)
     {
-        var options = new TextOptions(font);
+        var options = new TextOptions(font)
+        {
+            FallbackFontFamilies = new []
+            {
+                Fonts.GetEmojiFamily()
+            }
+        };
         var rect = TextMeasurer.MeasureAdvance(text, options);
 
         var c_w = Math.Ceiling(rect.Width);

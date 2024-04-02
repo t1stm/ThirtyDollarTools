@@ -7,6 +7,7 @@ public static class Fonts
 {
     private static FontCollection? Collection;
     private static FontFamily? CurrentFamily;
+    private static FontFamily? EmojiFamily;
     private static CharacterCache? CharacterCache;
     
     public static void Initialize()
@@ -24,6 +25,7 @@ public static class Fonts
         if (!Collection.TryGet(emoji_font, out var emoji_family)) throw new Exception($"Unable to find font: {emoji_font}"); 
         
         CurrentFamily = text_family;
+        EmojiFamily = emoji_family;
         CharacterCache = new CharacterCache(text_family, emoji_family);
     }
 
@@ -40,6 +42,12 @@ public static class Fonts
     {
         if (CurrentFamily == null) Initialize();
         return (FontFamily) CurrentFamily!;
+    }
+    
+    public static FontFamily GetEmojiFamily()
+    {
+        if (CurrentFamily == null) Initialize();
+        return (FontFamily) EmojiFamily!;
     }
 
     public static CharacterCache GetCharacterCache()
