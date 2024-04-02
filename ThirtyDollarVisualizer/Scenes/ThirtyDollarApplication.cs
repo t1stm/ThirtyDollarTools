@@ -180,6 +180,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     C -> Change the camera modes.
                     Space -> Pause / resume the sequence.
                     Escape -> Close the program.
+                    0-9 -> Seek to bookmark.
+                    Ctrl+0-9 -> Set bookmark to current time.
+                    Ctrl+Shift+0-9 -> Clear given bookmark time.
                     
                     """
         }.WithPosition((10, 0f, 0));
@@ -249,7 +252,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     
     protected override void HandleAfterSequenceLoad(TimedEvents events)
     {
-        Manager.RenderBlock.Wait(Token);
         foreach (var renderable in start_objects)
         {
             renderable.IsVisible = false;
@@ -281,8 +283,18 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var volume_font = font_family.CreateFont(13, FontStyle.Bold);
         var volume_color = new Rgba32(204, 204, 204, 1f);
 
-        Manager.RenderBlock.Release();
-
+        Task.Run(() =>
+        {
+            foreach (var placement in events.Placement.Where(p => p.Event is {SoundEvent: "!divider", Value: > 0 and < 9}))
+            {
+                if (Token.IsCancellationRequested) return;
+                var time = placement.Index * 1000f / events.TimingSampleRate;
+                var idx = (int)placement.Event.Value;
+                
+                SequencePlayer.SetBookmarkTo(idx, (long) time);
+            }
+        }, Token);
+        
         try
         {
             for (var i = 0; i < events.Sequence.Events.Length; i++)

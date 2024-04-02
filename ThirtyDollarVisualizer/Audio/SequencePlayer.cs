@@ -251,8 +251,13 @@ public class SequencePlayer
     public long SetBookmark(int bookmark_index)
     {
         var current_time = TimingStopwatch.ElapsedMilliseconds;
-        Bookmarks[bookmark_index] = current_time;
+        SetBookmarkTo(bookmark_index, current_time);
         return current_time;
+    }
+    
+    public void SetBookmarkTo(int bookmark_index, long milliseconds)
+    {
+        Bookmarks[bookmark_index] = milliseconds;
     }
 
     public void ClearBookmark(int bookmark_index)
