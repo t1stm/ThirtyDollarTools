@@ -99,6 +99,7 @@ public class PlacementCalculator
             }
 
             var audible = ev is ICustomActionEvent and ICustomAudibleEvent;
+            var default_return = true;
 
             switch (ev.SoundEvent)
             {
@@ -166,7 +167,7 @@ public class PlacementCalculator
                 case "!loopmany":
                     if (ev.PlayTimes > 0)
                     {
-                        ev.PlayTimes--;
+                        default_return = false;
                         yield return new Placement
                         {
                             Index = position,
@@ -174,6 +175,7 @@ public class PlacementCalculator
                             Event = ev.Copy(),
                             Audible = false
                         };
+                        ev.PlayTimes--;
 
                         modify_index = false;
                         index = loop_target;
@@ -188,6 +190,7 @@ public class PlacementCalculator
                     if (!ev.Triggered)
                     {
                         ev.Triggered = true;
+                        default_return = false;
                         yield return new Placement
                         {
                             Index = position,
@@ -223,7 +226,8 @@ public class PlacementCalculator
                         Untrigger(ref sequence, 0, jump_untriggers);
                         break;
                     }
-
+                    
+                    default_return = false;
                     yield return new Placement
                     {
                         Index = position,
@@ -275,7 +279,7 @@ public class PlacementCalculator
                     break;
             }
 
-            if (!scrubbing)
+            if (!scrubbing && default_return)
                 yield return new Placement
                 {
                     Index = position,
