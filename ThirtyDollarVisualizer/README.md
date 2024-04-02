@@ -2,7 +2,7 @@
 
 An OpenGL program that visualizes Thirty Dollar Covers.
 
-![Animated WebP of the visualizer playing "Haunted House" covered by "mossan_"](../Screenshots/visualizer-demo.webp)
+[![Animated WebP of the visualizer playing "Haunted House" covered by "mossan_"](../Screenshots/visualizer-demo.webp)](https://twitter.com/kasetu_238/status/1699764122572001468)
 
 ## Usage
 
@@ -11,7 +11,7 @@ ThirtyDollarVisualizer executable for your current operating system, which you g
 [releases tab](https://github.com/t1stm/ThirtyDollarTools/releases).
 
 If it's your first time opening the program, wait for all sounds to finish downloading and then use it.
-![Animated WebP of the visualizer playing "Haunted House" covered by "mossan_"](../Screenshots/visualizer-demo-2.webp)
+![Animated WebP of the visualizer downloading samples and playing "Bling-Bang-Bang-Born" covered by "cyvos"](../Screenshots/visualizer-demo-2.webp)
 
 I'll now showcase all available launch options for the more advanced users.
 
