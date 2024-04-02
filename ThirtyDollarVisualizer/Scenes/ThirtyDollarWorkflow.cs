@@ -43,6 +43,8 @@ public abstract class ThirtyDollarWorkflow
         await SampleHolder.DownloadSamples();
         await SampleHolder.DownloadImages();
         SampleHolder.LoadSamplesIntoMemory();
+
+        Log("Downloaded all samples and images.");
     }
 
     protected async Task<SampleHolder> GetSampleHolder()

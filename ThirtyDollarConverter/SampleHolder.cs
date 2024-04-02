@@ -106,22 +106,38 @@ public class SampleHolder
         var client = new HttpClient();
         var i = 0;
         var count = SampleList.Count;
-        foreach (var (sound, _) in SampleList)
+
+        if (check_only)
         {
+            foreach (var (sound, _) in SampleList)
+            {
+                var file = sound.Id;
+                var dll = $"{DownloadLocation}/{file}.wav";
+
+                if (File.Exists(dll)) continue;
+                if (check_only) return false;
+            }
+
+            return true;
+        }
+        
+        await Parallel.ForEachAsync(SampleList, async (pair, token) =>
+        {
+            var sound = pair.Key;
+            
             var file = sound.Id;
             var requestUrl = $"{DownloadSampleUrl}/{file}.wav";
             var dll = $"{DownloadLocation}/{file}.wav";
 
-            if (File.Exists(dll)) continue;
-            if (check_only) return false;
+            if (File.Exists(dll)) return;
 
             DownloadUpdate?.Invoke(sound.Filename ?? "Empty filename.doesnt_exist", i, count);
-            await using var stream = await client.GetStreamAsync(requestUrl);
+            await using var stream = await client.GetStreamAsync(requestUrl, token);
             await using var fs = File.Open($"{DownloadLocation}/{file}.wav", FileMode.Create);
-            await stream.CopyToAsync(fs);
+            await stream.CopyToAsync(fs, token);
             fs.Close();
             i++;
-        }
+        });
 
         return true;
     }
@@ -129,44 +145,49 @@ public class SampleHolder
     public async Task DownloadImages()
     {
         var client = new HttpClient();
-        if (SampleList.Count < 1) await LoadSampleList();
+        if (SampleList.IsEmpty) await LoadSampleList();
 
         PrepareDirectory();
         await DownloadSamples();
 
-        foreach (var (sound, _) in SampleList)
+        var i = 0;
+
+        await Parallel.ForEachAsync(SampleList, async (pair, token) =>
         {
+            var sound = pair.Key;
+            
             var filename = sound.Filename;
             const string file_extension = "png";
 
             var download_location = $"{ImagesLocation}/{filename}.{file_extension}";
 
-            if (File.Exists(download_location)) continue;
+            if (File.Exists(download_location)) return;
+            DownloadUpdate?.Invoke(sound.Icon_URL, i++, SampleList.Count);
 
-            Console.WriteLine($"Downloading image: \'{sound.Icon_URL}\'");
-
-            var stream = await client.GetStreamAsync(sound.Icon_URL);
+            var stream = await client.GetStreamAsync(sound.Icon_URL, token);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
-            await stream.CopyToAsync(fs);
+            await stream.CopyToAsync(fs, token);
 
             fs.Close();
-        }
+        });
 
-        foreach (var action in ActionsArray)
+        i = 0;
+        
+        await Parallel.ForEachAsync(ActionsArray, async (action, token) =>
         {
             var file_name = $"{action}";
             var download_location = $"{ImagesLocation}/{file_name}";
 
-            if (File.Exists(download_location)) continue;
+            if (File.Exists(download_location)) return;
 
-            Console.WriteLine($"Downloading image: \'{ThirtyDollarWebsiteUrl}/assets/{file_name}\'");
+            DownloadUpdate?.Invoke(action, i++, ActionsArray.Length);
 
-            await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}");
+            await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}", token);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
-            await stream.CopyToAsync(fs);
+            await stream.CopyToAsync(fs, token);
 
             fs.Close();
-        }
+        });
     }
 
     /// <summary>
