@@ -185,6 +185,12 @@ public class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        if (sequence_file_location == export_file_location)
+        {
+            CreateLog("The export file location is the same as the sequence's. Adding .wav at the end of the export location.");
+            ExportFileLocation += ".wav";
+        }
+
         if (encode_running)
         {
             CreateLog("An encode is currently running.");
