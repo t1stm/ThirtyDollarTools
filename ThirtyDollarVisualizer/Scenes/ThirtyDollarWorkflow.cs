@@ -158,6 +158,13 @@ public abstract class ThirtyDollarWorkflow
         var modify_time = File.GetLastWriteTime(_sequence_location);
 
         if (_sequence_date_modified == modify_time) return;
-        UpdateSequence(_sequence_location, false).GetAwaiter().GetResult();
+        try
+        {
+            UpdateSequence(_sequence_location, false).GetAwaiter().GetResult();
+        }
+        catch (Exception e)
+        {
+            Log($"[Sequence Loader] Failed to load sequence with error: \'{e}\'");
+        }
     }
 }

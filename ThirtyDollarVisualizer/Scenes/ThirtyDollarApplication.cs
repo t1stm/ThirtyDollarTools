@@ -241,7 +241,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            Log($"[Sequence Loader] Failed to load sequence with error: \'{e}\'");
             return;
         }
 
@@ -566,10 +566,10 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _texture_cache = new Dictionary<string, Texture>();
         _volume_text_cache = new Dictionary<string, Texture>();
         
-        var font = font_family.CreateFont(RenderableSize / 4f, FontStyle.Bold);
+        var font = font_family.CreateFont(RenderableSize / 3.625f, FontStyle.Bold);
 
         // funny number 👍
-        var volume_font = font_family.CreateFont(RenderableSize * 0.203125f, FontStyle.Bold);
+        var volume_font = font_family.CreateFont(RenderableSize * 0.22f, FontStyle.Bold);
         var volume_color = new Rgba32(204, 204, 204, 1f);
 
         Task.Run(() =>
@@ -813,12 +813,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             var text_position = new Vector3
             {
                 X = plane_position.X + width_height.X / 2f,
-                Y = box_position.Y + RenderableSize - MarginBetweenRenderables + 1,
+                Y = box_position.Y + RenderableSize ,
                 Z = box_position.Z - 0.1f
             };
 
             var text = new TexturedPlane(value_texture, Vector3.Zero, (value_texture.Width, value_texture.Height));
-            text.SetPosition(text_position, PositionAlign.TopCenter);
+            text.SetPosition(text_position, PositionAlign.Center);
 
             plane.SetValueRenderable(text);
             plane.Children.Add(text);
@@ -831,7 +831,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (ev.Volume is not null and not 100d)
         {
             var volume = ev.Volume ?? throw new Exception("Invalid volume check.");
-            var volume_text = volume.ToString("0") + "%";
+            var volume_text = volume.ToString("0.#") + "%";
 
             volume_text_cache.TryGetValue(volume_text, out var volume_texture);
             if (volume_texture == null)
@@ -842,14 +842,16 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
             var text_position = new Vector3
             {
-                X = box_position.X + RenderableSize - volume_texture.Width,
+                X = box_position.X + RenderableSize + 6,
                 Y = box_position.Y,
                 Z = box_position.Z
             };
             text_position.Z -= 0.5f;
 
-            var text = new TexturedPlane(volume_texture, text_position,
+            var text = new TexturedPlane(volume_texture, Vector3.Zero, 
                 (volume_texture.Width, volume_texture.Height));
+            
+            text.SetPosition(text_position, PositionAlign.TopRight);
             plane.Children.Add(text);
         }
 
@@ -1078,7 +1080,15 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Task.Run(async () =>
         {
             _log_text.SetTextContents("Loading...");
-            await UpdateSequence(location, old_location != location || reset_time);
+            try
+            {
+                await UpdateSequence(location, old_location != location || reset_time);
+            }
+            catch (Exception e)
+            {
+                Log($"[Sequence Loader] Failed to load sequence with error: \'{e}\'");
+                return;
+            }
             _log_text.SetTextContents(string.Empty);
         }, Token);
     }
