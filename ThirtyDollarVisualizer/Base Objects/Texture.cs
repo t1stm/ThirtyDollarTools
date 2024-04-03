@@ -70,7 +70,7 @@ public class Texture : IDisposable
 
         texture_data.Mutate(x =>
             x.DrawText(text, font, Color.Black, point)
-                .GaussianBlur(1.5f)
+                .GaussianBlur(1f)
                 .DrawText(text, font, cast_color, point)
         );
     }
