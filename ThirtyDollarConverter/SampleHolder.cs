@@ -130,11 +130,11 @@ public class SampleHolder
             var dll = $"{DownloadLocation}/{file}.wav";
 
             if (File.Exists(dll)) return;
-
-            DownloadUpdate?.Invoke(sound.Filename ?? "Empty filename.doesnt_exist", i, count);
+            
             await using var stream = await client.GetStreamAsync(requestUrl, token);
             await using var fs = File.Open($"{DownloadLocation}/{file}.wav", FileMode.Create);
             await stream.CopyToAsync(fs, token);
+            DownloadUpdate?.Invoke(sound.Filename ?? "Empty filename.doesnt_exist", i, count);
             fs.Close();
             i++;
         });
@@ -162,11 +162,11 @@ public class SampleHolder
             var download_location = $"{ImagesLocation}/{filename}.{file_extension}";
 
             if (File.Exists(download_location)) return;
-            DownloadUpdate?.Invoke(sound.Icon_URL, i++, SampleList.Count);
 
             var stream = await client.GetStreamAsync(sound.Icon_URL, token);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
             await stream.CopyToAsync(fs, token);
+            DownloadUpdate?.Invoke(sound.Icon_URL, i++, SampleList.Count);
 
             fs.Close();
         });
@@ -180,11 +180,10 @@ public class SampleHolder
 
             if (File.Exists(download_location)) return;
 
-            DownloadUpdate?.Invoke(action, i++, ActionsArray.Length);
-
             await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}", token);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
             await stream.CopyToAsync(fs, token);
+            DownloadUpdate?.Invoke(action, i++, ActionsArray.Length);
 
             fs.Close();
         });

@@ -565,10 +565,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         _texture_cache = new Dictionary<string, Texture>();
         _volume_text_cache = new Dictionary<string, Texture>();
+        
+        var font = font_family.CreateFont(RenderableSize / 4f, FontStyle.Bold);
 
-        var font = font_family.CreateFont(16, FontStyle.Bold);
-
-        var volume_font = font_family.CreateFont(13, FontStyle.Bold);
+        // funny number 👍
+        var volume_font = font_family.CreateFont(RenderableSize * 0.203125f, FontStyle.Bold);
         var volume_color = new Rgba32(204, 204, 204, 1f);
 
         Task.Run(() =>

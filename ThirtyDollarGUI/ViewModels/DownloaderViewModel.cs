@@ -55,7 +55,7 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
 
     private void DownloadMessageHandler(string thing, int current, int max)
     {
-        CreateLog($"[({current}) - ({max})] Downloading \'{thing}\'.");
+        CreateLog($"[({current}) - ({max})] Downloaded \'{thing}\'.");
         ProgressBarValue = (int)Math.Floor(current * 100f / max);
     }
 

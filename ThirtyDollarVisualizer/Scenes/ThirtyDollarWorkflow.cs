@@ -35,16 +35,18 @@ public abstract class ThirtyDollarWorkflow
     {
         SampleHolder = new SampleHolder
         {
-            DownloadUpdate = (sample, current, count) => { Log($"({current} - {count}): Downloading: \'{sample}\'"); }
+            DownloadUpdate = (sample, current, count) => { Log($"({current} - {count}): Downloaded: \'{sample}\'"); }
         };
 
+        Log("[Sample Holder] Loading.");
+        
         await SampleHolder.LoadSampleList();
         SampleHolder.PrepareDirectory();
         await SampleHolder.DownloadSamples();
         await SampleHolder.DownloadImages();
         SampleHolder.LoadSamplesIntoMemory();
 
-        Log("Downloaded all samples and images.");
+        Log("[Sample Holder] Loaded all samples and images.");
     }
 
     protected async Task<SampleHolder> GetSampleHolder()
