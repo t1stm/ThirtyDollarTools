@@ -241,7 +241,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
         catch (Exception e)
         {
-            Log($"[Sequence Loader] Failed to load sequence with error: \'{e}\'");
+            SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
             return;
         }
 
@@ -380,13 +380,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (_file_update_stopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
         Camera.Update();
-
+        if (BackingAudio is null) return;
+        
         var stopwatch = SequencePlayer.GetTimingStopwatch();
-        if (BackingAudio is not null)
-        {
-            BackingAudio.UpdatePlayState(stopwatch.IsRunning);
-            BackingAudio.SyncTime(stopwatch.Elapsed);
-        }
+        BackingAudio.UpdatePlayState(stopwatch.IsRunning);
+        BackingAudio.SyncTime(stopwatch.Elapsed);
     }
 
     public void Close()
@@ -1086,7 +1084,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
             catch (Exception e)
             {
-                Log($"[Sequence Loader] Failed to load sequence with error: \'{e}\'");
+                SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
                 return;
             }
             _log_text.SetTextContents(string.Empty);
