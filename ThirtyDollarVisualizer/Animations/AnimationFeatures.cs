@@ -12,7 +12,8 @@ public enum AnimationFeature
     Scale_Multiply = 1 << 2,
     Scale_Add = 1 << 3,
     Rotation_Add = 1 << 4,
-    Color_Value = 1 << 5
+    Color_Value = 1 << 5,
+    DeltaAlpha = 1 << 6
 }
 
 public static class FeatureExtensions

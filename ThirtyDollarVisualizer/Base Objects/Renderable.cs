@@ -55,6 +55,8 @@ public abstract class Renderable
 
     protected Vector4 Color { get; set; }
 
+    protected float DeltaAlpha { get; set; } = 0f;
+
     /// <summary>
     ///     Updates the current renderable's model for the MVP rendering method.
     /// </summary>
@@ -144,11 +146,15 @@ public abstract class Renderable
                 final_rotation += rotation;
         }
 
-        if (!bit_stack.IsEnabled(AnimationFeature.Color_Value)) return;
-
-        var color_change = animation.GetColor_Value(this);
-        if (color_change != Vector4.Zero)
-            Color = color_change;
+        if (bit_stack.IsEnabled(AnimationFeature.Color_Value))
+        {
+            var color_change = animation.GetColor_Value(this);
+            if (color_change != Vector4.Zero)
+                Color = color_change;
+        }
+        
+        if (!bit_stack.IsEnabled(AnimationFeature.DeltaAlpha)) return;
+        DeltaAlpha = animation.GetAlphaDelta_Value(this);
     }
 
     /// <summary>

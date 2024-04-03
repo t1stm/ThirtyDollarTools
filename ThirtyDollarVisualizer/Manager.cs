@@ -36,7 +36,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnLoad()
     {
-        GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
 
@@ -60,11 +59,13 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     {
         RenderBlock.Wait();
 
-        GL.Clear(ClearBufferMask.ColorBufferBit);
+        GL.Enable(EnableCap.Blend);
+        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 1f);
 
         foreach (var scene in Scenes) scene.Render();
 
+        GL.Disable(EnableCap.Blend);
         Context.SwapBuffers();
         RenderBlock.Release();
     }

@@ -6,13 +6,6 @@ namespace ThirtyDollarVisualizer.Helpers.Color;
 
 public static class ColorTools
 {
-    private static readonly Vector4 FadeColor = new(0, 0, 0, 0.4f);
-
-    public static async void Fade(Renderable renderable)
-    {
-        await ChangeColor(renderable, Vector4.Zero, FadeColor, 0.125f);
-    }
-
     public static async Task ChangeColor(Renderable renderable, Vector4 color, float duration_seconds)
     {
         var old_color = renderable.GetColor();

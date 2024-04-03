@@ -3,16 +3,15 @@
 in vec2 fragment_coords;
 
 uniform sampler2D u_Texture;
-uniform vec4 u_OverlayColor;
+uniform float u_DeltaAlpha;
 
 out vec4 color;
 
 void main() {
     vec4 texture_color = texture(u_Texture, fragment_coords);
-    vec4 overlay_color = u_OverlayColor;
 
     float texture_alpha = texture_color.a;
-    float overlay_alpha = u_OverlayColor.a;
+    float delta_alpha = u_DeltaAlpha;
 
     vec4 mixed_color;
 
@@ -20,7 +19,7 @@ void main() {
         mixed_color = texture_color;
     }
     else {
-        mixed_color = mix(texture_color, overlay_color, overlay_alpha);
+        mixed_color = vec4(texture_color.rgb, texture_alpha - delta_alpha);
     }
 
     color = mixed_color;

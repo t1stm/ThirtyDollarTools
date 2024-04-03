@@ -4,22 +4,16 @@ using ThirtyDollarVisualizer.Objects;
 
 namespace ThirtyDollarVisualizer.Animations;
 
-public abstract class Animation
+public abstract class Animation(TimeSpan timespan)
 {
-    protected readonly Stopwatch TimingStopwatch;
+    protected readonly Stopwatch TimingStopwatch = new();
     public bool AffectsChildren = true;
-    protected TimeSpan AnimationLength;
+    protected TimeSpan AnimationLength = timespan;
     protected Action? CallbackOnFinish = null;
     public int Features = (int)AnimationFeature.None;
 
     protected Animation(int animation_length_ms) : this(TimeSpan.FromMilliseconds(animation_length_ms))
     {
-    }
-
-    protected Animation(TimeSpan timespan)
-    {
-        TimingStopwatch = new Stopwatch();
-        AnimationLength = timespan;
     }
 
     public bool IsRunning => TimingStopwatch.IsRunning;
@@ -82,6 +76,16 @@ public abstract class Animation
     public virtual Vector4 GetColor_Value(Renderable renderable)
     {
         return Vector4.Zero;
+    }
+
+    /// <summary>
+    ///     Gets the current alpha subtract transform.
+    /// </summary>
+    /// <param name="renderable">The renderable the animation is used on.</param>
+    /// <returns>A float representing the transparency to add.</returns>
+    public virtual float GetAlphaDelta_Value(Renderable renderable)
+    {
+        return 0;
     }
 
     /// <summary>

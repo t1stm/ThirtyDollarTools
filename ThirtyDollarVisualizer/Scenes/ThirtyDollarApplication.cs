@@ -706,6 +706,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         var box_position = flex_box.AddBox(wh);
+        box_position.Z = -0.5f;
         var plane_position = new Vector3(box_position);
 
         switch (aspect_ratio)

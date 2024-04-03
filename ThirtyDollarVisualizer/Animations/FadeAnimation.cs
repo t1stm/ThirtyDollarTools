@@ -5,8 +5,6 @@ namespace ThirtyDollarVisualizer.Animations;
 
 public class FadeAnimation : Animation
 {
-    private static readonly Vector4 FadedColor = new(0, 0, 0, 0.3f);
-
     public FadeAnimation(Action action) : this()
     {
         CallbackOnFinish = action;
@@ -15,22 +13,21 @@ public class FadeAnimation : Animation
 
     public FadeAnimation() : base(125)
     {
-        Features = (int)AnimationFeature.Color_Value;
+        Features = (int)AnimationFeature.DeltaAlpha;
     }
 
-    public override Vector4 GetColor_Value(Renderable renderable)
+    public override float GetAlphaDelta_Value(Renderable renderable)
     {
-        var vector = Vector4.Zero;
+        const float max_delta_alpha = 0.4f;
 
         var factor = TimingStopwatch.ElapsedMilliseconds / (float)AnimationLength.TotalMilliseconds;
-        if (!TimingStopwatch.IsRunning) return factor > 1f ? FadedColor : vector;
+        if (!TimingStopwatch.IsRunning) return factor > 1f ? max_delta_alpha : 0;
 
-        if (factor <= 1f) return Vector4.Lerp(vector, FadedColor, factor);
+        if (factor <= 1f) return factor * max_delta_alpha;
 
         TimingStopwatch.Stop();
         CallbackOnFinish?.Invoke();
-        factor = 1f;
 
-        return Vector4.Lerp(vector, FadedColor, factor);
+        return max_delta_alpha;
     }
 }

@@ -80,8 +80,7 @@ public class TexturedPlane : Renderable
             Vao.Bind();
             Ebo.Bind();
 
-            var texture = _texture;
-            if (texture == null) texture = Texture.Transparent1x1;
+            var texture = _texture ?? Texture.Transparent1x1;
 
             if (texture.NeedsLoading()) texture.LoadOpenGLTexture();
 
@@ -99,7 +98,7 @@ public class TexturedPlane : Renderable
     {
         Shader.SetUniform("u_Model", Model);
         Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
-        Shader.SetUniform("u_OverlayColor", Color);
+        Shader.SetUniform("u_DeltaAlpha", DeltaAlpha);
     }
 
     public override void Dispose()
