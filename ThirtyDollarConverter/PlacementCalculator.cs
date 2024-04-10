@@ -152,6 +152,9 @@ public class PlacementCalculator
                         ev.PlayTimes -= 1;
                         working_value -= 1;
 
+                        if (ev.PlayTimes < 0)
+                            ev.PlayTimes = 0;
+
                         if (AddVisualTimings)
                             yield return new Placement
                             {
