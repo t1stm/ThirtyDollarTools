@@ -298,7 +298,7 @@ public class PlacementCalculator
     /// <param name="sequence">Reference to the sequence.</param>
     /// <param name="index">The index to start from.</param>
     /// <param name="except">An array of strings containing events to ignore.</param>
-    private static void Untrigger(ref Sequence sequence, ulong index, string?[] except)
+    private static void Untrigger(ref Sequence sequence, ulong index, string[] except)
     {
         if (index == 0) index++;
         for (var i = index - 1; i < (ulong)sequence.Events.LongLength; i++)
