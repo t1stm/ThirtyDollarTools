@@ -6,9 +6,9 @@ namespace ThirtyDollarVisualizer.Audio;
 public class OpenALBuffer : AudibleBuffer
 {
     private readonly AudioContext _context;
+    private readonly List<int> AudioSources = new();
     private float _pan;
     public float _relative_volume = .5f;
-    private readonly List<int> AudioSources = new();
 
     public OpenALBuffer(AudioContext context, AudioData<float> sample_data, int sample_rate)
     {

@@ -5,12 +5,12 @@ namespace ThirtyDollarVisualizer.Helpers.Positioning;
 public class FlexBox
 {
     private readonly float MarginPixels;
+    private readonly Vector2i Position;
+    private readonly Vector2i Size;
 
     private float CurrentX;
     private float CurrentY;
     private float MaxHeight;
-    private readonly Vector2i Position;
-    private readonly Vector2i Size;
 
     public FlexBox(Vector2i position, Vector2i size, float margin_pixels)
     {

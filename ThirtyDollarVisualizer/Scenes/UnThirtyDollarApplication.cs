@@ -15,11 +15,12 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
     private static Texture? MissingTexture;
     private static Texture? ICutTexture;
+    private readonly Stopwatch _open_stopwatch = new();
     private readonly List<Renderable> static_objects = new();
+    private readonly Memory<SoundRenderable> TDW_images = Memory<SoundRenderable>.Empty;
     private readonly Dictionary<string, Texture> ValueTextCache = new();
     private ColoredPlane _background = null!;
     private DynamicText _dynamic_text = null!;
-    private readonly Stopwatch _open_stopwatch = new();
     private Dictionary<string, Texture> _texture_cache = new();
     private Dictionary<string, Texture> _volume_text_cache = new();
 
@@ -29,7 +30,6 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private List<MidiKey> key_objects = new();
     private Manager Manager = null!;
     private float Scale = 1f;
-    private readonly Memory<SoundRenderable> TDW_images = Memory<SoundRenderable>.Empty;
 
     private int Width;
 

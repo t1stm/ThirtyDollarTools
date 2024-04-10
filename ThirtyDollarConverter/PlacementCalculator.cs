@@ -152,6 +152,9 @@ public class PlacementCalculator
                         ev.PlayTimes -= 1;
                         working_value -= 1;
 
+                        if (ev.PlayTimes < 0)
+                            ev.PlayTimes = 0;
+
                         if (AddVisualTimings)
                             yield return new Placement
                             {
@@ -226,7 +229,7 @@ public class PlacementCalculator
                         Untrigger(ref sequence, 0, jump_untriggers);
                         break;
                     }
-                    
+
                     default_return = false;
                     yield return new Placement
                     {
