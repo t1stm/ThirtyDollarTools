@@ -229,7 +229,7 @@ public class PlacementCalculator
                         Untrigger(ref sequence, 0, jump_untriggers);
                         break;
                     }
-                    
+
                     default_return = false;
                     yield return new Placement
                     {

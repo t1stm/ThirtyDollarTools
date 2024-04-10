@@ -1,4 +1,3 @@
-using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Objects;
 
 namespace ThirtyDollarVisualizer.Animations;

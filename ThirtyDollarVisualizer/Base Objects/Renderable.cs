@@ -55,7 +55,7 @@ public abstract class Renderable
 
     protected Vector4 Color { get; set; }
 
-    protected float DeltaAlpha { get; set; } = 0f;
+    protected float DeltaAlpha { get; set; }
 
     /// <summary>
     ///     Updates the current renderable's model for the MVP rendering method.
@@ -152,7 +152,7 @@ public abstract class Renderable
             if (color_change != Vector4.Zero)
                 Color = color_change;
         }
-        
+
         if (!bit_stack.IsEnabled(AnimationFeature.DeltaAlpha)) return;
         DeltaAlpha = animation.GetAlphaDelta_Value(this);
     }

@@ -120,17 +120,17 @@ public class SampleHolder
 
             return true;
         }
-        
+
         await Parallel.ForEachAsync(SampleList, async (pair, token) =>
         {
             var sound = pair.Key;
-            
+
             var file = sound.Id;
             var requestUrl = $"{DownloadSampleUrl}/{file}.wav";
             var dll = $"{DownloadLocation}/{file}.wav";
 
             if (File.Exists(dll)) return;
-            
+
             await using var stream = await client.GetStreamAsync(requestUrl, token);
             await using var fs = File.Open($"{DownloadLocation}/{file}.wav", FileMode.Create);
             await stream.CopyToAsync(fs, token);
@@ -155,7 +155,7 @@ public class SampleHolder
         await Parallel.ForEachAsync(SampleList, async (pair, token) =>
         {
             var sound = pair.Key;
-            
+
             var filename = sound.Filename;
             const string file_extension = "png";
 
@@ -172,7 +172,7 @@ public class SampleHolder
         });
 
         i = 0;
-        
+
         await Parallel.ForEachAsync(ActionsArray, async (action, token) =>
         {
             var file_name = $"{action}";

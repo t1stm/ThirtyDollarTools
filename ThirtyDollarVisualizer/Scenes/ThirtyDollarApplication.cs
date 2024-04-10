@@ -381,7 +381,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         Camera.Update();
         if (BackingAudio is null) return;
-        
+
         var stopwatch = SequencePlayer.GetTimingStopwatch();
         BackingAudio.UpdatePlayState(stopwatch.IsRunning);
         BackingAudio.SyncTime(stopwatch.Elapsed);
@@ -563,7 +563,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         _texture_cache = new Dictionary<string, Texture>();
         _volume_text_cache = new Dictionary<string, Texture>();
-        
+
         var font = font_family.CreateFont(RenderableSize / 3.625f, FontStyle.Bold);
 
         // funny number 👍
@@ -788,14 +788,14 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 break;
             }
         }
-        
+
         if (ev.OriginalLoop % 1f != 0)
             for (var i = ev.OriginalLoop - 1; i >= 0; i--)
             {
                 var text = i.ToString("0.##");
                 value_text_cache.TryGetValue(text, out value_texture);
                 if (value_texture != null) continue;
-                        
+
                 value_texture = new Texture(font, text, volume_color);
                 if (!polluted_value_texture)
                     value_text_cache.Add(text, value_texture);
@@ -824,7 +824,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             var text_position = new Vector3
             {
                 X = plane_position.X + width_height.X / 2f,
-                Y = box_position.Y + RenderableSize ,
+                Y = box_position.Y + RenderableSize,
                 Z = box_position.Z - 0.1f
             };
 
@@ -859,9 +859,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             };
             text_position.Z -= 0.5f;
 
-            var text = new TexturedPlane(volume_texture, Vector3.Zero, 
+            var text = new TexturedPlane(volume_texture, Vector3.Zero,
                 (volume_texture.Width, volume_texture.Height));
-            
+
             text.SetPosition(text_position, PositionAlign.TopRight);
             plane.Children.Add(text);
         }
@@ -1100,6 +1100,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
                 return;
             }
+
             _log_text.SetTextContents(string.Empty);
         }, Token);
     }

@@ -25,7 +25,7 @@ public class SoundRenderable : TexturedPlane
     {
         if (BounceAnimation.IsRunning || ExpandAnimation.IsRunning || FadeAnimation.IsRunning)
             UpdateModel(false, BounceAnimation, ExpandAnimation, FadeAnimation);
-        
+
         base.Render(camera);
     }
 

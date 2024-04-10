@@ -15,16 +15,16 @@ namespace ThirtyDollarGUI.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private readonly SampleHolder sample_holder;
-
-    private bool encode_running;
-    private PcmEncoder? encoder;
-
     private readonly EncoderSettings encoder_settings = new()
     {
         Channels = 2,
         SampleRate = 48000
     };
+
+    private readonly SampleHolder sample_holder;
+
+    private bool encode_running;
+    private PcmEncoder? encoder;
 
     private string? export_file_location = "";
     public bool IsExportLocationGood = true;
@@ -187,7 +187,8 @@ public class MainWindowViewModel : ViewModelBase
 
         if (sequence_file_location == export_file_location)
         {
-            CreateLog("The export file location is the same as the sequence's. Adding .wav at the end of the export location.");
+            CreateLog(
+                "The export file location is the same as the sequence's. Adding .wav at the end of the export location.");
             ExportFileLocation += ".wav";
         }
 

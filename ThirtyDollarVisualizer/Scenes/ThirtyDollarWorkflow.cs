@@ -39,7 +39,7 @@ public abstract class ThirtyDollarWorkflow
         };
 
         Log("[Sample Holder] Loading.");
-        
+
         await SampleHolder.LoadSampleList();
         SampleHolder.PrepareDirectory();
         await SampleHolder.DownloadSamples();
