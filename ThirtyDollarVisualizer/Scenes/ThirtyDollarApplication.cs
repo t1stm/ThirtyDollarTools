@@ -786,6 +786,22 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
                 value = $"{repeats}, {pulse_times}";
                 break;
+            }   
+            
+            case { SoundEvent: "!stop" }:
+            {
+                if (ev.OriginalLoop % 1f == 0) break;
+                for (var i = ev.OriginalLoop - 1; i >= 0; i--)
+                {
+                    var text = i.ToString("0.##");
+                    value_text_cache.TryGetValue(text, out value_texture);
+                    if (value_texture != null) continue;
+                    
+                    value_texture = new Texture(font, text, volume_color);
+                    if (!polluted_value_texture)
+                        value_text_cache.Add(text, value_texture);
+                }
+                break;
             }
         }
 
