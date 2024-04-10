@@ -5,12 +5,12 @@ public abstract class BaseEvent
     /// <summary>
     ///     Original loop value of the event. Do not modify.
     /// </summary>
-    public int OriginalLoop = 1;
+    public float OriginalLoop = 1;
 
     /// <summary>
     ///     Loop value of the event. Can be modified as long as it's restored from original loop after finishing.
     /// </summary>
-    public int PlayTimes = 1;
+    public float PlayTimes = 1;
 
     /// <summary>
     ///     The sound name of the current event.

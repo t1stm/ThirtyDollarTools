@@ -264,7 +264,7 @@ public class Sequence
         }
 
         var loop_times_match = Regex.Match(text, loop_times_regex);
-        var loop_times = loop_times_match.Success ? int.Parse(loop_times_match.Value[1..]) : 1;
+        var loop_times = loop_times_match.Success ? float.Parse(loop_times_match.Value[1..]) : 1;
 
         var volume_match = Regex.Match(text, volume_regex);
         double? event_volume = volume_match.Success ? double.Parse(volume_match.Value[1..]) : null;
@@ -275,7 +275,7 @@ public class Sequence
         switch (sound)
         {
             case "!loopmany" or "!loop" or "!stop" or "_pause":
-                loop_times = (int)(value > 0 ? value : loop_times);
+                loop_times = (float)(value > 0 ? value : loop_times);
                 break;
             case "#bookmark":
                 return new BookmarkEvent
