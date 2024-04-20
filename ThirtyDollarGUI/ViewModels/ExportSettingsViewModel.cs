@@ -41,6 +41,12 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         set => this.RaiseAndSetIfChanged(ref encoderSettings.CombineDelayMs, value);
     }
 
+    public bool EnableNormalization
+    {
+        get => encoderSettings.EnableNormalization;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.EnableNormalization, value);
+    }
+
     public string SampleRateText
     {
         get => SampleRate.ToString();
