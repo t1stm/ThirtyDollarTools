@@ -50,7 +50,7 @@ public class PlacementCalculator
         if (sequence == null) throw new Exception("Null Sequence");
         var bpm = 300.0;
         var transpose = 0.0;
-        var volume = 100.0;
+        var global_volume = 100.0;
         var count = (ulong)sequence.Events.LongLength;
         var position = (ulong)(SampleRate / (bpm / 60));
 
@@ -82,8 +82,8 @@ public class PlacementCalculator
                 increment_timer = next_event is not "!combine";
 
                 var copy = ev.Copy();
-                copy.Volume ??= volume;
-                copy.WorkingVolume = copy.Volume.Value * volume / 100f;
+                var event_volume = copy.Volume ??= 100;
+                copy.WorkingVolume = global_volume * event_volume / 100d;
                 
                 copy.Value += transpose;
                 var placement = new Placement
@@ -129,18 +129,20 @@ public class PlacementCalculator
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Divide:
-                            volume /= ev.Value;
+                            global_volume /= ev.Value;
                             break;
                         case ValueScale.Times:
-                            volume *= ev.Value;
+                            global_volume *= ev.Value;
                             break;
                         case ValueScale.Add:
-                            volume += ev.Value;
+                            global_volume += ev.Value;
                             break;
                         case ValueScale.None:
-                            volume = ev.Value;
+                            global_volume = ev.Value;
                             break;
                     }
+
+                    if (global_volume < 0) global_volume = 0;
 
                     break;
 
