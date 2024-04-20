@@ -775,7 +775,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
             case { SoundEvent: "!volume" }:
             {
-                if (ev.ValueScale == ValueScale.None)
+                if (ev.ValueScale is not ValueScale.Times and not ValueScale.Divide)
                     value += "%";
                 break;
             }
