@@ -176,7 +176,6 @@ public class PlacementCalculator
                         ev.PlayTimes--;
 
                         modify_index = false;
-                        index = loop_target;
                         
                         yield return new Placement
                         {
@@ -185,6 +184,8 @@ public class PlacementCalculator
                             Event = ev.Copy(),
                             Audible = false
                         };
+                        
+                        index = loop_target;
 
                         Untrigger(ref sequence, index, loopmany_untriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
