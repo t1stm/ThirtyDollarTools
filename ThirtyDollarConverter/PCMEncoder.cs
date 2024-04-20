@@ -409,7 +409,8 @@ public class PcmEncoder
         for (var i = 0; i < samples.Length; i++)
         {
             var arr = samples[i];
-            arr.NormalizeVolume();
+            if (Settings.EnableNormalization)
+                arr.NormalizeVolume();
             samples[i] = arr.TrimEnd();
         }
 
