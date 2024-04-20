@@ -39,10 +39,10 @@ public class EncoderSettings
     /// <summary>
     ///     This adds calculated timings to the placement.
     /// </summary>
-    public bool AddVisualEvents { get; set; }
+    public bool AddVisualEvents;
 
     /// <summary>
     ///     This controls whether the converter should normalize the final export of a cover.
     /// </summary>
-    public bool EnableNormalization { get; set; } = true;
+    public bool EnableNormalization  = true;
 }
