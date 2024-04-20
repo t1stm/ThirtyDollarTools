@@ -10,11 +10,16 @@ namespace ThirtyDollarBenchmarks;
 public class EncoderBenchmark
 {
     private PcmEncoder _encoder = null!;
-    private SampleHolder _holder = null!;
+    private SampleHolder? _holder;
     private Sequence _sequence;
+    
+    [Params(1, 4, 8, 16, 32, 64, 128)]
+    public int ThreadCount = 1;
+    
+    [Params(48000, 96000, 192000, 384000)]
+    public uint SampleRate = 48000;
 
-    [Params("ThirtyDollarBenchmarks.Sequences.particle-accelerator.🗿",
-        "ThirtyDollarBenchmarks.Sequences.sounds.🗿")]
+    [Params("ThirtyDollarBenchmarks.Sequences.another.🗿")]
     public string _sequence_location;
 
     private static Stream GetResource(string location)
@@ -30,55 +35,44 @@ public class EncoderBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        _holder = new SampleHolder
+        if (_holder == null)
         {
-            DownloadLocation =
-                "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarGUI/bin/Debug/net7.0/Sounds/"
-        };
+            _holder = new SampleHolder
+            {
+                DownloadLocation =
+                    "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarGUI/bin/Debug/net7.0/Sounds/"
+            };
+            
+            Task.Run(async () =>
+            {
+                _holder.PrepareDirectory();
+                await _holder.LoadSampleList();
+                await _holder.DownloadSamples();
+            }).Wait();
+
+            _holder.LoadSamplesIntoMemory();
+        }
+        
         _encoder = new PcmEncoder(_holder, new EncoderSettings
         {
-            SampleRate = 48000,
+            SampleRate = SampleRate,
             Channels = 2,
-            CutFadeLengthMs = 250,
+            CutFadeLengthMs = 25,
             CombineDelayMs = 0,
-            Resampler = new LinearResampler(),
+            MultithreadingSlices = ThreadCount,
             AddVisualEvents = false
         });
-
-        Task.Run(async () =>
-        {
-            _holder.PrepareDirectory();
-            await _holder.LoadSampleList();
-            await _holder.DownloadSamples();
-        }).Wait();
-
-        _holder.LoadSamplesIntoMemory();
+        
         var stream = GetResource(_sequence_location);
         var reader = new StreamReader(stream);
 
         var sequence_text = reader.ReadToEnd();
         _sequence = Sequence.FromString(sequence_text);
     }
-
-    [Benchmark]
-    public async Task Standard_PCM_Encoder_OneThread()
-    {
-        await _encoder.GetSequenceAudio(_sequence);
-    }
-
+    
     [Benchmark]
     public async Task Standard_PCM_Encoder_NoSave()
     {
         await _encoder.GetSequenceAudio(_sequence);
-    }
-
-    [Benchmark]
-    public async Task Standard_PCM_Encoder_Save()
-    {
-        var sampled = await _encoder.GetSequenceAudio(_sequence);
-        var tmp = Path.GetTempFileName();
-        _encoder.WriteAsWavFile(tmp, sampled);
-
-        Console.WriteLine(tmp);
     }
 }

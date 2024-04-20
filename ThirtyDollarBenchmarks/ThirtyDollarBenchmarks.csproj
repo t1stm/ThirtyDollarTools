@@ -16,12 +16,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Folder Include="Sequences\"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <EmbeddedResource Include="Sequences\particle-accelerator.🗿"/>
         <EmbeddedResource Include="Sequences\sounds.🗿"/>
+        <None Remove="Sequences\another.🗿" />
+        <EmbeddedResource Include="Sequences\another.🗿" />
     </ItemGroup>
 
 </Project>

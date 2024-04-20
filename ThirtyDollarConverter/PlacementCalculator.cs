@@ -83,6 +83,8 @@ public class PlacementCalculator
 
                 var copy = ev.Copy();
                 copy.Volume ??= volume;
+                copy.WorkingVolume = copy.Volume.Value * volume / 100f;
+                
                 copy.Value += transpose;
                 var placement = new Placement
                 {
@@ -171,6 +173,11 @@ public class PlacementCalculator
                     if (ev.PlayTimes > 0)
                     {
                         default_return = false;
+                        ev.PlayTimes--;
+
+                        modify_index = false;
+                        index = loop_target;
+                        
                         yield return new Placement
                         {
                             Index = position,
@@ -178,10 +185,6 @@ public class PlacementCalculator
                             Event = ev.Copy(),
                             Audible = false
                         };
-                        ev.PlayTimes--;
-
-                        modify_index = false;
-                        index = loop_target;
 
                         Untrigger(ref sequence, index, loopmany_untriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");

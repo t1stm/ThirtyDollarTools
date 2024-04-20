@@ -30,6 +30,7 @@ public class NormalEvent : BaseEvent
             OriginalLoop = OriginalLoop,
             PlayTimes = PlayTimes,
             Volume = Volume,
+            WorkingVolume = WorkingVolume,
             ValueScale = ValueScale
         };
     }

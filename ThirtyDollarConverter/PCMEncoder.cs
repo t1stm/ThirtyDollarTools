@@ -182,6 +182,11 @@ public class PcmEncoder
         return mixer.MixDown();
     }
 
+    public void SetMultithreadingSlices(int thread_count)
+    {
+        Settings.MultithreadingSlices = thread_count;
+    }
+
     /// <summary>
     ///     Processes an export channel.
     /// </summary>
@@ -243,7 +248,6 @@ public class PcmEncoder
             var current_event = current.Event;
             var (event_name, event_value, event_volume) = current.Event;
             event_name ??= string.Empty;
-            event_volume ??= 100d;
 
             // get specified event track if exists
             var track_data = mixer.GetTrackOrDefault(event_name);
@@ -325,7 +329,7 @@ public class PcmEncoder
 
             if (delta_end >= mix_slice.Length) delta_end = mix_slice.Length;
 
-            var volume = event_volume.Value;
+            var volume = event_volume;
 
             switch (pan)
             {

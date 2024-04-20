@@ -374,7 +374,7 @@ public class SequencePlayer
             else
                 buffer.SetPan(0f);
 
-            buffer.SetVolume((float)(placement.Event.Volume ?? 100d) / 100f);
+            buffer.SetVolume((float)placement.Event.WorkingVolume / 100f);
             buffer.Play(remove_callback);
             continue;
 

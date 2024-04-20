@@ -33,9 +33,14 @@ public abstract class BaseEvent
     public ValueScale ValueScale;
 
     /// <summary>
-    ///     The volume of the current sample. Null when the sample is following the default sequence volume.
+    ///     The volume scale of the current sample. Null when the sample is following the default sequence volume.
     /// </summary>
     public double? Volume;
+
+    /// <summary>
+    ///     The final volume of the current sample.
+    /// </summary>
+    public double WorkingVolume = 100;
 
     /// <summary>
     ///     A method that gives a copy of the current event with no addresses shared between the two objects.
@@ -49,10 +54,10 @@ public abstract class BaseEvent
         event_value = Value;
     }
 
-    public void Deconstruct(out string? event_name, out double event_value, out double? event_volume)
+    public void Deconstruct(out string? event_name, out double event_value, out double event_volume)
     {
         event_name = SoundEvent;
         event_value = Value;
-        event_volume = Volume;
+        event_volume = WorkingVolume;
     }
 }

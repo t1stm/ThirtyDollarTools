@@ -598,18 +598,19 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     volume_color, volume_font);
             }
 
-            var max_decreasing_event = events.Sequence.Events.Where(r => r.SoundEvent is "!stop" or "!loopmany")
-                .MaxBy(r => r.Value);
+            var decreasing_events = events.Sequence.Events.Where(r => r.SoundEvent is "!stop" or "!loopmany");
 
-            var textures = max_decreasing_event?.Value ?? 0;
-
-            for (var val = (int)textures - 1; val >= 0; val--)
+            foreach (var e in decreasing_events)
             {
-                var search = val.ToString();
-                if (ValueTextCache.ContainsKey(search)) continue;
+                var textures = e.Value;
+                for (var val = textures; val >= 0; val--)
+                {
+                    var search = val.ToString("0.##");
+                    if (ValueTextCache.ContainsKey(search)) continue;
 
-                var texture = new Texture(font, search);
-                ValueTextCache.Add(search, texture);
+                    var texture = new Texture(font, search);
+                    ValueTextCache.Add(search, texture);
+                }
             }
 
             if (!ValueTextCache.ContainsKey("0"))
@@ -774,7 +775,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
             case { SoundEvent: "!volume" }:
             {
-                value += "%";
+                if (ev.ValueScale == ValueScale.None)
+                    value += "%";
                 break;
             }
 
@@ -793,12 +795,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             for (var i = ev.OriginalLoop - 1; i >= 0; i--)
             {
                 var text = i.ToString("0.##");
-                value_text_cache.TryGetValue(text, out value_texture);
-                if (value_texture != null) continue;
+                value_text_cache.TryGetValue(text, out var new_value_texture);
+                if (new_value_texture != null) continue;
 
-                value_texture = new Texture(font, text, volume_color);
+                new_value_texture = new Texture(font, text, volume_color);
                 if (!polluted_value_texture)
-                    value_text_cache.Add(text, value_texture);
+                    value_text_cache.Add(text, new_value_texture);
             }
 
         if (texture == MissingTexture)
