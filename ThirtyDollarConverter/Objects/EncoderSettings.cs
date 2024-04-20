@@ -1,3 +1,4 @@
+using System;
 using ThirtyDollarConverter.Resamplers;
 
 namespace ThirtyDollarConverter.Objects;
@@ -24,7 +25,7 @@ public class EncoderSettings
     /// <summary>
     ///     How many slices to separate the sequence in for multithreading.
     /// </summary>
-    public int MultithreadingSlices = 128;
+    public int MultithreadingSlices = Environment.ProcessorCount * 4;
 
     /// <summary>
     ///     Select the resampler you want to use.
