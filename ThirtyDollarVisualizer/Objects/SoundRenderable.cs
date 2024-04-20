@@ -64,7 +64,8 @@ public class SoundRenderable : TexturedPlane
         if (_event.PlayTimes <= 0)
             texture = value_change_wrap_mode switch
             {
-                ValueChangeWrapMode.ResetToDefault => generated_textures[_event.OriginalLoop.ToString("0.##")],
+                ValueChangeWrapMode.ResetToDefault => 
+                    generated_textures.TryGetValue(_event.OriginalLoop.ToString("0.##"), out var loop_texture) ? loop_texture : Texture.Transparent1x1,
                 _ => null
             };
 
