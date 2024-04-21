@@ -4,15 +4,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:services="clr-namespace:ThirtyDollarGUI.Services"
-        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="640"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="660"
         x:Class="ThirtyDollarGUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/moai.png"
         Title="Thirty Dollar Converter"
-        MinHeight="640"
+        MinHeight="660"
         MinWidth="480"
         Width="480"
-        Height="640"
+        Height="660"
         services:DialogService.Register="{Binding}"
 
         TransparencyLevelHint="AcrylicBlur"
@@ -33,10 +33,12 @@
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
         <StackPanel Margin="20">
-            <TextBlock Margin="0,5">Sequence Location</TextBlock>
+            <TextBlock Margin="0,5">Sequence Location/s</TextBlock>
             <StackPanel>
-                <TextBox Watermark="Choose sequence location..."
-                         Text="{Binding SequenceFileLocation}" />
+                <TextBox Watermark="Choose sequence location/s..." 
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         Text="{Binding SequenceFileLocation}" 
+                         Height="60"/>
                 <Button Content="Select" Margin="0,10" HorizontalAlignment="Right"
                         Command="{Binding Select_SequenceFileLocation}" />
             </StackPanel>

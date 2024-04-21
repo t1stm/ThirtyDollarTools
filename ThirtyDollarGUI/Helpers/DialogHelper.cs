@@ -21,7 +21,7 @@ public static class DialogHelper
         var storage_files = await top_level.StorageProvider.OpenFilePickerAsync(
             new FilePickerOpenOptions
             {
-                AllowMultiple = false,
+                AllowMultiple = true,
                 Title = title ?? "Select a file",
                 FileTypeFilter = file_types
             });

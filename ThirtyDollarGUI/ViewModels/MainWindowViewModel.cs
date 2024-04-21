@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -32,8 +33,8 @@ public class MainWindowViewModel : ViewModelBase
     public bool IsSequenceLocationGood = true;
     private string? log = $"Logs go here...{Environment.NewLine}";
     private int progress_bar_value;
-    private Sequence? sequence;
-    private string? sequence_file_location = "";
+    private Sequence[]? sequences;
+    private string? sequence_file_locations = "";
 
     public MainWindowViewModel()
     {
@@ -43,10 +44,10 @@ public class MainWindowViewModel : ViewModelBase
 
     public string? SequenceFileLocation
     {
-        get => sequence_file_location;
+        get => sequence_file_locations;
         set
         {
-            this.RaiseAndSetIfChanged(ref sequence_file_location, value);
+            this.RaiseAndSetIfChanged(ref sequence_file_locations, value);
             IsSequenceLocationGood = this.RaiseAndSetIfChanged(ref IsSequenceLocationGood,
                 !string.IsNullOrEmpty(value) && File.Exists(value));
             new Task(ReadSequence).Start();
@@ -89,10 +90,16 @@ public class MainWindowViewModel : ViewModelBase
                 Patterns = new[] { "*.*" }
             }
         };
-        var open_file_dialog = await this.OpenFileDialogAsync("Select sequence file.", file_picker_types);
+        var open_file_dialog = await this.OpenFileDialogAsync("Select sequence files.", file_picker_types);
         if (open_file_dialog == null) return;
 
-        SequenceFileLocation = open_file_dialog.FirstOrDefault();
+        var selected_files = open_file_dialog.ToArray();
+        SequenceFileLocation = selected_files.Length switch
+        {
+            > 1 => string.Join(Environment.NewLine, selected_files),
+            1 => selected_files[0],
+            _ => SequenceFileLocation
+        };
     }
 
     public async void Select_ExportFileLocation()
@@ -148,13 +155,21 @@ public class MainWindowViewModel : ViewModelBase
     {
         try
         {
-            if (sequence_file_location == null) return;
-            if (!File.Exists(sequence_file_location)) return;
+            if (sequence_file_locations == null) return;
+            var sequence_locations = sequence_file_locations.Split(Environment.NewLine);
+            var new_sequences = new List<Sequence>();
+            foreach (var sequence_location in sequence_locations)
+            {
+                if (!File.Exists(sequence_location)) return;
 
-            var read = await File.ReadAllTextAsync(sequence_file_location);
-            sequence = Sequence.FromString(read);
+                var read = await File.ReadAllTextAsync(sequence_location);
+                var sequence = Sequence.FromString(read);
+                new_sequences.Add(sequence);
 
-            CreateLog($"Preloaded sequence located in: \'{sequence_file_location}\'");
+                CreateLog($"Preloaded sequence located in: \'{sequence_location}\'");
+            }
+
+            sequences = new_sequences.ToArray();
         }
         catch (Exception e)
         {
@@ -173,9 +188,9 @@ public class MainWindowViewModel : ViewModelBase
 
     public async void StartEncoder()
     {
-        if (sequence == null)
+        if (sequences == null)
         {
-            CreateLog("No export location selected.");
+            CreateLog("No sequences are selected.");
             return;
         }
 
@@ -185,7 +200,7 @@ public class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        if (sequence_file_location == export_file_location)
+        if (sequence_file_locations == export_file_location)
         {
             CreateLog(
                 "The export file location is the same as the sequence's. Adding .wav at the end of the export location.");
@@ -203,7 +218,7 @@ public class MainWindowViewModel : ViewModelBase
         CreateLog("Started encoding.");
         encoder = new PcmEncoder(sample_holder, encoder_settings, CreateLog, UpdateProgressBar);
 
-        await Task.Run(async () => { await EncoderStart(encoder, sequence); });
+        await Task.Run(async () => { await EncoderStart(encoder, sequences); });
     }
 
     public void ExportSettings()
@@ -216,9 +231,9 @@ public class MainWindowViewModel : ViewModelBase
         export_settings.Show();
     }
 
-    private async Task EncoderStart(PcmEncoder pcm_encoder, Sequence localSequence)
+    private async Task EncoderStart(PcmEncoder pcm_encoder, IEnumerable<Sequence> localSequences)
     {
-        var output = await pcm_encoder.GetSequenceAudio(localSequence);
+        var output = await pcm_encoder.GetMultipleSequencesAudio(localSequences);
         CreateLog("Finished encoding.");
 
         pcm_encoder.WriteAsWavFile(export_file_location ?? throw new Exception("Export path is null."), output);
@@ -271,7 +286,7 @@ public class MainWindowViewModel : ViewModelBase
             var start_info = new ProcessStartInfo
             {
                 FileName = visualizer_filename,
-                Arguments = $"-i \"{sequence_file_location}\""
+                Arguments = $"-i \"{sequence_file_locations}\""
             };
 
             Process.Start(start_info);
