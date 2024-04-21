@@ -106,6 +106,7 @@ public class PlacementCalculator
             switch (ev.SoundEvent)
             {
                 case "!speed":
+                {
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Divide:
@@ -124,8 +125,10 @@ public class PlacementCalculator
 
                     Log($"BPM is now: {bpm}");
                     break;
+                }
 
                 case "!volume":
+                {
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Divide:
@@ -141,12 +144,25 @@ public class PlacementCalculator
                             global_volume = ev.Value;
                             break;
                     }
-
+                    
                     if (global_volume < 0) global_volume = 0;
-
+                    default_return = false;
+                    
+                    var copy = ev.Copy();
+                    copy.WorkingVolume = global_volume;
+                    
+                    yield return new Placement
+                    {
+                        Index = position,
+                        SequenceIndex = index,
+                        Event = copy,
+                        Audible = false
+                    };
                     break;
+                }
 
                 case "!stop":
+                {
                     var working_value = ev.Value;
                     while (ev.PlayTimes > 0)
                     {
@@ -170,8 +186,10 @@ public class PlacementCalculator
                     }
 
                     break;
+                }
 
                 case "!loopmany":
+                {
                     if (ev.PlayTimes > 0)
                     {
                         default_return = false;
@@ -194,8 +212,10 @@ public class PlacementCalculator
                     }
 
                     break;
+                }
 
                 case "!loop":
+                {
                     if (!ev.Triggered)
                     {
                         ev.Triggered = true;
@@ -216,8 +236,10 @@ public class PlacementCalculator
                     }
 
                     break;
+                }
 
                 case "!jump":
+                {
                     if (ev.PlayTimes <= 0) break;
                     ev.PlayTimes--;
 
@@ -251,23 +273,29 @@ public class PlacementCalculator
                     Untrigger(ref sequence, index, jump_untriggers);
                     Log($"Jumping to element: ({index}) - {found_event}");
                     break;
+                }
 
                 case "!cut":
+                {
                     audible = true;
                     Log($"Cutting audio at: \'{position + SampleRate / (bpm / 60)}\'");
                     break;
+                }
 
                 case "!looptarget":
+                {
                     loop_target = index;
                     break;
+                }
 
                 case "!target":
                     break;
 
-                case "" or "!volume" or "!flash" or "!bg" or "!combine" or "!startpos":
+                case "" or "!flash" or "!bg" or "!combine" or "!startpos":
                     break;
 
                 case "!transpose":
+                {
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Divide:
@@ -286,8 +314,9 @@ public class PlacementCalculator
 
                     Log($"Transposing samples by: \'{transpose}\'");
                     break;
+                }
             }
-
+            
             if (!scrubbing && default_return)
                 yield return new Placement
                 {
