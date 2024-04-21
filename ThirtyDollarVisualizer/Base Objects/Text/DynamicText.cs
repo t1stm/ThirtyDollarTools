@@ -15,7 +15,8 @@ public class DynamicText : Renderable, IText
 
     private string _value = string.Empty;
     private TexturedPlane[] TexturedPlanes = Array.Empty<TexturedPlane>();
-
+    private readonly HashSet<int> NewLineIndices = new();
+        
     public string Value
     {
         get => _value;
@@ -45,6 +46,7 @@ public class DynamicText : Renderable, IText
 
     protected void SetTextTextures(string text)
     {
+        NewLineIndices.Clear();
         var cache = Fonts.GetCharacterCache();
         var textures_array = new Texture[text.Length];
         var real_i = 0;
@@ -60,6 +62,8 @@ public class DynamicText : Renderable, IText
                 continue;
             }
 
+            if (c == '\n') NewLineIndices.Add(real_i);
+            
             textures_array[real_i++] = cache.Get(c, _font_size_px, FontStyle);
         }
 
@@ -86,11 +90,10 @@ public class DynamicText : Renderable, IText
             for (var i = 0; i < textures.Length; i++)
             {
                 var texture = textures[i];
-                var character = text[i];
                 var w = texture.Width;
                 var h = texture.Height;
 
-                if (character == '\n')
+                if (NewLineIndices.Contains(i))
                 {
                     y += FontSizePx;
                     x = start_X;
