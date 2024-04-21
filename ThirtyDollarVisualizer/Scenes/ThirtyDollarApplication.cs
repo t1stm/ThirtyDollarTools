@@ -21,7 +21,6 @@ namespace ThirtyDollarVisualizer.Scenes;
 
 public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
-    private const int TimingSampleRate = 100_000;
     private static Texture? MissingTexture;
     private static Texture? ICutTexture;
     private readonly Stopwatch _file_update_stopwatch = new();
