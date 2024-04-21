@@ -40,19 +40,46 @@ public class PlacementCalculator
     private bool AddVisualTimings { get; }
 
     /// <summary>
+    ///     Calculates the placement of multiple sequences.
+    /// </summary>
+    /// <param name="sequences">The sequences you want to calculate.</param>
+    /// <returns>The calculated single placement.</returns>
+    /// <exception cref="Exception">Exception thats thrown when a sequence has a problem.</exception>
+    public IEnumerable<Placement> CalculateMany(IEnumerable<Sequence> sequences)
+    {
+        var list = new List<Placement>();
+        
+        var last_end_index = 0ul;
+        foreach (var sequence in sequences)
+        {
+            var calculated = last_end_index == 0ul ? 
+                CalculateOne(sequence) : 
+                CalculateOne(sequence, last_end_index);
+            
+            var placements = calculated.ToList();
+            var last = placements.Last();
+            last_end_index = last.Index;
+            list.AddRange(placements);
+        }
+
+        return list;
+    }
+
+    /// <summary>
     ///     Calculates the placement of a sequence.
     /// </summary>
     /// <param name="sequence">The sequence you want to calculate.</param>
+    /// <param name="start_time">Optional start time offset.</param>
     /// <returns>The calculated placement.</returns>
     /// <exception cref="Exception">Exception thats thrown when the sequence has a problem.</exception>
-    public IEnumerable<Placement> Calculate(Sequence sequence)
+    public IEnumerable<Placement> CalculateOne(Sequence sequence, ulong? start_time = null)
     {
         if (sequence == null) throw new Exception("Null Sequence");
         var bpm = 300.0;
         var transpose = 0.0;
         var global_volume = 100.0;
         var count = (ulong)sequence.Events.LongLength;
-        var position = (ulong)(SampleRate / (bpm / 60));
+        var position = start_time ?? (ulong)(SampleRate / (bpm / 60));
 
         // I have given up on reverse engineering my own parser.
         // Here goes GD Colon's code.
@@ -328,6 +355,14 @@ public class PlacementCalculator
             if (modify_index) index++;
             if (!scrubbing && increment_timer) position += (ulong)(SampleRate / (bpm / 60));
         }
+        
+        yield return new Placement
+        {
+            Index = position,
+            SequenceIndex = index,
+            Event = new EndEvent(),
+            Audible = false
+        };
     }
 
     /// <summary>

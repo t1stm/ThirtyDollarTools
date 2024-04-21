@@ -55,6 +55,30 @@ public class PcmEncoder
     private Action<string> Log { get; }
     private Action<ulong, ulong> IndexReport { get; }
     private PlacementCalculator PlacementCalculator { get; }
+    
+    /// <summary>
+    ///     This method starts the encoding process for multiple sequences to be combined.
+    /// </summary>
+    /// <param name="sequences">The sequences you want to encode.</param>
+    /// <returns>An AudioData object that stores the encoded audio.</returns>
+    public async Task<AudioData<float>> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences)
+    {
+        var placement = PlacementCalculator.CalculateMany(sequences);
+        var placement_array = placement.ToArray();
+
+        var timed_events = new TimedEvents
+        {
+            Sequence = new Sequence(),
+            Placement = placement_array,
+            TimingSampleRate = (int)SampleRate
+        };
+
+        var processed_events = await GetAudioSamples(timed_events);
+
+        Log("Constructing audio.");
+        var audioData = await GenerateAudioData(timed_events, processed_events);
+        return audioData;
+    }
 
     /// <summary>
     ///     This method starts the encoding process.
@@ -64,7 +88,7 @@ public class PcmEncoder
     public async Task<AudioData<float>> GetSequenceAudio(Sequence sequence)
     {
         var copy = sequence.Copy(); // To avoid making any changes to the original sequence.
-        var placement = PlacementCalculator.Calculate(copy);
+        var placement = PlacementCalculator.CalculateOne(copy);
         var placement_array = placement.ToArray();
 
         var timed_events = new TimedEvents
