@@ -22,6 +22,8 @@ public abstract class ThirtyDollarWorkflow
         TimingSampleRate = 100_000
     };
 
+    protected Placement[] ExtractedSpeedEvents = Array.Empty<Placement>();
+
     public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? logging_action = null)
     {
         SequencePlayer = new SequencePlayer(context);
@@ -84,6 +86,11 @@ public abstract class ThirtyDollarWorkflow
     /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
     public virtual async Task UpdateSequence(Sequence sequence, bool restart_player = true)
     {
+        lock (ExtractedSpeedEvents)
+        {
+            ExtractedSpeedEvents = Array.Empty<Placement>();
+        }
+        
         const int update_rate = 100_000;
         _sequence_location = null;
 
@@ -96,7 +103,7 @@ public abstract class ThirtyDollarWorkflow
             AddVisualEvents = true
         });
 
-        var placement = calculator.Calculate(sequence).ToArray();
+        var placement = calculator.CalculateOne(sequence).ToArray();
         TimedEvents.TimingSampleRate = update_rate;
         TimedEvents.Placement = placement;
         TimedEvents.Sequence = sequence;
@@ -130,11 +137,20 @@ public abstract class ThirtyDollarWorkflow
             var sample = audio_context.GetBufferObject(val.AudioData, audio_context.SampleRate);
             buffer_holder.ProcessedBuffers.Add((name, value), sample);
         }
-
+        
+        _ = Task.Run(UpdateExtractedSpeedEvents);
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents);
 
         if (restart_player)
             await SequencePlayer.Start();
+    }
+
+    private void UpdateExtractedSpeedEvents()
+    {
+        lock (ExtractedSpeedEvents)
+        {
+            ExtractedSpeedEvents = TimedEvents.Placement.Where(p => p.Event.SoundEvent is "!speed").ToArray();
+        }
     }
 
     /// <summary>
@@ -155,6 +171,13 @@ public abstract class ThirtyDollarWorkflow
     protected virtual void HandleIfSequenceUpdate()
     {
         if (_sequence_location == null) return;
+        if (!File.Exists(_sequence_location))
+        {
+            _sequence_location = null;
+            Log("Current sequence files was moved or deleted. Disabling hot-reloading.");
+            return;
+        }
+        
         var modify_time = File.GetLastWriteTime(_sequence_location);
 
         if (_sequence_date_modified == modify_time) return;
