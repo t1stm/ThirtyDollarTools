@@ -31,6 +31,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         FontStyle = FontStyle.Bold
     };
 
+    private readonly DynamicText _debug_text = new()
+    {
+        FontStyle = FontStyle.Bold
+    };
+
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_delay_stopwatch = new();
 
@@ -114,6 +119,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public float Zoom { get; set; } = 1f;
     public float Scale { get; set; } = 1f;
     public string? Greeting { get; set; }
+    public bool Debug { get; set; }
+    private double SequenceVolume { get; set; }
 
     /// <summary>
     ///     This method loads the sequence, textures and sounds.
@@ -213,6 +220,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _log_text.SetPosition((20, 20, 0));
         _log_text.SetFontSize(48f);
         _log_text.FontStyle = FontStyle.Bold;
+        
+        _debug_text.SetPosition((10,30,0));
 
         text_objects.Add(_log_text);
         text_objects.Add(_update_text);
@@ -353,6 +362,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         foreach (var renderable in start_objects) RenderRenderable(renderable);
 
         foreach (var renderable in text_objects) renderable.Render(TextCamera);
+        if (Debug) _debug_text.Render(TextCamera);
 
         return;
 
@@ -380,6 +390,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (_file_update_stopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
         Camera.Update();
+        if (Debug)
+        {
+            RunDebugUpdate();
+        }
+        
         if (BackingAudio is null) return;
 
         var stopwatch = SequencePlayer.GetTimingStopwatch();
@@ -421,6 +436,19 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
     }
 
+    private static string TimeString(long milliseconds)
+    {
+        var timespan = TimeSpan.FromMilliseconds(milliseconds);
+        var format = "";
+
+        if (timespan.Hours > 0)
+            format += @"hh\:";
+    
+        format += @"mm\:ss\.ff";
+
+        return timespan.ToString(format);
+    }
+    
     public virtual async void Keyboard(KeyboardState state)
     {
         const int seek_length = 1000;
@@ -464,7 +492,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 var key = (Keys)((int)Keys.D0 + i);
                 if (!state.IsKeyPressed(key)) continue;
                 var bookmark_time = SequencePlayer.SetBookmark(i);
-                SetStatusMessage($"[Playback] Setting Bookmark {i} To: {bookmark_time}ms");
+                SetStatusMessage($"[Playback] Setting Bookmark {i} To: {TimeString(bookmark_time)}");
             }
 
             if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
@@ -478,6 +506,16 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 RestartSeekTimer();
                 HandleZoomControl(-1);
             }
+            
+            if (state.IsKeyPressed(Keys.D))
+            {
+                Debug = !Debug;
+                SetStatusMessage(Debug switch
+                {
+                    true => "[Debug]: Enabled",
+                    false => "[Debug]: Disabled"
+                });
+            }
         }
         else
         {
@@ -486,7 +524,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 var key = (Keys)((int)Keys.D0 + i);
                 if (!state.IsKeyPressed(key)) continue;
                 var time = await SequencePlayer.SeekToBookmark(i);
-                SetStatusMessage($"[Playback] Seeking To Bookmark {i}: {time}ms");
+                SetStatusMessage($"[Playback] Seeking To Bookmark {i}: {TimeString(time)}");
             }
         }
 
@@ -496,29 +534,37 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (state.IsKeyDown(Keys.Left) && IsSeekTimeoutPassed())
         {
             RestartSeekTimer();
-            var change = elapsed - seek_length;
+            var seek = seek_length;
+            if (state.IsKeyDown(Keys.LeftShift) || state.IsKeyDown(Keys.RightShift))
+            {
+                seek /= 10;
+                if (state.IsKeyDown(Keys.LeftControl) || state.IsKeyDown(Keys.RightControl))
+                {
+                    seek /= 10;
+                }
+            }
+            var change = elapsed - seek;
 
-            var (placement, i) = TimedEvents.Placement.Select((placement, i) => (placement, i))
-                .MinBy(stack => Math.Abs((long)stack.placement.Index * 1000 / TimingSampleRate - change));
-            var placement_index = placement?.Index ?? 0;
-
-            var ms = (long)placement_index * 1000 / TimingSampleRate;
-            SetStatusMessage($"[Playback]: Seeking To: {ms}ms");
-            await SequencePlayer.Seek(ms);
+            SetStatusMessage($"[Playback]: Seeking To: {TimeString(change)}");
+            await SequencePlayer.Seek(change);
         }
 
         if (state.IsKeyDown(Keys.Right) && IsSeekTimeoutPassed())
         {
             RestartSeekTimer();
-            var change = elapsed + seek_length;
+            var seek = seek_length;
+            if (state.IsKeyDown(Keys.LeftShift) || state.IsKeyDown(Keys.RightShift))
+            {
+                seek /= 10;
+                if (state.IsKeyDown(Keys.LeftControl) || state.IsKeyDown(Keys.RightControl))
+                {
+                    seek /= 10;
+                }
+            }
+            var change = elapsed + seek;
 
-            var (placement, i) = TimedEvents.Placement.Select((placement, i) => (placement, i))
-                .MinBy(stack => Math.Abs((long)stack.placement.Index * 1000 / TimingSampleRate - change));
-            var placement_index = placement?.Index ?? 0;
-
-            var ms = (long)placement_index * 1000 / TimingSampleRate;
-            SetStatusMessage($"[Playback]: Seeking To: {ms}ms");
-            await SequencePlayer.Seek(ms);
+            SetStatusMessage($"[Playback]: Seeking To: {TimeString(change)}");
+            await SequencePlayer.Seek(change);
         }
 
         if (state.IsKeyDown(Keys.Up) && IsSeekTimeoutPassed(7))
@@ -627,6 +673,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Manager.RenderBlock.Wait(Token);
         TDW_images = tdw_images;
         Manager.RenderBlock.Release();
+        SequenceVolume = 100;
     }
 
     protected override void SetSequencePlayerSubscriptions(SequencePlayer player)
@@ -639,7 +686,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         player.SubscribeActionToEvent("!loopmany", LoopManyEventHandler);
         player.SubscribeActionToEvent("!stop", StopEventHandler);
         player.SubscribeActionToEvent("!divider", DividerEventHandler);
+        player.SubscribeActionToEvent("!volume", VolumeEventHandler);
     }
+    
 
     protected void SetStatusMessage(string message, int hide_after_ms = 2000)
     {
@@ -987,6 +1036,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             ValueScale.None => val,
             ValueScale.Add => LastBPM + val,
             ValueScale.Times => LastBPM * val,
+            ValueScale.Divide => LastBPM / val,
 
             _ => LastBPM
         };
@@ -1040,6 +1090,110 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private void DividerEventHandler(Placement placement, int index)
     {
         LastDividerIndex = placement.SequenceIndex;
+    }
+    
+    private void VolumeEventHandler(Placement placement, int index)
+    {
+        SequenceVolume = placement.Event.WorkingVolume;
+    }
+
+    private void RunDebugUpdate()
+    {
+        // define values used in generating the debug string.
+        var bpm = 300f;
+        var elapsed_milliseconds = SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
+        var current_note = "None";
+        var current_note_idx = 0;
+        
+        var next_note = "None";
+        var next_note_idx = 0;
+        var next_beat_ms = 0f;
+        var beats_to_next_beat = 0f;
+        
+        var fps = (int)(1 / Manager.UpdateTime);
+        var volume = SequenceVolume;
+        
+        // remove full path from sequence filename.
+        var sequence_location = _sequence_location ?? "None";
+        var folder_index = sequence_location.LastIndexOf(Path.DirectorySeparatorChar);
+        if (folder_index != -1)
+        {
+            var temp_idx = folder_index + 1;
+            if (temp_idx < sequence_location.Length)
+                sequence_location = sequence_location[temp_idx..];
+        }
+        
+        // get current info.
+        var current_index = Math.Max(0, SequencePlayer.PlacementIndex - 1);
+        var placement_length = TimedEvents.Placement.Length;
+        
+        // get accurate bpm info.
+        foreach (var ev in ExtractedSpeedEvents)
+        {
+            if (ev.Index >= (ulong) elapsed_milliseconds / 1000f * TimedEvents.TimingSampleRate) break;
+            var val = (float) ev.Event.Value;
+
+            bpm = ev.Event.ValueScale switch
+            {
+                ValueScale.None => val,
+                ValueScale.Add => bpm + val,
+                ValueScale.Times => bpm * val,
+                ValueScale.Divide => bpm / val,
+
+                _ => bpm
+            };
+        }
+        
+        // get next note info.
+        if (current_index < placement_length)
+        {
+            var normalized_time = elapsed_milliseconds / 1000f * TimedEvents.TimingSampleRate;
+            var current_placement = TimedEvents.Placement[current_index];
+            
+            current_note_idx = (int)current_placement.SequenceIndex;
+            current_note = current_placement.Event.SoundEvent ?? current_note;
+            var current_time = current_placement.Index;
+
+            for (var i = current_index; i < TimedEvents.Placement.Length; i++)
+            {
+                var i_placement = TimedEvents.Placement[i];
+                var i_time = i_placement.Index;
+                if (i_time == current_time) continue;
+
+                var is_timing_event = !(i_placement.Audible && i_placement.Event.SoundEvent switch
+                {
+                    "!cut" => false,
+                    "_pause" => false,
+                    "!stop" => false,
+                    "#icut" => false,
+                    _ => true
+                });
+                
+                if (is_timing_event) continue;
+                
+                next_note = i_placement.Event.SoundEvent;
+                next_note_idx = (int)i_placement.SequenceIndex;
+                next_beat_ms = (i_time - normalized_time) / 100f;
+                beats_to_next_beat = next_beat_ms / 1000f * (bpm / 60f);
+                break;
+            }
+        }
+        
+        // generate debug string.
+        _debug_text.SetTextContents(
+            $"""
+             [Debug]
+             FPS: {fps}
+
+             Sequence: {sequence_location}
+             BPM: {bpm}
+             Time: {TimeString(elapsed_milliseconds)}
+             Volume: {volume:0.##}%
+
+             Current ({current_note_idx}): {current_note}
+             Next ({next_note_idx}): {next_note}
+             In: {next_beat_ms:0.##ms} / {beats_to_next_beat:0.##} beats
+             """);
     }
 
     private Vector3 UpdateStaticRenderables(int w, int h, float scale)
