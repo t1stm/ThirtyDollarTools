@@ -89,7 +89,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
             HandleBufferOverflow();
         }
 
-        if (_volume < 0.01f) return;
+        if (_volume < 0.001f) return;
 
         var channel = Bass.SampleGetChannel(SampleHandle);
         if (Math.Abs(_pan - 0.5f) > 0.01f)
