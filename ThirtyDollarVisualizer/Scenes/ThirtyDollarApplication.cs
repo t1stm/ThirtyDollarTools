@@ -543,7 +543,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     seek /= 10;
                 }
             }
-            var change = elapsed - seek;
+            var change = Math.Max(elapsed - seek, 0);
 
             SetStatusMessage($"[Playback]: Seeking To: {TimeString(change)}");
             await SequencePlayer.Seek(change);
