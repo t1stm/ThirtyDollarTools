@@ -92,8 +92,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         if (e.FileNames.Length < 1) return;
 
         foreach (var scene in Scenes)
-        foreach (var file in e.FileNames)
-            scene.FileDrop(file);
+            scene.FileDrop(e.FileNames);
+            
     }
 
     protected override void OnClosing(CancelEventArgs e)

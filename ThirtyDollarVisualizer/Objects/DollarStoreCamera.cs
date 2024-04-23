@@ -31,6 +31,12 @@ public sealed class DollarStoreCamera : Camera
         _virtualPosition = position;
     }
 
+    public void SetPosition(Vector3 position)
+    {
+        _virtualPosition = position;
+        _position = position;
+    }
+
     public void ScrollDelta(Vector3 delta)
     {
         _virtualPosition += delta;

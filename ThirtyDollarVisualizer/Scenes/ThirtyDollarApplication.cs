@@ -79,7 +79,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int LeftMargin;
     private Manager Manager = null!;
     private int PlayfieldWidth;
-    protected Memory<SoundRenderable?> TDW_images;
+    protected Memory<SoundRenderable>[] TDW_images = Array.Empty<Memory<SoundRenderable>>();
+    public int CurrentSequence;
 
     private int Width;
 
@@ -88,14 +89,14 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// </summary>
     /// <param name="width">The width of the visualizer.</param>
     /// <param name="height">The height of the visualizer.</param>
-    /// <param name="sequenceLocation">The location of the sequence.</param>
+    /// <param name="sequence_locations">The location of the sequence.</param>
     /// <param name="audio_context">The audio context the application will use.</param>
-    public ThirtyDollarApplication(int width, int height, string? sequenceLocation,
+    public ThirtyDollarApplication(int width, int height, IEnumerable<string?> sequence_locations,
         AudioContext? audio_context = null) : base(audio_context)
     {
         Width = width;
         Height = height;
-        _sequence_location = sequenceLocation;
+        Sequences = GetSequenceInfos(sequence_locations);
 
         Camera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height));
         StaticCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height));
@@ -195,7 +196,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     """
         }.WithPosition((10, 0f, 0));
 
-        const string version_string = "1.0.2";
+        const string version_string = "1.1.1";
         var text = new StaticText
         {
             FontStyle = FontStyle.Bold,
@@ -241,12 +242,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             start_objects.Add(_drag_n_drop);
             _drag_n_drop.UpdateModel(false);
         }
-
-        if (_sequence_location == null) return;
+        
+        if (Sequences.Length < 1) return;
 
         try
         {
-            UpdateSequence(_sequence_location).GetAwaiter().GetResult();
+            UpdateSequences(Sequences.Select(s => s.FileLocation).ToArray()).GetAwaiter().GetResult();
         }
         catch (Exception e)
         {
@@ -294,10 +295,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         Task.Run(() =>
         {
-            foreach (var image in TDW_images.Span)
+            if (TDW_images.Length < 1) return;
+            foreach (var image in TDW_images[CurrentSequence].Span)
             {
-                if (image is null) continue;
-
                 if (CurrentResizeFrame != current_update) break;
 
                 var original_offset = image.GetTranslation();
@@ -313,7 +313,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public void Start()
     {
-        if (_sequence_location == null) return;
+        if (Sequences.Length < 1) return;
         SequencePlayer.Stop().GetAwaiter().GetResult();
         SequencePlayer.Start().GetAwaiter().GetResult();
     }
@@ -343,20 +343,23 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         var padding_rows = repeats_renderable * 2;
         var dividers_size = size_renderable * DividerCount;
-        var tdw_span = TDW_images.Span;
 
-        var start = (int)Math.Max(0, repeats_renderable * (camera_y / size_renderable) - dividers_size - padding_rows);
-
-        var end = (int)Math.Min(TDW_images.Length,
-            repeats_renderable * (camera_y / size_renderable) +
-            repeats_renderable * ((Height + height_scale) / size_renderable / clamped_scale) +
-            padding_rows);
-
-        for (var i = start; i < end; i++)
+        if (TDW_images.Length > 0)
         {
-            var renderable = tdw_span[i];
-            if (renderable is null) continue;
-            RenderRenderable(renderable);
+            var tdw_span = TDW_images[CurrentSequence].Span;
+
+            var start = (int)Math.Max(0, repeats_renderable * (camera_y / size_renderable) - dividers_size - padding_rows);
+
+            var end = (int)Math.Min(tdw_span.Length,
+                repeats_renderable * (camera_y / size_renderable) +
+                repeats_renderable * ((Height + height_scale) / size_renderable / clamped_scale) +
+                padding_rows);
+
+            for (var i = start; i < end; i++)
+            {
+                var renderable = tdw_span[i];
+                RenderRenderable(renderable);
+            }
         }
 
         foreach (var renderable in start_objects) RenderRenderable(renderable);
@@ -390,11 +393,33 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (_file_update_stopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
         Camera.Update();
+        if (TimedEvents.Placement.Length > 1)
+        {
+            var old_sequence = CurrentSequence;
+            var index = SequencePlayer.PlacementIndex;
+            if (index < TimedEvents.Placement.Length)
+            {
+                CurrentSequence = SequenceIndices.GetIndexFromTime(TimedEvents.Placement[index].Index);
+            }
+            
+            if (old_sequence != CurrentSequence)
+            {
+                SequenceVolume = 100d;
+                LastBPM = 300;
+                ColorTools.ChangeColor(_background,new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.2f).GetAwaiter();
+            }
+            
+            if (old_sequence < CurrentSequence)
+            {
+                Camera.SetPosition((0,-300,0));
+            }
+        }
+
         if (Debug)
         {
             RunDebugUpdate();
         }
-        
+
         if (BackingAudio is null) return;
 
         var stopwatch = SequencePlayer.GetTimingStopwatch();
@@ -407,15 +432,22 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         SequencePlayer.Stop().GetAwaiter().GetResult();
     }
 
-    public void FileDrop(string? location)
+    public void FileDrop(string?[] locations)
     {
-        if (location?.EndsWith(".wav") ?? false)
+        switch (locations.Length)
         {
-            UpdateBackingTrack(location);
-            return;
+            case < 1:
+                return;
+            case 1:
+                if (locations[0]?.EndsWith(".wav") ?? false)
+                {
+                    UpdateBackingTrack(locations[0]!);
+                    return;
+                }
+                break;
         }
 
-        FileDrop(location, true);
+        FileDrop(locations, true);
     }
 
     public virtual void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
@@ -582,11 +614,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         if (!state.IsKeyPressed(Keys.R)) return;
-        FileDrop(_sequence_location, true);
+        FileDrop(Sequences.Select(s => s.FileLocation).ToArray(), true);
     }
 
     protected override void HandleAfterSequenceLoad(TimedEvents events)
     {
+        CurrentSequence = 0;
         foreach (var renderable in start_objects) renderable.IsVisible = false;
 
         if (_controls_text != null && _version_text != null)
@@ -599,12 +632,17 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         ColorTools.ChangeColor(_background, new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.66f).GetAwaiter();
         DividerCount = 0;
 
-        var tdw_images = new SoundRenderable?[events.Sequence.Events.Length];
+        var sequences_count = events.Sequences.Length;
+        var tdw_images = new SoundRenderable[sequences_count][];
+        for (var index = 0; index < tdw_images.Length; index++)
+        {
+            var sequence = events.Sequences[index];
+            tdw_images[index] = new SoundRenderable[sequence.Events.Length];
+        }
+
         var font_family = Fonts.GetFontFamily();
 
         CreationLeftMargin = LeftMargin;
-        var flex_box = new FlexBox(new Vector2i(LeftMargin + 7, 0),
-            new Vector2i(PlayfieldWidth + MarginBetweenRenderables, Height), MarginBetweenRenderables);
         var wh = new Vector2i(RenderableSize, RenderableSize);
 
         _texture_cache = new Dictionary<string, Texture>();
@@ -632,30 +670,37 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         try
         {
-            for (var i = 0; i < events.Sequence.Events.Length; i++)
+            for (var index = 0; index < events.Sequences.Length; index++)
             {
-                var ev = events.Sequence.Events[i];
-                if (string.IsNullOrEmpty(ev.SoundEvent) ||
-                    (ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent) || ev is IHiddenEvent)
-                    continue;
-
-                CreateEventRenderable(tdw_images, i, ev, _texture_cache, wh, flex_box,
-                    ValueTextCache, _volume_text_cache, font,
-                    volume_color, volume_font);
-            }
-
-            var decreasing_events = events.Sequence.Events.Where(r => r.SoundEvent is "!stop" or "!loopmany");
-
-            foreach (var e in decreasing_events)
-            {
-                var textures = e.Value;
-                for (var val = textures; val >= 0; val--)
+                var flex_box = new FlexBox(new Vector2i(LeftMargin + 7, 0),
+                    new Vector2i(PlayfieldWidth + MarginBetweenRenderables, Height), MarginBetweenRenderables);
+                
+                var sequence = events.Sequences[index];
+                for (var i = 0; i < sequence.Events.Length; i++)
                 {
-                    var search = val.ToString("0.##");
-                    if (ValueTextCache.ContainsKey(search)) continue;
+                    var ev = sequence.Events[i];
+                    if (string.IsNullOrEmpty(ev.SoundEvent) ||
+                        (ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent) || ev is IHiddenEvent)
+                        continue;
 
-                    var texture = new Texture(font, search);
-                    ValueTextCache.Add(search, texture);
+                    CreateEventRenderable(tdw_images[index], i, ev, _texture_cache, wh, flex_box,
+                        ValueTextCache, _volume_text_cache, font,
+                        volume_color, volume_font);
+                }
+
+                var decreasing_events = sequence.Events.Where(r => r.SoundEvent is "!stop" or "!loopmany");
+
+                foreach (var e in decreasing_events)
+                {
+                    var textures = e.Value;
+                    for (var val = textures; val >= 0; val--)
+                    {
+                        var search = val.ToString("0.##");
+                        if (ValueTextCache.ContainsKey(search)) continue;
+
+                        var texture = new Texture(font, search);
+                        ValueTextCache.Add(search, texture);
+                    }
                 }
             }
 
@@ -671,7 +716,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         Manager.RenderBlock.Wait(Token);
-        TDW_images = tdw_images;
+        TDW_images = tdw_images.Select(i => i.AsMemory()).ToArray();
         Manager.RenderBlock.Release();
         SequenceVolume = 100;
     }
@@ -972,18 +1017,18 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         DividerCount++;
     }
 
-    private SoundRenderable? GetRenderable(Placement placement)
+    private SoundRenderable? GetRenderable(Placement placement, int sequence_index)
     {
-        var len = TDW_images.Length;
+        var len = TDW_images[sequence_index].Length;
         var placement_idx = (int)placement.SequenceIndex;
-        var element = placement_idx >= len || placement_idx < 0 ? null : TDW_images.Span[placement_idx];
+        var element = placement_idx >= len || placement_idx < 0 ? null : TDW_images[CurrentSequence].Span[placement_idx];
 
         return element;
     }
 
-    private void CameraBoundsCheck(Placement placement)
+    private void CameraBoundsCheck(Placement placement, int sequence_index)
     {
-        var element = GetRenderable(placement);
+        var element = GetRenderable(placement, sequence_index);
         if (element == null) return;
 
         var position = element.GetPosition() + element.GetTranslation();
@@ -1012,9 +1057,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void NormalSubscription(Placement placement, int index)
     {
-        var element = GetRenderable(placement);
+        var element = GetRenderable(placement, index);
         if (element == null) return;
-        CameraBoundsCheck(placement);
+        CameraBoundsCheck(placement, index);
 
         if ((placement.Event.SoundEvent?.StartsWith('!') ?? false) || placement.Event is ICustomActionEvent)
         {
@@ -1077,13 +1122,13 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void LoopManyEventHandler(Placement placement, int index)
     {
-        var element = GetRenderable(placement);
+        var element = GetRenderable(placement, index);
         element?.SetValue(placement.Event, ValueTextCache, ValueChangeWrapMode.RemoveTexture);
     }
 
     private void StopEventHandler(Placement placement, int index)
     {
-        var element = GetRenderable(placement);
+        var element = GetRenderable(placement, index);
         element?.SetValue(placement.Event, ValueTextCache, ValueChangeWrapMode.ResetToDefault);
     }
 
@@ -1114,7 +1159,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var volume = SequenceVolume;
         
         // remove full path from sequence filename.
-        var sequence_location = _sequence_location ?? "None";
+        var sequence_location = "None";
+        if (Sequences.Length > 0)
+        {
+            sequence_location = Sequences[CurrentSequence].FileLocation;
+        }
+        
         var folder_index = sequence_location.LastIndexOf(Path.DirectorySeparatorChar);
         if (folder_index != -1)
         {
@@ -1185,7 +1235,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
              [Debug]
              FPS: {fps}
 
-             Sequence: {sequence_location}
+             Sequence ({CurrentSequence + 1} - {Sequences.Length}): {sequence_location}
              BPM: {bpm}
              Time: {TimeString(elapsed_milliseconds)}
              Volume: {volume:0.##}%
@@ -1236,20 +1286,19 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         BackingAudio.Play();
     }
 
-    private void FileDrop(string? location, bool reset_time)
+    private void FileDrop(string?[] location, bool reset_time)
     {
         _reset_time = reset_time;
         Camera.ScrollTo((0, -300, 0));
-
-        var old_location = _sequence_location;
-        if (location is null) return;
+        
+        if (location.Length < 1) return;
 
         Task.Run(async () =>
         {
             _log_text.SetTextContents("Loading...");
             try
             {
-                await UpdateSequence(location, old_location != location || reset_time);
+                await UpdateSequences(location, reset_time);
             }
             catch (Exception e)
             {

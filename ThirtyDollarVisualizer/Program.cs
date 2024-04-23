@@ -78,7 +78,7 @@ public static class Program
 
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
 
-        var tdw_application = new ThirtyDollarApplication(width, height, sequence, audio_context)
+        var tdw_application = new ThirtyDollarApplication(width, height, new [] { sequence }, audio_context)
         {
             CameraFollowMode = follow_mode,
             Scale = scale ?? 1f,
