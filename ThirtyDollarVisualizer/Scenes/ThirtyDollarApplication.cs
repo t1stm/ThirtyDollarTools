@@ -120,7 +120,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public float Zoom { get; set; } = 1f;
     public float Scale { get; set; } = 1f;
     public string? Greeting { get; set; }
-    public bool Debug { get; set; }
     private double SequenceVolume { get; set; }
 
     /// <summary>
@@ -615,7 +614,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         if (!state.IsKeyPressed(Keys.R)) return;
-        FileDrop(Sequences.Select(s => s.FileLocation).ToArray(), true);
+        FileDrop(Sequences.Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
     }
 
     protected override void HandleAfterSequenceLoad(TimedEvents events)
@@ -1290,19 +1289,19 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         BackingAudio.Play();
     }
 
-    private void FileDrop(string?[] location, bool reset_time)
+    private void FileDrop(IReadOnlyCollection<string?> locations, bool reset_time)
     {
         _reset_time = reset_time;
         Camera.ScrollTo((0, -300, 0));
         
-        if (location.Length < 1) return;
+        if (locations.Count < 1) return;
 
         Task.Run(async () =>
         {
             _log_text.SetTextContents("Loading...");
             try
             {
-                await UpdateSequences(location, reset_time);
+                await UpdateSequences(locations.Where(File.Exists).ToArray(), reset_time);
             }
             catch (Exception e)
             {

@@ -16,6 +16,7 @@ public abstract class ThirtyDollarWorkflow
     protected SampleHolder? SampleHolder;
     protected SequenceInfo[] Sequences = Array.Empty<SequenceInfo>();
     protected SequenceIndices SequenceIndices = new();
+    protected bool Debug;
 
     protected TimedEvents TimedEvents = new()
     {
@@ -76,16 +77,14 @@ public abstract class ThirtyDollarWorkflow
         var sequence_array = new Sequence[locations.Length];
         var i = 0;
         Sequences = GetSequenceInfos(locations);
-        
+
         foreach (var sequence_info in Sequences)
         {
-            if (!File.Exists(sequence_info.FileLocation)) continue;
             var read = await File.ReadAllTextAsync(sequence_info.FileLocation);
             var sequence = Sequence.FromString(read);
-
             sequence_array[i++] = sequence;
         }
-        
+
         await UpdateSequences(sequence_array, restart_player);
     }
 
@@ -100,7 +99,7 @@ public abstract class ThirtyDollarWorkflow
         {
             ExtractedSpeedEvents = Array.Empty<Placement>();
         }
-        
+
         const int update_rate = 100_000;
 
         if (restart_player)
@@ -111,7 +110,7 @@ public abstract class ThirtyDollarWorkflow
             SampleRate = update_rate,
             AddVisualEvents = true
         });
-        
+
         var placement = calculator.CalculateMany(sequences).ToArray();
         SequenceIndices = GenerateSequenceIndexes(placement);
         TimedEvents.TimingSampleRate = update_rate;
@@ -147,7 +146,7 @@ public abstract class ThirtyDollarWorkflow
             var sample = audio_context.GetBufferObject(val.AudioData, audio_context.SampleRate);
             buffer_holder.ProcessedBuffers.Add((name, value), sample);
         }
-        
+
         _ = Task.Run(UpdateExtractedSpeedEvents);
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents, SequenceIndices);
 
@@ -155,7 +154,7 @@ public abstract class ThirtyDollarWorkflow
             await SequencePlayer.Start();
     }
 
-    protected static SequenceIndices GenerateSequenceIndexes (IEnumerable<Placement> placements)
+    protected static SequenceIndices GenerateSequenceIndexes(IEnumerable<Placement> placements)
     {
         var ends = placements.Where(p => p.Event is EndEvent)
             .Select((end, i) => (end.Index, i))
@@ -202,5 +201,21 @@ public abstract class ThirtyDollarWorkflow
     protected virtual void HandleIfSequenceUpdate()
     {
         if (Sequences.Length < 1) return;
+        if (!(from sequence_info in Sequences
+                let filename = sequence_info.FileLocation
+                let recorded_m_time = sequence_info.FileModifiedTime
+                where File.Exists(filename)
+                let m_time = File.GetLastWriteTime(filename)
+                where recorded_m_time != m_time
+                select recorded_m_time).Any()) return;
+        try
+        {
+            if (Debug) Log("A change in queued sequences was detected. Recalculating all sequences.");
+            UpdateSequences(Sequences.Select(s => s.FileLocation).Where(File.Exists).ToArray(), false).GetAwaiter().GetResult();
+        }
+        catch (Exception e)
+        {
+            Log($"[Sequence Loader] Failed to load sequence with error: \'{e}\'");
+        }
     }
 }
