@@ -34,6 +34,15 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
             Console.WriteLine($"[OpenGL Error]: (0x{(int)errorCode:x8}) \'{errorCode}\'");
     }
 
+    public void ToggleFullscreen()
+    {
+        WindowState = WindowState switch
+        {
+            WindowState.Fullscreen => WindowState.Normal,
+            _ => WindowState.Fullscreen
+        };
+    }
+    
     protected override void OnLoad()
     {
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
@@ -92,8 +101,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         if (e.FileNames.Length < 1) return;
 
         foreach (var scene in Scenes)
-        foreach (var file in e.FileNames)
-            scene.FileDrop(file);
+            scene.FileDrop(e.FileNames);
+            
     }
 
     protected override void OnClosing(CancelEventArgs e)

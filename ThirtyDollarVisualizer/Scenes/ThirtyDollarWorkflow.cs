@@ -2,7 +2,9 @@ using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Resamplers;
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Objects;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
@@ -10,11 +12,11 @@ public abstract class ThirtyDollarWorkflow
 {
     private readonly SemaphoreSlim SampleHolderLock = new(1);
     protected readonly SequencePlayer SequencePlayer;
-    protected DateTime _sequence_date_modified = DateTime.MinValue;
-
-    protected string? _sequence_location;
     protected Action<string> Log;
     protected SampleHolder? SampleHolder;
+    protected SequenceInfo[] Sequences = Array.Empty<SequenceInfo>();
+    protected SequenceIndices SequenceIndices = new();
+    protected bool Debug;
 
     protected TimedEvents TimedEvents = new()
     {
@@ -68,31 +70,37 @@ public abstract class ThirtyDollarWorkflow
     /// <summary>
     ///     This method updates the current sequence.
     /// </summary>
-    /// <param name="location">The location of the sequence you want to use.</param>
+    /// <param name="locations">The location of the sequences you want to use.</param>
     /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
-    public virtual async Task UpdateSequence(string location, bool restart_player = true)
+    public virtual async Task UpdateSequences(string?[] locations, bool restart_player = true)
     {
-        var file_data = await File.ReadAllTextAsync(location);
-        var sequence = Sequence.FromString(file_data);
-        await UpdateSequence(sequence, restart_player);
-        _sequence_date_modified = File.GetLastWriteTime(location);
-        _sequence_location = location;
+        var sequence_array = new Sequence[locations.Length];
+        var i = 0;
+        Sequences = GetSequenceInfos(locations);
+
+        foreach (var sequence_info in Sequences)
+        {
+            var read = await File.ReadAllTextAsync(sequence_info.FileLocation);
+            var sequence = Sequence.FromString(read);
+            sequence_array[i++] = sequence;
+        }
+
+        await UpdateSequences(sequence_array, restart_player);
     }
 
     /// <summary>
     ///     This method updates the current sequence.
     /// </summary>
-    /// <param name="sequence">The sequence you want to use.</param>
+    /// <param name="sequences">The sequences you want to use.</param>
     /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
-    public virtual async Task UpdateSequence(Sequence sequence, bool restart_player = true)
+    public virtual async Task UpdateSequences(Sequence[] sequences, bool restart_player = true)
     {
         lock (ExtractedSpeedEvents)
         {
             ExtractedSpeedEvents = Array.Empty<Placement>();
         }
-        
+
         const int update_rate = 100_000;
-        _sequence_location = null;
 
         if (restart_player)
             await SequencePlayer.Stop();
@@ -103,10 +111,11 @@ public abstract class ThirtyDollarWorkflow
             AddVisualEvents = true
         });
 
-        var placement = calculator.CalculateOne(sequence).ToArray();
+        var placement = calculator.CalculateMany(sequences).ToArray();
+        SequenceIndices = GenerateSequenceIndexes(placement);
         TimedEvents.TimingSampleRate = update_rate;
         TimedEvents.Placement = placement;
-        TimedEvents.Sequence = sequence;
+        TimedEvents.Sequences = sequences;
 
         HandleAfterSequenceLoad(TimedEvents);
         SequencePlayer.ClearSubscriptions();
@@ -137,12 +146,33 @@ public abstract class ThirtyDollarWorkflow
             var sample = audio_context.GetBufferObject(val.AudioData, audio_context.SampleRate);
             buffer_holder.ProcessedBuffers.Add((name, value), sample);
         }
-        
+
         _ = Task.Run(UpdateExtractedSpeedEvents);
-        await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents);
+        await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents, SequenceIndices);
 
         if (restart_player)
             await SequencePlayer.Start();
+    }
+
+    protected static SequenceIndices GenerateSequenceIndexes(IEnumerable<Placement> placements)
+    {
+        var ends = placements.Where(p => p.Event is EndEvent)
+            .Select((end, i) => (end.Index, i))
+            .ToArray();
+
+        return new SequenceIndices
+        {
+            Ends = ends
+        };
+    }
+
+    protected static SequenceInfo[] GetSequenceInfos(IEnumerable<string?> locations)
+    {
+        return locations.Where(File.Exists).Select(l => new SequenceInfo
+        {
+            FileLocation = l!,
+            FileModifiedTime = File.GetLastWriteTime(l!)
+        }).ToArray();
     }
 
     private void UpdateExtractedSpeedEvents()
@@ -170,20 +200,18 @@ public abstract class ThirtyDollarWorkflow
     /// </summary>
     protected virtual void HandleIfSequenceUpdate()
     {
-        if (_sequence_location == null) return;
-        if (!File.Exists(_sequence_location))
-        {
-            _sequence_location = null;
-            Log("Current sequence files was moved or deleted. Disabling hot-reloading.");
-            return;
-        }
-        
-        var modify_time = File.GetLastWriteTime(_sequence_location);
-
-        if (_sequence_date_modified == modify_time) return;
+        if (Sequences.Length < 1) return;
+        if (!(from sequence_info in Sequences
+                let filename = sequence_info.FileLocation
+                let recorded_m_time = sequence_info.FileModifiedTime
+                where File.Exists(filename)
+                let m_time = File.GetLastWriteTime(filename)
+                where recorded_m_time != m_time
+                select recorded_m_time).Any()) return;
         try
         {
-            UpdateSequence(_sequence_location, false).GetAwaiter().GetResult();
+            if (Debug) Log("A change in queued sequences was detected. Recalculating all sequences.");
+            UpdateSequences(Sequences.Select(s => s.FileLocation).Where(File.Exists).ToArray(), false).GetAwaiter().GetResult();
         }
         catch (Exception e)
         {

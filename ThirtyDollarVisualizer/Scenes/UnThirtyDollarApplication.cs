@@ -102,7 +102,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
     }
 
-    public void FileDrop(string? location)
+    public void FileDrop(string[] location)
     {
         FileDrop(location, true);
     }
@@ -121,7 +121,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         if (!state.IsKeyPressed(Keys.R)) return;
-        FileDrop(_sequence_location, true);
+        FileDrop(Array.Empty<string>(), true);
     }
 
     private void SetMidiKeys(int min_v = -4, int max_v = 4)
@@ -175,13 +175,8 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
     }
 
-    private void FileDrop(string? location, bool reset_time)
+    private void FileDrop(IReadOnlyList<string?> locations, bool reset_time)
     {
-        Camera.ScrollTo((0, -300, 0));
-
-        var old_location = _sequence_location;
-        if (location is null) return;
-
-        Task.Run(async () => { await UpdateSequence(location, old_location != location || reset_time); });
+        
     }
 }

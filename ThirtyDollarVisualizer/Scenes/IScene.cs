@@ -40,8 +40,8 @@ public interface IScene
     /// <summary>
     ///     Triggered when a file is dropped on the window.
     /// </summary>
-    /// <param name="location">The location of the dropped file.</param>
-    public void FileDrop(string location);
+    /// <param name="locations">The location of the dropped files.</param>
+    public void FileDrop(string[] locations);
 
     /// <summary>
     ///     Event triggered when a keyboard button is pressed.

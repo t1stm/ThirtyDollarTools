@@ -63,12 +63,13 @@ public class PcmEncoder
     /// <returns>An AudioData object that stores the encoded audio.</returns>
     public async Task<AudioData<float>> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences)
     {
-        var placement = PlacementCalculator.CalculateMany(sequences);
+        var enumerable = sequences as Sequence[] ?? sequences.ToArray();
+        var placement = PlacementCalculator.CalculateMany(enumerable);
         var placement_array = placement.ToArray();
 
         var timed_events = new TimedEvents
         {
-            Sequence = new Sequence(),
+            Sequences = enumerable.ToArray(),
             Placement = placement_array,
             TimingSampleRate = (int)SampleRate
         };
@@ -93,7 +94,7 @@ public class PcmEncoder
 
         var timed_events = new TimedEvents
         {
-            Sequence = sequence,
+            Sequences = new [] { sequence },
             Placement = placement_array,
             TimingSampleRate = (int)SampleRate
         };
@@ -183,10 +184,13 @@ public class PcmEncoder
         var audio_data = AudioData<float>.WithLength(Channels, length);
 
         var mixer = new AudioMixer(audio_data);
-        foreach (var channel in events.Sequence.SeparatedChannels)
+        foreach (var sequence in events.Sequences)
         {
-            var new_track = AudioData<float>.WithLength(Channels, length);
-            mixer.AddTrack(channel, new_track);
+            foreach (var channel in sequence.SeparatedChannels)
+            {
+                var new_track = AudioData<float>.WithLength(Channels, length);
+                mixer.AddTrack(channel, new_track);
+            }
         }
 
         // Map channel tasks.
