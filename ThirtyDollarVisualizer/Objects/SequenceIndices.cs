@@ -8,7 +8,7 @@ public struct SequenceIndices
     {
     }
     
-    public int GetIndexFromTime(ulong time)
+    public int GetSequenceIDFromIndex(ulong time)
     {
         var last_index = 0;
         foreach (var (end, _) in Ends)
@@ -20,6 +20,6 @@ public struct SequenceIndices
             else break;
         }
 
-        return Math.Min(last_index, Ends.Length - 1);
+        return Math.Clamp(last_index, 0, Ends.Length - 1);
     }
 }

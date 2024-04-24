@@ -113,7 +113,7 @@ public abstract class ThirtyDollarWorkflow
         });
         
         var placement = calculator.CalculateMany(sequences).ToArray();
-        GenerateSequenceIndexes(placement);
+        SequenceIndices = GenerateSequenceIndexes(placement);
         TimedEvents.TimingSampleRate = update_rate;
         TimedEvents.Placement = placement;
         TimedEvents.Sequences = sequences;
@@ -149,13 +149,13 @@ public abstract class ThirtyDollarWorkflow
         }
         
         _ = Task.Run(UpdateExtractedSpeedEvents);
-        await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents);
+        await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents, SequenceIndices);
 
         if (restart_player)
             await SequencePlayer.Start();
     }
 
-    protected SequenceIndices GenerateSequenceIndexes (IEnumerable<Placement> placements)
+    protected static SequenceIndices GenerateSequenceIndexes (IEnumerable<Placement> placements)
     {
         var ends = placements.Where(p => p.Event is EndEvent)
             .Select((end, i) => (end.Index, i))

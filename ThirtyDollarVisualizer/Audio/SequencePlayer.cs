@@ -3,13 +3,14 @@ using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio.FeatureFlags;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Helpers.Timing;
+using ThirtyDollarVisualizer.Objects;
 
 namespace ThirtyDollarVisualizer.Audio;
 
 public class SequencePlayer
 {
-    protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
     public readonly AudioContext AudioContext = new NullAudioContext();
+    protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
     protected readonly long[] Bookmarks = new long[10];
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
     protected readonly Greeting? Greeting;
@@ -25,6 +26,19 @@ public class SequencePlayer
     protected BufferHolder BufferHolder;
     protected PlayerErrors Errors = PlayerErrors.None;
     protected TimedEvents Events;
+    protected Action<int>? SequenceUpdateAction;
+    
+    protected SequenceIndices SequenceIndices = new();
+    private int _current_sequence;
+    protected int CurrentSequence
+    {
+        get => _current_sequence;
+        set
+        {
+            _current_sequence = value;
+            SequenceUpdateAction?.Invoke(_current_sequence);
+        }
+    }
 
     /// <summary>
     ///     Creates a player that plays Thirty Dollar sequences.
@@ -80,6 +94,15 @@ public class SequencePlayer
         if (!EventActions.ContainsKey(event_name)) return;
 
         EventActions[event_name] = action;
+    }
+    
+    /// <summary>
+    /// Subscribes an action that is called each time the sequence index is changed.
+    /// </summary>
+    /// <param name="action">The action to call.</param>
+    public void SubscribeSequenceChange(Action<int>? action)
+    {
+        SequenceUpdateAction = action;
     }
 
     /// <summary>
@@ -139,7 +162,7 @@ public class SequencePlayer
         }
 
         var placement = Events.Placement[PlacementIndex];
-        await Task.Run(() => { event_action.Invoke(placement, (int)placement.SequenceIndex); })
+        await Task.Run(() => { event_action.Invoke(placement, CurrentSequence); })
             .ConfigureAwait(false);
 
         UpdateLock.Release();
@@ -174,13 +197,15 @@ public class SequencePlayer
         }
     }
 
-    public async Task UpdateSequence(BufferHolder holder, TimedEvents events)
+    public async Task UpdateSequence(BufferHolder holder, TimedEvents events, SequenceIndices sequence_indices)
     {
         await UpdateLock.WaitAsync();
         CutSounds();
 
         BufferHolder = holder;
         Events = events;
+        SequenceIndices = sequence_indices;
+        CurrentSequence = 0;
 
         AlignToTime();
         UpdateLock.Release();
@@ -193,11 +218,12 @@ public class SequencePlayer
         var idx = PlacementIndex;
         var min_time = long.MaxValue;
 
+        Placement? placement;
         for (var i = 0; i < span.Length; i++)
         {
-            var placement = span[i];
-
-            var time = Math.Abs((long)placement.Index * 1000 / Events.TimingSampleRate - current_time);
+            placement = span[i];
+            var index_time = placement.Index * 1000f / Events.TimingSampleRate;
+            var time = Math.Abs((long)index_time - current_time);
             if (time >= min_time) continue;
 
             min_time = time;
@@ -205,6 +231,8 @@ public class SequencePlayer
         }
 
         PlacementIndex = idx;
+        placement = span[idx];
+        CurrentSequence = SequenceIndices.GetSequenceIDFromIndex(placement.Index);
     }
 
     protected async void UpdateLoop()
@@ -292,7 +320,16 @@ public class SequencePlayer
                     (ulong)((float)TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f))
                     break;
 
-                if (placement.Event is IndividualCutEvent ice) IndividualCutSamples(ice.CutSounds);
+                switch (placement.Event)
+                {
+                    case IndividualCutEvent ice:
+                        IndividualCutSamples(ice.CutSounds);
+                        break;
+                    
+                    case EndEvent:
+                        CurrentSequence = SequenceIndices.GetSequenceIDFromIndex(placement.Index);
+                        continue;
+                }
 
                 switch (placement.Event.SoundEvent)
                 {
@@ -303,13 +340,13 @@ public class SequencePlayer
 
                 // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
                 if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
-                    await Task.Run(() => { explicit_action.Invoke(placement, (int)placement.SequenceIndex); })
+                    await Task.Run(() => { explicit_action.Invoke(placement, CurrentSequence); })
                         .ConfigureAwait(false);
 
                 // Normal pass.
                 if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
 
-                await Task.Run(() => { event_action.Invoke(placement, (int)placement.SequenceIndex); })
+                await Task.Run(() => { event_action.Invoke(placement, CurrentSequence); })
                     .ConfigureAwait(false);
             }
 
