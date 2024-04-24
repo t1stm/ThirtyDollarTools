@@ -186,6 +186,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     Left / Right -> Seek the sequence.
                     R -> Reload the current sequence.
                     C -> Change the camera modes.
+                    F -> Toggle between fullscreen and windowed.
                     Space -> Pause / resume the sequence.
                     Escape -> Close the program.
                     0-9 -> Seek to bookmark.
@@ -506,6 +507,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             true when CameraFollowMode is CameraFollowMode.None => CameraFollowMode.Current_Line,
             _ => CameraFollowMode
         };
+
+        if (state.IsKeyPressed(Keys.F))
+        {
+            Manager.ToggleFullscreen();
+        }
 
         if (state.IsKeyDown(Keys.LeftShift) && state.IsKeyDown(Keys.LeftControl))
         {
