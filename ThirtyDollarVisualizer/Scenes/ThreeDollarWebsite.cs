@@ -15,7 +15,7 @@ public class ThreeDollarWebsite : ThirtyDollarApplication
 {
     private readonly ThreeDollarCamera _camera;
     private readonly ColoredPlane _ground;
-    private readonly DynamicText _text;
+    private readonly CachedDynamicText _text;
     private readonly TexturedPlane _texture;
 
     private readonly List<Renderable> objects_3d = new();
@@ -46,7 +46,7 @@ public class ThreeDollarWebsite : ThirtyDollarApplication
 
         _ground = new ColoredPlane((1, 1, 1, 1), (-0.5f, 0, -3), (0.5f, 0, -0.1f));
         _ground.UpdateModel(false);
-        _text = new DynamicText();
+        _text = new CachedDynamicText();
         _text.SetPosition((20, 20, 0));
         _texture = new TexturedPlane(new Texture("ThirtyDollarVisualizer.Assets.Textures.moai.png"), (1, 1, 1),
             (1.5f, 1.5f, 1.5f));

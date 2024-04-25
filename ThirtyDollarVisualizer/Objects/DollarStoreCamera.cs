@@ -47,28 +47,22 @@ public sealed class DollarStoreCamera : Camera
         if (IsBeingUpdated) return;
         IsBeingUpdated = true;
 
-        new Thread(inner_update).Start();
-        return;
-
-        void inner_update()
+        do
         {
-            do
-            {
-                if (Disposing) return;
-                var current_y = Position.Y;
-                var delta_y = _virtualPosition.Y - current_y;
+            if (Disposing) return;
+            var current_y = Position.Y;
+            var delta_y = _virtualPosition.Y - current_y;
 
-                if (Math.Abs(delta_y) < 1f) break;
-                var scroll_y = delta_y / ScrollLengthMs;
+            if (Math.Abs(delta_y) < 1f) break;
+            var scroll_y = delta_y / ScrollLengthMs;
 
-                current_y += scroll_y;
-                Position = current_y * Vector3.UnitY;
+            current_y += scroll_y;
+            Position = current_y * Vector3.UnitY;
 
-                Thread.Sleep(1);
-            } while (true);
-            Position = _virtualPosition;
-            IsBeingUpdated = false;
-        }
+            Thread.Sleep(1);
+        } while (true);
+        Position = _virtualPosition;
+        IsBeingUpdated = false;
     }
 
     private void BlockingPulse(int times, float delay_ms)
@@ -111,7 +105,7 @@ public sealed class DollarStoreCamera : Camera
 
     public void Update()
     {
-        CameraUpdate();
+        Task.Run(CameraUpdate);
     }
 
     public void Pulse(int times = 1, float frequency = 0)

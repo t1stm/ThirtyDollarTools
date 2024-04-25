@@ -8,12 +8,12 @@ namespace ThirtyDollarVisualizer.Objects.Text;
 ///     A renderable that is more expensive to be rendered but cheap to be edited, intended to be used for text that is
 ///     changed often.
 /// </summary>
-public class DynamicText : Renderable, IText
+public class CachedDynamicText : Renderable, IText
 {
     private readonly SemaphoreSlim _lock = new(1);
-    private float _font_size_px = 14f;
-
-    private string _value = string.Empty;
+    protected float _font_size_px = 14f;
+    protected string _value = string.Empty;
+    
     private TexturedPlane[] TexturedPlanes = Array.Empty<TexturedPlane>();
     private readonly HashSet<int> NewLineIndices = new();
         
@@ -31,7 +31,7 @@ public class DynamicText : Renderable, IText
 
     public FontStyle FontStyle { get; set; } = FontStyle.Regular;
 
-    public void SetTextContents(string text)
+    public virtual void SetTextContents(string text)
     {
         if (_value == text) return;
         SetTextTextures(text);

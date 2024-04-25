@@ -25,12 +25,12 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private static Texture? ICutTexture;
     private readonly Stopwatch _file_update_stopwatch = new();
 
-    private readonly DynamicText _log_text = new()
+    private readonly CachedDynamicText _log_text = new()
     {
         FontStyle = FontStyle.Bold
     };
 
-    private readonly DynamicText _debug_text = new()
+    private readonly BasicDynamicText _debug_text = new()
     {
         FontStyle = FontStyle.Bold
     };
@@ -38,7 +38,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private readonly Stopwatch _open_stopwatch = new();
     private readonly Stopwatch _seek_delay_stopwatch = new();
 
-    private readonly DynamicText _update_text = new()
+    private readonly CachedDynamicText _update_text = new()
     {
         FontStyle = FontStyle.Bold
     };
@@ -167,7 +167,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var font_family = Fonts.GetFontFamily();
         var greeting_font = font_family.CreateFont(36, FontStyle.Bold);
 
-        _greeting ??= new DynamicText
+        _greeting ??= new CachedDynamicText
         {
             FontStyle = FontStyle.Bold,
             FontSizePx = 36f,

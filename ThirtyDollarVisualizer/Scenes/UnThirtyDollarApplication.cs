@@ -20,7 +20,7 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private readonly Memory<SoundRenderable> TDW_images = Memory<SoundRenderable>.Empty;
     private readonly Dictionary<string, Texture> ValueTextCache = new();
     private ColoredPlane _background = null!;
-    private DynamicText _dynamic_text = null!;
+    private CachedDynamicText _cachedDynamicText = null!;
     private Dictionary<string, Texture> _texture_cache = new();
     private Dictionary<string, Texture> _volume_text_cache = new();
 
@@ -48,13 +48,13 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         Manager = manager;
         Manager.RenderBlock.Wait();
-        _dynamic_text = new DynamicText
+        _cachedDynamicText = new CachedDynamicText
         {
             FontStyle = FontStyle.Bold,
             FontSizePx = 36f,
             Value = "New init."
         };
-        _dynamic_text.SetPosition((0, 0, 0f), PositionAlign.Center);
+        _cachedDynamicText.SetPosition((0, 0, 0f), PositionAlign.Center);
         _open_stopwatch.Restart();
 
         MissingTexture ??= new Texture("ThirtyDollarVisualizer.Assets.Textures.action_missing.png");
@@ -77,14 +77,14 @@ public class UnThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         Manager.CheckErrors();
         _background.Render(Camera);
-        _dynamic_text.Render(Camera);
+        _cachedDynamicText.Render(Camera);
 
         foreach (var renderable in key_objects) renderable.Render(Camera);
     }
 
     public void Update()
     {
-        _dynamic_text.SetTextContents($"Test {_open_stopwatch.Elapsed}");
+        _cachedDynamicText.SetTextContents($"Test {_open_stopwatch.Elapsed}");
     }
 
     public void Resize(int w, int h)
