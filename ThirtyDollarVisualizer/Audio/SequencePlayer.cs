@@ -173,7 +173,8 @@ public class SequencePlayer
         await (Greeting?.PlayWaitFinish() ?? Task.CompletedTask);
         TimingStopwatch.Restart();
         AlignToTime();
-        UpdateLoop();
+        // Spawns a new thread object for the Thread.Sleep in the update loop.
+        new Thread(UpdateLoop).Start();
     }
 
     public async Task Stop()

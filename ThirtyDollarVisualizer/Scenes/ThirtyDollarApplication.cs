@@ -1316,10 +1316,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             catch (Exception e)
             {
                 SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
-                return;
             }
-
-            _log_text.SetTextContents(string.Empty);
+            finally
+            {
+                _log_text.SetTextContents(string.Empty);
+            }
         }, Token);
     }
 
