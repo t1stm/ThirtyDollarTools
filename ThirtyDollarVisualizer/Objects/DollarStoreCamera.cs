@@ -42,31 +42,35 @@ public sealed class DollarStoreCamera : Camera
         _virtualPosition += delta;
     }
 
-    private async void AsyncUpdate()
+    private void CameraUpdate()
     {
         if (IsBeingUpdated) return;
         IsBeingUpdated = true;
 
-        do
+        Task.Run(inner_update);
+        return;
+
+        void inner_update()
         {
-            var current_y = Position.Y;
-            var delta_y = _virtualPosition.Y - current_y;
+            do
+            {
+                var current_y = Position.Y;
+                var delta_y = _virtualPosition.Y - current_y;
 
-            if (Math.Abs(delta_y) < 1f) break;
-            var scroll_y = delta_y / ScrollLengthMs;
+                if (Math.Abs(delta_y) < 1f) break;
+                var scroll_y = delta_y / ScrollLengthMs;
 
-            current_y += scroll_y;
-            Position = current_y * Vector3.UnitY;
+                current_y += scroll_y;
+                Position = current_y * Vector3.UnitY;
 
-            await Task.Delay(1);
-        } while (true);
-
-        Position = _virtualPosition;
-
-        IsBeingUpdated = false;
+                Thread.Sleep(1);
+            } while (true);
+            Position = _virtualPosition;
+            IsBeingUpdated = false;
+        }
     }
 
-    private async void AsyncPulse(int times, float delay_ms)
+    private void BlockingPulse(int times, float delay_ms)
     {
         var t = times;
         var stopwatch = new Stopwatch();
@@ -91,7 +95,7 @@ public sealed class DollarStoreCamera : Camera
             Scale = zoom;
             UpdateMatrix();
 
-            await Task.Delay(1);
+            Thread.Sleep(1);
         } while (t > 0);
 
         if (now == LastScaleUpdate)
@@ -105,11 +109,14 @@ public sealed class DollarStoreCamera : Camera
 
     public void Update()
     {
-        AsyncUpdate();
+        CameraUpdate();
     }
 
     public void Pulse(int times = 1, float frequency = 0)
     {
-        AsyncPulse(times, frequency);
+        Task.Run(() =>
+        {
+            BlockingPulse(times, frequency);
+        });
     }
 }
