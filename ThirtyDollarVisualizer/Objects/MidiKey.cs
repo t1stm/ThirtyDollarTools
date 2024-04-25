@@ -7,6 +7,7 @@ namespace ThirtyDollarVisualizer.Objects;
 public class MidiKey : ColoredPlane
 {
     private readonly MidiKeyPressAnimation PressAnimation;
+    private readonly Memory<Animation> MidiPressAnimations;
     public Vector4 BorderColor = Vector4.Zero;
     public float BorderSizePx = 0f;
 
@@ -18,6 +19,7 @@ public class MidiKey : ColoredPlane
             ReleasedColor = color,
             AffectsChildren = false
         };
+        MidiPressAnimations = new Animation[] { PressAnimation };
         Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.bordered.vert",
             "ThirtyDollarVisualizer.Assets.Shaders.bordered.frag");
     }
@@ -42,7 +44,7 @@ public class MidiKey : ColoredPlane
 
     public override void Render(Camera camera)
     {
-        if (PressAnimation.IsRunning) UpdateModel(false, PressAnimation);
+        if (PressAnimation.IsRunning) UpdateModel(false, MidiPressAnimations.Span);
         base.Render(camera);
     }
 

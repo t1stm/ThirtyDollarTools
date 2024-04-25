@@ -243,7 +243,8 @@ public class SequencePlayer
         while (_update_running && !_dead)
         {
             await PlaybackUpdate();
-            await Task.Delay(1);
+            // Using Thread.Sleep since it doesn't allocate memory.
+            Thread.Sleep(1);
         }
     }
 
@@ -340,14 +341,11 @@ public class SequencePlayer
 
                 // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
                 if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
-                    await Task.Run(() => { explicit_action.Invoke(placement, CurrentSequence); })
-                        .ConfigureAwait(false);
+                    explicit_action.Invoke(placement, CurrentSequence);
 
                 // Normal pass.
                 if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
-
-                await Task.Run(() => { event_action.Invoke(placement, CurrentSequence); })
-                    .ConfigureAwait(false);
+                event_action.Invoke(placement, CurrentSequence);
             }
 
             PlacementIndex = end_idx;
