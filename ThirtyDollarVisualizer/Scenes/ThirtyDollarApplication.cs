@@ -434,7 +434,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public void Close()
     {
-        SequencePlayer.Stop().GetAwaiter().GetResult();
+        SequencePlayer.Die();
+        Camera.Die();
     }
 
     public void FileDrop(string?[] locations)

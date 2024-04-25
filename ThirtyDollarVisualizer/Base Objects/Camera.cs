@@ -7,6 +7,7 @@ public abstract class Camera
     protected Vector3 _position;
     private Matrix4 projection_matrix;
     protected float RenderScale = 1f;
+    protected bool Disposing;
 
     protected float Scale = 1f;
     public Vector2i Viewport;
@@ -17,6 +18,9 @@ public abstract class Camera
         Viewport = viewport;
     }
 
+    /// <summary>
+    /// The position of the Camera object which is used to calculate the projection matrix.
+    /// </summary>
     public Vector3 Position
     {
         get => _position;
@@ -27,7 +31,14 @@ public abstract class Camera
         }
     }
 
+    /// <summary>
+    /// Which direction the camera uses as its front position.
+    /// </summary>
     public Vector3 Front { get; set; } = -Vector3.UnitZ;
+    
+    /// <summary>
+    /// Which direction is the vertical axis of the camera.
+    /// </summary>
     public Vector3 Up { get; set; } = Vector3.UnitY;
     protected bool IsBeingUpdated { get; set; }
 
@@ -51,6 +62,9 @@ public abstract class Camera
         }
     }
 
+    /// <summary>
+    /// Updates the cached projection matrix.
+    /// </summary>
     public virtual void UpdateMatrix()
     {
         var left = Position.X;
@@ -91,5 +105,18 @@ public abstract class Camera
     public float GetRenderScale()
     {
         return RenderScale;
+    }
+
+    /// <summary>
+    /// Method that stops all camera animations.
+    /// </summary>
+    public void Die()
+    {
+        Disposing = true;
+    }
+
+    ~Camera()
+    {
+        Die();
     }
 }

@@ -47,13 +47,14 @@ public sealed class DollarStoreCamera : Camera
         if (IsBeingUpdated) return;
         IsBeingUpdated = true;
 
-        Task.Run(inner_update);
+        new Thread(inner_update).Start();
         return;
 
         void inner_update()
         {
             do
             {
+                if (Disposing) return;
                 var current_y = Position.Y;
                 var delta_y = _virtualPosition.Y - current_y;
 
@@ -80,6 +81,7 @@ public sealed class DollarStoreCamera : Camera
         var now = LastScaleUpdate = DateTime.Now;
         do
         {
+            if (Disposing) return;
             if (now != LastScaleUpdate) break;
 
             var elapsed = stopwatch.ElapsedMilliseconds;
@@ -114,9 +116,9 @@ public sealed class DollarStoreCamera : Camera
 
     public void Pulse(int times = 1, float frequency = 0)
     {
-        Task.Run(() =>
+        new Thread(() =>
         {
             BlockingPulse(times, frequency);
-        });
+        }).Start();
     }
 }

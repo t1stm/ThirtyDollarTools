@@ -424,15 +424,23 @@ public class SequencePlayer
         }
     }
 
-    ~SequencePlayer()
+    /// <summary>
+    /// Signals to the SequencePlayer to stop all execution and free all busy threads.
+    /// </summary>
+    public void Die()
     {
         UpdateLock.Wait();
-
+        
         ClearSubscriptions();
         _update_running = false;
         _dead = true;
-
+        
         UpdateLock.Release();
+    }
+
+    ~SequencePlayer()
+    {
+        Die();
     }
 }
 
