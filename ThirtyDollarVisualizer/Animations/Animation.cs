@@ -10,7 +10,7 @@ public abstract class Animation(TimeSpan timespan)
     public bool AffectsChildren = true;
     protected TimeSpan AnimationLength = timespan;
     protected Action? CallbackOnFinish = null;
-    public int Features = (int)AnimationFeature.None;
+    public AnimationFeature Features = AnimationFeature.None;
 
     protected Animation(int animation_length_ms) : this(TimeSpan.FromMilliseconds(animation_length_ms))
     {

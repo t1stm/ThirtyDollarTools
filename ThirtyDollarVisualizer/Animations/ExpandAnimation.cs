@@ -11,8 +11,8 @@ public class ExpandAnimation : Animation
 
     public ExpandAnimation() : base(AnimationLengthMs)
     {
-        Features = (int)AnimationFeature.Transform_Add |
-                   (int)AnimationFeature.Scale_Multiply;
+        Features = AnimationFeature.Transform_Add |
+                   AnimationFeature.Scale_Multiply;
     }
 
     public ExpandAnimation(Action finish_callback) : this()

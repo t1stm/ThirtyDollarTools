@@ -11,7 +11,7 @@ public class InfiniteRotationAnimation : Animation
 
     public InfiniteRotationAnimation(int animation_length_ms, int rotate_axises) : base(animation_length_ms)
     {
-        Features = (int)AnimationFeature.Rotation_Add;
+        Features = AnimationFeature.Rotation_Add;
         TimingStopwatch.Start();
 
         RotateX = (rotate_axises & (int)RotateAxis.X) > 0;

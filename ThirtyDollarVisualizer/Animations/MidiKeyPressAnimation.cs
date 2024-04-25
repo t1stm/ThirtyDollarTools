@@ -12,7 +12,7 @@ public class MidiKeyPressAnimation : Animation
 
     public MidiKeyPressAnimation(int fade_time, Action? finish_callback = null) : base(fade_time)
     {
-        Features = (int)AnimationFeature.Color_Value;
+        Features = AnimationFeature.Color_Value;
         CallbackOnFinish = finish_callback;
     }
 

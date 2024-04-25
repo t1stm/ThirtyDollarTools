@@ -12,7 +12,7 @@ public class FadeAnimation : Animation
 
     public FadeAnimation() : base(125)
     {
-        Features = (int)AnimationFeature.DeltaAlpha;
+        Features = AnimationFeature.DeltaAlpha;
     }
 
     public override float GetAlphaDelta_Value(Renderable renderable)

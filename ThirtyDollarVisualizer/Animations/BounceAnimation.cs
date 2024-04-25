@@ -10,7 +10,7 @@ public class BounceAnimation : Animation
 
     public BounceAnimation(float final_y) : base(AnimationLengthMs)
     {
-        Features = (int)AnimationFeature.Transform_Add;
+        Features = AnimationFeature.Transform_Add;
         Final_Y = final_y;
     }
 

@@ -4,6 +4,7 @@ namespace ThirtyDollarVisualizer.Animations;
 ///     All features an animation can have.
 ///     Used in the renderer with if checks.
 /// </summary>
+[Flags]
 public enum AnimationFeature
 {
     None = 0,
@@ -35,9 +36,9 @@ public static class FeatureExtensions
     /// <param name="bit_stack">The integer you want to check.</param>
     /// <param name="feature">The animation feature you want to check.</param>
     /// <returns>Whether the bit stack contains the feature. </returns>
-    public static bool IsEnabled(this int bit_stack, AnimationFeature feature)
+    public static bool IsEnabled(this AnimationFeature bit_stack, AnimationFeature feature)
     {
-        return (bit_stack & (int)feature) != 0;
+        return (bit_stack & feature) != 0;
     }
 }
 
