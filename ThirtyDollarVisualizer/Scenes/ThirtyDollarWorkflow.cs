@@ -14,7 +14,7 @@ public abstract class ThirtyDollarWorkflow
     protected readonly SequencePlayer SequencePlayer;
     protected Action<string> Log;
     protected SampleHolder? SampleHolder;
-    protected SequenceInfo[] Sequences = Array.Empty<SequenceInfo>();
+    protected Memory<SequenceInfo> Sequences = Array.Empty<SequenceInfo>();
     protected SequenceIndices SequenceIndices = new();
     protected bool Debug;
 
@@ -78,8 +78,9 @@ public abstract class ThirtyDollarWorkflow
         var i = 0;
         Sequences = GetSequenceInfos(locations);
 
-        foreach (var sequence_info in Sequences)
+        for (var index = 0; index < Sequences.Span.Length; index++)
         {
+            var sequence_info = Sequences.Span[index];
             var read = await File.ReadAllTextAsync(sequence_info.FileLocation);
             var sequence = Sequence.FromString(read);
             sequence_array[i++] = sequence;
@@ -201,17 +202,21 @@ public abstract class ThirtyDollarWorkflow
     protected virtual void HandleIfSequenceUpdate()
     {
         if (Sequences.Length < 1) return;
-        if (!(from sequence_info in Sequences
-                let filename = sequence_info.FileLocation
-                let recorded_m_time = sequence_info.FileModifiedTime
-                where File.Exists(filename)
-                let m_time = File.GetLastWriteTime(filename)
-                where recorded_m_time != m_time
-                select recorded_m_time).Any()) return;
+        foreach (var sequence_info in Sequences.Span)
+        {
+            var filename = sequence_info.FileLocation;
+            var recorded_m_time = sequence_info.FileModifiedTime;
+            if (!File.Exists(filename)) continue;
+            var m_time = File.GetLastWriteTime(filename);
+            if (recorded_m_time != m_time) break;
+            return;
+        }
+
         try
         {
             if (Debug) Log("A change in queued sequences was detected. Recalculating all sequences.");
-            UpdateSequences(Sequences.Select(s => s.FileLocation).Where(File.Exists).ToArray(), false).GetAwaiter().GetResult();
+            UpdateSequences(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), false)
+                .GetAwaiter().GetResult();
         }
         catch (Exception e)
         {

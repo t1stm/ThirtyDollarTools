@@ -62,6 +62,7 @@ public abstract class Renderable
     /// </summary>
     /// <param name="is_child">Whether the current renderable is a child of an other renderable.</param>
     /// <param name="animations">The animations the current renderable will use.</param>
+    /* TODO: It appears that params[] cause a memory allocation each time they're invoked. Make this method use Memory<> or stackalloc Span<> */
     public virtual void UpdateModel(bool is_child, params Animation[] animations)
     {
         IsChild = is_child;

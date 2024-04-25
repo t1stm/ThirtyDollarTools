@@ -80,7 +80,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private Manager Manager = null!;
     private int PlayfieldWidth;
     
-    protected Memory<SoundRenderable?>[] TDW_images = Array.Empty<Memory<SoundRenderable?>>();
+    protected Memory<Memory<SoundRenderable?>> TDW_images = Array.Empty<Memory<SoundRenderable?>>();
     protected int CurrentSequence;
 
     private int Width;
@@ -248,7 +248,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         try
         {
-            UpdateSequences(Sequences.Select(s => s.FileLocation).ToArray()).GetAwaiter().GetResult();
+            UpdateSequences(Sequences.ToArray().Select(s => s.FileLocation).ToArray()).GetAwaiter().GetResult();
         }
         catch (Exception e)
         {
@@ -297,18 +297,22 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Task.Run(() =>
         {
             if (TDW_images.Length < 1) return;
-            foreach (var image in TDW_images[CurrentSequence].Span)
+            for (var i = 0; i < TDW_images.Length; i++)
             {
-                if (image == null) continue;
-                if (CurrentResizeFrame != current_update) break;
-
-                var original_offset = image.GetTranslation();
-                var new_offset = new Vector3(original_offset)
+                var sequence = i;
+                foreach (var image in TDW_images.Span[sequence].Span)
                 {
-                    X = current_margin - CreationLeftMargin
-                };
+                    if (image == null) continue;
+                    if (CurrentResizeFrame != current_update) break;
 
-                image.SetTranslation(new_offset);
+                    var original_offset = image.GetTranslation();
+                    var new_offset = new Vector3(original_offset)
+                    {
+                        X = current_margin - CreationLeftMargin
+                    };
+
+                    image.SetTranslation(new_offset);
+                }
             }
         }, Token);
     }
@@ -348,7 +352,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         if (TDW_images.Length > 0)
         {
-            var tdw_span = TDW_images[CurrentSequence].Span;
+            var tdw_span = TDW_images.Span[CurrentSequence].Span;
 
             var start = (int)Math.Max(0, repeats_renderable * (camera_y / size_renderable) - dividers_size - padding_rows);
 
@@ -620,7 +624,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         if (!state.IsKeyPressed(Keys.R)) return;
-        FileDrop(Sequences.Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
+        FileDrop(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
     }
 
     protected override void HandleAfterSequenceLoad(TimedEvents events)
@@ -1028,9 +1032,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         if (sequence_index >= TDW_images.Length) return null;
         
-        var len = TDW_images[sequence_index].Length;
+        var len = TDW_images.Span[sequence_index].Length;
         var placement_idx = (int)placement.SequenceIndex;
-        var element = placement_idx >= len || placement_idx < 0 ? null : TDW_images[sequence_index].Span[placement_idx];
+        var element = placement_idx >= len || placement_idx < 0 ? null : TDW_images.Span[sequence_index].Span[placement_idx];
 
         return element;
     }
@@ -1171,7 +1175,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var sequence_location = "None";
         if (Sequences.Length > 0 && Sequences.Length > CurrentSequence)
         {
-            sequence_location = Sequences[CurrentSequence].FileLocation;
+            sequence_location = Sequences.Span[CurrentSequence].FileLocation;
         }
         
         var folder_index = sequence_location.LastIndexOf(Path.DirectorySeparatorChar);
