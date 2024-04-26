@@ -193,6 +193,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     Ctrl+0-9 -> Set bookmark to current time.
                     Ctrl+Shift+0-9 -> Clear given bookmark time.
                     Ctrl+D -> Show debugging info.
+                    Page Up/Down -> Seek to previous/next sequence.
 
                     """
         }.WithPosition((10, 0f, 0));
