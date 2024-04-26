@@ -405,7 +405,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         {
             SequenceVolume = 100d;
             LastBPM = 300;
-            ColorTools.ChangeColor(_background,new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.2f).GetAwaiter();
         }
             
         if (old_sequence < CurrentSequence)
@@ -623,6 +622,34 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             SequencePlayer.AudioContext.GlobalVolume = Math.Max(0f, SequencePlayer.AudioContext.GlobalVolume - 0.01f);
             SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.AudioContext.GlobalVolume * 100:0.##}%");
         }
+
+        if (state.IsKeyDown(Keys.PageUp) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
+        {
+            RestartSeekTimer();
+            var requested_sequence = Math.Clamp(CurrentSequence - 2, -1, SequenceIndices.Ends.Length - 1);
+            if (requested_sequence == -1)
+            {
+                await SequencePlayer.Seek(0);
+            }
+            else
+            {
+                var (index, _) = SequenceIndices.Ends[requested_sequence];
+                await SequencePlayer.Seek(SequencePlayer.GetTimeFromIndex(index));
+            }
+            SetStatusMessage($"[Playback]: Seeking To Sequence ({requested_sequence + 2} - {SequenceIndices.Ends.Length})");
+        }
+        
+        if (state.IsKeyDown(Keys.PageDown) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
+        {
+            RestartSeekTimer();
+            var requested_sequence = Math.Clamp(CurrentSequence, 0, SequenceIndices.Ends.Length - 1);
+            var (index, _) = SequenceIndices.Ends[requested_sequence];
+
+            await SequencePlayer.Seek(SequencePlayer.GetTimeFromIndex(index));
+            SetStatusMessage(requested_sequence + 1 < SequenceIndices.Ends.Length
+                ? $"[Playback]: Seeking To Sequence ({requested_sequence + 2} - {SequenceIndices.Ends.Length})"
+                : "[Playback]: Seeking To The End");
+        } 
 
         if (!state.IsKeyPressed(Keys.R)) return;
         FileDrop(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
@@ -1194,7 +1221,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         // get accurate bpm info.
         foreach (var ev in ExtractedSpeedEvents)
         {
-            if (ev.Index >= (ulong) elapsed_milliseconds / 1000f * TimedEvents.TimingSampleRate) break;
+            if (ev.Index >= SequencePlayer.GetIndexFromTime(elapsed_milliseconds)) break;
             var val = (float) ev.Event.Value;
 
             bpm = ev.Event.ValueScale switch
@@ -1211,7 +1238,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         // get next note info.
         if (current_index < placement_length)
         {
-            var normalized_time = elapsed_milliseconds / 1000f * TimedEvents.TimingSampleRate;
+            var normalized_time = SequencePlayer.GetIndexFromTime(elapsed_milliseconds);
             var current_placement = TimedEvents.Placement[current_index];
             
             current_note_idx = (int)current_placement.SequenceIndex;

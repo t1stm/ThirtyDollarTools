@@ -223,8 +223,8 @@ public class SequencePlayer
         for (var i = 0; i < span.Length; i++)
         {
             placement = span[i];
-            var index_time = placement.Index * 1000f / Events.TimingSampleRate;
-            var time = Math.Abs((long)index_time - current_time);
+            var index_time = GetTimeFromIndex(placement.Index);
+            var time = Math.Abs(index_time - current_time);
             if (time >= min_time) continue;
 
             min_time = time;
@@ -312,14 +312,13 @@ public class SequencePlayer
             var end_placement = placement_memory.Span[^1];
             var end_time = end_placement.Index;
 
-            if (TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f + 1000 > end_time)
-                TimingStopwatch.Seek((long)(end_time * 1000f / Events.TimingSampleRate) + 100);
+            if (GetIndexFromTime(TimingStopwatch.ElapsedMilliseconds) + 1000 > end_time)
+                TimingStopwatch.Seek(GetTimeFromIndex(end_time) + 100);
 
             for (end_idx = current_idx; end_idx < placement_memory.Length; end_idx++)
             {
                 var placement = placement_memory.Span[end_idx];
-                if (placement.Index >
-                    (ulong)((float)TimingStopwatch.ElapsedMilliseconds * Events.TimingSampleRate / 1000f))
+                if (placement.Index > GetIndexFromTime(TimingStopwatch.ElapsedMilliseconds))
                     break;
 
                 switch (placement.Event)
@@ -360,6 +359,26 @@ public class SequencePlayer
         {
             UpdateLock.Release();
         }
+    }
+
+    /// <summary>
+    /// Gets the time in milliseconds a timing index represents.
+    /// </summary>
+    /// <param name="index">The sequence's index.</param>
+    /// <returns>index * 1000 / Events.TimingSampleRate</returns>
+    public long GetTimeFromIndex(ulong index)
+    {
+        return (long)index * 1000 / Events.TimingSampleRate;
+    }
+
+    /// <summary>
+    /// Gets the sequence's timing index from the given milliseconds.
+    /// </summary>
+    /// <param name="milliseconds">The milliseconds for the index you want to find.</param>
+    /// <returns>milliseconds * Events.TimingSampleRate / 1000f</returns>
+    public ulong GetIndexFromTime(long milliseconds)
+    {
+        return (ulong)(milliseconds * Events.TimingSampleRate / 1000f);
     }
 
     protected void PlayBatch(Span<Placement> batch)
