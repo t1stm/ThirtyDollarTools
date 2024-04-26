@@ -407,11 +407,24 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             SequenceVolume = 100d;
             LastBPM = 300;
         }
-            
-        if (old_sequence < CurrentSequence)
+
+        if (old_sequence >= CurrentSequence) return;
+        Camera.SetPosition((0,-300,0));
+        
+        var current_placement = SequencePlayer.PlacementIndex;
+        var current_index = TimedEvents.Placement[current_placement].Index;
+        var max_index_change = TimedEvents.TimingSampleRate / 2;
+        var max_index = current_index + (ulong)max_index_change;
+
+        for (var i = current_placement; i < TimedEvents.Placement.Length; i++)
         {
-            Camera.SetPosition((0,-300,0));
+            var index = Math.Clamp(i, 0, TimedEvents.Placement.Length - 1);
+            var placement = TimedEvents.Placement[index];
+            if (placement.Index > max_index) break;
+            if (placement.Event.SoundEvent is "!bg") return;
         }
+
+        ColorTools.ChangeColor(_background, new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.33f).GetAwaiter();
     }
 
     public virtual void Update()
@@ -1265,7 +1278,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 
                 next_note = i_placement.Event.SoundEvent;
                 next_note_idx = (int)i_placement.SequenceIndex;
-                next_beat_ms = (i_time - normalized_time) / 100f;
+                if (i_time > normalized_time) next_beat_ms = (i_time - normalized_time) / 100f;
                 beats_to_next_beat = next_beat_ms / 1000f * (bpm / 60f);
                 break;
             }
