@@ -4,7 +4,10 @@ This project contains tools related to the
 [Thirty Dollar Website](https://thirtydollar.website/) 
 that help the creators to make better and more complex covers,
 and the users to have more fun experiencing _"particle accelerators"_ 
-and public covers.
+and public covers. 
+
+The wiki also has some useful information if you're planning on using these tools.
+[Here's the link](https://github.com/t1stm/ThirtyDollarTools/wiki/Main-Page)
 
 ## Projects you're most likely going to be interested in: 
 
