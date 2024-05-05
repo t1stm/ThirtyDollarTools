@@ -2,9 +2,9 @@
 
 This project contains tools related to the 
 [Thirty Dollar Website](https://thirtydollar.website/) 
-that help the creators to make better and more complex covers,
-and the users to have more fun experiencing _"particle accelerators"_ 
-and public covers. 
+that help creators make better and more complex covers,
+and users have more enjoyment experiencing public covers and _"particle accelerators"_, 
+**free of the lag that you might encounter on the Thirty Dollar Website.** 
 
 The wiki also has some useful information if you're planning on using these tools.
 [Here's the link](https://github.com/t1stm/ThirtyDollarTools/wiki/Main-Page)
@@ -27,6 +27,10 @@ achieve much higher note density and performance, than the website can achieve.
 
 The **Thirty Dollar Converter** is a tool that perfectly 
 outputs a Thirty Dollar Composition to a WAVE audio file.
+It's the perfect way to make a **high quality export of an audio file 
+from a sequence, to use in a video** or somewhere else, since it 
+doesn't rely on the performance enhancements the 
+audio engine of the Thirty Dollar Website uses.
 
 The only limitation is your system's RAM capacity and 
 the time you can leave your device powered on.
@@ -39,6 +43,6 @@ the time you can leave your device powered on.
 
 If you want to download these tools, you can visit the
 [release tab](https://github.com/t1stm/ThirtyDollarTools/releases) and download the 
-latest copy of the compiled projects, or you can compile this project from source code.
+latest copy of the compiled projects, or you can compile this project from the source code.
 
-The officially supported operating systems are Windows x64, macOS x64/ARM and Linux x64
+The **officially supported operating systems** are **Windows x64** and **Linux x64**, but I also include builds for **macOS x64/ARM**
