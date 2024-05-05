@@ -318,7 +318,7 @@ public class PlacementCalculator
                 case "!target":
                     break;
 
-                case "" or "!flash" or "!bg" or "!combine" or "!startpos":
+                case "" or "!flash" or "!bg" or "!combine" or "!startpos" or "!pulse":
                     break;
 
                 case "!transpose":
