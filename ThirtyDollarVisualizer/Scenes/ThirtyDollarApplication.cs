@@ -520,9 +520,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var old_camera = CameraFollowMode;
         CameraFollowMode = state.IsKeyPressed(Keys.C) switch
         {
-            true when CameraFollowMode is CameraFollowMode.Current_Line => CameraFollowMode.TDW_Like,
-            true when CameraFollowMode is CameraFollowMode.TDW_Like => CameraFollowMode.None,
             true when CameraFollowMode is CameraFollowMode.None => CameraFollowMode.Current_Line,
+            true when CameraFollowMode is CameraFollowMode.Current_Line => CameraFollowMode.TDW_Like,
+            true when CameraFollowMode is CameraFollowMode.TDW_Like => CameraFollowMode.No_Animation_Current_Line,
+            true when CameraFollowMode is CameraFollowMode.No_Animation_Current_Line => CameraFollowMode.No_Animation_TDW,
+            true when CameraFollowMode is CameraFollowMode.No_Animation_TDW => CameraFollowMode.None,
             _ => CameraFollowMode
         };
 
@@ -1088,24 +1090,38 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         var position = element.GetPosition() + element.GetTranslation();
         var scale = element.GetScale();
-
+        
         switch (CameraFollowMode)
         {
-            case CameraFollowMode.TDW_Like:
+            case var follow_mode when follow_mode.HasFlag(CameraFollowMode.TDW_Like):
             {
                 float margin = RenderableSize;
 
                 if (!Camera.IsOutsideOfCameraView(position, scale, margin) &&
                     placement.Event.SoundEvent is not "!divider") break;
 
-                Camera.ScrollTo(new Vector3(0, position.Y - margin, 0f));
-                break;
+                var pos = new Vector3(0, position.Y - margin, 0f);
+                
+                if (CameraFollowMode.HasFlag(CameraFollowMode.No_Animation))
+                {
+                    Camera.SetPosition(pos);
+                    return;
+                }
+                Camera.ScrollTo(pos);
+                return;
             }
 
-            case CameraFollowMode.Current_Line:
+            case var follow_mode when follow_mode.HasFlag(CameraFollowMode.Current_Line):
             {
-                Camera.ScrollTo(position * Vector3.UnitY - Vector3.UnitY * (Height / 2f));
-                break;
+                var pos = position * Vector3.UnitY - Vector3.UnitY * (Height / 2f);
+
+                if (CameraFollowMode.HasFlag(CameraFollowMode.No_Animation))
+                {
+                    Camera.SetPosition(pos);
+                    return;
+                }
+                Camera.ScrollTo(pos);
+                return;
             }
         }
     }
