@@ -87,7 +87,7 @@ public sealed class DollarStoreCamera : Camera
                 stopwatch.Restart();
             }
 
-            var zoom = RenderScale + (float)Math.Sin(Math.PI * factor) * max_add_scale;
+            var zoom = RenderScale + MathF.Sin(MathF.PI * factor) * max_add_scale;
             Scale = zoom;
             UpdateMatrix();
 

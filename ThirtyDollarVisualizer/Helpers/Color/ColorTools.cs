@@ -32,7 +32,7 @@ public static class ColorTools
         float elapsed;
         while ((elapsed = stopwatch.ElapsedMilliseconds / 1000f) < duration_seconds && renderable.IsBeingUpdated)
         {
-            var delta = (float)Math.Clamp(elapsed / duration_seconds, 0.01, 1);
+            var delta = Math.Clamp(elapsed / duration_seconds, 0.01f, 1f);
 
             renderable.SetColor(Vector4.Lerp(old_color, color, delta));
             await Task.Delay(16);

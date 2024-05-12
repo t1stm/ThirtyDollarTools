@@ -35,7 +35,7 @@ public class ExpandAnimation : Animation
             normalized = 1;
         }
 
-        var factor = (float)Math.Sin(Math.PI * normalized);
+        var factor = MathF.Sin(MathF.PI * normalized);
         var scale = renderable.GetScale();
 
         transformation.X -= factor * ExpandHalf * scale.X;
@@ -58,7 +58,7 @@ public class ExpandAnimation : Animation
             normalized = 1;
         }
 
-        var factor = (float)Math.Sin(Math.PI * normalized);
+        var factor = MathF.Sin(MathF.PI * normalized);
         var scale_factor = 1 + factor * ExpandSize;
         var transformation = new Vector3(scale_factor);
 

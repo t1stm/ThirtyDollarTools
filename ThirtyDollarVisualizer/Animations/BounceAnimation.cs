@@ -42,12 +42,12 @@ public class BounceAnimation : Animation
         if (normalized < max_percent)
         {
             var temp_val = normalized / max_percent / 2f;
-            factor = (float)Math.Sin(Math.PI * temp_val);
+            factor = MathF.Sin(MathF.PI * temp_val);
         }
         else
         {
             var temp_val = 0.5f + (normalized - max_percent) / (1f - max_percent) * 0.5f;
-            factor = 1f - (float)Math.Cos(Math.PI * (1f - temp_val));
+            factor = 1f - MathF.Cos(MathF.PI * (1f - temp_val));
         }
 
         transformation.Y = -factor * Final_Y;

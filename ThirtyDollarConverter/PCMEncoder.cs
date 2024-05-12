@@ -515,7 +515,7 @@ public class PcmEncoder
         var d_slice = destination[index..];
         var chunk_size = Vector<float>.Count;
         var final_volume = (float)volume / 100f;
-        if (final_volume > 1f) final_volume = (float)Math.Sqrt(final_volume);
+        if (final_volume > 1f) final_volume = MathF.Sqrt(final_volume);
 
         var s_chunked = s_slice.Length - s_slice.Length % chunk_size;
         var d_chunked = d_slice.Length - d_slice.Length % chunk_size;
