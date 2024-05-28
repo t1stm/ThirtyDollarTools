@@ -294,6 +294,7 @@ public class PlacementCalculator
                         Audible = false
                     };
 
+                    modify_index = false;
                     index = (ulong)search;
                     var found_event = sequence.Events[index];
 
