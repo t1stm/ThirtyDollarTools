@@ -7,7 +7,7 @@ and users have more enjoyment experiencing public covers and _"particle accelera
 **free of the lag that you might encounter on the Thirty Dollar Website.** 
 
 The wiki also has some useful information if you're planning on using these tools.
-[Here's the link](https://github.com/t1stm/ThirtyDollarTools/wiki/Main-Page)
+[Here's the link](https://github.com/t1stm/ThirtyDollarTools/wiki)
 
 ## Projects you're most likely going to be interested in: 
 
