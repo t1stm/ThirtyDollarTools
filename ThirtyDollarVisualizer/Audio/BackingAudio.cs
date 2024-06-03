@@ -5,9 +5,6 @@ namespace ThirtyDollarVisualizer.Audio;
 public class BackingAudio(AudioContext context, AudioData<float> data, int sample_rate)
 {
     private readonly AudibleBuffer _buffer = context.GetBufferObject(data, sample_rate);
-    private readonly int _channels = (int)data.ChannelCount;
-    private readonly int _sample_rate = sample_rate;
-    private AudioContext _context = context;
 
     public long GetCurrentTime()
     {
@@ -16,6 +13,7 @@ public class BackingAudio(AudioContext context, AudioData<float> data, int sampl
 
     public void Play()
     {
+        _buffer.SetVolume(1);
         _buffer.Play();
     }
 

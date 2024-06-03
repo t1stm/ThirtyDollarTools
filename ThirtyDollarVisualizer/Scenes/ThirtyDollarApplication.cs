@@ -170,7 +170,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _greeting ??= new CachedDynamicText
         {
             FontStyle = FontStyle.Bold,
-            FontSizePx = 36f,
+            FontSizePx = 36f * Scale,
             Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
         }.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
 
@@ -198,7 +198,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     """
         }.WithPosition((10, 0f, 0));
 
-        const string version_string = "1.1.2";
+        const string version_string = "1.1.4";
         var text = new StaticText
         {
             FontStyle = FontStyle.Bold,
@@ -221,7 +221,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         text_objects.Add(_version_text);
 
         _log_text.SetPosition((20, 20, 0));
-        _log_text.SetFontSize(48f);
+        _log_text.SetFontSize(48f * Scale);
         _log_text.FontStyle = FontStyle.Bold;
         
         _debug_text.SetPosition((10,30,0));
@@ -903,7 +903,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     cut_sounds.Where(r => File.Exists($"{dll_location}/Images/{r}.png"));
 
                 var textures = available_textures.Select(t => new Texture($"{dll_location}/Images/{t}.png")).ToArray();
-                value_texture = new Texture(textures, 2);
+                value_texture = new Texture(textures, 2, Scale);
 
                 break;
             }
