@@ -289,7 +289,7 @@ public class Sequence
             var new_event = new NormalEvent
             {
                 Value = value,
-                SoundEvent = sound,
+                SoundEvent = string.Intern(sound),
                 PlayTimes = loop_times,
                 OriginalLoop = loop_times,
                 ValueScale = scale,
@@ -304,7 +304,7 @@ public class Sequence
             {
                 Pan = pan,
                 Value = value,
-                SoundEvent = sound,
+                SoundEvent = string.Intern(sound),
                 PlayTimes = loop_times,
                 OriginalLoop = loop_times,
                 ValueScale = scale,

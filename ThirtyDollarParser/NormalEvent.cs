@@ -25,7 +25,7 @@ public class NormalEvent : BaseEvent
     {
         return new NormalEvent
         {
-            SoundEvent = SoundEvent,
+            SoundEvent = SoundEvent is null ? null : string.Intern(SoundEvent),
             Value = Value,
             OriginalLoop = OriginalLoop,
             PlayTimes = PlayTimes,
