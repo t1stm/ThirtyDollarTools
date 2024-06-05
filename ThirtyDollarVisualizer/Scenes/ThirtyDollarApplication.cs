@@ -23,6 +23,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
     private static Texture? MissingTexture;
     private static Texture? ICutTexture;
+    private static Vector4 DefaultBackgroundColor => new(0.21f, 0.22f, 0.24f, 1f);
+    
     private readonly Stopwatch _file_update_stopwatch = new();
 
     private readonly CachedDynamicText _log_text = new()
@@ -44,6 +46,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     };
 
     private readonly DollarStoreCamera Camera;
+    private readonly DollarStoreCamera TempCamera;
     protected readonly List<Renderable> start_objects = new();
     protected readonly List<Renderable> static_objects = new();
     private readonly DollarStoreCamera StaticCamera;
@@ -99,6 +102,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Height = height;
         Sequences = GetSequenceInfos(sequence_locations);
 
+        TempCamera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height));
         Camera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height));
         StaticCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height));
         TextCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height));
@@ -145,7 +149,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
             optional_shader = new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation);
 
-        _background = new ColoredPlane(new Vector4(0.21f, 0.22f, 0.24f, 1f), new Vector3(-Width, -Height, 1f),
+        _background = new ColoredPlane(DefaultBackgroundColor, new Vector3(-Width, -Height, 1f),
             new Vector3(Width * 2, Height * 2, 0),
             optional_shader);
 
@@ -329,39 +333,55 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         Manager.CheckErrors();
 
+        // get static values from current camera, for this frame
+        var camera = TempCamera;
+        camera.CopyFrom(Camera);
+        
+        // render all static objects
+        foreach (var renderable in static_objects) renderable.Render(StaticCamera);
+
+        // render the greeting
+        _greeting?.Render(camera);
+        
+        // set render culling limits
         var clamped_scale = Math.Min(Zoom, 1f);
         var width_scale = Width / clamped_scale - Width;
         var height_scale = Height / clamped_scale - Height;
 
-        var camera_x = Camera.Position.X - width_scale;
-        var camera_y = Camera.Position.Y;
+        // get render culling camera values
+        var camera_x = camera.Position.X - width_scale;
+        var camera_y = camera.Position.Y;
         var camera_xw = camera_x + Width + width_scale;
         var camera_yh = camera_y + Height;
 
-        camera_y -= height_scale;
-        camera_yh += height_scale;
-
-        foreach (var renderable in static_objects) renderable.Render(StaticCamera);
-
-        _greeting?.Render(Camera);
-
+        // get render culling object values
         var size_renderable = RenderableSize + MarginBetweenRenderables;
         var repeats_renderable = PlayfieldWidth / size_renderable;
 
+        // account for padding between objects
         var padding_rows = repeats_renderable * 2;
         var dividers_size = size_renderable * DividerCount;
+        
+        // fix values when the zoom is changed
+        camera_y -= height_scale;
+        camera_yh += height_scale;
 
+        // render objects if any
         if (TDW_images.Length > 0)
         {
+            // gets the current sequence
             var tdw_span = TDW_images.Span[CurrentSequence].Span;
 
+            // finds the index of the object at the start of the view
             var start = (int)Math.Max(0, repeats_renderable * (camera_y / size_renderable) - dividers_size - padding_rows);
 
+            // same but for the end of the view
             var end = (int)Math.Min(tdw_span.Length,
                 repeats_renderable * (camera_y / size_renderable) +
                 repeats_renderable * ((Height + height_scale) / size_renderable / clamped_scale) +
                 padding_rows);
 
+            // renders all objects in the start - end range
             for (var i = start; i < end; i++)
             {
                 var renderable = tdw_span[i];
@@ -369,13 +389,16 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
         }
 
+        // renders all start objects, when visible
         foreach (var renderable in start_objects) RenderRenderable(renderable);
 
+        // renders every text object
         foreach (var renderable in text_objects) renderable.Render(TextCamera);
         if (Debug) _debug_text.Render(TextCamera);
 
         return;
 
+        // inline method that is called in the renderer
         void RenderRenderable(Renderable? renderable)
         {
             Manager.CheckErrors();
@@ -392,10 +415,14 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             if (place.X + scale.X < camera_x || place.X - scale.X > camera_xw) return;
             if (place.Y + scale.Y < camera_y || place.Y - scale.Y > camera_yh) return;
 
-            renderable.Render(Camera);
+            renderable.Render(camera);
         }
     }
 
+    /// <summary>
+    /// Call this method when there is a change to the objects of a given sequence.
+    /// </summary>
+    /// <param name="sequence_index">The changed sequence's index.</param>
     public void HandleSequenceChange(int sequence_index)
     {
         if (TimedEvents.Placement.Length <= 1) return;
@@ -404,6 +431,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             
         if (old_sequence != CurrentSequence)
         {
+            // reset debugging values to their default ones
             SequenceVolume = 100d;
             LastBPM = 300;
         }
@@ -411,11 +439,13 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (old_sequence >= CurrentSequence) return;
         Camera.SetPosition((0,-300,0));
         
+        // values for the loop below
         var current_placement = SequencePlayer.PlacementIndex;
         var current_index = TimedEvents.Placement[current_placement].Index;
         var max_index_change = TimedEvents.TimingSampleRate / 2;
         var max_index = current_index + (ulong)max_index_change;
-
+        
+        // checks if there is a color event in the next 500ms
         for (var i = current_placement; i < TimedEvents.Placement.Length; i++)
         {
             var index = Math.Clamp(i, 0, TimedEvents.Placement.Length - 1);
@@ -424,22 +454,28 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             if (placement.Event.SoundEvent is "!bg") return;
         }
 
-        ColorTools.ChangeColor(_background, new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.33f).GetAwaiter();
+        // changes the background color to the default one if there isn't a color event in the next 500ms
+        ColorTools.ChangeColor(_background, DefaultBackgroundColor, 0.33f).GetAwaiter();
     }
 
     public virtual void Update()
     {
+        // check if one of the sequences has been updated, and handle it
         if (_file_update_stopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
+        // spawns the camera update thread
         Camera.Update();
 
+        // sets debug values if debugging is enabled.
         if (Debug)
         {
             RunDebugUpdate();
         }
 
+        // checks if there is a backing audio
         if (BackingAudio is null) return;
 
+        // syncs the backing audio to the current sequence time
         var stopwatch = SequencePlayer.GetTimingStopwatch();
         BackingAudio.UpdatePlayState(stopwatch.IsRunning);
         BackingAudio.SyncTime(stopwatch.Elapsed);
@@ -471,15 +507,18 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public virtual void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
     {
+        // gets scroll
         var scroll = mouse_state.ScrollDelta;
         if (scroll == Vector2.Zero) return;
 
         var new_delta = Vector3.UnitY * (scroll.Y * 100f);
 
-        if (keyboard_state.IsKeyDown(Keys.LeftControl))
+        // if control is pressed handle zoom
+        if (keyboard_state.IsKeyDown(Keys.LeftControl) || keyboard_state.IsKeyDown(Keys.RightControl))
         {
             HandleZoomControl(scroll.Y);
         }
+        // otherwise scrolls the camera
         else
         {
             Camera.ScrollDelta(new_delta);
@@ -487,6 +526,11 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
     }
 
+    /// <summary>
+    /// Converts milliseconds to a time string.
+    /// </summary>
+    /// <param name="milliseconds">Milliseconds passed.</param>
+    /// <returns>A formatted time string.</returns>
     private static string TimeString(long milliseconds)
     {
         var timespan = TimeSpan.FromMilliseconds(milliseconds);
@@ -505,6 +549,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         const int seek_length = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
 
+        // toggle play / pause
         switch (state.IsKeyPressed(Keys.Space))
         {
             case true:
@@ -517,6 +562,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 break;
         }
 
+        // toggle camera modes
         var old_camera = CameraFollowMode;
         CameraFollowMode = state.IsKeyPressed(Keys.C) switch
         {
@@ -528,75 +574,99 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             _ => CameraFollowMode
         };
 
+        // toggle fullscreen
         if (state.IsKeyPressed(Keys.F))
         {
             Manager.ToggleFullscreen();
         }
 
-        if (state.IsKeyDown(Keys.LeftShift) && state.IsKeyDown(Keys.LeftControl))
+        // extract modifier buttons
+        var left_control = state.IsKeyDown(Keys.LeftControl);
+        var right_control = state.IsKeyDown(Keys.RightControl);
+        var left_shift = state.IsKeyDown(Keys.LeftShift);
+        var right_shift = state.IsKeyDown(Keys.RightShift);
+        
+        // generic modifier checks
+        var control = left_control || right_control;
+        var shift = left_shift || right_shift;
+        
+        // bookmark handlers
+        switch (left_control)
         {
-            for (var i = 0; i < 10; i++)
+            case true when left_shift:
             {
-                var key = (Keys)((int)Keys.D0 + i);
-                if (!state.IsKeyPressed(key)) continue;
-                SequencePlayer.ClearBookmark(i);
-                SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
-            }
-        }
-        else if (state.IsKeyDown(Keys.LeftControl))
-        {
-            for (var i = 0; i < 10; i++)
-            {
-                var key = (Keys)((int)Keys.D0 + i);
-                if (!state.IsKeyPressed(key)) continue;
-                var bookmark_time = SequencePlayer.SetBookmark(i);
-                SetStatusMessage($"[Playback] Setting Bookmark {i} To: {TimeString(bookmark_time)}");
-            }
+                for (var i = 0; i < 10; i++)
+                {
+                    var key = (Keys)((int)Keys.D0 + i);
+                    if (!state.IsKeyPressed(key)) continue;
+                    SequencePlayer.ClearBookmark(i);
+                    SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
+                }
 
-            if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
-            {
-                RestartSeekTimer();
-                HandleZoomControl(+1);
+                break;
             }
-
-            if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
+            case true:
             {
-                RestartSeekTimer();
-                HandleZoomControl(-1);
+                for (var i = 0; i < 10; i++)
+                {
+                    var key = (Keys)((int)Keys.D0 + i);
+                    if (!state.IsKeyPressed(key)) continue;
+                    var bookmark_time = SequencePlayer.SetBookmark(i);
+                    SetStatusMessage($"[Playback] Setting Bookmark {i} To: {TimeString(bookmark_time)}");
+                }
+
+                if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
+                {
+                    RestartSeekTimer();
+                    HandleZoomControl(+1);
+                }
+
+                if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
+                {
+                    RestartSeekTimer();
+                    HandleZoomControl(-1);
+                }
+            
+                if (state.IsKeyPressed(Keys.D))
+                {
+                    Debug = !Debug;
+                    SetStatusMessage(Debug switch
+                    {
+                        true => "[Debug]: Enabled",
+                        false => "[Debug]: Disabled"
+                    });
+                }
+
+                break;
             }
             
-            if (state.IsKeyPressed(Keys.D))
+            default:
             {
-                Debug = !Debug;
-                SetStatusMessage(Debug switch
+                for (var i = 0; i < 10; i++)
                 {
-                    true => "[Debug]: Enabled",
-                    false => "[Debug]: Disabled"
-                });
-            }
-        }
-        else
-        {
-            for (var i = 0; i < 10; i++)
-            {
-                var key = (Keys)((int)Keys.D0 + i);
-                if (!state.IsKeyPressed(key)) continue;
-                var time = await SequencePlayer.SeekToBookmark(i);
-                SetStatusMessage($"[Playback] Seeking To Bookmark {i}: {TimeString(time)}");
+                    var key = (Keys)((int)Keys.D0 + i);
+                    if (!state.IsKeyPressed(key)) continue;
+                    var time = await SequencePlayer.SeekToBookmark(i);
+                    SetStatusMessage($"[Playback] Seeking To Bookmark {i}: {TimeString(time)}");
+                }
+
+                break;
             }
         }
 
+        // set message if camera mode is updated
         if (old_camera != CameraFollowMode) SetStatusMessage($"[Camera] Follow Mode is now: {CameraFollowMode}");
 
+        // check backwards seeking
         var elapsed = stopwatch.ElapsedMilliseconds;
         if (state.IsKeyDown(Keys.Left) && IsSeekTimeoutPassed())
         {
             RestartSeekTimer();
             var seek = seek_length;
-            if (state.IsKeyDown(Keys.LeftShift) || state.IsKeyDown(Keys.RightShift))
+            if (shift)
             {
                 seek /= 10;
-                if (state.IsKeyDown(Keys.LeftControl) || state.IsKeyDown(Keys.RightControl))
+                if (control)
                 {
                     seek /= 10;
                 }
@@ -607,14 +677,15 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             await SequencePlayer.Seek(change);
         }
 
+        // check forwards seeking
         if (state.IsKeyDown(Keys.Right) && IsSeekTimeoutPassed())
         {
             RestartSeekTimer();
             var seek = seek_length;
-            if (state.IsKeyDown(Keys.LeftShift) || state.IsKeyDown(Keys.RightShift))
+            if (shift)
             {
                 seek /= 10;
-                if (state.IsKeyDown(Keys.LeftControl) || state.IsKeyDown(Keys.RightControl))
+                if (control)
                 {
                     seek /= 10;
                 }
@@ -625,6 +696,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             await SequencePlayer.Seek(change);
         }
 
+        // check volume increase
         if (state.IsKeyDown(Keys.Up) && IsSeekTimeoutPassed(7))
         {
             RestartSeekTimer();
@@ -632,6 +704,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.AudioContext.GlobalVolume * 100:0.##}%");
         }
 
+        // check volume decrease
         if (state.IsKeyDown(Keys.Down) && IsSeekTimeoutPassed(7))
         {
             RestartSeekTimer();
@@ -639,6 +712,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.AudioContext.GlobalVolume * 100:0.##}%");
         }
 
+        // check previous sequence seeking
         if (state.IsKeyDown(Keys.PageUp) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
         {
             RestartSeekTimer();
@@ -655,6 +729,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             SetStatusMessage($"[Playback]: Seeking To Sequence ({requested_sequence + 2} - {SequenceIndices.Ends.Length})");
         }
         
+        // check next sequence seeking
         if (state.IsKeyDown(Keys.PageDown) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
         {
             RestartSeekTimer();
@@ -667,6 +742,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 : "[Playback]: Seeking To The End");
         } 
 
+        // check for restarting the current sequences
         if (!state.IsKeyPressed(Keys.R)) return;
         FileDrop(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
     }
@@ -683,7 +759,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         Camera.ScrollTo((0, -300, 0));
-        ColorTools.ChangeColor(_background, new Vector4(0.21f, 0.22f, 0.24f, 1f), 0.66f).GetAwaiter();
+        ColorTools.ChangeColor(_background, DefaultBackgroundColor, 0.66f).GetAwaiter();
         DividerCount = 0;
 
         var sequences_count = events.Sequences.Length;

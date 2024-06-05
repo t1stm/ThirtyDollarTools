@@ -103,6 +103,17 @@ public sealed class DollarStoreCamera : Camera
         stopwatch.Reset();
     }
 
+    /// <summary>
+    /// This method copies values from another camera to this one.
+    /// </summary>
+    /// <param name="camera">The other camera.</param>
+    public void CopyFrom(DollarStoreCamera camera)
+    {
+        Viewport = camera.Viewport;
+        _position = camera.Position;
+        projection_matrix = camera.GetProjectionMatrix();
+    }
+
     public void Update()
     {
         Task.Run(CameraUpdate);

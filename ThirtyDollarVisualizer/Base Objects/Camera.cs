@@ -5,7 +5,7 @@ namespace ThirtyDollarVisualizer.Objects;
 public abstract class Camera
 {
     protected Vector3 _position;
-    private Matrix4 projection_matrix;
+    protected Matrix4 projection_matrix;
     protected float RenderScale = 1f;
     protected bool Disposing;
 
