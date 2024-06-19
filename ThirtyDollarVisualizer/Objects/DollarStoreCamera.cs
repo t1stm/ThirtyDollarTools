@@ -5,7 +5,6 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public sealed class DollarStoreCamera : Camera
 {
-    private const float ScrollLengthMs = 120f;
     private Vector3 _virtualPosition;
     private DateTime LastScaleUpdate = DateTime.Now;
 
