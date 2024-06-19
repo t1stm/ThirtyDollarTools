@@ -442,7 +442,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         // values for the loop below
         var current_placement = SequencePlayer.PlacementIndex;
         var current_index = TimedEvents.Placement[current_placement].Index;
-        var max_index_change = TimedEvents.TimingSampleRate / 2;
+        var max_index_change = TimedEvents.TimingSampleRate / 2; // 500 ms
         var max_index = current_index + (ulong)max_index_change;
         
         // checks if there is a color event in the next 500ms
@@ -463,8 +463,10 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         // check if one of the sequences has been updated, and handle it
         if (_file_update_stopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
+        var last_frame_time = (float)Manager.UpdateTime;
+        
         // spawns the camera update thread
-        Camera.Update();
+        Camera.Update(last_frame_time);
 
         // sets debug values if debugging is enabled.
         if (Debug)
@@ -522,7 +524,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         else
         {
             Camera.ScrollDelta(new_delta);
-            Camera.Update();
         }
     }
 
@@ -778,7 +779,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _texture_cache = new Dictionary<string, Texture>();
         _volume_text_cache = new Dictionary<string, Texture>();
 
-        var font = font_family.CreateFont(RenderableSize / 3.625f, FontStyle.Bold);
+        var value_font = font_family.CreateFont(RenderableSize / 3.625f, FontStyle.Bold);
 
         // funny number 👍
         var volume_font = font_family.CreateFont(RenderableSize * 0.22f, FontStyle.Bold);
@@ -814,7 +815,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                         continue;
 
                     CreateEventRenderable(tdw_images[index], i, ev, _texture_cache, wh, flex_box,
-                        ValueTextCache, _volume_text_cache, font,
+                        ValueTextCache, _volume_text_cache, value_font,
                         volume_color, volume_font);
                 }
 
@@ -828,7 +829,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                         var search = val.ToString("0.##");
                         if (ValueTextCache.ContainsKey(search)) continue;
 
-                        var texture = new Texture(font, search);
+                        var texture = new Texture(value_font, search);
                         ValueTextCache.Add(search, texture);
                     }
                 }
@@ -836,7 +837,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
             if (!ValueTextCache.ContainsKey("0"))
             {
-                var texture = new Texture(font, "0");
+                var texture = new Texture(value_font, "0");
                 ValueTextCache.Add("0", texture);
             }
         }
@@ -1302,7 +1303,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var next_beat_ms = 0f;
         var beats_to_next_beat = 0f;
         
-        var fps = (int)(1 / Manager.UpdateTime);
+        var fps = 1 / Manager.UpdateTime;
         var volume = SequenceVolume;
         
         // remove full path from sequence filename.
@@ -1380,7 +1381,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _debug_text.SetTextContents(
             $"""
              [Debug]
-             FPS: {fps}
+             FPS: {fps:0.##}
 
              Sequence ({CurrentSequence + 1} - {Sequences.Length}): {sequence_location}
              BPM: {bpm}
