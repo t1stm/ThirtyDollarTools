@@ -77,6 +77,10 @@ public static class Program
             new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
 
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
+        if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale))
+        {
+            scale ??= (horizontal_scale + vertical_scale) / 2f;
+        }
 
         var tdw_application = new ThirtyDollarApplication(width, height, new [] { sequence }, audio_context)
         {
