@@ -11,6 +11,7 @@ using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Color;
+using ThirtyDollarVisualizer.Helpers.Decoders;
 using ThirtyDollarVisualizer.Helpers.Positioning;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
@@ -55,7 +56,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private readonly CancellationTokenSource TokenSource = new();
     private readonly Dictionary<string, Texture> ValueTextCache = new();
 
-    private ColoredPlane _background = null!;
+    private BackgroundPlane BackgroundPlane = null!;
     private Renderable? _controls_text;
     private SoundRenderable? _drag_n_drop;
     private ColoredPlane _flash_overlay = null!;
@@ -160,14 +161,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
             optional_shader = new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation);
 
-        _background = new ColoredPlane(DefaultBackgroundColor, new Vector3(-Width, -Height, 1f),
+        BackgroundPlane = new BackgroundPlane(DefaultBackgroundColor, new Vector3(-Width, -Height, 1f),
             new Vector3(Width * 2, Height * 2, 0),
             optional_shader);
 
         _flash_overlay = new ColoredPlane(new Vector4(1f, 1f, 1f, 0f), new Vector3(-Width, -Height, 0.75f),
             new Vector3(Width * 2, Height * 2, 0));
 
-        static_objects.Add(_background);
+        static_objects.Add(BackgroundPlane);
         static_objects.Add(_flash_overlay);
 
         PlayfieldWidth = ElementsOnSingleLine * (RenderableSize + MarginBetweenRenderables) + MarginBetweenRenderables +
@@ -468,7 +469,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         // changes the background color to the default one if there isn't a color event in the next 500ms
-        ColorTools.ChangeColor(_background, DefaultBackgroundColor, 0.33f).GetAwaiter();
+        BackgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.33f);
     }
 
     public void Update()
@@ -480,6 +481,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         // spawns the camera update thread
         Camera.Update(last_frame_time);
+        
+        // updates the background's transitions
+        BackgroundPlane.Update();
 
         // sets debug values if debugging is enabled.
         if (Debug)
@@ -773,7 +777,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         Camera.ScrollTo((0, -300, 0));
-        ColorTools.ChangeColor(_background, DefaultBackgroundColor, 0.66f).GetAwaiter();
+        BackgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.66f);
         DividerCount = 0;
 
         var sequences_count = events.Sequences.Length;
@@ -1250,16 +1254,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void BackgroundEventHandler(Placement placement, int index)
     {
-        var parsed_value = (long)placement.Event.Value;
-
-        var r = (byte)parsed_value;
-        var g = (byte)(parsed_value >> 8);
-        var b = (byte)(parsed_value >> 16);
-        var color = new Vector4(r / 255f, g / 255f, b / 255f, 1f);
-
-        var seconds = (parsed_value >> 24) / 1000f;
-
-        ColorTools.ChangeColor(_background, color, seconds).GetAwaiter();
+        var (color, seconds) = BackgroundParser.ParseFromDouble(placement.Event.Value);
+        BackgroundPlane.TransitionToColor(color, seconds);
     }
 
     private void FlashEventHandler(Placement placement, int index)
@@ -1415,9 +1411,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var width_scale = Width / scale - Width;
         var height_scale = Height / scale - Height;
 
-        var background = _background.GetScale();
-        _background.SetScale((w + width_scale, h + height_scale, background.Z));
-        _background.SetPosition((-width_scale / 2f, -height_scale / 2f, 0));
+        var background = BackgroundPlane.GetScale();
+        BackgroundPlane.SetScale((w + width_scale, h + height_scale, background.Z));
+        BackgroundPlane.SetPosition((-width_scale / 2f, -height_scale / 2f, 0));
 
         var flash = _flash_overlay.GetScale();
         _flash_overlay.SetScale((w + width_scale, h + height_scale, flash.Z));
