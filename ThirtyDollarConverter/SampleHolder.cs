@@ -233,15 +233,14 @@ public class SampleHolder
                 Id = sound,
                 Name = sound
             };
-
-            SampleList.TryAdd(sound_object, new PcmDataHolder());
             
             var fileStream = File.OpenRead($"{DownloadLocation}/{sound}.wav");
+            Console.WriteLine($"Reading custom sample: {sound_object.Filename}.wav");
             
             var decoder = new WaveDecoder();
-            Console.WriteLine($"Reading custom sample: {sound_object.Filename}.wav");
-            SampleList[sound_object] = decoder.Read(fileStream);
-            SampleList[sound_object].ReadAsFloat32Array(true);
+            var holder = decoder.Read(fileStream);
+            holder.ReadAsFloat32Array(true);
+            SampleList.TryAdd(sound_object, holder);
         }
 
         Console.WriteLine($"Samples: {SampleList.Count}");
