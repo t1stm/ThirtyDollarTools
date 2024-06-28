@@ -202,10 +202,10 @@ public class SampleHolder
     {
         foreach (var (key, _) in SampleList)
         {
-            var fileStream = File.OpenRead($"{DownloadLocation}/{key.Id}.wav");
+            var file_stream = File.OpenRead($"{DownloadLocation}/{key.Id}.wav");
             var decoder = new WaveDecoder();
             Console.WriteLine($"Reading sample: {key.Filename}.wav");
-            SampleList[key] = decoder.Read(fileStream);
+            SampleList[key] = decoder.Read(file_stream);
             SampleList[key].ReadAsFloat32Array(true);
 
             if (SampleList[key].FloatData?.GetChannel(0).Length == 0)
@@ -234,11 +234,11 @@ public class SampleHolder
                 Name = sound
             };
             
-            var fileStream = File.OpenRead($"{DownloadLocation}/{sound}.wav");
+            var file_stream = File.OpenRead($"{DownloadLocation}/{sound}.wav");
             Console.WriteLine($"Reading custom sample: {sound_object.Filename}.wav");
             
             var decoder = new WaveDecoder();
-            var holder = decoder.Read(fileStream);
+            var holder = decoder.Read(file_stream);
             holder.ReadAsFloat32Array(true);
             SampleList.TryAdd(sound_object, holder);
         }
