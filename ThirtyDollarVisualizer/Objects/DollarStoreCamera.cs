@@ -5,7 +5,6 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public sealed class DollarStoreCamera : Camera
 {
-    private const float ScrollLengthMs = 120f;
     private Vector3 _virtualPosition;
     private DateTime LastScaleUpdate = DateTime.Now;
 
@@ -40,29 +39,6 @@ public sealed class DollarStoreCamera : Camera
     public void ScrollDelta(Vector3 delta)
     {
         _virtualPosition += delta;
-    }
-
-    private void CameraUpdate()
-    {
-        if (IsBeingUpdated) return;
-        IsBeingUpdated = true;
-
-        do
-        {
-            if (Disposing) return;
-            var current_y = Position.Y;
-            var delta_y = _virtualPosition.Y - current_y;
-
-            if (Math.Abs(delta_y) < 1f) break;
-            var scroll_y = delta_y / ScrollLengthMs;
-
-            current_y += scroll_y;
-            Position = current_y * Vector3.UnitY;
-
-            Thread.Sleep(1);
-        } while (true);
-        Position = _virtualPosition;
-        IsBeingUpdated = false;
     }
 
     private void BlockingPulse(int times, float delay_ms)
@@ -114,9 +90,17 @@ public sealed class DollarStoreCamera : Camera
         projection_matrix = camera.GetProjectionMatrix();
     }
 
-    public void Update()
+    public void Update(float seconds_last_frame)
     {
-        Task.Run(CameraUpdate);
+        // exponentional smoothing by lisyarus
+        // https://lisyarus.github.io/blog/posts/exponential-smoothing.html
+        
+        const float speed = 7.5f;
+        var current_y = Position.Y;
+        var target_y = _virtualPosition.Y;
+
+        current_y += (target_y - current_y) * (1f - MathF.Exp(- speed * seconds_last_frame));
+        Position = current_y * Vector3.UnitY;
     }
 
     public void Pulse(int times = 1, float frequency = 0)

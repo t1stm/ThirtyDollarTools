@@ -11,6 +11,7 @@ using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Color;
+using ThirtyDollarVisualizer.Helpers.Decoders;
 using ThirtyDollarVisualizer.Helpers.Positioning;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
@@ -19,7 +20,7 @@ using ThirtyDollarVisualizer.Objects.Text;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
-public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
+public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
     private static Texture? MissingTexture;
     private static Texture? ICutTexture;
@@ -47,15 +48,15 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private readonly DollarStoreCamera Camera;
     private readonly DollarStoreCamera TempCamera;
-    protected readonly List<Renderable> start_objects = new();
-    protected readonly List<Renderable> static_objects = new();
+    private readonly List<Renderable> start_objects = new();
+    private readonly List<Renderable> static_objects = new();
     private readonly DollarStoreCamera StaticCamera;
-    protected readonly List<Renderable> text_objects = new();
+    private readonly List<Renderable> text_objects = new();
     private readonly DollarStoreCamera TextCamera;
     private readonly CancellationTokenSource TokenSource = new();
     private readonly Dictionary<string, Texture> ValueTextCache = new();
 
-    private ColoredPlane _background = null!;
+    private BackgroundPlane BackgroundPlane = null!;
     private Renderable? _controls_text;
     private SoundRenderable? _drag_n_drop;
     private ColoredPlane _flash_overlay = null!;
@@ -75,6 +76,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     // This is currently a hack, but I can't think of any other way to fix this without restructuring the code.
     private int DividerCount;
     private int Height;
+    
+    // This is a hack because I am lazy
+    private bool is_first_time_scale = true;
 
     // These are needed for some events, because I don't want to pollute the placement events. They're polluted enough as they are.
     private float LastBPM = 300f;
@@ -82,9 +86,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int LeftMargin;
     private Manager Manager = null!;
     private int PlayfieldWidth;
-    
-    protected Memory<Memory<SoundRenderable?>> TDW_images = Array.Empty<Memory<SoundRenderable?>>();
-    protected int CurrentSequence;
+
+    private Memory<Memory<SoundRenderable?>> TDW_images = Array.Empty<Memory<SoundRenderable?>>();
+    private int CurrentSequence;
 
     private int Width;
 
@@ -130,11 +134,19 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     ///     This method loads the sequence, textures and sounds.
     /// </summary>
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
-    public virtual void Init(Manager manager)
+    public void Init(Manager manager)
     {
         GetSampleHolder().GetAwaiter();
         if (_reset_time)
             SequencePlayer.Stop().GetAwaiter().GetResult();
+
+        if (is_first_time_scale)
+        {
+            RenderableSize = (int)(RenderableSize * Scale);
+            MarginBetweenRenderables = (int)(MarginBetweenRenderables * Scale);
+            _debug_text.SetFontSize(14f * Scale);
+            is_first_time_scale = false;
+        }
 
         static_objects.Clear();
         start_objects.Clear();
@@ -149,14 +161,14 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
             optional_shader = new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation);
 
-        _background = new ColoredPlane(DefaultBackgroundColor, new Vector3(-Width, -Height, 1f),
+        BackgroundPlane = new BackgroundPlane(DefaultBackgroundColor, new Vector3(-Width, -Height, 1f),
             new Vector3(Width * 2, Height * 2, 0),
             optional_shader);
 
         _flash_overlay = new ColoredPlane(new Vector4(1f, 1f, 1f, 0f), new Vector3(-Width, -Height, 0.75f),
             new Vector3(Width * 2, Height * 2, 0));
 
-        static_objects.Add(_background);
+        static_objects.Add(BackgroundPlane);
         static_objects.Add(_flash_overlay);
 
         PlayfieldWidth = ElementsOnSingleLine * (RenderableSize + MarginBetweenRenderables) + MarginBetweenRenderables +
@@ -169,7 +181,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         static_objects.Add(_visible_area);
 
         var font_family = Fonts.GetFontFamily();
-        var greeting_font = font_family.CreateFont(36, FontStyle.Bold);
+        var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
 
         _greeting ??= new CachedDynamicText
         {
@@ -181,6 +193,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _controls_text ??= new StaticText
         {
             FontStyle = FontStyle.Bold,
+            FontSizePx = 14f * Scale,
             Value = """
                     All controls:
 
@@ -206,6 +219,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var text = new StaticText
         {
             FontStyle = FontStyle.Bold,
+            FontSizePx = 14f * Scale,
             Value = $"""
                      Don't use the audio generated by this
                      visualizer for a video, as it isn't
@@ -264,7 +278,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Manager.CheckErrors();
     }
 
-    public virtual void Resize(int w, int h)
+    public void Resize(int w, int h)
     {
         var resize = new Vector2i(w, h);
 
@@ -329,7 +343,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         SequencePlayer.Start().GetAwaiter().GetResult();
     }
 
-    public virtual void Render()
+    public void Render()
     {
         Manager.CheckErrors();
 
@@ -442,7 +456,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         // values for the loop below
         var current_placement = SequencePlayer.PlacementIndex;
         var current_index = TimedEvents.Placement[current_placement].Index;
-        var max_index_change = TimedEvents.TimingSampleRate / 2;
+        var max_index_change = TimedEvents.TimingSampleRate / 2; // 500 ms
         var max_index = current_index + (ulong)max_index_change;
         
         // checks if there is a color event in the next 500ms
@@ -455,16 +469,21 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         // changes the background color to the default one if there isn't a color event in the next 500ms
-        ColorTools.ChangeColor(_background, DefaultBackgroundColor, 0.33f).GetAwaiter();
+        BackgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.33f);
     }
 
-    public virtual void Update()
+    public void Update()
     {
         // check if one of the sequences has been updated, and handle it
         if (_file_update_stopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
+        var last_frame_time = (float)Manager.UpdateTime;
+        
         // spawns the camera update thread
-        Camera.Update();
+        Camera.Update(last_frame_time);
+        
+        // updates the background's transitions
+        BackgroundPlane.Update();
 
         // sets debug values if debugging is enabled.
         if (Debug)
@@ -505,7 +524,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         FileDrop(locations, true);
     }
 
-    public virtual void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
+    public void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
     {
         // gets scroll
         var scroll = mouse_state.ScrollDelta;
@@ -522,7 +541,6 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         else
         {
             Camera.ScrollDelta(new_delta);
-            Camera.Update();
         }
     }
 
@@ -544,7 +562,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         return timespan.ToString(format);
     }
     
-    public virtual async void Keyboard(KeyboardState state)
+    public async void Keyboard(KeyboardState state)
     {
         const int seek_length = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
@@ -759,7 +777,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         Camera.ScrollTo((0, -300, 0));
-        ColorTools.ChangeColor(_background, DefaultBackgroundColor, 0.66f).GetAwaiter();
+        BackgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.66f);
         DividerCount = 0;
 
         var sequences_count = events.Sequences.Length;
@@ -778,7 +796,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _texture_cache = new Dictionary<string, Texture>();
         _volume_text_cache = new Dictionary<string, Texture>();
 
-        var font = font_family.CreateFont(RenderableSize / 3.625f, FontStyle.Bold);
+        var value_font = font_family.CreateFont(RenderableSize / 3.625f, FontStyle.Bold);
 
         // funny number 👍
         var volume_font = font_family.CreateFont(RenderableSize * 0.22f, FontStyle.Bold);
@@ -814,7 +832,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                         continue;
 
                     CreateEventRenderable(tdw_images[index], i, ev, _texture_cache, wh, flex_box,
-                        ValueTextCache, _volume_text_cache, font,
+                        ValueTextCache, _volume_text_cache, value_font,
                         volume_color, volume_font);
                 }
 
@@ -828,7 +846,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                         var search = val.ToString("0.##");
                         if (ValueTextCache.ContainsKey(search)) continue;
 
-                        var texture = new Texture(font, search);
+                        var texture = new Texture(value_font, search);
                         ValueTextCache.Add(search, texture);
                     }
                 }
@@ -836,7 +854,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
             if (!ValueTextCache.ContainsKey("0"))
             {
-                var texture = new Texture(font, "0");
+                var texture = new Texture(value_font, "0");
                 ValueTextCache.Add("0", texture);
             }
         }
@@ -864,9 +882,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         player.SubscribeActionToEvent("!divider", DividerEventHandler);
         player.SubscribeActionToEvent("!volume", VolumeEventHandler);
     }
-    
 
-    protected void SetStatusMessage(string message, int hide_after_ms = 2000)
+
+    private void SetStatusMessage(string message, int hide_after_ms = 2000)
     {
         if (_update_text.Value == message) return;
         _update_text.SetTextContents(message);
@@ -886,10 +904,10 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <summary>
     ///     Creates a Thirty Dollar Website renderable with the texture of the event and its value and volume as children.
     /// </summary>
-    protected virtual void CreateEventRenderable(SoundRenderable?[] tdw_images, int index, BaseEvent ev,
-        IDictionary<string, Texture> texture_cache, Vector2i wh,
+    private void CreateEventRenderable(IList<SoundRenderable?> tdw_images, int index, BaseEvent ev,
+        Dictionary<string, Texture> texture_cache, Vector2i wh,
         FlexBox flex_box,
-        IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font,
+        Dictionary<string, Texture> value_text_cache, Dictionary<string, Texture> volume_text_cache, Font font,
         Rgba32 volume_color, Font volume_font)
     {
         var dll_location = SampleHolder!.DownloadLocation;
@@ -1236,16 +1254,8 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void BackgroundEventHandler(Placement placement, int index)
     {
-        var parsed_value = (long)placement.Event.Value;
-
-        var r = (byte)parsed_value;
-        var g = (byte)(parsed_value >> 8);
-        var b = (byte)(parsed_value >> 16);
-        var color = new Vector4(r / 255f, g / 255f, b / 255f, 1f);
-
-        var seconds = (parsed_value >> 24) / 1000f;
-
-        ColorTools.ChangeColor(_background, color, seconds).GetAwaiter();
+        var (color, seconds) = BackgroundParser.ParseFromDouble(placement.Event.Value);
+        BackgroundPlane.TransitionToColor(color, seconds);
     }
 
     private void FlashEventHandler(Placement placement, int index)
@@ -1302,7 +1312,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var next_beat_ms = 0f;
         var beats_to_next_beat = 0f;
         
-        var fps = (int)(1 / Manager.UpdateTime);
+        var fps = 1 / Manager.UpdateTime;
         var volume = SequenceVolume;
         
         // remove full path from sequence filename.
@@ -1380,7 +1390,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _debug_text.SetTextContents(
             $"""
              [Debug]
-             FPS: {fps}
+             FPS: {fps:0.##}
 
              Sequence ({CurrentSequence + 1} - {Sequences.Length}): {sequence_location}
              BPM: {bpm}
@@ -1401,9 +1411,9 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var width_scale = Width / scale - Width;
         var height_scale = Height / scale - Height;
 
-        var background = _background.GetScale();
-        _background.SetScale((w + width_scale, h + height_scale, background.Z));
-        _background.SetPosition((-width_scale / 2f, -height_scale / 2f, 0));
+        var background = BackgroundPlane.GetScale();
+        BackgroundPlane.SetScale((w + width_scale, h + height_scale, background.Z));
+        BackgroundPlane.SetPosition((-width_scale / 2f, -height_scale / 2f, 0));
 
         var flash = _flash_overlay.GetScale();
         _flash_overlay.SetScale((w + width_scale, h + height_scale, flash.Z));
@@ -1458,7 +1468,7 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }, Token);
     }
 
-    protected void HandleZoomControl(float scale)
+    private void HandleZoomControl(float scale)
     {
         const float stepping = .05f;
         var camera_scale = Camera.GetRenderScale();
@@ -1467,13 +1477,13 @@ public class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         SetStatusMessage($"[Camera]: Setting zoom to: {Zoom:0.##%}");
     }
 
-    protected bool IsSeekTimeoutPassed(int divide = 1)
+    private bool IsSeekTimeoutPassed(int divide = 1)
     {
         const int seek_timeout = 250;
         return _seek_delay_stopwatch.ElapsedMilliseconds > seek_timeout / divide;
     }
 
-    protected void RestartSeekTimer()
+    private void RestartSeekTimer()
     {
         _seek_delay_stopwatch.Restart();
     }

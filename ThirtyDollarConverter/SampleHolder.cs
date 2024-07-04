@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -82,8 +84,11 @@ public class SampleHolder
         if (sounds == null)
             throw new Exception(
                 "Loading Thirty Dollar Website Sounds failed with error: \'Deserialized contents of sounds.json are empty.\'");
-
-        foreach (var sound in sounds) SampleList.TryAdd(sound, new PcmDataHolder());
+        
+        foreach (var sound in sounds)
+        {
+            SampleList.TryAdd(sound, new PcmDataHolder());
+        }
     }
 
     /// <summary>
@@ -197,14 +202,45 @@ public class SampleHolder
     {
         foreach (var (key, _) in SampleList)
         {
-            var fileStream = File.OpenRead($"{DownloadLocation}/{key.Id}.wav");
+            var file_stream = File.OpenRead($"{DownloadLocation}/{key.Id}.wav");
             var decoder = new WaveDecoder();
             Console.WriteLine($"Reading sample: {key.Filename}.wav");
-            SampleList[key] = decoder.Read(fileStream);
+            SampleList[key] = decoder.Read(file_stream);
             SampleList[key].ReadAsFloat32Array(true);
 
             if (SampleList[key].FloatData?.GetChannel(0).Length == 0)
                 throw new Exception($"Sample \'{key.Filename}.wav\' is empty.");
+        }
+        
+        // creates a hash for all TDW sounds.
+        var added_hash_set = new HashSet<string>();
+        foreach (var (sound, _) in SampleList)
+        {
+            added_hash_set.Add(sound.Filename ?? "");
+        }
+        
+        // searches all files again and only adds custom ones.
+        foreach (var file in Directory.GetFiles(DownloadLocation))
+        {
+            var filename = file.Split('/').Last();
+            if (!filename.EndsWith(".wav")) continue;
+            var sound = filename.Replace(".wav", "");
+            
+            if (added_hash_set.Contains(sound)) continue;
+
+            var sound_object = new Sound
+            {
+                Id = sound,
+                Name = sound
+            };
+            
+            var file_stream = File.OpenRead($"{DownloadLocation}/{sound}.wav");
+            Console.WriteLine($"Reading custom sample: {sound_object.Filename}.wav");
+            
+            var decoder = new WaveDecoder();
+            var holder = decoder.Read(file_stream);
+            holder.ReadAsFloat32Array(true);
+            SampleList.TryAdd(sound_object, holder);
         }
 
         Console.WriteLine($"Samples: {SampleList.Count}");
