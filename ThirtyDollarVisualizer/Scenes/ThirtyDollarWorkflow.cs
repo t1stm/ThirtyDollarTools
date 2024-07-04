@@ -72,7 +72,7 @@ public abstract class ThirtyDollarWorkflow
     /// </summary>
     /// <param name="locations">The location of the sequences you want to use.</param>
     /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
-    public virtual async Task UpdateSequences(string?[] locations, bool restart_player = true)
+    protected virtual async Task UpdateSequences(string?[] locations, bool restart_player = true)
     {
         var sequence_array = new Sequence[locations.Length];
         var i = 0;

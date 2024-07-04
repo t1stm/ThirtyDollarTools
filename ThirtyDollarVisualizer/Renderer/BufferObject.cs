@@ -8,16 +8,21 @@ public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
     private readonly uint _handle;
     private readonly int _length;
 
-    public unsafe BufferObject(Span<TDataType> data, BufferTarget bufferType)
+    public BufferObject(Span<TDataType> data, BufferTarget buffer_type)
     {
-        _bufferType = bufferType;
+        _bufferType = buffer_type;
         _length = data.Length;
 
         GL.GenBuffers(1, out _handle);
+        SetBufferData(data, buffer_type);
+    }
+
+    public unsafe void SetBufferData(Span<TDataType> data, BufferTarget buffer_type, BufferUsageHint draw_hint = BufferUsageHint.DynamicDraw)
+    {
         Bind();
         fixed (void* pointer = data)
         {
-            GL.BufferData(bufferType, data.Length * sizeof(TDataType), new IntPtr(pointer), BufferUsageHint.StaticDraw);
+            GL.BufferData(buffer_type, data.Length * sizeof(TDataType), new IntPtr(pointer), draw_hint);
         }
     }
 

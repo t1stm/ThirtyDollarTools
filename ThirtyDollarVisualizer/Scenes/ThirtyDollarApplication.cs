@@ -904,10 +904,10 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <summary>
     ///     Creates a Thirty Dollar Website renderable with the texture of the event and its value and volume as children.
     /// </summary>
-    private void CreateEventRenderable(SoundRenderable?[] tdw_images, int index, BaseEvent ev,
-        IDictionary<string, Texture> texture_cache, Vector2i wh,
+    private void CreateEventRenderable(IList<SoundRenderable?> tdw_images, int index, BaseEvent ev,
+        Dictionary<string, Texture> texture_cache, Vector2i wh,
         FlexBox flex_box,
-        IDictionary<string, Texture> value_text_cache, IDictionary<string, Texture> volume_text_cache, Font font,
+        Dictionary<string, Texture> value_text_cache, Dictionary<string, Texture> volume_text_cache, Font font,
         Rgba32 volume_color, Font volume_font)
     {
         var dll_location = SampleHolder!.DownloadLocation;
