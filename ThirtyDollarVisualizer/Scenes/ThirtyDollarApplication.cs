@@ -215,7 +215,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     """
         }.WithPosition((10, 0f, 0));
 
-        const string version_string = "1.1.4";
+        const string version_string = "1.2.0";
         var text = new StaticText
         {
             FontStyle = FontStyle.Bold,
