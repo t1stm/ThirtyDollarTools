@@ -13,48 +13,55 @@ public static class DataHolderExtensions
         {
             if (holder.ShortData != null) return holder.ShortData;
             if (holder.AudioData == null) return null;
-            var audioChannels = holder.Channels;
-            var exportChannels = monoToStereo ? audioChannels < 2 ? 2 : audioChannels : audioChannels;
+            
+            var channel_count = holder.Channels;
+            var export_channels = monoToStereo ? channel_count < 2 ? 2 : channel_count : channel_count;
+            
             using var reader = new BinaryReader(new MemoryStream(holder.AudioData));
-            var typeList = new List<short>[exportChannels]; // Jesus Christ...
-            for (var i = 0; i < typeList.Length; i++) typeList[i] = new List<short>();
-            var channel = 0;
+            
+            var data_list = new List<short>[export_channels]; // Jesus Christ...
+            for (var i = 0; i < data_list.Length; i++) data_list[i] = new List<short>();
+            uint channel = 0;
+            
             switch (holder.Encoding)
             {
                 case Encoding.Float32:
                     while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        channel = channel + 1 < audioChannels ? channel + 1 : 0;
+                        channel %= channel_count;
                         var val = (short)(reader.ReadSingle() * 32768);
-                        typeList[channel].Add(val);
-                        if (audioChannels == 1 && monoToStereo) typeList[channel + 1].Add(val);
+                        data_list[channel].Add(val);
+                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
+                        channel += 1;
                     }
 
                     break;
                 case Encoding.Int8:
                     while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        channel = channel + 1 < audioChannels ? channel + 1 : 0;
+                        channel %= channel_count;
                         var val = (short)(reader.ReadByte() * 256);
-                        typeList[channel].Add(val);
-                        if (audioChannels == 1 && monoToStereo) typeList[channel + 1].Add(val);
+                        data_list[channel].Add(val);
+                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
+                        channel += 1;
                     }
 
                     break;
                 case Encoding.Int16:
                     while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        channel = channel + 1 < audioChannels ? channel + 1 : 0;
+                        channel %= channel_count;
                         var val = reader.ReadInt16();
-                        typeList[channel].Add(val);
-                        if (audioChannels == 1 && monoToStereo) typeList[channel + 1].Add(val);
+                        data_list[channel].Add(val);
+                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
+                        channel += 1;
                     }
 
                     break;
                 case Encoding.Int24:
                     while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        channel = channel + 1 < audioChannels ? channel + 1 : 0;
+                        channel %= channel_count;
                         var b1 = reader.ReadByte();
                         var b2 = reader.ReadByte();
                         var b3 = reader.ReadByte();
@@ -65,15 +72,16 @@ public static class DataHolderExtensions
                             b3 = b3
                         };
                         var val = (short)(i24.ToFloat() * 32768);
-                        typeList[channel].Add(val);
-                        if (audioChannels == 1 && monoToStereo) typeList[channel + 1].Add(val);
+                        data_list[channel].Add(val);
+                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
+                        channel += 1;
                     }
 
                     break;
             }
 
-            var audioData = new AudioData<short>(exportChannels);
-            for (var i = 0; i < exportChannels; i++) audioData.Samples[i] = typeList[i].ToArray();
+            var audioData = new AudioData<short>(export_channels);
+            for (var i = 0; i < export_channels; i++) audioData.Samples[i] = data_list[i].ToArray();
             holder.ShortData = audioData;
             return audioData;
         }
@@ -90,51 +98,58 @@ public static class DataHolderExtensions
         {
             if (holder.FloatData != null) return holder.FloatData;
             if (holder.AudioData == null) return null;
-            var audioChannels = holder.Channels;
-            var exportChannels = monoToStereo ? audioChannels < 2 ? 2 : audioChannels : audioChannels;
+            var channel_count = holder.Channels;
+            var export_channels = monoToStereo ? channel_count < 2 ? 2 : channel_count : channel_count;
             using var reader = new BinaryReader(new MemoryStream(holder.AudioData));
-            var typeList = new List<float>[exportChannels]; // Jesus Christ...
-            for (var i = 0; i < typeList.Length; i++) typeList[i] = new List<float>();
-            var channel = 0;
+            var data_list = new List<float>[export_channels]; // Jesus Christ...
+            for (var i = 0; i < data_list.Length; i++) data_list[i] = new List<float>();
+            uint channel = 0;
             switch (holder.Encoding)
             {
                 case Encoding.Float32:
                     while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        channel = channel + 1 < audioChannels ? channel + 1 : 0;
+                        channel %= channel_count;
+                        
                         var val = reader.ReadSingle();
                         val = val > 1 ? 1 : val < -1 ? -1 : val;
-                        typeList[channel].Add(val);
-                        if (audioChannels == 1 && monoToStereo) typeList[channel + 1].Add(val);
+                        data_list[channel].Add(val);
+                        if (channel_count == 1 && monoToStereo) data_list[channel].Add(val);
+                        channel += 1;
                     }
 
                     break;
                 case Encoding.Int8:
                     while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        channel = channel + 1 < audioChannels ? channel + 1 : 0;
+                        channel %= channel_count;
+                        
                         var val = reader.ReadByte() / 256f;
                         val = val > 1 ? 1 : val < -1 ? -1 : val;
-                        typeList[channel].Add(val);
-                        if (audioChannels == 1 && monoToStereo) typeList[channel + 1].Add(val);
+                        data_list[channel].Add(val);
+                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
+                        channel += 1;
                     }
 
                     break;
                 case Encoding.Int16:
                     while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        channel = channel + 1 < audioChannels ? channel + 1 : 0;
+                        channel %= channel_count;
+                        
                         var val = reader.ReadInt16() / 32768f;
                         val = val > 1 ? 1 : val < -1 ? -1 : val;
-                        typeList[channel].Add(val);
-                        if (audioChannels == 1 && monoToStereo) typeList[channel + 1].Add(val);
+                        data_list[channel].Add(val);
+                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
+                        channel += 1;
                     }
 
                     break;
                 case Encoding.Int24:
                     while (reader.BaseStream.Position < reader.BaseStream.Length)
                     {
-                        channel = channel + 1 < audioChannels ? channel + 1 : 0;
+                        channel %= channel_count;
+                        
                         var b1 = reader.ReadByte();
                         var b2 = reader.ReadByte();
                         var b3 = reader.ReadByte();
@@ -145,15 +160,16 @@ public static class DataHolderExtensions
                             b3 = b3
                         };
                         var val = i24.ToFloat();
-                        typeList[channel].Add(val);
-                        if (audioChannels == 1 && monoToStereo) typeList[channel + 1].Add(val);
+                        data_list[channel].Add(val);
+                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
+                        channel += 1;
                     }
 
                     break;
             }
 
-            var audioData = new AudioData<float>(exportChannels);
-            for (var i = 0; i < exportChannels; i++) audioData.Samples[i] = typeList[i].ToArray();
+            var audioData = new AudioData<float>(export_channels);
+            for (var i = 0; i < export_channels; i++) audioData.Samples[i] = data_list[i].ToArray();
             holder.FloatData = audioData;
             return audioData;
         }

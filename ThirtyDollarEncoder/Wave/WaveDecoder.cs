@@ -43,7 +43,7 @@ public class WaveDecoder
         {
             var chunkID = reader.ReadInt32();
 
-            Span<int> testing_span = new[] { chunkID };
+            Span<int> testing_span = stackalloc int[] { chunkID };
             var chunk_bytes = MemoryMarshal.AsBytes(testing_span);
             var chunk_name = Encoding.ASCII.GetString(chunk_bytes);
 
