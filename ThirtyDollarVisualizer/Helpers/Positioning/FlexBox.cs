@@ -2,6 +2,7 @@ using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer.Helpers.Positioning;
 
+[Obsolete("A better alternative is being implemented, but still not in use.", false)]
 public class FlexBox
 {
     private readonly float MarginPixels;
