@@ -6,15 +6,14 @@ namespace ThirtyDollarVisualizer.Animations;
 public class BounceAnimation : Animation
 {
     private const int AnimationLengthMs = 400;
-    private readonly float Final_Y;
+    public float Final_Y;
 
-    public BounceAnimation(float final_y) : base(AnimationLengthMs)
+    public BounceAnimation() : base(AnimationLengthMs)
     {
         Features = AnimationFeature.Transform_Add;
-        Final_Y = final_y;
     }
 
-    public BounceAnimation(float final_y, Action finish_callback) : this(final_y)
+    public BounceAnimation(Action finish_callback) : this()
     {
         CallbackOnFinish = finish_callback;
     }

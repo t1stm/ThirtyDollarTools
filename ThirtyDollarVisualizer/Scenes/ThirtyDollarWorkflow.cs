@@ -118,7 +118,7 @@ public abstract class ThirtyDollarWorkflow
         TimedEvents.Placement = placement;
         TimedEvents.Sequences = sequences;
 
-        HandleAfterSequenceLoad(TimedEvents);
+        await HandleAfterSequenceLoad(TimedEvents);
         SequencePlayer.ClearSubscriptions();
         SetSequencePlayerSubscriptions(SequencePlayer);
 
@@ -188,7 +188,7 @@ public abstract class ThirtyDollarWorkflow
     ///     Called after the sequence has finished loading, but before the audio events have finished processing.
     /// </summary>
     /// <param name="events">The events the sequence contains.</param>
-    protected abstract void HandleAfterSequenceLoad(TimedEvents events);
+    protected abstract Task HandleAfterSequenceLoad(TimedEvents events);
 
     /// <summary>
     ///     Called by the abstract class in order to use the implementation, when the SequencePlayer is created.

@@ -7,7 +7,7 @@ namespace ThirtyDollarVisualizer.Objects;
 public class Shader : IDisposable
 {
     private static readonly Dictionary<(string, string), Shader> CachedShaders = new();
-    private readonly int _handle;
+    public int Handle { get; }
 
     /// <summary>
     ///     Controls whether the shader throws errors on missing uniforms.
@@ -19,25 +19,25 @@ public class Shader : IDisposable
         CachedShaders.TryGetValue((vertexPath, fragmentPath), out var shader);
         if (shader != null)
         {
-            _handle = shader._handle;
+            Handle = shader.Handle;
             return;
         }
 
         var vertex = LoadShader(ShaderType.VertexShader, vertexPath);
         var fragment = LoadShader(ShaderType.FragmentShader, fragmentPath);
-        _handle = GL.CreateProgram();
+        Handle = GL.CreateProgram();
 
-        GL.AttachShader(_handle, vertex);
-        GL.AttachShader(_handle, fragment);
+        GL.AttachShader(Handle, vertex);
+        GL.AttachShader(Handle, fragment);
 
-        GL.LinkProgram(_handle);
-        GL.GetProgram(_handle, GetProgramParameterName.LinkStatus, out var link_status);
+        GL.LinkProgram(Handle);
+        GL.GetProgram(Handle, GetProgramParameterName.LinkStatus, out var link_status);
 
         if (link_status == 0)
-            throw new Exception($"Program failed to link with error: {GL.GetProgramInfoLog(_handle)}");
+            throw new Exception($"Program failed to link with error: {GL.GetProgramInfoLog(Handle)}");
 
-        GL.DetachShader(_handle, vertex);
-        GL.DetachShader(_handle, fragment);
+        GL.DetachShader(Handle, vertex);
+        GL.DetachShader(Handle, fragment);
 
         GL.DeleteShader(vertex);
         GL.DeleteShader(fragment);
@@ -47,17 +47,18 @@ public class Shader : IDisposable
 
     public void Dispose()
     {
-        GL.DeleteProgram(_handle);
+        GL.DeleteProgram(Handle);
+        GC.SuppressFinalize(this);
     }
 
     public void Use()
     {
-        GL.UseProgram(_handle);
+        GL.UseProgram(Handle);
     }
 
     public bool SetUniform(string name, int value)
     {
-        var location = GL.GetUniformLocation(_handle, name);
+        var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
@@ -70,7 +71,7 @@ public class Shader : IDisposable
 
     public bool SetUniform(string name, Vector2 value)
     {
-        var location = GL.GetUniformLocation(_handle, name);
+        var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
@@ -83,7 +84,7 @@ public class Shader : IDisposable
 
     public bool SetUniform(string name, Vector3 value)
     {
-        var location = GL.GetUniformLocation(_handle, name);
+        var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
@@ -96,7 +97,7 @@ public class Shader : IDisposable
 
     public bool SetUniform(string name, Vector4 value)
     {
-        var location = GL.GetUniformLocation(_handle, name);
+        var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
@@ -109,7 +110,7 @@ public class Shader : IDisposable
 
     public unsafe bool SetUniform(string name, Matrix4 value)
     {
-        var location = GL.GetUniformLocation(_handle, name);
+        var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
@@ -122,7 +123,7 @@ public class Shader : IDisposable
 
     public bool SetUniform(string name, float value)
     {
-        var location = GL.GetUniformLocation(_handle, name);
+        var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
