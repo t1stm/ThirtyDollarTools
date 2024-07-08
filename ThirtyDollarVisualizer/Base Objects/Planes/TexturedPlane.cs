@@ -40,6 +40,10 @@ public class TexturedPlane : Renderable
     {
     }
 
+    public TexturedPlane(Texture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
+    {
+    }
+
     public TexturedPlane(Texture texture, Vector3 position, Vector2 scale) :
         this(texture, position, new Vector3(scale))
     {

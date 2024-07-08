@@ -26,6 +26,9 @@ public class SoundRenderable : TexturedPlane
         FadeAnimation = new FadeAnimation(() => { UpdateModel(false); });
         RenderableAnimations = new Animation[] { BounceAnimation, ExpandAnimation, FadeAnimation };
     }
+    
+    public SoundRenderable(Texture texture) : 
+        this(texture, Vector3.Zero, (texture.Width, texture.Height)) { }
 
     public override void Render(Camera camera)
     {
@@ -39,6 +42,20 @@ public class SoundRenderable : TexturedPlane
     {
         BounceAnimation.Final_Y = scale.Y / 5f;
         base.SetScale(scale);
+    }
+
+    public void UpdateChildren()
+    {
+        Children.Clear();
+        
+        AddChildIfNotNull(Value);
+        AddChildIfNotNull(Volume);
+        AddChildIfNotNull(Pan);
+    }
+
+    private void AddChildIfNotNull(Renderable? child)
+    {
+        if (child is not null) Children.Add(child);
     }
 
     public void Bounce()
