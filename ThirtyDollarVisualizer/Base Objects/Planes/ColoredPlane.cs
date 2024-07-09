@@ -11,7 +11,7 @@ public class ColoredPlane : Renderable
     private static VertexArrayObject<float> Static_Vao = null!;
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
-    private BufferObject<ColoredUniform>? UniformBuffer;
+    private static BufferObject<ColoredUniform>? UniformBuffer;
     
     public float BorderRadius;
     private ColoredUniform Uniform;

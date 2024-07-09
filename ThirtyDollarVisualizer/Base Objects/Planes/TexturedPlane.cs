@@ -12,7 +12,7 @@ public class TexturedPlane : Renderable
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
     
-    private BufferObject<TexturedUniform>? UniformBuffer;
+    private static BufferObject<TexturedUniform>? UniformBuffer;
     private TexturedUniform Uniform;
     protected Texture? _texture;
 

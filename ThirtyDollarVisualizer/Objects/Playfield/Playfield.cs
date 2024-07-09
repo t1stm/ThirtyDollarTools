@@ -17,7 +17,7 @@ public class Playfield(PlayfieldSettings settings)
     private readonly ColoredPlane ObjectBox = new((0, 0, 0, 0.25f), (0, 0, 0), (0, 0, 0));
     
     private byte[] AnimatedAssets = Array.Empty<byte>(); // TODO hyped up for this.
-    private int DividerCount;
+    private readonly List<float> DividerPositions_Y = new();
 
     public async Task UpdateSounds(Sequence sequence)
     {
@@ -39,6 +39,7 @@ public class Playfield(PlayfieldSettings settings)
         });
 
         LayoutHandler.Reset();
+        DividerPositions_Y.Clear();
 
         for (var i = 0; i < sounds.Length; i++)
         {
@@ -48,8 +49,8 @@ public class Playfield(PlayfieldSettings settings)
 
             if (!sound.IsDivider || i + 1 >= sounds.Length) continue;
 
+            DividerPositions_Y.Add(sound.GetPosition().Y);
             LayoutHandler.NewLine(2);
-            DividerCount++;
         }
 
         LayoutHandler.Finish();
@@ -143,7 +144,17 @@ public class Playfield(PlayfieldSettings settings)
 
         // account for padding between objects
         var padding_rows = repeats_renderable * 2;
-        var dividers_size = size_renderable * DividerCount;
+        var divider_count = 0;
+        
+        // disabling dumb resharper errors
+        // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
+        foreach (var position in DividerPositions_Y)
+        {
+            if (position <= TemporaryCamera.Position.Y) 
+                divider_count++;
+        }
+
+        var dividers_size = size_renderable * divider_count;
         
         // fix values when the zoom is changed
         camera_y -= height_scale;
