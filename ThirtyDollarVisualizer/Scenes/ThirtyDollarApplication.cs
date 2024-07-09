@@ -709,7 +709,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
         }, Token).GetAwaiter();
 
-        var playfield_settings = new PlayfieldSettings(RenderableSize, SampleHolder?.DownloadLocation ?? "./Sounds");
+        var playfield_settings = new PlayfieldSettings(RenderableSize, SampleHolder?.DownloadLocation ?? "./Sounds", Scale);
         
         try
         {

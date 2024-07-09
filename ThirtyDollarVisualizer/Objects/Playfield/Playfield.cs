@@ -20,7 +20,7 @@ public class Playfield(PlayfieldSettings settings)
     public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
     
     private readonly LayoutHandler LayoutHandler = new(64 * settings.RenderScale, 16, 
-        new GapBox(6f), new GapBox(15f, 15f));
+        new GapBox(6f * settings.RenderScale), new GapBox(15f * settings.RenderScale, 15f * settings.RenderScale));
     
     private readonly DollarStoreCamera TemporaryCamera = new(Vector3.Zero, Vector2i.Zero);
     private readonly ColoredPlane ObjectBox = new((0, 0, 0, 0.25f), (0, 0, 0), (0, 0, 0));

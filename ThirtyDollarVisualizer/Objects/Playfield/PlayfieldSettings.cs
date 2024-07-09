@@ -1,6 +1,6 @@
 namespace ThirtyDollarVisualizer.Objects;
 
-public readonly struct PlayfieldSettings(float renderable_size, string download_location)
+public readonly struct PlayfieldSettings(float renderable_size, string download_location, float render_scale = 1f)
 {
     /// <summary>
     /// Where the downloaded TDW assets are located.
@@ -10,7 +10,7 @@ public readonly struct PlayfieldSettings(float renderable_size, string download_
     /// <summary>
     /// What's the current render scale of the window. 
     /// </summary>
-    public readonly float RenderScale = 1f;
+    public readonly float RenderScale = render_scale;
 
     /// <summary>
     /// How big in pixels the value font will be.
