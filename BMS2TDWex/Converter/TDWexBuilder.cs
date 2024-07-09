@@ -20,9 +20,13 @@ public class TDWexBuilder
 
     public void ConvertBMSLevel(BMSLevel bms_level)
     {
+        var added_hash_set = new HashSet<string>();
         foreach (var (_, sound) in bms_level.Header.ChannelMap)
         {
+            if (added_hash_set.Contains(sound)) continue;
+            
             WriteDefine(sound);
+            added_hash_set.Add(sound);
         }
 
         Builder.Append("# Starting cover definitions. |\n");

@@ -17,4 +17,4 @@ var builder = new TDWexBuilder();
 builder.ConvertBMSLevel(bms_level);
 
 var converted = builder.Export();
-File.WriteAllText("/home/kris/Downloads/Calamity_Fortune_LeaF/_export.tdw", converted);
+File.WriteAllText("/home/kris/Downloads/Calamity_Fortune_LeaF/_export2.tdw", converted);
