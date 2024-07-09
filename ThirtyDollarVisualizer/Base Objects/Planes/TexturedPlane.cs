@@ -1,5 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects.Planes;
@@ -10,6 +11,9 @@ public class TexturedPlane : Renderable
     private static VertexArrayObject<float> Static_Vao = null!;
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
+    
+    private static BufferObject<TexturedUniform>? UniformBuffer;
+    private TexturedUniform Uniform;
     protected Texture? _texture;
 
     public TexturedPlane(Texture texture, Vector3 position, Vector3 scale)
@@ -22,6 +26,8 @@ public class TexturedPlane : Renderable
         Vao = Static_Vao;
         Vbo = Static_Vbo;
         Ebo = Static_Ebo;
+        
+        Uniform = new TexturedUniform();
 
         Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
             "ThirtyDollarVisualizer.Assets.Shaders.textured.frag");
@@ -31,6 +37,10 @@ public class TexturedPlane : Renderable
     }
 
     public TexturedPlane() : this(Texture.Transparent1x1, Vector3.Zero, Vector2.One)
+    {
+    }
+
+    public TexturedPlane(Texture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
     {
     }
 
@@ -96,9 +106,17 @@ public class TexturedPlane : Renderable
 
     public override void SetShaderUniforms(Camera camera)
     {
-        Shader.SetUniform("u_Model", Model);
-        Shader.SetUniform("u_Projection", camera.GetProjectionMatrix());
-        Shader.SetUniform("u_DeltaAlpha", DeltaAlpha);
+        Uniform.Model = Model;
+        Uniform.Projection = camera.GetProjectionMatrix();
+        Uniform.DeltaAlpha = DeltaAlpha;
+        
+        Span<TexturedUniform> span = stackalloc TexturedUniform[] { Uniform };
+        if (UniformBuffer is null)
+        {
+            UniformBuffer = new BufferObject<TexturedUniform>(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
+        }
+        else UniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
+        GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, UniformBuffer.Handle);
     }
 
     public override void Dispose()

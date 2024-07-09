@@ -3,10 +3,15 @@
 in vec2 fragment_coords;
 out vec4 color;
 
-uniform vec4 u_Color;
-uniform vec3 u_PositionPx;
-uniform vec3 u_ScalePx;
-uniform float u_BorderRadiusPx;
+layout (std140) uniform Data {
+    mat4 u_Model;
+    mat4 u_Projection;
+    
+    vec4 u_Color;
+    vec3 u_PositionPx;
+    vec3 u_ScalePx;
+    float u_BorderRadiusPx;
+};
 
 float roundedBoxSDF(vec2 center, vec2 size, float radius) {
     return length(max(abs(center) - size + radius, 0.0)) - radius;

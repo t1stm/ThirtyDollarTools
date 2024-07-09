@@ -138,8 +138,11 @@ public class Sequence
             var text = enumerator.Current;
             var trimmed = text.Trim();
             if (trimmed == "#enddefine") break;
-
-            events.Add(ParseEvent(trimmed, sequence));
+            
+            if (sequence.Definitions.TryGetValue(trimmed, out var defined_events))
+                events.AddRange(defined_events);
+            
+            else events.Add(ParseEvent(trimmed, sequence));
             if (!enumerator.MoveNext()) break;
         }
 

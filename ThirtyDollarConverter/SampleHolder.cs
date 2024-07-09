@@ -200,33 +200,29 @@ public class SampleHolder
     /// <exception cref="Exception">Exception that's thrown when a sound is empty.</exception>
     public void LoadSamplesIntoMemory()
     {
-        foreach (var (key, _) in SampleList)
+        Parallel.ForEach(SampleList, r =>
         {
+            var key = r.Key;
+            
             var file_stream = File.OpenRead($"{DownloadLocation}/{key.Id}.wav");
             var decoder = new WaveDecoder();
-            Console.WriteLine($"Reading sample: {key.Filename}.wav");
             SampleList[key] = decoder.Read(file_stream);
             SampleList[key].ReadAsFloat32Array(true);
-
-            if (SampleList[key].FloatData?.GetChannel(0).Length == 0)
-                throw new Exception($"Sample \'{key.Filename}.wav\' is empty.");
-        }
+        });
         
         // creates a hash for all TDW sounds.
-        var added_hash_set = new HashSet<string>();
-        foreach (var (sound, _) in SampleList)
-        {
-            added_hash_set.Add(sound.Filename ?? "");
-        }
+        var added_hash_set = SampleList
+            .Select(r => r.Key.Filename ?? "")
+            .ToHashSet();
         
         // searches all files again and only adds custom ones.
-        foreach (var file in Directory.GetFiles(DownloadLocation))
+        Parallel.ForEach(Directory.GetFiles(DownloadLocation), file =>
         {
             var filename = file.Split('/').Last();
-            if (!filename.EndsWith(".wav")) continue;
+            if (!filename.EndsWith(".wav")) return;
             var sound = filename.Replace(".wav", "");
             
-            if (added_hash_set.Contains(sound)) continue;
+            if (added_hash_set.Contains(sound)) return;
 
             var sound_object = new Sound
             {
@@ -235,13 +231,12 @@ public class SampleHolder
             };
             
             var file_stream = File.OpenRead($"{DownloadLocation}/{sound}.wav");
-            Console.WriteLine($"Reading custom sample: {sound_object.Filename}.wav");
             
             var decoder = new WaveDecoder();
             var holder = decoder.Read(file_stream);
             holder.ReadAsFloat32Array(true);
             SampleList.TryAdd(sound_object, holder);
-        }
+        });
 
         Console.WriteLine($"Samples: {SampleList.Count}");
     }

@@ -6,6 +6,7 @@ namespace ThirtyDollarVisualizer.Objects;
 public sealed class DollarStoreCamera : Camera
 {
     private Vector3 _virtualPosition;
+    private Vector3 _offset = (0,0,0);
     private DateTime LastScaleUpdate = DateTime.Now;
 
     public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport) : base(VirtualPosition, viewport)
@@ -14,13 +15,13 @@ public sealed class DollarStoreCamera : Camera
         UpdateMatrix();
     }
 
-    public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float margin_from_sides = 0)
+    public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float margin_from_top_bottom = 0)
     {
-        var collide_top = position.Y < _virtualPosition.Y + margin_from_sides;
-        var collide_bottom = position.Y + scale.Y > _virtualPosition.Y + Height - margin_from_sides;
+        var collide_top = position.Y < _virtualPosition.Y + margin_from_top_bottom;
+        var collide_bottom = position.Y + scale.Y > _virtualPosition.Y + Height - margin_from_top_bottom;
 
-        var collide_left = position.X < _virtualPosition.X + margin_from_sides;
-        var collide_right = position.X + scale.X > _virtualPosition.X + Width - margin_from_sides;
+        var collide_left = position.X < _virtualPosition.X;
+        var collide_right = position.X + scale.X > _virtualPosition.X + Width;
 
         return collide_top || collide_bottom || collide_left || collide_right;
     }
@@ -88,6 +89,17 @@ public sealed class DollarStoreCamera : Camera
         Viewport = camera.Viewport;
         _position = camera.Position;
         projection_matrix = camera.GetProjectionMatrix();
+        SetRenderScale(camera.RenderScale);
+    }
+
+    protected override void SetMatrixValue(float left, float right, float bottom, float top)
+    {
+        left += _offset.X;
+        right += _offset.X;
+        
+        bottom += _offset.Y;
+        top += _offset.Y;
+        base.SetMatrixValue(left, right, bottom, top);
     }
 
     public void Update(float seconds_last_frame)
@@ -109,5 +121,15 @@ public sealed class DollarStoreCamera : Camera
         {
             BlockingPulse(times, frequency);
         }).Start();
+    }
+
+    public void SetOffset(Vector3 offset)
+    {
+        _offset = offset;
+    }
+
+    public Vector3 GetOffset()
+    {
+        return _offset;
     }
 }

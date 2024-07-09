@@ -3,7 +3,13 @@
 in vec2 fragment_coords;
 
 uniform sampler2D u_Texture;
-uniform float u_DeltaAlpha;
+
+layout (std140) uniform Data {
+    mat4 u_Model;
+    mat4 u_Projection;
+
+    float u_DeltaAlpha;
+};
 
 out vec4 color;
 

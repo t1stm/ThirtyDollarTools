@@ -87,7 +87,19 @@ public abstract class Camera
             right -= add_left;
             bottom -= add_top;
         }
+        
+        SetMatrixValue(left, right, bottom, top);
+    }
 
+    /// <summary>
+    /// Creates a projection matrix from the given values.
+    /// </summary>
+    /// <param name="left">The left side of the matrix.</param>
+    /// <param name="right">The right side of the matrix.</param>
+    /// <param name="bottom">The bottom side of the matrix.</param>
+    /// <param name="top">The top side of the matrix.</param>
+    protected virtual void SetMatrixValue(float left, float right, float bottom, float top)
+    {
         projection_matrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top, -1f, 1f);
     }
 
