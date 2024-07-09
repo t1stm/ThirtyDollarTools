@@ -28,9 +28,12 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         var event_texture = 
             TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, event_name);
 
-        var missing_texture = event_texture is null;
+        var individual_cut_event = base_event is IndividualCutEvent;
+        var missing_texture = event_texture is null && !individual_cut_event;
         
-        var sound = new SoundRenderable(event_texture ?? TextureDictionary.GetMissingTexture())
+        var sound = new SoundRenderable(individual_cut_event ? 
+            TextureDictionary.GetICutEventTexture() : 
+            event_texture ?? TextureDictionary.GetMissingTexture())
         {
             Value = missing_texture ? GetMissingValue(base_event) : GetValue(base_event),
             Volume = GetVolume(base_event),

@@ -10,11 +10,11 @@ namespace ThirtyDollarVisualizer.Objects;
 public class Playfield(PlayfieldSettings settings)
 {
     public Memory<SoundRenderable?> Objects = Memory<SoundRenderable?>.Empty;
+    public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
     private readonly LayoutHandler LayoutHandler = new(64 * settings.RenderScale, 16, 
         new GapBox(6f), new GapBox(15f, 15f));
     private readonly DollarStoreCamera TemporaryCamera = new(Vector3.Zero, Vector2i.Zero);
     private readonly ColoredPlane ObjectBox = new((0, 0, 0, 0.25f), (0, 0, 0), (0, 0, 0));
-    private readonly ConcurrentDictionary<string, Texture> DecreasingValuesDictionary = new();
     
     private byte[] AnimatedAssets = Array.Empty<byte>(); // TODO hyped up for this.
     private int DividerCount;
@@ -62,14 +62,14 @@ public class Playfield(PlayfieldSettings settings)
             for (var val = textures; val >= 0; val--)
             {
                 var search = val.ToString("0.##");
-                if (DecreasingValuesDictionary.ContainsKey(search)) continue;
+                if (DecreasingValuesCache.ContainsKey(search)) continue;
 
                 var texture = new Texture(factory.ValueFont, search);
-                DecreasingValuesDictionary.GetOrAdd(search, texture);
+                DecreasingValuesCache.GetOrAdd(search, texture);
             }
         }
         
-        DecreasingValuesDictionary.GetOrAdd("0", _ => new Texture(factory.ValueFont, "0"));
+        DecreasingValuesCache.GetOrAdd("0", _ => new Texture(factory.ValueFont, "0"));
         Objects = sounds;
     }
 
@@ -95,7 +95,7 @@ public class Playfield(PlayfieldSettings settings)
         
         sound.SetScale((wanted_scale.X, wanted_scale.Y, 0));
         
-        var real_position = layout_handler.GetNewPosition(wanted_scale);
+        var real_position = layout_handler.GetNewPosition();
         var texture_position = (real_position.X, real_position.Y);
         
         var delta_x = layout_handler.Size - wanted_scale.X;
@@ -152,7 +152,7 @@ public class Playfield(PlayfieldSettings settings)
         // render the background dimmed box
         ObjectBox.SetPosition((0,0,0));
         ObjectBox.SetScale((LayoutHandler.Width, LayoutHandler.Height, 0));
-        ObjectBox.BorderRadius = 0;
+        ObjectBox.BorderRadius = 0f;
         
         ObjectBox.UpdateModel(false);
         ObjectBox.Render(TemporaryCamera);

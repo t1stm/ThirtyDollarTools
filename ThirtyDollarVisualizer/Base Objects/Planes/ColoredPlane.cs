@@ -94,6 +94,12 @@ public class ColoredPlane : Renderable
         Uniform.ScalePx = _scale;
         Uniform.Model = Model;
         Uniform.Projection = camera.GetProjectionMatrix();
+        Uniform.Offset = Vector3.Zero;
+        
+        if (camera is DollarStoreCamera ds_camera)
+        {
+            Uniform.Offset = ds_camera.GetOffset();
+        }
         
         Span<ColoredUniform> span = stackalloc ColoredUniform[] { Uniform };
 

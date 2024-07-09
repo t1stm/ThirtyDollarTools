@@ -11,6 +11,7 @@ public class LayoutHandler
     public readonly float HorizontalMargin;
     
     private float Y;
+    private GapBox? Margin;
     private GapBox? Padding;
 
     public readonly float Width;
@@ -47,6 +48,7 @@ public class LayoutHandler
         VerticalMargin = margin?.Sum_Y() ?? 0;
         HorizontalMargin = margin?.Sum_X() ?? 0;
         Padding = padding;
+        Margin = margin;
         
         Width = calculated_positions.LastOrDefault(0f) + size + padding?.X2 ?? 0;
         Y = padding?.Y1 ?? 0;
@@ -61,10 +63,10 @@ public class LayoutHandler
     {
         CurrentSoundIndex = 0;
         Y += (Size + VerticalMargin) * times;
-        Height = Y + Padding?.Y2 ?? 0;
+        Height = Y;
     }
 
-    public Vector2 GetNewPosition(Vector2 object_size)
+    public Vector2 GetNewPosition()
     {
         var x = calculated_positions[CurrentSoundIndex];
         var y = Y;
@@ -78,7 +80,7 @@ public class LayoutHandler
 
     public void Finish()
     {
-        Height += Size;
+        Height = Y + Size + (Padding?.Y2 ?? 0);
     }
 }
 

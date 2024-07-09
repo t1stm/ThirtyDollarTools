@@ -3,7 +3,7 @@ using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer.Objects.Planes.Uniforms;
 
-[StructLayout(LayoutKind.Explicit, Size = 176)]
+[StructLayout(LayoutKind.Explicit, Size = 188)]
 public struct ColoredUniform
 {
     [FieldOffset(0)]
@@ -23,4 +23,7 @@ public struct ColoredUniform
     
     [FieldOffset(172)]
     public float BorderRadiusPx;
+
+    [FieldOffset(184)]
+    public Vector3 Offset;
 }

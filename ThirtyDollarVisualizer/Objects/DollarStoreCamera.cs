@@ -127,4 +127,9 @@ public sealed class DollarStoreCamera : Camera
     {
         _offset = offset;
     }
+
+    public Vector3 GetOffset()
+    {
+        return _offset;
+    }
 }

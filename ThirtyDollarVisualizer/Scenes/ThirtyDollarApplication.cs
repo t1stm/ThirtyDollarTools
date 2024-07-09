@@ -50,7 +50,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private readonly List<Renderable> text_objects = new();
     private readonly DollarStoreCamera TextCamera;
     private readonly CancellationTokenSource TokenSource = new();
-    private readonly ConcurrentDictionary<string, Texture> ValueTextCache = new();
 
     private BackgroundPlane BackgroundPlane = null!;
     private Renderable? _controls_text;
@@ -296,6 +295,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         // render background
         BackgroundPlane.Render(StaticCamera);
+        
+        // renders the flash overlay
+        FlashOverlay.Render(StaticCamera);
 
         // render the greeting
         _greeting?.Render(camera);
@@ -307,14 +309,12 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var camera_xw = camera_x + Width + width_scale;
         var camera_yh = camera_y + Height;
 
+        // render playfields
         if (Playfields.Length > 0)
         {
             var current_playfield = Playfields.Span[CurrentSequence];
             current_playfield.Render(camera, Zoom);
         }
-
-        // renders the flash overlay
-        FlashOverlay.Render(StaticCamera);
         
         // renders all start objects, when visible
         foreach (var renderable in start_objects) RenderRenderable(renderable);
@@ -879,16 +879,20 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         StaticCamera.Pulse(repeats, frequency * 1000f / (LastBPM / 60));
     }
 
-    private void LoopManyEventHandler(Placement placement, int index)
+    private void LoopManyEventHandler(Placement placement, int sequence_index)
     {
-        var element = GetRenderable(placement, index);
-        element?.SetValue(placement.Event, ValueTextCache, ValueChangeWrapMode.RemoveTexture);
+        if (sequence_index >= Playfields.Length) return;
+        
+        var element = GetRenderable(placement, sequence_index);
+        element?.SetValue(placement.Event, Playfields.Span[CurrentSequence].DecreasingValuesCache, ValueChangeWrapMode.RemoveTexture);
     }
 
-    private void StopEventHandler(Placement placement, int index)
+    private void StopEventHandler(Placement placement, int sequence_index)
     {
-        var element = GetRenderable(placement, index);
-        element?.SetValue(placement.Event, ValueTextCache, ValueChangeWrapMode.ResetToDefault);
+        if (sequence_index >= Playfields.Length) return;
+        
+        var element = GetRenderable(placement, sequence_index);
+        element?.SetValue(placement.Event, Playfields.Span[CurrentSequence].DecreasingValuesCache, ValueChangeWrapMode.ResetToDefault);
     }
 
     private void DividerEventHandler(Placement placement, int index)

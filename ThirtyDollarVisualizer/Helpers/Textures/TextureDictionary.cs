@@ -43,7 +43,7 @@ public static class TextureDictionary
     public static Texture GetICutEventTexture()
     {
         return ICutTexture ??= 
-            GetAsset("ThirtyDollarVisualizer.Assets.Textures.action_missing.png") ?? 
+            GetAsset("ThirtyDollarVisualizer.Assets.Textures.action_icut.png") ?? 
             throw new Exception("The #icut event texture is missing in the assembly.");
     }
 }
