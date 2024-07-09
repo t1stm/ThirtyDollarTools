@@ -21,6 +21,7 @@ public class Playfield(PlayfieldSettings settings)
     
     private readonly LayoutHandler LayoutHandler = new(64 * settings.RenderScale, 16, 
         new GapBox(6f), new GapBox(15f, 15f));
+    
     private readonly DollarStoreCamera TemporaryCamera = new(Vector3.Zero, Vector2i.Zero);
     private readonly ColoredPlane ObjectBox = new((0, 0, 0, 0.25f), (0, 0, 0), (0, 0, 0));
     
@@ -79,7 +80,7 @@ public class Playfield(PlayfieldSettings settings)
                 LayoutHandler.CurrentSoundIndex == 0 ? 1 : 2);
         }
 
-        // add bottom paddings to the layout
+        // add bottom padding to the layout
         LayoutHandler.Finish();
 
         // generate textures for all decreasing events
