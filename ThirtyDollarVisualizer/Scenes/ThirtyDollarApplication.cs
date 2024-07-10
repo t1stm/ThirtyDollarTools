@@ -56,7 +56,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private SoundRenderable? _drag_n_drop;
     private ColoredPlane FlashOverlay = null!;
     private Renderable? _greeting;
-    private bool _reset_time;
 
     private ulong _update_id;
     private Renderable? _version_text;
@@ -99,8 +98,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _open_stopwatch.Start();
         _seek_delay_stopwatch.Start();
         _file_update_stopwatch.Start();
-
-        _reset_time = true;
     }
 
     private CancellationToken Token => TokenSource.Token;
@@ -122,8 +119,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public void Init(Manager manager)
     {
         GetSampleHolder().GetAwaiter();
-        if (_reset_time)
-            SequencePlayer.Stop().GetAwaiter().GetResult();
 
         if (is_first_time_scale)
         {
@@ -480,12 +475,22 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         const int seek_length = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
 
+        // extract modifier buttons
+        var left_control = state.IsKeyDown(Keys.LeftControl);
+        var right_control = state.IsKeyDown(Keys.RightControl);
+        var left_shift = state.IsKeyDown(Keys.LeftShift);
+        var right_shift = state.IsKeyDown(Keys.RightShift);
+        
+        // generic modifier checks
+        var control = left_control || right_control;
+        var shift = left_shift || right_shift;
+        
         // toggle play / pause
         switch (state.IsKeyPressed(Keys.Space))
         {
             case true:
                 SequencePlayer.TogglePause();
-                SetStatusMessage(SequencePlayer.GetTimingStopwatch().IsRunning switch
+                if (!shift) SetStatusMessage(SequencePlayer.GetTimingStopwatch().IsRunning switch
                 {
                     true => "[Playback]: Resumed",
                     false => "[Playback]: Paused"
@@ -510,16 +515,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         {
             Manager.ToggleFullscreen();
         }
-
-        // extract modifier buttons
-        var left_control = state.IsKeyDown(Keys.LeftControl);
-        var right_control = state.IsKeyDown(Keys.RightControl);
-        var left_shift = state.IsKeyDown(Keys.LeftShift);
-        var right_shift = state.IsKeyDown(Keys.RightShift);
-        
-        // generic modifier checks
-        var control = left_control || right_control;
-        var shift = left_shift || right_shift;
         
         // bookmark handlers
         switch (left_control)
@@ -675,7 +670,28 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         // check for restarting the current sequences
         if (!state.IsKeyPressed(Keys.R)) return;
-        FileDrop(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
+        if (control && shift)
+        {
+            FileDrop(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
+            return;
+        }
+        
+        Camera.ScrollTo((0, -300, 0));
+        await SequencePlayer.Seek(0);
+        if (shift) SequencePlayer.GetTimingStopwatch().Stop();
+        ResetAllAnimations();
+    }
+
+    private void ResetAllAnimations()
+    {
+        var index = 0;
+        foreach (var placement in TimedEvents.Placement)
+        {
+            var renderable = GetRenderable(placement, index);
+            renderable?.ResetAnimations();
+
+            if (placement.Event is EndEvent) index++;
+        }
     }
 
     protected override async Task HandleAfterSequenceLoad(TimedEvents events)
@@ -1043,7 +1059,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void FileDrop(IReadOnlyCollection<string?> locations, bool reset_time)
     {
-        _reset_time = reset_time;
         Camera.ScrollTo((0, -300, 0));
         
         if (locations.Count < 1) return;

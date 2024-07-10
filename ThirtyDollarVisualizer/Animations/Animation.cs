@@ -16,7 +16,8 @@ public abstract class Animation(TimeSpan timespan)
     {
     }
 
-    public bool IsRunning => TimingStopwatch.IsRunning;
+    public bool IsRunning => TimingStopwatch.IsRunning || _is_reset && !(_is_reset = false);
+    protected bool _is_reset;
 
     /// <summary>
     ///     Gets the current position multiplication transform of this animation.
@@ -91,8 +92,14 @@ public abstract class Animation(TimeSpan timespan)
     /// <summary>
     ///     Executes a given animation.
     /// </summary>
-    public virtual void StartAnimation()
+    public virtual void Start()
     {
         TimingStopwatch.Restart();
+    }
+
+    public virtual void Reset()
+    {
+        TimingStopwatch.Reset();
+        _is_reset = true;
     }
 }

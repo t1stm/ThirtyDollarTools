@@ -61,17 +61,25 @@ public class SoundRenderable : TexturedPlane
 
     public void Bounce()
     {
-        BounceAnimation.StartAnimation();
+        BounceAnimation.Start();
     }
 
     public void Expand()
     {
-        ExpandAnimation.StartAnimation();
+        ExpandAnimation.Start();
     }
 
     public void Fade()
     {
-        FadeAnimation.StartAnimation();
+        FadeAnimation.Start();
+    }
+
+    public void ResetAnimations()
+    {
+        foreach (var animation in RenderableAnimations.Span)
+        {
+            animation.Reset();
+        }
     }
 
     public void SetValue(BaseEvent _event, ConcurrentDictionary<string, Texture> generated_textures,
