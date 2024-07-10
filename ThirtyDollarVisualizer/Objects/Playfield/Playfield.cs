@@ -13,13 +13,14 @@ public class Playfield(PlayfieldSettings settings)
     /// Contains all sound renderables.
     /// </summary>
     public Memory<SoundRenderable?> Objects = Memory<SoundRenderable?>.Empty;
+    public Memory<PlayfieldLine> Lines = Memory<PlayfieldLine>.Empty;
     
     /// <summary>
     /// Dictionary containing all decreasing value events' textures for this playfield.
     /// </summary>
     public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
     
-    private readonly LayoutHandler LayoutHandler = new(64 * settings.RenderScale, 16, 
+    private readonly LayoutHandler LayoutHandler = new(64 * settings.RenderScale, settings.SoundsOnASingleLine, 
         new GapBox(6f * settings.RenderScale), new GapBox(15f * settings.RenderScale, 15f * settings.RenderScale));
     
     private readonly DollarStoreCamera TemporaryCamera = new(Vector3.Zero, Vector2i.Zero);
@@ -83,6 +84,16 @@ public class Playfield(PlayfieldSettings settings)
         // add bottom padding to the layout
         LayoutHandler.Finish();
 
+        var lines = sounds.GroupBy(r => r?.Original_Y, (_, enumerable) =>
+        {
+            var sound_renderables = enumerable as SoundRenderable[] ?? enumerable.ToArray();
+            return new PlayfieldLine(settings.SoundsOnASingleLine)
+            {
+                Sounds = sound_renderables.ToArray(), 
+                Count = sound_renderables.Length
+            };
+        }).ToArray();
+
         // generate textures for all decreasing events
         var decreasing_events = events.Where(r => r.SoundEvent is "!stop" or "!loopmany");
         foreach (var e in decreasing_events)
@@ -100,6 +111,7 @@ public class Playfield(PlayfieldSettings settings)
         
         // sets objects to be used by the render method
         Objects = sounds;
+        Lines = lines;
     }
 
     private static void PositionSound(LayoutHandler layout_handler, in SoundRenderable sound)
@@ -150,53 +162,52 @@ public class Playfield(PlayfieldSettings settings)
         sound.Value?.SetPosition((bottom_center.X, bottom_center.Y, 0), PositionAlign.Center);
         sound.Volume?.SetPosition((top_right.X, top_right.Y, 0), PositionAlign.TopRight);
         sound.Pan?.SetPosition((box_position.X, box_position.Y, 0));
+        sound.Original_Y = box_position.Y;
     }
 
     public void Render(DollarStoreCamera real_camera, float zoom)
     {
         // avoid doing modifications to the main camera
         TemporaryCamera.CopyFrom(real_camera);
-
-        var camera_width = TemporaryCamera.Width;
-        var camera_height = TemporaryCamera.Height;
         
         // offset temporary camera to enable positioning anywhere
         var left_margin = (int)(TemporaryCamera.Width / 2f - LayoutHandler.Width / 2f);
         TemporaryCamera.SetOffset((-left_margin, 0, 0));
         TemporaryCamera.UpdateMatrix();
         
+        // get generic camera values
+        var camera_height = TemporaryCamera.Height;
+        
         // set render culling limits
         var clamped_scale = Math.Min(zoom, 1f);
-        var width_scale = camera_width / clamped_scale - camera_width;
         var height_scale = camera_height / clamped_scale - camera_height;
 
         // get render culling camera values
-        var camera_x = TemporaryCamera.Position.X - width_scale;
         var camera_y = TemporaryCamera.Position.Y;
-        var camera_xw = camera_x + camera_width + width_scale;
         var camera_yh = camera_y + camera_height;
 
         // get render culling object values
-        var size_renderable = LayoutHandler.Size + LayoutHandler.HorizontalMargin;
-        var repeats_renderable = LayoutHandler.SoundsCount;
-
-        // account for padding between objects
-        var padding_rows = repeats_renderable * 2;
-        var divider_count = 0;
+        var size_renderable = LayoutHandler.Size;
+        var vertical_margin = LayoutHandler.VerticalMargin;
+        
+        // fix values when the zoom is changed
+        camera_y -= height_scale / 2;
+        camera_yh += height_scale / 2;
+        
+        // gets the amount of dividers at the top and bottom of the screen
+        var top_camera_dividers = 0;
+        var bottom_camera_dividers = 0;
         
         // disabling dumb resharper errors
         // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
         foreach (var position in DividerPositions_Y)
         {
-            if (position <= TemporaryCamera.Position.Y) 
-                divider_count++;
+            if (position <= camera_y + size_renderable)
+                top_camera_dividers++;
+            
+            if (position <= camera_yh) 
+                bottom_camera_dividers++;
         }
-
-        var dividers_size = size_renderable * divider_count;
-        
-        // fix values when the zoom is changed
-        camera_y -= height_scale;
-        camera_yh += height_scale;
         
         // render the background dimmed box
         ObjectBox.SetPosition((0,0,0));
@@ -206,36 +217,26 @@ public class Playfield(PlayfieldSettings settings)
         ObjectBox.UpdateModel(false);
         ObjectBox.Render(TemporaryCamera);
 
-        // get all objects this playfield has
-        var tdw_span = Objects.Span;
+        // get all lines this playfield has
+        var tdw_span = Lines.Span;
         
-        // finds the index of the object at the start of the view
-        var start_unclamped = repeats_renderable * (camera_y / size_renderable) - dividers_size - padding_rows;
-        var start = (int)Math.Max(0, start_unclamped);
+        // finds the index of the line at the start of the view
+        var start_line = camera_y / (size_renderable + vertical_margin);
+        var start_index = start_line - top_camera_dividers - 1;
 
         // same but for the end of the view
-        var end_unclamped = repeats_renderable * (camera_y / size_renderable) +
-                            repeats_renderable * ((camera_height + height_scale) / size_renderable / clamped_scale) +
-                            padding_rows;
-        var end = (int)Math.Min(tdw_span.Length, end_unclamped);
+        var end_line = camera_yh / (size_renderable + vertical_margin);
+        var end_index = end_line - bottom_camera_dividers + 1;
+        
+        var start = (int)Math.Max(0, Math.Floor(start_index));
+        var end = (int)Math.Min(tdw_span.Length, Math.Ceiling(end_index));
 
-        // renders all objects in the start - end range
-        for (var i = start; i < end; i++)
+        // renders all lines in the start - end range
+        int i;
+        for (i = start; i < end; i++)
         {
-            var renderable = tdw_span[i];
-            if (renderable is null) continue;
-
-            var position = renderable.GetPosition();
-            var translation = renderable.GetTranslation();
-
-            var scale = renderable.GetScale();
-            var place = position + translation;
-
-            // Bounds checks for the camera's viewport
-            if (place.X + scale.X < camera_x || place.X - scale.X > camera_xw) continue;
-            if (place.Y + scale.Y < camera_y || place.Y - scale.Y > camera_yh) continue;
-
-            renderable.Render(TemporaryCamera);
+            var line = tdw_span[i];
+            line.Render(TemporaryCamera);
         }
     }
 }

@@ -13,6 +13,7 @@ public class SoundRenderable : TexturedPlane
     private readonly FadeAnimation FadeAnimation;
     private readonly Memory<Animation> RenderableAnimations;
 
+    public float Original_Y;
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
     public TexturedPlane? Pan;
