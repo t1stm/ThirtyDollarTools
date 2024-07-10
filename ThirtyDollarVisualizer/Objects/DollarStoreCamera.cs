@@ -111,6 +111,12 @@ public sealed class DollarStoreCamera : Camera
         var current_y = Position.Y;
         var target_y = _virtualPosition.Y;
 
+        if (Math.Abs(current_y - target_y) < 0.01f)
+        {
+            Position = target_y * Vector3.UnitY;
+            return;
+        }
+
         current_y += (target_y - current_y) * (1f - MathF.Exp(- speed * seconds_last_frame));
         Position = current_y * Vector3.UnitY;
     }
