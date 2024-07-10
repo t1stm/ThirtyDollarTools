@@ -91,10 +91,7 @@ public class Playfield(PlayfieldSettings settings)
             for (var val = textures; val >= 0; val--)
             {
                 var search = val.ToString("0.##");
-                if (DecreasingValuesCache.ContainsKey(search)) continue;
-
-                var texture = new Texture(factory.ValueFont, search);
-                DecreasingValuesCache.GetOrAdd(search, texture);
+                DecreasingValuesCache.GetOrAdd(search, _ => new Texture(factory.ValueFont, search));
             }
         }
         
