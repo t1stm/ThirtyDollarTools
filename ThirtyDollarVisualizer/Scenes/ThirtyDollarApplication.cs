@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
@@ -67,7 +66,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     // These are needed for some events, because I don't want to pollute the placement events. They're polluted enough as they are.
     private float LastBPM = 300f;
-    private ulong LastDividerIndex;
     private Manager Manager = null!;
 
     private Memory<Playfield> Playfields = Memory<Playfield>.Empty;
@@ -759,7 +757,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         player.SubscribeActionToEvent("!pulse", PulseEventHandler);
         player.SubscribeActionToEvent("!loopmany", LoopManyEventHandler);
         player.SubscribeActionToEvent("!stop", StopEventHandler);
-        player.SubscribeActionToEvent("!divider", DividerEventHandler);
         player.SubscribeActionToEvent("!volume", VolumeEventHandler);
     }
 
@@ -909,11 +906,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         var element = GetRenderable(placement, sequence_index);
         element?.SetValue(placement.Event, Playfields.Span[CurrentSequence].DecreasingValuesCache, ValueChangeWrapMode.ResetToDefault);
-    }
-
-    private void DividerEventHandler(Placement placement, int index)
-    {
-        LastDividerIndex = placement.SequenceIndex;
     }
     
     private void VolumeEventHandler(Placement placement, int index)
