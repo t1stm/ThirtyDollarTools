@@ -78,6 +78,11 @@ public abstract class ThirtyDollarWorkflow
         var sequence_array = new Sequence[locations.Length];
         var i = 0;
         Sequences = GetSequenceInfos(locations);
+        if (Sequences.Length < 1)
+        {
+            Log("[Sequence Update] No valid files were dropped on the window. If dragging a folder, drag the files inside it.");
+            return;
+        }
 
         for (var index = 0; index < Sequences.Span.Length; index++)
         {
@@ -171,7 +176,7 @@ public abstract class ThirtyDollarWorkflow
 
     protected static SequenceInfo[] GetSequenceInfos(IEnumerable<string?> locations)
     {
-        return locations.Where(File.Exists).Select(l => new SequenceInfo
+        return locations.Where(l => File.Exists(l) && !Directory.Exists(l)).Select(l => new SequenceInfo
         {
             FileLocation = l!,
             FileModifiedTime = File.GetLastWriteTime(l!)
@@ -212,8 +217,8 @@ public abstract class ThirtyDollarWorkflow
             {
                 AutoUpdate = false;
                 Log(
-                    "One of the loaded sequences was deleted. \n" +
-                    "Disabling auto-reload until next manual sequence update.");
+                    "[Auto Update] One of the sequences was deleted. \n" +
+                    "Disabling auto-reload until the next manual update.");
 
                 return;
             }
@@ -224,7 +229,7 @@ public abstract class ThirtyDollarWorkflow
 
         try
         {
-            if (Debug) Log("A change in queued sequences was detected. Recalculating all sequences.");
+            Log("[Auto Update] Recalculating all sequences.");
             UpdateSequences(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), false)
                 .GetAwaiter().GetResult();
         }
