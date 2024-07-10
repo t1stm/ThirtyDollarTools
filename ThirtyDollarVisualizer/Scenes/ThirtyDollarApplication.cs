@@ -213,7 +213,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         UpdateStaticRenderables(Width, Height, Zoom);
 
-        Log = str => SetStatusMessage(str);
+        Log = str => SetStatusMessage(str, 3500);
 
         if (_drag_n_drop == null)
         {
@@ -492,7 +492,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 {
                     true => "[Playback]: Resumed",
                     false => "[Playback]: Paused"
-                });
+                }, 500);
                 break;
         }
 
@@ -676,6 +676,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         Camera.ScrollTo((0, -300, 0));
         await SequencePlayer.Seek(0);
+        BackgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.16f);
         if (shift) SequencePlayer.GetTimingStopwatch().Stop();
         ResetAllAnimations();
     }
