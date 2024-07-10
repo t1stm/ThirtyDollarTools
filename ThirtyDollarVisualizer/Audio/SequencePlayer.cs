@@ -216,6 +216,8 @@ public class SequencePlayer
     {
         var current_time = TimingStopwatch.ElapsedMilliseconds;
         var span = Events.Placement.AsSpan();
+        if (span.Length < 1) return;
+        
         var idx = PlacementIndex;
         var min_time = long.MaxValue;
 
