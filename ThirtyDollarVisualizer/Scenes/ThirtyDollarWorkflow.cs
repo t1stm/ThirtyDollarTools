@@ -17,6 +17,7 @@ public abstract class ThirtyDollarWorkflow
     protected Memory<SequenceInfo> Sequences = Array.Empty<SequenceInfo>();
     protected SequenceIndices SequenceIndices = new();
     protected bool Debug;
+    protected bool AutoUpdate = true;
 
     protected TimedEvents TimedEvents = new()
     {
@@ -42,7 +43,7 @@ public abstract class ThirtyDollarWorkflow
             DownloadUpdate = (sample, current, count) => { Log($"({current} - {count}): Downloaded: \'{sample}\'"); }
         };
 
-        Log("[Sample Holder] Loading.");
+        Log("[Sample Holder] Loading...");
 
         await SampleHolder.LoadSampleList();
         SampleHolder.PrepareDirectory();
@@ -96,6 +97,7 @@ public abstract class ThirtyDollarWorkflow
     /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
     public virtual async Task UpdateSequences(Sequence[] sequences, bool restart_player = true)
     {
+        AutoUpdate = true;
         lock (ExtractedSpeedEvents)
         {
             ExtractedSpeedEvents = Array.Empty<Placement>();
@@ -201,12 +203,20 @@ public abstract class ThirtyDollarWorkflow
     /// </summary>
     protected virtual void HandleIfSequenceUpdate()
     {
-        if (Sequences.Length < 1) return;
+        if (Sequences.Length < 1 || !AutoUpdate) return;
         foreach (var sequence_info in Sequences.Span)
         {
             var filename = sequence_info.FileLocation;
             var recorded_m_time = sequence_info.FileModifiedTime;
-            if (!File.Exists(filename)) continue;
+            if (!File.Exists(filename))
+            {
+                AutoUpdate = false;
+                Log(
+                    "One of the loaded sequences was deleted. \n" +
+                    "Disabling auto-reload until next manual sequence update.");
+
+                return;
+            }
             var m_time = File.GetLastWriteTime(filename);
             if (recorded_m_time != m_time) break;
             return;
