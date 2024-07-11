@@ -20,13 +20,14 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
             AutoIconify = false,
             ClientSize = (width, height),
             Title = title,
-            APIVersion = new Version(3, 2),
+            APIVersion = new Version(3, 3),
             Icon = icon,
             Vsync = fps == null ? VSyncMode.On : VSyncMode.Off
         })
 {
     public readonly SemaphoreSlim RenderBlock = new(1);
     public readonly List<IScene> Scenes = new();
+    public GLInfo GLInfo;
 
     public static void CheckErrors()
     {
@@ -53,6 +54,10 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         base.OnLoad();
 
         Fonts.Initialize();
+
+        GLInfo.Vendor = GL.GetString(StringName.Vendor);
+        GLInfo.Renderer = GL.GetString(StringName.Renderer);
+        GLInfo.Version = GL.GetString(StringName.Version);
 
         foreach (var scene in Scenes) scene.Init(this);
 
