@@ -30,7 +30,7 @@ public class NullAudibleBuffer : AudibleBuffer
     {
     }
 
-    public override void SetVolume(float volume)
+    public override void SetVolume(float volume, bool absolute = false)
     {
     }
 

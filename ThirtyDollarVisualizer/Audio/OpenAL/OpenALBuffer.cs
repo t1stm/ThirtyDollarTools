@@ -123,9 +123,9 @@ public class OpenALBuffer : AudibleBuffer
         }
     }
 
-    public override void SetVolume(float volume)
+    public override void SetVolume(float volume, bool absolute = false)
     {
-        _relative_volume = volume;
+        _relative_volume = absolute ? volume * (1 / _context.GlobalVolume): volume;
     }
 
     public override void Delete()

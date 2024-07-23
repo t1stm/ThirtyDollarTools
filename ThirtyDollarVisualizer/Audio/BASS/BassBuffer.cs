@@ -57,11 +57,11 @@ public class BassBuffer : AudibleBuffer, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public override void SetVolume(float volume)
+    public override void SetVolume(float volume, bool absolute = false)
     {
         _relative_volume = volume;
 
-        SampleInfo.Volume = _volume;
+        SampleInfo.Volume = absolute ? volume / _context.GlobalVolume : _volume;
         Bass.SampleSetInfo(SampleHandle, SampleInfo);
     }
 

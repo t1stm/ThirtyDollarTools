@@ -13,7 +13,7 @@ public class BackingAudio(AudioContext context, AudioData<float> data, int sampl
 
     public void Play()
     {
-        _buffer.SetVolume(1);
+        _buffer.SetVolume(1f, true);
         _buffer.Play();
     }
 
