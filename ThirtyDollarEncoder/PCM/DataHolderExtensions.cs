@@ -35,7 +35,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
 
             // get each channel's length
             var destination_length = length / ((int)source_encoding / 8) / channels_count;
-            
+
             // create arrays that store the audio data and handle mono to stereo storage
             var export_channels_count = monoToStereo && channels_count < 2 ? 2 : channels_count;
             var export_channels = new short[export_channels_count][];
@@ -50,14 +50,14 @@ public static class DataHolderExtensions // i love duplicating code (false state
             for (var current_channel = 0; current_channel < channels_count; current_channel++)
             {
                 var channel = export_channels[current_channel];
-                FillChannel_Short(channel, channels_count, current_channel, 
+                FillChannel_Short(channel, channels_count, current_channel,
                     source_encoding, audio_span, short_span, int24_span, float_span);
             }
 
             // handle mono to stereo conversion
             if (export_channels_count != channels_count)
             {
-                FillChannel_Short(export_channels[1], 1, 0, 
+                FillChannel_Short(export_channels[1], 1, 0,
                     source_encoding, audio_span, short_span, int24_span, float_span);
             }
 
@@ -109,7 +109,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
 
             // get each channel's length
             var destination_length = length / ((int)source_encoding / 8) / channels_count;
-            
+
             // create arrays that store the audio data and handle mono to stereo storage
             var export_channels_count = monoToStereo && channels_count < 2 ? 2 : channels_count;
             var export_channels = new float[export_channels_count][];
@@ -124,14 +124,14 @@ public static class DataHolderExtensions // i love duplicating code (false state
             for (var current_channel = 0; current_channel < channels_count; current_channel++)
             {
                 var channel = export_channels[current_channel];
-                FillChannel_Float(channel, channels_count, current_channel, 
+                FillChannel_Float(channel, channels_count, current_channel,
                     source_encoding, audio_span, short_span, int24_span, float_span);
             }
 
             // handle mono to stereo conversion
             if (export_channels_count != channels_count)
             {
-                FillChannel_Float(export_channels[1], 1, 0, 
+                FillChannel_Float(export_channels[1], 1, 0,
                     source_encoding, audio_span, short_span, int24_span, float_span);
             }
 
@@ -151,7 +151,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
             holder.Semaphore.Release();
         }
     }
-    
+
     /// <summary>
     /// Converts a given sample array to a float (32 bit) array.
     /// </summary>
@@ -164,7 +164,8 @@ public static class DataHolderExtensions // i love duplicating code (false state
     /// <param name="int24_span">The source data casted to 24 bit.</param>
     /// <param name="float_span">The source data casted to 32 bit float.</param>
     /// <exception cref="ArgumentOutOfRangeException">Exception when the given encoding isn't handled.</exception>
-    private static void FillChannel_Float(Span<float> channel, int channels_count, int current_channel, Encoding source_encoding, Span<byte> audio_span,
+    private static void FillChannel_Float(Span<float> channel, int channels_count, int current_channel,
+        Encoding source_encoding, Span<byte> audio_span,
         ReadOnlySpan<short> short_span, ReadOnlySpan<Int24> int24_span, ReadOnlySpan<float> float_span)
     {
         for (var i = 0; i < channel.Length; i++)
@@ -181,7 +182,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
             };
         }
     }
-    
+
     /// <summary>
     /// Converts a given sample array to a short (16 bit) array.
     /// </summary>
@@ -194,7 +195,8 @@ public static class DataHolderExtensions // i love duplicating code (false state
     /// <param name="int24_span">The source data casted to 24 bit.</param>
     /// <param name="float_span">The source data casted to 32 bit float.</param>
     /// <exception cref="ArgumentOutOfRangeException">Exception when the given encoding isn't handled.</exception>
-    private static void FillChannel_Short(Span<short> channel, int channels_count, int current_channel, Encoding source_encoding, Span<byte> audio_span,
+    private static void FillChannel_Short(Span<short> channel, int channels_count, int current_channel,
+        Encoding source_encoding, Span<byte> audio_span,
         ReadOnlySpan<short> short_span, ReadOnlySpan<Int24> int24_span, ReadOnlySpan<float> float_span)
     {
         for (var i = 0; i < channel.Length; i++)
@@ -216,7 +218,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
     {
         return MemoryMarshal.Cast<byte, short>(bytes);
     }
-    
+
     private static ReadOnlySpan<float> ReadAsFloatArray(Span<byte> bytes)
     {
         return MemoryMarshal.Cast<byte, float>(bytes);
