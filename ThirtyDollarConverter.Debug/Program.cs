@@ -1,14 +1,13 @@
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Audio.Resamplers;
+using ThirtyDollarConverter.CLI;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarApp;
 
 internal static class Program
 {
-    private const char EmptyBlock = '□', FullBlock = '■';
-
     private static async Task Main(string[] args)
     {
         const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarTools/ThirtyDollarConverter.Debug";
@@ -27,11 +26,11 @@ internal static class Program
 
         Directory.CreateDirectory("./Export");
 
-        var output = new List<SequenceFile>();
+        var output = new List<Readers.SequenceFile>();
         if (args.Length > 0)
-            output.AddRange(await ReadFileList(args));
+            output.AddRange(await Readers.GetSequencesFromFileList(args));
         else
-            output.AddRange(await ReadFileList(list));
+            output.AddRange(await Readers.GetSequencesFromFileList(list));
 
         const int statusbar_length = 64;
         foreach (var file in output)
@@ -48,10 +47,10 @@ internal static class Program
             }, Console.WriteLine, (current, total) =>
             {
                 ClearLine();
-                Console.Write(GenerateProgressbar(current, (long)total, statusbar_length));
+                Console.Write(Progressbar.Generate(current, (long)total, statusbar_length));
             });
 
-            var audioData = await encoder.GetSequenceAudio(sequence); // Shame on me...
+            var audioData = await encoder.GetSequenceAudio(sequence);
             encoder.WriteAsWavFile($"./Export/{file.Location.Split('/').Last()}.wav", audioData);
         }
 
@@ -65,54 +64,5 @@ internal static class Program
         {
             Console.Write("\b \b");
         } while (Console.CursorLeft > 0);
-    }
-
-    private static async Task<List<SequenceFile>> ReadFileList(IEnumerable<string> array)
-    {
-        var output = new List<SequenceFile>();
-        foreach (var location in array)
-            try
-            {
-                if (!File.Exists(location) || Directory.Exists(location))
-                {
-                    Console.WriteLine($"File: \"{location}\" doesn't exist.");
-                    continue;
-                }
-
-                var data = await File.ReadAllTextAsync(location);
-                output.Add(new SequenceFile
-                {
-                    Location = location,
-                    Data = data
-                });
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Failed to open file in args: \"{location}\" - Exception: {e}");
-                throw;
-            }
-
-        return output;
-    }
-
-    private static string GenerateProgressbar(double current, long total, int length = 32)
-    {
-        Span<char> prg = stackalloc char[length];
-
-        var increment = total / length;
-        var display = (int)Math.Floor(current / increment);
-        display = display > length ? length : display;
-        if (display < 0) display = 0;
-        for (var i = 0; i < display; i++) prg[i] = FullBlock;
-
-        for (var i = display; i < length; i++) prg[i] = EmptyBlock;
-
-        return prg.ToString();
-    }
-
-    private struct SequenceFile
-    {
-        public string Location;
-        public string Data;
     }
 }
