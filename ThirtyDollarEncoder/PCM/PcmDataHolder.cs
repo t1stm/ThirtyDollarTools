@@ -2,7 +2,7 @@ namespace ThirtyDollarEncoder.PCM;
 
 public class PcmDataHolder
 {
-    public readonly object LockObject = new();
+    public readonly SemaphoreSlim Semaphore = new(1);
     public AudioData<float>? FloatData = null;
     public AudioData<short>? ShortData = null;
     public uint SampleRate { get; set; }
