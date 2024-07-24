@@ -1,17 +1,12 @@
 using System;
 using System.Linq;
-using ThirtyDollarConverter.Resamplers;
+using ThirtyDollarConverter.Audio.Resamplers;
 
 namespace ThirtyDollarGUI.Models;
 
-public class ResamplerModel
+public class ResamplerModel(IResampler resampler)
 {
-    public readonly IResampler Resampler;
-
-    public ResamplerModel(IResampler resampler)
-    {
-        Resampler = resampler;
-    }
+    public readonly IResampler Resampler = resampler;
 
     public string? ResamplerName => GetReadableTypeName(Resampler.GetType())?.Split('.').Last();
 
