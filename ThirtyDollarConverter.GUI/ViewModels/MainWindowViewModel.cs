@@ -269,7 +269,7 @@ public class MainWindowViewModel : ViewModelBase
             var gui_location = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
             gui_location =
                 gui_location.Replace(
-                    gui_location.Contains("ThirtyDollarGUI.exe") ? "ThirtyDollarGUI.exe" : "ThirtyDollarGUI", "");
+                    gui_location.Contains("ThirtyDollarConverter.GUI.exe") ? "ThirtyDollarConverter.GUI.exe" : "ThirtyDollarConverter.GUI", "");
 
             if (File.Exists($"{gui_location}/ThirtyDollarVisualizer"))
                 visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer";

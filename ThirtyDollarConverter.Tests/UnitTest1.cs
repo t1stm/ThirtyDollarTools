@@ -9,7 +9,7 @@ namespace ThirtyDollarEncoder.Tests;
 public class Tests
 {
     public const string TestingFileLocation =
-        "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarDebugApp/bin/Release/net7.0/Export/(Radiotomatosauce99) amogus of impostsussy [Ultrakill Act 2].🗿.wav";
+        "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarConverter.Debug/bin/Release/net7.0/Export/(Radiotomatosauce99) amogus of impostsussy [Ultrakill Act 2].🗿.wav";
 
     public AudioData<short> TestingData = null!;
 

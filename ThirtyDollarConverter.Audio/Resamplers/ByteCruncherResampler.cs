@@ -1,15 +1,8 @@
-using System;
+namespace ThirtyDollarConverter.Audio.Resamplers;
 
-namespace ThirtyDollarConverter.Resamplers;
-
-public class ByteCruncherResampler : IResampler
+public class ByteCruncherResampler(float bits_per_sample = 64f) : IResampler
 {
-    private readonly float bits_per_sample;
-
-    public ByteCruncherResampler(float bits_per_sample = 64f)
-    {
-        this.bits_per_sample = bits_per_sample;
-    }
+    private readonly float bits_per_sample = bits_per_sample;
 
     public float[] Resample(Memory<float> samples, uint sample_rate, uint target_sample_rate)
     {
