@@ -1,89 +1,85 @@
+using System.Runtime.InteropServices;
+
 namespace ThirtyDollarEncoder.PCM;
 
-public static class DataHolderExtensions
+public static class DataHolderExtensions // i love duplicating code (false statement)
 {
     public static byte[]? ReadAsInt8Array(this PcmDataHolder holder)
     {
         throw new Exception("Why would anyone want to use 8 bit integers for music. I won't implement this for now.");
     }
 
+    /// <summary>
+    /// Reads / returns cached audio data from this data holder as short (16 bit) AudioData.
+    /// </summary>
+    /// <param name="holder">The current PcmDataHolder.</param>
+    /// <param name="monoToStereo">Whether to return mono source data as stereo.</param>
+    /// <returns>An AudioData object that contains the converted data.</returns>
+    /// <exception cref="Exception">Exception thrown when an error occurs.</exception>
     public static AudioData<short>? ReadAsInt16Array(this PcmDataHolder holder, bool monoToStereo)
     {
-        lock (holder.LockObject)
+        // lock that disallows multiple writing to the parsed channels
+        holder.Semaphore.Wait();
+        try
         {
+            // basic cache checks
             if (holder.ShortData != null) return holder.ShortData;
             if (holder.AudioData == null) return null;
+
+            // extract important variables
+            var audio_span = holder.AudioData.AsSpan();
+            var channels_count = (int)holder.Channels;
+            var length = audio_span.Length;
+            var source_encoding = holder.Encoding;
+
+            // add different pre-casted arrays made using c# magic
+            // also known as "casting pointers" in languages like c
+            var short_span = ReadAsShortArray(audio_span);
+            var int24_span = ReadAsInt24Array(audio_span);
+            var float_span = ReadAsFloatArray(audio_span);
+
+            // get each channel's length
+            var destination_length = length / ((int)source_encoding / 8) / channels_count;
             
-            var channel_count = holder.Channels;
-            var export_channels = monoToStereo ? channel_count < 2 ? 2 : channel_count : channel_count;
-            
-            using var reader = new BinaryReader(new MemoryStream(holder.AudioData));
-            
-            var data_list = new List<short>[export_channels]; // Jesus Christ...
-            for (var i = 0; i < data_list.Length; i++) data_list[i] = new List<short>();
-            uint channel = 0;
-            
-            switch (holder.Encoding)
+            // create arrays that store the audio data and handle mono to stereo storage
+            var export_channels_count = monoToStereo && channels_count < 2 ? 2 : channels_count;
+            var export_channels = new short[export_channels_count][];
+
+            // allocates all channels
+            for (var i = 0; i < export_channels_count; i++)
             {
-                case Encoding.Float32:
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    {
-                        channel %= channel_count;
-                        var val = (short)(reader.ReadSingle() * 32768);
-                        data_list[channel].Add(val);
-                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
-                        channel += 1;
-                    }
-
-                    break;
-                case Encoding.Int8:
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    {
-                        channel %= channel_count;
-                        var val = (short)(reader.ReadByte() * 256);
-                        data_list[channel].Add(val);
-                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
-                        channel += 1;
-                    }
-
-                    break;
-                case Encoding.Int16:
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    {
-                        channel %= channel_count;
-                        var val = reader.ReadInt16();
-                        data_list[channel].Add(val);
-                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
-                        channel += 1;
-                    }
-
-                    break;
-                case Encoding.Int24:
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    {
-                        channel %= channel_count;
-                        var b1 = reader.ReadByte();
-                        var b2 = reader.ReadByte();
-                        var b3 = reader.ReadByte();
-                        var i24 = new Int24
-                        {
-                            b1 = b1,
-                            b2 = b2,
-                            b3 = b3
-                        };
-                        var val = (short)(i24.ToFloat() * 32768);
-                        data_list[channel].Add(val);
-                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
-                        channel += 1;
-                    }
-
-                    break;
+                export_channels[i] = new short[destination_length];
             }
 
-            var audioData = new AudioData<short>(export_channels);
-            for (var i = 0; i < export_channels; i++) audioData.Samples[i] = data_list[i].ToArray();
-            holder.ShortData = audioData;
-            return audioData;
+            // convert known source channels
+            for (var current_channel = 0; current_channel < channels_count; current_channel++)
+            {
+                var channel = export_channels[current_channel];
+                FillChannel_Short(channel, channels_count, current_channel, 
+                    source_encoding, audio_span, short_span, int24_span, float_span);
+            }
+
+            // handle mono to stereo conversion
+            if (export_channels_count != channels_count)
+            {
+                FillChannel_Short(export_channels[1], 1, 0, 
+                    source_encoding, audio_span, short_span, int24_span, float_span);
+            }
+
+            unchecked // unchecked due to "possible" overflow
+            {
+                var audio_data = new AudioData<short>((uint)export_channels_count);
+                audio_data.Samples = export_channels;
+                return audio_data;
+            }
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Failed to read sample holder as float array. {e}");
+        }
+        finally
+        {
+            holder.Semaphore.Release();
         }
     }
 
@@ -92,86 +88,152 @@ public static class DataHolderExtensions
         throw new Exception("Working with Int24 isn't supported (yet.)");
     }
 
+    /// <summary>
+    /// Reads / returns cached audio data from this data holder as float (32 bit) AudioData.
+    /// </summary>
+    /// <param name="holder">The current PcmDataHolder.</param>
+    /// <param name="monoToStereo">Whether to return mono source data as stereo.</param>
+    /// <returns>An AudioData object that contains the converted data.</returns>
+    /// <exception cref="Exception">Exception thrown when an error occurs.</exception>
     public static AudioData<float>? ReadAsFloat32Array(this PcmDataHolder holder, bool monoToStereo)
     {
-        lock (holder.LockObject)
+        // lock that disallows multiple writing to the parsed channels
+        holder.Semaphore.Wait();
+        try
         {
+            // basic cache checks
             if (holder.FloatData != null) return holder.FloatData;
             if (holder.AudioData == null) return null;
-            var channel_count = holder.Channels;
-            var export_channels = monoToStereo ? channel_count < 2 ? 2 : channel_count : channel_count;
-            using var reader = new BinaryReader(new MemoryStream(holder.AudioData));
-            var data_list = new List<float>[export_channels]; // Jesus Christ...
-            for (var i = 0; i < data_list.Length; i++) data_list[i] = new List<float>();
-            uint channel = 0;
-            switch (holder.Encoding)
+
+            // extract important variables
+            var audio_span = holder.AudioData.AsSpan();
+            var channels_count = (int)holder.Channels;
+            var length = audio_span.Length;
+            var source_encoding = holder.Encoding;
+
+            // add different pre-casted arrays made using c# magic
+            // also known as "casting pointers" in languages like c
+            var short_span = ReadAsShortArray(audio_span);
+            var int24_span = ReadAsInt24Array(audio_span);
+            var float_span = ReadAsFloatArray(audio_span);
+
+            // get each channel's length
+            var destination_length = length / ((int)source_encoding / 8) / channels_count;
+            
+            // create arrays that store the audio data and handle mono to stereo storage
+            var export_channels_count = monoToStereo && channels_count < 2 ? 2 : channels_count;
+            var export_channels = new float[export_channels_count][];
+
+            // allocates all channels
+            for (var i = 0; i < export_channels_count; i++)
             {
-                case Encoding.Float32:
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    {
-                        channel %= channel_count;
-                        
-                        var val = reader.ReadSingle();
-                        val = val > 1 ? 1 : val < -1 ? -1 : val;
-                        data_list[channel].Add(val);
-                        if (channel_count == 1 && monoToStereo) data_list[channel].Add(val);
-                        channel += 1;
-                    }
-
-                    break;
-                case Encoding.Int8:
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    {
-                        channel %= channel_count;
-                        
-                        var val = reader.ReadByte() / 256f;
-                        val = val > 1 ? 1 : val < -1 ? -1 : val;
-                        data_list[channel].Add(val);
-                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
-                        channel += 1;
-                    }
-
-                    break;
-                case Encoding.Int16:
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    {
-                        channel %= channel_count;
-                        
-                        var val = reader.ReadInt16() / 32768f;
-                        val = val > 1 ? 1 : val < -1 ? -1 : val;
-                        data_list[channel].Add(val);
-                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
-                        channel += 1;
-                    }
-
-                    break;
-                case Encoding.Int24:
-                    while (reader.BaseStream.Position < reader.BaseStream.Length)
-                    {
-                        channel %= channel_count;
-                        
-                        var b1 = reader.ReadByte();
-                        var b2 = reader.ReadByte();
-                        var b3 = reader.ReadByte();
-                        var i24 = new Int24
-                        {
-                            b1 = b1,
-                            b2 = b2,
-                            b3 = b3
-                        };
-                        var val = i24.ToFloat();
-                        data_list[channel].Add(val);
-                        if (channel_count == 1 && monoToStereo) data_list[channel + 1].Add(val);
-                        channel += 1;
-                    }
-
-                    break;
+                export_channels[i] = new float[destination_length];
             }
 
-            var audioData = new AudioData<float>(export_channels);
-            for (var i = 0; i < export_channels; i++) audioData.Samples[i] = data_list[i].ToArray();
-            holder.FloatData = audioData;
-            return audioData;
+            // convert known source channels
+            for (var current_channel = 0; current_channel < channels_count; current_channel++)
+            {
+                var channel = export_channels[current_channel];
+                FillChannel_Float(channel, channels_count, current_channel, 
+                    source_encoding, audio_span, short_span, int24_span, float_span);
+            }
+
+            // handle mono to stereo conversion
+            if (export_channels_count != channels_count)
+            {
+                FillChannel_Float(export_channels[1], 1, 0, 
+                    source_encoding, audio_span, short_span, int24_span, float_span);
+            }
+
+            unchecked // unchecked due to "possible" overflow
+            {
+                var audio_data = new AudioData<float>((uint)export_channels_count);
+                audio_data.Samples = export_channels;
+                return audio_data;
+            }
         }
+        catch (Exception e)
+        {
+            throw new Exception($"Failed to read sample holder as float array. {e}");
+        }
+        finally
+        {
+            holder.Semaphore.Release();
+        }
+    }
+    
+    /// <summary>
+    /// Converts a given sample array to a float (32 bit) array.
+    /// </summary>
+    /// <param name="channel">The current channel data.</param>
+    /// <param name="channels_count">How many channels the destination has.</param>
+    /// <param name="current_channel">The current channel.</param>
+    /// <param name="source_encoding">The source encoding.</param>
+    /// <param name="audio_span">The source's raw data.</param>
+    /// <param name="short_span">The source data casted to 16 bit.</param>
+    /// <param name="int24_span">The source data casted to 24 bit.</param>
+    /// <param name="float_span">The source data casted to 32 bit float.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Exception when the given encoding isn't handled.</exception>
+    private static void FillChannel_Float(Span<float> channel, int channels_count, int current_channel, Encoding source_encoding, Span<byte> audio_span,
+        ReadOnlySpan<short> short_span, ReadOnlySpan<Int24> int24_span, ReadOnlySpan<float> float_span)
+    {
+        for (var i = 0; i < channel.Length; i++)
+        {
+            var index = i * channels_count + current_channel;
+            channel[i] = source_encoding switch
+            {
+                Encoding.Int8 => audio_span[index] / 256f,
+                Encoding.Int16 => short_span[index] / 32768f,
+                Encoding.Int24 => int24_span[index].ToFloat(),
+                Encoding.Float32 => float_span[index],
+                _ => throw new ArgumentOutOfRangeException(nameof(source_encoding),
+                    "Given PCM data holder has invalid encoding.")
+            };
+        }
+    }
+    
+    /// <summary>
+    /// Converts a given sample array to a short (16 bit) array.
+    /// </summary>
+    /// <param name="channel">The current channel data.</param>
+    /// <param name="channels_count">How many channels the destination has.</param>
+    /// <param name="current_channel">The current channel.</param>
+    /// <param name="source_encoding">The source encoding.</param>
+    /// <param name="audio_span">The source's raw data.</param>
+    /// <param name="short_span">The source data casted to 16 bit.</param>
+    /// <param name="int24_span">The source data casted to 24 bit.</param>
+    /// <param name="float_span">The source data casted to 32 bit float.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Exception when the given encoding isn't handled.</exception>
+    private static void FillChannel_Short(Span<short> channel, int channels_count, int current_channel, Encoding source_encoding, Span<byte> audio_span,
+        ReadOnlySpan<short> short_span, ReadOnlySpan<Int24> int24_span, ReadOnlySpan<float> float_span)
+    {
+        for (var i = 0; i < channel.Length; i++)
+        {
+            var index = i * channels_count + current_channel;
+            channel[i] = source_encoding switch
+            {
+                Encoding.Int8 => (short)(audio_span[index] * 256),
+                Encoding.Int16 => short_span[index],
+                Encoding.Int24 => (short)(int24_span[index].ToFloat() * 32768f),
+                Encoding.Float32 => (short)(float_span[index] * 32768f),
+                _ => throw new ArgumentOutOfRangeException(nameof(source_encoding),
+                    "Given PCM data holder has invalid encoding.")
+            };
+        }
+    }
+
+    private static ReadOnlySpan<short> ReadAsShortArray(Span<byte> bytes)
+    {
+        return MemoryMarshal.Cast<byte, short>(bytes);
+    }
+    
+    private static ReadOnlySpan<float> ReadAsFloatArray(Span<byte> bytes)
+    {
+        return MemoryMarshal.Cast<byte, float>(bytes);
+    }
+
+    private static ReadOnlySpan<Int24> ReadAsInt24Array(Span<byte> bytes)
+    {
+        return MemoryMarshal.Cast<byte, Int24>(bytes);
     }
 }
