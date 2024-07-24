@@ -2,7 +2,7 @@ using System.Reflection;
 using BenchmarkDotNet.Attributes;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarConverter.Resamplers;
+using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarBenchmarks;
@@ -40,7 +40,7 @@ public class EncoderBenchmark
             _holder = new SampleHolder
             {
                 DownloadLocation =
-                    "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarGUI/bin/Debug/net7.0/Sounds/"
+                    "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarConverter.GUI/bin/Debug/net7.0/Sounds/"
             };
             
             Task.Run(async () =>

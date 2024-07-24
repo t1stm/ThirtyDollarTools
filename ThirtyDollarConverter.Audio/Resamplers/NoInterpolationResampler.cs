@@ -1,6 +1,4 @@
-using System;
-
-namespace ThirtyDollarConverter.Resamplers;
+namespace ThirtyDollarConverter.Audio.Resamplers;
 
 public class NoInterpolationResampler : IResampler
 {

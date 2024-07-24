@@ -1,6 +1,6 @@
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarConverter.Resamplers;
+using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarApp;
@@ -11,7 +11,7 @@ internal static class Program
 
     private static async Task Main(string[] args)
     {
-        const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarTools/ThirtyDollarDebugApp";
+        const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarTools/ThirtyDollarConverter.Debug";
         const string sequenceDirectory = $"{workingDirectory}/Included Sequences";
 
         var holder = new SampleHolder

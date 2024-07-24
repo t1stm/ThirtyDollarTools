@@ -35,9 +35,9 @@ audio engine of the Thirty Dollar Website uses.
 The only limitation is your system's RAM capacity and 
 the time you can leave your device powered on.
 
-[See more info about the converter here.](ThirtyDollarGUI/README.md)
+[See more info about the converter here.](ThirtyDollarConverter.GUI/README.md)
 
-[_Or if you're interested in the CLI program, here._](ThirtyDollarDebugApp/README.md)
+[_Or if you're interested in the CLI program, here._](ThirtyDollarConverter.Debug/README.md)
 
 ## Download
 

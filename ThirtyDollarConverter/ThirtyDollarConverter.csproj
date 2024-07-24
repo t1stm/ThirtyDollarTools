@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ThirtyDollarEncoder\ThirtyDollarEncoder.csproj"/>
-        <ProjectReference Include="..\ThirtyDollarParser\ThirtyDollarParser.csproj"/>
+        <ProjectReference Include="..\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj" />
+        <ProjectReference Include="..\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj" />
     </ItemGroup>
 
 </Project>
