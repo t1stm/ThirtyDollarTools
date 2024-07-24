@@ -4,11 +4,6 @@ namespace ThirtyDollarEncoder.PCM;
 
 public static class DataHolderExtensions // i love duplicating code (false statement)
 {
-    public static byte[]? ReadAsInt8Array(this PcmDataHolder holder)
-    {
-        throw new Exception("Why would anyone want to use 8 bit integers for music. I won't implement this for now.");
-    }
-
     /// <summary>
     /// Reads / returns cached audio data from this data holder as short (16 bit) AudioData.
     /// </summary>
@@ -81,11 +76,6 @@ public static class DataHolderExtensions // i love duplicating code (false state
         {
             holder.Semaphore.Release();
         }
-    }
-
-    public static Int24[]? ReadAsInt24Array(this PcmDataHolder holder)
-    {
-        throw new Exception("Working with Int24 isn't supported (yet.)");
     }
 
     /// <summary>
