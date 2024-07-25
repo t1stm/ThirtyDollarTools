@@ -51,6 +51,7 @@ public class MainWindowViewModel : ViewModelBase
             IsSequenceLocationGood = this.RaiseAndSetIfChanged(ref IsSequenceLocationGood,
                 !string.IsNullOrEmpty(value) && File.Exists(value));
             new Task(ReadSequence).Start();
+            if (string.IsNullOrEmpty(ExportFileLocation) && IsSequenceLocationGood) ExportFileLocation = value + ".wav";
         }
     }
 
@@ -199,6 +200,8 @@ public class MainWindowViewModel : ViewModelBase
             CreateLog("The selected export location is bad. Please select a new one.");
             return;
         }
+        
+        if (string.IsNullOrEmpty(ExportFileLocation) && IsSequenceLocationGood) ExportFileLocation = SequenceFileLocation + ".wav";
 
         if (sequence_file_locations == export_file_location)
         {
