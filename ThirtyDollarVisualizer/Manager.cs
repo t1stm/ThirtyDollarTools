@@ -58,6 +58,9 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         GLInfo.Vendor = GL.GetString(StringName.Vendor);
         GLInfo.Renderer = GL.GetString(StringName.Renderer);
         GLInfo.Version = GL.GetString(StringName.Version);
+        
+        GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
+        GL.Hint(HintTarget.LineSmoothHint, HintMode.Nicest);
 
         foreach (var scene in Scenes) scene.Init(this);
 
@@ -87,6 +90,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
+        CheckErrors();
         foreach (var scene in Scenes) scene.Update();
 
         if (KeyboardState.IsAnyKeyDown)
