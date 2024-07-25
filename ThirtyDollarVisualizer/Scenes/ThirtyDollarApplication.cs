@@ -74,6 +74,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int Width;
     private int Height;
 
+    private bool Tab;
+
     /// <summary>
     ///     Creates a TDW sequence visualizer.
     /// </summary>
@@ -306,7 +308,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (Playfields.Length > 0)
         {
             var current_playfield = Playfields.Span[CurrentSequence];
-            current_playfield.Render(camera, Zoom);
+            current_playfield.Render(camera, Zoom, (float)Manager.UpdateTime);
+            current_playfield.DisplayCenter = !Tab;
         }
         
         // renders all start objects, when visible
@@ -508,6 +511,11 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             _ => CameraFollowMode
         };
 
+        if (state.IsKeyPressed(Keys.Tab))
+        {
+            Tab = !Tab;
+        }
+        
         // toggle fullscreen
         if (state.IsKeyPressed(Keys.F))
         {

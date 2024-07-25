@@ -29,6 +29,12 @@ public class Playfield(PlayfieldSettings settings)
     private byte[] AnimatedAssets = Array.Empty<byte>(); // TODO hyped up for this.
     private readonly List<float> DividerPositions_Y = new();
 
+    private Vector3 CurrentPosition = Vector3.Zero;
+    private Vector3 TargetPosition = Vector3.Zero;
+
+    public bool DisplayCenter = true;
+    private bool FirstPosition = true;
+
     public async Task UpdateSounds(Sequence sequence)
     {
         // get all events and make an array that will hold their renderable
@@ -165,14 +171,22 @@ public class Playfield(PlayfieldSettings settings)
         sound.Original_Y = box_position.Y;
     }
 
-    public void Render(DollarStoreCamera real_camera, float zoom)
+    public void Render(DollarStoreCamera real_camera, float zoom, float update_delta)
     {
         // avoid doing modifications to the main camera
         TemporaryCamera.CopyFrom(real_camera);
         
         // offset temporary camera to enable positioning anywhere
         var left_margin = (int)(TemporaryCamera.Width / 2f - LayoutHandler.Width / 2f);
-        TemporaryCamera.SetOffset((-left_margin, 0, 0));
+        
+        TargetPosition = DisplayCenter ? (-left_margin, 0, 0) : Vector3.Zero;
+        if (FirstPosition)
+        {
+            CurrentPosition = TargetPosition;
+            FirstPosition = false;
+        }
+        
+        TemporaryCamera.SetOffset(CurrentPosition = SteppingFunctions.Exponential(CurrentPosition, TargetPosition, update_delta));
         TemporaryCamera.UpdateMatrix();
         
         // get generic camera values

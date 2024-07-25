@@ -104,21 +104,10 @@ public sealed class DollarStoreCamera : Camera
 
     public void Update(float seconds_last_frame)
     {
-        // exponentional smoothing by lisyarus
-        // https://lisyarus.github.io/blog/posts/exponential-smoothing.html
-        
-        const float speed = 7.5f;
-        var current_y = Position.Y;
-        var target_y = _virtualPosition.Y;
+        var current = Position;
+        var target = _virtualPosition;
 
-        if (Math.Abs(current_y - target_y) < 0.01f)
-        {
-            Position = target_y * Vector3.UnitY;
-            return;
-        }
-
-        current_y += (target_y - current_y) * (1f - MathF.Exp(- speed * seconds_last_frame));
-        Position = current_y * Vector3.UnitY;
+        Position = SteppingFunctions.Exponential(current, target, seconds_last_frame);
     }
 
     public void Pulse(int times = 1, float frequency = 0)
