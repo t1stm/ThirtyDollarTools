@@ -22,7 +22,7 @@ public class ExpandAnimation : Animation
 
     public override Vector3 GetTransform_Add(Renderable renderable)
     {
-        if (!TimingStopwatch.IsRunning) return Vector3.Zero;
+        if (!TimingStopwatch.IsRunning) return base.GetTransform_Add(renderable);
         var transformation = new Vector3();
 
         var current_time = TimingStopwatch.ElapsedMilliseconds;
@@ -46,7 +46,7 @@ public class ExpandAnimation : Animation
 
     public override Vector3 GetScale_Multiply(Renderable renderable)
     {
-        if (!TimingStopwatch.IsRunning) return Vector3.One;
+        if (!TimingStopwatch.IsRunning) return base.GetScale_Multiply(renderable);
 
         var current_time = TimingStopwatch.ElapsedMilliseconds;
         var normalized = (float)Math.Max(current_time / AnimationLength.TotalMilliseconds, 0);
