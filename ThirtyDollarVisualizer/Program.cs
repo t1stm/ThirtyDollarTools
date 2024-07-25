@@ -10,6 +10,7 @@ using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Scenes;
+using ThirtyDollarVisualizer.Settings;
 using Image = SixLabors.ImageSharp.Image;
 
 namespace ThirtyDollarVisualizer;
@@ -30,6 +31,7 @@ public static class Program
         int? event_size = null;
         int? event_margin = null;
         int? line_amount = null;
+        string? settings_location = null;
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -44,6 +46,7 @@ public static class Program
                 event_size = options.EventSize;
                 event_margin = options.EventMargin;
                 line_amount = options.LineAmount;
+                settings_location = options.SettingsLocation;
 
                 follow_mode = options.CameraFollowMode switch
                 {
@@ -67,6 +70,9 @@ public static class Program
             Console.WriteLine("Unable to find specified sequence. Running without a specified sequence.");
             sequence = null;
         }
+        
+        SettingsHandler.Load(settings_location ?? "./Settings.30$");
+        var settings = SettingsHandler.Settings;
 
         var icon_stream = Image.Load<Rgba32>(Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("ThirtyDollarVisualizer.Assets.Textures.moai.png")!);
@@ -86,10 +92,10 @@ public static class Program
         {
             CameraFollowMode = follow_mode,
             Scale = scale ?? 1f,
-            Greeting = greeting,
-            ElementsOnSingleLine = line_amount ?? 16,
-            RenderableSize = event_size ?? 64,
-            MarginBetweenRenderables = event_margin ?? 12
+            Greeting = greeting ?? settings.Greeting,
+            ElementsOnSingleLine = line_amount ?? settings.LineAmount,
+            RenderableSize = event_size ?? settings.EventSize,
+            MarginBetweenRenderables = event_margin ?? settings.EventMargin
         };
 
         manager.Scenes.Add(tdw_application);
@@ -142,5 +148,8 @@ public static class Program
 
         [Option("line-amount", HelpText = "Changes how many events are on a single line.")]
         public int? LineAmount { get; set; }
+
+        [Option("settings-location", HelpText = "Changes where the settings file is located. Default is: \'./Settings.30$\'")]
+        public string? SettingsLocation { get; set; }
     }
 }
