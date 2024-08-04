@@ -147,9 +147,12 @@ public class MainWindowViewModel : ViewModelBase
     {
         var current_time = DateTime.Now;
         Log ??= "";
-        Log += $"[{current_time:HH:mm:ss}] {message}\n";
+        var line = $"[{current_time:HH:mm:ss}] {message}\n";
+        Log += line;
         if (Log.Length > 10000)
             Log = Log[^(Log.Length - 10000)..];
+
+        Console.WriteLine(line);
     }
 
     private async void ReadSequence()

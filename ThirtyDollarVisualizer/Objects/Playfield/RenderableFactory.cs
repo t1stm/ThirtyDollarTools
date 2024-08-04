@@ -17,6 +17,7 @@ namespace ThirtyDollarVisualizer.Objects;
 public class RenderableFactory(PlayfieldSettings settings, FontFamily font_family)
 {
     private readonly ConcurrentDictionary<string, Texture> GeneratedTextures = new();
+    private readonly ConcurrentDictionary<string, Texture> GeneratedSmallTextures = new();
     private readonly ConcurrentDictionary<string, Texture> MissingValues = new();
     private readonly ConcurrentDictionary<string, Texture> CustomValues = new();
 
@@ -203,7 +204,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         var volume = base_event.Volume.Value;
         var volume_text = volume.ToString("0.#") + "%";
 
-        var volume_texture = GeneratedTextures.GetOrAdd(volume_text, _ => new Texture(VolumeFont, volume_text, VolumeColor));
+        var volume_texture = GeneratedSmallTextures.GetOrAdd(volume_text, _ => new Texture(VolumeFont, volume_text, VolumeColor));
         return new TexturedPlane(volume_texture);
     }
     
@@ -236,7 +237,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         }
         
         // gets or generates a new texture
-        var pan_texture = GeneratedTextures.GetOrAdd(pan_text, _ => new Texture(VolumeFont, pan_text));
+        var pan_texture = GeneratedSmallTextures.GetOrAdd(pan_text, _ => new Texture(VolumeFont, pan_text));
         return new TexturedPlane(pan_texture);
     }
 }

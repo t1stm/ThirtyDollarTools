@@ -359,13 +359,15 @@ public class PcmEncoder
 
             var volume = event_volume;
 
+            // when panning is used dims the channel opposite to what the value represents
+            // if it's -1 (left channel only), dims the right channel and vice-versa
             switch (pan)
             {
                 // Channel = Right
                 case < 0 when channel == 1:
                 {
                     var percent_dim = 1f + pan;
-                    volume *= Math.Sqrt(percent_dim);
+                    volume *= percent_dim;
                     break;
                 }
 
@@ -373,7 +375,7 @@ public class PcmEncoder
                 case > 0 when channel == 0:
                 {
                     var percent_dim = 1f - pan;
-                    volume *= Math.Sqrt(percent_dim);
+                    volume *= percent_dim;
                     break;
                 }
             }
