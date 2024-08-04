@@ -138,11 +138,43 @@ public class Sequence
             var text = enumerator.Current;
             var trimmed = text.Trim();
             if (trimmed == "#enddefine") break;
+
+            var parsed = ParseEvent(trimmed, sequence);
+            if (parsed.SoundEvent is null) continue;
+
+            if (!sequence.Definitions.TryGetValue(parsed.SoundEvent, out var defined_events))
+            {
+                events.Add(parsed);
+                if (!enumerator.MoveNext()) break;
+                continue;
+            }
+
+            var pan = 0f;
+            if (parsed is PannedEvent panned) pan = panned.Pan;
             
-            if (sequence.Definitions.TryGetValue(trimmed, out var defined_events))
-                events.AddRange(defined_events);
+            events.AddRange(defined_events.Select(e =>
+            {
+                switch (e)
+                {
+                    case ICustomActionEvent custom_action_event:
+                        return (BaseEvent) custom_action_event;
+                    
+                    default:
+                    {
+                        var panned_event = new PannedEvent
+                        {
+                            SoundEvent = e.SoundEvent,
+                            Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
+                            Volume = e.Volume * ((parsed.Volume ?? 100) / 100),
+                            Pan = (e.SoundEvent ?? "").StartsWith('!') ? 0 : pan + (e is PannedEvent p ? p.Pan : 0),
+                            ValueScale = e.ValueScale
+                        };
+
+                        return panned_event;
+                    }
+                }
+            }));
             
-            else events.Add(ParseEvent(trimmed, sequence));
             if (!enumerator.MoveNext()) break;
         }
 
