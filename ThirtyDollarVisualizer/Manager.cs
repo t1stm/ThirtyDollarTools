@@ -6,6 +6,7 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Objects.Text;
 using ThirtyDollarVisualizer.Scenes;
+using ThirtyDollarVisualizer.Settings;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
 
 namespace ThirtyDollarVisualizer;
@@ -22,7 +23,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
             Title = title,
             APIVersion = new Version(3, 3),
             Icon = icon,
-            Vsync = fps == null ? VSyncMode.On : VSyncMode.Off
+            Vsync = fps == null ? VSyncMode.On : VSyncMode.Off,
+            TransparentFramebuffer = SettingsHandler.Settings.TransparentFramebuffer
         })
 {
     public readonly SemaphoreSlim RenderBlock = new(1);
@@ -79,7 +81,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
         GL.Enable(EnableCap.Blend);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        GL.ClearColor(.0f, .0f, .0f, 1f);
+        GL.ClearColor(.0f, .0f, .0f, 0f);
 
         foreach (var scene in Scenes) scene.Render();
 

@@ -7,6 +7,7 @@ public class VisualizerSettings(Action modified_callback)
     private int _lineAmount = 16;
     private string _greeting = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER";
     private string? _audioBackend;
+    private bool _transparentFramebuffer;
 
     public int EventSize
     {
@@ -36,6 +37,12 @@ public class VisualizerSettings(Action modified_callback)
     {
         get => _audioBackend;
         set => SetAndCallModified(out _audioBackend, value);
+    }
+    
+    public bool TransparentFramebuffer
+    {
+        get => _transparentFramebuffer;
+        set => SetAndCallModified(out _transparentFramebuffer, value);
     }
 
     private void SetAndCallModified<T>(out T obj, T value)

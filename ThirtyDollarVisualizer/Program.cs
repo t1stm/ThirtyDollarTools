@@ -32,6 +32,7 @@ public static class Program
         int? event_margin = null;
         int? line_amount = null;
         string? settings_location = null;
+        bool? transparent_framebuffer;
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -47,6 +48,7 @@ public static class Program
                 event_margin = options.EventMargin;
                 line_amount = options.LineAmount;
                 settings_location = options.SettingsLocation;
+                transparent_framebuffer = options.TransparentFramebuffer;
 
                 follow_mode = options.CameraFollowMode switch
                 {
@@ -151,5 +153,8 @@ public static class Program
 
         [Option("settings-location", HelpText = "Changes where the settings file is located. Default is: \'./Settings.30$\'")]
         public string? SettingsLocation { get; set; }
+
+        [Option("transparent-framebuffer", HelpText = "Changes how the visualizer processes alpha rendering. If set the background of the window is rendered transparent and the OS decides how it'll use the transparency.")]
+        public bool? TransparentFramebuffer { get; set; }
     }
 }
