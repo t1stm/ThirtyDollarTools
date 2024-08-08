@@ -6,7 +6,7 @@ namespace ThirtyDollarVisualizer.Objects.Text;
 /// <summary>
 ///     A renderable that is quick to render, intended to be used for text that is static, and changed rarely.
 /// </summary>
-public class StaticText : TexturedPlane, IText
+public class StaticText(FontFamily? font_family = null) : TexturedPlane, IText
 {
     private float _font_size = 14f;
     private string _value = string.Empty;
@@ -29,7 +29,7 @@ public class StaticText : TexturedPlane, IText
     {
         if (_value == text) return;
         _value = text;
-        var family = Fonts.GetFontFamily();
+        var family = font_family ?? Fonts.GetFontFamily();
         var font = family.CreateFont(FontSizePx, FontStyle);
 
         var texture = new Texture(font, text);

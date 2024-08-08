@@ -126,7 +126,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                         cut_sounds.Where(r => File.Exists($"{settings.DownloadLocation}/Images/{r}.png"));
 
                     var textures = available_textures.Select(t => new Texture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
-                    return  new Texture(textures, 2, settings.RenderScale);
+                    return new Texture(textures, 2, settings.ValueFontSize);
                 });
                 
                 break;
