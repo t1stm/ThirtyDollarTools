@@ -32,7 +32,7 @@ public static class Program
         int? event_margin = null;
         int? line_amount = null;
         string? settings_location = null;
-        bool? transparent_framebuffer;
+        bool? transparent_framebuffer = null;
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -75,6 +75,11 @@ public static class Program
         
         SettingsHandler.Load(settings_location ?? "./Settings.30$");
         var settings = SettingsHandler.Settings;
+
+        if (settings.TransparentFramebuffer != transparent_framebuffer && transparent_framebuffer.HasValue)
+        {
+            settings.TransparentFramebuffer = transparent_framebuffer.Value;
+        }
 
         var icon_stream = Image.Load<Rgba32>(Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("ThirtyDollarVisualizer.Assets.Textures.moai.png")!);

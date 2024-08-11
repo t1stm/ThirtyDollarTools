@@ -5,6 +5,7 @@ namespace ThirtyDollarVisualizer.Settings;
 public static class SettingsHandler
 {
     public static readonly VisualizerSettings Settings = new(ChangeHandler);
+    public static bool Loaded;
     private static string? FileLocation;
 
     /// <summary>
@@ -14,7 +15,12 @@ public static class SettingsHandler
     public static void Load(string file_location)
     {
         FileLocation = file_location;
-        if (!File.Exists(file_location)) return;
+        if (!File.Exists(file_location))
+        {
+            Save(file_location);
+            Loaded = true;
+            return;
+        }
 
         var text = File.ReadAllText(file_location);
         var lines = text.Split(Environment.NewLine);
@@ -51,10 +57,19 @@ public static class SettingsHandler
                 property.SetValue(Settings, float_value, null);
                 continue;
             }
+            
+            if (property_type == typeof(bool))
+            {
+                if (!bool.TryParse(value, out var bool_value)) continue;
+                property.SetValue(Settings, bool_value, null);
+                continue;
+            }
 
             if (property_type != typeof(string)) continue;
             property.SetValue(Settings, value, null);
         }
+
+        Loaded = true;
     }
 
     /// <summary>
@@ -97,6 +112,7 @@ public static class SettingsHandler
     /// </summary>
     public static void ChangeHandler()
     {
-        Save();
+        if (Loaded)
+            Save();
     }
 }

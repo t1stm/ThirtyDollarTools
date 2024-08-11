@@ -139,20 +139,21 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 var parsed_value = (long)base_event.Value;
                 
                 // gets the seconds, which are encoded last
-                var seconds = (parsed_value >> 24) / 1000f;
+                var seconds = (parsed_value >> 32) / 1000f;
                 value = seconds.ToString("0.##");
 
                 // gets the RGB values
                 var r = (byte)parsed_value;
                 var g = (byte)(parsed_value >> 8);
                 var b = (byte)(parsed_value >> 16);
+                var a = (byte)(parsed_value >> 24);
                 
                 // creates a texture ID for the current colors
-                var texture_id = $"({r},{g},{b}) {value}s";
+                var texture_id = $"({r},{g},{b},{a}) {value}s";
 
                 // gets if already exists a texture for the current value, or creates a new one
                 value_texture =
-                    CustomValues.GetOrAdd(texture_id, _ => new Texture(ValueFont, new Rgb24(r, g, b), value));
+                    CustomValues.GetOrAdd(texture_id, _ => new Texture(ValueFont, new Rgba32(r, g, b, a), value));
                 break;
             }
 

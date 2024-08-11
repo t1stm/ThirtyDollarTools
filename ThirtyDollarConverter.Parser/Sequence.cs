@@ -371,12 +371,14 @@ public class Sequence
         {
             // Yes I created a custom encoding format for a RGB color and a decimal number. sue me
             var hex = split_data[0];
-            byte r, g, b;
+            byte r, g, b, a = 255;
             try
             {
                 r = Convert.ToByte(hex[1..3], 16);
                 g = Convert.ToByte(hex[3..5], 16);
                 b = Convert.ToByte(hex[5..7], 16);
+                if (hex.Length > 7) 
+                    a = Convert.ToByte(hex[7..9], 16);
             }
             catch (Exception e)
             {
@@ -393,7 +395,7 @@ public class Sequence
             var encoded_fade_time = (long)Math.Clamp(fade_time * 1000, 0, 128000);
 
             // Encode the value.
-            var value_holder = (encoded_fade_time << 24) | (uint)(b << 16) | (uint)(g << 8) | r;
+            var value_holder = (encoded_fade_time << 32) | (uint)(a << 24) | (uint)(b << 16) | (uint)(g << 8) | r;
             value = value_holder;
         }
         else // Action is pulse.
