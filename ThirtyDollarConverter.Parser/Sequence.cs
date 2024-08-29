@@ -45,7 +45,7 @@ public class Sequence
 
             var new_event = ParseEvent(text, sequence);
 
-            if (new_event.SoundEvent?.StartsWith('!') ?? false)
+            if ((new_event.SoundEvent?.StartsWith('!') ?? false) && new_event.SoundEvent is not "!divider")
             {
                 list.Add(new_event);
                 continue;
