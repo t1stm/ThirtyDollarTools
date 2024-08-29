@@ -39,8 +39,11 @@ public class SampleHolder
 
     public readonly ConcurrentDictionary<Sound, PcmDataHolder> SampleList = new();
     public Action<string, int, int>? DownloadUpdate = null;
-    public string DownloadLocation { get; init; } = "./Sounds";
-    public string ImagesLocation => $"{DownloadLocation}/Images";
+    
+    private static readonly char Slash = Path.DirectorySeparatorChar;
+    public string DownloadLocation { get; init; } = $".{Slash}Sounds";
+    public string ImagesLocation => $"{DownloadLocation}{Slash}Images";
+
 
     /// <summary>
     ///     Loads all Thirty Dollar Website sounds to this object.
@@ -52,7 +55,7 @@ public class SampleHolder
     /// <exception cref="Exception">Exception thrown when there's an error reading the sounds list.</exception>
     public async Task LoadSampleList()
     {
-        var sample_list_location = $"{DownloadLocation}/sounds.json";
+        var sample_list_location = $"{DownloadLocation}{Slash}sounds.json";
         SampleList.Clear();
         PrepareDirectory();
 
@@ -117,7 +120,7 @@ public class SampleHolder
             foreach (var (sound, _) in SampleList)
             {
                 var file = sound.Id;
-                var dll = $"{DownloadLocation}/{file}.wav";
+                var dll = $"{DownloadLocation}{Slash}{file}.wav";
 
                 if (File.Exists(dll)) continue;
                 if (check_only) return false;
@@ -132,12 +135,12 @@ public class SampleHolder
 
             var file = sound.Id;
             var requestUrl = $"{DownloadSampleUrl}/{file}.wav";
-            var dll = $"{DownloadLocation}/{file}.wav";
+            var dll = $"{DownloadLocation}{Slash}{file}.wav";
 
             if (File.Exists(dll)) return;
 
             await using var stream = await client.GetStreamAsync(requestUrl, token);
-            await using var fs = File.Open($"{DownloadLocation}/{file}.wav", FileMode.Create);
+            await using var fs = File.Open($"{DownloadLocation}{Slash}{file}.wav", FileMode.Create);
             await stream.CopyToAsync(fs, token);
             DownloadUpdate?.Invoke(sound.Filename ?? "Empty filename.doesnt_exist", i, count);
             fs.Close();
@@ -164,7 +167,7 @@ public class SampleHolder
             var filename = sound.Filename;
             const string file_extension = "png";
 
-            var download_location = $"{ImagesLocation}/{filename}.{file_extension}";
+            var download_location = $"{ImagesLocation}{Slash}{filename}.{file_extension}";
 
             if (File.Exists(download_location)) return;
 
@@ -181,7 +184,7 @@ public class SampleHolder
         await Parallel.ForEachAsync(ActionsArray, async (action, token) =>
         {
             var file_name = $"{action}";
-            var download_location = $"{ImagesLocation}/{file_name}";
+            var download_location = $"{ImagesLocation}{Slash}{file_name}";
 
             if (File.Exists(download_location)) return;
 
@@ -204,7 +207,7 @@ public class SampleHolder
         {
             var key = r.Key;
             
-            var file_stream = File.OpenRead($"{DownloadLocation}/{key.Id}.wav");
+            var file_stream = File.OpenRead($"{DownloadLocation}{Slash}{key.Id}.wav");
             var decoder = new WaveDecoder();
             SampleList[key] = decoder.Read(file_stream);
             SampleList[key].ReadAsFloat32Array(true);
@@ -218,7 +221,7 @@ public class SampleHolder
         // searches all files again and only adds custom ones.
         Parallel.ForEach(Directory.GetFiles(DownloadLocation), file =>
         {
-            var filename = file.Split('/').Last();
+            var filename = file.Split(Slash).Last();
             if (!filename.EndsWith(".wav")) return;
             var sound = filename.Replace(".wav", "");
             
@@ -230,7 +233,7 @@ public class SampleHolder
                 Name = sound
             };
             
-            var file_stream = File.OpenRead($"{DownloadLocation}/{sound}.wav");
+            var file_stream = File.OpenRead($"{DownloadLocation}{Slash}{sound}.wav");
             
             var decoder = new WaveDecoder();
             var holder = decoder.Read(file_stream);
