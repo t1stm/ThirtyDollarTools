@@ -55,6 +55,7 @@ public class PcmEncoder
     private Action<string> Log { get; }
     private Action<ulong, ulong> IndexReport { get; }
     private PlacementCalculator PlacementCalculator { get; }
+    private readonly SemaphoreSlim IndexLock = new(1);
     
     /// <summary>
     ///     This method starts the encoding process for multiple sequences to be combined.
@@ -73,10 +74,12 @@ public class PcmEncoder
             Placement = placement_array,
             TimingSampleRate = (int)SampleRate
         };
+        
+        Log("Calculated placement. Starting sample processing.");
 
         var processed_events = await GetAudioSamples(timed_events);
 
-        Log("Constructing audio.");
+        Log("Finished processing all samples. Starting audio mixing.");
         var audioData = await GenerateAudioData(timed_events, processed_events);
         return audioData;
     }
@@ -143,11 +146,19 @@ public class PcmEncoder
             processed_events_memory.Span[i] = processed_event;
         }
 
+        ulong finished_tasks = 0;
+        var total_tasks = (ulong) processed_events.Length;
+        
         // Distribute sample processing to different threads.
-        var task = Parallel.ForEachAsync(processed_events, (processed_event, _) =>
+        var task = Parallel.ForEachAsync(processed_events, async (processed_event, token) =>
         {
             processed_event.ProcessAudioData(SampleProcessor);
-            return ValueTask.CompletedTask;
+            await IndexLock.WaitAsync(token);
+            
+            finished_tasks++;
+            IndexReport(finished_tasks, total_tasks);
+            
+            IndexLock.Release();
         });
 
         var dictionary = new Dictionary<(string, double), ProcessedEvent>();
