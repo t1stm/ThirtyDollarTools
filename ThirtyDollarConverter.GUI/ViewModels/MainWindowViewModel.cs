@@ -127,6 +127,8 @@ public class MainWindowViewModel : ViewModelBase
             DownloadSamples();
             return;
         }
+        
+        CreateLog("All sounds are downloaded. Loading into memory.");
 
         sample_holder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");
