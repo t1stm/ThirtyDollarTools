@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:services="clr-namespace:ThirtyDollarGUI.Services"
+        xmlns:behaviors="clr-namespace:ThirtyDollarGUI.Behaviors"
         mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="660"
         x:Class="ThirtyDollarGUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -52,10 +53,11 @@
             </StackPanel>
 
             <TextBlock Text="Logs:" Margin="0, 10" />
-            <ScrollViewer AllowAutoHide="False" Height="250" ScrollChanged="ScrollViewer_OnScrollChanged">
-                <TextBlock TextWrapping="Wrap"
-                           Text="{Binding Log}" />
-            </ScrollViewer>
+            <ListBox ItemsSource="{Binding Logs}" Height="250">
+                <Interaction.Behaviors>
+                    <behaviors:LogScrollBehavior />
+                </Interaction.Behaviors>
+            </ListBox>
 
             <ProgressBar Margin="0, 20" Height="20"
                          Value="{Binding ProgressBarValue}"

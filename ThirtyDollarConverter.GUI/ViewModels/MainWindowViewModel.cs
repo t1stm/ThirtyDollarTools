@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -31,7 +32,6 @@ public class MainWindowViewModel : ViewModelBase
     public bool IsExportLocationGood = true;
 
     public bool IsSequenceLocationGood = true;
-    private string? log = $"Logs go here...{Environment.NewLine}";
     private int progress_bar_value;
     private Sequence[]? sequences;
     private string? sequence_file_locations = "";
@@ -71,11 +71,7 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref progress_bar_value, value);
     }
 
-    public string? Log
-    {
-        get => log;
-        set => this.RaiseAndSetIfChanged(ref log, value);
-    }
+    public ObservableCollection<string> Logs { get; } = new();
 
     public async void Select_SequenceFileLocation()
     {
@@ -128,8 +124,10 @@ public class MainWindowViewModel : ViewModelBase
             return;
         }
         
+        // hack that fixes a ghost element
+        Logs.Clear();
+        
         CreateLog("All sounds are downloaded. Loading into memory.");
-
         sample_holder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");
     }
@@ -148,13 +146,13 @@ public class MainWindowViewModel : ViewModelBase
     private void CreateLog(string message)
     {
         var current_time = DateTime.Now;
-        Log ??= "";
-        var line = $"[{current_time:HH:mm:ss}] {message}\n";
-        Log += line;
-        if (Log.Length > 10000)
-            Log = Log[^(Log.Length - 10000)..];
-
+        var line = $"[{current_time:HH:mm:ss}] {message}";
         Console.WriteLine(line);
+        
+        lock (Logs) 
+        {
+            Logs.Add(line);
+        }
     }
 
     private async void ReadSequence()
