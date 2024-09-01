@@ -24,7 +24,7 @@ create_release_dirs() {
 copy_releases() {
   for platform in "${platforms[@]}"; do
     cp -r "$SCRIPT_DIR/ThirtyDollarVisualizer/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
-    cp -r "$SCRIPT_DIR/ThirtyDollarGUI/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
+    cp -r "$SCRIPT_DIR/ThirtyDollarConverter.GUI/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
   done;
 }
 
@@ -49,7 +49,7 @@ fi
 rm -rf "${SCRIPT_DIR:?}/bin"
 mkdir "$SCRIPT_DIR/bin"
 
-cd ./ThirtyDollarGUI || exit
+cd ./ThirtyDollarConverter.GUI || exit
 publish
 
 cd "$SCRIPT_DIR" || exit
