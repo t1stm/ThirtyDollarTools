@@ -81,6 +81,21 @@ public static class Program
             settings.TransparentFramebuffer = transparent_framebuffer.Value;
         }
 
+        if (line_amount.HasValue)
+        {
+            settings.LineAmount = line_amount.Value;
+        }
+        
+        if (event_size.HasValue)
+        {
+            settings.EventSize = event_size.Value;
+        }
+        
+        if (event_margin.HasValue)
+        {
+            settings.EventMargin = event_margin.Value;
+        }
+
         var icon_stream = Image.Load<Rgba32>(Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("ThirtyDollarVisualizer.Assets.Textures.moai.png")!);
 
@@ -90,19 +105,16 @@ public static class Program
             new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
 
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
-        if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale))
+        if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) && settings.AutomaticScaling)
         {
             scale ??= (horizontal_scale + vertical_scale) / 2f;
         }
 
-        var tdw_application = new ThirtyDollarApplication(width, height, new [] { sequence }, audio_context)
+        var tdw_application = new ThirtyDollarApplication(width, height, new [] { sequence }, settings, audio_context)
         {
             CameraFollowMode = follow_mode,
             Scale = scale ?? 1f,
             Greeting = greeting ?? settings.Greeting,
-            ElementsOnSingleLine = line_amount ?? settings.LineAmount,
-            RenderableSize = event_size ?? settings.EventSize,
-            MarginBetweenRenderables = event_margin ?? settings.EventMargin
         };
 
         manager.Scenes.Add(tdw_application);
@@ -121,6 +133,7 @@ public static class Program
         [Option("no-audio", HelpText = "Disable audio playback.")]
         public bool NoAudio { get; set; }
 
+        
         [Option('w', "width", HelpText = "The width of the render window.")]
         public int? Width { get; set; }
 

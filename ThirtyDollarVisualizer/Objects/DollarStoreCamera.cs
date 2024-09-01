@@ -5,13 +5,15 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public sealed class DollarStoreCamera : Camera
 {
+    private readonly float _scrollSpeed;
     private Vector3 _virtualPosition;
     private Vector3 _offset = (0,0,0);
     private DateTime LastScaleUpdate = DateTime.Now;
 
-    public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport) : base(VirtualPosition, viewport)
+    public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport, float scroll_speed = 7.5f) : base(VirtualPosition, viewport)
     {
         _virtualPosition = VirtualPosition;
+        _scrollSpeed = scroll_speed;
         UpdateMatrix();
     }
 
@@ -107,7 +109,7 @@ public sealed class DollarStoreCamera : Camera
         var current = Position;
         var target = _virtualPosition;
 
-        Position = SteppingFunctions.Exponential(current, target, seconds_last_frame);
+        Position = SteppingFunctions.Exponential(current, target, seconds_last_frame, 0.01f, _scrollSpeed);
     }
 
     public void Pulse(int times = 1, float frequency = 0)

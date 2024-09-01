@@ -24,12 +24,12 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
     /// <summary>
     /// The given font used for value textures.
     /// </summary>
-    public readonly Font ValueFont = font_family.CreateFont(settings.ValueFontSize, FontStyle.Bold);
+    public readonly Font ValueFont = font_family.CreateFont(settings.ValueFontSize * settings.RenderScale, FontStyle.Bold);
     
     /// <summary>
     /// The given font used for volume textures.
     /// </summary>
-    public readonly Font VolumeFont = font_family.CreateFont(settings.VolumeFontSize, FontStyle.Bold);
+    public readonly Font VolumeFont = font_family.CreateFont(settings.VolumeFontSize * settings.RenderScale, FontStyle.Bold);
     
     /// <summary>
     /// The color of the text used in volume textures.

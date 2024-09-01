@@ -177,8 +177,8 @@ public class Playfield(PlayfieldSettings settings)
         TemporaryCamera.CopyFrom(real_camera);
         
         // offset temporary camera to enable positioning anywhere
-        var left_margin = (int)(TemporaryCamera.Width / 2f - LayoutHandler.Width / 2f);
-        
+        var left_margin = (TemporaryCamera.Width - LayoutHandler.Width) / 2f;
+
         TargetPosition = DisplayCenter ? (-left_margin, 0, 0) : Vector3.Zero;
         if (FirstPosition)
         {

@@ -41,6 +41,9 @@ public static class SettingsHandler
             var name = split[0].Trim();
             var value = string.Join('=', remainder).Trim();
             
+            // remove comments from value
+            value = value.Split(" # ")[0];
+            
             if (!properties.TryGetValue(name, out var property)) continue;
             var property_type = property.PropertyType;
 
