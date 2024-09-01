@@ -134,12 +134,13 @@ public class MainWindowViewModel : ViewModelBase
 
     private void DownloadSamples()
     {
-        var downloader_view_model = new DownloaderViewModel(sample_holder);
-        var sample_downloader = new Downloader
+        var sample_downloader = new Downloader();
+        var downloader_view_model = new DownloaderViewModel(sample_holder)
         {
-            DataContext = downloader_view_model
+            OnFinishDownloading = sample_downloader.Close
         };
 
+        sample_downloader.DataContext = downloader_view_model;
         sample_downloader.Show();
     }
 
