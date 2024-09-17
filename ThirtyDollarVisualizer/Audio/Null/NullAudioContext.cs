@@ -5,6 +5,8 @@ namespace ThirtyDollarVisualizer.Audio.Null;
 
 public class NullAudioContext : AudioContext, IBatchSupported
 {
+    public override string Name => "Null";
+    
     public void PlayBatch(Span<AudibleBuffer> buffers)
     {
     }

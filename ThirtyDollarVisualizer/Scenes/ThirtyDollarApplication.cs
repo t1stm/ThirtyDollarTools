@@ -46,9 +46,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private readonly DollarStoreCamera Camera;
     private readonly DollarStoreCamera TempCamera;
-    private readonly List<Renderable> start_objects = new();
+    private readonly List<Renderable> start_objects = [];
     private readonly DollarStoreCamera StaticCamera;
-    private readonly List<Renderable> text_objects = new();
+    private readonly List<Renderable> text_objects = [];
     private readonly DollarStoreCamera TextCamera;
     private readonly CancellationTokenSource TokenSource = new();
 
@@ -937,6 +937,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var beats_to_next_beat = 0f;
         
         var fps = FpsCounter.GetAverageFPS(1 / Manager.UpdateTime);
+        var audio_engine = SequencePlayer.AudioContext.Name;
         var volume = SequenceVolume;
         
         // remove full path from sequence filename.
@@ -1015,6 +1016,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             $"""
              [Debug]
              FPS: {fps:0.##}
+             Audio Engine: "{audio_engine}"
 
              Sequence ({CurrentSequence + 1} - {Sequences.Length}): {sequence_location}
              BPM: {bpm}
