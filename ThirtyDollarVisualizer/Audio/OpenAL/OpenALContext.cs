@@ -9,6 +9,8 @@ public class OpenALContext : AudioContext
     private ALDevice device;
     public int UpdateRate = 48000; // Hz
 
+    public override string Name => "OpenAL";
+
     /// <summary>
     ///     Creates a global audio context.
     /// </summary>

@@ -8,8 +8,4 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
     }
-
-    private void ScrollViewer_OnScrollChanged(object? sender, ScrollChangedEventArgs e)
-    {
-    }
 }

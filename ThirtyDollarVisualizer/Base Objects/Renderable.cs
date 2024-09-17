@@ -6,6 +6,10 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public abstract class Renderable
 {
+    /// <summary>
+    /// Dummy renderable to use on animations that don't animate a renderable.
+    /// </summary>
+    public static readonly Renderable Dummy = new DummyRenderable();
     public readonly List<Renderable> Children = new();
 
     protected readonly object LockObject = new();

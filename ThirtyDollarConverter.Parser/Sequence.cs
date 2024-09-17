@@ -45,7 +45,7 @@ public class Sequence
 
             var new_event = ParseEvent(text, sequence);
 
-            if (new_event.SoundEvent?.StartsWith('!') ?? false)
+            if ((new_event.SoundEvent?.StartsWith('!') ?? false) && new_event.SoundEvent is not "!divider")
             {
                 list.Add(new_event);
                 continue;
@@ -138,11 +138,43 @@ public class Sequence
             var text = enumerator.Current;
             var trimmed = text.Trim();
             if (trimmed == "#enddefine") break;
+
+            var parsed = ParseEvent(trimmed, sequence);
+            if (parsed.SoundEvent is null) continue;
+
+            if (!sequence.Definitions.TryGetValue(parsed.SoundEvent, out var defined_events))
+            {
+                events.Add(parsed);
+                if (!enumerator.MoveNext()) break;
+                continue;
+            }
+
+            var pan = 0f;
+            if (parsed is PannedEvent panned) pan = panned.Pan;
             
-            if (sequence.Definitions.TryGetValue(trimmed, out var defined_events))
-                events.AddRange(defined_events);
+            events.AddRange(defined_events.Select(e =>
+            {
+                switch (e)
+                {
+                    case ICustomActionEvent custom_action_event:
+                        return (BaseEvent) custom_action_event;
+                    
+                    default:
+                    {
+                        var panned_event = new PannedEvent
+                        {
+                            SoundEvent = e.SoundEvent,
+                            Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
+                            Volume = e.Volume * ((parsed.Volume ?? 100) / 100),
+                            Pan = (e.SoundEvent ?? "").StartsWith('!') ? 0 : pan + (e is PannedEvent p ? p.Pan : 0),
+                            ValueScale = e.ValueScale
+                        };
+
+                        return panned_event;
+                    }
+                }
+            }));
             
-            else events.Add(ParseEvent(trimmed, sequence));
             if (!enumerator.MoveNext()) break;
         }
 
@@ -339,12 +371,14 @@ public class Sequence
         {
             // Yes I created a custom encoding format for a RGB color and a decimal number. sue me
             var hex = split_data[0];
-            byte r, g, b;
+            byte r, g, b, a = 255;
             try
             {
                 r = Convert.ToByte(hex[1..3], 16);
                 g = Convert.ToByte(hex[3..5], 16);
                 b = Convert.ToByte(hex[5..7], 16);
+                if (hex.Length > 7) 
+                    a = Convert.ToByte(hex[7..9], 16);
             }
             catch (Exception e)
             {
@@ -361,7 +395,7 @@ public class Sequence
             var encoded_fade_time = (long)Math.Clamp(fade_time * 1000, 0, 128000);
 
             // Encode the value.
-            var value_holder = (encoded_fade_time << 24) | (uint)(b << 16) | (uint)(g << 8) | r;
+            var value_holder = (encoded_fade_time << 32) | (uint)(a << 24) | (uint)(b << 16) | (uint)(g << 8) | r;
             value = value_holder;
         }
         else // Action is pulse.

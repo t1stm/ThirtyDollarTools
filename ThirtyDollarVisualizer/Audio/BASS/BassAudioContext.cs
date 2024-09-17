@@ -5,6 +5,8 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class BassAudioContext : AudioContext
 {
+    public override string Name => "BASS";
+
     /// <summary>
     ///     Creates a global audio context.
     /// </summary>

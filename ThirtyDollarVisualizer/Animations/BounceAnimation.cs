@@ -20,7 +20,7 @@ public class BounceAnimation : Animation
 
     public override Vector3 GetTransform_Add(Renderable renderable)
     {
-        if (!TimingStopwatch.IsRunning) return Vector3.Zero;
+        if (!TimingStopwatch.IsRunning) return base.GetTransform_Add(renderable);
 
         var transformation = new Vector3();
 

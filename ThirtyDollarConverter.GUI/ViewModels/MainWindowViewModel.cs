@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -31,7 +32,6 @@ public class MainWindowViewModel : ViewModelBase
     public bool IsExportLocationGood = true;
 
     public bool IsSequenceLocationGood = true;
-    private string? log = $"Logs go here...{Environment.NewLine}";
     private int progress_bar_value;
     private Sequence[]? sequences;
     private string? sequence_file_locations = "";
@@ -51,6 +51,7 @@ public class MainWindowViewModel : ViewModelBase
             IsSequenceLocationGood = this.RaiseAndSetIfChanged(ref IsSequenceLocationGood,
                 !string.IsNullOrEmpty(value) && File.Exists(value));
             new Task(ReadSequence).Start();
+            if (string.IsNullOrEmpty(ExportFileLocation) && IsSequenceLocationGood) ExportFileLocation = value + ".wav";
         }
     }
 
@@ -70,11 +71,7 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref progress_bar_value, value);
     }
 
-    public string? Log
-    {
-        get => log;
-        set => this.RaiseAndSetIfChanged(ref log, value);
-    }
+    public ObservableCollection<string> Logs { get; } = new();
 
     public async void Select_SequenceFileLocation()
     {
@@ -126,29 +123,37 @@ public class MainWindowViewModel : ViewModelBase
             DownloadSamples();
             return;
         }
-
+        
+        // hack that fixes a ghost element
+        Logs.Clear();
+        
+        CreateLog("All sounds are downloaded. Loading into memory.");
         sample_holder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");
     }
 
     private void DownloadSamples()
     {
-        var downloader_view_model = new DownloaderViewModel(sample_holder);
-        var sample_downloader = new Downloader
+        var sample_downloader = new Downloader();
+        var downloader_view_model = new DownloaderViewModel(sample_holder)
         {
-            DataContext = downloader_view_model
+            OnFinishDownloading = sample_downloader.Close
         };
 
+        sample_downloader.DataContext = downloader_view_model;
         sample_downloader.Show();
     }
 
     private void CreateLog(string message)
     {
         var current_time = DateTime.Now;
-        Log ??= "";
-        Log += $"[{current_time:HH:mm:ss}] {message}\n";
-        if (Log.Length > 10000)
-            Log = Log[^(Log.Length - 10000)..];
+        var line = $"[{current_time:HH:mm:ss}] {message}";
+        Console.WriteLine(line);
+        
+        lock (Logs) 
+        {
+            Logs.Add(line);
+        }
     }
 
     private async void ReadSequence()
@@ -199,6 +204,8 @@ public class MainWindowViewModel : ViewModelBase
             CreateLog("The selected export location is bad. Please select a new one.");
             return;
         }
+        
+        if (string.IsNullOrEmpty(ExportFileLocation) && IsSequenceLocationGood) ExportFileLocation = SequenceFileLocation + ".wav";
 
         if (sequence_file_locations == export_file_location)
         {

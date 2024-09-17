@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ThirtyDollarConverter.Resamplers;
+using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarGUI.Models;
 
 namespace ThirtyDollarGUI.Services;
@@ -11,6 +11,7 @@ public static class ResamplerService
         return new ResamplerModel[]
         {
             new(new HermiteResampler()),
+            new(new BandlimitedResampler()),
             new(new LinearResampler()),
             new(new NoInterpolationResampler()),
             new(new ByteCruncherResampler())

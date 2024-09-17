@@ -124,10 +124,10 @@ public class Texture : IDisposable
         Height = texture_data.Height;
     }
 
-    public Texture(IReadOnlyCollection<Texture> textures, float gap_px, float scale)
+    public Texture(IReadOnlyCollection<Texture> textures, float gap_px, float font_size)
     {
         var texture_count = textures.Count;
-        var size_w = (int)Math.Ceiling(15 * scale);
+        var size_w = (int)Math.Ceiling(font_size);
         const int max_images_per_line = 3;
 
         if (texture_count < 1)
@@ -147,7 +147,7 @@ public class Texture : IDisposable
         var x = 0;
         var y = 0;
 
-        var break_w = (int)(140 * scale);
+        var break_w = (int)(140 * font_size);
 
         foreach (var t in textures)
         {

@@ -24,7 +24,7 @@ create_release_dirs() {
 copy_releases() {
   for platform in "${platforms[@]}"; do
     cp -r "$SCRIPT_DIR/ThirtyDollarVisualizer/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
-    cp -r "$SCRIPT_DIR/ThirtyDollarGUI/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
+    cp -r "$SCRIPT_DIR/ThirtyDollarConverter.GUI/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
   done;
 }
 
@@ -35,6 +35,14 @@ zip_releases() {
     zip -r9 "$SCRIPT_DIR/bin/$platform.zip" "."
     cd - || exit
   done;
+}
+
+clean_releases() {
+  for platform in "${platforms[@]}"; do
+      cd "$SCRIPT_DIR/bin/$platform/publish" || exit
+      rm -rf ./*.dll ./*.so ./*.dylib
+      cd - || exit
+    done;
 }
 
 if [ "$#" -gt 0 ]; then
@@ -49,7 +57,7 @@ fi
 rm -rf "${SCRIPT_DIR:?}/bin"
 mkdir "$SCRIPT_DIR/bin"
 
-cd ./ThirtyDollarGUI || exit
+cd ./ThirtyDollarConverter.GUI || exit
 publish
 
 cd "$SCRIPT_DIR" || exit
@@ -59,6 +67,7 @@ publish
 
 create_release_dirs
 copy_releases
+clean_releases
 
 if [ "$#" -gt 0 ]; then
   for arg in "$@"; do

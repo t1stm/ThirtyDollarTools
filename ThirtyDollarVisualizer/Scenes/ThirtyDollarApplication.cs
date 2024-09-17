@@ -11,10 +11,12 @@ using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Color;
 using ThirtyDollarVisualizer.Helpers.Decoders;
+using ThirtyDollarVisualizer.Helpers.Miscellaneous;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Objects.Text;
+using ThirtyDollarVisualizer.Settings;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
@@ -44,9 +46,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private readonly DollarStoreCamera Camera;
     private readonly DollarStoreCamera TempCamera;
-    private readonly List<Renderable> start_objects = new();
+    private readonly List<Renderable> start_objects = [];
     private readonly DollarStoreCamera StaticCamera;
-    private readonly List<Renderable> text_objects = new();
+    private readonly List<Renderable> text_objects = [];
     private readonly DollarStoreCamera TextCamera;
     private readonly CancellationTokenSource TokenSource = new();
 
@@ -59,7 +61,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private ulong _update_id;
     private Renderable? _version_text;
     private BackingAudio? BackingAudio;
-    
     
     // This is a hack because I am lazy
     private bool is_first_time_scale = true;
@@ -74,34 +75,40 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int Width;
     private int Height;
 
+    private bool Tab;
+
     /// <summary>
     ///     Creates a TDW sequence visualizer.
     /// </summary>
     /// <param name="width">The width of the visualizer.</param>
     /// <param name="height">The height of the visualizer.</param>
     /// <param name="sequence_locations">The location of the sequence.</param>
+    /// <param name="settings">The visualizer settings object this uses.</param>
     /// <param name="audio_context">The audio context the application will use.</param>
-    public ThirtyDollarApplication(int width, int height, IEnumerable<string?> sequence_locations,
+    public ThirtyDollarApplication(int width, int height, IEnumerable<string?> sequence_locations, VisualizerSettings settings,
         AudioContext? audio_context = null) : base(audio_context)
     {
         Width = width;
         Height = height;
         Sequences = GetSequenceInfos(sequence_locations);
+        Settings = settings;
 
-        TempCamera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height));
-        Camera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height));
-        StaticCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height));
-        TextCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height));
+        TempCamera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height), settings.ScrollSpeed);
+        Camera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height), settings.ScrollSpeed);
+        StaticCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height), settings.ScrollSpeed);
+        TextCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height), settings.ScrollSpeed);
 
         _open_stopwatch.Start();
         _seek_delay_stopwatch.Start();
         _file_update_stopwatch.Start();
     }
 
+    private readonly VisualizerSettings Settings;
+
     private CancellationToken Token => TokenSource.Token;
-    public int RenderableSize { get; set; } = 64;
-    public int MarginBetweenRenderables { get; set; } = 12;
-    public int ElementsOnSingleLine { get; init; } = 16;
+    public int RenderableSize => Settings.EventSize;
+    public int MarginBetweenRenderables => Settings.EventMargin;
+    public int ElementsOnSingleLine => Settings.LineAmount;
     public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDW_Like;
     public string? BackgroundVertexShaderLocation { get; init; }
     public string? BackgroundFragmentShaderLocation { get; init; }
@@ -110,6 +117,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public string? Greeting { get; set; }
     private double SequenceVolume { get; set; }
 
+    private readonly FpsCounter FpsCounter = new();
+
     /// <summary>
     ///     This method loads the sequence, textures and sounds.
     /// </summary>
@@ -117,14 +126,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public void Init(Manager manager)
     {
         GetSampleHolder().GetAwaiter();
-
-        if (is_first_time_scale)
-        {
-            RenderableSize = (int)(RenderableSize * Scale);
-            MarginBetweenRenderables = (int)(MarginBetweenRenderables * Scale);
-            _debug_text.SetFontSize(14f * Scale);
-            is_first_time_scale = false;
-        }
+        _debug_text.SetFontSize(14f * Scale);
         
         start_objects.Clear();
 
@@ -178,7 +180,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                     """
         }.WithPosition((10, 0f, 0));
 
-        const string version_string = "1.2.0";
+        const string version_string = "1.2.0 (Insider Build)";
         var text = new StaticText
         {
             FontStyle = FontStyle.Bold,
@@ -187,7 +189,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                      Don't use the audio generated by this
                      visualizer for a video, as it isn't
                      accurate at the moment. Use the
-                     Thirty Dollar GUI instead.
+                     Thirty Dollar Converter instead.
 
                      Check regularly for updates at:
                      https://github.com/t1stm/ThirtyDollarTools
@@ -301,12 +303,13 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var camera_y = camera.Position.Y;
         var camera_xw = camera_x + Width + width_scale;
         var camera_yh = camera_y + Height;
-
+        
         // render playfields
         if (Playfields.Length > 0)
         {
             var current_playfield = Playfields.Span[CurrentSequence];
-            current_playfield.Render(camera, Zoom);
+            current_playfield.Render(camera, Zoom, (float)Manager.UpdateTime);
+            current_playfield.DisplayCenter = !Tab;
         }
         
         // renders all start objects, when visible
@@ -508,6 +511,11 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             _ => CameraFollowMode
         };
 
+        if (state.IsKeyPressed(Keys.Tab))
+        {
+            Tab = !Tab;
+        }
+        
         // toggle fullscreen
         if (state.IsKeyPressed(Keys.F))
         {
@@ -928,7 +936,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var next_beat_ms = 0f;
         var beats_to_next_beat = 0f;
         
-        var fps = 1 / Manager.UpdateTime;
+        var fps = FpsCounter.GetAverageFPS(1 / Manager.UpdateTime);
+        var audio_engine = SequencePlayer.AudioContext.Name;
         var volume = SequenceVolume;
         
         // remove full path from sequence filename.
@@ -1007,6 +1016,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             $"""
              [Debug]
              FPS: {fps:0.##}
+             Audio Engine: "{audio_engine}"
 
              Sequence ({CurrentSequence + 1} - {Sequences.Length}): {sequence_location}
              BPM: {bpm}

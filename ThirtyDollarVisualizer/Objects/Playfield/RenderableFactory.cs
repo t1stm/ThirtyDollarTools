@@ -17,18 +17,19 @@ namespace ThirtyDollarVisualizer.Objects;
 public class RenderableFactory(PlayfieldSettings settings, FontFamily font_family)
 {
     private readonly ConcurrentDictionary<string, Texture> GeneratedTextures = new();
+    private readonly ConcurrentDictionary<string, Texture> GeneratedSmallTextures = new();
     private readonly ConcurrentDictionary<string, Texture> MissingValues = new();
     private readonly ConcurrentDictionary<string, Texture> CustomValues = new();
 
     /// <summary>
     /// The given font used for value textures.
     /// </summary>
-    public readonly Font ValueFont = font_family.CreateFont(settings.ValueFontSize, FontStyle.Bold);
+    public readonly Font ValueFont = font_family.CreateFont(settings.ValueFontSize * settings.RenderScale, FontStyle.Bold);
     
     /// <summary>
     /// The given font used for volume textures.
     /// </summary>
-    public readonly Font VolumeFont = font_family.CreateFont(settings.VolumeFontSize, FontStyle.Bold);
+    public readonly Font VolumeFont = font_family.CreateFont(settings.VolumeFontSize * settings.RenderScale, FontStyle.Bold);
     
     /// <summary>
     /// The color of the text used in volume textures.
@@ -125,7 +126,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                         cut_sounds.Where(r => File.Exists($"{settings.DownloadLocation}/Images/{r}.png"));
 
                     var textures = available_textures.Select(t => new Texture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
-                    return  new Texture(textures, 2, settings.RenderScale);
+                    return new Texture(textures, 2, settings.ValueFontSize);
                 });
                 
                 break;
@@ -138,20 +139,21 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 var parsed_value = (long)base_event.Value;
                 
                 // gets the seconds, which are encoded last
-                var seconds = (parsed_value >> 24) / 1000f;
+                var seconds = (parsed_value >> 32) / 1000f;
                 value = seconds.ToString("0.##");
 
                 // gets the RGB values
                 var r = (byte)parsed_value;
                 var g = (byte)(parsed_value >> 8);
                 var b = (byte)(parsed_value >> 16);
+                var a = (byte)(parsed_value >> 24);
                 
                 // creates a texture ID for the current colors
-                var texture_id = $"({r},{g},{b}) {value}s";
+                var texture_id = $"({r},{g},{b},{a}) {value}s";
 
                 // gets if already exists a texture for the current value, or creates a new one
                 value_texture =
-                    CustomValues.GetOrAdd(texture_id, _ => new Texture(ValueFont, new Rgb24(r, g, b), value));
+                    CustomValues.GetOrAdd(texture_id, _ => new Texture(ValueFont, new Rgba32(r, g, b, a), value));
                 break;
             }
 
@@ -203,7 +205,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         var volume = base_event.Volume.Value;
         var volume_text = volume.ToString("0.#") + "%";
 
-        var volume_texture = GeneratedTextures.GetOrAdd(volume_text, _ => new Texture(VolumeFont, volume_text, VolumeColor));
+        var volume_texture = GeneratedSmallTextures.GetOrAdd(volume_text, _ => new Texture(VolumeFont, volume_text, VolumeColor));
         return new TexturedPlane(volume_texture);
     }
     
@@ -236,7 +238,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         }
         
         // gets or generates a new texture
-        var pan_texture = GeneratedTextures.GetOrAdd(pan_text, _ => new Texture(VolumeFont, pan_text));
+        var pan_texture = GeneratedSmallTextures.GetOrAdd(pan_text, _ => new Texture(VolumeFont, pan_text));
         return new TexturedPlane(pan_texture);
     }
 }
