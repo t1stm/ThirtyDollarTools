@@ -37,6 +37,14 @@ zip_releases() {
   done;
 }
 
+clean_releases() {
+  for platform in "${platforms[@]}"; do
+      cd "$SCRIPT_DIR/bin/$platform/publish" || exit
+      rm -rf ./*.dll ./*.so ./*.dylib
+      cd - || exit
+    done;
+}
+
 if [ "$#" -gt 0 ]; then
   for arg in "$@"; do
     if [ "$arg" == "--zip-only" ]; then
@@ -59,6 +67,7 @@ publish
 
 create_release_dirs
 copy_releases
+clean_releases
 
 if [ "$#" -gt 0 ]; then
   for arg in "$@"; do
