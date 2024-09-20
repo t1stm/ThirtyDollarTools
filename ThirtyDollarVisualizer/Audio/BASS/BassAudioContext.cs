@@ -22,6 +22,7 @@ public class BassAudioContext : AudioContext
             Bass.GlobalSampleVolume = (int)(GlobalVolume * 10000);
             Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
             Bass.Configure(Configuration.TruePlayPosition, 0);
+            Bass.Configure(Configuration.DevNonStop, true);
 
             if (!successful_init) CheckErrors();
 
