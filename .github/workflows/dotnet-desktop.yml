@@ -57,7 +57,7 @@ jobs:
       - name: Clean up build artifacts
         run: |
           rm -rf ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/*.dll ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/*.dylib ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/*.so ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/*.pdb ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/runtimes
-          rm -rf ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.dll ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.dylib ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.so ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/runtimes
+          rm -rf ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.dll ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.dylib ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.so ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.pdb ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/runtimes
 
       # Zip the executables of both projects together
       - name: Zip both projects together
