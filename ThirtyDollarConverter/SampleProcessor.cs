@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Audio.Resamplers;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
 
@@ -26,7 +26,7 @@ public class SampleProcessor
         Samples = sample_holder;
         Settings = settings;
         Resampler = settings.Resampler;
-        Log = logger ?? new Action<string>(_ => { });
+        Log = logger ?? (_ => { });
     }
 
     private IResampler Resampler { get; }

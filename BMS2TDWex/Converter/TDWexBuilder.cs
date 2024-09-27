@@ -5,14 +5,15 @@ namespace BMS2TDW.Converter;
 public class TDWexBuilder
 {
     private readonly StringBuilder Builder = new();
+
     private void WriteDefine(string define_name)
     {
         var define = $"""
                       #define({define_name})|
                       _pause|
                       #enddefine|
-                      
-                      
+
+
                       """;
 
         Builder.Append(define);
@@ -24,13 +25,13 @@ public class TDWexBuilder
         foreach (var (_, sound) in bms_level.Header.ChannelMap)
         {
             if (added_hash_set.Contains(sound)) continue;
-            
+
             WriteDefine(sound);
             added_hash_set.Add(sound);
         }
 
         Builder.Append("# Starting cover definitions. |\n");
-        
+
         var header = bms_level.Header;
         Builder.Append($"!speed@{header.BPM}|");
         Builder.Append("!divider|\n\n");
@@ -51,10 +52,10 @@ public class TDWexBuilder
             foreach (var (_, bms_event) in bms_measure.Events)
             {
                 var division = bms_event.BeatsDivision;
-                
+
                 var sounds = bms_event.SoundsArray;
                 if (sounds is null) continue;
-                
+
                 for (var i = 0; i < sounds.Length; i++)
                 {
                     var ev = sounds[i];
@@ -67,5 +68,8 @@ public class TDWexBuilder
         }
     }
 
-    public string Export() => Builder.ToString();
+    public string Export()
+    {
+        return Builder.ToString();
+    }
 }

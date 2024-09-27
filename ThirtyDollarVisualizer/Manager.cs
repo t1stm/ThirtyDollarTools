@@ -28,7 +28,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         })
 {
     public readonly SemaphoreSlim RenderBlock = new(1);
-    public readonly List<IScene> Scenes = new();
+    public readonly List<IScene> Scenes = [];
     public GLInfo GLInfo;
 
     public static void CheckErrors()
@@ -46,7 +46,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
             _ => WindowState.Fullscreen
         };
     }
-    
+
     protected override void OnLoad()
     {
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
@@ -60,7 +60,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         GLInfo.Vendor = GL.GetString(StringName.Vendor);
         GLInfo.Renderer = GL.GetString(StringName.Renderer);
         GLInfo.Version = GL.GetString(StringName.Version);
-        
+
         GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
         GL.Hint(HintTarget.LineSmoothHint, HintMode.Nicest);
 
@@ -114,7 +114,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
         foreach (var scene in Scenes)
             scene.FileDrop(e.FileNames);
-            
     }
 
     protected override void OnClosing(CancelEventArgs e)

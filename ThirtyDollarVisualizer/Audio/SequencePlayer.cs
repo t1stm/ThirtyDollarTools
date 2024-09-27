@@ -9,14 +9,15 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class SequencePlayer
 {
-    public readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
+    public readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly long[] Bookmarks = new long[10];
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
     protected readonly Greeting? Greeting;
     protected readonly Action<string>? Log;
     protected readonly SeekableStopwatch TimingStopwatch = new();
     protected readonly SemaphoreSlim UpdateLock = new(1);
+    private int _current_sequence;
     private bool _cut_sounds;
     private bool _dead;
 
@@ -26,19 +27,9 @@ public class SequencePlayer
     protected BufferHolder BufferHolder;
     protected PlayerErrors Errors = PlayerErrors.None;
     protected TimedEvents Events;
-    protected Action<int>? SequenceUpdateAction;
-    
+
     protected SequenceIndices SequenceIndices = new();
-    private int _current_sequence;
-    protected int CurrentSequence
-    {
-        get => _current_sequence;
-        set
-        {
-            _current_sequence = value;
-            SequenceUpdateAction?.Invoke(_current_sequence);
-        }
-    }
+    protected Action<int>? SequenceUpdateAction;
 
     /// <summary>
     ///     Creates a player that plays Thirty Dollar sequences.
@@ -50,7 +41,7 @@ public class SequencePlayer
         BufferHolder = new BufferHolder();
         Events = new TimedEvents
         {
-            Placement = Array.Empty<Placement>(),
+            Placement = [],
             TimingSampleRate = 100_000
         };
         Log = log_action;
@@ -68,6 +59,16 @@ public class SequencePlayer
         AudioContext = c;
         Greeting = new Greeting(AudioContext, BufferHolder);
         TimingStopwatch.Reset();
+    }
+
+    protected int CurrentSequence
+    {
+        get => _current_sequence;
+        set
+        {
+            _current_sequence = value;
+            SequenceUpdateAction?.Invoke(_current_sequence);
+        }
     }
 
     public int PlacementIndex { get; private set; }
@@ -95,9 +96,9 @@ public class SequencePlayer
 
         EventActions[event_name] = action;
     }
-    
+
     /// <summary>
-    /// Subscribes an action that is called each time the sequence index is changed.
+    ///     Subscribes an action that is called each time the sequence index is changed.
     /// </summary>
     /// <param name="action">The action to call.</param>
     public void SubscribeSequenceChange(Action<int>? action)
@@ -217,7 +218,7 @@ public class SequencePlayer
         var current_time = TimingStopwatch.ElapsedMilliseconds;
         var span = Events.Placement.AsSpan();
         if (span.Length < 1) return;
-        
+
         var idx = PlacementIndex;
         var min_time = long.MaxValue;
 
@@ -328,7 +329,7 @@ public class SequencePlayer
                     case IndividualCutEvent ice:
                         IndividualCutSamples(ice.CutSounds);
                         break;
-                    
+
                     case EndEvent:
                         CurrentSequence = SequenceIndices.GetSequenceIDFromIndex(placement.Index);
                         continue;
@@ -364,7 +365,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    /// Gets the time in milliseconds a timing index represents.
+    ///     Gets the time in milliseconds a timing index represents.
     /// </summary>
     /// <param name="index">The sequence's index.</param>
     /// <returns>index * 1000 / Events.TimingSampleRate</returns>
@@ -374,7 +375,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    /// Gets the sequence's timing index from the given milliseconds.
+    ///     Gets the sequence's timing index from the given milliseconds.
     /// </summary>
     /// <param name="milliseconds">The milliseconds for the index you want to find.</param>
     /// <returns>milliseconds * Events.TimingSampleRate / 1000f</returns>
@@ -446,16 +447,16 @@ public class SequencePlayer
     }
 
     /// <summary>
-    /// Signals to the SequencePlayer to stop all execution and free all busy threads.
+    ///     Signals to the SequencePlayer to stop all execution and free all busy threads.
     /// </summary>
     public void Die()
     {
         UpdateLock.Wait();
-        
+
         ClearSubscriptions();
         _update_running = false;
         _dead = true;
-        
+
         UpdateLock.Release();
     }
 

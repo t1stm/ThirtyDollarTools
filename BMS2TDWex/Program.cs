@@ -10,11 +10,11 @@ using BMS2TDW.Converter;
 
 // Put in the effort to reverse engineer your own parser, like how I did.
 
-var read = await File.ReadAllTextAsync("/home/kris/Downloads/Calamity_Fortune_LeaF/_S.bms");
+var read = await File.ReadAllTextAsync("/home/kris/Downloads/[clover]LeaF_Aleph0/_7ANOTHER.bms");
 var bms_level = BMSParser.ParseFile(read);
 
 var builder = new TDWexBuilder();
 builder.ConvertBMSLevel(bms_level);
 
 var converted = builder.Export();
-File.WriteAllText("/home/kris/Downloads/Calamity_Fortune_LeaF/_export2.tdw", converted);
+File.WriteAllText("/home/kris/Downloads/[clover]LeaF_Aleph0/_7ANOTHER.tdw", converted);

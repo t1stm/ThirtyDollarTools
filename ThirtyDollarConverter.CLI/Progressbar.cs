@@ -3,7 +3,7 @@ namespace ThirtyDollarConverter.CLI;
 public static class Progressbar
 {
     private const char EmptyBlock = '□', FullBlock = '■';
-    
+
     public static string Generate(double current, long total, int length = 32)
     {
         Span<char> prg = stackalloc char[length];

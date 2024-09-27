@@ -18,8 +18,8 @@
     <ItemGroup>
         <EmbeddedResource Include="Sequences\particle-accelerator.🗿"/>
         <EmbeddedResource Include="Sequences\sounds.🗿"/>
-        <None Remove="Sequences\another.🗿" />
-        <EmbeddedResource Include="Sequences\another.🗿" />
+        <None Remove="Sequences\another.🗿"/>
+        <EmbeddedResource Include="Sequences\another.🗿"/>
     </ItemGroup>
 
 </Project>

@@ -4,12 +4,12 @@ using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarParser;
 
-public class Sequence
+public partial class Sequence
 {
     private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
     public Dictionary<string, BaseEvent[]> Definitions = new();
-    public HashSet<string> SeparatedChannels = new();
-    public BaseEvent[] Events { get; set; } = Array.Empty<BaseEvent>();
+    public HashSet<string> SeparatedChannels = [];
+    public BaseEvent[] Events { get; set; } = [];
 
     public Sequence Copy()
     {
@@ -69,7 +69,7 @@ public class Sequence
 
     private static bool TryDefine(string text, IEnumerator<string> enumerator, Sequence sequence)
     {
-        var special_match = Regex.Match(text, @"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)");
+        var special_match = DefineRegex().Match(text);
         if (!special_match.Success) return true;
 
         if (special_match.Groups["name"].Value != "define") return false;
@@ -151,14 +151,14 @@ public class Sequence
 
             var pan = 0f;
             if (parsed is PannedEvent panned) pan = panned.Pan;
-            
+
             events.AddRange(defined_events.Select(e =>
             {
                 switch (e)
                 {
                     case ICustomActionEvent custom_action_event:
-                        return (BaseEvent) custom_action_event;
-                    
+                        return (BaseEvent)custom_action_event;
+
                     default:
                     {
                         var panned_event = new PannedEvent
@@ -174,7 +174,7 @@ public class Sequence
                     }
                 }
             }));
-            
+
             if (!enumerator.MoveNext()) break;
         }
 
@@ -265,26 +265,13 @@ public class Sequence
             // Special color lines get their own parser. 🗿
             return ParseColorEvent(text);
 
-        // Modifiers that separate the sound name from the other parameters.
-        const string modifiers = "@%^=";
-
-        // All Regex patterns.
-        const string sound_name_regex = $"^[^{modifiers}]*";
-        const string value_regex = "@[-0-9.]+";
-        const string value_scale_regex = $"@[-0-9.]+@[^{modifiers}]+";
-        const string volume_regex = "%[-0-9.]+";
-        const string loop_times_regex = "=[0-9]+";
-
-        // Custom event Regex patterns here.
-        const string pan_regex = @"\^[-0-9.]+";
-
-        var sound_name_match = Regex.Match(text, sound_name_regex, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        var sound_name_match = SoundNameRegex().Match(text);
         var sound = sound_name_match.Success ? sound_name_match.Value.Trim() : string.Empty;
 
-        var value_match = Regex.Match(text, value_regex);
+        var value_match = ValueRegex().Match(text);
         var value = value_match.Success ? double.Parse(value_match.Value[1..]) : 0;
 
-        var value_scale_match = Regex.Match(text, value_scale_regex);
+        var value_scale_match = ValueScaleRegex().Match(text);
         var scale = ValueScale.None;
         if (value_scale_match.Success)
         {
@@ -298,13 +285,13 @@ public class Sequence
             };
         }
 
-        var loop_times_match = Regex.Match(text, loop_times_regex);
+        var loop_times_match = LoopTimesRegex().Match(text);
         var loop_times = loop_times_match.Success ? float.Parse(loop_times_match.Value[1..]) : 1;
 
-        var volume_match = Regex.Match(text, volume_regex);
+        var volume_match = VolumeRegex().Match(text);
         double? event_volume = volume_match.Success ? double.Parse(volume_match.Value[1..]) : null;
 
-        var pan_match = Regex.Match(text, pan_regex);
+        var pan_match = PanRegex().Match(text);
         var pan = pan_match.Success ? float.Parse(pan_match.Value[1..]) : 0f;
 
         switch (sound)
@@ -377,7 +364,7 @@ public class Sequence
                 r = Convert.ToByte(hex[1..3], 16);
                 g = Convert.ToByte(hex[3..5], 16);
                 b = Convert.ToByte(hex[5..7], 16);
-                if (hex.Length > 7) 
+                if (hex.Length > 7)
                     a = Convert.ToByte(hex[7..9], 16);
             }
             catch (Exception e)
@@ -431,4 +418,19 @@ public class Sequence
     {
         return Math.Truncate(d * 1000) / 1000;
     }
+
+    [GeneratedRegex("^[^@%^=]*", RegexOptions.IgnoreCase | RegexOptions.Multiline, "en-US")]
+    private static partial Regex SoundNameRegex();
+    [GeneratedRegex("@[-0-9.]+")]
+    private static partial Regex ValueRegex();
+    [GeneratedRegex("@[-0-9.]+@[^@%^=]+")]
+    private static partial Regex ValueScaleRegex();
+    [GeneratedRegex("=[0-9]+")]
+    private static partial Regex LoopTimesRegex();
+    [GeneratedRegex("%[-0-9.]+")]
+    private static partial Regex VolumeRegex();
+    [GeneratedRegex(@"\^[-0-9.]+")]
+    private static partial Regex PanRegex();
+    [GeneratedRegex(@"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)")]
+    private static partial Regex DefineRegex();
 }

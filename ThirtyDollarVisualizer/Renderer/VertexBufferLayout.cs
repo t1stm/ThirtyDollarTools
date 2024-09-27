@@ -4,7 +4,7 @@ namespace ThirtyDollarVisualizer.Renderer;
 
 public class VertexBufferLayout
 {
-    private readonly List<VertexBufferElement> _elements = new();
+    private readonly List<VertexBufferElement> _elements = [];
     private int _stride;
 
     public void PushFloat(int count)

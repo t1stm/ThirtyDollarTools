@@ -11,12 +11,12 @@ namespace ThirtyDollarVisualizer.Objects.Text;
 public class CachedDynamicText : Renderable, IText
 {
     private readonly SemaphoreSlim _lock = new(1);
+    private readonly HashSet<int> NewLineIndices = [];
     protected float _font_size_px = 14f;
     protected string _value = string.Empty;
-    
-    private TexturedPlane[] TexturedPlanes = Array.Empty<TexturedPlane>();
-    private readonly HashSet<int> NewLineIndices = new();
-        
+
+    private TexturedPlane[] TexturedPlanes = [];
+
     public string Value
     {
         get => _value;
@@ -63,7 +63,7 @@ public class CachedDynamicText : Renderable, IText
             }
 
             if (c == '\n') NewLineIndices.Add(real_i);
-            
+
             textures_array[real_i++] = cache.Get(c, _font_size_px, FontStyle);
         }
 

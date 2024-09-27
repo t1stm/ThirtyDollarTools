@@ -7,7 +7,6 @@ namespace ThirtyDollarVisualizer.Objects;
 public class Shader : IDisposable
 {
     private static readonly Dictionary<(string, string), Shader> CachedShaders = new();
-    public int Handle { get; }
 
     /// <summary>
     ///     Controls whether the shader throws errors on missing uniforms.
@@ -44,6 +43,8 @@ public class Shader : IDisposable
 
         CachedShaders.Add((vertexPath, fragmentPath), this);
     }
+
+    public int Handle { get; }
 
     public void Dispose()
     {

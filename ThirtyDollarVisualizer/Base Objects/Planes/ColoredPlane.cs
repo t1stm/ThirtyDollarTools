@@ -12,7 +12,7 @@ public class ColoredPlane : Renderable
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
     private static BufferObject<ColoredUniform>? UniformBuffer;
-    
+
     public float BorderRadius;
     private ColoredUniform Uniform;
 
@@ -95,20 +95,22 @@ public class ColoredPlane : Renderable
         Uniform.Model = Model;
         Uniform.Projection = camera.GetProjectionMatrix();
         Uniform.Offset = Vector3.Zero;
-        
-        if (camera is DollarStoreCamera ds_camera)
-        {
-            Uniform.Offset = ds_camera.GetOffset();
-        }
-        
-        Span<ColoredUniform> span = stackalloc ColoredUniform[] { Uniform };
+
+        if (camera is DollarStoreCamera ds_camera) Uniform.Offset = ds_camera.GetOffset();
+
+        Span<ColoredUniform> span = [Uniform];
 
         if (UniformBuffer is null)
         {
-            UniformBuffer = new BufferObject<ColoredUniform>(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
+            UniformBuffer =
+                new BufferObject<ColoredUniform>(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
             GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, UniformBuffer.Handle);
         }
-        else UniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
+        else
+        {
+            UniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
+        }
+
         GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, UniformBuffer.Handle);
     }
 

@@ -10,34 +10,36 @@ using ThirtyDollarVisualizer.Objects.Planes;
 namespace ThirtyDollarVisualizer.Objects;
 
 /// <summary>
-/// Creates a SoundRenderable generator.
+///     Creates a SoundRenderable generator.
 /// </summary>
 /// <param name="settings">The settings to use.</param>
 /// <param name="font_family">The current font family.</param>
 public class RenderableFactory(PlayfieldSettings settings, FontFamily font_family)
 {
-    private readonly ConcurrentDictionary<string, Texture> GeneratedTextures = new();
-    private readonly ConcurrentDictionary<string, Texture> GeneratedSmallTextures = new();
-    private readonly ConcurrentDictionary<string, Texture> MissingValues = new();
     private readonly ConcurrentDictionary<string, Texture> CustomValues = new();
+    private readonly ConcurrentDictionary<string, Texture> GeneratedSmallTextures = new();
+    private readonly ConcurrentDictionary<string, Texture> GeneratedTextures = new();
+    private readonly ConcurrentDictionary<string, Texture> MissingValues = new();
 
     /// <summary>
-    /// The given font used for value textures.
+    ///     The given font used for value textures.
     /// </summary>
-    public readonly Font ValueFont = font_family.CreateFont(settings.ValueFontSize * settings.RenderScale, FontStyle.Bold);
-    
+    public readonly Font ValueFont =
+        font_family.CreateFont(settings.ValueFontSize * settings.RenderScale, FontStyle.Bold);
+
     /// <summary>
-    /// The given font used for volume textures.
-    /// </summary>
-    public readonly Font VolumeFont = font_family.CreateFont(settings.VolumeFontSize * settings.RenderScale, FontStyle.Bold);
-    
-    /// <summary>
-    /// The color of the text used in volume textures.
+    ///     The color of the text used in volume textures.
     /// </summary>
     public readonly Color VolumeColor = new Rgba32(204, 204, 204, 1f);
-    
+
     /// <summary>
-    /// Creates a new SoundRenderable from a given Thirty Dollar event.
+    ///     The given font used for volume textures.
+    /// </summary>
+    public readonly Font VolumeFont =
+        font_family.CreateFont(settings.VolumeFontSize * settings.RenderScale, FontStyle.Bold);
+
+    /// <summary>
+    ///     Creates a new SoundRenderable from a given Thirty Dollar event.
     /// </summary>
     /// <param name="base_event">A Thirty Dollar event.</param>
     /// <returns>A new SoundRenderable if the event is valid.</returns>
@@ -45,18 +47,18 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
     {
         var event_name = base_event.SoundEvent;
         if (event_name is null) return null;
-        
+
         // gets the sound's texture
-        var event_texture = 
+        var event_texture =
             TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, event_name);
 
         var individual_cut_event = base_event is IndividualCutEvent;
         var missing_texture = event_texture is null && !individual_cut_event;
-        
+
         // creates the sound
-        var sound = new SoundRenderable(individual_cut_event ? 
-            TextureDictionary.GetICutEventTexture() : 
-            event_texture ?? TextureDictionary.GetMissingTexture())
+        var sound = new SoundRenderable(individual_cut_event
+            ? TextureDictionary.GetICutEventTexture()
+            : event_texture ?? TextureDictionary.GetMissingTexture())
         {
             Value = missing_texture ? GetMissingValue(base_event) : GetValue(base_event),
             Volume = GetVolume(base_event),
@@ -70,7 +72,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
     }
 
     /// <summary>
-    /// Generates a custom value texture that contains useful info for the missing sound.
+    ///     Generates a custom value texture that contains useful info for the missing sound.
     /// </summary>
     /// <param name="base_event">The sound that doesn't have a texture available.</param>
     /// <returns>The custom value texture.</returns>
@@ -85,7 +87,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
     }
 
     /// <summary>
-    /// Gets the value texture for a given Thirty Dollar event.
+    ///     Gets the value texture for a given Thirty Dollar event.
     /// </summary>
     /// <param name="base_event">A Thirty Dollar event.</param>
     /// <returns>A value texture plane if applicable.</returns>
@@ -93,9 +95,10 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
     {
         // formats the value to a one with two decimal places
         var value = base_event.Value.ToString("0.##");
-        
+
         // adds a plus to the value for events that are sounds
-        if (base_event.Value > 0 && !(base_event.SoundEvent!.StartsWith('!') || base_event.SoundEvent!.StartsWith('_'))) value = "+" + value;
+        if (base_event.Value > 0 && !(base_event.SoundEvent!.StartsWith('!') || base_event.SoundEvent!.StartsWith('_')))
+            value = "+" + value;
 
         // handles the value text for actions that have a value scale
         value = base_event.ValueScale switch
@@ -105,9 +108,9 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
             ValueScale.Divide => "/" + value,
             _ => value
         };
-        
+
         Texture? value_texture = null;
-        
+
         // handles value textures for events that require custom values
         switch (base_event)
         {
@@ -115,7 +118,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
             {
                 // gets all sounds that are being cut
                 var cut_sounds = ice.CutSounds.ToArray();
-                
+
                 // makes a texture ID for them
                 var joined = string.Join('|', cut_sounds);
 
@@ -125,10 +128,11 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                     var available_textures =
                         cut_sounds.Where(r => File.Exists($"{settings.DownloadLocation}/Images/{r}.png"));
 
-                    var textures = available_textures.Select(t => new Texture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
+                    var textures = available_textures
+                        .Select(t => new Texture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
                     return new Texture(textures, 2, settings.ValueFontSize);
                 });
-                
+
                 break;
             }
 
@@ -137,7 +141,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 // background values are contained by a bitshifted long value
                 // casts the double (64 bit floating) value to long (64 bit fixed)
                 var parsed_value = (long)base_event.Value;
-                
+
                 // gets the seconds, which are encoded last
                 var seconds = (parsed_value >> 32) / 1000f;
                 value = seconds.ToString("0.##");
@@ -147,7 +151,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 var g = (byte)(parsed_value >> 8);
                 var b = (byte)(parsed_value >> 16);
                 var a = (byte)(parsed_value >> 24);
-                
+
                 // creates a texture ID for the current colors
                 var texture_id = $"({r},{g},{b},{a}) {value}s";
 
@@ -169,10 +173,10 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 // pulses are also stored in a custom way, by bitshifting a long value
                 // again casting the double to long
                 var parsed_value = (long)base_event.Value;
-                
+
                 // the amount of repeats is capped at 255
                 var repeats = (byte)parsed_value;
-                    
+
                 // the amount of pulses is capped at 32767 
                 var pulse_times = (short)(parsed_value >> 8);
 
@@ -180,21 +184,18 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 break;
             }
         }
-        
+
         // continues getting or generating a value texture if not set before this check
         if ((value_texture == null && base_event.Value != 0 && base_event.SoundEvent is not "_pause") ||
             base_event.SoundEvent is "!transpose")
-        {
             value_texture = GeneratedTextures.GetOrAdd(value, _ => new Texture(ValueFont, value));
-        }
 
         // returns a new value texture plane
-        return value_texture is null ? null : 
-            new TexturedPlane(value_texture);
-    } 
-    
+        return value_texture is null ? null : new TexturedPlane(value_texture);
+    }
+
     /// <summary>
-    /// Gets the volume texture for a given Thirty Dollar event.
+    ///     Gets the volume texture for a given Thirty Dollar event.
     /// </summary>
     /// <param name="base_event">A Thirty Dollar event.</param>
     /// <returns>A volume texture plane if applicable.</returns>
@@ -205,22 +206,23 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         var volume = base_event.Volume.Value;
         var volume_text = volume.ToString("0.#") + "%";
 
-        var volume_texture = GeneratedSmallTextures.GetOrAdd(volume_text, _ => new Texture(VolumeFont, volume_text, VolumeColor));
+        var volume_texture =
+            GeneratedSmallTextures.GetOrAdd(volume_text, _ => new Texture(VolumeFont, volume_text, VolumeColor));
         return new TexturedPlane(volume_texture);
     }
-    
+
     /// <summary>
-    /// Gets the pan texture for a given Thirty Dollar event.
+    ///     Gets the pan texture for a given Thirty Dollar event.
     /// </summary>
     /// <param name="base_event">A Thirty Dollar event.</param>
     /// <returns>A pan texture plane if applicable.</returns>
     private TexturedPlane? GetPan(BaseEvent base_event)
     {
         if (base_event is not PannedEvent panned_event) return null;
-        
+
         var pan = panned_event.Pan;
         if (pan == 0f) return null;
-        
+
         // formats the pan to a single decimal
         var pan_text = Math.Abs(pan).ToString(".#");
 
@@ -236,7 +238,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 pan_text = "|" + pan_text;
                 break;
         }
-        
+
         // gets or generates a new texture
         var pan_texture = GeneratedSmallTextures.GetOrAdd(pan_text, _ => new Texture(VolumeFont, pan_text));
         return new TexturedPlane(pan_texture);

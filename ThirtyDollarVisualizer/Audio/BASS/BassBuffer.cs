@@ -5,7 +5,7 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class BassBuffer : AudibleBuffer, IDisposable
 {
-    private readonly List<int> _active_channels = new();
+    private readonly List<int> _active_channels = [];
 
     private readonly AudioContext _context;
     protected readonly int SampleHandle;

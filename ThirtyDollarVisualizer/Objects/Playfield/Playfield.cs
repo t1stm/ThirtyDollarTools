@@ -10,37 +10,42 @@ namespace ThirtyDollarVisualizer.Objects;
 public class Playfield(PlayfieldSettings settings)
 {
     /// <summary>
-    /// Contains all sound renderables.
-    /// </summary>
-    public Memory<SoundRenderable?> Objects = Memory<SoundRenderable?>.Empty;
-    public Memory<PlayfieldLine> Lines = Memory<PlayfieldLine>.Empty;
-    
-    /// <summary>
-    /// Dictionary containing all decreasing value events' textures for this playfield.
+    ///     Dictionary containing all decreasing value events' textures for this playfield.
     /// </summary>
     public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
-    
-    private readonly LayoutHandler LayoutHandler = new(settings.SoundSize * settings.RenderScale, settings.SoundsOnASingleLine, 
-        new GapBox(settings.SoundMargin * settings.RenderScale / 2), new GapBox(15f * settings.RenderScale, 15f * settings.RenderScale));
-    
-    private readonly DollarStoreCamera TemporaryCamera = new(Vector3.Zero, Vector2i.Zero);
+
+    private readonly List<float> DividerPositions_Y = [];
+
+    private readonly LayoutHandler LayoutHandler = new(settings.SoundSize * settings.RenderScale,
+        settings.SoundsOnASingleLine,
+        new GapBox(settings.SoundMargin * settings.RenderScale / 2),
+        new GapBox(15f * settings.RenderScale, 15f * settings.RenderScale));
+
     private readonly ColoredPlane ObjectBox = new((0, 0, 0, 0.25f), (0, 0, 0), (0, 0, 0));
-    
-    private byte[] AnimatedAssets = Array.Empty<byte>(); // TODO hyped up for this.
-    private readonly List<float> DividerPositions_Y = new();
+
+    private readonly DollarStoreCamera TemporaryCamera = new(Vector3.Zero, Vector2i.Zero);
+
+    private byte[] AnimatedAssets = []; // TODO hyped up for this.
 
     private Vector3 CurrentPosition = Vector3.Zero;
-    private Vector3 TargetPosition = Vector3.Zero;
 
     public bool DisplayCenter = true;
     private bool FirstPosition = true;
+    public Memory<PlayfieldLine> Lines = Memory<PlayfieldLine>.Empty;
+
+    /// <summary>
+    ///     Contains all sound renderables.
+    /// </summary>
+    public Memory<SoundRenderable?> Objects = Memory<SoundRenderable?>.Empty;
+
+    private Vector3 TargetPosition = Vector3.Zero;
 
     public async Task UpdateSounds(Sequence sequence)
     {
         // get all events and make an array that will hold their renderable
         var events = sequence.Events;
         var sounds = new SoundRenderable?[events.Length];
-        
+
         // creates a new renderable factory
         var factory = new RenderableFactory(settings, Fonts.GetFontFamily());
 
@@ -49,15 +54,15 @@ public class Playfield(PlayfieldSettings settings)
         {
             // handle cancellation tokens
             if (token.IsCancellationRequested) return ValueTask.FromCanceled(token);
-            
+
             // extract event to local variable
             var base_event = events[i];
-            
+
             // skip all events meant to be invisible
             if (string.IsNullOrEmpty(base_event.SoundEvent) ||
-                (base_event.SoundEvent.StartsWith('#') && base_event is not ICustomActionEvent) || 
+                (base_event.SoundEvent.StartsWith('#') && base_event is not ICustomActionEvent) ||
                 base_event is IHiddenEvent) return ValueTask.CompletedTask;
-            
+
             // creates the renderable for the current index
             sounds[i] = factory.CookUp(base_event); // very funny i know
             return ValueTask.CompletedTask;
@@ -72,7 +77,7 @@ public class Playfield(PlayfieldSettings settings)
         {
             var sound = sounds[i];
             if (sound is null) continue;
-            
+
             PositionSound(LayoutHandler, in sound);
 
             // check if sound is a divider. if not continue to the next sound.
@@ -80,7 +85,7 @@ public class Playfield(PlayfieldSettings settings)
 
             // add the current divider's position for render culling
             DividerPositions_Y.Add(sound.GetPosition().Y);
-            
+
             LayoutHandler.NewLine(
                 // edge case when a new line was already created
                 // by the !divider object being on the end of the line
@@ -95,7 +100,7 @@ public class Playfield(PlayfieldSettings settings)
             var sound_renderables = enumerable as SoundRenderable[] ?? enumerable.ToArray();
             return new PlayfieldLine(settings.SoundsOnASingleLine)
             {
-                Sounds = sound_renderables.ToArray(), 
+                Sounds = sound_renderables.ToArray(),
                 Count = sound_renderables.Length
             };
         }).ToArray();
@@ -111,10 +116,10 @@ public class Playfield(PlayfieldSettings settings)
                 DecreasingValuesCache.GetOrAdd(search, _ => new Texture(factory.ValueFont, search));
             }
         }
-        
+
         // add default 0 texture
         DecreasingValuesCache.GetOrAdd("0", _ => new Texture(factory.ValueFont, "0"));
-        
+
         // sets objects to be used by the render method
         Objects = sounds;
         Lines = lines;
@@ -129,12 +134,12 @@ public class Playfield(PlayfieldSettings settings)
 
         // get aspect ratio for events without equal size
         var aspect_ratio = (float)texture_x / texture_y;
-        
+
         // box scale is the maximum size a sound should cover
         Vector2 box_scale = (layout_handler.Size, layout_handler.Size);
         // wanted scale is the corrected size by the aspect ratio
         Vector2 wanted_scale = (layout_handler.Size, layout_handler.Size);
-        
+
         // handle aspect ratio corrections
         switch (aspect_ratio)
         {
@@ -145,20 +150,20 @@ public class Playfield(PlayfieldSettings settings)
                 wanted_scale.X = layout_handler.Size * aspect_ratio;
                 break;
         }
-        
+
         // set the size of the sound's texture to the wanted size
         sound.SetScale((wanted_scale.X, wanted_scale.Y, 0));
-        
+
         // calculates the wanted position to avoid stretching of the texture
         var box_position = layout_handler.GetNewPosition();
         var texture_position = (box_position.X, box_position.Y);
-        
+
         var delta_x = layout_handler.Size - wanted_scale.X;
         var delta_y = layout_handler.Size - wanted_scale.Y;
 
         texture_position.X += delta_x / 2f;
         texture_position.Y += delta_y / 2f;
-        
+
         sound.SetPosition((texture_position.X, texture_position.Y, 0));
 
         // position value, volume, pan to their box locations
@@ -175,7 +180,7 @@ public class Playfield(PlayfieldSettings settings)
     {
         // avoid doing modifications to the main camera
         TemporaryCamera.CopyFrom(real_camera);
-        
+
         // offset temporary camera to enable positioning anywhere
         var left_margin = (TemporaryCamera.Width - LayoutHandler.Width) / 2f;
 
@@ -185,13 +190,14 @@ public class Playfield(PlayfieldSettings settings)
             CurrentPosition = TargetPosition;
             FirstPosition = false;
         }
-        
-        TemporaryCamera.SetOffset(CurrentPosition = SteppingFunctions.Exponential(CurrentPosition, TargetPosition, update_delta));
+
+        TemporaryCamera.SetOffset(CurrentPosition =
+            SteppingFunctions.Exponential(CurrentPosition, TargetPosition, update_delta));
         TemporaryCamera.UpdateMatrix();
-        
+
         // get generic camera values
         var camera_height = TemporaryCamera.Height;
-        
+
         // set render culling limits
         var clamped_scale = Math.Min(zoom, 1f);
         var height_scale = camera_height / clamped_scale - camera_height;
@@ -203,37 +209,37 @@ public class Playfield(PlayfieldSettings settings)
         // get render culling object values
         var size_renderable = LayoutHandler.Size;
         var vertical_margin = LayoutHandler.VerticalMargin;
-        
+
         // fix values when the zoom is changed
         camera_y -= height_scale / 2;
         camera_yh += height_scale / 2;
-        
+
         // gets the amount of dividers at the top and bottom of the screen
         var top_camera_dividers = 0;
         var bottom_camera_dividers = 0;
-        
+
         // disabling dumb resharper errors
         // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
         foreach (var position in DividerPositions_Y)
         {
             if (position <= camera_y + size_renderable)
                 top_camera_dividers++;
-            
-            if (position <= camera_yh) 
+
+            if (position <= camera_yh)
                 bottom_camera_dividers++;
         }
-        
+
         // render the background dimmed box
-        ObjectBox.SetPosition((0,0,0));
+        ObjectBox.SetPosition((0, 0, 0));
         ObjectBox.SetScale((LayoutHandler.Width, LayoutHandler.Height, 0));
         ObjectBox.BorderRadius = 0f;
-        
+
         ObjectBox.UpdateModel(false);
         ObjectBox.Render(TemporaryCamera);
 
         // get all lines this playfield has
         var tdw_span = Lines.Span;
-        
+
         // finds the index of the line at the start of the view
         var start_line = camera_y / (size_renderable + vertical_margin);
         var start_index = start_line - top_camera_dividers - 1;
@@ -241,7 +247,7 @@ public class Playfield(PlayfieldSettings settings)
         // same but for the end of the view
         var end_line = camera_yh / (size_renderable + vertical_margin);
         var end_index = end_line - bottom_camera_dividers + 1;
-        
+
         var start = (int)Math.Max(0, Math.Floor(start_index));
         var end = (int)Math.Min(tdw_span.Length, Math.Ceiling(end_index));
 

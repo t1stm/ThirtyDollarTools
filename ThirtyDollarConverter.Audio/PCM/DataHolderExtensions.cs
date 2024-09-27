@@ -5,7 +5,7 @@ namespace ThirtyDollarEncoder.PCM;
 public static class DataHolderExtensions // i love duplicating code (false statement)
 {
     /// <summary>
-    /// Reads / returns cached audio data from this data holder as short (16 bit) AudioData.
+    ///     Reads / returns cached audio data from this data holder as short (16 bit) AudioData.
     /// </summary>
     /// <param name="holder">The current PcmDataHolder.</param>
     /// <param name="monoToStereo">Whether to return mono source data as stereo.</param>
@@ -41,10 +41,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
             var export_channels = new short[export_channels_count][];
 
             // allocates all channels
-            for (var i = 0; i < export_channels_count; i++)
-            {
-                export_channels[i] = new short[destination_length];
-            }
+            for (var i = 0; i < export_channels_count; i++) export_channels[i] = new short[destination_length];
 
             // convert known source channels
             for (var current_channel = 0; current_channel < channels_count; current_channel++)
@@ -56,10 +53,8 @@ public static class DataHolderExtensions // i love duplicating code (false state
 
             // handle mono to stereo conversion
             if (export_channels_count != channels_count)
-            {
                 FillChannel_Short(export_channels[1], 1, 0,
                     source_encoding, audio_span, short_span, int24_span, float_span);
-            }
 
             unchecked // unchecked due to "possible" overflow
             {
@@ -79,7 +74,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
     }
 
     /// <summary>
-    /// Reads / returns cached audio data from this data holder as float (32 bit) AudioData.
+    ///     Reads / returns cached audio data from this data holder as float (32 bit) AudioData.
     /// </summary>
     /// <param name="holder">The current PcmDataHolder.</param>
     /// <param name="monoToStereo">Whether to return mono source data as stereo.</param>
@@ -115,10 +110,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
             var export_channels = new float[export_channels_count][];
 
             // allocates all channels
-            for (var i = 0; i < export_channels_count; i++)
-            {
-                export_channels[i] = new float[destination_length];
-            }
+            for (var i = 0; i < export_channels_count; i++) export_channels[i] = new float[destination_length];
 
             // convert known source channels
             for (var current_channel = 0; current_channel < channels_count; current_channel++)
@@ -130,10 +122,8 @@ public static class DataHolderExtensions // i love duplicating code (false state
 
             // handle mono to stereo conversion
             if (export_channels_count != channels_count)
-            {
                 FillChannel_Float(export_channels[1], 1, 0,
                     source_encoding, audio_span, short_span, int24_span, float_span);
-            }
 
             unchecked // unchecked due to "possible" overflow
             {
@@ -153,7 +143,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
     }
 
     /// <summary>
-    /// Converts a given sample array to a float (32 bit) array.
+    ///     Converts a given sample array to a float (32 bit) array.
     /// </summary>
     /// <param name="channel">The current channel data.</param>
     /// <param name="channels_count">How many channels the destination has.</param>
@@ -184,7 +174,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
     }
 
     /// <summary>
-    /// Converts a given sample array to a short (16 bit) array.
+    ///     Converts a given sample array to a short (16 bit) array.
     /// </summary>
     /// <param name="channel">The current channel data.</param>
     /// <param name="channels_count">How many channels the destination has.</param>

@@ -1,6 +1,6 @@
 using ThirtyDollarConverter;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Audio.Resamplers;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
@@ -12,20 +12,20 @@ public abstract class ThirtyDollarWorkflow
 {
     private readonly SemaphoreSlim SampleHolderLock = new(1);
     protected readonly SequencePlayer SequencePlayer;
+    protected bool AutoUpdate = true;
+    protected bool Debug;
+
+    protected Placement[] ExtractedSpeedEvents = [];
     protected Action<string> Log;
     protected SampleHolder? SampleHolder;
-    protected Memory<SequenceInfo> Sequences = Array.Empty<SequenceInfo>();
     protected SequenceIndices SequenceIndices = new();
-    protected bool Debug;
-    protected bool AutoUpdate = true;
+    protected Memory<SequenceInfo> Sequences = Array.Empty<SequenceInfo>();
 
     protected TimedEvents TimedEvents = new()
     {
-        Placement = Array.Empty<Placement>(),
+        Placement = [],
         TimingSampleRate = 100_000
     };
-
-    protected Placement[] ExtractedSpeedEvents = Array.Empty<Placement>();
 
     public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? logging_action = null)
     {
@@ -80,7 +80,8 @@ public abstract class ThirtyDollarWorkflow
         Sequences = GetSequenceInfos(locations);
         if (Sequences.Length < 1)
         {
-            Log("[Sequence Update] No valid files were dropped on the window. If dragging a folder, drag the files inside it.");
+            Log(
+                "[Sequence Update] No valid files were dropped on the window. If dragging a folder, drag the files inside it.");
             return;
         }
 
@@ -105,7 +106,7 @@ public abstract class ThirtyDollarWorkflow
         AutoUpdate = true;
         lock (ExtractedSpeedEvents)
         {
-            ExtractedSpeedEvents = Array.Empty<Placement>();
+            ExtractedSpeedEvents = [];
         }
 
         const int update_rate = 100_000;
@@ -222,6 +223,7 @@ public abstract class ThirtyDollarWorkflow
 
                 return;
             }
+
             var m_time = File.GetLastWriteTime(filename);
             if (recorded_m_time != m_time) break;
             return;

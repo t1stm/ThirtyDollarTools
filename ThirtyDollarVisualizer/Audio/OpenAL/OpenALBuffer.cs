@@ -6,7 +6,7 @@ namespace ThirtyDollarVisualizer.Audio;
 public class OpenALBuffer : AudibleBuffer
 {
     private readonly AudioContext _context;
-    private readonly List<int> AudioSources = new();
+    private readonly List<int> AudioSources = [];
     private float _pan;
     public float _relative_volume = .5f;
 
@@ -125,7 +125,7 @@ public class OpenALBuffer : AudibleBuffer
 
     public override void SetVolume(float volume, bool absolute = false)
     {
-        _relative_volume = absolute ? volume * (1 / _context.GlobalVolume): volume;
+        _relative_volume = absolute ? volume * (1 / _context.GlobalVolume) : volume;
     }
 
     public override void Delete()

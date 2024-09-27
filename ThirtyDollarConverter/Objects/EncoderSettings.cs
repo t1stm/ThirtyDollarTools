@@ -6,6 +6,11 @@ namespace ThirtyDollarConverter.Objects;
 public class EncoderSettings
 {
     /// <summary>
+    ///     This adds calculated timings to the placement.
+    /// </summary>
+    public bool AddVisualEvents;
+
+    /// <summary>
     ///     The amount of audio channels. (1 - 2 supported at the moment)
     /// </summary>
     public uint Channels;
@@ -23,6 +28,11 @@ public class EncoderSettings
     public uint CutFadeLengthMs = 25;
 
     /// <summary>
+    ///     This controls whether the converter should normalize the final export of a cover.
+    /// </summary>
+    public bool EnableNormalization = true;
+
+    /// <summary>
     ///     How many slices to separate the sequence in for multithreading.
     /// </summary>
     public int MultithreadingSlices = Environment.ProcessorCount * 4;
@@ -36,14 +46,4 @@ public class EncoderSettings
     ///     The sample rate to export in.
     /// </summary>
     public uint SampleRate;
-
-    /// <summary>
-    ///     This adds calculated timings to the placement.
-    /// </summary>
-    public bool AddVisualEvents;
-
-    /// <summary>
-    ///     This controls whether the converter should normalize the final export of a cover.
-    /// </summary>
-    public bool EnableNormalization  = true;
 }

@@ -13,7 +13,7 @@ public class AudioData<T> : IDisposable
 
     public void Dispose()
     {
-        Samples = Array.Empty<T[]>();
+        Samples = [];
         GC.SuppressFinalize(this);
     }
 

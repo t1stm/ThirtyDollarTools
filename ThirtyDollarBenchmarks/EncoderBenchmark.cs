@@ -2,7 +2,6 @@ using System.Reflection;
 using BenchmarkDotNet.Attributes;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarBenchmarks;
@@ -12,15 +11,12 @@ public class EncoderBenchmark
     private PcmEncoder _encoder = null!;
     private SampleHolder? _holder;
     private Sequence _sequence;
-    
-    [Params(1, 4, 8, 16, 32, 64, 128)]
-    public int ThreadCount = 1;
-    
-    [Params(48000, 96000, 192000, 384000)]
-    public uint SampleRate = 48000;
 
     [Params("ThirtyDollarBenchmarks.Sequences.another.🗿")]
     public string _sequence_location;
+
+    [Params(48000, 96000, 192000, 384000)] public uint SampleRate = 48000;
+    [Params(1, 4, 8, 16, 32, 64, 128)] public int ThreadCount = 1;
 
     private static Stream GetResource(string location)
     {
@@ -42,7 +38,7 @@ public class EncoderBenchmark
                 DownloadLocation =
                     "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarConverter.GUI/bin/Debug/net7.0/Sounds/"
             };
-            
+
             Task.Run(async () =>
             {
                 _holder.PrepareDirectory();
@@ -52,7 +48,7 @@ public class EncoderBenchmark
 
             _holder.LoadSamplesIntoMemory();
         }
-        
+
         _encoder = new PcmEncoder(_holder, new EncoderSettings
         {
             SampleRate = SampleRate,
@@ -62,14 +58,14 @@ public class EncoderBenchmark
             MultithreadingSlices = ThreadCount,
             AddVisualEvents = false
         });
-        
+
         var stream = GetResource(_sequence_location);
         var reader = new StreamReader(stream);
 
         var sequence_text = reader.ReadToEnd();
         _sequence = Sequence.FromString(sequence_text);
     }
-    
+
     [Benchmark]
     public async Task Standard_PCM_Encoder_NoSave()
     {

@@ -9,9 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ThirtyDollarConverter.CLI\ThirtyDollarConverter.CLI.csproj" />
+        <ProjectReference Include="..\ThirtyDollarConverter.CLI\ThirtyDollarConverter.CLI.csproj"/>
         <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-        <ProjectReference Include="..\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj" />
+        <ProjectReference Include="..\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

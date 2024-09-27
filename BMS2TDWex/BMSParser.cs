@@ -9,7 +9,7 @@ public static class BMSParser
         var split = read.Split('\n');
         var level = new BMSLevel();
         bool? is_header_currently = null;
-        
+
         foreach (var current_line in split)
         {
             var line = current_line.Trim();
@@ -19,7 +19,7 @@ public static class BMSParser
                 "*---------------------- MAIN DATA FIELD" => false,
                 _ => is_header_currently
             };
-            
+
             if (is_header_currently is null) continue;
 
             switch (is_header_currently)
@@ -27,23 +27,23 @@ public static class BMSParser
                 case true:
                     HandleHeaderEvents(ref level.Header, line);
                     continue;
-                
+
                 case false:
                     HandleMainDataEvents(ref level.Data, in level.Header, line);
                     continue;
             }
         }
-        
+
         return level;
     }
 
     private static void HandleHeaderEvents(ref BMSHeader header, string line)
     {
         if (!line.StartsWith('#')) return;
-        
+
         var ev = line[1..];
         var event_split = ev.Split(' ');
-        
+
         var event_name = event_split[0];
         var remaining_event = ev[event_name.Length..].Trim();
 
@@ -54,46 +54,46 @@ public static class BMSParser
             header.ChannelMap.Add(string.Intern(wave_number), string.Intern(remaining_event[..^4]));
             return;
         }
-        
+
         switch (event_name)
         {
             case "PLAYER":
                 if (int.TryParse(remaining_event, out var player_count))
                     header.PlayerCount = player_count;
                 break;
-            
+
             case "GENRE":
                 header.Genre = remaining_event;
                 break;
-            
+
             case "TITLE":
                 header.Title = remaining_event;
                 break;
-            
+
             case "ARTIST":
                 header.Artist = remaining_event;
                 break;
-            
+
             case "BPM":
                 if (int.TryParse(remaining_event, out var bpm))
                     header.BPM = bpm;
                 break;
-            
+
             case "PLAYLEVEL":
                 if (int.TryParse(remaining_event, out var play_level))
                     header.PlayLevel = play_level;
                 break;
-            
+
             case "RANK":
                 if (int.TryParse(remaining_event, out var rank))
                     header.Rank = rank;
                 break;
-            
+
             case "TOTAL":
                 if (int.TryParse(remaining_event, out var total))
                     header.Total = total;
                 break;
-            
+
             case "STAGEFILE":
                 header.StageFile = true;
                 break;
@@ -104,7 +104,7 @@ public static class BMSParser
     {
         if (!line.StartsWith('#')) return;
         var clean_value = line[1..];
-        
+
         var split = clean_value.Split(':');
         if (split.Length != 2) return;
 
@@ -121,7 +121,7 @@ public static class BMSParser
             value = new BMSMeasure();
             data.Measures[measure_number] = value;
         }
-        
+
         var measure = value;
         var beats_division = event_data.Length / 2;
 
@@ -140,7 +140,7 @@ public static class BMSParser
                 array[i] = string.Intern(level_header.ChannelMap[index]);
             }
         }
-        
+
         measure.Events.Add((channel_number, new_event));
     }
 }

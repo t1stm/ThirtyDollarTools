@@ -72,29 +72,18 @@ public static class Program
             Console.WriteLine("Unable to find specified sequence. Running without a specified sequence.");
             sequence = null;
         }
-        
+
         SettingsHandler.Load(settings_location ?? "./Settings.30$");
         var settings = SettingsHandler.Settings;
 
         if (settings.TransparentFramebuffer != transparent_framebuffer && transparent_framebuffer.HasValue)
-        {
             settings.TransparentFramebuffer = transparent_framebuffer.Value;
-        }
 
-        if (line_amount.HasValue)
-        {
-            settings.LineAmount = line_amount.Value;
-        }
-        
-        if (event_size.HasValue)
-        {
-            settings.EventSize = event_size.Value;
-        }
-        
-        if (event_margin.HasValue)
-        {
-            settings.EventMargin = event_margin.Value;
-        }
+        if (line_amount.HasValue) settings.LineAmount = line_amount.Value;
+
+        if (event_size.HasValue) settings.EventSize = event_size.Value;
+
+        if (event_margin.HasValue) settings.EventMargin = event_margin.Value;
 
         var icon_stream = Image.Load<Rgba32>(Assembly.GetExecutingAssembly()
             .GetManifestResourceStream("ThirtyDollarVisualizer.Assets.Textures.moai.png")!);
@@ -105,16 +94,14 @@ public static class Program
             new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
 
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
-        if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) && settings.AutomaticScaling)
-        {
-            scale ??= (horizontal_scale + vertical_scale) / 2f;
-        }
+        if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
+            settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
-        var tdw_application = new ThirtyDollarApplication(width, height, new [] { sequence }, settings, audio_context)
+        var tdw_application = new ThirtyDollarApplication(width, height, new[] { sequence }, settings, audio_context)
         {
             CameraFollowMode = follow_mode,
             Scale = scale ?? 1f,
-            Greeting = greeting ?? settings.Greeting,
+            Greeting = greeting ?? settings.Greeting
         };
 
         manager.Scenes.Add(tdw_application);
@@ -133,7 +120,7 @@ public static class Program
         [Option("no-audio", HelpText = "Disable audio playback.")]
         public bool NoAudio { get; set; }
 
-        
+
         [Option('w', "width", HelpText = "The width of the render window.")]
         public int? Width { get; set; }
 
@@ -169,10 +156,13 @@ public static class Program
         [Option("line-amount", HelpText = "Changes how many events are on a single line.")]
         public int? LineAmount { get; set; }
 
-        [Option("settings-location", HelpText = "Changes where the settings file is located. Default is: \'./Settings.30$\'")]
+        [Option("settings-location",
+            HelpText = "Changes where the settings file is located. Default is: \'./Settings.30$\'")]
         public string? SettingsLocation { get; set; }
 
-        [Option("transparent-framebuffer", HelpText = "Changes how the visualizer processes alpha rendering. If set the background of the window is rendered transparent and the OS decides how it'll use the transparency.")]
+        [Option("transparent-framebuffer",
+            HelpText =
+                "Changes how the visualizer processes alpha rendering. If set the background of the window is rendered transparent and the OS decides how it'll use the transparency.")]
         public bool? TransparentFramebuffer { get; set; }
     }
 }

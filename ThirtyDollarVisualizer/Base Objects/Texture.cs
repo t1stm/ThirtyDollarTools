@@ -15,9 +15,9 @@ public class Texture : IDisposable
     private static Texture? _transparent1x1;
 
     private int? _handle;
-    public int Height;
     private Image<Rgba32>? texture_data;
     public int Width;
+    public int Height;
 
     public Texture(string path)
     {
@@ -47,10 +47,10 @@ public class Texture : IDisposable
     {
         var options = new TextOptions(font)
         {
-            FallbackFontFamilies = new[]
-            {
+            FallbackFontFamilies =
+            [
                 Fonts.GetEmojiFamily()
-            }
+            ]
         };
         var rect = TextMeasurer.MeasureAdvance(text, options);
 
@@ -199,7 +199,7 @@ public class Texture : IDisposable
         get
         {
             if (_transparent1x1 != null) return _transparent1x1;
-            Span<byte> bytes = stackalloc byte[4] { 0, 0, 0, 0 };
+            Span<byte> bytes = [0, 0, 0, 0];
             _transparent1x1 = new Texture(bytes, 1, 1);
 
             return _transparent1x1;
@@ -219,7 +219,7 @@ public class Texture : IDisposable
 
         var img = texture_data;
         _handle = GL.GenTexture();
-        
+
         if (_handle == 0) throw new Exception("Unable to generate texture handle.");
         Bind();
 

@@ -7,6 +7,7 @@ namespace ThirtyDollarVisualizer.Animations;
 public abstract class Animation(TimeSpan timespan)
 {
     protected readonly Stopwatch TimingStopwatch = new();
+    protected bool _is_reset;
     public bool AffectsChildren = true;
     protected TimeSpan AnimationLength = timespan;
     protected Action? CallbackOnFinish = null;
@@ -16,8 +17,7 @@ public abstract class Animation(TimeSpan timespan)
     {
     }
 
-    public bool IsRunning => TimingStopwatch.IsRunning || _is_reset && !(_is_reset = false);
-    protected bool _is_reset;
+    public bool IsRunning => TimingStopwatch.IsRunning || (_is_reset && !(_is_reset = false));
 
     /// <summary>
     ///     Gets the current position multiplication transform of this animation.

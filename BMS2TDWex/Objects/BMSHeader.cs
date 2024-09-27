@@ -14,6 +14,6 @@ public struct BMSHeader()
 
     public readonly Dictionary<string, string> ChannelMap = new()
     {
-        {"00", "_pause"}
+        { "00", "_pause" }
     };
 }

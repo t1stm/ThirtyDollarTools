@@ -7,16 +7,13 @@ public readonly struct TDWMeasure
     public TDWMeasure(int division)
     {
         CombineStacks = new CombineStack[division];
-        for (var index = 0; index < CombineStacks.Length; index++)
-        {
-            CombineStacks[index] = new CombineStack();
-        }
+        for (var index = 0; index < CombineStacks.Length; index++) CombineStacks[index] = new CombineStack();
     }
 
     public void PlaceEvent(int source_measure, int index, string event_name)
     {
         if (string.IsNullOrWhiteSpace(event_name)) return;
-        
+
         var real_division = CombineStacks.Length / source_measure;
         var real_index = index * real_division;
 

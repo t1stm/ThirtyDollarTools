@@ -1,6 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using CommandLine;
+﻿using CommandLine;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarConverter.CLI;
@@ -10,10 +8,7 @@ using ThirtyDollarParser;
 var options = new Options();
 
 Parser.Default.ParseArguments<Options>(args)
-    .WithParsed(o =>
-    {
-        options = o;
-    });
+    .WithParsed(o => { options = o; });
 
 var inputs = options.Input.ToArray();
 var outputs = options.Output.ToArray();
@@ -24,10 +19,7 @@ if (inputs.Length < 1)
     return;
 }
 
-if (outputs.Length == 0)
-{
-    outputs = inputs.Select(s => $"{s}.wav").ToArray();
-}
+if (outputs.Length == 0) outputs = inputs.Select(s => $"{s}.wav").ToArray();
 
 if (inputs.Length != outputs.Length)
 {
@@ -50,7 +42,7 @@ for (var i = 0; i < inputs.Length; i++)
 {
     var input = sequences[i];
     var output = outputs[i];
-    
+
     var sequence = Sequence.FromString(input.Data);
 
     var encoder = new PcmEncoder(holder, new EncoderSettings
@@ -63,13 +55,14 @@ for (var i = 0; i < inputs.Length; i++)
 
     var audioData = await encoder.GetSequenceAudio(sequence);
     encoder.WriteAsWavFile(output, audioData);
-    
+
     continue;
+
     void ProgressAction(ulong current, ulong total)
     {
-        var progress_bar = Progressbar.Generate(current, (long) total);
+        var progress_bar = Progressbar.Generate(current, (long)total);
         var percentage = (float)current / total;
-        
+
         Console.Clear();
         Console.WriteLine($"[Converting] \'{input.Location}\'");
         Console.WriteLine($"({percentage:0%}) {progress_bar}");
@@ -80,5 +73,4 @@ return;
 
 void LogAction(string s)
 {
-    
 }

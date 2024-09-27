@@ -6,11 +6,12 @@ namespace ThirtyDollarVisualizer.Objects;
 public sealed class DollarStoreCamera : Camera
 {
     private readonly float _scrollSpeed;
+    private Vector3 _offset = (0, 0, 0);
     private Vector3 _virtualPosition;
-    private Vector3 _offset = (0,0,0);
     private DateTime LastScaleUpdate = DateTime.Now;
 
-    public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport, float scroll_speed = 7.5f) : base(VirtualPosition, viewport)
+    public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport, float scroll_speed = 7.5f) : base(
+        VirtualPosition, viewport)
     {
         _virtualPosition = VirtualPosition;
         _scrollSpeed = scroll_speed;
@@ -83,7 +84,7 @@ public sealed class DollarStoreCamera : Camera
     }
 
     /// <summary>
-    /// This method copies values from another camera to this one.
+    ///     This method copies values from another camera to this one.
     /// </summary>
     /// <param name="camera">The other camera.</param>
     public void CopyFrom(DollarStoreCamera camera)
@@ -98,7 +99,7 @@ public sealed class DollarStoreCamera : Camera
     {
         left += _offset.X;
         right += _offset.X;
-        
+
         bottom += _offset.Y;
         top += _offset.Y;
         base.SetMatrixValue(left, right, bottom, top);
@@ -114,10 +115,7 @@ public sealed class DollarStoreCamera : Camera
 
     public void Pulse(int times = 1, float frequency = 0)
     {
-        new Thread(() =>
-        {
-            BlockingPulse(times, frequency);
-        }).Start();
+        new Thread(() => { BlockingPulse(times, frequency); }).Start();
     }
 
     public void SetOffset(Vector3 offset)

@@ -16,6 +16,7 @@ namespace ThirtyDollarConverter;
 public class PcmEncoder
 {
     private readonly uint Channels;
+    private readonly SemaphoreSlim IndexLock = new(1);
     private readonly SampleProcessor SampleProcessor;
     private readonly uint SampleRate;
     private readonly EncoderSettings Settings;
@@ -37,8 +38,8 @@ public class PcmEncoder
         Channels = settings.Channels;
         SampleRate = settings.SampleRate;
 
-        Log = loggerAction ?? new Action<string>(_ => { });
-        IndexReport = indexReport ?? new Action<ulong, ulong>((_, _) => { });
+        Log = loggerAction ?? (_ => { });
+        IndexReport = indexReport ?? ((_, _) => { });
         SampleProcessor = new SampleProcessor(Holder.SampleList, settings, Log);
         PlacementCalculator = new PlacementCalculator(settings, Log);
 
@@ -55,8 +56,7 @@ public class PcmEncoder
     private Action<string> Log { get; }
     private Action<ulong, ulong> IndexReport { get; }
     private PlacementCalculator PlacementCalculator { get; }
-    private readonly SemaphoreSlim IndexLock = new(1);
-    
+
     /// <summary>
     ///     This method starts the encoding process for multiple sequences to be combined.
     /// </summary>
@@ -74,7 +74,7 @@ public class PcmEncoder
             Placement = placement_array,
             TimingSampleRate = (int)SampleRate
         };
-        
+
         Log("Calculated placement. Starting sample processing.");
 
         var processed_events = await GetAudioSamples(timed_events);
@@ -97,7 +97,7 @@ public class PcmEncoder
 
         var timed_events = new TimedEvents
         {
-            Sequences = new [] { sequence },
+            Sequences = [sequence],
             Placement = placement_array,
             TimingSampleRate = (int)SampleRate
         };
@@ -147,17 +147,17 @@ public class PcmEncoder
         }
 
         ulong finished_tasks = 0;
-        var total_tasks = (ulong) processed_events.Length;
-        
+        var total_tasks = (ulong)processed_events.Length;
+
         // Distribute sample processing to different threads.
         var task = Parallel.ForEachAsync(processed_events, async (processed_event, token) =>
         {
             processed_event.ProcessAudioData(SampleProcessor);
             await IndexLock.WaitAsync(token);
-            
+
             finished_tasks++;
             IndexReport(finished_tasks, total_tasks);
-            
+
             IndexLock.Release();
         });
 
@@ -196,12 +196,10 @@ public class PcmEncoder
 
         var mixer = new AudioMixer(audio_data);
         foreach (var sequence in events.Sequences)
+        foreach (var channel in sequence.SeparatedChannels)
         {
-            foreach (var channel in sequence.SeparatedChannels)
-            {
-                var new_track = AudioData<float>.WithLength(Channels, length);
-                mixer.AddTrack(channel, new_track);
-            }
+            var new_track = AudioData<float>.WithLength(Channels, length);
+            mixer.AddTrack(channel, new_track);
         }
 
         // Map channel tasks.

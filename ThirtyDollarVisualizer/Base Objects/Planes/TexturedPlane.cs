@@ -11,10 +11,10 @@ public class TexturedPlane : Renderable
     private static VertexArrayObject<float> Static_Vao = null!;
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
-    
+
     private static BufferObject<TexturedUniform>? UniformBuffer;
-    private TexturedUniform Uniform;
     protected Texture? _texture;
+    private TexturedUniform Uniform;
 
     public TexturedPlane(Texture texture, Vector3 position, Vector3 scale)
     {
@@ -26,7 +26,7 @@ public class TexturedPlane : Renderable
         Vao = Static_Vao;
         Vbo = Static_Vbo;
         Ebo = Static_Ebo;
-        
+
         Uniform = new TexturedUniform();
 
         Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
@@ -109,12 +109,11 @@ public class TexturedPlane : Renderable
         Uniform.Model = Model;
         Uniform.Projection = camera.GetProjectionMatrix();
         Uniform.DeltaAlpha = DeltaAlpha;
-        
-        Span<TexturedUniform> span = stackalloc TexturedUniform[] { Uniform };
+
+        Span<TexturedUniform> span = [Uniform];
         if (UniformBuffer is null)
-        {
-            UniformBuffer = new BufferObject<TexturedUniform>(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
-        }
+            UniformBuffer =
+                new BufferObject<TexturedUniform>(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
         else UniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
         GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, UniformBuffer.Handle);
     }

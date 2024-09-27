@@ -33,8 +33,8 @@ public class MainWindowViewModel : ViewModelBase
 
     public bool IsSequenceLocationGood = true;
     private int progress_bar_value;
-    private Sequence[]? sequences;
     private string? sequence_file_locations = "";
+    private Sequence[]? sequences;
 
     public MainWindowViewModel()
     {
@@ -71,7 +71,7 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref progress_bar_value, value);
     }
 
-    public ObservableCollection<string> Logs { get; } = new();
+    public ObservableCollection<string> Logs { get; } = [];
 
     public async void Select_SequenceFileLocation()
     {
@@ -79,12 +79,12 @@ public class MainWindowViewModel : ViewModelBase
         {
             new FilePickerFileType("Thirty Dollar Website Sequence")
             {
-                MimeTypes = new[] { "text/plain" },
-                Patterns = new[] { "*.🗿" }
+                MimeTypes = ["text/plain"],
+                Patterns = ["*.🗿"]
             },
             new FilePickerFileType("Any File")
             {
-                Patterns = new[] { "*.*" }
+                Patterns = ["*.*"]
             }
         };
         var open_file_dialog = await this.OpenFileDialogAsync("Select sequence files.", file_picker_types);
@@ -105,8 +105,8 @@ public class MainWindowViewModel : ViewModelBase
         {
             new FilePickerFileType("RIFF WAVE File")
             {
-                MimeTypes = new[] { "audio/wav" },
-                Patterns = new[] { "*.wav" }
+                MimeTypes = ["audio/wav"],
+                Patterns = ["*.wav"]
             }
         };
         var save_file_dialog = await this.SaveFileDialogAsync("Select export location.", file_picker_types);
@@ -123,10 +123,10 @@ public class MainWindowViewModel : ViewModelBase
             DownloadSamples();
             return;
         }
-        
+
         // hack that fixes a ghost element
         Logs.Clear();
-        
+
         CreateLog("All sounds are downloaded. Loading into memory.");
         sample_holder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");
@@ -149,8 +149,8 @@ public class MainWindowViewModel : ViewModelBase
         var current_time = DateTime.Now;
         var line = $"[{current_time:HH:mm:ss}] {message}";
         Console.WriteLine(line);
-        
-        lock (Logs) 
+
+        lock (Logs)
         {
             Logs.Add(line);
         }
@@ -204,8 +204,9 @@ public class MainWindowViewModel : ViewModelBase
             CreateLog("The selected export location is bad. Please select a new one.");
             return;
         }
-        
-        if (string.IsNullOrEmpty(ExportFileLocation) && IsSequenceLocationGood) ExportFileLocation = SequenceFileLocation + ".wav";
+
+        if (string.IsNullOrEmpty(ExportFileLocation) && IsSequenceLocationGood)
+            ExportFileLocation = SequenceFileLocation + ".wav";
 
         if (sequence_file_locations == export_file_location)
         {
@@ -276,7 +277,9 @@ public class MainWindowViewModel : ViewModelBase
             var gui_location = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
             gui_location =
                 gui_location.Replace(
-                    gui_location.Contains("ThirtyDollarConverter.GUI.exe") ? "ThirtyDollarConverter.GUI.exe" : "ThirtyDollarConverter.GUI", "");
+                    gui_location.Contains("ThirtyDollarConverter.GUI.exe")
+                        ? "ThirtyDollarConverter.GUI.exe"
+                        : "ThirtyDollarConverter.GUI", "");
 
             if (File.Exists($"{gui_location}/ThirtyDollarVisualizer"))
                 visualizer_filename = $"{gui_location}/ThirtyDollarVisualizer";

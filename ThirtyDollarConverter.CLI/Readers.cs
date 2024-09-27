@@ -29,7 +29,7 @@ public static class Readers
 
         return output;
     }
-    
+
     public struct SequenceFile
     {
         public string Location;

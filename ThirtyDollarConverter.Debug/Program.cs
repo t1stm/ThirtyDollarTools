@@ -1,7 +1,7 @@
 using ThirtyDollarConverter;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarConverter.CLI;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarApp;

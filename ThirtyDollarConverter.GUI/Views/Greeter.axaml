@@ -26,7 +26,8 @@
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top">
-            <Image Margin="0,20,0,0" Source="avares://ThirtyDollarConverter.GUI/Assets/moai.png" Width="150" Height="150"
+            <Image Margin="0,20,0,0" Source="avares://ThirtyDollarConverter.GUI/Assets/moai.png" Width="150"
+                   Height="150"
                    HorizontalAlignment="Center" VerticalAlignment="Top" />
             <TextBlock Margin="0,10" Text="Welcome!" VerticalAlignment="Top" HorizontalAlignment="Center" FontSize="24"
                        FontWeight="Bold" />

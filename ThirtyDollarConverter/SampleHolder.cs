@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -18,7 +17,7 @@ public class SampleHolder
     public const string DownloadSampleUrl = "https://thirtydollar.website/sounds";
 
     public static readonly string[] ActionsArray =
-    {
+    [
         "action_bg.png",
         "action_combine.png",
         "action_cut.png",
@@ -35,12 +34,12 @@ public class SampleHolder
         "action_target.png",
         "action_transpose.png",
         "action_volume.png"
-    };
+    ];
+
+    private static readonly char Slash = Path.DirectorySeparatorChar;
 
     public readonly ConcurrentDictionary<Sound, PcmDataHolder> SampleList = new();
     public Action<string, int, int>? DownloadUpdate = null;
-    
-    private static readonly char Slash = Path.DirectorySeparatorChar;
     public string DownloadLocation { get; init; } = $".{Slash}Sounds";
     public string ImagesLocation => $"{DownloadLocation}{Slash}Images";
 
@@ -69,7 +68,6 @@ public class SampleHolder
                 FileAccess.ReadWrite, FileShare.ReadWrite);
             await response.CopyToAsync(download_file_stream);
             await download_file_stream.FlushAsync();
-            await download_file_stream.DisposeAsync();
             download_file_stream.Close();
         }
         catch (Exception e)
@@ -87,11 +85,8 @@ public class SampleHolder
         if (sounds == null)
             throw new Exception(
                 "Loading Thirty Dollar Website Sounds failed with error: \'Deserialized contents of sounds.json are empty.\'");
-        
-        foreach (var sound in sounds)
-        {
-            SampleList.TryAdd(sound, new PcmDataHolder());
-        }
+
+        foreach (var sound in sounds) SampleList.TryAdd(sound, new PcmDataHolder());
     }
 
     /// <summary>
@@ -206,25 +201,25 @@ public class SampleHolder
         Parallel.ForEach(SampleList, r =>
         {
             var key = r.Key;
-            
+
             var file_stream = File.OpenRead($"{DownloadLocation}{Slash}{key.Id}.wav");
             var decoder = new WaveDecoder();
             SampleList[key] = decoder.Read(file_stream);
             SampleList[key].ReadAsFloat32Array(true);
         });
-        
+
         // creates a hash for all TDW sounds.
         var added_hash_set = SampleList
             .Select(r => r.Key.Filename ?? "")
             .ToHashSet();
-        
+
         // searches all files again and only adds custom ones.
         Parallel.ForEach(Directory.GetFiles(DownloadLocation), file =>
         {
             var filename = file.Split(Slash).Last();
             if (!filename.EndsWith(".wav")) return;
             var sound = filename.Replace(".wav", "");
-            
+
             if (added_hash_set.Contains(sound)) return;
 
             var sound_object = new Sound
@@ -232,9 +227,9 @@ public class SampleHolder
                 Id = sound,
                 Name = sound
             };
-            
+
             var file_stream = File.OpenRead($"{DownloadLocation}{Slash}{sound}.wav");
-            
+
             var decoder = new WaveDecoder();
             var holder = decoder.Read(file_stream);
             holder.ReadAsFloat32Array(true);

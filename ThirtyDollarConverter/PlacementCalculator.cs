@@ -15,9 +15,9 @@ internal enum EventType
 
 public class PlacementCalculator
 {
-    private static readonly string[] jump_untriggers = { "!loop", "!loopmany", "!jump", "!target" };
-    private static readonly string[] loop_untriggers = { "!loopmany", "!loop" };
-    private static readonly string[] loopmany_untriggers = { "!loopmany" };
+    private static readonly string[] jump_untriggers = ["!loop", "!loopmany", "!jump", "!target"];
+    private static readonly string[] loop_untriggers = ["!loopmany", "!loop"];
+    private static readonly string[] loopmany_untriggers = ["!loopmany"];
 
     /// <summary>
     ///     Creates a calculator that gets the placement of a sequence.
@@ -48,14 +48,12 @@ public class PlacementCalculator
     public IEnumerable<Placement> CalculateMany(IEnumerable<Sequence> sequences)
     {
         var list = new List<Placement>();
-        
+
         var last_end_index = 0ul;
         foreach (var sequence in sequences)
         {
-            var calculated = last_end_index == 0ul ? 
-                CalculateOne(sequence) : 
-                CalculateOne(sequence, last_end_index);
-            
+            var calculated = last_end_index == 0ul ? CalculateOne(sequence) : CalculateOne(sequence, last_end_index);
+
             var placements = calculated.ToList();
             var last = placements.Last();
             last_end_index = last.Index;
@@ -111,7 +109,7 @@ public class PlacementCalculator
                 var copy = ev.Copy();
                 var event_volume = copy.Volume ??= 100;
                 copy.WorkingVolume = global_volume * event_volume / 100d;
-                
+
                 copy.Value += transpose;
                 var placement = new Placement
                 {
@@ -171,13 +169,13 @@ public class PlacementCalculator
                             global_volume = ev.Value;
                             break;
                     }
-                    
+
                     if (global_volume < 0) global_volume = 0;
                     default_return = false;
-                    
+
                     var copy = ev.Copy();
                     copy.WorkingVolume = global_volume;
-                    
+
                     yield return new Placement
                     {
                         Index = position,
@@ -223,7 +221,7 @@ public class PlacementCalculator
                         ev.PlayTimes--;
 
                         modify_index = false;
-                        
+
                         yield return new Placement
                         {
                             Index = position,
@@ -231,7 +229,7 @@ public class PlacementCalculator
                             Event = ev.Copy(),
                             Audible = false
                         };
-                        
+
                         index = loop_target;
 
                         Untrigger(ref sequence, index, loopmany_untriggers);
@@ -344,7 +342,7 @@ public class PlacementCalculator
                     break;
                 }
             }
-            
+
             if (!scrubbing && default_return)
                 yield return new Placement
                 {
@@ -356,7 +354,7 @@ public class PlacementCalculator
             if (modify_index) index++;
             if (!scrubbing && increment_timer) position += (ulong)(SampleRate / (bpm / 60));
         }
-        
+
         yield return new Placement
         {
             Index = position,

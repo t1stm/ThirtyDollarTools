@@ -6,7 +6,7 @@ out vec4 color;
 layout (std140) uniform Data {
     mat4 u_Model;
     mat4 u_Projection;
-    
+
     vec4 u_Color;
     vec3 u_PositionPx;
     vec3 u_ScalePx;

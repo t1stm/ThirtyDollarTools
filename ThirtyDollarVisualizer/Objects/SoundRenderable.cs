@@ -12,12 +12,12 @@ public class SoundRenderable : TexturedPlane
     private readonly ExpandAnimation ExpandAnimation;
     private readonly FadeAnimation FadeAnimation;
     private readonly Memory<Animation> RenderableAnimations;
+    public bool IsDivider;
 
     public float Original_Y;
+    public TexturedPlane? Pan;
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
-    public TexturedPlane? Pan;
-    public bool IsDivider;
 
     public SoundRenderable(Texture texture, Vector3 position, Vector2 width_height) : base(texture, position,
         width_height)
@@ -27,15 +27,17 @@ public class SoundRenderable : TexturedPlane
         FadeAnimation = new FadeAnimation(() => { UpdateModel(false); });
         RenderableAnimations = new Animation[] { BounceAnimation, ExpandAnimation, FadeAnimation };
     }
-    
-    public SoundRenderable(Texture texture) : 
-        this(texture, Vector3.Zero, (texture.Width, texture.Height)) { }
+
+    public SoundRenderable(Texture texture) :
+        this(texture, Vector3.Zero, (texture.Width, texture.Height))
+    {
+    }
 
     public override void Render(Camera camera)
     {
         if (BounceAnimation.IsRunning || ExpandAnimation.IsRunning || FadeAnimation.IsRunning)
             UpdateModel(false, RenderableAnimations.Span);
-        
+
         base.Render(camera);
     }
 
@@ -48,7 +50,7 @@ public class SoundRenderable : TexturedPlane
     public void UpdateChildren()
     {
         Children.Clear();
-        
+
         AddChildIfNotNull(Value);
         AddChildIfNotNull(Volume);
         AddChildIfNotNull(Pan);
@@ -76,10 +78,7 @@ public class SoundRenderable : TexturedPlane
 
     public void ResetAnimations()
     {
-        foreach (var animation in RenderableAnimations.Span)
-        {
-            animation.Reset();
-        }
+        foreach (var animation in RenderableAnimations.Span) animation.Reset();
     }
 
     public void SetValue(BaseEvent _event, ConcurrentDictionary<string, Texture> generated_textures,
@@ -97,8 +96,10 @@ public class SoundRenderable : TexturedPlane
         if (_event.PlayTimes <= 0)
             texture = value_change_wrap_mode switch
             {
-                ValueChangeWrapMode.ResetToDefault => 
-                    generated_textures.TryGetValue(_event.OriginalLoop.ToString("0.##"), out var loop_texture) ? loop_texture : Texture.Transparent1x1,
+                ValueChangeWrapMode.ResetToDefault =>
+                    generated_textures.TryGetValue(_event.OriginalLoop.ToString("0.##"), out var loop_texture)
+                        ? loop_texture
+                        : Texture.Transparent1x1,
                 _ => null
             };
 
