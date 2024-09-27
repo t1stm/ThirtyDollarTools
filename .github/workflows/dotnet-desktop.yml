@@ -63,7 +63,7 @@ jobs:
       - name: Zip both projects together
         run: |
           cd bin/${{ matrix.platform }}
-          zip -r ../${{ matrix.platform }}-release.zip ThirtyDollarConverterGUI ThirtyDollarVisualizer
+          zip -r ../${{ matrix.platform }}-release.zip ./ThirtyDollarConverterGUI/* ./ThirtyDollarVisualizer/*
 
       # Upload the zipped release assets as artifacts
       - name: Upload release artifact
