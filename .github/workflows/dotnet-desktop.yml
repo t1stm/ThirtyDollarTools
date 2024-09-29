@@ -41,7 +41,7 @@ jobs:
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI
+            -o ./bin/${{ matrix.platform }}
 
       # Publish ThirtyDollarVisualizer project
       - name: Publish ThirtyDollarVisualizer
@@ -51,23 +51,17 @@ jobs:
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer
+            -o ./bin/${{ matrix.platform }}
 
       # Clean up unnecessary files before zipping
       - name: Clean up build artifacts
         run: |
-          rm -rf ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/*.dll ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/*.dylib ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/*.so ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/*.pdb ./bin/${{ matrix.platform }}/ThirtyDollarConverterGUI/runtimes
-          rm -rf ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.dll ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.dylib ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.so ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/*.pdb ./bin/${{ matrix.platform }}/ThirtyDollarVisualizer/runtimes
-
-      # Zip the executables of both projects together
-      - name: Zip both projects together
-        run: |
-          cd bin/${{ matrix.platform }}
-          zip -r ../${{ matrix.platform }}-release.zip ./ThirtyDollarConverterGUI/* ./ThirtyDollarVisualizer/*
+          cd "./bin/${{ matrix.platform }}"
+          rm -rf ./*.dll ./*.dylib ./*.so ./*.pdb ./runtimes
 
       # Upload the zipped release assets as artifacts
       - name: Upload release artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-release
-          path: bin/${{ matrix.platform }}-release.zip
+          path: bin/${{ matrix.platform }}
