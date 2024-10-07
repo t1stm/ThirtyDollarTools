@@ -92,7 +92,8 @@ public sealed class DollarStoreCamera : Camera
         Viewport = camera.Viewport;
         _position = camera.Position;
         projection_matrix = camera.GetProjectionMatrix();
-        SetRenderScale(camera.RenderScale);
+        RenderScale = camera.RenderScale;
+        Scale = camera.Scale;
     }
 
     protected override void SetMatrixValue(float left, float right, float bottom, float top)
