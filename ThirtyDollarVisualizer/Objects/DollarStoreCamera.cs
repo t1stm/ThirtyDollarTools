@@ -8,7 +8,7 @@ public sealed class DollarStoreCamera : Camera
     private readonly float _scrollSpeed;
     private Vector3 _offset = (0, 0, 0);
     private Vector3 _virtualPosition;
-    private DateTime LastScaleUpdate = DateTime.Now;
+    private long LastScaleUpdate = Stopwatch.GetTimestamp();
 
     public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport, float scroll_speed = 7.5f) : base(
         VirtualPosition, viewport)
@@ -52,7 +52,7 @@ public sealed class DollarStoreCamera : Camera
         stopwatch.Start();
 
         const float max_add_scale = .05f;
-        var now = LastScaleUpdate = DateTime.Now;
+        var now = LastScaleUpdate = Stopwatch.GetTimestamp();
         do
         {
             if (Disposing) return;

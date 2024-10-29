@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ThirtyDollarVisualizer.Helpers.Timing;
 
 public class SeekableStopwatch
@@ -6,8 +8,8 @@ public class SeekableStopwatch
     protected TimeSpan LastValue = TimeSpan.Zero;
 
     protected bool Running;
-    protected DateTime StartTime = DateTime.MinValue;
-    protected DateTime? StopTime;
+    protected long StartTime = long.MinValue;
+    protected long? StopTime;
 
     public TimeSpan Elapsed
     {
@@ -28,7 +30,7 @@ public class SeekableStopwatch
                 StopTime = null;
             }
 
-            var val = LastValue = current_time - StartTime;
+            var val = LastValue = Stopwatch.GetElapsedTime(StartTime, current_time);
 
             Lock.Release();
             return val;
@@ -38,15 +40,15 @@ public class SeekableStopwatch
     public long ElapsedMilliseconds => (long)Elapsed.TotalMilliseconds;
     public bool IsRunning => Running;
 
-    protected static DateTime GetCurrentTime()
+    protected static long GetCurrentTime()
     {
-        return DateTime.Now;
+        return Stopwatch.GetTimestamp();
     }
 
     public void Start()
     {
         if (Running) return;
-        if (StartTime == DateTime.MinValue)
+        if (StartTime == long.MinValue)
             Restart();
         Running = true;
     }
@@ -80,7 +82,7 @@ public class SeekableStopwatch
         Lock.Wait();
 
         Running = false;
-        StopTime = DateTime.Now;
+        StopTime = Stopwatch.GetTimestamp();
 
         Lock.Release();
     }
@@ -93,7 +95,7 @@ public class SeekableStopwatch
         LastValue = wanted_time;
 
         var current = GetCurrentTime();
-        var delta_time = current - wanted_time;
+        var delta_time = current - wanted_time.Ticks * Stopwatch.Frequency / 10000000;
         StartTime = delta_time;
 
         if (StopTime != null) StopTime = current;

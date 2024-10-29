@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -261,11 +262,11 @@ public class PcmEncoder
 
             if (start > length) return ValueTask.CompletedTask;
 
-            var start_time = DateTime.Now;
+            var start_time = Stopwatch.GetTimestamp();
             ProcessChunk(start, end, mixer, channel, events, processed_events, biggest_event_length);
-            var end_time = DateTime.Now;
+            var delta = Stopwatch.GetElapsedTime(start_time);
             Log(
-                $@"Processed chunk i: {i} in {end_time - start_time:ss\.ffff} s. Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
+                $@"Processed chunk i: {i} in {delta:ss\.ffff} s. Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
 
             return ValueTask.CompletedTask;
         });
