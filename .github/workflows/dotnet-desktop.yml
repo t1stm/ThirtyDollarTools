@@ -16,7 +16,7 @@ jobs:
       matrix:
         platform: [linux-x64, win-x64, osx-x64, osx-arm64]
         include:
-          - net_version: "net8.0"
+          - net_version: "net9.0"
     
     steps:
       # Checkout the repository
@@ -27,7 +27,7 @@ jobs:
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.x'
+          dotnet-version: '9.x'
 
       # Create directories for the build outputs
       - name: Create release directories
