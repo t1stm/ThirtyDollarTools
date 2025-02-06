@@ -479,10 +479,10 @@ public class PcmEncoder
     /// <param name="data_length">Length of the audio data.</param>
     private void AddWavHeader<T>(BinaryWriter writer, int data_length) where T : struct
     {
-        ReadOnlySpan<char> riff_header = stackalloc char[] { 'R', 'I', 'F', 'F' };
-        ReadOnlySpan<char> wave_header = stackalloc char[] { 'W', 'A', 'V', 'E' };
-        ReadOnlySpan<char> fmt_header = stackalloc char[] { 'f', 'm', 't', ' ' };
-        ReadOnlySpan<char> data_header = stackalloc char[] { 'd', 'a', 't', 'a' };
+        ReadOnlySpan<char> riff_header = ['R', 'I', 'F', 'F'];
+        ReadOnlySpan<char> wave_header = ['W', 'A', 'V', 'E'];
+        ReadOnlySpan<char> fmt_header = ['f', 'm', 't', ' '];
+        ReadOnlySpan<char> data_header = ['d', 'a', 't', 'a'];
 
         var is_float = typeof(T) == typeof(float) || typeof(T) == typeof(double);
         var byte_size = Marshal.SizeOf<T>();

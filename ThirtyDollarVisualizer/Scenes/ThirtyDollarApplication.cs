@@ -66,9 +66,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private ColoredPlane FlashOverlay = null!;
     private int Height;
 
-    // This is a hack because I am lazy
-    private bool is_first_time_scale = true;
-
     // These are needed for some events, because I don't want to pollute the placement events. They're polluted enough as they are.
     private float LastBPM = 300f;
     private Manager Manager = null!;

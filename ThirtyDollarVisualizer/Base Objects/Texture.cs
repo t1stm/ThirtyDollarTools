@@ -79,10 +79,10 @@ public class Texture : IDisposable
     {
         var options = new TextOptions(font)
         {
-            FallbackFontFamilies = new[]
-            {
+            FallbackFontFamilies =
+            [
                 Fonts.GetEmojiFamily()
-            }
+            ]
         };
         var rect = TextMeasurer.MeasureAdvance(text, options);
 

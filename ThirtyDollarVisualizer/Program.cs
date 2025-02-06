@@ -97,7 +97,7 @@ public static class Program
         if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
-        var tdw_application = new ThirtyDollarApplication(width, height, new[] { sequence }, settings, audio_context)
+        var tdw_application = new ThirtyDollarApplication(width, height, [sequence], settings, audio_context)
         {
             CameraFollowMode = follow_mode,
             Scale = scale ?? 1f,
