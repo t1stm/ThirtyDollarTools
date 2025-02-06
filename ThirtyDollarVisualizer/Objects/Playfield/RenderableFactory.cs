@@ -6,6 +6,8 @@ using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Helpers.Textures;
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -16,10 +18,10 @@ namespace ThirtyDollarVisualizer.Objects;
 /// <param name="font_family">The current font family.</param>
 public class RenderableFactory(PlayfieldSettings settings, FontFamily font_family)
 {
-    private readonly ConcurrentDictionary<string, Texture> CustomValues = new();
-    private readonly ConcurrentDictionary<string, Texture> GeneratedSmallTextures = new();
-    private readonly ConcurrentDictionary<string, Texture> GeneratedTextures = new();
-    private readonly ConcurrentDictionary<string, Texture> MissingValues = new();
+    private readonly ConcurrentDictionary<string, AbstractTexture> CustomValues = new();
+    private readonly ConcurrentDictionary<string, AbstractTexture> GeneratedSmallTextures = new();
+    private readonly ConcurrentDictionary<string, AbstractTexture> GeneratedTextures = new();
+    private readonly ConcurrentDictionary<string, AbstractTexture> MissingValues = new();
 
     /// <summary>
     ///     The given font used for value textures.
@@ -82,7 +84,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         var text = $"{event_name}";
 
         if (base_event.Value != 0) text += $"@{base_event.Value}";
-        var texture = MissingValues.GetOrAdd(text, name => new Texture(ValueFont, name));
+        var texture = MissingValues.GetOrAdd(text, name => new FontTexture(ValueFont, name));
         return new TexturedPlane(texture);
     }
 
@@ -109,7 +111,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
             _ => value
         };
 
-        Texture? value_texture = null;
+        AbstractTexture? value_texture = null;
 
         // handles value textures for events that require custom values
         switch (base_event)
@@ -129,8 +131,8 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                         cut_sounds.Where(r => File.Exists($"{settings.DownloadLocation}/Images/{r}.png"));
 
                     var textures = available_textures
-                        .Select(t => new Texture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
-                    return new Texture(textures, 2, settings.ValueFontSize);
+                        .Select(t => new StaticTexture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
+                    return new IconFlexTexture(textures, 2, settings.ValueFontSize);
                 });
 
                 break;
@@ -157,7 +159,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
 
                 // gets if already exists a texture for the current value, or creates a new one
                 value_texture =
-                    CustomValues.GetOrAdd(texture_id, _ => new Texture(ValueFont, new Rgba32(r, g, b, a), value));
+                    CustomValues.GetOrAdd(texture_id, _ => new CircleTexture(ValueFont, new Rgba32(r, g, b, a), value));
                 break;
             }
 
@@ -188,7 +190,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         // continues getting or generating a value texture if not set before this check
         if ((value_texture == null && base_event.Value != 0 && base_event.SoundEvent is not "_pause") ||
             base_event.SoundEvent is "!transpose")
-            value_texture = GeneratedTextures.GetOrAdd(value, _ => new Texture(ValueFont, value));
+            value_texture = GeneratedTextures.GetOrAdd(value, _ => new FontTexture(ValueFont, value));
 
         // returns a new value texture plane
         return value_texture is null ? null : new TexturedPlane(value_texture);
@@ -207,7 +209,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         var volume_text = volume.ToString("0.#") + "%";
 
         var volume_texture =
-            GeneratedSmallTextures.GetOrAdd(volume_text, _ => new Texture(VolumeFont, volume_text, VolumeColor));
+            GeneratedSmallTextures.GetOrAdd(volume_text, _ => new FontTexture(VolumeFont, volume_text, VolumeColor));
         return new TexturedPlane(volume_texture);
     }
 
@@ -240,7 +242,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         }
 
         // gets or generates a new texture
-        var pan_texture = GeneratedSmallTextures.GetOrAdd(pan_text, _ => new Texture(VolumeFont, pan_text));
+        var pan_texture = GeneratedSmallTextures.GetOrAdd(pan_text, _ => new FontTexture(VolumeFont, pan_text));
         return new TexturedPlane(pan_texture);
     }
 }

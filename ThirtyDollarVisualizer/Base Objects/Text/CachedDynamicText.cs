@@ -1,6 +1,8 @@
 using OpenTK.Mathematics;
 using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects.Text;
 
@@ -48,7 +50,7 @@ public class CachedDynamicText : Renderable, IText
     {
         NewLineIndices.Clear();
         var cache = Fonts.GetCharacterCache();
-        var textures_array = new Texture[text.Length];
+        var textures_array = new AbstractTexture[text.Length];
         var real_i = 0;
 
         for (var i = 0; i < text.Length; i++)
@@ -75,7 +77,7 @@ public class CachedDynamicText : Renderable, IText
             {
                 TexturedPlanes = new TexturedPlane[textures.Length];
                 for (var index = 0; index < TexturedPlanes.Length; index++)
-                    TexturedPlanes[index] = new TexturedPlane(Texture.Transparent1x1,
+                    TexturedPlanes[index] = new TexturedPlane(StaticTexture.Transparent1x1,
                         (0, 0, 0), (1, 1));
             }
 

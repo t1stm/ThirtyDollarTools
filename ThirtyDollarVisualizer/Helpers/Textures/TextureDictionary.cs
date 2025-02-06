@@ -1,15 +1,16 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Objects.Textures;
 
 namespace ThirtyDollarVisualizer.Helpers.Textures;
 
 public static class TextureDictionary
 {
-    private static Texture? MissingTexture;
-    private static Texture? ICutTexture;
+    private static AssetTexture? MissingTexture;
+    private static AssetTexture? ICutTexture;
 
-    private static readonly ConcurrentDictionary<string, Texture> Dictionary = new();
+    private static readonly ConcurrentDictionary<string, AssetTexture> Dictionary = new();
 
     public static void Clear()
     {
@@ -21,31 +22,31 @@ public static class TextureDictionary
         return File.Exists(path) || Assembly.GetExecutingAssembly().GetManifestResourceInfo(path) is not null;
     }
 
-    private static Texture LoadAsset(string path)
+    private static AssetTexture LoadAsset(string path)
     {
         if (!Exists(path)) throw new FileNotFoundException($"Asset with location: '{path}' not found.");
-        return new Texture(path);
+        return new AssetTexture(path);
     }
 
-    public static Texture? GetAsset(string path)
+    public static AssetTexture? GetAsset(string path)
     {
         return Exists(path) ? Dictionary.GetOrAdd(path, LoadAsset) : null;
     }
 
-    public static Texture? GetDownloadedAsset(string location, string name)
+    public static AssetTexture? GetDownloadedAsset(string location, string name)
     {
         var image = $"{location}/Images/" + name.Replace("!", "action_") + ".png";
         return GetAsset(image);
     }
 
-    public static Texture GetMissingTexture()
+    public static AssetTexture GetMissingTexture()
     {
         return MissingTexture ??=
             GetAsset("ThirtyDollarVisualizer.Assets.Textures.action_missing.png") ??
             throw new Exception("The missing event texture is missing in the assembly.");
     }
 
-    public static Texture GetICutEventTexture()
+    public static AssetTexture GetICutEventTexture()
     {
         return ICutTexture ??=
             GetAsset("ThirtyDollarVisualizer.Assets.Textures.action_icut.png") ??

@@ -1,6 +1,8 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Objects.Planes.Uniforms;
+using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects.Planes;
@@ -13,10 +15,10 @@ public class TexturedPlane : Renderable
     private static BufferObject<uint> Static_Ebo = null!;
 
     private static BufferObject<TexturedUniform>? UniformBuffer;
-    protected Texture? _texture;
+    protected AbstractTexture? _texture;
     private TexturedUniform Uniform;
 
-    public TexturedPlane(Texture texture, Vector3 position, Vector3 scale)
+    public TexturedPlane(AbstractTexture texture, Vector3 position, Vector3 scale)
     {
         _position = new Vector3(position);
         _scale = scale;
@@ -36,15 +38,15 @@ public class TexturedPlane : Renderable
         _texture = texture;
     }
 
-    public TexturedPlane() : this(Texture.Transparent1x1, Vector3.Zero, Vector2.One)
+    public TexturedPlane() : this(StaticTexture.Transparent1x1, Vector3.Zero, Vector2.One)
     {
     }
 
-    public TexturedPlane(Texture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
+    public TexturedPlane(AbstractTexture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
     {
     }
 
-    public TexturedPlane(Texture texture, Vector3 position, Vector2 scale) :
+    public TexturedPlane(AbstractTexture texture, Vector3 position, Vector2 scale) :
         this(texture, position, new Vector3(scale))
     {
     }
@@ -90,9 +92,9 @@ public class TexturedPlane : Renderable
             Vao.Bind();
             Ebo.Bind();
 
-            var texture = _texture ?? Texture.Transparent1x1;
+            var texture = _texture ?? StaticTexture.Transparent1x1;
 
-            if (texture.NeedsLoading()) texture.LoadOpenGLTexture();
+            if (texture.NeedsUploading()) texture.UploadToGPU();
 
             texture.Bind();
             Shader.Use();
@@ -122,7 +124,7 @@ public class TexturedPlane : Renderable
     {
     }
 
-    public void SetTexture(Texture? texture)
+    public void SetTexture(AbstractTexture? texture)
     {
         lock (LockObject)
         {
@@ -130,7 +132,7 @@ public class TexturedPlane : Renderable
         }
     }
 
-    public Texture? GetTexture()
+    public AbstractTexture? GetTexture()
     {
         return _texture;
     }

@@ -4,6 +4,8 @@ using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Text;
+using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -12,7 +14,7 @@ public class Playfield(PlayfieldSettings settings)
     /// <summary>
     ///     Dictionary containing all decreasing value events' textures for this playfield.
     /// </summary>
-    public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
+    public readonly ConcurrentDictionary<string, AbstractTexture> DecreasingValuesCache = new();
 
     private readonly List<float> DividerPositions_Y = [];
 
@@ -113,12 +115,12 @@ public class Playfield(PlayfieldSettings settings)
             for (var val = textures; val >= 0; val--)
             {
                 var search = val.ToString("0.##");
-                DecreasingValuesCache.GetOrAdd(search, _ => new Texture(factory.ValueFont, search));
+                DecreasingValuesCache.GetOrAdd(search, _ => new FontTexture(factory.ValueFont, search));
             }
         }
 
         // add default 0 texture
-        DecreasingValuesCache.GetOrAdd("0", _ => new Texture(factory.ValueFont, "0"));
+        DecreasingValuesCache.GetOrAdd("0", _ => new FontTexture(factory.ValueFont, "0"));
 
         // sets objects to be used by the render method
         Objects = sounds;

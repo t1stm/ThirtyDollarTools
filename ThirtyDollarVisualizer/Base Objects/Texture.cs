@@ -112,6 +112,7 @@ public class Texture : IDisposable
 
         texture_data = new Image<Rgba32>(circle_texture.Width + 5 + text_texture.Width,
             text_texture.Height, Color.Transparent);
+        
         texture_data.Mutate(x => x
             .DrawImage(circle_texture, new Point(1, 1), 1f)
             .Brightness(0.2f)

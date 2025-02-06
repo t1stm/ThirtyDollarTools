@@ -3,6 +3,8 @@ using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -19,7 +21,7 @@ public class SoundRenderable : TexturedPlane
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
 
-    public SoundRenderable(Texture texture, Vector3 position, Vector2 width_height) : base(texture, position,
+    public SoundRenderable(AbstractTexture texture, Vector3 position, Vector2 width_height) : base(texture, position,
         width_height)
     {
         BounceAnimation = new BounceAnimation(() => { UpdateModel(false); });
@@ -28,7 +30,7 @@ public class SoundRenderable : TexturedPlane
         RenderableAnimations = new Animation[] { BounceAnimation, ExpandAnimation, FadeAnimation };
     }
 
-    public SoundRenderable(Texture texture) :
+    public SoundRenderable(AbstractTexture texture) :
         this(texture, Vector3.Zero, (texture.Width, texture.Height))
     {
     }
@@ -81,7 +83,7 @@ public class SoundRenderable : TexturedPlane
         foreach (var animation in RenderableAnimations.Span) animation.Reset();
     }
 
-    public void SetValue(BaseEvent _event, ConcurrentDictionary<string, Texture> generated_textures,
+    public void SetValue(BaseEvent _event, ConcurrentDictionary<string, AbstractTexture> generated_textures,
         ValueChangeWrapMode value_change_wrap_mode)
     {
         if (Value is null) return;
@@ -91,7 +93,7 @@ public class SoundRenderable : TexturedPlane
 
         var old_texture = Value.GetTexture();
         var found_texture = generated_textures.TryGetValue(_event.PlayTimes.ToString("0.##"), out var texture);
-        if (!found_texture) texture = Texture.Transparent1x1;
+        if (!found_texture) texture = StaticTexture.Transparent1x1;
 
         if (_event.PlayTimes <= 0)
             texture = value_change_wrap_mode switch
@@ -99,7 +101,7 @@ public class SoundRenderable : TexturedPlane
                 ValueChangeWrapMode.ResetToDefault =>
                     generated_textures.TryGetValue(_event.OriginalLoop.ToString("0.##"), out var loop_texture)
                         ? loop_texture
-                        : Texture.Transparent1x1,
+                        : StaticTexture.Transparent1x1,
                 _ => null
             };
 
