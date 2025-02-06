@@ -1,4 +1,3 @@
-using System.Reflection;
 using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -8,9 +7,9 @@ using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects.Textures;
 
-public class AssetTexture : AbstractTexture
+public class AssetTexture : Texture
 {
-    private readonly AbstractTexture Texture;
+    private readonly Texture Texture;
     
     public AssetTexture(string path)
     {
@@ -32,9 +31,9 @@ public class AssetTexture : AbstractTexture
         return Texture.NeedsUploading();
     }
 
-    public override void Preload()
+    public override void Update()
     {
-        Texture.Preload();
+        Texture.Update();
     }
 
     public override void UploadToGPU()

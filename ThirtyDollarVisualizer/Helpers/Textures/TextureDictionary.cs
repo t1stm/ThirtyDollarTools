@@ -19,7 +19,24 @@ public static class TextureDictionary
 
     private static bool Exists(string path)
     {
-        return File.Exists(path) || Assembly.GetExecutingAssembly().GetManifestResourceInfo(path) is not null;
+        if (!path.Contains('*'))
+            return File.Exists(path) ||
+                   Assembly.GetExecutingAssembly().GetManifestResourceInfo(path) is not null;
+        
+        var directory = Path.GetDirectoryName(path);
+        if (string.IsNullOrEmpty(directory))
+        {
+            directory = Directory.GetCurrentDirectory();
+        }
+
+        var searchPattern = Path.GetFileName(path);
+        if (string.IsNullOrEmpty(searchPattern))
+        {
+            throw new ArgumentException("Invalid pattern; no file name specified.", nameof(path));
+        }
+
+        var files = Directory.GetFiles(directory, searchPattern);
+        return files.Length > 0;
     }
 
     private static AssetTexture LoadAsset(string path)
@@ -35,7 +52,7 @@ public static class TextureDictionary
 
     public static AssetTexture? GetDownloadedAsset(string location, string name)
     {
-        var image = $"{location}/Images/" + name.Replace("!", "action_") + ".png";
+        var image = $"{location}/Images/" + name.Replace("!", "action_") + ".*";
         return GetAsset(image);
     }
 

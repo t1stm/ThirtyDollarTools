@@ -5,13 +5,14 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ThirtyDollarVisualizer.Objects.Textures.Animated;
 
-public class AnimatedTexture(Image<Rgba32>? rgba) : AbstractTexture
+public class AnimatedTexture(Image<Rgba32>? rgba) : Texture
 {
     protected Image<Rgba32>? image = rgba;
     protected AnimatedHandle[]? gpu_handles;
     protected float TotalLength;
     protected readonly Stopwatch Stopwatch = new();
-    
+    private AnimatedHandle? texture_handle;
+
     public override bool NeedsUploading()
     {
         return gpu_handles == null;
@@ -52,17 +53,18 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : AbstractTexture
         TotalLength = length;
         image.Dispose();
         image = null;
+        
+        Stopwatch.Start();
     }
 
-    public override void Bind(TextureUnit slot = TextureUnit.Texture0)
+    public override void Update()
     {
         if (gpu_handles == null) return;
-        Stopwatch.Start();
         
         var elapsed = Stopwatch.ElapsedMilliseconds;
         var animation_window = elapsed % TotalLength;
 
-        var texture_handle = gpu_handles[0];
+        texture_handle = gpu_handles[0];
         var current = 0f;
         
         foreach (var handle in gpu_handles.AsSpan())
@@ -71,21 +73,27 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : AbstractTexture
             if (animation_window < current) break;
             texture_handle = handle;
         }
+    }
+
+    public override void Bind(TextureUnit slot = TextureUnit.Texture0)
+    {
+        if (gpu_handles == null) return;
+        var handle = texture_handle ?? gpu_handles[0];
         
         GL.ActiveTexture(slot);
-        BindPrimitive(texture_handle.Handle);
+        BindPrimitive(handle.Handle);
     }
 
     private static float? TryGetFrameDelay(ImageFrame frame)
     {
         if (frame.Metadata.TryGetGifMetadata(out var gif))
-            return gif.FrameDelay * 10f;
+            return gif.FrameDelay * 100f;
         
         if (frame.Metadata.TryGetPngMetadata(out var png))
-            return png.FrameDelay.ToSingle() * 10f;
+            return png.FrameDelay.ToSingle() * 100f;
 
         if (frame.Metadata.TryGetWebpFrameMetadata(out var webp))
-            return webp.FrameDelay;
+            return webp.FrameDelay * 1000f;
         
         return null;
     }

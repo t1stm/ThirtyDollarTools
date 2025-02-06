@@ -15,10 +15,10 @@ public class TexturedPlane : Renderable
     private static BufferObject<uint> Static_Ebo = null!;
 
     private static BufferObject<TexturedUniform>? UniformBuffer;
-    protected AbstractTexture? _texture;
+    protected Texture? _texture;
     private TexturedUniform Uniform;
 
-    public TexturedPlane(AbstractTexture texture, Vector3 position, Vector3 scale)
+    public TexturedPlane(Texture texture, Vector3 position, Vector3 scale)
     {
         _position = new Vector3(position);
         _scale = scale;
@@ -42,11 +42,11 @@ public class TexturedPlane : Renderable
     {
     }
 
-    public TexturedPlane(AbstractTexture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
+    public TexturedPlane(Texture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
     {
     }
 
-    public TexturedPlane(AbstractTexture texture, Vector3 position, Vector2 scale) :
+    public TexturedPlane(Texture texture, Vector3 position, Vector2 scale) :
         this(texture, position, new Vector3(scale))
     {
     }
@@ -94,8 +94,10 @@ public class TexturedPlane : Renderable
 
             var texture = _texture ?? StaticTexture.Transparent1x1;
 
-            if (texture.NeedsUploading()) texture.UploadToGPU();
+            if (texture.NeedsUploading()) 
+                texture.UploadToGPU();
 
+            texture.Update();
             texture.Bind();
             Shader.Use();
             SetShaderUniforms(camera);
@@ -124,7 +126,7 @@ public class TexturedPlane : Renderable
     {
     }
 
-    public void SetTexture(AbstractTexture? texture)
+    public void SetTexture(Texture? texture)
     {
         lock (LockObject)
         {
@@ -132,7 +134,7 @@ public class TexturedPlane : Renderable
         }
     }
 
-    public AbstractTexture? GetTexture()
+    public Texture? GetTexture()
     {
         return _texture;
     }

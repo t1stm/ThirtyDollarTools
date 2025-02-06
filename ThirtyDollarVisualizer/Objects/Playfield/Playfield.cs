@@ -14,7 +14,7 @@ public class Playfield(PlayfieldSettings settings)
     /// <summary>
     ///     Dictionary containing all decreasing value events' textures for this playfield.
     /// </summary>
-    public readonly ConcurrentDictionary<string, AbstractTexture> DecreasingValuesCache = new();
+    public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
 
     private readonly List<float> DividerPositions_Y = [];
 

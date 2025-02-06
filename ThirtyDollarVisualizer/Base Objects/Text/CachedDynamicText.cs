@@ -50,7 +50,7 @@ public class CachedDynamicText : Renderable, IText
     {
         NewLineIndices.Clear();
         var cache = Fonts.GetCharacterCache();
-        var textures_array = new AbstractTexture[text.Length];
+        var textures_array = new Texture[text.Length];
         var real_i = 0;
 
         for (var i = 0; i < text.Length; i++)

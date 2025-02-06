@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ThirtyDollarVisualizer.Objects.Textures.Static;
 
-public class StaticTexture(Image<Rgba32>? rgba) : AbstractTexture
+public class StaticTexture(Image<Rgba32>? rgba) : Texture
 {
     public static StaticTexture Transparent1x1 = new(new Image<Rgba32>(1,1));
     

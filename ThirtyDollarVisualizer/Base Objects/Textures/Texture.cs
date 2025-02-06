@@ -4,14 +4,14 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ThirtyDollarVisualizer.Objects.Textures;
 
-public abstract class AbstractTexture: IDisposable
+public abstract class Texture: IDisposable
 {
     public int Width { get; protected set; }
     public int Height { get; protected set; }
     
     public abstract bool NeedsUploading();
 
-    public virtual void Preload()
+    public virtual void Update()
     {
         // Override if needed.
     }
