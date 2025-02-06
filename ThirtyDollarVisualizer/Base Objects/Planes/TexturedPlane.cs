@@ -96,8 +96,7 @@ public class TexturedPlane : Renderable
 
             if (texture.NeedsUploading()) 
                 texture.UploadToGPU();
-
-            texture.Update();
+            
             texture.Bind();
             Shader.Use();
             SetShaderUniforms(camera);

@@ -1,10 +1,12 @@
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Text;
 using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Animated;
 using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
@@ -34,6 +36,7 @@ public class Playfield(PlayfieldSettings settings)
     public bool DisplayCenter = true;
     private bool FirstPosition = true;
     public Memory<PlayfieldLine> Lines = Memory<PlayfieldLine>.Empty;
+    private List<AnimatedTexture> AnimatedTextures = [];
 
     /// <summary>
     ///     Contains all sound renderables.
@@ -50,6 +53,9 @@ public class Playfield(PlayfieldSettings settings)
 
         // creates a new renderable factory
         var factory = new RenderableFactory(settings, Fonts.GetFontFamily());
+        
+        // clear animated texture update cache
+        AnimatedTextures.Clear();
 
         // using multiple threads to make each of the renderables
         await Parallel.ForAsync(0, events.Length, (i, token) =>
@@ -67,6 +73,15 @@ public class Playfield(PlayfieldSettings settings)
 
             // creates the renderable for the current index
             sounds[i] = factory.CookUp(base_event); // very funny i know
+            if (sounds[i] == null)
+                return ValueTask.CompletedTask;
+            
+            var texture = sounds[i]!.GetTexture();
+            if (texture is AnimatedTexture animated_texture)
+            {
+                AnimatedTextures.Add(animated_texture);
+            }
+            
             return ValueTask.CompletedTask;
         });
 
@@ -180,6 +195,12 @@ public class Playfield(PlayfieldSettings settings)
 
     public void Render(DollarStoreCamera real_camera, float zoom, float update_delta)
     {
+        // firstly update animated textures
+        foreach (var texture in CollectionsMarshal.AsSpan(AnimatedTextures))
+        {
+            texture.Update();
+        }
+        
         // avoid doing modifications to the main camera
         TemporaryCamera.CopyFrom(real_camera);
 
