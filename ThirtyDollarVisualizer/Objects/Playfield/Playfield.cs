@@ -17,7 +17,9 @@ public class Playfield(PlayfieldSettings settings)
     ///     Dictionary containing all decreasing value events' textures for this playfield.
     /// </summary>
     public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
-
+    
+    private readonly HashSet<AssetTexture> AnimatedTextures = [];
+    
     private readonly List<float> DividerPositions_Y = [];
 
     private readonly LayoutHandler LayoutHandler = new(settings.SoundSize * settings.RenderScale,
@@ -36,7 +38,6 @@ public class Playfield(PlayfieldSettings settings)
     public bool DisplayCenter = true;
     private bool FirstPosition = true;
     public Memory<PlayfieldLine> Lines = Memory<PlayfieldLine>.Empty;
-    private List<AnimatedTexture> AnimatedTextures = [];
 
     /// <summary>
     ///     Contains all sound renderables.
@@ -73,15 +74,6 @@ public class Playfield(PlayfieldSettings settings)
 
             // creates the renderable for the current index
             sounds[i] = factory.CookUp(base_event); // very funny i know
-            if (sounds[i] == null)
-                return ValueTask.CompletedTask;
-            
-            var texture = sounds[i]!.GetTexture();
-            if (texture is AnimatedTexture animated_texture)
-            {
-                AnimatedTextures.Add(animated_texture);
-            }
-            
             return ValueTask.CompletedTask;
         });
 
@@ -94,6 +86,13 @@ public class Playfield(PlayfieldSettings settings)
         {
             var sound = sounds[i];
             if (sound is null) continue;
+            
+            // add the sound's texture to a cache if animated
+            var texture = sound.GetTexture();
+            if (texture is AssetTexture { IsAnimated: true } asset_texture)
+            {
+                AnimatedTextures.Add(asset_texture);
+            }
 
             PositionSound(LayoutHandler, in sound);
 
@@ -195,8 +194,8 @@ public class Playfield(PlayfieldSettings settings)
 
     public void Render(DollarStoreCamera real_camera, float zoom, float update_delta)
     {
-        // firstly update animated textures
-        foreach (var texture in CollectionsMarshal.AsSpan(AnimatedTextures))
+        // update animated textures
+        foreach (var texture in AnimatedTextures)
         {
             texture.Update();
         }
@@ -243,7 +242,7 @@ public class Playfield(PlayfieldSettings settings)
 
         // disabling dumb resharper errors
         // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
-        foreach (var position in DividerPositions_Y)
+        foreach (var position in CollectionsMarshal.AsSpan(DividerPositions_Y))
         {
             if (position <= camera_y + size_renderable)
                 top_camera_dividers++;

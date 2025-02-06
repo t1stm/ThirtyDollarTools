@@ -53,13 +53,12 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : Texture
         TotalLength = length;
         image.Dispose();
         image = null;
-        
-        Stopwatch.Start();
     }
 
     public override void Update()
     {
         if (gpu_handles == null) return;
+        Stopwatch.Start();
         
         var elapsed = Stopwatch.ElapsedMilliseconds;
         var animation_window = elapsed % TotalLength;
@@ -93,7 +92,7 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : Texture
             return png.FrameDelay.ToSingle() * 100f;
 
         if (frame.Metadata.TryGetWebpFrameMetadata(out var webp))
-            return webp.FrameDelay * 1000f;
+            return webp.FrameDelay;
         
         return null;
     }
