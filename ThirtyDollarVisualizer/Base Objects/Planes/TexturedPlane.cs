@@ -1,6 +1,8 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Objects.Planes.Uniforms;
+using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects.Planes;
@@ -36,7 +38,7 @@ public class TexturedPlane : Renderable
         _texture = texture;
     }
 
-    public TexturedPlane() : this(Texture.Transparent1x1, Vector3.Zero, Vector2.One)
+    public TexturedPlane() : this(StaticTexture.Transparent1x1, Vector3.Zero, Vector2.One)
     {
     }
 
@@ -90,10 +92,11 @@ public class TexturedPlane : Renderable
             Vao.Bind();
             Ebo.Bind();
 
-            var texture = _texture ?? Texture.Transparent1x1;
+            var texture = _texture ?? StaticTexture.Transparent1x1;
 
-            if (texture.NeedsLoading()) texture.LoadOpenGLTexture();
-
+            if (texture.NeedsUploading()) 
+                texture.UploadToGPU();
+            
             texture.Bind();
             Shader.Use();
             SetShaderUniforms(camera);

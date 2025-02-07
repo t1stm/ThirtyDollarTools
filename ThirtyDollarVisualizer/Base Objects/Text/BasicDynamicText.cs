@@ -1,4 +1,5 @@
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects.Text;
 
@@ -13,7 +14,7 @@ public class BasicDynamicText : CachedDynamicText
 
     public override void Render(Camera camera)
     {
-        StaticPlane ??= new TexturedPlane(Texture.Transparent1x1, (0, 0, 0), (1, 1, 1));
+        StaticPlane ??= new TexturedPlane(StaticTexture.Transparent1x1, (0, 0, 0), (1, 1, 1));
 
         var text = _value;
         var x = _position.X;

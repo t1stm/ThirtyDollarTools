@@ -3,6 +3,8 @@ using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -91,7 +93,7 @@ public class SoundRenderable : TexturedPlane
 
         var old_texture = Value.GetTexture();
         var found_texture = generated_textures.TryGetValue(_event.PlayTimes.ToString("0.##"), out var texture);
-        if (!found_texture) texture = Texture.Transparent1x1;
+        if (!found_texture) texture = StaticTexture.Transparent1x1;
 
         if (_event.PlayTimes <= 0)
             texture = value_change_wrap_mode switch
@@ -99,7 +101,7 @@ public class SoundRenderable : TexturedPlane
                 ValueChangeWrapMode.ResetToDefault =>
                     generated_textures.TryGetValue(_event.OriginalLoop.ToString("0.##"), out var loop_texture)
                         ? loop_texture
-                        : Texture.Transparent1x1,
+                        : StaticTexture.Transparent1x1,
                 _ => null
             };
 

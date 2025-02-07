@@ -1,5 +1,6 @@
 using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects.Text;
 
@@ -32,7 +33,7 @@ public class StaticText(FontFamily? font_family = null) : TexturedPlane, IText
         var family = font_family ?? Fonts.GetFontFamily();
         var font = family.CreateFont(FontSizePx, FontStyle);
 
-        var texture = new Texture(font, text);
+        var texture = new FontTexture(font, text);
         SetTexture(texture);
         SetScale((texture.Width, texture.Height, 1));
     }

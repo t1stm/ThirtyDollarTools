@@ -1,9 +1,13 @@
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Text;
+using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Objects.Textures.Animated;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -13,7 +17,9 @@ public class Playfield(PlayfieldSettings settings)
     ///     Dictionary containing all decreasing value events' textures for this playfield.
     /// </summary>
     public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
-
+    
+    private readonly HashSet<AssetTexture> AnimatedTextures = [];
+    
     private readonly List<float> DividerPositions_Y = [];
 
     private readonly LayoutHandler LayoutHandler = new(settings.SoundSize * settings.RenderScale,
@@ -48,6 +54,9 @@ public class Playfield(PlayfieldSettings settings)
 
         // creates a new renderable factory
         var factory = new RenderableFactory(settings, Fonts.GetFontFamily());
+        
+        // clear animated texture update cache
+        AnimatedTextures.Clear();
 
         // using multiple threads to make each of the renderables
         await Parallel.ForAsync(0, events.Length, (i, token) =>
@@ -77,6 +86,13 @@ public class Playfield(PlayfieldSettings settings)
         {
             var sound = sounds[i];
             if (sound is null) continue;
+            
+            // add the sound's texture to a cache if animated
+            var texture = sound.GetTexture();
+            if (texture is AssetTexture { IsAnimated: true } asset_texture)
+            {
+                AnimatedTextures.Add(asset_texture);
+            }
 
             PositionSound(LayoutHandler, in sound);
 
@@ -113,12 +129,12 @@ public class Playfield(PlayfieldSettings settings)
             for (var val = textures; val >= 0; val--)
             {
                 var search = val.ToString("0.##");
-                DecreasingValuesCache.GetOrAdd(search, _ => new Texture(factory.ValueFont, search));
+                DecreasingValuesCache.GetOrAdd(search, _ => new FontTexture(factory.ValueFont, search));
             }
         }
 
         // add default 0 texture
-        DecreasingValuesCache.GetOrAdd("0", _ => new Texture(factory.ValueFont, "0"));
+        DecreasingValuesCache.GetOrAdd("0", _ => new FontTexture(factory.ValueFont, "0"));
 
         // sets objects to be used by the render method
         Objects = sounds;
@@ -178,6 +194,12 @@ public class Playfield(PlayfieldSettings settings)
 
     public void Render(DollarStoreCamera real_camera, float zoom, float update_delta)
     {
+        // update animated textures
+        foreach (var texture in AnimatedTextures)
+        {
+            texture.Update();
+        }
+        
         // avoid doing modifications to the main camera
         TemporaryCamera.CopyFrom(real_camera);
 
@@ -220,7 +242,7 @@ public class Playfield(PlayfieldSettings settings)
 
         // disabling dumb resharper errors
         // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
-        foreach (var position in DividerPositions_Y)
+        foreach (var position in CollectionsMarshal.AsSpan(DividerPositions_Y))
         {
             if (position <= camera_y + size_renderable)
                 top_camera_dividers++;

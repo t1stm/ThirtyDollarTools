@@ -16,6 +16,7 @@ using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Objects.Text;
+using ThirtyDollarVisualizer.Objects.Textures.Static;
 using ThirtyDollarVisualizer.Settings;
 
 namespace ThirtyDollarVisualizer.Scenes;
@@ -217,7 +218,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         if (_drag_n_drop == null)
         {
-            var dnd_texture = new Texture(greeting_font, "Drop files on the window to start.");
+            var dnd_texture = new FontTexture(greeting_font, "Drop files on the window to start.");
             _drag_n_drop = new SoundRenderable(dnd_texture,
                 new Vector3(Width / 2f - dnd_texture.Width / 2f, 0, 0.25f),
                 new Vector2(dnd_texture.Width, dnd_texture.Height));
