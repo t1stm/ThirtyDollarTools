@@ -69,8 +69,8 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : Texture
         foreach (var handle in gpu_handles.AsSpan())
         {
             current += handle.Milliseconds;
-            if (animation_window < current) break;
             texture_handle = handle;
+            if (animation_window < current) break;
         }
     }
 
@@ -86,7 +86,7 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : Texture
     private static float? TryGetFrameDelay(ImageFrame frame)
     {
         if (frame.Metadata.TryGetGifMetadata(out var gif))
-            return gif.FrameDelay * 100f;
+            return gif.FrameDelay * 10f;
         
         if (frame.Metadata.TryGetPngMetadata(out var png))
             return png.FrameDelay.ToSingle() * 100f;

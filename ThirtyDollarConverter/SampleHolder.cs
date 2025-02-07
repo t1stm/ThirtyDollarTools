@@ -144,6 +144,27 @@ public class SampleHolder
 
         return true;
     }
+    
+    private static bool Exists(string path)
+    {
+        if (!path.Contains('*'))
+            return File.Exists(path);
+        
+        var directory = Path.GetDirectoryName(path);
+        if (string.IsNullOrEmpty(directory))
+        {
+            directory = Directory.GetCurrentDirectory();
+        }
+
+        var searchPattern = Path.GetFileName(path);
+        if (string.IsNullOrEmpty(searchPattern))
+        {
+            throw new ArgumentException("Invalid pattern; no file name specified.", nameof(path));
+        }
+
+        var files = Directory.GetFiles(directory, searchPattern);
+        return files.Length > 0;
+    }
 
     public async Task DownloadImages()
     {
@@ -160,11 +181,11 @@ public class SampleHolder
             var sound = pair.Key;
 
             var filename = sound.Filename;
-            const string file_extension = "png";
+            const string file_extension = "*";
 
             var download_location = $"{ImagesLocation}{Slash}{filename}.{file_extension}";
 
-            if (File.Exists(download_location)) return;
+            if (Exists(download_location)) return;
 
             var stream = await client.GetStreamAsync(sound.Icon_URL, token);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
