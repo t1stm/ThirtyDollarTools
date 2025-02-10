@@ -55,6 +55,20 @@ public static class BMSParser
             return;
         }
 
+        if (event_name.StartsWith("BPM") && event_name.Length == 5)
+        {
+            var bpm_number = event_name[3..];
+            // remaining_event is the wave file defined to this index.
+            header.BPMMap.Add(string.Intern(bpm_number), remaining_event);
+        }
+        
+        if (event_name.StartsWith("STOP") && event_name.Length == 6)
+        {
+            var stop_number = event_name[4..];
+            // remaining_event is the wave file defined to this index.
+            header.StopMap.Add(string.Intern(stop_number), remaining_event);
+        }
+        
         switch (event_name)
         {
             case "PLAYER":
@@ -131,13 +145,46 @@ public static class BMSParser
             StringValue = event_data
         };
 
-        if (channel_number is 1 or >= 11 and <= 27)
+        switch (channel_number)
         {
-            var array = new_event.SoundsArray = new string[beats_division];
-            for (var i = 0; i < array.Length; i++)
+            case 2:
+                measure.Length = double.Parse(event_data);
+                break;
+            
+            case 3:
+                for (var i = 0; i < beats_division; i++)
+                {
+                    var index = string.Concat(event_data[i * 2], event_data[i * 2 + 1]);
+                    if (index == "00") continue;
+
+                    measure.BPM = Convert.ToUInt32(index, 16);
+                }
+                break;
+            
+            case 1 or 8 or 9 or >= 11 and <= 27:
             {
-                var index = string.Concat(event_data[i * 2], event_data[i * 2 + 1]);
-                array[i] = string.Intern(level_header.ChannelMap[index]);
+                var array = channel_number switch
+                {
+                    8 => new_event.BPMArray = new string[beats_division],
+                    9 => new_event.StopArray = new string[beats_division],
+                    _ => new_event.SoundsArray = new string[beats_division]
+                };
+                
+                for (var i = 0; i < array.Length; i++)
+                {
+                    var index = string.Concat(event_data[i * 2], event_data[i * 2 + 1]);
+
+                    var map = channel_number switch
+                    {
+                        8 => level_header.BPMMap,
+                        9 => level_header.StopMap,
+                        _ => level_header.ChannelMap
+                    };
+                    
+                    array[i] = string.Intern(map[index]);
+                }
+
+                break;
             }
         }
 

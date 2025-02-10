@@ -16,4 +16,13 @@ public struct BMSHeader()
     {
         { "00", "_pause" }
     };
+    
+    public readonly Dictionary<string, string> BPMMap = new()
+    {
+        { "00", "" }
+    };
+    public readonly Dictionary<string, string> StopMap = new()
+    {
+        {"00", ""}
+    };
 }
