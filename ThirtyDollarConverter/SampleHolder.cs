@@ -95,8 +95,6 @@ public class SampleHolder
     /// <returns>Whether all samples have been downloaded.</returns>
     public void PrepareDirectory()
     {
-        if (Directory.Exists(DownloadLocation)) return;
-
         Directory.CreateDirectory(DownloadLocation);
         Directory.CreateDirectory(ImagesLocation);
     }
@@ -181,11 +179,12 @@ public class SampleHolder
             var sound = pair.Key;
 
             var filename = sound.Filename;
-            const string file_extension = "*";
+            const string download_extension = "png";
 
-            var download_location = $"{ImagesLocation}{Slash}{filename}.{file_extension}";
+            var file = $"{ImagesLocation}{Slash}{filename}";
+            var download_location = $"{file}.{download_extension}";
 
-            if (Exists(download_location)) return;
+            if (Exists($"{file}.*")) return;
 
             var stream = await client.GetStreamAsync(sound.Icon_URL, token);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
