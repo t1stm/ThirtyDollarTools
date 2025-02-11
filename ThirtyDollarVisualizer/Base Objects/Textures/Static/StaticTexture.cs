@@ -1,12 +1,13 @@
 using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using ThirtyDollarVisualizer.Assets;
 
 namespace ThirtyDollarVisualizer.Objects.Textures.Static;
 
 public class StaticTexture(Image<Rgba32>? rgba) : Texture
 {
-    public static StaticTexture Transparent1x1 = new(new Image<Rgba32>(1,1));
+    public static readonly StaticTexture Transparent1x1 = new(new Image<Rgba32>(1,1));
     
     protected Image<Rgba32>? image = rgba;
     private int? handle;
@@ -15,7 +16,8 @@ public class StaticTexture(Image<Rgba32>? rgba) : Texture
 
     public StaticTexture(string path): this(rgba: null)
     {
-        
+        using var source = AssetManager.GetAsset(path);
+        image = Image.Load<Rgba32>(source);
     }
     
     public override bool NeedsUploading()
