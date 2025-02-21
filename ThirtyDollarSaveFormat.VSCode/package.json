@@ -1,0 +1,30 @@
+{
+  "name": "thirty-dollar-save-format",
+  "displayName": "Thirty Dollar Save Format",
+  "description": "Syntax highlighting for the Thirty Dollar Save Format and the custom TDWex events.",
+  "version": "0.0.1",
+  "publisher": "t1stm",
+  "engines": {
+    "vscode": "^1.50.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "tdw",
+        "aliases": ["Thirty Dollar Save Format", "TDWex"],
+        "extensions": [".tdwex", ".tdw", ".moai", ".🗿"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tdw",
+        "scopeName": "source.tdw",
+        "path": "./syntaxes/tdwex.tmLanguage.json"
+      }
+    ]
+  }
+}
