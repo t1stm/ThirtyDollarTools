@@ -14,7 +14,7 @@ public class IconFlexTexture : StaticTexture
 
         if (texture_count < 1)
         {
-            throw new ArgumentException("Texture count must be greater than 0.");
+            return;
         }
 
         var width = texture_count <= max_images_per_line

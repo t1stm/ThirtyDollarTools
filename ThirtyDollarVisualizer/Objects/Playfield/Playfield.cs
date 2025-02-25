@@ -6,7 +6,6 @@ using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Text;
 using ThirtyDollarVisualizer.Objects.Textures;
-using ThirtyDollarVisualizer.Objects.Textures.Animated;
 using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
@@ -42,50 +41,36 @@ public class Playfield(PlayfieldSettings settings)
     /// <summary>
     ///     Contains all sound renderables.
     /// </summary>
-    public Memory<SoundRenderable?> Objects = Memory<SoundRenderable?>.Empty;
+    public List<SoundRenderable> Objects = [];
 
     private Vector3 TargetPosition = Vector3.Zero;
 
-    public async Task UpdateSounds(Sequence sequence)
+    public Task UpdateSounds(Sequence sequence)
     {
         // get all events and make an array that will hold their renderable
         var events = sequence.Events;
-        var sounds = new SoundRenderable?[events.Length];
 
         // creates a new renderable factory
         var factory = new RenderableFactory(settings, Fonts.GetFontFamily());
         
         // clear animated texture update cache
         AnimatedTextures.Clear();
-
+        
         // using multiple threads to make each of the renderables
-        await Parallel.ForAsync(0, events.Length, (i, token) =>
-        {
-            // handle cancellation tokens
-            if (token.IsCancellationRequested) return ValueTask.FromCanceled(token);
-
-            // extract event to local variable
-            var base_event = events[i];
-
-            // skip all events meant to be invisible
-            if (string.IsNullOrEmpty(base_event.SoundEvent) ||
-                (base_event.SoundEvent.StartsWith('#') && base_event is not ICustomActionEvent) ||
-                base_event is IHiddenEvent) return ValueTask.CompletedTask;
-
-            // creates the renderable for the current index
-            sounds[i] = factory.CookUp(base_event); // very funny i know
-            return ValueTask.CompletedTask;
-        });
+        var sounds = events
+            .AsParallel()
+            .Where(ev => !IsEventHidden(ev))
+            .Select(ev => factory.CookUp(ev))
+            .ToList();
 
         // prepare rendering stuff
         LayoutHandler.Reset();
         DividerPositions_Y.Clear();
-
+        
         // position every sound using the layout handler
-        for (var i = 0; i < sounds.Length; i++)
+        for (var i = 0; i < sounds.Count; i++)
         {
             var sound = sounds[i];
-            if (sound is null) continue;
             
             // add the sound's texture to a cache if animated
             var texture = sound.GetTexture();
@@ -97,7 +82,7 @@ public class Playfield(PlayfieldSettings settings)
             PositionSound(LayoutHandler, in sound);
 
             // check if sound is a divider. if not continue to the next sound.
-            if (!sound.IsDivider || i + 1 >= sounds.Length) continue;
+            if (!sound.IsDivider || i + 1 >= sounds.Count) continue;
 
             // add the current divider's position for render culling
             DividerPositions_Y.Add(sound.GetPosition().Y);
@@ -111,7 +96,7 @@ public class Playfield(PlayfieldSettings settings)
         // add bottom padding to the layout
         LayoutHandler.Finish();
 
-        var lines = sounds.GroupBy(r => r?.Original_Y, (_, enumerable) =>
+        var lines = sounds.GroupBy(r => r.Original_Y, (_, enumerable) =>
         {
             var sound_renderables = enumerable as SoundRenderable[] ?? enumerable.ToArray();
             return new PlayfieldLine(settings.SoundsOnASingleLine)
@@ -139,6 +124,12 @@ public class Playfield(PlayfieldSettings settings)
         // sets objects to be used by the render method
         Objects = sounds;
         Lines = lines;
+        return Task.CompletedTask;
+    }
+
+    public static bool IsEventHidden(BaseEvent ev)
+    {
+        return string.IsNullOrEmpty(ev.SoundEvent) || (ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent) || ev is IHiddenEvent;
     }
 
     private static void PositionSound(LayoutHandler layout_handler, in SoundRenderable sound)

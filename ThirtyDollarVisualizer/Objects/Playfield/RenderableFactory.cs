@@ -45,10 +45,10 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
     /// </summary>
     /// <param name="base_event">A Thirty Dollar event.</param>
     /// <returns>A new SoundRenderable if the event is valid.</returns>
-    public SoundRenderable? CookUp(BaseEvent base_event)
+    public SoundRenderable CookUp(BaseEvent base_event)
     {
         var event_name = base_event.SoundEvent;
-        if (event_name is null) return null;
+        ArgumentNullException.ThrowIfNull(event_name);
 
         // gets the sound's texture
         var event_texture =

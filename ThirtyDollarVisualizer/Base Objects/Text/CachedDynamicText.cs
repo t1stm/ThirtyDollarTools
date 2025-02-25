@@ -10,7 +10,7 @@ namespace ThirtyDollarVisualizer.Objects.Text;
 ///     A renderable that is more expensive to be rendered but cheap to be edited, intended to be used for text that is
 ///     changed often.
 /// </summary>
-public class CachedDynamicText : Renderable, IText
+public class CachedDynamicText : ITextRenderable
 {
     private readonly SemaphoreSlim _lock = new(1);
     private readonly HashSet<int> NewLineIndices = [];
@@ -19,21 +19,21 @@ public class CachedDynamicText : Renderable, IText
 
     private TexturedPlane[] TexturedPlanes = [];
 
-    public string Value
+    public override string Value
     {
         get => _value;
         set => SetTextContents(value);
     }
 
-    public float FontSizePx
+    public override float FontSizePx
     {
         get => _font_size_px;
         set => SetFontSize(value);
     }
 
-    public FontStyle FontStyle { get; set; } = FontStyle.Regular;
+    public override FontStyle FontStyle { get; set; } = FontStyle.Regular;
 
-    public virtual void SetTextContents(string text)
+    public override void SetTextContents(string text)
     {
         if (_value == text) return;
         SetTextTextures(text);
@@ -122,15 +122,18 @@ public class CachedDynamicText : Renderable, IText
 
     public override void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
     {
+        _lock.Wait();
         base.SetPosition(position, align);
+        _lock.Release();
         SetTextTextures(_value);
     }
 
     public override void Render(Camera camera)
     {
+        if (!IsVisible) return;
+        
         _lock.Wait();
-        foreach (var plane in TexturedPlanes) plane.Render(camera);
-
+        foreach (var plane in TexturedPlanes.AsSpan()) plane.Render(camera);
         _lock.Release();
 
         base.Render(camera);

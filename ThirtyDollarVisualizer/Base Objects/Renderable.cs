@@ -366,6 +366,12 @@ public abstract class Renderable
 
 public static class RenderableExtensions
 {
+    public static T_Target? As<T_Target>(this Renderable renderable) 
+        where T_Target : Renderable
+    {
+        return renderable as T_Target;
+    }
+    
     /// <summary>
     ///     Gives a Renderable object with its position set to the value you give.
     /// </summary>
@@ -373,8 +379,8 @@ public static class RenderableExtensions
     /// <param name="position">The new position.</param>
     /// <param name="align">The position's align.</param>
     /// <returns>The source renderable with the new position set.</returns>
-    public static Renderable WithPosition(this Renderable renderable, Vector3 position,
-        PositionAlign align = PositionAlign.TopLeft)
+    public static T WithPosition<T>(this T renderable, Vector3 position,
+        PositionAlign align = PositionAlign.TopLeft) where T : Renderable
     {
         renderable.SetPosition(position, align);
         return renderable;

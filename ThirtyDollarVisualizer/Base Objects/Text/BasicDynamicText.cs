@@ -14,6 +14,8 @@ public class BasicDynamicText : CachedDynamicText
 
     public override void Render(Camera camera)
     {
+        if (!IsVisible) return;
+        
         StaticPlane ??= new TexturedPlane(StaticTexture.Transparent1x1, (0, 0, 0), (1, 1, 1));
 
         var text = _value;

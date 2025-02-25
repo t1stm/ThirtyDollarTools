@@ -41,7 +41,6 @@ public static class TextureDictionary
 
     private static AssetTexture LoadAsset(string path)
     {
-        if (!Exists(path)) throw new FileNotFoundException($"Asset with location: '{path}' not found.");
         return new AssetTexture(path);
     }
 

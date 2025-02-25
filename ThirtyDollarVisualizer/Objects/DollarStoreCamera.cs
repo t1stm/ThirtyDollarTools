@@ -9,6 +9,7 @@ public sealed class DollarStoreCamera : Camera
     private Vector3 _offset = (0, 0, 0);
     private Vector3 _virtualPosition;
     private long LastScaleUpdate = Stopwatch.GetTimestamp();
+    public Action<float>? OnZoom = null;
 
     public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport, float scroll_speed = 7.5f) : base(
         VirtualPosition, viewport)
@@ -127,5 +128,13 @@ public sealed class DollarStoreCamera : Camera
     public Vector3 GetOffset()
     {
         return _offset;
+    }
+    
+    public void ZoomStep(float scale)
+    {
+        const float stepping = .05f;
+        var camera_scale = GetRenderScale();
+        SetRenderScale(Math.Max(camera_scale + scale * stepping, stepping));
+        OnZoom?.Invoke(RenderScale);
     }
 }
