@@ -132,7 +132,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
 
                     var textures = available_textures
                         .Select(t => new StaticTexture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
-                    return new IconFlexTexture(textures, 2, settings.ValueFontSize);
+                    return new IconFlexTexture(textures, 2, settings.ValueFontSize * settings.RenderScale);
                 });
 
                 break;
