@@ -14,9 +14,11 @@ public class Layout(float width, float height)
     protected readonly Dictionary<string, Resizable> Resizables = new();
     protected Vector2 Size = (width,height);
 
-    public T Get<T>(string field) where T : Renderable
+    public T Get<T>(ReadOnlySpan<char> field) where T : Renderable
     {
-        return !Resizables.TryGetValue(field, out var resizable) ? 
+        var alternative = Resizables.GetAlternateLookup<ReadOnlySpan<char>>();
+        
+        return !alternative.TryGetValue(field, out var resizable) ? 
             throw new Exception($"No renderable found for field {field}") : 
             resizable.Renderable.As<T>() ?? throw new Exception($"Unable to cast renderable: {field}, to type {typeof(T)}");
     }

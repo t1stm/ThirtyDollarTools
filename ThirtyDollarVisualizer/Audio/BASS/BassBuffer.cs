@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Runtime.InteropServices;
 using ManagedBass;
 using ThirtyDollarEncoder.PCM;
 
@@ -19,7 +21,9 @@ public class BassBuffer : AudibleBuffer, IDisposable
         var channels = (int)data.ChannelCount;
         _context = context;
 
-        Span<float> samples = new float[length * channels];
+        var pool = ArrayPool<byte>.Shared.Rent(length * channels * sizeof(float));
+        var samples = MemoryMarshal.Cast<byte, float>(pool.AsSpan());
+        
         for (var i = 0; i < length; i++)
         for (var j = 0; j < channels; j++)
         {
@@ -47,6 +51,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
         };
 
         Bass.SampleSetInfo(SampleHandle, SampleInfo);
+        ArrayPool<byte>.Shared.Return(pool);
     }
 
     public float _volume => _relative_volume * _context.GlobalVolume;

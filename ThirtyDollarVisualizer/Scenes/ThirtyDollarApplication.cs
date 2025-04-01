@@ -895,8 +895,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var repeats = (byte)parsed_value;
         float frequency = (short)(parsed_value >> 8);
 
-        Camera.Pulse(repeats, frequency * 1000f / (LastBPM / 60));
-        StaticCamera.Pulse(repeats, frequency * 1000f / (LastBPM / 60));
+        var computed_frequency = frequency * 1000f / (LastBPM / 60);
+        Camera.Pulse(repeats, computed_frequency);
+        StaticCamera.Pulse(repeats, computed_frequency);
     }
 
     private void LoopManyEventHandler(Placement placement, int sequence_index)
@@ -1085,12 +1086,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
         }, Token);
     }
-
-    private void HandleZoomControl(float scale)
-    {
-        Camera.ZoomStep(scale);
-    }
-
+    
     private bool IsSeekTimeoutPassed(int divide = 1)
     {
         const int seek_timeout = 250;
