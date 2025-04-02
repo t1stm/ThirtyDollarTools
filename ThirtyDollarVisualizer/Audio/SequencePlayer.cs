@@ -91,10 +91,11 @@ public class SequencePlayer
     /// <param name="action">The action you want to execute on encountering it.</param>
     public void SubscribeActionToEvent(string event_name, Action<Placement, int> action)
     {
-        if (EventActions.TryAdd(event_name, action)) return;
-        if (!EventActions.ContainsKey(event_name)) return;
+        var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (alternative_lookup.TryAdd(event_name, action)) return;
+        if (!alternative_lookup.ContainsKey(event_name)) return;
 
-        EventActions[event_name] = action;
+        alternative_lookup[event_name] = action;
     }
 
     /// <summary>
@@ -112,7 +113,8 @@ public class SequencePlayer
     /// <param name="event_name">The event's name you want to remove.</param>
     public void RemoveSubscription(string event_name)
     {
-        EventActions.Remove(event_name);
+        var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
+        alternative_lookup.Remove(event_name);
     }
 
     /// <summary>
@@ -133,7 +135,7 @@ public class SequencePlayer
         return AudioContext;
     }
 
-    public async Task Restart()
+    public async ValueTask Restart()
     {
         await UpdateLock.WaitAsync();
         TimingStopwatch.Restart();
@@ -141,7 +143,7 @@ public class SequencePlayer
         UpdateLock.Release();
     }
 
-    public async Task RestartAfter(long milliseconds)
+    public async ValueTask RestartAfter(long milliseconds)
     {
         await UpdateLock.WaitAsync();
         TimingStopwatch.Restart();
@@ -151,25 +153,26 @@ public class SequencePlayer
         await Start();
     }
 
-    public async Task Seek(long milliseconds)
+    public async ValueTask Seek(long milliseconds)
     {
         await UpdateLock.WaitAsync();
         TimingStopwatch.Seek(milliseconds);
         AlignToTime();
-        if (!EventActions.TryGetValue(string.Empty, out var event_action))
+        
+        var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (!alternative_lookup.TryGetValue(string.Empty, out var event_action))
         {
             UpdateLock.Release();
             return;
         }
 
         var placement = Events.Placement[PlacementIndex];
-        await Task.Run(() => { event_action.Invoke(placement, CurrentSequence); })
-            .ConfigureAwait(false);
+        event_action.Invoke(placement, CurrentSequence);
 
         UpdateLock.Release();
     }
 
-    public async Task Start()
+    public async ValueTask Start()
     {
         await (Greeting?.PlayWaitFinish() ?? Task.CompletedTask);
         TimingStopwatch.Restart();
@@ -178,7 +181,7 @@ public class SequencePlayer
         new Thread(UpdateLoop).Start();
     }
 
-    public async Task Stop()
+    public async ValueTask Stop()
     {
         await UpdateLock.WaitAsync();
         TimingStopwatch.Stop();
@@ -199,7 +202,7 @@ public class SequencePlayer
         }
     }
 
-    public async Task UpdateSequence(BufferHolder holder, TimedEvents events, SequenceIndices sequence_indices)
+    public async ValueTask UpdateSequence(BufferHolder holder, TimedEvents events, SequenceIndices sequence_indices)
     {
         await UpdateLock.WaitAsync();
         CutSounds();
@@ -262,11 +265,13 @@ public class SequencePlayer
 
     public void IndividualCutSamples(HashSet<string> cut_samples)
     {
+        var alternative_lookup = cut_samples.GetAlternateLookup<ReadOnlySpan<char>>();
+        
         lock (ActiveSamples)
         {
             foreach (var (event_name, buffer) in ActiveSamples)
             {
-                if (!cut_samples.Contains(event_name)) continue;
+                if (!alternative_lookup.Contains(event_name)) continue;
                 buffer.Stop();
             }
         }
@@ -278,7 +283,7 @@ public class SequencePlayer
         Greeting.GreetingType = type;
     }
 
-    public async Task<long> SeekToBookmark(int bookmark_index)
+    public async ValueTask<long> SeekToBookmark(int bookmark_index)
     {
         var bookmark_time = Bookmarks[bookmark_index];
 
@@ -303,7 +308,7 @@ public class SequencePlayer
         Bookmarks[bookmark_index] = 0;
     }
 
-    protected async Task PlaybackUpdate()
+    protected async ValueTask PlaybackUpdate()
     {
         try
         {
@@ -314,6 +319,8 @@ public class SequencePlayer
 
             var end_placement = placement_memory.Span[^1];
             var end_time = end_placement.Index;
+            
+            var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
 
             if (GetIndexFromTime(TimingStopwatch.ElapsedMilliseconds) + 1000 > end_time)
                 TimingStopwatch.Seek(GetTimeFromIndex(end_time) + 100);
@@ -343,11 +350,11 @@ public class SequencePlayer
                 }
 
                 // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
-                if (EventActions.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
+                if (alternative_lookup.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
                     explicit_action.Invoke(placement, CurrentSequence);
 
                 // Normal pass.
-                if (!EventActions.TryGetValue(string.Empty, out var event_action)) continue;
+                if (!alternative_lookup.TryGetValue(string.Empty, out var event_action)) continue;
                 event_action.Invoke(placement, CurrentSequence);
             }
 

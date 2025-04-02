@@ -149,11 +149,21 @@ public abstract class ThirtyDollarWorkflow
             var value = val.Value;
             var name = val.Name ?? string.Empty;
 
-            if (buffer_holder.ProcessedBuffers.ContainsKey((name, value)))
-                continue;
+            if (buffer_holder.ProcessedBuffers.TryGetValue(name, out var event_buffers))
+                if (event_buffers.ContainsKey(value))
+                    continue;
 
             var sample = audio_context.GetBufferObject(val.AudioData, audio_context.SampleRate);
-            buffer_holder.ProcessedBuffers.Add((name, value), sample);
+            if (event_buffers != null)
+            {
+                event_buffers.Add(value, sample);
+                continue;
+            }
+            
+            buffer_holder.ProcessedBuffers.Add(name, new Dictionary<double, AudibleBuffer>
+            {
+                {value, sample}
+            });
         }
 
         _ = Task.Run(UpdateExtractedSpeedEvents);
