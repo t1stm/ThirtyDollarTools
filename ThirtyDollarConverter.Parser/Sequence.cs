@@ -86,7 +86,7 @@ public partial class Sequence
     {
         new_event = NormalEvent.Empty;
 
-        var match = Regex.Match(text, @"^#icut\((?<events>[^)]+)\)");
+        var match = ICutRegex().Match(text);
         if (!match.Success) return false;
         if (!match.Groups["events"].Success) return false;
 
@@ -115,7 +115,7 @@ public partial class Sequence
     {
         new_event = NormalEvent.Empty;
 
-        var match = Regex.Match(text, @"^#bookmark\((?<index>[^)]+)\)");
+        var match = BookmarkRegex().Match(text);
         if (!match.Success) return false;
         if (!match.Groups["index"].Success) return false;
 
@@ -433,4 +433,10 @@ public partial class Sequence
     private static partial Regex PanRegex();
     [GeneratedRegex(@"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)")]
     private static partial Regex DefineRegex();
+
+    [GeneratedRegex(@"^#icut\((?<events>[^)]+)\)")]
+    private static partial Regex ICutRegex();
+    
+    [GeneratedRegex(@"^#bookmark\((?<index>[^)]+)\)")]
+    private static partial Regex BookmarkRegex();
 }
