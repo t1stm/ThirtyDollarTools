@@ -77,7 +77,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
             var count = _active_channels.Count;
             var divide = Math.Max(1, count / 32);
 
-            var taken = _active_channels.Take(divide).ToArray();
+            var taken = _active_channels.Take(divide);
             foreach (var channel in taken)
             {
                 Bass.ChannelStop(channel);
