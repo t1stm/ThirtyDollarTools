@@ -28,7 +28,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
         for (var j = 0; j < channels; j++)
         {
             var idx = i * channels + j;
-            samples[idx] = data.Samples[i % channels][i];
+            samples[idx] = data.Samples[j][i];
         }
 
         var sample = Bass.CreateSample(length * channels * sizeof(float), sample_rate, channels, max_count,

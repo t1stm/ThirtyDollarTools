@@ -29,7 +29,7 @@ public class OpenALBuffer : AudibleBuffer
         for (var j = 0; j < channels; j++)
         {
             var idx = i * channels + j;
-            samples_span[idx] = sample_data.Samples[i % channels][i];
+            samples_span[idx] = sample_data.Samples[j][i];
         }
 
         AudioBuffer = AL.GenBuffer();
