@@ -19,9 +19,9 @@ public class BasicDynamicText : CachedDynamicText
         StaticPlane ??= new TexturedPlane(StaticTexture.Transparent1x1, (0, 0, 0), (1, 1, 1));
 
         var text = _value;
-        var x = _position.X;
-        var y = _position.Y;
-        var z = _position.Z;
+        var x = MathF.Round(_position.X);
+        var y = MathF.Round(_position.Y);
+        var z = MathF.Round(_position.Z);
 
         var start_X = x;
         var max_x = 0f;

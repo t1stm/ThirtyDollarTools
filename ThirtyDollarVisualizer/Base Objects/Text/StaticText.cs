@@ -8,8 +8,9 @@ namespace ThirtyDollarVisualizer.Objects.Text;
 /// <summary>
 ///     A renderable that is quick to render, intended to be used for text that is static, and changed rarely.
 /// </summary>
-public class StaticText(FontFamily? font_family = null) : ITextRenderable
+public class StaticText(FontFamily? font_family = null) : TextRenderable
 {
+    protected const int Y_OFFSET = 7;
     public StaticText() : this(null)
     {
     }
@@ -41,7 +42,7 @@ public class StaticText(FontFamily? font_family = null) : ITextRenderable
 
         var texture = new FontTexture(font, text);
         _texturedPlane.SetTexture(texture);
-        _texturedPlane.SetScale((texture.Width, texture.Height, 1));
+        SetScale((texture.Width, texture.Height, 1));
     }
 
     public override void Render(Camera camera)
@@ -52,7 +53,18 @@ public class StaticText(FontFamily? font_family = null) : ITextRenderable
 
     public override void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
     {
+        position.X = MathF.Round(position.X);
+        position.Y = MathF.Round(position.Y);
+        position.Z = MathF.Round(position.Z);
+        
         _texturedPlane.SetPosition(position, align);
+    }
+
+    public override void SetScale(Vector3 scale)
+    {
+        _texturedPlane.SetScale(scale);
+        scale.Y -= Y_OFFSET;
+        base.SetScale(scale);
     }
 
     public void SetFontSize(float font_size_px)

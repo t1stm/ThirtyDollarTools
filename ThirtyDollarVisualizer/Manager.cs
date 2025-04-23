@@ -73,6 +73,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     {
         base.OnResize(e);
         foreach (var scene in Scenes) scene.Resize(e.Width, e.Height);
+        GL.Viewport(0, 0, e.Width, e.Height);
     }
 
     protected override void OnRenderFrame(FrameEventArgs args)
@@ -93,14 +94,14 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         CheckErrors();
-        foreach (var scene in Scenes) scene.Update();
-
+        
         if (KeyboardState.IsAnyKeyDown)
             foreach (var scene in Scenes)
                 scene.Keyboard(KeyboardState);
 
         foreach (var scene in Scenes) scene.Mouse(MouseState, KeyboardState);
-
+        foreach (var scene in Scenes) scene.Update();
+        
         if (!KeyboardState.IsKeyDown(Keys.Escape)) return;
 
         foreach (var scene in Scenes) scene.Close();

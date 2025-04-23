@@ -16,6 +16,8 @@ public class ColoredPlane : Renderable
     public float BorderRadius;
     private ColoredUniform Uniform;
 
+    public ColoredPlane(Vector4 color): this(color, (0,0,0), (0,0,0)) { }
+    
     public ColoredPlane(Vector4 color, Vector3 position, Vector3 scale, float border_radius = 0f)
     {
         _position = position;

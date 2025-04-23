@@ -97,17 +97,22 @@ public static class Program
         if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
-        var tdw_application = new ThirtyDollarApplication(width, height, [sequence], settings, audio_context)
+        if (settings.Mode == "Editor")
         {
-            CameraFollowMode = follow_mode,
-            Scale = scale ?? 1f,
-            Greeting = greeting ?? settings.Greeting
-        };
+            var thirty_dollar_editor = new ThirtyDollarEditor(width, height, settings, audio_context);
+            manager.Scenes.Add(thirty_dollar_editor);
+        }
+        else
+        {
+            var tdw_application = new ThirtyDollarApplication(width, height, [sequence], settings, audio_context)
+            {
+                CameraFollowMode = follow_mode,
+                Scale = scale ?? 1f,
+                Greeting = greeting ?? settings.Greeting
+            };
 
-        manager.Scenes.Add(tdw_application);
-
-        /*var un30_dollar_application = new ThreeDollarWebsite(width, height, audio_context);
-        manager.Scenes.Add(un30_dollar_application);*/
+            manager.Scenes.Add(tdw_application);
+        }
 
         manager.Run();
     }

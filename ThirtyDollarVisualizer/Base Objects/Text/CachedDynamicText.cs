@@ -10,8 +10,9 @@ namespace ThirtyDollarVisualizer.Objects.Text;
 ///     A renderable that is more expensive to be rendered but cheap to be edited, intended to be used for text that is
 ///     changed often.
 /// </summary>
-public class CachedDynamicText : ITextRenderable
+public class CachedDynamicText : TextRenderable
 {
+    protected const float Y_OFFSET = 7; // circumvents an issue with ImageSharp, or my way of using it.
     private readonly SemaphoreSlim _lock = new(1);
     private readonly HashSet<int> NewLineIndices = [];
     protected float _font_size_px = 14f;
@@ -81,9 +82,9 @@ public class CachedDynamicText : ITextRenderable
                         (0, 0, 0), (1, 1));
             }
 
-            var x = _position.X;
-            var y = _position.Y;
-            var z = _position.Z;
+            var x = MathF.Round(_position.X);
+            var y = MathF.Round(_position.Y);
+            var z = MathF.Round(_position.Z);
 
             var start_X = x;
             var max_x = 0f;
@@ -112,7 +113,7 @@ public class CachedDynamicText : ITextRenderable
                 max_y = Math.Max(max_y, y + h);
             }
 
-            _scale = (max_x, max_y, 1);
+            _scale = (max_x, max_y - Y_OFFSET, 1);
         }
         finally
         {

@@ -253,10 +253,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public void Resize(int w, int h)
     {
         var resize = new Vector2i(w, h);
-        
         TextCamera.Viewport = StaticCamera.Viewport = Camera.Viewport = resize;
-        GL.Viewport(0, 0, w, h);
-
+        
         Camera.UpdateMatrix();
         StaticCamera.UpdateMatrix();
         TextCamera.UpdateMatrix();
@@ -278,11 +276,18 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Height = h;
     }
 
-    public void Start()
+    public async void Start()
     {
-        if (Sequences.Length < 1) return;
-        SequencePlayer.Stop().GetAwaiter().GetResult();
-        SequencePlayer.Start().GetAwaiter().GetResult();
+        try
+        {
+            if (Sequences.Length < 1) return;
+            await SequencePlayer.Stop();
+            await SequencePlayer.Start();
+        }
+        catch (Exception)
+        {
+            // ignored
+        }
     }
 
     public void Render()
@@ -498,7 +503,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 if (state.IsKeyPressed(Keys.D))
                 {
                     Debug = !Debug;
-                    Overlay.Get<ITextRenderable>("debug").IsVisible = Debug;
+                    Overlay.Get<TextRenderable>("debug").IsVisible = Debug;
                     SetStatusMessage(Debug switch
                     {
                         true => "[Debug]: Enabled",
@@ -698,8 +703,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         CurrentSequence = 0;
         foreach (var renderable in start_objects) renderable.IsVisible = false;
 
-        var controls = Overlay.Get<ITextRenderable>("controls");
-        var version = Overlay.Get<ITextRenderable>("version");
+        var controls = Overlay.Get<TextRenderable>("controls");
+        var version = Overlay.Get<TextRenderable>("version");
         
         controls.IsVisible = false;
         version.IsVisible = false;
@@ -766,7 +771,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void SetStatusMessage(string message, int hide_after_ms = 2000)
     {
-        var update = Overlay.Get<ITextRenderable>("update");
+        var update = Overlay.Get<TextRenderable>("update");
         
         if (update.Value == message) return;
         update.SetTextContents(message);
@@ -1011,7 +1016,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
         }
 
-        var debug = Overlay.Get<ITextRenderable>("debug");
+        var debug = Overlay.Get<TextRenderable>("debug");
         
         // generate debug string.
         debug.SetTextContents(
@@ -1064,7 +1069,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void FileDrop(IReadOnlyCollection<string?> locations, bool reset_time)
     {
-        var log = Overlay.Get<ITextRenderable>("log");
+        var log = Overlay.Get<TextRenderable>("log");
         Camera.ScrollTo((0, -300, 0));
 
         if (locations.Count < 1) return;
