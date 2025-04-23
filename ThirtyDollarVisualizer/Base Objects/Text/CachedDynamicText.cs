@@ -89,7 +89,6 @@ public class CachedDynamicText : TextRenderable
             var start_X = x;
             var max_x = 0f;
             var max_y = 0f;
-            var lines = 1;
 
             for (var i = 0; i < textures.Length; i++)
             {
@@ -101,7 +100,6 @@ public class CachedDynamicText : TextRenderable
                 {
                     y += FontSizePx;
                     x = start_X;
-                    lines++;
                 }
 
                 var plane = TexturedPlanes[i];
@@ -115,7 +113,7 @@ public class CachedDynamicText : TextRenderable
                 max_y = Math.Max(max_y, y + h);
             }
 
-            SetScale((max_x, FontSizePx * lines, 1));
+            _scale = (max_x, max_y - Y_OFFSET, 1);
         }
         finally
         {
@@ -129,11 +127,6 @@ public class CachedDynamicText : TextRenderable
         base.SetPosition(position, align);
         _lock.Release();
         SetTextTextures(_value);
-    }
-    
-    public override void SetScale(Vector3 scale)
-    {
-        base.SetScale(scale);
     }
 
     public override void Render(Camera camera)
