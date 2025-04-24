@@ -1,6 +1,6 @@
 namespace ThirtyDollarVisualizer.UI;
 
-public class DropDownLabel
+public class FloatingPanel
 {
-    // TODO
+    
 }

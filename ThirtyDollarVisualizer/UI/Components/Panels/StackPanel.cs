@@ -1,4 +1,3 @@
-using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
 
 namespace ThirtyDollarVisualizer.UI;
@@ -17,8 +16,8 @@ public class StackPanel(float x, float y, float width, float height)
 
     public override void Layout()
     {
-        var start_x = GetAbsoluteX() + Padding;
-        var start_y = GetAbsoluteY() + Padding;
+        var start_x = AbsoluteX + Padding;
+        var start_y = AbsoluteY + Padding;
 
         var offset = Direction switch
         {
@@ -49,12 +48,13 @@ public class StackPanel(float x, float y, float width, float height)
             child.Layout();
         }
 
-        Background?.SetPosition((X, Y, 0));
+        Background?.SetPosition((start_x, start_y, 0));
         Background?.SetScale((Width, Height, 1));
     }
 
-    protected override void DrawSelf(Camera camera)
+    protected override void DrawSelf(UIContext context)
     {
-        Background?.Render(camera);
+        if (Background != null)
+            context.QueueRender(Background, Index);
     }
 }

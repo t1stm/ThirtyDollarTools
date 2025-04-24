@@ -56,13 +56,13 @@ public class Label : UIElement, IText
 
     public override void Layout()
     {
+        renderable.SetPosition((AbsoluteX, AbsoluteY, 0));
         base.Layout();
-        renderable.SetPosition((X, Y, 0));
     }
 
-    protected override void DrawSelf(Camera camera)
+    protected override void DrawSelf(UIContext context)
     {
-        renderable.Render(camera);
+        context.QueueRender(renderable, Index);
     }
 
     public string Value

@@ -1,8 +1,11 @@
+using System.Diagnostics;
+using System.Globalization;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.Null;
+using ThirtyDollarVisualizer.Helpers.Miscellaneous;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Settings;
@@ -17,18 +20,25 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
     {
         Camera = new DollarStoreCamera((0, 0, 0), (width, height))
     };
+
     private readonly VisualizerSettings Settings = settings;
     private readonly AudioContext AudioContext = audio_context ?? new NullAudioContext();
     private Manager Parent = null!;
 
     private readonly int InitialWidth = width;
     private readonly int InitialHeight = height;
-    
+
     private FlexPanel? Display;
     private FlexPanel? ErrorDisplay;
     private CursorType CurrentCursor;
     
     private string ErrorMessage = "This message hasn't been updated yet. The error remains hidden...";
+    
+    private long LastFpsUpdate;
+    private double LastFpsValue;
+    private Label? FpsLabel;
+    private static readonly TimeSpan FpsUpdateTimeout = TimeSpan.FromMilliseconds(5);
+    private readonly FpsCounter FpsCounter = new(16);
 
     public void Init(Manager manager)
     {
@@ -38,29 +48,73 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
             Direction = LayoutDirection.Vertical,
             Children =
             [
-                Interface.TopBar(32),
-                Interface.Main()
+                new FlexPanel(0, 0, 0, 32) // Header
+                {
+                    Background = new ColoredPlane((0.2f, 0.2f, 0.2f, 1f)),
+                    Direction = LayoutDirection.Horizontal,
+                    Spacing = 10,
+                    Padding = 5,
+                    VerticalAlign = Align.Center,
+                    AutoWidth = true,
+                    Children =
+                    [
+                        new Label("Thirty Dollar Editor")
+                        {
+                            FontStyle = FontStyle.Bold,
+                            UpdateCursorOnHover = true
+                        },
+                        new DropDownLabel("File", [
+                            new Label("New")
+                            {
+                                UpdateCursorOnHover = true
+                            },
+                            new Label("Open")
+                            {
+                                UpdateCursorOnHover = true
+                            },
+                            new Label("Save")
+                            {
+                                UpdateCursorOnHover = true
+                            },
+                            new Label("Save As")
+                            {
+                                UpdateCursorOnHover = true
+                            },
+                        ]),
+                        FpsLabel = new Label("FPS: ", LabelMode.CachedDynamic)
+                    ]
+                },
+                new FlexPanel(0, 0, 0, 0) // Main Display
+                {
+                    Background = new ColoredPlane((0.3f, 0.3f, 0.3f, 1f)),
+                    AutoHeight = true,
+                    AutoWidth = true,
+                    Padding = 10,
+                    Children =
+                    [
+                    ]
+                }
             ]
         };
 
-        UIContext.RequestCursor = cursor =>
-        {
-            CurrentCursor = cursor;
-        };
+        UIContext.RequestCursor = cursor => { CurrentCursor = cursor; };
 
         Display.Layout();
     }
 
     public void Start()
     {
-        
     }
 
     public void Render()
     {
+        UIContext.Clear();
+
         if (Display != null)
             Display.Draw(UIContext);
         else RenderError();
+
+        UIContext.Render();
     }
 
     private void RenderError()
@@ -72,7 +126,8 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
             HorizontalAlign = Align.Center,
             Padding = 50,
             Spacing = 10,
-            Children = [
+            Children =
+            [
                 new Label("Thirty Dollar Editor")
                 {
                     FontSizePx = 36,
@@ -82,7 +137,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
                 new Label($"Error: {ErrorMessage}")
             ]
         };
-        
+
         ErrorDisplay.Draw(UIContext);
     }
 
@@ -90,8 +145,21 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
     {
         try
         {
-            CurrentCursor = CursorType.Normal;
+            var fps = 1 / Parent.UpdateTime;
             
+            if (Stopwatch.GetElapsedTime(LastFpsUpdate) > FpsUpdateTimeout && FpsLabel != null)
+            {
+                LastFpsUpdate = Stopwatch.GetTimestamp();
+                var value = FpsCounter.GetAverageFPS(fps);
+                if (Math.Abs(value - LastFpsValue) > 0.1)
+                {
+                    FpsLabel.Value = $"FPS: {fps:##.00}";
+                    LastFpsValue = value;
+                }
+            }
+
+            CurrentCursor = CursorType.Normal;
+
             Display?.Update(UIContext);
             Parent.Cursor = CurrentCursor switch
             {
@@ -132,14 +200,12 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
 
     public void Close()
     {
-        
     }
 
     public void FileDrop(string[] locations)
     {
         try
         {
-
         }
         catch (Exception e)
         {
@@ -151,7 +217,6 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
     {
         try
         {
-
         }
         catch (Exception e)
         {

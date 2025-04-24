@@ -1,4 +1,3 @@
-using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
 
 namespace ThirtyDollarVisualizer.UI;
@@ -39,7 +38,9 @@ public class FlexPanel(float x, float y, float width, float height)
     public override void Layout()
     {
         var count = Children.Count;
-
+        var a_x = AbsoluteX;
+        var a_y = AbsoluteY;
+        
         if (AutoSizeSelf)
         {
             AutoSize(count);
@@ -50,7 +51,7 @@ public class FlexPanel(float x, float y, float width, float height)
 
         if (count < 1)
         {
-            Background?.SetPosition((X, Y, 0));
+            Background?.SetPosition((a_x, a_y, 0));
             Background?.SetScale((Width, Height, 1));
             return;
         }
@@ -60,7 +61,7 @@ public class FlexPanel(float x, float y, float width, float height)
         else
             Layout_Vertical(count, inner_height, inner_width);
 
-        Background?.SetPosition((X, Y, 0));
+        Background?.SetPosition((a_x, a_y, 0));
         Background?.SetScale((Width, Height, 1));
     }
 
@@ -75,12 +76,11 @@ public class FlexPanel(float x, float y, float width, float height)
         }
 
         if (!AutoHeight) return;
-        {
-            if (Direction == LayoutDirection.Vertical)
-                Height = 2 * Padding + (count > 0 ? Children.Sum(c => c.Height) + Spacing * (count - 1) : 0);
-            else
-                Height = 2 * Padding + (count > 0 ? Children.Max(c => c.Height) : 0);
-        }
+        
+        if (Direction == LayoutDirection.Vertical)
+            Height = 2 * Padding + (count > 0 ? Children.Sum(c => c.Height) + Spacing * (count - 1) : 0);
+        else
+            Height = 2 * Padding + (count > 0 ? Children.Max(c => c.Height) : 0);
     }
 
     private void Layout_Horizontal(int count, float inner_width, float inner_height)
@@ -177,8 +177,9 @@ public class FlexPanel(float x, float y, float width, float height)
         }
     }
 
-    protected override void DrawSelf(Camera camera)
+    protected override void DrawSelf(UIContext context)
     {
-        Background?.Render(camera);
+        if (Background != null)
+            context.QueueRender(Background, Index);
     }
 }
