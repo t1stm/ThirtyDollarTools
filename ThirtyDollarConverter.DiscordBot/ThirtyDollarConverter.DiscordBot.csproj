@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02494" />
+      <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02494" />
+      <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02494" />
+      <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02494" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
+    </ItemGroup>
+
+</Project>
