@@ -445,6 +445,12 @@ public class PcmEncoder
     /// <param name="data">The AudioData object.</param>
     public void WriteAsWavFile(string location, AudioData<float> data)
     {
+        var stream = File.Open(location, FileMode.Create);
+        WriteAsWavFile(stream, data);
+    }
+    
+    public void WriteAsWavFile(Stream stream, AudioData<float> data)
+    {
         var samples = data.Samples;
         for (var i = 0; i < samples.Length; i++)
         {
@@ -454,20 +460,20 @@ public class PcmEncoder
             samples[i] = arr.TrimEnd();
         }
 
-        var stream = new BinaryWriter(File.Open(location, FileMode.Create));
+        var writer = new BinaryWriter(stream);
         var maxLength = samples.Max(r => r.Length);
-        AddWavHeader<float>(stream, maxLength);
+        AddWavHeader<float>(writer, maxLength);
 
         var every_n_report = maxLength / 200; // 200 calls.
         for (var i = 0; i < maxLength; i++)
         {
             if (i % every_n_report == 0) IndexReport((ulong)i, (ulong)maxLength);
             for (var j = 0; j < Channels; j++)
-                stream.Write(samples[j].Length > i ? samples[j][i] : 0f);
+                writer.Write(samples[j].Length > i ? samples[j][i] : 0f);
         }
 
-        stream.Flush();
-        stream.Close();
+        writer.Flush();
+        writer.Close();
 
         Log("Saved audio file.");
     }
