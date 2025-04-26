@@ -29,6 +29,7 @@ public class BasicDynamicText : CachedDynamicText
 
         var cache = Fonts.GetCharacterCache();
 
+        var lines = 1;
         for (var i = 0; i < text.Length; i++)
         {
             var c = text[i];
@@ -44,6 +45,7 @@ public class BasicDynamicText : CachedDynamicText
             {
                 y += FontSizePx;
                 x = start_X;
+                lines++;
                 continue;
             }
 
@@ -63,6 +65,6 @@ public class BasicDynamicText : CachedDynamicText
             max_y = Math.Max(max_y, y + h);
         }
 
-        _scale = (max_x, max_y, 1);
+        _scale = (max_x, lines * _font_size_px, 1);
     }
 }

@@ -2,8 +2,8 @@ using ThirtyDollarVisualizer.Objects.Planes;
 
 namespace ThirtyDollarVisualizer.UI;
 
-public class FlexPanel(float x, float y, float width, float height)
-    : Panel(x, y, width, height), IPositioningElement, IColoredBackground
+public class FlexPanel(float x = 0, float y = 0, float width = 0, float height = 0)
+    : Panel(x, y, width, height), IPositioningElement
 {
     private Align vertical = Align.Start;
     private Align horizontal = Align.Start;
@@ -11,8 +11,6 @@ public class FlexPanel(float x, float y, float width, float height)
     public LayoutDirection Direction { get; set; } = LayoutDirection.Horizontal;
     public float Padding { get; set; }
     public float Spacing { get; set; }
-    public ColoredPlane? Background { get; set; }
-    
     public bool AutoSizeSelf { get; set; }
 
     public Align HorizontalAlign
@@ -175,11 +173,5 @@ public class FlexPanel(float x, float y, float width, float height)
             child.Layout();
             offset += child.Height + Spacing;
         }
-    }
-
-    protected override void DrawSelf(UIContext context)
-    {
-        if (Background != null)
-            context.QueueRender(Background, Index);
     }
 }

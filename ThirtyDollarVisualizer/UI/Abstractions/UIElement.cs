@@ -18,7 +18,6 @@ public enum Align
 
 public abstract class UIElement(float x, float y, float width, float height)
 {
-    private List<UIElement> _children = [];
     private UIElement? _parent;
     public bool AutoWidth = false, AutoHeight = false;
     public virtual float X { get; set; } = x;
@@ -34,25 +33,13 @@ public abstract class UIElement(float x, float y, float width, float height)
     public bool IsPressed { get; set; }
     public bool UpdateCursorOnHover { get; set; }
 
-    public UIElement? Parent
+    public virtual UIElement? Parent
     {
         get => _parent;
         set
         {
             _parent = value;
             Index = _parent?.Index + 1 ?? 0;
-            SetChildrenParent();
-        }
-    }
-
-    public virtual List<UIElement> Children
-    {
-        get => _children;
-        set
-        {
-            _children = value;
-            SetChildrenParent();
-            Layout();
         }
     }
 
@@ -79,52 +66,23 @@ public abstract class UIElement(float x, float y, float width, float height)
         {
             IsPressed = true;
         }
-
-        foreach (var child in Children)
-            child.Test(mouse);
     }
 
     public virtual void Update(UIContext context)
     {
         if (IsHovered && UpdateCursorOnHover)
             context.RequestCursor(CursorType.Pointer);
-
-        foreach (var child in Children)
-        {
-            child.Update(context);
-        }
     }
 
     public virtual void Layout()
     {
-        foreach (var child in Children)
-        {
-            child.Layout();
-        }
-    }
-
-    protected void SetChildrenParent()
-    {
-        foreach (var child in Children)
-        {
-            child.Parent = this;
-        }
-    }
-
-    public virtual void AddChild(UIElement child)
-    {
-        child.Parent = this;
-        _children.Add(child);
+        // overriden by inheritors
     }
 
     public virtual void Draw(UIContext context)
     {
         if (!Visible) return;
-
         DrawSelf(context);
-
-        foreach (var child in _children)
-            child.Draw(context);
     }
 
     protected abstract void DrawSelf(UIContext context);

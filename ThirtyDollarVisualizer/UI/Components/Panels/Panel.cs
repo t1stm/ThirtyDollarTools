@@ -1,9 +1,13 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using ThirtyDollarVisualizer.Objects.Planes;
 
 namespace ThirtyDollarVisualizer.UI;
 
-public class Panel(float x, float y, float width, float height) : UIElement(x, y, width, height)
+public class Panel(float x, float y, float width, float height) : UIElement(x, y, width, height), IColoredBackground
 {
+    public Panel() : this(0, 0, 0, 0) { }
+    
+    public ColoredPlane? Background { get; set; }
     private List<UIElement> _children = [];
     public List<UIElement> Children
     {
@@ -76,6 +80,7 @@ public class Panel(float x, float y, float width, float height) : UIElement(x, y
 
     protected override void DrawSelf(UIContext context)
     {
-        // draws children
+        if (Background != null && Visible)
+            context.QueueRender(Background, Index);
     }
 }

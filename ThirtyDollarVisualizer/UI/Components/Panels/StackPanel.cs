@@ -3,12 +3,11 @@ using ThirtyDollarVisualizer.Objects.Planes;
 namespace ThirtyDollarVisualizer.UI;
 
 public class StackPanel(float x, float y, float width, float height)
-    : Panel(x, y, width, height), IPositioningElement, IColoredBackground
+    : Panel(x, y, width, height), IPositioningElement
 {
     public LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
     public float Spacing { get; set; } = 0;
     public float Padding { get; set; } = 0;
-    public ColoredPlane? Background { get; set; }
 
     public StackPanel() : this(0, 0, 0, 0)
     {
@@ -50,11 +49,5 @@ public class StackPanel(float x, float y, float width, float height)
 
         Background?.SetPosition((start_x, start_y, 0));
         Background?.SetScale((Width, Height, 1));
-    }
-
-    protected override void DrawSelf(UIContext context)
-    {
-        if (Background != null)
-            context.QueueRender(Background, Index);
     }
 }

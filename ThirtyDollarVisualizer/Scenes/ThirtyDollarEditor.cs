@@ -7,6 +7,7 @@ using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Settings;
 using ThirtyDollarVisualizer.UI;
+using ThirtyDollarVisualizer.UI.Components.File_Selector;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
@@ -17,50 +18,79 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
     {
         Camera = new DollarStoreCamera((0, 0, 0), (width, height))
     };
+
     private readonly VisualizerSettings Settings = settings;
     private readonly AudioContext AudioContext = audio_context ?? new NullAudioContext();
     private Manager Parent = null!;
 
     private readonly int InitialWidth = width;
     private readonly int InitialHeight = height;
-    
+
     private FlexPanel? Display;
     private FlexPanel? ErrorDisplay;
     private CursorType CurrentCursor;
-    
+
     private string ErrorMessage = "This message hasn't been updated yet. The error remains hidden...";
 
     public void Init(Manager manager)
     {
         Parent = manager;
-        Display = new FlexPanel(0, 0, InitialWidth, InitialHeight)
+        Display = new FlexPanel(width: InitialWidth, height: InitialHeight)
         {
             Direction = LayoutDirection.Vertical,
             Children =
             [
-                Interface.TopBar(32),
-                Interface.Main()
+                new FlexPanel // Top Bar
+                {
+                    Background = new ColoredPlane((0.2f, 0.2f, 0.2f, 1f)),
+                    VerticalAlign = Align.Center,
+                    AutoWidth = true,
+                    Height = 32,
+                    Padding = 10,
+                    Spacing = 10,
+                    Children =
+                    [
+                        new Label("Thirty Dollar Editor"),
+                        new DropDownLabel("File", [
+                            new Label("New"),
+                            new Label("Open"),
+                            new Label("Save"),
+                            new Label("Save As"),
+                        ])
+                    ]
+                },
+                new FlexPanel() // Main Panel
+                {
+                    AutoWidth = true,
+                    AutoHeight = true,
+                    Background = new ColoredPlane((0.3f, 0.3f, 0.3f, 1f)),
+                    Padding = 10,
+                    Children =
+                    [
+                        new FileSelection()
+                    ]
+                }
             ]
         };
 
-        UIContext.RequestCursor = cursor =>
-        {
-            CurrentCursor = cursor;
-        };
+        UIContext.RequestCursor = cursor => { CurrentCursor = cursor; };
 
         Display.Layout();
     }
 
     public void Start()
     {
-        
     }
 
     public void Render()
     {
+        UIContext.Clear();
+
         if (Display != null)
             Display.Draw(UIContext);
         else RenderError();
+
+        UIContext.Render();
     }
 
     private void RenderError()
@@ -72,7 +102,8 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
             HorizontalAlign = Align.Center,
             Padding = 50,
             Spacing = 10,
-            Children = [
+            Children =
+            [
                 new Label("Thirty Dollar Editor")
                 {
                     FontSizePx = 36,
@@ -82,7 +113,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
                 new Label($"Error: {ErrorMessage}")
             ]
         };
-        
+
         ErrorDisplay.Draw(UIContext);
     }
 
@@ -91,7 +122,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
         try
         {
             CurrentCursor = CursorType.Normal;
-            
+
             Display?.Update(UIContext);
             Parent.Cursor = CurrentCursor switch
             {
@@ -132,14 +163,12 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
 
     public void Close()
     {
-        
     }
 
     public void FileDrop(string[] locations)
     {
         try
         {
-
         }
         catch (Exception e)
         {
@@ -151,7 +180,6 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
     {
         try
         {
-
         }
         catch (Exception e)
         {

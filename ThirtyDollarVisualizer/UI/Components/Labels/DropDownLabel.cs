@@ -13,9 +13,11 @@ public sealed class DropDownLabel : Panel, IText
     public override float Width => Label.Width;
     public override float Height => Label.Height;
 
-    public DropDownLabel(string text, List<UIElement> panel_children) : base(0,0,0,0)
+    public DropDownLabel(string text, List<UIElement> panel_children, bool hover_children = true) : base(0,0,0,0)
     {
-        Panel = new FlexPanel(0,0,0,0)
+        if (hover_children)
+            panel_children.ForEach(child => child.UpdateCursorOnHover = true);
+        Panel = new FlexPanel
         {
             Parent = this,
             AutoWidth = true,

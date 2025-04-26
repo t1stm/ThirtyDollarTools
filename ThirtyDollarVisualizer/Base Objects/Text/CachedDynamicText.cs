@@ -12,7 +12,6 @@ namespace ThirtyDollarVisualizer.Objects.Text;
 /// </summary>
 public class CachedDynamicText : TextRenderable
 {
-    protected const float Y_OFFSET = 7; // circumvents an issue with ImageSharp, or my way of using it.
     private readonly SemaphoreSlim _lock = new(1);
     private readonly HashSet<int> NewLineIndices = [];
     protected float _font_size_px = 14f;
@@ -90,6 +89,7 @@ public class CachedDynamicText : TextRenderable
             var max_x = 0f;
             var max_y = 0f;
 
+            var lines = 1;
             for (var i = 0; i < textures.Length; i++)
             {
                 var texture = textures[i];
@@ -100,6 +100,7 @@ public class CachedDynamicText : TextRenderable
                 {
                     y += FontSizePx;
                     x = start_X;
+                    lines++;
                 }
 
                 var plane = TexturedPlanes[i];
@@ -113,7 +114,7 @@ public class CachedDynamicText : TextRenderable
                 max_y = Math.Max(max_y, y + h);
             }
 
-            _scale = (max_x, max_y - Y_OFFSET, 1);
+            _scale = (max_x, lines * _font_size_px, 1);
         }
         finally
         {

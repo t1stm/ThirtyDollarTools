@@ -13,7 +13,7 @@ public sealed class FileSelection : Panel
     public string CurrentPath { get; private set; } = Directory.GetCurrentDirectory();
     public Action? OnSelectFile { get; set; }
     public Action? OnChangeDirectory { get; set; }
-    
+
     public Action? OnCancel { get; set; }
     public Action? OnSelect { get; set; }
 
@@ -44,12 +44,13 @@ public sealed class FileSelection : Panel
                 {
                     FontSizePx = 12,
                     AutoWidth = true,
-                    FontStyle = FontStyle.Bold
+                    FontStyle = FontStyle.Bold,
+                    UpdateCursorOnHover = true,
                 }
             ]
         };
-        
-        _filesSection = new FlexPanel(0, 0, 0, 0)
+
+        _filesSection = new FlexPanel
         {
             Direction = LayoutDirection.Vertical,
             Padding = 5,
@@ -62,24 +63,36 @@ public sealed class FileSelection : Panel
         var bottom_section = new FlexPanel(0, 0, 0, 30)
         {
             Direction = LayoutDirection.Horizontal,
-            HorizontalAlign = Align.End,
             VerticalAlign = Align.Center,
+            HorizontalAlign = Align.End,
             Padding = 5,
             Spacing = 10,
             AutoWidth = true,
             Background = new ColoredPlane(new Vector4(0.15f, 0.15f, 0.15f, 1.0f)),
-            Children = [
-                new Button("Select")
+            Children =
+            [
+                new FlexPanel
                 {
-                    FontSizePx = 14,
-                    UpdateCursorOnHover = true,
-                    OnClick = _ => OnSelect?.Invoke()
-                },
-                new Button("Cancel")
-                {
-                    FontSizePx = 14,
-                    UpdateCursorOnHover = true,
-                    OnClick = _ => OnCancel?.Invoke()
+                    AutoSizeSelf = true,
+                    AutoWidth = true,
+                    AutoHeight = true,
+                    Direction = LayoutDirection.Horizontal,
+                    Spacing = 10,
+                    Children =
+                    [
+                        new Button("Select")
+                        {
+                            FontSizePx = 14,
+                            UpdateCursorOnHover = true,
+                            OnClick = _ => OnSelect?.Invoke()
+                        },
+                        new Button("Cancel")
+                        {
+                            FontSizePx = 14,
+                            UpdateCursorOnHover = true,
+                            OnClick = _ => OnCancel?.Invoke()
+                        }
+                    ]
                 }
             ]
         };
@@ -95,7 +108,6 @@ public sealed class FileSelection : Panel
 
         AddChild(_mainLayout);
         RefreshFiles();
-        Layout();
     }
 
     private void NavigateUp()
@@ -118,11 +130,9 @@ public sealed class FileSelection : Panel
 
     private void UpdateCurrentPathLabel()
     {
-        const int max_separators = 5;
-        var split = CurrentPath.Split(Path.DirectorySeparatorChar).TakeLast(max_separators);
-        _currentPathLabel.SetTextContents(string.Join(Path.DirectorySeparatorChar, split));
+        _currentPathLabel.SetTextContents(CurrentPath);
     }
-    
+
     private void RefreshFiles()
     {
         UpdateCurrentPathLabel();
@@ -135,7 +145,7 @@ public sealed class FileSelection : Panel
             {
                 var dirInfo = new DirectoryInfo(directory);
                 if ((dirInfo.Attributes & FileAttributes.Hidden) != 0) continue;
-                
+
                 var dirLabel = new Label($"📁 {dirInfo.Name}", LabelMode.CachedDynamic)
                 {
                     FontSizePx = 14,
@@ -145,7 +155,7 @@ public sealed class FileSelection : Panel
 
                 _filesSection.AddChild(dirLabel);
             }
-            
+
             var files = Directory.GetFiles(CurrentPath);
             foreach (var file in files)
             {
