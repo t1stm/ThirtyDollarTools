@@ -3,7 +3,7 @@ using ThirtyDollarVisualizer.Objects.Planes;
 namespace ThirtyDollarVisualizer.UI;
 
 public class FlexPanel(float x, float y, float width, float height)
-    : UIElement(x, y, width, height), IPositioningElement, IColoredBackground
+    : Panel(x, y, width, height), IPositioningElement, IColoredBackground
 {
     private Align vertical = Align.Start;
     private Align horizontal = Align.Start;

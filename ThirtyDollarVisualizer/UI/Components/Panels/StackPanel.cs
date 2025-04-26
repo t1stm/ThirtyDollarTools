@@ -3,7 +3,7 @@ using ThirtyDollarVisualizer.Objects.Planes;
 namespace ThirtyDollarVisualizer.UI;
 
 public class StackPanel(float x, float y, float width, float height)
-    : UIElement(x, y, width, height), IPositioningElement, IColoredBackground
+    : Panel(x, y, width, height), IPositioningElement, IColoredBackground
 {
     public LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
     public float Spacing { get; set; } = 0;

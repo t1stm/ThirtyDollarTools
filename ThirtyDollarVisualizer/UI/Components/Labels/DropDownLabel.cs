@@ -5,7 +5,7 @@ using ThirtyDollarVisualizer.Objects.Text;
 
 namespace ThirtyDollarVisualizer.UI;
 
-public sealed class DropDownLabel : UIElement, IText
+public sealed class DropDownLabel : Panel, IText
 {
     public FlexPanel Panel { get; }
     public Label Label { get; }
