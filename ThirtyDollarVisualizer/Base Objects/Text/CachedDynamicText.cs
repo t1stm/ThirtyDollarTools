@@ -47,7 +47,7 @@ public class CachedDynamicText : TextRenderable
         SetTextContents(Value);
     }
 
-    protected void SetTextTextures(string text)
+    protected void SetTextTextures(ReadOnlySpan<char> text)
     {
         NewLineIndices.Clear();
         var cache = Fonts.GetCharacterCache();
@@ -59,7 +59,7 @@ public class CachedDynamicText : TextRenderable
             var c = text[i];
             if (char.IsSurrogate(c) && i + 1 < text.Length && char.IsSurrogatePair(c, text[i + 1]))
             {
-                var emoji = text.Substring(i, 2);
+                var emoji = text.Slice(i, 2);
                 textures_array[real_i++] = cache.GetEmoji(emoji, _font_size_px, FontStyle);
                 i++;
                 continue;
