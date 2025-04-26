@@ -43,11 +43,19 @@ public class CharacterCache(FontFamily font_family, FontFamily emoji_family)
 
     public StaticTexture GetEmoji(string emoji, float font_size, FontStyle font_style)
     {
-        if (Emojis.TryGetValue(emoji, out var texture)) return texture;
+        return GetEmoji(emoji.AsSpan(), font_size, font_style);
+    }
+    
+    public StaticTexture GetEmoji(ReadOnlySpan<char> emoji, float font_size, FontStyle font_style)
+    {
+        var alternative_lookup = Emojis.GetAlternateLookup<ReadOnlySpan<char>>();
+        
+        if (alternative_lookup.TryGetValue(emoji, out var texture)) return texture;
         var font = emoji_family.CreateFont(font_size, font_style);
 
-        texture = new FontTexture(font, emoji);
-        Emojis.TryAdd(emoji, texture);
+        var emoji_string = emoji.ToString();
+        texture = new FontTexture(font, emoji_string);
+        Emojis.TryAdd(emoji_string, texture);
         return texture;
     }
 }

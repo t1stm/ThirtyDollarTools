@@ -18,7 +18,7 @@ public class BasicDynamicText : CachedDynamicText
         
         StaticPlane ??= new TexturedPlane(StaticTexture.Transparent1x1, (0, 0, 0), (1, 1, 1));
 
-        var text = _value;
+        ReadOnlySpan<char> text = _value;
         var x = _position.X;
         var y = _position.Y;
         var z = _position.Z;
@@ -33,10 +33,10 @@ public class BasicDynamicText : CachedDynamicText
         {
             var c = text[i];
             // I am using string here since emojis take multiple char objects to be stored.
-            string? emoji = null;
+            ReadOnlySpan<char> emoji = [];
             if (char.IsSurrogate(c) && i + 1 < text.Length && char.IsSurrogatePair(c, text[i + 1]))
             {
-                emoji = text.Substring(i, 2);
+                emoji = text.Slice(i, 2);
                 i++;
             }
 
@@ -47,7 +47,7 @@ public class BasicDynamicText : CachedDynamicText
                 continue;
             }
 
-            var texture = emoji != null
+            var texture = emoji.Length > 0
                 ? cache.GetEmoji(emoji, _font_size_px, FontStyle)
                 : cache.Get(c, _font_size_px, FontStyle);
             var w = texture.Width;
