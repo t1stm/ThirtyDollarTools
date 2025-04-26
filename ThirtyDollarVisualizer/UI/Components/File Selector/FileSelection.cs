@@ -11,11 +11,11 @@ public sealed class FileSelection : Panel
     private readonly Label _currentPathLabel;
 
     public string CurrentPath { get; private set; } = Directory.GetCurrentDirectory();
-    public Action? OnSelectFile { get; set; }
-    public Action? OnChangeDirectory { get; set; }
+    public Action<FileSelection>? OnSelectFile { get; set; }
+    public Action<FileSelection>? OnChangeDirectory { get; set; }
 
-    public Action? OnCancel { get; set; }
-    public Action? OnSelect { get; set; }
+    public Action<FileSelection>? OnCancel { get; set; }
+    public Action<FileSelection>? OnSelect { get; set; }
 
     public FileSelection() : this(0, 0, 600, 400)
     {
@@ -60,7 +60,7 @@ public sealed class FileSelection : Panel
             Background = new ColoredPlane(new Vector4(0.1f, 0.1f, 0.1f, 1.0f))
         };
 
-        var bottom_section = new FlexPanel(0, 0, 0, 30)
+        var bottom_section = new FlexPanel(0, 0, 0, 34)
         {
             Direction = LayoutDirection.Horizontal,
             VerticalAlign = Align.Center,
@@ -71,34 +71,27 @@ public sealed class FileSelection : Panel
             Background = new ColoredPlane(new Vector4(0.15f, 0.15f, 0.15f, 1.0f)),
             Children =
             [
-                new FlexPanel
+                new Button("Select")
                 {
-                    AutoSizeSelf = true,
-                    AutoWidth = true,
-                    AutoHeight = true,
-                    Direction = LayoutDirection.Horizontal,
-                    Spacing = 10,
-                    Children =
-                    [
-                        new Button("Select")
-                        {
-                            FontSizePx = 14,
-                            UpdateCursorOnHover = true,
-                            OnClick = _ => OnSelect?.Invoke()
-                        },
-                        new Button("Cancel")
-                        {
-                            FontSizePx = 14,
-                            UpdateCursorOnHover = true,
-                            OnClick = _ => OnCancel?.Invoke()
-                        }
-                    ]
+                    FontSizePx = 14,
+                    UpdateCursorOnHover = true,
+                    OnClick = _ => OnSelect?.Invoke(this),
+                    FontStyle = FontStyle.Bold
+                },
+                new Button("Cancel")
+                {
+                    FontSizePx = 14,
+                    UpdateCursorOnHover = true,
+                    OnClick = _ => OnCancel?.Invoke(this),
+                    FontStyle = FontStyle.Bold
                 }
             ]
         };
 
-        _mainLayout = new FlexPanel(0, 0, width, height)
+        _mainLayout = new FlexPanel
         {
+            AutoWidth = true,
+            AutoHeight = true,
             Direction = LayoutDirection.Vertical,
             Padding = 10,
             Spacing = 10,
@@ -106,7 +99,13 @@ public sealed class FileSelection : Panel
             Children = [top_section, _filesSection, bottom_section]
         };
 
-        AddChild(_mainLayout);
+        var window = new WindowFrame
+        {
+            Child = _mainLayout,
+            Resizable = true
+        };
+
+        AddChild(window);
         RefreshFiles();
     }
 
@@ -117,7 +116,7 @@ public sealed class FileSelection : Panel
 
         CurrentPath = directory.Parent.FullName;
         RefreshFiles();
-        OnChangeDirectory?.Invoke();
+        OnChangeDirectory?.Invoke(this);
     }
 
     private void NavigateTo(string path)
@@ -125,7 +124,7 @@ public sealed class FileSelection : Panel
         if (!Directory.Exists(path)) return;
         CurrentPath = path;
         RefreshFiles();
-        OnChangeDirectory?.Invoke();
+        OnChangeDirectory?.Invoke(this);
     }
 
     private void UpdateCurrentPathLabel()
@@ -164,7 +163,7 @@ public sealed class FileSelection : Panel
                 {
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
-                    OnClick = _ => { OnSelectFile?.Invoke(); }
+                    OnClick = _ => { OnSelectFile?.Invoke(this); }
                 };
 
                 _filesSection.AddChild(fileLabel);

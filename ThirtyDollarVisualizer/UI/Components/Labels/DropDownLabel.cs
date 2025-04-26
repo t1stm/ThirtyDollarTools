@@ -54,8 +54,12 @@ public sealed class DropDownLabel : Panel, IText
 
     public override void Test(MouseState mouse)
     {
+        var hide_panel = mouse.IsButtonPressed(MouseButton.Left); 
         Label.Test(mouse);
         Panel.Test(mouse);
+        
+        if (hide_panel && !Label.IsHovered)
+            Panel.Visible = false;
     }
 
     protected override void DrawSelf(UIContext context) { }

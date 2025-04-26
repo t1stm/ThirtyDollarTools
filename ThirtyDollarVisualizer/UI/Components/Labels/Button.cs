@@ -8,7 +8,7 @@ namespace ThirtyDollarVisualizer.UI;
 public class Button : FlexPanel, IText
 {
     private readonly Label _label;
-    public Button(string label, Vector4? background = null) : base(0,0,0,0)
+    public Button(string label, Vector4? background = null)
     {
         AutoSizeSelf = true;
         AutoWidth = true;

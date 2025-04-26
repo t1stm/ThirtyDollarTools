@@ -27,6 +27,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
     private readonly int InitialHeight = height;
 
     private FlexPanel? Display;
+    private FlexPanel? MainPanel;
     private FlexPanel? ErrorDisplay;
     private CursorType CurrentCursor;
 
@@ -53,13 +54,26 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
                         new Label("Thirty Dollar Editor"),
                         new DropDownLabel("File", [
                             new Label("New"),
-                            new Label("Open"),
+                            new Label("Open")
+                            {
+                                OnClick = _ =>
+                                {
+                                    var selection = new FileSelection
+                                    {
+                                        OnCancel = obj =>
+                                        {
+                                            MainPanel?.Children.Remove(obj);
+                                        }
+                                    };
+                                    MainPanel?.AddChild(selection);
+                                }
+                            },
                             new Label("Save"),
                             new Label("Save As"),
                         ])
                     ]
                 },
-                new FlexPanel() // Main Panel
+                MainPanel = new FlexPanel() // Main Panel
                 {
                     AutoWidth = true,
                     AutoHeight = true,
@@ -67,12 +81,10 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
                     Padding = 10,
                     Children =
                     [
-                        new FileSelection()
                     ]
                 }
             ]
         };
-
         UIContext.RequestCursor = cursor => { CurrentCursor = cursor; };
 
         Display.Layout();

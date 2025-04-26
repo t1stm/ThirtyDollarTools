@@ -46,5 +46,7 @@ public class UIContext
 public enum CursorType
 {
     Normal,
-    Pointer
+    Pointer,
+    ResizeX,
+    ResizeY
 }

@@ -1,3 +1,4 @@
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Objects.Planes;
 
@@ -30,6 +31,8 @@ public class Panel(float x, float y, float width, float height) : UIElement(x, y
         }
     }
     
+    public Vector4 Viewport { get; set; }
+    
     public override void Test(MouseState mouse)
     {
         if (!Visible) return;
@@ -50,6 +53,9 @@ public class Panel(float x, float y, float width, float height) : UIElement(x, y
 
     public override void Layout()
     {
+        var x = AbsoluteX;
+        var y = AbsoluteY;
+        Viewport = (x, y, x + Width, y + Height);
         foreach (var child in Children)
         {
             child.Layout();
