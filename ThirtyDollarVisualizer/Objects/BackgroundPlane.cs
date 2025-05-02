@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects;
 

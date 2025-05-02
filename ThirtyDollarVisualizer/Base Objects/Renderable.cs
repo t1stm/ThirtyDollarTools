@@ -1,6 +1,7 @@
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Renderer;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -10,10 +11,9 @@ public abstract class Renderable
     ///     Dummy renderable to use on animations that don't animate a renderable.
     /// </summary>
     public static readonly Renderable Dummy = new DummyRenderable();
-
     public readonly List<Renderable> Children = [];
-
     protected readonly object LockObject = new();
+    protected virtual Shader? Shader { get; set; }
 
     /// <summary>
     ///     The position of the current renderable.
@@ -48,8 +48,7 @@ public abstract class Renderable
     ///     Sets whether this renderable calls it's render method.
     /// </summary>
     public bool IsVisible = true;
-
-    protected Shader Shader = null!;
+    
     protected VertexArrayObject<float>? Vao;
     protected BufferObject<float>? Vbo;
 
@@ -188,15 +187,6 @@ public abstract class Renderable
         Ebo?.Dispose();
         Vbo?.Dispose();
         Vao?.Dispose();
-    }
-
-    /// <summary>
-    ///     Changes the Renderable's shader to the given one.
-    /// </summary>
-    /// <param name="shader">The given shader.</param>
-    public void ChangeShader(Shader shader)
-    {
-        Shader = shader;
     }
 
     /// <summary>

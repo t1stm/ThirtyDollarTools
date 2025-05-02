@@ -2,6 +2,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Renderer;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects.Planes;
 
@@ -92,13 +93,11 @@ public class ColoredPlane : Renderable
     {
         Uniform.Color = Color;
         Uniform.BorderRadiusPx = BorderRadius;
-        Uniform.PositionPx = _position + _translation;
-        Uniform.ScalePx = _scale;
+        
+        Uniform.ScalePx = _scale.X;
+        Uniform.AspectRatio = _scale.X / _scale.Y;
         Uniform.Model = Model;
         Uniform.Projection = camera.GetProjectionMatrix();
-        Uniform.Offset = Vector3.Zero;
-
-        if (camera is DollarStoreCamera ds_camera) Uniform.Offset = ds_camera.GetOffset();
 
         Span<ColoredUniform> span = [Uniform];
 

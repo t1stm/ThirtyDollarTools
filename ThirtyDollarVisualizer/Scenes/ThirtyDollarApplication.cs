@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
@@ -19,6 +18,7 @@ using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Settings;
 using ThirtyDollarVisualizer.Objects.Text;
 using ThirtyDollarVisualizer.Objects.Textures.Static;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 using ThirtyDollarVisualizer.Settings;
 
 namespace ThirtyDollarVisualizer.Scenes;

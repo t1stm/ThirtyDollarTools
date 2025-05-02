@@ -4,6 +4,7 @@ using ThirtyDollarVisualizer.Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Objects.Textures;
 using ThirtyDollarVisualizer.Objects.Textures.Static;
 using ThirtyDollarVisualizer.Renderer;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects.Planes;
 

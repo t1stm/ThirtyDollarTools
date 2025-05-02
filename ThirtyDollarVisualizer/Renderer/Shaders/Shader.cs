@@ -2,7 +2,7 @@ using System.Reflection;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
-namespace ThirtyDollarVisualizer.Objects;
+namespace ThirtyDollarVisualizer.Renderer.Shaders;
 
 public class Shader : IDisposable
 {
@@ -12,6 +12,12 @@ public class Shader : IDisposable
     ///     Controls whether the shader throws errors on missing uniforms.
     /// </summary>
     private readonly bool IsPedantic = false;
+    public static Shader Dummy { get; } = new(0);
+
+    public Shader(int handle)
+    {
+        Handle = handle;
+    }
 
     public Shader(string vertexPath, string fragmentPath)
     {

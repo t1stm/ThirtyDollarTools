@@ -10,8 +10,8 @@ public class WindowFrame : Panel
     protected CursorType RequestedCursor;
     private UIElement? _child;
     
-    private bool _isResizingX;
-    private bool _isResizingY;
+    private byte _resizingXMode;
+    private byte _resizingYMode;
 
     public override float Width
     {
@@ -69,7 +69,7 @@ public class WindowFrame : Panel
         {
             ComputeHeaderPressed(mouse);
         }
-        else if (_isResizingX || _isResizingY)
+        else if (_resizingXMode != 0 || _resizingYMode != 0)
         {
             HandleActiveResize(mouse);
         }
@@ -79,8 +79,8 @@ public class WindowFrame : Panel
         }
         
         if (mouse.IsButtonDown(MouseButton.Left)) return;
-        _isResizingX = false;
-        _isResizingY = false;
+        _resizingXMode = 0;
+        _resizingYMode = 0;
     }
 
     protected void ComputeHeaderPressed(MouseState mouse)
@@ -93,7 +93,6 @@ public class WindowFrame : Panel
 
     protected void ComputeResize(MouseState mouse)
     {
-        Console.Clear();
         const float rt = 10; // px
 
         var mx = mouse.X;
@@ -104,26 +103,21 @@ public class WindowFrame : Panel
         var xw = x + Width;
         var yh = y + Height;
 
-        var x_resize =
-            mx > x - rt && mx <= x + rt ||
-            mx >= xw - rt && mx < xw + rt;
+        var x_negative = mx > x - rt && mx <= x + rt;
+        var x_positive = mx >= xw - rt && mx < xw + rt;
 
-        var y_resize = my > y && my <= y + rt ||
-                  my >= yh - rt && my < yh + rt;
+        var y_negative = my > y && my <= y + rt;
+        var y_positive = my >= yh - rt && my < yh + rt;
         
-        if (x_resize)
-            RequestedCursor = CursorType.ResizeX;
-        else if (y_resize)
-            RequestedCursor = CursorType.ResizeY;
-        else
-        {
-            RequestedCursor = CursorType.Normal;
+        var xr = x_positive || x_negative;
+        var yr = y_positive || y_negative;
+        
+        if (!xr && !yr) 
             return;
-        }
 
         if (!mouse.IsButtonDown(MouseButton.Left)) return;
-        _isResizingX = x_resize;
-        _isResizingY = y_resize;
+        _resizingXMode = (byte)(x_positive ? 1 : x_negative ? 2 : 0);
+        _resizingYMode = (byte)(y_positive ? 1 : y_negative ? 2 : 0);
         
         Layout();
     }
@@ -136,13 +130,27 @@ public class WindowFrame : Panel
 
     protected void HandleActiveResize(MouseState mouse)
     {
-        if (_isResizingX)
-            Width += mouse.Delta.X;
-            
-        if (_isResizingY)
-            Height += mouse.Delta.Y;
+        switch (_resizingXMode)
+        {
+            case 1:
+                Width += mouse.Delta.X;
+                break;
+            case 2:
+                X += mouse.Delta.X;
+                Width -= mouse.Delta.X;
+                break;
+        }
         
-        Console.WriteLine($"W: {Width} H: {Height}");
+        switch (_resizingYMode)
+        {
+            case 1:
+                Height += mouse.Delta.Y;
+                break;
+            case 2:
+                Y -= mouse.Delta.Y;
+                Height += mouse.Delta.Y;
+                break;
+        }
         
         Layout();
     }

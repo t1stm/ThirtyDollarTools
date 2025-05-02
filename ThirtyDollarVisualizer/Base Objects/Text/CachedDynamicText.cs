@@ -3,6 +3,7 @@ using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Textures;
 using ThirtyDollarVisualizer.Objects.Textures.Static;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects.Text;
 
