@@ -19,6 +19,10 @@ public class TexturedPlane : Renderable
     protected Texture? _texture;
     private TexturedUniform Uniform;
 
+    public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad("textured_plane", () =>
+        new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
+            "ThirtyDollarVisualizer.Assets.Shaders.textured.frag"));
+
     public TexturedPlane(Texture texture, Vector3 position, Vector3 scale)
     {
         _position = new Vector3(position);
@@ -31,9 +35,6 @@ public class TexturedPlane : Renderable
         Ebo = Static_Ebo;
 
         Uniform = new TexturedUniform();
-
-        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
-            "ThirtyDollarVisualizer.Assets.Shaders.textured.frag");
         Color = new Vector4(0, 0, 0, 0);
 
         _texture = texture;
@@ -89,7 +90,7 @@ public class TexturedPlane : Renderable
 
         lock (LockObject)
         {
-            if (Ebo == null || Vao == null) return;
+            if (Ebo == null || Vao == null || Shader == null) return;
             Vao.Bind();
             Ebo.Bind();
 

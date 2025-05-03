@@ -14,11 +14,18 @@ public class ColoredPlane : Renderable
     private static BufferObject<uint> Static_Ebo = null!;
     private static BufferObject<ColoredUniform>? UniformBuffer;
 
+    public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad(
+        "colored_plane", () => new Shader("ThirtyDollarVisualizer.Assets.Shaders.colored.vert",
+            "ThirtyDollarVisualizer.Assets.Shaders.colored.frag")
+    );
+
     public float BorderRadius;
     private ColoredUniform Uniform;
 
-    public ColoredPlane(Vector4 color): this(color, (0,0,0), (0,0,0)) { }
-    
+    public ColoredPlane(Vector4 color) : this(color, (0, 0, 0), (0, 0, 0))
+    {
+    }
+
     public ColoredPlane(Vector4 color, Vector3 position, Vector3 scale, float border_radius = 0f)
     {
         _position = position;
@@ -29,18 +36,10 @@ public class ColoredPlane : Renderable
         Vao = Static_Vao;
         Vbo = Static_Vbo;
         Ebo = Static_Ebo;
-
-        Shader = new Shader("ThirtyDollarVisualizer.Assets.Shaders.colored.vert",
-            "ThirtyDollarVisualizer.Assets.Shaders.colored.frag");
         Color = color;
 
         Uniform = new ColoredUniform();
         BorderRadius = border_radius;
-    }
-
-    public ColoredPlane(Vector4 color, Vector3 position, Vector3 scale, Shader? shader) : this(color, position, scale)
-    {
-        Shader = shader ?? Shader;
     }
 
     private void SetVertices()
@@ -76,7 +75,7 @@ public class ColoredPlane : Renderable
     {
         lock (LockObject)
         {
-            if (Ebo == null || Vao == null) return;
+            if (Ebo == null || Vao == null || Shader == null) return;
 
             Vao.Bind();
             Ebo.Bind();
@@ -93,7 +92,7 @@ public class ColoredPlane : Renderable
     {
         Uniform.Color = Color;
         Uniform.BorderRadiusPx = BorderRadius;
-        
+
         Uniform.ScalePx = _scale.X;
         Uniform.AspectRatio = _scale.X / _scale.Y;
         Uniform.Model = Model;

@@ -3,7 +3,7 @@ using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer.Objects.Planes.Uniforms;
 
-[StructLayout(LayoutKind.Explicit, Size = 176)]
+[StructLayout(LayoutKind.Explicit, Size = 160)]
 public struct ColoredUniform
 {
     [FieldOffset(0)] public Matrix4 Model;
@@ -12,5 +12,4 @@ public struct ColoredUniform
     [FieldOffset(144)] public float ScalePx;            // 4 bytes
     [FieldOffset(148)] public float AspectRatio;        // 4 bytes
     [FieldOffset(152)] public float BorderRadiusPx;     // 4 bytes
-    [FieldOffset(160)] public Vector4 Viewport;        // 16 bytes
 }

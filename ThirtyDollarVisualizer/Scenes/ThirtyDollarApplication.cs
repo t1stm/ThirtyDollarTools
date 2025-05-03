@@ -202,11 +202,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         Shader? optional_shader = null;
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
-            optional_shader = new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation);
+            optional_shader = ShaderPool.GetOrLoad("bg_optional_shader", 
+                () => new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation));
 
         BackgroundPlane = new BackgroundPlane(DefaultBackgroundColor, new Vector3(-Width, -Height, -1f),
-            new Vector3(Width * 2, Height * 2, -1f),
-            optional_shader);
+            new Vector3(Width * 2, Height * 2, -1f));
+
+        if (optional_shader is not null)
+            BackgroundPlane.Shader = optional_shader;
 
         FlashOverlay = new ColoredPlane(new Vector4(1f, 1f, 1f, 0f), new Vector3(-Width, -Height, 1),
             new Vector3(Width * 2, Height * 2, 1));

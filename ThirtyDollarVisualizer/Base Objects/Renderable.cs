@@ -13,7 +13,7 @@ public abstract class Renderable
     public static readonly Renderable Dummy = new DummyRenderable();
     public readonly List<Renderable> Children = [];
     protected readonly object LockObject = new();
-    protected virtual Shader? Shader { get; set; }
+    public virtual Shader? Shader { get; set; }
 
     /// <summary>
     ///     The position of the current renderable.
