@@ -15,7 +15,7 @@ public class Playfield(PlayfieldSettings settings)
     /// <summary>
     ///     Dictionary containing all decreasing value events' textures for this playfield.
     /// </summary>
-    public readonly ConcurrentDictionary<string, Texture> DecreasingValuesCache = new();
+    public readonly ConcurrentDictionary<string, SingleTexture> DecreasingValuesCache = new();
     
     private readonly HashSet<AssetTexture> AnimatedTextures = [];
     

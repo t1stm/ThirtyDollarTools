@@ -18,10 +18,10 @@ namespace ThirtyDollarVisualizer.Objects;
 /// <param name="font_family">The current font family.</param>
 public class RenderableFactory(PlayfieldSettings settings, FontFamily font_family)
 {
-    private readonly ConcurrentDictionary<string, Texture> CustomValues = new();
-    private readonly ConcurrentDictionary<string, Texture> GeneratedSmallTextures = new();
-    private readonly ConcurrentDictionary<string, Texture> GeneratedTextures = new();
-    private readonly ConcurrentDictionary<string, Texture> MissingValues = new();
+    private readonly ConcurrentDictionary<string, SingleTexture> CustomValues = new();
+    private readonly ConcurrentDictionary<string, SingleTexture> GeneratedSmallTextures = new();
+    private readonly ConcurrentDictionary<string, SingleTexture> GeneratedTextures = new();
+    private readonly ConcurrentDictionary<string, SingleTexture> MissingValues = new();
 
     /// <summary>
     ///     The given font used for value textures.
@@ -111,7 +111,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
             _ => value
         };
 
-        Texture? value_texture = null;
+        SingleTexture? value_texture = null;
 
         // handles value textures for events that require custom values
         switch (base_event)

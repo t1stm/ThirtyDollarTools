@@ -3,7 +3,6 @@ using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Textures;
 using ThirtyDollarVisualizer.Objects.Textures.Static;
-using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects.Text;
 
@@ -51,7 +50,7 @@ public class CachedDynamicText : TextRenderable
     {
         NewLineIndices.Clear();
         var cache = Fonts.GetCharacterCache();
-        var textures_array = new Texture[text.Length];
+        var textures_array = new SingleTexture[text.Length];
         var real_i = 0;
 
         for (var i = 0; i < text.Length; i++)

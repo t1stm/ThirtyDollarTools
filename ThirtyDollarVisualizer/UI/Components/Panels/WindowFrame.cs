@@ -5,11 +5,11 @@ namespace ThirtyDollarVisualizer.UI;
 
 public class WindowFrame : Panel
 {
-    protected readonly FlexPanel Container;
+    protected readonly Panel Container;
     protected readonly FlexPanel Header;
     protected CursorType RequestedCursor;
     private UIElement? _child;
-    
+
     private byte _resizingXMode;
     private byte _resizingYMode;
 
@@ -77,7 +77,7 @@ public class WindowFrame : Panel
         {
             ComputeResize(mouse);
         }
-        
+
         if (mouse.IsButtonDown(MouseButton.Left)) return;
         _resizingXMode = 0;
         _resizingYMode = 0;
@@ -87,7 +87,7 @@ public class WindowFrame : Panel
     {
         X += mouse.Delta.X;
         Y += mouse.Delta.Y;
-        
+
         Layout();
     }
 
@@ -108,17 +108,17 @@ public class WindowFrame : Panel
 
         var y_negative = my > y && my <= y + rt;
         var y_positive = my >= yh - rt && my < yh + rt;
-        
+
         var xr = x_positive || x_negative;
         var yr = y_positive || y_negative;
-        
-        if (!xr && !yr) 
+
+        if (!xr && !yr)
             return;
 
         if (!mouse.IsButtonDown(MouseButton.Left)) return;
         _resizingXMode = (byte)(x_positive ? 1 : x_negative ? 2 : 0);
         _resizingYMode = (byte)(y_positive ? 1 : y_negative ? 2 : 0);
-        
+
         Layout();
     }
 
@@ -140,7 +140,7 @@ public class WindowFrame : Panel
                 Width -= mouse.Delta.X;
                 break;
         }
-        
+
         switch (_resizingYMode)
         {
             case 1:
@@ -151,10 +151,10 @@ public class WindowFrame : Panel
                 Height += mouse.Delta.Y;
                 break;
         }
-        
+
         Layout();
     }
-    
+
     public override void Update(UIContext context)
     {
         if (RequestedCursor != CursorType.Normal)

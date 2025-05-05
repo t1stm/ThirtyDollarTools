@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using OpenTK.Graphics.OpenGL;
 using ThirtyDollarVisualizer.Objects;
 
 namespace ThirtyDollarVisualizer.UI;
@@ -40,6 +41,7 @@ public class UIContext
                 renderable.Render(Camera);
             }
         }
+        GL.Scissor(0, 0, (int)ViewportWidth, (int)ViewportHeight);
     }
 }
 

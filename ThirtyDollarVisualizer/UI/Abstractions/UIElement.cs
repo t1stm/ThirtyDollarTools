@@ -1,3 +1,4 @@
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace ThirtyDollarVisualizer.UI;
@@ -22,8 +23,8 @@ public abstract class UIElement(float x, float y, float width, float height)
     public bool AutoWidth = false, AutoHeight = false;
     public virtual float X { get; set; } = x;
     public virtual float Y { get; set; } = y;
-    protected virtual float AbsoluteX => Parent?.AbsoluteX + X ?? X;
-    protected virtual float AbsoluteY => Parent?.AbsoluteY + Y ?? Y;
+    public virtual float AbsoluteX => Parent?.AbsoluteX + X ?? X;
+    public virtual float AbsoluteY => Parent?.AbsoluteY + Y ?? Y;
     protected virtual int Index { get; set; }
 
     public virtual float Width { get; set; } = width;
@@ -41,6 +42,13 @@ public abstract class UIElement(float x, float y, float width, float height)
             _parent = value;
             Index = _parent?.Index + 1 ?? 0;
         }
+    }
+
+    private Vector4i? _viewport;
+    public virtual Vector4i? Viewport
+    {
+        get => _viewport ?? Parent?.Viewport;
+        set => _viewport = value;
     }
 
     public Action<UIElement>? OnClick { get; set; }

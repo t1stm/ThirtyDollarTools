@@ -16,14 +16,14 @@ public class TexturedPlane : Renderable
     private static BufferObject<uint> Static_Ebo = null!;
 
     private static BufferObject<TexturedUniform>? UniformBuffer;
-    protected Texture? _texture;
+    protected SingleTexture? _texture;
     private TexturedUniform Uniform;
 
     public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad("textured_plane", () =>
         new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
             "ThirtyDollarVisualizer.Assets.Shaders.textured.frag"));
 
-    public TexturedPlane(Texture texture, Vector3 position, Vector3 scale)
+    public TexturedPlane(SingleTexture texture, Vector3 position, Vector3 scale)
     {
         _position = new Vector3(position);
         _scale = scale;
@@ -44,11 +44,11 @@ public class TexturedPlane : Renderable
     {
     }
 
-    public TexturedPlane(Texture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
+    public TexturedPlane(SingleTexture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
     {
     }
 
-    public TexturedPlane(Texture texture, Vector3 position, Vector2 scale) :
+    public TexturedPlane(SingleTexture texture, Vector3 position, Vector2 scale) :
         this(texture, position, new Vector3(scale))
     {
     }
@@ -118,8 +118,8 @@ public class TexturedPlane : Renderable
         Span<TexturedUniform> span = [Uniform];
         if (UniformBuffer is null)
             UniformBuffer =
-                new BufferObject<TexturedUniform>(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
-        else UniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer, BufferUsageHint.StreamDraw);
+                new BufferObject<TexturedUniform>(span, BufferTarget.UniformBuffer);
+        else UniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer);
         GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, UniformBuffer.Handle);
     }
 
@@ -127,7 +127,7 @@ public class TexturedPlane : Renderable
     {
     }
 
-    public void SetTexture(Texture? texture)
+    public void SetTexture(SingleTexture? texture)
     {
         lock (LockObject)
         {
@@ -135,7 +135,7 @@ public class TexturedPlane : Renderable
         }
     }
 
-    public Texture? GetTexture()
+    public SingleTexture? GetTexture()
     {
         return _texture;
     }

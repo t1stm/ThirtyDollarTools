@@ -7,9 +7,9 @@ using ThirtyDollarVisualizer.Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects.Textures;
 
-public class AssetTexture : Texture
+public class AssetTexture : SingleTexture
 {
-    private readonly Texture Texture;
+    private readonly SingleTexture Texture;
     
     public AssetTexture(string path)
     {

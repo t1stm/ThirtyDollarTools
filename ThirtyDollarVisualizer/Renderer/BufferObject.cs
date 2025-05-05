@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using OpenTK.Graphics.OpenGL;
 
 namespace ThirtyDollarVisualizer.Renderer;
@@ -7,6 +8,7 @@ public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
     private readonly BufferTarget _bufferType;
     private readonly uint _handle;
     private readonly int _length;
+    private readonly ConcurrentDictionary<int, TDataType> UpdateQueue = new();
 
     public BufferObject(Span<TDataType> data, BufferTarget buffer_type,
         BufferUsageHint draw_hint = BufferUsageHint.DynamicDraw)
@@ -32,8 +34,30 @@ public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
         Bind();
         fixed (void* pointer = data)
         {
-            GL.BufferData(buffer_type, data.Length * sizeof(TDataType), new IntPtr(pointer), draw_hint);
+            GL.BufferData(buffer_type, data.Length * sizeof(TDataType), new nint(pointer), draw_hint);
         }
+    }
+
+    public TDataType this[int index]
+    {
+        set => UpdateQueue[index] = value;
+    }
+    
+    public unsafe void BindAndUpdate()
+    {
+        Bind();
+        if (UpdateQueue.IsEmpty)
+            return;
+        
+        var ptr = (TDataType*)GL.MapBuffer(_bufferType, BufferAccess.WriteOnly);
+        
+        foreach (var (index, obj) in UpdateQueue)
+        {
+            ptr[index] = obj;
+        }
+        
+        GL.UnmapBuffer(_bufferType);
+        UpdateQueue.Clear();
     }
 
     public int GetCount()

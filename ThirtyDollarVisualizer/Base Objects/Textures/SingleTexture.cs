@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ThirtyDollarVisualizer.Objects.Textures;
 
-public abstract class Texture: IDisposable
+public abstract class SingleTexture: IDisposable
 {
     public int Width { get; protected set; }
     public int Height { get; protected set; }

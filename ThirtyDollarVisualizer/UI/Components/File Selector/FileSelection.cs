@@ -9,6 +9,7 @@ public sealed class FileSelection : Panel
     private readonly FlexPanel _mainLayout;
     private readonly FlexPanel _filesSection;
     private readonly Label _currentPathLabel;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public string CurrentPath { get; private set; } = Directory.GetCurrentDirectory();
     public Action<FileSelection>? OnSelectFile { get; set; }
@@ -57,7 +58,8 @@ public sealed class FileSelection : Panel
             Spacing = 10,
             AutoWidth = true,
             AutoHeight = true,
-            Background = new ColoredPlane(new Vector4(0.1f, 0.1f, 0.1f, 1.0f))
+            Background = new ColoredPlane(new Vector4(0.1f, 0.1f, 0.1f, 1.0f)),
+            ScrollOnOverflow = true
         };
 
         var bottom_section = new FlexPanel(0, 0, 0, 34)
@@ -106,7 +108,7 @@ public sealed class FileSelection : Panel
         };
 
         AddChild(window);
-        RefreshFiles();
+        Task.Run(RefreshFiles);
     }
 
     private void NavigateUp()
@@ -115,7 +117,7 @@ public sealed class FileSelection : Panel
         if (directory.Parent == null) return;
 
         CurrentPath = directory.Parent.FullName;
-        RefreshFiles();
+        Task.Run(RefreshFiles);
         OnChangeDirectory?.Invoke(this);
     }
 
@@ -123,7 +125,7 @@ public sealed class FileSelection : Panel
     {
         if (!Directory.Exists(path)) return;
         CurrentPath = path;
-        RefreshFiles();
+        Task.Run(RefreshFiles);
         OnChangeDirectory?.Invoke(this);
     }
 
@@ -135,39 +137,23 @@ public sealed class FileSelection : Panel
     private void RefreshFiles()
     {
         UpdateCurrentPathLabel();
-        _filesSection.Children.Clear();
+        var list = new List<UIElement>();
 
         try
         {
             var directories = Directory.GetDirectories(CurrentPath);
-            foreach (var directory in directories)
-            {
-                var dirInfo = new DirectoryInfo(directory);
-                if ((dirInfo.Attributes & FileAttributes.Hidden) != 0) continue;
-
-                var dirLabel = new Label($"📁 {dirInfo.Name}", LabelMode.CachedDynamic)
-                {
-                    FontSizePx = 14,
-                    UpdateCursorOnHover = true,
-                    OnClick = _ => NavigateTo(directory)
-                };
-
-                _filesSection.AddChild(dirLabel);
-            }
+            list.AddRange((from directory in directories
+                let dirInfo = new DirectoryInfo(directory)
+                where (dirInfo.Attributes & FileAttributes.Hidden) == 0
+                select new Label($"📁 {dirInfo.Name}", LabelMode.CachedDynamic)
+                    { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) }));
 
             var files = Directory.GetFiles(CurrentPath);
-            foreach (var file in files)
-            {
-                var fileInfo = new FileInfo(file);
-                var fileLabel = new Label($"📄 {fileInfo.Name}", LabelMode.CachedDynamic)
+            list.AddRange(files.Select(file => new FileInfo(file)).Select(fileInfo =>
+                new Label($"📄 {fileInfo.Name}", LabelMode.CachedDynamic)
                 {
-                    FontSizePx = 14,
-                    UpdateCursorOnHover = true,
-                    OnClick = _ => { OnSelectFile?.Invoke(this); }
-                };
-
-                _filesSection.AddChild(fileLabel);
-            }
+                    FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => { OnSelectFile?.Invoke(this); }
+                }));
         }
         catch (Exception ex)
         {
@@ -175,15 +161,20 @@ public sealed class FileSelection : Panel
             {
                 FontSizePx = 14
             };
-            _filesSection.AddChild(errorLabel);
+            list.Add(errorLabel);
         }
 
+        _semaphore.Wait();
+        _filesSection.Children = list;
         _filesSection.Layout();
+        _semaphore.Release();
         _mainLayout.Layout();
     }
 
     protected override void DrawSelf(UIContext context)
     {
+        _semaphore.Wait();
+        _semaphore.Release();
         // renders children only
     }
 }

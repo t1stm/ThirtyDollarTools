@@ -21,7 +21,7 @@ public class SoundRenderable : TexturedPlane
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
 
-    public SoundRenderable(Texture texture, Vector3 position, Vector2 width_height) : base(texture, position,
+    public SoundRenderable(SingleTexture texture, Vector3 position, Vector2 width_height) : base(texture, position,
         width_height)
     {
         BounceAnimation = new BounceAnimation(() => { UpdateModel(false); });
@@ -30,7 +30,7 @@ public class SoundRenderable : TexturedPlane
         RenderableAnimations = new Animation[] { BounceAnimation, ExpandAnimation, FadeAnimation };
     }
 
-    public SoundRenderable(Texture texture) :
+    public SoundRenderable(SingleTexture texture) :
         this(texture, Vector3.Zero, (texture.Width, texture.Height))
     {
     }
@@ -83,7 +83,7 @@ public class SoundRenderable : TexturedPlane
         foreach (var animation in RenderableAnimations.Span) animation.Reset();
     }
 
-    public void SetValue(BaseEvent _event, ConcurrentDictionary<string, Texture> generated_textures,
+    public void SetValue(BaseEvent _event, ConcurrentDictionary<string, SingleTexture> generated_textures,
         ValueChangeWrapMode value_change_wrap_mode)
     {
         if (Value is null) return;

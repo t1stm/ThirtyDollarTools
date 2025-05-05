@@ -33,6 +33,7 @@ public static class Program
         int? line_amount = null;
         string? settings_location = null;
         bool? transparent_framebuffer = null;
+        string? mode = null;
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -49,6 +50,8 @@ public static class Program
                 line_amount = options.LineAmount;
                 settings_location = options.SettingsLocation;
                 transparent_framebuffer = options.TransparentFramebuffer;
+                
+                mode = options.Mode;
 
                 follow_mode = options.CameraFollowMode switch
                 {
@@ -96,6 +99,9 @@ public static class Program
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
         if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
+        
+        if (mode != null)
+            settings.Mode = mode;
 
         if (settings.Mode == "Editor")
         {
@@ -121,6 +127,9 @@ public static class Program
     {
         [Option('i', "sequence", HelpText = "The sequence's location.")]
         public string? Input { get; set; }
+        
+        [Option("mode", HelpText = "Which mode the visualizer loads in.")]
+        public string? Mode { get; set; }
 
         [Option("no-audio", HelpText = "Disable audio playback.")]
         public bool NoAudio { get; set; }

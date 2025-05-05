@@ -5,7 +5,7 @@ using ThirtyDollarVisualizer.Assets;
 
 namespace ThirtyDollarVisualizer.Objects.Textures.Static;
 
-public class StaticTexture(Image<Rgba32>? rgba) : Texture
+public class StaticTexture(Image<Rgba32>? rgba) : SingleTexture
 {
     public static readonly StaticTexture Transparent1x1 = new(new Image<Rgba32>(1,1));
     

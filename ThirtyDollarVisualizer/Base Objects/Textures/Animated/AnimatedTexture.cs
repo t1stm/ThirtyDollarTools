@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace ThirtyDollarVisualizer.Objects.Textures.Animated;
 
-public class AnimatedTexture(Image<Rgba32>? rgba) : Texture
+public class AnimatedTexture(Image<Rgba32>? rgba) : SingleTexture
 {
     protected Image<Rgba32>? image = rgba;
     protected AnimatedHandle[]? gpu_handles;

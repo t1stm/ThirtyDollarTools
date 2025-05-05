@@ -5,6 +5,7 @@ using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Objects.Text;
+using ThirtyDollarVisualizer.Renderer;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Settings;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
@@ -29,7 +30,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 {
     public readonly SemaphoreSlim RenderBlock = new(1);
     public readonly List<IScene> Scenes = [];
-    public GLInfo GLInfo;
+    public static RenderThreadTaskQueue RenderThreadTaskQueue = new();
 
     public static void CheckErrors()
     {
@@ -49,17 +50,14 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnLoad()
     {
+        SetGLInfo();
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
 
         CheckErrors();
         base.OnLoad();
-
+        
         Fonts.Initialize();
-
-        GLInfo.Vendor = GL.GetString(StringName.Vendor);
-        GLInfo.Renderer = GL.GetString(StringName.Renderer);
-        GLInfo.Version = GL.GetString(StringName.Version);
 
         GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
         GL.Hint(HintTarget.LineSmoothHint, HintMode.Nicest);
@@ -67,6 +65,16 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         foreach (var scene in Scenes) scene.Init(this);
 
         foreach (var scene in Scenes) scene.Start();
+    }
+
+    private static void SetGLInfo()
+    {
+        GLInfo.Vendor = GL.GetString(StringName.Vendor);
+        GLInfo.Renderer = GL.GetString(StringName.Renderer);
+        GLInfo.Version = GL.GetString(StringName.Version);
+
+        GLInfo.MaxTexture2D_Size = GL.GetInteger(GetPName.MaxTextureSize);
+        GLInfo.MaxTexture2D_Layers = GL.GetInteger(GetPName.MaxArrayTextureLayers);
     }
 
     protected override void OnResize(ResizeEventArgs e)
@@ -79,7 +87,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         RenderBlock.Wait();
-
+        RenderThreadTaskQueue.RunTasks();
+        
         GL.Enable(EnableCap.Blend);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 0f);

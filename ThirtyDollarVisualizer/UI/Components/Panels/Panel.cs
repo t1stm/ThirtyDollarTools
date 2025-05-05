@@ -1,15 +1,25 @@
-using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.UI.Components.Scroll;
 
 namespace ThirtyDollarVisualizer.UI;
 
-public class Panel(float x, float y, float width, float height) : UIElement(x, y, width, height), IColoredBackground
+public class Panel : UIElement, IColoredBackground
 {
     public Panel() : this(0, 0, 0, 0) { }
     
     public ColoredPlane? Background { get; set; }
+    public bool Overflowing { get; protected set; }
+    public bool ScrollOnOverflow { get; set; }
+    
     private List<UIElement> _children = [];
+    protected Lazy<ScrollBar> _scrollBar;
+
+    protected Panel(float x, float y, float width, float height) : base(x, y, width, height)
+    {
+        _scrollBar = new Lazy<ScrollBar>(() => new ScrollBar(this));
+    }
+
     public List<UIElement> Children
     {
         get => _children;
@@ -31,8 +41,6 @@ public class Panel(float x, float y, float width, float height) : UIElement(x, y
         }
     }
     
-    public Vector4 Viewport { get; set; }
-    
     public override void Test(MouseState mouse)
     {
         if (!Visible) return;
@@ -53,15 +61,16 @@ public class Panel(float x, float y, float width, float height) : UIElement(x, y
 
     public override void Layout()
     {
-        var x = AbsoluteX;
-        var y = AbsoluteY;
-        Viewport = (x, y, x + Width, y + Height);
+        var x = (int)AbsoluteX;
+        var y = (int)AbsoluteY;
+        Viewport = (x, y, x + (int)Width, y + (int)Height);
+        
         foreach (var child in Children)
         {
             child.Layout();
         }
     }
-    
+
     protected void SetChildrenParent()
     {
         foreach (var child in Children)
