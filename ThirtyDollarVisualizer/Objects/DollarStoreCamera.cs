@@ -92,7 +92,7 @@ public sealed class DollarStoreCamera : Camera
     {
         Viewport = camera.Viewport;
         _position = camera.Position;
-        projection_matrix = camera.GetProjectionMatrix();
+        vp_matrix = camera.GetVPMatrix();
         RenderScale = camera.RenderScale;
         Scale = camera.Scale;
     }

@@ -100,7 +100,7 @@ public class TexturedPlane : Renderable
     public override void SetShaderUniforms(Camera camera)
     {
         Uniform.Model = Model;
-        Uniform.Projection = camera.GetProjectionMatrix();
+        Uniform.Projection = camera.GetVPMatrix();
         Uniform.DeltaAlpha = DeltaAlpha;
 
         Span<TexturedUniform> span = [Uniform];

@@ -80,7 +80,7 @@ public class ColoredPlane : Renderable
         Uniform.ScalePx = Scale.X;
         Uniform.AspectRatio = Scale.X / Scale.Y;
         Uniform.Model = Model;
-        Uniform.Projection = camera.GetProjectionMatrix();
+        Uniform.Projection = camera.GetVPMatrix();
 
         Span<ColoredUniform> span = [Uniform];
 

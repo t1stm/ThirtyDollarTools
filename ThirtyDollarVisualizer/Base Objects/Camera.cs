@@ -6,7 +6,7 @@ public abstract class Camera
 {
     protected Vector3 _position;
     protected bool Disposing;
-    protected Matrix4 projection_matrix;
+    protected Matrix4 vp_matrix;
     protected float RenderScale = 1f;
 
     protected float Scale = 1f;
@@ -101,12 +101,16 @@ public abstract class Camera
     /// <param name="top">The top side of the matrix.</param>
     protected virtual void SetMatrixValue(float left, float right, float bottom, float top)
     {
-        projection_matrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top, -1f, 1f);
+        vp_matrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top, -1f, 1f);
     }
 
-    public virtual Matrix4 GetProjectionMatrix()
+    /// <summary>
+    /// Gets the multiplied view and projection matrices.
+    /// </summary>
+    /// <returns>A Matrix4 object containing view and projection data.</returns>
+    public virtual Matrix4 GetVPMatrix()
     {
-        return projection_matrix;
+        return vp_matrix;
     }
 
     public void SetRenderScale(float scale)
