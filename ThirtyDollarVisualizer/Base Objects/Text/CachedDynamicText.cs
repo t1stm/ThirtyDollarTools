@@ -81,9 +81,9 @@ public class CachedDynamicText : TextRenderable
                         (0, 0, 0), (1, 1));
             }
 
-            var x = MathF.Round(_position.X);
-            var y = MathF.Round(_position.Y);
-            var z = MathF.Round(_position.Z);
+            var x = MathF.Round(Position.X);
+            var y = MathF.Round(Position.Y);
+            var z = MathF.Round(Position.Z);
 
             var start_X = x;
             var max_x = 0f;
@@ -107,14 +107,14 @@ public class CachedDynamicText : TextRenderable
 
                 plane.SetTexture(texture);
                 plane.SetPosition((x, y, z));
-                plane.SetScale((w, h, 0));
+                plane.Scale = (w, h, 0);
 
                 x += w;
                 max_x = Math.Max(max_x, x);
                 max_y = Math.Max(max_y, y + h);
             }
 
-            _scale = (max_x, lines * _font_size_px, 1);
+            Scale = (max_x, lines * _font_size_px, 1);
         }
         finally
         {

@@ -15,7 +15,10 @@ public class Button : FlexPanel, IText
         AutoHeight = true;
         
         Padding = 5;
-        Background = new ColoredPlane(background ?? (0.2f, 0.2f, 0.2f, 1.0f)); 
+        Background = new ColoredPlane
+        {
+            Color = background ?? (0.2f, 0.2f, 0.2f, 1.0f)
+        }; 
         
         Children = [_label = new Label(label)];
         UpdateCursorOnHover = true;

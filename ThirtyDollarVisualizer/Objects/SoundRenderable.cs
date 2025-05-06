@@ -21,6 +21,16 @@ public class SoundRenderable : TexturedPlane
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
 
+    public override Vector3 Scale
+    {
+        get => base.Scale;
+        set
+        {
+            base.Scale = value;
+            BounceAnimation.Final_Y = value.Y / 5f;
+        }
+    }
+
     public SoundRenderable(SingleTexture texture, Vector3 position, Vector2 width_height) : base(texture, position,
         width_height)
     {
@@ -41,12 +51,6 @@ public class SoundRenderable : TexturedPlane
             UpdateModel(false, RenderableAnimations.Span);
 
         base.Render(camera);
-    }
-
-    public override void SetScale(Vector3 scale)
-    {
-        BounceAnimation.Final_Y = scale.Y / 5f;
-        base.SetScale(scale);
     }
 
     public void UpdateChildren()
@@ -105,8 +109,8 @@ public class SoundRenderable : TexturedPlane
                 _ => null
             };
 
-        var this_position = GetPosition();
-        var this_scale = GetScale();
+        var this_position = Position;
+        var this_scale = Scale;
 
         if (texture == null)
         {
@@ -117,10 +121,10 @@ public class SoundRenderable : TexturedPlane
         if (texture.Width != old_texture?.Width)
         {
             var new_scale = (texture.Width, texture.Height, 0);
-            Value.SetScale(new_scale);
+            Value.Scale = new_scale;
 
             var new_position_x = this_position.X + this_scale.X / 2f;
-            var new_position = new Vector3(Value.GetPosition())
+            var new_position = new Vector3(Value.Position)
             {
                 X = new_position_x
             };

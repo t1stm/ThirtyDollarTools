@@ -50,7 +50,8 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
         if (count < 1)
         {
             Background?.SetPosition((a_x, a_y, 0));
-            Background?.SetScale((Width, Height, 1));
+            if (Background != null) 
+                Background.Scale = (Width, Height, 1);
             return;
         }
 
@@ -60,7 +61,8 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
             Layout_Vertical(count, inner_height, inner_width);
 
         Background?.SetPosition((a_x, a_y, 0));
-        Background?.SetScale((Width, Height, 1));
+        if (Background != null) 
+            Background.Scale = (Width, Height, 1);
     }
 
     protected void AutoSize(int count)

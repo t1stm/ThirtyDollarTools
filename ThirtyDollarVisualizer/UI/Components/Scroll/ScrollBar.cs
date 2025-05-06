@@ -8,11 +8,14 @@ public sealed class ScrollBar : Panel
 {
     public readonly Panel ScrollBlock = new()
     {
-        Background = new ColoredPlane(Vector4.One),
+        Background = new ColoredPlane
+        {
+            Color = Vector4.One
+        },
         Height = 20
     };
 
-    public float Percentage { get; protected set; }
+    public float Percentage { get; private set; }
 
     public override float X
     {
@@ -37,7 +40,10 @@ public sealed class ScrollBar : Panel
     public ScrollBar(Panel parent)
     {
         Parent = parent;
-        Background = new ColoredPlane((0.3f, 0.3f, 0.3f, 1));
+        Background = new ColoredPlane
+        {
+            Color = (0.3f, 0.3f, 0.3f, 1)
+        };
         Children = [ScrollBlock];
     }
 

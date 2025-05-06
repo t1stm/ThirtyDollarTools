@@ -205,14 +205,21 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             optional_shader = ShaderPool.GetOrLoad("bg_optional_shader", 
                 () => new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation));
 
-        BackgroundPlane = new BackgroundPlane(DefaultBackgroundColor, new Vector3(-Width, -Height, -1f),
-            new Vector3(Width * 2, Height * 2, -1f));
+        BackgroundPlane = new BackgroundPlane(DefaultBackgroundColor)
+        {
+            Position = new Vector3(-Width, -Height, -1f),
+            Scale = new Vector3(Width * 2, Height * 2, -1f)
+        };
 
         if (optional_shader is not null)
             BackgroundPlane.Shader = optional_shader;
 
-        FlashOverlay = new ColoredPlane(new Vector4(1f, 1f, 1f, 0f), new Vector3(-Width, -Height, 1),
-            new Vector3(Width * 2, Height * 2, 1));
+        FlashOverlay = new ColoredPlane
+        {
+            Position = new Vector3(-Width, -Height, 1),
+            Scale = new Vector3(Width * 2, Height * 2, 1),
+            Color = new Vector4(1f, 1f, 1f, 0f)
+        };
 
         var font_family = Fonts.GetFontFamily();
         var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
@@ -264,14 +271,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         foreach (var r in start_objects)
         {
-            var pos = r.GetPosition();
+            var pos = r.Position;
             var delta_x = (Width - w) / 2f;
 
             pos -= delta_x * Vector3.UnitX;
             r.SetPosition(pos);
         }
 
-        _greeting?.SetPosition(_greeting.GetPosition() - (Width - w) / 2f * Vector3.UnitX);
+        _greeting?.SetPosition(_greeting.Position - (Width - w) / 2f * Vector3.UnitX);
         Overlay.Resize(w, h);
         UpdateStaticRenderables(w, h, Camera.GetRenderScale());
 
@@ -338,10 +345,10 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             Manager.CheckErrors();
             if (renderable is null) return;
 
-            var position = renderable.GetPosition();
-            var translation = renderable.GetTranslation();
+            var position = renderable.Position;
+            var translation = renderable.Translation;
 
-            var scale = renderable.GetScale();
+            var scale = renderable.Scale;
             var place = position + translation;
 
             // Bounds checks for viewport.
@@ -810,8 +817,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var element = GetRenderable(placement, sequence_index);
         if (element == null) return;
 
-        var position = element.GetPosition() + element.GetTranslation();
-        var scale = element.GetScale();
+        var position = element.Position + element.Translation;
+        var scale = element.Scale;
 
         switch (CameraFollowMode)
         {
@@ -1053,14 +1060,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var width_scale = w / scale - w;
         var height_scale = h / scale - h;
 
-        var background = BackgroundPlane.GetScale();
-        var b_z = BackgroundPlane.GetPosition().Z;
-        BackgroundPlane.SetPosition((-width_scale / 2f, -height_scale / 2f, b_z));
-        BackgroundPlane.SetScale((w + width_scale, h + height_scale, background.Z));
+        var background = BackgroundPlane.Scale;
+        var b_z = BackgroundPlane.Position.Z;
+        BackgroundPlane.Position = (-width_scale / 2f, -height_scale / 2f, b_z);
+        BackgroundPlane.Scale = (w + width_scale, h + height_scale, background.Z);
 
-        var flash = FlashOverlay.GetScale();
-        var f_z = FlashOverlay.GetPosition().Z;
-        FlashOverlay.SetScale((w + width_scale, h + height_scale, flash.Z));
+        var flash = FlashOverlay.Scale;
+        var f_z = FlashOverlay.Position.Z;
+        FlashOverlay.Scale = (w + width_scale, h + height_scale, flash.Z);
         FlashOverlay.SetPosition((-width_scale / 2f, -height_scale / 2f, f_z));
     }
 

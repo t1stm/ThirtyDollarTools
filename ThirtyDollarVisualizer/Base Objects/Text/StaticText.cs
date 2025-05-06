@@ -43,7 +43,7 @@ public class StaticText(FontFamily? font_family = null) : TextRenderable
 
         var texture = new FontTexture(font, text);
         _texturedPlane.SetTexture(texture);
-        SetScale((texture.Width, texture.Height, 1));
+        Scale = (texture.Width, texture.Height, 1);
     }
 
     public override void Render(Camera camera)
@@ -61,11 +61,15 @@ public class StaticText(FontFamily? font_family = null) : TextRenderable
         _texturedPlane.SetPosition(position, align);
     }
 
-    public override void SetScale(Vector3 scale)
+    public override Vector3 Scale
     {
-        _texturedPlane.SetScale(scale);
-        scale.Y -= Y_OFFSET;
-        base.SetScale(scale);
+        get => base.Scale;
+        set
+        {
+            _texturedPlane.Scale = value;
+            value.Y -= Y_OFFSET;
+            base.Scale = value;
+        }
     }
 
     public void SetFontSize(float font_size_px)

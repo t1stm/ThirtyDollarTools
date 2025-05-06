@@ -86,7 +86,7 @@ public class Label : UIElement, IText
     public void SetTextContents(string text)
     {
         renderable.SetTextContents(text);
-        var scale = renderable.GetScale();
+        var scale = renderable.Scale;
 
         Width = scale.X;
         Height = scale.Y;

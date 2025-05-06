@@ -26,7 +26,10 @@ public sealed class DropDownLabel : Panel, IText
             Children = panel_children,
             Direction = LayoutDirection.Vertical,
             Visible = false,
-            Background = new ColoredPlane((0.2f, 0.2f, 0.2f, 1f)),
+            Background = new ColoredPlane
+            {
+                Color = (0.2f, 0.2f, 0.2f, 1f)
+            },
             Spacing = 4,
             Padding = 4
         };

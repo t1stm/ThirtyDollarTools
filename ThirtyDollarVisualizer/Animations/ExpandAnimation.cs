@@ -36,7 +36,7 @@ public class ExpandAnimation : Animation
         }
 
         var factor = MathF.Sin(MathF.PI * normalized);
-        var scale = renderable.GetScale();
+        var scale = renderable.Scale;
 
         transformation.X -= factor * ExpandHalf * scale.X;
         transformation.Y -= factor * ExpandHalf * scale.Y;

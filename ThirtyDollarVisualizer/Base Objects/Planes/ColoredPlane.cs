@@ -22,69 +22,53 @@ public class ColoredPlane : Renderable
     public float BorderRadius;
     private ColoredUniform Uniform;
 
-    public ColoredPlane(Vector4 color) : this(color, (0, 0, 0), (0, 0, 0))
+    public ColoredPlane(Vector4 color)
     {
+        Color = color;
     }
 
-    public ColoredPlane(Vector4 color, Vector3 position, Vector3 scale, float border_radius = 0f)
+    public ColoredPlane()
     {
-        _position = position;
-        _scale = scale;
-
         if (!AreVerticesGenerated) SetVertices();
-
-        Vao = Static_Vao;
-        Vbo = Static_Vbo;
-        Ebo = Static_Ebo;
-        Color = color;
-
         Uniform = new ColoredUniform();
-        BorderRadius = border_radius;
     }
 
     private void SetVertices()
     {
-        lock (LockObject)
+        var (x, y, z) = (0f, 0f, 0);
+        var (w, h) = (1f, 1f);
+
+        var vertices = new[]
         {
-            var (x, y, z) = (0f, 0f, 0);
-            var (w, h) = (1f, 1f);
+            x, y + h, z,
+            x + w, y + h, z,
+            x + w, y, z,
+            x, y, z
+        };
 
-            var vertices = new[]
-            {
-                x, y + h, z,
-                x + w, y + h, z,
-                x + w, y, z,
-                x, y, z
-            };
+        var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
 
-            var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
+        Static_Vao = new VertexArrayObject<float>();
+        Static_Vbo = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
 
-            Static_Vao = new VertexArrayObject<float>();
-            Static_Vbo = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
+        var layout = new VertexBufferLayout();
+        layout.PushFloat(3); // xyz vertex coords
+        Static_Vao.AddBuffer(Static_Vbo, layout);
 
-            var layout = new VertexBufferLayout();
-            layout.PushFloat(3); // xyz vertex coords
-            Static_Vao.AddBuffer(Static_Vbo, layout);
-
-            Static_Ebo = new BufferObject<uint>(indices, BufferTarget.ElementArrayBuffer);
-            AreVerticesGenerated = true;
-        }
+        Static_Ebo = new BufferObject<uint>(indices, BufferTarget.ElementArrayBuffer);
+        AreVerticesGenerated = true;
     }
 
     public override void Render(Camera camera)
     {
-        lock (LockObject)
-        {
-            if (Ebo == null || Vao == null || Shader == null) return;
+        if (Shader == null) return;
 
-            Vao.Bind();
-            Ebo.Bind();
-            Shader.Use();
-            SetShaderUniforms(camera);
+        Static_Vao.Bind();
+        Static_Ebo.Bind();
+        Shader.Use();
+        SetShaderUniforms(camera);
 
-            GL.DrawElements(PrimitiveType.Triangles, Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
-        }
-
+        GL.DrawElements(PrimitiveType.Triangles, Static_Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
         base.Render(camera);
     }
 
@@ -93,8 +77,8 @@ public class ColoredPlane : Renderable
         Uniform.Color = Color;
         Uniform.BorderRadiusPx = BorderRadius;
 
-        Uniform.ScalePx = _scale.X;
-        Uniform.AspectRatio = _scale.X / _scale.Y;
+        Uniform.ScalePx = Scale.X;
+        Uniform.AspectRatio = Scale.X / Scale.Y;
         Uniform.Model = Model;
         Uniform.Projection = camera.GetProjectionMatrix();
 
@@ -112,9 +96,5 @@ public class ColoredPlane : Renderable
         }
 
         GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, UniformBuffer.Handle);
-    }
-
-    public override void Dispose()
-    {
     }
 }

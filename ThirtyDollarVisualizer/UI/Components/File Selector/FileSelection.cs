@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using OpenTK.Mathematics;
 using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Objects.Planes;
@@ -31,7 +32,10 @@ public sealed class FileSelection : Panel
             Spacing = 10,
             VerticalAlign = Align.Center,
             AutoWidth = true,
-            Background = new ColoredPlane(new Vector4(0.15f, 0.15f, 0.15f, 1.0f)),
+            Background = new ColoredPlane
+            {
+                Color = (0.15f, 0.15f, 0.15f, 1.0f)
+            },
             Children =
             [
                 new Label("↑ Up")
@@ -58,7 +62,10 @@ public sealed class FileSelection : Panel
             Spacing = 10,
             AutoWidth = true,
             AutoHeight = true,
-            Background = new ColoredPlane(new Vector4(0.1f, 0.1f, 0.1f, 1.0f)),
+            Background = new ColoredPlane
+            {
+                Color = (0.1f, 0.1f, 0.1f, 1.0f)
+            },
             ScrollOnOverflow = true
         };
 
@@ -70,7 +77,10 @@ public sealed class FileSelection : Panel
             Padding = 5,
             Spacing = 10,
             AutoWidth = true,
-            Background = new ColoredPlane(new Vector4(0.15f, 0.15f, 0.15f, 1.0f)),
+            Background = new ColoredPlane
+            {
+                Color = (0.15f, 0.15f, 0.15f, 1.0f)
+            },
             Children =
             [
                 new Button("Select")
@@ -97,7 +107,10 @@ public sealed class FileSelection : Panel
             Direction = LayoutDirection.Vertical,
             Padding = 10,
             Spacing = 10,
-            Background = new ColoredPlane(new Vector4(0.2f, 0.2f, 0.2f, 1.0f)),
+            Background = new ColoredPlane
+            {
+                Color = (0.2f, 0.2f, 0.2f, 1.0f)
+            },
             Children = [top_section, _filesSection, bottom_section]
         };
 

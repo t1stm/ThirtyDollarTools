@@ -42,7 +42,10 @@ public class WindowFrame : Panel
     {
         Header = new FlexPanel(0, 0, w, 30)
         {
-            Background = new ColoredPlane((0.1f, 0.1f, 0.1f, 1.0f)),
+            Background = new ColoredPlane
+            {
+                Color = (0.1f, 0.1f, 0.1f, 1.0f)
+            },
             VerticalAlign = Align.Center,
             HorizontalAlign = Align.End,
             AutoWidth = true,

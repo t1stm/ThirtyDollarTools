@@ -19,9 +19,9 @@ public class BasicDynamicText : CachedDynamicText
         StaticPlane ??= new TexturedPlane(StaticTexture.Transparent1x1, (0, 0, 0), (1, 1, 1));
 
         ReadOnlySpan<char> text = _value;
-        var x = _position.X;
-        var y = _position.Y;
-        var z = _position.Z;
+        var x = Position.X;
+        var y = Position.Y;
+        var z = Position.Z;
 
         var start_X = x;
         var max_x = 0f;
@@ -56,7 +56,7 @@ public class BasicDynamicText : CachedDynamicText
             var h = texture.Height;
 
             StaticPlane.SetPosition((x, y, z));
-            StaticPlane.SetScale((w, h, 0));
+            StaticPlane.Scale = (w, h, 0);
             StaticPlane.SetTexture(texture);
             StaticPlane.Render(camera);
 
@@ -65,6 +65,6 @@ public class BasicDynamicText : CachedDynamicText
             max_y = Math.Max(max_y, y + h);
         }
 
-        _scale = (max_x, lines * _font_size_px, 1);
+        Scale = (max_x, lines * _font_size_px, 1);
     }
 }

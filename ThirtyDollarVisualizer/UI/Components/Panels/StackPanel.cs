@@ -48,6 +48,7 @@ public class StackPanel(float x, float y, float width, float height)
         }
 
         Background?.SetPosition((start_x, start_y, 0));
-        Background?.SetScale((Width, Height, 1));
+        if (Background != null) 
+            Background.Scale = (Width, Height, 1);
     }
 }

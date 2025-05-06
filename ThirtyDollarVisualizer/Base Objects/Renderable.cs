@@ -11,31 +11,39 @@ public abstract class Renderable
     ///     Dummy renderable to use on animations that don't animate a renderable.
     /// </summary>
     public static readonly Renderable Dummy = new DummyRenderable();
+
     public readonly List<Renderable> Children = [];
-    protected readonly object LockObject = new();
     public virtual Shader? Shader { get; set; }
 
     /// <summary>
     ///     The position of the current renderable.
     /// </summary>
-    protected Vector3 _position;
+    public virtual Vector3 Position { get; set; }
 
     /// <summary>
     ///     The rotation of the current renderable.
     /// </summary>
-    protected Vector3 _rotation;
+    public virtual Vector3 Rotation { get; set; }
 
     /// <summary>
     ///     The scale of the current renderable.
     /// </summary>
-    protected Vector3 _scale;
+    public virtual Vector3 Scale { get; set; }
 
     /// <summary>
     ///     The offset position of the current renderable. Intended for dynamic positioning (eg. animations)
     /// </summary>
-    protected Vector3 _translation;
+    public virtual Vector3 Translation { get; set; }
 
-    protected BufferObject<uint>? Ebo;
+    /// <summary>
+    ///     The model matrix of the current renderable.
+    /// </summary>
+    public virtual Matrix4 Model { get; set; }
+
+    /// <summary>
+    ///     The color of the current renderable.
+    /// </summary>
+    public virtual Vector4 Color { get; set; }
 
     /// <summary>
     ///     A boolean made for external use.
@@ -48,16 +56,6 @@ public abstract class Renderable
     ///     Sets whether this renderable calls it's render method.
     /// </summary>
     public bool IsVisible = true;
-    
-    protected VertexArrayObject<float>? Vao;
-    protected BufferObject<float>? Vbo;
-
-    /// <summary>
-    ///     The model matrix of the current renderable.
-    /// </summary>
-    protected Matrix4 Model { get; set; }
-
-    protected Vector4 Color { get; set; }
 
     protected float DeltaAlpha { get; set; }
 
@@ -71,9 +69,9 @@ public abstract class Renderable
         IsChild = is_child;
         var model = Matrix4.Identity;
 
-        var position = GetPosition();
-        var scale = GetScale();
-        var translation = GetTranslation();
+        var position = Position;
+        var scale = Scale;
+        var translation = Translation;
 
         var temp_translation = Vector3.Zero;
         var temp_scale = Vector3.One;
@@ -85,7 +83,7 @@ public abstract class Renderable
 
         var final_translation = position + translation + temp_translation;
         var final_scale = scale * temp_scale;
-        var final_rotation = _rotation + temp_rotation;
+        var final_rotation = Rotation + temp_rotation;
 
         model *= Matrix4.CreateScale(final_scale);
 
@@ -97,7 +95,7 @@ public abstract class Renderable
 
         foreach (var renderable in Children) renderable.UpdateModel(true, animations);
 
-        SetModel(model);
+        Model = model;
     }
 
     /// <summary>
@@ -180,100 +178,6 @@ public abstract class Renderable
     }
 
     /// <summary>
-    ///     A method that disposes the objects.
-    /// </summary>
-    public virtual void Dispose()
-    {
-        Ebo?.Dispose();
-        Vbo?.Dispose();
-        Vao?.Dispose();
-    }
-
-    /// <summary>
-    ///     Gets the renderable's color.
-    /// </summary>
-    /// <returns></returns>
-    public virtual Vector4 GetColor()
-    {
-        lock (LockObject)
-        {
-            return Color;
-        }
-    }
-
-    /// <summary>
-    ///     Gets the renderable's position.
-    /// </summary>
-    /// <returns>A Vector3 representing the position.</returns>
-    public virtual Vector3 GetPosition()
-    {
-        lock (LockObject)
-        {
-            return _position;
-        }
-    }
-
-    /// <summary>
-    ///     Gets the renderable's translation.
-    /// </summary>
-    /// <returns>A Vector3 representing the translation.</returns>
-    public virtual Vector3 GetTranslation()
-    {
-        lock (LockObject)
-        {
-            return _translation;
-        }
-    }
-
-    /// <summary>
-    ///     Gets the renderable's scale.
-    /// </summary>
-    /// <returns>A Vector3 representing the scale.</returns>
-    public virtual Vector3 GetScale()
-    {
-        lock (LockObject)
-        {
-            return _scale;
-        }
-    }
-
-    /// <summary>
-    ///     Gets the renderable's rotation.
-    /// </summary>
-    /// <returns>A Vector3 representing the rotation.</returns>
-    public virtual Vector3 GetRotation()
-    {
-        lock (LockObject)
-        {
-            return _rotation;
-        }
-    }
-
-    /// <summary>
-    ///     Sets the renderable's model.
-    ///     <param name="model">The model.</param>
-    /// </summary>
-    public virtual void SetModel(Matrix4 model)
-    {
-        lock (LockObject)
-        {
-            Model = model;
-        }
-    }
-
-    /// <summary>
-    ///     Sets the renderable's model.
-    ///     <param name="color">The color.</param>
-    /// </summary>
-    public virtual void SetColor(Vector4 color)
-    {
-        lock (LockObject)
-        {
-            Color = color;
-        }
-    }
-
-    /// <summary>
     ///     Sets the renderable's position.
     /// </summary>
     /// <param name="position">The position.</param>
@@ -281,25 +185,24 @@ public abstract class Renderable
     /// <exception cref="ArgumentOutOfRangeException">Invalid PositionAlign given.</exception>
     public virtual void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
     {
-        lock (LockObject)
+        var scale = Scale;
+        
+        Position = align switch
         {
-            _position = align switch
-            {
-                PositionAlign.TopLeft => position,
-                PositionAlign.TopCenter => position - _scale.X / 2f * Vector3.UnitX,
-                PositionAlign.TopRight => position - _scale.X * Vector3.UnitX,
+            PositionAlign.TopLeft => position,
+            PositionAlign.TopCenter => position - scale.X / 2f * Vector3.UnitX,
+            PositionAlign.TopRight => position - scale.X * Vector3.UnitX,
 
-                PositionAlign.MiddleLeft => position - _scale.Y / 2f * Vector3.UnitY,
-                PositionAlign.Center => position - _scale.Y / 2f * Vector3.UnitY - _scale.X / 2f * Vector3.UnitX,
-                PositionAlign.MiddleRight => position - _scale.Y / 2f * Vector3.UnitY - _scale.X * Vector3.UnitX,
+            PositionAlign.MiddleLeft => position - scale.Y / 2f * Vector3.UnitY,
+            PositionAlign.Center => position - scale.Y / 2f * Vector3.UnitY - scale.X / 2f * Vector3.UnitX,
+            PositionAlign.MiddleRight => position - scale.Y / 2f * Vector3.UnitY - scale.X * Vector3.UnitX,
 
-                PositionAlign.BottomLeft => position - _scale.Y * Vector3.UnitY,
-                PositionAlign.BottomCenter => position - _scale.Y * Vector3.UnitY - _scale.X / 2f * Vector3.UnitX,
-                PositionAlign.BottomRight => position - _scale.Y * Vector3.UnitY - _scale.X * Vector3.UnitX,
-                _ => throw new ArgumentOutOfRangeException(nameof(align), align,
-                    "Invalid Position Align in set position method.")
-            };
-        }
+            PositionAlign.BottomLeft => position - scale.Y * Vector3.UnitY,
+            PositionAlign.BottomCenter => position - scale.Y * Vector3.UnitY - scale.X / 2f * Vector3.UnitX,
+            PositionAlign.BottomRight => position - scale.Y * Vector3.UnitY - scale.X * Vector3.UnitX,
+            _ => throw new ArgumentOutOfRangeException(nameof(align), align,
+                "Invalid Position Align in set position method.")
+        };
 
         UpdateModel(IsChild);
     }
@@ -310,42 +213,9 @@ public abstract class Renderable
     /// <param name="translation">The translation.</param>
     public virtual void SetTranslation(Vector3 translation)
     {
-        lock (LockObject)
-        {
-            _translation = translation;
-        }
-
+        Translation = translation;
         UpdateModel(IsChild);
-
         foreach (var renderable in Children) renderable.SetTranslation(translation);
-    }
-
-    /// <summary>
-    ///     Sets the renderable's scale.
-    /// </summary>
-    /// <param name="scale">The scale.</param>
-    public virtual void SetScale(Vector3 scale)
-    {
-        lock (LockObject)
-        {
-            _scale = scale;
-        }
-
-        UpdateModel(IsChild);
-    }
-
-    /// <summary>
-    ///     Sets the renderable's rotation.
-    /// </summary>
-    /// <param name="value">The rotation.</param>
-    public virtual void SetRotation(Vector3 value)
-    {
-        lock (LockObject)
-        {
-            _rotation = value;
-        }
-
-        UpdateModel(IsChild);
     }
 
     ~Renderable()
@@ -356,12 +226,12 @@ public abstract class Renderable
 
 public static class RenderableExtensions
 {
-    public static T_Target? As<T_Target>(this Renderable renderable) 
+    public static T_Target? As<T_Target>(this Renderable renderable)
         where T_Target : Renderable
     {
         return renderable as T_Target;
     }
-    
+
     /// <summary>
     ///     Gives a Renderable object with its position set to the value you give.
     /// </summary>
@@ -396,7 +266,7 @@ public static class RenderableExtensions
     /// <returns>The source renderable with the new rotation set.</returns>
     public static Renderable WithRotation(this Renderable renderable, Vector3 rotation)
     {
-        renderable.SetRotation(rotation);
+        renderable.Rotation = rotation;
         return renderable;
     }
 
@@ -408,7 +278,7 @@ public static class RenderableExtensions
     /// <returns>The source renderable with the new scale set.</returns>
     public static Renderable WithScale(this Renderable renderable, Vector3 scale)
     {
-        renderable.SetScale(scale);
+        renderable.Scale = scale;
         return renderable;
     }
 
@@ -420,7 +290,7 @@ public static class RenderableExtensions
     /// <returns>The source renderable with the new color set.</returns>
     public static Renderable WithColor(this Renderable renderable, Vector4 color)
     {
-        renderable.SetColor(color);
+        renderable.Color = color;
         return renderable;
     }
 }

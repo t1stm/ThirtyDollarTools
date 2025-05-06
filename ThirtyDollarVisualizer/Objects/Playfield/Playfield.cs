@@ -26,7 +26,10 @@ public class Playfield(PlayfieldSettings settings)
         new GapBox(settings.SoundMargin * settings.RenderScale / 2),
         new GapBox(15f * settings.RenderScale, 15f * settings.RenderScale));
 
-    private readonly ColoredPlane ObjectBox = new((0, 0, 0, 0.25f), (0, 0, 0), (0, 0, 0));
+    private readonly ColoredPlane ObjectBox = new()
+    {
+        Color = (0, 0, 0, 0.25f)
+    };
 
     private readonly DollarStoreCamera TemporaryCamera = new(Vector3.Zero, Vector2i.Zero);
 
@@ -85,7 +88,7 @@ public class Playfield(PlayfieldSettings settings)
             if (!sound.IsDivider || i + 1 >= sounds.Count) continue;
 
             // add the current divider's position for render culling
-            DividerPositions_Y.Add(sound.GetPosition().Y);
+            DividerPositions_Y.Add(sound.Position.Y);
 
             LayoutHandler.NewLine(
                 // edge case when a new line was already created
@@ -159,7 +162,7 @@ public class Playfield(PlayfieldSettings settings)
         }
 
         // set the size of the sound's texture to the wanted size
-        sound.SetScale((wanted_scale.X, wanted_scale.Y, 0));
+        sound.Scale = (wanted_scale.X, wanted_scale.Y, 0);
 
         // calculates the wanted position to avoid stretching of the texture
         var box_position = layout_handler.GetNewPosition();
@@ -244,7 +247,7 @@ public class Playfield(PlayfieldSettings settings)
 
         // render the background dimmed box
         ObjectBox.SetPosition((0, 0, 0));
-        ObjectBox.SetScale((LayoutHandler.Width, LayoutHandler.Height, 0));
+        ObjectBox.Scale = (LayoutHandler.Width, LayoutHandler.Height, 0);
         ObjectBox.BorderRadius = 0f;
 
         ObjectBox.UpdateModel(false);

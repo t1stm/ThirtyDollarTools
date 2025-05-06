@@ -8,7 +8,7 @@ public static class ColorTools
 {
     public static async Task ChangeColor(Renderable renderable, Vector4 color, float duration_seconds)
     {
-        var old_color = renderable.GetColor();
+        var old_color = renderable.Color;
         await ChangeColor(renderable, old_color, color, duration_seconds);
     }
 
@@ -34,11 +34,11 @@ public static class ColorTools
         {
             var delta = Math.Clamp(elapsed / duration_seconds, 0.01f, 1f);
 
-            renderable.SetColor(Vector4.Lerp(old_color, color, delta));
+            renderable.Color = Vector4.Lerp(old_color, color, delta);
             await Task.Delay(16);
         }
 
-        renderable.SetColor(color);
+        renderable.Color = color;
 
         renderable.IsBeingUpdated = false;
         stopwatch.Stop();

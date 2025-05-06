@@ -43,7 +43,10 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
             [
                 new FlexPanel // Top Bar
                 {
-                    Background = new ColoredPlane((0.2f, 0.2f, 0.2f, 1f)),
+                    Background = new ColoredPlane
+                    {
+                        Color = (0.2f, 0.2f, 0.2f, 1f)
+                    },
                     VerticalAlign = Align.Center,
                     AutoWidth = true,
                     Height = 32,
@@ -77,7 +80,10 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
                 {
                     AutoWidth = true,
                     AutoHeight = true,
-                    Background = new ColoredPlane((0.3f, 0.3f, 0.3f, 1f)),
+                    Background = new ColoredPlane
+                    {
+                        Color = (0.3f, 0.3f, 0.3f, 1f)
+                    },
                     Padding = 10,
                     Children =
                     [
@@ -109,7 +115,10 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
     {
         ErrorDisplay ??= new FlexPanel(0, 0, UIContext.ViewportWidth, UIContext.ViewportHeight)
         {
-            Background = new ColoredPlane((0.2f, 0.2f, 0.2f, 1f)),
+            Background = new ColoredPlane
+            {
+                Color = (0.2f, 0.2f, 0.2f, 1f)
+            },
             Direction = LayoutDirection.Vertical,
             HorizontalAlign = Align.Center,
             Padding = 50,

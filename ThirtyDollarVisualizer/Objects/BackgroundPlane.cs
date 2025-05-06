@@ -12,8 +12,7 @@ public class BackgroundPlane : ColoredPlane
     private float LengthMilliseconds;
     private Vector4 StartColor;
 
-    public BackgroundPlane(Vector4 start_color, Vector3 position, Vector3 scale) : base(start_color,
-        position, scale)
+    public BackgroundPlane(Vector4 start_color)
     {
         // i don't want to convert to a primary constructor for this, thank you.
         StartColor = start_color;
