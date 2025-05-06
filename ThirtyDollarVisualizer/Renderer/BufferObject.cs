@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
 using OpenTK.Graphics.OpenGL;
+using ThirtyDollarVisualizer.Renderer.Abstract;
 
 namespace ThirtyDollarVisualizer.Renderer;
 
-public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
+public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : unmanaged
 {
     private readonly ConcurrentDictionary<int, TDataType> UpdateQueue = new();
     private readonly BufferTarget _bufferType;

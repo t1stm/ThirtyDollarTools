@@ -7,7 +7,7 @@ public class VertexBufferLayout
     private readonly List<VertexBufferElement> _elements = [];
     private int _stride;
 
-    public void PushFloat(int count)
+    public VertexBufferLayout PushFloat(int count)
     {
         _elements.Add(new VertexBufferElement
         {
@@ -16,34 +16,40 @@ public class VertexBufferLayout
             Normalized = false
         });
         _stride += sizeof(float) * count;
+
+        return this;
     }
 
-    public void PushMatrix4(int count)
+    public VertexBufferLayout PushMatrix4(int count)
     {
-        PushMatrix(4,4, count);
+        return PushMatrix(4, 4, count);
     }
-    
-    public void PushMatrix(int x, int y, int count)
+
+    public VertexBufferLayout PushMatrix(int x, int y, int count)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(x,4, nameof(x));
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(y,4, nameof(y));
-        
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(x, 4, nameof(x));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(y, 4, nameof(y));
+
         for (var j = 0; j < count; j++)
         {
             for (var i = 0; i < y; i++)
             {
-                _elements.Add(new VertexBufferElement {
-                    Type       = VertexAttribPointerType.Float,
-                    Count      = x,
+                _elements.Add(new VertexBufferElement
+                {
+                    Type = VertexAttribPointerType.Float,
+                    Count = x,
                     Normalized = false,
-                    Divisor    = 1
+                    Divisor = 1
                 });
             }
+
             _stride += sizeof(float) * x * y;
         }
+
+        return this;
     }
 
-    public void PushUInt(int count)
+    public VertexBufferLayout PushUInt(int count)
     {
         _elements.Add(new VertexBufferElement
         {
@@ -52,9 +58,11 @@ public class VertexBufferLayout
             Normalized = false
         });
         _stride += sizeof(uint) * count;
+
+        return this;
     }
 
-    public void PushByte(int count)
+    public VertexBufferLayout PushByte(int count)
     {
         _elements.Add(new VertexBufferElement
         {
@@ -63,6 +71,8 @@ public class VertexBufferLayout
             Normalized = false
         });
         _stride += sizeof(byte) * count;
+
+        return this;
     }
 
     public IReadOnlyList<VertexBufferElement> GetElements()

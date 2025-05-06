@@ -9,4 +9,5 @@ public struct Quad
     public Matrix4 Model;
     public Vector4 Color;
     public int TextureIndex;
+    private readonly Vector3 _pad;
 }

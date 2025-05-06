@@ -1,8 +1,9 @@
 using OpenTK.Graphics.OpenGL;
+using ThirtyDollarVisualizer.Renderer.Abstract;
 
 namespace ThirtyDollarVisualizer.Renderer;
 
-public class VertexArrayObject<TVertexType> where TVertexType : unmanaged
+public class VertexArrayObject : IBindable 
 {
     private readonly int _vao;
 
@@ -12,7 +13,7 @@ public class VertexArrayObject<TVertexType> where TVertexType : unmanaged
         Bind();
     }
 
-    public void AddBuffer(BufferObject<TVertexType> vbo, VertexBufferLayout layout)
+    public void AddBuffer(IBuffer vbo, VertexBufferLayout layout)
     {
         Bind();
         vbo.Bind();

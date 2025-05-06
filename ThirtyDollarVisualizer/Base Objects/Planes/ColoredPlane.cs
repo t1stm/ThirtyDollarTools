@@ -9,7 +9,7 @@ namespace ThirtyDollarVisualizer.Objects.Planes;
 public class ColoredPlane : Renderable
 {
     private static bool AreVerticesGenerated;
-    private static VertexArrayObject<float> Static_Vao = null!;
+    private static VertexArrayObject Static_Vao = null!;
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
     private static BufferObject<ColoredUniform>? UniformBuffer;
@@ -48,7 +48,7 @@ public class ColoredPlane : Renderable
 
         var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
 
-        Static_Vao = new VertexArrayObject<float>();
+        Static_Vao = new VertexArrayObject();
         Static_Vbo = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
 
         var layout = new VertexBufferLayout();
