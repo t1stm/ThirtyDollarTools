@@ -13,9 +13,34 @@ public class VertexBufferLayout
         {
             Type = VertexAttribPointerType.Float,
             Count = count,
-            Normalized = true
+            Normalized = false
         });
         _stride += sizeof(float) * count;
+    }
+
+    public void PushMatrix4(int count)
+    {
+        PushMatrix(4,4, count);
+    }
+    
+    public void PushMatrix(int x, int y, int count)
+    {
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(x,4, nameof(x));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(y,4, nameof(y));
+        
+        for (var j = 0; j < count; j++)
+        {
+            for (var i = 0; i < y; i++)
+            {
+                _elements.Add(new VertexBufferElement {
+                    Type       = VertexAttribPointerType.Float,
+                    Count      = x,
+                    Normalized = false,
+                    Divisor    = 1
+                });
+            }
+            _stride += sizeof(float) * x * y;
+        }
     }
 
     public void PushUInt(int count)
@@ -24,7 +49,7 @@ public class VertexBufferLayout
         {
             Type = VertexAttribPointerType.UnsignedInt,
             Count = count,
-            Normalized = true
+            Normalized = false
         });
         _stride += sizeof(uint) * count;
     }
@@ -35,12 +60,12 @@ public class VertexBufferLayout
         {
             Type = VertexAttribPointerType.UnsignedByte,
             Count = count,
-            Normalized = true
+            Normalized = false
         });
         _stride += sizeof(byte) * count;
     }
 
-    public List<VertexBufferElement> GetElements()
+    public IReadOnlyList<VertexBufferElement> GetElements()
     {
         return _elements;
     }

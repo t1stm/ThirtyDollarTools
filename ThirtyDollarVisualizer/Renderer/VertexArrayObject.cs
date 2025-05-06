@@ -24,6 +24,8 @@ public class VertexArrayObject<TVertexType> where TVertexType : unmanaged
             GL.EnableVertexAttribArray(i);
             GL.VertexAttribPointer(i, el.Count, el.Type, el.Normalized, layout.GetStride(), offset);
             offset += el.Count * el.Type.GetSize();
+            if (el.Divisor != 0)
+                GL.VertexAttribDivisor(i, el.Divisor);
         }
     }
 

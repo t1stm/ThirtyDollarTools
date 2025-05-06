@@ -5,13 +5,19 @@ namespace ThirtyDollarVisualizer.Renderer;
 
 public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
 {
+    private readonly ConcurrentDictionary<int, TDataType> UpdateQueue = new();
     private readonly BufferTarget _bufferType;
     private readonly uint _handle;
     private readonly int _length;
-    private readonly ConcurrentDictionary<int, TDataType> UpdateQueue = new();
 
+    /// <summary>
+    /// Creates a new OpenGL buffer.
+    /// </summary>
+    /// <param name="data">The data the buffer should contain.</param>
+    /// <param name="buffer_type">The buffer's type.</param>
+    /// <param name="draw_hint">The buffer's draw hint.</param>
     public BufferObject(Span<TDataType> data, BufferTarget buffer_type,
-        BufferUsageHint draw_hint = BufferUsageHint.DynamicDraw)
+        BufferUsageHint draw_hint = BufferUsageHint.StreamDraw)
     {
         _bufferType = buffer_type;
         _length = data.Length;
@@ -20,6 +26,9 @@ public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
         SetBufferData(data, buffer_type, draw_hint);
     }
 
+    /// <summary>
+    /// The buffer's GL handle.
+    /// </summary>
     public uint Handle => _handle;
 
     public void Dispose()
@@ -28,8 +37,14 @@ public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Sets the entire buffer's contents to the given data.
+    /// </summary>
+    /// <param name="data">The data to copy to the buffer.</param>
+    /// <param name="buffer_type">The buffer type.</param>
+    /// <param name="draw_hint">The draw hint.</param>
     public unsafe void SetBufferData(Span<TDataType> data, BufferTarget buffer_type,
-        BufferUsageHint draw_hint = BufferUsageHint.DynamicDraw)
+        BufferUsageHint draw_hint = BufferUsageHint.StreamDraw)
     {
         Bind();
         fixed (void* pointer = data)
@@ -38,24 +53,39 @@ public class BufferObject<TDataType> : IDisposable where TDataType : unmanaged
         }
     }
 
+    /// <summary>
+    /// A basic setter that allows queueing updates to the VBO.
+    /// </summary>
+    /// <param name="index">The index of the object you want to update at the next render pass.</param>
     public TDataType this[int index]
     {
-        set => UpdateQueue[index] = value;
+        set => SetUpdateQueue(index, value);
     }
-    
-    public unsafe void BindAndUpdate()
+
+    protected void SetUpdateQueue(int index, TDataType value)
     {
-        Bind();
+        UpdateQueue[index] = value;
+        Manager.RenderThreadTaskQueue.Enqueue(Update);
+    }
+
+    /// <summary>
+    /// An update method that checks for and applies any updates to the contents of the buffer.
+    /// </summary>
+    public unsafe void Update()
+    {
         if (UpdateQueue.IsEmpty)
             return;
-        
+
+        Bind();
+        // ooohhh, pointer casting in C#.
+        // veri skeri
         var ptr = (TDataType*)GL.MapBuffer(_bufferType, BufferAccess.WriteOnly);
-        
+
         foreach (var (index, obj) in UpdateQueue)
         {
             ptr[index] = obj;
         }
-        
+
         GL.UnmapBuffer(_bufferType);
         UpdateQueue.Clear();
     }

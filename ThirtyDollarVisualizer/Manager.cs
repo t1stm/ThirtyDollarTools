@@ -30,7 +30,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 {
     public readonly SemaphoreSlim RenderBlock = new(1);
     public readonly List<IScene> Scenes = [];
-    public static RenderThreadTaskQueue RenderThreadTaskQueue = new();
+    public static readonly RenderThreadTaskQueue RenderThreadTaskQueue = new();
 
     public static void CheckErrors()
     {

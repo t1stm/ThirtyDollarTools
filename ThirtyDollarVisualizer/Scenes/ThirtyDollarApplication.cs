@@ -1036,6 +1036,13 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
              Current ({current_note_idx}): {current_note}
              Next ({next_note_idx}): {next_note}
              In: {next_beat_ms:0.##ms} / {beats_to_next_beat:0.##} beats
+             
+             [OpenGL]
+             Version: {GLInfo.Version}
+             Renderer: {GLInfo.Renderer}
+             Max Texture Size: {GLInfo.MaxTexture2D_Size}
+             Max Texture Layers: {GLInfo.MaxTexture2D_Layers}
+             
              """);
     }
 

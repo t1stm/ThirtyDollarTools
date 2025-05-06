@@ -11,7 +11,7 @@ public static class VertexBufferExtensions
             VertexAttribPointerType.Float => sizeof(float),
             VertexAttribPointerType.UnsignedInt => sizeof(uint),
             VertexAttribPointerType.UnsignedByte => sizeof(byte),
-            _ => 0
+            _ => throw new NotSupportedException()
         };
     }
 }
