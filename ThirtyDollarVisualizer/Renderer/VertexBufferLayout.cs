@@ -7,13 +7,14 @@ public class VertexBufferLayout
     private readonly List<VertexBufferElement> _elements = [];
     private int _stride;
 
-    public VertexBufferLayout PushFloat(int count)
+    public VertexBufferLayout PushFloat(int count, bool per_instance = false)
     {
         _elements.Add(new VertexBufferElement
         {
             Type = VertexAttribPointerType.Float,
             Count = count,
-            Normalized = false
+            Normalized = false,
+            Divisor = per_instance ? 1 : 0,
         });
         _stride += sizeof(float) * count;
 
@@ -49,26 +50,28 @@ public class VertexBufferLayout
         return this;
     }
 
-    public VertexBufferLayout PushUInt(int count)
+    public VertexBufferLayout PushUInt(int count, bool per_instance = false)
     {
         _elements.Add(new VertexBufferElement
         {
             Type = VertexAttribPointerType.UnsignedInt,
             Count = count,
-            Normalized = false
+            Normalized = false,
+            Divisor = per_instance ? 1 : 0,
         });
         _stride += sizeof(uint) * count;
 
         return this;
     }
 
-    public VertexBufferLayout PushByte(int count)
+    public VertexBufferLayout PushByte(int count, bool per_instance = false)
     {
         _elements.Add(new VertexBufferElement
         {
             Type = VertexAttribPointerType.UnsignedByte,
             Count = count,
-            Normalized = false
+            Normalized = false,
+            Divisor = per_instance ? 1 : 0,
         });
         _stride += sizeof(byte) * count;
 

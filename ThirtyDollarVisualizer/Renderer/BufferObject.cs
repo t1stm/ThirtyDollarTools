@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using OpenTK.Graphics.OpenGL;
 using ThirtyDollarVisualizer.Renderer.Abstract;
 
@@ -6,7 +5,7 @@ namespace ThirtyDollarVisualizer.Renderer;
 
 public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : unmanaged
 {
-    private readonly ConcurrentDictionary<int, TDataType> UpdateQueue = new();
+    private readonly Dictionary<int, TDataType> UpdateQueue = new();
     private readonly BufferTarget _bufferType;
     private readonly uint _handle;
     private readonly int _length;
@@ -60,13 +59,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     /// <param name="index">The index of the object you want to update at the next render pass.</param>
     public TDataType this[int index]
     {
-        set => SetUpdateQueue(index, value);
-    }
-
-    protected void SetUpdateQueue(int index, TDataType value)
-    {
-        UpdateQueue[index] = value;
-        Manager.RenderThreadTaskQueue.Enqueue(Update);
+        set => UpdateQueue[index] = value;
     }
 
     /// <summary>
@@ -74,7 +67,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     /// </summary>
     public unsafe void Update()
     {
-        if (UpdateQueue.IsEmpty)
+        if (UpdateQueue.Count < 1)
             return;
 
         Bind();

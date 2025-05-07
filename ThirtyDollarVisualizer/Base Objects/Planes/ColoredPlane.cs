@@ -22,11 +22,6 @@ public class ColoredPlane : Renderable
     public float BorderRadius;
     private ColoredUniform Uniform;
 
-    public ColoredPlane(Vector4 color)
-    {
-        Color = color;
-    }
-
     public ColoredPlane()
     {
         if (!AreVerticesGenerated) SetVertices();

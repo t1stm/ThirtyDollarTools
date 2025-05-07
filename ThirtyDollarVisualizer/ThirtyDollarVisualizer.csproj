@@ -23,8 +23,8 @@
     <ItemGroup>
         <None Remove="Assets\Fonts\VarelaRound-Regular.ttf"/>
         <None Remove="Assets\Shaders\textured.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\bordered.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\bordered.vert"/>
+        <EmbeddedResource Include="Assets\Shaders\quad.frag" />
+        <EmbeddedResource Include="Assets\Shaders\quad.vert" />
         <EmbeddedResource Include="Assets\Shaders\textured.frag"/>
         <None Remove="Assets\Shaders\textured.vert"/>
         <EmbeddedResource Include="Assets\Shaders\textured.vert"/>

@@ -1,5 +1,7 @@
 using OpenTK.Graphics.OpenGL;
 using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Renderer.Instanced;
 
@@ -9,13 +11,22 @@ namespace ThirtyDollarVisualizer.Renderer.Instanced;
 /// </summary>
 public class QuadArray : IDisposable
 {
-    private BufferObject<float>? _quadVBO;
+    private static BufferObject<float>? _quadVBO;
+    private static BufferObject<uint> _quadEBO = null!;
     private BufferObject<Quad> _arrayVBO = null!;
     private VertexArrayObject _arrayVAO = null!;
     private readonly Quad[] _array;
+    private readonly Shader _shader = ShaderPool.GetOrLoad("quad_shader", () =>
+        new Shader("ThirtyDollarVisualizer.Assets.Shaders.quad.vert",
+            "ThirtyDollarVisualizer.Assets.Shaders.quad.frag"));
 
+    public QuadArray(int count) : this(new Quad[count]) { }
+    
     public QuadArray(Quad[] array)
     {
+        if (array.Length < 1)
+            throw new Exception("QuadArray must have at least one quad");
+        
         _array = array;
         UploadToGPU();
     }
@@ -27,43 +38,82 @@ public class QuadArray : IDisposable
 
         _arrayVBO = new BufferObject<Quad>(_array, BufferTarget.ArrayBuffer);
         _arrayVAO = new VertexArrayObject();
-
-        var layout = new VertexBufferLayout();
-        layout
-            .PushFloat(3)   // position x,y,z
-            .PushFloat(2);  // texture UV 
         
-        _arrayVAO.AddBuffer(_quadVBO!, layout);
-        _arrayVAO.AddBuffer(_arrayVBO, layout);
+        _quadEBO.Bind();
+        _arrayVAO.AddBuffer(
+            _quadVBO!,
+            new VertexBufferLayout()
+                .PushFloat(3)  // aPosition
+                .PushFloat(2)  // aUV
+        );
+        
+        _arrayVAO.AddBuffer(
+            _arrayVBO,
+            new VertexBufferLayout()
+                .PushMatrix4(1) // iModel
+                .PushFloat(4, true)   // iColor
+                .PushUInt(1, true)    // iTextureIndex
+        );
     }
 
-    protected void InitQuadVBO()
+    public PointerPlane[] ToPointerPlanes()
+    {
+        return _array.Select((p,i) => new PointerPlane(p, i, this)).ToArray();
+    }
+
+    protected static void InitQuadVBO()
     {
         var (x, y, z) = (0f, 0f, 0);
         var (w, h) = (1f, 1f);
         
-        Span<float> verteces = [
-            // Positions                    // Texture Coordinates
+        Span<float> vertices =
+        [
+            // Position                     // Texture Coordinates
             x, y + h, z, 0.0f, 1.0f,        // Bottom-left
             x + w, y + h, z, 1.0f, 1.0f,    // Bottom-right
             x + w, y, z, 1.0f, 0.0f,        // Top-right
             x, y, z, 0.0f, 0.0f             // Top-left
         ];
+
+        Span<uint> indices = [0, 1, 3, 1, 2, 3];
         
-        _quadVBO = new BufferObject<float>(verteces, BufferTarget.ArrayBuffer, BufferUsageHint.StaticDraw);
+        _quadVBO = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
+        _quadEBO = new BufferObject<uint>(
+            indices, 
+            BufferTarget.ElementArrayBuffer
+        );
     }
-    
+
     /// <summary>
     /// Renders all quads stored by using the given camera's ProjectionMatrix.
     /// </summary>
     /// <param name="camera">The required camera.</param>
     public void Render(Camera camera)
     {
+        _shader.Use();
+        _shader.SetUniform("uViewProj", camera.GetVPMatrix());
         
+        _arrayVAO.Bind();
+        _arrayVAO.Update();
+        
+        GL.DrawElementsInstanced(
+            PrimitiveType.Triangles,
+            _quadEBO.GetCount(),
+            DrawElementsType.UnsignedInt,
+            IntPtr.Zero,
+            _array.Length
+        );
     }
 
     public void Dispose()
     {
+        _arrayVAO.Dispose();
+        _arrayVBO.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    public void SetDirty(int index, Quad value)
+    {
+        _arrayVBO[index] = _array[index] = value;
     }
 }

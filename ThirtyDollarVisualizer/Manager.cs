@@ -30,7 +30,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 {
     public readonly SemaphoreSlim RenderBlock = new(1);
     public readonly List<IScene> Scenes = [];
-    public static readonly RenderThreadTaskQueue RenderThreadTaskQueue = new();
 
     public static void CheckErrors()
     {
@@ -87,7 +86,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         RenderBlock.Wait();
-        RenderThreadTaskQueue.RunTasks();
         
         GL.Enable(EnableCap.Blend);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);

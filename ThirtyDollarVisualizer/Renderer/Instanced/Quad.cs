@@ -3,11 +3,13 @@ using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer.Renderer.Instanced;
 
-[StructLayout(LayoutKind.Sequential, Pack = 16)]
+[StructLayout(LayoutKind.Explicit, Size = 84)]
 public struct Quad
 {
+    [FieldOffset(0)]
     public Matrix4 Model;
+    [FieldOffset(64)]
     public Vector4 Color;
-    public int TextureIndex;
-    private readonly Vector3 _pad;
+    [FieldOffset(80)]
+    public uint TextureIndex;
 }
