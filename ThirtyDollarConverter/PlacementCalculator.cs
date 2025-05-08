@@ -73,6 +73,8 @@ public class PlacementCalculator
     public IEnumerable<Placement> CalculateOne(Sequence sequence, ulong? start_time = null)
     {
         if (sequence == null) throw new Exception("Null Sequence");
+        sequence = sequence.Copy();
+        
         var bpm = 300.0;
         var transpose = 0.0;
         var global_volume = 100.0;
