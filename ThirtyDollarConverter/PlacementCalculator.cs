@@ -315,11 +315,8 @@ public class PlacementCalculator
                     loop_target = index;
                     break;
                 }
-
-                case "!target":
-                    break;
-
-                case "" or "!flash" or "!bg" or "!combine" or "!startpos" or "!pulse":
+                
+                case "" or "!flash" or "!bg" or "!combine" or "!startpos" or "!pulse" or "!target":
                     break;
 
                 case "!transpose":
