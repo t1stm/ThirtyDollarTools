@@ -75,25 +75,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Download all artifacts (each zip in its own subdirectory)
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
-      # Find all .zip files and list them for upload
       - name: Prepare list of zip files
         id: zips
         run: |
-          echo "zip_files<<EOF" >> $GITHUB_OUTPUT
-          find artifacts -name '*.zip' >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          ZIP_FILES=$(find artifacts -name '*.zip' | tr '\n' ',' | sed 's/,$//')
+          echo "zip_files=$ZIP_FILES" >> $GITHUB_OUTPUT
 
       - name: Set release tag
         id: tag
         run: echo "tag_name=pre-release-$(date +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
 
-      # Upload the found zip files to a GitHub pre-release
       - name: Create GitHub Release (Pre-release)
         uses: softprops/action-gh-release@v2
         with:
@@ -102,5 +98,4 @@ jobs:
           prerelease: true
           files: ${{ steps.zips.outputs.zip_files }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
