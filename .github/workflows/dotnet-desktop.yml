@@ -83,9 +83,8 @@ jobs:
     
     steps:
       - name: Download all build artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          # leaving out `name:` downloads every artifact from the build job
           path: artifacts
 
       - name: Create GitHub Prerelease
