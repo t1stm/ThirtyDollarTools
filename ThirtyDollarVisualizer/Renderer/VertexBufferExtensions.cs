@@ -11,6 +11,18 @@ public static class VertexBufferExtensions
             VertexAttribPointerType.Float => sizeof(float),
             VertexAttribPointerType.UnsignedInt => sizeof(uint),
             VertexAttribPointerType.UnsignedByte => sizeof(byte),
+            VertexAttribPointerType.Byte => sizeof(byte),
+            VertexAttribPointerType.Short => sizeof(short),
+            VertexAttribPointerType.UnsignedShort => sizeof(ushort),
+            VertexAttribPointerType.Int => sizeof(int),
+            VertexAttribPointerType.Double => sizeof(double),
+            VertexAttribPointerType.HalfFloat => sizeof(float) / 2,
+            VertexAttribPointerType.Fixed => sizeof(int),
+            VertexAttribPointerType.Int64Arb => sizeof(long),
+            VertexAttribPointerType.UnsignedInt64Arb => sizeof(ulong),
+            VertexAttribPointerType.UnsignedInt2101010Rev => sizeof(int),
+            VertexAttribPointerType.UnsignedInt10F11F11FRev => sizeof(int),
+            VertexAttribPointerType.Int2101010Rev => sizeof(int),
             _ => throw new NotSupportedException()
         };
     }
