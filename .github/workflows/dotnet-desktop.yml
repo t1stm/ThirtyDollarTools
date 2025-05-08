@@ -90,8 +90,6 @@ jobs:
           tag_name: ${{ steps.tag.outputs.tag_name }}
           name: "Pre-release ${{ steps.tag.outputs.tag_name }}"
           prerelease: true
-          files: |
-            ./artifacts/**/*
-        
+          files: ./artifacts/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
