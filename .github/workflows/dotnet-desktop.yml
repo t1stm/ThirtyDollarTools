@@ -82,22 +82,57 @@ jobs:
       contents: write
     
     steps:
+      - name: Checkout including tags
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          tags: true
+
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
 
+      - name: Determine next prerelease tag
+        id: tag
+        run: |
+          git fetch --tags
+          
+          # Find the latest release tag matching vMAJOR.MINOR.PATCH
+          LATEST_TAG=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          echo "Latest release tag: $LATEST_TAG"
+          
+          # Strip leading 'v' and split
+          VERSION=${LATEST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          
+          # Increment patch
+          NEXT_PATCH=$((PATCH + 1))
+          BASE_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+          
+          # Find existing prerelease tags for this base version
+          EXISTING=$(git tag --list "v${BASE_VERSION}-prerelease-*")
+          if [ -n "$EXISTING" ]; then
+            # Extract the highest prerelease counter
+            LAST_PR=$(echo "$EXISTING" | sed -E 's/.*-prerelease-([0-9]+)$/\1/' | sort -n | tail -n1)
+          else
+            LAST_PR=0
+          fi
+          
+          NEXT_PR=$((LAST_PR + 1))
+          NEXT_TAG="v${BASE_VERSION}-prerelease-${NEXT_PR}"
+          echo "NEXT_TAG=$NEXT_TAG" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Prerelease
-        id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          name: Release v${{ github.run_number }}
+          tag_name: ${{ steps.tag.outputs.NEXT_TAG }}
+          name: Release ${{ steps.tag.outputs.NEXT_TAG }}
           prerelease: true
           body: |
-            # 🚀 Automated Cross‑Platform Prerelease
-            ${{ github.event.head_commit.message }}
-            ----
-            Run: ${{ github.run_id }}  
-            Commit SHA: ${{ github.sha }}  
+            🚀 Automated Cross‑Platform Prerelease  
+            **Run ID:** ${{ github.run_id }}  
+            **Commit SHA:** ${{ github.sha }}  
+            **Commit message:** ${{ github.event.head_commit.message }}
           files: |
             artifacts/**/*
