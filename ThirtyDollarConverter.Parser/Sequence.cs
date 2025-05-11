@@ -120,7 +120,7 @@ public partial class Sequence
         if (!match.Groups["index"].Success) return false;
 
         var string_value = match.Groups["index"].Value;
-        if (!int.TryParse(string_value, out var val)) return false;
+        if (!int.TryParse(string_value, CultureInfo, out var val)) return false;
 
         new_event = new BookmarkEvent
         {
@@ -269,7 +269,7 @@ public partial class Sequence
         var sound = sound_name_match.Success ? sound_name_match.Value.Trim() : string.Empty;
 
         var value_match = ValueRegex().Match(text);
-        var value = value_match.Success ? double.Parse(value_match.Value[1..]) : 0;
+        var value = value_match.Success ? double.Parse(value_match.Value[1..], CultureInfo) : 0;
 
         var value_scale_match = ValueScaleRegex().Match(text);
         var scale = ValueScale.None;
@@ -286,13 +286,13 @@ public partial class Sequence
         }
 
         var loop_times_match = LoopTimesRegex().Match(text);
-        var loop_times = loop_times_match.Success ? float.Parse(loop_times_match.Value[1..]) : 1;
+        var loop_times = loop_times_match.Success ? float.Parse(loop_times_match.Value[1..], CultureInfo) : 1;
 
         var volume_match = VolumeRegex().Match(text);
-        double? event_volume = volume_match.Success ? double.Parse(volume_match.Value[1..]) : null;
+        double? event_volume = volume_match.Success ? double.Parse(volume_match.Value[1..], CultureInfo) : null;
 
         var pan_match = PanRegex().Match(text);
-        var pan = pan_match.Success ? float.Parse(pan_match.Value[1..]) : 0f;
+        var pan = pan_match.Success ? float.Parse(pan_match.Value[1..], CultureInfo) : 0f;
 
         switch (sound)
         {
