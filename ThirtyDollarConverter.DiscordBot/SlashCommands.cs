@@ -69,9 +69,34 @@ public class SlashCommands : ApplicationCommandModule
             return;
         }
 
-        var message = await ctx.FollowUpAsync(new DiscordFollowupMessageBuilder().WithContent("```Fully read attached file. Starting conversion.```"));
         var sequence = Sequence.FromString(sequence_text);
+        await EncoderTask(ctx, [sequence], mp3);
+    }
 
+    protected static async Task EncoderTask(ContextMenuContext ctx, IList<Sequence> sequences, bool mp3 = false)
+    {
+        var message = await ctx.FollowUpAsync(new DiscordFollowupMessageBuilder()
+            .WithContent("```Fully read attached file. Starting conversion.```"));
+        
+        var calculator = new PlacementCalculator(Static.EncoderSettings);
+        var array = sequences as Sequence[] ?? sequences.ToArray();
+        var placement = calculator.CalculateMany(array);
+        var placement_array = placement.ToArray();
+
+        var length_seconds = (float)placement_array[^1].Index / Static.EncoderSettings.SampleRate;
+        if (length_seconds > 1200)
+        {
+            await message.ModifyAsync("```Passed Sequence is longer than 20 minutes. Stopping execution.```");
+            return;
+        }
+        
+        var timed_events = new TimedEvents
+        {
+            Sequences = array,
+            Placement = placement_array,
+            TimingSampleRate = (int)Static.EncoderSettings.SampleRate,
+        };
+        
         var last_update = Stopwatch.GetTimestamp();
         var message_timeout = TimeSpan.FromMilliseconds(1250);
         
@@ -94,7 +119,7 @@ public class SlashCommands : ApplicationCommandModule
                 }
             });
         
-        var audio_data = await encoder.GetSequenceAudio(sequence);
+        var audio_data = await encoder.GetAudioFromTimedEvents(timed_events);
 
         var codec = mp3 ? "libmp3lame" : "libopus";
         const int bitrate = 192;
