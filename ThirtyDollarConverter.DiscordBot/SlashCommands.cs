@@ -84,9 +84,9 @@ public class SlashCommands : ApplicationCommandModule
         var placement_array = placement.ToArray();
 
         var length_seconds = (float)placement_array[^1].Index / Static.EncoderSettings.SampleRate;
-        if (length_seconds > 1200)
+        if (length_seconds > 900)
         {
-            await message.ModifyAsync("```Passed Sequence is longer than 20 minutes. Stopping execution.```");
+            await message.ModifyAsync("```Passed Sequence is longer than 15 minutes. Stopping execution.```");
             return;
         }
         
