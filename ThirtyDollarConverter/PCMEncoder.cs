@@ -86,8 +86,7 @@ public class PcmEncoder
     /// <returns>An AudioData object that stores the encoded audio.</returns>
     public async Task<AudioData<float>> GetSequenceAudio(Sequence sequence)
     {
-        var copy = sequence.Copy(); // To avoid making any changes to the original sequence.
-        var placement = PlacementCalculator.CalculateOne(copy);
+        var placement = PlacementCalculator.CalculateOne(sequence);
         var placement_array = placement.ToArray();
 
         var timed_events = new TimedEvents
