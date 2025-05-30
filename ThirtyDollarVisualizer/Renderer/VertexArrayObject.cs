@@ -6,12 +6,13 @@ namespace ThirtyDollarVisualizer.Renderer;
 public class VertexArrayObject : IBindable 
 {
     private readonly List<IBuffer> buffers = [];
-    private readonly int _vao;
     private int vertexIndex;
+
+    public int Handle { get; }
 
     public VertexArrayObject()
     {
-        _vao = GL.GenVertexArray();
+        Handle = GL.GenVertexArray();
         Bind();
     }
 
@@ -38,9 +39,14 @@ public class VertexArrayObject : IBindable
         vertexIndex += elements.Count;
     }
 
+    public void BindIndexBuffer(IBindable ibo)
+    {
+        GL.VertexArrayElementBuffer(Handle, ibo.Handle);
+    }
+
     public void Bind()
     {
-        GL.BindVertexArray(_vao);
+        GL.BindVertexArray(Handle);
     }
 
     public void Update()
@@ -54,6 +60,6 @@ public class VertexArrayObject : IBindable
     public void Dispose()
     {
         buffers.Clear();
-        GL.DeleteVertexArray(_vao);
+        GL.DeleteVertexArray(Handle);
     }
 }

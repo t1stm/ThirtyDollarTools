@@ -54,6 +54,8 @@ public class QuadArray : IDisposable
                 .PushFloat(4, true)   // iColor
                 .PushUInt(1, true)    // iTextureIndex
         );
+        
+        _arrayVAO.BindIndexBuffer(_quadEBO);
     }
 
     public PointerPlane[] ToPointerPlanes()

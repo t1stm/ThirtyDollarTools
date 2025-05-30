@@ -1,3 +1,4 @@
+using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Objects.Textures.Static;
 
@@ -16,7 +17,11 @@ public class BasicDynamicText : CachedDynamicText
     {
         if (!IsVisible) return;
         
-        StaticPlane ??= new TexturedPlane(StaticTexture.Transparent1x1, (0, 0, 0), (1, 1, 1));
+        StaticPlane ??= new TexturedPlane(StaticTexture.Transparent1x1)
+        {
+            Position = Vector3.Zero,
+            Scale = Vector3.One
+        };
 
         ReadOnlySpan<char> text = _value;
         var x = Position.X;

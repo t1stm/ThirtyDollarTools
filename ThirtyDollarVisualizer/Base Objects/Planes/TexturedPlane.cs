@@ -15,6 +15,9 @@ public class TexturedPlane : Renderable
     private static BufferObject<float> Static_Vbo = null!;
     private static BufferObject<uint> Static_Ebo = null!;
 
+    public override Vector3 Position { get; set; }
+    public override Vector3 Scale { get; set; } = Vector3.One;
+
     private static BufferObject<TexturedUniform>? UniformBuffer;
     private SingleTexture? _texture;
     private TexturedUniform Uniform;
@@ -23,30 +26,19 @@ public class TexturedPlane : Renderable
         new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
             "ThirtyDollarVisualizer.Assets.Shaders.textured.frag"));
 
-    public TexturedPlane(SingleTexture texture, Vector3 position, Vector3 scale)
+    public TexturedPlane(SingleTexture texture) : this()
     {
-        Position = new Vector3(position);
-        Scale = scale;
-
-        if (!AreVerticesGenerated) SetVertices();
-
-        Uniform = new TexturedUniform();
-        Color = new Vector4(0, 0, 0, 0);
-
         _texture = texture;
     }
 
-    public TexturedPlane() : this(StaticTexture.Transparent1x1, Vector3.Zero, Vector2.One)
+    public TexturedPlane()
     {
+        if (!AreVerticesGenerated) SetVertices();
     }
 
-    public TexturedPlane(SingleTexture texture) : this(texture, Vector3.Zero, (texture.Width, texture.Height))
+    public TexturedPlane(SingleTexture texture, Vector3 position, Vector2 scale)
     {
-    }
-
-    public TexturedPlane(SingleTexture texture, Vector3 position, Vector2 scale) :
-        this(texture, position, new Vector3(scale))
-    {
+           
     }
 
     private void SetVertices()

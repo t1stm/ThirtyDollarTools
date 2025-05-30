@@ -127,6 +127,7 @@ public class Playfield(PlayfieldSettings settings)
         // sets objects to be used by the render method
         Objects = sounds;
         Lines = lines;
+        
         return Task.CompletedTask;
     }
 
@@ -233,9 +234,8 @@ public class Playfield(PlayfieldSettings settings)
         // gets the amount of dividers at the top and bottom of the screen
         var top_camera_dividers = 0;
         var bottom_camera_dividers = 0;
-
-        // disabling dumb resharper errors
-        // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
+        
+        // explicitly converte the list to a span for faster iteration
         foreach (var position in CollectionsMarshal.AsSpan(DividerPositions_Y))
         {
             if (position <= camera_y + size_renderable)

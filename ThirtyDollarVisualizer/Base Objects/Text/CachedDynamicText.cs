@@ -77,8 +77,7 @@ public class CachedDynamicText : TextRenderable
             {
                 TexturedPlanes = new TexturedPlane[textures.Length];
                 for (var index = 0; index < TexturedPlanes.Length; index++)
-                    TexturedPlanes[index] = new TexturedPlane(StaticTexture.Transparent1x1,
-                        (0, 0, 0), (1, 1));
+                    TexturedPlanes[index] = new TexturedPlane(StaticTexture.Transparent1x1);
             }
 
             var x = MathF.Round(Position.X);

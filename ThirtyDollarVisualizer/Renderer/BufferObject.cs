@@ -7,7 +7,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
 {
     private readonly Dictionary<int, TDataType> UpdateQueue = new();
     private readonly BufferTarget _bufferType;
-    private readonly uint _handle;
+    private readonly int _handle;
     private readonly int _length;
 
     /// <summary>
@@ -29,7 +29,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     /// <summary>
     /// The buffer's GL handle.
     /// </summary>
-    public uint Handle => _handle;
+    public int Handle => _handle;
 
     public void Dispose()
     {
