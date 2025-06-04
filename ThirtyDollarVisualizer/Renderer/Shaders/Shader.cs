@@ -1,27 +1,28 @@
 using System.Buffers;
-using System.Reflection;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Assets;
 
 namespace ThirtyDollarVisualizer.Renderer.Shaders;
 
 /// <summary>
-///     Represents an OpenGL shader program.
+/// Represents an OpenGL shader program.
 /// </summary>
 public class Shader : IDisposable
 {
-    public Shader(int handle)
+    private Shader(int handle)
     {
         Handle = handle;
     }
 
-    /// <summary>
-    ///     Controls whether the shader throws errors on missing uniforms.
+    /// <summary> 
+    /// Controls whether the shader throws errors on missing uniforms.
     /// </summary>
     public bool IsPedantic { get; init; } = false;
 
     public static Shader Dummy { get; } = new(0);
-    protected int Handle { get; }
+    protected ShaderDefinition[] Definitions { get; set; } = [];
+    protected int Handle { get; set; }
 
     public void Dispose()
     {
@@ -37,6 +38,13 @@ public class Shader : IDisposable
     public static Shader NewDefined(params ShaderDefinition[] shaders)
     {
         var shader = new Shader(GL.CreateProgram());
+        shader.AddShaderDefinitions(shaders);
+        shader.Definitions = shaders;
+        return shader;
+    }
+
+    private void AddShaderDefinitions(ShaderDefinition[] shaders)
+    {
         var shaderHandleArray = ArrayPool<int>.Shared.Rent(shaders.Length);
 
         try
@@ -45,14 +53,14 @@ public class Shader : IDisposable
             {
                 var definition = shaders[index];
                 var tempShader = shaderHandleArray[index] = LoadShaderAtPath(definition.ShaderType, definition.Path);
-                GL.AttachShader(shader.Handle, tempShader);
+                GL.AttachShader(Handle, tempShader);
             }
 
-            shader.LinkAndThrowOnError();
+            LinkAndThrowOnError();
 
             foreach (var handle in shaderHandleArray)
             {
-                GL.DetachShader(shader.Handle, handle);
+                GL.DetachShader(Handle, handle);
                 GL.DeleteShader(handle);
             }
         }
@@ -60,8 +68,6 @@ public class Shader : IDisposable
         {
             ArrayPool<int>.Shared.Return(shaderHandleArray);
         }
-
-        return shader;
     }
 
     protected void LinkAndThrowOnError()
@@ -78,6 +84,13 @@ public class Shader : IDisposable
         GL.UseProgram(Handle);
     }
 
+    public void ReloadFiles()
+    {
+        GL.DeleteProgram(Handle);
+        Handle = GL.CreateProgram();
+        AddShaderDefinitions(Definitions);
+    }
+    
     public bool SetUniform(string name, int value)
     {
         var location = GL.GetUniformLocation(Handle, name);
@@ -158,27 +171,16 @@ public class Shader : IDisposable
 
     private static int LoadShaderAtPath(ShaderType type, string path)
     {
-        string source;
-
-        if (File.Exists(path))
-        {
-            source = File.ReadAllText(path);
-        }
-        else
-        {
-            var stream = Assembly.GetExecutingAssembly()
-                .GetManifestResourceStream(path);
-
-            if (stream == null)
-                throw new FileNotFoundException($"Unable to find shader \'{path}\' in assembly or real path.");
-
-            using var stream_reader = new StreamReader(stream);
-            source = stream_reader.ReadToEnd();
-        }
+        var asset = AssetManager.GetAsset(path);
+        using var stream = asset.Stream;
+        
+        var streamReader = new StreamReader(stream);
+        var source = streamReader.ReadToEnd();
 
         var handle = GL.CreateShader(type);
         GL.ShaderSource(handle, source);
         GL.CompileShader(handle);
+        
         var infoLog = GL.GetShaderInfoLog(handle);
         if (!string.IsNullOrWhiteSpace(infoLog))
             throw new Exception($"Error compiling shader \'{path}\' of type {type}, failed with error {infoLog}");

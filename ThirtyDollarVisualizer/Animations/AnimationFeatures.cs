@@ -24,7 +24,7 @@ public static class FeatureExtensions
     /// </summary>
     /// <param name="feature">The feature you want to check for.</param>
     /// <param name="bitStack">The bit stack.</param>
-    /// <returns>Whether the feature can is found in the bit stack.</returns>
+    /// <returns>Whether the feature can be found in the bit stack.</returns>
     public static bool In(this AnimationFeature feature, AnimationFeature bitStack)
     {
         return (bitStack & feature) != 0;

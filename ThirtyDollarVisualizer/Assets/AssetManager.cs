@@ -4,14 +4,13 @@ namespace ThirtyDollarVisualizer.Assets;
 
 public static class AssetManager
 {
-    public static Asset GetAsset(string path)
+    public static AssetDefinition GetAsset(string path)
     {
         Stream source;
         var isEmbedded = false;
 
 #if DEBUG
-        var assembly = Assembly.GetExecutingAssembly().FullName;
-        Console.WriteLine($"[{assembly}]: Loading asset '{path}'");
+        Console.WriteLine($"[AssetManager]: Loading asset '{path}'");
 #endif
 
         if (path.Contains('*'))
@@ -30,7 +29,7 @@ public static class AssetManager
             isEmbedded = true;
         }
 
-        return new Asset
+        return new AssetDefinition
         {
             Stream = source,
             IsEmbedded = isEmbedded
@@ -41,9 +40,10 @@ public static class AssetManager
     {
         var directory = Path.GetDirectoryName(path);
         if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
+        
         var search_pattern = Path.GetFileName(path);
         if (string.IsNullOrEmpty(search_pattern))
-            throw new ArgumentException("Invalid pattern; no file name specified.", nameof(path));
+            throw new ArgumentException("Invalid pattern: No file name specified.", nameof(path));
 
         var files = Directory.GetFiles(directory, search_pattern);
         if (files.Length == 0) throw new FileNotFoundException($"Unable to find any files matching '{path}'.");

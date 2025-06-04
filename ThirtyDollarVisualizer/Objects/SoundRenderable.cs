@@ -9,7 +9,7 @@ using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
 
-public class SoundRenderable : TexturedPlane
+public sealed class SoundRenderable : TexturedPlane
 {
     private readonly BounceAnimation _bounceAnimation;
     private readonly ExpandAnimation _expandAnimation;
@@ -22,13 +22,15 @@ public class SoundRenderable : TexturedPlane
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
 
-    public SoundRenderable(SingleTexture texture, Vector3 position, Vector2 widthHeight) : base(texture, position,
-        widthHeight)
+    public SoundRenderable(SingleTexture texture, Vector3 position, Vector2 widthHeight) : base(texture)
     {
         _bounceAnimation = new BounceAnimation(() => { UpdateModel(false); });
         _expandAnimation = new ExpandAnimation(() => { UpdateModel(false); });
         _fadeAnimation = new FadeAnimation(() => { UpdateModel(false); });
         _renderableAnimations = new Animation[] { _bounceAnimation, _expandAnimation, _fadeAnimation };
+        
+        Position = position;
+        Scale = (widthHeight.X, widthHeight.Y, 1);
     }
 
     public SoundRenderable(SingleTexture texture) :

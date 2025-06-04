@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using CommandLine;
 using OpenTK.Windowing.Common.Input;
 using SixLabors.ImageSharp.PixelFormats;
+using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.BASS;
 using ThirtyDollarVisualizer.Audio.Null;
@@ -90,8 +91,9 @@ public static class Program
 
         if (event_margin.HasValue) settings.EventMargin = event_margin.Value;
 
-        var icon_stream = Image.Load<Rgba32>(Assembly.GetExecutingAssembly()
-            .GetManifestResourceStream("ThirtyDollarVisualizer.Assets.Textures.moai.png")!);
+        var assetPath = Asset.Embedded("Textures/moai.png");
+        using var assetStream = AssetManager.GetAsset(assetPath).Stream;
+        var icon_stream = Image.Load<Rgba32>(assetStream);
 
         icon_stream.DangerousTryGetSinglePixelMemory(out var memory);
         var icon_bytes = MemoryMarshal.AsBytes(memory.Span).ToArray();

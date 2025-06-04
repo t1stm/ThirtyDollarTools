@@ -1,5 +1,6 @@
 using System.Reflection;
 using SixLabors.Fonts;
+using ThirtyDollarVisualizer.Assets;
 
 namespace ThirtyDollarVisualizer.Base_Objects.Text;
 
@@ -14,10 +15,10 @@ public static class Fonts
     {
         _collection = new FontCollection();
         _collection.AddSystemFonts();
-
-        AddFont(_collection, "ThirtyDollarVisualizer.Assets.Fonts.Lato-Regular.ttf");
-        AddFont(_collection, "ThirtyDollarVisualizer.Assets.Fonts.Lato-Bold.ttf");
-        AddFont(_collection, "ThirtyDollarVisualizer.Assets.Fonts.Twemoji.Mozilla.ttf");
+        
+        AddFont(_collection, Asset.Embedded("Fonts/Lato-Regular.ttf"));
+        AddFont(_collection, Asset.Embedded("Fonts/Lato-Bold.ttf"));
+        AddFont(_collection, Asset.Embedded("Fonts/Twemoji.Mozilla.ttf"));
 
         const string textFont = "Lato";
         const string emojiFont = "Twemoji Mozilla";
@@ -33,11 +34,10 @@ public static class Fonts
 
     private static void AddFont(FontCollection collection, string location)
     {
-        using var stream = Assembly.GetExecutingAssembly()
-            .GetManifestResourceStream(location);
+        using var stream = AssetManager.GetAsset(location).Stream;
 
         if (stream == null)
-            throw new NullReferenceException($"This project was compiled without the \'{location}\' font.");
+            throw new NullReferenceException($"Unable to load the font \'{location}\'.");
         collection.Add(stream);
     }
 

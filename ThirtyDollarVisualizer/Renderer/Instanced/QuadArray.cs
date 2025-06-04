@@ -1,4 +1,5 @@
 using OpenTK.Graphics.OpenGL;
+using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Renderer.Shaders;
@@ -16,8 +17,10 @@ public class QuadArray : IDisposable
     private readonly Quad[] _array;
 
     private readonly Shader _shader = ShaderPool.GetOrLoad("quad_shader", () =>
-        Shader.NewVertexFragment("ThirtyDollarVisualizer.Assets.Shaders.quad.vert",
-            "ThirtyDollarVisualizer.Assets.Shaders.quad.frag"));
+        Shader.NewVertexFragment(
+            Asset.Embedded("Shaders/quad.vert"),
+            Asset.Embedded("Shaders/quad.frag"))
+        );
 
     private VertexArrayObject _arrayVAO = null!;
     private BufferObject<Quad> _arrayVBO = null!;

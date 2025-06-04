@@ -38,18 +38,18 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="Assets\Shaders\quad.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\quad.vert"/>
-        <EmbeddedResource Include="Assets\Shaders\textured.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\textured.vert"/>
-        <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf"/>
-        <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf"/>
-        <EmbeddedResource Include="Assets\Textures\action_missing.png"/>
-        <EmbeddedResource Include="Assets\Textures\action_icut.png"/>
-        <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf"/>
-        <EmbeddedResource Include="Assets\Shaders\colored.vert"/>
-        <EmbeddedResource Include="Assets\Shaders\colored.frag"/>
-        <EmbeddedResource Include="Assets\Textures\moai.png"/>
+        <EmbeddedResource Include="Assets\Shaders\quad.frag" CopyToOutputDirectory="PreserveNewest" />
+        <EmbeddedResource Include="Assets\Shaders\quad.vert" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Shaders\textured.frag" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Shaders\textured.vert" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Textures\action_missing.png" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Textures\action_icut.png" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Shaders\colored.vert" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Shaders\colored.frag" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Textures\moai.png" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
     <ItemGroup>

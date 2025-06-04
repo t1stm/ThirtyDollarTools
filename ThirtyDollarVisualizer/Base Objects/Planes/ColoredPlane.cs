@@ -1,4 +1,5 @@
 using OpenTK.Graphics.OpenGL;
+using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Renderer;
 using ThirtyDollarVisualizer.Renderer.Shaders;
@@ -24,11 +25,13 @@ public class ColoredPlane : Renderable
     }
 
     public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad(
-        "colored_plane", () => Shader.NewVertexFragment("ThirtyDollarVisualizer.Assets.Shaders.colored.vert",
-            "ThirtyDollarVisualizer.Assets.Shaders.colored.frag")
+        "colored_plane", () => Shader.NewVertexFragment(
+            Asset.Embedded("Shaders/colored.vert"), 
+            Asset.Embedded("Shaders/colored.frag")
+            )
     );
 
-    private void SetVertices()
+    private static void SetVertices()
     {
         var (x, y, z) = (0f, 0f, 0);
         var (w, h) = (1f, 1f);

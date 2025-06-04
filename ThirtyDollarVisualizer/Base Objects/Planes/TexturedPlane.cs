@@ -1,5 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
@@ -29,18 +30,16 @@ public class TexturedPlane : Renderable
         if (!_areVerticesGenerated) SetVertices();
     }
 
-    public TexturedPlane(SingleTexture texture, Vector3 position, Vector2 scale)
-    {
-    }
-
     public override Vector3 Position { get; set; }
     public override Vector3 Scale { get; set; } = Vector3.One;
 
     public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad("textured_plane", () =>
-        Shader.NewVertexFragment("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
-            "ThirtyDollarVisualizer.Assets.Shaders.textured.frag"));
+        Shader.NewVertexFragment(
+            Asset.Embedded("Shaders/textured.vert"),
+            Asset.Embedded("Shaders/textured.frag"))
+        );
 
-    private void SetVertices()
+    private static void SetVertices()
     {
         var (x, y, z) = (0f, 0f, 0);
         var (w, h) = (1f, 1f);

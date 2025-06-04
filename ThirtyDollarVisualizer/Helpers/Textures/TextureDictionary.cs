@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 
 namespace ThirtyDollarVisualizer.Helpers.Textures;
@@ -52,14 +53,14 @@ public static class TextureDictionary
     public static AssetTexture GetMissingTexture()
     {
         return _missingTexture ??=
-            GetAsset("ThirtyDollarVisualizer.Assets.Textures.action_missing.png") ??
+            GetAsset(Asset.Embedded("Textures/action_missing.png")) ??
             throw new Exception("The missing event texture is missing in the assembly.");
     }
 
     public static AssetTexture GetICutEventTexture()
     {
         return _iCutTexture ??=
-            GetAsset("ThirtyDollarVisualizer.Assets.Textures.action_icut.png") ??
+            GetAsset(Asset.Embedded("Textures/action_icut.png")) ??
             throw new Exception("The #icut event texture is missing in the assembly.");
     }
 }
