@@ -20,7 +20,7 @@ public abstract class Animation(TimeSpan timespan)
     public bool IsRunning => TimingStopwatch.IsRunning || (IsReset && !(IsReset = false));
 
     /// <summary>
-    ///     Gets the current position multiplication transform of this animation.
+    /// Gets the current position multiplication transform of this animation.
     /// </summary>
     /// <param name="renderable">The renderable the animation is used on.</param>
     /// <returns>A vector containing the transformations.</returns>
@@ -30,7 +30,7 @@ public abstract class Animation(TimeSpan timespan)
     }
 
     /// <summary>
-    ///     Gets the current position add transform of this animation.
+    /// Gets the current position add transform of this animation.
     /// </summary>
     /// <param name="renderable">The renderable the animation is used on.</param>
     /// <returns>A vector containing the transformations.</returns>
@@ -40,7 +40,7 @@ public abstract class Animation(TimeSpan timespan)
     }
 
     /// <summary>
-    ///     Gets the current scale multiplication transform of this animation.
+    /// Gets the current scale multiplication transform of this animation.
     /// </summary>
     /// <param name="renderable">The renderable the animation is used on.</param>
     /// <returns>A vector containing the scale.</returns>
@@ -50,7 +50,7 @@ public abstract class Animation(TimeSpan timespan)
     }
 
     /// <summary>
-    ///     Gets the current scale add transform of this animation.
+    /// Gets the current scale add transform of this animation.
     /// </summary>
     /// <param name="renderable">The renderable the animation is used on.</param>
     /// <returns>A vector containing the scale.</returns>
@@ -60,7 +60,7 @@ public abstract class Animation(TimeSpan timespan)
     }
 
     /// <summary>
-    ///     Gets the current rotation add transform on all axises.
+    /// Gets the current rotation add transform on all axises.
     /// </summary>
     /// <param name="renderable">The renderable the animation is used on.</param>
     /// <returns>A vector containing the rotation.</returns>
@@ -70,7 +70,7 @@ public abstract class Animation(TimeSpan timespan)
     }
 
     /// <summary>
-    ///     Gets the current color add transform.
+    /// Gets the current color add transform.
     /// </summary>
     /// <param name="renderable">The renderable the animation is used on.</param>
     /// <returns>A vector containing the color difference.</returns>
@@ -80,7 +80,7 @@ public abstract class Animation(TimeSpan timespan)
     }
 
     /// <summary>
-    ///     Gets the current alpha subtract transform.
+    /// Gets the current alpha subtract transform.
     /// </summary>
     /// <param name="renderable">The renderable the animation is used on.</param>
     /// <returns>A float representing the transparency to add.</returns>
@@ -90,7 +90,7 @@ public abstract class Animation(TimeSpan timespan)
     }
 
     /// <summary>
-    ///     Executes a given animation.
+    /// Executes a given animation.
     /// </summary>
     public virtual void Start()
     {

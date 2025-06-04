@@ -34,7 +34,7 @@ public abstract class ThirtyDollarWorkflow
     }
 
     /// <summary>
-    ///     Creates the sample holder.
+    /// Creates the sample holder.
     /// </summary>
     protected async Task CreateSampleHolder()
     {
@@ -69,7 +69,7 @@ public abstract class ThirtyDollarWorkflow
     }
 
     /// <summary>
-    ///     This method updates the current sequence.
+    /// This method updates the current sequence.
     /// </summary>
     /// <param name="locations">The location of the sequences you want to use.</param>
     /// <param name="restartPlayer">Whether to restart the sequence from the beginning.</param>
@@ -97,7 +97,7 @@ public abstract class ThirtyDollarWorkflow
     }
 
     /// <summary>
-    ///     This method updates the current sequence.
+    /// This method updates the current sequence.
     /// </summary>
     /// <param name="sequences">The sequences you want to use.</param>
     /// <param name="restartPlayer">Whether to restart the sequence from the beginning.</param>
@@ -203,19 +203,19 @@ public abstract class ThirtyDollarWorkflow
     }
 
     /// <summary>
-    ///     Called after the sequence has finished loading, but before the audio events have finished processing.
+    /// Called after the sequence has finished loading, but before the audio events have finished processing.
     /// </summary>
     /// <param name="events">The events the sequence contains.</param>
     protected abstract Task HandleAfterSequenceLoad(TimedEvents events);
 
     /// <summary>
-    ///     Called by the abstract class in order to use the implementation, when the SequencePlayer is created.
+    /// Called by the abstract class in order to use the implementation, when the SequencePlayer is created.
     /// </summary>
     /// <param name="player">The created SequencePlayer.</param>
     protected abstract void SetSequencePlayerSubscriptions(SequencePlayer player);
 
     /// <summary>
-    ///     Call this when you want to check if the sequence is updated and you want to update it if it is.
+    /// Call this when you want to check if the sequence is updated and you want to update it if it is.
     /// </summary>
     protected virtual void HandleIfSequenceUpdate()
     {

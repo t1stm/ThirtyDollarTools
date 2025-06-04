@@ -4,7 +4,7 @@ using ThirtyDollarVisualizer.Renderer.Instanced;
 namespace ThirtyDollarVisualizer.Base_Objects.Planes;
 
 /// <summary>
-///     A plane that points to an already allocated <see cref="Quad" /> struct contained in a <see cref="QuadArray" />.
+/// A plane that points to an already allocated <see cref="Quad" /> struct contained in a <see cref="QuadArray" />.
 /// </summary>
 /// <param name="parent">The Quad's holder (c# doesn't support passing refs)</param>
 /// <param name="index">The index of the quad.</param>

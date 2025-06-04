@@ -30,7 +30,7 @@ public class Playfield(PlayfieldSettings settings)
     private readonly DollarStoreCamera _temporaryCamera = new(Vector3.Zero, Vector2i.Zero);
 
     /// <summary>
-    ///     Dictionary containing all decreasing value events' textures for this playfield.
+    /// Dictionary containing all decreasing value events' textures for this playfield.
     /// </summary>
     public readonly ConcurrentDictionary<string, SingleTexture> DecreasingValuesCache = new();
 
@@ -43,7 +43,7 @@ public class Playfield(PlayfieldSettings settings)
     public Memory<PlayfieldLine> Lines = Memory<PlayfieldLine>.Empty;
 
     /// <summary>
-    ///     Contains all sound renderables.
+    /// Contains all sound renderables.
     /// </summary>
     public List<SoundRenderable> Objects = [];
 

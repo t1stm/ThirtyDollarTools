@@ -12,7 +12,7 @@ public class OpenALContext : AudioContext
     public override string Name => "OpenAL";
 
     /// <summary>
-    ///     Creates a global audio context.
+    /// Creates a global audio context.
     /// </summary>
     public override bool Create()
     {
@@ -38,7 +38,7 @@ public class OpenALContext : AudioContext
     }
 
     /// <summary>
-    ///     Destroys the global audio context.
+    /// Destroys the global audio context.
     /// </summary>
     public override void Destroy()
     {
@@ -48,7 +48,7 @@ public class OpenALContext : AudioContext
     }
 
     /// <summary>
-    ///     Checks if there are any OpenAL errors.
+    /// Checks if there are any OpenAL errors.
     /// </summary>
     public override bool CheckErrors()
     {

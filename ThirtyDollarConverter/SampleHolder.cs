@@ -45,11 +45,11 @@ public class SampleHolder
 
 
     /// <summary>
-    ///     Loads all Thirty Dollar Website sounds to this object.
+    /// Loads all Thirty Dollar Website sounds to this object.
     /// </summary>
     /// <exception cref="InvalidProgramException">
-    ///     Exception thrown when the application is offline and the sounds.json file
-    ///     doens't exist.
+    /// Exception thrown when the application is offline and the sounds.json file
+    /// doens't exist.
     /// </exception>
     /// <exception cref="Exception">Exception thrown when there's an error reading the sounds list.</exception>
     public async Task LoadSampleList()
@@ -90,7 +90,7 @@ public class SampleHolder
     }
 
     /// <summary>
-    ///     Checks if the output directory exists and if not creates it, then checks if all samples have been downloaded.
+    /// Checks if the output directory exists and if not creates it, then checks if all samples have been downloaded.
     /// </summary>
     /// <returns>Whether all samples have been downloaded.</returns>
     public void PrepareDirectory()
@@ -100,7 +100,7 @@ public class SampleHolder
     }
 
     /// <summary>
-    ///     Downloads all sounds to the download folder.
+    /// Downloads all sounds to the download folder.
     /// </summary>
     public async Task<bool> DownloadSamples(bool checkOnly = false)
     {
@@ -208,7 +208,7 @@ public class SampleHolder
     }
 
     /// <summary>
-    ///     Loads all sounds into memory.
+    /// Loads all sounds into memory.
     /// </summary>
     /// <exception cref="Exception">Exception that's thrown when a sound is empty.</exception>
     public void LoadSamplesIntoMemory()

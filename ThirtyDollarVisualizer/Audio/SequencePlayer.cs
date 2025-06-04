@@ -34,7 +34,7 @@ public class SequencePlayer
     protected Action<int>? SequenceUpdateAction;
 
     /// <summary>
-    ///     Creates a player that plays Thirty Dollar sequences.
+    /// Creates a player that plays Thirty Dollar sequences.
     /// </summary>
     /// <param name="context">The audio context you want to use.</param>
     /// <param name="logAction">The logging action.</param>
@@ -87,7 +87,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    ///     Subscribes a given event_name to a action, which is invoked when the event is played.
+    /// Subscribes a given event_name to a action, which is invoked when the event is played.
     /// </summary>
     /// <param name="eventName">The event's name.</param>
     /// <param name="action">The action you want to execute on encountering it.</param>
@@ -101,7 +101,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    ///     Subscribes an action that is called each time the sequence index is changed.
+    /// Subscribes an action that is called each time the sequence index is changed.
     /// </summary>
     /// <param name="action">The action to call.</param>
     public void SubscribeSequenceChange(Action<int>? action)
@@ -110,7 +110,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    ///     Removes a subscribed action.
+    /// Removes a subscribed action.
     /// </summary>
     /// <param name="eventName">The event's name you want to remove.</param>
     public void RemoveSubscription(string eventName)
@@ -120,7 +120,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    ///     Clears all subscriptions.
+    /// Clears all subscriptions.
     /// </summary>
     public void ClearSubscriptions()
     {
@@ -374,7 +374,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    ///     Gets the time in milliseconds a timing index represents.
+    /// Gets the time in milliseconds a timing index represents.
     /// </summary>
     /// <param name="index">The sequence's index.</param>
     /// <returns>index * 1000 / Events.TimingSampleRate</returns>
@@ -384,7 +384,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    ///     Gets the sequence's timing index from the given milliseconds.
+    /// Gets the sequence's timing index from the given milliseconds.
     /// </summary>
     /// <param name="milliseconds">The milliseconds for the index you want to find.</param>
     /// <returns>milliseconds * Events.TimingSampleRate / 1000f</returns>
@@ -456,7 +456,7 @@ public class SequencePlayer
     }
 
     /// <summary>
-    ///     Signals to the SequencePlayer to stop all execution and free all busy threads.
+    /// Signals to the SequencePlayer to stop all execution and free all busy threads.
     /// </summary>
     public void Die()
     {

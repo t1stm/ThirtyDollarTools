@@ -7,60 +7,60 @@ namespace ThirtyDollarVisualizer.Base_Objects;
 public abstract class Renderable
 {
     /// <summary>
-    ///     Dummy renderable to use on animations that don't animate a renderable.
+    /// Dummy renderable to use on animations that don't animate a renderable.
     /// </summary>
     public static readonly Renderable Dummy = new DummyRenderable();
 
     public readonly List<Renderable> Children = [];
 
     /// <summary>
-    ///     A boolean made for external use.
+    /// A boolean made for external use.
     /// </summary>
     public bool IsBeingUpdated = false;
 
     public bool IsChild;
 
     /// <summary>
-    ///     Sets whether this renderable calls it's render method.
+    /// Sets whether this renderable calls it's render method.
     /// </summary>
     public bool IsVisible = true;
 
     public virtual Shader? Shader { get; set; }
 
     /// <summary>
-    ///     The position of the current renderable.
+    /// The position of the current renderable.
     /// </summary>
     public virtual Vector3 Position { get; set; }
 
     /// <summary>
-    ///     The rotation of the current renderable.
+    /// The rotation of the current renderable.
     /// </summary>
     public virtual Vector3 Rotation { get; set; }
 
     /// <summary>
-    ///     The scale of the current renderable.
+    /// The scale of the current renderable.
     /// </summary>
     public virtual Vector3 Scale { get; set; }
 
     /// <summary>
-    ///     The offset position of the current renderable. Intended for dynamic positioning (eg. animations)
+    /// The offset position of the current renderable. Intended for dynamic positioning (eg. animations)
     /// </summary>
     public virtual Vector3 Translation { get; set; }
 
     /// <summary>
-    ///     The model matrix of the current renderable.
+    /// The model matrix of the current renderable.
     /// </summary>
     public virtual Matrix4 Model { get; set; }
 
     /// <summary>
-    ///     The color of the current renderable.
+    /// The color of the current renderable.
     /// </summary>
     public virtual Vector4 Color { get; set; }
 
     protected float DeltaAlpha { get; set; }
 
     /// <summary>
-    ///     Updates the current renderable's model for the MVP rendering method.
+    /// Updates the current renderable's model for the MVP rendering method.
     /// </summary>
     /// <param name="isChild">Whether the current renderable is a child of an other renderable.</param>
     /// <param name="animations">The animations the current renderable will use.</param>
@@ -99,7 +99,7 @@ public abstract class Renderable
     }
 
     /// <summary>
-    ///     Computes a given animation.
+    /// Computes a given animation.
     /// </summary>
     /// <param name="animation">The given animation.</param>
     /// <param name="finalTranslation">Reference to the final translation.</param>
@@ -160,7 +160,7 @@ public abstract class Renderable
     }
 
     /// <summary>
-    ///     Renders a given renderable using the projection matrix from the camera.
+    /// Renders a given renderable using the projection matrix from the camera.
     /// </summary>
     /// <param name="camera">The camera you want to use.</param>
     public virtual void Render(Camera camera)
@@ -169,7 +169,7 @@ public abstract class Renderable
     }
 
     /// <summary>
-    ///     Method that sets the shader's uniforms if overriden.
+    /// Method that sets the shader's uniforms if overriden.
     /// </summary>
     /// <param name="camera">The camera that contains main projection matrix.</param>
     public virtual void SetShaderUniforms(Camera camera)
@@ -178,7 +178,7 @@ public abstract class Renderable
     }
 
     /// <summary>
-    ///     Sets the renderable's position.
+    /// Sets the renderable's position.
     /// </summary>
     /// <param name="position">The position.</param>
     /// <param name="align">The align type.</param>
@@ -208,7 +208,7 @@ public abstract class Renderable
     }
 
     /// <summary>
-    ///     Sets the renderable's translation.
+    /// Sets the renderable's translation.
     /// </summary>
     /// <param name="translation">The translation.</param>
     public virtual void SetTranslation(Vector3 translation)
@@ -233,7 +233,7 @@ public static class RenderableExtensions
     }
 
     /// <summary>
-    ///     Gives a Renderable object with its position set to the value you give.
+    /// Gives a Renderable object with its position set to the value you give.
     /// </summary>
     /// <param name="renderable">The source renderable.</param>
     /// <param name="position">The new position.</param>
@@ -247,7 +247,7 @@ public static class RenderableExtensions
     }
 
     /// <summary>
-    ///     Gives a Renderable object with its translation set to the value you give.
+    /// Gives a Renderable object with its translation set to the value you give.
     /// </summary>
     /// <param name="renderable">The source renderable.</param>
     /// <param name="translation">The new translation.</param>
@@ -259,7 +259,7 @@ public static class RenderableExtensions
     }
 
     /// <summary>
-    ///     Gives a Renderable object with its rotation set to the value you give.
+    /// Gives a Renderable object with its rotation set to the value you give.
     /// </summary>
     /// <param name="renderable">The source renderable.</param>
     /// <param name="rotation">The new rotation.</param>
@@ -271,7 +271,7 @@ public static class RenderableExtensions
     }
 
     /// <summary>
-    ///     Gives a Renderable object with its scale set to the value you give.
+    /// Gives a Renderable object with its scale set to the value you give.
     /// </summary>
     /// <param name="renderable">The source renderable.</param>
     /// <param name="scale">The new scale.</param>
@@ -283,7 +283,7 @@ public static class RenderableExtensions
     }
 
     /// <summary>
-    ///     Gives a Renderable object with its color set to the value you give.
+    /// Gives a Renderable object with its color set to the value you give.
     /// </summary>
     /// <param name="renderable">The source renderable.</param>
     /// <param name="color">The new color.</param>
@@ -296,7 +296,7 @@ public static class RenderableExtensions
 }
 
 /// <summary>
-///     Enum that sets how a position is interpreted.
+/// Enum that sets how a position is interpreted.
 /// </summary>
 public enum PositionAlign : byte
 {

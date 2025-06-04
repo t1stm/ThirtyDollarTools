@@ -15,7 +15,7 @@ public class SampleProcessor
     private readonly EncoderSettings _settings;
 
     /// <summary>
-    ///     Creates a helper that helps resample an event to a given octave.
+    /// Creates a helper that helps resample an event to a given octave.
     /// </summary>
     /// <param name="sampleHolder">The loaded samples.</param>
     /// <param name="settings">The encoder's settings.</param>
@@ -32,7 +32,7 @@ public class SampleProcessor
     private IResampler Resampler { get; }
 
     /// <summary>
-    ///     Resamples a given event.
+    /// Resamples a given event.
     /// </summary>
     /// <param name="ev">The event you want to resample.</param>
     /// <returns>The audio data of the resampled event.</returns>

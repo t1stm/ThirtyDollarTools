@@ -23,7 +23,7 @@ public class PcmEncoder
     private readonly EncoderSettings _settings;
 
     /// <summary>
-    ///     Creates a TDW sequence encoder.
+    /// Creates a TDW sequence encoder.
     /// </summary>
     /// <param name="samples">The sample holder that stores the sequence's samples.</param>
     /// <param name="settings">The encoder's settings.</param>
@@ -59,7 +59,7 @@ public class PcmEncoder
     private PlacementCalculator PlacementCalculator { get; }
 
     /// <summary>
-    ///     This method starts the encoding process for multiple sequences to be combined.
+    /// This method starts the encoding process for multiple sequences to be combined.
     /// </summary>
     /// <param name="sequences">The sequences you want to encode.</param>
     /// <returns>An AudioData object that stores the encoded audio.</returns>
@@ -86,7 +86,7 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     This method starts the encoding process.
+    /// This method starts the encoding process.
     /// </summary>
     /// <param name="sequence">The sequence you want to encode.</param>
     /// <returns>An AudioData object that stores the encoded audio.</returns>
@@ -111,7 +111,7 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     This method gets all resampled audio samples.
+    /// This method gets all resampled audio samples.
     /// </summary>
     /// <param name="events">The calculated events.</param>
     /// <returns>An array containing all processed events.</returns>
@@ -175,7 +175,7 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     This method creates the final audio.
+    /// This method creates the final audio.
     /// </summary>
     /// <param name="events">The placement of each event.</param>
     /// <param name="processedEvents">The resampled sounds.</param>
@@ -226,7 +226,7 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     Processes an export channel.
+    /// Processes an export channel.
     /// </summary>
     /// <param name="mixer">The channel you want to work on.</param>
     /// <param name="channel">The channel ID.</param>
@@ -439,7 +439,7 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     Exports an AudioData object as a WAVE file.
+    /// Exports an AudioData object as a WAVE file.
     /// </summary>
     /// <param name="location">The location you want to export to.</param>
     /// <param name="data">The AudioData object.</param>
@@ -479,7 +479,7 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     This method adds the RIFF WAVE header to an empty file.
+    /// This method adds the RIFF WAVE header to an empty file.
     /// </summary>
     /// <param name="writer">An open BinaryWriter</param>
     /// <param name="dataLength">Length of the audio data.</param>
@@ -514,7 +514,7 @@ public class PcmEncoder
     #region Sample Processing Methods
 
     /// <summary>
-    ///     Adds a source audio data array to a destination.
+    /// Adds a source audio data array to a destination.
     /// </summary>
     /// <param name="source">The source audio data you want to add.</param>
     /// <param name="destination">The destination you want to add to.</param>

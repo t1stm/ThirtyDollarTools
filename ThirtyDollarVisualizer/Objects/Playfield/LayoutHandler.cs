@@ -3,62 +3,62 @@ using OpenTK.Mathematics;
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 /// <summary>
-///     Position calculator for each event of a Thirty Dollar Sequence.
+/// Position calculator for each event of a Thirty Dollar Sequence.
 /// </summary>
 public class LayoutHandler
 {
     /// <summary>
-    ///     Calculated positions.
+    /// Calculated positions.
     /// </summary>
     private readonly float[] _calculatedPositions;
 
     /// <summary>
-    ///     Contains the inner gap for each side of the playfield.
+    /// Contains the inner gap for each side of the playfield.
     /// </summary>
     private readonly GapBox? _padding;
 
     /// <summary>
-    ///     The horizontal gap between two boxes.
+    /// The horizontal gap between two boxes.
     /// </summary>
     public readonly float HorizontalMargin;
 
     /// <summary>
-    ///     The wanted box size that the layout is calculated in mind with.
+    /// The wanted box size that the layout is calculated in mind with.
     /// </summary>
     public readonly float Size;
 
     /// <summary>
-    ///     The vertical gap between two boxes.
+    /// The vertical gap between two boxes.
     /// </summary>
     public readonly float VerticalMargin;
 
     /// <summary>
-    ///     The width of the playfield.
+    /// The width of the playfield.
     /// </summary>
     public readonly float Width;
 
     /// <summary>
-    ///     Contains the gap for each side of a box.
+    /// Contains the gap for each side of a box.
     /// </summary>
     private GapBox? _margin;
 
     /// <summary>
-    ///     Current line Y
+    /// Current line Y
     /// </summary>
     private float _y;
 
     /// <summary>
-    ///     The current object for this line.
+    /// The current object for this line.
     /// </summary>
     public int CurrentSoundIndex;
 
     /// <summary>
-    ///     The height of the playfield.
+    /// The height of the playfield.
     /// </summary>
     public float Height;
 
     /// <summary>
-    ///     Creates a LayoutHandler with the given parameters.
+    /// Creates a LayoutHandler with the given parameters.
     /// </summary>
     /// <param name="size">The size of a single sound box.</param>
     /// <param name="soundsOnSingleLine">The number of sounds on a single line.</param>
@@ -78,7 +78,7 @@ public class LayoutHandler
     }
 
     /// <summary>
-    ///     How many objects are contained in a single line.
+    /// How many objects are contained in a single line.
     /// </summary>
     public int SoundsCount => _calculatedPositions.Length;
 
@@ -105,7 +105,7 @@ public class LayoutHandler
     }
 
     /// <summary>
-    ///     Resets the layout handler to the start.
+    /// Resets the layout handler to the start.
     /// </summary>
     public void Reset()
     {
@@ -114,7 +114,7 @@ public class LayoutHandler
     }
 
     /// <summary>
-    ///     Breaks the current line and starts a new one.
+    /// Breaks the current line and starts a new one.
     /// </summary>
     /// <param name="times">How many new lines should be created.</param>
     public void NewLine(int times = 1)
@@ -125,7 +125,7 @@ public class LayoutHandler
     }
 
     /// <summary>
-    ///     Gives a position for a sound and calculates the next one.
+    /// Gives a position for a sound and calculates the next one.
     /// </summary>
     /// <returns>The current position.</returns>
     public Vector2 GetNewPosition()
@@ -141,7 +141,7 @@ public class LayoutHandler
     }
 
     /// <summary>
-    ///     Adds the bottom padding to the playfield.
+    /// Adds the bottom padding to the playfield.
     /// </summary>
     public void Finish()
     {
@@ -157,7 +157,7 @@ public readonly struct GapBox(float x1, float y1, float x2, float y2)
     public readonly float Y2 = y2;
 
     /// <summary>
-    ///     Calculates the sum of X1 and X2.
+    /// Calculates the sum of X1 and X2.
     /// </summary>
     /// <returns>The summed value.</returns>
     public float Sum_X()
@@ -166,7 +166,7 @@ public readonly struct GapBox(float x1, float y1, float x2, float y2)
     }
 
     /// <summary>
-    ///     Calculates the sum of Y1 and Y2.
+    /// Calculates the sum of Y1 and Y2.
     /// </summary>
     /// <returns>The summed value.</returns>
     public float Sum_Y()

@@ -3,7 +3,7 @@ namespace ThirtyDollarEncoder.Resamplers;
 public class BandlimitedResampler(int filterSize = 64) : IResampler
 {
     /// <summary>
-    ///     Resamples the given audio data to another sample rate using bandlimited interpolation.
+    /// Resamples the given audio data to another sample rate using bandlimited interpolation.
     /// </summary>
     /// <param name="samples">The original sample data.</param>
     /// <param name="sampleRate">The original sample rate.</param>
@@ -67,7 +67,7 @@ public class BandlimitedResampler(int filterSize = 64) : IResampler
     }
 
     /// <summary>
-    ///     Sinc function for bandlimited interpolation.
+    /// Sinc function for bandlimited interpolation.
     /// </summary>
     /// <param name="x">The input value.</param>
     /// <returns>Sinc function output.</returns>
@@ -81,7 +81,7 @@ public class BandlimitedResampler(int filterSize = 64) : IResampler
     }
 
     /// <summary>
-    ///     Hann window function to reduce artifacts in the sinc interpolation.
+    /// Hann window function to reduce artifacts in the sinc interpolation.
     /// </summary>
     /// <param name="x">The normalized input value, scaled by the filter radius.</param>
     /// <returns>Hann window output.</returns>

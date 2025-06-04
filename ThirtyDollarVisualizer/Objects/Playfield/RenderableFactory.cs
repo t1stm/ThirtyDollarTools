@@ -12,7 +12,7 @@ using ThirtyDollarVisualizer.Helpers.Textures;
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 /// <summary>
-///     Creates a SoundRenderable generator.
+/// Creates a SoundRenderable generator.
 /// </summary>
 /// <param name="settings">The settings to use.</param>
 /// <param name="fontFamily">The current font family.</param>
@@ -24,24 +24,24 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
     private readonly ConcurrentDictionary<string, SingleTexture> _missingValues = new();
 
     /// <summary>
-    ///     The given font used for value textures.
+    /// The given font used for value textures.
     /// </summary>
     public readonly Font ValueFont =
         fontFamily.CreateFont(settings.ValueFontSize * settings.RenderScale, FontStyle.Bold);
 
     /// <summary>
-    ///     The color of the text used in volume textures.
+    /// The color of the text used in volume textures.
     /// </summary>
     public readonly Color VolumeColor = new Rgba32(204, 204, 204, 1f);
 
     /// <summary>
-    ///     The given font used for volume textures.
+    /// The given font used for volume textures.
     /// </summary>
     public readonly Font VolumeFont =
         fontFamily.CreateFont(settings.VolumeFontSize * settings.RenderScale, FontStyle.Bold);
 
     /// <summary>
-    ///     Creates a new SoundRenderable from a given Thirty Dollar event.
+    /// Creates a new SoundRenderable from a given Thirty Dollar event.
     /// </summary>
     /// <param name="baseEvent">A Thirty Dollar event.</param>
     /// <returns>A new SoundRenderable if the event is valid.</returns>
@@ -75,7 +75,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
     }
 
     /// <summary>
-    ///     Generates a custom value texture that contains useful info for the missing sound.
+    /// Generates a custom value texture that contains useful info for the missing sound.
     /// </summary>
     /// <param name="baseEvent">The sound that doesn't have a texture available.</param>
     /// <returns>The custom value texture.</returns>
@@ -90,7 +90,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
     }
 
     /// <summary>
-    ///     Gets the value texture for a given Thirty Dollar event.
+    /// Gets the value texture for a given Thirty Dollar event.
     /// </summary>
     /// <param name="baseEvent">A Thirty Dollar event.</param>
     /// <returns>A value texture plane if applicable.</returns>
@@ -199,7 +199,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
     }
 
     /// <summary>
-    ///     Gets the volume texture for a given Thirty Dollar event.
+    /// Gets the volume texture for a given Thirty Dollar event.
     /// </summary>
     /// <param name="baseEvent">A Thirty Dollar event.</param>
     /// <returns>A volume texture plane if applicable.</returns>
@@ -216,7 +216,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
     }
 
     /// <summary>
-    ///     Gets the pan texture for a given Thirty Dollar event.
+    /// Gets the pan texture for a given Thirty Dollar event.
     /// </summary>
     /// <param name="baseEvent">A Thirty Dollar event.</param>
     /// <returns>A pan texture plane if applicable.</returns>

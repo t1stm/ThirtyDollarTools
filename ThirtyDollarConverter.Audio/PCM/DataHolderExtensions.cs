@@ -5,7 +5,7 @@ namespace ThirtyDollarEncoder.PCM;
 public static class DataHolderExtensions // i love duplicating code (false statement)
 {
     /// <summary>
-    ///     Reads / returns cached audio data from this data holder as short (16 bit) AudioData.
+    /// Reads / returns cached audio data from this data holder as short (16 bit) AudioData.
     /// </summary>
     /// <param name="holder">The current PcmDataHolder.</param>
     /// <param name="monoToStereo">Whether to return mono source data as stereo.</param>
@@ -74,7 +74,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
     }
 
     /// <summary>
-    ///     Reads / returns cached audio data from this data holder as float (32 bit) AudioData.
+    /// Reads / returns cached audio data from this data holder as float (32 bit) AudioData.
     /// </summary>
     /// <param name="holder">The current PcmDataHolder.</param>
     /// <param name="monoToStereo">Whether to return mono source data as stereo.</param>
@@ -143,7 +143,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
     }
 
     /// <summary>
-    ///     Converts a given sample array to a float (32 bit) array.
+    /// Converts a given sample array to a float (32 bit) array.
     /// </summary>
     /// <param name="channel">The current channel data.</param>
     /// <param name="channelsCount">How many channels the destination has.</param>
@@ -174,7 +174,7 @@ public static class DataHolderExtensions // i love duplicating code (false state
     }
 
     /// <summary>
-    ///     Converts a given sample array to a short (16 bit) array.
+    /// Converts a given sample array to a short (16 bit) array.
     /// </summary>
     /// <param name="channel">The current channel data.</param>
     /// <param name="channelsCount">How many channels the destination has.</param>

@@ -86,7 +86,7 @@ public sealed class DollarStoreCamera : Camera
     }
 
     /// <summary>
-    ///     This method copies values from another camera to this one.
+    /// This method copies values from another camera to this one.
     /// </summary>
     /// <param name="camera">The other camera.</param>
     public void CopyFrom(DollarStoreCamera camera)

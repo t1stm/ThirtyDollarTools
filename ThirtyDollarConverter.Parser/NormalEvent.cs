@@ -8,7 +8,7 @@ public class NormalEvent : BaseEvent
     };
 
     /// <summary>
-    ///     Creates an easily loggable string for this event.
+    /// Creates an easily loggable string for this event.
     /// </summary>
     /// <returns>A log string.</returns>
     public override string ToString()
@@ -18,7 +18,7 @@ public class NormalEvent : BaseEvent
     }
 
     /// <summary>
-    ///     Creates an identical copy of an event.
+    /// Creates an identical copy of an event.
     /// </summary>
     /// <returns>The copy of the event.</returns>
     public override BaseEvent Copy()

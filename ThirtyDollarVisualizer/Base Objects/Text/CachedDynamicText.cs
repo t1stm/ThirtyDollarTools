@@ -7,8 +7,8 @@ using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 namespace ThirtyDollarVisualizer.Base_Objects.Text;
 
 /// <summary>
-///     A renderable that is more expensive to be rendered but inexpensive to be edited, intended to be used for text
-///     changed often.
+/// A renderable that is more expensive to be rendered but inexpensive to be edited, intended to be used for text
+/// changed often.
 /// </summary>
 public class CachedDynamicText : TextRenderable
 {

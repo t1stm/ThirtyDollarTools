@@ -60,7 +60,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private int _width;
 
     /// <summary>
-    ///     Creates a TDW sequence visualizer.
+    /// Creates a TDW sequence visualizer.
     /// </summary>
     /// <param name="width">The width of the visualizer.</param>
     /// <param name="height">The height of the visualizer.</param>
@@ -180,7 +180,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private double SequenceVolume { get; set; }
 
     /// <summary>
-    ///     This method loads the sequence, textures and sounds.
+    /// This method loads the sequence, textures and sounds.
     /// </summary>
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public void Init(Manager manager)
@@ -632,7 +632,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     }
 
     /// <summary>
-    ///     Call this method when there is a change to the objects of a given sequence.
+    /// Call this method when there is a change to the objects of a given sequence.
     /// </summary>
     /// <param name="sequenceIndex">The changed sequence's index.</param>
     public void HandleSequenceChange(int sequenceIndex)
@@ -671,7 +671,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     }
 
     /// <summary>
-    ///     Converts milliseconds to a time string.
+    /// Converts milliseconds to a time string.
     /// </summary>
     /// <param name="milliseconds">Milliseconds passed.</param>
     /// <returns>A formatted time string.</returns>

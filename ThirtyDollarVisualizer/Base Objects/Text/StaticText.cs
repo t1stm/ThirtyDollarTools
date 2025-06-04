@@ -6,7 +6,7 @@ using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 namespace ThirtyDollarVisualizer.Base_Objects.Text;
 
 /// <summary>
-///     A renderable that is quick to render, intended to be used for text that is static, and changed rarely.
+/// A renderable that is quick to render, intended to be used for text that is static, and changed rarely.
 /// </summary>
 public class StaticText(FontFamily? fontFamily = null) : TextRenderable
 {

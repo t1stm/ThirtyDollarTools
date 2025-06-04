@@ -22,7 +22,7 @@ public partial class Sequence
     }
 
     /// <summary>
-    ///     Parses a sequence stored in a string.
+    /// Parses a sequence stored in a string.
     /// </summary>
     /// <param name="data">The string containing the sequence.</param>
     /// <returns>The parsed sequence.</returns>
@@ -252,7 +252,7 @@ public partial class Sequence
     }
 
     /// <summary>
-    ///     Parses a single event.
+    /// Parses a single event.
     /// </summary>
     /// <param name="text">The string of the event.</param>
     /// <param name="sequence">The sequence that is going to be parsed.</param>
