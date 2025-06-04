@@ -20,33 +20,35 @@
         <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Remove="Assets\Fonts\VarelaRound-Regular.ttf"/>
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+        <!-- Images -->
+        <None Remove="Assets\Textures\action_icut.png"/>
+        
+        <!-- Shaders -->
         <None Remove="Assets\Shaders\textured.frag"/>
+        <None Remove="Assets\Shaders\textured.vert"/>
+        <None Remove="Assets\Shaders\colored.vert"/>
+        <None Remove="Assets\Shaders\colored.frag"/>
+        
+        <!-- Fonts -->
+        <None Remove="Assets\Fonts\Lato-Regular.ttf"/>
+        <None Remove="Assets\Fonts\Lato-Bold.ttf"/>
+        <None Remove="Assets\Fonts\Twemoji.Mozilla.ttf"/>
+        <None Remove="Assets\Fonts\VarelaRound-Regular.ttf"/>
+    </ItemGroup>
+    
+    <ItemGroup>
         <EmbeddedResource Include="Assets\Shaders\quad.frag" />
         <EmbeddedResource Include="Assets\Shaders\quad.vert" />
         <EmbeddedResource Include="Assets\Shaders\textured.frag"/>
-        <None Remove="Assets\Shaders\textured.vert"/>
         <EmbeddedResource Include="Assets\Shaders\textured.vert"/>
-        <None Remove="Assets\Fonts\Lato-Regular.ttf"/>
         <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf"/>
-        <None Remove="Assets\Fonts\Lato-Bold.ttf"/>
         <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf"/>
         <EmbeddedResource Include="Assets\Textures\action_missing.png"/>
-        <None Remove="Assets\Textures\action_icut.png"/>
         <EmbeddedResource Include="Assets\Textures\action_icut.png"/>
-        <None Remove="Assets\Fonts\Twemoji.Mozilla.ttf"/>
         <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <None Remove="Assets\Shaders\colored.vert"/>
         <EmbeddedResource Include="Assets\Shaders\colored.vert"/>
-        <None Remove="Assets\Shaders\colored.frag"/>
         <EmbeddedResource Include="Assets\Shaders\colored.frag"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <EmbeddedResource Include="Assets\Textures\moai.png"/>
     </ItemGroup>
 

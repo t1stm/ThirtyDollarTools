@@ -13,8 +13,9 @@ public class AssetTexture : SingleTexture
     
     public AssetTexture(string path)
     {
-        using var source = AssetManager.GetAsset(path);
-
+        var asset = AssetManager.GetAsset(path);
+        using var source = asset.Stream;
+        
         var image = Image.Load<Rgba32>(source);
         Width = image.Width;
         Height = image.Height;

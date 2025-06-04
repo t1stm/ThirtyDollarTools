@@ -16,7 +16,8 @@ public class StaticTexture(Image<Rgba32>? rgba) : SingleTexture
 
     public StaticTexture(string path): this(rgba: null)
     {
-        using var source = AssetManager.GetAsset(path);
+        var asset = AssetManager.GetAsset(path);
+        using var source = asset.Stream;
         image = Image.Load<Rgba32>(source);
     }
     
