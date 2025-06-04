@@ -1,24 +1,24 @@
 using OpenTK.Mathematics;
 using SixLabors.Fonts;
-using ThirtyDollarVisualizer.Objects.Planes;
-using ThirtyDollarVisualizer.Objects.Textures.Static;
-using ThirtyDollarVisualizer.Renderer.Shaders;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
-namespace ThirtyDollarVisualizer.Objects.Text;
+namespace ThirtyDollarVisualizer.Base_Objects.Text;
 
 /// <summary>
 ///     A renderable that is quick to render, intended to be used for text that is static, and changed rarely.
 /// </summary>
-public class StaticText(FontFamily? font_family = null) : TextRenderable
+public class StaticText(FontFamily? fontFamily = null) : TextRenderable
 {
-    protected const int Y_OFFSET = 7;
+    private const int YOffset = 7;
+
+    private readonly TexturedPlane _texturedPlane = new();
+    private float _fontSize = 14f;
+    private string _value = string.Empty;
+
     public StaticText() : this(null)
     {
     }
-    
-    private readonly TexturedPlane _texturedPlane = new();
-    private float _font_size = 14f;
-    private string _value = string.Empty;
 
     public override string Value
     {
@@ -30,15 +30,26 @@ public class StaticText(FontFamily? font_family = null) : TextRenderable
 
     public override float FontSizePx
     {
-        get => _font_size;
+        get => _fontSize;
         set => SetFontSize(value);
+    }
+
+    public override Vector3 Scale
+    {
+        get => base.Scale;
+        set
+        {
+            _texturedPlane.Scale = value;
+            value.Y -= YOffset;
+            base.Scale = value;
+        }
     }
 
     public override void SetTextContents(string text)
     {
         if (_value == text) return;
         _value = text;
-        var family = font_family ?? Fonts.GetFontFamily();
+        var family = fontFamily ?? Fonts.GetFontFamily();
         var font = family.CreateFont(FontSizePx, FontStyle);
 
         var texture = new FontTexture(font, text);
@@ -57,24 +68,13 @@ public class StaticText(FontFamily? font_family = null) : TextRenderable
         position.X = MathF.Round(position.X);
         position.Y = MathF.Round(position.Y);
         position.Z = MathF.Round(position.Z);
-        
+
         _texturedPlane.SetPosition(position, align);
     }
 
-    public override Vector3 Scale
+    public void SetFontSize(float fontSizePx)
     {
-        get => base.Scale;
-        set
-        {
-            _texturedPlane.Scale = value;
-            value.Y -= Y_OFFSET;
-            base.Scale = value;
-        }
-    }
-
-    public void SetFontSize(float font_size_px)
-    {
-        _font_size = font_size_px;
+        _fontSize = fontSizePx;
         SetTextContents(Value);
     }
 }

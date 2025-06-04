@@ -1,12 +1,12 @@
 using OpenTK.Mathematics;
 
-namespace ThirtyDollarVisualizer.Objects;
+namespace ThirtyDollarVisualizer.Base_Objects;
 
 public abstract class Camera
 {
-    protected Vector3 _position;
     protected bool Disposing;
-    protected Matrix4 vp_matrix;
+    protected Vector3 InnerPosition;
+    protected Matrix4 InnerVPMatrix;
     protected float RenderScale = 1f;
 
     protected float Scale = 1f;
@@ -23,10 +23,10 @@ public abstract class Camera
     /// </summary>
     public Vector3 Position
     {
-        get => _position;
+        get => InnerPosition;
         set
         {
-            _position = value;
+            InnerPosition = value;
             UpdateMatrix();
         }
     }
@@ -101,16 +101,17 @@ public abstract class Camera
     /// <param name="top">The top side of the matrix.</param>
     protected virtual void SetMatrixValue(float left, float right, float bottom, float top)
     {
-        vp_matrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top, -1f, 1f);
+        InnerVPMatrix = Matrix4.CreateOrthographicOffCenter(left, right, bottom, top, -1f, 1f);
     }
 
     /// <summary>
-    /// Gets the multiplied view and projection matrices.
+    ///     Gets the multiplied view and projection matrices.
     /// </summary>
     /// <returns>A Matrix4 object containing view and projection data.</returns>
     public virtual Matrix4 GetVPMatrix()
     {
-        return vp_matrix;
+        // TODO: replace this with a property
+        return InnerVPMatrix;
     }
 
     public void SetRenderScale(float scale)

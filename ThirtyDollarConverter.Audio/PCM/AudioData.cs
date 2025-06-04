@@ -17,11 +17,11 @@ public class AudioData<T> : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public static AudioData<float> Empty(uint channel_count)
+    public static AudioData<float> Empty(uint channelCount)
     {
         var empty = Array.Empty<float>();
-        var data = new AudioData<float>(channel_count);
-        for (var i = 0; i < channel_count; i++) data.Samples[i] = empty;
+        var data = new AudioData<float>(channelCount);
+        for (var i = 0; i < channelCount; i++) data.Samples[i] = empty;
 
         return data;
     }

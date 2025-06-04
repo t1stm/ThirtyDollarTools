@@ -48,16 +48,16 @@ public abstract class BaseEvent
     /// <returns>A copy.</returns>
     public abstract BaseEvent Copy();
 
-    public void Deconstruct(out string? event_name, out double event_value)
+    public void Deconstruct(out string? eventName, out double eventValue)
     {
-        event_name = SoundEvent;
-        event_value = Value;
+        eventName = SoundEvent;
+        eventValue = Value;
     }
 
-    public void Deconstruct(out string? event_name, out double event_value, out double event_volume)
+    public void Deconstruct(out string? eventName, out double eventValue, out double eventVolume)
     {
-        event_name = SoundEvent;
-        event_value = Value;
-        event_volume = WorkingVolume;
+        eventName = SoundEvent;
+        eventValue = Value;
+        eventVolume = WorkingVolume;
     }
 }

@@ -102,13 +102,13 @@ public class SampleHolder
     /// <summary>
     ///     Downloads all sounds to the download folder.
     /// </summary>
-    public async Task<bool> DownloadSamples(bool check_only = false)
+    public async Task<bool> DownloadSamples(bool checkOnly = false)
     {
         var client = new HttpClient();
         var i = 0;
         var count = SampleList.Count;
 
-        if (check_only)
+        if (checkOnly)
         {
             foreach (var (sound, _) in SampleList)
             {
@@ -116,7 +116,7 @@ public class SampleHolder
                 var dll = $"{DownloadLocation}{Slash}{file}.wav";
 
                 if (File.Exists(dll)) continue;
-                if (check_only) return false;
+                if (checkOnly) return false;
             }
 
             return true;
@@ -142,23 +142,18 @@ public class SampleHolder
 
         return true;
     }
-    
+
     private static bool Exists(string path)
     {
         if (!path.Contains('*'))
             return File.Exists(path);
-        
+
         var directory = Path.GetDirectoryName(path);
-        if (string.IsNullOrEmpty(directory))
-        {
-            directory = Directory.GetCurrentDirectory();
-        }
+        if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
 
         var searchPattern = Path.GetFileName(path);
         if (string.IsNullOrEmpty(searchPattern))
-        {
             throw new ArgumentException("Invalid pattern; no file name specified.", nameof(path));
-        }
 
         var files = Directory.GetFiles(directory, searchPattern);
         return files.Length > 0;
@@ -179,17 +174,17 @@ public class SampleHolder
             var sound = pair.Key;
 
             var filename = sound.Filename;
-            const string download_extension = "png";
+            const string downloadExtension = "png";
 
             var file = $"{ImagesLocation}{Slash}{filename}";
-            var download_location = $"{file}.{download_extension}";
+            var download_location = $"{file}.{downloadExtension}";
 
             if (Exists($"{file}.*")) return;
 
-            var stream = await client.GetStreamAsync(sound.Icon_URL, token);
+            var stream = await client.GetStreamAsync(sound.IconUrl, token);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
             await stream.CopyToAsync(fs, token);
-            DownloadUpdate?.Invoke(sound.Icon_URL, i++, SampleList.Count);
+            DownloadUpdate?.Invoke(sound.IconUrl, i++, SampleList.Count);
 
             fs.Close();
         });

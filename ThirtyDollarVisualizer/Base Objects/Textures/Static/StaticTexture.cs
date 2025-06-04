@@ -3,56 +3,59 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarVisualizer.Assets;
 
-namespace ThirtyDollarVisualizer.Objects.Textures.Static;
+namespace ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
 public class StaticTexture(Image<Rgba32>? rgba) : SingleTexture
 {
-    public static readonly StaticTexture Transparent1x1 = new(new Image<Rgba32>(1,1));
-    
-    protected Image<Rgba32>? image = rgba;
-    private int? handle;
+    public static readonly StaticTexture TransparentPixel = new(new Image<Rgba32>(1, 1));
+    private int? _handle;
 
-    public Image<Rgba32>? GetData() => image;
+    protected Image<Rgba32>? Image = rgba;
 
-    public StaticTexture(string path): this(rgba: null)
+    public StaticTexture(string path) : this(rgba: null)
     {
         var asset = AssetManager.GetAsset(path);
         using var source = asset.Stream;
-        image = Image.Load<Rgba32>(source);
+        Image = SixLabors.ImageSharp.Image.Load<Rgba32>(source);
     }
-    
+
+    public Image<Rgba32>? GetData()
+    {
+        return Image;
+    }
+
     public override bool NeedsUploading()
     {
-        return handle == null;
+        return _handle == null;
     }
 
     public override void UploadToGPU()
     {
-        if (image == null) throw new ArgumentNullException(nameof(image), "Static Texture asset should not be null.");
+        if (Image == null) throw new ArgumentNullException(nameof(Image), "Static Texture asset should not be null.");
 
-        handle = GL.GenTexture();
-        if (handle == 0) 
+        _handle = GL.GenTexture();
+        if (_handle == 0)
             throw new Exception("Texture generation wasn't successful.");
-        
+
         Bind();
-        BasicUploadTexture(image.Frames.RootFrame);
+        BasicUploadTexture(Image.Frames.RootFrame);
         SetParameters();
-        
-        image.Dispose();
-        image = null;
+
+        Image.Dispose();
+        Image = null;
     }
 
     public override void Bind(TextureUnit slot = TextureUnit.Texture0)
     {
-        if (!handle.HasValue) return;
+        if (!_handle.HasValue) return;
         GL.ActiveTexture(slot);
-        GL.BindTexture(TextureTarget.Texture2D, handle.Value);
+        GL.BindTexture(TextureTarget.Texture2D, _handle.Value);
     }
 
     public override void Dispose()
     {
-        if (handle.HasValue)
-            GL.DeleteTexture(handle.Value);
+        if (_handle.HasValue)
+            GL.DeleteTexture(_handle.Value);
         GC.SuppressFinalize(this);
     }
 }

@@ -12,14 +12,14 @@ public class PannedEvent : BaseEvent, ICustomAudibleEvent
     {
     }
 
-    public PannedEvent(BaseEvent base_event)
+    public PannedEvent(BaseEvent baseEvent)
     {
-        SoundEvent = base_event.SoundEvent;
-        Value = base_event.Value;
-        OriginalLoop = base_event.OriginalLoop;
-        PlayTimes = base_event.PlayTimes;
-        Volume = base_event.Volume;
-        ValueScale = base_event.ValueScale;
+        SoundEvent = baseEvent.SoundEvent;
+        Value = baseEvent.Value;
+        OriginalLoop = baseEvent.OriginalLoop;
+        PlayTimes = baseEvent.PlayTimes;
+        Volume = baseEvent.Volume;
+        ValueScale = baseEvent.ValueScale;
     }
 
     public override PannedEvent Copy()

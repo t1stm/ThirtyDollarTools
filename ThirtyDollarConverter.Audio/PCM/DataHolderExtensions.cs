@@ -146,28 +146,28 @@ public static class DataHolderExtensions // i love duplicating code (false state
     ///     Converts a given sample array to a float (32 bit) array.
     /// </summary>
     /// <param name="channel">The current channel data.</param>
-    /// <param name="channels_count">How many channels the destination has.</param>
-    /// <param name="current_channel">The current channel.</param>
-    /// <param name="source_encoding">The source encoding.</param>
-    /// <param name="audio_span">The source's raw data.</param>
-    /// <param name="short_span">The source data casted to 16 bit.</param>
-    /// <param name="int24_span">The source data casted to 24 bit.</param>
-    /// <param name="float_span">The source data casted to 32 bit float.</param>
+    /// <param name="channelsCount">How many channels the destination has.</param>
+    /// <param name="currentChannel">The current channel.</param>
+    /// <param name="sourceEncoding">The source encoding.</param>
+    /// <param name="audioSpan">The source's raw data.</param>
+    /// <param name="shortSpan">The source data cast to 16-bit.</param>
+    /// <param name="int24Span">The source data cast to 24-bit.</param>
+    /// <param name="floatSpan">The source data cast to 32-bit float.</param>
     /// <exception cref="ArgumentOutOfRangeException">Exception when the given encoding isn't handled.</exception>
-    private static void FillChannel_Float(Span<float> channel, int channels_count, int current_channel,
-        Encoding source_encoding, Span<byte> audio_span,
-        ReadOnlySpan<short> short_span, ReadOnlySpan<Int24> int24_span, ReadOnlySpan<float> float_span)
+    private static void FillChannel_Float(Span<float> channel, int channelsCount, int currentChannel,
+        Encoding sourceEncoding, Span<byte> audioSpan,
+        ReadOnlySpan<short> shortSpan, ReadOnlySpan<Int24> int24Span, ReadOnlySpan<float> floatSpan)
     {
         for (var i = 0; i < channel.Length; i++)
         {
-            var index = i * channels_count + current_channel;
-            channel[i] = source_encoding switch
+            var index = i * channelsCount + currentChannel;
+            channel[i] = sourceEncoding switch
             {
-                Encoding.Int8 => audio_span[index] / 256f,
-                Encoding.Int16 => short_span[index] / 32768f,
-                Encoding.Int24 => int24_span[index].ToFloat(),
-                Encoding.Float32 => float_span[index],
-                _ => throw new ArgumentOutOfRangeException(nameof(source_encoding),
+                Encoding.Int8 => audioSpan[index] / 256f,
+                Encoding.Int16 => shortSpan[index] / 32768f,
+                Encoding.Int24 => int24Span[index].ToFloat(),
+                Encoding.Float32 => floatSpan[index],
+                _ => throw new ArgumentOutOfRangeException(nameof(sourceEncoding),
                     "Given PCM data holder has invalid encoding.")
             };
         }
@@ -177,28 +177,28 @@ public static class DataHolderExtensions // i love duplicating code (false state
     ///     Converts a given sample array to a short (16 bit) array.
     /// </summary>
     /// <param name="channel">The current channel data.</param>
-    /// <param name="channels_count">How many channels the destination has.</param>
-    /// <param name="current_channel">The current channel.</param>
-    /// <param name="source_encoding">The source encoding.</param>
-    /// <param name="audio_span">The source's raw data.</param>
-    /// <param name="short_span">The source data casted to 16 bit.</param>
-    /// <param name="int24_span">The source data casted to 24 bit.</param>
-    /// <param name="float_span">The source data casted to 32 bit float.</param>
+    /// <param name="channelsCount">How many channels the destination has.</param>
+    /// <param name="currentChannel">The current channel.</param>
+    /// <param name="sourceEncoding">The source encoding.</param>
+    /// <param name="audioSpan">The source's raw data.</param>
+    /// <param name="shortSpan">The source data cast to 16-bit.</param>
+    /// <param name="int24Span">The source data cast to 24-bit.</param>
+    /// <param name="floatSpan">The source data cast to 32-bit float.</param>
     /// <exception cref="ArgumentOutOfRangeException">Exception when the given encoding isn't handled.</exception>
-    private static void FillChannel_Short(Span<short> channel, int channels_count, int current_channel,
-        Encoding source_encoding, Span<byte> audio_span,
-        ReadOnlySpan<short> short_span, ReadOnlySpan<Int24> int24_span, ReadOnlySpan<float> float_span)
+    private static void FillChannel_Short(Span<short> channel, int channelsCount, int currentChannel,
+        Encoding sourceEncoding, Span<byte> audioSpan,
+        ReadOnlySpan<short> shortSpan, ReadOnlySpan<Int24> int24Span, ReadOnlySpan<float> floatSpan)
     {
         for (var i = 0; i < channel.Length; i++)
         {
-            var index = i * channels_count + current_channel;
-            channel[i] = source_encoding switch
+            var index = i * channelsCount + currentChannel;
+            channel[i] = sourceEncoding switch
             {
-                Encoding.Int8 => (short)(audio_span[index] * 256),
-                Encoding.Int16 => short_span[index],
-                Encoding.Int24 => (short)(int24_span[index].ToFloat() * 32768f),
-                Encoding.Float32 => (short)(float_span[index] * 32768f),
-                _ => throw new ArgumentOutOfRangeException(nameof(source_encoding),
+                Encoding.Int8 => (short)(audioSpan[index] * 256),
+                Encoding.Int16 => shortSpan[index],
+                Encoding.Int24 => (short)(int24Span[index].ToFloat() * 32768f),
+                Encoding.Float32 => (short)(floatSpan[index] * 32768f),
+                _ => throw new ArgumentOutOfRangeException(nameof(sourceEncoding),
                     "Given PCM data holder has invalid encoding.")
             };
         }

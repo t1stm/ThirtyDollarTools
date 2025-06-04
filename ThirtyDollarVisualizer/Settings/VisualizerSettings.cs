@@ -1,14 +1,14 @@
 namespace ThirtyDollarVisualizer.Settings;
 
-public class VisualizerSettings(Action modified_callback)
+public class VisualizerSettings(Action modifiedCallback)
 {
     private string? _audioBackend;
     private bool _automaticScaling = true;
     private int _eventMargin = 12;
     private int _eventSize = 64;
     private string _greeting = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER";
-    private string _mode = "Visualizer";
     private int _lineAmount = 16;
+    private string _mode = "Visualizer";
     private float _scrollSpeed = 7.5f;
     private bool _transparentFramebuffer;
 
@@ -70,6 +70,6 @@ public class VisualizerSettings(Action modified_callback)
     private void SetAndCallModified<T>(out T obj, T value)
     {
         obj = value;
-        modified_callback.Invoke();
+        modifiedCallback.Invoke();
     }
 }

@@ -9,7 +9,7 @@ using Avalonia.Platform.Storage;
 using ReactiveUI;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarGUI.Helper;
+using ThirtyDollarGUI.Helpers;
 using ThirtyDollarGUI.Views;
 using ThirtyDollarParser;
 
@@ -17,37 +17,37 @@ namespace ThirtyDollarGUI.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private readonly EncoderSettings encoder_settings = new()
+    private readonly EncoderSettings _encoderSettings = new()
     {
         Channels = 2,
         SampleRate = 48000
     };
 
-    private readonly SampleHolder sample_holder;
+    private readonly SampleHolder _sampleHolder;
+    private PcmEncoder? _encoder;
 
-    private bool encode_running;
-    private PcmEncoder? encoder;
+    private bool _encodeRunning;
 
-    private string? export_file_location = "";
+    private string? _exportFileLocation = "";
+    private int _progressBarValue;
+    private string? _sequenceFileLocations = "";
+    private Sequence[]? _sequences;
     public bool IsExportLocationGood = true;
 
     public bool IsSequenceLocationGood = true;
-    private int progress_bar_value;
-    private string? sequence_file_locations = "";
-    private Sequence[]? sequences;
 
     public MainWindowViewModel()
     {
-        sample_holder = new SampleHolder();
+        _sampleHolder = new SampleHolder();
         CheckSampleAvailability();
     }
 
     public string? SequenceFileLocation
     {
-        get => sequence_file_locations;
+        get => _sequenceFileLocations;
         set
         {
-            this.RaiseAndSetIfChanged(ref sequence_file_locations, value);
+            this.RaiseAndSetIfChanged(ref _sequenceFileLocations, value);
             IsSequenceLocationGood = this.RaiseAndSetIfChanged(ref IsSequenceLocationGood,
                 !string.IsNullOrEmpty(value) && File.Exists(value));
             new Task(ReadSequence).Start();
@@ -57,18 +57,18 @@ public class MainWindowViewModel : ViewModelBase
 
     public string? ExportFileLocation
     {
-        get => export_file_location;
+        get => _exportFileLocation;
         set
         {
-            this.RaiseAndSetIfChanged(ref export_file_location, value);
+            this.RaiseAndSetIfChanged(ref _exportFileLocation, value);
             IsExportLocationGood = this.RaiseAndSetIfChanged(ref IsExportLocationGood, !string.IsNullOrEmpty(value));
         }
     }
 
     public int ProgressBarValue
     {
-        get => progress_bar_value;
-        set => this.RaiseAndSetIfChanged(ref progress_bar_value, value);
+        get => _progressBarValue;
+        set => this.RaiseAndSetIfChanged(ref _progressBarValue, value);
     }
 
     public ObservableCollection<string> Logs { get; } = [];
@@ -116,9 +116,9 @@ public class MainWindowViewModel : ViewModelBase
 
     private async void CheckSampleAvailability()
     {
-        await sample_holder.LoadSampleList();
-        sample_holder.PrepareDirectory();
-        if (!await sample_holder.DownloadSamples(true))
+        await _sampleHolder.LoadSampleList();
+        _sampleHolder.PrepareDirectory();
+        if (!await _sampleHolder.DownloadSamples(true))
         {
             DownloadSamples();
             return;
@@ -128,14 +128,14 @@ public class MainWindowViewModel : ViewModelBase
         Logs.Clear();
 
         CreateLog("All sounds are downloaded. Loading into memory.");
-        sample_holder.LoadSamplesIntoMemory();
+        _sampleHolder.LoadSamplesIntoMemory();
         CreateLog("Loaded all samples into memory.");
     }
 
     private void DownloadSamples()
     {
         var sample_downloader = new Downloader();
-        var downloader_view_model = new DownloaderViewModel(sample_holder)
+        var downloader_view_model = new DownloaderViewModel(_sampleHolder)
         {
             OnFinishDownloading = sample_downloader.Close
         };
@@ -160,8 +160,8 @@ public class MainWindowViewModel : ViewModelBase
     {
         try
         {
-            if (sequence_file_locations == null) return;
-            var sequence_locations = sequence_file_locations.Split(Environment.NewLine);
+            if (_sequenceFileLocations == null) return;
+            var sequence_locations = _sequenceFileLocations.Split(Environment.NewLine);
             var new_sequences = new List<Sequence>();
             foreach (var sequence_location in sequence_locations)
             {
@@ -174,7 +174,7 @@ public class MainWindowViewModel : ViewModelBase
                 CreateLog($"Preloaded sequence located in: \'{sequence_location}\'");
             }
 
-            sequences = new_sequences.ToArray();
+            _sequences = new_sequences.ToArray();
         }
         catch (Exception e)
         {
@@ -193,13 +193,13 @@ public class MainWindowViewModel : ViewModelBase
 
     public async void StartEncoder()
     {
-        if (sequences == null)
+        if (_sequences == null)
         {
             CreateLog("No sequences are selected.");
             return;
         }
 
-        if (!IsExportLocationGood || export_file_location == null)
+        if (!IsExportLocationGood || _exportFileLocation == null)
         {
             CreateLog("The selected export location is bad. Please select a new one.");
             return;
@@ -208,68 +208,68 @@ public class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrEmpty(ExportFileLocation) && IsSequenceLocationGood)
             ExportFileLocation = SequenceFileLocation + ".wav";
 
-        if (sequence_file_locations == export_file_location)
+        if (_sequenceFileLocations == _exportFileLocation)
         {
             CreateLog(
                 "The export file location is the same as the sequence's. Adding .wav at the end of the export location.");
             ExportFileLocation += ".wav";
         }
 
-        if (encode_running)
+        if (_encodeRunning)
         {
             CreateLog("An encode is currently running.");
             return;
         }
 
-        encode_running = true;
+        _encodeRunning = true;
 
         CreateLog("Started encoding.");
-        encoder = new PcmEncoder(sample_holder, encoder_settings, CreateLog, UpdateProgressBar);
+        _encoder = new PcmEncoder(_sampleHolder, _encoderSettings, CreateLog, UpdateProgressBar);
 
-        await Task.Run(async () => { await EncoderStart(encoder, sequences); });
+        await Task.Run(async () => { await EncoderStart(_encoder, _sequences); });
     }
 
     public void ExportSettings()
     {
         var export_settings = new ExportSettings
         {
-            DataContext = new ExportSettingsViewModel(encoder_settings)
+            DataContext = new ExportSettingsViewModel(_encoderSettings)
         };
 
         export_settings.Show();
     }
 
-    private async Task EncoderStart(PcmEncoder pcm_encoder, IEnumerable<Sequence> localSequences)
+    private async Task EncoderStart(PcmEncoder pcmEncoder, IEnumerable<Sequence> localSequences)
     {
-        var output = await pcm_encoder.GetMultipleSequencesAudio(localSequences);
+        var output = await pcmEncoder.GetMultipleSequencesAudio(localSequences);
         CreateLog("Finished encoding.");
 
-        pcm_encoder.WriteAsWavFile(export_file_location ?? throw new Exception("Export path is null."), output);
-        encode_running = false;
+        pcmEncoder.WriteAsWavFile(_exportFileLocation ?? throw new Exception("Export path is null."), output);
+        _encodeRunning = false;
     }
 
     public void PreviewSequence()
     {
         var downloader = new Downloader();
-        var data_context = new DownloaderViewModel(sample_holder, DownloaderMode.Images)
+        var data_context = new DownloaderViewModel(_sampleHolder, DownloaderMode.Images)
         {
-            OnFinishDownloading = download_continue
+            OnFinishDownloading = DownloadContinue
         };
 
         downloader.DataContext = data_context;
 
-        if (!Directory.Exists(sample_holder.ImagesLocation) ||
-            Directory.GetFiles(sample_holder.ImagesLocation).Length <=
-            sample_holder.SampleList.Count + SampleHolder.ActionsArray.Length)
+        if (!Directory.Exists(_sampleHolder.ImagesLocation) ||
+            Directory.GetFiles(_sampleHolder.ImagesLocation).Length <=
+            _sampleHolder.SampleList.Count + SampleHolder.ActionsArray.Length)
         {
             downloader.Show();
             return;
         }
 
-        download_continue();
+        DownloadContinue();
         return;
 
-        void download_continue()
+        void DownloadContinue()
         {
             downloader.Close();
 
@@ -296,7 +296,7 @@ public class MainWindowViewModel : ViewModelBase
             var start_info = new ProcessStartInfo
             {
                 FileName = visualizer_filename,
-                Arguments = $"-i \"{sequence_file_locations}\""
+                Arguments = $"-i \"{_sequenceFileLocations}\""
             };
 
             Process.Start(start_info);

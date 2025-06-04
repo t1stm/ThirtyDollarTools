@@ -2,13 +2,15 @@ using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace ThirtyDollarVisualizer.Objects.Textures;
+namespace ThirtyDollarVisualizer.Base_Objects.Textures;
 
-public abstract class SingleTexture: IDisposable
+public abstract class SingleTexture : IDisposable
 {
     public int Width { get; protected set; }
     public int Height { get; protected set; }
-    
+
+    public abstract void Dispose();
+
     public abstract bool NeedsUploading();
 
     public virtual void Update()
@@ -19,8 +21,6 @@ public abstract class SingleTexture: IDisposable
     public abstract void UploadToGPU();
     public abstract void Bind(TextureUnit slot = TextureUnit.Texture0);
 
-    public abstract void Dispose();
-    
     protected static void SetParameters()
     {
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);

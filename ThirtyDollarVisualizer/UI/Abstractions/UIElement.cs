@@ -1,7 +1,7 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Abstractions;
 
 public enum LayoutDirection
 {
@@ -20,6 +20,8 @@ public enum Align
 public abstract class UIElement(float x, float y, float width, float height)
 {
     private UIElement? _parent;
+
+    private Vector4i? _viewport;
     public bool AutoWidth = false, AutoHeight = false;
     public virtual float X { get; set; } = x;
     public virtual float Y { get; set; } = y;
@@ -44,7 +46,6 @@ public abstract class UIElement(float x, float y, float width, float height)
         }
     }
 
-    private Vector4i? _viewport;
     public virtual Vector4i? Viewport
     {
         get => _viewport ?? Parent?.Viewport;
@@ -65,15 +66,9 @@ public abstract class UIElement(float x, float y, float width, float height)
 
         IsPressed = false;
 
-        if (IsHovered && mouse.IsButtonPressed(MouseButton.Left))
-        {
-            OnClick?.Invoke(this);
-        }
+        if (IsHovered && mouse.IsButtonPressed(MouseButton.Left)) OnClick?.Invoke(this);
 
-        if (IsHovered && mouse.IsButtonDown(MouseButton.Left))
-        {
-            IsPressed = true;
-        }
+        if (IsHovered && mouse.IsButtonDown(MouseButton.Left)) IsPressed = true;
     }
 
     public virtual void Update(UIContext context)

@@ -1,6 +1,6 @@
 using SixLabors.Fonts;
 
-namespace ThirtyDollarVisualizer.Objects.Text;
+namespace ThirtyDollarVisualizer.Base_Objects.Text;
 
 public abstract class TextRenderable : Renderable, IText
 {

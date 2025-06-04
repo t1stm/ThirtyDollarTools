@@ -1,28 +1,28 @@
 namespace BMS2TDW.Converter;
 
-public readonly struct TDWMeasure
+public readonly struct TdwMeasure
 {
-    private readonly CombineStack[] CombineStacks;
+    private readonly CombineStack[] _combineStacks;
 
-    public TDWMeasure(int division)
+    public TdwMeasure(int division)
     {
-        CombineStacks = new CombineStack[division];
-        for (var index = 0; index < CombineStacks.Length; index++) CombineStacks[index] = new CombineStack();
+        _combineStacks = new CombineStack[division];
+        for (var index = 0; index < _combineStacks.Length; index++) _combineStacks[index] = new CombineStack();
     }
 
-    public void PlaceEvent(int source_measure, int index, string event_name)
+    public void PlaceEvent(int sourceMeasure, int index, string eventName)
     {
-        if (string.IsNullOrWhiteSpace(event_name)) return;
+        if (string.IsNullOrWhiteSpace(eventName)) return;
 
-        var real_division = CombineStacks.Length / source_measure;
+        var real_division = _combineStacks.Length / sourceMeasure;
         var real_index = index * real_division;
 
-        var stack = CombineStacks[real_index];
-        stack.Events.Add(event_name + '|');
+        var stack = _combineStacks[real_index];
+        stack.Events.Add(eventName + '|');
     }
 
     public string Export()
     {
-        return string.Concat(CombineStacks.Select(r => r.Export()));
+        return string.Concat(_combineStacks.Select(r => r.Export()));
     }
 }

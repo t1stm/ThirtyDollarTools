@@ -1,26 +1,26 @@
 using OpenTK.Audio.OpenAL;
 using ThirtyDollarEncoder.PCM;
 
-namespace ThirtyDollarVisualizer.Audio;
+namespace ThirtyDollarVisualizer.Audio.OpenAL;
 
 public class OpenALBuffer : AudibleBuffer
 {
+    private readonly List<int> _audioSources = [];
     private readonly AudioContext _context;
-    private readonly List<int> AudioSources = [];
     private float _pan;
-    public float _relative_volume = .5f;
+    public float RelativeVolume = .5f;
 
-    public OpenALBuffer(AudioContext context, AudioData<float> sample_data, int sample_rate)
+    public OpenALBuffer(AudioContext context, AudioData<float> sampleData, int sampleRate)
     {
-        var length = sample_data.Samples[0].LongLength;
-        var channels = (int)sample_data.ChannelCount;
+        var length = sampleData.Samples[0].LongLength;
+        var channels = (int)sampleData.ChannelCount;
         _context = context;
 
         var format = channels switch
         {
             1 => ALFormat.MonoFloat32Ext,
             2 => ALFormat.StereoFloat32Ext,
-            _ => throw new ArgumentOutOfRangeException(nameof(sample_data), "The given channels count is invalid.")
+            _ => throw new ArgumentOutOfRangeException(nameof(sampleData), "The given channels count is invalid.")
         };
 
         var samples = new float[(int)length * channels];
@@ -29,17 +29,17 @@ public class OpenALBuffer : AudibleBuffer
         for (var j = 0; j < channels; j++)
         {
             var idx = i * channels + j;
-            samples_span[idx] = sample_data.Samples[j][i];
+            samples_span[idx] = sampleData.Samples[j][i];
         }
 
         AudioBuffer = AL.GenBuffer();
-        AL.BufferData(AudioBuffer, format, samples, sample_rate);
+        AL.BufferData(AudioBuffer, format, samples, sampleRate);
     }
 
-    public float _volume => _relative_volume * _context.GlobalVolume;
+    public float Volume => RelativeVolume * _context.GlobalVolume;
     public int AudioBuffer { get; set; }
 
-    public override void Play(Action? callback_when_finished = null, bool auto_remove = true)
+    public override void Play(Action? callbackWhenFinished = null, bool autoRemove = true)
     {
         var audio_context = _context;
         var source = AL.GenSource();
@@ -50,9 +50,9 @@ public class OpenALBuffer : AudibleBuffer
             return;
         }
 
-        lock (AudioSources)
+        lock (_audioSources)
         {
-            AudioSources.Add(source);
+            _audioSources.Add(source);
         }
 
         var size = AL.GetBuffer(AudioBuffer, ALGetBufferi.Size);
@@ -68,7 +68,7 @@ public class OpenALBuffer : AudibleBuffer
 
         AL.Source(source, ALSourcei.Buffer, AudioBuffer);
 
-        AL.Source(source, ALSourcef.Gain, _volume);
+        AL.Source(source, ALSourcef.Gain, Volume);
         AL.Source(source, ALSource3f.Position, _pan, 0, 0);
 
         AL.SourcePlay(source);
@@ -76,26 +76,26 @@ public class OpenALBuffer : AudibleBuffer
 
         Task.Run(async () =>
         {
-            if (!auto_remove) return;
+            if (!autoRemove) return;
             await Task.Delay(length);
 
             AL.DeleteSource(source);
             audio_context.CheckErrors();
 
-            lock (AudioSources)
+            lock (_audioSources)
             {
-                AudioSources.Remove(source);
+                _audioSources.Remove(source);
             }
 
-            callback_when_finished?.Invoke();
+            callbackWhenFinished?.Invoke();
         });
     }
 
     public override void Stop()
     {
-        lock (AudioSources)
+        lock (_audioSources)
         {
-            foreach (var audio_source in AudioSources)
+            foreach (var audio_source in _audioSources)
             {
                 if (!AL.IsSource(audio_source)) return;
                 AL.SourceStop(audio_source);
@@ -105,10 +105,10 @@ public class OpenALBuffer : AudibleBuffer
 
     public override long GetTime_Milliseconds()
     {
-        lock (AudioSources)
+        lock (_audioSources)
         {
-            if (AudioSources.Count < 1) return -1;
-            var source = AudioSources.FirstOrDefault();
+            if (_audioSources.Count < 1) return -1;
+            var source = _audioSources.FirstOrDefault();
 
             AL.GetSource(source, ALSourcef.SecOffset, out var offset);
             return (long)(offset * 1000f);
@@ -117,22 +117,22 @@ public class OpenALBuffer : AudibleBuffer
 
     public override void SeekTime_Milliseconds(long milliseconds)
     {
-        lock (AudioSources)
+        lock (_audioSources)
         {
-            foreach (var source in AudioSources) AL.Source(source, ALSourcef.SecOffset, milliseconds / 1000f);
+            foreach (var source in _audioSources) AL.Source(source, ALSourcef.SecOffset, milliseconds / 1000f);
         }
     }
 
     public override void SetVolume(float volume, bool absolute = false)
     {
-        _relative_volume = absolute ? volume * (1 / _context.GlobalVolume) : volume;
+        RelativeVolume = absolute ? volume * (1 / _context.GlobalVolume) : volume;
     }
 
     public override void Delete()
     {
-        lock (AudioSources)
+        lock (_audioSources)
         {
-            foreach (var audio_source in AudioSources)
+            foreach (var audio_source in _audioSources)
             {
                 if (!AL.IsSource(audio_source)) return;
                 AL.SourceStop(audio_source);
@@ -146,10 +146,10 @@ public class OpenALBuffer : AudibleBuffer
 
     public override void SetPause(bool state)
     {
-        lock (AudioSources)
+        lock (_audioSources)
         {
-            if (AudioSources.Count < 1) return;
-            foreach (var source in AudioSources)
+            if (_audioSources.Count < 1) return;
+            foreach (var source in _audioSources)
             {
                 AL.GetSource(source, ALGetSourcei.SourceState, out var playing);
 

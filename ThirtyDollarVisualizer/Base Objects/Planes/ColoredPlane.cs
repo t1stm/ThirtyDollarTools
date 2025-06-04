@@ -1,31 +1,32 @@
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Objects.Planes.Uniforms;
+using ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Renderer;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 
-namespace ThirtyDollarVisualizer.Objects.Planes;
+namespace ThirtyDollarVisualizer.Base_Objects.Planes;
 
 public class ColoredPlane : Renderable
 {
-    private static bool AreVerticesGenerated;
-    private static VertexArrayObject Static_Vao = null!;
-    private static BufferObject<float> Static_Vbo = null!;
-    private static BufferObject<uint> Static_Ebo = null!;
-    private static BufferObject<ColoredUniform>? UniformBuffer;
+    private static bool _areVerticesGenerated;
+    private static VertexArrayObject _staticVAO = null!;
+    private static BufferObject<float> _staticVBO = null!;
+    private static BufferObject<uint> _staticEBO = null!;
+    private static BufferObject<ColoredUniform>? _uniformBuffer;
+
+    private ColoredUniform _uniform;
+    public float BorderRadius;
+
+
+    public ColoredPlane()
+    {
+        if (!_areVerticesGenerated) SetVertices();
+        _uniform = new ColoredUniform();
+    }
 
     public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad(
         "colored_plane", () => Shader.NewVertexFragment("ThirtyDollarVisualizer.Assets.Shaders.colored.vert",
             "ThirtyDollarVisualizer.Assets.Shaders.colored.frag")
     );
-
-    public float BorderRadius;
-    private ColoredUniform Uniform;
-
-    public ColoredPlane()
-    {
-        if (!AreVerticesGenerated) SetVertices();
-        Uniform = new ColoredUniform();
-    }
 
     private void SetVertices()
     {
@@ -42,53 +43,53 @@ public class ColoredPlane : Renderable
 
         var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
 
-        Static_Vao = new VertexArrayObject();
-        Static_Vbo = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
+        _staticVAO = new VertexArrayObject();
+        _staticVBO = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
 
         var layout = new VertexBufferLayout();
         layout.PushFloat(3); // xyz vertex coords
-        Static_Vao.AddBuffer(Static_Vbo, layout);
+        _staticVAO.AddBuffer(_staticVBO, layout);
 
-        Static_Ebo = new BufferObject<uint>(indices, BufferTarget.ElementArrayBuffer);
-        AreVerticesGenerated = true;
+        _staticEBO = new BufferObject<uint>(indices, BufferTarget.ElementArrayBuffer);
+        _areVerticesGenerated = true;
     }
 
     public override void Render(Camera camera)
     {
         if (Shader == null) return;
 
-        Static_Vao.Bind();
-        Static_Ebo.Bind();
+        _staticVAO.Bind();
+        _staticEBO.Bind();
         Shader.Use();
         SetShaderUniforms(camera);
 
-        GL.DrawElements(PrimitiveType.Triangles, Static_Ebo.GetCount(), DrawElementsType.UnsignedInt, 0);
+        GL.DrawElements(PrimitiveType.Triangles, _staticEBO.GetCount(), DrawElementsType.UnsignedInt, 0);
         base.Render(camera);
     }
 
     public override void SetShaderUniforms(Camera camera)
     {
-        Uniform.Color = Color;
-        Uniform.BorderRadiusPx = BorderRadius;
+        _uniform.Color = Color;
+        _uniform.BorderRadiusPx = BorderRadius;
 
-        Uniform.ScalePx = Scale.X;
-        Uniform.AspectRatio = Scale.X / Scale.Y;
-        Uniform.Model = Model;
-        Uniform.Projection = camera.GetVPMatrix();
+        _uniform.ScalePx = Scale.X;
+        _uniform.AspectRatio = Scale.X / Scale.Y;
+        _uniform.Model = Model;
+        _uniform.Projection = camera.GetVPMatrix();
 
-        Span<ColoredUniform> span = [Uniform];
+        Span<ColoredUniform> span = [_uniform];
 
-        if (UniformBuffer is null)
+        if (_uniformBuffer is null)
         {
-            UniformBuffer =
+            _uniformBuffer =
                 new BufferObject<ColoredUniform>(span, BufferTarget.UniformBuffer);
-            GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, UniformBuffer.Handle);
+            GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, _uniformBuffer.Handle);
         }
         else
         {
-            UniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer);
+            _uniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer);
         }
 
-        GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, UniformBuffer.Handle);
+        GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }
 }

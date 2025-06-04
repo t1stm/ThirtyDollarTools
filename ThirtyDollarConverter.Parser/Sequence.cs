@@ -82,9 +82,9 @@ public partial class Sequence
         return true;
     }
 
-    private static bool TryIndividualCut(string text, Sequence sequence, out BaseEvent new_event)
+    private static bool TryIndividualCut(string text, Sequence sequence, out BaseEvent newEvent)
     {
-        new_event = NormalEvent.Empty;
+        newEvent = NormalEvent.Empty;
 
         var match = ICutRegex().Match(text);
         if (!match.Success) return false;
@@ -101,7 +101,7 @@ public partial class Sequence
 
         var hash_set = new HashSet<string>(split_events);
 
-        new_event = new IndividualCutEvent(hash_set)
+        newEvent = new IndividualCutEvent(hash_set)
         {
             SoundEvent = text
         };
@@ -111,9 +111,9 @@ public partial class Sequence
         return true;
     }
 
-    private static bool TryBookmark(string text, out BaseEvent new_event)
+    private static bool TryBookmark(string text, out BaseEvent newEvent)
     {
-        new_event = NormalEvent.Empty;
+        newEvent = NormalEvent.Empty;
 
         var match = BookmarkRegex().Match(text);
         if (!match.Success) return false;
@@ -122,7 +122,7 @@ public partial class Sequence
         var string_value = match.Groups["index"].Value;
         if (!int.TryParse(string_value, out var val)) return false;
 
-        new_event = new BookmarkEvent
+        newEvent = new BookmarkEvent
         {
             Value = val
         };
@@ -181,41 +181,41 @@ public partial class Sequence
         return events.ToArray();
     }
 
-    private static bool ProcessDefines(Sequence comp, BaseEvent new_event, List<BaseEvent> list)
+    private static bool ProcessDefines(Sequence comp, BaseEvent newEvent, List<BaseEvent> list)
     {
-        if (!comp.Definitions.TryGetValue(new_event.SoundEvent ?? "", out var events)) return false;
+        if (!comp.Definitions.TryGetValue(newEvent.SoundEvent ?? "", out var events)) return false;
 
         var pan = 0f;
-        if (new_event is PannedEvent panned_event) pan = panned_event.Pan;
+        if (newEvent is PannedEvent panned_event) pan = panned_event.Pan;
 
         var array = new BaseEvent[events.Length];
         for (var i = 0; i < events.Length; i++)
         {
-            var _event = events[i];
+            var base_event = events[i];
 
-            array[i] = _event switch
+            array[i] = base_event switch
             {
-                NormalEvent => new PannedEvent(_event),
+                NormalEvent => new PannedEvent(base_event),
                 IndividualCutEvent ice => ice.Copy(),
-                _ => _event.Copy()
+                _ => base_event.Copy()
             };
         }
 
-        if (new_event is
+        if (newEvent is
                 { Value: 0, ValueScale: ValueScale.None or ValueScale.Add, Volume: null or 100d } &&
             pan == 0f) goto return_path;
 
-        var val = new_event.Value;
+        var val = newEvent.Value;
         foreach (var ev in array)
         {
             if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
-            if (ev is PannedEvent _panned)
+            if (ev is PannedEvent panned)
             {
-                var new_pan = Math.Clamp(pan + _panned.Pan, -1f, 1f);
-                _panned.Pan = new_pan;
+                var new_pan = Math.Clamp(pan + panned.Pan, -1f, 1f);
+                panned.Pan = new_pan;
             }
 
-            switch (new_event.ValueScale)
+            switch (newEvent.ValueScale)
             {
                 case ValueScale.None:
                 case ValueScale.Add:
@@ -229,17 +229,19 @@ public partial class Sequence
                 case ValueScale.Times:
                     ev.Value *= val;
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
-            if (new_event.Volume is null or 100d) continue;
+            if (newEvent.Volume is null or 100d) continue;
 
             switch (ev.Volume)
             {
                 case null:
-                    ev.Volume = new_event.Volume;
+                    ev.Volume = newEvent.Volume;
                     break;
                 default:
-                    ev.Volume *= new_event.Volume / 100d;
+                    ev.Volume *= newEvent.Volume / 100d;
                     break;
             }
         }
@@ -421,22 +423,28 @@ public partial class Sequence
 
     [GeneratedRegex("^[^@%^=]*", RegexOptions.IgnoreCase | RegexOptions.Multiline, "en-US")]
     private static partial Regex SoundNameRegex();
+
     [GeneratedRegex("@[-0-9.]+")]
     private static partial Regex ValueRegex();
+
     [GeneratedRegex("@[-0-9.]+@[^@%^=]+")]
     private static partial Regex ValueScaleRegex();
+
     [GeneratedRegex("=[0-9]+")]
     private static partial Regex LoopTimesRegex();
+
     [GeneratedRegex("%[-0-9.]+")]
     private static partial Regex VolumeRegex();
+
     [GeneratedRegex(@"\^[-0-9.]+")]
     private static partial Regex PanRegex();
+
     [GeneratedRegex(@"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)")]
     private static partial Regex DefineRegex();
 
     [GeneratedRegex(@"^#icut\((?<events>[^)]+)\)")]
     private static partial Regex ICutRegex();
-    
+
     [GeneratedRegex(@"^#bookmark\((?<index>[^)]+)\)")]
     private static partial Regex BookmarkRegex();
 }

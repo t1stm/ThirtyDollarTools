@@ -1,13 +1,24 @@
 using SixLabors.Fonts;
-using ThirtyDollarVisualizer.Objects;
-using ThirtyDollarVisualizer.Objects.Text;
+using ThirtyDollarVisualizer.Base_Objects.Text;
+using ThirtyDollarVisualizer.UI.Abstractions;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Components.Labels;
 
 public class Label : UIElement, IText
 {
     protected LabelMode Mode;
-    protected TextRenderable renderable = new StaticText();
+    protected TextRenderable Renderable = new StaticText();
+
+    public Label(string text, LabelMode mode = LabelMode.Static) : this(text, 0, 0, mode)
+    {
+    }
+
+    public Label(string text, float x, float y, LabelMode mode = LabelMode.Static) : base(x, y, 0, 0)
+    {
+        Mode = mode;
+        UpdateTextRenderableMode(null, mode);
+        SetTextContents(text);
+    }
 
     public LabelMode LabelMode
     {
@@ -19,79 +30,70 @@ public class Label : UIElement, IText
         }
     }
 
-    public Label(string text, LabelMode mode = LabelMode.Static) : this(text, 0, 0, mode) { }
-    
-    public Label(string text, float x, float y, LabelMode mode = LabelMode.Static) : base(x, y, 0, 0)
+    public string Value
     {
-        Mode = mode;
-        UpdateTextRenderableMode(null, mode);
-        SetTextContents(text);
+        get => Renderable.Value;
+        set => SetTextContents(value);
     }
 
-    private void UpdateTextRenderableMode(LabelMode? old_mode, LabelMode new_mode)
+    public float FontSizePx
     {
-        if (old_mode?.Equals(new_mode) ?? false)
+        get => Renderable.FontSizePx;
+        set => Renderable.FontSizePx = value;
+    }
+
+    public FontStyle FontStyle
+    {
+        get => Renderable.FontStyle;
+        set => Renderable.FontStyle = value;
+    }
+
+    public void SetTextContents(string text)
+    {
+        Renderable.SetTextContents(text);
+        var scale = Renderable.Scale;
+
+        Width = scale.X;
+        Height = scale.Y;
+
+        Parent?.Layout();
+    }
+
+    private void UpdateTextRenderableMode(LabelMode? oldMode, LabelMode newMode)
+    {
+        if (oldMode?.Equals(newMode) ?? false)
             return;
 
-        var old_renderable = renderable;
-        renderable = new_mode switch
+        var old_renderable = Renderable;
+        Renderable = newMode switch
         {
             LabelMode.Static => new StaticText(),
             LabelMode.BasicDynamic => new BasicDynamicText(),
             LabelMode.CachedDynamic => new CachedDynamicText(),
-            _ => throw new ArgumentOutOfRangeException(nameof(new_mode), new_mode, null)
+            _ => throw new ArgumentOutOfRangeException(nameof(newMode), newMode, null)
         };
 
-        if (old_mode == null)
+        if (oldMode == null)
             return;
 
         var value = old_renderable.Value;
         var font_size = old_renderable.FontSizePx;
         var font_style = old_renderable.FontStyle;
 
-        renderable.FontSizePx = font_size;
-        renderable.FontStyle = font_style;
+        Renderable.FontSizePx = font_size;
+        Renderable.FontStyle = font_style;
         SetTextContents(value);
     }
 
     public override void Layout()
     {
-        renderable.SetPosition((AbsoluteX, AbsoluteY, 0));
+        Renderable.SetPosition((AbsoluteX, AbsoluteY, 0));
         base.Layout();
     }
 
     protected override void DrawSelf(UIContext context)
     {
-        context.QueueRender(renderable, Index);
-    }
-
-    public string Value
-    {
-        get => renderable.Value;
-        set => SetTextContents(value);
-    }
-
-    public float FontSizePx
-    {
-        get => renderable.FontSizePx;
-        set => renderable.FontSizePx = value;
-    }
-
-    public FontStyle FontStyle
-    {
-        get => renderable.FontStyle;
-        set => renderable.FontStyle = value;
-    }
-
-    public void SetTextContents(string text)
-    {
-        renderable.SetTextContents(text);
-        var scale = renderable.Scale;
-
-        Width = scale.X;
-        Height = scale.Y;
-
-        Parent?.Layout();
+        context.QueueRender(Renderable, Index);
     }
 }
 

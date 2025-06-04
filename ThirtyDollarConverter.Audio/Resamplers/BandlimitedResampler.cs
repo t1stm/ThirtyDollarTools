@@ -1,17 +1,17 @@
-namespace ThirtyDollarConverter.Audio.Resamplers;
+namespace ThirtyDollarEncoder.Resamplers;
 
-public class BandlimitedResampler(int filter_size = 64) : IResampler
+public class BandlimitedResampler(int filterSize = 64) : IResampler
 {
     /// <summary>
     ///     Resamples the given audio data to another sample rate using bandlimited interpolation.
     /// </summary>
     /// <param name="samples">The original sample data.</param>
-    /// <param name="sample_rate">The original sample rate.</param>
-    /// <param name="target_sample_rate">The target sample rate.</param>
+    /// <param name="sampleRate">The original sample rate.</param>
+    /// <param name="targetSampleRate">The target sample rate.</param>
     /// <returns>Resampled audio data.</returns>
-    public float[] Resample(Memory<float> samples, uint sample_rate, uint target_sample_rate)
+    public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
-        var resample_ratio = (double)target_sample_rate / sample_rate;
+        var resample_ratio = (double)targetSampleRate / sampleRate;
         var samples_length = (int)(samples.Length * resample_ratio);
         var output = new float[samples_length];
 
@@ -22,12 +22,12 @@ public class BandlimitedResampler(int filter_size = 64) : IResampler
 
             var result = 0.0f;
 
-            for (var j = sample_index - filter_size; j <= sample_index + filter_size; j++)
+            for (var j = sample_index - filterSize; j <= sample_index + filterSize; j++)
             {
                 if (j < 0 || j >= samples.Length) continue;
 
                 var x = sample_position - j;
-                var window = samples.Span[j] * Sinc(x) * HannWindow(x / filter_size);
+                var window = samples.Span[j] * Sinc(x) * HannWindow(x / filterSize);
                 result += (float)window;
             }
 
@@ -37,9 +37,9 @@ public class BandlimitedResampler(int filter_size = 64) : IResampler
         return output;
     }
 
-    public double[] Resample(Memory<double> samples, uint sample_rate, uint target_sample_rate)
+    public double[] Resample(Memory<double> samples, uint sampleRate, uint targetSampleRate)
     {
-        var resample_ratio = (double)target_sample_rate / sample_rate;
+        var resample_ratio = (double)targetSampleRate / sampleRate;
 
         var samples_length = (int)(samples.Length * resample_ratio);
         var output = new double[samples_length];
@@ -51,12 +51,12 @@ public class BandlimitedResampler(int filter_size = 64) : IResampler
 
             var result = 0.0d;
 
-            for (var j = sample_index - filter_size; j <= sample_index + filter_size; j++)
+            for (var j = sample_index - filterSize; j <= sample_index + filterSize; j++)
             {
                 if (j < 0 || j >= samples.Length) continue;
 
                 var x = sample_position - j;
-                var window = samples.Span[j] * Sinc(x) * HannWindow(x / filter_size);
+                var window = samples.Span[j] * Sinc(x) * HannWindow(x / filterSize);
                 result += window;
             }
 

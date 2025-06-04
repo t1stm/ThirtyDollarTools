@@ -5,14 +5,14 @@ using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
 using ThirtyDollarGUI.Services;
 
-namespace ThirtyDollarGUI.Helper;
+namespace ThirtyDollarGUI.Helpers;
 
 public static class DialogHelper
 {
     public static async Task<IEnumerable<string>?> OpenFileDialogAsync(this object? context, string? title = null,
-        IReadOnlyList<FilePickerFileType>? file_types = null)
+        IReadOnlyList<FilePickerFileType>? fileTypes = null)
     {
-        if (context == null) throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
 
         var top_level = DialogService.GetTopLevelForContext(context);
 
@@ -23,7 +23,7 @@ public static class DialogHelper
             {
                 AllowMultiple = true,
                 Title = title ?? "Select a file",
-                FileTypeFilter = file_types
+                FileTypeFilter = fileTypes
             });
 
 
@@ -31,9 +31,9 @@ public static class DialogHelper
     }
 
     public static async Task<string> SaveFileDialogAsync(this object? context, string? title = null,
-        IReadOnlyList<FilePickerFileType>? file_types = null)
+        IReadOnlyList<FilePickerFileType>? fileTypes = null)
     {
-        if (context == null) throw new ArgumentNullException(nameof(context));
+        ArgumentNullException.ThrowIfNull(context);
 
         var top_level = DialogService.GetTopLevelForContext(context);
 
@@ -43,7 +43,7 @@ public static class DialogHelper
             new FilePickerSaveOptions
             {
                 Title = title ?? "Select any file",
-                FileTypeChoices = file_types
+                FileTypeChoices = fileTypes
             });
 
         return storage_file?.TryGetLocalPath()!;

@@ -1,11 +1,11 @@
-namespace ThirtyDollarConverter.Audio.Resamplers;
+namespace ThirtyDollarEncoder.Resamplers;
 
 public class NoInterpolationResampler : IResampler
 {
-    public float[] Resample(Memory<float> samples, uint sample_rate, uint target_sample_rate)
+    public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
         var span = samples.Span;
-        var increment = (float)target_sample_rate / sample_rate;
+        var increment = (float)targetSampleRate / sampleRate;
 
         var resampled_size = (ulong)Math.Ceiling((double)increment * samples.Length);
         var resampled = new float[resampled_size];
@@ -21,10 +21,10 @@ public class NoInterpolationResampler : IResampler
         return resampled;
     }
 
-    public double[] Resample(Memory<double> samples, uint sample_rate, uint target_sample_rate)
+    public double[] Resample(Memory<double> samples, uint sampleRate, uint targetSampleRate)
     {
         var span = samples.Span;
-        var increment = (double)target_sample_rate / sample_rate;
+        var increment = (double)targetSampleRate / sampleRate;
 
         var resampled_size = (ulong)Math.Ceiling(increment * samples.Length);
         var resampled = new double[resampled_size];

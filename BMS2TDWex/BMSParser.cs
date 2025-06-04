@@ -4,10 +4,10 @@ namespace BMS2TDW;
 
 public static class BMSParser
 {
-    public static BMSLevel ParseFile(string read)
+    public static BmsLevel ParseFile(string read)
     {
         var split = read.Split('\n');
-        var level = new BMSLevel();
+        var level = new BmsLevel();
         bool? is_header_currently = null;
 
         foreach (var current_line in split)
@@ -37,7 +37,7 @@ public static class BMSParser
         return level;
     }
 
-    private static void HandleHeaderEvents(ref BMSHeader header, string line)
+    private static void HandleHeaderEvents(ref BmsHeader header, string line)
     {
         if (!line.StartsWith('#')) return;
 
@@ -76,7 +76,7 @@ public static class BMSParser
 
             case "BPM":
                 if (int.TryParse(remaining_event, out var bpm))
-                    header.BPM = bpm;
+                    header.Bpm = bpm;
                 break;
 
             case "PLAYLEVEL":
@@ -100,7 +100,7 @@ public static class BMSParser
         }
     }
 
-    private static void HandleMainDataEvents(ref BMSData data, in BMSHeader level_header, string line)
+    private static void HandleMainDataEvents(ref BmsData data, in BmsHeader levelHeader, string line)
     {
         if (!line.StartsWith('#')) return;
         var clean_value = line[1..];
@@ -118,14 +118,14 @@ public static class BMSParser
 
         if (!data.Measures.TryGetValue(measure_number, out var value))
         {
-            value = new BMSMeasure();
+            value = new BmsMeasure();
             data.Measures[measure_number] = value;
         }
 
         var measure = value;
         var beats_division = event_data.Length / 2;
 
-        var new_event = new BMSEvent
+        var new_event = new BmsEvent
         {
             BeatsDivision = beats_division,
             StringValue = event_data
@@ -137,7 +137,7 @@ public static class BMSParser
             for (var i = 0; i < array.Length; i++)
             {
                 var index = string.Concat(event_data[i * 2], event_data[i * 2 + 1]);
-                array[i] = string.Intern(level_header.ChannelMap[index]);
+                array[i] = string.Intern(levelHeader.ChannelMap[index]);
             }
         }
 

@@ -1,57 +1,58 @@
 using SixLabors.Fonts;
-using ThirtyDollarVisualizer.Objects.Textures.Static;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
-namespace ThirtyDollarVisualizer.Objects.Text;
+namespace ThirtyDollarVisualizer.Base_Objects.Text;
 
-public class CharacterCache(FontFamily font_family, FontFamily emoji_family)
+public class CharacterCache(FontFamily fontFamily, FontFamily emojiFamily)
 {
     public readonly Dictionary<string, StaticTexture> Emojis = new();
     public readonly Dictionary<FontStyle, Dictionary<float, Dictionary<char, StaticTexture>>> Letters = new();
-    public FontFamily FontFamily => font_family;
+    public FontFamily FontFamily => fontFamily;
 
-    public StaticTexture Get(char character, float font_size, FontStyle font_style = FontStyle.Regular)
+    public StaticTexture Get(char character, float fontSize, FontStyle fontStyle = FontStyle.Regular)
     {
         lock (Letters)
         {
-            if (character == '\n') return StaticTexture.Transparent1x1;
+            if (character == '\n') return StaticTexture.TransparentPixel;
 
-            if (!Letters.TryGetValue(font_style, out var letters))
+            if (!Letters.TryGetValue(fontStyle, out var letters))
             {
                 letters = new Dictionary<float, Dictionary<char, StaticTexture>>();
-                Letters.TryAdd(font_style, letters);
+                Letters.TryAdd(fontStyle, letters);
             }
 
-            if (letters.TryGetValue(font_size, out var chars))
-                return GetCharacter(chars, character, font_size, font_style);
+            if (letters.TryGetValue(fontSize, out var chars))
+                return GetCharacter(chars, character, fontSize, fontStyle);
 
             chars = new Dictionary<char, StaticTexture>();
-            letters.TryAdd(font_size, chars);
+            letters.TryAdd(fontSize, chars);
 
-            return GetCharacter(chars, character, font_size, font_style);
+            return GetCharacter(chars, character, fontSize, fontStyle);
         }
     }
 
-    private StaticTexture GetCharacter(Dictionary<char, StaticTexture> chars, char character, float font_size, FontStyle font_style)
+    private StaticTexture GetCharacter(Dictionary<char, StaticTexture> chars, char character, float fontSize,
+        FontStyle fontStyle)
     {
         if (chars.TryGetValue(character, out var texture)) return texture;
-        var font = font_family.CreateFont(font_size, font_style);
+        var font = fontFamily.CreateFont(fontSize, fontStyle);
 
         texture = new FontTexture(font, new string(character, 1));
         chars.TryAdd(character, texture);
         return texture;
     }
 
-    public StaticTexture GetEmoji(string emoji, float font_size, FontStyle font_style)
+    public StaticTexture GetEmoji(string emoji, float fontSize, FontStyle fontStyle)
     {
-        return GetEmoji(emoji.AsSpan(), font_size, font_style);
+        return GetEmoji(emoji.AsSpan(), fontSize, fontStyle);
     }
-    
-    public StaticTexture GetEmoji(ReadOnlySpan<char> emoji, float font_size, FontStyle font_style)
+
+    public StaticTexture GetEmoji(ReadOnlySpan<char> emoji, float fontSize, FontStyle fontStyle)
     {
         var alternative_lookup = Emojis.GetAlternateLookup<ReadOnlySpan<char>>();
-        
+
         if (alternative_lookup.TryGetValue(emoji, out var texture)) return texture;
-        var font = emoji_family.CreateFont(font_size, font_style);
+        var font = emojiFamily.CreateFont(fontSize, fontStyle);
 
         var emoji_string = emoji.ToString();
         texture = new FontTexture(font, emoji_string);

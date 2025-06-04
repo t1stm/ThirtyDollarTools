@@ -1,25 +1,27 @@
 using OpenTK.Mathematics;
 using SixLabors.Fonts;
-using ThirtyDollarVisualizer.Objects.Planes;
-using ThirtyDollarVisualizer.Objects.Text;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Text;
+using ThirtyDollarVisualizer.UI.Components.Panels;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Components.Labels;
 
 public class Button : FlexPanel, IText
 {
     private readonly Label _label;
+
     public Button(string label, Vector4? background = null)
     {
         AutoSizeSelf = true;
         AutoWidth = true;
         AutoHeight = true;
-        
+
         Padding = 5;
         Background = new ColoredPlane
         {
             Color = background ?? (0.2f, 0.2f, 0.2f, 1.0f)
-        }; 
-        
+        };
+
         Children = [_label = new Label(label)];
         UpdateCursorOnHover = true;
     }

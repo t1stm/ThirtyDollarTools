@@ -4,8 +4,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using ThirtyDollarVisualizer.Objects.Text;
-using ThirtyDollarVisualizer.Renderer;
+using ThirtyDollarVisualizer.Base_Objects.Text;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Settings;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
@@ -55,7 +54,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
         CheckErrors();
         base.OnLoad();
-        
+
         Fonts.Initialize();
 
         GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
@@ -72,8 +71,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         GLInfo.Renderer = GL.GetString(StringName.Renderer);
         GLInfo.Version = GL.GetString(StringName.Version);
 
-        GLInfo.MaxTexture2D_Size = GL.GetInteger(GetPName.MaxTextureSize);
-        GLInfo.MaxTexture2D_Layers = GL.GetInteger(GetPName.MaxArrayTextureLayers);
+        GLInfo.MaxTexture2DSize = GL.GetInteger(GetPName.MaxTextureSize);
+        GLInfo.MaxTexture2DLayers = GL.GetInteger(GetPName.MaxArrayTextureLayers);
     }
 
     protected override void OnResize(ResizeEventArgs e)
@@ -86,7 +85,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnRenderFrame(FrameEventArgs args)
     {
         RenderBlock.Wait();
-        
+
         GL.Enable(EnableCap.Blend);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         GL.ClearColor(.0f, .0f, .0f, 0f);
@@ -101,14 +100,14 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnUpdateFrame(FrameEventArgs args)
     {
         CheckErrors();
-        
+
         if (KeyboardState.IsAnyKeyDown)
             foreach (var scene in Scenes)
                 scene.Keyboard(KeyboardState);
 
         foreach (var scene in Scenes) scene.Mouse(MouseState, KeyboardState);
         foreach (var scene in Scenes) scene.Update();
-        
+
         if (!KeyboardState.IsKeyDown(Keys.Escape)) return;
 
         foreach (var scene in Scenes) scene.Close();

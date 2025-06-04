@@ -1,14 +1,13 @@
 using System.Collections.Concurrent;
 using System.Reflection;
-using ThirtyDollarVisualizer.Objects;
-using ThirtyDollarVisualizer.Objects.Textures;
+using ThirtyDollarVisualizer.Base_Objects.Textures;
 
 namespace ThirtyDollarVisualizer.Helpers.Textures;
 
 public static class TextureDictionary
 {
-    private static AssetTexture? MissingTexture;
-    private static AssetTexture? ICutTexture;
+    private static AssetTexture? _missingTexture;
+    private static AssetTexture? _iCutTexture;
 
     private static readonly ConcurrentDictionary<string, AssetTexture> Dictionary = new();
 
@@ -22,18 +21,13 @@ public static class TextureDictionary
         if (!path.Contains('*'))
             return File.Exists(path) ||
                    Assembly.GetExecutingAssembly().GetManifestResourceInfo(path) is not null;
-        
+
         var directory = Path.GetDirectoryName(path);
-        if (string.IsNullOrEmpty(directory))
-        {
-            directory = Directory.GetCurrentDirectory();
-        }
+        if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
 
         var searchPattern = Path.GetFileName(path);
         if (string.IsNullOrEmpty(searchPattern))
-        {
             throw new ArgumentException("Invalid pattern; no file name specified.", nameof(path));
-        }
 
         var files = Directory.GetFiles(directory, searchPattern);
         return files.Length > 0;
@@ -57,14 +51,14 @@ public static class TextureDictionary
 
     public static AssetTexture GetMissingTexture()
     {
-        return MissingTexture ??=
+        return _missingTexture ??=
             GetAsset("ThirtyDollarVisualizer.Assets.Textures.action_missing.png") ??
             throw new Exception("The missing event texture is missing in the assembly.");
     }
 
     public static AssetTexture GetICutEventTexture()
     {
-        return ICutTexture ??=
+        return _iCutTexture ??=
             GetAsset("ThirtyDollarVisualizer.Assets.Textures.action_icut.png") ??
             throw new Exception("The #icut event texture is missing in the assembly.");
     }

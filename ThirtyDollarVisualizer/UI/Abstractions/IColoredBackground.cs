@@ -1,6 +1,6 @@
-using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Abstractions;
 
 public interface IColoredBackground
 {

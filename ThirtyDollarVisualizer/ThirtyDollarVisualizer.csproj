@@ -12,34 +12,34 @@
 
     <ItemGroup>
         <PackageReference Include="CommandLineParser" Version="2.9.1"/>
-        <PackageReference Include="OpenAL.Soft" Version="1.19.1" />
-        <PackageReference Include="OpenTK" Version="4.9.4" />
+        <PackageReference Include="OpenAL.Soft" Version="1.19.1"/>
+        <PackageReference Include="OpenTK" Version="4.9.4"/>
         <PackageReference Include="OpenTK.redist.glfw" Version="3.4.0.44"/>
-        <PackageReference Include="SixLabors.Fonts" Version="2.1.2" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
-        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5" />
+        <PackageReference Include="SixLabors.Fonts" Version="2.1.2"/>
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7"/>
+        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5"/>
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
         <!-- Images -->
         <None Remove="Assets\Textures\action_icut.png"/>
-        
+
         <!-- Shaders -->
         <None Remove="Assets\Shaders\textured.frag"/>
         <None Remove="Assets\Shaders\textured.vert"/>
         <None Remove="Assets\Shaders\colored.vert"/>
         <None Remove="Assets\Shaders\colored.frag"/>
-        
+
         <!-- Fonts -->
         <None Remove="Assets\Fonts\Lato-Regular.ttf"/>
         <None Remove="Assets\Fonts\Lato-Bold.ttf"/>
         <None Remove="Assets\Fonts\Twemoji.Mozilla.ttf"/>
         <None Remove="Assets\Fonts\VarelaRound-Regular.ttf"/>
     </ItemGroup>
-    
+
     <ItemGroup>
-        <EmbeddedResource Include="Assets\Shaders\quad.frag" />
-        <EmbeddedResource Include="Assets\Shaders\quad.vert" />
+        <EmbeddedResource Include="Assets\Shaders\quad.frag"/>
+        <EmbeddedResource Include="Assets\Shaders\quad.vert"/>
         <EmbeddedResource Include="Assets\Shaders\textured.frag"/>
         <EmbeddedResource Include="Assets\Shaders\textured.vert"/>
         <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf"/>

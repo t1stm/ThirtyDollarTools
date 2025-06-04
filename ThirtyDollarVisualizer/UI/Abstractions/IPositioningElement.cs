@@ -1,4 +1,4 @@
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Abstractions;
 
 public interface IPositioningElement
 {

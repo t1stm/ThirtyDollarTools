@@ -1,4 +1,4 @@
-namespace ThirtyDollarVisualizer.Objects.Textures.Animated;
+namespace ThirtyDollarVisualizer.Base_Objects.Textures.Animated;
 
 public struct AnimatedHandle
 {

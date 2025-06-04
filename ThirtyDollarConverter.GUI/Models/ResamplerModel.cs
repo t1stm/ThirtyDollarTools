@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using ThirtyDollarConverter.Audio.Resamplers;
+using ThirtyDollarEncoder.Resamplers;
 
 namespace ThirtyDollarGUI.Models;
 

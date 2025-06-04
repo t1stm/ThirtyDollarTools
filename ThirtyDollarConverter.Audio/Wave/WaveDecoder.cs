@@ -4,14 +4,15 @@ using Encoding = System.Text.Encoding;
 
 namespace ThirtyDollarEncoder.Wave;
 
+// TODO rewrite this.
 public class WaveDecoder
 {
-    private readonly PcmDataHolder Holder = new();
-    private long dataChunkLength;
+    private readonly PcmDataHolder _holder = new();
+    private long _dataChunkLength;
 
     // Shamefully copied from NAudio.
     // Here goes copyright infringement.
-    private long riffFileSize;
+    private long _riffFileSize;
 
     private static int HeaderToInt(string header)
     {
@@ -22,7 +23,7 @@ public class WaveDecoder
     {
         var reader = new BinaryReader(inputStream);
         var header = ReadRiffHeader(reader);
-        riffFileSize = reader.ReadUInt32();
+        _riffFileSize = reader.ReadUInt32();
 
         if (reader.ReadInt32() != HeaderToInt("WAVE"))
             throw new FileLoadException("Supplied data doesn't have \"WAVE\" header.");
@@ -37,13 +38,13 @@ public class WaveDecoder
 
         var dataChunkId = HeaderToInt("data");
         var formatChunkId = HeaderToInt("fmt ");
-        var stopPosition = Math.Min(riffFileSize + 8, inputStream.Length);
+        var stopPosition = Math.Min(_riffFileSize + 8, inputStream.Length);
         //long dataChunkPosition = -1;
         while (inputStream.Position <= stopPosition - 8)
         {
             var chunkID = reader.ReadInt32();
 
-            Span<int> testing_span = stackalloc int[] { chunkID };
+            Span<int> testing_span = [chunkID];
             var chunk_bytes = MemoryMarshal.AsBytes(testing_span);
             var chunk_name = Encoding.ASCII.GetString(chunk_bytes);
 
@@ -62,15 +63,15 @@ public class WaveDecoder
                 continue;
             }
 
-            if (header != 2) dataChunkLength = chunkLength;
+            if (header != 2) _dataChunkLength = chunkLength;
             break;
         }
 
-        var bytes = new byte[dataChunkLength];
+        var bytes = new byte[_dataChunkLength];
         var read = reader.Read(bytes);
         reader.Close();
-        Holder.AudioData = bytes;
-        return Holder;
+        _holder.AudioData = bytes;
+        return _holder;
     }
 
     private void ReadWaveFormat(BinaryReader reader, int chunkLength)
@@ -79,11 +80,11 @@ public class WaveDecoder
             throw new InvalidDataException("Invalid WaveFormat Structure");
         var waveFormatTag = reader.ReadUInt16();
         if (waveFormatTag != 0x0001) Console.WriteLine("File is probably not int PCM.");
-        Holder.Channels = (uint)reader.ReadInt16();
-        Holder.SampleRate = (uint)reader.ReadInt32();
+        _holder.Channels = (uint)reader.ReadInt16();
+        _holder.SampleRate = (uint)reader.ReadInt32();
         var averageBytesPerSecond = reader.ReadInt32();
         var blockAlign = reader.ReadInt16();
-        Holder.Encoding = (PCM.Encoding)reader.ReadInt16();
+        _holder.Encoding = (PCM.Encoding)reader.ReadInt16();
         if (chunkLength <= 16) return;
         var extraSize = reader.ReadInt16();
         if (extraSize == chunkLength - 18) return;
@@ -97,8 +98,8 @@ public class WaveDecoder
         if (reader.ReadInt32() != HeaderToInt("ds64"))
             throw new FileLoadException("Supplied data doesn't have \"ds64\" chunk.");
         var chunkSize = reader.ReadInt32();
-        riffFileSize = reader.ReadInt64();
-        dataChunkLength = reader.ReadInt64();
+        _riffFileSize = reader.ReadInt64();
+        _dataChunkLength = reader.ReadInt64();
         var sampleCount = reader.ReadInt64(); // I don't know why this isn't used in NAudio.
         var excess = reader.ReadBytes(chunkSize - 24);
     }

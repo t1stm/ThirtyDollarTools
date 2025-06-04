@@ -1,22 +1,22 @@
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Base_Objects;
 
 namespace ThirtyDollarVisualizer.Animations;
 
 public class InfiniteRotationAnimation : Animation
 {
-    private readonly bool RotateX;
-    private readonly bool RotateY;
-    private readonly bool RotateZ;
+    private readonly bool _rotateX;
+    private readonly bool _rotateY;
+    private readonly bool _rotateZ;
 
-    public InfiniteRotationAnimation(int animation_length_ms, int rotate_axises) : base(animation_length_ms)
+    public InfiniteRotationAnimation(int animationLengthMs, int rotateAxes) : base(animationLengthMs)
     {
-        Features = AnimationFeature.Rotation_Add;
+        Features = AnimationFeature.RotationAdd;
         TimingStopwatch.Start();
 
-        RotateX = (rotate_axises & (int)RotateAxis.X) > 0;
-        RotateY = (rotate_axises & (int)RotateAxis.Y) > 0;
-        RotateZ = (rotate_axises & (int)RotateAxis.Z) > 0;
+        _rotateX = (rotateAxes & (int)RotateAxis.X) > 0;
+        _rotateY = (rotateAxes & (int)RotateAxis.Y) > 0;
+        _rotateZ = (rotateAxes & (int)RotateAxis.Z) > 0;
     }
 
     public override Vector3 GetRotation_XYZ(Renderable renderable)
@@ -29,9 +29,9 @@ public class InfiniteRotationAnimation : Animation
 
         var rotation = new Vector3
         {
-            X = RotateX ? (float)radians : 0,
-            Y = RotateY ? (float)radians : 0,
-            Z = RotateZ ? (float)radians : 0
+            X = _rotateX ? (float)radians : 0,
+            Y = _rotateY ? (float)radians : 0,
+            Z = _rotateZ ? (float)radians : 0
         };
 
         return rotation;

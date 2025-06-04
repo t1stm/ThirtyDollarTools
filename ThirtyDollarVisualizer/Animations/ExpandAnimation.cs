@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Base_Objects;
 
 namespace ThirtyDollarVisualizer.Animations;
 
@@ -11,13 +11,13 @@ public class ExpandAnimation : Animation
 
     public ExpandAnimation() : base(AnimationLengthMs)
     {
-        Features = AnimationFeature.Transform_Add |
-                   AnimationFeature.Scale_Multiply;
+        Features = AnimationFeature.TransformAdd |
+                   AnimationFeature.ScaleMultiply;
     }
 
-    public ExpandAnimation(Action finish_callback) : this()
+    public ExpandAnimation(Action finishCallback) : this()
     {
-        CallbackOnFinish = finish_callback;
+        CallbackOnFinish = finishCallback;
     }
 
     public override Vector3 GetTransform_Add(Renderable renderable)

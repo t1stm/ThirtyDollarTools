@@ -3,42 +3,43 @@ using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
-using ThirtyDollarVisualizer.Objects.Planes;
-using ThirtyDollarVisualizer.Objects.Text;
-using ThirtyDollarVisualizer.Objects.Textures;
-using ThirtyDollarVisualizer.Objects.Textures.Static;
+using ThirtyDollarVisualizer.Base_Objects;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Text;
+using ThirtyDollarVisualizer.Base_Objects.Textures;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
-namespace ThirtyDollarVisualizer.Objects;
+namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 public class Playfield(PlayfieldSettings settings)
 {
-    /// <summary>
-    ///     Dictionary containing all decreasing value events' textures for this playfield.
-    /// </summary>
-    public readonly ConcurrentDictionary<string, SingleTexture> DecreasingValuesCache = new();
-    
-    private readonly HashSet<AssetTexture> AnimatedTextures = [];
-    
-    private readonly List<float> DividerPositions_Y = [];
+    private readonly HashSet<AssetTexture> _animatedTextures = [];
 
-    private readonly LayoutHandler LayoutHandler = new(settings.SoundSize * settings.RenderScale,
+    private readonly List<float> _dividerPositionsY = [];
+
+    private readonly LayoutHandler _layoutHandler = new(settings.SoundSize * settings.RenderScale,
         settings.SoundsOnASingleLine,
         new GapBox(settings.SoundMargin * settings.RenderScale / 2),
         new GapBox(15f * settings.RenderScale, 15f * settings.RenderScale));
 
-    private readonly ColoredPlane ObjectBox = new()
+    private readonly ColoredPlane _objectBox = new()
     {
         Color = (0, 0, 0, 0.25f)
     };
 
-    private readonly DollarStoreCamera TemporaryCamera = new(Vector3.Zero, Vector2i.Zero);
+    private readonly DollarStoreCamera _temporaryCamera = new(Vector3.Zero, Vector2i.Zero);
 
-    private byte[] AnimatedAssets = []; // TODO hyped up for this.
+    /// <summary>
+    ///     Dictionary containing all decreasing value events' textures for this playfield.
+    /// </summary>
+    public readonly ConcurrentDictionary<string, SingleTexture> DecreasingValuesCache = new();
 
-    private Vector3 CurrentPosition = Vector3.Zero;
+    private byte[] _animatedAssets = []; // TODO hyped up for this.
 
-    public bool DisplayCenter = true;
-    private bool FirstPosition = true;
+    private Vector3 _currentPosition = Vector3.Zero;
+    private bool _firstPosition = true;
+
+    private Vector3 _targetPosition = Vector3.Zero;
     public Memory<PlayfieldLine> Lines = Memory<PlayfieldLine>.Empty;
 
     /// <summary>
@@ -46,7 +47,7 @@ public class Playfield(PlayfieldSettings settings)
     /// </summary>
     public List<SoundRenderable> Objects = [];
 
-    private Vector3 TargetPosition = Vector3.Zero;
+    public bool DisplayCenter { get; set; } = true;
 
     public Task UpdateSounds(Sequence sequence)
     {
@@ -55,10 +56,10 @@ public class Playfield(PlayfieldSettings settings)
 
         // creates a new renderable factory
         var factory = new RenderableFactory(settings, Fonts.GetFontFamily());
-        
+
         // clear animated texture update cache
-        AnimatedTextures.Clear();
-        
+        _animatedTextures.Clear();
+
         // using multiple threads to make each of the renderables
         var sounds = events
             .AsParallel()
@@ -67,39 +68,36 @@ public class Playfield(PlayfieldSettings settings)
             .ToList();
 
         // prepare rendering stuff
-        LayoutHandler.Reset();
-        DividerPositions_Y.Clear();
-        
+        _layoutHandler.Reset();
+        _dividerPositionsY.Clear();
+
         // position every sound using the layout handler
         for (var i = 0; i < sounds.Count; i++)
         {
             var sound = sounds[i];
-            
+
             // add the sound's texture to a cache if animated
             var texture = sound.GetTexture();
-            if (texture is AssetTexture { IsAnimated: true } asset_texture)
-            {
-                AnimatedTextures.Add(asset_texture);
-            }
+            if (texture is AssetTexture { IsAnimated: true } asset_texture) _animatedTextures.Add(asset_texture);
 
-            PositionSound(LayoutHandler, in sound);
+            PositionSound(_layoutHandler, in sound);
 
             // check if sound is a divider. if not continue to the next sound.
             if (!sound.IsDivider || i + 1 >= sounds.Count) continue;
 
             // add the current divider's position for render culling
-            DividerPositions_Y.Add(sound.Position.Y);
+            _dividerPositionsY.Add(sound.Position.Y);
 
-            LayoutHandler.NewLine(
+            _layoutHandler.NewLine(
                 // edge case when a new line was already created
                 // by the !divider object being on the end of the line
-                LayoutHandler.CurrentSoundIndex == 0 ? 1 : 2);
+                _layoutHandler.CurrentSoundIndex == 0 ? 1 : 2);
         }
 
         // add bottom padding to the layout
-        LayoutHandler.Finish();
+        _layoutHandler.Finish();
 
-        var lines = sounds.GroupBy(r => r.Original_Y, (_, enumerable) =>
+        var lines = sounds.GroupBy(r => r.OriginalY, (_, enumerable) =>
         {
             var sound_renderables = enumerable as SoundRenderable[] ?? enumerable.ToArray();
             return new PlayfieldLine(settings.SoundsOnASingleLine)
@@ -127,16 +125,17 @@ public class Playfield(PlayfieldSettings settings)
         // sets objects to be used by the render method
         Objects = sounds;
         Lines = lines;
-        
+
         return Task.CompletedTask;
     }
 
     public static bool IsEventHidden(BaseEvent ev)
     {
-        return string.IsNullOrEmpty(ev.SoundEvent) || (ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent) || ev is IHiddenEvent;
+        return string.IsNullOrEmpty(ev.SoundEvent) || (ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent) ||
+               ev is IHiddenEvent;
     }
 
-    private static void PositionSound(LayoutHandler layout_handler, in SoundRenderable sound)
+    private static void PositionSound(LayoutHandler layoutHandler, in SoundRenderable sound)
     {
         // get the current sound's texture information
         var texture = sound.GetTexture();
@@ -147,18 +146,18 @@ public class Playfield(PlayfieldSettings settings)
         var aspect_ratio = (float)texture_x / texture_y;
 
         // box scale is the maximum size a sound should cover
-        Vector2 box_scale = (layout_handler.Size, layout_handler.Size);
+        Vector2 box_scale = (layoutHandler.Size, layoutHandler.Size);
         // wanted scale is the corrected size by the aspect ratio
-        Vector2 wanted_scale = (layout_handler.Size, layout_handler.Size);
+        Vector2 wanted_scale = (layoutHandler.Size, layoutHandler.Size);
 
         // handle aspect ratio corrections
         switch (aspect_ratio)
         {
             case > 1:
-                wanted_scale.Y = layout_handler.Size / aspect_ratio;
+                wanted_scale.Y = layoutHandler.Size / aspect_ratio;
                 break;
             case < 1:
-                wanted_scale.X = layout_handler.Size * aspect_ratio;
+                wanted_scale.X = layoutHandler.Size * aspect_ratio;
                 break;
         }
 
@@ -166,11 +165,11 @@ public class Playfield(PlayfieldSettings settings)
         sound.Scale = (wanted_scale.X, wanted_scale.Y, 0);
 
         // calculates the wanted position to avoid stretching of the texture
-        var box_position = layout_handler.GetNewPosition();
+        var box_position = layoutHandler.GetNewPosition();
         var texture_position = (box_position.X, box_position.Y);
 
-        var delta_x = layout_handler.Size - wanted_scale.X;
-        var delta_y = layout_handler.Size - wanted_scale.Y;
+        var delta_x = layoutHandler.Size - wanted_scale.X;
+        var delta_y = layoutHandler.Size - wanted_scale.Y;
 
         texture_position.X += delta_x / 2f;
         texture_position.Y += delta_y / 2f;
@@ -184,48 +183,45 @@ public class Playfield(PlayfieldSettings settings)
         sound.Value?.SetPosition((bottom_center.X, bottom_center.Y, 0), PositionAlign.Center);
         sound.Volume?.SetPosition((top_right.X, top_right.Y, 0), PositionAlign.TopRight);
         sound.Pan?.SetPosition((box_position.X, box_position.Y, 0));
-        sound.Original_Y = box_position.Y;
+        sound.OriginalY = box_position.Y;
     }
 
-    public void Render(DollarStoreCamera real_camera, float zoom, float update_delta)
+    public void Render(DollarStoreCamera realCamera, float zoom, float updateDelta)
     {
         // update animated textures
-        foreach (var texture in AnimatedTextures)
-        {
-            texture.Update();
-        }
-        
+        foreach (var texture in _animatedTextures) texture.Update();
+
         // avoid doing modifications to the main camera
-        TemporaryCamera.CopyFrom(real_camera);
+        _temporaryCamera.CopyFrom(realCamera);
 
         // offset temporary camera to enable positioning anywhere
-        var left_margin = (TemporaryCamera.Width - LayoutHandler.Width) / 2f;
+        var left_margin = (_temporaryCamera.Width - _layoutHandler.Width) / 2f;
 
-        TargetPosition = DisplayCenter ? (-left_margin, 0, 0) : Vector3.Zero;
-        if (FirstPosition)
+        _targetPosition = DisplayCenter ? (-left_margin, 0, 0) : Vector3.Zero;
+        if (_firstPosition)
         {
-            CurrentPosition = TargetPosition;
-            FirstPosition = false;
+            _currentPosition = _targetPosition;
+            _firstPosition = false;
         }
 
-        TemporaryCamera.SetOffset(CurrentPosition =
-            SteppingFunctions.Exponential(CurrentPosition, TargetPosition, update_delta));
-        TemporaryCamera.UpdateMatrix();
+        _temporaryCamera.SetOffset(_currentPosition =
+            SteppingFunctions.Exponential(_currentPosition, _targetPosition, updateDelta));
+        _temporaryCamera.UpdateMatrix();
 
         // get generic camera values
-        var camera_height = TemporaryCamera.Height;
+        var camera_height = _temporaryCamera.Height;
 
         // set render culling limits
         var clamped_scale = Math.Min(zoom, 1f);
         var height_scale = camera_height / clamped_scale - camera_height;
 
         // get render culling camera values
-        var camera_y = TemporaryCamera.Position.Y;
+        var camera_y = _temporaryCamera.Position.Y;
         var camera_yh = camera_y + camera_height;
 
         // get render culling object values
-        var size_renderable = LayoutHandler.Size;
-        var vertical_margin = LayoutHandler.VerticalMargin;
+        var size_renderable = _layoutHandler.Size;
+        var vertical_margin = _layoutHandler.VerticalMargin;
 
         // fix values when the zoom is changed
         camera_y -= height_scale / 2;
@@ -234,9 +230,9 @@ public class Playfield(PlayfieldSettings settings)
         // gets the amount of dividers at the top and bottom of the screen
         var top_camera_dividers = 0;
         var bottom_camera_dividers = 0;
-        
+
         // explicitly converte the list to a span for faster iteration
-        foreach (var position in CollectionsMarshal.AsSpan(DividerPositions_Y))
+        foreach (var position in CollectionsMarshal.AsSpan(_dividerPositionsY))
         {
             if (position <= camera_y + size_renderable)
                 top_camera_dividers++;
@@ -246,12 +242,12 @@ public class Playfield(PlayfieldSettings settings)
         }
 
         // render the background dimmed box
-        ObjectBox.SetPosition((0, 0, 0));
-        ObjectBox.Scale = (LayoutHandler.Width, LayoutHandler.Height, 0);
-        ObjectBox.BorderRadius = 0f;
+        _objectBox.SetPosition((0, 0, 0));
+        _objectBox.Scale = (_layoutHandler.Width, _layoutHandler.Height, 0);
+        _objectBox.BorderRadius = 0f;
 
-        ObjectBox.UpdateModel(false);
-        ObjectBox.Render(TemporaryCamera);
+        _objectBox.UpdateModel(false);
+        _objectBox.Render(_temporaryCamera);
 
         // get all lines this playfield has
         var tdw_span = Lines.Span;
@@ -272,7 +268,7 @@ public class Playfield(PlayfieldSettings settings)
         for (i = start; i < end; i++)
         {
             var line = tdw_span[i];
-            line.Render(TemporaryCamera);
+            line.Render(_temporaryCamera);
         }
     }
 }

@@ -1,23 +1,23 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Base_Objects;
 
 namespace ThirtyDollarVisualizer.Animations;
 
 public abstract class Animation(TimeSpan timespan)
 {
     protected readonly Stopwatch TimingStopwatch = new();
-    protected bool _is_reset;
     public bool AffectsChildren = true;
     protected TimeSpan AnimationLength = timespan;
     protected Action? CallbackOnFinish = null;
     public AnimationFeature Features = AnimationFeature.None;
+    protected bool IsReset;
 
-    protected Animation(int animation_length_ms) : this(TimeSpan.FromMilliseconds(animation_length_ms))
+    protected Animation(int animationLengthMs) : this(TimeSpan.FromMilliseconds(animationLengthMs))
     {
     }
 
-    public bool IsRunning => TimingStopwatch.IsRunning || (_is_reset && !(_is_reset = false));
+    public bool IsRunning => TimingStopwatch.IsRunning || (IsReset && !(IsReset = false));
 
     /// <summary>
     ///     Gets the current position multiplication transform of this animation.
@@ -100,6 +100,6 @@ public abstract class Animation(TimeSpan timespan)
     public virtual void Reset()
     {
         TimingStopwatch.Reset();
-        _is_reset = true;
+        IsReset = true;
     }
 }

@@ -1,18 +1,18 @@
-namespace ThirtyDollarConverter.Audio.Resamplers;
+namespace ThirtyDollarEncoder.Resamplers;
 
 public class HermiteResampler : IResampler
 {
-    public float[] Resample(Memory<float> samples, uint sample_rate, uint target_sample_rate)
+    public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
         var span = samples.Span;
-        if (sample_rate == target_sample_rate)
+        if (sampleRate == targetSampleRate)
             // No resampling needed
             return span.ToArray();
 
-        var new_length = (int)Math.Ceiling(span.Length * (double)target_sample_rate / sample_rate);
+        var new_length = (int)Math.Ceiling(span.Length * (double)targetSampleRate / sampleRate);
         var resampled = new float[new_length];
 
-        var factor = target_sample_rate / (double)sample_rate;
+        var factor = targetSampleRate / (double)sampleRate;
 
         for (var i = 0; i < new_length; i++)
         {
@@ -25,17 +25,17 @@ public class HermiteResampler : IResampler
         return resampled;
     }
 
-    public double[] Resample(Memory<double> samples, uint sample_rate, uint target_sample_rate)
+    public double[] Resample(Memory<double> samples, uint sampleRate, uint targetSampleRate)
     {
         var span = samples.Span;
-        if (sample_rate == target_sample_rate)
+        if (sampleRate == targetSampleRate)
             // No resampling needed
             return span.ToArray();
 
-        var new_length = (int)Math.Ceiling(span.Length * (double)target_sample_rate / sample_rate);
+        var new_length = (int)Math.Ceiling(span.Length * (double)targetSampleRate / sampleRate);
         var resampled = new double[new_length];
 
-        var factor = target_sample_rate / (double)sample_rate;
+        var factor = targetSampleRate / (double)sampleRate;
 
         for (var i = 0; i < new_length; i++)
         {
@@ -48,7 +48,7 @@ public class HermiteResampler : IResampler
         return resampled;
     }
 
-    private static float HermiteInterpolation(Memory<float> samples, int start_index, double fraction)
+    private static float HermiteInterpolation(Memory<float> samples, int startIndex, double fraction)
     {
         var length = samples.Length;
         var span = samples.Span;
@@ -57,7 +57,7 @@ public class HermiteResampler : IResampler
 
         for (var i = 0; i < 4; i++)
         {
-            var index = start_index - 1 + i;
+            var index = startIndex - 1 + i;
 
             p[i] = index switch
             {
@@ -74,8 +74,8 @@ public class HermiteResampler : IResampler
 
         return (float)(c3 * fraction * fraction * fraction + c2 * fraction * fraction + c1 * fraction + c0);
     }
-    
-    private static double HermiteInterpolation(Memory<double> samples, int start_index, double fraction)
+
+    private static double HermiteInterpolation(Memory<double> samples, int startIndex, double fraction)
     {
         var length = samples.Length;
         var span = samples.Span;
@@ -84,7 +84,7 @@ public class HermiteResampler : IResampler
 
         for (var i = 0; i < 4; i++)
         {
-            var index = start_index - 1 + i;
+            var index = startIndex - 1 + i;
 
             p[i] = index switch
             {

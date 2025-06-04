@@ -1,6 +1,6 @@
 namespace BMS2TDW.Objects;
 
-public struct BMSMeasure()
+public struct BmsMeasure()
 {
-    public readonly List<(int channel, BMSEvent bms_event)> Events = [];
+    public readonly List<(int channel, BmsEvent bms_event)> Events = [];
 }

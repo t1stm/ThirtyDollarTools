@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 
-namespace ThirtyDollarVisualizer.Objects;
+namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 /// <summary>
 ///     Position calculator for each event of a Thirty Dollar Sequence.
@@ -10,7 +10,12 @@ public class LayoutHandler
     /// <summary>
     ///     Calculated positions.
     /// </summary>
-    private readonly float[] calculated_positions;
+    private readonly float[] _calculatedPositions;
+
+    /// <summary>
+    ///     Contains the inner gap for each side of the playfield.
+    /// </summary>
+    private readonly GapBox? _padding;
 
     /// <summary>
     ///     The horizontal gap between two boxes.
@@ -33,6 +38,16 @@ public class LayoutHandler
     public readonly float Width;
 
     /// <summary>
+    ///     Contains the gap for each side of a box.
+    /// </summary>
+    private GapBox? _margin;
+
+    /// <summary>
+    ///     Current line Y
+    /// </summary>
+    private float _y;
+
+    /// <summary>
     ///     The current object for this line.
     /// </summary>
     public int CurrentSoundIndex;
@@ -43,48 +58,33 @@ public class LayoutHandler
     public float Height;
 
     /// <summary>
-    ///     Contains the gap for each side of a box.
-    /// </summary>
-    private GapBox? Margin;
-
-    /// <summary>
-    ///     Contains the inner gap for each side of the playfield.
-    /// </summary>
-    private readonly GapBox? Padding;
-
-    /// <summary>
-    ///     Current line Y
-    /// </summary>
-    private float Y;
-
-    /// <summary>
     ///     Creates a LayoutHandler with the given parameters.
     /// </summary>
-    /// <param name="size">How big a single sound box is.</param>
-    /// <param name="sounds_on_single_line">How many sounds are on a single line.</param>
+    /// <param name="size">The size of a single sound box.</param>
+    /// <param name="soundsOnSingleLine">The number of sounds on a single line.</param>
     /// <param name="margin">The gap for each side of a sound box.</param>
     /// <param name="padding">The inner gap for each side of the playfield.</param>
-    public LayoutHandler(float size, int sounds_on_single_line, GapBox? margin = null, GapBox? padding = null)
+    public LayoutHandler(float size, int soundsOnSingleLine, GapBox? margin = null, GapBox? padding = null)
     {
-        calculated_positions = GeneratePositions(sounds_on_single_line, size, margin, padding);
+        _calculatedPositions = GeneratePositions(soundsOnSingleLine, size, margin, padding);
         Size = size;
         VerticalMargin = margin?.Sum_Y() ?? 0;
         HorizontalMargin = margin?.Sum_X() ?? 0;
-        Padding = padding;
-        Margin = margin;
+        _padding = padding;
+        _margin = margin;
 
-        Width = calculated_positions.LastOrDefault(0f) + size + padding?.X2 ?? 0;
-        Y = padding?.Y1 ?? 0;
+        Width = _calculatedPositions.LastOrDefault(0f) + size + padding?.X2 ?? 0;
+        _y = padding?.Y1 ?? 0;
     }
 
     /// <summary>
     ///     How many objects are contained in a single line.
     /// </summary>
-    public int SoundsCount => calculated_positions.Length;
+    public int SoundsCount => _calculatedPositions.Length;
 
-    private static float[] GeneratePositions(int sound_count, float size, GapBox? margin, GapBox? padding)
+    private static float[] GeneratePositions(int soundCount, float size, GapBox? margin, GapBox? padding)
     {
-        var array = new float[sound_count];
+        var array = new float[soundCount];
 
         var padding_left = padding?.X1 ?? 0f;
 
@@ -95,7 +95,7 @@ public class LayoutHandler
 
         var x = padding_left;
 
-        for (var i = 0; i < sound_count; i++)
+        for (var i = 0; i < soundCount; i++)
         {
             array[i] = x;
             x += size + margin_sum;
@@ -110,7 +110,7 @@ public class LayoutHandler
     public void Reset()
     {
         CurrentSoundIndex = 0;
-        Y = Padding?.Y1 ?? 0;
+        _y = _padding?.Y1 ?? 0;
     }
 
     /// <summary>
@@ -120,8 +120,8 @@ public class LayoutHandler
     public void NewLine(int times = 1)
     {
         CurrentSoundIndex = 0;
-        Y += (Size + VerticalMargin) * times;
-        Height = Y;
+        _y += (Size + VerticalMargin) * times;
+        Height = _y;
     }
 
     /// <summary>
@@ -130,12 +130,12 @@ public class LayoutHandler
     /// <returns>The current position.</returns>
     public Vector2 GetNewPosition()
     {
-        var x = calculated_positions[CurrentSoundIndex];
-        var y = Y;
+        var x = _calculatedPositions[CurrentSoundIndex];
+        var y = _y;
         Vector2 position = (x, y);
 
         CurrentSoundIndex++;
-        if (CurrentSoundIndex >= calculated_positions.Length) NewLine();
+        if (CurrentSoundIndex >= _calculatedPositions.Length) NewLine();
 
         return position;
     }
@@ -145,7 +145,7 @@ public class LayoutHandler
     /// </summary>
     public void Finish()
     {
-        Height = Y + Size + (Padding?.Y2 ?? 0);
+        Height = _y + Size + (_padding?.Y2 ?? 0);
     }
 }
 

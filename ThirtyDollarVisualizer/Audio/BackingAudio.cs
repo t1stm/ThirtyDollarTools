@@ -2,9 +2,9 @@ using ThirtyDollarEncoder.PCM;
 
 namespace ThirtyDollarVisualizer.Audio;
 
-public class BackingAudio(AudioContext context, AudioData<float> data, int sample_rate)
+public class BackingAudio(AudioContext context, AudioData<float> data, int sampleRate)
 {
-    private readonly AudibleBuffer _buffer = context.GetBufferObject(data, sample_rate);
+    private readonly AudibleBuffer _buffer = context.GetBufferObject(data, sampleRate);
 
     public long GetCurrentTime()
     {
@@ -17,14 +17,14 @@ public class BackingAudio(AudioContext context, AudioData<float> data, int sampl
         _buffer.Play();
     }
 
-    public void SyncTime(TimeSpan player_time)
+    public void SyncTime(TimeSpan playerTime)
     {
         var time = GetCurrentTime() / 1000f;
 
-        var delta = Math.Abs(time - (float)player_time.TotalSeconds);
+        var delta = Math.Abs(time - (float)playerTime.TotalSeconds);
         if (!(delta > 0.050f)) return; // 50 milliseconds 
 
-        var position = (long)(player_time.TotalSeconds * 1000);
+        var position = (long)(playerTime.TotalSeconds * 1000);
         Console.WriteLine($"{DateTime.Now} OOS / Delta: {delta} / Time: {time} / Position: {position}");
         _buffer.SeekTime_Milliseconds(position);
     }

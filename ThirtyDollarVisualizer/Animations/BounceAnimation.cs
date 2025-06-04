@@ -1,21 +1,21 @@
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Base_Objects;
 
 namespace ThirtyDollarVisualizer.Animations;
 
 public class BounceAnimation : Animation
 {
     private const int AnimationLengthMs = 400;
-    public float Final_Y;
+    public float FinalY;
 
     public BounceAnimation() : base(AnimationLengthMs)
     {
-        Features = AnimationFeature.Transform_Add;
+        Features = AnimationFeature.TransformAdd;
     }
 
-    public BounceAnimation(Action finish_callback) : this()
+    public BounceAnimation(Action finishCallback) : this()
     {
-        CallbackOnFinish = finish_callback;
+        CallbackOnFinish = finishCallback;
     }
 
     public override Vector3 GetTransform_Add(Renderable renderable)
@@ -37,19 +37,19 @@ public class BounceAnimation : Animation
         float factor;
 
         // Animation: % max, ease out on start, ease in after %
-        const float max_percent = 0.4f;
-        if (normalized < max_percent)
+        const float maxPercent = 0.4f;
+        if (normalized < maxPercent)
         {
-            var temp_val = normalized / max_percent / 2f;
+            var temp_val = normalized / maxPercent / 2f;
             factor = MathF.Sin(MathF.PI * temp_val);
         }
         else
         {
-            var temp_val = 0.5f + (normalized - max_percent) / (1f - max_percent) * 0.5f;
+            var temp_val = 0.5f + (normalized - maxPercent) / (1f - maxPercent) * 0.5f;
             factor = 1f - MathF.Cos(MathF.PI * (1f - temp_val));
         }
 
-        transformation.Y = -factor * Final_Y;
+        transformation.Y = -factor * FinalY;
 
         return transformation;
     }

@@ -6,6 +6,6 @@ public static class GLInfo
     public static string Renderer = null!;
     public static string Version = null!;
 
-    public static int MaxTexture2D_Size;
-    public static int MaxTexture2D_Layers;
+    public static int MaxTexture2DSize;
+    public static int MaxTexture2DLayers;
 }

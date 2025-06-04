@@ -1,28 +1,29 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Base_Objects;
 
 namespace ThirtyDollarVisualizer.Objects;
 
 public sealed class DollarStoreCamera : Camera
 {
     private readonly float _scrollSpeed;
+    private long _lastScaleUpdate = Stopwatch.GetTimestamp();
     private Vector3 _offset = (0, 0, 0);
     private Vector3 _virtualPosition;
-    private long LastScaleUpdate = Stopwatch.GetTimestamp();
     public Action<float>? OnZoom = null;
 
-    public DollarStoreCamera(Vector3 VirtualPosition, Vector2i viewport, float scroll_speed = 7.5f) : base(
-        VirtualPosition, viewport)
+    public DollarStoreCamera(Vector3 virtualPosition, Vector2i viewport, float scrollSpeed = 7.5f) : base(
+        virtualPosition, viewport)
     {
-        _virtualPosition = VirtualPosition;
-        _scrollSpeed = scroll_speed;
+        _virtualPosition = virtualPosition;
+        _scrollSpeed = scrollSpeed;
         UpdateMatrix();
     }
 
-    public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float margin_from_top_bottom = 0)
+    public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float marginFromTopBottom = 0)
     {
-        var collide_top = position.Y < _virtualPosition.Y + margin_from_top_bottom;
-        var collide_bottom = position.Y + scale.Y > _virtualPosition.Y + Height - margin_from_top_bottom;
+        var collide_top = position.Y < _virtualPosition.Y + marginFromTopBottom;
+        var collide_bottom = position.Y + scale.Y > _virtualPosition.Y + Height - marginFromTopBottom;
 
         var collide_left = position.X < _virtualPosition.X;
         var collide_right = position.X + scale.X > _virtualPosition.X + Width;
@@ -38,7 +39,7 @@ public sealed class DollarStoreCamera : Camera
     public void SetPosition(Vector3 position)
     {
         _virtualPosition = position;
-        _position = position;
+        InnerPosition = position;
     }
 
     public void ScrollDelta(Vector3 delta)
@@ -46,21 +47,21 @@ public sealed class DollarStoreCamera : Camera
         _virtualPosition += delta;
     }
 
-    private void BlockingPulse(int times, float delay_ms)
+    private void BlockingPulse(int times, float delayMs)
     {
         var t = times;
         var stopwatch = new Stopwatch();
         stopwatch.Start();
 
-        const float max_add_scale = .05f;
-        var now = LastScaleUpdate = Stopwatch.GetTimestamp();
+        const float maxAddScale = .05f;
+        var now = _lastScaleUpdate = Stopwatch.GetTimestamp();
         do
         {
             if (Disposing) return;
-            if (now != LastScaleUpdate) break;
+            if (now != _lastScaleUpdate) break;
 
             var elapsed = stopwatch.ElapsedMilliseconds;
-            var factor = elapsed / delay_ms;
+            var factor = elapsed / delayMs;
             if (factor > 1)
             {
                 t--;
@@ -68,14 +69,14 @@ public sealed class DollarStoreCamera : Camera
                 stopwatch.Restart();
             }
 
-            var zoom = RenderScale + MathF.Sin(MathF.PI * factor) * max_add_scale;
+            var zoom = RenderScale + MathF.Sin(MathF.PI * factor) * maxAddScale;
             Scale = zoom;
             UpdateMatrix();
 
             Thread.Sleep(1);
         } while (t > 0);
 
-        if (now == LastScaleUpdate)
+        if (now == _lastScaleUpdate)
         {
             Scale = RenderScale;
             UpdateMatrix();
@@ -91,8 +92,8 @@ public sealed class DollarStoreCamera : Camera
     public void CopyFrom(DollarStoreCamera camera)
     {
         Viewport = camera.Viewport;
-        _position = camera.Position;
-        vp_matrix = camera.GetVPMatrix();
+        InnerPosition = camera.Position;
+        InnerVPMatrix = camera.GetVPMatrix();
         RenderScale = camera.RenderScale;
         Scale = camera.Scale;
     }
@@ -107,12 +108,12 @@ public sealed class DollarStoreCamera : Camera
         base.SetMatrixValue(left, right, bottom, top);
     }
 
-    public void Update(float seconds_last_frame)
+    public void Update(float secondsLastFrame)
     {
         var current = Position;
         var target = _virtualPosition;
 
-        Position = SteppingFunctions.Exponential(current, target, seconds_last_frame, 0.01f, _scrollSpeed);
+        Position = SteppingFunctions.Exponential(current, target, secondsLastFrame, 0.01f, _scrollSpeed);
     }
 
     public void Pulse(int times = 1, float frequency = 0)
@@ -129,7 +130,7 @@ public sealed class DollarStoreCamera : Camera
     {
         return _offset;
     }
-    
+
     public void ZoomStep(float scale)
     {
         const float stepping = .05f;

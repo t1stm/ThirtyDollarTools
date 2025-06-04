@@ -1,7 +1,7 @@
 using ManagedBass;
 using ThirtyDollarEncoder.PCM;
 
-namespace ThirtyDollarVisualizer.Audio;
+namespace ThirtyDollarVisualizer.Audio.BASS;
 
 public class BassAudioContext : AudioContext
 {
@@ -59,8 +59,8 @@ public class BassAudioContext : AudioContext
         return has_error;
     }
 
-    public override AudibleBuffer GetBufferObject(AudioData<float> sample_data, int sample_rate)
+    public override AudibleBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
-        return new BassBuffer(this, sample_data, sample_rate);
+        return new BassBuffer(this, sampleData, sampleRate);
     }
 }

@@ -26,12 +26,10 @@ await Static.SampleHolder.LoadSampleList();
 await Static.SampleHolder.DownloadSamples();
 Static.SampleHolder.LoadSamplesIntoMemory();
 
-var builder = DiscordClientBuilder.CreateDefault(token, TextCommandProcessor.RequiredIntents | SlashCommandProcessor.RequiredIntents);
+var builder = DiscordClientBuilder.CreateDefault(token,
+    TextCommandProcessor.RequiredIntents | SlashCommandProcessor.RequiredIntents);
 // yes its deprecated. i know man
-builder.UseSlashCommands(setup =>
-{
-    setup.RegisterCommands<SlashCommands>();
-});
+builder.UseSlashCommands(setup => { setup.RegisterCommands<SlashCommands>(); });
 
 var client = builder.Build();
 

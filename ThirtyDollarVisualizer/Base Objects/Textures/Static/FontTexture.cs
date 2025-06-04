@@ -3,13 +3,13 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using ThirtyDollarVisualizer.Objects.Text;
+using ThirtyDollarVisualizer.Base_Objects.Text;
 
-namespace ThirtyDollarVisualizer.Objects.Textures.Static;
+namespace ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
 public class FontTexture : StaticTexture
 {
-    public FontTexture(Font font, string text, Color? color = null): base(rgba: null)
+    public FontTexture(Font font, string text, Color? color = null) : base(rgba: null)
     {
         var options = new TextOptions(font)
         {
@@ -39,7 +39,7 @@ public class FontTexture : StaticTexture
                 .GaussianBlur(1f)
                 .DrawText(text, font, cast_color, point)
         );
-        
-        image = texture_data;
+
+        Image = texture_data;
     }
 }

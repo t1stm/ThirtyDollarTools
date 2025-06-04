@@ -1,12 +1,12 @@
 namespace BMS2TDW.Objects;
 
-public struct BMSHeader()
+public struct BmsHeader()
 {
     public int PlayerCount;
     public string Genre;
     public string Title;
     public string Artist;
-    public int BPM;
+    public int Bpm;
     public int PlayLevel;
     public int Rank;
     public int Total;

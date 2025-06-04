@@ -3,40 +3,41 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.Null;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Objects;
-using ThirtyDollarVisualizer.Objects.Planes;
 using ThirtyDollarVisualizer.Settings;
-using ThirtyDollarVisualizer.UI;
+using ThirtyDollarVisualizer.UI.Abstractions;
 using ThirtyDollarVisualizer.UI.Components.File_Selector;
+using ThirtyDollarVisualizer.UI.Components.Labels;
+using ThirtyDollarVisualizer.UI.Components.Panels;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
-public class ThirtyDollarEditor(int width, int height, VisualizerSettings settings, AudioContext? audio_context)
+public class ThirtyDollarEditor(int width, int height, VisualizerSettings settings, AudioContext? audioContext)
     : IScene
 {
-    private readonly UIContext UIContext = new()
+    private readonly AudioContext _audioContext = audioContext ?? new NullAudioContext();
+
+    private readonly VisualizerSettings _settings = settings;
+
+    private readonly UIContext _uiContext = new()
     {
         Camera = new DollarStoreCamera((0, 0, 0), (width, height))
     };
 
-    private readonly VisualizerSettings Settings = settings;
-    private readonly AudioContext AudioContext = audio_context ?? new NullAudioContext();
-    private Manager Parent = null!;
+    private CursorType _currentCursor;
 
-    private readonly int InitialWidth = width;
-    private readonly int InitialHeight = height;
+    private FlexPanel? _display;
+    private FlexPanel? _errorDisplay;
 
-    private FlexPanel? Display;
-    private FlexPanel? MainPanel;
-    private FlexPanel? ErrorDisplay;
-    private CursorType CurrentCursor;
-
-    private string ErrorMessage = "This message hasn't been updated yet. The error remains hidden...";
+    private string _errorMessage = "This message hasn't been updated yet. The error remains hidden...";
+    private FlexPanel? _mainPanel;
+    private Manager _parent = null!;
 
     public void Init(Manager manager)
     {
-        Parent = manager;
-        Display = new FlexPanel(width: InitialWidth, height: InitialHeight)
+        _parent = manager;
+        _display = new FlexPanel(width: width, height: height)
         {
             Direction = LayoutDirection.Vertical,
             Children =
@@ -63,17 +64,17 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
                                 {
                                     var selection = new FileSelection
                                     {
-                                        OnCancel = obj => { MainPanel?.Children.Remove(obj); }
+                                        OnCancel = obj => { _mainPanel?.Children.Remove(obj); }
                                     };
-                                    MainPanel?.AddChild(selection);
+                                    _mainPanel?.AddChild(selection);
                                 }
                             },
                             new Label("Save"),
-                            new Label("Save As"),
+                            new Label("Save As")
                         ])
                     ]
                 },
-                MainPanel = new FlexPanel() // Main Panel
+                _mainPanel = new FlexPanel() // Main Panel
                 {
                     AutoWidth = true,
                     AutoHeight = true,
@@ -88,23 +89,105 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
                 }
             ]
         };
-        UIContext.RequestCursor = cursor => { CurrentCursor = cursor; };
+        _uiContext.RequestCursor = cursor => { _currentCursor = cursor; };
 
-        Display.Layout();
+        _display.Layout();
     }
 
     public void Start()
     {
     }
-    
+
     public void Render()
     {
         RenderError();
     }
 
+    public void Update()
+    {
+        try
+        {
+            _currentCursor = CursorType.Normal;
+
+            _display?.Update(_uiContext);
+            _parent.Cursor = _currentCursor switch
+            {
+                CursorType.Pointer => MouseCursor.PointingHand,
+                _ => MouseCursor.Default
+            };
+        }
+        catch (Exception e)
+        {
+            _errorMessage = "[Update]: " + e;
+        }
+    }
+
+    public void Resize(int w, int h)
+    {
+        try
+        {
+            _uiContext.Camera.Viewport = (w, h);
+            _uiContext.Camera.UpdateMatrix();
+
+            if (_display != null)
+            {
+                _display.Width = w;
+                _display.Height = h;
+                _display.Layout();
+            }
+
+            if (_errorDisplay == null) return;
+            _errorDisplay.Width = w;
+            _errorDisplay.Height = h;
+            _errorDisplay.Layout();
+        }
+        catch (Exception e)
+        {
+            _errorMessage = "[Resize]: " + e;
+        }
+    }
+
+    public void Close()
+    {
+    }
+
+    public void FileDrop(string[] locations)
+    {
+        try
+        {
+        }
+        catch (Exception e)
+        {
+            _errorMessage = "[File Drop]: " + e;
+        }
+    }
+
+    public void Keyboard(KeyboardState state)
+    {
+        try
+        {
+        }
+        catch (Exception e)
+        {
+            _errorMessage = "[Keyboard]: " + e;
+        }
+    }
+
+    public void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    {
+        try
+        {
+            _display?.Test(mouseState);
+        }
+        catch (Exception e)
+        {
+            _errorMessage = "[Mouse]: " + e;
+        }
+    }
+
     private void RenderError()
     {
-        ErrorDisplay ??= new FlexPanel(0, 0, UIContext.ViewportWidth, UIContext.ViewportHeight)
+        _errorDisplay ??= new FlexPanel(0, 0, _uiContext.ViewportWidth, _uiContext.ViewportHeight)
         {
             Background = new ColoredPlane
             {
@@ -122,92 +205,10 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
                     FontStyle = FontStyle.Bold,
                     Value = "If you're reading this the Editor has encountered an unrecoverable error."
                 },
-                new Label($"Error: {ErrorMessage}")
+                new Label($"Error: {_errorMessage}")
             ]
         };
 
-        ErrorDisplay.Draw(UIContext);
-    }
-
-    public void Update()
-    {
-        try
-        {
-            CurrentCursor = CursorType.Normal;
-
-            Display?.Update(UIContext);
-            Parent.Cursor = CurrentCursor switch
-            {
-                CursorType.Pointer => MouseCursor.PointingHand,
-                _ => MouseCursor.Default
-            };
-        }
-        catch (Exception e)
-        {
-            ErrorMessage = "[Update]: " + e;
-        }
-    }
-
-    public void Resize(int w, int h)
-    {
-        try
-        {
-            UIContext.Camera.Viewport = (w, h);
-            UIContext.Camera.UpdateMatrix();
-
-            if (Display != null)
-            {
-                Display.Width = w;
-                Display.Height = h;
-                Display.Layout();
-            }
-
-            if (ErrorDisplay == null) return;
-            ErrorDisplay.Width = w;
-            ErrorDisplay.Height = h;
-            ErrorDisplay.Layout();
-        }
-        catch (Exception e)
-        {
-            ErrorMessage = "[Resize]: " + e;
-        }
-    }
-
-    public void Close()
-    {
-    }
-
-    public void FileDrop(string[] locations)
-    {
-        try
-        {
-        }
-        catch (Exception e)
-        {
-            ErrorMessage = "[File Drop]: " + e;
-        }
-    }
-
-    public void Keyboard(KeyboardState state)
-    {
-        try
-        {
-        }
-        catch (Exception e)
-        {
-            ErrorMessage = "[Keyboard]: " + e;
-        }
-    }
-
-    public void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
-    {
-        try
-        {
-            Display?.Test(mouse_state);
-        }
-        catch (Exception e)
-        {
-            ErrorMessage = "[Mouse]: " + e;
-        }
+        _errorDisplay.Draw(_uiContext);
     }
 }

@@ -1,23 +1,23 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
 
 namespace ThirtyDollarVisualizer.Objects;
 
 public class BackgroundPlane : ColoredPlane
 {
-    private readonly Stopwatch TimingStopwatch = new();
+    private readonly Stopwatch _timingStopwatch = new();
 
-    private Vector4 FinalColor;
-    private float LengthMilliseconds;
-    private Vector4 StartColor;
+    private Vector4 _finalColor;
+    private float _lengthMilliseconds;
+    private Vector4 _startColor;
 
-    public BackgroundPlane(Vector4 start_color)
+    public BackgroundPlane(Vector4 startColor)
     {
         // i don't want to convert to a primary constructor for this, thank you.
-        StartColor = start_color;
-        FinalColor = start_color;
-        TimingStopwatch.Start();
+        _startColor = startColor;
+        _finalColor = startColor;
+        _timingStopwatch.Start();
     }
 
     public void Update()
@@ -27,22 +27,22 @@ public class BackgroundPlane : ColoredPlane
 
     private Vector4 GetCalculatedColor()
     {
-        var current_time = TimingStopwatch.ElapsedMilliseconds;
-        var value = current_time / LengthMilliseconds;
-        if (value > 1f) TimingStopwatch.Stop();
+        var current_time = _timingStopwatch.ElapsedMilliseconds;
+        var value = current_time / _lengthMilliseconds;
+        if (value > 1f) _timingStopwatch.Stop();
 
-        if (LengthMilliseconds == 0) value = 1;
+        if (_lengthMilliseconds == 0) value = 1;
         var factor = Math.Clamp(value, 0f, 1f);
 
-        return Vector4.Lerp(StartColor, FinalColor, factor);
+        return Vector4.Lerp(_startColor, _finalColor, factor);
     }
 
     public void TransitionToColor(Vector4 color, float seconds)
     {
-        StartColor = GetCalculatedColor();
-        FinalColor = color;
+        _startColor = GetCalculatedColor();
+        _finalColor = color;
 
-        LengthMilliseconds = seconds * 1000f;
-        TimingStopwatch.Restart();
+        _lengthMilliseconds = seconds * 1000f;
+        _timingStopwatch.Restart();
     }
 }

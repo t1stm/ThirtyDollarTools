@@ -2,8 +2,8 @@ using BMS2TDW.Objects;
 
 namespace BMS2TDW;
 
-public struct BMSLevel()
+public struct BmsLevel()
 {
-    public BMSHeader Header = new();
-    public BMSData Data = new();
+    public BmsHeader Header = new();
+    public BmsData Data = new();
 }

@@ -1,9 +1,8 @@
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Animations;
-using ThirtyDollarVisualizer.Renderer;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 
-namespace ThirtyDollarVisualizer.Objects;
+namespace ThirtyDollarVisualizer.Base_Objects;
 
 public abstract class Renderable
 {
@@ -13,6 +12,19 @@ public abstract class Renderable
     public static readonly Renderable Dummy = new DummyRenderable();
 
     public readonly List<Renderable> Children = [];
+
+    /// <summary>
+    ///     A boolean made for external use.
+    /// </summary>
+    public bool IsBeingUpdated = false;
+
+    public bool IsChild;
+
+    /// <summary>
+    ///     Sets whether this renderable calls it's render method.
+    /// </summary>
+    public bool IsVisible = true;
+
     public virtual Shader? Shader { get; set; }
 
     /// <summary>
@@ -45,28 +57,16 @@ public abstract class Renderable
     /// </summary>
     public virtual Vector4 Color { get; set; }
 
-    /// <summary>
-    ///     A boolean made for external use.
-    /// </summary>
-    public bool IsBeingUpdated = false;
-
-    public bool IsChild;
-
-    /// <summary>
-    ///     Sets whether this renderable calls it's render method.
-    /// </summary>
-    public bool IsVisible = true;
-
     protected float DeltaAlpha { get; set; }
 
     /// <summary>
     ///     Updates the current renderable's model for the MVP rendering method.
     /// </summary>
-    /// <param name="is_child">Whether the current renderable is a child of an other renderable.</param>
+    /// <param name="isChild">Whether the current renderable is a child of an other renderable.</param>
     /// <param name="animations">The animations the current renderable will use.</param>
-    public virtual void UpdateModel(bool is_child, Span<Animation> animations = default)
+    public virtual void UpdateModel(bool isChild, Span<Animation> animations = default)
     {
-        IsChild = is_child;
+        IsChild = isChild;
         var model = Matrix4.Identity;
 
         var position = Position;
@@ -102,53 +102,53 @@ public abstract class Renderable
     ///     Computes a given animation.
     /// </summary>
     /// <param name="animation">The given animation.</param>
-    /// <param name="final_translation">Reference to the final translation.</param>
-    /// <param name="final_scale">Reference to the final scale.</param>
-    /// <param name="final_rotation">Reference to the final rotation.</param>
-    private void ComputeAnimation(Animation animation, ref Vector3 final_translation, ref Vector3 final_scale,
-        ref Vector3 final_rotation)
+    /// <param name="finalTranslation">Reference to the final translation.</param>
+    /// <param name="finalScale">Reference to the final scale.</param>
+    /// <param name="finalRotation">Reference to the final rotation.</param>
+    private void ComputeAnimation(Animation animation, ref Vector3 finalTranslation, ref Vector3 finalScale,
+        ref Vector3 finalRotation)
     {
         var bit_stack = animation.Features;
 
-        if (bit_stack.IsEnabled(AnimationFeature.Transform_Multiply))
+        if (bit_stack.IsEnabled(AnimationFeature.TransformMultiply))
         {
             var transform_multiply = animation.GetTransform_Multiply(this);
             if (transform_multiply != Vector3.One)
-                final_translation *= transform_multiply;
+                finalTranslation *= transform_multiply;
         }
 
-        if (bit_stack.IsEnabled(AnimationFeature.Transform_Add))
+        if (bit_stack.IsEnabled(AnimationFeature.TransformAdd))
         {
             var transform_add = animation.GetTransform_Add(this);
             if (transform_add != Vector3.One)
-                final_translation += transform_add;
+                finalTranslation += transform_add;
         }
 
-        if (bit_stack.IsEnabled(AnimationFeature.Scale_Multiply))
+        if (bit_stack.IsEnabled(AnimationFeature.ScaleMultiply))
         {
             var s = animation.GetScale_Multiply(this);
 
             if (s != Vector3.One)
-                final_scale *= s;
+                finalScale *= s;
         }
 
-        if (bit_stack.IsEnabled(AnimationFeature.Scale_Add))
+        if (bit_stack.IsEnabled(AnimationFeature.ScaleAdd))
         {
             var s = animation.GetScale_Add(this);
 
             if (s != Vector3.One)
-                final_scale += s;
+                finalScale += s;
         }
 
-        if (bit_stack.IsEnabled(AnimationFeature.Rotation_Add))
+        if (bit_stack.IsEnabled(AnimationFeature.RotationAdd))
         {
             var rotation = animation.GetRotation_XYZ(this);
 
             if (rotation != Vector3.Zero)
-                final_rotation += rotation;
+                finalRotation += rotation;
         }
 
-        if (bit_stack.IsEnabled(AnimationFeature.Color_Value))
+        if (bit_stack.IsEnabled(AnimationFeature.ColorValue))
         {
             var color_change = animation.GetColor_Value(this);
             if (color_change != Vector4.Zero)
@@ -186,7 +186,7 @@ public abstract class Renderable
     public virtual void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
     {
         var scale = Scale;
-        
+
         Position = align switch
         {
             PositionAlign.TopLeft => position,
@@ -226,10 +226,10 @@ public abstract class Renderable
 
 public static class RenderableExtensions
 {
-    public static T_Target? As<T_Target>(this Renderable renderable)
-        where T_Target : Renderable
+    public static TTarget? As<TTarget>(this Renderable renderable)
+        where TTarget : Renderable
     {
-        return renderable as T_Target;
+        return renderable as TTarget;
     }
 
     /// <summary>

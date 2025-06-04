@@ -1,6 +1,6 @@
 using ThirtyDollarConverter;
-using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
@@ -10,7 +10,7 @@ namespace ThirtyDollarVisualizer.Scenes;
 
 public abstract class ThirtyDollarWorkflow
 {
-    private readonly SemaphoreSlim SampleHolderLock = new(1);
+    private readonly SemaphoreSlim _sampleHolderLock = new(1);
     protected readonly SequencePlayer SequencePlayer;
     protected bool AutoUpdate = true;
     protected bool Debug;
@@ -27,10 +27,10 @@ public abstract class ThirtyDollarWorkflow
         TimingSampleRate = 100_000
     };
 
-    public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? logging_action = null)
+    public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? loggingAction = null)
     {
         SequencePlayer = new SequencePlayer(context);
-        Log = logging_action ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
+        Log = loggingAction ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
     }
 
     /// <summary>
@@ -58,13 +58,13 @@ public abstract class ThirtyDollarWorkflow
     {
         try
         {
-            await SampleHolderLock.WaitAsync();
+            await _sampleHolderLock.WaitAsync();
             if (SampleHolder == null) await CreateSampleHolder();
             return SampleHolder!;
         }
         finally
         {
-            SampleHolderLock.Release();
+            _sampleHolderLock.Release();
         }
     }
 
@@ -72,8 +72,8 @@ public abstract class ThirtyDollarWorkflow
     ///     This method updates the current sequence.
     /// </summary>
     /// <param name="locations">The location of the sequences you want to use.</param>
-    /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
-    protected virtual async Task UpdateSequences(string?[] locations, bool restart_player = true)
+    /// <param name="restartPlayer">Whether to restart the sequence from the beginning.</param>
+    protected virtual async Task UpdateSequences(string?[] locations, bool restartPlayer = true)
     {
         var sequence_array = new Sequence[locations.Length];
         var i = 0;
@@ -93,15 +93,15 @@ public abstract class ThirtyDollarWorkflow
             sequence_array[i++] = sequence;
         }
 
-        await UpdateSequences(sequence_array, restart_player);
+        await UpdateSequences(sequence_array, restartPlayer);
     }
 
     /// <summary>
     ///     This method updates the current sequence.
     /// </summary>
     /// <param name="sequences">The sequences you want to use.</param>
-    /// <param name="restart_player">Whether to restart the sequence from the beginning.</param>
-    public virtual async Task UpdateSequences(Sequence[] sequences, bool restart_player = true)
+    /// <param name="restartPlayer">Whether to restart the sequence from the beginning.</param>
+    public virtual async Task UpdateSequences(Sequence[] sequences, bool restartPlayer = true)
     {
         AutoUpdate = true;
         lock (ExtractedSpeedEvents)
@@ -109,20 +109,20 @@ public abstract class ThirtyDollarWorkflow
             ExtractedSpeedEvents = [];
         }
 
-        const int update_rate = 100_000;
+        const int updateRate = 100_000;
 
-        if (restart_player)
+        if (restartPlayer)
             await SequencePlayer.Stop();
 
         var calculator = new PlacementCalculator(new EncoderSettings
         {
-            SampleRate = update_rate,
+            SampleRate = updateRate,
             AddVisualEvents = true
         });
 
         var placement = calculator.CalculateMany(sequences).ToArray();
         SequenceIndices = GenerateSequenceIndexes(placement);
-        TimedEvents.TimingSampleRate = update_rate;
+        TimedEvents.TimingSampleRate = updateRate;
         TimedEvents.Placement = placement;
         TimedEvents.Sequences = sequences;
 
@@ -159,17 +159,17 @@ public abstract class ThirtyDollarWorkflow
                 event_buffers.Add(value, sample);
                 continue;
             }
-            
+
             buffer_holder.ProcessedBuffers.Add(name, new Dictionary<double, AudibleBuffer>
             {
-                {value, sample}
+                { value, sample }
             });
         }
 
         _ = Task.Run(UpdateExtractedSpeedEvents);
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents, SequenceIndices);
 
-        if (restart_player)
+        if (restartPlayer)
             await SequencePlayer.Start();
     }
 

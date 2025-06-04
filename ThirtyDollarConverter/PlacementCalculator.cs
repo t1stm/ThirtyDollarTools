@@ -15,9 +15,9 @@ internal enum EventType
 
 public class PlacementCalculator
 {
-    private static readonly string[] jump_untriggers = ["!loop", "!loopmany", "!jump", "!target"];
-    private static readonly string[] loop_untriggers = ["!loopmany", "!loop"];
-    private static readonly string[] loopmany_untriggers = ["!loopmany"];
+    private static readonly string[] JumpUntriggers = ["!loop", "!loopmany", "!jump", "!target"];
+    private static readonly string[] LoopUntriggers = ["!loopmany", "!loop"];
+    private static readonly string[] LoopmanyUntriggers = ["!loopmany"];
 
     /// <summary>
     ///     Creates a calculator that gets the placement of a sequence.
@@ -67,17 +67,17 @@ public class PlacementCalculator
     ///     Calculates the placement of a sequence.
     /// </summary>
     /// <param name="sequence">The sequence you want to calculate.</param>
-    /// <param name="start_time">Optional start time offset.</param>
+    /// <param name="startTime">Optional start time offset.</param>
     /// <returns>The calculated placement.</returns>
-    /// <exception cref="Exception">Exception thats thrown when the sequence has a problem.</exception>
-    public IEnumerable<Placement> CalculateOne(Sequence sequence, ulong? start_time = null)
+    /// <exception cref="Exception">Exception that's thrown when the sequence has a problem.</exception>
+    public IEnumerable<Placement> CalculateOne(Sequence sequence, ulong? startTime = null)
     {
         if (sequence == null) throw new Exception("Null Sequence");
         var bpm = 300.0;
         var transpose = 0.0;
         var global_volume = 100.0;
         var count = (ulong)sequence.Events.LongLength;
-        var position = start_time ?? (ulong)(SampleRate / (bpm / 60));
+        var position = startTime ?? (ulong)(SampleRate / (bpm / 60));
 
         // I have given up on reverse engineering my own parser.
         // Here goes GD Colon's code.
@@ -232,7 +232,7 @@ public class PlacementCalculator
 
                         index = loop_target;
 
-                        Untrigger(ref sequence, index, loopmany_untriggers);
+                        Untrigger(ref sequence, index, LoopmanyUntriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
                     }
 
@@ -256,7 +256,7 @@ public class PlacementCalculator
                         modify_index = false;
                         index = loop_target;
 
-                        Untrigger(ref sequence, index, loop_untriggers);
+                        Untrigger(ref sequence, index, LoopUntriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
                     }
 
@@ -279,7 +279,7 @@ public class PlacementCalculator
                     var search = Array.IndexOf(sequence.Events, item);
                     if (search == -1)
                     {
-                        Untrigger(ref sequence, 0, jump_untriggers);
+                        Untrigger(ref sequence, 0, JumpUntriggers);
                         break;
                     }
 
@@ -296,7 +296,7 @@ public class PlacementCalculator
                     index = (ulong)search;
                     var found_event = sequence.Events[index];
 
-                    Untrigger(ref sequence, index, jump_untriggers);
+                    Untrigger(ref sequence, index, JumpUntriggers);
                     Log($"Jumping to element: ({index}) - {found_event}");
                     break;
                 }

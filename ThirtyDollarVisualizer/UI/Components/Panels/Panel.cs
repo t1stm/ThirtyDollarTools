@@ -1,24 +1,26 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.UI.Abstractions;
 using ThirtyDollarVisualizer.UI.Components.Scroll;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Components.Panels;
 
 public class Panel : UIElement, IColoredBackground
 {
-    public Panel() : this(0, 0, 0, 0) { }
-    
-    public ColoredPlane? Background { get; set; }
-    public bool Overflowing { get; protected set; }
-    public bool ScrollOnOverflow { get; set; }
-    
     private List<UIElement> _children = [];
-    protected Lazy<ScrollBar> _scrollBar;
+    protected Lazy<ScrollBar> ScrollBar;
+
+    public Panel() : this(0, 0, 0, 0)
+    {
+    }
 
     protected Panel(float x, float y, float width, float height) : base(x, y, width, height)
     {
-        _scrollBar = new Lazy<ScrollBar>(() => new ScrollBar(this));
+        ScrollBar = new Lazy<ScrollBar>(() => new ScrollBar(this));
     }
+
+    public bool Overflowing { get; protected set; }
+    public bool ScrollOnOverflow { get; set; }
 
     public List<UIElement> Children
     {
@@ -30,7 +32,7 @@ public class Panel : UIElement, IColoredBackground
             Layout();
         }
     }
-    
+
     public override UIElement? Parent
     {
         get => base.Parent;
@@ -40,7 +42,9 @@ public class Panel : UIElement, IColoredBackground
             SetChildrenParent();
         }
     }
-    
+
+    public ColoredPlane? Background { get; set; }
+
     public override void Test(MouseState mouse)
     {
         if (!Visible) return;
@@ -49,14 +53,11 @@ public class Panel : UIElement, IColoredBackground
         foreach (var child in Children)
             child.Test(mouse);
     }
-    
+
     public override void Update(UIContext context)
     {
         base.Update(context);
-        foreach (var child in Children)
-        {
-            child.Update(context);
-        }
+        foreach (var child in Children) child.Update(context);
     }
 
     public override void Layout()
@@ -64,19 +65,13 @@ public class Panel : UIElement, IColoredBackground
         var x = (int)AbsoluteX;
         var y = (int)AbsoluteY;
         Viewport = (x, y, x + (int)Width, y + (int)Height);
-        
-        foreach (var child in Children)
-        {
-            child.Layout();
-        }
+
+        foreach (var child in Children) child.Layout();
     }
 
     protected void SetChildrenParent()
     {
-        foreach (var child in Children)
-        {
-            child.Parent = this;
-        }
+        foreach (var child in Children) child.Parent = this;
     }
 
     public virtual void AddChild(UIElement child)

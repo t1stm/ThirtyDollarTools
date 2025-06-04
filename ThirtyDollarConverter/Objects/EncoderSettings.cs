@@ -1,5 +1,5 @@
 using System;
-using ThirtyDollarConverter.Audio.Resamplers;
+using ThirtyDollarEncoder.Resamplers;
 
 namespace ThirtyDollarConverter.Objects;
 

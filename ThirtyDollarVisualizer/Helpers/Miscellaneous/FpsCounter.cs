@@ -1,18 +1,18 @@
 namespace ThirtyDollarVisualizer.Helpers.Miscellaneous;
 
-public class FpsCounter(int average_pool = 8)
+public class FpsCounter(int averagePool = 8)
 {
-    private readonly double[] updates = new double[average_pool];
-    private int current_update;
-    private double last_calculated_fps;
+    private readonly double[] _updates = new double[averagePool];
+    private int _currentUpdate;
+    private double _lastCalculatedFps;
 
-    public double GetAverageFPS(double last_fps_tick)
+    public double GetAverageFPS(double lastFPSTick)
     {
-        updates[current_update] = last_fps_tick;
-        if (++current_update < average_pool) return last_calculated_fps;
+        _updates[_currentUpdate] = lastFPSTick;
+        if (++_currentUpdate < averagePool) return _lastCalculatedFps;
 
-        current_update = 0;
-        last_calculated_fps = updates.Average();
-        return last_calculated_fps;
+        _currentUpdate = 0;
+        _lastCalculatedFps = _updates.Average();
+        return _lastCalculatedFps;
     }
 }

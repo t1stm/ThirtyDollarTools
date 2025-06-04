@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Base_Objects;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Abstractions;
 
 public class UIContext
 {
@@ -15,19 +15,13 @@ public class UIContext
 
     public void Clear()
     {
-        foreach (var queue in LayeredRenderQueue)
-        {
-            queue.Clear();
-        }
+        foreach (var queue in LayeredRenderQueue) queue.Clear();
     }
-    
+
     public void QueueRender(Renderable renderable, int index)
     {
-        while (LayeredRenderQueue.Count <= index)
-        {
-            LayeredRenderQueue.Add(new Queue<Renderable>());
-        }
-        
+        while (LayeredRenderQueue.Count <= index) LayeredRenderQueue.Add(new Queue<Renderable>());
+
         var queue = LayeredRenderQueue[index];
         queue.Enqueue(renderable);
     }
@@ -35,12 +29,9 @@ public class UIContext
     public void Render()
     {
         foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
-        {
-            foreach (var renderable in queue)
-            {
-                renderable.Render(Camera);
-            }
-        }
+        foreach (var renderable in queue)
+            renderable.Render(Camera);
+
         GL.Scissor(0, 0, (int)ViewportWidth, (int)ViewportHeight);
     }
 }

@@ -8,14 +8,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02494" />
-      <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02494" />
-      <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02494" />
-      <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02494" />
+        <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02494"/>
+        <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02494"/>
+        <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02494"/>
+        <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02494"/>
+        <PackageReference Include="JetBrains.Annotations" Version="2024.3.0"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
+        <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
     </ItemGroup>
 
 </Project>

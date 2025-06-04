@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 
-namespace ThirtyDollarVisualizer.Objects.Planes.Uniforms;
+namespace ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
 
 [StructLayout(LayoutKind.Explicit, Size = 144)]
 public struct TexturedUniform

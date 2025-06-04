@@ -1,19 +1,19 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Base_Objects;
 
 namespace ThirtyDollarVisualizer.Helpers.Color;
 
 public static class ColorTools
 {
-    public static async Task ChangeColor(Renderable renderable, Vector4 color, float duration_seconds)
+    public static async Task ChangeColor(Renderable renderable, Vector4 color, float durationSeconds)
     {
         var old_color = renderable.Color;
-        await ChangeColor(renderable, old_color, color, duration_seconds);
+        await ChangeColor(renderable, old_color, color, durationSeconds);
     }
 
-    public static async Task ChangeColor(Renderable renderable, Vector4 old_color, Vector4 color,
-        float duration_seconds)
+    public static async Task ChangeColor(Renderable renderable, Vector4 oldColor, Vector4 color,
+        float durationSeconds)
     {
         // TODO: port this to use the Animation abstract class
 
@@ -21,7 +21,7 @@ public static class ColorTools
         {
             renderable.IsBeingUpdated = false;
             await Task.Delay(33);
-            await ChangeColor(renderable, color, duration_seconds);
+            await ChangeColor(renderable, color, durationSeconds);
             return;
         }
 
@@ -30,11 +30,11 @@ public static class ColorTools
 
         renderable.IsBeingUpdated = true;
         float elapsed;
-        while ((elapsed = stopwatch.ElapsedMilliseconds / 1000f) < duration_seconds && renderable.IsBeingUpdated)
+        while ((elapsed = stopwatch.ElapsedMilliseconds / 1000f) < durationSeconds && renderable.IsBeingUpdated)
         {
-            var delta = Math.Clamp(elapsed / duration_seconds, 0.01f, 1f);
+            var delta = Math.Clamp(elapsed / durationSeconds, 0.01f, 1f);
 
-            renderable.Color = Vector4.Lerp(old_color, color, delta);
+            renderable.Color = Vector4.Lerp(oldColor, color, delta);
             await Task.Delay(16);
         }
 

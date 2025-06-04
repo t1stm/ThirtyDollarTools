@@ -1,34 +1,34 @@
 using System.Reflection;
 using SixLabors.Fonts;
 
-namespace ThirtyDollarVisualizer.Objects.Text;
+namespace ThirtyDollarVisualizer.Base_Objects.Text;
 
 public static class Fonts
 {
-    private static FontCollection? Collection;
-    private static FontFamily? CurrentFamily;
-    private static FontFamily? EmojiFamily;
-    private static CharacterCache? CharacterCache;
+    private static FontCollection? _collection;
+    private static FontFamily? _currentFamily;
+    private static FontFamily? _emojiFamily;
+    private static CharacterCache? _characterCache;
 
     public static void Initialize()
     {
-        Collection = new FontCollection();
-        Collection.AddSystemFonts();
+        _collection = new FontCollection();
+        _collection.AddSystemFonts();
 
-        AddFont(Collection, "ThirtyDollarVisualizer.Assets.Fonts.Lato-Regular.ttf");
-        AddFont(Collection, "ThirtyDollarVisualizer.Assets.Fonts.Lato-Bold.ttf");
-        AddFont(Collection, "ThirtyDollarVisualizer.Assets.Fonts.Twemoji.Mozilla.ttf");
+        AddFont(_collection, "ThirtyDollarVisualizer.Assets.Fonts.Lato-Regular.ttf");
+        AddFont(_collection, "ThirtyDollarVisualizer.Assets.Fonts.Lato-Bold.ttf");
+        AddFont(_collection, "ThirtyDollarVisualizer.Assets.Fonts.Twemoji.Mozilla.ttf");
 
-        const string text_font = "Lato";
-        const string emoji_font = "Twemoji Mozilla";
-        if (!Collection.TryGet(text_font, out var text_family))
-            throw new Exception($"Unable to find font: {text_font}");
-        if (!Collection.TryGet(emoji_font, out var emoji_family))
-            throw new Exception($"Unable to find font: {emoji_font}");
+        const string textFont = "Lato";
+        const string emojiFont = "Twemoji Mozilla";
+        if (!_collection.TryGet(textFont, out var text_family))
+            throw new Exception($"Unable to find font: {textFont}");
+        if (!_collection.TryGet(emojiFont, out var emoji_family))
+            throw new Exception($"Unable to find font: {emojiFont}");
 
-        CurrentFamily = text_family;
-        EmojiFamily = emoji_family;
-        CharacterCache = new CharacterCache(text_family, emoji_family);
+        _currentFamily = text_family;
+        _emojiFamily = emoji_family;
+        _characterCache = new CharacterCache(text_family, emoji_family);
     }
 
     private static void AddFont(FontCollection collection, string location)
@@ -43,19 +43,19 @@ public static class Fonts
 
     public static FontFamily GetFontFamily()
     {
-        if (CurrentFamily == null) Initialize();
-        return (FontFamily)CurrentFamily!;
+        if (_currentFamily == null) Initialize();
+        return (FontFamily)_currentFamily!;
     }
 
     public static FontFamily GetEmojiFamily()
     {
-        if (CurrentFamily == null) Initialize();
-        return (FontFamily)EmojiFamily!;
+        if (_currentFamily == null) Initialize();
+        return (FontFamily)_emojiFamily!;
     }
 
     public static CharacterCache GetCharacterCache()
     {
-        if (CurrentFamily == null) Initialize();
-        return CharacterCache!;
+        if (_currentFamily == null) Initialize();
+        return _characterCache!;
     }
 }

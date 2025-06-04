@@ -1,17 +1,45 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.UI.Abstractions;
+using ThirtyDollarVisualizer.UI.Components.Labels;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Components.Panels;
 
 public class WindowFrame : Panel
 {
     protected readonly Panel Container;
     protected readonly FlexPanel Header;
-    protected CursorType RequestedCursor;
     private UIElement? _child;
 
     private byte _resizingXMode;
     private byte _resizingYMode;
+    protected CursorType RequestedCursor;
+
+    public WindowFrame(float x = 0, float y = 0, float w = 600, float h = 400) : base(x, y, w, h)
+    {
+        Header = new FlexPanel(0, 0, w, 30)
+        {
+            Background = new ColoredPlane
+            {
+                Color = (0.1f, 0.1f, 0.1f, 1.0f)
+            },
+            VerticalAlign = Align.Center,
+            HorizontalAlign = Align.End,
+            AutoWidth = true,
+            Padding = 10,
+            Children =
+            [
+                new Label("X")
+            ]
+        };
+        Container = new FlexPanel(x, y, w, h)
+        {
+            Children = [Header],
+            Direction = LayoutDirection.Vertical
+        };
+
+        Children = [Container];
+    }
 
     public override float Width
     {
@@ -38,48 +66,15 @@ public class WindowFrame : Panel
         }
     }
 
-    public WindowFrame(float x = 0, float y = 0, float w = 600, float h = 400) : base(x, y, w, h)
-    {
-        Header = new FlexPanel(0, 0, w, 30)
-        {
-            Background = new ColoredPlane
-            {
-                Color = (0.1f, 0.1f, 0.1f, 1.0f)
-            },
-            VerticalAlign = Align.Center,
-            HorizontalAlign = Align.End,
-            AutoWidth = true,
-            Padding = 10,
-            Children =
-            [
-                new Label("X")
-            ]
-        };
-        Container = new FlexPanel(x, y, w, h)
-        {
-            Children = [Header],
-            Direction = LayoutDirection.Vertical,
-        };
-        
-        Children = [Container];
-    }
-
     public override void Test(MouseState mouse)
     {
         base.Test(mouse);
 
         if (Header.IsPressed)
-        {
             ComputeHeaderPressed(mouse);
-        }
         else if (_resizingXMode != 0 || _resizingYMode != 0)
-        {
             HandleActiveResize(mouse);
-        }
-        else if (Resizable && IsHovered)
-        {
-            ComputeResize(mouse);
-        }
+        else if (Resizable && IsHovered) ComputeResize(mouse);
 
         if (mouse.IsButtonDown(MouseButton.Left)) return;
         _resizingXMode = 0;

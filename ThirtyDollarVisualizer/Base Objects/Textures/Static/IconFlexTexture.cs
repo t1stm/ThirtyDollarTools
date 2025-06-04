@@ -2,35 +2,32 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace ThirtyDollarVisualizer.Objects.Textures.Static;
+namespace ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
 public class IconFlexTexture : StaticTexture
 {
-    public IconFlexTexture(IReadOnlyCollection<StaticTexture> textures, float gap_px, float font_size): base(rgba: null)
+    public IconFlexTexture(IReadOnlyCollection<StaticTexture> textures, float gapPx, float fontSize) : base(rgba: null)
     {
         var texture_count = textures.Count;
-        var size_w = (int)Math.Ceiling(font_size);
-        const int max_images_per_line = 3;
+        var size_w = (int)Math.Ceiling(fontSize);
+        const int maxImagesPerLine = 3;
 
-        if (texture_count < 1)
-        {
-            return;
-        }
+        if (texture_count < 1) return;
 
-        var width = texture_count <= max_images_per_line
-            ? texture_count * (size_w + gap_px)
-            : max_images_per_line * (size_w + gap_px);
+        var width = texture_count <= maxImagesPerLine
+            ? texture_count * (size_w + gapPx)
+            : maxImagesPerLine * (size_w + gapPx);
         var height = (int)Math.Max(size_w,
-            Math.Ceiling((float)texture_count / max_images_per_line) * (size_w + gap_px));
-        
-        image = new Image<Rgba32>((int)width, height);
-        Width = image.Width;
-        Height = image.Height;
-        
+            Math.Ceiling((float)texture_count / maxImagesPerLine) * (size_w + gapPx));
+
+        Image = new Image<Rgba32>((int)width, height);
+        Width = Image.Width;
+        Height = Image.Height;
+
         var x = 0;
         var y = 0;
 
-        var break_w = (int)(140 * font_size);
+        var break_w = (int)(140 * fontSize);
 
         foreach (var t in textures)
         {
@@ -45,15 +42,15 @@ public class IconFlexTexture : StaticTexture
 
             var offset = (size_w - t_height) / 2;
 
-            image.Mutate(r =>
+            Image.Mutate(r =>
                 r.DrawImage(texture, new Point(x1, y1 + offset), 1f)
             );
 
-            x += (int)(size_w + gap_px);
+            x += (int)(size_w + gapPx);
             if (x + size_w <= width) continue;
 
             x = 0;
-            y += (int)(size_w + gap_px);
+            y += (int)(size_w + gapPx);
             if (y > break_w) break;
         }
     }

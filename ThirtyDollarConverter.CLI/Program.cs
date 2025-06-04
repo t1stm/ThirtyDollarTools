@@ -1,8 +1,8 @@
 ﻿using CommandLine;
 using ThirtyDollarConverter;
-using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarConverter.CLI;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 
 var options = new Options();

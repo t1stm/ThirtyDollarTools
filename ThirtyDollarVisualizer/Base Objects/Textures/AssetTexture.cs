@@ -2,54 +2,54 @@ using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarVisualizer.Assets;
-using ThirtyDollarVisualizer.Objects.Textures.Animated;
-using ThirtyDollarVisualizer.Objects.Textures.Static;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Animated;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
-namespace ThirtyDollarVisualizer.Objects.Textures;
+namespace ThirtyDollarVisualizer.Base_Objects.Textures;
 
 public class AssetTexture : SingleTexture
 {
-    private readonly SingleTexture Texture;
-    
+    private readonly SingleTexture _texture;
+
     public AssetTexture(string path)
     {
         var asset = AssetManager.GetAsset(path);
         using var source = asset.Stream;
-        
+
         var image = Image.Load<Rgba32>(source);
         Width = image.Width;
         Height = image.Height;
 
         if (image.Frames.Count > 1)
-            Texture = new AnimatedTexture(image);
-        else Texture = new StaticTexture(image);
+            _texture = new AnimatedTexture(image);
+        else _texture = new StaticTexture(image);
     }
 
-    public bool IsAnimated => Texture is AnimatedTexture;
-    
+    public bool IsAnimated => _texture is AnimatedTexture;
+
     public override bool NeedsUploading()
     {
-        return Texture.NeedsUploading();
+        return _texture.NeedsUploading();
     }
 
     public override void Update()
     {
-        Texture.Update();
+        _texture.Update();
     }
 
     public override void UploadToGPU()
     {
-        Texture.UploadToGPU();
+        _texture.UploadToGPU();
     }
 
     public override void Bind(TextureUnit slot = TextureUnit.Texture0)
     {
-        Texture.Bind(slot);
+        _texture.Bind(slot);
     }
 
     public override void Dispose()
     {
-        Texture.Dispose();
+        _texture.Dispose();
         GC.SuppressFinalize(this);
     }
 }

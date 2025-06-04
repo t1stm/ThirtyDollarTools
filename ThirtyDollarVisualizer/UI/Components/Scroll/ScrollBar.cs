@@ -1,6 +1,8 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.UI.Abstractions;
+using ThirtyDollarVisualizer.UI.Components.Panels;
 
 namespace ThirtyDollarVisualizer.UI.Components.Scroll;
 
@@ -14,6 +16,16 @@ public sealed class ScrollBar : Panel
         },
         Height = 20
     };
+
+    public ScrollBar(Panel parent)
+    {
+        Parent = parent;
+        Background = new ColoredPlane
+        {
+            Color = (0.3f, 0.3f, 0.3f, 1)
+        };
+        Children = [ScrollBlock];
+    }
 
     public float Percentage { get; private set; }
 
@@ -37,16 +49,6 @@ public sealed class ScrollBar : Panel
         set => throw new NotSupportedException();
     }
 
-    public ScrollBar(Panel parent)
-    {
-        Parent = parent;
-        Background = new ColoredPlane
-        {
-            Color = (0.3f, 0.3f, 0.3f, 1)
-        };
-        Children = [ScrollBlock];
-    }
-
     public override void Test(MouseState mouse)
     {
         ScrollBlock.Test(mouse);
@@ -54,7 +56,7 @@ public sealed class ScrollBar : Panel
 
         var delta_y = mouse.Delta.Y;
         var percentage_diff = delta_y / Height;
-        
+
         Percentage += percentage_diff;
         Percentage = Math.Clamp(Percentage, 0, 1);
         ScrollBlock.Y = Percentage * (Height - ScrollBlock.Height);

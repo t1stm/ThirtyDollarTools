@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ThirtyDollarConverter.Audio.Resamplers;
+using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarGUI.Models;
 
 namespace ThirtyDollarGUI.Services;

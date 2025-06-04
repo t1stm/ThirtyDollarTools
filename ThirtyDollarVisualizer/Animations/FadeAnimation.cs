@@ -1,4 +1,4 @@
-using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Base_Objects;
 
 namespace ThirtyDollarVisualizer.Animations;
 
@@ -17,16 +17,16 @@ public class FadeAnimation : Animation
 
     public override float GetAlphaDelta_Value(Renderable renderable)
     {
-        const float max_delta_alpha = 0.4f;
+        const float maxDeltaAlpha = 0.4f;
 
         var factor = TimingStopwatch.ElapsedMilliseconds / (float)AnimationLength.TotalMilliseconds;
-        if (!TimingStopwatch.IsRunning) return factor > 1f ? max_delta_alpha : 0;
+        if (!TimingStopwatch.IsRunning) return factor > 1f ? maxDeltaAlpha : 0;
 
-        if (factor <= 1f) return factor * max_delta_alpha;
+        if (factor <= 1f) return factor * maxDeltaAlpha;
 
         TimingStopwatch.Stop();
         CallbackOnFinish?.Invoke();
 
-        return max_delta_alpha;
+        return maxDeltaAlpha;
     }
 }

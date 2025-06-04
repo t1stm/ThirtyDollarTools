@@ -1,17 +1,17 @@
-using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.UI.Abstractions;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Components.Panels;
 
 public class StackPanel(float x, float y, float width, float height)
     : Panel(x, y, width, height), IPositioningElement
 {
-    public LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
-    public float Spacing { get; set; } = 0;
-    public float Padding { get; set; } = 0;
-
     public StackPanel() : this(0, 0, 0, 0)
     {
     }
+
+    public LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
+    public float Spacing { get; set; } = 0;
+    public float Padding { get; set; } = 0;
 
     public override void Layout()
     {
@@ -48,7 +48,7 @@ public class StackPanel(float x, float y, float width, float height)
         }
 
         Background?.SetPosition((start_x, start_y, 0));
-        if (Background != null) 
+        if (Background != null)
             Background.Scale = (Width, Height, 1);
     }
 }

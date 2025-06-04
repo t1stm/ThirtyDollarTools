@@ -26,7 +26,7 @@ public class Greeting(AudioContext context, BufferHolder holder)
         }
 
         var greeting_name = $"greeting_{(int)greeting}";
-        holder.TryGetBuffer(greeting_name, 0, out var buffer);
+        holder.TryGetBuffer(greeting_name, 0, out _);
 
         var audio_data = AudioData<float>.Empty(2);
         var sample_rate = 48000;

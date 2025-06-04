@@ -1,6 +1,6 @@
 using ThirtyDollarVisualizer.Renderer.Shaders;
 
-namespace ThirtyDollarVisualizer.Objects;
+namespace ThirtyDollarVisualizer.Base_Objects;
 
 public class DummyRenderable : Renderable
 {

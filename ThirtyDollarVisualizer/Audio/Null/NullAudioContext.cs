@@ -1,5 +1,5 @@
 using ThirtyDollarEncoder.PCM;
-using ThirtyDollarVisualizer.Audio.FeatureFlags;
+using ThirtyDollarVisualizer.Audio.Features;
 
 namespace ThirtyDollarVisualizer.Audio.Null;
 
@@ -25,8 +25,8 @@ public class NullAudioContext : AudioContext, IBatchSupported
         return false;
     }
 
-    public override AudibleBuffer GetBufferObject(AudioData<float> sample_data, int sample_rate)
+    public override AudibleBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
-        return new NullAudibleBuffer(sample_data, sample_rate);
+        return new NullAudibleBuffer(sampleData, sampleRate);
     }
 }

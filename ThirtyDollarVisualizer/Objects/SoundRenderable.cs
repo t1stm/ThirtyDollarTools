@@ -2,42 +2,33 @@ using System.Collections.Concurrent;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Animations;
-using ThirtyDollarVisualizer.Objects.Planes;
-using ThirtyDollarVisualizer.Objects.Textures;
-using ThirtyDollarVisualizer.Objects.Textures.Static;
+using ThirtyDollarVisualizer.Base_Objects;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Textures;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
 namespace ThirtyDollarVisualizer.Objects;
 
 public class SoundRenderable : TexturedPlane
 {
-    private readonly BounceAnimation BounceAnimation;
-    private readonly ExpandAnimation ExpandAnimation;
-    private readonly FadeAnimation FadeAnimation;
-    private readonly Memory<Animation> RenderableAnimations;
+    private readonly BounceAnimation _bounceAnimation;
+    private readonly ExpandAnimation _expandAnimation;
+    private readonly FadeAnimation _fadeAnimation;
+    private readonly Memory<Animation> _renderableAnimations;
     public bool IsDivider;
 
-    public float Original_Y;
+    public float OriginalY;
     public TexturedPlane? Pan;
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
 
-    public override Vector3 Scale
+    public SoundRenderable(SingleTexture texture, Vector3 position, Vector2 widthHeight) : base(texture, position,
+        widthHeight)
     {
-        get => base.Scale;
-        set
-        {
-            base.Scale = value;
-            BounceAnimation.Final_Y = value.Y / 5f;
-        }
-    }
-
-    public SoundRenderable(SingleTexture texture, Vector3 position, Vector2 width_height) : base(texture, position,
-        width_height)
-    {
-        BounceAnimation = new BounceAnimation(() => { UpdateModel(false); });
-        ExpandAnimation = new ExpandAnimation(() => { UpdateModel(false); });
-        FadeAnimation = new FadeAnimation(() => { UpdateModel(false); });
-        RenderableAnimations = new Animation[] { BounceAnimation, ExpandAnimation, FadeAnimation };
+        _bounceAnimation = new BounceAnimation(() => { UpdateModel(false); });
+        _expandAnimation = new ExpandAnimation(() => { UpdateModel(false); });
+        _fadeAnimation = new FadeAnimation(() => { UpdateModel(false); });
+        _renderableAnimations = new Animation[] { _bounceAnimation, _expandAnimation, _fadeAnimation };
     }
 
     public SoundRenderable(SingleTexture texture) :
@@ -45,10 +36,20 @@ public class SoundRenderable : TexturedPlane
     {
     }
 
+    public override Vector3 Scale
+    {
+        get => base.Scale;
+        set
+        {
+            base.Scale = value;
+            _bounceAnimation.FinalY = value.Y / 5f;
+        }
+    }
+
     public override void Render(Camera camera)
     {
-        if (BounceAnimation.IsRunning || ExpandAnimation.IsRunning || FadeAnimation.IsRunning)
-            UpdateModel(false, RenderableAnimations.Span);
+        if (_bounceAnimation.IsRunning || _expandAnimation.IsRunning || _fadeAnimation.IsRunning)
+            UpdateModel(false, _renderableAnimations.Span);
 
         base.Render(camera);
     }
@@ -69,26 +70,26 @@ public class SoundRenderable : TexturedPlane
 
     public void Bounce()
     {
-        BounceAnimation.Start();
+        _bounceAnimation.Start();
     }
 
     public void Expand()
     {
-        ExpandAnimation.Start();
+        _expandAnimation.Start();
     }
 
     public void Fade()
     {
-        FadeAnimation.Start();
+        _fadeAnimation.Start();
     }
 
     public void ResetAnimations()
     {
-        foreach (var animation in RenderableAnimations.Span) animation.Reset();
+        foreach (var animation in _renderableAnimations.Span) animation.Reset();
     }
 
-    public void SetValue(BaseEvent _event, ConcurrentDictionary<string, SingleTexture> generated_textures,
-        ValueChangeWrapMode value_change_wrap_mode)
+    public void SetValue(BaseEvent @event, ConcurrentDictionary<string, SingleTexture> generatedTextures,
+        ValueChangeWrapMode valueChangeWrapMode)
     {
         if (Value is null) return;
 
@@ -96,16 +97,16 @@ public class SoundRenderable : TexturedPlane
         Expand();
 
         var old_texture = Value.GetTexture();
-        var found_texture = generated_textures.TryGetValue(_event.PlayTimes.ToString("0.##"), out var texture);
-        if (!found_texture) texture = StaticTexture.Transparent1x1;
+        var found_texture = generatedTextures.TryGetValue(@event.PlayTimes.ToString("0.##"), out var texture);
+        if (!found_texture) texture = StaticTexture.TransparentPixel;
 
-        if (_event.PlayTimes <= 0)
-            texture = value_change_wrap_mode switch
+        if (@event.PlayTimes <= 0)
+            texture = valueChangeWrapMode switch
             {
                 ValueChangeWrapMode.ResetToDefault =>
-                    generated_textures.TryGetValue(_event.OriginalLoop.ToString("0.##"), out var loop_texture)
+                    generatedTextures.TryGetValue(@event.OriginalLoop.ToString("0.##"), out var loop_texture)
                         ? loop_texture
-                        : StaticTexture.Transparent1x1,
+                        : StaticTexture.TransparentPixel,
                 _ => null
             };
 

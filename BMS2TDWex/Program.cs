@@ -13,8 +13,8 @@ using BMS2TDW.Converter;
 var read = await File.ReadAllTextAsync("/home/kris/Downloads/[clover]LeaF_Aleph0/_7ANOTHER.bms");
 var bms_level = BMSParser.ParseFile(read);
 
-var builder = new TDWexBuilder();
-builder.ConvertBMSLevel(bms_level);
+var builder = new TdwExBuilder();
+builder.ConvertBmsLevel(bms_level);
 
 var converted = builder.Export();
 File.WriteAllText("/home/kris/Downloads/[clover]LeaF_Aleph0/_7ANOTHER.tdw", converted);

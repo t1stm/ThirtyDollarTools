@@ -16,17 +16,23 @@
 
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.2.3" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+        <PackageReference Include="Avalonia" Version="11.2.3"/>
+        <PackageReference Include="Avalonia.Desktop" Version="11.2.3"/>
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3"/>
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3"/>
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.3" />
-        <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.3" />
-        <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.2.0.8" />
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.2.3"/>
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.3"/>
+        <PackageReference Include="Avalonia.Xaml.Behaviors" Version="11.2.0.8"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="JetBrains.Annotations">
+            <HintPath>..\..\..\.nuget\packages\jetbrains.annotations\2024.3.0\lib\netstandard2.0\JetBrains.Annotations.dll</HintPath>
+        </Reference>
     </ItemGroup>
 </Project>

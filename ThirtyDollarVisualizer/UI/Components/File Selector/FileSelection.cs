@@ -1,23 +1,17 @@
-using System.Runtime.CompilerServices;
-using OpenTK.Mathematics;
 using SixLabors.Fonts;
-using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.UI.Abstractions;
+using ThirtyDollarVisualizer.UI.Components.Labels;
+using ThirtyDollarVisualizer.UI.Components.Panels;
 
 namespace ThirtyDollarVisualizer.UI.Components.File_Selector;
 
 public sealed class FileSelection : Panel
 {
-    private readonly FlexPanel _mainLayout;
-    private readonly FlexPanel _filesSection;
     private readonly Label _currentPathLabel;
+    private readonly FlexPanel _filesSection;
+    private readonly FlexPanel _mainLayout;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-
-    public string CurrentPath { get; private set; } = Directory.GetCurrentDirectory();
-    public Action<FileSelection>? OnSelectFile { get; set; }
-    public Action<FileSelection>? OnChangeDirectory { get; set; }
-
-    public Action<FileSelection>? OnCancel { get; set; }
-    public Action<FileSelection>? OnSelect { get; set; }
 
     public FileSelection() : this(0, 0, 600, 400)
     {
@@ -50,7 +44,7 @@ public sealed class FileSelection : Panel
                     FontSizePx = 12,
                     AutoWidth = true,
                     FontStyle = FontStyle.Bold,
-                    UpdateCursorOnHover = true,
+                    UpdateCursorOnHover = true
                 }
             ]
         };
@@ -124,6 +118,13 @@ public sealed class FileSelection : Panel
         Task.Run(RefreshFiles);
     }
 
+    public string CurrentPath { get; private set; } = Directory.GetCurrentDirectory();
+    public Action<FileSelection>? OnSelectFile { get; set; }
+    public Action<FileSelection>? OnChangeDirectory { get; set; }
+
+    public Action<FileSelection>? OnCancel { get; set; }
+    public Action<FileSelection>? OnSelect { get; set; }
+
     private void NavigateUp()
     {
         var directory = new DirectoryInfo(CurrentPath);
@@ -155,11 +156,11 @@ public sealed class FileSelection : Panel
         try
         {
             var directories = Directory.GetDirectories(CurrentPath);
-            list.AddRange((from directory in directories
+            list.AddRange(from directory in directories
                 let dirInfo = new DirectoryInfo(directory)
                 where (dirInfo.Attributes & FileAttributes.Hidden) == 0
                 select new Label($"📁 {dirInfo.Name}", LabelMode.CachedDynamic)
-                    { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) }));
+                    { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
 
             var files = Directory.GetFiles(CurrentPath);
             list.AddRange(files.Select(file => new FileInfo(file)).Select(fileInfo =>

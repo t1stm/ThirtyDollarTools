@@ -6,20 +6,27 @@ using OpenTK.Mathematics;
 namespace ThirtyDollarVisualizer.Renderer.Shaders;
 
 /// <summary>
-/// Represents an OpenGL shader program.
+///     Represents an OpenGL shader program.
 /// </summary>
 public class Shader : IDisposable
 {
-    /// <summary>
-    ///     Controls whether the shader throws errors on missing uniforms.
-    /// </summary>
-    private readonly bool IsPedantic = false;
-    public static Shader Dummy { get; } = new(0);
-    protected int Handle { get; }
-
     public Shader(int handle)
     {
         Handle = handle;
+    }
+
+    /// <summary>
+    ///     Controls whether the shader throws errors on missing uniforms.
+    /// </summary>
+    public bool IsPedantic { get; init; } = false;
+
+    public static Shader Dummy { get; } = new(0);
+    protected int Handle { get; }
+
+    public void Dispose()
+    {
+        GL.DeleteProgram(Handle);
+        GC.SuppressFinalize(this);
     }
 
     public static Shader NewVertexFragment(string vertexPath, string fragmentPath)
@@ -65,12 +72,6 @@ public class Shader : IDisposable
         if (link_status == 0)
             throw new Exception($"Program failed to link with error: {GL.GetProgramInfoLog(Handle)}");
     }
-    
-    public void Dispose()
-    {
-        GL.DeleteProgram(Handle);
-        GC.SuppressFinalize(this);
-    }
 
     public void Use()
     {
@@ -98,7 +99,7 @@ public class Shader : IDisposable
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
-        
+
         GL.Uniform2(location, value);
         return true;
     }

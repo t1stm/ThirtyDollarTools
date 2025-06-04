@@ -7,12 +7,12 @@ public class Sound
     /// <summary>
     ///     Thumbnail url for PNG emoji sounds.
     /// </summary>
-    private const string Twemoji_PNG_URL = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72";
+    private const string TwemojiPngUrl = "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72";
 
     /// <summary>
     ///     Thumbnail url for other sounds.
     /// </summary>
-    private const string Thirty_Dollar_Asset_URL = "https://thirtydollar.website/icons";
+    private const string ThirtyDollarAssetUrl = "https://thirtydollar.website/icons";
 
     /// <summary>
     ///     The id of the current sound
@@ -50,7 +50,7 @@ public class Sound
     /// <summary>
     ///     The icon url for this sound.
     /// </summary>
-    public string Icon_URL => Emoji == null
-        ? $"{Thirty_Dollar_Asset_URL}/{Id}.png"
-        : $"{Twemoji_PNG_URL}/{char.ConvertToUtf32(Emoji, 0).ToString("X").ToLower()}.png";
+    public string IconUrl => Emoji == null
+        ? $"{ThirtyDollarAssetUrl}/{Id}.png"
+        : $"{TwemojiPngUrl}/{char.ConvertToUtf32(Emoji, 0).ToString("X").ToLower()}.png";
 }

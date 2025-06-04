@@ -1,48 +1,45 @@
-using ThirtyDollarVisualizer.Objects.Planes;
+using ThirtyDollarVisualizer.UI.Abstractions;
 
-namespace ThirtyDollarVisualizer.UI;
+namespace ThirtyDollarVisualizer.UI.Components.Panels;
 
 public class FlexPanel(float x = 0, float y = 0, float width = 0, float height = 0)
     : Panel(x, y, width, height), IPositioningElement
 {
-    private Align vertical = Align.Start;
-    private Align horizontal = Align.Start;
-
-    public LayoutDirection Direction { get; set; } = LayoutDirection.Horizontal;
-    public float Padding { get; set; }
-    public float Spacing { get; set; }
+    private Align _horizontal = Align.Start;
+    private Align _vertical = Align.Start;
     public bool AutoSizeSelf { get; set; }
 
     public Align HorizontalAlign
     {
-        get => horizontal;
+        get => _horizontal;
         set
         {
-            horizontal = value;
+            _horizontal = value;
             Layout();
         }
     }
 
     public Align VerticalAlign
     {
-        get => vertical;
+        get => _vertical;
         set
         {
-            vertical = value;
+            _vertical = value;
             Layout();
         }
     }
+
+    public LayoutDirection Direction { get; set; } = LayoutDirection.Horizontal;
+    public float Padding { get; set; }
+    public float Spacing { get; set; }
 
     public override void Layout()
     {
         var count = Children.Count;
         var a_x = AbsoluteX;
         var a_y = AbsoluteY;
-        
-        if (AutoSizeSelf)
-        {
-            AutoSize(count);
-        }
+
+        if (AutoSizeSelf) AutoSize(count);
 
         var inner_width = Width - 2 * Padding;
         var inner_height = Height - 2 * Padding;
@@ -50,7 +47,7 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
         if (count < 1)
         {
             Background?.SetPosition((a_x, a_y, 0));
-            if (Background != null) 
+            if (Background != null)
                 Background.Scale = (Width, Height, 1);
             return;
         }
@@ -61,7 +58,7 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
             Layout_Vertical(count, inner_height, inner_width);
 
         Background?.SetPosition((a_x, a_y, 0));
-        if (Background != null) 
+        if (Background != null)
             Background.Scale = (Width, Height, 1);
     }
 
@@ -76,19 +73,19 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
         }
 
         if (!AutoHeight) return;
-        
+
         if (Direction == LayoutDirection.Vertical)
             Height = 2 * Padding + (count > 0 ? Children.Sum(c => c.Height) + Spacing * (count - 1) : 0);
         else
             Height = 2 * Padding + (count > 0 ? Children.Max(c => c.Height) : 0);
     }
 
-    private void Layout_Horizontal(int count, float inner_width, float inner_height)
+    private void Layout_Horizontal(int count, float innerWidth, float innerHeight)
     {
         var flex_count = Children.Count(c => c.AutoWidth);
         var total_fixed = Children.Where(c => !c.AutoWidth).Sum(c => c.Width);
         var total_spacing = Spacing * (count - 1);
-        var free_space = inner_width - total_fixed - total_spacing;
+        var free_space = innerWidth - total_fixed - total_spacing;
         var flex_size = flex_count > 0 ? free_space / flex_count : 0;
 
         foreach (var child in Children.Where(child => child.AutoWidth && child is not FlexPanel { AutoSizeSelf: true }))
@@ -96,11 +93,11 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
 
         // Recalculate total width after setting AutoWidth elements
         var total_width = Children.Sum(c => c.Width);
-        
+
         var offset = HorizontalAlign switch
         {
-            Align.Center => (inner_width - total_width - total_spacing) / 2,
-            Align.End => inner_width - total_width - total_spacing,
+            Align.Center => (innerWidth - total_width - total_spacing) / 2,
+            Align.End => innerWidth - total_width - total_spacing,
             _ => 0
         };
 
@@ -109,19 +106,19 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
             child.X = Padding + offset;
 
             if (child.AutoHeight)
-                child.Height = inner_height;
+                child.Height = innerHeight;
 
             switch (VerticalAlign)
             {
                 case Align.Center:
-                    child.Y = Padding + (inner_height - child.Height) / 2;
+                    child.Y = Padding + (innerHeight - child.Height) / 2;
                     break;
                 case Align.End:
-                    child.Y = Padding + inner_height - child.Height;
+                    child.Y = Padding + innerHeight - child.Height;
                     break;
                 case Align.Stretch:
                     child.Y = Padding;
-                    child.Height = inner_height;
+                    child.Height = innerHeight;
                     break;
                 default:
                     child.Y = Padding;
@@ -133,24 +130,25 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
         }
     }
 
-    private void Layout_Vertical(int count, float inner_height, float inner_width)
+    private void Layout_Vertical(int count, float innerHeight, float innerWidth)
     {
         var flex_count = Children.Count(c => c.AutoHeight);
         var total_fixed = Children.Where(c => !c.AutoHeight).Sum(c => c.Height);
         var total_spacing = Spacing * (count - 1);
-        var free_space = inner_height - total_fixed - total_spacing;
+        var free_space = innerHeight - total_fixed - total_spacing;
         var flex_size = flex_count > 0 ? free_space / flex_count : 0;
 
-        foreach (var child in Children.Where(child => child.AutoHeight && child is not FlexPanel { AutoSizeSelf: true }))
+        foreach (var child in Children.Where(child =>
+                     child.AutoHeight && child is not FlexPanel { AutoSizeSelf: true }))
             child.Height = flex_size;
 
         // Recalculate total height after setting AutoHeight elements
         var total_height = Children.Sum(c => c.Height);
-        
+
         var offset = VerticalAlign switch
         {
-            Align.Center => (inner_height - total_height - total_spacing) / 2,
-            Align.End => inner_height - total_height - total_spacing,
+            Align.Center => (innerHeight - total_height - total_spacing) / 2,
+            Align.End => innerHeight - total_height - total_spacing,
             _ => 0
         };
 
@@ -159,19 +157,19 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
             child.Y = Padding + offset;
 
             if (child.AutoWidth)
-                child.Width = inner_width;
+                child.Width = innerWidth;
 
             switch (HorizontalAlign)
             {
                 case Align.Center:
-                    child.X = Padding + (inner_width - child.Width) / 2;
+                    child.X = Padding + (innerWidth - child.Width) / 2;
                     break;
                 case Align.End:
-                    child.X = Padding + inner_width - child.Width;
+                    child.X = Padding + innerWidth - child.Width;
                     break;
                 case Align.Stretch:
                     child.X = Padding;
-                    child.Width = inner_width;
+                    child.Width = innerWidth;
                     break;
                 default:
                     child.X = Padding;

@@ -10,12 +10,13 @@ public class EncoderBenchmark
 {
     private PcmEncoder _encoder = null!;
     private SampleHolder? _holder;
-    private Sequence _sequence;
-
-    [Params("ThirtyDollarBenchmarks.Sequences.another.🗿")]
-    public string _sequence_location;
+    private Sequence _sequence = null!;
 
     [Params(48000, 96000, 192000, 384000)] public uint SampleRate = 48000;
+
+    [Params("ThirtyDollarBenchmarks.Sequences.another.🗿")]
+    public string SequenceLocation = null!;
+
     [Params(1, 4, 8, 16, 32, 64, 128)] public int ThreadCount = 1;
 
     private static Stream GetResource(string location)
@@ -59,7 +60,7 @@ public class EncoderBenchmark
             AddVisualEvents = false
         });
 
-        var stream = GetResource(_sequence_location);
+        var stream = GetResource(SequenceLocation);
         var reader = new StreamReader(stream);
 
         var sequence_text = reader.ReadToEnd();

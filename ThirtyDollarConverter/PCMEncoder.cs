@@ -16,11 +16,11 @@ namespace ThirtyDollarConverter;
 
 public class PcmEncoder
 {
-    private readonly uint Channels;
-    private readonly SemaphoreSlim IndexLock = new(1);
-    private readonly SampleProcessor SampleProcessor;
-    private readonly uint SampleRate;
-    private readonly EncoderSettings Settings;
+    private readonly uint _channels;
+    private readonly SemaphoreSlim _indexLock = new(1);
+    private readonly SampleProcessor _sampleProcessor;
+    private readonly uint _sampleRate;
+    private readonly EncoderSettings _settings;
 
     /// <summary>
     ///     Creates a TDW sequence encoder.
@@ -34,17 +34,17 @@ public class PcmEncoder
         Action<string>? loggerAction = null,
         Action<ulong, ulong>? indexReport = null)
     {
-        Settings = settings;
+        _settings = settings;
         Holder = samples;
-        Channels = settings.Channels;
-        SampleRate = settings.SampleRate;
+        _channels = settings.Channels;
+        _sampleRate = settings.SampleRate;
 
         Log = loggerAction ?? (_ => { });
         IndexReport = indexReport ?? ((_, _) => { });
-        SampleProcessor = new SampleProcessor(Holder.SampleList, settings, Log);
+        _sampleProcessor = new SampleProcessor(Holder.SampleList, settings, Log);
         PlacementCalculator = new PlacementCalculator(settings, Log);
 
-        switch (Channels)
+        switch (_channels)
         {
             case < 1:
                 throw new Exception("Having less than one channel is literally impossible.");
@@ -73,7 +73,7 @@ public class PcmEncoder
         {
             Sequences = enumerable.ToArray(),
             Placement = placement_array,
-            TimingSampleRate = (int)SampleRate
+            TimingSampleRate = (int)_sampleRate
         };
 
         Log("Calculated placement. Starting sample processing.");
@@ -100,7 +100,7 @@ public class PcmEncoder
         {
             Sequences = [sequence],
             Placement = placement_array,
-            TimingSampleRate = (int)SampleRate
+            TimingSampleRate = (int)_sampleRate
         };
 
         var processed_events = await GetAudioSamples(timed_events);
@@ -151,15 +151,15 @@ public class PcmEncoder
         var total_tasks = (ulong)processed_events.Length;
 
         // Distribute sample processing to different threads.
-        var task = Parallel.ForEachAsync(processed_events, async (processed_event, token) =>
+        var task = Parallel.ForEachAsync(processed_events, async (processedEvent, token) =>
         {
-            processed_event.ProcessAudioData(SampleProcessor);
-            await IndexLock.WaitAsync(token);
+            processedEvent.ProcessAudioData(_sampleProcessor);
+            await _indexLock.WaitAsync(token);
 
             finished_tasks++;
             IndexReport(finished_tasks, total_tasks);
 
-            IndexLock.Release();
+            _indexLock.Release();
         });
 
         var dictionary = new Dictionary<(string, double), ProcessedEvent>();
@@ -178,40 +178,40 @@ public class PcmEncoder
     ///     This method creates the final audio.
     /// </summary>
     /// <param name="events">The placement of each event.</param>
-    /// <param name="processed_events">The resampled sounds.</param>
-    /// <param name="cancellation_token">A token that cancels the waiting task.</param>
+    /// <param name="processedEvents">The resampled sounds.</param>
+    /// <param name="cancellationToken">A token that cancels the waiting task.</param>
     /// <returns>An AudioData object that stores the encoded audio.</returns>
     private async Task<AudioData<float>> GenerateAudioData(TimedEvents events,
-        Dictionary<(string, double), ProcessedEvent> processed_events,
-        CancellationToken? cancellation_token = null)
+        Dictionary<(string, double), ProcessedEvent> processedEvents,
+        CancellationToken? cancellationToken = null)
     {
-        var token = cancellation_token ?? CancellationToken.None;
+        var token = cancellationToken ?? CancellationToken.None;
         var last_placement = events.Placement[^1];
 
-        var big_event = processed_events.Values.MaxBy(e => e.AudioData.GetLength());
+        var big_event = processedEvents.Values.MaxBy(e => e.AudioData.GetLength());
         if (big_event == null) throw new Exception("No processed events.");
 
         var big_event_length = big_event.AudioData.GetLength();
         var length = (int)last_placement.Index + big_event_length;
-        var audio_data = AudioData<float>.WithLength(Channels, length);
+        var audio_data = AudioData<float>.WithLength(_channels, length);
 
         var mixer = new AudioMixer(audio_data);
         foreach (var sequence in events.Sequences)
         foreach (var channel in sequence.SeparatedChannels)
         {
-            var new_track = AudioData<float>.WithLength(Channels, length);
+            var new_track = AudioData<float>.WithLength(_channels, length);
             mixer.AddTrack(channel, new_track);
         }
 
         // Map channel tasks.
-        var channels = new Task[Channels];
-        for (var i = 0; i < Channels; i++)
+        var channels = new Task[_channels];
+        for (var i = 0; i < _channels; i++)
         {
             var index = i;
 
             channels[index] =
                 Task.Run(
-                    async () => { await ProcessChannel(mixer, index, events, processed_events, big_event_length); },
+                    async () => { await ProcessChannel(mixer, index, events, processedEvents, big_event_length); },
                     token);
         }
 
@@ -220,9 +220,9 @@ public class PcmEncoder
         return mixer.MixDown();
     }
 
-    public void SetMultithreadingSlices(int thread_count)
+    public void SetMultithreadingSlices(int threadCount)
     {
-        Settings.MultithreadingSlices = thread_count;
+        _settings.MultithreadingSlices = threadCount;
     }
 
     /// <summary>
@@ -231,14 +231,14 @@ public class PcmEncoder
     /// <param name="mixer">The channel you want to work on.</param>
     /// <param name="channel">The channel ID.</param>
     /// <param name="events">The calculated events.</param>
-    /// <param name="processed_events">The processed events for the sequence.</param>
-    /// <param name="biggest_event_length">The sequence's biggest event's length.</param>
+    /// <param name="processedEvents">The processed events for the sequence.</param>
+    /// <param name="biggestEventLength">The sequence's biggest event's length.</param>
     private async Task ProcessChannel(AudioMixer mixer, int channel, TimedEvents events,
-        Dictionary<(string, double), ProcessedEvent> processed_events, int biggest_event_length)
+        Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength)
     {
         var length = mixer.GetLength();
         var min_length_per_thread = Math.Min(1 << 15, length);
-        var working_threads = Settings.MultithreadingSlices;
+        var working_threads = _settings.MultithreadingSlices;
 
         var min_length_for_working_threads = min_length_per_thread * working_threads;
         while (min_length_for_working_threads > length && working_threads > 1)
@@ -263,7 +263,7 @@ public class PcmEncoder
             if (start > length) return ValueTask.CompletedTask;
 
             var start_time = Stopwatch.GetTimestamp();
-            ProcessChunk(start, end, mixer, channel, events, processed_events, biggest_event_length);
+            ProcessChunk(start, end, mixer, channel, events, processedEvents, biggestEventLength);
             var delta = Stopwatch.GetElapsedTime(start_time);
             Log(
                 $@"Processed chunk i: {i} in {delta:ss\.ffff} s. Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
@@ -273,7 +273,7 @@ public class PcmEncoder
     }
 
     private void ProcessChunk(int start, int end, AudioMixer mixer, int channel,
-        TimedEvents events, Dictionary<(string, double), ProcessedEvent> processed_events, int biggest_event_length)
+        TimedEvents events, Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength)
     {
         var placement = events.Placement.AsSpan();
 
@@ -305,7 +305,7 @@ public class PcmEncoder
 
             // get current event start.
             var current_start = (int)current.Index;
-            if (current_start < start - biggest_event_length) continue;
+            if (current_start < start - biggestEventLength) continue;
             if (current_start >= end) break;
 
             // put pan variable here to be used later
@@ -342,7 +342,7 @@ public class PcmEncoder
             }
 
             // search for processed sample
-            if (!processed_events.TryGetValue((event_name, event_value), out var processed_event)) continue;
+            if (!processedEvents.TryGetValue((event_name, event_value), out var processed_event)) continue;
 
             // get its length
             var current_length = processed_event.AudioData.GetLength();
@@ -395,17 +395,17 @@ public class PcmEncoder
         }
     }
 
-    private void HandleCut(int start, int end, int current_start, Span<float> mix_slice)
+    private void HandleCut(int start, int end, int currentStart, Span<float> mixSlice)
     {
-        var WANTED_ZERO_SAMPLES = 4096 * SampleRate / 48000;
-        var norm_start = current_start - start;
+        var wanted_zero_samples = 4096 * _sampleRate / 48000;
+        var norm_start = currentStart - start;
         var norm_end = end - start;
 
         var zero_samples = 0;
         var zero_index = norm_end;
         for (var i = norm_start; i < norm_end; i++)
         {
-            if (zero_samples >= WANTED_ZERO_SAMPLES)
+            if (zero_samples >= wanted_zero_samples)
             {
                 zero_index = i;
                 break;
@@ -413,12 +413,12 @@ public class PcmEncoder
 
             zero_samples++;
 
-            if (i >= 0 && mix_slice[i] == 0f) continue;
+            if (i >= 0 && mixSlice[i] == 0f) continue;
             zero_samples = 0;
         }
 
-        var cut_fade_ms = (int)Settings.CutFadeLengthMs;
-        var cut_fade_length = (int)(Settings.SampleRate / 1000) * cut_fade_ms;
+        var cut_fade_ms = (int)_settings.CutFadeLengthMs;
+        var cut_fade_length = (int)(_settings.SampleRate / 1000) * cut_fade_ms;
         var cut_fade_end = norm_start + cut_fade_length;
 
         int cut_i;
@@ -428,13 +428,13 @@ public class PcmEncoder
             var norm_i = cut_fade_end - cut_i;
 
             var delta = (float)norm_i / cut_fade_length;
-            mix_slice[cut_i] *= delta;
+            mixSlice[cut_i] *= delta;
         }
 
         for (var i = cut_i; i < zero_index; i++)
         {
             if (i < 0) continue;
-            mix_slice[i] = 0f;
+            mixSlice[i] = 0f;
         }
     }
 
@@ -448,14 +448,14 @@ public class PcmEncoder
         var stream = File.Open(location, FileMode.Create);
         WriteAsWavFile(stream, data);
     }
-    
+
     public void WriteAsWavFile(Stream stream, AudioData<float> data)
     {
         var samples = data.Samples;
         for (var i = 0; i < samples.Length; i++)
         {
             var arr = samples[i];
-            if (Settings.EnableNormalization)
+            if (_settings.EnableNormalization)
                 arr.NormalizeVolume();
             samples[i] = arr.TrimEnd();
         }
@@ -468,7 +468,7 @@ public class PcmEncoder
         for (var i = 0; i < maxLength; i++)
         {
             if (i % every_n_report == 0) IndexReport((ulong)i, (ulong)maxLength);
-            for (var j = 0; j < Channels; j++)
+            for (var j = 0; j < _channels; j++)
                 writer.Write(samples[j].Length > i ? samples[j][i] : 0f);
         }
 
@@ -482,8 +482,8 @@ public class PcmEncoder
     ///     This method adds the RIFF WAVE header to an empty file.
     /// </summary>
     /// <param name="writer">An open BinaryWriter</param>
-    /// <param name="data_length">Length of the audio data.</param>
-    private void AddWavHeader<T>(BinaryWriter writer, int data_length) where T : struct
+    /// <param name="dataLength">Length of the audio data.</param>
+    private void AddWavHeader<T>(BinaryWriter writer, int dataLength) where T : struct
     {
         ReadOnlySpan<char> riff_header = ['R', 'I', 'F', 'F'];
         ReadOnlySpan<char> wave_header = ['W', 'A', 'V', 'E'];
@@ -492,7 +492,7 @@ public class PcmEncoder
 
         var is_float = typeof(T) == typeof(float) || typeof(T) == typeof(double);
         var byte_size = Marshal.SizeOf<T>();
-        var length = data_length * (int)Channels;
+        var length = dataLength * (int)_channels;
         writer.Write(riff_header); // RIFF Chunk Descriptor
         writer.Write(4 + 8 + 16 + 8 + length * 2); // Sub Chunk 1 Size
         //Chunk Size 4 bytes.
@@ -501,10 +501,10 @@ public class PcmEncoder
         writer.Write(fmt_header);
         writer.Write(16); // Sub Chunk 1 Size
         writer.Write((short)(is_float ? 3 : 1)); // Audio Format 1 = PCM / 3 = Float
-        writer.Write((short)Channels); // Audio Channels
-        writer.Write((int)SampleRate); // Sample Rate
-        writer.Write((int)(SampleRate * Channels * byte_size /* Bytes */)); // Byte Rate
-        writer.Write((short)(Channels * byte_size)); // Block Align
+        writer.Write((short)_channels); // Audio Channels
+        writer.Write((int)_sampleRate); // Sample Rate
+        writer.Write((int)(_sampleRate * _channels * byte_size /* Bytes */)); // Byte Rate
+        writer.Write((short)(_channels * byte_size)); // Block Align
         writer.Write((short)(byte_size * 8)); // Bits per Sample
         // data sub-chunk
         writer.Write(data_header);

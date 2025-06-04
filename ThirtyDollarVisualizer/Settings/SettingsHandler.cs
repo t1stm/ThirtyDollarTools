@@ -6,23 +6,23 @@ public static class SettingsHandler
 {
     public static readonly VisualizerSettings Settings = new(ChangeHandler);
     public static bool Loaded;
-    private static string? FileLocation;
+    private static string? _fileLocation;
 
     /// <summary>
     ///     Loads the settings file.
     /// </summary>
-    /// <param name="file_location">Where the file is stored.</param>
-    public static void Load(string file_location)
+    /// <param name="fileLocation">Where the file is stored.</param>
+    public static void Load(string fileLocation)
     {
-        FileLocation = file_location;
-        if (!File.Exists(file_location))
+        _fileLocation = fileLocation;
+        if (!File.Exists(fileLocation))
         {
-            Save(file_location);
+            Save(fileLocation);
             Loaded = true;
             return;
         }
 
-        var text = File.ReadAllText(file_location);
+        var text = File.ReadAllText(fileLocation);
         var lines = text.Split(Environment.NewLine);
 
         var type = Settings.GetType();
@@ -80,16 +80,16 @@ public static class SettingsHandler
     /// </summary>
     public static void Save()
     {
-        if (FileLocation != null) Save(FileLocation);
+        if (_fileLocation != null) Save(_fileLocation);
     }
 
     /// <summary>
     ///     Saves the settings to a file with the given location.
     /// </summary>
-    /// <param name="file_location">Where the file will be stored.</param>
-    public static void Save(string file_location)
+    /// <param name="fileLocation">Where the file will be stored.</param>
+    public static void Save(string fileLocation)
     {
-        FileLocation = file_location;
+        _fileLocation = fileLocation;
 
         var type = Settings.GetType();
         var properties = type.GetProperties();
@@ -107,7 +107,7 @@ public static class SettingsHandler
             builder.AppendLine($"{name} = {value}");
         }
 
-        File.WriteAllText(FileLocation, builder.ToString());
+        File.WriteAllText(_fileLocation, builder.ToString());
     }
 
     /// <summary>

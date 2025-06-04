@@ -13,13 +13,13 @@ public enum DownloaderMode
     Images
 }
 
-public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode downloadMode = DownloaderMode.Samples)
+public class DownloaderViewModel(SampleHolder sampleHolder, DownloaderMode downloadMode = DownloaderMode.Samples)
     : ViewModelBase
 {
+    private bool _downloadRunning;
     private string? _log = $"Logs go here...{Environment.NewLine}";
-    private bool download_running;
+    private int _progressBarValue;
     public DownloaderMode DownloadMode = downloadMode;
-    private int progress_bar_value;
     public Action? OnFinishDownloading { get; init; }
 
     public string? Log
@@ -30,8 +30,8 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
 
     public int ProgressBarValue
     {
-        get => progress_bar_value;
-        set => this.RaiseAndSetIfChanged(ref progress_bar_value, value);
+        get => _progressBarValue;
+        set => this.RaiseAndSetIfChanged(ref _progressBarValue, value);
     }
 
     public string DownloadText => DownloadMode switch
@@ -61,9 +61,9 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
 
     private async Task DownloadSamplesTask()
     {
-        sample_holder.DownloadUpdate = DownloadMessageHandler;
-        await sample_holder.DownloadSamples();
-        sample_holder.LoadSamplesIntoMemory();
+        sampleHolder.DownloadUpdate = DownloadMessageHandler;
+        await sampleHolder.DownloadSamples();
+        sampleHolder.LoadSamplesIntoMemory();
 
         CreateLog("Loaded all samples into memory.");
     }
@@ -71,19 +71,19 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
     private async Task DownloadImagesTask()
     {
         var current = 0;
-        var total_length = sample_holder.SampleList.Count + SampleHolder.ActionsArray.Length;
+        var total_length = sampleHolder.SampleList.Count + SampleHolder.ActionsArray.Length;
 
-        if (!Directory.Exists(sample_holder.ImagesLocation)) Directory.CreateDirectory(sample_holder.ImagesLocation);
+        if (!Directory.Exists(sampleHolder.ImagesLocation)) Directory.CreateDirectory(sampleHolder.ImagesLocation);
 
         var http_client = new HttpClient();
 
-        foreach (var (sound, _) in sample_holder.SampleList)
+        foreach (var (sound, _) in sampleHolder.SampleList)
         {
             var filename = sound.Filename;
-            const string file_extension = "png";
+            const string fileExtension = "png";
 
-            var download_location = $"{sample_holder.ImagesLocation}/{filename}.{file_extension}";
-            DownloadMessageHandler($"{filename}.{file_extension}", current, total_length);
+            var download_location = $"{sampleHolder.ImagesLocation}/{filename}.{fileExtension}";
+            DownloadMessageHandler($"{filename}.{fileExtension}", current, total_length);
 
             if (File.Exists(download_location))
             {
@@ -91,7 +91,7 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
                 continue;
             }
 
-            var stream = await http_client.GetStreamAsync(sound.Icon_URL);
+            var stream = await http_client.GetStreamAsync(sound.IconUrl);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
             await stream.CopyToAsync(fs);
 
@@ -102,7 +102,7 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
         foreach (var action in SampleHolder.ActionsArray)
         {
             var file_name = $"{action}";
-            var download_location = $"{sample_holder.ImagesLocation}/{file_name}";
+            var download_location = $"{sampleHolder.ImagesLocation}/{file_name}";
 
             DownloadMessageHandler(file_name, current, total_length);
             if (File.Exists(download_location))
@@ -123,9 +123,9 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
 
     public async void Download_Button_Handle()
     {
-        if (download_running) return;
+        if (_downloadRunning) return;
 
-        download_running = true;
+        _downloadRunning = true;
 
         switch (DownloadMode)
         {
@@ -138,7 +138,7 @@ public class DownloaderViewModel(SampleHolder sample_holder, DownloaderMode down
                 break;
         }
 
-        download_running = false;
+        _downloadRunning = false;
         OnFinishDownloading?.Invoke();
     }
 }

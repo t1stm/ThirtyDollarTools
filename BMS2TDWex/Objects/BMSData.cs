@@ -1,6 +1,6 @@
 namespace BMS2TDW.Objects;
 
-public struct BMSData()
+public struct BmsData()
 {
-    public readonly Dictionary<int, BMSMeasure> Measures = new();
+    public readonly Dictionary<int, BmsMeasure> Measures = new();
 }

@@ -9,15 +9,17 @@ using ThirtyDollarEncoder.Wave;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Base_Objects;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Settings;
+using ThirtyDollarVisualizer.Base_Objects.Text;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 using ThirtyDollarVisualizer.Helpers.Color;
 using ThirtyDollarVisualizer.Helpers.Decoders;
 using ThirtyDollarVisualizer.Helpers.Miscellaneous;
 using ThirtyDollarVisualizer.Helpers.Positioning;
 using ThirtyDollarVisualizer.Objects;
-using ThirtyDollarVisualizer.Objects.Planes;
-using ThirtyDollarVisualizer.Objects.Settings;
-using ThirtyDollarVisualizer.Objects.Text;
-using ThirtyDollarVisualizer.Objects.Textures.Static;
+using ThirtyDollarVisualizer.Objects.Playfield;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 using ThirtyDollarVisualizer.Settings;
 
@@ -25,167 +27,157 @@ namespace ThirtyDollarVisualizer.Scenes;
 
 public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
-    #region Stopwatches
+    private readonly DollarStoreCamera _camera;
+    private readonly FpsCounter _fpsCounter = new();
 
-    private readonly Stopwatch _file_update_stopwatch;
-    private readonly Stopwatch _seek_delay_stopwatch;
+    private readonly Layout _overlay;
 
-    #endregion
+    private readonly VisualizerSettings _settings;
+    private readonly List<Renderable> _startObjects = [];
+    private readonly DollarStoreCamera _staticCamera;
+    private readonly DollarStoreCamera _tempCamera;
+    private readonly DollarStoreCamera _textCamera;
+    private readonly CancellationTokenSource _tokenSource = new();
 
-    private readonly Layout Overlay;
+    private BackgroundPlane _backgroundPlane = null!;
+    private BackingAudio? _backingAudio;
+    private int _currentSequence;
+
+
+    private SoundRenderable? _dragNDrop;
+    private ColoredPlane _flashOverlay = null!;
     private CachedDynamicText? _greeting;
-
-    private readonly DollarStoreCamera Camera;
-    private readonly FpsCounter FpsCounter = new();
-
-    private readonly VisualizerSettings Settings;
-    private readonly List<Renderable> start_objects = [];
-    private readonly DollarStoreCamera StaticCamera;
-    private readonly DollarStoreCamera TempCamera;
-    private readonly DollarStoreCamera TextCamera;
-    private readonly CancellationTokenSource TokenSource = new();
-
-
-    private SoundRenderable? _drag_n_drop;
-    private ulong _update_id;
-
-    private BackgroundPlane BackgroundPlane = null!;
-    private BackingAudio? BackingAudio;
-    private int CurrentSequence;
-    private ColoredPlane FlashOverlay = null!;
-    private int Height;
+    private int _height;
 
     // These are needed for some events, because I don't want to pollute the placement events. They're polluted enough as they are.
-    private float LastBPM = 300f;
-    private Manager Manager = null!;
+    private float _lastBpm = 300f;
+    private Manager _manager = null!;
 
-    private Memory<Playfield> Playfields = Memory<Playfield>.Empty;
+    private Memory<Playfield> _playfields = Memory<Playfield>.Empty;
 
-    private bool Tab;
-    private int Width;
-
-    private static Vector4 DefaultBackgroundColor => new(0.21f, 0.22f, 0.24f, 1f);
-
-    private CancellationToken Token => TokenSource.Token;
-    public int RenderableSize => Settings.EventSize;
-    public int MarginBetweenRenderables => Settings.EventMargin;
-    public int ElementsOnSingleLine => Settings.LineAmount;
-    public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDW_Like;
-    public string? BackgroundVertexShaderLocation { get; init; }
-    public string? BackgroundFragmentShaderLocation { get; init; }
-    public float Scale { get; set; } = 1f;
-    public string? Greeting { get; set; }
-    private double SequenceVolume { get; set; }
+    private bool _tab;
+    private ulong _updateId;
+    private int _width;
 
     /// <summary>
     ///     Creates a TDW sequence visualizer.
     /// </summary>
     /// <param name="width">The width of the visualizer.</param>
     /// <param name="height">The height of the visualizer.</param>
-    /// <param name="sequence_locations">The location of the sequence.</param>
+    /// <param name="sequenceLocations">The location of the sequence.</param>
     /// <param name="settings">The visualizer settings object this uses.</param>
-    /// <param name="audio_context">The audio context the application will use.</param>
-    public ThirtyDollarApplication(int width, int height, IEnumerable<string?> sequence_locations,
+    /// <param name="audioContext">The audio context the application will use.</param>
+    public ThirtyDollarApplication(int width, int height, IEnumerable<string?> sequenceLocations,
         VisualizerSettings settings,
-        AudioContext? audio_context = null) : base(audio_context)
+        AudioContext? audioContext = null) : base(audioContext)
     {
-        Overlay = new Layout(width, height);
+        _overlay = new Layout(width, height);
 
-        _file_update_stopwatch = new Stopwatch();
-        _seek_delay_stopwatch = new Stopwatch();
+        _fileUpdateStopwatch = new Stopwatch();
+        _seekDelayStopwatch = new Stopwatch();
 
-        Width = width;
-        Height = height;
-        Sequences = GetSequenceInfos(sequence_locations);
-        Settings = settings;
+        _width = width;
+        _height = height;
+        Sequences = GetSequenceInfos(sequenceLocations);
+        _settings = settings;
 
-        TempCamera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height), settings.ScrollSpeed);
-        Camera = new DollarStoreCamera((0, -300f, 0), new Vector2i(Width, Height), settings.ScrollSpeed);
-        StaticCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height), settings.ScrollSpeed);
-        TextCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(Width, Height), settings.ScrollSpeed);
+        _tempCamera = new DollarStoreCamera((0, -300f, 0), new Vector2i(_width, _height), settings.ScrollSpeed);
+        _camera = new DollarStoreCamera((0, -300f, 0), new Vector2i(_width, _height), settings.ScrollSpeed);
+        _staticCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(_width, _height), settings.ScrollSpeed);
+        _textCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(_width, _height), settings.ScrollSpeed);
 
-        _seek_delay_stopwatch.Start();
-        _file_update_stopwatch.Start();
+        _seekDelayStopwatch.Start();
+        _fileUpdateStopwatch.Start();
 
-        Camera.OnZoom = zoom =>
+        _camera.OnZoom = zoom =>
         {
-            UpdateStaticRenderables(Width, Height, zoom);
+            UpdateStaticRenderables(_width, _height, zoom);
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
-        
-        const string version_string = "1.2.0 (Insider Build)";
-        Overlay.Add<StaticText>("version",
+
+        const string versionString = "1.2.0 (Insider Build)";
+        _overlay.Add<StaticText>("version",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
                 text.FontSizePx = 14f * Scale;
                 text.Value = $"""
-                               Don't use the audio generated by this
-                               visualizer for a video, as it isn't
-                               accurate at the moment. Use the
-                               Thirty Dollar Converter instead.
+                              Don't use the audio generated by this
+                              visualizer for a video, as it isn't
+                              accurate at the moment. Use the
+                              Thirty Dollar Converter instead.
 
-                               Check regularly for updates at:
-                               https://github.com/t1stm/ThirtyDollarTools
+                              Check regularly for updates at:
+                              https://github.com/t1stm/ThirtyDollarTools
 
-                               Current Version: {version_string}
-                               """;
+                              Current Version: {versionString}
+                              """;
             },
-            (text, _, h) =>
-            {
-                text.SetPosition((10, h, 0), PositionAlign.BottomLeft);
-            });
-        
-        Overlay.Add<StaticText>("controls",
+            (text, _, h) => { text.SetPosition((10, h, 0), PositionAlign.BottomLeft); });
+
+        _overlay.Add<StaticText>("controls",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
                 text.FontSizePx = 14f * Scale;
                 text.Value = """
-                              All controls:
+                             All controls:
 
-                              Scroll -> Scroll up / down.
-                              Ctrl+Scroll -> Change the zoom.
-                              Up / Down -> Control the application's volume.
-                              Left / Right -> Seek the sequence.
-                              R -> Reload the current sequence.
-                              C -> Change the camera modes.
-                              F -> Toggle between fullscreen and windowed.
-                              Space -> Pause / resume the sequence.
-                              Escape -> Close the program.
-                              0-9 -> Seek to bookmark.
-                              Ctrl+0-9 -> Set bookmark to current time.
-                              Ctrl+Shift+0-9 -> Clear given bookmark time.
-                              Ctrl+D -> Show debugging info.
-                              Page Up/Down -> Seek to previous/next sequence.
+                             Scroll -> Scroll up / down.
+                             Ctrl+Scroll -> Change the zoom.
+                             Up / Down -> Control the application's volume.
+                             Left / Right -> Seek the sequence.
+                             R -> Reload the current sequence.
+                             C -> Change the camera modes.
+                             F -> Toggle between fullscreen and windowed.
+                             Space -> Pause / resume the sequence.
+                             Escape -> Close the program.
+                             0-9 -> Seek to bookmark.
+                             Ctrl+0-9 -> Set bookmark to current time.
+                             Ctrl+Shift+0-9 -> Clear given bookmark time.
+                             Ctrl+D -> Show debugging info.
+                             Page Up/Down -> Seek to previous/next sequence.
 
-                              """;
+                             """;
                 text.SetPosition((10, 100, 0));
             });
 
-        Overlay.Add<BasicDynamicText>("debug",
+        _overlay.Add<BasicDynamicText>("debug",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
                 text.FontSizePx = 14f * Scale;
                 text.SetPosition((10, 30, 0));
             });
-        
-        Overlay.Add<CachedDynamicText>("log",
+
+        _overlay.Add<CachedDynamicText>("log",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
                 text.FontSizePx = 48f * Scale;
                 text.SetPosition((20, 20, 0));
             });
-        
-        Overlay.Add<CachedDynamicText>("update",
+
+        _overlay.Add<CachedDynamicText>("update",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
                 text.SetPosition((10, 10, 0));
             });
     }
+
+    private static Vector4 DefaultBackgroundColor => new(0.21f, 0.22f, 0.24f, 1f);
+
+    private CancellationToken Token => _tokenSource.Token;
+    public int RenderableSize => _settings.EventSize;
+    public int MarginBetweenRenderables => _settings.EventMargin;
+    public int ElementsOnSingleLine => _settings.LineAmount;
+    public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDWLike;
+    public string? BackgroundVertexShaderLocation { get; init; }
+    public string? BackgroundFragmentShaderLocation { get; init; }
+    public float Scale { get; set; } = 1f;
+    public string? Greeting { get; set; }
+    private double SequenceVolume { get; set; }
 
     /// <summary>
     ///     This method loads the sequence, textures and sounds.
@@ -194,30 +186,30 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public void Init(Manager manager)
     {
         GetSampleHolder().GetAwaiter();
-        start_objects.Clear();
+        _startObjects.Clear();
 
-        Manager = manager;
+        _manager = manager;
 
         Log("Loaded sequence and placement.");
 
         Shader? optional_shader = null;
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
-            optional_shader = ShaderPool.GetOrLoad("bg_optional_shader", 
+            optional_shader = ShaderPool.GetOrLoad("bg_optional_shader",
                 () => Shader.NewVertexFragment(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation));
 
-        BackgroundPlane = new BackgroundPlane(DefaultBackgroundColor)
+        _backgroundPlane = new BackgroundPlane(DefaultBackgroundColor)
         {
-            Position = new Vector3(-Width, -Height, -1f),
-            Scale = new Vector3(Width * 2, Height * 2, -1f)
+            Position = new Vector3(-_width, -_height, -1f),
+            Scale = new Vector3(_width * 2, _height * 2, -1f)
         };
 
         if (optional_shader is not null)
-            BackgroundPlane.Shader = optional_shader;
+            _backgroundPlane.Shader = optional_shader;
 
-        FlashOverlay = new ColoredPlane
+        _flashOverlay = new ColoredPlane
         {
-            Position = new Vector3(-Width, -Height, 1),
-            Scale = new Vector3(Width * 2, Height * 2, 1),
+            Position = new Vector3(-_width, -_height, 1),
+            Scale = new Vector3(_width * 2, _height * 2, 1),
             Color = new Vector4(1f, 1f, 1f, 0f)
         };
 
@@ -229,20 +221,20 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             FontStyle = FontStyle.Bold,
             FontSizePx = 36f * Scale,
             Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
-        }.WithPosition((Width / 2f, -200f, 0.25f), PositionAlign.Center);
+        }.WithPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
 
-        UpdateStaticRenderables(Width, Height, 1);
+        UpdateStaticRenderables(_width, _height, 1);
         Log = str => SetStatusMessage(str, 3500);
 
-        if (_drag_n_drop == null)
+        if (_dragNDrop == null)
         {
             var dnd_texture = new FontTexture(greeting_font, "Drop files on the window to start.");
-            _drag_n_drop = new SoundRenderable(dnd_texture,
-                new Vector3(Width / 2f - dnd_texture.Width / 2f, 0, 0.25f),
+            _dragNDrop = new SoundRenderable(dnd_texture,
+                new Vector3(_width / 2f - dnd_texture.Width / 2f, 0, 0.25f),
                 new Vector2(dnd_texture.Width, dnd_texture.Height));
 
-            start_objects.Add(_drag_n_drop);
-            _drag_n_drop.UpdateModel(false);
+            _startObjects.Add(_dragNDrop);
+            _dragNDrop.UpdateModel(false);
         }
 
         if (Sequences.Length < 1) return;
@@ -263,27 +255,27 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public void Resize(int w, int h)
     {
         var resize = new Vector2i(w, h);
-        TextCamera.Viewport = StaticCamera.Viewport = Camera.Viewport = resize;
-        
-        Camera.UpdateMatrix();
-        StaticCamera.UpdateMatrix();
-        TextCamera.UpdateMatrix();
+        _textCamera.Viewport = _staticCamera.Viewport = _camera.Viewport = resize;
 
-        foreach (var r in start_objects)
+        _camera.UpdateMatrix();
+        _staticCamera.UpdateMatrix();
+        _textCamera.UpdateMatrix();
+
+        foreach (var r in _startObjects)
         {
             var pos = r.Position;
-            var delta_x = (Width - w) / 2f;
+            var delta_x = (_width - w) / 2f;
 
             pos -= delta_x * Vector3.UnitX;
             r.SetPosition(pos);
         }
 
-        _greeting?.SetPosition(_greeting.Position - (Width - w) / 2f * Vector3.UnitX);
-        Overlay.Resize(w, h);
-        UpdateStaticRenderables(w, h, Camera.GetRenderScale());
+        _greeting?.SetPosition(_greeting.Position - (_width - w) / 2f * Vector3.UnitX);
+        _overlay.Resize(w, h);
+        UpdateStaticRenderables(w, h, _camera.GetRenderScale());
 
-        Width = w;
-        Height = h;
+        _width = w;
+        _height = h;
     }
 
     public async void Start()
@@ -305,38 +297,38 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Manager.CheckErrors();
 
         // get static values from current camera, for this frame
-        var camera = TempCamera;
-        camera.CopyFrom(Camera);
+        var camera = _tempCamera;
+        camera.CopyFrom(_camera);
 
         // render background
-        BackgroundPlane.Render(StaticCamera);
+        _backgroundPlane.Render(_staticCamera);
 
         // renders the flash overlay
-        FlashOverlay.Render(StaticCamera);
+        _flashOverlay.Render(_staticCamera);
 
         // render the greeting
         _greeting?.Render(camera);
 
         var clamped_scale = Math.Min(camera.GetRenderScale(), 1f);
-        var width_scale = Width / clamped_scale - Width;
+        var width_scale = _width / clamped_scale - _width;
         var camera_x = camera.Position.X - width_scale;
         var camera_y = camera.Position.Y;
-        var camera_xw = camera_x + Width + width_scale;
-        var camera_yh = camera_y + Height;
+        var camera_xw = camera_x + _width + width_scale;
+        var camera_yh = camera_y + _height;
 
         // render playfields
-        if (Playfields.Length > 0)
+        if (_playfields.Length > 0)
         {
-            var current_playfield = Playfields.Span[CurrentSequence];
-            current_playfield.Render(camera, camera.GetRenderScale(), (float)Manager.UpdateTime);
-            current_playfield.DisplayCenter = !Tab;
+            var current_playfield = _playfields.Span[_currentSequence];
+            current_playfield.Render(camera, camera.GetRenderScale(), (float)_manager.UpdateTime);
+            current_playfield.DisplayCenter = !_tab;
         }
 
         // renders all start objects, when visible
-        foreach (var renderable in start_objects) RenderRenderable(renderable);
+        foreach (var renderable in _startObjects) RenderRenderable(renderable);
 
         // renders the static layout
-        Overlay.Render(TextCamera);
+        _overlay.Render(_textCamera);
         return;
 
         // inline method that is called in the renderer
@@ -363,32 +355,32 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     public void Update()
     {
         // check if one of the sequences has been updated, and handle it
-        if (_file_update_stopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
+        if (_fileUpdateStopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
-        var last_frame_time = (float)Manager.UpdateTime;
+        var last_frame_time = (float)_manager.UpdateTime;
 
         // spawns the camera update thread
-        Camera.Update(last_frame_time);
+        _camera.Update(last_frame_time);
 
         // updates the background's transitions
-        BackgroundPlane.Update();
+        _backgroundPlane.Update();
 
         // sets debug values if debugging is enabled.
         RunDebugUpdate();
 
         // checks if there is a backing audio
-        if (BackingAudio is null) return;
+        if (_backingAudio is null) return;
 
         // syncs the backing audio to the current sequence time
         var stopwatch = SequencePlayer.GetTimingStopwatch();
-        BackingAudio.UpdatePlayState(stopwatch.IsRunning);
-        BackingAudio.SyncTime(stopwatch.Elapsed);
+        _backingAudio.UpdatePlayState(stopwatch.IsRunning);
+        _backingAudio.SyncTime(stopwatch.Elapsed);
     }
 
     public void Close()
     {
         SequencePlayer.Die();
-        Camera.Die();
+        _camera.Die();
     }
 
     public void FileDrop(string?[] locations)
@@ -410,25 +402,25 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         FileDrop(locations, true);
     }
 
-    public void Mouse(MouseState mouse_state, KeyboardState keyboard_state)
+    public void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
         // gets scroll
-        var scroll = mouse_state.ScrollDelta;
+        var scroll = mouseState.ScrollDelta;
         if (scroll == Vector2.Zero) return;
 
         var new_delta = Vector3.UnitY * (scroll.Y * 100f);
 
         // if control is pressed handle zoom
-        if (keyboard_state.IsKeyDown(Keys.LeftControl) || keyboard_state.IsKeyDown(Keys.RightControl))
-            Camera.ZoomStep(scroll.Y);
+        if (keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl))
+            _camera.ZoomStep(scroll.Y);
         // otherwise scrolls the camera
         else
-            Camera.ScrollDelta(new_delta);
+            _camera.ScrollDelta(new_delta);
     }
 
     public async void Keyboard(KeyboardState state)
     {
-        const int seek_length = 1000;
+        const int seekLength = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
 
         // extract modifier buttons
@@ -459,19 +451,19 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var old_camera = CameraFollowMode;
         CameraFollowMode = state.IsKeyPressed(Keys.C) switch
         {
-            true when CameraFollowMode is CameraFollowMode.None => CameraFollowMode.Current_Line,
-            true when CameraFollowMode is CameraFollowMode.Current_Line => CameraFollowMode.TDW_Like,
-            true when CameraFollowMode is CameraFollowMode.TDW_Like => CameraFollowMode.No_Animation_Current_Line,
-            true when CameraFollowMode is CameraFollowMode.No_Animation_Current_Line => CameraFollowMode
-                .No_Animation_TDW,
-            true when CameraFollowMode is CameraFollowMode.No_Animation_TDW => CameraFollowMode.None,
+            true when CameraFollowMode is CameraFollowMode.None => CameraFollowMode.CurrentLine,
+            true when CameraFollowMode is CameraFollowMode.CurrentLine => CameraFollowMode.TDWLike,
+            true when CameraFollowMode is CameraFollowMode.TDWLike => CameraFollowMode.NoAnimationCurrentLine,
+            true when CameraFollowMode is CameraFollowMode.NoAnimationCurrentLine => CameraFollowMode
+                .NoAnimationTDW,
+            true when CameraFollowMode is CameraFollowMode.NoAnimationTDW => CameraFollowMode.None,
             _ => CameraFollowMode
         };
 
-        if (state.IsKeyPressed(Keys.Tab)) Tab = !Tab;
+        if (state.IsKeyPressed(Keys.Tab)) _tab = !_tab;
 
         // toggle fullscreen
-        if (state.IsKeyPressed(Keys.F)) Manager.ToggleFullscreen();
+        if (state.IsKeyPressed(Keys.F)) _manager.ToggleFullscreen();
 
         // bookmark handlers
         switch (left_control)
@@ -501,19 +493,19 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
                 {
                     RestartSeekTimer();
-                    Camera.ZoomStep(+1);
+                    _camera.ZoomStep(+1);
                 }
 
                 if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
                 {
                     RestartSeekTimer();
-                    Camera.ZoomStep(-1);
+                    _camera.ZoomStep(-1);
                 }
 
                 if (state.IsKeyPressed(Keys.D))
                 {
                     Debug = !Debug;
-                    Overlay.Get<TextRenderable>("debug").IsVisible = Debug;
+                    _overlay.Get<TextRenderable>("debug").IsVisible = Debug;
                     SetStatusMessage(Debug switch
                     {
                         true => "[Debug]: Enabled",
@@ -546,7 +538,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (state.IsKeyDown(Keys.Left) && IsSeekTimeoutPassed())
         {
             RestartSeekTimer();
-            var seek = seek_length;
+            var seek = seekLength;
             if (shift)
             {
                 seek /= 10;
@@ -563,7 +555,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (state.IsKeyDown(Keys.Right) && IsSeekTimeoutPassed())
         {
             RestartSeekTimer();
-            var seek = seek_length;
+            var seek = seekLength;
             if (shift)
             {
                 seek /= 10;
@@ -596,7 +588,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (state.IsKeyDown(Keys.PageUp) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
         {
             RestartSeekTimer();
-            var requested_sequence = Math.Clamp(CurrentSequence - 2, -1, SequenceIndices.Ends.Length - 1);
+            var requested_sequence = Math.Clamp(_currentSequence - 2, -1, SequenceIndices.Ends.Length - 1);
             if (requested_sequence == -1)
             {
                 await SequencePlayer.Seek(0);
@@ -615,7 +607,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (state.IsKeyDown(Keys.PageDown) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
         {
             RestartSeekTimer();
-            var requested_sequence = Math.Clamp(CurrentSequence, 0, SequenceIndices.Ends.Length - 1);
+            var requested_sequence = Math.Clamp(_currentSequence, 0, SequenceIndices.Ends.Length - 1);
             var (index, _) = SequenceIndices.Ends[requested_sequence];
 
             await SequencePlayer.Seek(SequencePlayer.GetTimeFromIndex(index));
@@ -632,9 +624,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             return;
         }
 
-        Camera.ScrollTo((0, -300, 0));
+        _camera.ScrollTo((0, -300, 0));
         await SequencePlayer.Seek(0);
-        BackgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.16f);
+        _backgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.16f);
         if (shift) SequencePlayer.GetTimingStopwatch().Stop();
         ResetAllAnimations();
     }
@@ -642,22 +634,22 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <summary>
     ///     Call this method when there is a change to the objects of a given sequence.
     /// </summary>
-    /// <param name="sequence_index">The changed sequence's index.</param>
-    public void HandleSequenceChange(int sequence_index)
+    /// <param name="sequenceIndex">The changed sequence's index.</param>
+    public void HandleSequenceChange(int sequenceIndex)
     {
         if (TimedEvents.Placement.Length <= 1) return;
-        var old_sequence = CurrentSequence;
-        CurrentSequence = sequence_index;
+        var old_sequence = _currentSequence;
+        _currentSequence = sequenceIndex;
 
-        if (old_sequence != CurrentSequence)
+        if (old_sequence != _currentSequence)
         {
             // reset debugging values to their default ones
             SequenceVolume = 100d;
-            LastBPM = 300;
+            _lastBpm = 300;
         }
 
-        if (old_sequence >= CurrentSequence) return;
-        Camera.SetPosition((0, -300, 0));
+        if (old_sequence >= _currentSequence) return;
+        _camera.SetPosition((0, -300, 0));
 
         // values for the loop below
         var current_placement = SequencePlayer.PlacementIndex;
@@ -675,7 +667,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         // changes the background color to the default one if there isn't a color event in the next 500ms
-        BackgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.33f);
+        _backgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.33f);
     }
 
     /// <summary>
@@ -710,17 +702,17 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     protected override async Task HandleAfterSequenceLoad(TimedEvents events)
     {
-        CurrentSequence = 0;
-        foreach (var renderable in start_objects) renderable.IsVisible = false;
+        _currentSequence = 0;
+        foreach (var renderable in _startObjects) renderable.IsVisible = false;
 
-        var controls = Overlay.Get<TextRenderable>("controls");
-        var version = Overlay.Get<TextRenderable>("version");
-        
+        var controls = _overlay.Get<TextRenderable>("controls");
+        var version = _overlay.Get<TextRenderable>("version");
+
         controls.IsVisible = false;
         version.IsVisible = false;
 
-        Camera.ScrollTo((0, -300, 0));
-        BackgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.66f);
+        _camera.ScrollTo((0, -300, 0));
+        _backgroundPlane.TransitionToColor(DefaultBackgroundColor, 0.66f);
 
         var sequences_count = events.Sequences.Length;
         var playfields = new Playfield[sequences_count];
@@ -759,9 +751,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             throw;
         }
 
-        await Manager.RenderBlock.WaitAsync(Token);
-        Playfields = playfields;
-        Manager.RenderBlock.Release();
+        await _manager.RenderBlock.WaitAsync(Token);
+        _playfields = playfields;
+        _manager.RenderBlock.Release();
         SequenceVolume = 100;
     }
 
@@ -779,31 +771,31 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     }
 
 
-    private void SetStatusMessage(string message, int hide_after_ms = 2000)
+    private void SetStatusMessage(string message, int hideAfterMs = 2000)
     {
-        var update = Overlay.Get<TextRenderable>("update");
-        
+        var update = _overlay.Get<TextRenderable>("update");
+
         if (update.Value == message) return;
         update.SetTextContents(message);
         unchecked
         {
-            var old_id = ++_update_id;
+            var old_id = ++_updateId;
             Task.Run(async () =>
             {
-                if (hide_after_ms < 0) return;
-                await Task.Delay(hide_after_ms, Token);
-                if (old_id == _update_id)
+                if (hideAfterMs < 0) return;
+                await Task.Delay(hideAfterMs, Token);
+                if (old_id == _updateId)
                     update.SetTextContents(string.Empty);
             }, Token);
         }
     }
 
-    private SoundRenderable? GetRenderable(Placement placement, int sequence_index)
+    private SoundRenderable? GetRenderable(Placement placement, int sequenceIndex)
     {
-        if (sequence_index >= Playfields.Length) return null;
+        if (sequenceIndex >= _playfields.Length) return null;
 
-        var playfields = Playfields.Span;
-        var objects = CollectionsMarshal.AsSpan(playfields[sequence_index].Objects);
+        var playfields = _playfields.Span;
+        var objects = CollectionsMarshal.AsSpan(playfields[sequenceIndex].Objects);
 
         var len = objects.Length;
         var placement_idx = (int)placement.SequenceIndex;
@@ -812,9 +804,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         return element;
     }
 
-    private void CameraBoundsCheck(Placement placement, int sequence_index)
+    private void CameraBoundsCheck(Placement placement, int sequenceIndex)
     {
-        var element = GetRenderable(placement, sequence_index);
+        var element = GetRenderable(placement, sequenceIndex);
         if (element == null) return;
 
         var position = element.Position + element.Translation;
@@ -822,36 +814,36 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         switch (CameraFollowMode)
         {
-            case var follow_mode when follow_mode.HasFlag(CameraFollowMode.TDW_Like):
+            case var follow_mode when follow_mode.HasFlag(CameraFollowMode.TDWLike):
             {
                 float margin = RenderableSize;
 
-                if (!Camera.IsOutsideOfCameraView(position, scale, margin) &&
+                if (!_camera.IsOutsideOfCameraView(position, scale, margin) &&
                     placement.Event.SoundEvent is not "!divider") break;
 
                 var pos = new Vector3(0, position.Y - margin, 0f);
 
-                if (CameraFollowMode.HasFlag(CameraFollowMode.No_Animation))
+                if (CameraFollowMode.HasFlag(CameraFollowMode.NoAnimation))
                 {
-                    Camera.SetPosition(pos);
+                    _camera.SetPosition(pos);
                     return;
                 }
 
-                Camera.ScrollTo(pos);
+                _camera.ScrollTo(pos);
                 return;
             }
 
-            case var follow_mode when follow_mode.HasFlag(CameraFollowMode.Current_Line):
+            case var follow_mode when follow_mode.HasFlag(CameraFollowMode.CurrentLine):
             {
-                var pos = position * Vector3.UnitY - Vector3.UnitY * (Height / 2f);
+                var pos = position * Vector3.UnitY - Vector3.UnitY * (_height / 2f);
 
-                if (CameraFollowMode.HasFlag(CameraFollowMode.No_Animation))
+                if (CameraFollowMode.HasFlag(CameraFollowMode.NoAnimation))
                 {
-                    Camera.SetPosition(pos);
+                    _camera.SetPosition(pos);
                     return;
                 }
 
-                Camera.ScrollTo(pos);
+                _camera.ScrollTo(pos);
                 return;
             }
         }
@@ -878,29 +870,29 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     {
         var val = (float)placement.Event.Value;
 
-        LastBPM = placement.Event.ValueScale switch
+        _lastBpm = placement.Event.ValueScale switch
         {
             ValueScale.None => val,
-            ValueScale.Add => LastBPM + val,
-            ValueScale.Times => LastBPM * val,
-            ValueScale.Divide => LastBPM / val,
+            ValueScale.Add => _lastBpm + val,
+            ValueScale.Times => _lastBpm * val,
+            ValueScale.Divide => _lastBpm / val,
 
-            _ => LastBPM
+            _ => _lastBpm
         };
     }
 
     private void BackgroundEventHandler(Placement placement, int index)
     {
         var (color, seconds) = BackgroundParser.ParseFromDouble(placement.Event.Value);
-        BackgroundPlane.TransitionToColor(color, seconds);
+        _backgroundPlane.TransitionToColor(color, seconds);
     }
 
     private void FlashEventHandler(Placement placement, int index)
     {
         Task.Run(async () =>
         {
-            await ColorTools.ChangeColor(FlashOverlay, new Vector4(1, 1, 1, 1), 0.125f);
-            await ColorTools.ChangeColor(FlashOverlay, new Vector4(0, 0, 0, 0), 0.25f);
+            await ColorTools.ChangeColor(_flashOverlay, new Vector4(1, 1, 1, 1), 0.125f);
+            await ColorTools.ChangeColor(_flashOverlay, new Vector4(0, 0, 0, 0), 0.25f);
         }, Token);
     }
 
@@ -910,26 +902,26 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var repeats = (byte)parsed_value;
         float frequency = (short)(parsed_value >> 8);
 
-        var computed_frequency = frequency * 1000f / (LastBPM / 60);
-        Camera.Pulse(repeats, computed_frequency);
-        StaticCamera.Pulse(repeats, computed_frequency);
+        var computed_frequency = frequency * 1000f / (_lastBpm / 60);
+        _camera.Pulse(repeats, computed_frequency);
+        _staticCamera.Pulse(repeats, computed_frequency);
     }
 
-    private void LoopManyEventHandler(Placement placement, int sequence_index)
+    private void LoopManyEventHandler(Placement placement, int sequenceIndex)
     {
-        if (sequence_index >= Playfields.Length) return;
+        if (sequenceIndex >= _playfields.Length) return;
 
-        var element = GetRenderable(placement, sequence_index);
-        element?.SetValue(placement.Event, Playfields.Span[CurrentSequence].DecreasingValuesCache,
+        var element = GetRenderable(placement, sequenceIndex);
+        element?.SetValue(placement.Event, _playfields.Span[_currentSequence].DecreasingValuesCache,
             ValueChangeWrapMode.RemoveTexture);
     }
 
-    private void StopEventHandler(Placement placement, int sequence_index)
+    private void StopEventHandler(Placement placement, int sequenceIndex)
     {
-        if (sequence_index >= Playfields.Length) return;
+        if (sequenceIndex >= _playfields.Length) return;
 
-        var element = GetRenderable(placement, sequence_index);
-        element?.SetValue(placement.Event, Playfields.Span[CurrentSequence].DecreasingValuesCache,
+        var element = GetRenderable(placement, sequenceIndex);
+        element?.SetValue(placement.Event, _playfields.Span[_currentSequence].DecreasingValuesCache,
             ValueChangeWrapMode.ResetToDefault);
     }
 
@@ -941,7 +933,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private void RunDebugUpdate()
     {
         if (!Debug) return;
-        
+
         // define values used in generating the debug string.
         var bpm = 300f;
         var elapsed_milliseconds = SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
@@ -953,14 +945,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var next_beat_ms = 0f;
         var beats_to_next_beat = 0f;
 
-        var fps = FpsCounter.GetAverageFPS(1 / Manager.UpdateTime);
+        var fps = _fpsCounter.GetAverageFPS(1 / _manager.UpdateTime);
         var audio_engine = SequencePlayer.AudioContext.Name;
         var volume = SequenceVolume;
 
         // remove full path from sequence filename.
         var sequence_location = "None";
-        if (Sequences.Length > 0 && Sequences.Length > CurrentSequence)
-            sequence_location = Sequences.Span[CurrentSequence].FileLocation;
+        if (Sequences.Length > 0 && Sequences.Length > _currentSequence)
+            sequence_location = Sequences.Span[_currentSequence].FileLocation;
 
         var folder_index = sequence_location.LastIndexOf(Path.DirectorySeparatorChar);
         if (folder_index != -1)
@@ -1026,8 +1018,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
         }
 
-        var debug = Overlay.Get<TextRenderable>("debug");
-        
+        var debug = _overlay.Get<TextRenderable>("debug");
+
         // generate debug string.
         debug.SetTextContents(
             $"""
@@ -1035,7 +1027,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
              FPS: {fps:0.##}
              Audio Engine: "{audio_engine}"
 
-             Sequence ({CurrentSequence + 1} - {Sequences.Length}): {sequence_location}
+             Sequence ({_currentSequence + 1} - {Sequences.Length}): {sequence_location}
              BPM: {bpm}
              Time: {TimeString(elapsed_milliseconds)}
              Volume: {volume:0.##}%
@@ -1043,32 +1035,32 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
              Current ({current_note_idx}): {current_note}
              Next ({next_note_idx}): {next_note}
              In: {next_beat_ms:0.##ms} / {beats_to_next_beat:0.##} beats
-             
+
              [OpenGL]
              Version: {GLInfo.Version}
              Renderer: {GLInfo.Renderer}
-             Max Texture Size: {GLInfo.MaxTexture2D_Size}
-             Max Texture Layers: {GLInfo.MaxTexture2D_Layers}
-             
+             Max Texture Size: {GLInfo.MaxTexture2DSize}
+             Max Texture Layers: {GLInfo.MaxTexture2DLayers}
+
              """);
     }
 
     private void UpdateStaticRenderables(int w, int h, float scale)
     {
-        StaticCamera.SetRenderScale(scale);
+        _staticCamera.SetRenderScale(scale);
         scale = Math.Min(scale, 1f);
         var width_scale = w / scale - w;
         var height_scale = h / scale - h;
 
-        var background = BackgroundPlane.Scale;
-        var b_z = BackgroundPlane.Position.Z;
-        BackgroundPlane.Position = (-width_scale / 2f, -height_scale / 2f, b_z);
-        BackgroundPlane.Scale = (w + width_scale, h + height_scale, background.Z);
+        var background = _backgroundPlane.Scale;
+        var b_z = _backgroundPlane.Position.Z;
+        _backgroundPlane.Position = (-width_scale / 2f, -height_scale / 2f, b_z);
+        _backgroundPlane.Scale = (w + width_scale, h + height_scale, background.Z);
 
-        var flash = FlashOverlay.Scale;
-        var f_z = FlashOverlay.Position.Z;
-        FlashOverlay.Scale = (w + width_scale, h + height_scale, flash.Z);
-        FlashOverlay.SetPosition((-width_scale / 2f, -height_scale / 2f, f_z));
+        var flash = _flashOverlay.Scale;
+        var f_z = _flashOverlay.Position.Z;
+        _flashOverlay.Scale = (w + width_scale, h + height_scale, flash.Z);
+        _flashOverlay.SetPosition((-width_scale / 2f, -height_scale / 2f, f_z));
     }
 
     private void UpdateBackingTrack(string location)
@@ -1080,14 +1072,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var audio = pcm_data.ReadAsFloat32Array(true);
 
         if (audio == null) return;
-        BackingAudio = new BackingAudio(SequencePlayer.GetContext(), audio, (int)pcm_data.SampleRate);
-        BackingAudio.Play();
+        _backingAudio = new BackingAudio(SequencePlayer.GetContext(), audio, (int)pcm_data.SampleRate);
+        _backingAudio.Play();
     }
 
-    private void FileDrop(IReadOnlyCollection<string?> locations, bool reset_time)
+    private void FileDrop(IReadOnlyCollection<string?> locations, bool resetTime)
     {
-        var log = Overlay.Get<TextRenderable>("log");
-        Camera.ScrollTo((0, -300, 0));
+        var log = _overlay.Get<TextRenderable>("log");
+        _camera.ScrollTo((0, -300, 0));
 
         if (locations.Count < 1) return;
 
@@ -1096,7 +1088,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             log.SetTextContents("Loading...");
             try
             {
-                await UpdateSequences(locations.Where(File.Exists).ToArray(), reset_time);
+                await UpdateSequences(locations.Where(File.Exists).ToArray(), resetTime);
             }
             catch (Exception e)
             {
@@ -1108,15 +1100,22 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
         }, Token);
     }
-    
+
     private bool IsSeekTimeoutPassed(int divide = 1)
     {
-        const int seek_timeout = 250;
-        return _seek_delay_stopwatch.ElapsedMilliseconds > seek_timeout / divide;
+        const int seekTimeout = 250;
+        return _seekDelayStopwatch.ElapsedMilliseconds > seekTimeout / divide;
     }
 
     private void RestartSeekTimer()
     {
-        _seek_delay_stopwatch.Restart();
+        _seekDelayStopwatch.Restart();
     }
+
+    #region Stopwatches
+
+    private readonly Stopwatch _fileUpdateStopwatch;
+    private readonly Stopwatch _seekDelayStopwatch;
+
+    #endregion
 }

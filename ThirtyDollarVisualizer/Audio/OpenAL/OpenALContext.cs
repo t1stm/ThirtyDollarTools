@@ -1,12 +1,12 @@
 using OpenTK.Audio.OpenAL;
 using ThirtyDollarEncoder.PCM;
 
-namespace ThirtyDollarVisualizer.Audio;
+namespace ThirtyDollarVisualizer.Audio.OpenAL;
 
 public class OpenALContext : AudioContext
 {
-    public ALContext context;
-    private ALDevice device;
+    private ALContext _context;
+    private ALDevice _device;
     public int UpdateRate = 48000; // Hz
 
     public override string Name => "OpenAL";
@@ -18,12 +18,12 @@ public class OpenALContext : AudioContext
     {
         try
         {
-            device = ALC.OpenDevice(null);
-            if (device == ALDevice.Null) return false;
-            context = ALC.CreateContext(device,
+            _device = ALC.OpenDevice(null);
+            if (_device == ALDevice.Null) return false;
+            _context = ALC.CreateContext(_device,
                 new ALContextAttributes(SampleRate, null, 1024, UpdateRate, false));
 
-            ALC.MakeContextCurrent(context);
+            ALC.MakeContextCurrent(_context);
             AL.DistanceModel(ALDistanceModel.LinearDistanceClamped);
 
             AL.Listener(ALListenerf.Gain, GlobalVolume);
@@ -43,8 +43,8 @@ public class OpenALContext : AudioContext
     public override void Destroy()
     {
         ALC.MakeContextCurrent(ALContext.Null);
-        ALC.DestroyContext(context);
-        ALC.CloseDevice(device);
+        ALC.DestroyContext(_context);
+        ALC.CloseDevice(_device);
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public class OpenALContext : AudioContext
         }
 
         AlcError alc_error;
-        while ((alc_error = ALC.GetError(device)) != AlcError.NoError)
+        while ((alc_error = ALC.GetError(_device)) != AlcError.NoError)
         {
             has_error = true;
             Console.WriteLine($"({DateTime.Now:G}): [OpenALC Error]: (0x{(int)error:x8}) \'{alc_error}\'");
@@ -71,8 +71,8 @@ public class OpenALContext : AudioContext
         return has_error;
     }
 
-    public override AudibleBuffer GetBufferObject(AudioData<float> sample_data, int sample_rate)
+    public override AudibleBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
-        return new OpenALBuffer(this, sample_data, sample_rate);
+        return new OpenALBuffer(this, sampleData, sampleRate);
     }
 }

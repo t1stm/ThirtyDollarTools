@@ -7,15 +7,21 @@ public struct ShaderDefinition()
     public ShaderType ShaderType;
     public string Path = "";
 
-    public static ShaderDefinition Vertex(string path) => new()
+    public static ShaderDefinition Vertex(string path)
     {
-        Path = path,
-        ShaderType = ShaderType.VertexShader,
-    };
+        return new ShaderDefinition
+        {
+            Path = path,
+            ShaderType = ShaderType.VertexShader
+        };
+    }
 
-    public static ShaderDefinition Fragment(string path) => new()
+    public static ShaderDefinition Fragment(string path)
     {
-        Path = path,
-        ShaderType = ShaderType.FragmentShader,
-    };
+        return new ShaderDefinition
+        {
+            Path = path,
+            ShaderType = ShaderType.FragmentShader
+        };
+    }
 }

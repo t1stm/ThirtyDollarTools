@@ -1,23 +1,23 @@
 using OpenTK.Mathematics;
 using SixLabors.Fonts;
-using ThirtyDollarVisualizer.Objects.Planes;
-using ThirtyDollarVisualizer.Objects.Textures;
-using ThirtyDollarVisualizer.Objects.Textures.Static;
+using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Textures;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 
-namespace ThirtyDollarVisualizer.Objects.Text;
+namespace ThirtyDollarVisualizer.Base_Objects.Text;
 
 /// <summary>
-///     A renderable that is more expensive to be rendered but cheap to be edited, intended to be used for text that is
+///     A renderable that is more expensive to be rendered but inexpensive to be edited, intended to be used for text
 ///     changed often.
 /// </summary>
 public class CachedDynamicText : TextRenderable
 {
     private readonly SemaphoreSlim _lock = new(1);
-    private readonly HashSet<int> NewLineIndices = [];
-    protected float _font_size_px = 14f;
-    protected string _value = string.Empty;
+    private readonly HashSet<int> _newLineIndices = [];
+    private float _fontSizePx = 14f;
 
-    private TexturedPlane[] TexturedPlanes = [];
+    private TexturedPlane[] _texturedPlanes = [];
+    private string _value = string.Empty;
 
     public override string Value
     {
@@ -27,7 +27,7 @@ public class CachedDynamicText : TextRenderable
 
     public override float FontSizePx
     {
-        get => _font_size_px;
+        get => _fontSizePx;
         set => SetFontSize(value);
     }
 
@@ -40,15 +40,15 @@ public class CachedDynamicText : TextRenderable
         _value = text;
     }
 
-    public void SetFontSize(float font_size_px)
+    public void SetFontSize(float fontSizePx)
     {
-        _font_size_px = font_size_px;
+        _fontSizePx = fontSizePx;
         SetTextContents(Value);
     }
 
     protected void SetTextTextures(ReadOnlySpan<char> text)
     {
-        NewLineIndices.Clear();
+        _newLineIndices.Clear();
         var cache = Fonts.GetCharacterCache();
         var textures_array = new SingleTexture[text.Length];
         var real_i = 0;
@@ -59,32 +59,32 @@ public class CachedDynamicText : TextRenderable
             if (char.IsSurrogate(c) && i + 1 < text.Length && char.IsSurrogatePair(c, text[i + 1]))
             {
                 var emoji = text.Slice(i, 2);
-                textures_array[real_i++] = cache.GetEmoji(emoji, _font_size_px, FontStyle);
+                textures_array[real_i++] = cache.GetEmoji(emoji, _fontSizePx, FontStyle);
                 i++;
                 continue;
             }
 
-            if (c == '\n') NewLineIndices.Add(real_i);
+            if (c == '\n') _newLineIndices.Add(real_i);
 
-            textures_array[real_i++] = cache.Get(c, _font_size_px, FontStyle);
+            textures_array[real_i++] = cache.Get(c, _fontSizePx, FontStyle);
         }
 
         var textures = textures_array.AsSpan()[..real_i];
         _lock.Wait();
         try
         {
-            if (TexturedPlanes.Length != textures.Length)
+            if (_texturedPlanes.Length != textures.Length)
             {
-                TexturedPlanes = new TexturedPlane[textures.Length];
-                for (var index = 0; index < TexturedPlanes.Length; index++)
-                    TexturedPlanes[index] = new TexturedPlane(StaticTexture.Transparent1x1);
+                _texturedPlanes = new TexturedPlane[textures.Length];
+                for (var index = 0; index < _texturedPlanes.Length; index++)
+                    _texturedPlanes[index] = new TexturedPlane(StaticTexture.TransparentPixel);
             }
 
             var x = MathF.Round(Position.X);
             var y = MathF.Round(Position.Y);
             var z = MathF.Round(Position.Z);
 
-            var start_X = x;
+            var start_x = x;
             var max_x = 0f;
             var max_y = 0f;
 
@@ -95,14 +95,14 @@ public class CachedDynamicText : TextRenderable
                 var w = texture.Width;
                 var h = texture.Height;
 
-                if (NewLineIndices.Contains(i))
+                if (_newLineIndices.Contains(i))
                 {
                     y += FontSizePx;
-                    x = start_X;
+                    x = start_x;
                     lines++;
                 }
 
-                var plane = TexturedPlanes[i];
+                var plane = _texturedPlanes[i];
 
                 plane.SetTexture(texture);
                 plane.SetPosition((x, y, z));
@@ -113,7 +113,7 @@ public class CachedDynamicText : TextRenderable
                 max_y = Math.Max(max_y, y + h);
             }
 
-            Scale = (max_x, lines * _font_size_px, 1);
+            Scale = (max_x, lines * _fontSizePx, 1);
         }
         finally
         {
@@ -132,9 +132,9 @@ public class CachedDynamicText : TextRenderable
     public override void Render(Camera camera)
     {
         if (!IsVisible) return;
-        
+
         _lock.Wait();
-        foreach (var plane in TexturedPlanes.AsSpan()) plane.Render(camera);
+        foreach (var plane in _texturedPlanes.AsSpan()) plane.Render(camera);
         _lock.Release();
 
         base.Render(camera);

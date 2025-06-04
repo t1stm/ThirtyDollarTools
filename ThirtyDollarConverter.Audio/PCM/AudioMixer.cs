@@ -5,16 +5,16 @@ namespace ThirtyDollarEncoder.PCM;
 
 public class AudioMixer
 {
-    private readonly AudioLayout DefaultLayout;
-    private readonly int Length;
+    private readonly AudioLayout _defaultLayout;
+    private readonly int _length;
+    private readonly ConcurrentDictionary<(string, AudioLayout audio_layout), AudioData<float>> _tracks = new();
     public readonly IMixingMethod MixingMethod = new BasicMixer();
-    private readonly ConcurrentDictionary<(string, AudioLayout audio_layout), AudioData<float>> Tracks = new();
 
-    public AudioMixer(AudioData<float> default_channel, AudioLayout default_layout = AudioLayout.Audio_LR)
+    public AudioMixer(AudioData<float> defaultChannel, AudioLayout defaultLayout = AudioLayout.AudioLr)
     {
-        Tracks.TryAdd((string.Empty, default_layout), default_channel);
-        DefaultLayout = default_layout;
-        Length = default_channel.GetLength();
+        _tracks.TryAdd((string.Empty, defaultLayout), defaultChannel);
+        _defaultLayout = defaultLayout;
+        _length = defaultChannel.GetLength();
     }
 
     public AudioData<float> MixDown()
@@ -28,90 +28,90 @@ public class AudioMixer
 
     public (AudioLayout audio_layout, AudioData<float> audio_data)[] GetTracks()
     {
-        lock (Tracks)
+        lock (_tracks)
         {
-            var array = new (AudioLayout, AudioData<float>)[Tracks.Count];
+            var array = new (AudioLayout, AudioData<float>)[_tracks.Count];
             var i = 0;
-            foreach (var ((_, layout), audio_data) in Tracks) array[i++] = (layout, audio_data);
+            foreach (var ((_, layout), audio_data) in _tracks) array[i++] = (layout, audio_data);
 
             return array;
         }
     }
 
-    public bool HasTrack(string sound, AudioLayout layout = AudioLayout.Audio_LR)
+    public bool HasTrack(string sound, AudioLayout layout = AudioLayout.AudioLr)
     {
-        lock (Tracks)
+        lock (_tracks)
         {
-            return Tracks.ContainsKey((sound, layout));
+            return _tracks.ContainsKey((sound, layout));
         }
     }
 
-    public AudioData<float> GetTrackOrDefault(string track_name, AudioLayout layout = AudioLayout.Audio_LR)
+    public AudioData<float> GetTrackOrDefault(string trackName, AudioLayout layout = AudioLayout.AudioLr)
     {
-        lock (Tracks)
+        lock (_tracks)
         {
-            return Tracks.TryGetValue((track_name, layout), out var found_channel)
+            return _tracks.TryGetValue((trackName, layout), out var found_channel)
                 ? found_channel
-                : Tracks[(string.Empty, DefaultLayout)];
+                : _tracks[(string.Empty, _defaultLayout)];
         }
     }
 
-    public AudioData<float> GetTrack(string track_name, AudioLayout layout = AudioLayout.Audio_LR)
+    public AudioData<float> GetTrack(string trackName, AudioLayout layout = AudioLayout.AudioLr)
     {
-        lock (Tracks)
+        lock (_tracks)
         {
-            if (!Tracks.TryGetValue((track_name, layout), out var found_channel))
+            if (!_tracks.TryGetValue((trackName, layout), out var found_channel))
                 throw new ArgumentException(
-                    $"Unable to find track: \'{track_name}\' with layout: \'{layout}\'");
+                    $"Unable to find track: \'{trackName}\' with layout: \'{layout}\'");
 
             return found_channel;
         }
     }
 
-    public bool AddTrack(string track_name, AudioData<float> audio_data, AudioLayout layout = AudioLayout.Audio_LR)
+    public bool AddTrack(string trackName, AudioData<float> audioData, AudioLayout layout = AudioLayout.AudioLr)
     {
-        if (audio_data.GetLength() != Length)
+        if (audioData.GetLength() != _length)
             throw new Exception("Added track doesn't have the same length as the default track.");
 
-        lock (Tracks)
+        lock (_tracks)
         {
-            return Tracks.TryAdd((track_name, layout), audio_data);
+            return _tracks.TryAdd((trackName, layout), audioData);
         }
     }
 
     public AudioData<float> GetDefault()
     {
-        lock (Tracks)
+        lock (_tracks)
         {
-            return Tracks[(string.Empty, DefaultLayout)];
+            return _tracks[(string.Empty, _defaultLayout)];
         }
     }
 
     public int GetLength()
     {
-        return Length;
+        return _length;
     }
 }
 
 public enum AudioLayout
 {
     /// <summary>
-    ///     Uses only one channel of the AudioData&lt;float&gt;. Assumes the channel is left only.
+    ///     Uses only one channel of the <see cref="AudioData{T}" />. Assumes the channel is left only.
     /// </summary>
-    Audio_L,
+    AudioL,
 
     /// <summary>
-    ///     Uses only one channel of the AudioData&lt;float&gt;. Assumes the channel is right only.
+    ///     Uses only one channel of the <see cref="AudioData{T}" />. Assumes the channel is right only.
     /// </summary>
-    Audio_R,
+    AudioR,
 
     /// <summary>
-    ///     Uses only one channel of the AudioData&lt;float&gt;. Outputs to both LR.
+    ///     Uses only one channel of the <see cref="AudioData{T}" />. Outputs to both LR.
     /// </summary>
-    Audio_Mono,
+    AudioMono,
 
     /// <summary>
-    ///     Uses two channels of the AudioData&lt;float&gt;. Outputs to both LR.
+    ///     Uses two channels of the <see cref="AudioData{T}" />. Outputs to both LR.
     /// </summary>
-    Audio_LR
+    AudioLr
 }

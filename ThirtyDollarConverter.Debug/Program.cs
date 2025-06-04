@@ -1,10 +1,10 @@
 using ThirtyDollarConverter;
-using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarConverter.CLI;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 
-namespace ThirtyDollarApp;
+namespace ThirtyDollarDebugApp;
 
 internal static class Program
 {
@@ -32,7 +32,7 @@ internal static class Program
         else
             output.AddRange(await Readers.GetSequencesFromFileList(list));
 
-        const int statusbar_length = 64;
+        const int statusbarLength = 64;
         foreach (var file in output)
         {
             if (file.Location.Contains("LICENSE")) continue;
@@ -47,7 +47,7 @@ internal static class Program
             }, Console.WriteLine, (current, total) =>
             {
                 ClearLine();
-                Console.Write(Progressbar.Generate(current, (long)total, statusbar_length));
+                Console.Write(Progressbar.Generate(current, (long)total, statusbarLength));
             });
 
             var audioData = await encoder.GetSequenceAudio(sequence);

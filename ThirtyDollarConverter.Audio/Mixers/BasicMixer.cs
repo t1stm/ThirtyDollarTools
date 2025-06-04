@@ -12,7 +12,7 @@ public class BasicMixer : IMixingMethod
         foreach (var (layout, audio_data) in tracks)
             switch (layout)
             {
-                case AudioLayout.Audio_L:
+                case AudioLayout.AudioL:
                 {
                     var left = audio_data.GetChannel(0);
                     var left_export = export_track.GetChannel(0);
@@ -21,7 +21,7 @@ public class BasicMixer : IMixingMethod
                     break;
                 }
 
-                case AudioLayout.Audio_R:
+                case AudioLayout.AudioR:
                 {
                     var right = audio_data.GetChannel(0);
                     var right_export = export_track.GetChannel(0);
@@ -30,7 +30,7 @@ public class BasicMixer : IMixingMethod
                     break;
                 }
 
-                case AudioLayout.Audio_LR:
+                case AudioLayout.AudioLr:
                 {
                     var l = audio_data.GetChannel(0);
                     var l_export = export_track.GetChannel(0);
@@ -43,7 +43,7 @@ public class BasicMixer : IMixingMethod
                     break;
                 }
 
-                case AudioLayout.Audio_Mono:
+                case AudioLayout.AudioMono:
                 {
                     var mono = audio_data.GetChannel(0);
                     var l_export = export_track.GetChannel(0);

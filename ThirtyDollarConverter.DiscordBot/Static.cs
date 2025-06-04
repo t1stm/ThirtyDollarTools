@@ -1,11 +1,12 @@
-using ThirtyDollarConverter.Audio.Resamplers;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarEncoder.Resamplers;
 
 namespace ThirtyDollarConverter.DiscordBot;
 
 public class Static
 {
     public static SampleHolder SampleHolder { get; set; } = new();
+
     public static EncoderSettings EncoderSettings { get; set; } = new()
     {
         Channels = 2,

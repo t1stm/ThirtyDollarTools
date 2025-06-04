@@ -11,5 +11,5 @@ public abstract class AudioContext
     public abstract bool Create();
     public abstract void Destroy();
     public abstract bool CheckErrors();
-    public abstract AudibleBuffer GetBufferObject(AudioData<float> sample_data, int sample_rate);
+    public abstract AudibleBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate);
 }

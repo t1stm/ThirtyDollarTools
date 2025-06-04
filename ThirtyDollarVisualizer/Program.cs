@@ -7,8 +7,10 @@ using CommandLine;
 using OpenTK.Windowing.Common.Input;
 using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Audio.BASS;
 using ThirtyDollarVisualizer.Audio.Null;
-using ThirtyDollarVisualizer.Objects.Settings;
+using ThirtyDollarVisualizer.Audio.OpenAL;
+using ThirtyDollarVisualizer.Base_Objects.Settings;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Settings;
 using Image = SixLabors.ImageSharp.Image;
@@ -24,7 +26,7 @@ public static class Program
         AudioContext? audio_context = null;
         var width = 1600;
         var height = 840;
-        var follow_mode = CameraFollowMode.TDW_Like;
+        var follow_mode = CameraFollowMode.TDWLike;
         int? fps = null;
         float? scale = null;
         string? greeting = null;
@@ -42,7 +44,7 @@ public static class Program
                 no_audio = options.NoAudio;
                 width = options.Width ?? width;
                 height = options.Height ?? height;
-                fps = options.FPS;
+                fps = options.Fps;
                 scale = options.Scale;
                 greeting = options.Greeting;
                 event_size = options.EventSize;
@@ -50,13 +52,13 @@ public static class Program
                 line_amount = options.LineAmount;
                 settings_location = options.SettingsLocation;
                 transparent_framebuffer = options.TransparentFramebuffer;
-                
+
                 mode = options.Mode;
 
                 follow_mode = options.CameraFollowMode switch
                 {
-                    "line" => CameraFollowMode.Current_Line,
-                    _ => CameraFollowMode.TDW_Like
+                    "line" => CameraFollowMode.CurrentLine,
+                    _ => CameraFollowMode.TDWLike
                 };
 
                 audio_context = no_audio
@@ -99,7 +101,7 @@ public static class Program
         var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
         if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
-        
+
         if (mode != null)
             settings.Mode = mode;
 
@@ -127,7 +129,7 @@ public static class Program
     {
         [Option('i', "sequence", HelpText = "The sequence's location.")]
         public string? Input { get; set; }
-        
+
         [Option("mode", HelpText = "Which mode the visualizer loads in.")]
         public string? Mode { get; set; }
 
@@ -146,7 +148,7 @@ public static class Program
 
         [Option('f', "fps-limit",
             HelpText = "The fps cap of the renderer. Valid values are 0 - 500. Setting this to 0 removes the fps cap.")]
-        public int? FPS { get; set; }
+        public int? Fps { get; set; }
 
         [Option('s', "scale",
             HelpText = "Changes the camera viewport zoom.")]

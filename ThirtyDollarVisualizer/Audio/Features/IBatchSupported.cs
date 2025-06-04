@@ -1,4 +1,4 @@
-namespace ThirtyDollarVisualizer.Audio.FeatureFlags;
+namespace ThirtyDollarVisualizer.Audio.Features;
 
 public interface IBatchSupported
 {

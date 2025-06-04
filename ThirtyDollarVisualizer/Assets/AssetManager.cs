@@ -8,12 +8,12 @@ public static class AssetManager
     {
         Stream source;
         var isEmbedded = false;
-        
+
 #if DEBUG
         var assembly = Assembly.GetExecutingAssembly().FullName;
         Console.WriteLine($"[{assembly}]: Loading asset '{path}'");
 #endif
-        
+
         if (path.Contains('*'))
         {
             source = LoadWildcard(path);
@@ -25,7 +25,8 @@ public static class AssetManager
         else
         {
             var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(path);
-            source = stream ?? throw new FileNotFoundException($"Unable to find asset '{path}' in assembly or real path.");
+            source = stream ??
+                     throw new FileNotFoundException($"Unable to find asset '{path}' in assembly or real path.");
             isEmbedded = true;
         }
 
@@ -39,21 +40,13 @@ public static class AssetManager
     private static FileStream LoadWildcard(string path)
     {
         var directory = Path.GetDirectoryName(path);
-        if (string.IsNullOrEmpty(directory))
-        {
-            directory = Directory.GetCurrentDirectory();
-        }
+        if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
         var search_pattern = Path.GetFileName(path);
         if (string.IsNullOrEmpty(search_pattern))
-        {
             throw new ArgumentException("Invalid pattern; no file name specified.", nameof(path));
-        }
-            
+
         var files = Directory.GetFiles(directory, search_pattern);
-        if (files.Length == 0)
-        {
-            throw new FileNotFoundException($"Unable to find any files matching '{path}'.");
-        }
+        if (files.Length == 0) throw new FileNotFoundException($"Unable to find any files matching '{path}'.");
         return File.OpenRead(files[0]);
     }
 }

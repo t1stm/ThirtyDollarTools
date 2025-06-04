@@ -6,14 +6,14 @@ public class NullAudibleBuffer : AudibleBuffer
 {
     public static readonly AudibleBuffer EmptyBuffer = new NullAudibleBuffer(AudioData<float>.Empty(2), 48000);
 
-    public NullAudibleBuffer(AudioData<float> data, int sample_rate)
+    public NullAudibleBuffer(AudioData<float> data, int sampleRate)
     {
     }
 
     // Methods with some implementation.
-    public override void Play(Action? callback_when_finished = null, bool auto_remove = true)
+    public override void Play(Action? callbackWhenFinished = null, bool autoRemove = true)
     {
-        callback_when_finished?.Invoke();
+        callbackWhenFinished?.Invoke();
     }
 
     public override long GetTime_Milliseconds()

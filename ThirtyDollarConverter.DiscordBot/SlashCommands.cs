@@ -1,9 +1,8 @@
 using System.Diagnostics;
 using System.Text;
-using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
-using ThirtyDollarConverter.Objects;
+using JetBrains.Annotations;
 using ThirtyDollarParser;
 using Encoding = System.Text.Encoding;
 
@@ -12,7 +11,8 @@ namespace ThirtyDollarConverter.DiscordBot;
 public class SlashCommands : ApplicationCommandModule
 {
     [ContextMenu(DiscordApplicationCommandType.MessageContextMenu, "TDW to OGG Opus")]
-    public async Task ConvertFileToOGG(ContextMenuContext ctx)
+    [UsedImplicitly]
+    public async Task ConvertFileToOgg(ContextMenuContext ctx)
     {
         var file = ctx.TargetMessage.Attachments.Count > 0 ? ctx.TargetMessage.Attachments[0] : null;
         if (file is null || string.IsNullOrWhiteSpace(file.Url))
@@ -20,26 +20,27 @@ public class SlashCommands : ApplicationCommandModule
             await ctx.CreateResponseAsync("```Message doesn't have any files attached.```");
             return;
         }
-        
+
         await ctx.CreateResponseAsync("```Converting TDW to OGG.```");
-        await ConvertTDWToAudio(ctx, file.Url);
-    }
-    
-    [ContextMenu(DiscordApplicationCommandType.MessageContextMenu, "TDW to MP3")]
-    public async Task ConvertFileToMP3(ContextMenuContext ctx)
-    {
-        var file = ctx.TargetMessage.Attachments.Count > 0 ? ctx.TargetMessage.Attachments[0] : null;
-        if (file is null || string.IsNullOrWhiteSpace(file.Url))
-        {
-            await ctx.CreateResponseAsync("```Message doesn't have any files attached.```");
-            return;
-        }
-        
-        await ctx.CreateResponseAsync("```Converting TDW to MP3.```");
-        await ConvertTDWToAudio(ctx, file.Url, true);
+        await ConvertTdwToAudio(ctx, file.Url);
     }
 
-    protected static async Task ConvertTDWToAudio(ContextMenuContext ctx, string url, bool mp3 = false)
+    [ContextMenu(DiscordApplicationCommandType.MessageContextMenu, "TDW to MP3")]
+    [UsedImplicitly]
+    public async Task ConvertFileToMp3(ContextMenuContext ctx)
+    {
+        var file = ctx.TargetMessage.Attachments.Count > 0 ? ctx.TargetMessage.Attachments[0] : null;
+        if (file is null || string.IsNullOrWhiteSpace(file.Url))
+        {
+            await ctx.CreateResponseAsync("```Message doesn't have any files attached.```");
+            return;
+        }
+
+        await ctx.CreateResponseAsync("```Converting TDW to MP3.```");
+        await ConvertTdwToAudio(ctx, file.Url, true);
+    }
+
+    protected static async Task ConvertTdwToAudio(ContextMenuContext ctx, string url, bool mp3 = false)
     {
         var http_client = new HttpClient();
         byte[] request;
@@ -51,14 +52,16 @@ public class SlashCommands : ApplicationCommandModule
         {
             await ctx.FollowUpAsync(
                 new DiscordFollowupMessageBuilder()
-                    .WithContent("```Unable to read message attachment. Please report this error to the developer.```\n" + $"```Error: {e}```"));
+                    .WithContent(
+                        "```Unable to read message attachment. Please report this error to the developer.```\n" +
+                        $"```Error: {e}```"));
             return;
         }
 
         string sequence_text;
         try
         {
-            Encoding utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+            Encoding utf8 = new UTF8Encoding(false, true);
             sequence_text = utf8.GetString(request, 0, request.Length);
         }
         catch (Exception)
@@ -69,20 +72,23 @@ public class SlashCommands : ApplicationCommandModule
             return;
         }
 
-        var message = await ctx.FollowUpAsync(new DiscordFollowupMessageBuilder().WithContent("```Fully read attached file. Starting conversion.```"));
+        var message =
+            await ctx.FollowUpAsync(
+                new DiscordFollowupMessageBuilder().WithContent(
+                    "```Fully read attached file. Starting conversion.```"));
         var sequence = Sequence.FromString(sequence_text);
 
         var last_update = Stopwatch.GetTimestamp();
         var message_timeout = TimeSpan.FromMilliseconds(1250);
-        
-        var encoder = new PcmEncoder(Static.SampleHolder, Static.EncoderSettings, null, 
+
+        var encoder = new PcmEncoder(Static.SampleHolder, Static.EncoderSettings, null,
             async void (current, max) =>
             {
                 try
                 {
                     if (Stopwatch.GetElapsedTime(last_update) < message_timeout)
                         return;
-                    
+
                     last_update = Stopwatch.GetTimestamp();
 
                     var percentage = current / (double)max;
@@ -93,36 +99,34 @@ public class SlashCommands : ApplicationCommandModule
                     // ignored
                 }
             });
-        
+
         var audio_data = await encoder.GetSequenceAudio(sequence);
 
         var codec = mp3 ? "libmp3lame" : "libopus";
         const int bitrate = 192;
         var extension = mp3 ? "mp3" : "ogg";
-        
+
         var ffmpeg_process = Process.Start(new ProcessStartInfo("ffmpeg")
         {
             Arguments = $"-v quiet -nostats -f wav -i - -c:a {codec} -b:a {bitrate}k -vn -dn -f {extension} pipe:1",
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
-            UseShellExecute = false,
+            UseShellExecute = false
         });
 
         if (ffmpeg_process == null)
         {
-            await message.ModifyAsync("```Failed to start conversion process. Please report this error to the developer.```");
+            await message.ModifyAsync(
+                "```Failed to start conversion process. Please report this error to the developer.```");
             return;
         }
 
-        var thread = new Thread(() =>
-        {
-            encoder.WriteAsWavFile(ffmpeg_process.StandardInput.BaseStream, audio_data);
-        });
+        var thread = new Thread(() => { encoder.WriteAsWavFile(ffmpeg_process.StandardInput.BaseStream, audio_data); });
         thread.Start();
 
         var memory_stream = new MemoryStream();
         await ffmpeg_process.StandardOutput.BaseStream.CopyToAsync(memory_stream);
-        
+
         memory_stream.Seek(0, SeekOrigin.Begin);
         await message.ModifyAsync(new DiscordMessageBuilder()
             .WithContent("```Successfully converted file.```")
