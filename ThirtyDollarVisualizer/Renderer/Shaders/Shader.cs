@@ -10,31 +10,56 @@ namespace ThirtyDollarVisualizer.Renderer.Shaders;
 /// </summary>
 public class Shader : IDisposable
 {
-    private Shader(int handle)
-    {
-        Handle = handle;
-    }
-
     /// <summary> 
     /// Controls whether the shader throws errors on missing uniforms.
     /// </summary>
     public bool IsPedantic { get; init; } = false;
 
+    /// <summary>
+    /// An allocated shader object that points to OpenGL program handle 0
+    /// </summary>
     public static Shader Dummy { get; } = new(0);
+    
+    /// <summary>
+    /// Definitions of each shader.
+    /// </summary>
     protected ShaderDefinition[] Definitions { get; set; } = [];
+    
+    /// <summary>
+    /// The OpenGL program handle.
+    /// </summary>
     protected int Handle { get; set; }
+    
+    private Shader(int handle)
+    {
+        Handle = handle;
+    }
 
+    /// <summary>
+    /// Disposes the shader program and releases all resources.
+    /// </summary>
     public void Dispose()
     {
         GL.DeleteProgram(Handle);
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Creates a new shader program from the given vertex and fragment shader paths. These paths support embedded assets.
+    /// </summary>
+    /// <param name="vertexPath">The path of the vertex shader to be loaded with <see cref="AssetManager.GetAsset(string)"/></param>
+    /// <param name="fragmentPath">The path of the fragment shader to be loaded with <see cref="AssetManager.GetAsset(string)"/></param>
+    /// <returns></returns>
     public static Shader NewVertexFragment(string vertexPath, string fragmentPath)
     {
         return NewDefined(ShaderDefinition.Vertex(vertexPath), ShaderDefinition.Fragment(fragmentPath));
     }
 
+    /// <summary>
+    /// Creates a new shader program from the given shader definitions. These shader definitions support embedded asset paths.
+    /// </summary>
+    /// <param name="shaders">Array of <see cref="ShaderDefinition"/></param>
+    /// <returns></returns>
     public static Shader NewDefined(params ShaderDefinition[] shaders)
     {
         var shader = new Shader(GL.CreateProgram());
@@ -42,9 +67,10 @@ public class Shader : IDisposable
         shader.Definitions = shaders;
         return shader;
     }
-
+    
     private void AddShaderDefinitions(ShaderDefinition[] shaders)
     {
+        // rents an array for shader handles
         var shaderHandleArray = ArrayPool<int>.Shared.Rent(shaders.Length);
 
         try
@@ -66,10 +92,18 @@ public class Shader : IDisposable
         }
         finally
         {
+            // releases it back to the pool
             ArrayPool<int>.Shared.Return(shaderHandleArray);
         }
     }
 
+    /// <summary>
+    /// Links an OpenGL shader program and checks for any errors during the linking process.
+    /// Throws an exception if the program fails to link.
+    /// </summary>
+    /// <exception cref="Exception">
+    /// Thrown when the shader program fails to link. The exception message contains the error details retrieved from OpenGL.
+    /// </exception>
     protected void LinkAndThrowOnError()
     {
         GL.LinkProgram(Handle);
@@ -79,18 +113,36 @@ public class Shader : IDisposable
             throw new Exception($"Program failed to link with error: {GL.GetProgramInfoLog(Handle)}");
     }
 
+    /// <summary>
+    /// Sets the current OpenGL context to use this shader program.
+    /// This ensures that any later rendering operations are executed using the specified shader program.
+    /// </summary>
     public void Use()
     {
         GL.UseProgram(Handle);
     }
 
-    public void ReloadFiles()
+    /// <summary>
+    /// Reloads and recreates the shader program using the previously defined shader configurations.
+    /// This involves deleting the current shader program, creating a new program, and re-attaching the existing shader definitions.
+    /// </summary>
+    public void ReloadShader()
     {
         GL.DeleteProgram(Handle);
         Handle = GL.CreateProgram();
         AddShaderDefinitions(Definitions);
     }
-    
+
+    /// <summary>
+    /// Sets the value of an integer uniform in the shader program by its name.
+    /// </summary>
+    /// <param name="name">The name of the uniform variable to set.</param>
+    /// <param name="value">The integer value to assign to the uniform.</param>
+    /// <returns>
+    /// Returns <c>true</c> if the uniform was successfully set; otherwise, <c>false</c>.
+    /// If the uniform does not exist and <c>IsPedantic</c> is <c>true</c>, an <see cref="Exception"/> is thrown.
+    /// </returns>
+    /// <exception cref="Exception">Thrown if <c>IsPedantic</c> is <c>true</c> and the uniform is not found in the shader program.</exception>
     public bool SetUniform(string name, int value)
     {
         var location = GL.GetUniformLocation(Handle, name);
@@ -104,6 +156,13 @@ public class Shader : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Sets the value of a uniform variable in the shader program to the specified 2D vector value.
+    /// </summary>
+    /// <param name="name">The name of the uniform variable in the shader program.</param>
+    /// <param name="value">The <see cref="Vector2"/> value to set for the uniform variable.</param>
+    /// <returns>True if the uniform variable was successfully updated; false if the uniform was not found and <c>IsPedantic</c> is not enabled.</returns>
+    /// <exception cref="Exception">Thrown if the uniform variable is not found and <c>IsPedantic</c> is enabled.</exception>
     public bool SetUniform(string name, Vector2 value)
     {
         var location = GL.GetUniformLocation(Handle, name);
@@ -117,6 +176,13 @@ public class Shader : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Sets the value of a uniform variable in the shader program to the specified 3D vector value.
+    /// </summary>
+    /// <param name="name">The name of the uniform variable in the shader program.</param>
+    /// <param name="value">The <see cref="Vector3"/> value to set for the uniform variable.</param>
+    /// <returns>True if the uniform variable was successfully updated; false if the uniform was not found and <c>IsPedantic</c> is not enabled.</returns>
+    /// <exception cref="Exception">Thrown if the uniform variable is not found and <c>IsPedantic</c> is enabled.</exception>
     public bool SetUniform(string name, Vector3 value)
     {
         var location = GL.GetUniformLocation(Handle, name);
@@ -130,6 +196,13 @@ public class Shader : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Sets the value of a uniform variable in the shader program to the specified 4D vector value.
+    /// </summary>
+    /// <param name="name">The name of the uniform variable in the shader program.</param>
+    /// <param name="value">The <see cref="Vector4"/> value to set for the uniform variable.</param>
+    /// <returns>True if the uniform variable was successfully updated; false if the uniform was not found and <c>IsPedantic</c> is not enabled.</returns>
+    /// <exception cref="Exception">Thrown if the uniform variable is not found and <c>IsPedantic</c> is enabled.</exception>
     public bool SetUniform(string name, Vector4 value)
     {
         var location = GL.GetUniformLocation(Handle, name);
@@ -143,6 +216,13 @@ public class Shader : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Sets the value of a uniform variable in the shader program to the specified Matrix4 value.
+    /// </summary>
+    /// <param name="name">The name of the uniform variable in the shader program.</param>
+    /// <param name="value">The <see cref="Matrix4"/> value to set for the uniform variable.</param>
+    /// <returns>True if the uniform variable was successfully updated; false if the uniform was not found and <c>IsPedantic</c> is not enabled.</returns>
+    /// <exception cref="Exception">Thrown if the uniform variable is not found and <c>IsPedantic</c> is enabled.</exception>
     public unsafe bool SetUniform(string name, Matrix4 value)
     {
         var location = GL.GetUniformLocation(Handle, name);
@@ -156,6 +236,13 @@ public class Shader : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Sets the value of a uniform variable in the shader program to the specified float value.
+    /// </summary>
+    /// <param name="name">The name of the uniform variable in the shader program.</param>
+    /// <param name="value">The <see cref="float"/> value to set for the uniform variable.</param>
+    /// <returns>True if the uniform variable was successfully updated; false if the uniform was not found and <c>IsPedantic</c> is not enabled.</returns>
+    /// <exception cref="Exception">Thrown if the uniform variable is not found and <c>IsPedantic</c> is enabled.</exception>
     public bool SetUniform(string name, float value)
     {
         var location = GL.GetUniformLocation(Handle, name);
