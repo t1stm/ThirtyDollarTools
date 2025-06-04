@@ -11,7 +11,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     private readonly Dictionary<int, TDataType> _updateQueue = new();
 
     /// <summary>
-    ///     Creates a new OpenGL buffer.
+    /// Creates a new OpenGL buffer.
     /// </summary>
     /// <param name="data">The data the buffer should contain.</param>
     /// <param name="bufferType">The buffer's type.</param>
@@ -27,7 +27,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     }
 
     /// <summary>
-    ///     A basic setter that allows queueing updates to the VBO.
+    /// A basic setter that allows queueing updates to the VBO.
     /// </summary>
     /// <param name="index">The index of the object you want to update at the next render pass.</param>
     public TDataType this[int index]
@@ -36,12 +36,12 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     }
 
     /// <summary>
-    ///     The buffer's GL handle.
+    /// The buffer's GL handle.
     /// </summary>
     public int Handle => _handle;
 
     /// <summary>
-    ///     An update method that checks for and applies any updates to the contents of the buffer.
+    /// An update method that checks for and applies any updates to the contents of the buffer.
     /// </summary>
     public unsafe void Update()
     {
@@ -59,11 +59,18 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
         _updateQueue.Clear();
     }
 
+    /// <summary>
+    /// Binds the buffer object to its specified buffer target, making it the
+    /// currently active buffer for further OpenGL operations.
+    /// </summary>
     public void Bind()
     {
         GL.BindBuffer(_bufferType, _handle);
     }
 
+    /// <summary>
+    /// Releases all resources used by the buffer, including its OpenGL handle.
+    /// </summary>
     public void Dispose()
     {
         GL.DeleteBuffer(_handle);
@@ -71,7 +78,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     }
 
     /// <summary>
-    ///     Sets the entire buffer's contents to the given data.
+    /// Sets the entire buffer's contents to the given data.
     /// </summary>
     /// <param name="data">The data to copy to the buffer.</param>
     /// <param name="bufferType">The buffer type.</param>
@@ -86,6 +93,10 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
         }
     }
 
+    /// <summary>
+    /// Retrieves the count of elements stored in the buffer.
+    /// </summary>
+    /// <returns>The number of elements in the buffer.</returns>
     public int GetCount()
     {
         return _length;

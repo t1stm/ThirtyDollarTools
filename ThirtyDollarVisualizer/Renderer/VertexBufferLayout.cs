@@ -1,12 +1,22 @@
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer.Renderer;
 
+/// <summary>
+/// A class representing how vertex attributes are organized within a vertex buffer.
+/// </summary>
 public class VertexBufferLayout
 {
     private readonly List<VertexBufferElement> _elements = [];
     private int _stride;
 
+    /// <summary>
+    /// Adds a new <see cref="float"/> vertex attribute to the layout.
+    /// </summary>
+    /// <param name="count">The amount of <see cref="float"/> to add.</param>
+    /// <param name="perInstance">Whether the value should be used per vertex or per instance.</param>
+    /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushFloat(int count, bool perInstance = false)
     {
         _elements.Add(new VertexBufferElement
@@ -21,11 +31,23 @@ public class VertexBufferLayout
         return this;
     }
 
+    /// <summary>
+    /// Adds a new <see cref="Matrix4"/> vertex attribute to the layout.
+    /// </summary>
+    /// <param name="count">The amount of <see cref="Matrix4"/> to add.</param>
+    /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushMatrix4(int count)
     {
         return PushMatrix(4, 4, count);
     }
 
+    /// <summary>
+    /// Adds a new custom matrix vertex attribute to the layout.
+    /// </summary>
+    /// <param name="count">The number of matrices to add.</param>
+    /// <param name="x">The width of the matrix.</param>
+    /// <param name="y">The height of the matrix.</param>
+    /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushMatrix(int x, int y, int count)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(x, 4, nameof(x));
@@ -48,6 +70,12 @@ public class VertexBufferLayout
         return this;
     }
 
+    /// <summary>
+    /// Adds a new <see cref="uint"/> vertex attribute to the layout.
+    /// </summary>
+    /// <param name="count">The amount of <see cref="uint"/> to add.</param>
+    /// <param name="perInstance">Whether the value should be used per vertex or per instance.</param>
+    /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushUInt(int count, bool perInstance = false)
     {
         _elements.Add(new VertexBufferElement
@@ -62,6 +90,12 @@ public class VertexBufferLayout
         return this;
     }
 
+    /// <summary>
+    /// Adds a new <see cref="byte"/> vertex attribute to the layout.
+    /// </summary>
+    /// <param name="count">The amount of <see cref="byte"/> to add.</param>
+    /// <param name="perInstance">Whether the value should be used per vertex or per instance.</param>
+    /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushByte(int count, bool perInstance = false)
     {
         _elements.Add(new VertexBufferElement
@@ -76,11 +110,19 @@ public class VertexBufferLayout
         return this;
     }
 
+    /// <summary>
+    /// Gets all elements in the layout.
+    /// </summary>
+    /// <returns></returns>
     public IReadOnlyList<VertexBufferElement> GetElements()
     {
         return _elements;
     }
 
+    /// <summary>
+    /// Gets the stride of the layout.
+    /// </summary>
+    /// <returns>The current stride.</returns>
     public int GetStride()
     {
         return _stride;

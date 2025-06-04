@@ -2,6 +2,9 @@ using OpenTK.Graphics.OpenGL;
 
 namespace ThirtyDollarVisualizer.Renderer.Shaders;
 
+/// <summary>
+/// A definition of a shader source file somewhere in the file system.
+/// </summary>
 public struct ShaderDefinition()
 {
     public ShaderType ShaderType;
