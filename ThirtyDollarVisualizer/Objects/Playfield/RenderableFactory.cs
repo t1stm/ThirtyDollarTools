@@ -139,10 +139,10 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
                 break;
             }
 
+            // background values are contained by a bit-shifted long value
             case { SoundEvent: "!bg" }:
             {
-                // background values are contained by a bitshifted long value
-                // casts the double (64 bit floating) value to long (64 bit fixed)
+                // casts the double (64-bit floating) value to long (64-bit fixed)
                 var parsed_value = (long)baseEvent.Value;
 
                 // gets the seconds, which are encoded last
@@ -158,7 +158,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
                 // creates a texture ID for the current colors
                 var texture_id = $"({r},{g},{b},{a}) {value}s";
 
-                // gets if already exists a texture for the current value, or creates a new one
+                // gets if already exists a texture for the current value or creates a new one
                 value_texture =
                     _customValues.GetOrAdd(texture_id,
                         _ => new CircleTexture(ValueFont, new Rgba32(r, g, b, a), value));
@@ -174,14 +174,14 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
 
             case { SoundEvent: "!pulse" }:
             {
-                // pulses are also stored in a custom way, by bitshifting a long value
+                // pulses are also stored in a custom way, by bit-shifting a long value
                 // again casting the double to long
                 var parsed_value = (long)baseEvent.Value;
 
-                // the amount of repeats is capped at 255
+                // the number of repeats is capped at 255
                 var repeats = (byte)parsed_value;
 
-                // the amount of pulses is capped at 32767 
+                // the number of pulses is capped at 32,767 
                 var pulse_times = (short)(parsed_value >> 8);
 
                 value = $"{repeats}, {pulse_times}";
@@ -230,7 +230,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
         // formats the pan to a single decimal
         var pan_text = Math.Abs(pan).ToString(".#");
 
-        // if pannng to the left sets the | (pipe symbol),
+        // if panning to the left sets the | (pipe symbol),
         // interpreted as the listener to the end of the string, otherwise at the start
         switch (pan)
         {

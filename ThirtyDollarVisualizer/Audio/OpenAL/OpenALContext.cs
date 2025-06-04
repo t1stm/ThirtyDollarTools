@@ -1,5 +1,6 @@
 using OpenTK.Audio.OpenAL;
 using ThirtyDollarEncoder.PCM;
+using ThirtyDollarVisualizer.Helpers.Logging;
 
 namespace ThirtyDollarVisualizer.Audio.OpenAL;
 
@@ -32,7 +33,7 @@ public class OpenALContext : AudioContext
         }
         catch (Exception e)
         {
-            Console.WriteLine($"[OpenAL Error]: {e}");
+            DefaultLogger.Log("OpenAL Error", e.ToString());;
             return false;
         }
     }
@@ -57,15 +58,14 @@ public class OpenALContext : AudioContext
         while ((error = AL.GetError()) != ALError.NoError)
         {
             has_error = true;
-            Console.WriteLine(
-                $"({DateTime.Now:G}): [OpenAL Error]: (0x{(int)error:x8}) \'{AL.GetErrorString(error)}\'");
+            DefaultLogger.Log("OpenAL Error", $"(0x{(int)error:x8}) \'{AL.GetErrorString(error)}\'");
         }
 
         AlcError alc_error;
         while ((alc_error = ALC.GetError(_device)) != AlcError.NoError)
         {
             has_error = true;
-            Console.WriteLine($"({DateTime.Now:G}): [OpenALC Error]: (0x{(int)error:x8}) \'{alc_error}\'");
+            DefaultLogger.Log("OpenAL Error", $"(0x{(int)error:x8}) \'{alc_error}\'");
         }
 
         return has_error;

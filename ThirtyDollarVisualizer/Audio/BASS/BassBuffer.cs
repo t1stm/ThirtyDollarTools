@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 using ManagedBass;
 using ThirtyDollarEncoder.PCM;
+using ThirtyDollarVisualizer.Helpers.Logging;
 
 namespace ThirtyDollarVisualizer.Audio.BASS;
 
@@ -90,7 +91,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
     {
         if (Bass.CPUUsage > 75d)
         {
-            Console.WriteLine($"[BASS] CPU usage reached: {Bass.CPUUsage:0.##}% CPU. Cutting old sounds.");
+            DefaultLogger.Log("Bass", $"CPU usage reached: {Bass.CPUUsage:0.##}% CPU. Cutting old sounds.");
             HandleBufferOverflow();
         }
 

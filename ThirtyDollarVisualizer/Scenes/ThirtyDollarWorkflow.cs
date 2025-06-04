@@ -4,6 +4,7 @@ using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Objects;
 
 namespace ThirtyDollarVisualizer.Scenes;
@@ -30,7 +31,7 @@ public abstract class ThirtyDollarWorkflow
     public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? loggingAction = null)
     {
         SequencePlayer = new SequencePlayer(context);
-        Log = loggingAction ?? (log => { Console.WriteLine($"({DateTime.Now:G}): {log}"); });
+        Log = loggingAction ?? (log => { DefaultLogger.Log("ThirtyDollarWorkflow", log); });
     }
 
     /// <summary>

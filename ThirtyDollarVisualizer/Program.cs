@@ -11,6 +11,7 @@ using ThirtyDollarVisualizer.Audio.BASS;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Audio.OpenAL;
 using ThirtyDollarVisualizer.Base_Objects.Settings;
+using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Settings;
 using Image = SixLabors.ImageSharp.Image;
@@ -74,7 +75,7 @@ public static class Program
 
         if (sequence != null && !File.Exists(sequence))
         {
-            Console.WriteLine("Unable to find specified sequence. Running without a specified sequence.");
+            DefaultLogger.Log("Program","Unable to find specified sequence. Running without a specified sequence.");
             sequence = null;
         }
 

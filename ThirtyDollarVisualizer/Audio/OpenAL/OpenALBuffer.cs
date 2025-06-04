@@ -1,5 +1,6 @@
 using OpenTK.Audio.OpenAL;
 using ThirtyDollarEncoder.PCM;
+using ThirtyDollarVisualizer.Helpers.Logging;
 
 namespace ThirtyDollarVisualizer.Audio.OpenAL;
 
@@ -46,7 +47,7 @@ public class OpenALBuffer : AudibleBuffer
 
         if (!AL.IsSource(source))
         {
-            Console.WriteLine($"({DateTime.Now:G}): [OpenAL Error]: Audio source ID isn't a valid source.");
+            DefaultLogger.Log("OpenAL Error", $"Audio source ID \'{source}\' isn't a valid source.");
             return;
         }
 

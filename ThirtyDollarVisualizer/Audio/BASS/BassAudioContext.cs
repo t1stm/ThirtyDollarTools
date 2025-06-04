@@ -1,5 +1,6 @@
 using ManagedBass;
 using ThirtyDollarEncoder.PCM;
+using ThirtyDollarVisualizer.Helpers.Logging;
 
 namespace ThirtyDollarVisualizer.Audio.BASS;
 
@@ -29,7 +30,7 @@ public class BassAudioContext : AudioContext
         }
         catch (Exception e)
         {
-            Console.WriteLine($"[BASS Error]: {e}");
+            DefaultLogger.Log("Bass Error", e.ToString());
             return false;
         }
     }
@@ -52,7 +53,7 @@ public class BassAudioContext : AudioContext
 
         while ((error = Bass.LastError) != Errors.OK)
         {
-            Console.WriteLine($"[BASS Error]: {error}");
+            DefaultLogger.Log("Bass Error", error.ToString());
             has_error = true;
         }
 

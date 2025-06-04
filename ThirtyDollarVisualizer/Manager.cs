@@ -5,6 +5,8 @@ using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Base_Objects.Text;
+using ThirtyDollarVisualizer.Helpers.Logging;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Settings;
 using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
@@ -34,7 +36,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     {
         ErrorCode errorCode;
         while ((errorCode = GL.GetError()) != ErrorCode.NoError)
-            Console.WriteLine($"[OpenGL Error]: (0x{(int)errorCode:x8}) \'{errorCode}\'");
+            DefaultLogger.Log("OpenGL Error", $"(0x{(int)errorCode:x8}) \'{errorCode}\'");
     }
 
     public void ToggleFullscreen()
@@ -108,6 +110,15 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         foreach (var scene in Scenes) scene.Mouse(MouseState, KeyboardState);
         foreach (var scene in Scenes) scene.Update();
 
+#if DEBUG
+        // reload shaders when in debug
+        if (KeyboardState.IsKeyPressed(Keys.F2) && KeyboardState.IsKeyDown(Keys.LeftControl))
+        {
+            ShaderPool.Reload();
+            DefaultLogger.Log("Manager", "Reloaded all shaders.");
+        }
+#endif
+        
         if (!KeyboardState.IsKeyDown(Keys.Escape)) return;
 
         foreach (var scene in Scenes) scene.Close();

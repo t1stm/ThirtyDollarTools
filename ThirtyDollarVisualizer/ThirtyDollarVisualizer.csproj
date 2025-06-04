@@ -8,6 +8,7 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
         <ApplicationIcon>Assets\Textures\moai.ico</ApplicationIcon>
+        <CreateHardLinksForCopyFilesToOutputDirectoryIfPossible>true</CreateHardLinksForCopyFilesToOutputDirectoryIfPossible>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,37 +21,21 @@
         <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5"/>
     </ItemGroup>
 
-    <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <!-- Images -->
-        <None Remove="Assets\Textures\action_icut.png"/>
-
-        <!-- Shaders -->
-        <None Remove="Assets\Shaders\textured.frag"/>
-        <None Remove="Assets\Shaders\textured.vert"/>
-        <None Remove="Assets\Shaders\colored.vert"/>
-        <None Remove="Assets\Shaders\colored.frag"/>
-
-        <!-- Fonts -->
-        <None Remove="Assets\Fonts\Lato-Regular.ttf"/>
-        <None Remove="Assets\Fonts\Lato-Bold.ttf"/>
-        <None Remove="Assets\Fonts\Twemoji.Mozilla.ttf"/>
-        <None Remove="Assets\Fonts\VarelaRound-Regular.ttf"/>
-    </ItemGroup>
-
     <ItemGroup>
-        <EmbeddedResource Include="Assets\Shaders\quad.frag" CopyToOutputDirectory="PreserveNewest" />
-        <EmbeddedResource Include="Assets\Shaders\quad.vert" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Shaders\textured.frag" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Shaders\textured.vert" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Textures\action_missing.png" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Textures\action_icut.png" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Shaders\colored.vert" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Shaders\colored.frag" CopyToOutputDirectory="PreserveNewest"/>
-        <EmbeddedResource Include="Assets\Textures\moai.png" CopyToOutputDirectory="PreserveNewest"/>
+        <EmbeddedResource Include="Assets\Fonts\**\*" />
+        <EmbeddedResource Include="Assets\Textures\**\*" />
+        <EmbeddedResource Include="Assets\Shaders\**\*" />
     </ItemGroup>
+
+    <Target Name="CreateOutputSymlink" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+        <PropertyGroup>
+            <LinkPath>$(ProjectDir)\Assets</LinkPath>
+            <TargetPath>$(OutputPath)</TargetPath>
+        </PropertyGroup>
+        
+        <Exec Command="mklink /D &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' == 'Windows_NT'"/>
+        <Exec Command="ln -s &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' != 'Windows_NT'"/>
+    </Target>
 
     <ItemGroup>
         <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>

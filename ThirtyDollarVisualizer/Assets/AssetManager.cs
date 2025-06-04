@@ -1,4 +1,5 @@
 using System.Reflection;
+using ThirtyDollarVisualizer.Helpers.Logging;
 
 namespace ThirtyDollarVisualizer.Assets;
 
@@ -10,7 +11,7 @@ public static class AssetManager
         var isEmbedded = false;
 
 #if DEBUG
-        Console.WriteLine($"[AssetManager]: Loading asset '{path}'");
+        DefaultLogger.Log("AssetManager", $"Loading asset '{path}'");
 #endif
 
         if (path.Contains('*'))

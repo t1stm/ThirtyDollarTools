@@ -55,4 +55,17 @@ public static class ShaderPool
         ArgumentNullException.ThrowIfNull(shader);
         return shader;
     }
+
+    /// <summary>
+    /// Reloads all shaders currently cached in the shader pool. This involves re-compiling
+    /// and re-initializing the shaders to ensure they are up to date and synchronized
+    /// with any changes in their definitions or associated resources.
+    /// </summary>
+    public static void Reload()
+    {
+        foreach (var shader in NamedShaders.Values)
+        {
+            shader.ReloadShader();
+        }
+    }
 }
