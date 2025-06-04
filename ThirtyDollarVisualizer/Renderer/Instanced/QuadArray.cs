@@ -1,3 +1,4 @@
+using System.Data;
 using OpenTK.Graphics.OpenGL;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Planes;
@@ -60,7 +61,7 @@ public class QuadArray : IDisposable
 
     public PointerPlane[] ToPointerPlanes()
     {
-        return _array.Select((p,i) => new PointerPlane(p, i, this)).ToArray();
+        return _array.Select((_,i) => new PointerPlane(this, i)).ToArray();
     }
 
     protected static void InitQuadVBO()
@@ -114,8 +115,10 @@ public class QuadArray : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public void SetDirty(int index, Quad value)
+    public void SetDirty(int index)
     {
-        _arrayVBO[index] = _array[index] = value;
+        _arrayVBO[index] = _array[index];
     }
+
+    public ref Quad this[int index] => ref _array[index];
 }

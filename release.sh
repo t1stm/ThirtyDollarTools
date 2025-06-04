@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-NET_FOLDER="net8.0"
+NET_FOLDER="net9.0"
 platforms=("linux-x64" "win-x64" "osx-x64" "osx-arm64")
 
 publish() {

@@ -4,23 +4,23 @@ using ThirtyDollarVisualizer.Renderer.Instanced;
 namespace ThirtyDollarVisualizer.Objects.Planes;
 
 /// <summary>
-/// A plane that points to an already allocated <see cref="Quad"/> struct.
+/// A plane that points to an already allocated <see cref="Quad"/> struct contained in a <see cref="QuadArray"/>.
 /// </summary>
-/// <param name="quad">The quad that is targeted.</param>
-/// <param name="index">The index of the quad.</param>
 /// <param name="parent">The Quad's holder (c# doesn't support passing refs)</param>
-public class PointerPlane(Quad quad, int index, QuadArray parent) : Renderable
+/// <param name="index">The index of the quad.</param>
+public class PointerPlane(QuadArray parent, int index) : Renderable
 {
-    private Quad _backingQuad = quad;
-    
+    private QuadArray _parent = parent;
+
     public override Matrix4 Model
     {
         get => base.Model;
         set
         {
             base.Model = value;
-            _backingQuad.Model = value;
-            parent.SetDirty(index, _backingQuad);
+            ref var quad = ref _parent[index];
+            quad.Model = value;
+            _parent.SetDirty(index);
         }
     }
 
@@ -30,8 +30,9 @@ public class PointerPlane(Quad quad, int index, QuadArray parent) : Renderable
         set
         {
             base.Color = value;
-            _backingQuad.Color = value;
-            parent.SetDirty(index, _backingQuad);
+            ref var quad = ref _parent[index];
+            quad.Color = value;
+            _parent.SetDirty(index);
         } 
     }
 }
