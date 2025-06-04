@@ -23,7 +23,12 @@ public class StaticText(FontFamily? fontFamily = null) : TextRenderable
     public override string Value
     {
         get => _value;
-        set => SetTextContents(value);
+        set
+        {
+            if (_value != "")
+                SetTextContents(value);
+            _value = value;
+        }
     }
 
     public override FontStyle FontStyle { get; set; } = FontStyle.Regular;
@@ -45,10 +50,8 @@ public class StaticText(FontFamily? fontFamily = null) : TextRenderable
         }
     }
 
-    public override void SetTextContents(string text)
+    private void SetTextContents(string text)
     {
-        if (_value == text) return;
-        _value = text;
         var family = fontFamily ?? Fonts.GetFontFamily();
         var font = family.CreateFont(FontSizePx, FontStyle);
 
@@ -75,6 +78,7 @@ public class StaticText(FontFamily? fontFamily = null) : TextRenderable
     public void SetFontSize(float fontSizePx)
     {
         _fontSize = fontSizePx;
-        SetTextContents(Value);
+        if (!string.IsNullOrEmpty(Value))
+            SetTextContents(Value);
     }
 }

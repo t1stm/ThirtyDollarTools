@@ -22,7 +22,11 @@ public class CachedDynamicText : TextRenderable
     public override string Value
     {
         get => _value;
-        set => SetTextContents(value);
+        set
+        {
+            _value = value;
+            SetTextTextures(value);
+        }
     }
 
     public override float FontSizePx
@@ -33,20 +37,13 @@ public class CachedDynamicText : TextRenderable
 
     public override FontStyle FontStyle { get; set; } = FontStyle.Regular;
 
-    public override void SetTextContents(string text)
-    {
-        if (_value == text) return;
-        SetTextTextures(text);
-        _value = text;
-    }
-
     public void SetFontSize(float fontSizePx)
     {
         _fontSizePx = fontSizePx;
-        SetTextContents(Value);
+        SetTextTextures(Value);
     }
 
-    protected void SetTextTextures(ReadOnlySpan<char> text)
+    protected virtual void SetTextTextures(ReadOnlySpan<char> text)
     {
         _newLineIndices.Clear();
         var cache = Fonts.GetCharacterCache();

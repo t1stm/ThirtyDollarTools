@@ -776,7 +776,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var update = _overlay.Get<TextRenderable>("update");
 
         if (update.Value == message) return;
-        update.SetTextContents(message);
+        update.Value = message;
         unchecked
         {
             var old_id = ++_updateId;
@@ -785,7 +785,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 if (hideAfterMs < 0) return;
                 await Task.Delay(hideAfterMs, Token);
                 if (old_id == _updateId)
-                    update.SetTextContents(string.Empty);
+                    update.Value = string.Empty;
             }, Token);
         }
     }
@@ -1021,28 +1021,27 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         var debug = _overlay.Get<TextRenderable>("debug");
 
         // generate debug string.
-        debug.SetTextContents(
-            $"""
-             [Debug]
-             FPS: {fps:0.##}
-             Audio Engine: "{audio_engine}"
+        debug.Value = $"""
+                       [Debug]
+                       FPS: {fps:0.##}
+                       Audio Engine: "{audio_engine}"
 
-             Sequence ({_currentSequence + 1} - {Sequences.Length}): {sequence_location}
-             BPM: {bpm}
-             Time: {TimeString(elapsed_milliseconds)}
-             Volume: {volume:0.##}%
+                       Sequence ({_currentSequence + 1} - {Sequences.Length}): {sequence_location}
+                       BPM: {bpm}
+                       Time: {TimeString(elapsed_milliseconds)}
+                       Volume: {volume:0.##}%
 
-             Current ({current_note_idx}): {current_note}
-             Next ({next_note_idx}): {next_note}
-             In: {next_beat_ms:0.##ms} / {beats_to_next_beat:0.##} beats
+                       Current ({current_note_idx}): {current_note}
+                       Next ({next_note_idx}): {next_note}
+                       In: {next_beat_ms:0.##ms} / {beats_to_next_beat:0.##} beats
 
-             [OpenGL]
-             Version: {GLInfo.Version}
-             Renderer: {GLInfo.Renderer}
-             Max Texture Size: {GLInfo.MaxTexture2DSize}
-             Max Texture Layers: {GLInfo.MaxTexture2DLayers}
+                       [OpenGL]
+                       Version: {GLInfo.Version}
+                       Renderer: {GLInfo.Renderer}
+                       Max Texture Size: {GLInfo.MaxTexture2DSize}
+                       Max Texture Layers: {GLInfo.MaxTexture2DLayers}
 
-             """);
+                       """;
     }
 
     private void UpdateStaticRenderables(int w, int h, float scale)
@@ -1085,7 +1084,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         Task.Run(async () =>
         {
-            log.SetTextContents("Loading...");
+            log.Value = "Loading...";
             try
             {
                 await UpdateSequences(locations.Where(File.Exists).ToArray(), resetTime);
@@ -1096,7 +1095,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
             finally
             {
-                log.SetTextContents(string.Empty);
+                log.Value = string.Empty;
             }
         }, Token);
     }

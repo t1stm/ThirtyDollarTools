@@ -11,6 +11,9 @@ public class FontTexture : StaticTexture
 {
     public FontTexture(Font font, string text, Color? color = null) : base(rgba: null)
     {
+        if (string.IsNullOrEmpty(text)) 
+            throw new ArgumentException("Text cannot be null or empty.", nameof(text));
+        
         var options = new TextOptions(font)
         {
             FallbackFontFamilies =

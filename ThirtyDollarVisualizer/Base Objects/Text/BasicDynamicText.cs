@@ -7,11 +7,7 @@ namespace ThirtyDollarVisualizer.Base_Objects.Text;
 public class BasicDynamicText : CachedDynamicText
 {
     private TexturedPlane? _staticPlane;
-
-    public override void SetTextContents(string text)
-    {
-        Value = text;
-    }
+    public override string Value { get; set; } = string.Empty;
 
     public override void Render(Camera camera)
     {
