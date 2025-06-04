@@ -23,7 +23,7 @@ public class TexturedPlane : Renderable
     private TexturedUniform Uniform;
 
     public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad("textured_plane", () =>
-        new Shader("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
+        Shader.NewVertexFragment("ThirtyDollarVisualizer.Assets.Shaders.textured.vert",
             "ThirtyDollarVisualizer.Assets.Shaders.textured.frag"));
 
     public TexturedPlane(SingleTexture texture) : this()
@@ -48,11 +48,11 @@ public class TexturedPlane : Renderable
 
         var vertices = new[]
         {
-            // Position         // Texture Coordinates
-            x, y + h, z, 0.0f, 1.0f, // Bottom-left
-            x + w, y + h, z, 1.0f, 1.0f, // Bottom-right
-            x + w, y, z, 1.0f, 0.0f, // Top-right
-            x, y, z, 0.0f, 0.0f // Top-left
+            // Position                     // Texture Coordinates
+            x, y + h, z, 0.0f, 1.0f,        // Bottom-left
+            x + w, y + h, z, 1.0f, 1.0f,    // Bottom-right
+            x + w, y, z, 1.0f, 0.0f,        // Top-right
+            x, y, z, 0.0f, 0.0f             // Top-left
         };
 
         var indices = new uint[] { 0, 1, 3, 1, 2, 3 };

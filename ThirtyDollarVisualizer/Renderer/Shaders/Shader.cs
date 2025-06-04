@@ -1,57 +1,71 @@
+using System.Buffers;
 using System.Reflection;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
 namespace ThirtyDollarVisualizer.Renderer.Shaders;
 
+/// <summary>
+/// Represents an OpenGL shader program.
+/// </summary>
 public class Shader : IDisposable
 {
-    private static readonly Dictionary<(string, string), Shader> CachedShaders = new();
-
     /// <summary>
     ///     Controls whether the shader throws errors on missing uniforms.
     /// </summary>
     private readonly bool IsPedantic = false;
     public static Shader Dummy { get; } = new(0);
+    protected int Handle { get; }
 
     public Shader(int handle)
     {
         Handle = handle;
     }
 
-    public Shader(string vertexPath, string fragmentPath)
+    public static Shader NewVertexFragment(string vertexPath, string fragmentPath)
     {
-        CachedShaders.TryGetValue((vertexPath, fragmentPath), out var shader);
-        if (shader != null)
+        return NewDefined(ShaderDefinition.Vertex(vertexPath), ShaderDefinition.Fragment(fragmentPath));
+    }
+
+    public static Shader NewDefined(params ShaderDefinition[] shaders)
+    {
+        var shader = new Shader(GL.CreateProgram());
+        var shaderHandleArray = ArrayPool<int>.Shared.Rent(shaders.Length);
+
+        try
         {
-            Handle = shader.Handle;
-            return;
+            for (var index = 0; index < shaders.Length; index++)
+            {
+                var definition = shaders[index];
+                var tempShader = shaderHandleArray[index] = LoadShaderAtPath(definition.ShaderType, definition.Path);
+                GL.AttachShader(shader.Handle, tempShader);
+            }
+
+            shader.LinkAndThrowOnError();
+
+            foreach (var handle in shaderHandleArray)
+            {
+                GL.DetachShader(shader.Handle, handle);
+                GL.DeleteShader(handle);
+            }
+        }
+        finally
+        {
+            ArrayPool<int>.Shared.Return(shaderHandleArray);
         }
 
-        var vertex = LoadShader(ShaderType.VertexShader, vertexPath);
-        var fragment = LoadShader(ShaderType.FragmentShader, fragmentPath);
-        Handle = GL.CreateProgram();
+        return shader;
+    }
 
-        GL.AttachShader(Handle, vertex);
-        GL.AttachShader(Handle, fragment);
-
+    protected void LinkAndThrowOnError()
+    {
         GL.LinkProgram(Handle);
         GL.GetProgram(Handle, GetProgramParameterName.LinkStatus, out var link_status);
 
         if (link_status == 0)
             throw new Exception($"Program failed to link with error: {GL.GetProgramInfoLog(Handle)}");
-
-        GL.DetachShader(Handle, vertex);
-        GL.DetachShader(Handle, fragment);
-
-        GL.DeleteShader(vertex);
-        GL.DeleteShader(fragment);
-
-        CachedShaders.Add((vertexPath, fragmentPath), this);
     }
-
-    public int Handle { get; }
-
+    
     public void Dispose()
     {
         GL.DeleteProgram(Handle);
@@ -84,7 +98,7 @@ public class Shader : IDisposable
             if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
             return false;
         }
-
+        
         GL.Uniform2(location, value);
         return true;
     }
@@ -141,7 +155,7 @@ public class Shader : IDisposable
         return true;
     }
 
-    private static int LoadShader(ShaderType type, string path)
+    private static int LoadShaderAtPath(ShaderType type, string path)
     {
         string source;
 

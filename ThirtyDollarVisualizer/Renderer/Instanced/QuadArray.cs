@@ -18,7 +18,7 @@ public class QuadArray : IDisposable
     private VertexArrayObject _arrayVAO = null!;
     private readonly Quad[] _array;
     private readonly Shader _shader = ShaderPool.GetOrLoad("quad_shader", () =>
-        new Shader("ThirtyDollarVisualizer.Assets.Shaders.quad.vert",
+        Shader.NewVertexFragment("ThirtyDollarVisualizer.Assets.Shaders.quad.vert",
             "ThirtyDollarVisualizer.Assets.Shaders.quad.frag"));
 
     public QuadArray(int count) : this(new Quad[count]) { }

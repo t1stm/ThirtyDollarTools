@@ -203,7 +203,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         Shader? optional_shader = null;
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
             optional_shader = ShaderPool.GetOrLoad("bg_optional_shader", 
-                () => new Shader(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation));
+                () => Shader.NewVertexFragment(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation));
 
         BackgroundPlane = new BackgroundPlane(DefaultBackgroundColor)
         {

@@ -1,5 +1,4 @@
 using OpenTK.Graphics.OpenGL;
-using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Renderer;
 using ThirtyDollarVisualizer.Renderer.Shaders;
@@ -15,7 +14,7 @@ public class ColoredPlane : Renderable
     private static BufferObject<ColoredUniform>? UniformBuffer;
 
     public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad(
-        "colored_plane", () => new Shader("ThirtyDollarVisualizer.Assets.Shaders.colored.vert",
+        "colored_plane", () => Shader.NewVertexFragment("ThirtyDollarVisualizer.Assets.Shaders.colored.vert",
             "ThirtyDollarVisualizer.Assets.Shaders.colored.frag")
     );
 
