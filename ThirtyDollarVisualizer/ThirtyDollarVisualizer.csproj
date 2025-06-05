@@ -33,7 +33,7 @@
         </PropertyGroup>
         
         <Exec Command="mklink /D &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' == 'Windows_NT'"/>
-        <Exec Command="ln -s &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' != 'Windows_NT'"/>
+        <Exec Command="ln -sf &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' != 'Windows_NT'"/>
     </Target>
 
     <ItemGroup>
