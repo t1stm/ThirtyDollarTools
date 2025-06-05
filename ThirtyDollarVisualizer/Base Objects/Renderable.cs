@@ -57,7 +57,10 @@ public abstract class Renderable
     /// </summary>
     public virtual Vector4 Color { get; set; }
 
-    protected float DeltaAlpha { get; set; }
+    /// <summary>
+    /// Represents the inverse alpha value used in renderable objects to influence transparency or animation.
+    /// </summary>
+    protected float InverseAlpha { get; set; }
 
     /// <summary>
     /// Updates the current renderable's model for the MVP rendering method.
@@ -156,7 +159,7 @@ public abstract class Renderable
         }
 
         if (!bit_stack.IsEnabled(AnimationFeature.DeltaAlpha)) return;
-        DeltaAlpha = animation.GetAlphaDelta_Value(this);
+        InverseAlpha = animation.GetAlphaDelta_Value(this);
     }
 
     /// <summary>

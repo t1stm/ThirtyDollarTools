@@ -11,7 +11,6 @@ layout (std140) uniform Data {
     float u_ScalePx;
     float u_AspectRatio;
     float u_BorderRadiusPx;
-    vec4 u_Viewport;
 };
 
 float roundedBoxSDF(vec2 center, vec2 size, float radius) {

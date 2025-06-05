@@ -30,8 +30,25 @@ public class TexturedPlane : Renderable
         if (!_areVerticesGenerated) SetVertices();
     }
 
-    public override Vector3 Position { get; set; }
-    public override Vector3 Scale { get; set; } = Vector3.One;
+    public override Vector3 Position
+    {
+        get => base.Position;
+        set
+        {
+            base.Position = value;
+            UpdateModel(IsChild);
+        }
+    }
+
+    public override Vector3 Scale
+    {
+        get => base.Scale;
+        set
+        {
+            base.Scale = value;
+            UpdateModel(IsChild);
+        }
+    }
 
     public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad("textured_plane", () =>
         Shader.NewVertexFragment(
@@ -91,7 +108,7 @@ public class TexturedPlane : Renderable
     {
         _uniform.Model = Model;
         _uniform.Projection = camera.GetVPMatrix();
-        _uniform.DeltaAlpha = DeltaAlpha;
+        _uniform.DeltaAlpha = InverseAlpha;
 
         Span<TexturedUniform> span = [_uniform];
         if (_uniformBuffer is null)

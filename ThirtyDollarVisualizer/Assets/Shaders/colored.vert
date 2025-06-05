@@ -10,7 +10,6 @@ layout (std140) uniform Data {
     float u_ScalePx;
     float u_AspectRatio;
     float u_BorderRadiusPx;
-    vec4 u_Viewport;
 };
 
 void main() {

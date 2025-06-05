@@ -1,4 +1,5 @@
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Renderer;
@@ -16,7 +17,32 @@ public class ColoredPlane : Renderable
 
     private ColoredUniform _uniform;
     public float BorderRadius;
+    private Shader? _shader = ShaderPool.GetOrLoad(
+        "colored_plane", () => Shader.NewVertexFragment(
+            Asset.Embedded("Shaders/colored.vert"), 
+            Asset.Embedded("Shaders/colored.frag")
+        )
+    );
 
+    public override Vector3 Position
+    {
+        get => base.Position;
+        set
+        {
+            base.Position = value;
+            UpdateModel(IsChild);
+        }
+    }
+
+    public override Vector3 Scale
+    {
+        get => base.Scale;
+        set
+        {
+            base.Scale = value;
+            UpdateModel(IsChild);
+        }
+    }
 
     public ColoredPlane()
     {
@@ -24,12 +50,11 @@ public class ColoredPlane : Renderable
         _uniform = new ColoredUniform();
     }
 
-    public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad(
-        "colored_plane", () => Shader.NewVertexFragment(
-            Asset.Embedded("Shaders/colored.vert"), 
-            Asset.Embedded("Shaders/colored.frag")
-            )
-    );
+    public override Shader? Shader
+    {
+        get => _shader;
+        set => _shader = value;
+    }
 
     private static void SetVertices()
     {
