@@ -14,10 +14,9 @@ public class PointerPlane(QuadArray parent, int index) : Renderable
 
     public override Matrix4 Model
     {
-        get => base.Model;
+        get => _parent[index].Model;
         set
         {
-            base.Model = value;
             ref var quad = ref _parent[index];
             quad.Model = value;
             _parent.SetDirty(index);
@@ -26,10 +25,9 @@ public class PointerPlane(QuadArray parent, int index) : Renderable
 
     public override Vector4 Color
     {
-        get => base.Color;
+        get => _parent[index].Color;
         set
         {
-            base.Color = value;
             ref var quad = ref _parent[index];
             quad.Color = value;
             _parent.SetDirty(index);

@@ -38,8 +38,20 @@ public class QuadArray : IDisposable
         UploadToGPU();
     }
 
-    public ref Quad this[int index] => ref _array[index];
+    /// <summary>
+    /// Provides indexed access to the quads stored within the collection.
+    /// The indexer returns a reference to the underlying quad, allowing for direct modification.
+    /// </summary>
+    /// <param name="index">The zero-based index of the quad in the collection.</param>
+    /// <returns>A reference to the quad at the specified index.</returns>
+    /// <exception cref="IndexOutOfRangeException">
+    /// Thrown if the <paramref name="index"/> is outside the bounds of the collection.
+    /// </exception>
+    public ref Quad this[int index] => ref _array.AsSpan()[index];
 
+    /// <summary>
+    /// Disposes all resources used by the quad array.
+    /// </summary>
     public void Dispose()
     {
         _arrayVAO.Dispose();
@@ -74,6 +86,11 @@ public class QuadArray : IDisposable
         _arrayVAO.BindIndexBuffer(_quadEBO);
     }
 
+    /// <summary>
+    /// Converts the quads in the array into an array of <see cref="PointerPlane" /> instances,
+    /// where each <see cref="PointerPlane" /> references a specific quad within the <see cref="QuadArray" />.
+    /// </summary>
+    /// <returns>An array of <see cref="PointerPlane" /> objects, each representing a quad in the <see cref="QuadArray" />.</returns>
     public PointerPlane[] ToPointerPlanes()
     {
         return _array.Select((_, i) => new PointerPlane(this, i)).ToArray();
@@ -123,6 +140,10 @@ public class QuadArray : IDisposable
         );
     }
 
+    /// <summary>
+    /// Marks the specified quad at the given index as dirty, indicating it needs to be updated in the GPU buffer.
+    /// </summary>
+    /// <param name="index">The index of the quad to mark as dirty.</param>
     public void SetDirty(int index)
     {
         _arrayVBO[index] = _array[index];
