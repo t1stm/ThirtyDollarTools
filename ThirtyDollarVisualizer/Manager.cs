@@ -23,7 +23,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
             AutoIconify = false,
             ClientSize = (width, height),
             Title = title,
-            APIVersion = new Version(3, 3),
             Icon = icon,
             Vsync = fps == null ? VSyncMode.On : VSyncMode.Off,
             TransparentFramebuffer = SettingsHandler.Settings.TransparentFramebuffer
