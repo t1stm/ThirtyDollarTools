@@ -71,9 +71,17 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         GLInfo.Vendor = GL.GetString(StringName.Vendor);
         GLInfo.Renderer = GL.GetString(StringName.Renderer);
         GLInfo.Version = GL.GetString(StringName.Version);
-
+        
         GLInfo.MaxTexture2DSize = GL.GetInteger(GetPName.MaxTextureSize);
         GLInfo.MaxTexture2DLayers = GL.GetInteger(GetPName.MaxArrayTextureLayers);
+
+        var ext_count = GL.GetInteger(GetPName.NumExtensions);
+        GLInfo.Extensions.EnsureCapacity(ext_count);
+        for (var i = 0; i < ext_count; i++)
+        {
+            var ext = GL.GetString(StringNameIndexed.Extensions, i);
+            GLInfo.Extensions.Add(ext);
+        }
     }
 
     protected override void OnResize(ResizeEventArgs e)
