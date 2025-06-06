@@ -11,6 +11,10 @@ public class VertexBufferLayout
     private readonly List<VertexBufferElement> _elements = [];
     private int _stride;
 
+    // Maybe this file should have the perInstance boolean be an integer and default to zero
+    // I haven't encountered a use case for it yet, but when the time comes, it'll be easy to implement.
+    // - t1stm
+    
     /// <summary>
     /// Adds a new <see cref="float"/> vertex attribute to the layout.
     /// </summary>
