@@ -451,12 +451,13 @@ public class PcmEncoder
 
     public void WriteAsWavFile(Stream stream, AudioData<float> data)
     {
+        if (_settings.EnableNormalization)
+            data.Normalize();
+        
         var samples = data.Samples;
         for (var i = 0; i < samples.Length; i++)
         {
             var arr = samples[i];
-            if (_settings.EnableNormalization)
-                arr.NormalizeVolume();
             samples[i] = arr.TrimEnd();
         }
 
