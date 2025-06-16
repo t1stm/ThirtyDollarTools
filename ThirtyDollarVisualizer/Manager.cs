@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using System.Text;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Base_Objects.Text;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 using ThirtyDollarVisualizer.Scenes;
@@ -31,13 +33,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     public readonly SemaphoreSlim RenderBlock = new(1);
     public readonly List<IScene> Scenes = [];
 
-    public static void CheckErrors()
-    {
-        ErrorCode errorCode;
-        while ((errorCode = GL.GetError()) != ErrorCode.NoError)
-            DefaultLogger.Log("OpenGL Error", $"(0x{(int)errorCode:x8}) \'{errorCode}\'");
-    }
-
     public void ToggleFullscreen()
     {
         WindowState = WindowState switch
@@ -50,12 +45,15 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnLoad()
     {
         SetGLInfo();
+        StaticTexture.TransparentPixel.UploadToGPU();
+        
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
-
-        CheckErrors();
+        
+        GL.Enable(EnableCap.DebugOutput);
+        GL.DebugMessageCallback(DebugCallback, IntPtr.Zero);
+        
         base.OnLoad();
-
         Fonts.Initialize();
 
         GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
@@ -64,6 +62,19 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         foreach (var scene in Scenes) scene.Init(this);
 
         foreach (var scene in Scenes) scene.Start();
+    }
+
+    private static unsafe void DebugCallback(DebugSource source, DebugType type, int id, 
+        DebugSeverity severity, int length, IntPtr messagePtr, IntPtr userParameter)
+    {
+        if (type == DebugType.DebugTypeOther) return;
+        
+        var stringFromPointer = new ReadOnlySpan<byte>(messagePtr.ToPointer(), length);
+        var sourceText = source != DebugSource.DontCare ? source.ToString()[11..] : "Unknown";
+        var typeText = type != DebugType.DontCare ? type.ToString()[9..] : "Unknown";
+        var severityText = severity != DebugSeverity.DontCare ? severity.ToString()[13..] : "Unknown";
+        
+        DefaultLogger.Log($"OpenGL {sourceText}", $"({typeText}, {id}) {severityText}: {Encoding.ASCII.GetString(stringFromPointer)}");
     }
 
     private static void SetGLInfo()
@@ -107,9 +118,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args)
-    {
-        CheckErrors();
-
+    { 
         if (KeyboardState.IsAnyKeyDown)
             foreach (var scene in Scenes)
                 scene.Keyboard(KeyboardState);

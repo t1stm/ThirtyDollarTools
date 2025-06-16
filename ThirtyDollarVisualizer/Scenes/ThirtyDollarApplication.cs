@@ -248,8 +248,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
             return;
         }
-
-        Manager.CheckErrors();
     }
 
     public void Resize(int w, int h)
@@ -294,8 +292,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public void Render()
     {
-        Manager.CheckErrors();
-
         // get static values from current camera, for this frame
         var camera = _tempCamera;
         camera.CopyFrom(_camera);
@@ -334,7 +330,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         // inline method that is called in the renderer
         void RenderRenderable(Renderable? renderable)
         {
-            Manager.CheckErrors();
             if (renderable is null) return;
 
             var position = renderable.Position;
