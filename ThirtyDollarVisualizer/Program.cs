@@ -97,19 +97,13 @@ public static class Program
 
         icon_stream.DangerousTryGetSinglePixelMemory(out var memory);
         var icon_bytes = MemoryMarshal.AsBytes(memory.Span).ToArray();
-        var icon = new WindowIcon(
+        _ = new WindowIcon(
             new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
 
-        Manager manager = null!;
-        try
-        {
-            manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
-        }
-        catch (Exception)
-        {
-            DefaultLogger.Log("Program", "Unable to create window. Trying without icon.");
-            manager = new Manager(width, height, "Thirty Dollar Visualizer", fps);
-        }
+        // TODO: reimplement setting icons. currently setting an icon under Wayland and macOS crashes the app.
+        // Optionally query the operating system to get support for icon setting.
+        // Maybe also implement a fail-safe in the settings file.
+        var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps);
         
         if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
