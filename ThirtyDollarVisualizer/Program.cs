@@ -100,7 +100,17 @@ public static class Program
         var icon = new WindowIcon(
             new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
 
-        var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
+        Manager manager = null!;
+        try
+        {
+            manager = new Manager(width, height, "Thirty Dollar Visualizer", fps, icon);
+        }
+        catch (Exception)
+        {
+            DefaultLogger.Log("Program", "Unable to create window. Trying without icon.");
+            manager = new Manager(width, height, "Thirty Dollar Visualizer", fps);
+        }
+        
         if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
