@@ -49,7 +49,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         GL.Enable(EnableCap.Multisample);
         
         GL.Enable(EnableCap.DebugOutput);
-        GL.DebugMessageCallback(DebugCallback, IntPtr.Zero);
+        if (GLInfo.Extensions.Contains("GL_KHR_debug"))
+            GL.DebugMessageCallback(DebugCallback, IntPtr.Zero);
         
         base.OnLoad();
         Fonts.Initialize();
