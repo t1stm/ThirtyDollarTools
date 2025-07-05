@@ -174,7 +174,7 @@ public readonly struct GapBox(float x1, float y1, float x2, float y2)
         return Y1 + Y2;
     }
 
-    public static explicit operator GapBox(float size)
+    public static implicit operator GapBox(float size)
     {
         return new GapBox(size);
     }

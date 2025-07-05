@@ -19,8 +19,8 @@ public class Playfield(PlayfieldSettings settings)
 
     private readonly LayoutHandler _layoutHandler = new(settings.SoundSize * settings.RenderScale,
         settings.SoundsOnASingleLine,
-        new GapBox(settings.SoundMargin * settings.RenderScale / 2),
-        new GapBox(15f * settings.RenderScale, 15f * settings.RenderScale));
+        settings.SoundMargin * settings.RenderScale / 2,
+        15f * settings.RenderScale);
 
     private readonly ColoredPlane _objectBox = new()
     {
@@ -82,7 +82,7 @@ public class Playfield(PlayfieldSettings settings)
 
             PositionSound(_layoutHandler, in sound);
 
-            // check if sound is a divider. if not continue to the next sound.
+            // check if sound is a divider. if not, continue to the next sound.
             if (!sound.IsDivider || i + 1 >= sounds.Count) continue;
 
             // add the current divider's position for render culling
@@ -142,7 +142,7 @@ public class Playfield(PlayfieldSettings settings)
         var texture_x = texture?.Width ?? 0;
         var texture_y = texture?.Height ?? 0;
 
-        // get aspect ratio for events without equal size
+        // get the aspect ratio for events without an equal size
         var aspect_ratio = (float)texture_x / texture_y;
 
         // box scale is the maximum size a sound should cover
@@ -227,11 +227,11 @@ public class Playfield(PlayfieldSettings settings)
         camera_y -= height_scale / 2;
         camera_yh += height_scale / 2;
 
-        // gets the amount of dividers at the top and bottom of the screen
+        // gets the number of dividers at the top and bottom of the screen
         var top_camera_dividers = 0;
         var bottom_camera_dividers = 0;
 
-        // explicitly converte the list to a span for faster iteration
+        // explicitly convert the list to a span for faster iteration
         foreach (var position in CollectionsMarshal.AsSpan(_dividerPositionsY))
         {
             if (position <= camera_y + size_renderable)
