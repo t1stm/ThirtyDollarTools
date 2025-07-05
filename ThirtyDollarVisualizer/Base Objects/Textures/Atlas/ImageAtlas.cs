@@ -26,7 +26,7 @@ public class ImageAtlas : StaticTexture
         Height = Image.Height;
     }
 
-    public void AddImage(Image<Rgba32> image)
+    public Rectangle AddImage(Image<Rgba32> image)
     {
         var position = Atlas.AddImage(image);
         ImagesToBeUploaded.Add(new UploadImage
@@ -34,6 +34,8 @@ public class ImageAtlas : StaticTexture
             Image = image,
             Area = position
         });
+
+        return position;
     }
 
     public override void Dispose()
@@ -51,7 +53,7 @@ public class ImageAtlas : StaticTexture
     public override void UploadToGPU(bool dispose)
     {
         Atlas.ComputeAtlas();
-        
+
         if (!_firstUpload)
         {
             UploadToGPUPartial();
@@ -87,7 +89,7 @@ public class ImageAtlas : StaticTexture
                     PixelFormat.Rgba,
                     PixelType.UnsignedByte, new IntPtr(data));
             }
-        
+
         SetParameters();
     }
 
