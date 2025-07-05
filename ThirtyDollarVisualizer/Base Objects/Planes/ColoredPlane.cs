@@ -17,12 +17,12 @@ public class ColoredPlane : Renderable
 
     private ColoredUniform _uniform;
     public float BorderRadius;
-    private Shader? _shader = ShaderPool.GetOrLoad(
+    private Lazy<Shader> _shader = new(() => ShaderPool.GetOrLoad(
         "colored_plane", () => Shader.NewVertexFragment(
             Asset.Embedded("Shaders/colored.vert"), 
             Asset.Embedded("Shaders/colored.frag")
         )
-    );
+    ));
 
     public override Vector3 Position
     {
@@ -52,8 +52,8 @@ public class ColoredPlane : Renderable
 
     public override Shader? Shader
     {
-        get => _shader;
-        set => _shader = value;
+        get => _shader.Value;
+        set => _shader = new Lazy<Shader>(value ?? throw new ArgumentNullException(nameof(value)));
     }
 
     private static void SetVertices()

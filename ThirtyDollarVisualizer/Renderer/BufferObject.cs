@@ -65,6 +65,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     /// </summary>
     public void Bind()
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
         GL.BindBuffer(_bufferType, _handle);
     }
 

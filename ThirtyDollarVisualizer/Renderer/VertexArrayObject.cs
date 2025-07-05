@@ -30,6 +30,7 @@ public class VertexArrayObject : IBindable
     /// </summary>
     public void Bind()
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
         GL.BindVertexArray(Handle);
     }
 

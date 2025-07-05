@@ -37,9 +37,9 @@ public class AssetTexture : SingleTexture
         _texture.Update();
     }
 
-    public override void UploadToGPU()
+    public override void UploadToGPU(bool dispose)
     {
-        _texture.UploadToGPU();
+        _texture.UploadToGPU(dispose);
     }
 
     public override void Bind(TextureUnit slot = TextureUnit.Texture0)

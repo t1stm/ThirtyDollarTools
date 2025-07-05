@@ -18,9 +18,9 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : SingleTexture
         return _gpuHandles == null;
     }
 
-    public override void UploadToGPU()
+    public override void UploadToGPU(bool dispose)
     {
-        if (Image == null) throw new ArgumentNullException(nameof(Image), "Animated Texture asset should not be null.");
+        if (Image == null) throw new InvalidOperationException("Animated Texture asset should not be null.");
 
         _gpuHandles = new AnimatedHandle[Image.Frames.Count];
         var handles = new int[Image.Frames.Count];
@@ -51,6 +51,9 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : SingleTexture
         }
 
         _totalLength = length;
+        
+        if (!dispose) return;
+        
         Image.Dispose();
         Image = null;
     }
@@ -80,6 +83,7 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : SingleTexture
         var handle = _textureHandle ?? _gpuHandles[0];
 
         GL.ActiveTexture(slot);
+        ArgumentOutOfRangeException.ThrowIfLessThan(handle.Handle, 1, nameof(handle));
         BindPrimitive(handle.Handle);
     }
 

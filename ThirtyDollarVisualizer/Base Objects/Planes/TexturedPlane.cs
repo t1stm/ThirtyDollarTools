@@ -50,11 +50,17 @@ public class TexturedPlane : Renderable
         }
     }
 
-    public override Shader? Shader { get; set; } = ShaderPool.GetOrLoad("textured_plane", () =>
+    private Lazy<Shader> _shader = new(() => ShaderPool.GetOrLoad("textured_plane", () =>
         Shader.NewVertexFragment(
             Asset.Embedded("Shaders/textured.vert"),
             Asset.Embedded("Shaders/textured.frag"))
-        );
+    ));
+
+    public override Shader? Shader
+    {
+        get => _shader.Value;
+        set => _shader = new Lazy<Shader>(value ?? throw new ArgumentNullException(nameof(value)));
+    }
 
     private static void SetVertices()
     {
@@ -63,7 +69,7 @@ public class TexturedPlane : Renderable
 
         var vertices = new[]
         {
-            // Position                     // Texture Coordinates
+            // Position // Texture Coordinates
             x, y + h, z, 0.0f, 1.0f, // Bottom-left
             x + w, y + h, z, 1.0f, 1.0f, // Bottom-right
             x + w, y, z, 1.0f, 0.0f, // Top-right

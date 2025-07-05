@@ -106,6 +106,7 @@ public class Shader : IDisposable
     /// </exception>
     protected void LinkAndThrowOnError()
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
         GL.LinkProgram(Handle);
         GL.GetProgram(Handle, GetProgramParameterName.LinkStatus, out var link_status);
 
@@ -119,6 +120,7 @@ public class Shader : IDisposable
     /// </summary>
     public void Use()
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
         GL.UseProgram(Handle);
     }
 

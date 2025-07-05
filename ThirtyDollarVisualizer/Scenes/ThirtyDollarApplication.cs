@@ -95,7 +95,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
 
-        const string versionString = "1.2.0 (Insider Build)";
+        const string versionString = "2.0.0 (Insider Build)";
         _overlay.Add<StaticText>("version",
             text =>
             {
@@ -246,7 +246,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         catch (Exception e)
         {
             SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
-            return;
         }
     }
 

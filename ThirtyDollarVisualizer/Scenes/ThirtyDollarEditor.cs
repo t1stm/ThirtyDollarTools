@@ -1,9 +1,14 @@
+using OpenTK.Mathematics;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
+using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.Null;
+using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Settings;
 using ThirtyDollarVisualizer.UI.Abstractions;
@@ -166,6 +171,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
     {
         try
         {
+            if (state.IsKeyPressed(Keys.Space)) debugMarker++;
         }
         catch (Exception e)
         {
@@ -185,30 +191,30 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
         }
     }
 
+    private static TexturedPlane? rndbl;
+    private static ImageAtlas? atlas;
+    private int oldMarker = 0;
+    private int debugMarker = 0;
+    
     private void RenderError()
     {
-        _errorDisplay ??= new FlexPanel(0, 0, _uiContext.ViewportWidth, _uiContext.ViewportHeight)
+        atlas ??= new ImageAtlas();
+        rndbl ??= new TexturedPlane(atlas)
         {
-            Background = new ColoredPlane
-            {
-                Color = (0.2f, 0.2f, 0.2f, 1f)
-            },
-            Direction = LayoutDirection.Vertical,
-            HorizontalAlign = Align.Center,
-            Padding = 50,
-            Spacing = 10,
-            Children =
-            [
-                new Label("Thirty Dollar Editor")
-                {
-                    FontSizePx = 36,
-                    FontStyle = FontStyle.Bold,
-                    Value = "If you're reading this the Editor has encountered an unrecoverable error."
-                },
-                new Label($"Error: {_errorMessage}")
-            ]
+            Color = Vector4.One,
+            Position = Vector3.Zero
         };
+        
+        if (oldMarker != debugMarker)
+        {
+            oldMarker = debugMarker;
+            var img = new StaticTexture("Assets/Textures/moai.png");
+            var data = img.GetData();
+            
+            atlas.AddImage(data!);
+        }
 
-        _errorDisplay.Draw(_uiContext);
+        rndbl.Scale = new Vector3((_uiContext.ViewportWidth, _uiContext.ViewportHeight));
+        rndbl.Render(_uiContext.Camera);
     }
 }

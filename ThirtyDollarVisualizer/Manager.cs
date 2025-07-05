@@ -11,7 +11,6 @@ using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Settings;
-using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
 
 namespace ThirtyDollarVisualizer;
 
@@ -45,7 +44,6 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     protected override void OnLoad()
     {
         SetGLInfo();
-        StaticTexture.TransparentPixel.UploadToGPU();
         
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);

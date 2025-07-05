@@ -18,7 +18,9 @@ public abstract class SingleTexture : IDisposable
         // Override if needed.
     }
 
-    public abstract void UploadToGPU();
+    public abstract void UploadToGPU(bool dispose);
+    public virtual void UploadToGPU() => UploadToGPU(true);
+    
     public abstract void Bind(TextureUnit slot = TextureUnit.Texture0);
 
     protected static void SetParameters()
@@ -37,7 +39,7 @@ public abstract class SingleTexture : IDisposable
     protected static unsafe void BasicUploadTexture(ImageFrame<Rgba32> image)
     {
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, image.Width, image.Height,
-            0, PixelFormat.Rgba, PixelType.UnsignedByte, 0);
+            0, PixelFormat.Rgba, PixelType.UnsignedByte, (IntPtr)0);
 
         image.ProcessPixelRows(accessor =>
         {
@@ -52,6 +54,7 @@ public abstract class SingleTexture : IDisposable
 
     protected static void BindPrimitive(int handle)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(handle, 1, nameof(handle));
         GL.BindTexture(TextureTarget.Texture2D, handle);
     }
 }
