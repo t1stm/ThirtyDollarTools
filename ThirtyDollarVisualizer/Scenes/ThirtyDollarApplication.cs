@@ -236,7 +236,10 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             _startObjects.Add(_dragNDrop);
             _dragNDrop.UpdateModel(false);
         }
-
+        
+        var resolution = manager.FramebufferSize; 
+        Resize(resolution.X, resolution.Y);
+        
         if (Sequences.Length < 1) return;
 
         try

@@ -93,10 +93,10 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
             GLInfo.Extensions.Add(ext);
         }
     }
-
-    protected override void OnResize(ResizeEventArgs e)
+    
+    protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
-        base.OnResize(e);
+        base.OnFramebufferResize(e);
         foreach (var scene in Scenes) scene.Resize(e.Width, e.Height);
         GL.Viewport(0, 0, e.Width, e.Height);
     }
