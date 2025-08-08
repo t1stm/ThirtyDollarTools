@@ -10,7 +10,6 @@ public partial class Sequence
     public Dictionary<string, BaseEvent[]> Definitions = new();
     public HashSet<string> SeparatedChannels = [];
     public BaseEvent[] Events { get; set; } = [];
-    public bool IsNewFormat { get; set; }
 
     public Sequence Copy()
     {
@@ -22,22 +21,14 @@ public partial class Sequence
         };
     }
     
-    private static readonly DateTime NewUpdate = new(2025, 08, 07);
-    public static Sequence FromString(string data, DateTime fileMDate)
-    {
-        return FromString(data, fileMDate > NewUpdate);
-    }
-    
     /// <summary>
     ///     Parses a sequence stored in a string.
     /// </summary>
     /// <param name="data">The string containing the sequence.</param>
-    /// <param name="isNewFormat">Whether panning uses the new standard format.</param>
     /// <returns>The parsed sequence.</returns>
-    public static Sequence FromString(string data, bool isNewFormat = true)
+    public static Sequence FromString(string data)
     {
         var sequence = new Sequence();
-        sequence.IsNewFormat = isNewFormat;
         var split = data.Split('|');
         var list = new List<BaseEvent>();
 
@@ -348,16 +339,18 @@ public partial class Sequence
         }
         else
         {
+            var isNewFormat = Math.Abs(pan) > 1;
+            
             var new_event = new PannedEvent
             {
-                Pan = sequence.IsNewFormat ? pan / 10f : pan,
+                Pan = isNewFormat ? pan / 100f : pan,
                 Value = value,
                 SoundEvent = string.Intern(sound),
                 PlayTimes = loop_times,
                 OriginalLoop = loop_times,
                 ValueScale = scale,
                 Volume = event_volume,
-                IsStandardImplementation = sequence.IsNewFormat
+                IsStandardImplementation = isNewFormat
             };
 
             return new_event;

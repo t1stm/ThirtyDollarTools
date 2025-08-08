@@ -168,7 +168,7 @@ public class MainWindowViewModel : ViewModelBase
                 if (!File.Exists(sequence_location)) return;
 
                 var read = await File.ReadAllTextAsync(sequence_location);
-                var sequence = Sequence.FromString(read, File.GetLastWriteTime(sequence_location));
+                var sequence = Sequence.FromString(read);
                 new_sequences.Add(sequence);
 
                 CreateLog($"Preloaded sequence located in: \'{sequence_location}\'");
