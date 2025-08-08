@@ -18,7 +18,8 @@ public static class Readers
                 output.Add(new SequenceFile
                 {
                     Location = location,
-                    Data = data
+                    Data = data,
+                    ModificationDate = File.GetLastWriteTime(location)
                 });
             }
             catch (Exception e)
@@ -34,5 +35,6 @@ public static class Readers
     {
         public string Location;
         public string Data;
+        public DateTime ModificationDate;
     }
 }

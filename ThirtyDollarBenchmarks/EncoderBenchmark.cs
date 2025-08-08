@@ -63,7 +63,7 @@ public class EncoderBenchmark
         var reader = new StreamReader(stream);
 
         var sequence_text = reader.ReadToEnd();
-        _sequence = Sequence.FromString(sequence_text);
+        _sequence = Sequence.FromString(sequence_text, false);
     }
 
     [Benchmark]

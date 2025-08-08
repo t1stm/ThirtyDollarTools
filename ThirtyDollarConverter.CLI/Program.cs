@@ -43,7 +43,7 @@ for (var i = 0; i < inputs.Length; i++)
     var input = sequences[i];
     var output = outputs[i];
 
-    var sequence = Sequence.FromString(input.Data);
+    var sequence = Sequence.FromString(input.Data, input.ModificationDate);
 
     var encoder = new PcmEncoder(holder, new EncoderSettings
     {

@@ -36,7 +36,7 @@ internal static class Program
         foreach (var file in output)
         {
             if (file.Location.Contains("LICENSE")) continue;
-            var sequence = Sequence.FromString(file.Data);
+            var sequence = Sequence.FromString(file.Data, file.ModificationDate);
 
             var encoder = new PcmEncoder(holder, new EncoderSettings
             {

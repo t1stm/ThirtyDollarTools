@@ -10,6 +10,7 @@ public partial class Sequence
     public Dictionary<string, BaseEvent[]> Definitions = new();
     public HashSet<string> SeparatedChannels = [];
     public BaseEvent[] Events { get; set; } = [];
+    public bool IsNewFormat { get; set; }
 
     public Sequence Copy()
     {
@@ -20,15 +21,23 @@ public partial class Sequence
             SeparatedChannels = SeparatedChannels
         };
     }
-
+    
+    private static readonly DateTime NewUpdate = new(2025, 08, 07);
+    public static Sequence FromString(string data, DateTime fileMDate)
+    {
+        return FromString(data, fileMDate > NewUpdate);
+    }
+    
     /// <summary>
     ///     Parses a sequence stored in a string.
     /// </summary>
     /// <param name="data">The string containing the sequence.</param>
+    /// <param name="isNewFormat">Whether panning uses the new standard format.</param>
     /// <returns>The parsed sequence.</returns>
-    public static Sequence FromString(string data)
+    public static Sequence FromString(string data, bool isNewFormat = true)
     {
         var sequence = new Sequence();
+        sequence.IsNewFormat = isNewFormat;
         var split = data.Split('|');
         var list = new List<BaseEvent>();
 
@@ -209,10 +218,10 @@ public partial class Sequence
         foreach (var ev in array)
         {
             if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
-            if (ev is PannedEvent _panned)
+            if (ev is PannedEvent panned)
             {
-                var new_pan = Math.Clamp(pan + _panned.Pan, -1f, 1f);
-                _panned.Pan = new_pan;
+                var new_pan = Math.Clamp(pan + panned.Pan, -1f, 1f);
+                panned.Pan = new_pan;
             }
 
             switch (new_event.ValueScale)
@@ -248,6 +257,23 @@ public partial class Sequence
         list.AddRange(array);
         return true;
     }
+    
+    private static bool TryIndividualCutTDW(string text, out IndividualCutEvent icut)
+    {
+        var splitForValue = text.Split('@');
+        if (splitForValue is not ["!cut", _])
+        {
+            icut = new IndividualCutEvent([]);
+            return false;
+        }
+
+        var cutSounds = splitForValue[1].Split(',').ToHashSet();
+        icut = new IndividualCutEvent(cutSounds)
+        {
+            IsStandardImplementation = true
+        };
+        return true;
+    }
 
     /// <summary>
     ///     Parses a single event.
@@ -258,7 +284,7 @@ public partial class Sequence
     private static BaseEvent ParseEvent(string text, Sequence sequence)
     {
         if (TryIndividualCut(text, sequence, out var new_individual_cut_event)) return new_individual_cut_event;
-
+        if (TryIndividualCutTDW(text, out var new_individual_cut_tdw_event)) return new_individual_cut_tdw_event;
         if (TryBookmark(text, out var bookmark_event)) return bookmark_event;
 
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
@@ -324,13 +350,14 @@ public partial class Sequence
         {
             var new_event = new PannedEvent
             {
-                Pan = pan,
+                Pan = sequence.IsNewFormat ? pan / 10f : pan,
                 Value = value,
                 SoundEvent = string.Intern(sound),
                 PlayTimes = loop_times,
                 OriginalLoop = loop_times,
                 ValueScale = scale,
-                Volume = event_volume
+                Volume = event_volume,
+                IsStandardImplementation = sequence.IsNewFormat
             };
 
             return new_event;
