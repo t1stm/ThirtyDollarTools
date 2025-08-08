@@ -238,21 +238,21 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         
         switch (pan)
         {
-            case < 0 when !isStandardImplementation:
+            case < 0:
                 pan_text += "|";
                 break;
 
-            case > 0 when !isStandardImplementation:
+            case > 0:
                 pan_text = "|" + pan_text;
                 break;
             
-            case < 0 when isStandardImplementation:
+            /*case < 0 when isStandardImplementation:
                 pan_text += pan_text + "◂";
                 break;
 
             case > 0 when isStandardImplementation:
                 pan_text += "▸";
-                break;
+                break;*/
         }
 
         // gets or generates a new texture

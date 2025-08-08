@@ -39,7 +39,8 @@ public class PannedEvent : BaseEvent, ICustomAudibleEvent
             PlayTimes = PlayTimes,
             Volume = Volume,
             ValueScale = ValueScale,
-            Pan = Pan
+            Pan = Pan,
+            IsStandardImplementation = IsStandardImplementation
         };
     }
 }

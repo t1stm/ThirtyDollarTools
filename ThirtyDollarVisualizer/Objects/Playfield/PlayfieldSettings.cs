@@ -26,7 +26,7 @@ public readonly struct PlayfieldSettings(
     /// <summary>
     ///     How big in pixels the volume font will be.
     /// </summary>
-    public readonly float VolumeFontSize = renderable_size * 0.22f; // magic number that looks "just right"
+    public readonly float VolumeFontSize = renderable_size * 0.18f; // magic number that looks "just right"
 
     /// <summary>
     ///     How many sounds are contained on a single line.
