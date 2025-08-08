@@ -14,8 +14,9 @@ public class FontTexture : StaticTexture
         if (string.IsNullOrEmpty(text)) 
             throw new ArgumentException("Text cannot be null or empty.", nameof(text));
         
-        var options = new TextOptions(font)
+        var options = new RichTextOptions(font)
         {
+            Font = font,
             FallbackFontFamilies =
             [
                 Fonts.GetEmojiFamily()
@@ -31,16 +32,16 @@ public class FontTexture : StaticTexture
         Width = texture_data.Width;
         Height = texture_data.Height;
 
-        var point = PointF.Empty;
-
         color ??= Color.White;
 
         var cast_color = color.Value;
-
-        texture_data.Mutate(x =>
-            x.DrawText(text, font, Color.Black, point)
-                .GaussianBlur(1f)
-                .DrawText(text, font, cast_color, point)
+        var black_brush = new SolidBrush(Color.Black);
+        var color_brush = new SolidBrush(cast_color);
+        
+        texture_data.Mutate(x => x
+            .DrawText(options, text, black_brush)
+            .GaussianBlur(1f)
+            .DrawText(options, text, color_brush)
         );
 
         Image = texture_data;

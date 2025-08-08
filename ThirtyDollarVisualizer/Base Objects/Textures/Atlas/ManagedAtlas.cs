@@ -48,7 +48,7 @@ public class ManagedAtlas : ImageAtlas
     /// <returns>
     /// true if the texture was successfully added to the atlas; otherwise, false.
     /// </returns>
-    public bool AddNamedTexture(string path, Image<Rgba32> texture, out AtlasReference reference)
+    public bool TryAddNamedTexture(string path, Image<Rgba32> texture, out AtlasReference reference)
     {
         if (TryGetNamedTexture(path, out reference))
             return true;
@@ -56,7 +56,7 @@ public class ManagedAtlas : ImageAtlas
         if (!Atlas.CanFit(texture.Width, texture.Height))
             return false;
 
-        var position = AddImage(texture);
+        var position = AddImage(texture.Frames.RootFrame);
         reference = new AtlasReference(position, this);
         return NamedTextures.TryAdd(path, position);
     }

@@ -97,7 +97,7 @@ public class TexturedPlane : Renderable
 
         var texture = _texture ?? StaticTexture.TransparentPixel;
         if (texture.NeedsUploading())
-            texture.UploadToGPU();
+             texture.UploadToGPU();
 
         texture.Bind();
         _staticVao.Bind();
@@ -120,7 +120,7 @@ public class TexturedPlane : Renderable
         if (_uniformBuffer is null)
             _uniformBuffer =
                 new BufferObject<TexturedUniform>(span, BufferTarget.UniformBuffer);
-        else _uniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer);
+        else _uniformBuffer.SetBufferData(span);
         GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }
 

@@ -1,13 +1,18 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
+using SixLabors.ImageSharp.Formats.Bmp;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Text;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
+using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
+using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 

@@ -10,6 +10,7 @@ namespace ThirtyDollarVisualizer.Base_Objects.Textures;
 public class AssetTexture : SingleTexture
 {
     private readonly SingleTexture _texture;
+    public SingleTexture Texture => _texture;
 
     public AssetTexture(string path)
     {

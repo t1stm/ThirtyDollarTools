@@ -3,11 +3,10 @@ using ThirtyDollarVisualizer.Renderer.Abstract;
 
 namespace ThirtyDollarVisualizer.Renderer;
 
-public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : unmanaged
+public class BufferObject<TDataType>(int length, BufferTarget bufferType,
+    BufferUsageHint drawHint = BufferUsageHint.StreamDraw) : IDisposable, IBuffer where TDataType : unmanaged
 {
-    private readonly BufferTarget _bufferType;
-    private readonly int _handle;
-    private readonly int _length;
+    private readonly int _handle = GL.GenBuffer();
     private readonly Dictionary<int, TDataType> _updateQueue = new();
 
     /// <summary>
@@ -17,13 +16,9 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     /// <param name="bufferType">The buffer's type.</param>
     /// <param name="drawHint">The buffer's draw hint.</param>
     public BufferObject(Span<TDataType> data, BufferTarget bufferType,
-        BufferUsageHint drawHint = BufferUsageHint.StreamDraw)
+        BufferUsageHint drawHint = BufferUsageHint.StreamDraw) : this(data.Length, bufferType, drawHint)
     {
-        _bufferType = bufferType;
-        _length = data.Length;
-
-        GL.GenBuffers(1, out _handle);
-        SetBufferData(data, bufferType, drawHint);
+        SetBufferData(data, drawHint);
     }
 
     /// <summary>
@@ -51,11 +46,11 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
         Bind();
         // ooohhh, pointer casting in C#.
         // veri skeri
-        var ptr = (TDataType*)GL.MapBuffer(_bufferType, BufferAccess.WriteOnly);
+        var ptr = (TDataType*)GL.MapBuffer(bufferType, BufferAccess.WriteOnly);
 
         foreach (var (index, obj) in _updateQueue) ptr[index] = obj;
 
-        GL.UnmapBuffer(_bufferType);
+        GL.UnmapBuffer(bufferType);
         _updateQueue.Clear();
     }
 
@@ -66,7 +61,7 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     public void Bind()
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
-        GL.BindBuffer(_bufferType, _handle);
+        GL.BindBuffer(bufferType, _handle);
     }
 
     /// <summary>
@@ -82,16 +77,16 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     /// Sets the entire buffer's contents to the given data.
     /// </summary>
     /// <param name="data">The data to copy to the buffer.</param>
-    /// <param name="bufferType">The buffer type.</param>
     /// <param name="drawHint">The draw hint.</param>
-    public unsafe void SetBufferData(Span<TDataType> data, BufferTarget bufferType,
-        BufferUsageHint drawHint = BufferUsageHint.StreamDraw)
+    public unsafe void SetBufferData(Span<TDataType> data, BufferUsageHint drawHint = BufferUsageHint.StreamDraw)
     {
         Bind();
+        Manager.CheckErrors("BufferObject Bind");
         fixed (void* pointer = data)
         {
             GL.BufferData(bufferType, data.Length * sizeof(TDataType), new nint(pointer), drawHint);
         }
+        Manager.CheckErrors("BufferObject Write");
     }
 
     /// <summary>
@@ -100,6 +95,6 @@ public class BufferObject<TDataType> : IDisposable, IBuffer where TDataType : un
     /// <returns>The number of elements in the buffer.</returns>
     public int GetCount()
     {
-        return _length;
+        return length;
     }
 }

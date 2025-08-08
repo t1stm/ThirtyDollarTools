@@ -54,7 +54,7 @@ public class PlacementCalculator
         {
             var calculated = last_end_index == 0ul ? CalculateOne(sequence) : CalculateOne(sequence, last_end_index);
 
-            var placements = calculated.ToList();
+            var placements = calculated.OrderBy(c => c.Index).ToList();
             var last = placements.Last();
             last_end_index = last.Index;
             list.AddRange(placements);

@@ -62,7 +62,8 @@ public class Shader : IDisposable
     /// <returns></returns>
     public static Shader NewDefined(params ShaderDefinition[] shaders)
     {
-        var shader = new Shader(GL.CreateProgram());
+        var handle = GL.CreateProgram();
+        var shader = new Shader(handle);
         shader.AddShaderDefinitions(shaders);
         shader.Definitions = shaders;
         return shader;
@@ -72,19 +73,20 @@ public class Shader : IDisposable
     {
         // rents an array for shader handles
         var shaderHandleArray = ArrayPool<int>.Shared.Rent(shaders.Length);
-
+        var handlesSpan = new Span<int>(shaderHandleArray, 0, shaders.Length);
+        
         try
         {
             for (var index = 0; index < shaders.Length; index++)
             {
                 var definition = shaders[index];
-                var tempShader = shaderHandleArray[index] = LoadShaderAtPath(definition.ShaderType, definition.Path);
+                var tempShader = handlesSpan[index] = LoadShaderAtPath(definition.ShaderType, definition.Path);
                 GL.AttachShader(Handle, tempShader);
             }
 
             LinkAndThrowOnError();
 
-            foreach (var handle in shaderHandleArray)
+            foreach (var handle in handlesSpan)
             {
                 GL.DetachShader(Handle, handle);
                 GL.DeleteShader(handle);
@@ -108,7 +110,9 @@ public class Shader : IDisposable
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
         GL.LinkProgram(Handle);
+        Manager.CheckErrors("GL.LinkProgram()");
         GL.GetProgram(Handle, GetProgramParameterName.LinkStatus, out var link_status);
+        Manager.CheckErrors("GL.GetProgram()");
 
         if (link_status == 0)
             throw new Exception($"Program failed to link with error: {GL.GetProgramInfoLog(Handle)}");
@@ -266,11 +270,16 @@ public class Shader : IDisposable
         var streamReader = new StreamReader(stream);
         var source = streamReader.ReadToEnd();
 
+        Manager.CheckErrors("Before GL.CreateShader()");
         var handle = GL.CreateShader(type);
+        Manager.CheckErrors("GL.CreateShader()");
         GL.ShaderSource(handle, source);
+        Manager.CheckErrors("GL.ShaderSource()");
         GL.CompileShader(handle);
+        Manager.CheckErrors("GL.CompileShader()");
         
         var infoLog = GL.GetShaderInfoLog(handle);
+        Manager.CheckErrors("GL.ShaderInfoLog()");
         if (!string.IsNullOrWhiteSpace(infoLog))
             throw new Exception($"Error compiling shader \'{path}\' of type {type}, failed with error {infoLog}");
 

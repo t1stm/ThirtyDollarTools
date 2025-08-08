@@ -50,7 +50,11 @@ public class StaticTexture(Image<Rgba32>? rgba) : SingleTexture
 
     public override void Bind(TextureUnit slot = TextureUnit.Texture0)
     {
-        if (!Handle.HasValue) return;
+        if (!Handle.HasValue)
+        {
+            throw new ArgumentNullException(nameof(Handle));
+        }
+
         ArgumentOutOfRangeException.ThrowIfLessThan(Handle.Value, 1, nameof(Handle));
         GL.ActiveTexture(slot);
         GL.BindTexture(TextureTarget.Texture2D, Handle.Value);

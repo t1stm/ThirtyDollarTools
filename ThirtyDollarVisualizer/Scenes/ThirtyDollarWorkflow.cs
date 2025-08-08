@@ -1,3 +1,4 @@
+using SixLabors.ImageSharp;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.Resamplers;
@@ -5,13 +6,17 @@ using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Logging;
+using ThirtyDollarVisualizer.Helpers.Textures;
 using ThirtyDollarVisualizer.Objects;
+using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
 public abstract class ThirtyDollarWorkflow
 {
     private readonly SemaphoreSlim _sampleHolderLock = new(1);
+    private readonly SemaphoreSlim _atlasLock = new(1);
+    
     protected readonly SequencePlayer SequencePlayer;
     protected bool AutoUpdate = true;
     protected bool Debug;
@@ -19,6 +24,7 @@ public abstract class ThirtyDollarWorkflow
     protected Placement[] ExtractedSpeedEvents = [];
     protected Action<string> Log;
     protected SampleHolder? SampleHolder;
+    protected AtlasStore? AtlasStore;
     protected SequenceIndices SequenceIndices = new();
     protected Memory<SequenceInfo> Sequences = Array.Empty<SequenceInfo>();
 
@@ -52,7 +58,44 @@ public abstract class ThirtyDollarWorkflow
         await SampleHolder.DownloadImages();
         SampleHolder.LoadSamplesIntoMemory();
 
+        _ = Task.Run(LoadTextureAtlas);
+
         Log("[Sample Holder] Loaded all samples and images.");
+    }
+
+    protected async Task LoadTextureAtlas()
+    {
+        await _atlasLock.WaitAsync();
+        var sampleHolder = await GetSampleHolder();
+        
+        Log("[Atlas Generation] Starting...");
+
+        var imagesLocation = sampleHolder.ImagesLocation;
+        var files = Directory
+            .EnumerateFiles(imagesLocation, "*", SearchOption.TopDirectoryOnly)
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(f => f is not null)
+            .Cast<string>();
+
+        var staticAtlas = StaticSoundAtlas.FromFiles(sampleHolder.DownloadLocation, files, out var animatedTextures);
+        Dictionary<string, FramedAtlas> animatedAtlases;
+        
+        if (animatedTextures.Count > 0)
+            animatedAtlases = animatedTextures.Select(texture =>
+                (texture.Key, FramedAtlas.FromAnimatedTexture(texture.Value))
+            ).ToDictionary(r => r.Key, r => r.Item2);
+        else animatedAtlases = new Dictionary<string, FramedAtlas>();
+        
+        var atlases = new AtlasStore
+        {
+            StaticAtlas = staticAtlas,
+            AnimatedAtlases = animatedAtlases
+        };
+        
+        AtlasStore = atlases;
+        Log("[Atlas Generation] Finished.");
+        
+        _atlasLock.Release();
     }
 
     protected async Task<SampleHolder> GetSampleHolder()

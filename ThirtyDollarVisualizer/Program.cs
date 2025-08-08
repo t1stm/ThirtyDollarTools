@@ -73,6 +73,8 @@ public static class Program
                     };
             });
 
+        DefaultLogger.Init();
+        
         if (sequence != null && !File.Exists(sequence))
         {
             DefaultLogger.Log("Program","Unable to find specified sequence. Running without a specified sequence.");

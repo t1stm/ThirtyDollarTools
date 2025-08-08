@@ -52,7 +52,7 @@ public sealed class SoundRenderable : TexturedPlane
     {
         if (_bounceAnimation.IsRunning || _expandAnimation.IsRunning || _fadeAnimation.IsRunning)
             UpdateModel(false, _renderableAnimations.Span);
-
+        
         base.Render(camera);
     }
 

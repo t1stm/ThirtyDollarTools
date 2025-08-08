@@ -27,10 +27,12 @@ namespace ThirtyDollarVisualizer.Scenes;
 
 public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 {
+    private const string Version = "2.0.0 (Insider Build)";
     private readonly DollarStoreCamera _camera;
     private readonly FpsCounter _fpsCounter = new();
 
-    private readonly Layout _overlay;
+    private readonly Lazy<Layout> _overlay;
+    private Layout Overlay => _overlay.Value;
 
     private readonly VisualizerSettings _settings;
     private readonly List<Renderable> _startObjects = [];
@@ -71,8 +73,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         VisualizerSettings settings,
         AudioContext? audioContext = null) : base(audioContext)
     {
-        _overlay = new Layout(width, height);
-
         _fileUpdateStopwatch = new Stopwatch();
         _seekDelayStopwatch = new Stopwatch();
 
@@ -94,9 +94,15 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             UpdateStaticRenderables(_width, _height, zoom);
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
-
-        const string versionString = "2.0.0 (Insider Build)";
-        _overlay.Add<StaticText>("version",
+        
+        _overlay = new Lazy<Layout>(() => CreateLayout(_width, _height));
+    }
+    
+    private Layout CreateLayout(int width, int height)
+    {
+        var overlay = new Layout(width, height);
+        
+        overlay.Add<StaticText>("version",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
@@ -110,12 +116,12 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                               Check regularly for updates at:
                               https://github.com/t1stm/ThirtyDollarTools
 
-                              Current Version: {versionString}
+                              Current Version: {Version}
                               """;
             },
             (text, _, h) => { text.SetPosition((10, h, 0), PositionAlign.BottomLeft); });
 
-        _overlay.Add<StaticText>("controls",
+        overlay.Add<StaticText>("controls",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
@@ -142,7 +148,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 text.SetPosition((10, 100, 0));
             });
 
-        _overlay.Add<BasicDynamicText>("debug",
+        overlay.Add<BasicDynamicText>("debug",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
@@ -150,7 +156,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 text.SetPosition((10, 30, 0));
             });
 
-        _overlay.Add<CachedDynamicText>("log",
+        overlay.Add<CachedDynamicText>("log",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
@@ -158,12 +164,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 text.SetPosition((20, 20, 0));
             });
 
-        _overlay.Add<CachedDynamicText>("update",
+        overlay.Add<CachedDynamicText>("update",
             text =>
             {
                 text.FontStyle = FontStyle.Bold;
                 text.SetPosition((10, 10, 0));
             });
+
+        return overlay;
     }
 
     private static Vector4 DefaultBackgroundColor => new(0.21f, 0.22f, 0.24f, 1f);
@@ -185,6 +193,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public void Init(Manager manager)
     {
+        Manager.CheckErrors("PreInit");
         GetSampleHolder().GetAwaiter();
         _startObjects.Clear();
 
@@ -196,12 +205,13 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
             optional_shader = ShaderPool.GetOrLoad("bg_optional_shader",
                 () => Shader.NewVertexFragment(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation));
-
+        
         _backgroundPlane = new BackgroundPlane(DefaultBackgroundColor)
         {
             Position = new Vector3(-_width, -_height, -1f),
             Scale = new Vector3(_width * 2, _height * 2, -1f)
         };
+        Manager.CheckErrors("Background");
 
         if (optional_shader is not null)
             _backgroundPlane.Shader = optional_shader;
@@ -212,6 +222,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             Scale = new Vector3(_width * 2, _height * 2, 1),
             Color = new Vector4(1f, 1f, 1f, 0f)
         };
+        Manager.CheckErrors("Flash");
 
         var font_family = Fonts.GetFontFamily();
         var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
@@ -222,8 +233,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             FontSizePx = 36f * Scale,
             Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER"
         }.WithPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
+        Manager.CheckErrors("Greeting");
 
-        UpdateStaticRenderables(_width, _height, 1);
+        UpdateStaticRenderables(_width, _height, Scale);
         Log = str => SetStatusMessage(str, 3500);
 
         if (_dragNDrop == null)
@@ -239,6 +251,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         
         var resolution = manager.FramebufferSize; 
         Resize(resolution.X, resolution.Y);
+        
+        Manager.CheckErrors("Init End");
         
         if (Sequences.Length < 1) return;
 
@@ -271,7 +285,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }
 
         _greeting?.SetPosition(_greeting.Position - (_width - w) / 2f * Vector3.UnitX);
-        _overlay.Resize(w, h);
+        Overlay.Resize(w, h);
         UpdateStaticRenderables(w, h, _camera.GetRenderScale());
 
         _width = w;
@@ -326,7 +340,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         foreach (var renderable in _startObjects) RenderRenderable(renderable);
 
         // renders the static layout
-        _overlay.Render(_textCamera);
+        Overlay.Render(_textCamera);
         return;
 
         // inline method that is called in the renderer
@@ -502,7 +516,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
                 if (state.IsKeyPressed(Keys.D))
                 {
                     Debug = !Debug;
-                    _overlay.Get<TextRenderable>("debug").IsVisible = Debug;
+                    Overlay.Get<TextRenderable>("debug").IsVisible = Debug;
                     SetStatusMessage(Debug switch
                     {
                         true => "[Debug]: Enabled",
@@ -702,8 +716,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _currentSequence = 0;
         foreach (var renderable in _startObjects) renderable.IsVisible = false;
 
-        var controls = _overlay.Get<TextRenderable>("controls");
-        var version = _overlay.Get<TextRenderable>("version");
+        var controls = Overlay.Get<TextRenderable>("controls");
+        var version = Overlay.Get<TextRenderable>("version");
 
         controls.IsVisible = false;
         version.IsVisible = false;
@@ -770,7 +784,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void SetStatusMessage(string message, int hideAfterMs = 2000)
     {
-        var update = _overlay.Get<TextRenderable>("update");
+        var update = Overlay.Get<TextRenderable>("update");
 
         if (update.Value == message) return;
         update.Value = message;
@@ -1015,7 +1029,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
         }
 
-        var debug = _overlay.Get<TextRenderable>("debug");
+        var debug = Overlay.Get<TextRenderable>("debug");
 
         // generate debug string.
         debug.Value = $"""
@@ -1074,7 +1088,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private void FileDrop(IReadOnlyCollection<string?> locations, bool resetTime)
     {
-        var log = _overlay.Get<TextRenderable>("log");
+        var log = Overlay.Get<TextRenderable>("log");
         _camera.ScrollTo((0, -300, 0));
 
         if (locations.Count < 1) return;

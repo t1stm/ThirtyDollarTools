@@ -22,7 +22,7 @@ public class ColoredPlane : Renderable
             Asset.Embedded("Shaders/colored.vert"), 
             Asset.Embedded("Shaders/colored.frag")
         )
-    ));
+    ), LazyThreadSafetyMode.None);
 
     public override Vector3 Position
     {
@@ -85,7 +85,7 @@ public class ColoredPlane : Renderable
     public override void Render(Camera camera)
     {
         if (Shader == null) return;
-
+        
         _staticVAO.Bind();
         _staticEBO.Bind();
         Shader.Use();
@@ -115,7 +115,7 @@ public class ColoredPlane : Renderable
         }
         else
         {
-            _uniformBuffer.SetBufferData(span, BufferTarget.UniformBuffer);
+            _uniformBuffer.SetBufferData(span);
         }
 
         GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, _uniformBuffer.Handle);

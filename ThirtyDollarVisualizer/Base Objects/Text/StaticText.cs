@@ -23,12 +23,7 @@ public class StaticText(FontFamily? fontFamily = null) : TextRenderable
     public override string Value
     {
         get => _value;
-        set
-        {
-            if (_value != "")
-                SetTextContents(value);
-            _value = value;
-        }
+        set => SetTextContents(value);
     }
 
     public override FontStyle FontStyle { get; set; } = FontStyle.Regular;

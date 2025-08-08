@@ -1,11 +1,8 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using SixLabors.Fonts;
-using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.Null;
-using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
@@ -211,7 +208,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
             var img = new StaticTexture("Assets/Textures/moai.png");
             var data = img.GetData();
             
-            atlas.AddImage(data!);
+            atlas.AddImage(data!.Frames.RootFrame);
         }
 
         rndbl.Scale = new Vector3((_uiContext.ViewportWidth, _uiContext.ViewportHeight));

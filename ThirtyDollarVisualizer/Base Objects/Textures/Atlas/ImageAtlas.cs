@@ -19,14 +19,14 @@ public class ImageAtlas : StaticTexture
 
     public ImageAtlas() : base(rgba: null)
     {
-        var size = GLInfo.MaxTexture2DSize;
-        Atlas = new GuillotineAtlas(size, size);
+        var size = 8192;
+        Atlas = new GuillotineAtlas(size, size, false);
         Image = new Image<Rgba32>(size, size, Color.Transparent);
         Width = Image.Width;
         Height = Image.Height;
     }
 
-    public Rectangle AddImage(Image<Rgba32> image)
+    public Rectangle AddImage(ImageFrame<Rgba32> image)
     {
         var position = Atlas.AddImage(image);
         ImagesToBeUploaded.Add(new UploadImage
@@ -34,7 +34,7 @@ public class ImageAtlas : StaticTexture
             Image = image,
             Area = position
         });
-
+        
         return position;
     }
 
@@ -52,8 +52,6 @@ public class ImageAtlas : StaticTexture
 
     public override void UploadToGPU(bool dispose)
     {
-        Atlas.ComputeAtlas();
-
         if (!_firstUpload)
         {
             UploadToGPUPartial();
@@ -64,6 +62,25 @@ public class ImageAtlas : StaticTexture
         base.UploadToGPU(true);
     }
 
+    public void UploadToImage()
+    {
+        ArgumentNullException.ThrowIfNull(Image);
+        
+        foreach (var upload in ImagesToBeUploaded)
+        {
+            var x = upload.Area.X;
+            var y = upload.Area.Y;
+
+            for (var w = 0; w < upload.Area.Width; w++)
+            {
+                for (var h = 0; h < upload.Area.Height; h++)
+                    Image[x + w, y + h] = upload.Image[w, h];
+            }
+        }
+        
+        ImagesToBeUploaded.Clear();
+    }
+    
     private void UploadToGPUPartial()
     {
         if (_firstUpload)
@@ -107,6 +124,6 @@ public class ImageAtlas : StaticTexture
 
 public record struct UploadImage
 {
-    public Image<Rgba32> Image;
+    public ImageFrame<Rgba32> Image;
     public Rectangle Area;
 }

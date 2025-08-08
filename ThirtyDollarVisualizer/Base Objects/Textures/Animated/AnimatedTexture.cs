@@ -12,6 +12,7 @@ public class AnimatedTexture(Image<Rgba32>? rgba) : SingleTexture
     private AnimatedHandle? _textureHandle;
     private float _totalLength;
     protected Image<Rgba32>? Image = rgba;
+    public Image<Rgba32>? GetData() => Image;
 
     public override bool NeedsUploading()
     {

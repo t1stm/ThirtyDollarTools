@@ -9,6 +9,7 @@ public partial class Sequence
     private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
     public Dictionary<string, BaseEvent[]> Definitions = new();
     public HashSet<string> SeparatedChannels = [];
+    public HashSet<string> UsedSounds = [];
     public BaseEvent[] Events { get; set; } = [];
 
     public Sequence Copy()
@@ -55,6 +56,10 @@ public partial class Sequence
 
             new_event.OriginalLoop = 1;
             new_event.PlayTimes = 1;
+            
+            if (new_event.SoundEvent is not null)
+                sequence.UsedSounds.Add(new_event.SoundEvent);
+            
             for (var i = 0; i < repeats; i++)
             {
                 if (ProcessDefines(sequence, new_event, list)) continue;

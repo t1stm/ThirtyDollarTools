@@ -6,11 +6,11 @@ using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Base_Objects.Text;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Settings;
+using ErrorCode = OpenTK.Graphics.OpenGL.ErrorCode;
 
 namespace ThirtyDollarVisualizer;
 
@@ -29,6 +29,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
             TransparentFramebuffer = SettingsHandler.Settings.TransparentFramebuffer
         })
 {
+    public static Manager? Instance { get; private set; }
+    
     public readonly SemaphoreSlim RenderBlock = new(1);
     public readonly List<IScene> Scenes = [];
 
@@ -43,16 +45,19 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnLoad()
     {
+        Instance = this;
+        
+        base.OnLoad();
         SetGLInfo();
         
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
         
         GL.Enable(EnableCap.DebugOutput);
-        if (GLInfo.Extensions.Contains("GL_KHR_debug"))
+        GL.Enable(EnableCap.DebugOutputSynchronous);
+        if (GLInfo.SupportsKHRDebug)
             GL.DebugMessageCallback(DebugCallback, IntPtr.Zero);
         
-        base.OnLoad();
         Fonts.Initialize();
 
         GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
@@ -76,6 +81,14 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         DefaultLogger.Log($"OpenGL {sourceText}", $"({typeText}, {id}) {severityText}: {Encoding.ASCII.GetString(stringFromPointer)}");
     }
 
+    private static ulong _errorID;
+    public static void CheckErrors(ReadOnlySpan<char> context)
+    {
+        ErrorCode err;
+        while ((err = GL.GetError()) != ErrorCode.NoError)
+            DefaultLogger.Log("OpenGL Generic", $"({context}): [{++_errorID}] {err}");
+    }
+
     private static void SetGLInfo()
     {
         GLInfo.Vendor = GL.GetString(StringName.Vendor);
@@ -92,6 +105,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
             var ext = GL.GetString(StringNameIndexed.Extensions, i);
             GLInfo.Extensions.Add(ext);
         }
+
+        GLInfo.SupportsKHRDebug = GLInfo.Extensions.Contains("GL_KHR_debug");
     }
     
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
@@ -103,6 +118,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnRenderFrame(FrameEventArgs args)
     {
+        Context.MakeCurrent();
         RenderBlock.Wait();
 
         GL.Enable(EnableCap.Blend);
