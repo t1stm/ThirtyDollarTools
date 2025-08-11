@@ -22,6 +22,13 @@ public class PannedEvent : BaseEvent, ICustomAudibleEvent
         ValueScale = baseEvent.ValueScale;
     }
 
+    public override string Stringify()
+    {
+        if (Pan != 0)
+            return base.Stringify() + $"^{Pan}";
+        return base.Stringify();
+    }
+
     public override PannedEvent Copy()
     {
         return new PannedEvent

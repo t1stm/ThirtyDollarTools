@@ -17,6 +17,34 @@ public class NormalEvent : BaseEvent
             $"Event: \"{SoundEvent ?? "Null event."}\", Value: {Value}{(ValueScale == ValueScale.Times ? 'x' : (char)0)}, PlayTimes: {PlayTimes}";
     }
 
+    public override string Stringify()
+    {
+        if (SoundEvent is "!bg")
+        {
+            var parsed_value = (long)Value;
+
+            var r = (byte)parsed_value;
+            var g = (byte)(parsed_value >> 8);
+            var b = (byte)(parsed_value >> 16);
+            var a = (byte)(parsed_value >> 24);
+            
+            var hex_string = $"{r:X2}{g:X2}{b:X2}{a:X2}";
+
+            var seconds = (parsed_value >> 32) / 1000f;
+            return $"!bg@#{hex_string},{seconds}";
+        }
+
+        if (SoundEvent is "!pulse")
+        {
+            return $"!pulse";
+        }
+        
+        if (SoundEvent is "!divider")
+            return $"!divider\n";
+        
+        return base.Stringify();
+    }
+
     /// <summary>
     /// Creates an identical copy of an event.
     /// </summary>

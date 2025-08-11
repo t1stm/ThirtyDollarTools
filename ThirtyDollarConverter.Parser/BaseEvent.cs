@@ -1,3 +1,5 @@
+using ThirtyDollarParser.Custom_Events;
+
 namespace ThirtyDollarParser;
 
 public abstract class BaseEvent
@@ -59,5 +61,26 @@ public abstract class BaseEvent
         eventName = SoundEvent;
         eventValue = Value;
         eventVolume = WorkingVolume;
+    }
+
+    public virtual string Stringify()
+    {
+        var sound = SoundEvent ?? throw new NullReferenceException();
+        if (Value != 0)
+            sound += $"@{Value}";
+        
+        if (ValueScale != ValueScale.None)
+            sound += "@" + ValueScale switch
+            {
+                ValueScale.Divide => "/",
+                ValueScale.Times => "x",
+                ValueScale.Add => "+",
+                _ => throw new ArgumentOutOfRangeException()
+            };
+
+        if (Volume != null)
+            sound += $"%{Volume}";
+        
+        return sound;
     }
 }

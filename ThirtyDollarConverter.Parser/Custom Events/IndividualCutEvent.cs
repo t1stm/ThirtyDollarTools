@@ -12,6 +12,11 @@ public class IndividualCutEvent : BaseEvent, ICustomActionEvent, ICustomAudibleE
         CutSounds = cutSounds;
     }
 
+    public override string Stringify()
+    {
+        return string.Join('|', CutSounds.Select(sound => $"!cut@{sound}").ToArray());
+    }
+
     public override IndividualCutEvent Copy()
     {
         return new IndividualCutEvent(CutSounds);
