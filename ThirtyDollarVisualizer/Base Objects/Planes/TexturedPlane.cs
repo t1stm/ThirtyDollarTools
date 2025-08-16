@@ -18,11 +18,24 @@ public class TexturedPlane : Renderable
 
     private static BufferObject<TexturedUniform>? _uniformBuffer;
     private SingleTexture? _texture;
+    public SingleTexture? Texture
+    {
+        get => _texture;
+        set
+        {
+            _texture = value;
+            if (value is null)
+                return;
+            
+            Scale = new Vector3(value.Width, value.Height, 1);
+        }
+    }
+
     private TexturedUniform _uniform;
 
     public TexturedPlane(SingleTexture texture) : this()
     {
-        _texture = texture;
+        Texture = texture;
     }
 
     public TexturedPlane()
@@ -121,16 +134,6 @@ public class TexturedPlane : Renderable
             _uniformBuffer =
                 new BufferObject<TexturedUniform>(span, BufferTarget.UniformBuffer);
         else _uniformBuffer.SetBufferData(span);
-        GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, _uniformBuffer.Handle);
-    }
-
-    public void SetTexture(SingleTexture? texture)
-    {
-        _texture = texture;
-    }
-
-    public SingleTexture? GetTexture()
-    {
-        return _texture;
+        GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }
 }

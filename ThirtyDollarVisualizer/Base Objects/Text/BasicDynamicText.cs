@@ -58,7 +58,7 @@ public class BasicDynamicText : CachedDynamicText
 
             _staticPlane.SetPosition((x, y, z));
             _staticPlane.Scale = (w, h, 0);
-            _staticPlane.SetTexture(texture);
+            _staticPlane.Texture = texture;
             _staticPlane.Render(camera);
 
             x += w;

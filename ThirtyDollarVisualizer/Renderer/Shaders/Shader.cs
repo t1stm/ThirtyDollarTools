@@ -111,11 +111,12 @@ public class Shader : IDisposable
         ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
         GL.LinkProgram(Handle);
         Manager.CheckErrors("GL.LinkProgram()");
-        GL.GetProgram(Handle, GetProgramParameterName.LinkStatus, out var link_status);
+        GL.GetProgrami(Handle, ProgramProperty.LinkStatus, out var link_status);
         Manager.CheckErrors("GL.GetProgram()");
 
-        if (link_status == 0)
-            throw new Exception($"Program failed to link with error: {GL.GetProgramInfoLog(Handle)}");
+        if (link_status != 0) return;
+        GL.GetProgramInfoLog(Handle, out var error);
+        throw new Exception($"Program failed to link with error: {error}");
     }
 
     /// <summary>
@@ -158,7 +159,7 @@ public class Shader : IDisposable
             return false;
         }
 
-        GL.Uniform1(location, value);
+        GL.Uniform1i(location, value);
         return true;
     }
 
@@ -174,11 +175,10 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
-            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
-            return false;
+            return IsPedantic ? throw new Exception($"Uniform \'{name}\' not found in shader.") : false;
         }
 
-        GL.Uniform2(location, value);
+        GL.Uniform2f(location, value.X, value.Y);
         return true;
     }
 
@@ -194,11 +194,10 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
-            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
-            return false;
+            return IsPedantic ? throw new Exception($"Uniform \'{name}\' not found in shader.") : false;
         }
 
-        GL.Uniform3(location, value);
+        GL.Uniform3f(location, value.X, value.Y, value.Z);
         return true;
     }
 
@@ -218,7 +217,7 @@ public class Shader : IDisposable
             return false;
         }
 
-        GL.Uniform4(location, value);
+        GL.Uniform4f(location, value.X, value.Y, value.Z, value.W);
         return true;
     }
 
@@ -229,16 +228,15 @@ public class Shader : IDisposable
     /// <param name="value">The <see cref="Matrix4"/> value to set for the uniform variable.</param>
     /// <returns>True if the uniform variable was successfully updated; false if the uniform was not found and <c>IsPedantic</c> is not enabled.</returns>
     /// <exception cref="Exception">Thrown if the uniform variable is not found and <c>IsPedantic</c> is enabled.</exception>
-    public unsafe bool SetUniform(string name, Matrix4 value)
+    public bool SetUniform(string name, Matrix4 value)
     {
         var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
-            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
-            return false;
+            return IsPedantic ? throw new Exception($"Uniform \'{name}\' not found in shader.") : false;
         }
 
-        GL.UniformMatrix4(location, 1, false, (float*)&value);
+        GL.UniformMatrix4f(location, 1, false, ref value);
         return true;
     }
 
@@ -254,11 +252,10 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
-            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
-            return false;
+            return IsPedantic ? throw new Exception($"Uniform \'{name}\' not found in shader.") : false;
         }
 
-        GL.Uniform1(location, value);
+        GL.Uniform1f(location, value);
         return true;
     }
 
@@ -278,11 +275,8 @@ public class Shader : IDisposable
         GL.CompileShader(handle);
         Manager.CheckErrors("GL.CompileShader()");
         
-        var infoLog = GL.GetShaderInfoLog(handle);
+        GL.GetShaderInfoLog(handle, out var infoLog);
         Manager.CheckErrors("GL.ShaderInfoLog()");
-        if (!string.IsNullOrWhiteSpace(infoLog))
-            throw new Exception($"Error compiling shader \'{path}\' of type {type}, failed with error {infoLog}");
-
-        return handle;
+        return !string.IsNullOrWhiteSpace(infoLog) ? throw new Exception($"Error compiling shader \'{path}\' of type {type}, failed with error {infoLog}") : handle;
     }
 }

@@ -56,7 +56,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         GL.Enable(EnableCap.DebugOutput);
         GL.Enable(EnableCap.DebugOutputSynchronous);
         if (GLInfo.SupportsKHRDebug)
-            GL.DebugMessageCallback(DebugCallback, IntPtr.Zero);
+            GL.DebugMessageCallback(DebugCallback, in IntPtr.Zero);
         
         Fonts.Initialize();
 
@@ -68,7 +68,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         foreach (var scene in Scenes) scene.Start();
     }
 
-    private static unsafe void DebugCallback(DebugSource source, DebugType type, int id, 
+    private static unsafe void DebugCallback(DebugSource source, DebugType type, uint id, 
         DebugSeverity severity, int length, IntPtr messagePtr, IntPtr userParameter)
     {
         if (type == DebugType.DebugTypeOther) return;
@@ -91,19 +91,20 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     private static void SetGLInfo()
     {
-        GLInfo.Vendor = GL.GetString(StringName.Vendor);
-        GLInfo.Renderer = GL.GetString(StringName.Renderer);
-        GLInfo.Version = GL.GetString(StringName.Version);
+        GLInfo.Vendor = GL.GetString(StringName.Vendor) ?? "";
+        GLInfo.Renderer = GL.GetString(StringName.Renderer) ?? "";
+        GLInfo.Version = GL.GetString(StringName.Version) ?? "";
         
         GLInfo.MaxTexture2DSize = GL.GetInteger(GetPName.MaxTextureSize);
         GLInfo.MaxTexture2DLayers = GL.GetInteger(GetPName.MaxArrayTextureLayers);
 
         var ext_count = GL.GetInteger(GetPName.NumExtensions);
         GLInfo.Extensions.EnsureCapacity(ext_count);
-        for (var i = 0; i < ext_count; i++)
+        for (uint i = 0; i < ext_count; i++)
         {
-            var ext = GL.GetString(StringNameIndexed.Extensions, i);
-            GLInfo.Extensions.Add(ext);
+            var ext = GL.GetStringi(StringName.Extensions, i);
+            if (ext is not null)
+                GLInfo.Extensions.Add(ext);
         }
 
         GLInfo.SupportsKHRDebug = GLInfo.Extensions.Contains("GL_KHR_debug");

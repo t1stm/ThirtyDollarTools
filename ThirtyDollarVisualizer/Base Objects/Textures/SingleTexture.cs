@@ -25,20 +25,20 @@ public abstract class SingleTexture : IDisposable
 
     protected static void SetParameters()
     {
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
 
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter,
             (int)TextureMinFilter.LinearMipmapLinear);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 8);
-        GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureBaseLevel, 0);
+        GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMaxLevel, 8);
+        GL.GenerateMipmap(TextureTarget.Texture2d);
     }
 
     protected static unsafe void BasicUploadTexture(ImageFrame<Rgba32> image)
     {
-        GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba8, image.Width, image.Height,
+        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba8, image.Width, image.Height,
             0, PixelFormat.Rgba, PixelType.UnsignedByte, (IntPtr)0);
 
         image.ProcessPixelRows(accessor =>
@@ -46,7 +46,7 @@ public abstract class SingleTexture : IDisposable
             for (var y = 0; y < accessor.Height; y++)
                 fixed (void* data = accessor.GetRowSpan(y))
                 {
-                    GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, y, accessor.Width, 1, PixelFormat.Rgba,
+                    GL.TexSubImage2D(TextureTarget.Texture2d, 0, 0, y, accessor.Width, 1, PixelFormat.Rgba,
                         PixelType.UnsignedByte, new IntPtr(data));
                 }
         });
@@ -55,6 +55,6 @@ public abstract class SingleTexture : IDisposable
     protected static void BindPrimitive(int handle)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(handle, 1, nameof(handle));
-        GL.BindTexture(TextureTarget.Texture2D, handle);
+        GL.BindTexture(TextureTarget.Texture2d, handle);
     }
 }

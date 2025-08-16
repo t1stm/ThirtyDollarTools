@@ -27,7 +27,7 @@ public static class VertexBufferExtensions
             VertexAttribPointerType.Int64Arb => sizeof(long),
             VertexAttribPointerType.UnsignedInt64Arb => sizeof(ulong),
             VertexAttribPointerType.UnsignedInt2101010Rev => sizeof(int),
-            VertexAttribPointerType.UnsignedInt10F11F11FRev => sizeof(int),
+            VertexAttribPointerType.UnsignedInt10f11f11fRev => sizeof(int),
             VertexAttribPointerType.Int2101010Rev => sizeof(int),
             _ => throw new NotSupportedException()
         };

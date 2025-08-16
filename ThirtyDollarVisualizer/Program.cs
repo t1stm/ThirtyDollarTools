@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using CommandLine;
 using OpenTK.Windowing.Common.Input;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Audio;

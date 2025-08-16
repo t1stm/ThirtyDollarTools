@@ -57,7 +57,7 @@ public class StaticTexture(Image<Rgba32>? rgba) : SingleTexture
 
         ArgumentOutOfRangeException.ThrowIfLessThan(Handle.Value, 1, nameof(Handle));
         GL.ActiveTexture(slot);
-        GL.BindTexture(TextureTarget.Texture2D, Handle.Value);
+        GL.BindTexture(TextureTarget.Texture2d, Handle.Value);
     }
 
     public override void Dispose()

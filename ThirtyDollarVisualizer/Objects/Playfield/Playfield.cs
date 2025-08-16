@@ -82,7 +82,7 @@ public class Playfield(PlayfieldSettings settings)
             var sound = sounds[i];
 
             // add the sound's texture to a cache if animated
-            var texture = sound.GetTexture();
+            var texture = sound.Texture;
             if (texture is AssetTexture { IsAnimated: true } asset_texture) _animatedTextures.Add(asset_texture);
 
             PositionSound(_layoutHandler, in sound);
@@ -143,7 +143,7 @@ public class Playfield(PlayfieldSettings settings)
     private static void PositionSound(LayoutHandler layoutHandler, in SoundRenderable sound)
     {
         // get the current sound's texture information
-        var texture = sound.GetTexture();
+        var texture = sound.Texture;
         var texture_x = texture?.Width ?? 0;
         var texture_y = texture?.Height ?? 0;
 

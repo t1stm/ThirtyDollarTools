@@ -11,9 +11,9 @@ namespace ThirtyDollarVisualizer.Objects;
 
 public sealed class SoundRenderable : TexturedPlane
 {
-    private readonly BounceAnimation _bounceAnimation;
-    private readonly ExpandAnimation _expandAnimation;
-    private readonly FadeAnimation _fadeAnimation;
+    private readonly BounceAnimation? _bounceAnimation;
+    private readonly ExpandAnimation? _expandAnimation;
+    private readonly FadeAnimation? _fadeAnimation;
     private readonly Memory<Animation> _renderableAnimations;
     public bool IsDivider;
 
@@ -44,13 +44,21 @@ public sealed class SoundRenderable : TexturedPlane
         set
         {
             base.Scale = value;
-            _bounceAnimation.FinalY = value.Y / 5f;
+            if (_bounceAnimation != null) 
+                _bounceAnimation.FinalY = value.Y / 5f;
         }
     }
 
     public override void Render(Camera camera)
     {
-        if (_bounceAnimation.IsRunning || _expandAnimation.IsRunning || _fadeAnimation.IsRunning)
+        var animationsRunning = false;
+        foreach (var animation in _renderableAnimations.Span)
+        {
+            animationsRunning = animation.IsRunning;
+            if (animationsRunning) break;
+        }
+        
+        if (animationsRunning)
             UpdateModel(false, _renderableAnimations.Span);
         
         base.Render(camera);
@@ -72,17 +80,17 @@ public sealed class SoundRenderable : TexturedPlane
 
     public void Bounce()
     {
-        _bounceAnimation.Start();
+        _bounceAnimation?.Start();
     }
 
     public void Expand()
     {
-        _expandAnimation.Start();
+        _expandAnimation?.Start();
     }
 
     public void Fade()
     {
-        _fadeAnimation.Start();
+        _fadeAnimation?.Start();
     }
 
     public void ResetAnimations()
@@ -98,7 +106,6 @@ public sealed class SoundRenderable : TexturedPlane
         Fade();
         Expand();
 
-        var old_texture = Value.GetTexture();
         var found_texture = generatedTextures.TryGetValue(@event.PlayTimes.ToString("0.##"), out var texture);
         if (!found_texture) texture = StaticTexture.TransparentPixel;
 
@@ -117,24 +124,22 @@ public sealed class SoundRenderable : TexturedPlane
 
         if (texture == null)
         {
-            Value.SetTexture(texture);
+            Value.Texture = texture;
             return;
         }
 
-        if (texture.Width != old_texture?.Width)
+        var new_scale = (texture.Width, texture.Height, 0);
+        Value.Scale = new_scale;
+
+        var new_position_x = this_position.X + this_scale.X / 2f;
+        var new_position = new Vector3
         {
-            var new_scale = (texture.Width, texture.Height, 0);
-            Value.Scale = new_scale;
+            X = new_position_x,
+            Y = Value.Position.Y,
+            Z = Value.Position.Z
+        };
 
-            var new_position_x = this_position.X + this_scale.X / 2f;
-            var new_position = new Vector3(Value.Position)
-            {
-                X = new_position_x
-            };
-
-            Value.SetPosition(new_position, PositionAlign.TopCenter);
-        }
-
-        Value.SetTexture(texture);
+        Value.SetPosition(new_position, PositionAlign.TopCenter);
+        Value.Texture = texture;
     }
 }

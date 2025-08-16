@@ -101,7 +101,7 @@ public class CachedDynamicText : TextRenderable
 
                 var plane = _texturedPlanes[i];
 
-                plane.SetTexture(texture);
+                plane.Texture = texture;
                 plane.SetPosition((x, y, z));
                 plane.Scale = (w, h, 0);
 

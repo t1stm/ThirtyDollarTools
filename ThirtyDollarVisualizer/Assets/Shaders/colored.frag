@@ -1,6 +1,5 @@
 #version 330 core
 
-in vec2 fragment_coords;
 out vec4 color;
 
 layout (std140) uniform Data {
@@ -30,7 +29,7 @@ void main() {
         return;
     }
 
-    vec4 coords = u_Projection * u_Model * vec4(fragment_coords, 1, 1);
+    vec4 coords = u_Projection * u_Model * gl_FragCoord;
     float edgeSoftness = 0.5f;
 
     vec2 scalePx = vec2(

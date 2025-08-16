@@ -50,13 +50,13 @@ public class VertexArrayObject : IBindable
         for (var i = 0; i < elements.Count; i++)
         {
             var el = elements[i];
-            var vi = _vertexIndex + i;
+            var vi = (uint)(_vertexIndex + i);
 
             GL.EnableVertexAttribArray(vi);
-            GL.VertexAttribPointer(vi, el.Count, el.Type, el.Normalized, layout.GetStride(), offset);
+            GL.VertexAttribPointer(vi, el.Count, el.Type, el.Normalized, layout.GetStride(), new IntPtr(offset));
             offset += el.Count * el.Type.GetSize();
             if (el.Divisor != 0)
-                GL.VertexAttribDivisor(vi, el.Divisor);
+                GL.VertexAttribDivisor(vi, (uint)el.Divisor);
         }
 
         _vertexIndex += elements.Count;

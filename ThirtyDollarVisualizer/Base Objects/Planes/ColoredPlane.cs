@@ -111,13 +111,13 @@ public class ColoredPlane : Renderable
         {
             _uniformBuffer =
                 new BufferObject<ColoredUniform>(span, BufferTarget.UniformBuffer);
-            GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, _uniformBuffer.Handle);
+            GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
         }
         else
         {
             _uniformBuffer.SetBufferData(span);
         }
 
-        GL.BindBufferBase(BufferRangeTarget.UniformBuffer, 0, _uniformBuffer.Handle);
+        GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }
 }

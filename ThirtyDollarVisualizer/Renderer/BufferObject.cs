@@ -3,8 +3,7 @@ using ThirtyDollarVisualizer.Renderer.Abstract;
 
 namespace ThirtyDollarVisualizer.Renderer;
 
-public class BufferObject<TDataType>(int length, BufferTarget bufferType,
-    BufferUsageHint drawHint = BufferUsageHint.StreamDraw) : IDisposable, IBuffer where TDataType : unmanaged
+public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDisposable, IBuffer where TDataType : unmanaged
 {
     private readonly int _handle = GL.GenBuffer();
     private readonly Dictionary<int, TDataType> _updateQueue = new();
@@ -16,7 +15,7 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType,
     /// <param name="bufferType">The buffer's type.</param>
     /// <param name="drawHint">The buffer's draw hint.</param>
     public BufferObject(Span<TDataType> data, BufferTarget bufferType,
-        BufferUsageHint drawHint = BufferUsageHint.StreamDraw) : this(data.Length, bufferType, drawHint)
+        BufferUsage drawHint = BufferUsage.StreamDraw) : this(data.Length, bufferType)
     {
         SetBufferData(data, drawHint);
     }
@@ -78,7 +77,7 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType,
     /// </summary>
     /// <param name="data">The data to copy to the buffer.</param>
     /// <param name="drawHint">The draw hint.</param>
-    public unsafe void SetBufferData(Span<TDataType> data, BufferUsageHint drawHint = BufferUsageHint.StreamDraw)
+    public unsafe void SetBufferData(Span<TDataType> data, BufferUsage drawHint = BufferUsage.StreamDraw)
     {
         Bind();
         Manager.CheckErrors("BufferObject Bind");

@@ -1,5 +1,6 @@
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Animations;
+using ThirtyDollarVisualizer.Base_Objects.Text;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Base_Objects;
@@ -9,7 +10,7 @@ public abstract class Renderable
     /// <summary>
     /// Dummy renderable to use on animations that don't animate a renderable.
     /// </summary>
-    public static readonly Renderable Dummy = new DummyRenderable();
+    public static readonly Renderable Dummy = new StaticText();
 
     public readonly List<Renderable> Children = [];
 

@@ -102,7 +102,7 @@ public class ImageAtlas : StaticTexture
         for (var y = 0; y < pixelAccessor.Height; y++)
             fixed (void* data = pixelAccessor.GetRowSpan(y))
             {
-                GL.TexSubImage2D(TextureTarget.Texture2D, 0, imageArea.X, imageArea.Y + y, imageArea.Width, 1,
+                GL.TexSubImage2D(TextureTarget.Texture2d, 0, imageArea.X, imageArea.Y + y, imageArea.Width, 1,
                     PixelFormat.Rgba,
                     PixelType.UnsignedByte, new IntPtr(data));
             }
