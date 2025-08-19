@@ -35,10 +35,10 @@ public class BasicDynamicText : CachedDynamicText
         {
             var c = text[i];
             // I am using string here since emojis take multiple char objects to be stored.
-            ReadOnlySpan<char> emoji = [];
+            string? emoji = null;
             if (char.IsSurrogate(c) && i + 1 < text.Length && char.IsSurrogatePair(c, text[i + 1]))
             {
-                emoji = text.Slice(i, 2);
+                emoji = text.Substring(i, 2);
                 i++;
             }
 

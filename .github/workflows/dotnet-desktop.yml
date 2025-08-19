@@ -17,49 +17,54 @@ jobs:
         platform: [ linux-x64, win-x64, osx-x64, osx-arm64 ]
         include:
           - net_version: "net9.0"
-    
+
     steps:
-      # Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Setup .NET SDK
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '9.x'
 
-      # Create directories for the build outputs
+      - name: Cache NuGet packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Create release directories
         run: mkdir -p bin/${{ matrix.platform }}
 
-      # Publish ThirtyDollarConverter.GUI project
       - name: Publish ThirtyDollarConverter.GUI
         run: |
           dotnet publish ./ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj \
-            -c Release -r ${{ matrix.platform }} \
+            -c Release \
+            -f ${{ matrix.net_version }} \
+            -r ${{ matrix.platform }} \
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
             -o ./bin/${{ matrix.platform }}
 
-      # Publish ThirtyDollarVisualizer project
       - name: Publish ThirtyDollarVisualizer
         run: |
           dotnet publish ./ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj \
-            -c Release -r ${{ matrix.platform }} \
+            -c Release \
+            -f ${{ matrix.net_version }} \
+            -r ${{ matrix.platform }} \
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
             -o ./bin/${{ matrix.platform }}
 
-      # Clean up unnecessary files before zipping
       - name: Clean up build artifacts
         run: |
           cd "./bin/${{ matrix.platform }}"
           rm -rf ./*.dll ./*.dylib ./*.so ./*.pdb ./runtimes
 
-      # Upload the zipped release assets as artifacts
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:

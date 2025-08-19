@@ -21,7 +21,7 @@ public partial class Sequence
             SeparatedChannels = SeparatedChannels
         };
     }
-
+    
     /// <summary>
     /// Parses a sequence stored in a string.
     /// </summary>
@@ -125,7 +125,7 @@ public partial class Sequence
         if (!match.Groups["index"].Success) return false;
 
         var string_value = match.Groups["index"].Value;
-        if (!int.TryParse(string_value, out var val)) return false;
+        if (!int.TryParse(string_value, CultureInfo, out var val)) return false;
 
         newEvent = new BookmarkEvent
         {
@@ -255,6 +255,23 @@ public partial class Sequence
         list.AddRange(array);
         return true;
     }
+    
+    private static bool TryIndividualCutTDW(string text, out IndividualCutEvent icut)
+    {
+        var splitForValue = text.Split('@');
+        if (splitForValue is not ["!cut", _])
+        {
+            icut = new IndividualCutEvent([]);
+            return false;
+        }
+
+        var cutSounds = splitForValue[1].Split(',').ToHashSet();
+        icut = new IndividualCutEvent(cutSounds)
+        {
+            IsStandardImplementation = true
+        };
+        return true;
+    }
 
     /// <summary>
     /// Parses a single event.
@@ -265,7 +282,7 @@ public partial class Sequence
     private static BaseEvent ParseEvent(string text, Sequence sequence)
     {
         if (TryIndividualCut(text, sequence, out var new_individual_cut_event)) return new_individual_cut_event;
-
+        if (TryIndividualCutTDW(text, out var new_individual_cut_tdw_event)) return new_individual_cut_tdw_event;
         if (TryBookmark(text, out var bookmark_event)) return bookmark_event;
 
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
@@ -276,7 +293,7 @@ public partial class Sequence
         var sound = sound_name_match.Success ? sound_name_match.Value.Trim() : string.Empty;
 
         var value_match = ValueRegex().Match(text);
-        var value = value_match.Success ? double.Parse(value_match.Value[1..]) : 0;
+        var value = value_match.Success ? double.Parse(value_match.Value[1..], CultureInfo) : 0;
 
         var value_scale_match = ValueScaleRegex().Match(text);
         var scale = ValueScale.None;
@@ -293,13 +310,13 @@ public partial class Sequence
         }
 
         var loop_times_match = LoopTimesRegex().Match(text);
-        var loop_times = loop_times_match.Success ? float.Parse(loop_times_match.Value[1..]) : 1;
+        var loop_times = loop_times_match.Success ? float.Parse(loop_times_match.Value[1..], CultureInfo) : 1;
 
         var volume_match = VolumeRegex().Match(text);
-        double? event_volume = volume_match.Success ? double.Parse(volume_match.Value[1..]) : null;
+        double? event_volume = volume_match.Success ? double.Parse(volume_match.Value[1..], CultureInfo) : null;
 
         var pan_match = PanRegex().Match(text);
-        var pan = pan_match.Success ? float.Parse(pan_match.Value[1..]) : 0f;
+        var pan = pan_match.Success ? float.Parse(pan_match.Value[1..], CultureInfo) : 0f;
 
         switch (sound)
         {
@@ -329,15 +346,18 @@ public partial class Sequence
         }
         else
         {
+            var isNewFormat = Math.Abs(pan) > 1;
+            
             var new_event = new PannedEvent
             {
-                Pan = pan,
+                Pan = isNewFormat ? pan / 100f : pan,
                 Value = value,
                 SoundEvent = string.Intern(sound),
                 PlayTimes = loop_times,
                 OriginalLoop = loop_times,
                 ValueScale = scale,
-                Volume = event_volume
+                Volume = event_volume,
+                IsStandardImplementation = isNewFormat
             };
 
             return new_event;

@@ -65,24 +65,18 @@ public class PcmEncoder
     /// <returns>An AudioData object that stores the encoded audio.</returns>
     public async Task<AudioData<float>> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences)
     {
-        var enumerable = sequences as Sequence[] ?? sequences.ToArray();
-        var placement = PlacementCalculator.CalculateMany(enumerable);
+        var array = sequences as Sequence[] ?? sequences.ToArray();
+        var placement = PlacementCalculator.CalculateMany(array);
         var placement_array = placement.ToArray();
 
         var timed_events = new TimedEvents
         {
-            Sequences = enumerable.ToArray(),
+            Sequences = array,
             Placement = placement_array,
             TimingSampleRate = (int)_sampleRate
         };
-
-        Log("Calculated placement. Starting sample processing.");
-
-        var processed_events = await GetAudioSamples(timed_events);
-
-        Log("Finished processing all samples. Starting audio mixing.");
-        var audioData = await GenerateAudioData(timed_events, processed_events);
-        return audioData;
+        
+        return await GetAudioFromTimedEvents(timed_events);
     }
 
     /// <summary>
@@ -92,8 +86,7 @@ public class PcmEncoder
     /// <returns>An AudioData object that stores the encoded audio.</returns>
     public async Task<AudioData<float>> GetSequenceAudio(Sequence sequence)
     {
-        var copy = sequence.Copy(); // To avoid making any changes to the original sequence.
-        var placement = PlacementCalculator.CalculateOne(copy);
+        var placement = PlacementCalculator.CalculateOne(sequence);
         var placement_array = placement.ToArray();
 
         var timed_events = new TimedEvents
@@ -103,9 +96,16 @@ public class PcmEncoder
             TimingSampleRate = (int)_sampleRate
         };
 
+        return await GetAudioFromTimedEvents(timed_events);
+    }
+
+    public async Task<AudioData<float>> GetAudioFromTimedEvents(TimedEvents timed_events)
+    {
+       Log("Calculated placement. Starting sample processing.");
+
         var processed_events = await GetAudioSamples(timed_events);
 
-        Log("Constructing audio.");
+        Log("Finished processing all samples. Starting audio mixing.");
         var audioData = await GenerateAudioData(timed_events, processed_events);
         return audioData;
     }

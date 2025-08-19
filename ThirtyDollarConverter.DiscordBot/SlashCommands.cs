@@ -1,8 +1,10 @@
 using System.Diagnostics;
 using System.Text;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using JetBrains.Annotations;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser;
 using Encoding = System.Text.Encoding;
 
@@ -35,7 +37,7 @@ public class SlashCommands : ApplicationCommandModule
             await ctx.CreateResponseAsync("```Message doesn't have any files attached.```");
             return;
         }
-
+        
         await ctx.CreateResponseAsync("```Converting TDW to MP3.```");
         await ConvertTdwToAudio(ctx, file.Url, true);
     }
@@ -72,23 +74,45 @@ public class SlashCommands : ApplicationCommandModule
             return;
         }
 
-        var message =
-            await ctx.FollowUpAsync(
-                new DiscordFollowupMessageBuilder().WithContent(
-                    "```Fully read attached file. Starting conversion.```"));
         var sequence = Sequence.FromString(sequence_text);
+        await EncoderTask(ctx, [sequence], mp3);
+    }
 
+    protected static async Task EncoderTask(ContextMenuContext ctx, IList<Sequence> sequences, bool mp3 = false)
+    {
+        var message = await ctx.FollowUpAsync(new DiscordFollowupMessageBuilder()
+            .WithContent("```Fully read attached file. Starting conversion.```"));
+        
+        var calculator = new PlacementCalculator(Static.EncoderSettings);
+        var array = sequences as Sequence[] ?? sequences.ToArray();
+        var placement = calculator.CalculateMany(array);
+        var placement_array = placement.ToArray();
+
+        var length_seconds = (float)placement_array[^1].Index / Static.EncoderSettings.SampleRate;
+        if (length_seconds > 900)
+        {
+            await message.ModifyAsync("```Passed Sequence is longer than 15 minutes. Stopping execution.```");
+            return;
+        }
+        
+        var timed_events = new TimedEvents
+        {
+            Sequences = array,
+            Placement = placement_array,
+            TimingSampleRate = (int)Static.EncoderSettings.SampleRate,
+        };
+        
         var last_update = Stopwatch.GetTimestamp();
         var message_timeout = TimeSpan.FromMilliseconds(1250);
-
-        var encoder = new PcmEncoder(Static.SampleHolder, Static.EncoderSettings, null,
+        
+        var encoder = new PcmEncoder(Static.SampleHolder, Static.EncoderSettings, null, 
             async void (current, max) =>
             {
                 try
                 {
                     if (Stopwatch.GetElapsedTime(last_update) < message_timeout)
                         return;
-
+                    
                     last_update = Stopwatch.GetTimestamp();
 
                     var percentage = current / (double)max;
@@ -99,34 +123,36 @@ public class SlashCommands : ApplicationCommandModule
                     // ignored
                 }
             });
-
-        var audio_data = await encoder.GetSequenceAudio(sequence);
+        
+        var audio_data = await encoder.GetAudioFromTimedEvents(timed_events);
 
         var codec = mp3 ? "libmp3lame" : "libopus";
         const int bitrate = 192;
         var extension = mp3 ? "mp3" : "ogg";
-
+        
         var ffmpeg_process = Process.Start(new ProcessStartInfo("ffmpeg")
         {
             Arguments = $"-v quiet -nostats -f wav -i - -c:a {codec} -b:a {bitrate}k -vn -dn -f {extension} pipe:1",
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
-            UseShellExecute = false
+            UseShellExecute = false,
         });
 
         if (ffmpeg_process == null)
         {
-            await message.ModifyAsync(
-                "```Failed to start conversion process. Please report this error to the developer.```");
+            await message.ModifyAsync("```Failed to start conversion process. Please report this error to the developer.```");
             return;
         }
 
-        var thread = new Thread(() => { encoder.WriteAsWavFile(ffmpeg_process.StandardInput.BaseStream, audio_data); });
+        var thread = new Thread(() =>
+        {
+            encoder.WriteAsWavFile(ffmpeg_process.StandardInput.BaseStream, audio_data);
+        });
         thread.Start();
 
         var memory_stream = new MemoryStream();
         await ffmpeg_process.StandardOutput.BaseStream.CopyToAsync(memory_stream);
-
+        
         memory_stream.Seek(0, SeekOrigin.Begin);
         await message.ModifyAsync(new DiscordMessageBuilder()
             .WithContent("```Successfully converted file.```")

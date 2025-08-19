@@ -53,18 +53,20 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
         // gets the sound's texture
         var event_texture =
             TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, event_name);
-
-        var individual_cut_event = baseEvent is IndividualCutEvent;
-        var missing_texture = event_texture is null && !individual_cut_event;
-
-        // creates the sound
-        var texture = individual_cut_event
-            ? TextureDictionary.GetICutEventTexture()
-            : event_texture ?? TextureDictionary.GetMissingTexture();
         
+        AssetTexture texture;
+        if (baseEvent is IndividualCutEvent individualCut)
+        {
+            texture = individualCut.IsStandardImplementation ? 
+                TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, "!cut") ?? TextureDictionary.GetMissingTexture() : 
+                TextureDictionary.GetICutEventTexture();
+        }
+        else texture = event_texture ?? TextureDictionary.GetMissingTexture();
+        
+        // creates the sound
         var sound = new SoundRenderable(texture)
         {
-            Value = missing_texture ? GetMissingValue(baseEvent) : GetValue(baseEvent),
+            Value = event_texture is null && baseEvent is not IndividualCutEvent ? GetMissingValue(base_event) : GetValue(baseEvent),
             Volume = GetVolume(baseEvent),
             Pan = GetPan(baseEvent),
             IsDivider = baseEvent.SoundEvent is "!divider"
@@ -224,15 +226,18 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
     private TexturedPlane? GetPan(BaseEvent baseEvent)
     {
         if (baseEvent is not PannedEvent panned_event) return null;
+        
+        var isStandardImplementation = panned_event.IsStandardImplementation;
 
         var pan = panned_event.Pan;
         if (pan == 0f) return null;
 
-        // formats the pan to a single decimal
-        var pan_text = Math.Abs(pan).ToString(".#");
-
         // if panning to the left sets the | (pipe symbol),
         // interpreted as the listener to the end of the string, otherwise at the start
+        var pan_text = isStandardImplementation ? 
+            Math.Abs(panned_event.TDWPan).ToString("0.#") : 
+            Math.Abs(pan).ToString(".#");
+        
         switch (pan)
         {
             case < 0:
@@ -242,6 +247,14 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
             case > 0:
                 pan_text = "|" + pan_text;
                 break;
+            
+            /*case < 0 when isStandardImplementation:
+                pan_text += pan_text + "◂";
+                break;
+
+            case > 0 when isStandardImplementation:
+                pan_text += "▸";
+                break;*/
         }
 
         // gets or generates a new texture
