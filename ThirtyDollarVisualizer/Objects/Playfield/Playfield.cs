@@ -1,24 +1,18 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
-using SixLabors.ImageSharp.Formats.Bmp;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Text;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
-using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 public class Playfield(PlayfieldSettings settings)
 {
-    private readonly HashSet<AssetTexture> _animatedTextures = [];
 
     private readonly List<float> _dividerPositionsY = [];
 
@@ -62,9 +56,6 @@ public class Playfield(PlayfieldSettings settings)
         // creates a new renderable factory
         var factory = new RenderableFactory(settings, Fonts.GetFontFamily());
 
-        // clear animated texture update cache
-        _animatedTextures.Clear();
-
         // using multiple threads to make each of the renderables
         var sounds = events
             .AsParallel()
@@ -80,10 +71,6 @@ public class Playfield(PlayfieldSettings settings)
         for (var i = 0; i < sounds.Count; i++)
         {
             var sound = sounds[i];
-
-            // add the sound's texture to a cache if animated
-            var texture = sound.Texture;
-            if (texture is AssetTexture { IsAnimated: true } asset_texture) _animatedTextures.Add(asset_texture);
 
             PositionSound(_layoutHandler, in sound);
 
@@ -193,9 +180,6 @@ public class Playfield(PlayfieldSettings settings)
 
     public void Render(DollarStoreCamera realCamera, float zoom, float updateDelta)
     {
-        // update animated textures
-        foreach (var texture in _animatedTextures) texture.Update();
-
         // avoid doing modifications to the main camera
         _temporaryCamera.CopyFrom(realCamera);
 

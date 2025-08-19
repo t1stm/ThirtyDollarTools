@@ -5,6 +5,8 @@ in vec4 fragColor;
 flat in uint fragTexIndex;
 
 uniform sampler2DArray uTextureArray;
+uniform float atlasSize;
+
 out vec4 outColor;
 
 void main() {

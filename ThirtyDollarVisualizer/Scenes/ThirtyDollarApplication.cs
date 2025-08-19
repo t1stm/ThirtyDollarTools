@@ -94,14 +94,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             UpdateStaticRenderables(_width, _height, zoom);
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
-        
+
         _overlay = new Lazy<Layout>(() => CreateLayout(_width, _height));
     }
-    
+
     private Layout CreateLayout(int width, int height)
     {
         var overlay = new Layout(width, height);
-        
+
         overlay.Add<StaticText>("version",
             text =>
             {
@@ -205,7 +205,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
             optional_shader = ShaderPool.GetOrLoad("bg_optional_shader",
                 () => Shader.NewVertexFragment(BackgroundVertexShaderLocation, BackgroundFragmentShaderLocation));
-        
+
         _backgroundPlane = new BackgroundPlane(DefaultBackgroundColor)
         {
             Position = new Vector3(-_width, -_height, -1f),
@@ -248,12 +248,12 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             _startObjects.Add(_dragNDrop);
             _dragNDrop.UpdateModel(false);
         }
-        
-        var resolution = manager.FramebufferSize; 
+
+        var resolution = manager.FramebufferSize;
         Resize(resolution.X, resolution.Y);
-        
+
         Manager.CheckErrors("Init End");
-        
+
         if (Sequences.Length < 1) return;
 
         try
@@ -743,6 +743,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         }, Token).GetAwaiter();
 
         var playfield_settings = new PlayfieldSettings(RenderableSize, SampleHolder?.DownloadLocation ?? "./Sounds",
+            AtlasStore ?? throw new NullReferenceException("Tried to access AtlasStore, but the value was null."),
             Scale, ElementsOnSingleLine,
             RenderableSize, MarginBetweenRenderables);
 

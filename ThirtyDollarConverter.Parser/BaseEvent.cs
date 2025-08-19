@@ -67,7 +67,7 @@ public abstract class BaseEvent
     {
         var sound = SoundEvent ?? throw new NullReferenceException();
         if (Value != 0)
-            sound += $"@{Value}";
+            sound += $"@{Value:0.##}";
         
         if (ValueScale != ValueScale.None)
             sound += "@" + ValueScale switch
@@ -79,7 +79,7 @@ public abstract class BaseEvent
             };
 
         if (Volume != null)
-            sound += $"%{Volume}";
+            sound += $"%{Volume:0.##}";
         
         return sound;
     }

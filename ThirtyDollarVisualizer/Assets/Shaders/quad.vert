@@ -7,6 +7,7 @@ layout(location = 6) in vec4 iColor;
 layout(location = 7) in uint iTexIndex;
 
 uniform mat4 uViewProj;
+uniform float atlasSize;
 
 out vec2 fragTexCoord;
 out vec4 fragColor;

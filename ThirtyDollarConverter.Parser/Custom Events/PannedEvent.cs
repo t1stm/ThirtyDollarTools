@@ -25,7 +25,7 @@ public class PannedEvent : BaseEvent, ICustomAudibleEvent
     public override string Stringify()
     {
         if (Pan != 0)
-            return base.Stringify() + $"^{Pan}";
+            return base.Stringify() + $"^{Pan:0.##}";
         return base.Stringify();
     }
 

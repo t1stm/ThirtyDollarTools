@@ -1,8 +1,11 @@
+using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
+
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 public readonly struct PlayfieldSettings(
     float renderableSize,
     string downloadLocation,
+    AtlasStore atlasStore,
     float renderScale = 1f,
     int soundsOnASingleLine = 16,
     int soundSize = 64,
@@ -26,7 +29,7 @@ public readonly struct PlayfieldSettings(
     /// <summary>
     /// How big in pixels the volume font will be.
     /// </summary>
-    public readonly float VolumeFontSize = renderableSize * 0.22f; // magic number that looks "just right"
+    public readonly float VolumeFontSize = renderableSize * 0.18f; // magic number that looks "just right"
 
     /// <summary>
     /// How many sounds are contained on a single line.
@@ -42,4 +45,9 @@ public readonly struct PlayfieldSettings(
     /// How big the gap between each side of a sound is in pixels. Scaled by the render scale.
     /// </summary>
     public readonly int SoundMargin = soundMargin;
+    
+    /// <summary>
+    /// A container for global texture atlases.
+    /// </summary>
+    public readonly AtlasStore AtlasStore = atlasStore;
 }

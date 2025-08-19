@@ -61,6 +61,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
         var texture = individual_cut_event
             ? TextureDictionary.GetICutEventTexture()
             : event_texture ?? TextureDictionary.GetMissingTexture();
+        
         var sound = new SoundRenderable(texture)
         {
             Value = missing_texture ? GetMissingValue(baseEvent) : GetValue(baseEvent),
