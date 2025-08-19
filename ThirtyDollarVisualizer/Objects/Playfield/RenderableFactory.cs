@@ -66,7 +66,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
         // creates the sound
         var sound = new SoundRenderable(texture)
         {
-            Value = event_texture is null && baseEvent is not IndividualCutEvent ? GetMissingValue(base_event) : GetValue(baseEvent),
+            Value = event_texture is null && baseEvent is not IndividualCutEvent ? GetMissingValue(baseEvent) : GetValue(baseEvent),
             Volume = GetVolume(baseEvent),
             Pan = GetPan(baseEvent),
             IsDivider = baseEvent.SoundEvent is "!divider"
