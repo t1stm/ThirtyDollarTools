@@ -2,7 +2,7 @@
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 
-var sequence = Sequence.FromString(File.ReadAllText("/home/kris/tdw/tv world/goofy aah tv world cover.tdw"));
+var sequence = Sequence.FromString(File.ReadAllText("/home/kris/tdw/death by glamour/death_by_glamour.tdw"));
 
 var copy = sequence.Copy();
 for (var index = 0; index < copy.Events.Length; index++)
@@ -18,7 +18,7 @@ foreach (var ev in copy.Events)
     output.Append(ev.Stringify() + "|");
 }
 
-File.WriteAllText("/home/kris/tdw/tv world/goofy aah tv world cover.moai", output.ToString());
+File.WriteAllText("/home/kris/tdw/death by glamour/death_by_glamour.moai", output.ToString());
 
 return;
 

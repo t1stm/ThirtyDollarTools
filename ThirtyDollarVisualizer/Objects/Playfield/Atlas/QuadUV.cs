@@ -15,14 +15,14 @@ public struct QuadUV
 
 public static class QuadUVExtensions
 {
-    public static QuadUV ToUV(this Rectangle rectangle)
+    public static QuadUV ToUV(this RectangleF rectangle, Vector2 atlasSize)
     {
         return new QuadUV
         {
-            UV0 = new Vector2(rectangle.Left, rectangle.Bottom),
-            UV1 = new Vector2(rectangle.Right, rectangle.Bottom),
-            UV2 = new Vector2(rectangle.Left, rectangle.Top),
-            UV3 = new Vector2(rectangle.Right, rectangle.Top)
+            UV0 = new Vector2(rectangle.Left / atlasSize.X, rectangle.Bottom / atlasSize.Y),
+            UV1 = new Vector2(rectangle.Right / atlasSize.X, rectangle.Bottom / atlasSize.Y),
+            UV2 = new Vector2(rectangle.Left / atlasSize.X, rectangle.Top / atlasSize.Y),
+            UV3 = new Vector2(rectangle.Right / atlasSize.X, rectangle.Top / atlasSize.Y)
         };
     }
 }

@@ -294,7 +294,7 @@ public class PcmEncoder
 
             if (mixer_length != channel_data.Length)
                 throw new Exception(
-                    $"Missmatch between channel and mixer length. Mixer: {mixer_length}, Channel: {channel_data.Length}");
+                    $"Mismatch between channel and mixer length. Mixer: {mixer_length}, Channel: {channel_data.Length}");
 
             if (start > channel_data.Length || end > channel_data.Length)
                 throw new Exception($"Trying to make a slice bigger than the mixer's length. " +

@@ -50,4 +50,9 @@
         <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
         <ProjectReference Include="..\BASS.Redist\BASS.Redist.csproj"/>
     </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="Objects\Playfield\Batch\PlayfieldChunk.cs" />
+      <Compile Remove="Objects\Playfield\Batch\PlayfieldSound.cs" />
+    </ItemGroup>
 </Project>

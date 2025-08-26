@@ -8,6 +8,7 @@ using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 using ThirtyDollarVisualizer.Helpers.Textures;
+using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 
@@ -49,6 +50,9 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
     {
         var event_name = baseEvent.SoundEvent;
         ArgumentNullException.ThrowIfNull(event_name);
+     
+        var store = settings.AtlasStore;
+        store.AnimatedAtlases.TryGetValue(event_name, out var animatedAtlas);
 
         // gets the sound's texture
         var event_texture =
@@ -64,7 +68,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
         else texture = event_texture ?? TextureDictionary.GetMissingTexture();
         
         // creates the sound
-        var sound = new SoundRenderable(texture)
+        var sound = new SoundRenderable
         {
             Value = event_texture is null && baseEvent is not IndividualCutEvent ? GetMissingValue(baseEvent) : GetValue(baseEvent),
             Volume = GetVolume(baseEvent),

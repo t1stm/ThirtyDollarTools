@@ -5,7 +5,6 @@ namespace ThirtyDollarVisualizer.Renderer;
 
 public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDisposable, IBuffer where TDataType : unmanaged
 {
-    private readonly int _handle = GL.GenBuffer();
     private readonly Dictionary<int, TDataType> _updateQueue = new();
 
     /// <summary>
@@ -32,7 +31,7 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDis
     /// <summary>
     /// The buffer's GL handle.
     /// </summary>
-    public int Handle => _handle;
+    public int Handle { get; } = GL.GenBuffer();
 
     /// <summary>
     /// An update method that checks for and applies any updates to the contents of the buffer.
@@ -60,7 +59,7 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDis
     public void Bind()
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
-        GL.BindBuffer(bufferType, _handle);
+        GL.BindBuffer(bufferType, Handle);
     }
 
     /// <summary>
@@ -68,7 +67,7 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDis
     /// </summary>
     public void Dispose()
     {
-        GL.DeleteBuffer(_handle);
+        GL.DeleteBuffer(Handle);
         GC.SuppressFinalize(this);
     }
 

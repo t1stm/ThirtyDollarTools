@@ -36,7 +36,14 @@ public class NormalEvent : BaseEvent
                 return $"!bg@#{hex_string},{seconds}";
             }
             case "!pulse":
-                return "!pulse";
+            {
+                var parsed_value = (long)Value;
+                var repeats = (byte)parsed_value;
+                float frequency = (short)(parsed_value >> 8);
+
+                var computed_frequency = frequency * 1000f / 5f;
+                return $"!pulse@{repeats},{computed_frequency}";
+            }
             case "!divider":
                 return "!divider\n";
             default:

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using CommandLine;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Audio;
@@ -75,6 +76,7 @@ public static class Program
             });
 
         DefaultLogger.Init();
+        Configuration.Default.PreferContiguousImageBuffers = true;
         
         if (sequence != null && !File.Exists(sequence))
         {

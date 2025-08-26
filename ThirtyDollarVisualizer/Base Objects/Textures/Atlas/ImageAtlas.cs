@@ -26,7 +26,7 @@ public class ImageAtlas : StaticTexture
         Height = Image.Height;
     }
 
-    public Rectangle AddImage(ImageFrame<Rgba32> image)
+    public RectangleF AddImage(ImageFrame<Rgba32> image)
     {
         var position = Atlas.AddImage(image);
         ImagesToBeUploaded.Add(new UploadImage

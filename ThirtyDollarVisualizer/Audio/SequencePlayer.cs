@@ -244,14 +244,14 @@ public class SequencePlayer
         CurrentSequence = SequenceIndices.GetSequenceIDFromIndex(placement.Index);
     }
 
-    protected async void UpdateLoop()
+    protected void UpdateLoop()
     {
         if (_updateRunning) return;
         _updateRunning = true;
 
         while (_updateRunning && !_dead)
         {
-            await PlaybackUpdate();
+            PlaybackUpdate();
             // Using Thread.Sleep since it doesn't allocate memory.
             Thread.Sleep(1);
         }
@@ -310,11 +310,11 @@ public class SequencePlayer
         Bookmarks[bookmarkIndex] = 0;
     }
 
-    protected async ValueTask PlaybackUpdate()
+    protected void PlaybackUpdate()
     {
         try
         {
-            await UpdateLock.WaitAsync();
+            UpdateLock.Wait();
             var placement_memory = Events.Placement.AsMemory();
             var current_idx = PlacementIndex;
             int end_idx;

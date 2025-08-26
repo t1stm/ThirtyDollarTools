@@ -45,7 +45,7 @@ public class LayoutHandler
     /// <summary>
     /// Current line Y
     /// </summary>
-    private float _y;
+    public float Y { get; private set; }
 
     /// <summary>
     /// The current object for this line.
@@ -55,7 +55,7 @@ public class LayoutHandler
     /// <summary>
     /// The height of the playfield.
     /// </summary>
-    public float Height;
+    public float Height { get; private set; }
 
     /// <summary>
     /// Creates a LayoutHandler with the given parameters.
@@ -74,7 +74,7 @@ public class LayoutHandler
         _margin = margin;
 
         Width = _calculatedPositions.LastOrDefault(0f) + size + padding?.X2 ?? 0;
-        _y = padding?.Y1 ?? 0;
+        Y = padding?.Y1 ?? 0;
     }
 
     /// <summary>
@@ -110,18 +110,19 @@ public class LayoutHandler
     public void Reset()
     {
         CurrentSoundIndex = 0;
-        _y = _padding?.Y1 ?? 0;
+        Y = _padding?.Y1 ?? 0;
     }
 
     /// <summary>
     /// Breaks the current line and starts a new one.
     /// </summary>
     /// <param name="times">How many new lines should be created.</param>
-    public void NewLine(int times = 1)
+    public void NewLine(int times = 1, bool isFromDivider = false)
     {
         CurrentSoundIndex = 0;
-        _y += (Size + VerticalMargin) * times;
-        Height = _y;
+        var vertical_margin = isFromDivider ? 0 : VerticalMargin;
+        Y += (Size + vertical_margin) * times;
+        Height = Y;
     }
 
     /// <summary>
@@ -131,7 +132,7 @@ public class LayoutHandler
     public Vector2 GetNewPosition()
     {
         var x = _calculatedPositions[CurrentSoundIndex];
-        var y = _y;
+        var y = Y;
         Vector2 position = (x, y);
 
         CurrentSoundIndex++;
@@ -145,7 +146,7 @@ public class LayoutHandler
     /// </summary>
     public void Finish()
     {
-        Height = _y + Size + (_padding?.Y2 ?? 0);
+        Height = Y + Size + (_padding?.Y2 ?? 0);
     }
 }
 

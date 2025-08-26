@@ -75,6 +75,7 @@ public abstract class BaseEvent
                 ValueScale.Divide => "/",
                 ValueScale.Times => "x",
                 ValueScale.Add => "+",
+                ValueScale.None => throw new ArgumentOutOfRangeException(), 
                 _ => throw new ArgumentOutOfRangeException()
             };
 

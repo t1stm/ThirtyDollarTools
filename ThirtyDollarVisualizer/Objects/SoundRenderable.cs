@@ -6,10 +6,13 @@ using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
+using ThirtyDollarVisualizer.Objects.Playfield.Batch;
+using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
+using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks.Reference;
 
 namespace ThirtyDollarVisualizer.Objects;
 
-public sealed class SoundRenderable : TexturedPlane
+public sealed class SoundRenderable : Renderable
 {
     private readonly BounceAnimation? _bounceAnimation;
     private readonly ExpandAnimation? _expandAnimation;
@@ -18,24 +21,35 @@ public sealed class SoundRenderable : TexturedPlane
     public bool IsDivider;
 
     public float OriginalY;
+
+    public StaticChunkReference? Reference;
     public TexturedPlane? Pan;
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
 
-    public SoundRenderable(SingleTexture texture, Vector3 position, Vector2 widthHeight) : base(texture)
+    public override Matrix4 Model
+    {
+        get => Reference?.Sound.Model ?? throw new ArgumentNullException();
+        set
+        {
+            ArgumentNullException.ThrowIfNull(Reference);
+            Reference.Sound = Reference.Sound with { Model = value };
+        }
+    }
+
+    public SoundRenderable() : this(Vector3.Zero, Vector2.Zero)
+    {
+    }
+
+    public SoundRenderable(Vector3 position, Vector2 widthHeight)
     {
         _bounceAnimation = new BounceAnimation(() => { UpdateModel(false); });
         _expandAnimation = new ExpandAnimation(() => { UpdateModel(false); });
         _fadeAnimation = new FadeAnimation(() => { UpdateModel(false); });
         _renderableAnimations = new Animation[] { _bounceAnimation, _expandAnimation, _fadeAnimation };
-        
+
         Position = position;
         Scale = (widthHeight.X, widthHeight.Y, 1);
-    }
-
-    public SoundRenderable(SingleTexture texture) :
-        this(texture, Vector3.Zero, (texture.Width, texture.Height))
-    {
     }
 
     public override Vector3 Scale
@@ -44,7 +58,7 @@ public sealed class SoundRenderable : TexturedPlane
         set
         {
             base.Scale = value;
-            if (_bounceAnimation != null) 
+            if (_bounceAnimation != null)
                 _bounceAnimation.FinalY = value.Y / 5f;
         }
     }
@@ -57,10 +71,10 @@ public sealed class SoundRenderable : TexturedPlane
             animationsRunning = animation.IsRunning;
             if (animationsRunning) break;
         }
-        
+
         if (animationsRunning)
             UpdateModel(false, _renderableAnimations.Span);
-        
+
         base.Render(camera);
     }
 

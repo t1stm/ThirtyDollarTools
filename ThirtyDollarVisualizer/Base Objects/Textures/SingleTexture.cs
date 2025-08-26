@@ -38,18 +38,15 @@ public abstract class SingleTexture : IDisposable
 
     protected static unsafe void BasicUploadTexture(ImageFrame<Rgba32> image)
     {
-        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba8, image.Width, image.Height,
-            0, PixelFormat.Rgba, PixelType.UnsignedByte, (IntPtr)0);
-
-        image.ProcessPixelRows(accessor =>
+        if (!image.DangerousTryGetSinglePixelMemory(out var memory))
         {
-            for (var y = 0; y < accessor.Height; y++)
-                fixed (void* data = accessor.GetRowSpan(y))
-                {
-                    GL.TexSubImage2D(TextureTarget.Texture2d, 0, 0, y, accessor.Width, 1, PixelFormat.Rgba,
-                        PixelType.UnsignedByte, new IntPtr(data));
-                }
-        });
+            throw new Exception("Could not get single pixel memory. " +
+                                "Configuration is likely not passed as the backing memory is not contiguous.");
+        }
+        
+        using var pin = memory.Pin();
+        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba8, image.Width, image.Height,
+            0, PixelFormat.Rgba, PixelType.UnsignedByte, pin.Pointer);
     }
 
     protected static void BindPrimitive(int handle)

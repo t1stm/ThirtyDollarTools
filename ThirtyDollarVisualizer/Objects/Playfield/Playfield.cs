@@ -5,21 +5,14 @@ using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
-using ThirtyDollarVisualizer.Base_Objects.Text;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
+using ThirtyDollarVisualizer.Objects.Playfield.Batch;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 public class Playfield(PlayfieldSettings settings)
 {
-
     private readonly List<float> _dividerPositionsY = [];
-
-    private readonly LayoutHandler _layoutHandler = new(settings.SoundSize * settings.RenderScale,
-        settings.SoundsOnASingleLine,
-        settings.SoundMargin * settings.RenderScale / 2,
-        15f * settings.RenderScale);
 
     private readonly ColoredPlane _objectBox = new()
     {
@@ -48,134 +41,22 @@ public class Playfield(PlayfieldSettings settings)
 
     public bool DisplayCenter { get; set; } = true;
 
-    public Task UpdateSounds(Sequence sequence)
+    public ValueTask UpdateSounds(Sequence sequence)
     {
-        // get all events and make an array that will hold their renderable
         var events = sequence.Events;
-
-        // creates a new renderable factory
-        var factory = new RenderableFactory(settings, Fonts.GetFontFamily());
-
-        // using multiple threads to make each of the renderables
-        var sounds = events
-            .AsParallel()
-            .Where(ev => !IsEventHidden(ev))
-            .Select(ev => factory.CookUp(ev))
-            .ToList();
-
-        // prepare rendering stuff
-        _layoutHandler.Reset();
-        _dividerPositionsY.Clear();
-
-        // position every sound using the layout handler
-        for (var i = 0; i < sounds.Count; i++)
-        {
-            var sound = sounds[i];
-
-            PositionSound(_layoutHandler, in sound);
-
-            // check if sound is a divider. if not, continue to the next sound.
-            if (!sound.IsDivider || i + 1 >= sounds.Count) continue;
-
-            // add the current divider's position for render culling
-            _dividerPositionsY.Add(sound.Position.Y);
-
-            _layoutHandler.NewLine(
-                // edge case when a new line was already created
-                // by the !divider object being on the end of the line
-                _layoutHandler.CurrentSoundIndex == 0 ? 1 : 2);
-        }
-
-        // add bottom padding to the layout
-        _layoutHandler.Finish();
-
-        var lines = sounds.GroupBy(r => r.OriginalY, (_, enumerable) =>
-        {
-            var sound_renderables = enumerable as SoundRenderable[] ?? enumerable.ToArray();
-            return new PlayfieldLine(settings.SoundsOnASingleLine)
-            {
-                Sounds = sound_renderables.ToArray(),
-                Count = sound_renderables.Length
-            };
-        }).ToArray();
-
-        // generate textures for all decreasing events
-        var decreasing_events = events.Where(r => r.SoundEvent is "!stop" or "!loopmany");
-        foreach (var e in decreasing_events)
-        {
-            var textures = e.Value;
-            for (var val = textures; val >= 0; val--)
-            {
-                var search = val.ToString("0.##");
-                DecreasingValuesCache.GetOrAdd(search, _ => new FontTexture(factory.ValueFont, search));
-            }
-        }
-
-        // add default 0 texture
-        DecreasingValuesCache.GetOrAdd("0", _ => new FontTexture(factory.ValueFont, "0"));
-
-        // sets objects to be used by the render method
-        Objects = sounds;
-        Lines = lines;
-
-        return Task.CompletedTask;
+        var chunkGenerator = new ChunkGenerator(settings);
+        
+        var chunks = chunkGenerator.GenerateChunks(events);
+        
+        
+        
+        return ValueTask.CompletedTask;
     }
 
     public static bool IsEventHidden(BaseEvent ev)
     {
         return string.IsNullOrEmpty(ev.SoundEvent) || (ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent) ||
                ev is IHiddenEvent;
-    }
-
-    private static void PositionSound(LayoutHandler layoutHandler, in SoundRenderable sound)
-    {
-        // get the current sound's texture information
-        var texture = sound.Texture;
-        var texture_x = texture?.Width ?? 0;
-        var texture_y = texture?.Height ?? 0;
-
-        // get the aspect ratio for events without an equal size
-        var aspect_ratio = (float)texture_x / texture_y;
-
-        // box scale is the maximum size a sound should cover
-        Vector2 box_scale = (layoutHandler.Size, layoutHandler.Size);
-        // wanted scale is the corrected size by the aspect ratio
-        Vector2 wanted_scale = (layoutHandler.Size, layoutHandler.Size);
-
-        // handle aspect ratio corrections
-        switch (aspect_ratio)
-        {
-            case > 1:
-                wanted_scale.Y = layoutHandler.Size / aspect_ratio;
-                break;
-            case < 1:
-                wanted_scale.X = layoutHandler.Size * aspect_ratio;
-                break;
-        }
-
-        // set the size of the sound's texture to the wanted size
-        sound.Scale = (wanted_scale.X, wanted_scale.Y, 0);
-
-        // calculates the wanted position to avoid stretching of the texture
-        var box_position = layoutHandler.GetNewPosition();
-        var texture_position = (box_position.X, box_position.Y);
-
-        var delta_x = layoutHandler.Size - wanted_scale.X;
-        var delta_y = layoutHandler.Size - wanted_scale.Y;
-
-        texture_position.X += delta_x / 2f;
-        texture_position.Y += delta_y / 2f;
-
-        sound.SetPosition((texture_position.X, texture_position.Y, 0));
-
-        // position value, volume, pan to their box locations
-        var bottom_center = box_position + (box_scale.X / 2f, box_scale.Y);
-        var top_right = box_position + (box_scale.X + 6f, 0f);
-
-        sound.Value?.SetPosition((bottom_center.X, bottom_center.Y, 0), PositionAlign.Center);
-        sound.Volume?.SetPosition((top_right.X, top_right.Y, 0), PositionAlign.TopRight);
-        sound.Pan?.SetPosition((box_position.X, box_position.Y, 0));
-        sound.OriginalY = box_position.Y;
     }
 
     public void Render(DollarStoreCamera realCamera, float zoom, float updateDelta)

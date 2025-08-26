@@ -238,7 +238,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         UpdateStaticRenderables(_width, _height, Scale);
         Log = str => SetStatusMessage(str, 3500);
 
-        if (_dragNDrop == null)
+        /*if (_dragNDrop == null)
         {
             var dnd_texture = new FontTexture(greeting_font, "Drop files on the window to start.");
             _dragNDrop = new SoundRenderable(dnd_texture,
@@ -247,7 +247,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
             _startObjects.Add(_dragNDrop);
             _dragNDrop.UpdateModel(false);
-        }
+        }*/
 
         var resolution = manager.FramebufferSize;
         Resize(resolution.X, resolution.Y);

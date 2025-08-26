@@ -1,3 +1,4 @@
+using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
@@ -9,6 +10,7 @@ namespace ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 public class StaticSoundAtlas : ImageAtlas
 {
     private readonly Dictionary<string, QuadUV> _coordinateTable = new();
+    public Vector2 Size => new(Width, Height); 
 
     public static StaticSoundAtlas FromFiles(string downloadLocation, IEnumerable<string> soundFiles, out Dictionary<string, AssetTexture> animatedTextures)
     {
@@ -34,41 +36,9 @@ public class StaticSoundAtlas : ImageAtlas
                 throw new Exception("Failed to get image data from texture.");
             
             var coords = atlas.AddImage(image.Frames.RootFrame);
-            atlas._coordinateTable.Add(soundFile, coords.ToUV());
+            atlas._coordinateTable.Add(soundFile, coords.ToUV(atlas.Size));
         }
 
-        return atlas;
-    }
-    
-    public static StaticSoundAtlas FromSequence(PlayfieldSettings settings, Sequence sequence, out Dictionary<string, AssetTexture> animatedTextures)
-    {
-        var atlas = new StaticSoundAtlas();
-        animatedTextures = new Dictionary<string, AssetTexture>();
-        
-        foreach (var eventName in sequence.UsedSounds)
-        {
-            var texture =
-                TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, eventName);
-
-            if (texture == null)
-                continue;
-
-            if (texture.IsAnimated)
-            {
-                animatedTextures.Add(eventName, texture);
-                continue;
-            }
-
-            var staticTexture = texture.Texture.As<StaticTexture>();
-            var image = staticTexture.GetData();
-            
-            if (image == null)
-                throw new Exception("Failed to get image data from texture.");
-            
-            var coords = atlas.AddImage(image.Frames.RootFrame);
-            atlas._coordinateTable.Add(eventName, coords.ToUV());
-        }
-        
         return atlas;
     }
 
