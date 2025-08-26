@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Quick and Dirty Line Merger</title>
+    <style>
+        :root {
+            --bg: #0b0f1a;
+            --panel: #111827;
+            --panel-2: #0f172a;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --border: #1f2937;
+            --accent: #ff2bd1; /* hot pink */
+            --accent2: #08f7fe; /* neon cyan */
+            --accent3: #f5d300; /* neon yellow */
+            --radius: 12px;
+            --shadow: 0 10px 25px rgba(0, 0, 0, .35);
+            --mono: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "JetBrains Mono", monospace;
+        }
+
+        html, body {
+            background: radial-gradient(1200px 700px at 15% -10%, rgba(255, 43, 209, .08), transparent 60%),
+            radial-gradient(1200px 700px at 85% 110%, rgba(8, 247, 254, .08), transparent 60%),
+            var(--bg);
+            color: var(--text);
+            margin: 0;
+            min-height: 100%;
+        }
+
+        label {
+            font: 1em var(--mono);
+        }
+
+        .container {
+            margin: 0 auto;
+            padding: 24px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .title {
+            font-size: clamp(20px, 4vw, 28px);
+            font-weight: 700;
+            letter-spacing: .5px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 18px rgba(255, 43, 209, .25), 0 0 24px rgba(8, 247, 254, .2);
+        }
+
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .col {
+            flex-grow: 1;
+        }
+
+        .panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .02), transparent 30%), var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        /* Line-numbered textarea component */
+        .field {
+            position: relative;
+            display: flex;
+            flex: 1 1 320px;
+            min-width: 280px;
+            min-height: 400px;
+            max-height: 400px;
+            width: 100%;
+            overflow: auto;
+            resize: none;
+        }
+
+        .gutter {
+            width: 3ch;
+            min-width: 3ch;
+            flex: 0 0 auto;
+            padding: 10px 8px 10px 12px;
+            background: var(--panel-2);
+            color: var(--muted);
+            text-align: right;
+            border-right: 1px solid var(--border);
+            font: 12px/1.4 var(--mono);
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .gutter pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        textarea.editor {
+            flex: 1 1 auto;
+            resize: none;
+            width: 100%;
+            height: auto;
+            box-sizing: border-box;
+            padding: 10px 12px;
+            border: none;
+            outline: none;
+            color: var(--text);
+            background: transparent;
+            font: 12px/1.4 var(--mono);
+            caret-color: var(--accent2);
+            /* Disable soft-wrap so gutter numbers match visible rows */
+            white-space: pre;
+            overflow-wrap: normal;
+            word-break: normal;
+            overflow: auto;
+        }
+
+        .field.panel {
+            border-radius: var(--radius);
+        }
+
+        .sep-input:focus-within,
+        .field:focus-within {
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, .04) inset, 0 0 0 2px rgba(255, 43, 209, .35), 0 0 32px rgba(255, 43, 209, .2);
+            border-color: rgba(255, 43, 209, .6);
+        }
+
+        label.block-label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin: 2px 2px 4px 6px;
+            letter-spacing: .3px;
+        }
+
+        /* Controls row */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 12px;
+        }
+
+        .sep-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            padding: 10px 12px;
+            border-radius: var(--radius);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
+        .sep-input input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font: 1em/1.2 var(--mono);
+            min-width: 120px;
+        }
+
+        .btn {
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, rgba(255, 255, 255, .05), transparent), var(--panel);
+            color: var(--text);
+            padding: 10px 1em;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: .3px;
+            transition: transform .06s ease, box-shadow .2s ease, background .2s ease;
+        }
+
+        .btn:hover {
+            box-shadow: 0 0 0 2px rgba(8, 247, 254, .25), 0 0 30px rgba(8, 247, 254, .18);
+        }
+
+        /* Toggle as button */
+        .toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid var(--border);
+            background: var(--panel-2);
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: .3px;
+            box-shadow: var(--shadow);
+            transition: transform .06s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, color .2s ease;
+            user-select: none;
+        }
+
+
+        .toggle-btn:hover {
+            box-shadow: 0 0 0 2px rgba(8, 247, 254, .25), 0 0 30px rgba(8, 247, 254, .18);
+        }
+        .toggle-btn:active { transform: translateY(1px); }
+        .toggle {
+            /* hide native but keep accessible */
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            pointer-events: none;
+        }
+        input:focus-visible ~ .toggle-btn {
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, .04) inset, 0 0 0 2px rgba(255, 43, 209, .35), 0 0 32px rgba(255, 43, 209, .2);
+            border-color: rgba(255, 43, 209, .6);
+        }
+        /* checked state */
+
+        input:checked ~ .toggle-btn {
+            background: linear-gradient(90deg, rgba(255, 43, 209, .35), rgba(8, 247, 254, .35)), var(--panel);
+            border-color: rgba(255, 43, 209, .6);
+
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .accent {
+            background: linear-gradient(90deg, rgba(255, 43, 209, .15), rgba(8, 247, 254, .15));
+            border-color: rgba(255, 43, 209, .4);
+        }
+
+        .output {
+            min-height: 260px;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+            padding: 12px 0 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col" style="min-width:280px;">
+            <label class="block-label" for="in1">Input A</label>
+            <div class="field panel" data-field>
+                <div class="gutter" aria-hidden="true">
+                    <pre>1</pre>
+                </div>
+                <textarea id="in1" class="editor" placeholder="Enter lines..." autocapitalize="off" spellcheck="false"
+                          wrap="off"></textarea>
+            </div>
+        </div>
+        <div class="col" style="min-width:280px;">
+            <label class="block-label" for="in2">Input B</label>
+            <div class="field panel" data-field>
+                <div class="gutter" aria-hidden="true">
+                    <pre>1</pre>
+                </div>
+                <textarea id="in2" class="editor" placeholder="Enter lines..." autocapitalize="off" spellcheck="false"
+                          wrap="off"></textarea>
+            </div>
+        </div>
+        <div class="col" style="min-width:280px;">
+            <label class="block-label" for="in3">Input C</label>
+            <div class="field panel" data-field>
+                <div class="gutter" aria-hidden="true">
+                    <pre>1</pre>
+                </div>
+                <textarea id="in3" class="editor" placeholder="Enter lines..." autocapitalize="off" spellcheck="false"
+                          wrap="off"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel controls">
+        <div class="sep-input">
+            <span style="color:var(--muted); font:12px var(--mono);">Separator</span>
+            <input id="sep" type="text" value="!combine|" aria-label="Separator between merged inputs"/>
+        </div>
+
+        <div>
+            <input id="removeCommentsCombine" class="toggle" type="checkbox" checked>
+            <label for="removeCommentsCombine" class="toggle-btn" id="removeCommentsCombineLabel" title="When enabled, removes comments with !combine from the merged output. This is useful for combining multiple files that may have comments with !combine in them.">
+                <span>Remove comments with !combine</span>
+            </label>
+        </div>
+
+        <div>
+            <input id="removeCombinePause" class="toggle" type="checkbox" checked>
+            <label for="removeCombinePause" class="toggle-btn" id="removeCombinePauseLabel" title="When enabled, removes any _pause events after !combine. This is useful for combining multiple files that may have _pause events after !combine in them.">
+                <span>Remove _pause + !combine events</span>
+            </label>
+        </div>
+
+
+        <span id="copyState" style="font-size:12px; color:var(--muted); margin-left: auto;"></span>
+        <button id="copyBtn" class="btn accent" type="button">Copy Output</button>
+    </div>
+
+    <div class="col">
+        <label class="block-label" for="out">Output</label>
+        <div class="field panel output" data-field>
+            <div class="gutter" aria-hidden="true">
+                <pre>1</pre>
+            </div>
+            <textarea id="out" class="editor" placeholder="Merged output..." readonly wrap="off"></textarea>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const in1 = document.getElementById('in1');
+        const in2 = document.getElementById('in2');
+        const in3 = document.getElementById('in3');
+        const out = document.getElementById('out');
+        const sepInput = document.getElementById('sep');
+        const copyBtn = document.getElementById('copyBtn');
+        const copyState = document.getElementById('copyState');
+        const removeCommentsCombine = document.getElementById('removeCommentsCombine');
+        const removeCombinePause = document.getElementById('removeCombinePause');
+
+        // Utilities
+        const norm = (s) => (s || '').replace(/\r\n?/g, '\n');
+        const splitLines = (s) => norm(s).split('\n');
+
+        function updateGutterFor(field) {
+            const ta = field.querySelector('textarea.editor');
+            const gutter = field.querySelector('.gutter pre');
+            const lines = (norm(ta.value).match(/\n/g) || []).length + 1;
+            let buf = '';
+            for (let i = 1; i <= lines; i++) {
+                buf += i + (i === lines ? '' : '\n');
+            }
+            gutter.textContent = buf || '1';
+            // sync scroll
+            field.querySelector('.gutter').scrollTop = ta.scrollTop;
+        }
+
+        function attachFieldBehavior(field) {
+            const ta = field.querySelector('textarea.editor');
+            ta.addEventListener('input', () => {
+                updateGutterFor(field);
+                scheduleMerge();
+            });
+            ta.addEventListener('scroll', () => {
+                field.querySelector('.gutter').scrollTop = ta.scrollTop;
+            });
+            // initialize
+            updateGutterFor(field);
+        }
+
+        // Merge logic
+        let mergeScheduled = false;
+
+        function scheduleMerge() {
+            if (mergeScheduled) return;
+            mergeScheduled = true;
+            requestAnimationFrame(() => {
+                mergeScheduled = false;
+                computeOutput();
+            });
+        }
+
+        function computeOutput() {
+            const separator = sepInput.value ?? '';
+            const a = splitLines(in1.value);
+            const b = splitLines(in2.value);
+            const c = splitLines(in3.value);
+            const maxLen = Math.max(a.length, b.length, c.length);
+
+            const REPLACE_FLAGS = 'g';
+            const REPLACEMENT = '';
+
+            let removeCommentsRegex = null;
+            if (removeCommentsCombine && removeCommentsCombine.checked) {
+                try {
+                    removeCommentsRegex = new RegExp("!combine\\|#\\W+[^|]*\\|", REPLACE_FLAGS);
+                } catch (e) {
+                    console.warn('Invalid TDW regex:', e);
+                }
+            }
+
+            let removeCombinePauseRegex1 = null;
+            let removeCombinePauseRegex2 = null;
+            if (removeCombinePause && removeCombinePause.checked) {
+                try {
+                    removeCombinePauseRegex1 = new RegExp('!combine\\|_pause\\|', REPLACE_FLAGS);
+                    removeCombinePauseRegex2 = new RegExp('_pause\\|!combine\\|', REPLACE_FLAGS);
+                }
+                catch (e) {
+                    console.warn('Invalid _pause regex:', e);
+                }
+            }
+
+            const outLines = new Array(maxLen);
+            for (let i = 0; i < maxLen; i++) {
+                const aL = a[i] ?? '';
+                const bL = b[i] ?? '';
+                const cL = c[i] ?? '';
+                const parts = [aL, bL, cL].filter(p => p.trim() !== '');
+                let line = parts.join(separator);
+                if (removeCommentsRegex) {
+                    line = line.replace(removeCommentsRegex, REPLACEMENT);
+                }
+                if (removeCombinePauseRegex1) {
+                    line = line.replace(removeCombinePauseRegex1, REPLACEMENT);
+                }
+                if (removeCombinePauseRegex2) {
+                    line = line.replace(removeCombinePauseRegex2, REPLACEMENT);
+                }
+                outLines[i] = line;
+            }
+            out.value = outLines.join('\n');
+            // after programmatic set, refresh gutter of output
+            updateGutterFor(out.closest('[data-field]'));
+        }
+
+        // Copy logic with fallback
+        async function copyOutput() {
+            const text = out.value;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const tmp = document.createElement('textarea');
+                    tmp.value = text;
+                    tmp.style.position = 'fixed';
+                    tmp.style.left = '-9999px';
+                    document.body.appendChild(tmp);
+                    tmp.focus();
+                    tmp.select();
+                    document.execCommand('copy');
+                    tmp.remove();
+                }
+                showCopied('Copied!');
+            } catch (err) {
+                console.error(err);
+                showCopied('Copy failed');
+            }
+        }
+
+        let copyTimer;
+
+        function showCopied(msg) {
+            clearTimeout(copyTimer);
+            copyState.textContent = msg;
+            copyState.style.color = msg.includes('fail') ? '#f87171' : 'var(--accent2)';
+            copyTimer = setTimeout(() => {
+                copyState.textContent = '';
+            }, 1800);
+        }
+
+        // Wire up fields
+        document.querySelectorAll('[data-field]').forEach(attachFieldBehavior);
+
+        // Listen to separator changes
+        sepInput.addEventListener('input', scheduleMerge);
+        // Listen to TDW toggle changes
+        if (removeCommentsCombine) removeCommentsCombine.addEventListener('change', scheduleMerge);
+
+        // Copy
+        copyBtn.addEventListener('click', copyOutput);
+
+        // Initial merge to set output (and line numbers)
+        computeOutput();
+    })();
+</script>
+</body>
+</html>
