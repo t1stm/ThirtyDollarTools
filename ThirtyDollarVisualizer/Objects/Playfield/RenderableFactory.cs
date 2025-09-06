@@ -123,7 +123,11 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
             case IndividualCutEvent ice:
             {
                 // gets all sounds that are being cut
-                var cut_sounds = ice.CutSounds.ToArray();
+                var cut_sounds = ice.CutSounds.Select(sound =>
+                {
+                    var key_value_pair = settings.SampleHolder.SampleList.FirstOrDefault(kvp => kvp.Key.Id == sound);
+                    return key_value_pair.Key.Filename;
+                }).ToArray();
 
                 // makes a texture ID for them
                 var joined = string.Join('|', cut_sounds);
@@ -132,10 +136,10 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 value_texture = CustomValues.GetOrAdd(joined, _ =>
                 {
                     var available_textures =
-                        cut_sounds.Where(r => File.Exists($"{settings.DownloadLocation}/Images/{r}.png"));
+                        cut_sounds.Where(sound => File.Exists($"{settings.DownloadLocation}/Images/{sound}.png"));
 
                     var textures = available_textures
-                        .Select(t => new StaticTexture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
+                        .Select(texture => new StaticTexture($"{settings.DownloadLocation}/Images/{texture}.png")).ToArray();
                     return new IconFlexTexture(textures, 2, settings.ValueFontSize * settings.RenderScale);
                 });
 

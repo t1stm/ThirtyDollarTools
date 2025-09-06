@@ -1,7 +1,10 @@
+using ThirtyDollarConverter;
+
 namespace ThirtyDollarVisualizer.Objects;
 
 public readonly struct PlayfieldSettings(
     float renderable_size,
+    SampleHolder sample_holder,
     string download_location,
     float render_scale = 1f,
     int sounds_on_a_single_line = 16,
@@ -12,6 +15,8 @@ public readonly struct PlayfieldSettings(
     ///     Where the downloaded TDW assets are located.
     /// </summary>
     public readonly string DownloadLocation = download_location;
+
+    public readonly SampleHolder SampleHolder = sample_holder;
 
     /// <summary>
     ///     What's the current render scale of the window.
