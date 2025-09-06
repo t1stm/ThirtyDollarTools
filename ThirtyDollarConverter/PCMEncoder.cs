@@ -337,7 +337,11 @@ public class PcmEncoder
             // handle !cut event
             if (event_name == "!cut")
             {
-                HandleCut(start, end, current_start, mix_slice);
+                foreach (var (_, data) in mixer.GetTracks())
+                {
+                    HandleCut(start, end, current_start, data.GetChannel(channel).AsSpan()[start..end]);
+                }
+                
                 continue;
             }
 
