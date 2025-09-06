@@ -54,16 +54,6 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         // gets the sound's texture
         var event_texture =
             TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, event_name);
-
-        if (event_texture == null)
-        {
-            var soundsBasedOnId = settings.SampleHolder.SampleList.Where(kvp => kvp.Key.Id == event_name);
-            var array = soundsBasedOnId as KeyValuePair<Sound, PcmDataHolder>[] ?? soundsBasedOnId.ToArray();
-
-            var soundName = array.First().Key.Filename;
-            if (array.Length > 0 && soundName is not null)
-                event_texture = TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, soundName);
-        }
         
         AssetTexture texture;
         if (base_event is IndividualCutEvent individualCut)
@@ -72,7 +62,20 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, "!cut") ?? TextureDictionary.GetMissingTexture() : 
                 TextureDictionary.GetICutEventTexture();
         }
-        else texture = event_texture ?? TextureDictionary.GetMissingTexture();
+        else
+        {
+            if (event_texture == null)
+            {
+                var soundsBasedOnId = settings.SampleHolder.SampleList.Where(kvp => kvp.Key.Id == event_name);
+                var array = soundsBasedOnId as KeyValuePair<Sound, PcmDataHolder>[] ?? soundsBasedOnId.ToArray();
+
+                if (array.Length > 0)
+                {
+                    event_texture = TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, array.First().Key.Filename ?? "");
+                }
+            }
+            texture = event_texture ?? TextureDictionary.GetMissingTexture();
+        }
         
         // creates the sound
         var sound = new SoundRenderable(texture)
