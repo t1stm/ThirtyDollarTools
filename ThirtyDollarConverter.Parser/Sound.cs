@@ -19,7 +19,7 @@ public class Sound
     /// </summary>
     [JsonPropertyName("id")]
     [JsonInclude]
-    public string? Id { get; init; }
+    public required string Id { get; init; }
 
     /// <summary>
     ///     An optional emoji of the current sound.

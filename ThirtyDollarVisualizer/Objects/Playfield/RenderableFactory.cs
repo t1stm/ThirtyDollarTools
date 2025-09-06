@@ -64,15 +64,10 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         }
         else
         {
-            if (event_texture == null)
+            if (event_texture == null && settings.SampleHolder.StringToSoundReferences.TryGetValue(event_name, out var soundReference))
             {
-                var soundsBasedOnId = settings.SampleHolder.SampleList.Where(kvp => kvp.Key.Id == event_name);
-                var array = soundsBasedOnId as KeyValuePair<Sound, PcmDataHolder>[] ?? soundsBasedOnId.ToArray();
-
-                if (array.Length > 0)
-                {
-                    event_texture = TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, array.First().Key.Filename ?? "");
-                }
+                event_texture =
+                    TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, soundReference.Filename ?? "");
             }
             texture = event_texture ?? TextureDictionary.GetMissingTexture();
         }
@@ -137,11 +132,7 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
             case IndividualCutEvent ice:
             {
                 // gets all sounds that are being cut
-                var cut_sounds = ice.CutSounds.Select(sound =>
-                {
-                    var key_value_pair = settings.SampleHolder.SampleList.FirstOrDefault(kvp => kvp.Key.Id == sound);
-                    return key_value_pair.Key.Filename;
-                }).ToArray();
+                var cut_sounds = ice.CutSounds.ToArray();
 
                 // makes a texture ID for them
                 var joined = string.Join('|', cut_sounds);
@@ -150,7 +141,13 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
                 value_texture = CustomValues.GetOrAdd(joined, _ =>
                 {
                     var available_textures =
-                        cut_sounds.Where(sound => File.Exists($"{settings.DownloadLocation}/Images/{sound}.png"));
+                        cut_sounds.Select(sound =>
+                        {
+                            if (File.Exists($"{settings.DownloadLocation}/Images/{sound}.png"))
+                                return sound;
+                            
+                            return settings.SampleHolder.StringToSoundReferences.TryGetValue(sound, out var soundReference) ? soundReference.Filename ?? sound : sound;
+                        });
 
                     var textures = available_textures
                         .Select(texture => new StaticTexture($"{settings.DownloadLocation}/Images/{texture}.png")).ToArray();
