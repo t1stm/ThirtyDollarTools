@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Helpers.Textures;
@@ -53,6 +54,16 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily font_famil
         // gets the sound's texture
         var event_texture =
             TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, event_name);
+
+        if (event_texture == null)
+        {
+            var soundsBasedOnId = settings.SampleHolder.SampleList.Where(kvp => kvp.Key.Id == event_name);
+            var array = soundsBasedOnId as KeyValuePair<Sound, PcmDataHolder>[] ?? soundsBasedOnId.ToArray();
+
+            var soundName = array.First().Key.Filename;
+            if (array.Length > 0 && soundName is not null)
+                event_texture = TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, soundName);
+        }
         
         AssetTexture texture;
         if (base_event is IndividualCutEvent individualCut)
