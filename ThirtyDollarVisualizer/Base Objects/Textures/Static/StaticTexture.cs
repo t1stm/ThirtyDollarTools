@@ -27,7 +27,8 @@ public class StaticTexture(Image<Rgba32>? rgba) : Texture
 
     public override void UploadToGPU()
     {
-        if (image == null) throw new ArgumentNullException(nameof(image), "Static Texture asset should not be null.");
+        if (image == null)
+            return;
 
         handle = GL.GenTexture();
         if (handle == 0) 
