@@ -249,7 +249,7 @@ public partial class Sequence
         return true;
     }
     
-    private static bool TryIndividualCutTDW(string text, out IndividualCutEvent icut)
+    private static bool TryIndividualCutTDW(string text, Sequence sequence, out IndividualCutEvent icut)
     {
         var splitForValue = text.Split('@');
         if (splitForValue is not ["!cut", _])
@@ -263,6 +263,8 @@ public partial class Sequence
         {
             IsStandardImplementation = true
         };
+        
+        foreach (var ev in cutSounds) sequence.SeparatedChannels.Add(ev);
         return true;
     }
 
@@ -275,7 +277,7 @@ public partial class Sequence
     private static BaseEvent ParseEvent(string text, Sequence sequence)
     {
         if (TryIndividualCut(text, sequence, out var new_individual_cut_event)) return new_individual_cut_event;
-        if (TryIndividualCutTDW(text, out var new_individual_cut_tdw_event)) return new_individual_cut_tdw_event;
+        if (TryIndividualCutTDW(text, sequence, out var new_individual_cut_tdw_event)) return new_individual_cut_tdw_event;
         if (TryBookmark(text, out var bookmark_event)) return bookmark_event;
 
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
