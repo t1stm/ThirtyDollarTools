@@ -742,7 +742,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             }
         }, Token).GetAwaiter();
 
-        var playfield_settings = new PlayfieldSettings(RenderableSize, SampleHolder?.DownloadLocation ?? "./Sounds",
+        var playfield_settings = new PlayfieldSettings(RenderableSize, SampleHolder ?? throw new Exception("Null sample holder."), SampleHolder?.DownloadLocation ?? "./Sounds",
             AtlasStore ?? throw new NullReferenceException("Tried to access AtlasStore, but the value was null."),
             Scale, ElementsOnSingleLine,
             RenderableSize, MarginBetweenRenderables);

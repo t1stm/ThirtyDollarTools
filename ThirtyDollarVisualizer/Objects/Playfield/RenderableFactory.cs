@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
@@ -65,7 +66,15 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
                 TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, "!cut") ?? TextureDictionary.GetMissingTexture() : 
                 TextureDictionary.GetICutEventTexture();
         }
-        else texture = event_texture ?? TextureDictionary.GetMissingTexture();
+        else
+        {
+            if (event_texture == null && settings.SampleHolder.StringToSoundReferences.TryGetValue(event_name, out var soundReference))
+            {
+                event_texture =
+                    TextureDictionary.GetDownloadedAsset(settings.DownloadLocation, soundReference.Filename ?? "");
+            }
+            texture = event_texture ?? TextureDictionary.GetMissingTexture();
+        }
         
         // creates the sound
         var sound = new SoundRenderable
@@ -136,10 +145,16 @@ public class RenderableFactory(PlayfieldSettings settings, FontFamily fontFamily
                 value_texture = _customValues.GetOrAdd(joined, _ =>
                 {
                     var available_textures =
-                        cut_sounds.Where(r => File.Exists($"{settings.DownloadLocation}/Images/{r}.png"));
+                        cut_sounds.Select(sound =>
+                        {
+                            if (File.Exists($"{settings.DownloadLocation}/Images/{sound}.png"))
+                                return sound;
+                            
+                            return settings.SampleHolder.StringToSoundReferences.TryGetValue(sound, out var soundReference) ? soundReference.Filename ?? sound : sound;
+                        });
 
                     var textures = available_textures
-                        .Select(t => new StaticTexture($"{settings.DownloadLocation}/Images/{t}.png")).ToArray();
+                        .Select(texture => new StaticTexture($"{settings.DownloadLocation}/Images/{texture}.png")).ToArray();
                     return new IconFlexTexture(textures, 2, settings.ValueFontSize * settings.RenderScale);
                 });
 

@@ -39,6 +39,8 @@ public class SampleHolder
     private static readonly char Slash = Path.DirectorySeparatorChar;
 
     public readonly ConcurrentDictionary<Sound, PcmDataHolder> SampleList = new();
+    public readonly ConcurrentDictionary<string, Sound> StringToSoundReferences = new();
+    
     public Action<string, int, int>? DownloadUpdate = null;
     public string DownloadLocation { get; init; } = $".{Slash}Sounds";
     public string ImagesLocation => $"{DownloadLocation}{Slash}Images";
@@ -86,7 +88,14 @@ public class SampleHolder
             throw new Exception(
                 "Loading Thirty Dollar Website Sounds failed with error: \'Deserialized contents of sounds.json are empty.\'");
 
-        foreach (var sound in sounds) SampleList.TryAdd(sound, new PcmDataHolder());
+        foreach (var sound in sounds)
+        {
+            StringToSoundReferences.TryAdd(sound.Id, sound);
+            if (sound.Emoji != null)
+                StringToSoundReferences.TryAdd(sound.Emoji, sound);
+            
+            SampleList.TryAdd(sound, new PcmDataHolder());
+        }
     }
 
     /// <summary>

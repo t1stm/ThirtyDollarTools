@@ -1,9 +1,11 @@
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
+using ThirtyDollarConverter;
 
-namespace ThirtyDollarVisualizer.Objects.Playfield;
+namespace ThirtyDollarVisualizer.Objects;
 
 public readonly struct PlayfieldSettings(
     float renderableSize,
+    SampleHolder sampleHolder,
     string downloadLocation,
     AtlasStore atlasStore,
     float renderScale = 1f,
@@ -15,6 +17,8 @@ public readonly struct PlayfieldSettings(
     /// Where the downloaded TDW assets are located.
     /// </summary>
     public readonly string DownloadLocation = downloadLocation;
+
+    public readonly SampleHolder SampleHolder = sampleHolder;
 
     /// <summary>
     /// What the current render scale of the window is.

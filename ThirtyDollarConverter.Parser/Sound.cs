@@ -19,7 +19,7 @@ public class Sound
     /// </summary>
     [JsonPropertyName("id")]
     [JsonInclude]
-    public string? Id { get; init; }
+    public required string Id { get; init; }
 
     /// <summary>
     /// An optional emoji of the current sound.
@@ -41,6 +41,13 @@ public class Sound
     [JsonPropertyName("source")]
     [JsonInclude]
     public string? Source { get; init; }
+    
+    /// <summary>
+    ///     Whether the sound should always use its ID when saving, even if it has an emoji.
+    /// </summary>
+    [JsonPropertyName("useId")]
+    [JsonInclude]
+    public bool UseID { get; set; }
 
     /// <summary>
     /// How the sound is interpreted by the sequence and the sound server.
