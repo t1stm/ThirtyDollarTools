@@ -13,10 +13,10 @@ public class TexturedPlane : Renderable
 {
     private static bool _areVerticesGenerated;
     private static VertexArrayObject _staticVao = null!;
-    private static BufferObject<float> _staticVbo = null!;
-    private static BufferObject<uint> _staticEbo = null!;
+    private static GLBuffer<float> _staticVbo = null!;
+    private static GLBuffer<uint> _staticEbo = null!;
 
-    private static BufferObject<TexturedUniform>? _uniformBuffer;
+    private static GLBuffer<TexturedUniform>? _uniformBuffer;
     private SingleTexture? _texture;
     public SingleTexture? Texture
     {
@@ -92,14 +92,14 @@ public class TexturedPlane : Renderable
         var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
 
         _staticVao = new VertexArrayObject();
-        _staticVbo = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
+        _staticVbo = new GLBuffer<float>(vertices, BufferTarget.ArrayBuffer);
 
         var layout = new VertexBufferLayout();
         layout.PushFloat(3); // xyz vertex coords
         layout.PushFloat(2); // wh frag coords
         _staticVao.AddBuffer(_staticVbo, layout);
 
-        _staticEbo = new BufferObject<uint>(indices, BufferTarget.ElementArrayBuffer);
+        _staticEbo = new GLBuffer<uint>(indices, BufferTarget.ElementArrayBuffer);
         _areVerticesGenerated = true;
     }
 
@@ -118,7 +118,7 @@ public class TexturedPlane : Renderable
         Shader.Use();
         SetShaderUniforms(camera);
 
-        GL.DrawElements(PrimitiveType.Triangles, _staticEbo.GetCount(), DrawElementsType.UnsignedInt, 0);
+        GL.DrawElements(PrimitiveType.Triangles, _staticEbo.Length, DrawElementsType.UnsignedInt, 0);
 
         base.Render(camera);
     }
@@ -132,7 +132,7 @@ public class TexturedPlane : Renderable
         Span<TexturedUniform> span = [_uniform];
         if (_uniformBuffer is null)
             _uniformBuffer =
-                new BufferObject<TexturedUniform>(span, BufferTarget.UniformBuffer);
+                new GLBuffer<TexturedUniform>(span, BufferTarget.UniformBuffer);
         else _uniformBuffer.SetBufferData(span);
         GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }

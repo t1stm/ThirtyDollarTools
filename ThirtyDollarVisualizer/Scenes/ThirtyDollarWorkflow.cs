@@ -82,13 +82,13 @@ public abstract class ThirtyDollarWorkflow
         
         if (animatedTextures.Count > 0)
             animatedAtlases = animatedTextures.Select(texture =>
-                (texture.Key, FramedAtlas.FromAnimatedTexture(texture.Value))
+                (texture.Key, FramedAtlas.FromAnimatedTexture(texture.Key, texture.Value))
             ).ToDictionary(r => r.Key, r => r.Item2);
         else animatedAtlases = new Dictionary<string, FramedAtlas>();
         
         var atlases = new AtlasStore
         {
-            StaticAtlas = staticAtlas,
+            StaticAtlases = staticAtlas,
             AnimatedAtlases = animatedAtlases
         };
         

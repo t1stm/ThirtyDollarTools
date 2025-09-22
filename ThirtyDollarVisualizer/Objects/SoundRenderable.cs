@@ -6,9 +6,7 @@ using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
-using ThirtyDollarVisualizer.Objects.Playfield.Batch;
-using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
-using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks.Reference;
+using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks.References;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -22,18 +20,18 @@ public sealed class SoundRenderable : Renderable
 
     public float OriginalY;
 
-    public StaticChunkReference? Reference;
+    public IChunkReference? Reference;
     public TexturedPlane? Pan;
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
 
     public override Matrix4 Model
     {
-        get => Reference?.Sound.Model ?? throw new ArgumentNullException();
+        get => throw new NotImplementedException();
         set
         {
             ArgumentNullException.ThrowIfNull(Reference);
-            Reference.Sound = Reference.Sound with { Model = value };
+            throw new NotImplementedException();
         }
     }
 

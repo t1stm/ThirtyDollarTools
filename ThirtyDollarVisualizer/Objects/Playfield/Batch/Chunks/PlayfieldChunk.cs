@@ -1,24 +1,35 @@
-using System.Runtime.InteropServices;
-using OpenTK.Graphics.Egl;
+using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
-using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks.Reference;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 using ThirtyDollarVisualizer.Renderer;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
-public class PlayfieldChunk(int size)
+public class PlayfieldChunk
 {
-    public SoundRenderable[] Renderables = new SoundRenderable[size];
-    public Dictionary<StaticSoundAtlas, BufferObject<StaticSound>> StaticAtlases = [];
-    public Dictionary<FramedAtlas, BufferObject<SoundData>> AnimatedAtlases = [];
+    public SoundRenderable[] Renderables { get; private set; }
+
+    /*
+     TODO decide how to handle atlas storage, since we need VAOs too
+     In a perfect world, we should have a single object that handles VAOs and atlases with a basic call to update and render.
+     */
+    protected Dictionary<StaticSoundAtlas, GLBufferList<StaticSound>> StaticAtlasesToUpdate { get; private set; } = [];
+    protected Dictionary<FramedAtlas, GLBufferList<SoundData>> AnimatedAtlasesToUpdate { get; private set; } = [];
+
+    protected VertexArrayObject? StaticVAO { get; set; }
+    protected VertexArrayObject? AnimatedVAO { get; set; }
+
+    private PlayfieldChunk(int size)
+    {
+        Renderables = new SoundRenderable[size];
+    }
 
     public float StartY { get; private set; }
     public float EndY { get; private set; }
-    
+
     public static PlayfieldChunk GenerateFrom(Span<BaseEvent> slice, LayoutHandler layoutHandler, AtlasStore store)
     {
         var length = slice.Length;
@@ -26,41 +37,86 @@ public class PlayfieldChunk(int size)
         {
             StartY = layoutHandler.Y
         };
-        
+
         var renderables = new SoundRenderable[length];
         var animatedAtlases = new Dictionary<FramedAtlas, List<SoundData>>();
         var staticAtlases = new Dictionary<StaticSoundAtlas, List<StaticSound>>();
-        
+
         for (var i = 0; i < slice.Length; i++)
         {
-            var baseEvent = slice[i];
-            var (soundName, value, volume) = baseEvent;
-            soundName = soundName ?? throw new Exception("Sound name is null");
-            
-            var soundRenderable = new SoundRenderable();
-
-            if (store.AnimatedAtlases.TryGetValue(soundName, out var animatedAtlas))
-            {
-                var uv = animatedAtlas.CurrentUV;
-                var (w, h) = (uv.UV0.X * animatedAtlas.Width, uv.UV1.Y * animatedAtlas.Height);
-                soundRenderable.Scale = (w, h, 1);
-                
-                var soundData = new SoundData();
-                
-                if (!animatedAtlases.TryGetValue(animatedAtlas, out var list))
-                    animatedAtlases.Add(animatedAtlas, list = []);
-                
-                list.Add(soundData);
-            }
-            
+            var soundRenderable = GenerateSoundRenderable(slice, store, i, animatedAtlases, staticAtlases);
             renderables[i] = soundRenderable;
+            PositionSound(layoutHandler, renderables[i]);
         }
-        
-        
 
         chunk.EndY = layoutHandler.Height;
         chunk.Renderables = renderables;
+
         return chunk;
+    }
+
+    private static SoundRenderable GenerateSoundRenderable(Span<BaseEvent> slice, AtlasStore store, int i,
+        Dictionary<FramedAtlas, List<SoundData>> animatedAtlases,
+        Dictionary<StaticSoundAtlas, List<StaticSound>> staticAtlases)
+    {
+        var baseEvent = slice[i];
+        var (soundName, value, volume) = baseEvent;
+        soundName = soundName ?? throw new Exception("Sound name is null");
+
+        var soundRenderable = new SoundRenderable();
+
+        return store.AnimatedAtlases.TryGetValue(soundName, out var animatedAtlas)
+            ? GetAnimatedSoundRenderableData(animatedAtlases, animatedAtlas, soundRenderable)
+            : GetStaticSoundRenderableData(soundName, staticAtlases, soundRenderable);
+    }
+
+    private static SoundRenderable GetStaticSoundRenderableData(string soundName,
+        Dictionary<StaticSoundAtlas, List<StaticSound>> staticAtlases, SoundRenderable soundRenderable)
+    {
+        foreach (var (atlas, static_sounds) in staticAtlases)
+        {
+            var found = atlas.TryGetSound(soundName, out var reference);
+            if (!found) continue;
+
+            var soundData = new SoundData
+            {
+                Model = Matrix4.Identity,
+                InverseRGBA = Vector4.One
+            };
+
+            var staticSound = new StaticSound
+            {
+                Data = soundData,
+                TextureUV = reference.TextureUV,
+            };
+
+            static_sounds.Add(staticSound);
+            soundRenderable.Scale = (reference.Width, reference.Height, 1);
+            return soundRenderable;
+        }
+
+        throw new Exception("Sound not found in static atlases.");
+    }
+
+    private static SoundRenderable GetAnimatedSoundRenderableData(
+        Dictionary<FramedAtlas, List<SoundData>> animatedAtlases,
+        FramedAtlas animatedAtlas, SoundRenderable soundRenderable)
+    {
+        var uv = animatedAtlas.CurrentUV;
+        var (w, h) = (uv.UV0.X * animatedAtlas.Width, uv.UV1.Y * animatedAtlas.Height);
+        soundRenderable.Scale = (w, h, 1);
+
+        var soundData = new SoundData
+        {
+            Model = Matrix4.Identity,
+            InverseRGBA = Vector4.One
+        };
+
+        if (!animatedAtlases.TryGetValue(animatedAtlas, out var list))
+            animatedAtlases.Add(animatedAtlas, list = []);
+
+        list.Add(soundData);
+        return soundRenderable;
     }
 
     private static void PositionSound(LayoutHandler layoutHandler, in SoundRenderable sound)
@@ -68,7 +124,7 @@ public class PlayfieldChunk(int size)
         // get the current sound's texture information
         var (texture_x, texture_y, _) = sound.Scale;
         // get the aspect ratio for events without an equal size
-        var aspect_ratio = (float)texture_x / texture_y;
+        var aspect_ratio = texture_x / texture_y;
 
         // box scale is the maximum size a sound should cover
         Vector2 box_scale = (layoutHandler.Size, layoutHandler.Size);
@@ -110,24 +166,38 @@ public class PlayfieldChunk(int size)
         sound.Pan?.SetPosition((box_position.X, box_position.Y, 0));
         sound.OriginalY = box_position.Y;
     }
-    
-    public void Update()
+
+    public void Render(DollarStoreCamera temporaryCamera)
     {
-        foreach (var atlas in AnimatedAtlases.Keys)
+        var matrix = temporaryCamera.GetVPMatrix();
+        if (StaticVAO != null)
         {
-            atlas.Update();
+            StaticVAO.Bind();
+            StaticVAO.Update();
         }
-        
-        foreach (var atlas in StaticAtlases.Keys)
+
+        if (AnimatedVAO != null)
         {
-            atlas.Update();
+            AnimatedVAO.Bind();
+            AnimatedVAO.Update();
         }
     }
 
-    public void Render()
+    private void Destroy()
     {
-        
+        foreach (var (_, buffer_object) in StaticAtlasesToUpdate)
+        {
+            buffer_object.Dispose();
+        }
+
+        foreach (var (_, buffer_object) in AnimatedAtlasesToUpdate)
+        {
+            buffer_object.Dispose();
+        }
+
+        StaticAtlasesToUpdate.Clear();
+        AnimatedAtlasesToUpdate.Clear();
     }
-    
-    public void Destroy() {}
+
+    ~PlayfieldChunk() => Destroy();
 }

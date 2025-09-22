@@ -26,16 +26,17 @@ public class ImageAtlas : StaticTexture
         Height = Image.Height;
     }
 
-    public RectangleF AddImage(ImageFrame<Rgba32> image)
+    public AtlasReference AddImage(string imageID, ImageFrame<Rgba32> image)
     {
-        var position = Atlas.AddImage(image);
+        var position = Atlas.AddImage(imageID, image);
         ImagesToBeUploaded.Add(new UploadImage
         {
             Image = image,
             Area = position
         });
         
-        return position;
+        var reference = new AtlasReference(position, this);
+        return reference;
     }
 
     public override void Dispose()

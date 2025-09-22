@@ -308,6 +308,9 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public void Render()
     {
+        // sets debug values if debugging is enabled.
+        RunDebugUpdate();
+        
         // get static values from current camera, for this frame
         var camera = _tempCamera;
         camera.CopyFrom(_camera);
@@ -375,9 +378,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         // updates the background's transitions
         _backgroundPlane.Update();
-
-        // sets debug values if debugging is enabled.
-        RunDebugUpdate();
 
         // checks if there is a backing audio
         if (_backingAudio is null) return;
@@ -807,13 +807,13 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (sequenceIndex >= _playfields.Length) return null;
 
         var playfields = _playfields.Span;
-        var objects = CollectionsMarshal.AsSpan(playfields[sequenceIndex].Objects);
+        var objects = CollectionsMarshal.AsSpan(playfields[sequenceIndex].Chunks);
 
         var len = objects.Length;
         var placement_idx = (int)placement.SequenceIndex;
         var element = placement_idx >= len || placement_idx < 0 ? null : objects[placement_idx];
 
-        return element;
+        return element?.Renderables[0];
     }
 
     private void CameraBoundsCheck(Placement placement, int sequenceIndex)

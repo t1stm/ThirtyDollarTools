@@ -5,7 +5,7 @@ namespace ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
 public sealed class GuillotineAtlas : IAtlas
 {
     private readonly List<Rectangle> _freeRects = [];
-    private readonly Dictionary<ImageFrame, Rectangle> _usedByImage;
+    private readonly Dictionary<string, Rectangle> _usedByImage;
     private readonly bool _allowRotation;
 
     private int _usedArea;
@@ -23,7 +23,7 @@ public sealed class GuillotineAtlas : IAtlas
         _allowRotation = allowRotation;
 
         // Keep identity-based lookup for images.
-        _usedByImage = new Dictionary<ImageFrame, Rectangle>(ReferenceEqualityComparer.Instance);
+        _usedByImage = new Dictionary<string, Rectangle>(ReferenceEqualityComparer.Instance);
 
         _freeRects.Add(new Rectangle(0, 0, width, height));
         _usedArea = 0;
@@ -59,9 +59,15 @@ public sealed class GuillotineAtlas : IAtlas
         return total == 0 ? 0f : Math.Clamp((float)_usedArea / total, 0f, 1f);
     }
 
-    public Rectangle AddImage(ImageFrame image)
+    public Rectangle AddImage(string imageID, ImageFrame image)
+    {
+        return AddImage(imageID.AsSpan(), image);
+    }
+
+    public Rectangle AddImage(ReadOnlySpan<char> imageID, ImageFrame image)
     {
         ArgumentNullException.ThrowIfNull(image);
+        var alternativeLookup = _usedByImage.GetAlternateLookup<ReadOnlySpan<char>>();
         if (image.Width <= 0 || image.Height <= 0) return Rectangle.Empty;
 
         var (index, placedW, placedH, rotate) = ChoosePlacement(image.Width, image.Height);
@@ -74,15 +80,21 @@ public sealed class GuillotineAtlas : IAtlas
         SplitFreeRect(index, placed, host);
 
         // Track usage.
-        _usedByImage[image] = placed;
+        alternativeLookup[imageID] = placed;
         _usedArea += placed.Width * placed.Height;
 
         return placed;
     }
 
-    public bool RemoveImage(ImageFrame image)
+    public bool RemoveImage(string imageID)
     {
-        if (!_usedByImage.Remove(image, out var rect)) return false;
+        return RemoveImage(imageID.AsSpan());
+    }
+
+    public bool RemoveImage(ReadOnlySpan<char> imageID)
+    {
+        var alternativeLookup = _usedByImage.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (!alternativeLookup.Remove(imageID, out _, out var rect)) return false;
 
         _usedArea -= rect.Width * rect.Height;
         AddFreeRect(rect);

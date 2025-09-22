@@ -11,6 +11,6 @@ public interface IAtlas
     int GetRemainingArea();
     int GetUsedArea();
     float GetUsagePercentage();
-    Rectangle AddImage(ImageFrame image);
-    bool RemoveImage(ImageFrame image);
+    Rectangle AddImage(string imageID, ImageFrame image);
+    bool RemoveImage(string imageID);
 }

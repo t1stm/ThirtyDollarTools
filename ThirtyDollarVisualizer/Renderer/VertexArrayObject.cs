@@ -37,7 +37,7 @@ public class VertexArrayObject : IBindable
     /// <summary>
     /// Adds a buffer to the vertex array object using the specified buffer object and vertex buffer layout.
     /// </summary>
-    /// <param name="vbo">The buffer object to add to the vertex array object. <seealso cref="BufferObject{T}"/></param>
+    /// <param name="vbo">The buffer object to add to the vertex array object. <seealso cref="GLBuffer{TDataType}"/></param>
     /// <param name="layout">The layout describing how vertex attributes are organized within the buffer.</param>
     public void AddBuffer(IBuffer vbo, VertexBufferLayout layout)
     {

@@ -12,8 +12,8 @@ namespace ThirtyDollarVisualizer.Renderer.Instanced;
 /// </summary>
 public class QuadArray : IDisposable
 {
-    private static BufferObject<float>? _quadVBO;
-    private static BufferObject<uint> _quadEBO = null!;
+    private static GLBuffer<float>? _quadVBO;
+    private static GLBuffer<uint> _quadEBO = null!;
     private readonly Quad[] _array;
 
     private readonly Shader _shader = ShaderPool.GetOrLoad("quad_shader", () =>
@@ -23,7 +23,7 @@ public class QuadArray : IDisposable
         );
 
     private VertexArrayObject _arrayVAO = null!;
-    private BufferObject<Quad> _arrayVBO = null!;
+    private GLBuffer<Quad> _arrayVBO = null!;
 
     public QuadArray(int count) : this(new Quad[count])
     {
@@ -64,7 +64,7 @@ public class QuadArray : IDisposable
         if (_quadVBO == null)
             InitQuadVBO();
 
-        _arrayVBO = new BufferObject<Quad>(_array, BufferTarget.ArrayBuffer);
+        _arrayVBO = new GLBuffer<Quad>(_array, BufferTarget.ArrayBuffer);
         _arrayVAO = new VertexArrayObject();
 
         _quadEBO.Bind();
@@ -112,8 +112,8 @@ public class QuadArray : IDisposable
 
         Span<uint> indices = [0, 1, 3, 1, 2, 3];
 
-        _quadVBO = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
-        _quadEBO = new BufferObject<uint>(
+        _quadVBO = new GLBuffer<float>(vertices, BufferTarget.ArrayBuffer);
+        _quadEBO = new GLBuffer<uint>(
             indices,
             BufferTarget.ElementArrayBuffer
         );
@@ -133,7 +133,7 @@ public class QuadArray : IDisposable
 
         GL.DrawElementsInstanced(
             PrimitiveType.Triangles,
-            _quadEBO.GetCount(),
+            _quadEBO.Length,
             DrawElementsType.UnsignedInt,
             IntPtr.Zero,
             _array.Length

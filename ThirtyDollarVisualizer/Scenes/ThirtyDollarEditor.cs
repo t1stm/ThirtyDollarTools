@@ -208,7 +208,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
             var img = new StaticTexture("Assets/Textures/moai.png");
             var data = img.GetData();
             
-            atlas.AddImage(data!.Frames.RootFrame);
+            atlas.AddImage($"Assets/Textures/moai.png-{debugMarker}", data!.Frames.RootFrame);
         }
 
         rndbl.Scale = new Vector3((_uiContext.ViewportWidth, _uiContext.ViewportHeight));

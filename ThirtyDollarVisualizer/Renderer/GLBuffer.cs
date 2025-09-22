@@ -3,8 +3,12 @@ using ThirtyDollarVisualizer.Renderer.Abstract;
 
 namespace ThirtyDollarVisualizer.Renderer;
 
-public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDisposable, IBuffer where TDataType : unmanaged
+public class GLBuffer<TDataType>(int length, BufferTarget bufferType, bool useCpuBuffer)
+    : IDisposable, IBuffer where TDataType : unmanaged
 {
+    public int Length => length;
+    public TDataType[]? CpuBuffer { get; private set; }
+    
     private readonly Dictionary<int, TDataType> _updateQueue = new();
 
     /// <summary>
@@ -12,9 +16,11 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDis
     /// </summary>
     /// <param name="data">The data the buffer should contain.</param>
     /// <param name="bufferType">The buffer's type.</param>
+    /// <param name="useCpuBuffer">Whether to contain a copy of the buffer in CPU memory.</param>
     /// <param name="drawHint">The buffer's draw hint.</param>
-    public BufferObject(Span<TDataType> data, BufferTarget bufferType,
-        BufferUsage drawHint = BufferUsage.StreamDraw) : this(data.Length, bufferType)
+    public GLBuffer(Span<TDataType> data, BufferTarget bufferType,
+        BufferUsage drawHint = BufferUsage.StreamDraw, bool useCpuBuffer = false) : this(data.Length, bufferType,
+        useCpuBuffer)
     {
         SetBufferData(data, drawHint);
     }
@@ -25,6 +31,7 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDis
     /// <param name="index">The index of the object you want to update at the next render pass.</param>
     public TDataType this[int index]
     {
+        get => CpuBuffer?[index] ?? throw new Exception("Trying to read BufferObject when not using a CPU buffer.");
         set => _updateQueue[index] = value;
     }
 
@@ -49,6 +56,10 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDis
         foreach (var (index, obj) in _updateQueue) ptr[index] = obj;
 
         GL.UnmapBuffer(bufferType);
+        
+        if (CpuBuffer != null)
+            foreach (var (index, obj) in _updateQueue)
+                CpuBuffer[index] = obj;
         _updateQueue.Clear();
     }
 
@@ -84,15 +95,25 @@ public class BufferObject<TDataType>(int length, BufferTarget bufferType) : IDis
         {
             GL.BufferData(bufferType, data.Length * sizeof(TDataType), new nint(pointer), drawHint);
         }
-        Manager.CheckErrors("BufferObject Write");
-    }
 
-    /// <summary>
-    /// Retrieves the count of elements stored in the buffer.
-    /// </summary>
-    /// <returns>The number of elements in the buffer.</returns>
-    public int GetCount()
-    {
-        return length;
+        switch (useCpuBuffer)
+        {
+            case true when CpuBuffer == null:
+                CpuBuffer = data.ToArray();
+                break;
+
+            case true when CpuBuffer != null:
+            {
+                for (var index = 0; index < data.Length; index++)
+                {
+                    var generic = data[index];
+                    CpuBuffer[index] = generic;
+                }
+
+                break;
+            }
+        }
+
+        Manager.CheckErrors("BufferObject Write");
     }
 }

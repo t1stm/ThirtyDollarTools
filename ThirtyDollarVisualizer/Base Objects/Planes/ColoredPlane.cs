@@ -11,9 +11,9 @@ public class ColoredPlane : Renderable
 {
     private static bool _areVerticesGenerated;
     private static VertexArrayObject _staticVAO = null!;
-    private static BufferObject<float> _staticVBO = null!;
-    private static BufferObject<uint> _staticEBO = null!;
-    private static BufferObject<ColoredUniform>? _uniformBuffer;
+    private static GLBuffer<float> _staticVBO = null!;
+    private static GLBuffer<uint> _staticEBO = null!;
+    private static GLBuffer<ColoredUniform>? _uniformBuffer;
 
     private ColoredUniform _uniform;
     public float BorderRadius;
@@ -72,13 +72,13 @@ public class ColoredPlane : Renderable
         var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
 
         _staticVAO = new VertexArrayObject();
-        _staticVBO = new BufferObject<float>(vertices, BufferTarget.ArrayBuffer);
+        _staticVBO = new GLBuffer<float>(vertices, BufferTarget.ArrayBuffer);
 
         var layout = new VertexBufferLayout();
         layout.PushFloat(3); // xyz vertex coords
         _staticVAO.AddBuffer(_staticVBO, layout);
 
-        _staticEBO = new BufferObject<uint>(indices, BufferTarget.ElementArrayBuffer);
+        _staticEBO = new GLBuffer<uint>(indices, BufferTarget.ElementArrayBuffer);
         _areVerticesGenerated = true;
     }
 
@@ -91,7 +91,7 @@ public class ColoredPlane : Renderable
         Shader.Use();
         SetShaderUniforms(camera);
 
-        GL.DrawElements(PrimitiveType.Triangles, _staticEBO.GetCount(), DrawElementsType.UnsignedInt, 0);
+        GL.DrawElements(PrimitiveType.Triangles, _staticEBO.Length, DrawElementsType.UnsignedInt, 0);
         base.Render(camera);
     }
 
@@ -110,7 +110,7 @@ public class ColoredPlane : Renderable
         if (_uniformBuffer is null)
         {
             _uniformBuffer =
-                new BufferObject<ColoredUniform>(span, BufferTarget.UniformBuffer);
+                new GLBuffer<ColoredUniform>(span, BufferTarget.UniformBuffer);
             GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
         }
         else

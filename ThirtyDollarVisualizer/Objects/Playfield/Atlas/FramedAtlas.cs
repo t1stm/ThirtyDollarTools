@@ -59,7 +59,7 @@ public class FramedAtlas(int width, int height) : ImageAtlas(width, height)
 
     public void Start() => TimingStopwatch.Start();
 
-    public static FramedAtlas FromAnimatedTexture(AssetTexture texture)
+    public static FramedAtlas FromAnimatedTexture(string textureID, AssetTexture texture)
     {
         var animatedTexture = texture.As<AnimatedTexture>();
         var image = animatedTexture.GetData();
@@ -77,8 +77,8 @@ public class FramedAtlas(int width, int height) : ImageAtlas(width, height)
         for (var index = 0; index < image.Frames.Count; index++)
         {
             var frame = image.Frames[index];
-            var coordinates = atlas.AddImage(frame);
-            atlas.FrameCoordinates.Add(index, coordinates.ToUV(atlasSize));
+            var coordinates = atlas.AddImage($"{textureID}-frame-{index}", frame);
+            atlas.FrameCoordinates.Add(index, coordinates.TextureUV);
         }
 
         return atlas;
