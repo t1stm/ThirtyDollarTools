@@ -4,7 +4,7 @@ using ThirtyDollarVisualizer.Renderer.Abstract;
 namespace ThirtyDollarVisualizer.Renderer;
 
 /// <summary>
-/// A class that represents a vertex array object.
+///     A class that represents a vertex array object.
 /// </summary>
 public class VertexArrayObject : IBindable
 {
@@ -12,21 +12,20 @@ public class VertexArrayObject : IBindable
     private int _vertexIndex;
 
     /// <summary>
-    /// Creates a new vertex array object and binds it to the OpenGL context.
+    ///     Creates a new vertex array object and binds it to the OpenGL context.
     /// </summary>
     public VertexArrayObject()
     {
         Handle = GL.GenVertexArray();
-        Bind();
     }
 
     /// <summary>
-    /// The OpenGL handle of the vertex array object.
+    ///     The OpenGL handle of the vertex array object.
     /// </summary>
     public int Handle { get; }
 
     /// <summary>
-    /// Binds the vertex array object to the OpenGL context.
+    ///     Binds the vertex array object to the OpenGL context.
     /// </summary>
     public void Bind()
     {
@@ -35,9 +34,9 @@ public class VertexArrayObject : IBindable
     }
 
     /// <summary>
-    /// Adds a buffer to the vertex array object using the specified buffer object and vertex buffer layout.
+    ///     Adds a buffer to the vertex array object using the specified buffer object and vertex buffer layout.
     /// </summary>
-    /// <param name="vbo">The buffer object to add to the vertex array object. <seealso cref="GLBuffer{TDataType}"/></param>
+    /// <param name="vbo">The buffer object to add to the vertex array object. <seealso cref="GLBuffer{TDataType}" /></param>
     /// <param name="layout">The layout describing how vertex attributes are organized within the buffer.</param>
     public void AddBuffer(IBuffer vbo, VertexBufferLayout layout)
     {
@@ -63,7 +62,7 @@ public class VertexArrayObject : IBindable
     }
 
     /// <summary>
-    /// Binds the specified index buffer object to the vertex array object.
+    ///     Binds the specified index buffer object to the vertex array object.
     /// </summary>
     /// <param name="ibo">The index buffer object to bind to the vertex array object.</param>
     public void BindIndexBuffer(IBindable ibo)
@@ -72,7 +71,7 @@ public class VertexArrayObject : IBindable
     }
 
     /// <summary>
-    /// Runs the update method for all buffers in the vertex array object.
+    ///     Runs the update method for all buffers in the vertex array object.
     /// </summary>
     public void Update()
     {
@@ -80,7 +79,7 @@ public class VertexArrayObject : IBindable
     }
 
     /// <summary>
-    /// Releases all resources used by the vertex array object.
+    ///     Releases all resources used by the vertex array object.
     /// </summary>
     public void Dispose()
     {

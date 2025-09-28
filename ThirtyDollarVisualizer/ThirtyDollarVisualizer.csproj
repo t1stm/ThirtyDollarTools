@@ -55,4 +55,8 @@
       <Compile Remove="Objects\Playfield\Batch\PlayfieldChunk.cs" />
       <Compile Remove="Objects\Playfield\Batch\PlayfieldSound.cs" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Assets\Shaders\Playfield\" />
+    </ItemGroup>
 </Project>

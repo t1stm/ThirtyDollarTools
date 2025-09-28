@@ -15,14 +15,21 @@ public class ColoredPlane : Renderable
     private static GLBuffer<uint> _staticEBO = null!;
     private static GLBuffer<ColoredUniform>? _uniformBuffer;
 
-    private ColoredUniform _uniform;
-    public float BorderRadius;
     private Lazy<Shader> _shader = new(() => ShaderPool.GetOrLoad(
-        "colored_plane", () => Shader.NewVertexFragment(
-            Asset.Embedded("Shaders/colored.vert"), 
+        "colored_plane", static () => Shader.NewVertexFragment(
+            Asset.Embedded("Shaders/colored.vert"),
             Asset.Embedded("Shaders/colored.frag")
         )
     ), LazyThreadSafetyMode.None);
+
+    private ColoredUniform _uniform;
+    public float BorderRadius;
+
+    public ColoredPlane()
+    {
+        if (!_areVerticesGenerated) SetVertices();
+        _uniform = new ColoredUniform();
+    }
 
     public override Vector3 Position
     {
@@ -42,12 +49,6 @@ public class ColoredPlane : Renderable
             base.Scale = value;
             UpdateModel(IsChild);
         }
-    }
-
-    public ColoredPlane()
-    {
-        if (!_areVerticesGenerated) SetVertices();
-        _uniform = new ColoredUniform();
     }
 
     public override Shader? Shader
@@ -72,26 +73,29 @@ public class ColoredPlane : Renderable
         var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
 
         _staticVAO = new VertexArrayObject();
-        _staticVBO = new GLBuffer<float>(vertices, BufferTarget.ArrayBuffer);
+        _staticVBO = new GLBuffer<float>(BufferTarget.ArrayBuffer);
+        _staticVBO.SetBufferData(vertices);
 
         var layout = new VertexBufferLayout();
         layout.PushFloat(3); // xyz vertex coords
         _staticVAO.AddBuffer(_staticVBO, layout);
 
-        _staticEBO = new GLBuffer<uint>(indices, BufferTarget.ElementArrayBuffer);
+        _staticEBO = new GLBuffer<uint>(BufferTarget.ElementArrayBuffer);
+        _staticEBO.SetBufferData(indices);
+
         _areVerticesGenerated = true;
     }
 
     public override void Render(Camera camera)
     {
         if (Shader == null) return;
-        
+
         _staticVAO.Bind();
         _staticEBO.Bind();
         Shader.Use();
         SetShaderUniforms(camera);
 
-        GL.DrawElements(PrimitiveType.Triangles, _staticEBO.Length, DrawElementsType.UnsignedInt, 0);
+        GL.DrawElements(PrimitiveType.Triangles, _staticEBO.Capacity, DrawElementsType.UnsignedInt, 0);
         base.Render(camera);
     }
 
@@ -107,17 +111,8 @@ public class ColoredPlane : Renderable
 
         Span<ColoredUniform> span = [_uniform];
 
-        if (_uniformBuffer is null)
-        {
-            _uniformBuffer =
-                new GLBuffer<ColoredUniform>(span, BufferTarget.UniformBuffer);
-            GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
-        }
-        else
-        {
-            _uniformBuffer.SetBufferData(span);
-        }
-
+        _uniformBuffer ??= new GLBuffer<ColoredUniform>(BufferTarget.UniformBuffer);
+        _uniformBuffer.SetBufferData(span);
         GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }
 }

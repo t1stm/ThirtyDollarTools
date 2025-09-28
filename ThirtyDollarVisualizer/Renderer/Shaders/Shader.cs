@@ -56,6 +56,17 @@ public class Shader : IDisposable
     }
 
     /// <summary>
+    /// Creates a new shader program by generating vertex and fragment shaders
+    /// based on the provided default file path.
+    /// </summary>
+    /// <param name="path">The base file path without extensions for the shader files.</param>
+    /// <returns>A new instance of the <see cref="Shader"/> class with the shaders created.</returns>
+    public static Shader NewFromPathWithDefaultExtension(string path)
+    {
+        return NewDefined(ShaderDefinition.Vertex(path + ".vert"), ShaderDefinition.Fragment(path + ".frag"));
+    }
+
+    /// <summary>
     /// Creates a new shader program from the given shader definitions. These shader definitions support embedded asset paths.
     /// </summary>
     /// <param name="shaders">Array of <see cref="ShaderDefinition"/></param>

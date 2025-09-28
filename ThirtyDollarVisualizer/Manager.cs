@@ -71,7 +71,9 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     private static unsafe void DebugCallback(DebugSource source, DebugType type, uint id, 
         DebugSeverity severity, int length, IntPtr messagePtr, IntPtr userParameter)
     {
+#if !DEBUG
         if (type == DebugType.DebugTypeOther) return;
+#endif
         
         var stringFromPointer = new ReadOnlySpan<byte>(messagePtr.ToPointer(), length);
         var sourceText = source != DebugSource.DontCare ? source.ToString()[11..] : "Unknown";

@@ -7,8 +7,8 @@ using ThirtyDollarVisualizer.Renderer.Shaders;
 namespace ThirtyDollarVisualizer.Renderer.Instanced;
 
 /// <summary>
-/// Represents a collection of quads that can only be allocated once.
-/// When the size is changed due to user requirements, the allocation must happen with a new object.
+///     Represents a collection of quads that can only be allocated once.
+///     When the size is changed due to user requirements, the allocation must happen with a new object.
 /// </summary>
 public class QuadArray : IDisposable
 {
@@ -20,7 +20,7 @@ public class QuadArray : IDisposable
         Shader.NewVertexFragment(
             Asset.Embedded("Shaders/quad.vert"),
             Asset.Embedded("Shaders/quad.frag"))
-        );
+    );
 
     private VertexArrayObject _arrayVAO = null!;
     private GLBuffer<Quad> _arrayVBO = null!;
@@ -39,18 +39,18 @@ public class QuadArray : IDisposable
     }
 
     /// <summary>
-    /// Provides indexed access to the quads stored within the collection.
-    /// The indexer returns a reference to the underlying quad, allowing for direct modification.
+    ///     Provides indexed access to the quads stored within the collection.
+    ///     The indexer returns a reference to the underlying quad, allowing for direct modification.
     /// </summary>
     /// <param name="index">The zero-based index of the quad in the collection.</param>
     /// <returns>A reference to the quad at the specified index.</returns>
     /// <exception cref="IndexOutOfRangeException">
-    /// Thrown if the <paramref name="index"/> is outside the bounds of the collection.
+    ///     Thrown if the <paramref name="index" /> is outside the bounds of the collection.
     /// </exception>
     public ref Quad this[int index] => ref _array.AsSpan()[index];
 
     /// <summary>
-    /// Disposes all resources used by the quad array.
+    ///     Disposes all resources used by the quad array.
     /// </summary>
     public void Dispose()
     {
@@ -64,7 +64,9 @@ public class QuadArray : IDisposable
         if (_quadVBO == null)
             InitQuadVBO();
 
-        _arrayVBO = new GLBuffer<Quad>(_array, BufferTarget.ArrayBuffer);
+        _arrayVBO = new GLBuffer<Quad>(BufferTarget.ArrayBuffer);
+        _arrayVBO.SetBufferData(_array);
+
         _arrayVAO = new VertexArrayObject();
 
         _quadEBO.Bind();
@@ -87,8 +89,8 @@ public class QuadArray : IDisposable
     }
 
     /// <summary>
-    /// Converts the quads in the array into an array of <see cref="PointerPlane" /> instances,
-    /// where each <see cref="PointerPlane" /> references a specific quad within the <see cref="QuadArray" />.
+    ///     Converts the quads in the array into an array of <see cref="PointerPlane" /> instances,
+    ///     where each <see cref="PointerPlane" /> references a specific quad within the <see cref="QuadArray" />.
     /// </summary>
     /// <returns>An array of <see cref="PointerPlane" /> objects, each representing a quad in the <see cref="QuadArray" />.</returns>
     public PointerPlane[] ToPointerPlanes()
@@ -112,15 +114,15 @@ public class QuadArray : IDisposable
 
         Span<uint> indices = [0, 1, 3, 1, 2, 3];
 
-        _quadVBO = new GLBuffer<float>(vertices, BufferTarget.ArrayBuffer);
-        _quadEBO = new GLBuffer<uint>(
-            indices,
-            BufferTarget.ElementArrayBuffer
-        );
+        _quadVBO = new GLBuffer<float>(BufferTarget.ArrayBuffer);
+        _quadVBO.SetBufferData(vertices);
+
+        _quadEBO = new GLBuffer<uint>(BufferTarget.ElementArrayBuffer);
+        _quadEBO.SetBufferData(indices);
     }
 
     /// <summary>
-    /// Renders all quads stored by using the given camera's ProjectionMatrix.
+    ///     Renders all quads stored by using the given camera's ProjectionMatrix.
     /// </summary>
     /// <param name="camera">The required camera.</param>
     public void Render(Camera camera)
@@ -133,7 +135,7 @@ public class QuadArray : IDisposable
 
         GL.DrawElementsInstanced(
             PrimitiveType.Triangles,
-            _quadEBO.Length,
+            _quadEBO.Capacity,
             DrawElementsType.UnsignedInt,
             IntPtr.Zero,
             _array.Length
@@ -141,7 +143,7 @@ public class QuadArray : IDisposable
     }
 
     /// <summary>
-    /// Marks the specified quad at the given index as dirty, indicating it needs to be updated in the GPU buffer.
+    ///     Marks the specified quad at the given index as dirty, indicating it needs to be updated in the GPU buffer.
     /// </summary>
     /// <param name="index">The index of the quad to mark as dirty.</param>
     public void SetDirty(int index)

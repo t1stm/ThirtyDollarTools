@@ -1,31 +1,24 @@
-using OpenTK.Graphics.OpenGL;
+using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
-using ThirtyDollarVisualizer.Renderer;
+using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
 public class PlayfieldChunk
 {
-    public SoundRenderable[] Renderables { get; private set; }
-
-    /*
-     TODO decide how to handle atlas storage, since we need VAOs too
-     In a perfect world, we should have a single object that handles VAOs and atlases with a basic call to update and render.
-     */
-    protected Dictionary<StaticSoundAtlas, GLBufferList<StaticSound>> StaticAtlasesToUpdate { get; private set; } = [];
-    protected Dictionary<FramedAtlas, GLBufferList<SoundData>> AnimatedAtlasesToUpdate { get; private set; } = [];
-
-    protected VertexArrayObject? StaticVAO { get; set; }
-    protected VertexArrayObject? AnimatedVAO { get; set; }
-
     private PlayfieldChunk(int size)
     {
         Renderables = new SoundRenderable[size];
     }
+
+    public SoundRenderable[] Renderables { get; private set; }
+    
+    protected Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticStacks { get; set; } = [];
+    protected Dictionary<FramedAtlas, RenderStack<SoundData>> AnimatedStacks { get; set; } = [];
 
     public float StartY { get; private set; }
     public float EndY { get; private set; }
@@ -37,7 +30,7 @@ public class PlayfieldChunk
         {
             StartY = layoutHandler.Y
         };
-
+        
         var renderables = new SoundRenderable[length];
         var animatedAtlases = new Dictionary<FramedAtlas, List<SoundData>>();
         var staticAtlases = new Dictionary<StaticSoundAtlas, List<StaticSound>>();
@@ -48,11 +41,48 @@ public class PlayfieldChunk
             renderables[i] = soundRenderable;
             PositionSound(layoutHandler, renderables[i]);
         }
-
+        
         chunk.EndY = layoutHandler.Height;
         chunk.Renderables = renderables;
-
+        
+        PrepareRenderStacks(chunk, animatedAtlases, staticAtlases);
         return chunk;
+    }
+
+    protected static void PrepareRenderStacks(PlayfieldChunk chunk, Dictionary<FramedAtlas, List<SoundData>> animatedAtlases, 
+        Dictionary<StaticSoundAtlas, List<StaticSound>> staticAtlases)
+    {
+        var animatedStacks = new Dictionary<FramedAtlas, RenderStack<SoundData>>(animatedAtlases.Count);
+        var staticStacks = new Dictionary<StaticSoundAtlas, RenderStack<StaticSound>>(staticAtlases.Count);
+
+        const string playfieldChunkAnimated = "Playfield/Chunk/Animated";
+        const string playfieldChunkStatic = "Playfield/Chunk/Static";
+        
+        var animatedShader = ShaderPool.GetOrLoad(playfieldChunkAnimated, static () => 
+            Shader.NewFromPathWithDefaultExtension(playfieldChunkAnimated));
+        var staticShader = ShaderPool.GetOrLoad(playfieldChunkStatic, static () => 
+            Shader.NewFromPathWithDefaultExtension(playfieldChunkStatic));   
+        
+        foreach (var (atlas, soundsList) in animatedAtlases)
+        {
+            var span = CollectionsMarshal.AsSpan(soundsList);
+            animatedStacks.Add(atlas, new RenderStack<SoundData>(span)
+            {
+                Shader = animatedShader
+            });
+        }
+        
+        foreach (var (atlas, soundsList) in staticAtlases)
+        {
+            var span = CollectionsMarshal.AsSpan(soundsList);
+            staticStacks.Add(atlas, new RenderStack<StaticSound>(span)
+            {
+                Shader = staticShader
+            });
+        }
+        
+        chunk.AnimatedStacks = animatedStacks;
+        chunk.StaticStacks = staticStacks;
     }
 
     private static SoundRenderable GenerateSoundRenderable(Span<BaseEvent> slice, AtlasStore store, int i,
@@ -87,7 +117,7 @@ public class PlayfieldChunk
             var staticSound = new StaticSound
             {
                 Data = soundData,
-                TextureUV = reference.TextureUV,
+                TextureUV = reference.TextureUV
             };
 
             static_sounds.Add(staticSound);
@@ -170,34 +200,21 @@ public class PlayfieldChunk
     public void Render(DollarStoreCamera temporaryCamera)
     {
         var matrix = temporaryCamera.GetVPMatrix();
-        if (StaticVAO != null)
-        {
-            StaticVAO.Bind();
-            StaticVAO.Update();
-        }
-
-        if (AnimatedVAO != null)
-        {
-            AnimatedVAO.Bind();
-            AnimatedVAO.Update();
-        }
+        
     }
 
     private void Destroy()
     {
-        foreach (var (_, buffer_object) in StaticAtlasesToUpdate)
-        {
-            buffer_object.Dispose();
-        }
+        foreach (var (_, buffer_object) in StaticStacks) buffer_object.Dispose();
 
-        foreach (var (_, buffer_object) in AnimatedAtlasesToUpdate)
-        {
-            buffer_object.Dispose();
-        }
+        foreach (var (_, buffer_object) in AnimatedStacks) buffer_object.Dispose();
 
-        StaticAtlasesToUpdate.Clear();
-        AnimatedAtlasesToUpdate.Clear();
+        StaticStacks.Clear();
+        AnimatedStacks.Clear();
     }
 
-    ~PlayfieldChunk() => Destroy();
+    ~PlayfieldChunk()
+    {
+        Destroy();
+    }
 }
