@@ -5,6 +5,8 @@ namespace ThirtyDollarVisualizer.Renderer.Shaders;
 /// </summary>
 public static class ShaderPool
 {
+    private static readonly SemaphoreSlim PreloadLock =  new(1, 1);
+    private static readonly List<(string shaderName, Func<Shader> createFunction)> ShadersToPreload = [];
     private static readonly Dictionary<string, Shader> NamedShaders = new();
 
     /// <summary>
@@ -32,6 +34,25 @@ public static class ShaderPool
         var result = missingFunction.Invoke();
         alternative_lookup[shaderName] = result;
         return result;
+    }
+
+    
+    /// <summary>
+    /// Adds the specified shader to a preload queue that executes on each draw call where OpenGL is currently bound.
+    /// </summary>
+    /// <param name="shaderName">The name of the shader to preload.</param>
+    /// <param name="function">Function to create a new shader instance.</param>
+    public static void PreloadShader(string shaderName, Func<Shader> function)
+    {
+        PreloadLock.Wait();
+        try
+        {
+            ShadersToPreload.Add((shaderName, function));
+        }
+        finally
+        {
+            PreloadLock.Release();
+        }
     }
 
     /// <summary>
@@ -67,5 +88,21 @@ public static class ShaderPool
         {
             shader.ReloadShader();
         }
+    }
+
+    public static void UploadShadersToPreload()
+    {
+        var lookup = NamedShaders.GetAlternateLookup<ReadOnlySpan<char>>();
+        PreloadLock.Wait();
+        
+        foreach (var (shaderName, createFunction) in ShadersToPreload)
+        {
+            if (lookup.ContainsKey(shaderName))
+                continue;
+            
+            var result = createFunction.Invoke();
+            lookup[shaderName] = result;
+        }
+        PreloadLock.Release();
     }
 }

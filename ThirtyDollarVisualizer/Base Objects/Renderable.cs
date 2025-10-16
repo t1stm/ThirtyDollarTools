@@ -66,7 +66,7 @@ public abstract class Renderable
     /// <summary>
     /// Updates the current renderable's model for the MVP rendering method.
     /// </summary>
-    /// <param name="isChild">Whether the current renderable is a child of an other renderable.</param>
+    /// <param name="isChild">Whether the current renderable is a child of another renderable.</param>
     /// <param name="animations">The animations the current renderable will use.</param>
     public virtual void UpdateModel(bool isChild, Span<Animation> animations = default)
     {
@@ -161,8 +161,14 @@ public abstract class Renderable
 
         if (!bit_stack.IsEnabled(AnimationFeature.DeltaAlpha)) return;
         InverseAlpha = animation.GetAlphaDelta_Value(this);
+        Color = new Vector4(Color.X, Color.Y, Color.Z, 1 - InverseAlpha);
     }
 
+    public virtual void Update()
+    {
+        // Override if needed.
+    }
+    
     /// <summary>
     /// Renders a given renderable using the projection matrix from the camera.
     /// </summary>

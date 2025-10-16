@@ -13,7 +13,6 @@ using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Settings;
 using ThirtyDollarVisualizer.Base_Objects.Text;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 using ThirtyDollarVisualizer.Helpers.Color;
 using ThirtyDollarVisualizer.Helpers.Decoders;
 using ThirtyDollarVisualizer.Helpers.Miscellaneous;
@@ -44,8 +43,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private BackgroundPlane _backgroundPlane = null!;
     private BackingAudio? _backingAudio;
     private int _currentSequence;
-
-
+    private string?[] _startingSequences;
+    
     private SoundRenderable? _dragNDrop;
     private ColoredPlane _flashOverlay = null!;
     private CachedDynamicText? _greeting;
@@ -69,7 +68,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <param name="sequenceLocations">The location of the sequence.</param>
     /// <param name="settings">The visualizer settings object this uses.</param>
     /// <param name="audioContext">The audio context the application will use.</param>
-    public ThirtyDollarApplication(int width, int height, IEnumerable<string?> sequenceLocations,
+    public ThirtyDollarApplication(int width, int height, string?[] sequenceLocations,
         VisualizerSettings settings,
         AudioContext? audioContext = null) : base(audioContext)
     {
@@ -78,7 +77,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         _width = width;
         _height = height;
-        Sequences = GetSequenceInfos(sequenceLocations);
+        _startingSequences = sequenceLocations;
         _settings = settings;
 
         _tempCamera = new DollarStoreCamera((0, -300f, 0), new Vector2i(_width, _height), settings.ScrollSpeed);
@@ -193,13 +192,22 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public void Init(Manager manager)
     {
-        Manager.CheckErrors("PreInit");
-        GetSampleHolder().GetAwaiter();
+        OnLoaded = async () =>
+        {
+            try
+            {
+                if (_startingSequences.Length < 1) return;
+                await UpdateSequences(_startingSequences);
+            }
+            catch (Exception e)
+            {
+                SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
+            }
+        };
+        
         _startObjects.Clear();
 
         _manager = manager;
-
-        Log("Loaded sequence and placement.");
 
         Shader? optional_shader = null;
         if (BackgroundVertexShaderLocation is not null && BackgroundFragmentShaderLocation is not null)
@@ -211,7 +219,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             Position = new Vector3(-_width, -_height, -1f),
             Scale = new Vector3(_width * 2, _height * 2, -1f)
         };
-        Manager.CheckErrors("Background");
 
         if (optional_shader is not null)
             _backgroundPlane.Shader = optional_shader;
@@ -222,11 +229,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
             Scale = new Vector3(_width * 2, _height * 2, 1),
             Color = new Vector4(1f, 1f, 1f, 0f)
         };
-        Manager.CheckErrors("Flash");
-
-        var font_family = Fonts.GetFontFamily();
-        var greeting_font = font_family.CreateFont(36 * Scale, FontStyle.Bold);
-
+        
         _greeting ??= new CachedDynamicText
         {
             FontStyle = FontStyle.Bold,
@@ -238,32 +241,13 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         UpdateStaticRenderables(_width, _height, Scale);
         Log = str => SetStatusMessage(str, 3500);
 
-        /*if (_dragNDrop == null)
-        {
-            var dnd_texture = new FontTexture(greeting_font, "Drop files on the window to start.");
-            _dragNDrop = new SoundRenderable(dnd_texture,
-                new Vector3(_width / 2f - dnd_texture.Width / 2f, 0, 0.25f),
-                new Vector2(dnd_texture.Width, dnd_texture.Height));
-
-            _startObjects.Add(_dragNDrop);
-            _dragNDrop.UpdateModel(false);
-        }*/
-
         var resolution = manager.FramebufferSize;
         Resize(resolution.X, resolution.Y);
 
+        GetSampleHolder().GetAwaiter();
+        Log("Loaded sequence and placement.");
+        
         Manager.CheckErrors("Init End");
-
-        if (Sequences.Length < 1) return;
-
-        try
-        {
-            UpdateSequences(Sequences.ToArray().Select(s => s.FileLocation).ToArray()).GetAwaiter().GetResult();
-        }
-        catch (Exception e)
-        {
-            SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
-        }
     }
 
     public void Resize(int w, int h)
@@ -294,16 +278,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public async void Start()
     {
-        try
-        {
-            if (Sequences.Length < 1) return;
-            await SequencePlayer.Stop();
-            await SequencePlayer.Start();
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
+        
     }
 
     public void Render()
@@ -368,6 +343,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     public void Update()
     {
+        AtlasStore?.Update();
+        
         // check if one of the sequences has been updated, and handle it
         if (_fileUpdateStopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
@@ -807,13 +784,13 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         if (sequenceIndex >= _playfields.Length) return null;
 
         var playfields = _playfields.Span;
-        var objects = CollectionsMarshal.AsSpan(playfields[sequenceIndex].Chunks);
+        var objects = CollectionsMarshal.AsSpan(playfields[sequenceIndex].Renderables);
 
         var len = objects.Length;
         var placement_idx = (int)placement.SequenceIndex;
         var element = placement_idx >= len || placement_idx < 0 ? null : objects[placement_idx];
 
-        return element?.Renderables[0];
+        return element;
     }
 
     private void CameraBoundsCheck(Placement placement, int sequenceIndex)
@@ -864,7 +841,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private void NormalSubscription(Placement placement, int index)
     {
         var element = GetRenderable(placement, index);
-        if (element == null) return;
+         if (element == null) return;
         CameraBoundsCheck(placement, index);
 
         if ((placement.Event.SoundEvent?.StartsWith('!') ?? false) || placement.Event is ICustomActionEvent)
@@ -1093,13 +1070,13 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
         _camera.ScrollTo((0, -300, 0));
 
         if (locations.Count < 1) return;
-
+        
         Task.Run(async () =>
         {
             log.Value = "Loading...";
             try
             {
-                await UpdateSequences(locations.Where(File.Exists).ToArray(), resetTime);
+                await UpdateSequences(locations.ToArray(), resetTime);
             }
             catch (Exception e)
             {

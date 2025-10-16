@@ -11,6 +11,11 @@ public struct QuadUV
     public Vector2 UV1;
     public Vector2 UV2;
     public Vector2 UV3;
+
+    public override string ToString()
+    {
+        return $"{UV0} {UV1} {UV2} {UV3}";
+    }
 }
 
 public static class QuadUVExtensions

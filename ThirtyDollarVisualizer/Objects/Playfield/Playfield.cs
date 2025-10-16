@@ -2,8 +2,6 @@ using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
-using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch;
@@ -13,32 +11,18 @@ namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 public class Playfield(PlayfieldSettings settings)
 {
-    private readonly List<float> _dividerPositionsY = [];
-
     private readonly ColoredPlane _objectBox = new()
     {
         Color = (0, 0, 0, 0.25f)
     };
-
     private readonly DollarStoreCamera _temporaryCamera = new(Vector3.Zero, Vector2i.Zero);
-
-    /// <summary>
-    /// Dictionary containing all decreasing value events' textures for this playfield.
-    /// </summary>
-    public readonly ConcurrentDictionary<string, SingleTexture> DecreasingValuesCache = new();
-
-    private byte[] _animatedAssets = []; // TODO hyped up for this.
-
     private Vector3 _currentPosition = Vector3.Zero;
-    private bool _firstPosition = true;
-
     private Vector3 _targetPosition = Vector3.Zero;
-    public Memory<PlayfieldLine> Lines = Memory<PlayfieldLine>.Empty;
-
-    /// <summary>
-    /// Contains all sound renderables in chunks.
-    /// </summary>
-    public List<PlayfieldChunk> Chunks = [];
+    
+    private bool _firstPosition = true;
+    public List<PlayfieldChunk> Chunks { get; set; } = [];
+    public List<SoundRenderable> Renderables { get; set; } = [];
+    public readonly ConcurrentDictionary<string, SingleTexture> DecreasingValuesCache = new();
 
     public bool DisplayCenter { get; set; } = true;
 
@@ -48,13 +32,9 @@ public class Playfield(PlayfieldSettings settings)
         var chunkGenerator = new ChunkGenerator(settings);
         
         Chunks = chunkGenerator.GenerateChunks(events);
+        Renderables = Chunks.SelectMany(chunk => chunk.Renderables).ToList();
+        
         return ValueTask.CompletedTask;
-    }
-
-    public static bool IsEventHidden(BaseEvent ev)
-    {
-        return string.IsNullOrEmpty(ev.SoundEvent) || (ev.SoundEvent.StartsWith('#') && ev is not ICustomActionEvent) ||
-               ev is IHiddenEvent;
     }
 
     public void Render(DollarStoreCamera realCamera, float zoom, float updateDelta)
@@ -93,9 +73,13 @@ public class Playfield(PlayfieldSettings settings)
 
         _objectBox.UpdateModel(false);
         _objectBox.Render(_temporaryCamera);
-
-        foreach (var chunk in Chunks)
+        
+        foreach (var chunk in CollectionsMarshal.AsSpan(Chunks))
         {
+            // Skip rendering chunks that are outside the visible camera area
+            if (chunk.EndY < camera_y || chunk.StartY > camera_yh)
+                continue;
+            
             chunk.Render(_temporaryCamera);
         }
     }

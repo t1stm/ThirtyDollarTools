@@ -63,6 +63,10 @@ public class Shader : IDisposable
     /// <returns>A new instance of the <see cref="Shader"/> class with the shaders created.</returns>
     public static Shader NewFromPathWithDefaultExtension(string path)
     {
+        #if RELEASE
+        path = "ThirtyDollarVisualizer." + path.Replace('/', '.');
+        #endif
+        
         return NewDefined(ShaderDefinition.Vertex(path + ".vert"), ShaderDefinition.Fragment(path + ".frag"));
     }
 

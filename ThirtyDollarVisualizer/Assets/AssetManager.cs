@@ -24,7 +24,8 @@ public static class AssetManager
         }
         else
         {
-            var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(path);
+            var assembly = Assembly.GetExecutingAssembly();
+            var stream = assembly.GetManifestResourceStream(path);
             source = stream ??
                      throw new FileNotFoundException($"Unable to find asset '{path}' in assembly or real path.");
             isEmbedded = true;

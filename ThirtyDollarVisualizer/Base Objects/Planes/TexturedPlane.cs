@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Assets;
@@ -5,24 +6,34 @@ using ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
 using ThirtyDollarVisualizer.Renderer;
+using ThirtyDollarVisualizer.Renderer.Abstract;
+using ThirtyDollarVisualizer.Renderer.Attributes;
+using ThirtyDollarVisualizer.Renderer.Buffers;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Base_Objects.Planes;
 
-public class TexturedPlane : Renderable
+[PreloadGL]
+public class TexturedPlane : Renderable, IGLPreloadable
 {
+    [UsedImplicitly]
+    public static void Preload()
+    {
+        ShaderPool.PreloadShader(
+            "textured_plane", static () =>
+                Shader.NewVertexFragment(
+                    Asset.Embedded("Shaders/textured.vert"),
+                    Asset.Embedded("Shaders/textured.frag")
+                )
+        );
+    }
+
+    private static readonly VertexArrayObject StaticVao = new();
     private static bool _areVerticesGenerated;
-    private static VertexArrayObject _staticVao = null!;
-    private static GLBuffer<float> _staticVbo = null!;
-    private static GLBuffer<uint> _staticEbo = null!;
 
     private static GLBuffer<TexturedUniform>? _uniformBuffer;
 
-    private Lazy<Shader> _shader = new(() => ShaderPool.GetOrLoad("textured_plane", static () =>
-        Shader.NewVertexFragment(
-            Asset.Embedded("Shaders/textured.vert"),
-            Asset.Embedded("Shaders/textured.frag"))
-    ));
+    private Lazy<Shader> _shader = new(() => ShaderPool.GetNamedShader("textured_plane"));
 
     private SingleTexture? _texture;
 
@@ -79,31 +90,11 @@ public class TexturedPlane : Renderable
 
     private static void SetVertices()
     {
-        var (x, y, z) = (0f, 0f, 0);
-        var (w, h) = (1f, 1f);
-
-        var vertices = new[]
-        {
-            // Position // Texture Coordinates
-            x, y + h, z, 0.0f, 1.0f, // Bottom-left
-            x + w, y + h, z, 1.0f, 1.0f, // Bottom-right
-            x + w, y, z, 1.0f, 0.0f, // Top-right
-            x, y, z, 0.0f, 0.0f // Top-left
-        };
-
-        var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
-
-        _staticVao = new VertexArrayObject();
-        _staticVbo = new GLBuffer<float>(BufferTarget.ArrayBuffer);
-        _staticVbo.SetBufferData(vertices);
-
         var layout = new VertexBufferLayout();
         layout.PushFloat(3); // xyz vertex coords
         layout.PushFloat(2); // wh frag coords
-        _staticVao.AddBuffer(_staticVbo, layout);
-
-        _staticEbo = new GLBuffer<uint>(BufferTarget.ElementArrayBuffer);
-        _staticEbo.SetBufferData(indices);
+        
+        StaticVao.AddBuffer(GLQuad.VBOWithUV, layout);
         _areVerticesGenerated = true;
     }
 
@@ -117,12 +108,16 @@ public class TexturedPlane : Renderable
             texture.UploadToGPU();
 
         texture.Bind();
-        _staticVao.Bind();
-        _staticEbo.Bind();
+        StaticVao.Bind();
+        StaticVao.Update();
+        
+        GLQuad.EBO.Bind();
+        GLQuad.EBO.Update();
+        
         Shader.Use();
         SetShaderUniforms(camera);
 
-        GL.DrawElements(PrimitiveType.Triangles, _staticEbo.Capacity, DrawElementsType.UnsignedInt, 0);
+        GL.DrawElements(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt, 0);
 
         base.Render(camera);
     }
@@ -135,7 +130,7 @@ public class TexturedPlane : Renderable
 
         Span<TexturedUniform> span = [_uniform];
         _uniformBuffer ??= new GLBuffer<TexturedUniform>(BufferTarget.UniformBuffer);
-        _uniformBuffer.SetBufferData(span);
+        _uniformBuffer.DangerousGLThread_SetBufferData(span);
 
         GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }

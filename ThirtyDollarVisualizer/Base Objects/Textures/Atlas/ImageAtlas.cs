@@ -98,6 +98,12 @@ public class ImageAtlas : StaticTexture
         ImagesToBeUploaded.Clear();
     }
 
+    public override void Update()
+    {
+        if (NeedsUploading())
+            UploadToGPU();
+    }
+
     private static unsafe void PartialUpload(PixelAccessor<Rgba32> pixelAccessor, Rectangle imageArea)
     {
         for (var y = 0; y < pixelAccessor.Height; y++)
@@ -115,8 +121,7 @@ public class ImageAtlas : StaticTexture
     {
         if (!Handle.HasValue)
         {
-            throw new ArgumentNullException(nameof(Handle),
-                "Calling Bind in ImageAtlas while handle is null is not allowed.");
+            UploadToGPU();
         }
 
         base.Bind(slot);

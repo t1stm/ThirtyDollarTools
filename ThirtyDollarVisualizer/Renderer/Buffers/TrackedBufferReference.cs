@@ -1,19 +1,15 @@
-namespace ThirtyDollarVisualizer.Renderer;
+namespace ThirtyDollarVisualizer.Renderer.Buffers;
 
 public class TrackedBufferReference<TDataType> where TDataType : unmanaged
 {
-    private TDataType _value;
-    public required Action<int, TDataType> OnChange { get; init; }
+    public required Func<int, TDataType> Lookup { get; init; }
+    public required Action<int, TDataType> Update { get; init; }
 
     public int Index { get; set; }
 
     public TDataType Value
     {
-        get => _value;
-        set
-        {
-            _value = value;
-            OnChange(Index, _value);
-        }
+        get => Lookup(Index);
+        set => Update(Index, value);
     }
 }

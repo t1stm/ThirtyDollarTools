@@ -1,11 +1,21 @@
 using System.Diagnostics;
+using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
+using ThirtyDollarVisualizer.Renderer.Attributes;
 
 namespace ThirtyDollarVisualizer.Objects;
 
+[PreloadGL]
 public class BackgroundPlane : ColoredPlane
 {
+    [UsedImplicitly]
+    public new static void Preload()
+    {
+        // hacky solution I know.
+        ColoredPlane.Preload();
+    }
+    
     private readonly Stopwatch _timingStopwatch = new();
 
     private Vector4 _finalColor;

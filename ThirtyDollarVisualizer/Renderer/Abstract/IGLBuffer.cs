@@ -41,5 +41,5 @@ public interface IGLBuffer<TDataType> : IBuffer, IDisposable where TDataType : u
     /// Sets the buffer data, replacing all existing content with the provided data.
     /// </summary>
     /// <param name="newData">The data to set in the buffer as a read-only span of the buffer's data type.</param>
-    void SetBufferData(ReadOnlySpan<TDataType> newData);
+    void DangerousGLThread_SetBufferData(ReadOnlySpan<TDataType> newData);
 }

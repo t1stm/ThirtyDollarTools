@@ -117,6 +117,7 @@ public class LayoutHandler
     /// Breaks the current line and starts a new one.
     /// </summary>
     /// <param name="times">How many new lines should be created.</param>
+    /// <param name="isFromDivider">Whether to change the height if the object is a divider.</param>
     public void NewLine(int times = 1, bool isFromDivider = false)
     {
         CurrentSoundIndex = 0;
@@ -129,14 +130,14 @@ public class LayoutHandler
     /// Gives a position for a sound and calculates the next one.
     /// </summary>
     /// <returns>The current position.</returns>
-    public Vector2 GetNewPosition()
+    public Vector2 GetNewPosition(bool isDivider)
     {
         var x = _calculatedPositions[CurrentSoundIndex];
         var y = Y;
         Vector2 position = (x, y);
 
         CurrentSoundIndex++;
-        if (CurrentSoundIndex >= _calculatedPositions.Length) NewLine();
+        if (CurrentSoundIndex >= _calculatedPositions.Length) NewLine(1, isDivider);
 
         return position;
     }

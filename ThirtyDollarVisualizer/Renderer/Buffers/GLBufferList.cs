@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL;
 using ThirtyDollarVisualizer.Renderer.Abstract;
 using ThirtyDollarVisualizer.Renderer.Enums;
 
-namespace ThirtyDollarVisualizer.Renderer;
+namespace ThirtyDollarVisualizer.Renderer.Buffers;
 
 /// <summary>
 ///     Represents a generic GPU buffer that behaves like a list, providing dynamic array functionality
@@ -16,8 +16,13 @@ namespace ThirtyDollarVisualizer.Renderer;
 ///     for efficient updates. It automatically manages buffer capacity expansion and provides full
 ///     IList&lt;T&gt; compatibility for seamless integration with existing code.
 /// </remarks>
-public class GLBufferList<TDataType> : IGLBuffer<TDataType>, IList<TDataType> where TDataType : unmanaged
+public class GLBufferList<TDataType>() : IGLBuffer<TDataType>, IList<TDataType> where TDataType : unmanaged, IDebugStringify
 {
+    public GLBufferList(int capacity) : this()
+    {
+        Buffer.ResizeCPUBuffer(capacity);
+    }
+
     protected GLBuffer<TDataType>.WithCPUCache Buffer { get; } = new(BufferTarget.ArrayBuffer);
     protected Dictionary<int, TrackedBufferReference<TDataType>> TrackedBufferReferences { get; set; } = [];
 
@@ -56,9 +61,9 @@ public class GLBufferList<TDataType> : IGLBuffer<TDataType>, IList<TDataType> wh
     ///     Sets the entire buffer data, replacing all existing content.
     /// </summary>
     /// <param name="data">The data to copy into the buffer</param>
-    public void SetBufferData(ReadOnlySpan<TDataType> data)
+    public void DangerousGLThread_SetBufferData(ReadOnlySpan<TDataType> data)
     {
-        Buffer.SetBufferData(data);
+        Buffer.DangerousGLThread_SetBufferData(data);
     }
 
     /// <summary>
@@ -242,14 +247,21 @@ public class GLBufferList<TDataType> : IGLBuffer<TDataType>, IList<TDataType> wh
 
         obj = new TrackedBufferReference<TDataType>
         {
-            OnChange = ReferenceOnChange
+            Lookup = ReferenceLookup,
+            Update = ReferenceUpdate,
+            Index = index,
         };
 
-        TrackedBufferReferences[index] = obj;
+        TrackedBufferReferences.Add(index, obj);
         return obj;
     }
 
-    protected void ReferenceOnChange(int index, TDataType value)
+    protected TDataType ReferenceLookup(int index)
+    {
+        return Buffer[index];
+    }
+    
+    protected void ReferenceUpdate(int index, TDataType value)
     {
         Buffer[index] = value;
     }
@@ -302,11 +314,7 @@ public class GLBufferList<TDataType> : IGLBuffer<TDataType>, IList<TDataType> wh
             return;
 
         var newCapacity = Math.Max(newLength, Capacity * 2);
-        var data = Buffer.Data;
-        var newData = new TDataType[newCapacity];
-
-        data.CopyTo(newData);
-        Buffer.SetBufferData(newData);
+        Buffer.ResizeCPUBuffer(newCapacity);
     }
 
     /// <summary>

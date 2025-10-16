@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using System.Text;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Windowing.Common;
@@ -7,6 +8,8 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Base_Objects.Text;
 using ThirtyDollarVisualizer.Helpers.Logging;
+using ThirtyDollarVisualizer.Renderer.Abstract;
+using ThirtyDollarVisualizer.Renderer.Attributes;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Settings;
@@ -63,17 +66,37 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
         GL.Hint(HintTarget.LineSmoothHint, HintMode.Nicest);
 
+        ReflectionPreloadObjects();
+        
         foreach (var scene in Scenes) scene.Init(this);
 
         foreach (var scene in Scenes) scene.Start();
     }
 
+    private static void ReflectionPreloadObjects()
+    {
+        var types = Assembly.GetExecutingAssembly()
+            .GetTypes()
+            .Where(t => t.GetCustomAttribute<PreloadGLAttribute>() != null);
+
+        foreach (var type in types)
+        {
+            if (!typeof(IGLPreloadable).IsAssignableFrom(type))
+                continue;
+            
+            var method = type.GetMethod("Preload");
+            if (method is null)
+                throw new Exception("Method not found");
+            
+            method.Invoke(null, null);
+        }
+
+    }
+
     private static unsafe void DebugCallback(DebugSource source, DebugType type, uint id, 
         DebugSeverity severity, int length, IntPtr messagePtr, IntPtr userParameter)
     {
-#if !DEBUG
         if (type == DebugType.DebugTypeOther) return;
-#endif
         
         var stringFromPointer = new ReadOnlySpan<byte>(messagePtr.ToPointer(), length);
         var sourceText = source != DebugSource.DontCare ? source.ToString()[11..] : "Unknown";
@@ -137,6 +160,9 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
 
     protected override void OnUpdateFrame(FrameEventArgs args)
     { 
+        MakeCurrent();
+        ShaderPool.UploadShadersToPreload();
+        
         if (KeyboardState.IsAnyKeyDown)
             foreach (var scene in Scenes)
                 scene.Keyboard(KeyboardState);

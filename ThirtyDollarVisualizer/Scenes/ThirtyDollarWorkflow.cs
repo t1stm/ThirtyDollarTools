@@ -1,4 +1,3 @@
-using SixLabors.ImageSharp;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.Resamplers;
@@ -6,7 +5,6 @@ using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Helpers.Logging;
-using ThirtyDollarVisualizer.Helpers.Textures;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
@@ -15,7 +13,7 @@ namespace ThirtyDollarVisualizer.Scenes;
 public abstract class ThirtyDollarWorkflow
 {
     private readonly SemaphoreSlim _sampleHolderLock = new(1);
-    private readonly SemaphoreSlim _atlasLock = new(1);
+    private readonly SemaphoreSlim _atlasLock = new(0, 1);
     
     protected readonly SequencePlayer SequencePlayer;
     protected bool AutoUpdate = true;
@@ -28,10 +26,12 @@ public abstract class ThirtyDollarWorkflow
     protected SequenceIndices SequenceIndices = new();
     protected Memory<SequenceInfo> Sequences = Array.Empty<SequenceInfo>();
 
+    protected Action? OnLoaded; 
+
     protected TimedEvents TimedEvents = new()
     {
         Placement = [],
-        TimingSampleRate = 100_000
+        TimingSampleRate = 2000
     };
 
     public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? loggingAction = null)
@@ -57,7 +57,7 @@ public abstract class ThirtyDollarWorkflow
         await SampleHolder.DownloadSamples();
         await SampleHolder.DownloadImages();
         SampleHolder.LoadSamplesIntoMemory();
-
+        
         _ = Task.Run(LoadTextureAtlas);
 
         Log("[Sample Holder] Loaded all samples and images.");
@@ -65,7 +65,6 @@ public abstract class ThirtyDollarWorkflow
 
     protected async Task LoadTextureAtlas()
     {
-        await _atlasLock.WaitAsync();
         var sampleHolder = await GetSampleHolder();
         
         Log("[Atlas Generation] Starting...");
@@ -95,7 +94,11 @@ public abstract class ThirtyDollarWorkflow
         AtlasStore = atlases;
         Log("[Atlas Generation] Finished.");
         
-        _atlasLock.Release();
+        if (_atlasLock.CurrentCount == 0)
+            _atlasLock.Release();
+        
+        if (OnLoaded != null)
+            _ = Task.Run(OnLoaded);
     }
 
     protected async Task<SampleHolder> GetSampleHolder()
@@ -153,7 +156,7 @@ public abstract class ThirtyDollarWorkflow
             ExtractedSpeedEvents = [];
         }
 
-        const int updateRate = 100_000;
+        const int updateRate = 2000;
 
         if (restartPlayer)
             await SequencePlayer.Stop();
@@ -211,8 +214,9 @@ public abstract class ThirtyDollarWorkflow
         }
 
         _ = Task.Run(UpdateExtractedSpeedEvents);
+        
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents, SequenceIndices);
-
+        
         if (restartPlayer)
             await SequencePlayer.Start();
     }

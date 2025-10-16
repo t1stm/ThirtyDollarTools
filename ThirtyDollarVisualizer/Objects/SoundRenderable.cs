@@ -6,7 +6,6 @@ using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
-using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks.References;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -16,23 +15,27 @@ public sealed class SoundRenderable : Renderable
     private readonly ExpandAnimation? _expandAnimation;
     private readonly FadeAnimation? _fadeAnimation;
     private readonly Memory<Animation> _renderableAnimations;
-    public bool IsDivider;
-
-    public float OriginalY;
-
-    public IChunkReference? Reference;
+    private bool _resetAnimationState;
+    
     public TexturedPlane? Pan;
     public TexturedPlane? Value;
     public TexturedPlane? Volume;
 
+    public Func<Matrix4> GetModel { get; set; } = () => Matrix4.Identity;
+    public Func<Vector4> GetRGBA { get; set; } = () => Vector4.One;
+    public Action<Matrix4> SetModel { get; set; } = _ => { };
+    public Action<Vector4> SetRGBA { get; set; } = _ => { };
+
     public override Matrix4 Model
     {
-        get => throw new NotImplementedException();
-        set
-        {
-            ArgumentNullException.ThrowIfNull(Reference);
-            throw new NotImplementedException();
-        }
+        get => GetModel.Invoke();
+        set => SetModel.Invoke(value);
+    }
+
+    public override Vector4 Color
+    {
+        get => GetRGBA();
+        set => SetRGBA(value);
     }
 
     public SoundRenderable() : this(Vector3.Zero, Vector2.Zero)
@@ -41,9 +44,9 @@ public sealed class SoundRenderable : Renderable
 
     public SoundRenderable(Vector3 position, Vector2 widthHeight)
     {
-        _bounceAnimation = new BounceAnimation(() => { UpdateModel(false); });
-        _expandAnimation = new ExpandAnimation(() => { UpdateModel(false); });
-        _fadeAnimation = new FadeAnimation(() => { UpdateModel(false); });
+        _bounceAnimation = new BounceAnimation(ResetAnimationState);
+        _expandAnimation = new ExpandAnimation(ResetAnimationState);
+        _fadeAnimation = new FadeAnimation(ResetAnimationState);
         _renderableAnimations = new Animation[] { _bounceAnimation, _expandAnimation, _fadeAnimation };
 
         Position = position;
@@ -60,8 +63,12 @@ public sealed class SoundRenderable : Renderable
                 _bounceAnimation.FinalY = value.Y / 5f;
         }
     }
+    
+    public bool IsDivider { get; set; }
 
-    public override void Render(Camera camera)
+    private void ResetAnimationState() => _resetAnimationState = true;
+
+    public override void Update()
     {
         var animationsRunning = false;
         foreach (var animation in _renderableAnimations.Span)
@@ -70,10 +77,10 @@ public sealed class SoundRenderable : Renderable
             if (animationsRunning) break;
         }
 
-        if (animationsRunning)
-            UpdateModel(false, _renderableAnimations.Span);
-
-        base.Render(camera);
+        if (!animationsRunning && !_resetAnimationState) return;
+        
+        UpdateModel(false, _renderableAnimations.Span);
+        _resetAnimationState = false;
     }
 
     public void UpdateChildren()

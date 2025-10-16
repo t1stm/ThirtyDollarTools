@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <PackageReference Include="CommandLineParser" Version="2.9.1"/>
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
         <PackageReference Include="OpenAL.Soft" Version="1.19.1"/>
         <PackageReference Include="OpenTK" Version="5.0.0-pre.14" />
         <PackageReference Include="OpenTK.Audio.OpenAL" Version="5.0.0-pre.14" />
@@ -54,9 +55,5 @@
     <ItemGroup>
       <Compile Remove="Objects\Playfield\Batch\PlayfieldChunk.cs" />
       <Compile Remove="Objects\Playfield\Batch\PlayfieldSound.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Assets\Shaders\Playfield\" />
     </ItemGroup>
 </Project>

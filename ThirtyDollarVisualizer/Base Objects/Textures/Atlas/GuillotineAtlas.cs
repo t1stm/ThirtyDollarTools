@@ -21,10 +21,8 @@ public sealed class GuillotineAtlas : IAtlas
         Width = width;
         Height = height;
         _allowRotation = allowRotation;
-
-        // Keep identity-based lookup for images.
-        _usedByImage = new Dictionary<string, Rectangle>(ReferenceEqualityComparer.Instance);
-
+        
+        _usedByImage = new Dictionary<string, Rectangle>();
         _freeRects.Add(new Rectangle(0, 0, width, height));
         _usedArea = 0;
     }

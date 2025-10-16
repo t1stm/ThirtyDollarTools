@@ -11,6 +11,8 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class SequencePlayer
 {
+    private static int InstanceID;
+    
     protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
     public readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly long[] Bookmarks = new long[10];
@@ -40,11 +42,12 @@ public class SequencePlayer
     /// <param name="logAction">The logging action.</param>
     public SequencePlayer(AudioContext? context = null, Action<string>? logAction = null)
     {
+        ++InstanceID;
         BufferHolder = new BufferHolder();
         Events = new TimedEvents
         {
             Placement = [],
-            TimingSampleRate = 100_000
+            TimingSampleRate = 2000
         };
         Log = logAction;
 
@@ -79,8 +82,9 @@ public class SequencePlayer
     {
         AudioContext context;
 
-        if ((context = new BassAudioContext()).Create()) return context;
-        if ((context = new OpenALContext()).Create()) return context;
+        if ((context = new BassAudioContext()).Create() ||
+            (context = new OpenALContext()).Create())
+            return context;
 
         Log?.Invoke("Unable to initialize the audio device.");
         return null;

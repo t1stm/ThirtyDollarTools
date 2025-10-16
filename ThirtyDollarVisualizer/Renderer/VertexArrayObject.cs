@@ -1,5 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 using ThirtyDollarVisualizer.Renderer.Abstract;
+using ThirtyDollarVisualizer.Renderer.Buffers;
 
 namespace ThirtyDollarVisualizer.Renderer;
 
@@ -9,27 +10,26 @@ namespace ThirtyDollarVisualizer.Renderer;
 public class VertexArrayObject : IBindable
 {
     private readonly List<IBuffer> _buffers = [];
+    private readonly Queue<(IBuffer, VertexBufferLayout)> _uploadQueue = [];
     private int _vertexIndex;
-
-    /// <summary>
-    ///     Creates a new vertex array object and binds it to the OpenGL context.
-    /// </summary>
-    public VertexArrayObject()
-    {
-        Handle = GL.GenVertexArray();
-    }
 
     /// <summary>
     ///     The OpenGL handle of the vertex array object.
     /// </summary>
-    public int Handle { get; }
+    public int Handle { get; private set; }
 
+    private void Create()
+    {
+        Handle = GL.GenVertexArray();
+    }
+    
     /// <summary>
     ///     Binds the vertex array object to the OpenGL context.
     /// </summary>
     public void Bind()
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
+        if (Handle < 1)
+            Create();
         GL.BindVertexArray(Handle);
     }
 
@@ -40,8 +40,16 @@ public class VertexArrayObject : IBindable
     /// <param name="layout">The layout describing how vertex attributes are organized within the buffer.</param>
     public void AddBuffer(IBuffer vbo, VertexBufferLayout layout)
     {
+        lock (_uploadQueue)
+            _uploadQueue.Enqueue((vbo, layout));
+    }
+    
+    private void UploadBuffer(IBuffer vbo, VertexBufferLayout layout)
+    {
         Bind();
         vbo.Bind();
+        vbo.Update();
+        
         _buffers.Add(vbo);
 
         var elements = layout.GetElements();
@@ -50,9 +58,10 @@ public class VertexArrayObject : IBindable
         {
             var el = elements[i];
             var vi = (uint)(_vertexIndex + i);
-
-            GL.EnableVertexAttribArray(vi);
+            
             GL.VertexAttribPointer(vi, el.Count, el.Type, el.Normalized, layout.GetStride(), new IntPtr(offset));
+            GL.EnableVertexAttribArray(vi);
+            
             offset += el.Count * el.Type.GetSize();
             if (el.Divisor != 0)
                 GL.VertexAttribDivisor(vi, (uint)el.Divisor);
@@ -70,11 +79,22 @@ public class VertexArrayObject : IBindable
         GL.VertexArrayElementBuffer(Handle, ibo.Handle);
     }
 
+    private void UploadBufferLayouts()
+    {
+        lock (_uploadQueue)
+            while (_uploadQueue.Count != 0)
+            {
+                var (buffer, layout) = _uploadQueue.Dequeue();
+                UploadBuffer(buffer, layout);
+            }
+    }
+    
     /// <summary>
     ///     Runs the update method for all buffers in the vertex array object.
     /// </summary>
     public void Update()
     {
+        UploadBufferLayouts();
         foreach (var buffer in _buffers) buffer.Update();
     }
 

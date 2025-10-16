@@ -1,30 +1,37 @@
+using JetBrains.Annotations;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
 using ThirtyDollarVisualizer.Renderer;
+using ThirtyDollarVisualizer.Renderer.Abstract;
+using ThirtyDollarVisualizer.Renderer.Attributes;
+using ThirtyDollarVisualizer.Renderer.Buffers;
 using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Base_Objects.Planes;
 
-public class ColoredPlane : Renderable
+[PreloadGL]
+public class ColoredPlane : Renderable, IGLPreloadable
 {
     private static bool _areVerticesGenerated;
     private static VertexArrayObject _staticVAO = null!;
-    private static GLBuffer<float> _staticVBO = null!;
-    private static GLBuffer<uint> _staticEBO = null!;
     private static GLBuffer<ColoredUniform>? _uniformBuffer;
 
-    private Lazy<Shader> _shader = new(() => ShaderPool.GetOrLoad(
-        "colored_plane", static () => Shader.NewVertexFragment(
-            Asset.Embedded("Shaders/colored.vert"),
-            Asset.Embedded("Shaders/colored.frag")
-        )
-    ), LazyThreadSafetyMode.None);
+    private Lazy<Shader> _shader = new(() => ShaderPool.GetNamedShader("colored_plane"), LazyThreadSafetyMode.None);
 
     private ColoredUniform _uniform;
     public float BorderRadius;
 
+    [UsedImplicitly]
+    public static void Preload()
+    {
+        ShaderPool.PreloadShader("colored_plane", static () => Shader.NewVertexFragment(
+                Asset.Embedded("Shaders/colored.vert"),
+                Asset.Embedded("Shaders/colored.frag")
+            ));
+    }
+    
     public ColoredPlane()
     {
         if (!_areVerticesGenerated) SetVertices();
@@ -59,30 +66,11 @@ public class ColoredPlane : Renderable
 
     private static void SetVertices()
     {
-        var (x, y, z) = (0f, 0f, 0);
-        var (w, h) = (1f, 1f);
-
-        var vertices = new[]
-        {
-            x, y + h, z,
-            x + w, y + h, z,
-            x + w, y, z,
-            x, y, z
-        };
-
-        var indices = new uint[] { 0, 1, 3, 1, 2, 3 };
-
         _staticVAO = new VertexArrayObject();
-        _staticVBO = new GLBuffer<float>(BufferTarget.ArrayBuffer);
-        _staticVBO.SetBufferData(vertices);
-
         var layout = new VertexBufferLayout();
         layout.PushFloat(3); // xyz vertex coords
-        _staticVAO.AddBuffer(_staticVBO, layout);
-
-        _staticEBO = new GLBuffer<uint>(BufferTarget.ElementArrayBuffer);
-        _staticEBO.SetBufferData(indices);
-
+        
+        _staticVAO.AddBuffer(GLQuad.VBOWithoutUV, layout);
         _areVerticesGenerated = true;
     }
 
@@ -91,11 +79,15 @@ public class ColoredPlane : Renderable
         if (Shader == null) return;
 
         _staticVAO.Bind();
-        _staticEBO.Bind();
+        _staticVAO.Update();
+        
+        GLQuad.EBO.Bind();
+        GLQuad.EBO.Update();
+        
         Shader.Use();
         SetShaderUniforms(camera);
 
-        GL.DrawElements(PrimitiveType.Triangles, _staticEBO.Capacity, DrawElementsType.UnsignedInt, 0);
+        GL.DrawElements(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt, 0);
         base.Render(camera);
     }
 
@@ -112,7 +104,7 @@ public class ColoredPlane : Renderable
         Span<ColoredUniform> span = [_uniform];
 
         _uniformBuffer ??= new GLBuffer<ColoredUniform>(BufferTarget.UniformBuffer);
-        _uniformBuffer.SetBufferData(span);
+        _uniformBuffer.DangerousGLThread_SetBufferData(span);
         GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }
 }

@@ -6,7 +6,7 @@ using ThirtyDollarVisualizer.Renderer.Abstract;
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
 [StructLayout(LayoutKind.Explicit, Size = 112)]
-public struct StaticSound : IGLReflection
+public struct StaticSound : IGLReflection, IDebugStringify
 {
     [FieldOffset(0)] public SoundData Data;
     [FieldOffset(80)] public QuadUV TextureUV;
@@ -14,9 +14,14 @@ public struct StaticSound : IGLReflection
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {
         SoundData.SelfReflectToGL(layout);
-        layout.PushFloat(2); // QuadUV.UV0
-        layout.PushFloat(2); // QuadUV.UV1
-        layout.PushFloat(2); // QuadUV.UV2
-        layout.PushFloat(2); // QuadUV.UV3
+        layout.PushFloat(2, true); // QuadUV.UV0
+        layout.PushFloat(2, true); // QuadUV.UV1
+        layout.PushFloat(2, true); // QuadUV.UV2
+        layout.PushFloat(2, true); // QuadUV.UV3
+    }
+
+    public override string ToString()
+    {
+        return $"Data: {{{Data.ToString()}}} Texture UV: {{{TextureUV.ToString()}}}";
     }
 }
