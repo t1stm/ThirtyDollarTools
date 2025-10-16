@@ -138,7 +138,9 @@ public class LayoutHandler
 
         CurrentSoundIndex++;
         if (CurrentSoundIndex >= _calculatedPositions.Length) NewLine(1, isDivider);
-
+        if (isDivider)
+            NewLine(2, isDivider);
+        
         return position;
     }
 

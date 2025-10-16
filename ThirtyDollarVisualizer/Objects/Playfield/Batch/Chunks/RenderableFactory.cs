@@ -1,5 +1,6 @@
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
@@ -44,7 +45,10 @@ public readonly struct RenderableFactory(AtlasStore store, LayoutHandler layoutH
     {
         var soundName = baseEvent.SoundEvent ?? throw new Exception("Sound name is null");
 
-        var soundRenderable = new SoundRenderable();
+        var soundRenderable = new SoundRenderable
+        {
+            IsDivider = soundName == "!divider",
+        };
         var storedStaticAtlases = store.StaticAtlases;
 
         var renderable = store.AnimatedAtlases.TryGetValue(soundName, out var storedAnimatedAtlas)

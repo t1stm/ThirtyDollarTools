@@ -34,7 +34,7 @@ public class PlayfieldChunk
             renderables[i] = factory.CookUp(slice[i]);
         }
 
-        chunk.EndY = layoutHandler.Height;
+        chunk.EndY = layoutHandler.Height + layoutHandler.Size;
         chunk.Renderables = renderables;
         chunk.AnimatedStacks = factory.AnimatedAtlases;
         chunk.StaticStacks = factory.StaticAtlases;
