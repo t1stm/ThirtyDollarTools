@@ -31,7 +31,7 @@ public abstract class ThirtyDollarWorkflow
     protected TimedEvents TimedEvents = new()
     {
         Placement = [],
-        TimingSampleRate = 2000
+        TimingSampleRate = 20_000
     };
 
     public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? loggingAction = null)
@@ -156,7 +156,7 @@ public abstract class ThirtyDollarWorkflow
             ExtractedSpeedEvents = [];
         }
 
-        const int updateRate = 2000;
+        const int updateRate = 20_000;
 
         if (restartPlayer)
             await SequencePlayer.Stop();

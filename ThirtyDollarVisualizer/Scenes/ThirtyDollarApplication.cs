@@ -35,6 +35,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
     private readonly VisualizerSettings _settings;
     private readonly List<Renderable> _startObjects = [];
+    private readonly string[] _startingSequences;
     private readonly DollarStoreCamera _staticCamera;
     private readonly DollarStoreCamera _tempCamera;
     private readonly DollarStoreCamera _textCamera;
@@ -43,7 +44,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     private BackgroundPlane _backgroundPlane = null!;
     private BackingAudio? _backingAudio;
     private int _currentSequence;
-    private string?[] _startingSequences;
     
     private SoundRenderable? _dragNDrop;
     private ColoredPlane _flashOverlay = null!;
@@ -77,7 +77,10 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
 
         _width = width;
         _height = height;
-        _startingSequences = sequenceLocations;
+        _startingSequences = sequenceLocations
+            .Where(location => location is not null)
+            .Cast<string>()
+            .ToArray();
         _settings = settings;
 
         _tempCamera = new DollarStoreCamera((0, -300f, 0), new Vector2i(_width, _height), settings.ScrollSpeed);
@@ -192,7 +195,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IScene
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public void Init(Manager manager)
     {
-        OnLoaded = async () =>
+        OnLoaded = async void () =>
         {
             try
             {

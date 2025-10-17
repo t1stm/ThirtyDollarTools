@@ -15,30 +15,48 @@ public class Playfield(PlayfieldSettings settings)
     {
         Color = (0, 0, 0, 0.25f)
     };
+    private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly ChunkGenerator _chunkGenerator = new(settings);
+    
     private readonly DollarStoreCamera _temporaryCamera = new(Vector3.Zero, Vector2i.Zero);
     private Vector3 _currentPosition = Vector3.Zero;
     private Vector3 _targetPosition = Vector3.Zero;
     
     private bool _firstPosition = true;
-    public List<PlayfieldChunk> Chunks { get; set; } = [];
-    public List<SoundRenderable> Renderables { get; set; } = [];
+    public List<PlayfieldChunk> Chunks { get; private set; } = [];
+    public List<SoundRenderable> Renderables { get; private set; } = [];
+    
     public readonly ConcurrentDictionary<string, SingleTexture> DecreasingValuesCache = new();
 
     public bool DisplayCenter { get; set; } = true;
 
-    public ValueTask UpdateSounds(Sequence sequence)
+    public async ValueTask UpdateSounds(Sequence sequence)
     {
         var events = sequence.Events;
-        var chunkGenerator = new ChunkGenerator(settings);
+
+        var chunks = _chunkGenerator.GenerateChunks(events);
+        _chunkGenerator.PositionSounds(CollectionsMarshal.AsSpan(chunks));
         
-        Chunks = chunkGenerator.GenerateChunks(events);
-        Renderables = Chunks.SelectMany(chunk => chunk.Renderables).ToList();
+        var renderables = new List<SoundRenderable>(chunks.Count * ChunkGenerator.DefaultChunkSize);
+        foreach (var chunk in chunks)
+            renderables.AddRange(chunk.Renderables);
+
+        await _lock.WaitAsync();
         
-        return ValueTask.CompletedTask;
+        Chunks = chunks;
+        Renderables = renderables;
+        
+        _lock.Release();
     }
 
     public void Render(DollarStoreCamera realCamera, float zoom, float updateDelta)
     {
+        var layoutWidth = _chunkGenerator.LayoutHandler.Width;
+        var layoutHeight = _chunkGenerator.LayoutHandler.Height;
+        
+        var leftMargin = (_temporaryCamera.Width - layoutWidth) / 2f;
+        _targetPosition = DisplayCenter ? (-leftMargin, 0, 0) : Vector3.Zero;
+        
         // avoid doing modifications to the main camera
         _temporaryCamera.CopyFrom(realCamera);
         if (_firstPosition)
@@ -68,12 +86,13 @@ public class Playfield(PlayfieldSettings settings)
         
         // position object box
         _objectBox.SetPosition((0, 0, 0));
-        _objectBox.Scale = (_temporaryCamera.Width, camera_yh, 0);
+        _objectBox.Scale = (layoutWidth, layoutHeight, 0);
         _objectBox.BorderRadius = 0f;
 
         _objectBox.UpdateModel(false);
         _objectBox.Render(_temporaryCamera);
         
+        _lock.Wait();
         foreach (var chunk in CollectionsMarshal.AsSpan(Chunks))
         {
             // Skip rendering chunks that are outside the visible camera area
@@ -82,5 +101,6 @@ public class Playfield(PlayfieldSettings settings)
             
             chunk.Render(_temporaryCamera);
         }
+        _lock.Release();
     }
 }

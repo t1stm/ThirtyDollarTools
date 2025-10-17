@@ -12,6 +12,7 @@ public sealed class GuillotineAtlas : IAtlas
 
     public int Width { get; }
     public int Height { get; }
+    public int Padding { get; init; } = 2;
 
     public GuillotineAtlas(int width, int height, bool allowRotation = false)
     {
@@ -30,7 +31,9 @@ public sealed class GuillotineAtlas : IAtlas
     public bool CanFit(int width, int height)
     {
         if (width <= 0 || height <= 0) return false;
-        return _freeRects.Any(r => Fits(r, width, height) || (_allowRotation && Fits(r, height, width)));
+        var paddedW = width + Padding * 2;
+        var paddedH = height + Padding * 2;
+        return _freeRects.Any(r => Fits(r, paddedW, paddedH) || (_allowRotation && Fits(r, paddedH, paddedW)));
     }
 
     public bool IsFull()
@@ -68,7 +71,9 @@ public sealed class GuillotineAtlas : IAtlas
         var alternativeLookup = _usedByImage.GetAlternateLookup<ReadOnlySpan<char>>();
         if (image.Width <= 0 || image.Height <= 0) return Rectangle.Empty;
 
-        var (index, placedW, placedH, rotate) = ChoosePlacement(image.Width, image.Height);
+        var paddedW = image.Width + Padding * 2;
+        var paddedH = image.Height + Padding * 2;
+        var (index, placedW, placedH, rotate) = ChoosePlacement(paddedW, paddedH);
         if (index < 0) return Rectangle.Empty;
 
         var host = _freeRects[index];
@@ -78,10 +83,11 @@ public sealed class GuillotineAtlas : IAtlas
         SplitFreeRect(index, placed, host);
 
         // Track usage.
-        alternativeLookup[imageID] = placed;
+        var rect = new Rectangle(placed.X + Padding, placed.Y + Padding, image.Width, image.Height);
+        alternativeLookup[imageID] = rect;
         _usedArea += placed.Width * placed.Height;
 
-        return placed;
+        return rect;
     }
 
     public bool RemoveImage(string imageID)

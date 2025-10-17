@@ -47,7 +47,7 @@ public class SequencePlayer
         Events = new TimedEvents
         {
             Placement = [],
-            TimingSampleRate = 2000
+            TimingSampleRate = 20_000
         };
         Log = logAction;
 

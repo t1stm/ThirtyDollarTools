@@ -1,7 +1,5 @@
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
-using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 using ThirtyDollarVisualizer.Renderer.Abstract;
@@ -11,7 +9,7 @@ using ThirtyDollarVisualizer.Renderer.Shaders;
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
 [PreloadGL] 
-public readonly struct RenderableFactory(AtlasStore store, LayoutHandler layoutHandler)
+public readonly struct RenderableFactory(AtlasStore store)
     : IGLPreloadable
 {
     /// <summary>
@@ -56,8 +54,7 @@ public readonly struct RenderableFactory(AtlasStore store, LayoutHandler layoutH
             : GetStaticSoundRenderableData(soundName, StaticAtlases, storedStaticAtlases, soundRenderable) ??
               GetStaticSoundRenderableData("#missing", StaticAtlases, storedStaticAtlases, soundRenderable) ??
               throw new Exception("#missing sound is null");
-
-        PositionSound(renderable);
+        
         return renderable;
     }
 
@@ -87,7 +84,7 @@ public readonly struct RenderableFactory(AtlasStore store, LayoutHandler layoutH
             };
 
             if (!staticAtlases.TryGetValue(atlas, out var renderStack))
-                staticAtlases.Add(atlas, renderStack = new RenderStack<StaticSound>(1024)
+                staticAtlases.Add(atlas, renderStack = new RenderStack<StaticSound>
                 {
                     Shader = staticShader
                 });
@@ -99,13 +96,18 @@ public readonly struct RenderableFactory(AtlasStore store, LayoutHandler layoutH
             soundRenderable.Scale = (reference.Width, reference.Height, 1);
 
             soundRenderable.GetModel = () => trackedReference.Value.Data.Model;
-            soundRenderable.SetModel = replace =>
+            soundRenderable.SetModel = model =>
             {
                 var oldValue = trackedReference.Value;
-                trackedReference.Value = oldValue with { Data = oldValue.Data with { Model = replace } };
+                trackedReference.Value = oldValue with { Data = oldValue.Data with { Model = model } };
             };
 
             soundRenderable.GetRGBA = () => trackedReference.Value.Data.RGBA;
+            soundRenderable.SetRGBA = rgba =>
+            {
+                var oldValue = trackedReference.Value;
+                trackedReference.Value = oldValue with { Data = oldValue.Data with { RGBA = rgba } };
+            };
             return soundRenderable;
         }
 
@@ -130,7 +132,7 @@ public readonly struct RenderableFactory(AtlasStore store, LayoutHandler layoutH
         };
 
         if (!animatedAtlases.TryGetValue(animatedAtlas, out var renderStack))
-            animatedAtlases.Add(animatedAtlas, renderStack = new RenderStack<SoundData>(1024)
+            animatedAtlases.Add(animatedAtlas, renderStack = new RenderStack<SoundData>
             {
                 Shader = animatedShader
             });
@@ -145,53 +147,12 @@ public readonly struct RenderableFactory(AtlasStore store, LayoutHandler layoutH
             trackedReference.Value = oldValue with { Model = matrix };
         };
         
-        return soundRenderable;
-    }
-    
-    private void PositionSound(in SoundRenderable sound)
-    {
-        // get the current sound's texture information
-        var (texture_x, texture_y, _) = sound.Scale;
-        // get the aspect ratio for events without an equal size
-        var aspect_ratio = texture_x / texture_y;
-
-        // box scale is the maximum size a sound should cover
-        Vector2 box_scale = (layoutHandler.Size, layoutHandler.Size);
-        // wanted scale is the corrected size by the aspect ratio
-        Vector2 wanted_scale = (layoutHandler.Size, layoutHandler.Size);
-
-        // handle aspect ratio corrections
-        switch (aspect_ratio)
+        soundRenderable.GetRGBA = () => trackedReference.Value.RGBA;
+        soundRenderable.SetRGBA = rgba =>
         {
-            case > 1:
-                wanted_scale.Y = layoutHandler.Size / aspect_ratio;
-                break;
-            case < 1:
-                wanted_scale.X = layoutHandler.Size * aspect_ratio;
-                break;
-        }
-
-        // set the size of the sound's texture to the wanted size
-        sound.Scale = (wanted_scale.X, wanted_scale.Y, 0);
-
-        // calculates the wanted position to avoid stretching of the texture
-        var box_position = layoutHandler.GetNewPosition(sound.IsDivider);
-        var texture_position = (box_position.X, box_position.Y);
-
-        var delta_x = layoutHandler.Size - wanted_scale.X;
-        var delta_y = layoutHandler.Size - wanted_scale.Y;
-
-        texture_position.X += delta_x / 2f;
-        texture_position.Y += delta_y / 2f;
-
-        sound.SetPosition((texture_position.X, texture_position.Y, 0));
-
-        // position value, volume, pan to their box locations
-        var bottom_center = box_position + (box_scale.X / 2f, box_scale.Y);
-        var top_right = box_position + (box_scale.X + 6f, 0f);
-
-        sound.Value?.SetPosition((bottom_center.X, bottom_center.Y, 0), PositionAlign.Center);
-        sound.Volume?.SetPosition((top_right.X, top_right.Y, 0), PositionAlign.TopRight);
-        sound.Pan?.SetPosition((box_position.X, box_position.Y, 0));
+            var oldValue = trackedReference.Value;
+            trackedReference.Value = oldValue with { RGBA = rgba };
+        };
+        return soundRenderable;
     }
 }

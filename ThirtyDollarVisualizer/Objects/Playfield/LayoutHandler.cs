@@ -77,11 +77,6 @@ public class LayoutHandler
         Y = padding?.Y1 ?? 0;
     }
 
-    /// <summary>
-    /// How many objects are contained in a single line.
-    /// </summary>
-    public int SoundsCount => _calculatedPositions.Length;
-
     private static float[] GeneratePositions(int soundCount, float size, GapBox? margin, GapBox? padding)
     {
         var array = new float[soundCount];

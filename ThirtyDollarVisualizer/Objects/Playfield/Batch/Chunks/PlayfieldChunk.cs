@@ -15,10 +15,10 @@ public class PlayfieldChunk
     private Dictionary<FramedAtlas, RenderStack<SoundData>> AnimatedStacks { get; set; } = [];
 
     public SoundRenderable[] Renderables { get; private set; }
-    public float StartY { get; private set; }
-    public float EndY { get; private set; }
+    public float StartY { get; set; }
+    public float EndY { get; set; }
 
-    public static PlayfieldChunk GenerateFrom(Span<BaseEvent> slice, LayoutHandler layoutHandler, AtlasStore store)
+    public static PlayfieldChunk GenerateFrom(ReadOnlySpan<BaseEvent> slice, LayoutHandler layoutHandler, AtlasStore store)
     {
         var length = slice.Length;
         var chunk = new PlayfieldChunk(length)
@@ -27,7 +27,7 @@ public class PlayfieldChunk
         };
 
         var renderables = new SoundRenderable[length];
-        var factory = new RenderableFactory(store, layoutHandler);
+        var factory = new RenderableFactory(store);
         
         for (var i = 0; i < length; i++)
         {
