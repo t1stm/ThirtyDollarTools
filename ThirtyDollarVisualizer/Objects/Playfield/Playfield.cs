@@ -4,6 +4,7 @@ using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
+using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
@@ -23,6 +24,8 @@ public class Playfield(PlayfieldSettings settings)
     private Vector3 _targetPosition = Vector3.Zero;
     
     private bool _firstPosition = true;
+    private int _lastCullingIndex;
+    
     public List<PlayfieldChunk> Chunks { get; private set; } = [];
     public List<SoundRenderable> Renderables { get; private set; } = [];
     
@@ -49,6 +52,7 @@ public class Playfield(PlayfieldSettings settings)
         _lock.Release();
     }
 
+    
     public void Render(DollarStoreCamera realCamera, float zoom, float updateDelta)
     {
         var layoutWidth = _chunkGenerator.LayoutHandler.Width;
@@ -93,14 +97,42 @@ public class Playfield(PlayfieldSettings settings)
         _objectBox.Render(_temporaryCamera);
         
         _lock.Wait();
-        foreach (var chunk in CollectionsMarshal.AsSpan(Chunks))
+        var span = CollectionsMarshal.AsSpan(Chunks);
+
+        if (span.Length > 0)
+            UpdateCullingIndex(span, camera_y);
+        else _lastCullingIndex = 0;
+        
+        for (var index = _lastCullingIndex; index < span.Length; index++)
         {
-            // Skip rendering chunks that are outside the visible camera area
-            if (chunk.EndY < camera_y || chunk.StartY > camera_yh)
-                continue;
-            
+            var chunk = span[index];
+            if (chunk.StartY > camera_yh)
+                break;
+
             chunk.Render(_temporaryCamera);
         }
+        
         _lock.Release();
+    }
+
+    private void UpdateCullingIndex(Span<PlayfieldChunk> span, float cameraY)
+    {
+        if (_lastCullingIndex >= span.Length)
+            _lastCullingIndex = span.Length - 1;
+
+        if (_lastCullingIndex < 0)
+            _lastCullingIndex = 0;
+
+        while (_lastCullingIndex > 0 && span[_lastCullingIndex - 1].EndY > cameraY)
+        {
+            _lastCullingIndex--;
+        }
+        
+        while (span[_lastCullingIndex].EndY < cameraY)
+        {
+            if (++_lastCullingIndex < span.Length) break;
+            _lastCullingIndex = span.Length - 1;
+            break;
+        }
     }
 }

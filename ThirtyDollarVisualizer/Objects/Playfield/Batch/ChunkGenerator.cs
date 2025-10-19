@@ -45,7 +45,7 @@ public class ChunkGenerator(PlayfieldSettings settings)
             {
                 PositionSound(renderable);
             }
-            chunk.EndY = LayoutHandler.Y + LayoutHandler.Height;
+            chunk.EndY = LayoutHandler.Height + LayoutHandler.Size;
         }
     }
     
