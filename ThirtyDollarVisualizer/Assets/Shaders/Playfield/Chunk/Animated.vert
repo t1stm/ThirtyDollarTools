@@ -10,32 +10,19 @@ out vec4 RGBA;
 uniform mat4 u_VPMatrix;
 uniform vec2 u_UV0;
 uniform vec2 u_UV1;
-uniform vec2 u_UV2;
-uniform vec2 u_UV3;
 
-void setFragCoordsBasedOnVertexID() {
-    int vertexID = gl_VertexID;
+vec2 getFragCoordsBasedOnVertexID(int vertexID) {
     int normedID = vertexID % 4; // four coordinates
 
-    switch (normedID) {
-        case 0:
-            fragmentCoords = u_UV3;
-            break;
-        case 1:
-            fragmentCoords = u_UV2;
-            break;
-        case 2:
-            fragmentCoords = u_UV1;
-            break;
-        case 3:
-            fragmentCoords = u_UV0;
-            break;
-    }
+    if (normedID == 0) return vec2(u_UV0.x, u_UV1.y);
+    if (normedID == 1) return vec2(u_UV1.x, u_UV1.y);
+    if (normedID == 2) return vec2(u_UV1.x, u_UV0.y);
+    return u_UV0;
 }
 
 void main() {
     vec4 finalCoords = u_VPMatrix * aModel * vec4(aPosition, 1.0);
     gl_Position = finalCoords;
     RGBA = aRGBA;
-    setFragCoordsBasedOnVertexID();
+    fragmentCoords = getFragCoordsBasedOnVertexID(gl_VertexID);
 }

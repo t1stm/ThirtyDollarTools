@@ -60,7 +60,6 @@ public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, I
 
     public void Dispose()
     {
-        Shader.Dispose();
         List.Dispose();
         VAO.Dispose();
         GC.SuppressFinalize(this);

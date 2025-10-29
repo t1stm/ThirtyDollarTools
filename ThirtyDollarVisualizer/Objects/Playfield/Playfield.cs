@@ -4,7 +4,6 @@ using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
-using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
@@ -56,7 +55,7 @@ public class Playfield(PlayfieldSettings settings)
     public void Render(DollarStoreCamera realCamera, float zoom, float updateDelta)
     {
         var layoutWidth = _chunkGenerator.LayoutHandler.Width;
-        var layoutHeight = _chunkGenerator.LayoutHandler.Height;
+        var layoutHeight = _chunkGenerator.LayoutHandler.Height + _chunkGenerator.LayoutHandler.Size + _chunkGenerator.LayoutHandler.VerticalMargin;
         
         var leftMargin = (_temporaryCamera.Width - layoutWidth) / 2f;
         _targetPosition = DisplayCenter ? (-leftMargin, 0, 0) : Vector3.Zero;
@@ -115,7 +114,7 @@ public class Playfield(PlayfieldSettings settings)
         _lock.Release();
     }
 
-    private void UpdateCullingIndex(Span<PlayfieldChunk> span, float cameraY)
+    private void UpdateCullingIndex(ReadOnlySpan<PlayfieldChunk> span, float cameraY)
     {
         if (_lastCullingIndex >= span.Length)
             _lastCullingIndex = span.Length - 1;

@@ -33,6 +33,8 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         })
 {
     public static Manager? Instance { get; private set; }
+    private static Queue<int> _vaoToFree = new();
+    private static Queue<int> _buffersToFree = new();
     
     public readonly SemaphoreSlim RenderBlock = new(1);
     public readonly List<IScene> Scenes = [];
@@ -162,6 +164,7 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
     { 
         MakeCurrent();
         ShaderPool.UploadShadersToPreload();
+        CleanupResources();
         
         if (KeyboardState.IsAnyKeyDown)
             foreach (var scene in Scenes)
@@ -199,5 +202,26 @@ public class Manager(int width, int height, string title, int? fps = null, Windo
         base.OnClosing(e);
 
         foreach (var scene in Scenes) scene.Close();
+    }
+
+    private static void CleanupResources()
+    {
+        lock (_vaoToFree)
+            while (_vaoToFree.TryDequeue(out var handle)) GL.DeleteVertexArray(handle);
+
+        lock (_buffersToFree)
+            while (_buffersToFree.TryDequeue(out var handle)) GL.DeleteBuffer(handle);
+    }
+    
+    public static void DeleteVertexArray(int handle)
+    {
+        lock (_vaoToFree)
+            _vaoToFree.Enqueue(handle);
+    }
+
+    public static void DeleteBuffer(int handle)
+    {
+        lock (_buffersToFree)
+            _buffersToFree.Enqueue(handle);
     }
 }

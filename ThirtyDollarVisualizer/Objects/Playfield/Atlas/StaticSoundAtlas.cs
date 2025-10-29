@@ -1,4 +1,3 @@
-using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
 using ThirtyDollarVisualizer.Base_Objects.Textures.Static;

@@ -30,7 +30,7 @@ public class BackgroundPlane : ColoredPlane
         _timingStopwatch.Start();
     }
 
-    public void Update()
+    public override void Update()
     {
         Color = GetCalculatedColor();
     }

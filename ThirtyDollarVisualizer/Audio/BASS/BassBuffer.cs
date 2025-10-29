@@ -43,7 +43,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
         _sampleInfo = new SampleInfo
         {
             Frequency = sampleRate,
-            Volume = _volume,
+            Volume = Volume,
             Flags = BassFlags.Float,
             Length = length * channels * sizeof(float),
             Max = maxCount,
@@ -55,7 +55,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
         ArrayPool<byte>.Shared.Return(pool);
     }
 
-    public float _volume => RelativeVolume * _context.GlobalVolume;
+    public float Volume => RelativeVolume * _context.GlobalVolume;
 
     public void Dispose()
     {
@@ -67,11 +67,11 @@ public class BassBuffer : AudibleBuffer, IDisposable
     {
         RelativeVolume = volume;
 
-        _sampleInfo.Volume = absolute ? volume / _context.GlobalVolume : _volume;
+        _sampleInfo.Volume = absolute ? volume / _context.GlobalVolume : Volume;
         Bass.SampleSetInfo(SampleHandle, _sampleInfo);
     }
 
-    private void HandleBufferOverflow()
+    private void HandleCPUOverloaded()
     {
         lock (_activeChannels)
         {
@@ -92,10 +92,10 @@ public class BassBuffer : AudibleBuffer, IDisposable
         if (Bass.CPUUsage > 75d)
         {
             DefaultLogger.Log("Bass", $"CPU usage reached: {Bass.CPUUsage:0.##}% CPU. Cutting old sounds.");
-            HandleBufferOverflow();
+            HandleCPUOverloaded();
         }
 
-        if (_volume < 0.001f) return;
+        if (Volume < 0.001f) return;
 
         var channel = Bass.SampleGetChannel(SampleHandle);
         if (Math.Abs(_pan - 0.5f) > 0.01f)

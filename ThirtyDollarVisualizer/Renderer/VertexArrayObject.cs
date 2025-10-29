@@ -104,6 +104,6 @@ public class VertexArrayObject : IBindable
     public void Dispose()
     {
         _buffers.Clear();
-        GL.DeleteVertexArray(Handle);
+        Manager.DeleteVertexArray(Handle);
     }
 }

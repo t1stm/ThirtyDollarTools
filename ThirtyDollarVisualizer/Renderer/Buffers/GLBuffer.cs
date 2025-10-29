@@ -62,7 +62,7 @@ public class GLBuffer<TDataType>(BufferTarget bufferTarget) : IGLBuffer<TDataTyp
 
     public virtual void Dispose()
     {
-        GL.DeleteBuffer(Handle);
+        Manager.DeleteBuffer(Handle);
         GC.SuppressFinalize(this);
     }
 
@@ -189,7 +189,7 @@ public class GLBuffer<TDataType>(BufferTarget bufferTarget) : IGLBuffer<TDataTyp
         public override void Dispose()
         {
             CPUBuffer = [];
-            GL.DeleteBuffer(Handle);
+            Manager.DeleteBuffer(Handle);
             GC.SuppressFinalize(this);
         }
     }

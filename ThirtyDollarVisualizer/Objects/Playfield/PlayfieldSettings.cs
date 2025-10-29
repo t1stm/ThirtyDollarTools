@@ -1,7 +1,7 @@
-using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 using ThirtyDollarConverter;
+using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
-namespace ThirtyDollarVisualizer.Objects;
+namespace ThirtyDollarVisualizer.Objects.Playfield;
 
 public readonly struct PlayfieldSettings(
     float renderableSize,

@@ -12,9 +12,8 @@ public readonly struct AtlasReference(RectangleF coordinates, ImageAtlas contain
     public QuadUV TextureUV => new()
     {
         UV0 = new Vector2(Coordinates.X / Container.Width, Coordinates.Y / Container.Height),
-        UV1 = new Vector2((Coordinates.X + Coordinates.Width) / Container.Width, Coordinates.Y / Container.Height), 
-        UV2 = new Vector2((Coordinates.X + Coordinates.Width) / Container.Width, (Coordinates.Y + Coordinates.Height) / Container.Height),
-        UV3 = new Vector2(Coordinates.X / Container.Width, (Coordinates.Y + Coordinates.Height) / Container.Height)
+        UV1 = new Vector2((Coordinates.X + Coordinates.Width) / Container.Width,
+            (Coordinates.Y + Coordinates.Height) / Container.Height)
     };
     
     public float Width => Coordinates.Width;

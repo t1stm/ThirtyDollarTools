@@ -14,10 +14,7 @@ public struct StaticSound : IGLReflection, IDebugStringify
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {
         SoundData.SelfReflectToGL(layout);
-        layout.PushFloat(2, true); // QuadUV.UV0
-        layout.PushFloat(2, true); // QuadUV.UV1
-        layout.PushFloat(2, true); // QuadUV.UV2
-        layout.PushFloat(2, true); // QuadUV.UV3
+        QuadUV.SelfReflectToGL(layout);
     }
 
     public override string ToString()

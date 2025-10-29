@@ -5,7 +5,7 @@ namespace ThirtyDollarVisualizer.Audio;
 public class Greeting(AudioContext context, BufferHolder holder)
 {
     private GreetingType _greeting;
-    public int LengthMiliseconds;
+    public int LengthMilliseconds;
 
     public GreetingType GreetingType
     {
@@ -21,7 +21,7 @@ public class Greeting(AudioContext context, BufferHolder holder)
         if (greeting == GreetingType.None)
         {
             AudibleBuffer = null;
-            LengthMiliseconds = 0;
+            LengthMilliseconds = 0;
             return;
         }
 
@@ -32,13 +32,13 @@ public class Greeting(AudioContext context, BufferHolder holder)
         var sample_rate = 48000;
 
         AudibleBuffer = context.GetBufferObject(audio_data, sample_rate);
-        LengthMiliseconds = audio_data.GetLength() * 1000 / sample_rate;
+        LengthMilliseconds = audio_data.GetLength() * 1000 / sample_rate;
     }
 
     public async Task PlayWaitFinish()
     {
         AudibleBuffer?.Play();
-        await Task.Delay(LengthMiliseconds);
+        await Task.Delay(LengthMilliseconds);
     }
 }
 

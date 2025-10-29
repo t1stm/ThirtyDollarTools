@@ -18,11 +18,6 @@ public class LayoutHandler
     private readonly GapBox? _padding;
 
     /// <summary>
-    /// The horizontal gap between two boxes.
-    /// </summary>
-    public readonly float HorizontalMargin;
-
-    /// <summary>
     /// The wanted box size that the layout is calculated in mind with.
     /// </summary>
     public readonly float Size;
@@ -69,7 +64,6 @@ public class LayoutHandler
         _calculatedPositions = GeneratePositions(soundsOnSingleLine, size, margin, padding);
         Size = size;
         VerticalMargin = margin?.Sum_Y() ?? 0;
-        HorizontalMargin = margin?.Sum_X() ?? 0;
         _padding = padding;
         _margin = margin;
 
