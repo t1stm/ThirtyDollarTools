@@ -1,12 +1,15 @@
 name: Cross-Platform Build and Release
 
-on:
+on: 
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    branches: [ '*' ]
+    paths:
+      - '**/*.csproj'
+      - '**/*.cs'
+      - '**/*.sln'
+        
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -70,3 +73,36 @@ jobs:
         with:
           name: ${{ matrix.platform }}-release
           path: bin/${{ matrix.platform }}
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_artifacts
+
+      - name: Archive platform builds
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          for dir in release_artifacts/*; do
+            name="$(basename "$dir")"
+            # Zip each platform artifact directory into a single file
+            (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/dist/${name}.zip" .)
+          done
+
+      - name: Create or update Nightly prerelease
+        uses: ncipollo/release-action@v1
+        with:
+          tag: nightly-${{ github.ref_name }}
+          name: Nightly Build of branch "${{ github.ref_name }}" '${{ github.sha }}'
+          prerelease: true
+          allowUpdates: true
+          replacesArtifacts: true
+          generateReleaseNotes: true
+          artifacts: dist/*.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+    
