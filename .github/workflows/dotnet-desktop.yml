@@ -97,8 +97,8 @@ jobs:
           tag: nightly-${{ github.ref_name }}
           name: "[${{ github.ref_name }}] Nightly Build"
           body: >
-          This is a nightly release of the branch ${{ github.ref_name }}. 
-          This means that the changes in this release are probably not ready for general use so use this release on the side of caution.
+            This is a nightly release of the branch ${{ github.ref_name }}. 
+            This means that the changes in this release are probably not ready for general use so use this release on the side of caution.
           
           prerelease: true
           allowUpdates: true
