@@ -67,7 +67,7 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-release
+          name: ${{ matrix.platform }}
           path: bin/${{ matrix.platform }}
 
   release:
@@ -95,14 +95,15 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: nightly-${{ github.ref_name }}
-          name: "[${{ github.ref_name }}] Nightly Build"
+          name: "Nightly Build of [${{ github.ref_name }}]"
           body: >
-            This is a nightly release of the branch ${{ github.ref_name }}. 
-            This means that the changes in this release are probably not ready for general use so use this release on the side of caution.
+            This is a nightly release for the branch "${{ github.ref_name }}". 
+            This means that the changes in this release are probably not tested thoroughly, or not ready for general use. 
+            Use this release on the side of caution.
           
           prerelease: true
           allowUpdates: true
-          replacesArtifacts: true
+          removeArtifacts: true
           generateReleaseNotes: true
           artifacts: dist/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
