@@ -86,15 +86,20 @@ jobs:
           shopt -s nullglob
           for dir in release_artifacts/*; do
             name="$(basename "$dir")"
+            echo "Creating a ZIP file for: $name"
             # Zip each platform artifact directory into a single file
-            (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/dist/${name}.zip" .)
+            (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/dist/ThirtyDollarTools-${name}.zip" .)
           done
 
       - name: Create or update Nightly prerelease
         uses: ncipollo/release-action@v1
         with:
           tag: nightly-${{ github.ref_name }}
-          name: Nightly Build of branch "${{ github.ref_name }}" '${{ github.sha }}'
+          name: "[${{ github.ref_name }}] Nightly Build"
+          body: >
+          This is a nightly release of the branch ${{ github.ref_name }}. 
+          This means that the changes in this release are probably not ready for general use so use this release on the side of caution.
+          
           prerelease: true
           allowUpdates: true
           replacesArtifacts: true
