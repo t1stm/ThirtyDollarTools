@@ -23,6 +23,7 @@ public class Game : GameWindow
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
     private GLInfo GLInfo { get; set; } = new();
+    private GLDebugProc _storedDebugCallback; // exists due to .NET design
 
     public Game(Assembly externalAssetAssembly, GameWindowSettings gameSettings,
         NativeWindowSettings nativeWindowSettings) :
@@ -54,8 +55,10 @@ public class Game : GameWindow
 
         GL.Enable(EnableCap.DebugOutput);
         GL.Enable(EnableCap.DebugOutputSynchronous);
+        
+        _storedDebugCallback = DebugCallback; // .NET GC automatically collects this unless it's stored somewhere in a class. 
         if (GLInfo.SupportsKHRDebug)
-            GL.DebugMessageCallback(DebugCallback, in IntPtr.Zero);
+            GL.DebugMessageCallback(_storedDebugCallback, in IntPtr.Zero);
         else RenderMarker.Enabled = false;
 
         GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
