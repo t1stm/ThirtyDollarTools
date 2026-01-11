@@ -1,12 +1,11 @@
 name: Cross-Platform Build and Release
 
-on:
+on: 
   push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+    branches: [ '*' ]
+        
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -68,5 +67,44 @@ jobs:
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}-release
+          name: ${{ matrix.platform }}
           path: bin/${{ matrix.platform }}
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_artifacts
+
+      - name: Archive platform builds
+        run: |
+          mkdir -p dist
+          shopt -s nullglob
+          for dir in release_artifacts/*; do
+            name="$(basename "$dir")"
+            echo "Creating a ZIP file for: $name"
+            # Zip each platform artifact directory into a single file
+            (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/dist/ThirtyDollarTools-${name}.zip" .)
+          done
+
+      - name: Create or update Nightly prerelease
+        uses: ncipollo/release-action@v1
+        with:
+          tag: nightly-${{ github.ref_name }}
+          name: "Nightly Build of [${{ github.ref_name }}]"
+          body: >
+            This is a nightly release for the branch "${{ github.ref_name }}". 
+            This means that the changes in this release are probably not tested thoroughly, or not ready for general use. 
+            Use this release on the side of caution.
+          
+          prerelease: true
+          allowUpdates: true
+          removeArtifacts: true
+          generateReleaseNotes: true
+          artifacts: dist/*.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+    
