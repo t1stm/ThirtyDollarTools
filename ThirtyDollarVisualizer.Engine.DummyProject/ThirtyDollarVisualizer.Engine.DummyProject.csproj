@@ -28,6 +28,7 @@
 
     <ItemGroup>
       <PackageReference Include="OpenTK" Version="5.0.0-pre.15" />
+      <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
     </ItemGroup>
 
     <ItemGroup>
