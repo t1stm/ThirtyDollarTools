@@ -1,58 +1,67 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 
-namespace ThirtyDollarVisualizer.Scenes;
+namespace ThirtyDollarVisualizer.Engine.Scenes;
 
-public interface IScene
+public abstract class Scene(SceneManager sceneManager)
 {
+    public SceneManager SceneManager { get; set; } = sceneManager;
+    public AssetProvider AssetProvider { get; set; } = sceneManager.AssetProvider;
+
     /// <summary>
     /// Method called during the OnLoad procedure.
     /// </summary>
-    /// <param name="manager"></param>
-    public void Init(Manager manager);
+    public abstract void Initialize();
 
     /// <summary>
     /// Method called by the manager after all scenes are loaded.
     /// </summary>
-    public void Start();
+    public abstract void Start();
 
     /// <summary>
     /// Method called by the render loop.
     /// </summary>
-    public void Render();
+    public abstract void Render(RenderArguments renderArgs);
+    
+    /// <summary>
+    /// Method called when the scene is transitioned to.
+    /// </summary>
+    public abstract void TransitionedTo();
 
     /// <summary>
     /// Method called by the update loop.
     /// </summary>
-    public void Update();
+    public abstract void Update(UpdateArguments updateArgs);
 
     /// <summary>
     /// Method called when the window is resized.
     /// </summary>
     /// <param name="w">The width of the resized window.</param>
     /// <param name="h">The height of the resized window.</param>
-    public void Resize(int w, int h);
+    public abstract void Resize(int w, int h);
 
     /// <summary>
-    /// Method called before the main window closes.
+    /// Method that should be called when releasing scene resources.
     /// </summary>
-    public void Close();
+    public abstract void Shutdown();
 
     /// <summary>
     /// Triggered when a file is dropped on the window.
     /// </summary>
     /// <param name="locations">The location of the dropped files.</param>
-    public void FileDrop(string[] locations);
+    public abstract void FileDrop(string[] locations);
 
     /// <summary>
     /// Event triggered when a keyboard button is pressed.
     /// </summary>
     /// <param name="state">A copy of the KeyboardState.</param>
-    public void Keyboard(KeyboardState state);
+    public abstract void Keyboard(KeyboardState state);
 
     /// <summary>
     /// Event triggered when a pointing device is interacted with.
     /// </summary>
     /// <param name="mouseState">A copy of the MouseState.</param>
     /// <param name="keyboardState">A copy of the KeyboardState.</param>
-    public void Mouse(MouseState mouseState, KeyboardState keyboardState);
+    public abstract void Mouse(MouseState mouseState, KeyboardState keyboardState);
 }

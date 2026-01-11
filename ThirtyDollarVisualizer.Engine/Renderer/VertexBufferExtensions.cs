@@ -1,6 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 
-namespace ThirtyDollarVisualizer.Renderer;
+namespace ThirtyDollarVisualizer.Engine.Renderer;
 
 public static class VertexBufferExtensions
 {

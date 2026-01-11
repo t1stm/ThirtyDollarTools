@@ -1,7 +1,7 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 
-namespace ThirtyDollarVisualizer.Renderer;
+namespace ThirtyDollarVisualizer.Engine.Renderer;
 
 /// <summary>
 /// A class representing how vertex attributes are organized within a vertex buffer.
@@ -11,10 +11,10 @@ public class VertexBufferLayout
     private readonly List<VertexBufferElement> _elements = [];
     private int _stride;
 
-    // Maybe this file should have the perInstance boolean be an integer and default to zero
+    // Maybe this file should have the perInstance boolean be an integer that defaults to zero, and be renamed to something else? 
     // I haven't encountered a use case for it yet, but when the time comes, it'll be easy to implement.
     // - t1stm
-    
+
     /// <summary>
     /// Adds a new <see cref="float"/> vertex attribute to the layout.
     /// </summary>
@@ -54,8 +54,8 @@ public class VertexBufferLayout
     /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushMatrix(int x, int y, int count)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(x, 4, nameof(x));
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(y, 4, nameof(y));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(x, 4);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(y, 4);
 
         for (var j = 0; j < count; j++)
         {
@@ -130,5 +130,10 @@ public class VertexBufferLayout
     public int GetStride()
     {
         return _stride;
+    }
+
+    public override string ToString()
+    {
+        return $"VertexBufferLayout [ {string.Join(", ", _elements.Select(element => element.ToString()))} ]";
     }
 }

@@ -1,48 +1,49 @@
 using System.Collections;
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Renderer.Abstract;
-using ThirtyDollarVisualizer.Renderer.Enums;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer.Enums;
+using ThirtyDollarVisualizer.Engine.Renderer.Queues;
 
-namespace ThirtyDollarVisualizer.Renderer.Buffers;
+namespace ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 
 /// <summary>
-///     Represents a generic GPU buffer that behaves like a list, providing dynamic array functionality
-///     with OpenGL buffer management. This class combines the performance of GPU buffers with the
-///     convenience of standard .NET collections.
+/// Represents a generic GPU buffer that behaves like a list, providing dynamic array functionality
+/// with OpenGL buffer management. This class combines the performance of GPU buffers with the
+/// convenience of standard .NET collections.
 /// </summary>
 /// <typeparam name="TDataType">The unmanaged data type stored in the buffer (e.g., vertex data, indices)</typeparam>
 /// <remarks>
-///     This class maintains a CPU cache to minimize GPU memory transfers and supports tracked references
-///     for efficient updates. It automatically manages buffer capacity expansion and provides full
-///     IList&lt;T&gt; compatibility for seamless integration with existing code.
+/// This class maintains a CPU cache to minimize GPU memory transfers and supports tracked references
+/// for efficient updates. It automatically manages buffer capacity expansion and provides full
+/// <see cref="IList&lt;TDataType&gt;"/> compatibility for seamless integration with existing code.
 /// </remarks>
-public class GLBufferList<TDataType>() : IGLBuffer<TDataType>, IList<TDataType> where TDataType : unmanaged, IDebugStringify
+public class GLBufferList<TDataType>(DeleteQueue deleteQueue) : IGPUBuffer<TDataType>, IList<TDataType> where TDataType : unmanaged
 {
-    public GLBufferList(int capacity) : this()
+    public GLBufferList(DeleteQueue deleteQueue, int capacity) : this(deleteQueue)
     {
         Buffer.ResizeCPUBuffer(capacity);
     }
 
-    protected GLBuffer<TDataType>.WithCPUCache Buffer { get; } = new(BufferTarget.ArrayBuffer);
+    protected GLBuffer<TDataType>.WithCPUCache Buffer { get; } = new(deleteQueue, BufferTarget.ArrayBuffer);
     protected Dictionary<int, TrackedBufferReference<TDataType>> TrackedBufferReferences { get; set; } = [];
 
     /// <summary>
-    ///     Gets the current creation state of the underlying OpenGL buffer.
+    /// Gets the current creation state of the underlying OpenGL buffer.
     /// </summary>
-    public CreationState CreationState => Buffer.CreationState;
+    public BufferState BufferState => Buffer.BufferState;
 
     /// <summary>
-    ///     Gets the OpenGL handle for the underlying buffer object.
+    /// Gets the OpenGL handle for the underlying buffer object.
     /// </summary>
     public int Handle => Buffer.Handle;
 
     /// <summary>
-    ///     Gets the current capacity of the buffer (total allocated space).
+    /// Gets the current capacity of the buffer (total allocated space).
     /// </summary>
     public int Capacity => Buffer.Capacity;
 
     /// <summary>
-    ///     Binds this buffer as the current OpenGL array buffer.
+    /// Binds this buffer as the current OpenGL array buffer.
     /// </summary>
     public void Bind()
     {
@@ -50,7 +51,7 @@ public class GLBufferList<TDataType>() : IGLBuffer<TDataType>, IList<TDataType> 
     }
 
     /// <summary>
-    ///     Updates the GPU buffer with any pending CPU-side changes.
+    /// Updates the GPU buffer with any pending CPU-side changes.
     /// </summary>
     public void Update()
     {
@@ -61,9 +62,9 @@ public class GLBufferList<TDataType>() : IGLBuffer<TDataType>, IList<TDataType> 
     ///     Sets the entire buffer data, replacing all existing content.
     /// </summary>
     /// <param name="data">The data to copy into the buffer</param>
-    public void DangerousGLThread_SetBufferData(ReadOnlySpan<TDataType> data)
+    public void Dangerous_SetBufferData(ReadOnlySpan<TDataType> data)
     {
-        Buffer.DangerousGLThread_SetBufferData(data);
+        Buffer.Dangerous_SetBufferData(data);
     }
 
     /// <summary>

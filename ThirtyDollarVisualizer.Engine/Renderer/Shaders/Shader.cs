@@ -1,119 +1,101 @@
 using System.Buffers;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Assets;
+using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Renderer.Debug;
+using ThirtyDollarVisualizer.Engine.Renderer.Enums;
 
-namespace ThirtyDollarVisualizer.Renderer.Shaders;
+namespace ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 
 /// <summary>
 /// Represents an OpenGL shader program.
 /// </summary>
-public class Shader : IDisposable
+public class Shader(AssetProvider assetProvider, params ShaderSource[] shaderSource) : IDisposable
 {
-    /// <summary> 
-    /// Controls whether the shader throws errors on missing uniforms.
-    /// </summary>
-    public bool IsPedantic { get; init; } = false;
-
     /// <summary>
     /// An allocated shader object that points to OpenGL program handle 0
     /// </summary>
-    public static Shader Dummy { get; } = new(0);
+    public static Shader Dummy { get; } = new(null!)
+    {
+        Handle = 0
+    };
     
-    /// <summary>
-    /// Definitions of each shader.
+    public ShaderSource[] Sources { get; } = shaderSource;
+    public BufferState BufferState { get; set; } = BufferState.PendingCreation;
+
+    /// <summary> 
+    /// Controls whether the shader throws errors on missing uniforms.
     /// </summary>
-    protected ShaderDefinition[] Definitions { get; set; } = [];
+    public bool IsPedantic { get; set; } = false;
     
     /// <summary>
     /// The OpenGL program handle.
     /// </summary>
     protected int Handle { get; set; }
-    
-    private Shader(int handle)
-    {
-        Handle = handle;
-    }
 
     /// <summary>
     /// Disposes the shader program and releases all resources.
     /// </summary>
     public void Dispose()
     {
-        GL.DeleteProgram(Handle);
         GC.SuppressFinalize(this);
+        GL.DeleteProgram(Handle);
     }
 
-    /// <summary>
-    /// Creates a new shader program from the given vertex and fragment shader paths. These paths support embedded assets.
-    /// </summary>
-    /// <param name="vertexPath">The path of the vertex shader to be loaded with <see cref="AssetManager.GetAsset(string)"/></param>
-    /// <param name="fragmentPath">The path of the fragment shader to be loaded with <see cref="AssetManager.GetAsset(string)"/></param>
-    /// <returns></returns>
-    public static Shader NewVertexFragment(string vertexPath, string fragmentPath)
+    private void Load()
     {
-        return NewDefined(ShaderDefinition.Vertex(vertexPath), ShaderDefinition.Fragment(fragmentPath));
-    }
-
-    /// <summary>
-    /// Creates a new shader program by generating vertex and fragment shaders
-    /// based on the provided default file path.
-    /// </summary>
-    /// <param name="path">The base file path without extensions for the shader files.</param>
-    /// <returns>A new instance of the <see cref="Shader"/> class with the shaders created.</returns>
-    public static Shader NewFromPathWithDefaultExtension(string path)
-    {
-        #if RELEASE
-        path = "ThirtyDollarVisualizer." + path.Replace('/', '.');
-        #endif
+        if (BufferState == BufferState.Created)
+        {
+            RenderMarker.Debug($"Deleting already created shader: {Handle}");
+            GL.DeleteProgram(Handle);
+        }
         
-        return NewDefined(ShaderDefinition.Vertex(path + ".vert"), ShaderDefinition.Fragment(path + ".frag"));
-    }
-
-    /// <summary>
-    /// Creates a new shader program from the given shader definitions. These shader definitions support embedded asset paths.
-    /// </summary>
-    /// <param name="shaders">Array of <see cref="ShaderDefinition"/></param>
-    /// <returns></returns>
-    public static Shader NewDefined(params ShaderDefinition[] shaders)
-    {
-        var handle = GL.CreateProgram();
-        var shader = new Shader(handle);
-        shader.AddShaderDefinitions(shaders);
-        shader.Definitions = shaders;
-        return shader;
-    }
-    
-    private void AddShaderDefinitions(ShaderDefinition[] shaders)
-    {
-        // rents an array for shader handles
-        var shaderHandleArray = ArrayPool<int>.Shared.Rent(shaders.Length);
-        var handlesSpan = new Span<int>(shaderHandleArray, 0, shaders.Length);
+        Handle = GL.CreateProgram();
+        RenderMarker.Debug($"Created Shader: ({Handle})");
         
+        var handlesArray = ArrayPool<int>.Shared.Rent(Sources.Length);
+        var handles = handlesArray.AsSpan()[..Sources.Length];
+
         try
         {
-            for (var index = 0; index < shaders.Length; index++)
+            for (var index = 0; index < Sources.Length; index++)
             {
-                var definition = shaders[index];
-                var tempShader = handlesSpan[index] = LoadShaderAtPath(definition.ShaderType, definition.Path);
-                GL.AttachShader(Handle, tempShader);
+                var source = Sources[index];
+                var sourceCode = source.SourceCode;
+
+                var shader = handles[index] = GL.CreateShader(source.Type);
+                GL.ShaderSource(shader, sourceCode);
+                GL.CompileShader(shader);
+
+                GL.AttachShader(Handle, shader);
+                RenderMarker.Debug($"Attached: ({shader}) {source.Type}");
             }
 
             LinkAndThrowOnError();
 
-            foreach (var handle in handlesSpan)
+            foreach (var shaderHandle in handles)
             {
-                GL.DetachShader(Handle, handle);
-                GL.DeleteShader(handle);
+                GL.DetachShader(Handle, shaderHandle);
+                GL.DeleteShader(shaderHandle);
+                RenderMarker.Debug($"Detached and Deleted: ({shaderHandle})");
             }
+
+            BufferState = BufferState.Created;
+            RenderMarker.Debug($"Shader: ({Handle}) Successfully Loaded.");
+        }
+        catch
+        {
+            BufferState = BufferState.Failed;
+            RenderMarker.Debug($"Failed to Create Shader: {Handle}");
+            throw;
         }
         finally
         {
-            // releases it back to the pool
-            ArrayPool<int>.Shared.Return(shaderHandleArray);
+            ArrayPool<int>.Shared.Return(handlesArray);
         }
     }
-
+    
     /// <summary>
     /// Links an OpenGL shader program and checks for any errors during the linking process.
     /// Throws an exception if the program fails to link.
@@ -121,13 +103,11 @@ public class Shader : IDisposable
     /// <exception cref="Exception">
     /// Thrown when the shader program fails to link. The exception message contains the error details retrieved from OpenGL.
     /// </exception>
-    protected void LinkAndThrowOnError()
+    private void LinkAndThrowOnError()
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
+        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1);
         GL.LinkProgram(Handle);
-        Manager.CheckErrors("GL.LinkProgram()");
         GL.GetProgrami(Handle, ProgramProperty.LinkStatus, out var link_status);
-        Manager.CheckErrors("GL.GetProgram()");
 
         if (link_status != 0) return;
         GL.GetProgramInfoLog(Handle, out var error);
@@ -140,7 +120,13 @@ public class Shader : IDisposable
     /// </summary>
     public void Use()
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1, nameof(Handle));
+        if (BufferState == BufferState.PendingCreation)
+            Load();
+        
+        if (BufferState.HasFlag(BufferState.Failed)) 
+            throw new Exception("Tried to use a failed shader.");
+        
+        ArgumentOutOfRangeException.ThrowIfLessThan(Handle, 1);
         GL.UseProgram(Handle);
     }
 
@@ -150,11 +136,28 @@ public class Shader : IDisposable
     /// </summary>
     public void ReloadShader()
     {
-        GL.DeleteProgram(Handle);
-        Handle = GL.CreateProgram();
-        AddShaderDefinitions(Definitions);
-    }
+        var assetInfoHolder = ArrayPool<ShaderInfo>.Shared.Rent(Sources.Length);
+        var shaderInfos = assetInfoHolder.AsSpan();
+        
+        try
+        {
+            var span = Sources.AsSpan();
+            for (var index = 0; index < span.Length; index++)
+            {
+                shaderInfos[index] = span[index].Info;
+            }
 
+            assetProvider.Load<ShaderSource, ShaderInfo>(Sources, shaderInfos);
+            Load();
+        }
+        finally
+        {
+            ArrayPool<ShaderInfo>.Shared.Return(assetInfoHolder);
+        }
+    }
+    
+    #region Uniform Methods
+    
     /// <summary>
     /// Sets the value of an integer uniform in the shader program by its name.
     /// </summary>
@@ -170,8 +173,7 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
-            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
-            return false;
+            return IsPedantic ? throw new Exception($"Uniform \'{name}\' not found in shader.") : false;
         }
 
         GL.Uniform1i(location, value);
@@ -228,8 +230,7 @@ public class Shader : IDisposable
         var location = GL.GetUniformLocation(Handle, name);
         if (location == -1)
         {
-            if (IsPedantic) throw new Exception($"Uniform \'{name}\' not found in shader.");
-            return false;
+            return IsPedantic ? throw new Exception($"Uniform \'{name}\' not found in shader.") : false;
         }
 
         GL.Uniform4f(location, value.X, value.Y, value.Z, value.W);
@@ -273,25 +274,6 @@ public class Shader : IDisposable
         GL.Uniform1f(location, value);
         return true;
     }
-
-    private static int LoadShaderAtPath(ShaderType type, string path)
-    {
-        var asset = AssetManager.GetAsset(path);
-        using var stream = asset.Stream;
-        
-        var streamReader = new StreamReader(stream);
-        var source = streamReader.ReadToEnd();
-
-        Manager.CheckErrors("Before GL.CreateShader()");
-        var handle = GL.CreateShader(type);
-        Manager.CheckErrors("GL.CreateShader()");
-        GL.ShaderSource(handle, source);
-        Manager.CheckErrors("GL.ShaderSource()");
-        GL.CompileShader(handle);
-        Manager.CheckErrors("GL.CompileShader()");
-        
-        GL.GetShaderInfoLog(handle, out var infoLog);
-        Manager.CheckErrors("GL.ShaderInfoLog()");
-        return !string.IsNullOrWhiteSpace(infoLog) ? throw new Exception($"Error compiling shader \'{path}\' of type {type}, failed with error {infoLog}") : handle;
-    }
+    
+    #endregion
 }

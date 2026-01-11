@@ -1,6 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 
-namespace ThirtyDollarVisualizer.Renderer;
+namespace ThirtyDollarVisualizer.Engine.Renderer;
 
 /// <summary>
 /// A definition of a vertex buffer element.
@@ -11,4 +11,9 @@ public struct VertexBufferElement
     public bool Normalized;
     public int Divisor;
     public VertexAttribPointerType Type;
+
+    public override string ToString()
+    {
+        return $"VertexBufferElement (T: {Type} C: {Count}, N: {Normalized}, D: {Divisor})";
+    }
 }
