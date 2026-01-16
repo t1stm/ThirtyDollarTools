@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Text;
-using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using ThirtyDollarConverter.Objects;
@@ -12,7 +11,7 @@ namespace ThirtyDollarConverter.DiscordBot;
 public class SlashCommands : ApplicationCommandModule
 {
     [ContextMenu(DiscordApplicationCommandType.MessageContextMenu, "TDW to OGG Opus")]
-    public async Task ConvertFileToOGG(ContextMenuContext ctx)
+    public async Task ConvertFileToOgg(ContextMenuContext ctx)
     {
         var file = ctx.TargetMessage.Attachments.Count > 0 ? ctx.TargetMessage.Attachments[0] : null;
         if (file is null || string.IsNullOrWhiteSpace(file.Url))
@@ -20,13 +19,13 @@ public class SlashCommands : ApplicationCommandModule
             await ctx.CreateResponseAsync("```Message doesn't have any files attached.```");
             return;
         }
-        
+
         await ctx.CreateResponseAsync("```Converting TDW to OGG.```");
-        await ConvertTDWToAudio(ctx, file.Url);
+        await ConvertTdwToAudio(ctx, file.Url);
     }
-    
+
     [ContextMenu(DiscordApplicationCommandType.MessageContextMenu, "TDW to MP3")]
-    public async Task ConvertFileToMP3(ContextMenuContext ctx)
+    public async Task ConvertFileToMp3(ContextMenuContext ctx)
     {
         var file = ctx.TargetMessage.Attachments.Count > 0 ? ctx.TargetMessage.Attachments[0] : null;
         if (file is null || string.IsNullOrWhiteSpace(file.Url))
@@ -36,11 +35,13 @@ public class SlashCommands : ApplicationCommandModule
         }
         
         await ctx.CreateResponseAsync("```Converting TDW to MP3.```");
-        await ConvertTDWToAudio(ctx, file.Url, true);
+        await ConvertTdwToAudio(ctx, file.Url, true);
     }
 
-    protected static async Task ConvertTDWToAudio(ContextMenuContext ctx, string url, bool mp3 = false)
+    protected static async Task ConvertTdwToAudio(ContextMenuContext ctx, string url, bool mp3 = false)
     {
+        var message = await ctx.GetOriginalResponseAsync();
+        
         var http_client = new HttpClient();
         byte[] request;
         try
@@ -49,35 +50,30 @@ public class SlashCommands : ApplicationCommandModule
         }
         catch (Exception e)
         {
-            await ctx.FollowUpAsync(
-                new DiscordFollowupMessageBuilder()
-                    .WithContent("```Unable to read message attachment. Please report this error to the developer.```\n" + $"```Error: {e}```"));
+            await message.ModifyAsync(
+                        "```Unable to read message attachment. Please report this error to the developer.```\n" +
+                        $"```Error: {e}```");
             return;
         }
 
         string sequence_text;
         try
         {
-            Encoding utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+            Encoding utf8 = new UTF8Encoding(false, true);
             sequence_text = utf8.GetString(request, 0, request.Length);
         }
         catch (Exception)
         {
-            await ctx.FollowUpAsync(
-                new DiscordFollowupMessageBuilder()
-                    .WithContent("```Unable to read message attachment. Likely a non-text file was uploaded.```"));
+            await message.ModifyAsync("```Unable to read message attachment. Likely a non-text file was uploaded.```");
             return;
         }
 
         var sequence = Sequence.FromString(sequence_text);
-        await EncoderTask(ctx, [sequence], mp3);
+        await EncoderTask(message, [sequence], mp3);
     }
 
-    protected static async Task EncoderTask(ContextMenuContext ctx, IList<Sequence> sequences, bool mp3 = false)
+    protected static async Task EncoderTask(DiscordMessage message, IList<Sequence> sequences, bool mp3 = false)
     {
-        var message = await ctx.FollowUpAsync(new DiscordFollowupMessageBuilder()
-            .WithContent("```Fully read attached file. Starting conversion.```"));
-        
         var calculator = new PlacementCalculator(Static.EncoderSettings);
         var array = sequences as Sequence[] ?? sequences.ToArray();
         var placement = calculator.CalculateMany(array);
