@@ -43,7 +43,7 @@ public class Sound
     public string? Source { get; init; }
     
     /// <summary>
-    ///     Whether the sound should always use its ID when saving, even if it has an emoji.
+    /// Whether the sound should always use its ID when saving, even if it has an emoji.
     /// </summary>
     [JsonPropertyName("useId")]
     [JsonInclude]

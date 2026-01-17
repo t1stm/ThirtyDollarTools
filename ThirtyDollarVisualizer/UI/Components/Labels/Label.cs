@@ -1,57 +1,49 @@
-using SixLabors.Fonts;
-using ThirtyDollarVisualizer.Base_Objects.Text;
+using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
+using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
+using ThirtyDollarVisualizer.Engine.Text;
+using ThirtyDollarVisualizer.Engine.Text.Fonts;
 using ThirtyDollarVisualizer.UI.Abstractions;
 
 namespace ThirtyDollarVisualizer.UI.Components.Labels;
 
-public class Label : UIElement, IText
+[PreloadGraphicsContext]
+public class Label : UIElement, IGamePreloadable
 {
-    protected LabelMode Mode;
-    protected TextRenderable Renderable = new StaticText();
-
-    public Label(string text, LabelMode mode = LabelMode.Static) : this(text, 0, 0, mode)
+    private static TextProvider _textProvider = null!;
+    public static void Preload(AssetProvider assetProvider)
     {
+        _textProvider = new TextProvider(assetProvider, new FontProvider(assetProvider), 
+            "Lato Bold");
     }
+    
+    protected readonly TextBuffer TextBuffer;
+    protected readonly TextSlice TextSlice;
 
-    public Label(string text, float x, float y, LabelMode mode = LabelMode.Static) : base(x, y, 0, 0)
+    public Label(ReadOnlySpan<char> text, float x = 0, float y = 0) : base(x, y, 0, 0)
     {
-        Mode = mode;
-        UpdateTextRenderableMode(null, mode);
         SetTextContents(text);
+        TextBuffer = new TextBuffer(_textProvider);
+        TextSlice = TextBuffer.GetTextSlice(text);
     }
 
-    public LabelMode LabelMode
+    public ReadOnlySpan<char> Value
     {
-        get => Mode;
-        set
-        {
-            UpdateTextRenderableMode(Mode, value);
-            Mode = value;
-        }
-    }
-
-    public string Value
-    {
-        get => Renderable.Value;
+        get => TextSlice.Value;
         set => SetTextContents(value);
     }
 
     public float FontSizePx
     {
-        get => Renderable.FontSizePx;
-        set => Renderable.FontSizePx = value;
+        get => TextSlice.FontSize;
+        set => TextSlice.FontSize = value;
     }
 
-    public FontStyle FontStyle
+    public void SetTextContents(ReadOnlySpan<char> text)
     {
-        get => Renderable.FontStyle;
-        set => Renderable.FontStyle = value;
-    }
-
-    public void SetTextContents(string text)
-    {
-        Renderable.Value = text;
-        var scale = Renderable.Scale;
+        TextSlice.Value = text;
+        var scale = TextSlice.Scale;
 
         Width = scale.X;
         Height = scale.Y;
@@ -59,47 +51,14 @@ public class Label : UIElement, IText
         Parent?.Layout();
     }
 
-    private void UpdateTextRenderableMode(LabelMode? oldMode, LabelMode newMode)
-    {
-        if (oldMode?.Equals(newMode) ?? false)
-            return;
-
-        var old_renderable = Renderable;
-        Renderable = newMode switch
-        {
-            LabelMode.Static => new StaticText(),
-            LabelMode.BasicDynamic => new BasicDynamicText(),
-            LabelMode.CachedDynamic => new CachedDynamicText(),
-            _ => throw new ArgumentOutOfRangeException(nameof(newMode), newMode, null)
-        };
-
-        if (oldMode == null)
-            return;
-
-        var value = old_renderable.Value;
-        var font_size = old_renderable.FontSizePx;
-        var font_style = old_renderable.FontStyle;
-
-        Renderable.FontSizePx = font_size;
-        Renderable.FontStyle = font_style;
-        SetTextContents(value);
-    }
-
     public override void Layout()
     {
-        Renderable.SetPosition((AbsoluteX, AbsoluteY, 0));
+        TextSlice.SetPosition((AbsoluteX, AbsoluteY, 0));
         base.Layout();
     }
 
     protected override void DrawSelf(UIContext context)
     {
-        context.QueueRender(Renderable, Index);
+        context.QueueRender(TextBuffer, Index);
     }
-}
-
-public enum LabelMode
-{
-    Static,
-    BasicDynamic,
-    CachedDynamic
 }

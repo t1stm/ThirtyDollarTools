@@ -1,5 +1,4 @@
 using System.Reflection;
-using Microsoft.Extensions.Logging;
 using Serilog.Core;
 using ThirtyDollarVisualizer.Engine.Assets.Abstract;
 using ThirtyDollarVisualizer.Engine.Assets.Helpers;

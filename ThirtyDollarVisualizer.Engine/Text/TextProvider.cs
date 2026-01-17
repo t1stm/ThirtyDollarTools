@@ -5,7 +5,7 @@ using ThirtyDollarVisualizer.Engine.Assets.Extensions;
 using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
-using ThirtyDollarVisualizer.Engine.Renderer.Camera;
+using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
 using ThirtyDollarVisualizer.Engine.Renderer.Debug;
 using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
@@ -13,7 +13,7 @@ using ThirtyDollarVisualizer.Engine.Text.Fonts;
 
 namespace ThirtyDollarVisualizer.Engine.Text;
 
-[PreloadGL]
+[PreloadGraphicsContext]
 public class TextProvider(AssetProvider provider, FontProvider fontProvider, string fontName)
     : IGamePreloadable
 {
@@ -35,14 +35,6 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
 
     public readonly GlyphProvider GlyphProvider = new(fontProvider, fontName);
     public AssetProvider AssetProvider { get; } = provider;
-
-    public TextSlice GetTextSlice(string text)
-    {
-        return new TextSlice(this)
-        {
-            Value = text
-        };
-    }
 
     private void AddCharacter(ReadOnlySpan<char> character)
     {

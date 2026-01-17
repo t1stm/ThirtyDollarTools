@@ -58,4 +58,13 @@
       <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf" />
+      <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf" />
+      <EmbeddedResource Include="Assets\Fonts\README.md" />
+      <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf" />
+      <EmbeddedResource Include="Assets\Shaders\Text\Batched.frag" />
+      <EmbeddedResource Include="Assets\Shaders\Text\Batched.vert" />
+    </ItemGroup>
+
 </Project>

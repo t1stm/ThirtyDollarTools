@@ -215,6 +215,7 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
         public override void Dispose()
         {
             CPUBuffer = [];
+            Updates.Clear();
             _deleteQueue.Enqueue(DeleteType.VBO, Handle);
             GC.SuppressFinalize(this);
         }

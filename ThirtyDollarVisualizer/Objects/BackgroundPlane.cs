@@ -2,18 +2,20 @@ using System.Diagnostics;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
-using ThirtyDollarVisualizer.Renderer.Attributes;
+using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
+using ThirtyDollarVisualizer.Engine.Renderer.Queues;
 
 namespace ThirtyDollarVisualizer.Objects;
 
-[PreloadGL]
+[PreloadGraphicsContext]
 public class BackgroundPlane : ColoredPlane
 {
     [UsedImplicitly]
-    public new static void Preload()
+    public new static void Preload(AssetProvider assetProvider)
     {
         // hacky solution I know.
-        ColoredPlane.Preload();
+        ColoredPlane.Preload(assetProvider);
     }
     
     private readonly Stopwatch _timingStopwatch = new();

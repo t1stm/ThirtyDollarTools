@@ -1,37 +1,44 @@
 using JetBrains.Annotations;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
-using ThirtyDollarVisualizer.Renderer;
-using ThirtyDollarVisualizer.Renderer.Abstract;
-using ThirtyDollarVisualizer.Renderer.Attributes;
-using ThirtyDollarVisualizer.Renderer.Buffers;
-using ThirtyDollarVisualizer.Renderer.Shaders;
+using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Assets.Extensions;
+using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Renderer;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
+using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
+using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
+using ThirtyDollarVisualizer.Engine.Renderer.Queues;
+using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Base_Objects.Planes;
 
-[PreloadGL]
-public class ColoredPlane : Renderable, IGLPreloadable
+[PreloadGraphicsContext]
+public class ColoredPlane : Renderable, IGamePreloadable
 {
+    private static DeleteQueue _deleteQueue = null!;
+    private static Shader _shader = null!;
+
     private static bool _areVerticesGenerated;
     private static VertexArrayObject _staticVAO = null!;
     private static GLBuffer<ColoredUniform>? _uniformBuffer;
-
-    private Lazy<Shader> _shader = new(() => ShaderPool.GetNamedShader("colored_plane"), LazyThreadSafetyMode.None);
 
     private ColoredUniform _uniform;
     public float BorderRadius;
 
     [UsedImplicitly]
-    public static void Preload()
+    public static void Preload(AssetProvider assetProvider)
     {
-        ShaderPool.PreloadShader("colored_plane", static () => Shader.NewVertexFragment(
-                Asset.Embedded("Shaders/colored.vert"),
-                Asset.Embedded("Shaders/colored.frag")
-            ));
+        _deleteQueue = assetProvider.DeleteQueue;
+        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/ColoredPlane", provider =>
+            new Shader(provider, provider.LoadShaders(
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/colored.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/colored.frag")))
+        );
     }
-    
+
     public ColoredPlane()
     {
         if (!_areVerticesGenerated) SetVertices();
@@ -58,10 +65,10 @@ public class ColoredPlane : Renderable, IGLPreloadable
         }
     }
 
-    public override Shader? Shader
+    public override Shader Shader
     {
-        get => _shader.Value;
-        set => _shader = new Lazy<Shader>(value ?? throw new ArgumentNullException(nameof(value)));
+        get => _shader;
+        set => _shader = value ?? throw new ArgumentNullException(nameof(value));
     }
 
     private static void SetVertices()
@@ -69,7 +76,7 @@ public class ColoredPlane : Renderable, IGLPreloadable
         _staticVAO = new VertexArrayObject();
         var layout = new VertexBufferLayout();
         layout.PushFloat(3); // xyz vertex coords
-        
+
         _staticVAO.AddBuffer(GLQuad.VBOWithoutUV, layout);
         _areVerticesGenerated = true;
     }
@@ -80,10 +87,10 @@ public class ColoredPlane : Renderable, IGLPreloadable
 
         _staticVAO.Bind();
         _staticVAO.Update();
-        
+
         GLQuad.EBO.Bind();
         GLQuad.EBO.Update();
-        
+
         Shader.Use();
         SetShaderUniforms(camera);
 
@@ -103,8 +110,8 @@ public class ColoredPlane : Renderable, IGLPreloadable
 
         Span<ColoredUniform> span = [_uniform];
 
-        _uniformBuffer ??= new GLBuffer<ColoredUniform>(BufferTarget.UniformBuffer);
-        _uniformBuffer.DangerousGLThread_SetBufferData(span);
+        _uniformBuffer ??= new GLBuffer<ColoredUniform>(_deleteQueue, BufferTarget.UniformBuffer);
+        _uniformBuffer.Dangerous_SetBufferData(span);
         GL.BindBufferBase(BufferTarget.UniformBuffer, 0, _uniformBuffer.Handle);
     }
 }

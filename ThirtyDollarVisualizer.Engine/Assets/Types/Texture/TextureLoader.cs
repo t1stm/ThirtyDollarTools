@@ -32,7 +32,7 @@ public class TextureLoader : IAssetLoader<TextureHolder, TextureInfo>
         using var stream = assetStream.Stream;
         var image = Image.Load<Rgba32>(stream);
 
-        switch (image.Width, image.Height)
+        switch (createInfo.Width, createInfo.Height)
         {
             case (not 0, not 0):
             {

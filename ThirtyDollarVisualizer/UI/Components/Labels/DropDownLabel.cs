@@ -1,13 +1,12 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
-using ThirtyDollarVisualizer.Base_Objects.Text;
 using ThirtyDollarVisualizer.UI.Abstractions;
 using ThirtyDollarVisualizer.UI.Components.Panels;
 
 namespace ThirtyDollarVisualizer.UI.Components.Labels;
 
-public sealed class DropDownLabel : Panel, IText
+public sealed class DropDownLabel : Panel
 {
     public DropDownLabel(string text, List<UIElement> panelChildren, bool hoverChildren = true) : base(0, 0, 0, 0)
     {
@@ -70,15 +69,13 @@ public sealed class DropDownLabel : Panel, IText
 
     #region IText
 
-    public string Value
+    public ReadOnlySpan<char> Value
     {
         get => Label.Value;
         set => Label.Value = value;
     }
 
     public float FontSizePx => Label.FontSizePx;
-
-    public FontStyle FontStyle => Label.FontStyle;
 
     public void SetTextContents(string text)
     {

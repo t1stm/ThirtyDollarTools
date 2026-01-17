@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Engine.Renderer.Camera;
+using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
 
 namespace ThirtyDollarVisualizer.Engine.DummyProject;
 

@@ -1,29 +1,33 @@
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
-using ThirtyDollarVisualizer.Renderer;
-using ThirtyDollarVisualizer.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-public struct QuadUV: IGLReflection
+public struct QuadUV : IGPUReflection
 {
-    public Vector2 UV0;
-    public Vector2 UV1;
-    public Vector2 UV2;
-    public Vector2 UV3;
+    public Vector4 UV;
 
     public override string ToString()
     {
-        return $"{UV0} {UV1} {UV2} {UV3}";
+        return $"{UV}";
     }
 
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {
         layout.PushFloat(2, true); // QuadUV.UV0
         layout.PushFloat(2, true); // QuadUV.UV1
-        layout.PushFloat(2, true); // QuadUV.UV2
-        layout.PushFloat(2, true); // QuadUV.UV3
+    }
+
+    public static QuadUV FromRectangle(RectangleF reference, int atlasWidth, int atlasHeight)
+    {
+        return new QuadUV
+        {
+            UV = (reference.X / atlasWidth, reference.Y / atlasHeight, (reference.X + reference.Width) / atlasWidth,
+                (reference.Y + reference.Height) / atlasHeight),
+        };
     }
 }

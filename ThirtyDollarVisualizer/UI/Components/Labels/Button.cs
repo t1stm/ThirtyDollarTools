@@ -1,12 +1,11 @@
 using OpenTK.Mathematics;
 using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
-using ThirtyDollarVisualizer.Base_Objects.Text;
 using ThirtyDollarVisualizer.UI.Components.Panels;
 
 namespace ThirtyDollarVisualizer.UI.Components.Labels;
 
-public class Button : FlexPanel, IText
+public class Button : FlexPanel
 {
     private readonly Label _label;
 
@@ -26,7 +25,7 @@ public class Button : FlexPanel, IText
         UpdateCursorOnHover = true;
     }
 
-    public string Value
+    public ReadOnlySpan<char> Value
     {
         get => _label.Value;
         set => _label.Value = value;
@@ -36,12 +35,6 @@ public class Button : FlexPanel, IText
     {
         get => _label.FontSizePx;
         set => _label.FontSizePx = value;
-    }
-
-    public FontStyle FontStyle
-    {
-        get => _label.FontStyle;
-        set => _label.FontStyle = value;
     }
 
     public void SetTextContents(string text)

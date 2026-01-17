@@ -1,17 +1,26 @@
+using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
+using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Assets.Extensions;
+using ThirtyDollarVisualizer.Engine.Assets.Helpers;
+using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
+using ThirtyDollarVisualizer.Engine.Renderer.Queues;
+using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
-using ThirtyDollarVisualizer.Renderer.Abstract;
-using ThirtyDollarVisualizer.Renderer.Attributes;
-using ThirtyDollarVisualizer.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
-[PreloadGL] 
+[PreloadGraphicsContext] 
 public readonly struct RenderableFactory(AtlasStore store)
-    : IGLPreloadable
+    : IGamePreloadable
 {
+    private static ShaderPool _shaderPool = null!;
+    private static DeleteQueue _deleteQueue = null!;
+    
     /// <summary>
     /// Dictionary mapping framed atlases to their corresponding render stacks of animated sound data.
     /// Used to batch and render sounds with animated textures efficiently by grouping them by their atlas.
@@ -24,13 +33,22 @@ public readonly struct RenderableFactory(AtlasStore store)
     /// </summary>
     public Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticAtlases { get; } = new();
 
-    public static void Preload()
+    public static void Preload(AssetProvider assetProvider)
     {
-        ShaderPool.PreloadShader(AnimatedShaderLocation, static () =>
-            Shader.NewFromPathWithDefaultExtension(AnimatedShaderLocation));
-
-        ShaderPool.PreloadShader(StaticShaderLocation, static () =>
-            Shader.NewFromPathWithDefaultExtension(StaticShaderLocation));
+        _deleteQueue = assetProvider.DeleteQueue;
+        _shaderPool = assetProvider.ShaderPool;
+        
+        assetProvider.ShaderPool.PreloadShader(AnimatedShaderLocation, provider =>
+            new Shader(provider, provider.LoadShaders(
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/Playfield/Chunk/Animated.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/Playfield/Chunk/Animated.frag")))
+        );
+        
+        assetProvider.ShaderPool.PreloadShader(StaticShaderLocation, provider =>
+            new Shader(provider, provider.LoadShaders(
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/Playfield/Chunk/Static.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/Playfield/Chunk/Static.frag")))
+        );
     }
 
     private const string AnimatedShaderLocation = "Assets/Shaders/Playfield/Chunk/Animated";
@@ -64,7 +82,7 @@ public readonly struct RenderableFactory(AtlasStore store)
         List<StaticSoundAtlas> storedStaticAtlases,
         SoundRenderable soundRenderable)
     {
-        var staticShader = ShaderPool.GetNamedShader(StaticShaderLocation);
+        var staticShader = _shaderPool.GetNamedShader(StaticShaderLocation);
 
         foreach (var atlas in storedStaticAtlases)
         {
@@ -80,11 +98,11 @@ public readonly struct RenderableFactory(AtlasStore store)
             var staticSound = new StaticSound
             {
                 Data = soundData,
-                TextureUV = reference.TextureUV
+                TextureUV = QuadUV.FromRectangle(reference, atlas.Width, atlas.Height)
             };
 
             if (!staticAtlases.TryGetValue(atlas, out var renderStack))
-                staticAtlases.Add(atlas, renderStack = new RenderStack<StaticSound>
+                staticAtlases.Add(atlas, renderStack = new RenderStack<StaticSound>(_deleteQueue)
                 {
                     Shader = staticShader
                 });
@@ -119,11 +137,10 @@ public readonly struct RenderableFactory(AtlasStore store)
         FramedAtlas animatedAtlas,
         SoundRenderable soundRenderable)
     {
-        var animatedShader = ShaderPool.GetNamedShader(AnimatedShaderLocation);
+        var animatedShader = _shaderPool.GetNamedShader(AnimatedShaderLocation);
 
-        var uv = animatedAtlas.CurrentUV;
-        var (w, h) = (uv.UV0.X * animatedAtlas.Width, uv.UV1.Y * animatedAtlas.Height);
-        soundRenderable.Scale = (w, h, 1);
+        var rect = animatedAtlas.CurrentRectangle;
+        soundRenderable.Scale = (rect.Width, rect.Height, 1);
 
         var soundData = new SoundData
         {
@@ -132,7 +149,7 @@ public readonly struct RenderableFactory(AtlasStore store)
         };
 
         if (!animatedAtlases.TryGetValue(animatedAtlas, out var renderStack))
-            animatedAtlases.Add(animatedAtlas, renderStack = new RenderStack<SoundData>
+            animatedAtlases.Add(animatedAtlas, renderStack = new RenderStack<SoundData>(_deleteQueue)
             {
                 Shader = animatedShader
             });
@@ -153,6 +170,7 @@ public readonly struct RenderableFactory(AtlasStore store)
             var oldValue = trackedReference.Value;
             trackedReference.Value = oldValue with { RGBA = rgba };
         };
+
         return soundRenderable;
     }
 }

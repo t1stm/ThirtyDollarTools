@@ -1,6 +1,3 @@
-using System.Runtime.InteropServices;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
-
 namespace ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
 public class AtlasStore
@@ -11,11 +8,6 @@ public class AtlasStore
     public void Update()
     {
         foreach (var (_, atlas) in AnimatedAtlases)
-        {
-            atlas.Update();
-        }
-
-        foreach (var atlas in CollectionsMarshal.AsSpan(StaticAtlases))
         {
             atlas.Update();
         }

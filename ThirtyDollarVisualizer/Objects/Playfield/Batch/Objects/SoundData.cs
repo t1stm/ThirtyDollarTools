@@ -1,15 +1,15 @@
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Renderer;
-using ThirtyDollarVisualizer.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
-[StructLayout(LayoutKind.Explicit, Size = 80)]
-public struct SoundData : IGLReflection, IDebugStringify
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct SoundData : IGPUReflection
 {
-    [FieldOffset(0)] public Matrix4 Model;
-    [FieldOffset(64)] public Vector4 RGBA;
+    public Matrix4 Model;
+    public Vector4 RGBA;
 
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {

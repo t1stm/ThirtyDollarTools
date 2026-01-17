@@ -1,20 +1,24 @@
 // Warm thanks to The Cherno
 // https://youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2
 
+using System.Reflection;
 using System.Runtime.InteropServices;
 using CommandLine;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
-using OpenTK.Windowing.GraphicsLibraryFramework;
+using OpenTK.Windowing.Desktop;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using ThirtyDollarVisualizer.Assets;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.BASS;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Audio.OpenAL;
 using ThirtyDollarVisualizer.Base_Objects.Settings;
+using ThirtyDollarVisualizer.Engine;
+using ThirtyDollarVisualizer.Engine.Assets;
 using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Scenes;
+using ThirtyDollarVisualizer.Scenes.Application;
 using ThirtyDollarVisualizer.Settings;
 using Image = SixLabors.ImageSharp.Image;
 
@@ -77,10 +81,10 @@ public static class Program
 
         DefaultLogger.Init();
         Configuration.Default.PreferContiguousImageBuffers = true;
-        
+
         if (sequence != null && !File.Exists(sequence))
         {
-            DefaultLogger.Log("Program","Unable to find specified sequence. Running without a specified sequence.");
+            DefaultLogger.Log("Program", "Unable to find specified sequence. Running without a specified sequence.");
             sequence = null;
         }
 
@@ -91,49 +95,60 @@ public static class Program
             settings.TransparentFramebuffer = transparent_framebuffer.Value;
 
         if (line_amount.HasValue) settings.LineAmount = line_amount.Value;
-
         if (event_size.HasValue) settings.EventSize = event_size.Value;
-
         if (event_margin.HasValue) settings.EventMargin = event_margin.Value;
-
-        var assetPath = Asset.Embedded("Textures/moai.png");
-        using var assetStream = AssetManager.GetAsset(assetPath).Stream;
-        var icon_stream = Image.Load<Rgba32>(assetStream);
-
-        icon_stream.DangerousTryGetSinglePixelMemory(out var memory);
-        var icon_bytes = MemoryMarshal.AsBytes(memory.Span).ToArray();
-        _ = new WindowIcon(
-            new OpenTK.Windowing.Common.Input.Image(icon_stream.Width, icon_stream.Height, icon_bytes));
-
-        // TODO: reimplement setting icons. currently setting an icon under Wayland and macOS crashes the app.
-        // Optionally query the operating system to get support for icon setting.
-        // Maybe also implement a fail-safe in the settings file.
-        var manager = new Manager(width, height, "Thirty Dollar Visualizer", fps);
         
-        if (manager.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
+        var gameWindowSettings = new GameWindowSettings
+        {
+            UpdateFrequency = fps ?? 0,
+        };
+
+        var nativeWindowSettings = new NativeWindowSettings
+        {
+            Icon = null,
+            API = ContextAPI.OpenGL,
+            Profile = ContextProfile.Core,
+            Flags = ContextFlags.ForwardCompatible,
+            APIVersion = new Version(3, 3),
+            Title = "Thirty Dollar Visualizer",
+            WindowState = WindowState.Normal,
+            WindowBorder = WindowBorder.Resizable,
+            TransparentFramebuffer = true,
+            Vsync = fps == null ? VSyncMode.On : VSyncMode.Off,
+            ClientSize = (width, height)
+        };
+        
+        var game = new Game(Assembly.GetExecutingAssembly(), gameWindowSettings, nativeWindowSettings);
+        if (game.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
         if (mode != null)
             settings.Mode = mode;
 
-        if (settings.Mode == "Editor")
+        switch (settings.Mode)
         {
-            var thirty_dollar_editor = new ThirtyDollarEditor(width, height, settings, audio_context);
-            manager.Scenes.Add(thirty_dollar_editor);
-        }
-        else
-        {
-            var tdw_application = new ThirtyDollarApplication(width, height, [sequence], settings, audio_context)
+            case "Editor":
             {
-                CameraFollowMode = follow_mode,
-                Scale = scale ?? 1f,
-                Greeting = greeting ?? settings.Greeting
-            };
-
-            manager.Scenes.Add(tdw_application);
+                game.SceneManager.LoadScene<ThirtyDollarEditor>(settings.Mode, 
+                    sceneManager => new ThirtyDollarEditor(sceneManager, settings, audio_context));
+                break;
+            }
+            default:
+            {
+                game.SceneManager.LoadScene<ThirtyDollarApplication>(settings.Mode,
+                    sceneManager =>
+                        new ThirtyDollarApplication(sceneManager, width, height, [sequence], settings, audio_context)
+                        {
+                            CameraFollowMode = follow_mode,
+                            Scale = scale ?? 1f,
+                            Greeting = greeting ?? settings.Greeting
+                        });
+                break;
+            }
         }
-
-        manager.Run();
+        
+        game.SceneManager.TransitionTo(settings.Mode);
+        game.Run();
     }
 
     public class Options
@@ -146,7 +161,6 @@ public static class Program
 
         [Option("no-audio", HelpText = "Disable audio playback.")]
         public bool NoAudio { get; set; }
-
 
         [Option('w', "width", HelpText = "The width of the render window.")]
         public int? Width { get; set; }

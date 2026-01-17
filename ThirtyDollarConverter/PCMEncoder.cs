@@ -75,7 +75,7 @@ public class PcmEncoder
             Placement = placement_array,
             TimingSampleRate = (int)_sampleRate
         };
-        
+
         return await GetAudioFromTimedEvents(timed_events);
     }
 
@@ -101,7 +101,7 @@ public class PcmEncoder
 
     public async Task<AudioData<float>> GetAudioFromTimedEvents(TimedEvents timed_events)
     {
-       Log("Calculated placement. Starting sample processing.");
+        Log("Calculated placement. Starting sample processing.");
 
         var processed_events = await GetAudioSamples(timed_events);
 
@@ -341,7 +341,7 @@ public class PcmEncoder
                 {
                     HandleCut(start, end, current_start, data.GetChannel(channel).AsSpan()[start..end]);
                 }
-                
+
                 continue;
             }
 
@@ -457,7 +457,7 @@ public class PcmEncoder
     {
         if (_settings.EnableNormalization)
             data.Normalize();
-        
+
         var samples = data.Samples;
         for (var i = 0; i < samples.Length; i++)
         {
@@ -527,8 +527,9 @@ public class PcmEncoder
     /// <param name="length">The length of the export you want to do.</param>
     /// <param name="volume">The volume of the source audio while being added.</param>
     /// <param name="offset">The source sample offset. Used in multithreading.</param>
+    /// <param name="invert">Whether to invert the sample so that if exists in the audio already it gets removed.</param>
     private static void RenderSample(Span<float> source, Span<float> destination, int index,
-        double volume, int length = -1, int offset = -1)
+        double volume, int length = -1, int offset = -1, bool invert = false)
     {
         if (length == -1) length = source.Length;
 
@@ -556,7 +557,7 @@ public class PcmEncoder
             var s_vector = new Vector<float>(s);
 
             var src = s_vector * final_volume;
-            var final = src + d_vector;
+            var final = invert ? src - d_vector : src + d_vector;
 
             final.CopyTo(d);
         }

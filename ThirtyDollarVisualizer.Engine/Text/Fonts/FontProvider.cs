@@ -16,17 +16,17 @@ public class FontProvider
         
         AddFont("Lato Regular", assetProvider.Load<AssetStream, AssetInfo>(new AssetInfo
         {
-            Location = "Fonts/Lato-Regular.ttf",
+            Location = "Assets/Fonts/Lato-Regular.ttf",
         }));
         
         AddFont("Lato Bold", assetProvider.Load<AssetStream, AssetInfo>(new AssetInfo
         {
-            Location = "Fonts/Lato-Bold.ttf",
+            Location = "Assets/Fonts/Lato-Bold.ttf",
         }));
         
         AddFont("Twemoji Mozilla", assetProvider.Load<AssetStream, AssetInfo>(new AssetInfo
         {
-            Location = "Fonts/Twemoji.Mozilla.ttf",
+            Location = "Assets/Fonts/Twemoji.Mozilla.ttf",
         }));
     }
 

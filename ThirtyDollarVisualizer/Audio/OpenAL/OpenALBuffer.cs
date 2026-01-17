@@ -19,8 +19,8 @@ public class OpenALBuffer : AudibleBuffer
 
         var format = channels switch
         {
-            1 => ALFormat.MonoFloat32Ext,
-            2 => ALFormat.StereoFloat32Ext,
+            1 => Format.FormatMonoFloat32,
+            2 => Format.FormatStereoFloat32,
             _ => throw new ArgumentOutOfRangeException(nameof(sampleData), "The given channels count is invalid.")
         };
 
@@ -34,7 +34,7 @@ public class OpenALBuffer : AudibleBuffer
         }
 
         AudioBuffer = AL.GenBuffer();
-        AL.BufferData(AudioBuffer, format, samples, sampleRate);
+        AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
     }
 
     public float Volume => RelativeVolume * _context.GlobalVolume;
@@ -56,21 +56,21 @@ public class OpenALBuffer : AudibleBuffer
             _audioSources.Add(source);
         }
 
-        var size = AL.GetBuffer(AudioBuffer, ALGetBufferi.Size);
+        var size = AL.GetBufferi(AudioBuffer, BufferGetPNameI.Size);
 
-        var bits = AL.GetBuffer(AudioBuffer, ALGetBufferi.Bits);
-        var channels = AL.GetBuffer(AudioBuffer, ALGetBufferi.Channels);
-        var frequency = AL.GetBuffer(AudioBuffer, ALGetBufferi.Frequency);
+        var bits = AL.GetBufferi(AudioBuffer, BufferGetPNameI.Bits);
+        var channels = AL.GetBufferi(AudioBuffer, BufferGetPNameI.Channels);
+        var frequency = AL.GetBufferi(AudioBuffer, BufferGetPNameI.Frequency);
 
         var size_per_channel = (float)size / channels;
         var samples = size_per_channel / (bits / 8f);
 
         var length = (int)(1000f * (samples / frequency));
+        
+        AL.Sourcei(source, SourcePNameI.Buffer, AudioBuffer);
 
-        AL.Source(source, ALSourcei.Buffer, AudioBuffer);
-
-        AL.Source(source, ALSourcef.Gain, Volume);
-        AL.Source(source, ALSource3f.Position, _pan, 0, 0);
+        AL.Sourcef(source, SourcePNameF.Gain, Volume);
+        AL.Source3f(source, SourcePName3F.Position, _pan, 0, 0);
 
         AL.SourcePlay(source);
         audio_context.CheckErrors();
@@ -111,7 +111,7 @@ public class OpenALBuffer : AudibleBuffer
             if (_audioSources.Count < 1) return -1;
             var source = _audioSources.FirstOrDefault();
 
-            AL.GetSource(source, ALSourcef.SecOffset, out var offset);
+            AL.GetSourcef(source, SourceGetPNameF.SecOffset, out var offset);
             return (long)(offset * 1000f);
         }
     }
@@ -120,7 +120,7 @@ public class OpenALBuffer : AudibleBuffer
     {
         lock (_audioSources)
         {
-            foreach (var source in _audioSources) AL.Source(source, ALSourcef.SecOffset, milliseconds / 1000f);
+            foreach (var source in _audioSources) AL.Sourcef(source, SourcePNameF.SecOffset, milliseconds / 1000f);
         }
     }
 
@@ -152,17 +152,17 @@ public class OpenALBuffer : AudibleBuffer
             if (_audioSources.Count < 1) return;
             foreach (var source in _audioSources)
             {
-                AL.GetSource(source, ALGetSourcei.SourceState, out var playing);
+                AL.GetSourcei(source, SourceGetPNameI.SourceState, out var playing);
 
-                var playing_state = (ALSourceState)playing;
+                var playing_state = (SourceState)playing;
 
                 switch (playing_state)
                 {
-                    case ALSourceState.Initial when !state:
-                    case ALSourceState.Paused when !state:
+                    case SourceState.Initial when !state:
+                    case SourceState.Paused when !state:
                         AL.SourcePlay(source);
                         break;
-                    case ALSourceState.Playing when state:
+                    case SourceState.Playing when state:
                         AL.SourcePause(source);
                         break;
                 }

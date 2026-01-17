@@ -36,13 +36,13 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
         }
     }
 
-    public void Initialize()
+    public void Initialize(InitArguments initArguments)
     {
-        // TODO pass initialization data struct
+        
         foreach (var (sceneName, scene) in Scenes)
         {
             DebugMarker("Initializing scene: ", sceneName);
-            scene.Initialize();
+            scene.Initialize(initArguments);
         }
     }
 

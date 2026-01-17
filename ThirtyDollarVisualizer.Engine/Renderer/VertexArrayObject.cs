@@ -12,8 +12,8 @@ namespace ThirtyDollarVisualizer.Engine.Renderer;
 /// <summary>
 /// A class that represents a vertex array object.
 /// </summary>
-[PreloadGL]
-public class VertexArrayObject : IBindable, IGamePreloadable
+[PreloadGraphicsContext]
+public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
 {
     public BufferState BufferState { get; private set; } = BufferState.PendingCreation;
 
@@ -22,7 +22,7 @@ public class VertexArrayObject : IBindable, IGamePreloadable
     private readonly Queue<(IBuffer, VertexBufferLayout)> _uploadQueue = [];
     private int _vertexIndex;
     private IBindable? _ibo;
-    private bool _isIBOUploaded = false;
+    private bool _isIBOUploaded;
 
     public static void Preload(AssetProvider assetProvider)
     {
@@ -63,7 +63,6 @@ public class VertexArrayObject : IBindable, IGamePreloadable
     {
         lock (_uploadQueue)
             _uploadQueue.Enqueue((vbo, layout));
-        RenderMarker.Debug("Enqueued Buffer to VAO: ", $"({Handle}), Params: [{vbo}, {layout}]");
     }
 
     private void UploadBuffer(IBuffer vbo, VertexBufferLayout layout)
@@ -141,5 +140,6 @@ public class VertexArrayObject : IBindable, IGamePreloadable
     {
         _buffers.Clear();
         _deleteQueue.Enqueue(DeleteType.VAO, Handle);
+        GC.SuppressFinalize(this);
     }
 }

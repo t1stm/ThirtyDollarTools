@@ -1,47 +1,23 @@
-using MsdfAtlasGen;
-using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Engine.Renderer;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
-using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
-using ThirtyDollarVisualizer.Engine.Renderer.Camera;
-using ThirtyDollarVisualizer.Engine.Renderer.Debug;
-using ThirtyDollarVisualizer.Engine.Renderer.Enums;
 using ThirtyDollarVisualizer.Engine.Text.Fonts;
 using FontMetrics = Msdfgen.Extensions.FontMetrics;
 
 namespace ThirtyDollarVisualizer.Engine.Text;
 
-[PreloadGL]
-public class TextSlice : IBindable
+[PreloadGraphicsContext]
+public class TextSlice(TextBuffer textBuffer, Range range)
+    : IPositionable, IDisposable
 {
-    private readonly GLBuffer<TextCharacter>.WithCPUCache _characters;
-    private readonly VertexArrayObject _vao;
-    private string _value = string.Empty;
+    private readonly char[] _value = new char[range.End.Value - range.Start.Value];
     private Vector3 _position = Vector3.Zero;
-    private readonly TextProvider _textProvider;
     private float _fontSize = 16;
 
-    public TextSlice(TextProvider textProvider)
-    {
-        _characters = new GLBuffer<TextCharacter>.WithCPUCache(textProvider.AssetProvider.DeleteQueue,
-            BufferTarget.ArrayBuffer);
+    public Vector3 Scale { get; set; }
 
-        _textProvider = textProvider;
-        _vao = new VertexArrayObject();
-        ReflectToVAO(_vao);
-    }
-
-    private void ReflectToVAO(VertexArrayObject vao)
-    {
-        vao.AddBuffer(GLQuad.VBOWithoutUV, new VertexBufferLayout().PushFloat(3));
-
-        var layout = new VertexBufferLayout();
-        TextCharacter.SelfReflectToGL(layout);
-        vao.AddBuffer(_characters, layout);
-        vao.SetIndexBuffer(GLQuad.EBO);
-    }
+    public int Length { get; private set; }
+    public int Offset { get; } = range.Start.Value;
 
     public Vector3 Position
     {
@@ -53,12 +29,21 @@ public class TextSlice : IBindable
         }
     }
 
-    public string Value
+    public ReadOnlySpan<char> Value
     {
         get => _value;
         set
         {
-            _value = value;
+            Span<char> destination = _value;
+            if (_value.Length < value.Length)
+                throw new InvalidOperationException("TextSlice capacity exceeded.");
+            
+            value.CopyTo(destination);
+            Length = value.Length;
+            
+            if (_value.Length > value.Length)
+                _value.AsSpan(value.Length).Clear();
+            
             UpdateCharacters();
         }
     }
@@ -72,51 +57,70 @@ public class TextSlice : IBindable
             UpdateCharacters();
         }
     }
+    
+    private FontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.FontMetrics;
 
-    private FontMetrics FontMetrics => _textProvider.GlyphProvider.FontMetrics;
-
+    public void SetValue(ReadOnlySpan<char> value)
+    {
+        Value = value;
+    }
+    
     private void UpdateCharacters()
     {
+        var val = Value;
+        var textProvider = textBuffer.TextProvider;
         var fontMetrics = FontMetrics;
         var fontSize = FontSize;
         var cursorX = Position.X;
         var cursorY = Position.Y;
+
+        var minX = cursorX;
+        var minY = cursorY;
+        var maxX = cursorX;
+        var maxY = cursorY;
         
-        _characters.ResizeCPUBuffer(_value.Length);
         var bufferIndex = 0;
 
         Span<char> characters = stackalloc char[2]; // this is an array because we need to support surrogate pairs
-        for (var index = 0; index < _value.Length; index++)
+        for (var index = 0; index < val.Length; index++)
         {
-            var character = _value[index];
-            if (character == '\n')
+            var character = val[index];
+            switch (character)
             {
-                cursorX = Position.X;
-                cursorY += FontSize * (float)(fontMetrics.LineHeight / fontMetrics.EmSize);
-                continue;
+                case (char)0:
+                    if (Offset + bufferIndex >= textBuffer.Characters.Capacity) 
+                        throw new Exception("TextSlice capacity exceeded.");
+                    textBuffer.Characters[Offset + bufferIndex] = new TextCharacter();
+                    bufferIndex++;
+                    continue;
+                
+                case '\n':
+                    cursorX = Position.X;
+                    cursorY += FontSize * (float)(fontMetrics.LineHeight / fontMetrics.EmSize);
+                    continue;
             }
 
             TextCharacter textCharacter;
             TextAlignmentData textAlignmentData;
 
-            if (char.IsSurrogate(character) && index + 1 < _value.Length &&
-                char.IsSurrogatePair(character, _value[index + 1]))
+            if (char.IsSurrogate(character) && index + 1 < val.Length &&
+                char.IsSurrogatePair(character, val[index + 1]))
             {
                 characters[0] = character;
-                characters[1] = _value[index + 1];
+                characters[1] = val[index + 1];
 
-                (textCharacter, textAlignmentData) = _textProvider.GetTextCharacter(characters);
+                (textCharacter, textAlignmentData) = textProvider.GetTextCharacter(characters);
                 index++;
             }
             else
             {
                 characters[0] = character;
                 characters[1] = (char)0;
-                (textCharacter, textAlignmentData) = _textProvider.GetTextCharacter(characters[..1]);
+                (textCharacter, textAlignmentData) = textProvider.GetTextCharacter(characters[..1]);
             }
 
             var textureSize = textCharacter.TextureUV; // this is currently atlas coordinates, converting to UV below
-            var atlasSize = new Vector2(_textProvider.TextAtlas.Width, _textProvider.TextAtlas.Height);
+            var atlasSize = new Vector2(textProvider.TextAtlas.Width, textProvider.TextAtlas.Height);
 
             textCharacter.TextureUV =
                 (textureSize.X / atlasSize.X,
@@ -140,37 +144,25 @@ public class TextSlice : IBindable
             textCharacter.Scale = new Vector2(scaleW, scaleH);
 
             cursorX += (float)advanceUnitSpace * fontSize;
+            
+            maxX = Math.Max(maxX, cursorX);
+            maxY = Math.Max(maxY, cursorY + FontSize * (float)(fontMetrics.LineHeight / fontMetrics.EmSize));
 
-            _characters[bufferIndex] = textCharacter;
+            if (Offset + bufferIndex >= textBuffer.Characters.Capacity) 
+                throw new Exception("TextSlice capacity exceeded.");
+            textBuffer.Characters[Offset + bufferIndex] = textCharacter;
             bufferIndex++;
         }
+
+        Scale = new Vector3(maxX - minX, maxY - minY, 1);
     }
 
-    public void Render(Camera camera)
+    public void Dispose()
     {
-        _textProvider.BindAndSetUniforms(camera, Vector4.One);
-        Update();
-
-        GL.DrawElementsInstanced(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt,
-            IntPtr.Zero, _characters.Data.Length);
-        RenderMarker.Debug("Rendered Text Slice: ", _value, MarkerType.Hidden);
+        _value.AsSpan().Clear();
+        UpdateCharacters();
+        
+        textBuffer.Remove(this);
+        GC.SuppressFinalize(this);
     }
-
-    public void Update()
-    {
-        _vao.Bind();
-        _vao.Update();
-    }
-
-    #region Deferred IBindable implementation
-
-    public BufferState BufferState => _characters.BufferState;
-    public int Handle => _characters.Handle;
-
-    public void Bind()
-    {
-        Update();
-    }
-
-    #endregion
 }

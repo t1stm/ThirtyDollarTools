@@ -1,11 +1,8 @@
-using System.Collections.Concurrent;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Base_Objects;
-using ThirtyDollarVisualizer.Base_Objects.Planes;
-using ThirtyDollarVisualizer.Base_Objects.Textures;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
+using ThirtyDollarVisualizer.Engine.Text;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -16,10 +13,10 @@ public sealed class SoundRenderable : Renderable
     private readonly FadeAnimation? _fadeAnimation;
     private readonly Memory<Animation> _renderableAnimations;
     private bool _resetAnimationState;
-    
-    public TexturedPlane? Pan;
-    public TexturedPlane? Value;
-    public TexturedPlane? Volume;
+
+    public TextSlice? Pan;
+    public TextSlice? Value;
+    public TextSlice? Volume;
 
     public Func<Matrix4> GetModel { get; set; } = () => Matrix4.Identity;
     public Func<Vector4> GetRGBA { get; set; } = () => Vector4.One;
@@ -60,10 +57,10 @@ public sealed class SoundRenderable : Renderable
         {
             base.Scale = value;
             if (_bounceAnimation != null)
-                _bounceAnimation.FinalY = value.Y / 5f;
+                _bounceAnimation.FinalY = value.Y / 4.26666667f;
         }
     }
-    
+
     public bool IsDivider { get; set; }
 
     private void ResetAnimationState() => _resetAnimationState = true;
@@ -78,23 +75,9 @@ public sealed class SoundRenderable : Renderable
         }
 
         if (!animationsRunning && !_resetAnimationState) return;
-        
+
         UpdateModel(false, _renderableAnimations.Span);
         _resetAnimationState = false;
-    }
-
-    public void UpdateChildren()
-    {
-        Children.Clear();
-
-        AddChildIfNotNull(Value);
-        AddChildIfNotNull(Volume);
-        AddChildIfNotNull(Pan);
-    }
-
-    private void AddChildIfNotNull(Renderable? child)
-    {
-        if (child is not null) Children.Add(child);
     }
 
     public void Bounce()
@@ -117,48 +100,38 @@ public sealed class SoundRenderable : Renderable
         foreach (var animation in _renderableAnimations.Span) animation.Reset();
     }
 
-    public void SetValue(BaseEvent @event, ConcurrentDictionary<string, SingleTexture> generatedTextures,
-        ValueChangeWrapMode valueChangeWrapMode)
+    public void SetValue(BaseEvent ev, ValueChangeWrapMode valueChangeWrapMode)
     {
         if (Value is null) return;
 
         Fade();
         Expand();
 
-        var found_texture = generatedTextures.TryGetValue(@event.PlayTimes.ToString("0.##"), out var texture);
-        if (!found_texture) texture = StaticTexture.TransparentPixel;
-
-        if (@event.PlayTimes <= 0)
-            texture = valueChangeWrapMode switch
-            {
-                ValueChangeWrapMode.ResetToDefault =>
-                    generatedTextures.TryGetValue(@event.OriginalLoop.ToString("0.##"), out var loop_texture)
-                        ? loop_texture
-                        : StaticTexture.TransparentPixel,
-                _ => null
-            };
+        Span<char> characters = stackalloc char[32];
+        switch (ev.PlayTimes)
+        {
+            case <= 0 when valueChangeWrapMode == ValueChangeWrapMode.ResetToDefault &&
+                           !ev.OriginalLoop.TryFormat(characters, out _, "0.##") &&
+                           !ev.OriginalLoop.TryFormat(characters, out _, "0.##"):
+                throw new Exception("Failed to format original loop");
+            case > 0 when !ev.PlayTimes.TryFormat(characters, out _, "0.##"):
+                throw new Exception("Failed to format play times");
+        }
 
         var this_position = Position;
         var this_scale = Scale;
 
-        if (texture == null)
-        {
-            Value.Texture = texture;
-            return;
-        }
+        Value.SetValue(characters);
 
-        var new_scale = (texture.Width, texture.Height, 0);
-        Value.Scale = new_scale;
-
+        var new_scale = Value.Scale;
         var new_position_x = this_position.X + this_scale.X / 2f;
         var new_position = new Vector3
         {
-            X = new_position_x,
-            Y = Value.Position.Y,
+            X = new_position_x - new_scale.X / 2f,
+            Y = Value.Position.Y - new_scale.Y / 2f,
             Z = Value.Position.Z
         };
 
-        Value.SetPosition(new_position, PositionAlign.TopCenter);
-        Value.Texture = texture;
+        Value.Position = new_position;
     }
 }

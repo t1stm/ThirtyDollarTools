@@ -13,14 +13,29 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
     {
         return createInfo.Storage switch
         {
-            StorageLocation.Unknown => File.Exists(createInfo.Location) ||
+            StorageLocation.Unknown => ExistsOnDisk(createInfo.Location) ||
                                        assetProvider.AssetAssemblies.GetManifestResourceInfo(createInfo.Location) != null,
-            StorageLocation.Disk => File.Exists(createInfo.Location),
+            StorageLocation.Disk => ExistsOnDisk(createInfo.Location),
             StorageLocation.Assembly => assetProvider.AssetAssemblies.GetManifestResourceInfo(createInfo.Location) !=
                                         null,
             StorageLocation.Network => true,
             _ => false
         };
+    }
+
+    private static bool ExistsOnDisk(string path)
+    {
+        if (!path.Contains('*')) return File.Exists(path);
+        
+        var directory = Path.GetDirectoryName(path);
+        if (string.IsNullOrEmpty(directory)) 
+            directory = Directory.GetCurrentDirectory();
+        
+        var fileName = Path.GetFileName(path);
+        if (!Directory.Exists(directory)) return false;
+        
+        var lookup = Directory.EnumerateFiles(directory, fileName);
+        return lookup.Any();
     }
 
     public AssetStream Load(AssetInfo createInfo, AssetProvider assetProvider,
@@ -50,7 +65,7 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
     private static AssetStream TryCreateFromDiskAndThenAssembly(AssetInfo createInfo,
         Assembly[] assetAssemblies)
     {
-        return File.Exists(createInfo.Location)
+        return ExistsOnDisk(createInfo.Location)
             ? CreateFromDisk(createInfo)
             : CreateFromAssemblies(createInfo, assetAssemblies);
     }
@@ -58,6 +73,25 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
 
     private static AssetStream CreateFromDisk(AssetInfo createInfo)
     {
+        if (createInfo.Location.Contains('*'))
+        {
+            var directory = Path.GetDirectoryName(createInfo.Location);
+            if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
+            var fileName = Path.GetFileName(createInfo.Location);
+
+            var firstMatch = Directory.EnumerateFiles(directory, fileName).FirstOrDefault();
+            if (firstMatch is null)
+                throw new FileNotFoundException($"File matching pattern: \'{createInfo.Location}\' not found on disk.");
+
+            createInfo.Location = firstMatch;
+            createInfo.Storage = StorageLocation.Disk;
+            return new AssetStream
+            {
+                Stream = File.OpenRead(createInfo.Location),
+                Info = createInfo
+            };
+        }
+
         if (!File.Exists(createInfo.Location))
             throw new FileNotFoundException($"File at location: \'{createInfo.Location}\' not found on disk.");
 
@@ -76,7 +110,7 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
         createInfo.Location.AsSpan().Replace(newLocationSpan, '/', '.');
 
         ReadOnlySpan<char> readonlySpan = newLocationSpan;
-        var assetStream = assetAssemblies.GetManifestResourceStream(readonlySpan.ToString());
+        var assetStream = assetAssemblies.GetManifestResourceStream(readonlySpan);
 
         if (assetStream is null)
             throw new FileNotFoundException($"Assembly file: \'{createInfo.Location}\' not found.");

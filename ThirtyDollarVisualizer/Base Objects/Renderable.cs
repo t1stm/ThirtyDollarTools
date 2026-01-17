@@ -1,17 +1,13 @@
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Animations;
-using ThirtyDollarVisualizer.Base_Objects.Text;
-using ThirtyDollarVisualizer.Renderer.Shaders;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
+using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Base_Objects;
 
-public abstract class Renderable
+public abstract class Renderable : IRenderable, IPositionable
 {
-    /// <summary>
-    /// Dummy renderable to use on animations that don't animate a renderable.
-    /// </summary>
-    public static readonly Renderable Dummy = new StaticText();
-
     public readonly List<Renderable> Children = [];
 
     /// <summary>
@@ -26,7 +22,7 @@ public abstract class Renderable
     /// </summary>
     public bool IsVisible = true;
 
-    public virtual Shader? Shader { get; set; }
+    public virtual Shader Shader { get; set; }
 
     /// <summary>
     /// The position of the current renderable.
@@ -188,36 +184,6 @@ public abstract class Renderable
     }
 
     /// <summary>
-    /// Sets the renderable's position.
-    /// </summary>
-    /// <param name="position">The position.</param>
-    /// <param name="align">The align type.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Invalid PositionAlign given.</exception>
-    public virtual void SetPosition(Vector3 position, PositionAlign align = PositionAlign.TopLeft)
-    {
-        var scale = Scale;
-
-        Position = align switch
-        {
-            PositionAlign.TopLeft => position,
-            PositionAlign.TopCenter => position - scale.X / 2f * Vector3.UnitX,
-            PositionAlign.TopRight => position - scale.X * Vector3.UnitX,
-
-            PositionAlign.MiddleLeft => position - scale.Y / 2f * Vector3.UnitY,
-            PositionAlign.Center => position - scale.Y / 2f * Vector3.UnitY - scale.X / 2f * Vector3.UnitX,
-            PositionAlign.MiddleRight => position - scale.Y / 2f * Vector3.UnitY - scale.X * Vector3.UnitX,
-
-            PositionAlign.BottomLeft => position - scale.Y * Vector3.UnitY,
-            PositionAlign.BottomCenter => position - scale.Y * Vector3.UnitY - scale.X / 2f * Vector3.UnitX,
-            PositionAlign.BottomRight => position - scale.Y * Vector3.UnitY - scale.X * Vector3.UnitX,
-            _ => throw new ArgumentOutOfRangeException(nameof(align), align,
-                "Invalid Position Align in set position method.")
-        };
-
-        UpdateModel(IsChild);
-    }
-
-    /// <summary>
     /// Sets the renderable's translation.
     /// </summary>
     /// <param name="translation">The translation.</param>
@@ -240,20 +206,6 @@ public static class RenderableExtensions
         where TTarget : Renderable
     {
         return renderable as TTarget;
-    }
-
-    /// <summary>
-    /// Gives a Renderable object with its position set to the value you give.
-    /// </summary>
-    /// <param name="renderable">The source renderable.</param>
-    /// <param name="position">The new position.</param>
-    /// <param name="align">The position's align.</param>
-    /// <returns>The source renderable with the new position set.</returns>
-    public static T WithPosition<T>(this T renderable, Vector3 position,
-        PositionAlign align = PositionAlign.TopLeft) where T : Renderable
-    {
-        renderable.SetPosition(position, align);
-        return renderable;
     }
 
     /// <summary>
@@ -303,27 +255,4 @@ public static class RenderableExtensions
         renderable.Color = color;
         return renderable;
     }
-}
-
-/// <summary>
-/// Enum that sets how a position is interpreted.
-/// </summary>
-public enum PositionAlign : byte
-{
-    // These values follow bitwise rules.
-    // Let's say that we have a byte 0000_0000
-    // We only use the first six bits for the location.
-    // Reading the value from right to left, the first three bits are for the X-axis,
-    // and the second three for the Y-axis.
-
-    // Example: TopRight: 001_001, TopCenter 001_010, Center 010_010, BottomLeft 100_100
-    TopLeft = 8 ^ 4,
-    TopCenter = 8 ^ 2,
-    TopRight = 8 ^ 1,
-    MiddleLeft = 16 ^ 4,
-    Center = 16 ^ 2,
-    MiddleRight = 16 ^ 1,
-    BottomLeft = 32 ^ 4,
-    BottomCenter = 32 ^ 2,
-    BottomRight = 32 ^ 1
 }

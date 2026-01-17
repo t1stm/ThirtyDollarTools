@@ -1,3 +1,4 @@
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 using ThirtyDollarVisualizer.UI.Abstractions;
 
 namespace ThirtyDollarVisualizer.UI.Components.Panels;

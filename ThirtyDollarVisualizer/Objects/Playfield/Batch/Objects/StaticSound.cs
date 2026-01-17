@@ -1,15 +1,15 @@
 using System.Runtime.InteropServices;
+using ThirtyDollarVisualizer.Engine.Renderer;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
-using ThirtyDollarVisualizer.Renderer;
-using ThirtyDollarVisualizer.Renderer.Abstract;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
-[StructLayout(LayoutKind.Explicit, Size = 112)]
-public struct StaticSound : IGLReflection, IDebugStringify
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
+public struct StaticSound : IGPUReflection
 {
-    [FieldOffset(0)] public SoundData Data;
-    [FieldOffset(80)] public QuadUV TextureUV;
+    public SoundData Data;
+    public QuadUV TextureUV;
 
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {

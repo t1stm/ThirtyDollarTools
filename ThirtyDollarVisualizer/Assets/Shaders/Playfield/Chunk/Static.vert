@@ -12,12 +12,12 @@ out vec4 RGBA;
 uniform mat4 u_VPMatrix;
 
 vec2 getFragCoordsBasedOnVertexID(int vertexID) {
-    int normedID = vertexID % 4; // four coordinates
+    int normedID = (2 + vertexID) % 4; // four coordinates
 
-    if (normedID == 0) return vec2(aUV0.x, aUV1.y);
-    if (normedID == 1) return vec2(aUV1.x, aUV1.y);
-    if (normedID == 2) return vec2(aUV1.x, aUV0.y);
-    return aUV0;
+    if (normedID == 0) return vec2(aUV1.x, aUV0.y);
+    if (normedID == 1) return vec2(aUV0.x, aUV0.y);
+    if (normedID == 2) return vec2(aUV0.x, aUV1.y);
+    return vec2(aUV1.x, aUV1.y);
 }
 
 void main() {

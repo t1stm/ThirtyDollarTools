@@ -6,7 +6,7 @@ using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 
 namespace ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 
-[PreloadGL]
+[PreloadGraphicsContext]
 [UsedImplicitly]
 public class GLQuad : IGamePreloadable
 {

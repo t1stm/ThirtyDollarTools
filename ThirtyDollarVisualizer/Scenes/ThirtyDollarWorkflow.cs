@@ -4,13 +4,14 @@ using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Engine.Scenes;
 using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
-public abstract class ThirtyDollarWorkflow
+public abstract class ThirtyDollarWorkflow : Scene
 {
     private readonly SemaphoreSlim _sampleHolderLock = new(1);
     private readonly SemaphoreSlim _atlasLock = new(0, 1);
@@ -34,7 +35,7 @@ public abstract class ThirtyDollarWorkflow
         TimingSampleRate = 100_000
     };
 
-    public ThirtyDollarWorkflow(AudioContext? context = null, Action<string>? loggingAction = null)
+    public ThirtyDollarWorkflow(SceneManager sceneManager, AudioContext? context = null, Action<string>? loggingAction = null) : base(sceneManager)
     {
         SequencePlayer = new SequencePlayer(context);
         Log = loggingAction ?? (log => { DefaultLogger.Log("ThirtyDollarWorkflow", log); });
@@ -62,43 +63,52 @@ public abstract class ThirtyDollarWorkflow
 
         Log("[Sample Holder] Loaded all samples and images.");
     }
-
+    
     protected async Task LoadTextureAtlas()
     {
-        var sampleHolder = await GetSampleHolder();
-        
-        Log("[Atlas Generation] Starting...");
-
-        var imagesLocation = sampleHolder.ImagesLocation;
-        var files = Directory
-            .EnumerateFiles(imagesLocation, "*", SearchOption.TopDirectoryOnly)
-            .Select(Path.GetFileNameWithoutExtension)
-            .Where(f => f is not null)
-            .Cast<string>();
-
-        var staticAtlas = StaticSoundAtlas.FromFiles(sampleHolder.DownloadLocation, files, out var animatedTextures);
-        Dictionary<string, FramedAtlas> animatedAtlases;
-        
-        if (animatedTextures.Count > 0)
-            animatedAtlases = animatedTextures.Select(texture =>
-                (texture.Key, FramedAtlas.FromAnimatedTexture(texture.Key, texture.Value))
-            ).ToDictionary(r => r.Key, r => r.Item2);
-        else animatedAtlases = new Dictionary<string, FramedAtlas>();
-        
-        var atlases = new AtlasStore
+        try
         {
-            StaticAtlases = staticAtlas,
-            AnimatedAtlases = animatedAtlases
-        };
-        
-        AtlasStore = atlases;
-        Log("[Atlas Generation] Finished.");
-        
-        if (_atlasLock.CurrentCount == 0)
-            _atlasLock.Release();
-        
-        if (OnLoaded != null)
-            _ = Task.Run(OnLoaded);
+            var sampleHolder = await GetSampleHolder();
+
+            Log("[Atlas Generation] Starting...");
+
+            var imagesLocation = sampleHolder.ImagesLocation;
+            var files = Directory
+                .EnumerateFiles(imagesLocation, "*", SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFileNameWithoutExtension)
+                .Where(f => f is not null)
+                .Cast<string>();
+
+            var staticAtlas =
+                StaticSoundAtlas.FromFiles(sampleHolder.ImagesLocation, files, out var animatedTextures);
+            Dictionary<string, FramedAtlas> animatedAtlases;
+
+            if (animatedTextures.Count > 0)
+                animatedAtlases = animatedTextures.Select(texture =>
+                    (texture.Key, FramedAtlas.FromAnimatedTexture(texture.Key, texture.Value))
+                ).ToDictionary(r => r.Key, r => r.Item2);
+            else animatedAtlases = new Dictionary<string, FramedAtlas>();
+
+            var atlases = new AtlasStore
+            {
+                StaticAtlases = staticAtlas,
+                AnimatedAtlases = animatedAtlases
+            };
+
+            AtlasStore = atlases;
+            Log("[Atlas Generation] Finished.");
+
+            if (_atlasLock.CurrentCount == 0)
+                _atlasLock.Release();
+
+            if (OnLoaded != null)
+                _ = Task.Run(OnLoaded);
+        }
+        catch (Exception e)
+        {
+            Log(e.ToString());
+            throw;
+        }
     }
 
     protected async Task<SampleHolder> GetSampleHolder()
@@ -265,7 +275,7 @@ public abstract class ThirtyDollarWorkflow
     /// <summary>
     /// Call this when you want to check if the sequence is updated and you want to update it if it is.
     /// </summary>
-    protected virtual void HandleIfSequenceUpdate()
+    protected void HandleIfSequenceUpdate()
     {
         if (Sequences.Length < 1 || !AutoUpdate) return;
         foreach (var sequence_info in Sequences.Span)

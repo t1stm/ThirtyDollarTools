@@ -159,9 +159,9 @@ public class SequencePlayer
         await Start();
     }
 
-    public async ValueTask Seek(long milliseconds)
+    public void Seek(long milliseconds)
     {
-        await UpdateLock.WaitAsync();
+        UpdateLock.Wait();
         TimingStopwatch.Seek(milliseconds);
         AlignToTime();
 
@@ -289,11 +289,11 @@ public class SequencePlayer
         Greeting.GreetingType = type;
     }
 
-    public async ValueTask<long> SeekToBookmark(int bookmarkIndex)
+    public long SeekToBookmark(int bookmarkIndex)
     {
         var bookmark_time = Bookmarks[bookmarkIndex];
 
-        await Seek(bookmark_time);
+        Seek(bookmark_time);
         return bookmark_time;
     }
 

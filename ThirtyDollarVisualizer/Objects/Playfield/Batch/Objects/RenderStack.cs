@@ -1,23 +1,24 @@
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Base_Objects;
-using ThirtyDollarVisualizer.Renderer;
-using ThirtyDollarVisualizer.Renderer.Abstract;
-using ThirtyDollarVisualizer.Renderer.Buffers;
-using ThirtyDollarVisualizer.Renderer.Shaders;
+using ThirtyDollarVisualizer.Engine.Renderer;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
+using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
+using ThirtyDollarVisualizer.Engine.Renderer.Queues;
+using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
-public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, IGLReflection, IDebugStringify
+public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, IGPUReflection
 {
     public required Shader Shader { get; init; }
     public GLBufferList<TDataType> List { get; }
     public VertexArrayObject VAO { get; }
-    
-    public RenderStack(int capacity = 0)
+
+    public RenderStack(DeleteQueue deleteQueue, int capacity = 0)
     {
         VAO = new VertexArrayObject();
-        List = new GLBufferList<TDataType>(capacity);
-        
+        List = new GLBufferList<TDataType>(deleteQueue, capacity);
+
         AddQuadDataToVAO(VAO);
         AddBufferTypeRefectionToVAO(List, VAO);
     }
@@ -26,18 +27,19 @@ public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, I
     {
         var layout = new VertexBufferLayout()
             .PushFloat(3);
-        
+
         vao.AddBuffer(GLQuad.VBOWithoutUV, layout);
+        vao.SetIndexBuffer(GLQuad.EBO);
     }
-    
-    protected void AddBufferTypeRefectionToVAO(IGLBuffer<TDataType> buffer, VertexArrayObject vao)
+
+    protected void AddBufferTypeRefectionToVAO(IGPUBuffer<TDataType> buffer, VertexArrayObject vao)
     {
         var layout = new VertexBufferLayout();
-        
+
         TDataType.SelfReflectToGL(layout);
         vao.AddBuffer(buffer, layout);
     }
-    
+
     public void Render(Camera camera)
     {
         Shader.Use();
@@ -45,17 +47,14 @@ public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, I
 
         VAO.Bind();
         VAO.Update();
-        
-        GLQuad.EBO.Bind();
-        GLQuad.EBO.Update();
 
         InstancedDrawCall();
     }
 
     private void InstancedDrawCall()
     {
-        GL.DrawElementsInstanced(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt, IntPtr.Zero, List.Count);
-        Manager.CheckErrors("InstancedDrawCall");
+        GL.DrawElementsInstanced(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt,
+            IntPtr.Zero, List.Count);
     }
 
     public void Dispose()

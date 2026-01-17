@@ -36,13 +36,10 @@ public class CacheProvider(AssetProvider assetProvider)
         {
             while (_cachedAssets.TryDequeue(out var tuple))
             {
-                Task.Run(() =>
-                {
-                    var (info, assetData) = tuple;
-                    var assetInfo = CachedAssetLoader.GenerateAssetInfoBasedOnCacheID(info.CacheID);
+                var (info, assetData) = tuple;
+                var assetInfo = CachedAssetLoader.GenerateAssetInfoBasedOnCacheID(info.CacheID);
 
-                    File.WriteAllBytes(assetInfo.Location, assetData);
-                });
+                File.WriteAllBytes(assetInfo.Location, assetData);
             }
         }
     }

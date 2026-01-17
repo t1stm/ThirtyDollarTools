@@ -1,15 +1,13 @@
-using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
-using ThirtyDollarVisualizer.Base_Objects.Textures;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 
-public class Playfield(PlayfieldSettings settings)
+public class Playfield(PlayfieldSettings settings) : IDisposable
 {
     private readonly ColoredPlane _objectBox = new()
     {
@@ -27,8 +25,6 @@ public class Playfield(PlayfieldSettings settings)
     
     public List<PlayfieldChunk> Chunks { get; private set; } = [];
     public List<SoundRenderable> Renderables { get; private set; } = [];
-    
-    public readonly ConcurrentDictionary<string, SingleTexture> DecreasingValuesCache = new();
 
     public bool DisplayCenter { get; set; } = true;
 
@@ -52,7 +48,7 @@ public class Playfield(PlayfieldSettings settings)
     }
 
     
-    public void Render(DollarStoreCamera realCamera, float zoom, float updateDelta)
+    public void Render(DollarStoreCamera realCamera, float zoom, double updateDelta)
     {
         var layoutWidth = _chunkGenerator.LayoutHandler.Width;
         var layoutHeight = _chunkGenerator.LayoutHandler.Height + _chunkGenerator.LayoutHandler.Size + _chunkGenerator.LayoutHandler.VerticalMargin;
@@ -88,7 +84,7 @@ public class Playfield(PlayfieldSettings settings)
         camera_yh += height_scale / 2;
         
         // position object box
-        _objectBox.SetPosition((0, 0, 0));
+        _objectBox.Position = (0,0,0);
         _objectBox.Scale = (layoutWidth, layoutHeight, 0);
         _objectBox.BorderRadius = 0f;
 
@@ -133,5 +129,14 @@ public class Playfield(PlayfieldSettings settings)
             _lastCullingIndex = span.Length - 1;
             break;
         }
+    }
+
+    public void Dispose()
+    {
+        foreach (var chunk in Chunks)
+        {
+            chunk.Dispose();
+        }
+        GC.SuppressFinalize(this);
     }
 }

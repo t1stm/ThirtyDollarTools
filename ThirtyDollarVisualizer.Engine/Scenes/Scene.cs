@@ -12,7 +12,7 @@ public abstract class Scene(SceneManager sceneManager)
     /// <summary>
     /// Method called during the OnLoad procedure.
     /// </summary>
-    public abstract void Initialize();
+    public abstract void Initialize(InitArguments initArguments);
 
     /// <summary>
     /// Method called by the manager after all scenes are loaded.

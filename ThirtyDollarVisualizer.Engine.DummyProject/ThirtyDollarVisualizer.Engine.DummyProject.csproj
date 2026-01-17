@@ -32,14 +32,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="Fonts\Lato-Bold.ttf" />
-      <EmbeddedResource Include="Fonts\Lato-Regular.ttf" />
-      <EmbeddedResource Include="Fonts\README.md" />
-      <EmbeddedResource Include="Fonts\Twemoji.Mozilla.ttf" />
       <None Remove="Assets\Shaders\Text\Batched.glsl" />
-      <EmbeddedResource Include="Assets\Shaders\Text\Batched.vert" />
       <None Remove="Assets\Shaders\Text\Batched.frag" />
-      <EmbeddedResource Include="Assets\Shaders\Text\Batched.frag" />
     </ItemGroup>
 
 </Project>

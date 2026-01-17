@@ -23,7 +23,7 @@ public class Game : GameWindow
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
     private GLInfo GLInfo { get; set; } = new();
-    private GLDebugProc _storedDebugCallback; // exists due to .NET design
+    private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
 
     public Game(Assembly externalAssetAssembly, GameWindowSettings gameSettings,
         NativeWindowSettings nativeWindowSettings) :
@@ -36,7 +36,7 @@ public class Game : GameWindow
 
         Logger = serilogLogger;
 
-        var callingAssembly = Assembly.GetCallingAssembly();
+        var callingAssembly = Assembly.GetExecutingAssembly();
         if (ExternalAssetAssembly == callingAssembly)
             throw new Exception("Asset Assembly cannot be the calling assembly.");
 
@@ -68,10 +68,12 @@ public class Game : GameWindow
 
         ReflectionPreloadObjects(Assembly.GetExecutingAssembly()); // preload engine stuff first
         ReflectionPreloadObjects(ExternalAssetAssembly);
-        //Fonts.Initialize();
         
         RenderMarker.Debug("Reflection Preload Complete");
-        SceneManager.Initialize();
+        SceneManager.Initialize(new InitArguments()
+        {
+            StartingResolution = ClientSize
+        });
         
         RenderMarker.Debug("Finished OnLoad() Procedure");
     }
@@ -83,7 +85,7 @@ public class Game : GameWindow
         // who doesn't love reflection in a small game engine?
         var types = targetAssembly
             .GetTypes()
-            .Where(t => t.GetCustomAttribute<PreloadGLAttribute>() != null);
+            .Where(t => t.GetCustomAttribute<PreloadGraphicsContextAttribute>() != null);
 
         foreach (var type in types)
         {

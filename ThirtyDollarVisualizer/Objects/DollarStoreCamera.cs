@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Base_Objects;
+using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
 
 namespace ThirtyDollarVisualizer.Objects;
 

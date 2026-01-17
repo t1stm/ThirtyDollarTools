@@ -4,7 +4,7 @@ using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
-public class PlayfieldChunk
+public class PlayfieldChunk : IDisposable
 {
     private PlayfieldChunk(int size)
     {
@@ -62,17 +62,13 @@ public class PlayfieldChunk
         }
     }
 
-    private void Destroy()
+    public void Dispose()
     {
         foreach (var (_, buffer_object) in StaticStacks) buffer_object.Dispose();
         foreach (var (_, buffer_object) in AnimatedStacks) buffer_object.Dispose();
 
         StaticStacks.Clear();
         AnimatedStacks.Clear();
-    }
-
-    ~PlayfieldChunk()
-    {
-        Destroy();
+        GC.SuppressFinalize(this);
     }
 }

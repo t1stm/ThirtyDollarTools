@@ -1,6 +1,7 @@
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
-using ThirtyDollarVisualizer.Base_Objects;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
+using ThirtyDollarVisualizer.Engine.Renderer.Enums;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch;
@@ -20,7 +21,8 @@ public class ChunkGenerator(PlayfieldSettings settings)
         var chunkCount = (events.Length + ChunkSize - 1) / ChunkSize;
         var chunksList = new PlayfieldChunk[chunkCount];
 
-        Parallel.For(0, chunkCount, chunkIndex =>
+        Parallel.For(0, chunkCount, 
+            chunkIndex =>
         {
             var eventsSpan = events.AsSpan();
             var i = chunkIndex * ChunkSize;
@@ -85,14 +87,16 @@ public class ChunkGenerator(PlayfieldSettings settings)
         texture_position.X += delta_x / 2f;
         texture_position.Y += delta_y / 2f;
 
-        sound.SetPosition((texture_position.X, texture_position.Y, 0));
+        sound.Position = (texture_position.X, texture_position.Y, 0);
 
         // position value, volume, pan to their box locations
         var bottom_center = box_position + (box_scale.X / 2f, box_scale.Y);
         var top_right = box_position + (box_scale.X + 6f, 0f);
-
+        
         sound.Value?.SetPosition((bottom_center.X, bottom_center.Y, 0), PositionAlign.Center);
-        sound.Volume?.SetPosition((top_right.X, top_right.Y, 0), PositionAlign.TopRight);
+        sound.Volume?.SetPosition((top_right.X, top_right.Y, 0), PositionAlign.Top | PositionAlign.Right);
         sound.Pan?.SetPosition((box_position.X, box_position.Y, 0));
+        
+        sound.UpdateModel(false);
     }
 }

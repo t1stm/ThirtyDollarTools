@@ -1,34 +1,52 @@
 using OpenTK.Audio.OpenAL;
+using OpenTK.Audio.OpenAL.ALC;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarVisualizer.Helpers.Logging;
+using ErrorCodeAl = OpenTK.Audio.OpenAL.ErrorCode;
+using ErrorCodeAlc = OpenTK.Audio.OpenAL.ALC.ErrorCode;
 
 namespace ThirtyDollarVisualizer.Audio.OpenAL;
 
 public class OpenALContext : AudioContext
 {
-    private ALContext _context;
-    private ALDevice _device;
-    public int UpdateRate = 48000; // Hz
+    private ALCContext _context;
+    private ALCDevice _device;
+    private int _updateRate = 48000; // Hz
+
+    public int UpdateRate
+    {
+        get => _updateRate;
+        set
+        {
+            _updateRate = value;
+            Create();
+        }
+    }
 
     public override string Name => "OpenAL";
 
     /// <summary>
     /// Creates a global audio context.
     /// </summary>
-    public override bool Create()
+    public override unsafe bool Create()
     {
         try
         {
-            _device = ALC.OpenDevice(null);
-            if (_device == ALDevice.Null) return false;
-            _context = ALC.CreateContext(_device,
-                new ALContextAttributes(SampleRate, null, 1024, UpdateRate, false));
+            if (_device != ALCDevice.Null || _context != ALCContext.Null) 
+                Destroy();
+            
+            _device = ALC.OpenDevice((byte*)0);
+            if (_device == ALCDevice.Null) return false;
+
+            var contextAttributes = new ALCContextAttributes(SampleRate, null, 1024, UpdateRate, false);
+            var attributeArray = contextAttributes.CreateAttributeArray();
+            _context = ALC.CreateContext(_device, attributeArray);
 
             ALC.MakeContextCurrent(_context);
-            AL.DistanceModel(ALDistanceModel.LinearDistanceClamped);
-
-            AL.Listener(ALListenerf.Gain, GlobalVolume);
-            AL.Listener(ALListener3f.Position, 0f, 0f, 0f);
+            AL.DistanceModel(DistanceModel.LinearDistanceClamped);
+            
+            AL.Listenerf(ListenerPNameF.Gain, GlobalVolume);
+            AL.Listener3f(ListenerPName3F.Position, 0f, 0f, 0f);
             return true;
         }
         catch (Exception e)
@@ -43,9 +61,12 @@ public class OpenALContext : AudioContext
     /// </summary>
     public override void Destroy()
     {
-        ALC.MakeContextCurrent(ALContext.Null);
+        ALC.MakeContextCurrent(ALCContext.Null);
         ALC.DestroyContext(_context);
         ALC.CloseDevice(_device);
+        
+        _device = ALCDevice.Null;
+        _context = ALCContext.Null;
     }
 
     /// <summary>
@@ -54,15 +75,15 @@ public class OpenALContext : AudioContext
     public override bool CheckErrors()
     {
         var has_error = false;
-        ALError error;
-        while ((error = AL.GetError()) != ALError.NoError)
+        ErrorCodeAl error;
+        while ((error = AL.GetError()) != ErrorCodeAl.NoError)
         {
             has_error = true;
-            DefaultLogger.Log("OpenAL Error", $"(0x{(int)error:x8}) \'{AL.GetErrorString(error)}\'");
+            DefaultLogger.Log("OpenAL Error", $"(0x{(int)error:x8}) \'{error}\'");
         }
 
-        AlcError alc_error;
-        while ((alc_error = ALC.GetError(_device)) != AlcError.NoError)
+        ErrorCodeAlc alc_error;
+        while ((alc_error = ALC.GetError(_device)) != ErrorCodeAlc.NoError)
         {
             has_error = true;
             DefaultLogger.Log("OpenAL Error", $"(0x{(int)error:x8}) \'{alc_error}\'");
@@ -71,7 +92,7 @@ public class OpenALContext : AudioContext
         return has_error;
     }
 
-    public override AudibleBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
+    public override OpenALBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
         return new OpenALBuffer(this, sampleData, sampleRate);
     }

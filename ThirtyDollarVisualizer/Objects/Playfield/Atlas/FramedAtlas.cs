@@ -1,15 +1,16 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Base_Objects.Textures;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Animated;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using ThirtyDollarVisualizer.Engine.Assets.Types.Texture;
+using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 
-public class FramedAtlas(int width, int height) : ImageAtlas(width, height)
+public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
 {
-    protected Dictionary<int, QuadUV> FrameCoordinates { get; set; } = new();
-    public QuadUV CurrentUV => FrameCoordinates[CurrentFrameIndex];
+    protected Dictionary<int, Rectangle> FrameCoordinates { get; set; } = new();
+    public Rectangle CurrentRectangle => FrameCoordinates[CurrentFrameIndex];
     
     public int CurrentFrameIndex { get; protected set; } = 0;
     public int FrameCount => FrameCoordinates.Count;
@@ -42,7 +43,7 @@ public class FramedAtlas(int width, int height) : ImageAtlas(width, height)
         return atlasSize;
     }
 
-    public override void Update()
+    public void Update()
     {
         var elapsed = TimingStopwatch.ElapsedMilliseconds;
         var currentFrame = elapsed / FrameDurationMilliseconds;
@@ -59,26 +60,29 @@ public class FramedAtlas(int width, int height) : ImageAtlas(width, height)
 
     public void Start() => TimingStopwatch.Start();
 
-    public static FramedAtlas FromAnimatedTexture(string textureID, AssetTexture texture)
+    public static FramedAtlas FromAnimatedTexture(string textureID, TextureHolder texture)
     {
-        var animatedTexture = texture.As<AnimatedTexture>();
-        var image = animatedTexture.GetData();
-        if (image == null)
-            throw new Exception("Failed to get image data from animated texture.");
-
+        var image = texture.Texture;
         var frameCount = image.Frames.Count;
+        
         if (frameCount <= 1)
             throw new Exception("Animated texture has less than 2 frames.");
 
         Vector2 imageSize = new(image.Width, image.Height);
         var atlasSize = GetAtlasSizeForTotalFrames(frameCount, imageSize);
 
-        var atlas = new FramedAtlas(atlasSize.X, atlasSize.Y);
+        var atlas = new FramedAtlas(atlasSize.X, atlasSize.Y)
+        {
+            AtlasID = "FramedAtlas_" + textureID
+        };
         for (var index = 0; index < image.Frames.Count; index++)
         {
             var frame = image.Frames[index];
-            var coordinates = atlas.AddImage($"{textureID}-frame-{index}", frame);
-            atlas.FrameCoordinates.Add(index, coordinates.TextureUV);
+            var textureName = $"{textureID}-frame-{index}";
+            atlas.AddTexture(textureName, frame);
+            
+            var rect = atlas.Atlas.GetImageRectangle(textureName);
+            atlas.FrameCoordinates.Add(index, rect);
         }
 
         return atlas;

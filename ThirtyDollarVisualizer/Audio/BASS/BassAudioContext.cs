@@ -60,7 +60,7 @@ public class BassAudioContext : AudioContext
         return has_error;
     }
 
-    public override AudibleBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
+    public override BassBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
         return new BassBuffer(this, sampleData, sampleRate);
     }

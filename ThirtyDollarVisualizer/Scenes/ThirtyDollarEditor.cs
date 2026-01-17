@@ -1,11 +1,10 @@
 using OpenTK.Mathematics;
-using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Atlas;
-using ThirtyDollarVisualizer.Base_Objects.Textures.Static;
+using ThirtyDollarVisualizer.Engine.Scenes;
+using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 using ThirtyDollarVisualizer.Objects;
 using ThirtyDollarVisualizer.Settings;
 using ThirtyDollarVisualizer.UI.Abstractions;
@@ -15,16 +14,14 @@ using ThirtyDollarVisualizer.UI.Components.Panels;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
-public class ThirtyDollarEditor(int width, int height, VisualizerSettings settings, AudioContext? audioContext)
-    : IScene
+public class ThirtyDollarEditor(SceneManager sceneManager, VisualizerSettings settings, AudioContext? audioContext): Scene(sceneManager)
 {
     private readonly AudioContext _audioContext = audioContext ?? new NullAudioContext();
-
     private readonly VisualizerSettings _settings = settings;
 
     private readonly UIContext _uiContext = new()
     {
-        Camera = new DollarStoreCamera((0, 0, 0), (width, height))
+        Camera = new DollarStoreCamera((0, 0, 0), (0, 0))
     };
 
     private CursorType _currentCursor;
@@ -34,11 +31,12 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
 
     private string _errorMessage = "This message hasn't been updated yet. The error remains hidden...";
     private FlexPanel? _mainPanel;
-    private Manager _parent = null!;
 
-    public void Init(Manager manager)
+    public override void Initialize(InitArguments initArguments)
     {
-        _parent = manager;
+        var width = initArguments.StartingResolution.X;
+        var height = initArguments.StartingResolution.Y;
+        
         _display = new FlexPanel(width: width, height: height)
         {
             Direction = LayoutDirection.Vertical,
@@ -96,27 +94,26 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
         _display.Layout();
     }
 
-    public void Start()
+    public override void Start()
     {
     }
 
-    public void Render()
+    public override void Render(RenderArguments args)
     {
         RenderError();
     }
 
-    public void Update()
+    public override void TransitionedTo()
+    {
+        // Does nothing for now.
+    }
+    
+    public override void Update(UpdateArguments updateArgs)
     {
         try
         {
             _currentCursor = CursorType.Normal;
-
             _display?.Update(_uiContext);
-            _parent.Cursor = _currentCursor switch
-            {
-                CursorType.Pointer => MouseCursor.PointingHand,
-                _ => MouseCursor.Default
-            };
         }
         catch (Exception e)
         {
@@ -124,7 +121,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
         }
     }
 
-    public void Resize(int w, int h)
+    public override void Resize(int w, int h)
     {
         try
         {
@@ -149,11 +146,11 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
         }
     }
 
-    public void Close()
+    public override void Shutdown()
     {
     }
 
-    public void FileDrop(string[] locations)
+    public override void FileDrop(string[] locations)
     {
         try
         {
@@ -164,11 +161,11 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
         }
     }
 
-    public void Keyboard(KeyboardState state)
+    public override void Keyboard(KeyboardState state)
     {
         try
         {
-            if (state.IsKeyPressed(Keys.Space)) debugMarker++;
+            
         }
         catch (Exception e)
         {
@@ -176,7 +173,7 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
         }
     }
 
-    public void Mouse(MouseState mouseState, KeyboardState keyboardState)
+    public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
         try
         {
@@ -187,31 +184,9 @@ public class ThirtyDollarEditor(int width, int height, VisualizerSettings settin
             _errorMessage = "[Mouse]: " + e;
         }
     }
-
-    private static TexturedPlane? rndbl;
-    private static ImageAtlas? atlas;
-    private int oldMarker = 0;
-    private int debugMarker = 0;
     
     private void RenderError()
     {
-        atlas ??= new ImageAtlas();
-        rndbl ??= new TexturedPlane(atlas)
-        {
-            Color = Vector4.One,
-            Position = Vector3.Zero
-        };
         
-        if (oldMarker != debugMarker)
-        {
-            oldMarker = debugMarker;
-            var img = new StaticTexture("Assets/Textures/moai.png");
-            var data = img.GetData();
-            
-            atlas.AddImage($"Assets/Textures/moai.png-{debugMarker}", data!.Frames.RootFrame);
-        }
-
-        rndbl.Scale = new Vector3((_uiContext.ViewportWidth, _uiContext.ViewportHeight));
-        rndbl.Render(_uiContext.Camera);
     }
 }

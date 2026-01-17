@@ -37,13 +37,11 @@ public sealed class FileSelection : Panel
                     FontSizePx = 12,
                     UpdateCursorOnHover = true,
                     OnClick = _ => NavigateUp(),
-                    FontStyle = FontStyle.Bold
                 },
-                _currentPathLabel = new Label(CurrentPath, LabelMode.CachedDynamic)
+                _currentPathLabel = new Label(CurrentPath)
                 {
                     FontSizePx = 12,
                     AutoWidth = true,
-                    FontStyle = FontStyle.Bold,
                     UpdateCursorOnHover = true
                 }
             ]
@@ -82,14 +80,12 @@ public sealed class FileSelection : Panel
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
                     OnClick = _ => OnSelect?.Invoke(this),
-                    FontStyle = FontStyle.Bold
                 },
                 new Button("Cancel")
                 {
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
                     OnClick = _ => OnCancel?.Invoke(this),
-                    FontStyle = FontStyle.Bold
                 }
             ]
         };
@@ -159,19 +155,19 @@ public sealed class FileSelection : Panel
             list.AddRange(from directory in directories
                 let dirInfo = new DirectoryInfo(directory)
                 where (dirInfo.Attributes & FileAttributes.Hidden) == 0
-                select new Label($"📁 {dirInfo.Name}", LabelMode.CachedDynamic)
+                select new Label($"📁 {dirInfo.Name}")
                     { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
 
             var files = Directory.GetFiles(CurrentPath);
             list.AddRange(files.Select(file => new FileInfo(file)).Select(fileInfo =>
-                new Label($"📄 {fileInfo.Name}", LabelMode.CachedDynamic)
+                new Label($"📄 {fileInfo.Name}")
                 {
                     FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => { OnSelectFile?.Invoke(this); }
                 }));
         }
         catch (Exception ex)
         {
-            var errorLabel = new Label($"Error: {ex.Message}", LabelMode.CachedDynamic)
+            var errorLabel = new Label($"Error: {ex.Message}")
             {
                 FontSizePx = 14
             };
