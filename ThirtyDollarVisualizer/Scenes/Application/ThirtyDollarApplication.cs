@@ -39,7 +39,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     {
         _applicationFonts = new ApplicationFonts(assetProvider);
     }
-    
+
     private const string Version = "2.0.0 (Insider Build)";
     private readonly DollarStoreCamera _camera;
     private readonly FpsCounter _fpsCounter = new();
@@ -51,7 +51,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     private readonly DollarStoreCamera _tempCamera;
     private readonly DollarStoreCamera _textCamera;
     private readonly CancellationTokenSource _tokenSource = new();
-    
+
     private ApplicationTextContainer _applicationTextContainer = null!;
     private Layout Overlay => _applicationTextContainer.Overlay.Value;
 
@@ -161,9 +161,10 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
             Color = new Vector4(1f, 1f, 1f, 0f)
         };
 
-       _applicationTextContainer.Greeting.Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER 123456789";
-       _applicationTextContainer.Greeting.FontSize = 36f * Scale;
-       _applicationTextContainer.Greeting.SetPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
+        _applicationTextContainer.Greeting.Value =
+            Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER 123456789";
+        _applicationTextContainer.Greeting.FontSize = 36f * Scale;
+        _applicationTextContainer.Greeting.SetPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
 
         UpdateStaticRenderables(_width, _height, Scale);
         Log = str => SetStatusMessage(str, 3500);
@@ -192,7 +193,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
         var greeting = _applicationTextContainer.Greeting;
         greeting.SetPosition(greeting.Position - (_width - w) / 2f * Vector3.UnitX);
-        
+
         Overlay.Resize(w, h);
         UpdateStaticRenderables(w, h, _camera.GetRenderScale());
 
@@ -649,6 +650,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         var playfield_settings = new PlayfieldSettings(RenderableSize,
             SampleHolder ?? throw new Exception("Null sample holder."), SampleHolder?.DownloadLocation ?? "./Sounds",
             AtlasStore ?? throw new NullReferenceException("Tried to access AtlasStore, but the value was null."),
+            _applicationFonts,
             Scale, ElementsOnSingleLine,
             RenderableSize, MarginBetweenRenderables);
 
@@ -672,7 +674,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         {
             playfield.Dispose();
         }
-        
+
         _playfields = playfields;
         SequenceVolume = 100;
     }
@@ -935,7 +937,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
                 break;
             }
         }
-        
+
         var debug = Overlay.Get<TextSlice>("debug");
         var newValue = $"""
                         [Debug]

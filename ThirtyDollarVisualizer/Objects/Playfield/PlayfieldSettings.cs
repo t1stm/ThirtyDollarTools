@@ -1,5 +1,6 @@
 using ThirtyDollarConverter;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
+using ThirtyDollarVisualizer.Scenes.Application;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield;
 
@@ -8,6 +9,7 @@ public readonly struct PlayfieldSettings(
     SampleHolder sampleHolder,
     string downloadLocation,
     AtlasStore atlasStore,
+    ApplicationFonts fonts,
     float renderScale = 1f,
     int soundsOnASingleLine = 16,
     int soundSize = 64,
@@ -54,4 +56,9 @@ public readonly struct PlayfieldSettings(
     /// A container for global texture atlases.
     /// </summary>
     public readonly AtlasStore AtlasStore = atlasStore;
+
+    /// <summary>
+    /// A collection of application-wide font providers utilized for rendering text with various font styles.
+    /// </summary>
+    public readonly ApplicationFonts Fonts = fonts;
 }

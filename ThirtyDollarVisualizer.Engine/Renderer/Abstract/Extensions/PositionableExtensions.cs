@@ -25,9 +25,10 @@ public static class PositionableExtensions
         var newPosition = position;
 
         if (positionAlign.HasFlag(PositionAlign.CenterX))
-            newPosition.Y -= scale.Y / 2;
-        if (positionAlign.HasFlag(PositionAlign.CenterY))
             newPosition.X -= scale.X / 2;
+        if (positionAlign.HasFlag(PositionAlign.CenterY))
+            newPosition.Y -= scale.Y / 2;
+        
         if (positionAlign.HasFlag(PositionAlign.Bottom))
             newPosition.Y -= scale.Y;
         if (positionAlign.HasFlag(PositionAlign.Right))

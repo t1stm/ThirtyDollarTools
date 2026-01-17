@@ -1,4 +1,6 @@
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarVisualizer.Engine.Text;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
@@ -6,11 +8,16 @@ namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
 public class PlayfieldChunk : IDisposable
 {
-    private PlayfieldChunk(int size)
+    private const int MaxValueLength = 8;
+    private readonly TextBuffer _textBuffer;
+
+    private PlayfieldChunk(int size, TextProvider provider)
     {
         Renderables = new SoundRenderable[size];
+        _textBuffer = new TextBuffer(provider);
+        _textBuffer.Resize(size * MaxValueLength * 3);
     }
-    
+
     private Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticStacks { get; set; } = [];
     private Dictionary<FramedAtlas, RenderStack<SoundData>> AnimatedStacks { get; set; } = [];
 
@@ -18,20 +25,83 @@ public class PlayfieldChunk : IDisposable
     public float StartY { get; set; }
     public float EndY { get; set; }
 
-    public static PlayfieldChunk GenerateFrom(ReadOnlySpan<BaseEvent> slice, LayoutHandler layoutHandler, AtlasStore store)
+    public static PlayfieldChunk GenerateFrom(ReadOnlySpan<BaseEvent> slice, LayoutHandler layoutHandler,
+        PlayfieldSettings settings)
     {
+        var fontProvider = settings.Fonts.LatoBoldProvider;
+        var store = settings.AtlasStore;
         var length = slice.Length;
-        var chunk = new PlayfieldChunk(length)
+
+        var chunk = new PlayfieldChunk(length, fontProvider)
         {
             StartY = layoutHandler.Y
         };
 
         var renderables = new SoundRenderable[length];
         var factory = new RenderableFactory(store);
-        
+
         for (var i = 0; i < length; i++)
         {
-            renderables[i] = factory.CookUp(slice[i]);
+            var baseEvent = slice[i];
+            if (baseEvent.SoundEvent is null) continue;
+            
+            var renderable = renderables[i] = factory.CookUp(baseEvent);
+
+            switch (baseEvent.SoundEvent)
+            {
+                case "!bg":
+                case "!pulse":
+                    continue;
+            }
+
+            if (baseEvent.Value != 0)
+            {
+                var valueText = $"{baseEvent.Value:0.##}";
+                valueText = baseEvent.ValueScale switch
+                {
+                    ValueScale.Divide => "/" + valueText,
+                    ValueScale.Times => "x" + valueText,
+                    ValueScale.Add when baseEvent.Value > 0 && baseEvent.SoundEvent.StartsWith('!') 
+                        => "+" + valueText,
+                    ValueScale.None when baseEvent.Value > 0 && !baseEvent.SoundEvent.StartsWith('!')
+                        => "+" + valueText,
+                    _ => valueText
+                };
+
+                switch (baseEvent.SoundEvent)
+                {
+                    case "!volume":
+                        valueText += "%";
+                        break;
+                }
+
+                renderable.Value = chunk._textBuffer.GetTextSlice(valueText, MaxValueLength);
+            }
+
+            if (baseEvent.Volume is not null)
+            {
+                renderable.Volume = chunk._textBuffer.GetTextSlice($"{baseEvent.Volume:0.##}%",
+                    static (value, buffer, range) => new TextSlice(buffer, range)
+                    {
+                        Value = value,
+                        FontSize = 11
+                    });
+            }
+
+            if (baseEvent is not PannedEvent pannedEvent) continue;
+
+            var panText = pannedEvent.IsStandardImplementation
+                ? pannedEvent.Pan > 0 ? $"*{pannedEvent.TDWPan:0.##}" : $"{pannedEvent.TDWPan:0.##}*"
+                : pannedEvent.Pan > 0
+                    ? $"*{pannedEvent.Pan:0.##}"
+                    : $"{pannedEvent.Pan:0.##}*";
+            
+            renderable.Pan = chunk._textBuffer.GetTextSlice(panText, static (value, buffer, range) =>
+                new TextSlice(buffer, range)
+                {
+                    Value = value,
+                    FontSize = 11
+                });
         }
 
         chunk.EndY = layoutHandler.Height + layoutHandler.Size;
@@ -40,7 +110,7 @@ public class PlayfieldChunk : IDisposable
         chunk.StaticStacks = factory.StaticAtlases;
         return chunk;
     }
-    
+
 
     public void Render(DollarStoreCamera temporaryCamera)
     {
@@ -60,6 +130,8 @@ public class PlayfieldChunk : IDisposable
             atlas.Bind();
             render_stack.Render(temporaryCamera);
         }
+
+        _textBuffer.Render(temporaryCamera);
     }
 
     public void Dispose()
@@ -67,6 +139,7 @@ public class PlayfieldChunk : IDisposable
         foreach (var (_, buffer_object) in StaticStacks) buffer_object.Dispose();
         foreach (var (_, buffer_object) in AnimatedStacks) buffer_object.Dispose();
 
+        _textBuffer.Dispose();
         StaticStacks.Clear();
         AnimatedStacks.Clear();
         GC.SuppressFinalize(this);

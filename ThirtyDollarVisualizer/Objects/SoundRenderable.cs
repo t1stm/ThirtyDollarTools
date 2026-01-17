@@ -2,6 +2,8 @@ using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Base_Objects;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
+using ThirtyDollarVisualizer.Engine.Renderer.Enums;
 using ThirtyDollarVisualizer.Engine.Text;
 
 namespace ThirtyDollarVisualizer.Objects;
@@ -14,9 +16,9 @@ public sealed class SoundRenderable : Renderable
     private readonly Memory<Animation> _renderableAnimations;
     private bool _resetAnimationState;
 
-    public TextSlice? Pan;
-    public TextSlice? Value;
-    public TextSlice? Volume;
+    public TextSlice? Pan { get; set; }
+    public TextSlice? Value { get; set; }
+    public TextSlice? Volume { get; set; }
 
     public Func<Matrix4> GetModel { get; set; } = () => Matrix4.Identity;
     public Func<Vector4> GetRGBA { get; set; } = () => Vector4.One;
@@ -108,30 +110,31 @@ public sealed class SoundRenderable : Renderable
         Expand();
 
         Span<char> characters = stackalloc char[32];
+        var written = 0;
         switch (ev.PlayTimes)
         {
             case <= 0 when valueChangeWrapMode == ValueChangeWrapMode.ResetToDefault &&
-                           !ev.OriginalLoop.TryFormat(characters, out _, "0.##") &&
-                           !ev.OriginalLoop.TryFormat(characters, out _, "0.##"):
+                           !ev.OriginalLoop.TryFormat(characters, out written, "0.##") &&
+                           !ev.OriginalLoop.TryFormat(characters, out written, "0.##"):
                 throw new Exception("Failed to format original loop");
-            case > 0 when !ev.PlayTimes.TryFormat(characters, out _, "0.##"):
+            case > 0 when !ev.PlayTimes.TryFormat(characters, out written, "0.##"):
                 throw new Exception("Failed to format play times");
         }
 
         var this_position = Position;
         var this_scale = Scale;
 
-        Value.SetValue(characters);
+        Value.SetValue(characters[..written]);
 
-        var new_scale = Value.Scale;
-        var new_position_x = this_position.X + this_scale.X / 2f;
+        var new_position_x = this_position.X + this_scale.X / 2f - Value.Scale.X / 2f;
         var new_position = new Vector3
         {
-            X = new_position_x - new_scale.X / 2f,
-            Y = Value.Position.Y - new_scale.Y / 2f,
+            X = new_position_x,
+            Y = Value.Position.Y,
             Z = Value.Position.Z
         };
 
+        Value.SetPosition(new_position, PositionAlign.Top | PositionAlign.CenterX);
         Value.Position = new_position;
     }
 }

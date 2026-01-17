@@ -21,8 +21,8 @@ public class TextBuffer : IRenderable, IDisposable
 
     public TextBuffer(TextProvider provider)
     {
-        Characters =
-            new GLBuffer<TextCharacter>.WithCPUCache(provider.AssetProvider.DeleteQueue, BufferTarget.ArrayBuffer);
+        Characters = new GLBuffer<TextCharacter>.WithCPUCache(
+            provider.AssetProvider.DeleteQueue, BufferTarget.ArrayBuffer);
         TextProvider = provider;
         InitializeVAO(_vao, Characters);
     }
@@ -38,6 +38,11 @@ public class TextBuffer : IRenderable, IDisposable
         vao.SetIndexBuffer(GLQuad.EBO);
     }
 
+    public void Resize(int newSize)
+    {
+        Characters.ResizeCPUBuffer(newSize);
+    }
+    
     public TextSlice GetTextSlice(ReadOnlySpan<char> text, int capacity = -1)
     {
         return GetTextSlice(text, (value, buffer, range) => new TextSlice(buffer, range)
@@ -45,8 +50,9 @@ public class TextBuffer : IRenderable, IDisposable
             Value = value
         }, capacity);
     }
-    
-    public TextSlice GetTextSlice(ReadOnlySpan<char> text, Func<ReadOnlySpan<char>, TextBuffer, Range, TextSlice> factory, int capacity = -1)
+
+    public TextSlice GetTextSlice(ReadOnlySpan<char> text,
+        Func<ReadOnlySpan<char>, TextBuffer, Range, TextSlice> factory, int capacity = -1)
     {
         if (capacity < 0)
             capacity = text.Length;
@@ -102,7 +108,7 @@ public class TextBuffer : IRenderable, IDisposable
     {
         RenderBuffer(camera);
     }
-    
+
     public void RenderBuffer(Camera camera, int endIndex = -1)
     {
         if (endIndex < 0)
@@ -141,12 +147,12 @@ public class TextBuffer : IRenderable, IDisposable
     {
         _vao.Dispose();
         Characters.Dispose();
-        
+
         foreach (var (textSlice, _) in _usedRanges)
         {
             textSlice.Dispose();
         }
-        
+
         GC.SuppressFinalize(this);
     }
 }
