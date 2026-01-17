@@ -11,4 +11,5 @@ namespace ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 public ref struct InitArguments
 {
     public Vector2i StartingResolution;
+    public GLInfo GLInfo;
 }

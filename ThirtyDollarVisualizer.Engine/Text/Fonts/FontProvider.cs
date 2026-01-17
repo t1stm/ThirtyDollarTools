@@ -1,6 +1,6 @@
 using Msdfgen.Extensions;
-using ThirtyDollarVisualizer.Engine.Assets;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Asset;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
 
 namespace ThirtyDollarVisualizer.Engine.Text.Fonts;
 

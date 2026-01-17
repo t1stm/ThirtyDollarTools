@@ -1,5 +1,5 @@
 using JetBrains.Annotations;
-using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
 
 namespace ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 

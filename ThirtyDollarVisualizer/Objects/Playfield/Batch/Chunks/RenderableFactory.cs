@@ -1,10 +1,10 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
-using ThirtyDollarVisualizer.Engine.Assets;
-using ThirtyDollarVisualizer.Engine.Assets.Extensions;
-using ThirtyDollarVisualizer.Engine.Assets.Helpers;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Helpers;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Queues;

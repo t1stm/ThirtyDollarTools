@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using SixLabors.Fonts;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;
@@ -12,7 +11,8 @@ using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.Base_Objects.Settings;
-using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
@@ -58,6 +58,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     private BackgroundPlane _backgroundPlane = null!;
     private BackingAudio? _backingAudio;
     private int _currentSequence;
+    private GLInfo _glInfo = null!;
 
     private SoundRenderable? _dragNDrop;
     private ColoredPlane _flashOverlay = null!;
@@ -130,6 +131,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public override void Initialize(InitArguments initArguments)
     {
+        _glInfo = initArguments.GLInfo;
         _applicationTextContainer = new ApplicationTextContainer(_applicationFonts, Version, _width, _height, Scale);
         OnLoaded = async void () =>
         {
@@ -159,7 +161,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
             Color = new Vector4(1f, 1f, 1f, 0f)
         };
 
-       _applicationTextContainer.Greeting.Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER";
+       _applicationTextContainer.Greeting.Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER 123456789";
        _applicationTextContainer.Greeting.FontSize = 36f * Scale;
        _applicationTextContainer.Greeting.SetPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
 
@@ -933,7 +935,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
                 break;
             }
         }
-
+        
         var debug = Overlay.Get<TextSlice>("debug");
         var newValue = $"""
                         [Debug]
@@ -950,10 +952,10 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
                         In: {next_beat_ms:0.##ms} / {beats_to_next_beat:0.##} beats
 
                         [OpenGL]
-                        Version: {GLInfo.Version}
-                        Renderer: {GLInfo.Renderer}
-                        Max Texture Size: {GLInfo.MaxTexture2DSize}
-                        Max Texture Layers: {GLInfo.MaxTexture2DLayers}
+                        Version: {_glInfo.Version}
+                        Renderer: {_glInfo.Renderer}
+                        Max Texture Size: {_glInfo.MaxTexture2DSize}
+                        Max Texture Layers: {_glInfo.MaxTexture2DLayers}
 
                         """.AsSpan();
         // generate debug string.

@@ -1,10 +1,10 @@
 using System.Reflection;
 using Serilog.Core;
-using ThirtyDollarVisualizer.Engine.Assets.Abstract;
-using ThirtyDollarVisualizer.Engine.Assets.Helpers;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Helpers;
 using ThirtyDollarVisualizer.Engine.Renderer.Queues;
 
-namespace ThirtyDollarVisualizer.Engine.Assets;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management;
 
 public class AssetProvider
 {

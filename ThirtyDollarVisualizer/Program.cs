@@ -2,25 +2,20 @@
 // https://youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2
 
 using System.Reflection;
-using System.Runtime.InteropServices;
 using CommandLine;
 using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.BASS;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Audio.OpenAL;
 using ThirtyDollarVisualizer.Base_Objects.Settings;
 using ThirtyDollarVisualizer.Engine;
-using ThirtyDollarVisualizer.Engine.Assets;
 using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Scenes;
 using ThirtyDollarVisualizer.Scenes.Application;
 using ThirtyDollarVisualizer.Settings;
-using Image = SixLabors.ImageSharp.Image;
 
 namespace ThirtyDollarVisualizer;
 

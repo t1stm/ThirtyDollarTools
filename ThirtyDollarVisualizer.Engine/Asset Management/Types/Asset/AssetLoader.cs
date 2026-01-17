@@ -1,9 +1,9 @@
 using System.Buffers;
 using System.Reflection;
-using ThirtyDollarVisualizer.Engine.Assets.Abstract;
-using ThirtyDollarVisualizer.Engine.Assets.Extensions;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Types.Asset;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
 
 public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
 {

@@ -1,7 +1,7 @@
-using ThirtyDollarVisualizer.Engine.Assets.Abstract;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Asset;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Types.Texture;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Types.Texture;
 
 public class TextureInfo : ILoaderInfo
 {

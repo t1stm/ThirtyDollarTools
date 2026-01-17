@@ -1,6 +1,6 @@
-using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Extensions;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
 
 public static class ShaderExtensions
 {

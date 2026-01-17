@@ -1,9 +1,8 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using ThirtyDollarVisualizer.Engine.Assets.Abstract;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
 using ThirtyDollarVisualizer.Engine.Common;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Types.Asset;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
 
 public class AssetInfo : ILoaderInfo
 {

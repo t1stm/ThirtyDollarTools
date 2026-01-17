@@ -1,4 +1,4 @@
-namespace ThirtyDollarVisualizer.Engine.Assets.Abstract;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
 
 /// <summary>
 /// Represents a loadable asset.

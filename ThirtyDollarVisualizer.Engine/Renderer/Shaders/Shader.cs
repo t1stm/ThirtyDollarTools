@@ -1,8 +1,8 @@
 using System.Buffers;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Engine.Assets;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
 using ThirtyDollarVisualizer.Engine.Renderer.Debug;
 using ThirtyDollarVisualizer.Engine.Renderer.Enums;
 

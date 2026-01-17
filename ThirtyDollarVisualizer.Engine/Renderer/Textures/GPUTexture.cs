@@ -85,7 +85,7 @@ public class GPUTexture : IBindable
         }
     }
 
-    public void UploadToGPU()
+    protected void UploadToGPU()
     {
         lock (UploadQueue)
         {

@@ -1,8 +1,8 @@
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Engine.Assets.Abstract;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Asset;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
 
 public class ShaderInfo : ILoaderInfo
 {

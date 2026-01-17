@@ -1,8 +1,8 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using ThirtyDollarVisualizer.Engine.Assets.Abstract;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Types.Texture;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Types.Texture;
 
 public class TextureHolder : ILoadableAsset<TextureHolder, TextureInfo>
 {

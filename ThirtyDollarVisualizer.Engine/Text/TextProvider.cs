@@ -1,8 +1,8 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Engine.Assets;
-using ThirtyDollarVisualizer.Engine.Assets.Extensions;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
@@ -38,28 +38,25 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
 
     private void AddCharacter(ReadOnlySpan<char> character)
     {
-        var image = GlyphProvider.GetGlyph(character);
-        TextAtlas.AddTexture(character.ToString(), image.Frames.RootFrame);
+        lock (TextAtlas)
+        {
+            var image = GlyphProvider.GetGlyph(character);
+            TextAtlas.AddTexture(character.ToString(), image.Frames.RootFrame);
+        }
     }
 
-    public (TextCharacter, TextAlignmentData) GetTextCharacter(ReadOnlySpan<char> character)
+    public (Vector4, TextAlignmentData) GetTextCharacterRect(ReadOnlySpan<char> character)
     {
         lock (TextAtlas)
         {
             var characterUV = TextAtlas.Atlas.GetImageRectangle(character);
             if (!characterUV.IsEmpty)
-                return (new TextCharacter
-                {
-                    TextureUV = new Vector4(characterUV.X, characterUV.Y, characterUV.Width, characterUV.Height)
-                }, GlyphProvider.SizingData.GetAlternateLookup<ReadOnlySpan<char>>()[character]);
+                return ((characterUV.X, characterUV.Y, characterUV.Width, characterUV.Height), GlyphProvider.GetSizingData(character));
 
             AddCharacter(character);
             characterUV = TextAtlas.Atlas.GetImageRectangle(character);
 
-            return (new TextCharacter
-            {
-                TextureUV = new Vector4(characterUV.X, characterUV.Y, characterUV.Width, characterUV.Height)
-            }, GlyphProvider.SizingData.GetAlternateLookup<ReadOnlySpan<char>>()[character]);
+            return ((characterUV.X, characterUV.Y, characterUV.Width, characterUV.Height), GlyphProvider.GetSizingData(character));
         }
     }
 

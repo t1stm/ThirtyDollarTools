@@ -7,7 +7,7 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
 using Serilog.Core;
-using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Debug;
@@ -70,9 +70,10 @@ public class Game : GameWindow
         ReflectionPreloadObjects(ExternalAssetAssembly);
         
         RenderMarker.Debug("Reflection Preload Complete");
-        SceneManager.Initialize(new InitArguments()
+        SceneManager.Initialize(new InitArguments
         {
-            StartingResolution = ClientSize
+            StartingResolution = ClientSize,
+            GLInfo = GLInfo
         });
         
         RenderMarker.Debug("Finished OnLoad() Procedure");

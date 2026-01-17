@@ -1,5 +1,5 @@
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Buffers;

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Texture;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Texture;
 using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Atlas;

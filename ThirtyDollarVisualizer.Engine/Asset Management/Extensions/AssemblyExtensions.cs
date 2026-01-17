@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Extensions;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
 
 public static class AssemblyExtensions
 {

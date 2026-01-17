@@ -1,7 +1,7 @@
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Engine.Assets.Abstract;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
 
 public class ShaderSource : ILoadableAsset<ShaderSource, ShaderInfo>
 {

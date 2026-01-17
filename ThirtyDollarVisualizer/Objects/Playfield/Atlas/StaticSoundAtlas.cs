@@ -1,8 +1,8 @@
 using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
-using ThirtyDollarVisualizer.Engine.Assets;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Asset;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Texture;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Texture;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;

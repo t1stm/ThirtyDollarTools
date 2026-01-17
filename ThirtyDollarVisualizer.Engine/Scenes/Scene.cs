@@ -1,5 +1,5 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 
 namespace ThirtyDollarVisualizer.Engine.Scenes;

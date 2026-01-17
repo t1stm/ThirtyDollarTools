@@ -15,7 +15,7 @@ public class ApplicationTextContainer
     private readonly TextBuffer _versionBuffer;
     private readonly TextBuffer _debugBuffer;
     private readonly TextBuffer _greetingBuffer;
-    
+
     private readonly string _version;
     private readonly float _scale;
 
@@ -30,17 +30,17 @@ public class ApplicationTextContainer
     public ApplicationTextContainer(ApplicationFonts fonts, string version, int width, int height, float scale = 1f)
     {
         Overlay = new Lazy<Layout>(() => CreateLayout(width, height));
-        _genericBuffer = new TextBuffer(fonts.LatoBoldProvider);
-        _debugBuffer = new TextBuffer(fonts.LatoBoldProvider);
 
         _fonts = fonts;
         _version = version;
         _scale = scale;
-        
+
+        _genericBuffer = new TextBuffer(fonts.LatoBoldProvider);
+        _debugBuffer = new TextBuffer(fonts.LatoBoldProvider);
         _greetingBuffer = new TextBuffer(fonts.LatoBoldProvider);
         _versionBuffer = new TextBuffer(fonts.LatoBoldProvider);
         _controlsBuffer = new TextBuffer(fonts.LatoBoldProvider);
-        Greeting = _greetingBuffer.GetTextSlice("", UpdatableTextSliceMaxLength);
+        Greeting = _greetingBuffer.GetTextSlice(" ", UpdatableTextSliceMaxLength);
     }
 
     private Layout CreateLayout(int width, int height)
@@ -70,34 +70,37 @@ public class ApplicationTextContainer
 
         overlay.Add("controls",
             () => _controlsBuffer.GetTextSlice(
-                    """
-                    All controls:
+                """
+                All controls:
 
-                    Scroll -> Scroll up / down.
-                    Ctrl+Scroll -> Change the zoom.
-                    Up / Down -> Control the application's volume.
-                    Left / Right -> Seek the sequence.
-                    R -> Reload the current sequence.
-                    C -> Change the camera modes.
-                    F -> Toggle between fullscreen and windowed.
-                    Space -> Pause / resume the sequence.
-                    Escape -> Close the program.
-                    0-9 -> Seek to bookmark.
-                    Ctrl+0-9 -> Set bookmark to current time.
-                    Ctrl+Shift+0-9 -> Clear given bookmark time.
-                    Ctrl+D -> Show debugging info.
-                    Page Up/Down -> Seek to previous/next sequence.
+                Scroll -> Scroll up / down.
+                Ctrl+Scroll -> Change the zoom.
+                Up / Down -> Control the application's volume.
+                Left / Right -> Seek the sequence.
+                R -> Reload the current sequence.
+                C -> Change the camera modes.
+                F -> Toggle between fullscreen and windowed.
+                Space -> Pause / resume the sequence.
+                Escape -> Close the program.
+                0-9 -> Seek to bookmark.
+                Ctrl+0-9 -> Set bookmark to current time.
+                Ctrl+Shift+0-9 -> Clear given bookmark time.
+                Ctrl+D -> Show debugging info.
+                Page Up/Down -> Seek to previous/next sequence.
 
-                    """,
-                    (value, buffer, range) => new TextSlice(buffer, range)
-                    {
-                        Value = value,
-                        FontSize = 14 * _scale,
-                        Position = (10, 30, 0)
-                    }));
+                """,
+                (value, buffer, range) => new TextSlice(buffer, range)
+                {
+                    Value = value,
+                    FontSize = 14 * _scale,
+                    Position = (10, 30, 0)
+                }));
 
         overlay.Add("debug",
-            () => _debugBuffer.GetTextSlice("", UpdatableTextSliceMaxLength),
+            () => _debugBuffer.GetTextSlice(
+                "123456789QWERTYUIOPASDFGHJKLZXCVBNM,./;[]'\"-=_+!@#$%^&*()qwertyuiopasdfghjklzxcvbnm", 
+                // TODO: THIS IS A HACK. REALTIME TEXT GENERATION IS BUGGY AT THE MOMENT
+                UpdatableTextSliceMaxLength),
             text =>
             {
                 text.FontSize = 14 * _scale;
@@ -122,7 +125,7 @@ public class ApplicationTextContainer
     public void RenderStaticText(Camera camera)
     {
         _genericBuffer.RenderBuffer(camera);
-        
+
         if (ShowDebug)
             _debugBuffer.RenderBuffer(camera);
         if (ShowControls)

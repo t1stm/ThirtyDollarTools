@@ -1,11 +1,10 @@
-using Microsoft.Extensions.Logging;
 using OpenTK.Graphics.OpenGL;
 using Serilog.Core;
-using ThirtyDollarVisualizer.Engine.Assets.Extensions;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
 using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Helpers;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Helpers;
 
 /// <summary>
 /// A pool of shaders.

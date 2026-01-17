@@ -20,17 +20,16 @@ public class GlyphProvider
     public const float MsdfRange = 4.0f;
     public FontHandle Font { get; }
     public FontMetrics FontMetrics { get; }
-    public Dictionary<string, TextAlignmentData> SizingData { get; } = new();
-    
+    protected Dictionary<string, TextAlignmentData> SizingData { get; } = new();
+
     private static void FixGeometry(Shape shape)
     {
-        // Fix winding if needed (outside distance positive)
         var bounds = shape.GetBounds();
         Vector2 outerPoint = new(
             bounds.L - (bounds.R - bounds.L) - 1,
             bounds.B - (bounds.T - bounds.B) - 1
         );
-        
+
         var combiner = new SimpleContourCombiner<TrueDistanceSelector>(shape);
         var finder = new ShapeDistanceFinder<SimpleContourCombiner<TrueDistanceSelector>>(shape, combiner);
         double distance = finder.Distance(outerPoint);
@@ -39,11 +38,10 @@ public class GlyphProvider
         foreach (var contour in shape.Contours)
             contour.Reverse();
     }
-
     private static (Vector2 translate, Vector2 scale) AutoFrame(Shape shape)
     {
         const double pxRange = MsdfRange;
-        
+
         var translate = new Vector2(0, 0);
         var scale = new Vector2(1, 1);
 
@@ -80,13 +78,13 @@ public class GlyphProvider
             translate = new Vector2(-l, 0.5 * (frame.Y / frame.X * dims.X - dims.Y) - b);
             scale = new Vector2(fitScale, fitScale);
         }
-        
+
         translate +=
             new Vector2(pxRange / 2 / scale.X, pxRange / 2 / scale.Y);
-        
+
         return (translate, scale);
     }
-    
+
     public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character)
     {
         const double rangeSymmetricalWidth = MsdfRange;
@@ -101,13 +99,13 @@ public class GlyphProvider
 
         if (!shape.Validate())
             throw new Exception("Invalid shape.");
-        
+
         shape.Normalize();
         FixGeometry(shape);
 
         shape.OrientContours();
         shape.Normalize();
-        
+
         var (translate, scale) = AutoFrame(shape);
 
         const double angleThreshold = 3d;
@@ -136,14 +134,28 @@ public class GlyphProvider
         }
 
         var image = Image.WrapMemory<RgbaVector>(Configuration.Default, array, GlyphSize, GlyphSize);
-        var lookup = SizingData.GetAlternateLookup<ReadOnlySpan<char>>();
-        lookup.TryAdd(character, new TextAlignmentData
+        lock (SizingData)
         {
-            AdvanceInUnitSpace = advance,
-            Scale = scale,
-            Translate = translate
-        });
+            var lookup = SizingData.GetAlternateLookup<ReadOnlySpan<char>>();
+            lookup.TryAdd(character, new TextAlignmentData
+            {
+                AdvanceInUnitSpace = advance,
+                Scale = scale,
+                Translate = translate
+            });
+        }
 
         return image;
+    }
+
+    public TextAlignmentData GetSizingData(ReadOnlySpan<char> character)
+    {
+        lock (SizingData)
+        {
+            var lookup = SizingData.GetAlternateLookup<ReadOnlySpan<char>>();
+            return lookup.TryGetValue(character, out var data)
+                ? data
+                : throw new Exception($"Unable to find sizing data for character: {character}");
+        }
     }
 }

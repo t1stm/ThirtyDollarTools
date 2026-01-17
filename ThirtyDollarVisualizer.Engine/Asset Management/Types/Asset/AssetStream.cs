@@ -1,6 +1,6 @@
-using ThirtyDollarVisualizer.Engine.Assets.Abstract;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Types.Asset;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
 
 public class AssetStream : ILoadableAsset<AssetStream, AssetInfo>
 {

@@ -20,6 +20,7 @@ public class DeleteQueue
             while (_queue.TryDequeue(out var tuple))
             {
                 var (type, handle) = tuple;
+                if (handle == 0) continue;
                 switch (type)
                 {
                     case DeleteType.VBO:

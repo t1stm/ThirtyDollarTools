@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Cache;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Cache;
 
-namespace ThirtyDollarVisualizer.Engine.Assets;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management;
 
 /// <summary>
 /// A class that manages the caching of different objects.

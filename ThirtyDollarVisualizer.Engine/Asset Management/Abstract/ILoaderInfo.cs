@@ -1,4 +1,4 @@
-namespace ThirtyDollarVisualizer.Engine.Assets.Abstract;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
 
 /// <summary>
 /// Represents a base interface for loading asset-related information.

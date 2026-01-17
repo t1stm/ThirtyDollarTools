@@ -2,8 +2,8 @@ using System.Text.Json;
 using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using ThirtyDollarVisualizer.Engine.Assets;
-using ThirtyDollarVisualizer.Engine.Assets.Types.Cache;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
+using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Cache;
 using ThirtyDollarVisualizer.Engine.Common;
 
 namespace ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;

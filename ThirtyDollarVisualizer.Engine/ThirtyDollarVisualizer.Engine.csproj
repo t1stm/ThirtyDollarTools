@@ -67,4 +67,8 @@
       <EmbeddedResource Include="Assets\Shaders\Text\Batched.vert" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Assets\" />
+    </ItemGroup>
+
 </Project>

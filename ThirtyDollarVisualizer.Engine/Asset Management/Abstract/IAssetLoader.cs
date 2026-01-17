@@ -1,6 +1,6 @@
 using JetBrains.Annotations;
 
-namespace ThirtyDollarVisualizer.Engine.Assets.Abstract;
+namespace ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
 
 /// <summary>
 /// Represents a loader for assets.

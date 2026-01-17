@@ -100,7 +100,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
                     continue;
             }
 
-            TextCharacter textCharacter;
+            Vector4 textureRectangle;
             TextAlignmentData textAlignmentData;
 
             if (char.IsSurrogate(character) && index + 1 < val.Length &&
@@ -109,24 +109,24 @@ public class TextSlice(TextBuffer textBuffer, Range range)
                 characters[0] = character;
                 characters[1] = val[index + 1];
 
-                (textCharacter, textAlignmentData) = textProvider.GetTextCharacter(characters);
+                (textureRectangle, textAlignmentData) = textProvider.GetTextCharacterRect(characters);
                 index++;
             }
             else
             {
                 characters[0] = character;
                 characters[1] = (char)0;
-                (textCharacter, textAlignmentData) = textProvider.GetTextCharacter(characters[..1]);
+                (textureRectangle, textAlignmentData) = textProvider.GetTextCharacterRect(characters[..1]);
             }
 
-            var textureSize = textCharacter.TextureUV; // this is currently atlas coordinates, converting to UV below
+            var textCharacter = new TextCharacter();
             var atlasSize = new Vector2(textProvider.TextAtlas.Width, textProvider.TextAtlas.Height);
 
             textCharacter.TextureUV =
-                (textureSize.X / atlasSize.X,
-                    textureSize.Y / atlasSize.Y,
-                    (textureSize.X + textureSize.Z) / atlasSize.X,
-                    (textureSize.Y + textureSize.W) / atlasSize.Y);
+                (textureRectangle.X / atlasSize.X,
+                    textureRectangle.Y / atlasSize.Y,
+                    (textureRectangle.X + textureRectangle.Z) / atlasSize.X,
+                    (textureRectangle.Y + textureRectangle.W) / atlasSize.Y);
 
             var (advanceUnitSpace, translate, scale) = textAlignmentData;
             
@@ -150,6 +150,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
 
             if (Offset + bufferIndex >= textBuffer.Characters.Capacity) 
                 throw new Exception("TextSlice capacity exceeded.");
+            
             textBuffer.Characters[Offset + bufferIndex] = textCharacter;
             bufferIndex++;
         }

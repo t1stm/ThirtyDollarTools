@@ -55,21 +55,20 @@ public abstract class ThirtyDollarWorkflow : Scene
 
         await SampleHolder.LoadSampleList();
         SampleHolder.PrepareDirectory();
+        
         await SampleHolder.DownloadSamples();
         await SampleHolder.DownloadImages();
-        SampleHolder.LoadSamplesIntoMemory();
         
-        _ = Task.Run(LoadTextureAtlas);
+        SampleHolder.LoadSamplesIntoMemory();
+        LoadTextureAtlas(SampleHolder);
 
         Log("[Sample Holder] Loaded all samples and images.");
     }
     
-    protected async Task LoadTextureAtlas()
+    protected void LoadTextureAtlas(SampleHolder sampleHolder)
     {
         try
         {
-            var sampleHolder = await GetSampleHolder();
-
             Log("[Atlas Generation] Starting...");
 
             var imagesLocation = sampleHolder.ImagesLocation;

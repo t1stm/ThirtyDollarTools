@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog.Core;
-using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Debug;
 using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 
@@ -13,7 +13,7 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
     public AssetProvider AssetProvider { get; } = assetProvider;
     public Dictionary<string, Scene> Scenes { get; } = new();
     public List<Scene> ActiveScenes { get; private set; } = [];
-    
+
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
     {
         var scene = factory(this);

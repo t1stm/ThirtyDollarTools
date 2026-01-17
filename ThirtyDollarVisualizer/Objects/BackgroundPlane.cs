@@ -2,9 +2,8 @@ using System.Diagnostics;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
-using ThirtyDollarVisualizer.Engine.Assets;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
-using ThirtyDollarVisualizer.Engine.Renderer.Queues;
 
 namespace ThirtyDollarVisualizer.Objects;
 
