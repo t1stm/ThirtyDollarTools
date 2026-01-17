@@ -44,7 +44,7 @@ public class PlayfieldChunk : IDisposable
         {
             var baseEvent = slice[i];
             if (baseEvent.SoundEvent is null) continue;
-            
+
             var renderable = renderables[i] = factory.CookUp(baseEvent);
 
             switch (baseEvent.SoundEvent)
@@ -61,7 +61,7 @@ public class PlayfieldChunk : IDisposable
                 {
                     ValueScale.Divide => "/" + valueText,
                     ValueScale.Times => "x" + valueText,
-                    ValueScale.Add when baseEvent.Value > 0 && baseEvent.SoundEvent.StartsWith('!') 
+                    ValueScale.Add when baseEvent.Value > 0 && baseEvent.SoundEvent.StartsWith('!')
                         => "+" + valueText,
                     ValueScale.None when baseEvent.Value > 0 && !baseEvent.SoundEvent.StartsWith('!')
                         => "+" + valueText,
@@ -75,16 +75,21 @@ public class PlayfieldChunk : IDisposable
                         break;
                 }
 
-                renderable.Value = chunk._textBuffer.GetTextSlice(valueText, MaxValueLength);
+                renderable.Value = chunk._textBuffer.GetTextSlice(valueText, (value, buffer, range) =>
+                    new TextSlice(buffer, range)
+                    {
+                        Value = value,
+                        FontSize = settings.ValueFontSize * settings.RenderScale
+                    }, MaxValueLength);
             }
 
             if (baseEvent.Volume is not null)
             {
                 renderable.Volume = chunk._textBuffer.GetTextSlice($"{baseEvent.Volume:0.##}%",
-                    static (value, buffer, range) => new TextSlice(buffer, range)
+                    (value, buffer, range) => new TextSlice(buffer, range)
                     {
                         Value = value,
-                        FontSize = 11
+                        FontSize = settings.VolumeFontSize * settings.RenderScale
                     });
             }
 
@@ -95,12 +100,12 @@ public class PlayfieldChunk : IDisposable
                 : pannedEvent.Pan > 0
                     ? $"*{pannedEvent.Pan:0.##}"
                     : $"{pannedEvent.Pan:0.##}*";
-            
-            renderable.Pan = chunk._textBuffer.GetTextSlice(panText, static (value, buffer, range) =>
+
+            renderable.Pan = chunk._textBuffer.GetTextSlice(panText, (value, buffer, range) =>
                 new TextSlice(buffer, range)
                 {
                     Value = value,
-                    FontSize = 11
+                    FontSize = settings.VolumeFontSize * settings.RenderScale
                 });
         }
 

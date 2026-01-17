@@ -72,6 +72,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     private bool _tab;
     private ulong _updateId;
     private int _width;
+    private bool _playfieldsUpdated;
 
     /// <summary>
     /// Creates a TDW sequence visualizer.
@@ -274,6 +275,20 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     public override void Update(UpdateArguments updateArgs)
     {
         AtlasStore?.Update();
+        if (_playfieldsUpdated)
+        {
+            // explode the gpu for one frame, but no stutters on lower-end devices when creating new VAOs and uploading data
+            var offscreenCamera = new DollarStoreCamera((_width, _height, 0), (_width, _height));
+            foreach (var playfield in _playfields)
+            {
+                foreach (var chunk in playfield.Chunks)
+                {
+                    chunk.Render(offscreenCamera);
+                }
+            }
+
+            _playfieldsUpdated = false;
+        }
 
         // check if one of the sequences has been updated, and handle it
         if (_fileUpdateStopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
@@ -676,6 +691,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         }
 
         _playfields = playfields;
+        _playfieldsUpdated = true;
         SequenceVolume = 100;
     }
 

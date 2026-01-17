@@ -108,7 +108,7 @@ public static class Program
             Title = "Thirty Dollar Visualizer",
             WindowState = WindowState.Normal,
             WindowBorder = WindowBorder.Resizable,
-            TransparentFramebuffer = true,
+            TransparentFramebuffer = settings.TransparentFramebuffer,
             Vsync = fps == null ? VSyncMode.On : VSyncMode.Off,
             ClientSize = (width, height)
         };
