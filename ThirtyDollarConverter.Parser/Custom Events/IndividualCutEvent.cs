@@ -5,8 +5,9 @@ public class IndividualCutEvent : BaseEvent, ICustomActionEvent, ICustomAudibleE
     public readonly HashSet<string> CutSounds;
     public bool IsStandardImplementation { get; set; }
 
-    public IndividualCutEvent(HashSet<string> cutSounds)
+    public IndividualCutEvent(HashSet<string> cutSounds, bool isStandardImplementation = true)
     {
+        IsStandardImplementation = isStandardImplementation;
         SoundEvent ??= IsStandardImplementation ? "!cut" : "#icut";
         ValueScale = ValueScale.None;
         Value = 0;
@@ -20,9 +21,6 @@ public class IndividualCutEvent : BaseEvent, ICustomActionEvent, ICustomAudibleE
 
     public override IndividualCutEvent Copy()
     {
-        return new IndividualCutEvent(CutSounds)
-        {
-            IsStandardImplementation = IsStandardImplementation
-        };
+        return new IndividualCutEvent(CutSounds, IsStandardImplementation);
     }
 }

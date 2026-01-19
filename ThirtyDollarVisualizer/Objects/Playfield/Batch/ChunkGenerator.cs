@@ -11,9 +11,9 @@ public class ChunkGenerator(PlayfieldSettings settings)
     public const int DefaultChunkSize = 512;
     public int ChunkSize { get; init; } = DefaultChunkSize;
 
-    public readonly LayoutHandler LayoutHandler = new(settings.SoundSize * settings.RenderScale,
-        settings.SoundsOnASingleLine,
-        settings.SoundMargin * settings.RenderScale / 2,
+    public readonly LayoutHandler LayoutHandler = new(settings.PlayfieldSizing.SoundSize * settings.RenderScale,
+        settings.PlayfieldSizing.SoundsOnASingleLine,
+        settings.PlayfieldSizing.SoundMargin * settings.RenderScale / 2,
         15f * settings.RenderScale);
 
     public List<PlayfieldChunk> GenerateChunks(BaseEvent[] events)
@@ -21,18 +21,18 @@ public class ChunkGenerator(PlayfieldSettings settings)
         var chunkCount = (events.Length + ChunkSize - 1) / ChunkSize;
         var chunksList = new PlayfieldChunk[chunkCount];
 
-        Parallel.For(0, chunkCount, 
+        Parallel.For(0, chunkCount,
             chunkIndex =>
-        {
-            var eventsSpan = events.AsSpan();
-            var i = chunkIndex * ChunkSize;
-            
-            var clampedSize = Math.Min(eventsSpan.Length - i, ChunkSize);
-            var slice = eventsSpan.Slice(i, clampedSize);
+            {
+                var eventsSpan = events.AsSpan();
+                var i = chunkIndex * ChunkSize;
 
-            var chunk = PlayfieldChunk.GenerateFrom(slice, LayoutHandler, settings);
-            chunksList[chunkIndex] = chunk;
-        });
+                var clampedSize = Math.Min(eventsSpan.Length - i, ChunkSize);
+                var slice = eventsSpan.Slice(i, clampedSize);
+
+                var chunk = PlayfieldChunk.GenerateFrom(slice, LayoutHandler, settings);
+                chunksList[chunkIndex] = chunk;
+            });
 
         return [..chunksList];
     }
@@ -47,10 +47,11 @@ public class ChunkGenerator(PlayfieldSettings settings)
             {
                 PositionSound(renderable);
             }
+
             chunk.EndY = LayoutHandler.Height + LayoutHandler.Size;
         }
     }
-    
+
     private void PositionSound(in SoundRenderable sound)
     {
         // get the current sound's texture information
@@ -94,11 +95,12 @@ public class ChunkGenerator(PlayfieldSettings settings)
         var top_right = box_position + (box_scale.X + 6f, 0f);
 
         const float padding = 4f;
-        
-        sound.Value?.SetPosition((bottom_center.X, bottom_center.Y + padding, 0), PositionAlign.Top | PositionAlign.CenterX);
+
+        sound.Value?.SetPosition((bottom_center.X, bottom_center.Y + padding, 0),
+            PositionAlign.Top | PositionAlign.CenterX);
         sound.Volume?.SetPosition((top_right.X, top_right.Y, 0), PositionAlign.Top | PositionAlign.Right);
         sound.Pan?.SetPosition((box_position.X, box_position.Y, 0));
-        
+
         sound.UpdateModel(false);
     }
 }

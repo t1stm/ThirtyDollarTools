@@ -30,6 +30,7 @@ public class PlayfieldChunk : IDisposable
     {
         var fontProvider = settings.Fonts.LatoBoldProvider;
         var store = settings.AtlasStore;
+        var sizing = settings.PlayfieldSizing;
         var length = slice.Length;
 
         var chunk = new PlayfieldChunk(length, fontProvider)
@@ -79,7 +80,7 @@ public class PlayfieldChunk : IDisposable
                     new TextSlice(buffer, range)
                     {
                         Value = value,
-                        FontSize = settings.ValueFontSize * settings.RenderScale
+                        FontSize = sizing.ValueFontSize * settings.RenderScale
                     }, MaxValueLength);
             }
 
@@ -89,23 +90,24 @@ public class PlayfieldChunk : IDisposable
                     (value, buffer, range) => new TextSlice(buffer, range)
                     {
                         Value = value,
-                        FontSize = settings.VolumeFontSize * settings.RenderScale
+                        FontSize = sizing.VolumeFontSize * settings.RenderScale
                     });
             }
 
             if (baseEvent is not PannedEvent pannedEvent) continue;
+            if (pannedEvent.Pan == 0) continue;
 
             var panText = pannedEvent.IsStandardImplementation
-                ? pannedEvent.Pan > 0 ? $"*{pannedEvent.TDWPan:0.##}" : $"{pannedEvent.TDWPan:0.##}*"
+                ? pannedEvent.Pan > 0 ? $"{Math.Abs(pannedEvent.TDWPan):0.##}>" : $"<{Math.Abs(pannedEvent.TDWPan):0.##}"
                 : pannedEvent.Pan > 0
-                    ? $"*{pannedEvent.Pan:0.##}"
-                    : $"{pannedEvent.Pan:0.##}*";
+                    ? $"|{Math.Abs(pannedEvent.Pan):0.##}"
+                    : $"{Math.Abs(pannedEvent.Pan):0.##}|";
 
             renderable.Pan = chunk._textBuffer.GetTextSlice(panText, (value, buffer, range) =>
                 new TextSlice(buffer, range)
                 {
                     Value = value,
-                    FontSize = settings.VolumeFontSize * settings.RenderScale
+                    FontSize = sizing.PanFontSize * settings.RenderScale
                 });
         }
 

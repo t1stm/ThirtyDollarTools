@@ -56,7 +56,10 @@ public class Game : GameWindow
         GL.Enable(EnableCap.DebugOutput);
         GL.Enable(EnableCap.DebugOutputSynchronous);
         
-        _storedDebugCallback = DebugCallback; // .NET GC automatically collects this unless it's stored somewhere in a class. 
+        // .NET GC automatically collects this unless it's stored somewhere in a class.
+        // See: 
+        _storedDebugCallback = DebugCallback;
+        
         if (GLInfo.SupportsKHRDebug)
             GL.DebugMessageCallback(_storedDebugCallback, in IntPtr.Zero);
         else RenderMarker.Enabled = false;

@@ -28,7 +28,6 @@ public static class Program
         AudioContext? audio_context = null;
         var width = 1600;
         var height = 840;
-        var follow_mode = CameraFollowMode.TDWLike;
         int? fps = null;
         float? scale = null;
         string? greeting = null;
@@ -56,12 +55,6 @@ public static class Program
                 transparent_framebuffer = options.TransparentFramebuffer;
 
                 mode = options.Mode;
-
-                follow_mode = options.CameraFollowMode switch
-                {
-                    "line" => CameraFollowMode.CurrentLine,
-                    _ => CameraFollowMode.TDWLike
-                };
 
                 audio_context = no_audio
                     ? new NullAudioContext()
@@ -92,18 +85,24 @@ public static class Program
         if (line_amount.HasValue) settings.LineAmount = line_amount.Value;
         if (event_size.HasValue) settings.EventSize = event_size.Value;
         if (event_margin.HasValue) settings.EventMargin = event_margin.Value;
-        
+
         var gameWindowSettings = new GameWindowSettings
         {
             UpdateFrequency = fps ?? 0,
         };
+
+        var contextFlags = ContextFlags.ForwardCompatible;
+
+#if DEBUG
+        contextFlags |= ContextFlags.Debug;
+#endif
 
         var nativeWindowSettings = new NativeWindowSettings
         {
             Icon = null,
             API = ContextAPI.OpenGL,
             Profile = ContextProfile.Core,
-            Flags = ContextFlags.ForwardCompatible,
+            Flags = contextFlags,
             APIVersion = new Version(3, 3),
             Title = "Thirty Dollar Visualizer",
             WindowState = WindowState.Normal,
@@ -112,7 +111,7 @@ public static class Program
             Vsync = fps == null ? VSyncMode.On : VSyncMode.Off,
             ClientSize = (width, height)
         };
-        
+
         var game = new Game(Assembly.GetExecutingAssembly(), gameWindowSettings, nativeWindowSettings);
         if (game.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
@@ -124,7 +123,7 @@ public static class Program
         {
             case "Editor":
             {
-                game.SceneManager.LoadScene<ThirtyDollarEditor>(settings.Mode, 
+                game.SceneManager.LoadScene<ThirtyDollarEditor>(settings.Mode,
                     sceneManager => new ThirtyDollarEditor(sceneManager, settings, audio_context));
                 break;
             }
@@ -134,14 +133,13 @@ public static class Program
                     sceneManager =>
                         new ThirtyDollarApplication(sceneManager, width, height, [sequence], settings, audio_context)
                         {
-                            CameraFollowMode = follow_mode,
                             Scale = scale ?? 1f,
                             Greeting = greeting ?? settings.Greeting
                         });
                 break;
             }
         }
-        
+
         game.SceneManager.TransitionTo(settings.Mode);
         game.Run();
     }

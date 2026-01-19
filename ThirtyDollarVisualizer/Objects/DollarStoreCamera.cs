@@ -108,7 +108,7 @@ public sealed class DollarStoreCamera : Camera
         base.SetMatrixValue(left, right, bottom, top);
     }
 
-    public void Update(float secondsLastFrame)
+    public void Update(double secondsLastFrame)
     {
         var current = Position;
         var target = _virtualPosition;

@@ -22,13 +22,14 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
     
     private bool _firstPosition = true;
     private int _lastCullingIndex;
-    
+    private bool _disposed;
+
     public List<PlayfieldChunk> Chunks { get; private set; } = [];
     public List<SoundRenderable> Renderables { get; private set; } = [];
 
     public bool DisplayCenter { get; set; } = true;
 
-    public async ValueTask UpdateSounds(Sequence sequence)
+    public void UpdateSounds(Sequence sequence)
     {
         var events = sequence.Events;
 
@@ -39,7 +40,7 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
         foreach (var chunk in chunks)
             renderables.AddRange(chunk.Renderables);
 
-        await _lock.WaitAsync();
+        _lock.Wait();
         
         Chunks = chunks;
         Renderables = renderables;
@@ -92,6 +93,11 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
         _objectBox.Render(_temporaryCamera);
         
         _lock.Wait();
+        if (_disposed)
+        {
+            _lock.Release();
+            return;
+        }
         var span = CollectionsMarshal.AsSpan(Chunks);
 
         if (span.Length > 0)
@@ -133,6 +139,7 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
 
     public void Dispose()
     {
+        _disposed = true;
         foreach (var chunk in Chunks)
         {
             chunk.Dispose();

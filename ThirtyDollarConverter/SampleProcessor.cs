@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
@@ -11,7 +12,7 @@ namespace ThirtyDollarConverter;
 public class SampleProcessor
 {
     private readonly Action<string> _log;
-    private readonly ConcurrentDictionary<Sound, PcmDataHolder> _samples;
+    private readonly Dictionary<Sound, PcmDataHolder> _samples;
     private readonly EncoderSettings _settings;
 
     /// <summary>
@@ -20,7 +21,7 @@ public class SampleProcessor
     /// <param name="sampleHolder">The loaded samples.</param>
     /// <param name="settings">The encoder's settings.</param>
     /// <param name="logger">Action that handles log messages.</param>
-    public SampleProcessor(ConcurrentDictionary<Sound, PcmDataHolder> sampleHolder, EncoderSettings settings,
+    public SampleProcessor(Dictionary<Sound, PcmDataHolder> sampleHolder, EncoderSettings settings,
         Action<string>? logger = null)
     {
         _samples = sampleHolder;

@@ -23,6 +23,7 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
     private int _vertexIndex;
     private IBindable? _ibo;
     private bool _isIBOUploaded;
+    private bool _disposed;
 
     public static void Preload(AssetProvider assetProvider)
     {
@@ -130,7 +131,14 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
     public void Update()
     {
         UploadBufferLayouts();
-        foreach (var buffer in _buffers) buffer.Update();
+        lock (_buffers)
+        {
+            if (_disposed) return;
+            foreach (var buffer in _buffers)
+            {
+                buffer.Update();
+            }
+        }
     }
 
     /// <summary>
@@ -138,7 +146,9 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
     /// </summary>
     public void Dispose()
     {
-        _buffers.Clear();
+        _disposed = true;
+        lock (_buffers)
+            _buffers.Clear();
         _deleteQueue.Enqueue(DeleteType.VAO, Handle);
         GC.SuppressFinalize(this);
     }

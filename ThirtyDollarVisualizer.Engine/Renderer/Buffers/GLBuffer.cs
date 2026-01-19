@@ -16,10 +16,11 @@ namespace ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTarget)
     : IGPUBuffer<TDataType> where TDataType : unmanaged
 {
+    private const int MaxPreallocatedUpdateCapacity = 32;
     public BufferState BufferState { get; protected set; } = BufferState.PendingCreation;
     public int Handle { get; protected set; }
     public int Capacity { get; protected set; }
-    protected Dictionary<int, TDataType> Updates { get; } = new();
+    protected Dictionary<int, TDataType> Updates { get; } = new(MaxPreallocatedUpdateCapacity);
     
     private int? _newSize;
 

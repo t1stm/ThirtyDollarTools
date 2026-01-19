@@ -14,6 +14,8 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
     public Dictionary<string, Scene> Scenes { get; } = new();
     public List<Scene> ActiveScenes { get; private set; } = [];
 
+    private Exception? _exception;
+
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
     {
         var scene = factory(this);
@@ -38,7 +40,6 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
 
     public void Initialize(InitArguments initArguments)
     {
-        
         foreach (var (sceneName, scene) in Scenes)
         {
             DebugMarker("Initializing scene: ", sceneName);
@@ -116,10 +117,18 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
 
     public void Update(UpdateArguments updateArgs)
     {
+        if (_exception != null) 
+            throw _exception;
+        
         foreach (var scene in ActiveScenes)
         {
             DebugMarker("Updating scene: ", scene.GetType().Name, true);
             scene.Update(updateArgs);
         }
+    }
+
+    public void ExceptionThrown(Exception exception)
+    {
+        _exception = exception;
     }
 }

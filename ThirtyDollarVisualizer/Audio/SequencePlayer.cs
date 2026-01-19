@@ -11,8 +11,8 @@ namespace ThirtyDollarVisualizer.Audio;
 
 public class SequencePlayer
 {
-    private static int InstanceID;
-    
+    private static int _instanceID;
+
     protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
     public readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly long[] Bookmarks = new long[10];
@@ -42,7 +42,7 @@ public class SequencePlayer
     /// <param name="logAction">The logging action.</param>
     public SequencePlayer(AudioContext? context = null, Action<string>? logAction = null)
     {
-        ++InstanceID;
+        ++_instanceID;
         BufferHolder = new BufferHolder();
         Events = new TimedEvents
         {
@@ -285,13 +285,15 @@ public class SequencePlayer
 
     public void SetGreeting(GreetingType type)
     {
-        if (Greeting == null) return;
-        Greeting.GreetingType = type;
+        Greeting?.GreetingType = type;
     }
 
     public long SeekToBookmark(int bookmarkIndex)
     {
-        var bookmark_time = Bookmarks[bookmarkIndex];
+        long bookmark_time;
+
+        lock (Bookmarks)
+            bookmark_time = Bookmarks[bookmarkIndex];
 
         Seek(bookmark_time);
         return bookmark_time;
@@ -306,12 +308,12 @@ public class SequencePlayer
 
     public void SetBookmarkTo(int bookmarkIndex, long milliseconds)
     {
-        Bookmarks[bookmarkIndex] = milliseconds;
+        lock (Bookmarks) Bookmarks[bookmarkIndex] = milliseconds;
     }
 
     public void ClearBookmark(int bookmarkIndex)
     {
-        Bookmarks[bookmarkIndex] = 0;
+        lock (Bookmarks) Bookmarks[bookmarkIndex] = 0;
     }
 
     protected void PlaybackUpdate()
@@ -337,9 +339,11 @@ public class SequencePlayer
                 if (placement.Index > GetIndexFromTime(TimingStopwatch.ElapsedMilliseconds))
                     break;
 
+                var isIce = false;
                 switch (placement.Event)
                 {
                     case IndividualCutEvent ice:
+                        isIce = true;
                         IndividualCutSamples(ice.CutSounds);
                         break;
 
@@ -350,7 +354,7 @@ public class SequencePlayer
 
                 switch (placement.Event.SoundEvent)
                 {
-                    case "!cut":
+                    case "!cut" when !isIce:
                         CutSounds();
                         break;
                 }

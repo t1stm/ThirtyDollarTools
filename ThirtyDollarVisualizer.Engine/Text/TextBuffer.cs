@@ -18,6 +18,7 @@ public class TextBuffer : IRenderable, IDisposable
     private readonly List<Range> _freeRanges = [];
 
     private int _currentOffset;
+    private bool _disposing;
 
     public TextBuffer(TextProvider provider)
     {
@@ -141,17 +142,26 @@ public class TextBuffer : IRenderable, IDisposable
         {
             _freeRanges.Add(range);
         }
+        
+        if (_disposing) return;
+
+        var (offset, length) = range.GetOffsetAndLength(Characters.Capacity);
+        for (var i = offset; i < length; i++)
+        {
+            Characters[i] = new TextCharacter();
+        }
     }
 
     public void Dispose()
     {
-        _vao.Dispose();
-        Characters.Dispose();
-
+        _disposing = true;
         foreach (var (textSlice, _) in _usedRanges)
         {
             textSlice.Dispose();
         }
+        
+        _vao.Dispose();
+        Characters.Dispose();
 
         GC.SuppressFinalize(this);
     }

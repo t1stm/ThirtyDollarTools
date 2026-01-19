@@ -106,10 +106,7 @@ public partial class Sequence
 
         var hash_set = new HashSet<string>(split_events);
 
-        newEvent = new IndividualCutEvent(hash_set)
-        {
-            SoundEvent = text
-        };
+        newEvent = new IndividualCutEvent(hash_set, false);
 
         foreach (var ev in split_events) sequence.SeparatedChannels.Add(ev);
 
@@ -266,10 +263,7 @@ public partial class Sequence
         }
 
         var cutSounds = splitForValue[1].Split(',').ToHashSet();
-        icut = new IndividualCutEvent(cutSounds)
-        {
-            IsStandardImplementation = true
-        };
+        icut = new IndividualCutEvent(cutSounds);
         
         foreach (var ev in cutSounds) sequence.SeparatedChannels.Add(ev);
         return true;

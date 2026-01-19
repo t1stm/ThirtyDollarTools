@@ -182,9 +182,8 @@ public abstract class ThirtyDollarWorkflow : Scene
         TimedEvents.Placement = placement;
         TimedEvents.Sequences = sequences;
 
-        await HandleAfterSequenceLoad(TimedEvents);
         SequencePlayer.ClearSubscriptions();
-        SetSequencePlayerSubscriptions(SequencePlayer);
+        await HandleAfterSequenceLoad(TimedEvents, SequencePlayer);
 
         var sample_holder = await GetSampleHolder();
 
@@ -263,13 +262,8 @@ public abstract class ThirtyDollarWorkflow : Scene
     /// Called after the sequence has finished loading, but before the audio events have finished processing.
     /// </summary>
     /// <param name="events">The events the sequence contains.</param>
-    protected abstract Task HandleAfterSequenceLoad(TimedEvents events);
-
-    /// <summary>
-    /// Called by the abstract class in order to use the implementation, when the SequencePlayer is created.
-    /// </summary>
-    /// <param name="player">The created SequencePlayer.</param>
-    protected abstract void SetSequencePlayerSubscriptions(SequencePlayer player);
+    /// <param name="sequencePlayer">The sequence player instance.</param>
+    protected abstract Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer);
 
     /// <summary>
     /// Call this when you want to check if the sequence is updated and you want to update it if it is.

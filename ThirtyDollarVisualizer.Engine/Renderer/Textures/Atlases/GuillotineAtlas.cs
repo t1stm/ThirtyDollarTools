@@ -84,33 +84,39 @@ public sealed class GuillotineAtlas : IAtlas
 
     public Rectangle GetImageRectangle(ReadOnlySpan<char> imageID)
     {
-        var alternativeLookup = _usedByImageID.GetAlternateLookup<ReadOnlySpan<char>>();
-        return alternativeLookup.TryGetValue(imageID, out var rect) ? rect : Rectangle.Empty;
+        lock (_usedByImageID)
+        {
+            var alternativeLookup = _usedByImageID.GetAlternateLookup<ReadOnlySpan<char>>();
+            return alternativeLookup.TryGetValue(imageID, out var rect) ? rect : Rectangle.Empty;
+        }
     }
 
     public Rectangle AddImage(ReadOnlySpan<char> imageID, ImageFrame image)
     {
         ArgumentNullException.ThrowIfNull(image);
-        var alternativeLookup = _usedByImageID.GetAlternateLookup<ReadOnlySpan<char>>();
-        if (image.Width <= 0 || image.Height <= 0) return Rectangle.Empty;
+        lock (_usedByImageID)
+        {
+            var alternativeLookup = _usedByImageID.GetAlternateLookup<ReadOnlySpan<char>>();
+            if (image.Width <= 0 || image.Height <= 0) return Rectangle.Empty;
 
-        var paddedW = image.Width + Padding * 2;
-        var paddedH = image.Height + Padding * 2;
-        var (index, placedW, placedH, rotate) = ChoosePlacement(paddedW, paddedH);
-        if (index < 0) return Rectangle.Empty;
+            var paddedW = image.Width + Padding * 2;
+            var paddedH = image.Height + Padding * 2;
+            var (index, placedW, placedH, rotate) = ChoosePlacement(paddedW, paddedH);
+            if (index < 0) return Rectangle.Empty;
 
-        var host = _freeRects[index];
-        var placed = new Rectangle(host.X, host.Y, placedW, placedH);
+            var host = _freeRects[index];
+            var placed = new Rectangle(host.X, host.Y, placedW, placedH);
 
-        // Perform a guillotine split on the host rectangle.
-        SplitFreeRect(index, placed, host);
+            // Perform a guillotine split on the host rectangle.
+            SplitFreeRect(index, placed, host);
 
-        // Track usage.
-        var rect = new Rectangle(placed.X + Padding, placed.Y + Padding, image.Width, image.Height);
-        alternativeLookup[imageID] = rect;
-        _usedArea += placed.Width * placed.Height;
+            // Track usage.
+            var rect = new Rectangle(placed.X + Padding, placed.Y + Padding, image.Width, image.Height);
+            alternativeLookup[imageID] = rect;
+            _usedArea += placed.Width * placed.Height;
 
-        return rect;
+            return rect;
+        }
     }
 
     public bool RemoveImage(string imageID)
@@ -120,14 +126,17 @@ public sealed class GuillotineAtlas : IAtlas
 
     public bool RemoveImage(ReadOnlySpan<char> imageID)
     {
-        var alternativeLookup = _usedByImageID.GetAlternateLookup<ReadOnlySpan<char>>();
-        if (!alternativeLookup.Remove(imageID, out _, out var rect)) return false;
+        lock (_usedByImageID)
+        {
+            var alternativeLookup = _usedByImageID.GetAlternateLookup<ReadOnlySpan<char>>();
+            if (!alternativeLookup.Remove(imageID, out _, out var rect)) return false;
 
-        _usedArea -= rect.Width * rect.Height;
-        AddFreeRect(rect);
-        MergeAndPruneFreeRects();
+            _usedArea -= rect.Width * rect.Height;
+            AddFreeRect(rect);
+            MergeAndPruneFreeRects();
 
-        return true;
+            return true;
+        }
     }
 
     // Placement

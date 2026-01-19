@@ -98,7 +98,7 @@ public class ApplicationTextContainer
 
         overlay.Add("debug",
             () => _debugBuffer.GetTextSlice(
-                "123456789QWERTYUIOPASDFGHJKLZXCVBNM,./;[]'\"-=_+!@#$%^&*()qwertyuiopasdfghjklzxcvbnm", 
+                "123456789QWERTYUIOPASDFGHJKLZXCVBNM,./;[]'\"-=_+!@#$%^&*()|{}:><?~`qwertyuiopasdfghjklzxcvbnm", 
                 // TODO: THIS IS A HACK. REALTIME TEXT GENERATION IS BUGGY AT THE MOMENT
                 UpdatableTextSliceMaxLength),
             text =>

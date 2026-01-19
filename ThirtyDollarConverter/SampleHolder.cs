@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -38,8 +39,8 @@ public class SampleHolder
 
     private static readonly char Slash = Path.DirectorySeparatorChar;
 
-    public readonly ConcurrentDictionary<Sound, PcmDataHolder> SampleList = new();
-    public readonly ConcurrentDictionary<string, Sound> StringToSoundReferences = new();
+    public readonly Dictionary<Sound, PcmDataHolder> SampleList = new();
+    public readonly Dictionary<string, Sound> StringToSoundReferences = new();
     
     public Action<string, int, int>? DownloadUpdate = null;
     public string DownloadLocation { get; init; } = $".{Slash}Sounds";
@@ -88,13 +89,16 @@ public class SampleHolder
             throw new Exception(
                 "Loading Thirty Dollar Website Sounds failed with error: \'Deserialized contents of sounds.json are empty.\'");
 
-        foreach (var sound in sounds)
+        lock (SampleList)
         {
-            StringToSoundReferences.TryAdd(sound.Id, sound);
-            if (sound.Emoji != null)
-                StringToSoundReferences.TryAdd(sound.Emoji, sound);
+            foreach (var sound in sounds)
+            {
+                StringToSoundReferences.TryAdd(sound.Id, sound);
+                if (sound.Emoji != null)
+                    StringToSoundReferences.TryAdd(sound.Emoji, sound);
             
-            SampleList.TryAdd(sound, new PcmDataHolder());
+                SampleList.TryAdd(sound, new PcmDataHolder());
+            }
         }
     }
 
@@ -171,7 +175,7 @@ public class SampleHolder
     public async Task DownloadImages()
     {
         var client = new HttpClient();
-        if (SampleList.IsEmpty) await LoadSampleList();
+        if (SampleList.Count == 0) await LoadSampleList();
 
         PrepareDirectory();
         await DownloadSamples();
@@ -228,8 +232,11 @@ public class SampleHolder
 
             var file_stream = File.OpenRead($"{DownloadLocation}{Slash}{key.Id}.wav");
             var decoder = new WaveDecoder();
-            SampleList[key] = decoder.Read(file_stream);
-            SampleList[key].ReadAsFloat32Array(true);
+            lock (SampleList)
+            {
+                SampleList[key] = decoder.Read(file_stream);
+                SampleList[key].ReadAsFloat32Array(true);
+            }
         });
 
         // creates a hash for all TDW sounds.
@@ -257,7 +264,8 @@ public class SampleHolder
             var decoder = new WaveDecoder();
             var holder = decoder.Read(file_stream);
             holder.ReadAsFloat32Array(true);
-            SampleList.TryAdd(sound_object, holder);
+            lock (SampleList) 
+                SampleList.Add(sound_object, holder);
         });
 
         Console.WriteLine($"Samples: {SampleList.Count}");

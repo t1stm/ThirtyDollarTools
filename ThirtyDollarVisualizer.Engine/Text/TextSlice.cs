@@ -160,9 +160,6 @@ public class TextSlice(TextBuffer textBuffer, Range range)
 
     public void Dispose()
     {
-        _value.AsSpan().Clear();
-        UpdateCharacters();
-        
         textBuffer.Remove(this);
         GC.SuppressFinalize(this);
     }
