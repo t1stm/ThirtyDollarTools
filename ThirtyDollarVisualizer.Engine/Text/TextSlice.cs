@@ -140,7 +140,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             var scaleY = (float)scale.Y; // multiplier of unit space
 
             var positionX = cursorX - translateX * fontSize;
-            var positionY = cursorY - (GlyphProvider.GlyphSize / scaleY - translateY) * fontSize;
+            var positionY = cursorY + fontSize - (GlyphProvider.GlyphSize / scaleY - translateY) * fontSize;
             var scaleW = GlyphProvider.GlyphSize / scaleX * fontSize;
             var scaleH = GlyphProvider.GlyphSize / scaleY * fontSize;
 
