@@ -9,7 +9,7 @@ public class BassAudioContext : AudioContext
     public override string Name => "BASS";
 
     /// <summary>
-    /// Creates a global audio context.
+    ///     Creates a global audio context.
     /// </summary>
     public override bool Create()
     {
@@ -36,7 +36,7 @@ public class BassAudioContext : AudioContext
     }
 
     /// <summary>
-    /// Destroys the global audio context.
+    ///     Destroys the global audio context.
     /// </summary>
     public override void Destroy()
     {
@@ -44,7 +44,7 @@ public class BassAudioContext : AudioContext
     }
 
     /// <summary>
-    /// Checks if there are any BASS errors.
+    ///     Checks if there are any BASS errors.
     /// </summary>
     public override bool CheckErrors()
     {

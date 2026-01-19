@@ -21,9 +21,9 @@ public partial class Sequence
             SeparatedChannels = SeparatedChannels
         };
     }
-    
+
     /// <summary>
-    /// Parses a sequence stored in a string.
+    ///     Parses a sequence stored in a string.
     /// </summary>
     /// <param name="data">The string containing the sequence.</param>
     /// <returns>The parsed sequence.</returns>
@@ -56,10 +56,10 @@ public partial class Sequence
 
             new_event.OriginalLoop = 1;
             new_event.PlayTimes = 1;
-            
+
             if (new_event.SoundEvent is not null)
                 sequence.UsedSounds.Add(new_event.SoundEvent);
-            
+
             for (var i = 0; i < repeats; i++)
             {
                 if (ProcessDefines(sequence, new_event, list)) continue;
@@ -252,7 +252,7 @@ public partial class Sequence
         list.AddRange(array);
         return true;
     }
-    
+
     private static bool TryIndividualCutTDW(string text, Sequence sequence, out IndividualCutEvent icut)
     {
         var splitForValue = text.Split('@');
@@ -264,13 +264,13 @@ public partial class Sequence
 
         var cutSounds = splitForValue[1].Split(',').ToHashSet();
         icut = new IndividualCutEvent(cutSounds);
-        
+
         foreach (var ev in cutSounds) sequence.SeparatedChannels.Add(ev);
         return true;
     }
 
     /// <summary>
-    /// Parses a single event.
+    ///     Parses a single event.
     /// </summary>
     /// <param name="text">The string of the event.</param>
     /// <param name="sequence">The sequence that is going to be parsed.</param>
@@ -278,7 +278,8 @@ public partial class Sequence
     private static BaseEvent ParseEvent(string text, Sequence sequence)
     {
         if (TryIndividualCut(text, sequence, out var new_individual_cut_event)) return new_individual_cut_event;
-        if (TryIndividualCutTDW(text, sequence, out var new_individual_cut_tdw_event)) return new_individual_cut_tdw_event;
+        if (TryIndividualCutTDW(text, sequence, out var new_individual_cut_tdw_event))
+            return new_individual_cut_tdw_event;
         if (TryBookmark(text, out var bookmark_event)) return bookmark_event;
 
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
@@ -343,7 +344,7 @@ public partial class Sequence
         else
         {
             var isNewFormat = Math.Abs(pan) > 1;
-            
+
             var new_event = new PannedEvent
             {
                 Pan = isNewFormat ? pan / 100f : pan,

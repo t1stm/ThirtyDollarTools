@@ -14,28 +14,14 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
         return createInfo.Storage switch
         {
             StorageLocation.Unknown => ExistsOnDisk(createInfo.Location) ||
-                                       assetProvider.AssetAssemblies.GetManifestResourceInfo(createInfo.Location) != null,
+                                       assetProvider.AssetAssemblies.GetManifestResourceInfo(createInfo.Location) !=
+                                       null,
             StorageLocation.Disk => ExistsOnDisk(createInfo.Location),
             StorageLocation.Assembly => assetProvider.AssetAssemblies.GetManifestResourceInfo(createInfo.Location) !=
                                         null,
             StorageLocation.Network => true,
             _ => false
         };
-    }
-
-    private static bool ExistsOnDisk(string path)
-    {
-        if (!path.Contains('*')) return File.Exists(path);
-        
-        var directory = Path.GetDirectoryName(path);
-        if (string.IsNullOrEmpty(directory)) 
-            directory = Directory.GetCurrentDirectory();
-        
-        var fileName = Path.GetFileName(path);
-        if (!Directory.Exists(directory)) return false;
-        
-        var lookup = Directory.EnumerateFiles(directory, fileName);
-        return lookup.Any();
     }
 
     public AssetStream Load(AssetInfo createInfo, AssetProvider assetProvider,
@@ -60,6 +46,21 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
             _ => throw new ArgumentOutOfRangeException(nameof(createInfo), createInfo,
                 "Invalid AssetInfo.Storage value")
         };
+    }
+
+    private static bool ExistsOnDisk(string path)
+    {
+        if (!path.Contains('*')) return File.Exists(path);
+
+        var directory = Path.GetDirectoryName(path);
+        if (string.IsNullOrEmpty(directory))
+            directory = Directory.GetCurrentDirectory();
+
+        var fileName = Path.GetFileName(path);
+        if (!Directory.Exists(directory)) return false;
+
+        var lookup = Directory.EnumerateFiles(directory, fileName);
+        return lookup.Any();
     }
 
     private static AssetStream TryCreateFromDiskAndThenAssembly(AssetInfo createInfo,

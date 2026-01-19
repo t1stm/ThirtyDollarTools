@@ -11,7 +11,7 @@ public struct TextCharacter : IGPUReflection
     public Vector4 TextureUV;
     public Vector3 Position;
     public Vector2 Scale;
-    
+
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {
         layout.PushFloat(4, true);

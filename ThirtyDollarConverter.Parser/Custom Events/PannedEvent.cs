@@ -2,19 +2,6 @@ namespace ThirtyDollarParser.Custom_Events;
 
 public class PannedEvent : BaseEvent, ICustomAudibleEvent
 {
-    public bool IsStandardImplementation { get; set; }
-    
-    /// <summary>
-    /// Factor that shows in which direction the audio is panned. -1 - left, 0 - centered, 1 - right and values in between
-    /// mix between them.
-    /// </summary>
-    public float Pan { get; set; }
-    
-    /// <summary>
-    /// How the pan is represented visually.
-    /// </summary>
-    public float TDWPan => Pan * 10;
-
     public PannedEvent()
     {
     }
@@ -28,6 +15,19 @@ public class PannedEvent : BaseEvent, ICustomAudibleEvent
         Volume = baseEvent.Volume;
         ValueScale = baseEvent.ValueScale;
     }
+
+    public bool IsStandardImplementation { get; set; }
+
+    /// <summary>
+    ///     Factor that shows in which direction the audio is panned. -1 - left, 0 - centered, 1 - right and values in between
+    ///     mix between them.
+    /// </summary>
+    public float Pan { get; set; }
+
+    /// <summary>
+    ///     How the pan is represented visually.
+    /// </summary>
+    public float TDWPan => Pan * 10;
 
     public override string Stringify()
     {

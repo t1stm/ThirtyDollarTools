@@ -7,13 +7,13 @@ uniform float uPxRange;
 in vec2 fragTexCoord;
 out vec4 outColor;
 
-vec2 sqr(vec2 x) { return x*x; }
+vec2 sqr(vec2 x) { return x * x; }
 
 float screenPxRange() {
     vec2 unitRange = vec2(uPxRange) / vec2(textureSize(msdf, 0));
-    
-    vec2 screenTexSize = inversesqrt(sqr(dFdx(fragTexCoord))+sqr(dFdy(fragTexCoord)));
-    return max(0.5*dot(unitRange, screenTexSize), 1.0);
+
+    vec2 screenTexSize = inversesqrt(sqr(dFdx(fragTexCoord)) + sqr(dFdy(fragTexCoord)));
+    return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
 
 float median(float r, float g, float b) {

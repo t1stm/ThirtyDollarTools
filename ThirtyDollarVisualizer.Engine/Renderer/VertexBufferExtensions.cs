@@ -5,10 +5,10 @@ namespace ThirtyDollarVisualizer.Engine.Renderer;
 public static class VertexBufferExtensions
 {
     /// <summary>
-    /// Gets the size of a vertex attribute type.
+    ///     Gets the size of a vertex attribute type.
     /// </summary>
     /// <param name="type">The vertex attribute pointer type.</param>
-    /// <returns>An <see cref="int"/> with the size in bytes of the type.</returns>
+    /// <returns>An <see cref="int" /> with the size in bytes of the type.</returns>
     /// <exception cref="NotSupportedException">Thrown when the type isn't known.</exception>
     public static int GetSize(this VertexAttribPointerType type)
     {

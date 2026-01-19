@@ -28,17 +28,6 @@ public class ColoredPlane : Renderable, IGamePreloadable
     private ColoredUniform _uniform;
     public float BorderRadius;
 
-    [UsedImplicitly]
-    public static void Preload(AssetProvider assetProvider)
-    {
-        _deleteQueue = assetProvider.DeleteQueue;
-        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/ColoredPlane", provider =>
-            new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/colored.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/colored.frag")))
-        );
-    }
-
     public ColoredPlane()
     {
         if (!_areVerticesGenerated) SetVertices();
@@ -69,6 +58,17 @@ public class ColoredPlane : Renderable, IGamePreloadable
     {
         get => _shader;
         set => _shader = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
+    [UsedImplicitly]
+    public static void Preload(AssetProvider assetProvider)
+    {
+        _deleteQueue = assetProvider.DeleteQueue;
+        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/ColoredPlane", provider =>
+            new Shader(provider, provider.LoadShaders(
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/colored.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/colored.frag")))
+        );
     }
 
     private static void SetVertices()

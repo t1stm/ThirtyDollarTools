@@ -66,7 +66,7 @@ public class OpenALBuffer : AudibleBuffer
         var samples = size_per_channel / (bits / 8f);
 
         var length = (int)(1000f * (samples / frequency));
-        
+
         AL.Sourcei(source, SourcePNameI.Buffer, AudioBuffer);
 
         AL.Sourcef(source, SourcePNameF.Gain, Volume);

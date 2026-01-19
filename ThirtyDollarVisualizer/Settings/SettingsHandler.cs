@@ -9,7 +9,7 @@ public static class SettingsHandler
     private static string? _fileLocation;
 
     /// <summary>
-    /// Loads the settings file.
+    ///     Loads the settings file.
     /// </summary>
     /// <param name="fileLocation">Where the file is stored.</param>
     public static void Load(string fileLocation)
@@ -76,7 +76,7 @@ public static class SettingsHandler
     }
 
     /// <summary>
-    /// Saves the settings file with the loaded location.
+    ///     Saves the settings file with the loaded location.
     /// </summary>
     public static void Save()
     {
@@ -84,7 +84,7 @@ public static class SettingsHandler
     }
 
     /// <summary>
-    /// Saves the settings to a file with the given location.
+    ///     Saves the settings to a file with the given location.
     /// </summary>
     /// <param name="fileLocation">Where the file will be stored.</param>
     public static void Save(string fileLocation)
@@ -111,7 +111,7 @@ public static class SettingsHandler
     }
 
     /// <summary>
-    /// Handles changes in the VisualizerSettings object.
+    ///     Handles changes in the VisualizerSettings object.
     /// </summary>
     public static void ChangeHandler()
     {

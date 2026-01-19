@@ -23,13 +23,17 @@ public class GPUTextureAtlas(int width, int height, InternalFormat internalForma
 
     public GuillotineAtlas Atlas { get; set; } = new(width, height);
 
-    public void AddTexture<TPixel>(string name, ImageFrame<TPixel> image) where TPixel : unmanaged, IPixel, IPixel<TPixel>
+    public void AddTexture<TPixel>(string name, ImageFrame<TPixel> image)
+        where TPixel : unmanaged, IPixel, IPixel<TPixel>
     {
         var rectangle = Atlas.AddImage(name, image);
         Texture.QueueUploadToGPU(image, rectangle);
     }
-    
-    public void Bind() => Texture.Bind();
+
+    public void Bind()
+    {
+        Texture.Bind();
+    }
 
     public void LoadFromCache(AssetProvider assetProvider)
     {
@@ -37,7 +41,7 @@ public class GPUTextureAtlas(int width, int height, InternalFormat internalForma
         {
             CacheID = "Atlas_Texture" + AtlasID
         }, out var atlasTexture);
-        
+
         var atlasInfoExists = assetProvider.CacheProvider.TryLoadingCachedAsset(new CachedInfo
         {
             CacheID = "Atlas_Lookup" + AtlasID
@@ -48,7 +52,7 @@ public class GPUTextureAtlas(int width, int height, InternalFormat internalForma
 
         if (internalFormat != InternalFormat.Rgba8 && internalFormat != InternalFormat.Rgba32f)
             throw new Exception("Invalid atlas texture format for saving and loading.");
-        
+
         switch (internalFormat)
         {
             case InternalFormat.Rgba8:
@@ -65,10 +69,11 @@ public class GPUTextureAtlas(int width, int height, InternalFormat internalForma
                 break;
             }
         }
-        
-        var overrideAtlas = JsonSerializer.Deserialize<GuillotineAtlas>(atlasInfo!.AssetStream.Stream, SerializerOptions.Json);
+
+        var overrideAtlas =
+            JsonSerializer.Deserialize<GuillotineAtlas>(atlasInfo!.AssetStream.Stream, SerializerOptions.Json);
         if (overrideAtlas == null) return;
-        
+
         Atlas = overrideAtlas;
     }
 }

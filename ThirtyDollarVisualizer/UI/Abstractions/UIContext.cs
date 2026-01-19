@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Base_Objects;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
 

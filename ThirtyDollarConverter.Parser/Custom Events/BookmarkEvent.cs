@@ -6,7 +6,7 @@ public class BookmarkEvent : BaseEvent, IHiddenEvent, ICustomActionEvent
     {
         SoundEvent = "#bookmark";
     }
-    
+
     public override BookmarkEvent Copy()
     {
         return new BookmarkEvent

@@ -10,6 +10,6 @@ public static class SerializerOptions
         AllowTrailingCommas = true,
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        ReadCommentHandling = JsonCommentHandling.Skip,
+        ReadCommentHandling = JsonCommentHandling.Skip
     };
 }

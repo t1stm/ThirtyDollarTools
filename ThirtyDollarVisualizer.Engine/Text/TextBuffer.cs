@@ -10,12 +10,12 @@ namespace ThirtyDollarVisualizer.Engine.Text;
 
 public class TextBuffer : IRenderable, IDisposable
 {
-    public readonly GLBuffer<TextCharacter>.WithCPUCache Characters;
-    public readonly TextProvider TextProvider;
+    private readonly List<Range> _freeRanges = [];
+    private readonly Dictionary<TextSlice, Range> _usedRanges = [];
 
     private readonly VertexArrayObject _vao = new();
-    private readonly Dictionary<TextSlice, Range> _usedRanges = [];
-    private readonly List<Range> _freeRanges = [];
+    public readonly GLBuffer<TextCharacter>.WithCPUCache Characters;
+    public readonly TextProvider TextProvider;
 
     private int _currentOffset;
     private bool _disposing;
@@ -26,6 +26,22 @@ public class TextBuffer : IRenderable, IDisposable
             provider.AssetProvider.DeleteQueue, BufferTarget.ArrayBuffer);
         TextProvider = provider;
         InitializeVAO(_vao, Characters);
+    }
+
+    public void Dispose()
+    {
+        _disposing = true;
+        foreach (var (textSlice, _) in _usedRanges) textSlice.Dispose();
+
+        _vao.Dispose();
+        Characters.Dispose();
+
+        GC.SuppressFinalize(this);
+    }
+
+    public void Render(Camera camera)
+    {
+        RenderBuffer(camera);
     }
 
     private static void InitializeVAO(VertexArrayObject vao, GLBuffer<TextCharacter>.WithCPUCache characters)
@@ -43,7 +59,7 @@ public class TextBuffer : IRenderable, IDisposable
     {
         Characters.ResizeCPUBuffer(newSize);
     }
-    
+
     public TextSlice GetTextSlice(ReadOnlySpan<char> text, int capacity = -1)
     {
         return GetTextSlice(text, (value, buffer, range) => new TextSlice(buffer, range)
@@ -105,11 +121,6 @@ public class TextBuffer : IRenderable, IDisposable
         return null;
     }
 
-    public void Render(Camera camera)
-    {
-        RenderBuffer(camera);
-    }
-
     public void RenderBuffer(Camera camera, int endIndex = -1)
     {
         if (endIndex < 0)
@@ -142,27 +153,10 @@ public class TextBuffer : IRenderable, IDisposable
         {
             _freeRanges.Add(range);
         }
-        
+
         if (_disposing) return;
 
         var (offset, length) = range.GetOffsetAndLength(Characters.Capacity);
-        for (var i = offset; i < length; i++)
-        {
-            Characters[i] = new TextCharacter();
-        }
-    }
-
-    public void Dispose()
-    {
-        _disposing = true;
-        foreach (var (textSlice, _) in _usedRanges)
-        {
-            textSlice.Dispose();
-        }
-        
-        _vao.Dispose();
-        Characters.Dispose();
-
-        GC.SuppressFinalize(this);
+        for (var i = offset; i < length; i++) Characters[i] = new TextCharacter();
     }
 }

@@ -7,22 +7,22 @@ using ThirtyDollarVisualizer.Engine.Renderer.Queues;
 namespace ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 
 /// <summary>
-/// The GLBuffer class is responsible for managing OpenGL buffer objects. It supports
-/// creating, binding, updating, and disposing of GPU buffers using the DeleteQueue.
+///     The GLBuffer class is responsible for managing OpenGL buffer objects. It supports
+///     creating, binding, updating, and disposing of GPU buffers using the DeleteQueue.
 /// </summary>
 /// <typeparam name="TDataType">
-/// The type of data stored in the buffer. It must be an unmanaged type.
+///     The type of data stored in the buffer. It must be an unmanaged type.
 /// </typeparam>
 public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTarget)
     : IGPUBuffer<TDataType> where TDataType : unmanaged
 {
     private const int MaxPreallocatedUpdateCapacity = 32;
+
+    private int? _newSize;
+    protected Dictionary<int, TDataType> Updates { get; } = new(MaxPreallocatedUpdateCapacity);
     public BufferState BufferState { get; protected set; } = BufferState.PendingCreation;
     public int Handle { get; protected set; }
     public int Capacity { get; protected set; }
-    protected Dictionary<int, TDataType> Updates { get; } = new(MaxPreallocatedUpdateCapacity);
-    
-    private int? _newSize;
 
     public void Bind()
     {
@@ -57,14 +57,6 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
         }
     }
 
-    public void EnqueueNewData(ReadOnlySpan<TDataType> newData)
-    {
-        for (var i = 0; i < newData.Length; i++)
-        {
-            this[i] = newData[i];
-        }
-    }
-
     public TDataType this[int index]
     {
         get => ReadMemory(index);
@@ -75,6 +67,11 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     {
         deleteQueue.Enqueue(DeleteType.VBO, Handle);
         GC.SuppressFinalize(this);
+    }
+
+    public void EnqueueNewData(ReadOnlySpan<TDataType> newData)
+    {
+        for (var i = 0; i < newData.Length; i++) this[i] = newData[i];
     }
 
     public void Create()
@@ -100,8 +97,11 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
                 DangerousGLThread_Resize(_newSize.Value);
                 _newSize = null;
             }
-            else Bind();
-            
+            else
+            {
+                Bind();
+            }
+
             var voidPtr = GL.MapBuffer(bufferTarget, BufferAccess.WriteOnly);
             var ptr = (TDataType*)voidPtr;
             Span<TDataType> data = new(ptr, Capacity);
@@ -117,7 +117,7 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     {
         if (Updates.TryGetValue(index, out var value))
             return value;
-        
+
         Bind();
         var result = new TDataType();
 
@@ -134,7 +134,7 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     protected virtual void SetMemory(int index, TDataType value)
     {
         const float resizeMultiplier = 1.5f;
-        
+
         lock (Updates)
         {
             Updates[index] = value;
@@ -145,14 +145,15 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
 
     public override string ToString()
     {
-        return $"GLBuffer<{typeof(TDataType).Name}> [Handle: {Handle}, Target: {bufferTarget}, Capacity: {Capacity}, UpdatesCount: {Updates.Count}]";
+        return
+            $"GLBuffer<{typeof(TDataType).Name}> [Handle: {Handle}, Target: {bufferTarget}, Capacity: {Capacity}, UpdatesCount: {Updates.Count}]";
     }
 
     /// <summary>
-    /// The GLBuffer.WithCPUCache extends the GLBuffer functionality by incorporating a CPU-side
-    /// buffer to mirror the GPU buffer's data. This enables efficient read and write operations
-    /// on the CPU while maintaining synchronization with the GPU buffer when necessary.
-    /// <seealso cref="GLBuffer&lt;TDataType&gt;"/>
+    ///     The GLBuffer.WithCPUCache extends the GLBuffer functionality by incorporating a CPU-side
+    ///     buffer to mirror the GPU buffer's data. This enables efficient read and write operations
+    ///     on the CPU while maintaining synchronization with the GPU buffer when necessary.
+    ///     <seealso cref="GLBuffer&lt;TDataType&gt;" />
     /// </summary>
     public class WithCPUCache(DeleteQueue deleteQueue, BufferTarget bufferTarget)
         : GLBuffer<TDataType>(deleteQueue, bufferTarget)
@@ -195,13 +196,18 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
         protected override TDataType ReadMemory(int index)
         {
             lock (CPUBuffer)
+            {
                 return CPUBuffer[index];
+            }
         }
 
         protected override void SetMemory(int index, TDataType value)
         {
             lock (CPUBuffer)
+            {
                 CPUBuffer[index] = value;
+            }
+
             base.SetMemory(index, value);
         }
 
@@ -220,10 +226,11 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
             _deleteQueue.Enqueue(DeleteType.VBO, Handle);
             GC.SuppressFinalize(this);
         }
-        
+
         public override string ToString()
         {
-            return $"GLBuffer<{typeof(TDataType).Name}>.WithCPUCache [Handle: {Handle}, Target: {bufferTarget}, Capacity: {Capacity}, UpdatesCount: {Updates.Count}]";
+            return
+                $"GLBuffer<{typeof(TDataType).Name}>.WithCPUCache [Handle: {Handle}, Target: {bufferTarget}, Capacity: {Capacity}, UpdatesCount: {Updates.Count}]";
         }
     }
 }

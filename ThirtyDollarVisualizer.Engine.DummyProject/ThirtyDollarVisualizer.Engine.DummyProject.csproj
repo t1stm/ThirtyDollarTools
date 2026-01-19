@@ -8,32 +8,32 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj" />
+        <ProjectReference Include="..\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="OpenTK.Mathematics">
-        <HintPath>..\..\..\.nuget\packages\opentk.mathematics\5.0.0-pre.14\lib\net8.0\OpenTK.Mathematics.dll</HintPath>
-      </Reference>
-      <Reference Include="OpenTK.Windowing.Desktop">
-        <HintPath>..\..\..\.nuget\packages\opentk.windowing.desktop\5.0.0-pre.14\lib\net8.0\OpenTK.Windowing.Desktop.dll</HintPath>
-      </Reference>
-      <Reference Include="OpenTK.Windowing.GraphicsLibraryFramework">
-        <HintPath>..\..\..\.nuget\packages\opentk.windowing.graphicslibraryframework\5.0.0-pre.14\lib\net8.0\OpenTK.Windowing.GraphicsLibraryFramework.dll</HintPath>
-      </Reference>
-      <Reference Include="SixLabors.Fonts">
-        <HintPath>..\..\..\.nuget\packages\sixlabors.fonts\2.1.3\lib\net6.0\SixLabors.Fonts.dll</HintPath>
-      </Reference>
+        <Reference Include="OpenTK.Mathematics">
+            <HintPath>..\..\..\.nuget\packages\opentk.mathematics\5.0.0-pre.14\lib\net8.0\OpenTK.Mathematics.dll</HintPath>
+        </Reference>
+        <Reference Include="OpenTK.Windowing.Desktop">
+            <HintPath>..\..\..\.nuget\packages\opentk.windowing.desktop\5.0.0-pre.14\lib\net8.0\OpenTK.Windowing.Desktop.dll</HintPath>
+        </Reference>
+        <Reference Include="OpenTK.Windowing.GraphicsLibraryFramework">
+            <HintPath>..\..\..\.nuget\packages\opentk.windowing.graphicslibraryframework\5.0.0-pre.14\lib\net8.0\OpenTK.Windowing.GraphicsLibraryFramework.dll</HintPath>
+        </Reference>
+        <Reference Include="SixLabors.Fonts">
+            <HintPath>..\..\..\.nuget\packages\sixlabors.fonts\2.1.3\lib\net6.0\SixLabors.Fonts.dll</HintPath>
+        </Reference>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="OpenTK" Version="5.0.0-pre.15" />
-      <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
+        <PackageReference Include="OpenTK" Version="5.0.0-pre.15"/>
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="Assets\Shaders\Text\Batched.glsl" />
-      <None Remove="Assets\Shaders\Text\Batched.frag" />
+        <None Remove="Assets\Shaders\Text\Batched.glsl"/>
+        <None Remove="Assets\Shaders\Text\Batched.frag"/>
     </ItemGroup>
 
 </Project>

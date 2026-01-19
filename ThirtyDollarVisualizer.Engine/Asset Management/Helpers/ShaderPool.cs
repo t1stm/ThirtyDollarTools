@@ -7,19 +7,22 @@ using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 namespace ThirtyDollarVisualizer.Engine.Asset_Management.Helpers;
 
 /// <summary>
-/// A pool of shaders.
+///     A pool of shaders.
 /// </summary>
 public class ShaderPool(Logger logger, AssetProvider assetProvider)
 {
+    private readonly Dictionary<string, Shader> _namedShaders = new();
     private readonly SemaphoreSlim _preloadLock = new(1, 1);
     private readonly List<(string shaderName, Func<AssetProvider, Shader> createFunction)> _shadersToPreload = [];
-    private readonly Dictionary<string, Shader> _namedShaders = new();
 
     /// <summary>
-    /// Gets or loads a shader with the specified location.
-    /// When loading uses the shader name and appends both .vert and .frag to the name for loading.
+    ///     Gets or loads a shader with the specified location.
+    ///     When loading uses the shader name and appends both .vert and .frag to the name for loading.
     /// </summary>
-    /// <param name="shaderLocation">The pure location of the shader without the extension. Assumes that the shaders are named with .vert and .frag</param>
+    /// <param name="shaderLocation">
+    ///     The pure location of the shader without the extension. Assumes that the shaders are named
+    ///     with .vert and .frag
+    /// </param>
     /// <returns>A shader object loaded from the specified location</returns>
     public Shader GetOrLoad(string shaderLocation)
     {
@@ -32,26 +35,27 @@ public class ShaderPool(Logger logger, AssetProvider assetProvider)
     }
 
     /// <summary>
-    /// Retrieves a cached shader by name if available; otherwise, loads a new instance
-    /// of the shader using the provided function and caches it.
+    ///     Retrieves a cached shader by name if available; otherwise, loads a new instance
+    ///     of the shader using the provided function and caches it.
     /// </summary>
     /// <param name="shaderLocation">
-    /// The name of the shader to retrieve or load. This is used as the key
-    /// for searching and storing shaders in the shader pool.
+    ///     The name of the shader to retrieve or load. This is used as the key
+    ///     for searching and storing shaders in the shader pool.
     /// </param>
     /// <param name="missingFunction">
-    /// A function to create a new shader instance in case the shader with the given
-    /// name is not found in the pool.
+    ///     A function to create a new shader instance in case the shader with the given
+    ///     name is not found in the pool.
     /// </param>
     /// <returns>
-    /// The shader instance retrieved from the pool or the newly loaded shader if it
-    /// was not previously cached.
+    ///     The shader instance retrieved from the pool or the newly loaded shader if it
+    ///     was not previously cached.
     /// </returns>
     public Shader GetOrLoad(string shaderLocation,
         Func<AssetProvider, Shader> missingFunction)
     {
 #if DEBUG
-        logger.Debug("[{ClassName}] Searching for shader with name: '{ShaderName}'", nameof(ShaderPool), shaderLocation);
+        logger.Debug("[{ClassName}] Searching for shader with name: '{ShaderName}'", nameof(ShaderPool),
+            shaderLocation);
 #endif
         var alternative_lookup = _namedShaders.GetAlternateLookup<ReadOnlySpan<char>>();
         if (alternative_lookup.TryGetValue(shaderLocation, out var shader))
@@ -68,7 +72,7 @@ public class ShaderPool(Logger logger, AssetProvider assetProvider)
     }
 
     /// <summary>
-    /// Adds the specified shader to a preload queue that executes on each draw call where OpenGL is currently bound.
+    ///     Adds the specified shader to a preload queue that executes on each draw call where OpenGL is currently bound.
     /// </summary>
     /// <param name="shaderName">The name of the shader to preload.</param>
     /// <param name="function">Function to create a new shader instance.</param>
@@ -86,18 +90,18 @@ public class ShaderPool(Logger logger, AssetProvider assetProvider)
     }
 
     /// <summary>
-    /// Retrieves a named shader from the shader pool. If the shader is not found,
-    /// an exception is thrown.
+    ///     Retrieves a named shader from the shader pool. If the shader is not found,
+    ///     an exception is thrown.
     /// </summary>
     /// <param name="shaderName">
-    /// The name of the shader to retrieve. This is used as the key for
-    /// searching shaders in the shader pool.
+    ///     The name of the shader to retrieve. This is used as the key for
+    ///     searching shaders in the shader pool.
     /// </param>
     /// <returns>
-    /// The shader instance associated with the specified name.
+    ///     The shader instance associated with the specified name.
     /// </returns>
     /// <exception cref="ArgumentNullException">
-    /// Thrown if the shader with the specified name is not found in the pool.
+    ///     Thrown if the shader with the specified name is not found in the pool.
     /// </exception>
     public Shader GetNamedShader(ReadOnlySpan<char> shaderName)
     {
@@ -108,16 +112,13 @@ public class ShaderPool(Logger logger, AssetProvider assetProvider)
     }
 
     /// <summary>
-    /// Reloads all shaders currently cached in the shader pool. This involves re-compiling
-    /// and re-initializing the shaders to ensure they are up to date and synchronized
-    /// with any changes in their definitions or associated resources.
+    ///     Reloads all shaders currently cached in the shader pool. This involves re-compiling
+    ///     and re-initializing the shaders to ensure they are up to date and synchronized
+    ///     with any changes in their definitions or associated resources.
     /// </summary>
     public void Reload()
     {
-        foreach (var shader in _namedShaders.Values)
-        {
-            shader.ReloadShader();
-        }
+        foreach (var shader in _namedShaders.Values) shader.ReloadShader();
     }
 
     public void UploadShadersToPreload()

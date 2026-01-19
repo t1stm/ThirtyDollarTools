@@ -11,23 +11,24 @@ namespace ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 public class GLQuad : IGamePreloadable
 {
     /// <summary>
-    /// Preloaded VBO that contains data for a quad without UV.
+    ///     Preloaded VBO that contains data for a quad without UV.
     /// </summary>
     public static GLBuffer<float> VBOWithoutUV { get; set; } = null!;
+
     /// <summary>
-    /// Preloaded VBO that contains data for a quad with UV.
+    ///     Preloaded VBO that contains data for a quad with UV.
     /// </summary>
     public static GLBuffer<float> VBOWithUV { get; set; } = null!;
-    
+
     /// <summary>
-    /// Preloaded EBO that contains data for a quad.
+    ///     Preloaded EBO that contains data for a quad.
     /// </summary>
     public static GLBuffer<int> EBO { get; set; } = null!;
 
     public static void Preload(AssetProvider assetProvider)
     {
         var deleteQueue = assetProvider.DeleteQueue;
-        
+
         VBOWithoutUV = new GLBuffer<float>(deleteQueue, BufferTarget.ArrayBuffer);
         VBOWithUV = new GLBuffer<float>(deleteQueue, BufferTarget.ArrayBuffer);
         EBO = new GLBuffer<int>(deleteQueue, BufferTarget.ElementArrayBuffer);

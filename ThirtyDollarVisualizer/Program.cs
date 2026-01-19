@@ -10,7 +10,6 @@ using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.BASS;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Audio.OpenAL;
-using ThirtyDollarVisualizer.Base_Objects.Settings;
 using ThirtyDollarVisualizer.Engine;
 using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Scenes;
@@ -88,7 +87,7 @@ public static class Program
 
         var gameWindowSettings = new GameWindowSettings
         {
-            UpdateFrequency = fps ?? 0,
+            UpdateFrequency = fps ?? 0
         };
 
         var contextFlags = ContextFlags.ForwardCompatible;

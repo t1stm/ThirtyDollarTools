@@ -12,7 +12,7 @@ public class TextureLoader : IAssetLoader<TextureHolder, TextureInfo>
     {
         return assetProvider.Query<AssetStream, AssetInfo>(createInfo.AssetInfo);
     }
-    
+
     public TextureHolder Load(TextureInfo createInfo, AssetProvider assetProvider,
         Func<TextureInfo, AssetProvider, TextureHolder> create)
     {
@@ -28,7 +28,7 @@ public class TextureLoader : IAssetLoader<TextureHolder, TextureInfo>
     {
         var assetInfo = createInfo.AssetInfo;
         var assetStream = assetProvider.Load<AssetStream, AssetInfo>(assetInfo);
-        
+
         using var stream = assetStream.Stream;
         var image = Image.Load<Rgba32>(stream);
 
@@ -36,7 +36,7 @@ public class TextureLoader : IAssetLoader<TextureHolder, TextureInfo>
         {
             case (not 0, not 0):
             {
-                image.Mutate(context => context.Resize(new ResizeOptions()
+                image.Mutate(context => context.Resize(new ResizeOptions
                 {
                     Mode = ResizeMode.Stretch,
                     Size = new Size(createInfo.Width, createInfo.Height)

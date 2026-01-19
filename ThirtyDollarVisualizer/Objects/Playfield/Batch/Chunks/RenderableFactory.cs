@@ -14,22 +14,22 @@ using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
-[PreloadGraphicsContext] 
+[PreloadGraphicsContext]
 public readonly struct RenderableFactory(AtlasStore store)
     : IGamePreloadable
 {
     private static ShaderPool _shaderPool = null!;
     private static DeleteQueue _deleteQueue = null!;
-    
+
     /// <summary>
-    /// Dictionary mapping framed atlases to their corresponding render stacks of animated sound data.
-    /// Used to batch and render sounds with animated textures efficiently by grouping them by their atlas.
+    ///     Dictionary mapping framed atlases to their corresponding render stacks of animated sound data.
+    ///     Used to batch and render sounds with animated textures efficiently by grouping them by their atlas.
     /// </summary>
     public Dictionary<FramedAtlas, RenderStack<SoundData>> AnimatedAtlases { get; } = new();
 
     /// <summary>
-    /// Dictionary mapping static sound atlases to their corresponding render stacks of static sounds.
-    /// Used to batch and render sounds with static textures efficiently by grouping them by their atlas.
+    ///     Dictionary mapping static sound atlases to their corresponding render stacks of static sounds.
+    ///     Used to batch and render sounds with static textures efficiently by grouping them by their atlas.
     /// </summary>
     public Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticAtlases { get; } = new();
 
@@ -37,17 +37,21 @@ public readonly struct RenderableFactory(AtlasStore store)
     {
         _deleteQueue = assetProvider.DeleteQueue;
         _shaderPool = assetProvider.ShaderPool;
-        
+
         assetProvider.ShaderPool.PreloadShader(AnimatedShaderLocation, provider =>
             new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/Playfield/Chunk/Animated.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/Playfield/Chunk/Animated.frag")))
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
+                    "Assets/Shaders/Playfield/Chunk/Animated.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
+                    "Assets/Shaders/Playfield/Chunk/Animated.frag")))
         );
-        
+
         assetProvider.ShaderPool.PreloadShader(StaticShaderLocation, provider =>
             new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/Playfield/Chunk/Static.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/Playfield/Chunk/Static.frag")))
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
+                    "Assets/Shaders/Playfield/Chunk/Static.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
+                    "Assets/Shaders/Playfield/Chunk/Static.frag")))
         );
     }
 
@@ -55,7 +59,7 @@ public readonly struct RenderableFactory(AtlasStore store)
     private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
 
     /// <summary>
-    /// Creates a new SoundRenderable from a given Thirty Dollar event.
+    ///     Creates a new SoundRenderable from a given Thirty Dollar event.
     /// </summary>
     public SoundRenderable CookUp(BaseEvent baseEvent)
     {
@@ -63,7 +67,7 @@ public readonly struct RenderableFactory(AtlasStore store)
 
         var soundRenderable = new SoundRenderable
         {
-            IsDivider = soundName == "!divider",
+            IsDivider = soundName == "!divider"
         };
         var storedStaticAtlases = store.StaticAtlases;
 
@@ -72,7 +76,7 @@ public readonly struct RenderableFactory(AtlasStore store)
             : GetStaticSoundRenderableData(soundName, StaticAtlases, storedStaticAtlases, soundRenderable) ??
               GetStaticSoundRenderableData("#missing", StaticAtlases, storedStaticAtlases, soundRenderable) ??
               throw new Exception("#missing sound is null");
-        
+
         return renderable;
     }
 
@@ -163,7 +167,7 @@ public readonly struct RenderableFactory(AtlasStore store)
             var oldValue = trackedReference.Value;
             trackedReference.Value = oldValue with { Model = matrix };
         };
-        
+
         soundRenderable.GetRGBA = () => trackedReference.Value.RGBA;
         soundRenderable.SetRGBA = rgba =>
         {

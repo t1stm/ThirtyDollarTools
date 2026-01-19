@@ -10,10 +10,6 @@ namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
 public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, IGPUReflection
 {
-    public required Shader Shader { get; init; }
-    public GLBufferList<TDataType> List { get; }
-    public VertexArrayObject VAO { get; }
-
     public RenderStack(DeleteQueue deleteQueue, int capacity = 0)
     {
         VAO = new VertexArrayObject();
@@ -21,6 +17,17 @@ public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, I
 
         AddQuadDataToVAO(VAO);
         AddBufferTypeRefectionToVAO(List, VAO);
+    }
+
+    public required Shader Shader { get; init; }
+    public GLBufferList<TDataType> List { get; }
+    public VertexArrayObject VAO { get; }
+
+    public void Dispose()
+    {
+        List.Dispose();
+        VAO.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     protected void AddQuadDataToVAO(VertexArrayObject vao)
@@ -55,12 +62,5 @@ public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, I
     {
         GL.DrawElementsInstanced(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt,
             IntPtr.Zero, List.Count);
-    }
-
-    public void Dispose()
-    {
-        List.Dispose();
-        VAO.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

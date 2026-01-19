@@ -1,4 +1,3 @@
-using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.UI.Abstractions;
 using ThirtyDollarVisualizer.UI.Components.Labels;
@@ -36,7 +35,7 @@ public sealed class FileSelection : Panel
                 {
                     FontSizePx = 12,
                     UpdateCursorOnHover = true,
-                    OnClick = _ => NavigateUp(),
+                    OnClick = _ => NavigateUp()
                 },
                 _currentPathLabel = new Label(CurrentPath)
                 {
@@ -79,13 +78,13 @@ public sealed class FileSelection : Panel
                 {
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
-                    OnClick = _ => OnSelect?.Invoke(this),
+                    OnClick = _ => OnSelect?.Invoke(this)
                 },
                 new Button("Cancel")
                 {
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
-                    OnClick = _ => OnCancel?.Invoke(this),
+                    OnClick = _ => OnCancel?.Invoke(this)
                 }
             ]
         };

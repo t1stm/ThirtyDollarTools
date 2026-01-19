@@ -1,5 +1,4 @@
 using OpenTK.Mathematics;
-using SixLabors.Fonts;
 using ThirtyDollarVisualizer.Base_Objects.Planes;
 using ThirtyDollarVisualizer.UI.Components.Panels;
 

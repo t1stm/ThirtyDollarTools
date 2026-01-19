@@ -3,10 +3,10 @@ using OpenTK.Mathematics;
 namespace ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 
 /// <summary>
-/// Arguments passed to the initialization call.
+///     Arguments passed to the initialization call.
 /// </summary>
 /// <remarks>
-/// Can be allocated only on the stack.
+///     Can be allocated only on the stack.
 /// </remarks>
 public ref struct InitArguments
 {

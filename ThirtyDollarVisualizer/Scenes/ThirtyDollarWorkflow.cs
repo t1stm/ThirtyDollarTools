@@ -13,21 +13,21 @@ namespace ThirtyDollarVisualizer.Scenes;
 
 public abstract class ThirtyDollarWorkflow : Scene
 {
-    private readonly SemaphoreSlim _sampleHolderLock = new(1);
     private readonly SemaphoreSlim _atlasLock = new(0, 1);
-    
+    private readonly SemaphoreSlim _sampleHolderLock = new(1);
+
     protected readonly SequencePlayer SequencePlayer;
+    protected AtlasStore? AtlasStore;
     protected bool AutoUpdate = true;
     protected bool Debug;
 
     protected Placement[] ExtractedSpeedEvents = [];
     protected Action<string> Log;
+
+    protected Action? OnLoaded;
     protected SampleHolder? SampleHolder;
-    protected AtlasStore? AtlasStore;
     protected SequenceIndices SequenceIndices = new();
     protected Memory<SequenceInfo> Sequences = Array.Empty<SequenceInfo>();
-
-    protected Action? OnLoaded; 
 
     protected TimedEvents TimedEvents = new()
     {
@@ -35,14 +35,15 @@ public abstract class ThirtyDollarWorkflow : Scene
         TimingSampleRate = 100_000
     };
 
-    public ThirtyDollarWorkflow(SceneManager sceneManager, AudioContext? context = null, Action<string>? loggingAction = null) : base(sceneManager)
+    public ThirtyDollarWorkflow(SceneManager sceneManager, AudioContext? context = null,
+        Action<string>? loggingAction = null) : base(sceneManager)
     {
         SequencePlayer = new SequencePlayer(context);
         Log = loggingAction ?? (log => { DefaultLogger.Log("ThirtyDollarWorkflow", log); });
     }
 
     /// <summary>
-    /// Creates the sample holder.
+    ///     Creates the sample holder.
     /// </summary>
     protected async Task CreateSampleHolder()
     {
@@ -55,16 +56,16 @@ public abstract class ThirtyDollarWorkflow : Scene
 
         await SampleHolder.LoadSampleList();
         SampleHolder.PrepareDirectory();
-        
+
         await SampleHolder.DownloadSamples();
         await SampleHolder.DownloadImages();
-        
+
         SampleHolder.LoadSamplesIntoMemory();
         LoadTextureAtlas(SampleHolder);
 
         Log("[Sample Holder] Loaded all samples and images.");
     }
-    
+
     protected void LoadTextureAtlas(SampleHolder sampleHolder)
     {
         try
@@ -125,7 +126,7 @@ public abstract class ThirtyDollarWorkflow : Scene
     }
 
     /// <summary>
-    /// This method updates the current sequence.
+    ///     This method updates the current sequence.
     /// </summary>
     /// <param name="locations">The location of the sequences you want to use.</param>
     /// <param name="restartPlayer">Whether to restart the sequence from the beginning.</param>
@@ -153,7 +154,7 @@ public abstract class ThirtyDollarWorkflow : Scene
     }
 
     /// <summary>
-    /// This method updates the current sequence.
+    ///     This method updates the current sequence.
     /// </summary>
     /// <param name="sequences">The sequences you want to use.</param>
     /// <param name="restartPlayer">Whether to restart the sequence from the beginning.</param>
@@ -222,9 +223,9 @@ public abstract class ThirtyDollarWorkflow : Scene
         }
 
         _ = Task.Run(UpdateExtractedSpeedEvents);
-        
+
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents, SequenceIndices);
-        
+
         if (restartPlayer)
             await SequencePlayer.Start();
     }
@@ -259,14 +260,14 @@ public abstract class ThirtyDollarWorkflow : Scene
     }
 
     /// <summary>
-    /// Called after the sequence has finished loading, but before the audio events have finished processing.
+    ///     Called after the sequence has finished loading, but before the audio events have finished processing.
     /// </summary>
     /// <param name="events">The events the sequence contains.</param>
     /// <param name="sequencePlayer">The sequence player instance.</param>
     protected abstract Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer);
 
     /// <summary>
-    /// Call this when you want to check if the sequence is updated and you want to update it if it is.
+    ///     Call this when you want to check if the sequence is updated and you want to update it if it is.
     /// </summary>
     protected void HandleIfSequenceUpdate()
     {

@@ -12,7 +12,7 @@
         <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02494"/>
         <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02494"/>
         <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02494"/>
-        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
     </ItemGroup>
 
     <ItemGroup>

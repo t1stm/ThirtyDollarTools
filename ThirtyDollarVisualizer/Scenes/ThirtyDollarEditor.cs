@@ -1,4 +1,3 @@
-using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using ThirtyDollarVisualizer.Audio;
 using ThirtyDollarVisualizer.Audio.Null;
@@ -14,7 +13,8 @@ using ThirtyDollarVisualizer.UI.Components.Panels;
 
 namespace ThirtyDollarVisualizer.Scenes;
 
-public class ThirtyDollarEditor(SceneManager sceneManager, VisualizerSettings settings, AudioContext? audioContext): Scene(sceneManager)
+public class ThirtyDollarEditor(SceneManager sceneManager, VisualizerSettings settings, AudioContext? audioContext)
+    : Scene(sceneManager)
 {
     private readonly AudioContext _audioContext = audioContext ?? new NullAudioContext();
     private readonly VisualizerSettings _settings = settings;
@@ -36,7 +36,7 @@ public class ThirtyDollarEditor(SceneManager sceneManager, VisualizerSettings se
     {
         var width = initArguments.StartingResolution.X;
         var height = initArguments.StartingResolution.Y;
-        
+
         _display = new FlexPanel(width: width, height: height)
         {
             Direction = LayoutDirection.Vertical,
@@ -107,7 +107,7 @@ public class ThirtyDollarEditor(SceneManager sceneManager, VisualizerSettings se
     {
         // Does nothing for now.
     }
-    
+
     public override void Update(UpdateArguments updateArgs)
     {
         try
@@ -165,7 +165,6 @@ public class ThirtyDollarEditor(SceneManager sceneManager, VisualizerSettings se
     {
         try
         {
-            
         }
         catch (Exception e)
         {
@@ -184,9 +183,8 @@ public class ThirtyDollarEditor(SceneManager sceneManager, VisualizerSettings se
             _errorMessage = "[Mouse]: " + e;
         }
     }
-    
+
     private void RenderError()
     {
-        
     }
 }

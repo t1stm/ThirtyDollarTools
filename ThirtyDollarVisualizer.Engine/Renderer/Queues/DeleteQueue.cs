@@ -7,10 +7,13 @@ namespace ThirtyDollarVisualizer.Engine.Renderer.Queues;
 public class DeleteQueue
 {
     private readonly Queue<(DeleteType type, int handle)> _queue = new();
-    
+
     public void Enqueue(DeleteType type, int handle)
     {
-        lock (_queue) _queue.Enqueue((type, handle));
+        lock (_queue)
+        {
+            _queue.Enqueue((type, handle));
+        }
     }
 
     public void ExecuteDeletes()
@@ -39,6 +42,7 @@ public class DeleteQueue
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+
                 RenderMarker.Debug($"Deleted {type}: ({handle})");
             }
         }

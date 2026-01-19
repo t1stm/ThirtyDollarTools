@@ -12,26 +12,43 @@ using ThirtyDollarVisualizer.Objects.Playfield;
 
 namespace ThirtyDollarVisualizer.Scenes.Application;
 
-public class PlayfieldContainer(PlayfieldSettings settings, SequencePlayer sequencePlayer) : IDisposable
+public class PlayfieldContainer(
+    PlayfieldSettings settings,
+    SequencePlayer sequencePlayer,
+    Vector2i initialViewport,
+    Vector3? initialCameraPosition = null) : IDisposable
 {
     private static readonly DollarStoreCamera OffscreenCamera = new((-1, -1, -1), (0, 0));
     private readonly CancellationTokenSource _tokenSource = new();
-    
-    private Playfield[] _playfields = [];
     private TimedEvents _currentEvents;
-    
-    private CancellationToken Token => _tokenSource.Token;
+    private int _currentSequence;
+
+    private Playfield[] _playfields = [];
     private bool _playfieldsUpdated;
-    private int _currentSequence = 0;
-    
-    public DollarStoreCamera Camera { get; set; } = new(Vector3.Zero, Vector2i.Zero, settings.ScrollSpeed);
-    public DollarStoreCamera StaticCamera { get; set; } = new(Vector3.Zero, Vector2i.Zero, settings.ScrollSpeed);
+
+    private CancellationToken Token => _tokenSource.Token;
+
+    public DollarStoreCamera Camera { get; set; } =
+        new(initialCameraPosition ?? (0, -300, 0), initialViewport, settings.ScrollSpeed);
+
+    public DollarStoreCamera StaticCamera { get; set; } = new(Vector3.Zero, initialViewport, settings.ScrollSpeed);
     public BackgroundPlane BackgroundPlane { get; } = new(settings.BackgroundColor);
     public FlashOverlayPlane FlashOverlayPlane { get; } = new(Vector4.One);
     public double SequenceVolume { get; private set; }
     public float LastBPM { get; private set; }
     public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDWLike;
-    
+
+    public void Dispose()
+    {
+        foreach (var playfield in _playfields)
+            playfield.Dispose();
+        _playfields = [];
+
+        _tokenSource.Cancel();
+        _tokenSource.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     public void ChangeFromTimedEvents(TimedEvents events)
     {
         _currentEvents = events;
@@ -61,10 +78,7 @@ public class PlayfieldContainer(PlayfieldSettings settings, SequencePlayer seque
         }
 
         // dispose old playfields
-        foreach (var playfield in _playfields.AsSpan())
-        {
-            playfield.Dispose();
-        }
+        foreach (var playfield in _playfields.AsSpan()) playfield.Dispose();
 
         _playfields = playfields;
         _playfieldsUpdated = true;
@@ -79,52 +93,41 @@ public class PlayfieldContainer(PlayfieldSettings settings, SequencePlayer seque
         FlashOverlayPlane.Update();
         Camera.Update(deltaTime);
         StaticCamera.Update(deltaTime);
-        
+
         if (!_playfieldsUpdated) return;
-        
-        foreach (var playfield in _playfields) 
+
+        foreach (var playfield in _playfields)
             playfield.Render(OffscreenCamera, 0, 0);
         _playfieldsUpdated = false;
     }
-    
+
     public void Render(double renderDelta)
     {
         BackgroundPlane.Render(StaticCamera);
-        
+
         if (_playfields.Length > 0)
         {
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(_currentSequence, _playfields.Length);
-            
+
             var currentPlayfield = _playfields.AsSpan()[_currentSequence];
             currentPlayfield.Render(Camera, Camera.GetRenderScale(), renderDelta);
         }
-        
-        FlashOverlayPlane.Render(StaticCamera);
-    }
 
-    public void Dispose()
-    {
-        foreach (var playfield in _playfields) 
-            playfield.Dispose();
-        _playfields = [];
-        
-        _tokenSource.Cancel();
-        _tokenSource.Dispose();
-        GC.SuppressFinalize(this);
+        FlashOverlayPlane.Render(StaticCamera);
     }
 
     public void Resize(Vector2i viewport)
     {
-        var width = viewport.X; 
+        var width = viewport.X;
         var height = viewport.Y;
-        
+
         Camera.Viewport = StaticCamera.Viewport = (width, height);
         Camera.UpdateMatrix();
         StaticCamera.UpdateMatrix();
     }
 
     /// <summary>
-    /// Call this method when there is a change to the objects of a given sequence.
+    ///     Call this method when there is a change to the objects of a given sequence.
     /// </summary>
     /// <param name="sequenceIndex">The changed sequence's index.</param>
     private void HandleSequenceChange(int sequenceIndex)
@@ -174,7 +177,7 @@ public class PlayfieldContainer(PlayfieldSettings settings, SequencePlayer seque
         player.SubscribeActionToEvent("!stop", StopEventHandler);
         player.SubscribeActionToEvent("!volume", VolumeEventHandler);
     }
-    
+
     private SoundRenderable? GetRenderable(Placement placement, int sequenceIndex)
     {
         if (sequenceIndex >= _playfields.Length) return null;
@@ -308,7 +311,7 @@ public class PlayfieldContainer(PlayfieldSettings settings, SequencePlayer seque
     {
         SequenceVolume = placement.Event.WorkingVolume;
     }
-    
+
     public void ResetAllAnimations()
     {
         var index = 0;

@@ -19,10 +19,6 @@ namespace ThirtyDollarVisualizer.Engine;
 public class Game : GameWindow
 {
     public readonly Logger Logger;
-    public Assembly ExternalAssetAssembly { get; }
-    public AssetProvider AssetProvider { get; }
-    public SceneManager SceneManager { get; }
-    private GLInfo GLInfo { get; set; } = new();
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
 
     public Game(Assembly externalAssetAssembly, GameWindowSettings gameSettings,
@@ -45,6 +41,11 @@ public class Game : GameWindow
         SceneManager = new SceneManager(Logger, AssetProvider);
     }
 
+    public Assembly ExternalAssetAssembly { get; }
+    public AssetProvider AssetProvider { get; }
+    public SceneManager SceneManager { get; }
+    private GLInfo GLInfo { get; set; } = new();
+
     protected override void OnLoad()
     {
         base.OnLoad();
@@ -55,11 +56,11 @@ public class Game : GameWindow
 
         GL.Enable(EnableCap.DebugOutput);
         GL.Enable(EnableCap.DebugOutputSynchronous);
-        
+
         // .NET GC automatically collects this unless it's stored somewhere in a class.
         // See: 
         _storedDebugCallback = DebugCallback;
-        
+
         if (GLInfo.SupportsKHRDebug)
             GL.DebugMessageCallback(_storedDebugCallback, in IntPtr.Zero);
         else RenderMarker.Enabled = false;
@@ -71,14 +72,14 @@ public class Game : GameWindow
 
         ReflectionPreloadObjects(Assembly.GetExecutingAssembly()); // preload engine stuff first
         ReflectionPreloadObjects(ExternalAssetAssembly);
-        
+
         RenderMarker.Debug("Reflection Preload Complete");
         SceneManager.Initialize(new InitArguments
         {
             StartingResolution = ClientSize,
             GLInfo = GLInfo
         });
-        
+
         RenderMarker.Debug("Finished OnLoad() Procedure");
     }
 
@@ -117,7 +118,7 @@ public class Game : GameWindow
         var stringFromPointer = new ReadOnlySpan<byte>(messagePtr.ToPointer(), length);
         Span<char> stringBuffer = stackalloc char[stringFromPointer.Length];
         Encoding.UTF8.GetChars(stringFromPointer, stringBuffer);
-        
+
         var sourceText = source != DebugSource.DontCare ? source.ToString()[11..] : "Unknown";
         var typeText = type != DebugType.DontCare ? type.ToString()[9..] : "Unknown";
         var severityText = severity != DebugSeverity.DontCare ? severity.ToString()[13..] : "Unknown";

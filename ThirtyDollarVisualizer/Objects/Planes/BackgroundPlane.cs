@@ -10,19 +10,14 @@ namespace ThirtyDollarVisualizer.Objects.Planes;
 [PreloadGraphicsContext]
 public class BackgroundPlane : ColoredPlane
 {
-    [UsedImplicitly]
-    public new static void Preload(AssetProvider assetProvider)
-    {
-        ColoredPlane.Preload(assetProvider);
-    }
-    
+    private readonly Vector4 _initialColor;
+
     private readonly Stopwatch _timingStopwatch = new();
+    private Vector4 _finalColor;
 
 
     private float _lengthMilliseconds;
-    private Vector4 _initialColor;
     private Vector4 _startColor;
-    private Vector4 _finalColor;
 
     public BackgroundPlane(Vector4 startColor)
     {
@@ -30,6 +25,12 @@ public class BackgroundPlane : ColoredPlane
         _initialColor = _startColor = startColor;
         _finalColor = startColor;
         _timingStopwatch.Start();
+    }
+
+    [UsedImplicitly]
+    public new static void Preload(AssetProvider assetProvider)
+    {
+        ColoredPlane.Preload(assetProvider);
     }
 
     public override void Update()

@@ -10,13 +10,13 @@ namespace ThirtyDollarVisualizer.Engine.DummyProject;
 
 public class DummyScene(SceneManager sceneManager) : Scene(sceneManager)
 {
-    private TextProvider _textProvider = null!;
-    private FontProvider _fontProvider = null!;
-    private TextBuffer _textBuffer = null!;
-
-    private TextSlice _textSlice = null!;
     private Camera _camera = null!;
     private Vector2 _dvdDirection = Vector2.One;
+    private FontProvider _fontProvider = null!;
+    private TextBuffer _textBuffer = null!;
+    private TextProvider _textProvider = null!;
+
+    private TextSlice _textSlice = null!;
 
     public override void Initialize(InitArguments initArguments)
     {
@@ -85,9 +85,7 @@ public class DummyScene(SceneManager sceneManager) : Scene(sceneManager)
         }
 
         if (state.IsKeyPressed(Keys.G))
-        {
             // Force GC
             GC.Collect();
-        }
     }
 }

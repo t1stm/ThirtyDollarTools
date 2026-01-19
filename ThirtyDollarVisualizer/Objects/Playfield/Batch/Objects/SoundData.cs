@@ -21,7 +21,7 @@ public struct SoundData : IGPUReflection
     {
         var modelString = Model.ToString();
         modelString = modelString.Replace('\n', ' ');
-        
+
         return $"Model: {{{modelString}}} InverseRGBA: {{{RGBA}}}";
     }
 }

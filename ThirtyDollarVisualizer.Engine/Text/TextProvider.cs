@@ -19,6 +19,15 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
 {
     private static Shader _shader = null!;
 
+    public readonly GlyphProvider GlyphProvider = new(fontProvider, fontName);
+
+    public readonly GPUTextureAtlas TextAtlas = new(2048, 2048, InternalFormat.Rgba32f)
+    {
+        AtlasID = "TextAtlas_" + fontName.Replace(' ', '_')
+    };
+
+    public AssetProvider AssetProvider { get; } = provider;
+
     public static void Preload(AssetProvider assetProvider)
     {
         _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Text/Batched", provider =>
@@ -27,14 +36,6 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/Text/Batched.frag")))
         );
     }
-
-    public readonly GPUTextureAtlas TextAtlas = new(2048, 2048, InternalFormat.Rgba32f)
-    {
-        AtlasID = "TextAtlas_" + fontName.Replace(' ', '_')
-    };
-
-    public readonly GlyphProvider GlyphProvider = new(fontProvider, fontName);
-    public AssetProvider AssetProvider { get; } = provider;
 
     private void AddCharacter(ReadOnlySpan<char> character)
     {
@@ -51,17 +52,19 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
         {
             var characterUV = TextAtlas.Atlas.GetImageRectangle(character);
             if (!characterUV.IsEmpty)
-                return ((characterUV.X, characterUV.Y, characterUV.Width, characterUV.Height), GlyphProvider.GetSizingData(character));
+                return ((characterUV.X, characterUV.Y, characterUV.Width, characterUV.Height),
+                    GlyphProvider.GetSizingData(character));
 
             AddCharacter(character);
             characterUV = TextAtlas.Atlas.GetImageRectangle(character);
 
-            return ((characterUV.X, characterUV.Y, characterUV.Width, characterUV.Height), GlyphProvider.GetSizingData(character));
+            return ((characterUV.X, characterUV.Y, characterUV.Width, characterUV.Height),
+                GlyphProvider.GetSizingData(character));
         }
     }
 
     /// <summary>
-    /// Binds the text atlas to the OpenGL context and activates the shader program.
+    ///     Binds the text atlas to the OpenGL context and activates the shader program.
     /// </summary>
     /// <param name="camera">The camera that contains the VP matrix to use in the shader.</param>
     /// <param name="color">The color of the text.</param>

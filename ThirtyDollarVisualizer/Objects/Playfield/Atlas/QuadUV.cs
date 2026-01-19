@@ -27,7 +27,7 @@ public struct QuadUV : IGPUReflection
         return new QuadUV
         {
             UV = (reference.X / atlasWidth, reference.Y / atlasHeight, (reference.X + reference.Width) / atlasWidth,
-                (reference.Y + reference.Height) / atlasHeight),
+                (reference.Y + reference.Height) / atlasHeight)
         };
     }
 }

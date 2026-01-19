@@ -1,12 +1,12 @@
 namespace ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 
 /// <summary>
-/// Represents a reference to an element within a GPU buffer that is tracked for
-/// changes, ensuring efficient synchronization of modifications back to the GPU buffer.
+///     Represents a reference to an element within a GPU buffer that is tracked for
+///     changes, ensuring efficient synchronization of modifications back to the GPU buffer.
 /// </summary>
 /// <typeparam name="TDataType">
-/// The type of the element being referenced. Must be an unmanaged type to ensure compatibility
-/// with low-level GPU memory operations.
+///     The type of the element being referenced. Must be an unmanaged type to ensure compatibility
+///     with low-level GPU memory operations.
 /// </typeparam>
 public class TrackedBufferReference<TDataType> where TDataType : unmanaged
 {

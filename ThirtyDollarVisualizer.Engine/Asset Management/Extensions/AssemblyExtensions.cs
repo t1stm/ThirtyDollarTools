@@ -15,7 +15,7 @@ public static class AssemblyExtensions
 
         return null;
     }
-    
+
     public static Stream? GetManifestResourceStream(this Assembly[] assemblies, ReadOnlySpan<char> name)
     {
         // ReSharper disable once LoopCanBeConvertedToQuery

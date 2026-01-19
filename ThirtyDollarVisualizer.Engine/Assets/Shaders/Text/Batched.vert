@@ -13,7 +13,7 @@ vec2 getFragCoordsBasedOnVertexID(int vertexID) {
 
     vec2 uv0 = aUVRect.xy;
     vec2 uv1 = aUVRect.zw;
-    
+
     if (normedID == 0) return vec2(uv0.x, uv0.y);
     if (normedID == 1) return vec2(uv1.x, uv0.y);
     if (normedID == 2) return vec2(uv1.x, uv1.y);
@@ -22,10 +22,10 @@ vec2 getFragCoordsBasedOnVertexID(int vertexID) {
 
 void main() {
     mat4 transformMatrix = mat4(
-        aScale.x, 0.0, 0.0, 0.0,
-        0.0, aScale.y, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        aTranslateXYZ.x, aTranslateXYZ.y, aTranslateXYZ.z, 1.0
+    aScale.x, 0.0, 0.0, 0.0,
+    0.0, aScale.y, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    aTranslateXYZ.x, aTranslateXYZ.y, aTranslateXYZ.z, 1.0
     );
 
     vec4 final_coords = uVPMatrix * transformMatrix * vec4(aPosition.xyz, 1.0);

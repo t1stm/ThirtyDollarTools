@@ -12,12 +12,7 @@ namespace ThirtyDollarVisualizer.UI.Components.Labels;
 public class Label : UIElement, IGamePreloadable
 {
     private static TextProvider _textProvider = null!;
-    public static void Preload(AssetProvider assetProvider)
-    {
-        _textProvider = new TextProvider(assetProvider, new FontProvider(assetProvider), 
-            "Lato Bold");
-    }
-    
+
     protected readonly TextBuffer TextBuffer;
     protected readonly TextSlice TextSlice;
 
@@ -38,6 +33,12 @@ public class Label : UIElement, IGamePreloadable
     {
         get => TextSlice.FontSize;
         set => TextSlice.FontSize = value;
+    }
+
+    public static void Preload(AssetProvider assetProvider)
+    {
+        _textProvider = new TextProvider(assetProvider, new FontProvider(assetProvider),
+            "Lato Bold");
     }
 
     public void SetTextContents(ReadOnlySpan<char> text)

@@ -38,7 +38,7 @@ public class CachedAssetLoader : IAssetLoader<CachedAsset, CachedInfo>
     {
         var currentLocation = Environment.ProcessPath;
         ArgumentNullException.ThrowIfNull(currentLocation);
-        
+
         var cacheFolder = Path.Combine(currentLocation, CacheFolderName);
         return new AssetInfo
         {

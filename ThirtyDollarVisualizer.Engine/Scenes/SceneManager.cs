@@ -10,11 +10,10 @@ namespace ThirtyDollarVisualizer.Engine.Scenes;
 
 public class SceneManager(Logger logger, AssetProvider assetProvider)
 {
+    private Exception? _exception;
     public AssetProvider AssetProvider { get; } = assetProvider;
     public Dictionary<string, Scene> Scenes { get; } = new();
-    public List<Scene> ActiveScenes { get; private set; } = [];
-
-    private Exception? _exception;
+    public List<Scene> ActiveScenes { get; } = [];
 
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
     {
@@ -52,7 +51,7 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
     {
         RenderMarker.Debug(message1, message2, hidden ? MarkerType.Hidden : MarkerType.Visible);
     }
-    
+
     public void Resize(int eWidth, int eHeight)
     {
         foreach (var scene in Scenes.Values)
@@ -61,7 +60,7 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
             scene.Resize(eWidth, eHeight);
         }
     }
-    
+
     public void TransitionTo(ReadOnlySpan<Scene> scenes)
     {
         ActiveScenes.Clear();
@@ -72,7 +71,7 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
             scene.TransitionedTo();
         }
     }
-    
+
     public void TransitionTo(Scene scene)
     {
         TransitionTo([scene]);
@@ -82,23 +81,20 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
     {
         if (!Scenes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(sceneName, out var scene))
             throw new Exception($"Unable to find scene: {sceneName}");
-        
+
         TransitionTo(scene);
     }
 
     public void Shutdown()
     {
-        foreach (var scene in Scenes.Values) 
+        foreach (var scene in Scenes.Values)
             scene.Shutdown();
         Scenes.Clear();
     }
 
     public void FileDropped(string[] locations)
     {
-        foreach (var scene in ActiveScenes)
-        {
-            scene.FileDrop(locations);
-        }
+        foreach (var scene in ActiveScenes) scene.FileDrop(locations);
     }
 
     public void Keyboard(KeyboardState keyboardState)
@@ -109,17 +105,14 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
 
     public void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
-        foreach (var scene in ActiveScenes)
-        {
-            scene.Mouse(mouseState, keyboardState);
-        }
+        foreach (var scene in ActiveScenes) scene.Mouse(mouseState, keyboardState);
     }
 
     public void Update(UpdateArguments updateArgs)
     {
-        if (_exception != null) 
+        if (_exception != null)
             throw _exception;
-        
+
         foreach (var scene in ActiveScenes)
         {
             DebugMarker("Updating scene: ", scene.GetType().Name, true);

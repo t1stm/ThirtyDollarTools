@@ -7,7 +7,7 @@ namespace ThirtyDollarConverter.Objects;
 public static class ObjectExtensions
 {
     /// <summary>
-    /// Normalizes the volume in an audio data array.
+    ///     Normalizes the volume in an audio data array.
     /// </summary>
     /// <param name="arr">The target array.</param>
     public static void NormalizeVolume(this float[] arr)
@@ -29,7 +29,7 @@ public static class ObjectExtensions
     }
 
     /// <summary>
-    /// Trims empty samples in the end of an audio data array.
+    ///     Trims empty samples in the end of an audio data array.
     /// </summary>
     /// <param name="arr">The target array.</param>
     /// <returns>The trimmed array.</returns>

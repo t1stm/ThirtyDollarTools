@@ -9,12 +9,13 @@ namespace ThirtyDollarVisualizer.Objects.Playfield.Batch;
 public class ChunkGenerator(PlayfieldSettings settings)
 {
     public const int DefaultChunkSize = 512;
-    public int ChunkSize { get; init; } = DefaultChunkSize;
 
     public readonly LayoutHandler LayoutHandler = new(settings.PlayfieldSizing.SoundSize * settings.RenderScale,
         settings.PlayfieldSizing.SoundsOnASingleLine,
         settings.PlayfieldSizing.SoundMargin * settings.RenderScale / 2,
         15f * settings.RenderScale);
+
+    public int ChunkSize { get; init; } = DefaultChunkSize;
 
     public List<PlayfieldChunk> GenerateChunks(BaseEvent[] events)
     {
@@ -43,10 +44,7 @@ public class ChunkGenerator(PlayfieldSettings settings)
         foreach (var chunk in chunks)
         {
             chunk.StartY = LayoutHandler.Y;
-            foreach (var renderable in chunk.Renderables)
-            {
-                PositionSound(renderable);
-            }
+            foreach (var renderable in chunk.Renderables) PositionSound(renderable);
 
             chunk.EndY = LayoutHandler.Height + LayoutHandler.Size;
         }

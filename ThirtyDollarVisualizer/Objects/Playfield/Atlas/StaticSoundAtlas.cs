@@ -16,23 +16,26 @@ public class StaticSoundAtlas(int width, int height, InternalFormat internalForm
     private static AssetProvider _assetProvider = null!;
     private static int _instanceID;
 
+    private readonly Dictionary<string, Rectangle> _coordinateTable = new();
+
     public static void Preload(AssetProvider assetProvider)
     {
         _assetProvider = assetProvider;
     }
 
-    private readonly Dictionary<string, Rectangle> _coordinateTable = new();
-
     public static List<StaticSoundAtlas> FromFiles(string downloadLocation, IEnumerable<string> soundFiles,
         out Dictionary<string, TextureHolder> animatedTextures)
     {
         const int defaultSize = 4096;
-        
+
         animatedTextures = new Dictionary<string, TextureHolder>();
-        List<StaticSoundAtlas> list = [new(defaultSize, defaultSize)
-        {
-            AtlasID = "SoundsAtlas_" + _instanceID++
-        }];
+        List<StaticSoundAtlas> list =
+        [
+            new(defaultSize, defaultSize)
+            {
+                AtlasID = "SoundsAtlas_" + _instanceID++
+            }
+        ];
 
         var currentAtlas = list[0];
         foreach (var soundFile in soundFiles)
@@ -63,7 +66,7 @@ public class StaticSoundAtlas(int width, int height, InternalFormat internalForm
             {
                 AssetInfo = new AssetInfo
                 {
-                    Location = $"Assets/Textures/action_icut.png",
+                    Location = "Assets/Textures/action_icut.png",
                     Storage = StorageLocation.Assembly
                 }
             }),
@@ -77,7 +80,7 @@ public class StaticSoundAtlas(int width, int height, InternalFormat internalForm
             {
                 AssetInfo = new AssetInfo
                 {
-                    Location = $"Assets/Textures/action_missing.png",
+                    Location = "Assets/Textures/action_missing.png",
                     Storage = StorageLocation.Assembly
                 }
             }),

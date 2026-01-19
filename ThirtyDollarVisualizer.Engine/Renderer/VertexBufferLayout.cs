@@ -4,7 +4,7 @@ using OpenTK.Mathematics;
 namespace ThirtyDollarVisualizer.Engine.Renderer;
 
 /// <summary>
-/// A class representing how vertex attributes are organized within a vertex buffer.
+///     A class representing how vertex attributes are organized within a vertex buffer.
 /// </summary>
 public class VertexBufferLayout
 {
@@ -16,9 +16,9 @@ public class VertexBufferLayout
     // - t1stm
 
     /// <summary>
-    /// Adds a new <see cref="float"/> vertex attribute to the layout.
+    ///     Adds a new <see cref="float" /> vertex attribute to the layout.
     /// </summary>
-    /// <param name="count">The amount of <see cref="float"/> to add.</param>
+    /// <param name="count">The amount of <see cref="float" /> to add.</param>
     /// <param name="perInstance">Whether the value should be used per vertex or per instance.</param>
     /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushFloat(int count, bool perInstance = false)
@@ -36,9 +36,9 @@ public class VertexBufferLayout
     }
 
     /// <summary>
-    /// Adds a new <see cref="Matrix4"/> vertex attribute to the layout.
+    ///     Adds a new <see cref="Matrix4" /> vertex attribute to the layout.
     /// </summary>
-    /// <param name="count">The amount of <see cref="Matrix4"/> to add.</param>
+    /// <param name="count">The amount of <see cref="Matrix4" /> to add.</param>
     /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushMatrix4(int count)
     {
@@ -46,7 +46,7 @@ public class VertexBufferLayout
     }
 
     /// <summary>
-    /// Adds a new custom matrix vertex attribute to the layout.
+    ///     Adds a new custom matrix vertex attribute to the layout.
     /// </summary>
     /// <param name="count">The number of matrices to add.</param>
     /// <param name="x">The width of the matrix.</param>
@@ -75,9 +75,9 @@ public class VertexBufferLayout
     }
 
     /// <summary>
-    /// Adds a new <see cref="uint"/> vertex attribute to the layout.
+    ///     Adds a new <see cref="uint" /> vertex attribute to the layout.
     /// </summary>
-    /// <param name="count">The amount of <see cref="uint"/> to add.</param>
+    /// <param name="count">The amount of <see cref="uint" /> to add.</param>
     /// <param name="perInstance">Whether the value should be used per vertex or per instance.</param>
     /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushUInt(int count, bool perInstance = false)
@@ -95,9 +95,9 @@ public class VertexBufferLayout
     }
 
     /// <summary>
-    /// Adds a new <see cref="byte"/> vertex attribute to the layout.
+    ///     Adds a new <see cref="byte" /> vertex attribute to the layout.
     /// </summary>
-    /// <param name="count">The amount of <see cref="byte"/> to add.</param>
+    /// <param name="count">The amount of <see cref="byte" /> to add.</param>
     /// <param name="perInstance">Whether the value should be used per vertex or per instance.</param>
     /// <returns>The modified vertex buffer layout.</returns>
     public VertexBufferLayout PushByte(int count, bool perInstance = false)
@@ -115,7 +115,7 @@ public class VertexBufferLayout
     }
 
     /// <summary>
-    /// Gets all elements in the layout.
+    ///     Gets all elements in the layout.
     /// </summary>
     /// <returns></returns>
     public IReadOnlyList<VertexBufferElement> GetElements()
@@ -124,7 +124,7 @@ public class VertexBufferLayout
     }
 
     /// <summary>
-    /// Gets the stride of the layout.
+    ///     Gets the stride of the layout.
     /// </summary>
     /// <returns>The current stride.</returns>
     public int GetStride()

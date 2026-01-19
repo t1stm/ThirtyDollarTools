@@ -5,26 +5,17 @@ namespace ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
 
 public sealed class GuillotineAtlas : IAtlas
 {
-    [JsonInclude]
-    [JsonPropertyName("freeRects")]
-    private readonly List<Rectangle> _freeRects = [];
-    [JsonInclude]
-    [JsonPropertyName("imageCoordsDictionary")]
-    private readonly Dictionary<string, Rectangle> _usedByImageID;
-    [JsonInclude]
-    [JsonPropertyName("rotatable")]
+    [JsonInclude] [JsonPropertyName("rotatable")]
     private readonly bool _allowRotation;
 
-    [JsonInclude]
-    [JsonPropertyName("usedArea")]
-    private int _usedArea;
+    [JsonInclude] [JsonPropertyName("freeRects")]
+    private readonly List<Rectangle> _freeRects = [];
 
-    [JsonInclude]
-    public int Width { get; }
-    [JsonInclude]
-    public int Height { get; }
-    [JsonInclude]
-    public int Padding { get; init; } = 2;
+    [JsonInclude] [JsonPropertyName("imageCoordsDictionary")]
+    private readonly Dictionary<string, Rectangle> _usedByImageID;
+
+    [JsonInclude] [JsonPropertyName("usedArea")]
+    private int _usedArea;
 
     public GuillotineAtlas(int width, int height, bool allowRotation = false)
     {
@@ -34,11 +25,17 @@ public sealed class GuillotineAtlas : IAtlas
         Width = width;
         Height = height;
         _allowRotation = allowRotation;
-        
+
         _usedByImageID = new Dictionary<string, Rectangle>();
         _freeRects.Add(new Rectangle(0, 0, width, height));
         _usedArea = 0;
     }
+
+    [JsonInclude] public int Padding { get; init; } = 2;
+
+    [JsonInclude] public int Width { get; }
+
+    [JsonInclude] public int Height { get; }
 
     public bool CanFit(int width, int height)
     {
@@ -75,6 +72,11 @@ public sealed class GuillotineAtlas : IAtlas
     public Rectangle AddImage(string imageID, ImageFrame image)
     {
         return AddImage(imageID.AsSpan(), image);
+    }
+
+    public bool RemoveImage(string imageID)
+    {
+        return RemoveImage(imageID.AsSpan());
     }
 
     public Rectangle GetImageRectangle(string imageID)
@@ -119,11 +121,6 @@ public sealed class GuillotineAtlas : IAtlas
         }
     }
 
-    public bool RemoveImage(string imageID)
-    {
-        return RemoveImage(imageID.AsSpan());
-    }
-
     public bool RemoveImage(ReadOnlySpan<char> imageID)
     {
         lock (_usedByImageID)
@@ -154,7 +151,7 @@ public sealed class GuillotineAtlas : IAtlas
 
             // Try normal orientation
             PlacementScore score;
-            
+
             if (Fits(r, w, h))
             {
                 score = ScorePlacement(r, w, h);
@@ -272,8 +269,7 @@ public sealed class GuillotineAtlas : IAtlas
         do
         {
             merged = TryMergeOnce();
-        }
-        while (merged);
+        } while (merged);
 
         // Final prune in case merges created containment
         PruneContained();
@@ -307,49 +303,49 @@ public sealed class GuillotineAtlas : IAtlas
     private bool TryMergeOnce()
     {
         for (var i = 0; i < _freeRects.Count; i++)
+        for (var j = i + 1; j < _freeRects.Count; j++)
         {
-            for (var j = i + 1; j < _freeRects.Count; j++)
+            var a = _freeRects[i];
+            var b = _freeRects[j];
+
+            // Horizontal merge (same Y and Height, touching in X)
+            Rectangle merged;
+            if (a.Y == b.Y && a.Height == b.Height)
             {
-                var a = _freeRects[i];
-                var b = _freeRects[j];
-
-                // Horizontal merge (same Y and Height, touching in X)
-                Rectangle merged;
-                if (a.Y == b.Y && a.Height == b.Height)
+                if (a.X + a.Width == b.X)
                 {
-                    if (a.X + a.Width == b.X)
-                    {
-                        merged = new Rectangle(a.X, a.Y, a.Width + b.Width, a.Height);
-                        _freeRects[i] = merged;
-                        _freeRects.RemoveAt(j);
-                        return true;
-                    }
-                    if (b.X + b.Width == a.X)
-                    {
-                        merged = new Rectangle(b.X, b.Y, b.Width + a.Width, b.Height);
-                        _freeRects[i] = merged;
-                        _freeRects.RemoveAt(j);
-                        return true;
-                    }
-                }
-
-                // Vertical merge (same X and Width, touching in Y)
-                if (a.X != b.X || a.Width != b.Width) continue;
-                if (a.Y + a.Height == b.Y)
-                {
-                    merged = new Rectangle(a.X, a.Y, a.Width, a.Height + b.Height);
+                    merged = new Rectangle(a.X, a.Y, a.Width + b.Width, a.Height);
                     _freeRects[i] = merged;
                     _freeRects.RemoveAt(j);
                     return true;
                 }
 
-                if (b.Y + b.Height != a.Y) continue;
-                merged = new Rectangle(b.X, b.Y, b.Width, b.Height + a.Height);
+                if (b.X + b.Width == a.X)
+                {
+                    merged = new Rectangle(b.X, b.Y, b.Width + a.Width, b.Height);
+                    _freeRects[i] = merged;
+                    _freeRects.RemoveAt(j);
+                    return true;
+                }
+            }
+
+            // Vertical merge (same X and Width, touching in Y)
+            if (a.X != b.X || a.Width != b.Width) continue;
+            if (a.Y + a.Height == b.Y)
+            {
+                merged = new Rectangle(a.X, a.Y, a.Width, a.Height + b.Height);
                 _freeRects[i] = merged;
                 _freeRects.RemoveAt(j);
                 return true;
             }
+
+            if (b.Y + b.Height != a.Y) continue;
+            merged = new Rectangle(b.X, b.Y, b.Width, b.Height + a.Height);
+            _freeRects[i] = merged;
+            _freeRects.RemoveAt(j);
+            return true;
         }
+
         return false;
     }
 

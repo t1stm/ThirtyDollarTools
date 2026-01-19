@@ -9,6 +9,6 @@ public class GLInfo
 
     public int MaxTexture2DSize { get; set; }
     public int MaxTexture2DLayers { get; set; }
-    
+
     public bool SupportsKHRDebug { get; set; }
 }

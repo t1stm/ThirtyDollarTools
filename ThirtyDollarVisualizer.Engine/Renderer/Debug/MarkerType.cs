@@ -4,5 +4,5 @@ namespace ThirtyDollarVisualizer.Engine.Renderer.Debug;
 public enum MarkerType
 {
     Visible = 0,
-    Hidden = 1,
+    Hidden = 1
 }

@@ -7,9 +7,6 @@ public class AtlasStore
 
     public void Update()
     {
-        foreach (var (_, atlas) in AnimatedAtlases)
-        {
-            atlas.Update();
-        }
+        foreach (var (_, atlas) in AnimatedAtlases) atlas.Update();
     }
 }

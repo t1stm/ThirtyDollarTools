@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Texture;
 using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
 
@@ -11,8 +10,8 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
 {
     protected Dictionary<int, Rectangle> FrameCoordinates { get; set; } = new();
     public Rectangle CurrentRectangle => FrameCoordinates[CurrentFrameIndex];
-    
-    public int CurrentFrameIndex { get; protected set; } = 0;
+
+    public int CurrentFrameIndex { get; protected set; }
     public int FrameCount => FrameCoordinates.Count;
     public float FrameDurationMilliseconds { get; protected set; } = 1f;
     protected Stopwatch TimingStopwatch { get; set; } = new();
@@ -39,7 +38,7 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
         optimalHeight = (int)(optimalHeight * 1.1f);
 
         Vector2i atlasSize = new(optimalWidth, optimalHeight);
-        
+
         return atlasSize;
     }
 
@@ -51,20 +50,23 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
 
         if (currentFrameFloored == CurrentFrameIndex)
             return;
-        
+
         if (currentFrameFloored >= FrameCount)
             TimingStopwatch.Reset();
-        
+
         CurrentFrameIndex = currentFrameFloored % FrameCount;
     }
 
-    public void Start() => TimingStopwatch.Start();
+    public void Start()
+    {
+        TimingStopwatch.Start();
+    }
 
     public static FramedAtlas FromAnimatedTexture(string textureID, TextureHolder texture)
     {
         var image = texture.Texture;
         var frameCount = image.Frames.Count;
-        
+
         if (frameCount <= 1)
             throw new Exception("Animated texture has less than 2 frames.");
 
@@ -80,7 +82,7 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
             var frame = image.Frames[index];
             var textureName = $"{textureID}-frame-{index}";
             atlas.AddTexture(textureName, frame);
-            
+
             var rect = atlas.Atlas.GetImageRectangle(textureName);
             atlas.FrameCoordinates.Add(index, rect);
         }

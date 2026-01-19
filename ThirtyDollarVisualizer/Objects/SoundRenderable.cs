@@ -16,6 +16,21 @@ public sealed class SoundRenderable : Renderable
     private readonly Memory<Animation> _renderableAnimations;
     private bool _resetAnimationState;
 
+    public SoundRenderable() : this(Vector3.Zero, Vector2.Zero)
+    {
+    }
+
+    public SoundRenderable(Vector3 position, Vector2 widthHeight)
+    {
+        _bounceAnimation = new BounceAnimation(ResetAnimationState);
+        _expandAnimation = new ExpandAnimation(ResetAnimationState);
+        _fadeAnimation = new FadeAnimation(ResetAnimationState);
+        _renderableAnimations = new Animation[] { _bounceAnimation, _expandAnimation, _fadeAnimation };
+
+        Position = position;
+        Scale = (widthHeight.X, widthHeight.Y, 1);
+    }
+
     public TextSlice? Pan { get; set; }
     public TextSlice? Value { get; set; }
     public TextSlice? Volume { get; set; }
@@ -37,21 +52,6 @@ public sealed class SoundRenderable : Renderable
         set => SetRGBA(value);
     }
 
-    public SoundRenderable() : this(Vector3.Zero, Vector2.Zero)
-    {
-    }
-
-    public SoundRenderable(Vector3 position, Vector2 widthHeight)
-    {
-        _bounceAnimation = new BounceAnimation(ResetAnimationState);
-        _expandAnimation = new ExpandAnimation(ResetAnimationState);
-        _fadeAnimation = new FadeAnimation(ResetAnimationState);
-        _renderableAnimations = new Animation[] { _bounceAnimation, _expandAnimation, _fadeAnimation };
-
-        Position = position;
-        Scale = (widthHeight.X, widthHeight.Y, 1);
-    }
-
     public override Vector3 Scale
     {
         get => base.Scale;
@@ -65,7 +65,10 @@ public sealed class SoundRenderable : Renderable
 
     public bool IsDivider { get; set; }
 
-    private void ResetAnimationState() => _resetAnimationState = true;
+    private void ResetAnimationState()
+    {
+        _resetAnimationState = true;
+    }
 
     public override void Update()
     {

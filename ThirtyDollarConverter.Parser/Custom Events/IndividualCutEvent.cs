@@ -3,7 +3,6 @@ namespace ThirtyDollarParser.Custom_Events;
 public class IndividualCutEvent : BaseEvent, ICustomActionEvent, ICustomAudibleEvent
 {
     public readonly HashSet<string> CutSounds;
-    public bool IsStandardImplementation { get; set; }
 
     public IndividualCutEvent(HashSet<string> cutSounds, bool isStandardImplementation = true)
     {
@@ -13,6 +12,8 @@ public class IndividualCutEvent : BaseEvent, ICustomActionEvent, ICustomAudibleE
         Value = 0;
         CutSounds = cutSounds;
     }
+
+    public bool IsStandardImplementation { get; set; }
 
     public override string Stringify()
     {

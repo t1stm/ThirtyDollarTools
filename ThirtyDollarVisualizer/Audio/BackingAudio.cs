@@ -1,4 +1,3 @@
-using OpenTK.Audio.OpenAL;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarVisualizer.Helpers.Logging;
 
@@ -27,7 +26,8 @@ public class BackingAudio(AudioContext context, AudioData<float> data, int sampl
         if (delta <= 0.050f) return; // 50 milliseconds 
 
         var position = (long)(playerTime.TotalSeconds * 1000);
-        DefaultLogger.Log("Backing Audio", $"Out of sync. Syncing. Delta: {delta} / Time: {time} / Position: {position}");
+        DefaultLogger.Log("Backing Audio",
+            $"Out of sync. Syncing. Delta: {delta} / Time: {time} / Position: {position}");
         _buffer.SeekTime_Milliseconds(position);
     }
 

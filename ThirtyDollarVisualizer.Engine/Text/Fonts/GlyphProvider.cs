@@ -9,6 +9,9 @@ namespace ThirtyDollarVisualizer.Engine.Text.Fonts;
 
 public class GlyphProvider
 {
+    public const int GlyphSize = 48;
+    public const float MsdfRange = 4.0f;
+
     public GlyphProvider(FontProvider fontProvider, string fontName)
     {
         Font = fontProvider.GetFont(fontName);
@@ -16,8 +19,6 @@ public class GlyphProvider
         FontMetrics = metrics;
     }
 
-    public const int GlyphSize = 48;
-    public const float MsdfRange = 4.0f;
     public FontHandle Font { get; }
     public FontMetrics FontMetrics { get; }
     protected Dictionary<string, TextAlignmentData> SizingData { get; } = new();
@@ -38,6 +39,7 @@ public class GlyphProvider
         foreach (var contour in shape.Contours)
             contour.Reverse();
     }
+
     private static (Vector2 translate, Vector2 scale) AutoFrame(Shape shape)
     {
         const double pxRange = MsdfRange;
@@ -59,10 +61,7 @@ public class GlyphProvider
         var frame = new Vector2(GlyphSize, GlyphSize);
         frame = new Vector2(frame.X - pxRange, frame.Y - pxRange);
 
-        if (frame.X <= 0 || frame.Y <= 0)
-        {
-            return (translate, scale);
-        }
+        if (frame.X <= 0 || frame.Y <= 0) return (translate, scale);
 
         var dims = new Vector2(r - l, t - b);
 
@@ -123,7 +122,6 @@ public class GlyphProvider
         var array = new RgbaVector[rgbaSlice.Length / channels];
 
         for (var i = 0; i < array.Length; i++)
-        {
             array[i] = new RgbaVector
             {
                 R = rgbaSlice[i * channels],
@@ -131,7 +129,6 @@ public class GlyphProvider
                 B = rgbaSlice[i * channels + 2],
                 A = rgbaSlice[i * channels + 3]
             };
-        }
 
         var image = Image.WrapMemory<RgbaVector>(Configuration.Default, array, GlyphSize, GlyphSize);
         lock (SizingData)

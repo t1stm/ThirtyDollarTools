@@ -13,10 +13,7 @@ for (var index = 0; index < copy.Events.Length; index++)
 
 var output = new StringBuilder();
 
-foreach (var ev in copy.Events)
-{
-    output.Append(ev.Stringify() + "|");
-}
+foreach (var ev in copy.Events) output.Append(ev.Stringify() + "|");
 
 File.WriteAllText("/home/kris/tdw/death by glamour/death_by_glamour.moai", output.ToString());
 
@@ -24,10 +21,7 @@ return;
 
 BaseEvent Process(BaseEvent ev)
 {
-    if (ev is PannedEvent ne)
-    {
-        ne.Pan *= 100;
-    }
+    if (ev is PannedEvent ne) ne.Pan *= 100;
 
     return ev;
 }

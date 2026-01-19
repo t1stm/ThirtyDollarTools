@@ -25,6 +25,17 @@ public class PlayfieldChunk : IDisposable
     public float StartY { get; set; }
     public float EndY { get; set; }
 
+    public void Dispose()
+    {
+        foreach (var (_, buffer_object) in StaticStacks) buffer_object.Dispose();
+        foreach (var (_, buffer_object) in AnimatedStacks) buffer_object.Dispose();
+
+        _textBuffer.Dispose();
+        StaticStacks.Clear();
+        AnimatedStacks.Clear();
+        GC.SuppressFinalize(this);
+    }
+
     public static PlayfieldChunk GenerateFrom(ReadOnlySpan<BaseEvent> slice, LayoutHandler layoutHandler,
         PlayfieldSettings settings)
     {
@@ -85,20 +96,20 @@ public class PlayfieldChunk : IDisposable
             }
 
             if (baseEvent.Volume is not null)
-            {
                 renderable.Volume = chunk._textBuffer.GetTextSlice($"{baseEvent.Volume:0.##}%",
                     (value, buffer, range) => new TextSlice(buffer, range)
                     {
                         Value = value,
                         FontSize = sizing.VolumeFontSize * settings.RenderScale
                     });
-            }
 
             if (baseEvent is not PannedEvent pannedEvent) continue;
             if (pannedEvent.Pan == 0) continue;
 
             var panText = pannedEvent.IsStandardImplementation
-                ? pannedEvent.Pan > 0 ? $"{Math.Abs(pannedEvent.TDWPan):0.##}>" : $"<{Math.Abs(pannedEvent.TDWPan):0.##}"
+                ? pannedEvent.Pan > 0
+                    ? $"{Math.Abs(pannedEvent.TDWPan):0.##}>"
+                    : $"<{Math.Abs(pannedEvent.TDWPan):0.##}"
                 : pannedEvent.Pan > 0
                     ? $"|{Math.Abs(pannedEvent.Pan):0.##}"
                     : $"{Math.Abs(pannedEvent.Pan):0.##}|";
@@ -121,10 +132,7 @@ public class PlayfieldChunk : IDisposable
 
     public void Render(DollarStoreCamera temporaryCamera)
     {
-        foreach (var renderable in Renderables)
-        {
-            renderable.Update();
-        }
+        foreach (var renderable in Renderables) renderable.Update();
 
         foreach (var (atlas, render_stack) in StaticStacks)
         {
@@ -139,16 +147,5 @@ public class PlayfieldChunk : IDisposable
         }
 
         _textBuffer.Render(temporaryCamera);
-    }
-
-    public void Dispose()
-    {
-        foreach (var (_, buffer_object) in StaticStacks) buffer_object.Dispose();
-        foreach (var (_, buffer_object) in AnimatedStacks) buffer_object.Dispose();
-
-        _textBuffer.Dispose();
-        StaticStacks.Clear();
-        AnimatedStacks.Clear();
-        GC.SuppressFinalize(this);
     }
 }

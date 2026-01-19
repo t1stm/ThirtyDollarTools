@@ -1,4 +1,3 @@
-using System.Text.Json;
 using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -10,14 +9,14 @@ namespace ThirtyDollarVisualizer.Engine.Renderer.Textures;
 
 public class GPUTexture : IBindable
 {
-    public int Handle { get; private set; }
     public required int Width { get; init; }
     public required int Height { get; init; }
-
-    public BufferState BufferState { get; private set; } = BufferState.PendingCreation;
     public InternalFormat InternalFormat { get; set; } = InternalFormat.Rgba8;
 
     protected Queue<Action> UploadQueue { get; } = [];
+    public int Handle { get; private set; }
+
+    public BufferState BufferState { get; private set; } = BufferState.PendingCreation;
 
     public void Bind()
     {
@@ -49,7 +48,7 @@ public class GPUTexture : IBindable
         GL.BindTexture(TextureTarget.Texture2d, Handle);
         GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat, Width, Height,
             0, PixelFormat.Rgba, PixelType.Byte, IntPtr.Zero);
-        
+
         GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
         GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
 
@@ -79,7 +78,8 @@ public class GPUTexture : IBindable
                 GL.TexSubImage2D(TextureTarget.Texture2d, 0, rect?.X ?? 0, rect?.Y ?? 0,
                     rect?.Width ?? Width, rect?.Height ?? Height, pixelInfo.Format, pixelInfo.Type, handle.Pointer);
                 RenderMarker.Debug(
-                    "Texture Upload: ", $"({Handle.ToString()}) {rect?.ToString() ?? "Full"}, PixelFormat: {pixelInfo.Format}, PixelType: {pixelInfo.Type}");
+                    "Texture Upload: ",
+                    $"({Handle.ToString()}) {rect?.ToString() ?? "Full"}, PixelFormat: {pixelInfo.Format}, PixelType: {pixelInfo.Type}");
             });
             BufferState |= BufferState.PendingUpload;
         }
@@ -89,10 +89,7 @@ public class GPUTexture : IBindable
     {
         lock (UploadQueue)
         {
-            while (UploadQueue.TryDequeue(out var uploadAction))
-            {
-                uploadAction.Invoke();
-            }
+            while (UploadQueue.TryDequeue(out var uploadAction)) uploadAction.Invoke();
         }
     }
 }

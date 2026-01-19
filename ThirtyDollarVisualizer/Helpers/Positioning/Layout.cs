@@ -24,7 +24,7 @@ public class Layout(float width, float height)
               throw new Exception($"Unable to cast renderable: {field}, to type {typeof(T)}");
     }
 
-    public T Add<T>(string field, 
+    public T Add<T>(string field,
         Func<T> factory,
         Action<T>? onCreated = null,
         Action<T, float, float>? onResize = null) where T : IPositionable

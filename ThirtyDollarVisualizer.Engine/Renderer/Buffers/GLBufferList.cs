@@ -7,17 +7,18 @@ using ThirtyDollarVisualizer.Engine.Renderer.Queues;
 namespace ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 
 /// <summary>
-/// Represents a generic GPU buffer that behaves like a list, providing dynamic array functionality
-/// with OpenGL buffer management. This class combines the performance of GPU buffers with the
-/// convenience of standard .NET collections.
+///     Represents a generic GPU buffer that behaves like a list, providing dynamic array functionality
+///     with OpenGL buffer management. This class combines the performance of GPU buffers with the
+///     convenience of standard .NET collections.
 /// </summary>
 /// <typeparam name="TDataType">The unmanaged data type stored in the buffer (e.g., vertex data, indices)</typeparam>
 /// <remarks>
-/// This class maintains a CPU cache to minimize GPU memory transfers and supports tracked references
-/// for efficient updates. It automatically manages buffer capacity expansion and provides full
-/// <see cref="IList&lt;TDataType&gt;"/> compatibility for seamless integration with existing code.
+///     This class maintains a CPU cache to minimize GPU memory transfers and supports tracked references
+///     for efficient updates. It automatically manages buffer capacity expansion and provides full
+///     <see cref="IList&lt;TDataType&gt;" /> compatibility for seamless integration with existing code.
 /// </remarks>
-public class GLBufferList<TDataType>(DeleteQueue deleteQueue) : IGPUBuffer<TDataType>, IList<TDataType> where TDataType : unmanaged
+public class GLBufferList<TDataType>(DeleteQueue deleteQueue)
+    : IGPUBuffer<TDataType>, IList<TDataType> where TDataType : unmanaged
 {
     public GLBufferList(DeleteQueue deleteQueue, int capacity) : this(deleteQueue)
     {
@@ -28,22 +29,22 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue) : IGPUBuffer<TData
     protected Dictionary<int, TrackedBufferReference<TDataType>> TrackedBufferReferences { get; set; } = [];
 
     /// <summary>
-    /// Gets the current creation state of the underlying OpenGL buffer.
+    ///     Gets the current creation state of the underlying OpenGL buffer.
     /// </summary>
     public BufferState BufferState => Buffer.BufferState;
 
     /// <summary>
-    /// Gets the OpenGL handle for the underlying buffer object.
+    ///     Gets the OpenGL handle for the underlying buffer object.
     /// </summary>
     public int Handle => Buffer.Handle;
 
     /// <summary>
-    /// Gets the current capacity of the buffer (total allocated space).
+    ///     Gets the current capacity of the buffer (total allocated space).
     /// </summary>
     public int Capacity => Buffer.Capacity;
 
     /// <summary>
-    /// Binds this buffer as the current OpenGL array buffer.
+    ///     Binds this buffer as the current OpenGL array buffer.
     /// </summary>
     public void Bind()
     {
@@ -51,7 +52,7 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue) : IGPUBuffer<TData
     }
 
     /// <summary>
-    /// Updates the GPU buffer with any pending CPU-side changes.
+    ///     Updates the GPU buffer with any pending CPU-side changes.
     /// </summary>
     public void Update()
     {
@@ -250,7 +251,7 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue) : IGPUBuffer<TData
         {
             Lookup = ReferenceLookup,
             Update = ReferenceUpdate,
-            Index = index,
+            Index = index
         };
 
         TrackedBufferReferences.Add(index, obj);
@@ -261,7 +262,7 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue) : IGPUBuffer<TData
     {
         return Buffer[index];
     }
-    
+
     protected void ReferenceUpdate(int index, TDataType value)
     {
         Buffer[index] = value;
@@ -326,8 +327,11 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue) : IGPUBuffer<TData
     ///     removed.
     /// </param>
     /// <returns>True if the item was successfully removed; otherwise, false.</returns>
-    /// <throws cref="IndexOutOfRangeException">Thrown when the TrackedBufferReference gives an item that is out of the range of the buffer.
-    /// This happens only when the object isn't synced properly and the Remove method is called from a thread that isn't the render thread.</throws>
+    /// <throws cref="IndexOutOfRangeException">
+    ///     Thrown when the TrackedBufferReference gives an item that is out of the range of the buffer.
+    ///     This happens only when the object isn't synced properly and the Remove method is called from a thread that isn't
+    ///     the render thread.
+    /// </throws>
     public bool Remove(TrackedBufferReference<TDataType> item)
     {
         var index = item.Index;

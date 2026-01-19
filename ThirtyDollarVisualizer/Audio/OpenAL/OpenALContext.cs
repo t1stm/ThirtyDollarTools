@@ -26,15 +26,15 @@ public class OpenALContext : AudioContext
     public override string Name => "OpenAL";
 
     /// <summary>
-    /// Creates a global audio context.
+    ///     Creates a global audio context.
     /// </summary>
     public override unsafe bool Create()
     {
         try
         {
-            if (_device != ALCDevice.Null || _context != ALCContext.Null) 
+            if (_device != ALCDevice.Null || _context != ALCContext.Null)
                 Destroy();
-            
+
             _device = ALC.OpenDevice((byte*)0);
             if (_device == ALCDevice.Null) return false;
 
@@ -44,33 +44,34 @@ public class OpenALContext : AudioContext
 
             ALC.MakeContextCurrent(_context);
             AL.DistanceModel(DistanceModel.LinearDistanceClamped);
-            
+
             AL.Listenerf(ListenerPNameF.Gain, GlobalVolume);
             AL.Listener3f(ListenerPName3F.Position, 0f, 0f, 0f);
             return true;
         }
         catch (Exception e)
         {
-            DefaultLogger.Log("OpenAL Error", e.ToString());;
+            DefaultLogger.Log("OpenAL Error", e.ToString());
+            ;
             return false;
         }
     }
 
     /// <summary>
-    /// Destroys the global audio context.
+    ///     Destroys the global audio context.
     /// </summary>
     public override void Destroy()
     {
         ALC.MakeContextCurrent(ALCContext.Null);
         ALC.DestroyContext(_context);
         ALC.CloseDevice(_device);
-        
+
         _device = ALCDevice.Null;
         _context = ALCContext.Null;
     }
 
     /// <summary>
-    /// Checks if there are any OpenAL errors.
+    ///     Checks if there are any OpenAL errors.
     /// </summary>
     public override bool CheckErrors()
     {

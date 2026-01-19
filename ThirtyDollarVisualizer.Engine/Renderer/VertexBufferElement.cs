@@ -3,7 +3,7 @@ using OpenTK.Graphics.OpenGL;
 namespace ThirtyDollarVisualizer.Engine.Renderer;
 
 /// <summary>
-/// A definition of a vertex buffer element.
+///     A definition of a vertex buffer element.
 /// </summary>
 public struct VertexBufferElement
 {

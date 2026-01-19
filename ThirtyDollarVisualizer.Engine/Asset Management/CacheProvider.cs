@@ -4,17 +4,17 @@ using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Cache;
 namespace ThirtyDollarVisualizer.Engine.Asset_Management;
 
 /// <summary>
-/// A class that manages the caching of different objects.
+///     A class that manages the caching of different objects.
 /// </summary>
 public class CacheProvider(AssetProvider assetProvider)
 {
     private readonly Queue<(CachedInfo, byte[])> _cachedAssets = new();
-    
+
     public bool TryLoadingCachedAsset(CachedInfo info, [NotNullWhen(true)] out CachedAsset? asset)
     {
         asset = null;
         if (!assetProvider.Query<CachedAsset, CachedInfo>(info)) return false;
-        
+
         asset = assetProvider.Load<CachedAsset, CachedInfo>(info);
         return true;
     }
@@ -29,7 +29,7 @@ public class CacheProvider(AssetProvider assetProvider)
             _cachedAssets.Enqueue((info, assetData));
         }
     }
-    
+
     public void SaveQueuedAssets()
     {
         lock (_cachedAssets)

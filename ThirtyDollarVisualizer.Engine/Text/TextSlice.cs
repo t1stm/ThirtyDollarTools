@@ -11,23 +11,9 @@ public class TextSlice(TextBuffer textBuffer, Range range)
     : IPositionable, IDisposable
 {
     private readonly char[] _value = new char[range.End.Value - range.Start.Value];
-    private Vector3 _position = Vector3.Zero;
-    private float _fontSize = 16;
-
-    public Vector3 Scale { get; set; }
 
     public int Length { get; private set; }
     public int Offset { get; } = range.Start.Value;
-
-    public Vector3 Position
-    {
-        get => _position;
-        set
-        {
-            _position = value;
-            UpdateCharacters();
-        }
-    }
 
     public ReadOnlySpan<char> Value
     {
@@ -37,34 +23,52 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             Span<char> destination = _value;
             if (_value.Length < value.Length)
                 throw new InvalidOperationException("TextSlice capacity exceeded.");
-            
+
             value.CopyTo(destination);
             Length = value.Length;
-            
+
             if (_value.Length > value.Length)
                 _value.AsSpan(value.Length).Clear();
-            
+
             UpdateCharacters();
         }
     }
-    
+
     public float FontSize
     {
-        get => _fontSize;
+        get;
         set
         {
-            _fontSize = value;
+            field = value;
             UpdateCharacters();
         }
-    }
-    
+    } = 16;
+
     private FontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.FontMetrics;
+
+    public void Dispose()
+    {
+        textBuffer.Remove(this);
+        GC.SuppressFinalize(this);
+    }
+
+    public Vector3 Scale { get; set; }
+
+    public Vector3 Position
+    {
+        get;
+        set
+        {
+            field = value;
+            UpdateCharacters();
+        }
+    } = Vector3.Zero;
 
     public void SetValue(ReadOnlySpan<char> value)
     {
         Value = value;
     }
-    
+
     private void UpdateCharacters()
     {
         var val = Value;
@@ -78,7 +82,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         var minY = cursorY;
         var maxX = cursorX;
         var maxY = cursorY;
-        
+
         var bufferIndex = 0;
 
         Span<char> characters = stackalloc char[2]; // this is an array because we need to support surrogate pairs
@@ -88,12 +92,12 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             switch (character)
             {
                 case (char)0:
-                    if (Offset + bufferIndex >= textBuffer.Characters.Capacity) 
+                    if (Offset + bufferIndex >= textBuffer.Characters.Capacity)
                         throw new Exception("TextSlice capacity exceeded.");
                     textBuffer.Characters[Offset + bufferIndex] = new TextCharacter();
                     bufferIndex++;
                     continue;
-                
+
                 case '\n':
                     cursorX = Position.X;
                     cursorY += FontSize * (float)(fontMetrics.LineHeight / fontMetrics.EmSize);
@@ -129,7 +133,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
                     (textureRectangle.Y + textureRectangle.W) / atlasSize.Y);
 
             var (advanceUnitSpace, translate, scale) = textAlignmentData;
-            
+
             var translateX = (float)translate.X; // unit space
             var translateY = (float)translate.Y; // unit space
             var scaleX = (float)scale.X; // multiplier of unit space
@@ -144,23 +148,17 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             textCharacter.Scale = new Vector2(scaleW, scaleH);
 
             cursorX += (float)advanceUnitSpace * fontSize;
-            
+
             maxX = Math.Max(maxX, cursorX);
             maxY = Math.Max(maxY, cursorY + FontSize * (float)(fontMetrics.LineHeight / fontMetrics.EmSize));
 
-            if (Offset + bufferIndex >= textBuffer.Characters.Capacity) 
+            if (Offset + bufferIndex >= textBuffer.Characters.Capacity)
                 throw new Exception("TextSlice capacity exceeded.");
-            
+
             textBuffer.Characters[Offset + bufferIndex] = textCharacter;
             bufferIndex++;
         }
 
         Scale = new Vector3(maxX - minX, maxY - minY, 1);
-    }
-
-    public void Dispose()
-    {
-        textBuffer.Remove(this);
-        GC.SuppressFinalize(this);
     }
 }

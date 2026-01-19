@@ -19,7 +19,7 @@ public abstract class Camera
     }
 
     /// <summary>
-    /// The position of the Camera object which is used to calculate the projection matrix.
+    ///     The position of the Camera object which is used to calculate the projection matrix.
     /// </summary>
     public Vector3 Position
     {
@@ -32,12 +32,12 @@ public abstract class Camera
     }
 
     /// <summary>
-    /// Which direction the camera uses as its front position.
+    ///     Which direction the camera uses as its front position.
     /// </summary>
     public Vector3 Front { get; set; } = -Vector3.UnitZ;
 
     /// <summary>
-    /// Which direction is the vertical axis of the camera.
+    ///     Which direction is the vertical axis of the camera.
     /// </summary>
     public Vector3 Up { get; set; } = Vector3.UnitY;
 
@@ -64,7 +64,7 @@ public abstract class Camera
     }
 
     /// <summary>
-    /// Updates the cached projection matrix.
+    ///     Updates the cached projection matrix.
     /// </summary>
     public virtual void UpdateMatrix()
     {
@@ -93,7 +93,7 @@ public abstract class Camera
     }
 
     /// <summary>
-    /// Creates a projection matrix from the given values.
+    ///     Creates a projection matrix from the given values.
     /// </summary>
     /// <param name="left">The left side of the matrix.</param>
     /// <param name="right">The right side of the matrix.</param>
@@ -105,7 +105,7 @@ public abstract class Camera
     }
 
     /// <summary>
-    /// Gets the multiplied view and projection matrices.
+    ///     Gets the multiplied view and projection matrices.
     /// </summary>
     /// <returns>A Matrix4 object containing view and projection data.</returns>
     public virtual Matrix4 GetVPMatrix()
@@ -126,7 +126,7 @@ public abstract class Camera
     }
 
     /// <summary>
-    /// Method that stops all camera animations.
+    ///     Method that stops all camera animations.
     /// </summary>
     public void Die()
     {

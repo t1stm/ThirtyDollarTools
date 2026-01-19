@@ -20,7 +20,7 @@ public class PlacementCalculator
     private static readonly string[] LoopmanyUntriggers = ["!loopmany"];
 
     /// <summary>
-    /// Creates a calculator that gets the placement of a sequence.
+    ///     Creates a calculator that gets the placement of a sequence.
     /// </summary>
     /// <param name="encoderSettings">Encoder settings to base the placement on.</param>
     /// <param name="log">Action that handles log messages.</param>
@@ -40,7 +40,7 @@ public class PlacementCalculator
     private bool AddVisualTimings { get; }
 
     /// <summary>
-    /// Calculates the placement of multiple sequences.
+    ///     Calculates the placement of multiple sequences.
     /// </summary>
     /// <param name="sequences">The sequences you want to calculate.</param>
     /// <returns>The calculated single placement.</returns>
@@ -64,7 +64,7 @@ public class PlacementCalculator
     }
 
     /// <summary>
-    /// Calculates the placement of a sequence.
+    ///     Calculates the placement of a sequence.
     /// </summary>
     /// <param name="sequence">The sequence you want to calculate.</param>
     /// <param name="startTime">Optional start time offset.</param>
@@ -74,7 +74,7 @@ public class PlacementCalculator
     {
         if (sequence == null) throw new Exception("Null Sequence");
         sequence = sequence.Copy();
-        
+
         var bpm = 300.0;
         var transpose = 0.0;
         var global_volume = 100.0;
@@ -271,7 +271,7 @@ public class PlacementCalculator
                     ev.PlayTimes--;
 
                     var item = sequence.Events.FirstOrDefault(r =>
-                        r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && r.Triggered == false);
+                        r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && !r.Triggered);
                     if (item == null)
                     {
                         Log($"Unable to jump to target with id: {ev.Value}");
@@ -315,7 +315,7 @@ public class PlacementCalculator
                     loop_target = index;
                     break;
                 }
-                
+
                 case "" or "!flash" or "!bg" or "!combine" or "!startpos" or "!pulse" or "!target":
                     break;
 
@@ -364,7 +364,7 @@ public class PlacementCalculator
     }
 
     /// <summary>
-    /// Method ported from GD Colon's site. Untriggers all samples from the starting index to the end.
+    ///     Method ported from GD Colon's site. Untriggers all samples from the starting index to the end.
     /// </summary>
     /// <param name="sequence">Reference to the sequence.</param>
     /// <param name="index">The index to start from.</param>

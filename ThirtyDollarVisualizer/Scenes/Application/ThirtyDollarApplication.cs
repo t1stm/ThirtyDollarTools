@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;
@@ -28,39 +27,32 @@ namespace ThirtyDollarVisualizer.Scenes.Application;
 [PreloadGraphicsContext]
 public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreloadable
 {
-    private static ApplicationFonts _applicationFonts = null!;
-
-    public static void Preload(AssetProvider assetProvider)
-    {
-        _applicationFonts = new ApplicationFonts(assetProvider);
-    }
-
     private const string Version = "2.0.0 (Insider Build)";
+    private static ApplicationFonts _applicationFonts = null!;
     private readonly FpsCounter _fpsCounter = new();
+    private readonly PlayfieldSizing _playfieldSizing;
+    private readonly VisualizerSettings _settings;
 
     private readonly string[] _startingSequences;
     private readonly DollarStoreCamera _tempCamera;
     private readonly DollarStoreCamera _textCamera;
-    private readonly PlayfieldSizing _playfieldSizing;
     private readonly CancellationTokenSource _tokenSource = new();
 
     private ApplicationTextContainer _applicationTextContainer = null!;
-    private Layout Overlay => _applicationTextContainer.Overlay.Value;
 
     private BackingAudio? _backingAudio;
     private int _currentSequence;
     private GLInfo _glInfo = null!;
 
     private int _height;
-    private readonly VisualizerSettings _settings;
+
+    private PlayfieldContainer _playfieldContainer = null!;
 
     private ulong _updateId;
     private int _width;
 
-    private PlayfieldContainer _playfieldContainer = null!;
-
     /// <summary>
-    /// Creates a TDW sequence visualizer.
+    ///     Creates a TDW sequence visualizer.
     /// </summary>
     /// <param name="sceneManager">The scene manager instance.</param>
     /// <param name="width">The width of the visualizer.</param>
@@ -92,17 +84,24 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         _playfieldSizing = new PlayfieldSizing(settings.EventSize)
         {
             SoundMargin = settings.EventMargin,
-            SoundsOnASingleLine = settings.LineAmount,
+            SoundsOnASingleLine = settings.LineAmount
         };
     }
+
+    private Layout Overlay => _applicationTextContainer.Overlay.Value;
 
     private CancellationToken Token => _tokenSource.Token;
     public float Scale { get; set; } = 1f;
     public string? Greeting { get; set; }
     private double SequenceVolume { get; set; }
 
+    public static void Preload(AssetProvider assetProvider)
+    {
+        _applicationFonts = new ApplicationFonts(assetProvider);
+    }
+
     /// <summary>
-    /// This method loads the sequence, textures and sounds.
+    ///     This method loads the sequence, textures and sounds.
     /// </summary>
     /// <exception cref="Exception">Exception thrown when one of the arguments is invalid.</exception>
     public override void Initialize(InitArguments initArguments)
@@ -145,7 +144,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
                     ScrollSpeed = _settings.ScrollSpeed
                 };
 
-                _playfieldContainer = new PlayfieldContainer(playfieldSettings, SequencePlayer);
+                _playfieldContainer =
+                    new PlayfieldContainer(playfieldSettings, SequencePlayer, new Vector2i(_width, _height));
                 _playfieldContainer.Camera.OnZoom = zoom =>
                 {
                     UpdateStaticRenderables(_width, _height, zoom);
@@ -482,7 +482,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     }
 
     /// <summary>
-    /// Converts milliseconds to a time string.
+    ///     Converts milliseconds to a time string.
     /// </summary>
     /// <param name="milliseconds">Milliseconds passed.</param>
     /// <returns>A formatted time string.</returns>
@@ -619,7 +619,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
                     SampleHolder.StringToSoundReferences.TryGetValue(soundEvent, out var sound);
                     next_note = sound?.Id ?? "null";
                 }
-                
+
                 next_note_idx = (int)i_placement.SequenceIndex;
                 if (i_time > normalized_time) next_beat_ms = (i_time - normalized_time) / 100f;
                 beats_to_next_beat = next_beat_ms / 1000f * (bpm / 60f);

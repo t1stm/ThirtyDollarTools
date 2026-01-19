@@ -9,23 +9,16 @@ namespace ThirtyDollarVisualizer.Scenes.Application;
 
 public class ApplicationTextContainer
 {
+    private const int UpdatableTextSliceMaxLength = 1024;
+    private readonly TextBuffer _controlsBuffer;
+    private readonly TextBuffer _debugBuffer;
     private readonly ApplicationFonts _fonts;
     private readonly TextBuffer _genericBuffer;
-    private readonly TextBuffer _controlsBuffer;
-    private readonly TextBuffer _versionBuffer;
-    private readonly TextBuffer _debugBuffer;
     private readonly TextBuffer _greetingBuffer;
-
-    private readonly string _version;
     private readonly float _scale;
 
-    private const int UpdatableTextSliceMaxLength = 1024;
-
-    public Lazy<Layout> Overlay { get; }
-    public TextSlice Greeting { get; }
-    public bool ShowDebug { get; set; }
-    public bool ShowControls { get; set; } = true;
-    public bool ShowVersion { get; set; } = true;
+    private readonly string _version;
+    private readonly TextBuffer _versionBuffer;
 
     public ApplicationTextContainer(ApplicationFonts fonts, string version, int width, int height, float scale = 1f)
     {
@@ -42,6 +35,12 @@ public class ApplicationTextContainer
         _controlsBuffer = new TextBuffer(fonts.LatoBoldProvider);
         Greeting = _greetingBuffer.GetTextSlice(" ", UpdatableTextSliceMaxLength);
     }
+
+    public Lazy<Layout> Overlay { get; }
+    public TextSlice Greeting { get; }
+    public bool ShowDebug { get; set; }
+    public bool ShowControls { get; set; } = true;
+    public bool ShowVersion { get; set; } = true;
 
     private Layout CreateLayout(int width, int height)
     {
@@ -62,7 +61,7 @@ public class ApplicationTextContainer
                     (value, buffer, range) => new TextSlice(buffer, range)
                     {
                         Value = value,
-                        FontSize = 14 * _scale,
+                        FontSize = 14 * _scale
                     })
                 .WithPosition((10, height, 0), PositionAlign.Bottom | PositionAlign.Left),
             onResize:
@@ -98,7 +97,7 @@ public class ApplicationTextContainer
 
         overlay.Add("debug",
             () => _debugBuffer.GetTextSlice(
-                "123456789QWERTYUIOPASDFGHJKLZXCVBNM,./;[]'\"-=_+!@#$%^&*()|{}:><?~`qwertyuiopasdfghjklzxcvbnm", 
+                "123456789QWERTYUIOPASDFGHJKLZXCVBNM,./;[]'\"-=_+!@#$%^&*()|{}:><?~`qwertyuiopasdfghjklzxcvbnm",
                 // TODO: THIS IS A HACK. REALTIME TEXT GENERATION IS BUGGY AT THE MOMENT
                 UpdatableTextSliceMaxLength),
             text =>
@@ -109,15 +108,15 @@ public class ApplicationTextContainer
         );
 
         overlay.Add("log",
-            () => _genericBuffer.GetTextSlice("", UpdatableTextSliceMaxLength),
+            () => _genericBuffer.GetTextSlice(" ", UpdatableTextSliceMaxLength),
             text =>
             {
                 text.FontSize = 48f * _scale;
                 text.Position = (20, 20, 0);
             });
 
-        overlay.Add("update", () => _genericBuffer.GetTextSlice("", UpdatableTextSliceMaxLength),
-            text => { text.Position = (10, 10, 0); });
+        overlay.Add("update", () => _genericBuffer.GetTextSlice(" ", UpdatableTextSliceMaxLength),
+            text => { text.SetPosition((10, 0, 0)); });
 
         return overlay;
     }
