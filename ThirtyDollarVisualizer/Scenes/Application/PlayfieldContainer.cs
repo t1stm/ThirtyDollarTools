@@ -21,7 +21,6 @@ public class PlayfieldContainer(
     private static readonly DollarStoreCamera OffscreenCamera = new((-1, -1, -1), (0, 0));
     private readonly CancellationTokenSource _tokenSource = new();
     private TimedEvents _currentEvents;
-    private int _currentSequence;
 
     private Playfield[] _playfields = [];
     private bool _playfieldsUpdated;
@@ -34,9 +33,10 @@ public class PlayfieldContainer(
     public DollarStoreCamera StaticCamera { get; set; } = new(Vector3.Zero, initialViewport, settings.ScrollSpeed);
     public BackgroundPlane BackgroundPlane { get; } = new(settings.BackgroundColor);
     public FlashOverlayPlane FlashOverlayPlane { get; } = new(Vector4.One);
-    public double SequenceVolume { get; private set; }
-    public float LastBPM { get; private set; }
     public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDWLike;
+    public double SequenceVolume { get; private set; } = 100;
+    public float LastBPM { get; private set; } = 300;
+    public int CurrentSequence { get; private set; }
 
     public void Dispose()
     {
@@ -82,9 +82,15 @@ public class PlayfieldContainer(
 
         _playfields = playfields;
         _playfieldsUpdated = true;
-
-        _currentSequence = 0;
+        
         RegisterSequencePlayerEvents(sequencePlayer);
+    }
+
+    public void Reset()
+    {
+        CurrentSequence = 0;
+        LastBPM = 300;
+        SequenceVolume = 100;
     }
 
     public void Update(double deltaTime)
@@ -107,9 +113,9 @@ public class PlayfieldContainer(
 
         if (_playfields.Length > 0)
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(_currentSequence, _playfields.Length);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(CurrentSequence, _playfields.Length);
 
-            var currentPlayfield = _playfields.AsSpan()[_currentSequence];
+            var currentPlayfield = _playfields.AsSpan()[CurrentSequence];
             currentPlayfield.Render(Camera, Camera.GetRenderScale(), renderDelta);
         }
 
@@ -133,17 +139,17 @@ public class PlayfieldContainer(
     private void HandleSequenceChange(int sequenceIndex)
     {
         if (_currentEvents.Placement.Length <= 1) return;
-        var old_sequence = _currentSequence;
-        _currentSequence = sequenceIndex;
+        var old_sequence = CurrentSequence;
+        CurrentSequence = sequenceIndex;
 
-        if (old_sequence != _currentSequence)
+        if (old_sequence != CurrentSequence)
         {
             // reset debugging values to their default ones
             SequenceVolume = 100d;
             LastBPM = 300;
         }
 
-        if (old_sequence >= _currentSequence) return;
+        if (old_sequence >= CurrentSequence) return;
         Camera.SetPosition((0, -300, 0));
 
         // values for the loop below

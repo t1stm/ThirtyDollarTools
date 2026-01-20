@@ -16,6 +16,7 @@ using ThirtyDollarVisualizer.Engine.Renderer.Enums;
 using ThirtyDollarVisualizer.Engine.Scenes;
 using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 using ThirtyDollarVisualizer.Engine.Text;
+using ThirtyDollarVisualizer.Engine.Text.Allocationless;
 using ThirtyDollarVisualizer.Helpers.Miscellaneous;
 using ThirtyDollarVisualizer.Helpers.Positioning;
 using ThirtyDollarVisualizer.Objects;
@@ -41,13 +42,13 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     private ApplicationTextContainer _applicationTextContainer = null!;
 
     private BackingAudio? _backingAudio;
-    private int _currentSequence;
     private GLInfo _glInfo = null!;
 
     private int _height;
 
     private PlayfieldContainer _playfieldContainer = null!;
-
+    private StringFormatter? _debugFormatter;
+    
     private ulong _updateId;
     private int _width;
 
@@ -93,7 +94,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     private CancellationToken Token => _tokenSource.Token;
     public float Scale { get; set; } = 1f;
     public string? Greeting { get; set; }
-    private double SequenceVolume { get; set; }
 
     public static void Preload(AssetProvider assetProvider)
     {
@@ -437,7 +437,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         if (state.IsKeyDown(Keys.PageUp) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
         {
             RestartSeekTimer();
-            var requested_sequence = Math.Clamp(_currentSequence - 2, -1, SequenceIndices.Ends.Length - 1);
+            var requested_sequence =
+                Math.Clamp(_playfieldContainer.CurrentSequence - 2, -1, SequenceIndices.Ends.Length - 1);
             if (requested_sequence == -1)
             {
                 SequencePlayer.Seek(0);
@@ -456,7 +457,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         if (state.IsKeyDown(Keys.PageDown) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
         {
             RestartSeekTimer();
-            var requested_sequence = Math.Clamp(_currentSequence, 0, SequenceIndices.Ends.Length - 1);
+            var requested_sequence =
+                Math.Clamp(_playfieldContainer.CurrentSequence, 0, SequenceIndices.Ends.Length - 1);
             var (index, _) = SequenceIndices.Ends[requested_sequence];
 
             SequencePlayer.Seek(SequencePlayer.GetTimeFromIndex(index));
@@ -467,6 +469,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
         // check for restarting the current sequences
         if (!state.IsKeyPressed(Keys.R)) return;
+        _playfieldContainer.Reset();
+        
         if (control && shift)
         {
             FileDrop(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
@@ -501,8 +505,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
     protected override Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer)
     {
-        _currentSequence = 0;
-
         _applicationTextContainer.ShowControls = false;
         _applicationTextContainer.ShowVersion = false;
 
@@ -511,7 +513,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         _playfieldContainer.BackgroundPlane.Reset(0.66f);
         _playfieldContainer.ChangeFromTimedEvents(events);
 
-        SequenceVolume = 100;
         return Task.CompletedTask;
     }
 
@@ -536,10 +537,42 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
     private void RunDebugUpdate(double deltaTime)
     {
-        if (!Debug) return;
+        if (!Debug || SampleHolder is null) return;
+
+        if (_debugFormatter == null)
+        {
+            _debugFormatter = new StringFormatter(
+                """
+                [Debug]
+                FPS: {fps:float:0.##}
+                Audio Engine: {audioEngine:string:16}
+
+                Sequence ({currentSequence:int} - {maxSequences:int}): {sequenceLocation:string:256}
+                BPM: {bpm:float:0.##:16}
+                Time: {elapsedTime:time:16}
+                Volume: {volume:float:0.##:16}%
+
+                Current ({currentNoteIndex:int}): {currentNote:string:32}
+                Next ({nextNoteIndex:int}): {nextNote:string:32}
+                In: {nextBeatMs:float:0.##:16}ms / {beatsToNextBeat:float:0.##:16} beats
+
+                [OpenGL]
+                Version: {glInfoVersion:string:64}
+                Renderer: {glInfoRenderer:string:256}
+                Max Texture Size: {glInfoMaxTexture2DSize:int}
+                Max Texture Layers: {glInfoMaxTexture2DLayers:int}
+
+                """);
+            
+            _debugFormatter.Set("glInfoVersion", _glInfo.Version);
+            _debugFormatter.Set("glInfoRenderer", _glInfo.Renderer);
+            _debugFormatter.Set("glInfoMaxTexture2DSize", _glInfo.MaxTexture2DSize);
+            _debugFormatter.Set("glInfoMaxTexture2DLayers", _glInfo.MaxTexture2DLayers);
+        }
 
         // define values used in generating the debug string.
         var bpm = 300f;
+        var elapsed_time = SequencePlayer.GetTimingStopwatch().Elapsed;
         var elapsed_milliseconds = SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
         var current_note = "None";
         var current_note_idx = 0;
@@ -551,12 +584,14 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
         var fps = _fpsCounter.GetAverageFPS(1 / deltaTime);
         var audio_engine = SequencePlayer.AudioContext.Name;
-        var volume = SequenceVolume;
+        var volume = _playfieldContainer.SequenceVolume;
+        var soundReferences =
+            SampleHolder.StringToSoundReferences.GetAlternateLookup<ReadOnlySpan<char>>();
 
         // remove full path from sequence filename.
-        var sequence_location = "None";
-        if (Sequences.Length > 0 && Sequences.Length > _currentSequence)
-            sequence_location = Sequences.Span[_currentSequence].FileLocation;
+        ReadOnlySpan<char> sequence_location = "None";
+        if (Sequences.Length > 0 && Sequences.Length > _playfieldContainer.CurrentSequence)
+            sequence_location = Sequences.Span[_playfieldContainer.CurrentSequence].FileLocation;
 
         var folder_index = sequence_location.LastIndexOf(Path.DirectorySeparatorChar);
         if (folder_index != -1)
@@ -594,7 +629,12 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
             var current_placement = TimedEvents.Placement[current_index];
 
             current_note_idx = (int)current_placement.SequenceIndex;
-            current_note = current_placement.Event.SoundEvent ?? current_note;
+            if (current_placement.Event.SoundEvent is not null &&
+                soundReferences.TryGetValue(current_placement.Event.SoundEvent, out var sound))
+            {
+                current_note = sound.Id;
+            }
+
             var current_time = current_placement.Index;
 
             for (var i = current_index; i < TimedEvents.Placement.Length; i++)
@@ -616,7 +656,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
                 var soundEvent = i_placement.Event.SoundEvent;
                 if (soundEvent is not null && SampleHolder is not null)
                 {
-                    SampleHolder.StringToSoundReferences.TryGetValue(soundEvent, out var sound);
+                    soundReferences.TryGetValue(soundEvent, out sound);
                     next_note = sound?.Id ?? "null";
                 }
 
@@ -628,28 +668,22 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         }
 
         var debug = Overlay.Get<TextSlice>("debug");
-        var newValue = $"""
-                        [Debug]
-                        FPS: {fps:0.##}
-                        Audio Engine: "{audio_engine}"
-
-                        Sequence ({_currentSequence + 1} - {Sequences.Length}): {sequence_location}
-                        BPM: {bpm}
-                        Time: {TimeString(elapsed_milliseconds)}
-                        Volume: {volume:0.##}%
-
-                        Current ({current_note_idx}): {current_note}
-                        Next ({next_note_idx}): {next_note}
-                        In: {next_beat_ms:0.##ms} / {beats_to_next_beat:0.##} beats
-
-                        [OpenGL]
-                        Version: {_glInfo.Version}
-                        Renderer: {_glInfo.Renderer}
-                        Max Texture Size: {_glInfo.MaxTexture2DSize}
-                        Max Texture Layers: {_glInfo.MaxTexture2DLayers}
-
-                        """.AsSpan();
-        // generate debug string.
+        _debugFormatter.Set("fps", fps);
+        _debugFormatter.Set("audioEngine", audio_engine);
+        _debugFormatter.Set("currentSequence", _playfieldContainer.CurrentSequence + 1);
+        _debugFormatter.Set("maxSequences", Sequences.Length);
+        _debugFormatter.Set("sequenceLocation", sequence_location);
+        _debugFormatter.Set("bpm", bpm);
+        _debugFormatter.Set("elapsedTime", elapsed_time);
+        _debugFormatter.Set("volume", volume);
+        _debugFormatter.Set("currentNote", current_note);
+        _debugFormatter.Set("currentNoteIndex", current_note_idx);
+        _debugFormatter.Set("nextNote", next_note);
+        _debugFormatter.Set("nextNoteIndex", next_note_idx);
+        _debugFormatter.Set("nextBeatMs", next_beat_ms);
+        _debugFormatter.Set("beatsToNextBeat", beats_to_next_beat);
+        
+        var newValue = _debugFormatter.Value;
         debug.Value = newValue.Length > 1024 ? newValue[..1024] : newValue;
     }
 
