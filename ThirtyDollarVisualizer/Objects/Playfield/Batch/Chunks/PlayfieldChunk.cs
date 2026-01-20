@@ -106,13 +106,24 @@ public class PlayfieldChunk : IDisposable
             if (baseEvent is not PannedEvent pannedEvent) continue;
             if (pannedEvent.Pan == 0) continue;
 
-            var panText = pannedEvent.IsStandardImplementation
-                ? pannedEvent.Pan > 0
-                    ? $"{Math.Abs(pannedEvent.TDWPan):0.##}>"
-                    : $"<{Math.Abs(pannedEvent.TDWPan):0.##}"
-                : pannedEvent.Pan > 0
-                    ? $"|{Math.Abs(pannedEvent.Pan):0.##}"
-                    : $"{Math.Abs(pannedEvent.Pan):0.##}|";
+            string panText;
+            if (pannedEvent.IsStandardImplementation)
+            {
+                var panString = Math.Abs(pannedEvent.TDWPan).ToString("0.##");
+                panText = pannedEvent.Pan > 0
+                    ? $"{panString}>"
+                    : $"<{panString}";
+            }
+            else
+            {
+                var panString = Math.Abs(pannedEvent.Pan).ToString("0.##");
+                if (panString.StartsWith("0.")) 
+                    panString = panString[1..];
+                
+                panText = pannedEvent.Pan > 0
+                    ? $"|{panString}"
+                    : $"{panString}|";
+            }
 
             renderable.Pan = chunk._textBuffer.GetTextSlice(panText, (value, buffer, range) =>
                 new TextSlice(buffer, range)
