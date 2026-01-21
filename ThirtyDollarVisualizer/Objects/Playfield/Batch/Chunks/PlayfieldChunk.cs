@@ -82,8 +82,10 @@ public class PlayfieldChunk : IDisposable
                 {
                     case "!pulse":
                     {
-                        // parsing logic here
-                        valueText = "";
+                        var parsed_value = (long)baseEvent.Value;
+                        var repeats = (byte)parsed_value;
+                        float frequency = (short)(parsed_value >> 8);
+                        valueText = $"{repeats}, {frequency}";
                         break;
                     }
 
