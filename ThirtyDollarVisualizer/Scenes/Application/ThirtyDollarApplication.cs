@@ -164,7 +164,10 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     public override void Resize(int w, int h)
     {
         var resize = new Vector2i(w, h);
-        _playfieldContainer.Resize(_textCamera.Viewport = resize);
+        if (loadingAsyncTask is { IsCompleted: true })
+        {
+            _playfieldContainer.Resize(_textCamera.Viewport = resize);
+        }
         _textCamera.UpdateMatrix();
 
         var greeting = _applicationTextContainer.Greeting;
@@ -257,6 +260,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         // gets scroll
         var scroll = mouseState.ScrollDelta;
         if (scroll == Vector2.Zero) return;
+        if (loadingAsyncTask is not { IsCompleted: true }) return;
 
         var new_delta = Vector3.UnitY * (scroll.Y * 100f);
 
@@ -270,6 +274,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
     public override void Keyboard(KeyboardState state)
     {
+        if (loadingAsyncTask is not { IsCompleted: true }) return;
         const int seekLength = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
 
@@ -541,6 +546,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     private void RunDebugUpdate(double deltaTime)
     {
         if (!Debug || SampleHolder is null) return;
+        if (loadingAsyncTask is not { IsCompleted: true }) return;
 
         if (_debugFormatter == null)
         {
@@ -587,6 +593,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
         var fps = _fpsCounter.GetAverageFPS(1 / deltaTime);
         var audio_engine = SequencePlayer.AudioContext.Name;
+        
         var volume = _playfieldContainer.SequenceVolume;
         var soundReferences =
             SampleHolder.StringToSoundReferences.GetAlternateLookup<ReadOnlySpan<char>>();
@@ -727,6 +734,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
     private void FileDrop(IReadOnlyCollection<string?> locations, bool resetTime)
     {
+        if (loadingAsyncTask is not { IsCompleted: true }) return;
         var log = Overlay.Get<TextSlice>("log");
         _playfieldContainer.Camera.ScrollTo((0, -300, 0));
 
