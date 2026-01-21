@@ -96,6 +96,9 @@ public static class Program
         contextFlags |= ContextFlags.Debug;
 #endif
 
+        if (fps == null && !settings.UseVsync)
+            fps = 0;
+        
         var nativeWindowSettings = new NativeWindowSettings
         {
             Icon = null,
