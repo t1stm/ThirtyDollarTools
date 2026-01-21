@@ -164,17 +164,18 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     public override void Resize(int w, int h)
     {
         var resize = new Vector2i(w, h);
-        if (loadingAsyncTask is { IsCompleted: true })
-        {
-            _playfieldContainer.Resize(_textCamera.Viewport = resize);
-        }
+        _textCamera.Viewport = resize;
         _textCamera.UpdateMatrix();
-
+        
         var greeting = _applicationTextContainer.Greeting;
         greeting.SetPosition(greeting.Position - (_width - w) / 2f * Vector3.UnitX);
 
         Overlay.Resize(w, h);
-        UpdateStaticRenderables(w, h, _playfieldContainer.Camera.GetRenderScale());
+        if (loadingAsyncTask is { IsCompleted: true })
+        {
+            _playfieldContainer.Resize(resize);
+            UpdateStaticRenderables(w, h, _playfieldContainer.Camera.GetRenderScale());
+        }
 
         _width = w;
         _height = h;
