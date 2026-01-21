@@ -2,9 +2,7 @@ using OpenTK.Mathematics;
 using ThirtyDollarParser;
 using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Base_Objects;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
-using ThirtyDollarVisualizer.Engine.Renderer.Enums;
-using ThirtyDollarVisualizer.Engine.Text;
+using ThirtyDollarVisualizer.Objects.Sound_Values;
 
 namespace ThirtyDollarVisualizer.Objects;
 
@@ -31,9 +29,9 @@ public sealed class SoundRenderable : Renderable
         Scale = (widthHeight.X, widthHeight.Y, 1);
     }
 
-    public TextSlice? Pan { get; set; }
-    public TextSlice? Value { get; set; }
-    public TextSlice? Volume { get; set; }
+    public ISoundValue? Value { get; set; }
+    public NormalText? Pan { get; set; }
+    public NormalText? Volume { get; set; }
 
     public Func<Matrix4> GetModel { get; set; } = () => Matrix4.Identity;
     public Func<Vector4> GetRGBA { get; set; } = () => Vector4.One;
@@ -58,8 +56,7 @@ public sealed class SoundRenderable : Renderable
         set
         {
             base.Scale = value;
-            if (_bounceAnimation != null)
-                _bounceAnimation.FinalY = value.Y / 4.26666667f;
+            _bounceAnimation?.FinalY = value.Y / 4.26666667f;
         }
     }
 
@@ -81,9 +78,66 @@ public sealed class SoundRenderable : Renderable
 
         if (!animationsRunning && !_resetAnimationState) return;
 
-        UpdateModel(false, _renderableAnimations.Span);
+        UpdateTextSlicesAndModel();
         _resetAnimationState = false;
     }
+    
+    private void UpdateTextSlicesAndModel()
+    {
+        if (_resetAnimationState)
+        {
+            Value?.Reset();
+            Pan?.Reset();
+            Volume?.Reset();
+            return;
+        }
+        
+        if (_bounceAnimation?.IsRunning == true)
+        {
+            var transformAdd = _bounceAnimation.GetTransform_Add(this);
+            UpdateBounceToTexts(transformAdd);
+        }
+
+        if (_expandAnimation?.IsRunning == true)
+        {
+            var transformAdd = _expandAnimation.GetTransform_Add(this);
+            transformAdd.X /= Scale.X;
+            transformAdd.Y /= Scale.Y;
+            
+            var scaleMultiplier = _expandAnimation.GetScale_Multiply(this);
+            UpdateExpandToTexts(transformAdd, scaleMultiplier.X);
+        }
+        
+        UpdateModel(false, _renderableAnimations.Span);
+    }
+
+    private void UpdateBounceToTexts(Vector3 translation)
+    {
+        Value?.Translation = translation;
+        Pan?.Translation = translation;
+        Volume?.Translation = translation;
+        
+        Value?.UpdatePosition();
+        Pan?.UpdatePosition();
+        Volume?.UpdatePosition();
+    }
+    
+    private void UpdateExpandToTexts(Vector3 translate, float scale)
+    {
+        Value?.Translation = Value.Scale * translate / 2;
+        Value?.ScaleMultiplier = scale;
+        
+        Pan?.Translation = Pan.Scale * translate / 2;
+        Pan?.ScaleMultiplier = scale;
+        
+        Volume?.Translation = Volume.Scale * translate / 2;
+        Volume?.ScaleMultiplier = scale;
+        
+        Value?.UpdatePosition();
+        Pan?.UpdatePosition();
+        Volume?.UpdatePosition();
+    }
+    
 
     public void Bounce()
     {
@@ -104,40 +158,31 @@ public sealed class SoundRenderable : Renderable
     {
         foreach (var animation in _renderableAnimations.Span) animation.Reset();
     }
-
+    
     public void SetValue(BaseEvent ev, ValueChangeWrapMode valueChangeWrapMode)
     {
-        if (Value is null) return;
+        if (Value is not NormalText wrapper) 
+            throw new Exception("SetValue() called on a value that is not NormalText");
 
-        Fade();
-        Expand();
-
-        Span<char> characters = stackalloc char[32];
-        var written = 0;
-        switch (ev.PlayTimes)
+        lock (Value)
         {
-            case <= 0 when valueChangeWrapMode == ValueChangeWrapMode.ResetToDefault &&
-                           !ev.OriginalLoop.TryFormat(characters, out written, "0.##") &&
-                           !ev.OriginalLoop.TryFormat(characters, out written, "0.##"):
-                throw new Exception("Failed to format original loop");
-            case > 0 when !ev.PlayTimes.TryFormat(characters, out written, "0.##"):
-                throw new Exception("Failed to format play times");
+            Fade();
+            Expand();
+
+            Span<char> characters = stackalloc char[32];
+            var written = 0;
+            switch (ev.PlayTimes)
+            {
+                case <= 0 when valueChangeWrapMode == ValueChangeWrapMode.ResetToDefault &&
+                               !ev.OriginalLoop.TryFormat(characters, out written, "0.##") &&
+                               !ev.OriginalLoop.TryFormat(characters, out written, "0.##"):
+                    throw new Exception("Failed to format original loop");
+                case > 0 when !ev.PlayTimes.TryFormat(characters, out written, "0.##"):
+                    throw new Exception("Failed to format play times");
+            }
+
+            wrapper.Text.SetValue(characters[..written]);
+            wrapper.UpdatePosition();
         }
-
-        var this_position = Position;
-        var this_scale = Scale;
-
-        Value.SetValue(characters[..written]);
-
-        var new_position_x = this_position.X + this_scale.X / 2f - Value.Scale.X / 2f;
-        var new_position = new Vector3
-        {
-            X = new_position_x,
-            Y = Value.Position.Y,
-            Z = Value.Position.Z
-        };
-
-        Value.SetPosition(new_position, PositionAlign.Top | PositionAlign.CenterX);
-        Value.Position = new_position;
     }
 }

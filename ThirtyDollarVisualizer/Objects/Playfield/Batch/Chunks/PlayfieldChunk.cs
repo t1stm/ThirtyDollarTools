@@ -3,6 +3,7 @@ using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Engine.Text;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
+using ThirtyDollarVisualizer.Objects.Sound_Values;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
@@ -59,49 +60,72 @@ public class PlayfieldChunk : IDisposable
 
             var renderable = renderables[i] = factory.CookUp(baseEvent);
 
-            switch (baseEvent.SoundEvent)
+            switch (baseEvent)
             {
-                case "!bg":
-                case "!pulse":
+                case IndividualCutEvent ice:
+                {
+                    // TODO
+                    renderable.Value = new IndividualCutValue(ice);
+                    continue;
+                }
+
+                case NormalEvent { SoundEvent: "!bg" }:
+                    renderable.Value = new BackgroundEventValue(baseEvent.Value);
+
                     continue;
             }
 
             if (baseEvent.Value != 0)
             {
-                var valueText = $"{baseEvent.Value:0.##}";
-                valueText = baseEvent.ValueScale switch
-                {
-                    ValueScale.Divide => "/" + valueText,
-                    ValueScale.Times => "x" + valueText,
-                    ValueScale.Add when baseEvent.Value > 0 && baseEvent.SoundEvent.StartsWith('!')
-                        => "+" + valueText,
-                    ValueScale.None when baseEvent.Value > 0 && !baseEvent.SoundEvent.StartsWith('!')
-                        => "+" + valueText,
-                    _ => valueText
-                };
-
+                string valueText;
                 switch (baseEvent.SoundEvent)
                 {
-                    case "!volume":
-                        valueText += "%";
+                    case "!pulse":
+                    {
+                        // parsing logic here
+                        valueText = "";
                         break;
+                    }
+
+                    default:
+                    {
+                        valueText = $"{baseEvent.Value:0.##}";
+                        valueText = baseEvent.ValueScale switch
+                        {
+                            ValueScale.Divide => "/" + valueText,
+                            ValueScale.Times => "x" + valueText,
+                            ValueScale.Add when baseEvent.Value > 0 && baseEvent.SoundEvent.StartsWith('!')
+                                => "+" + valueText,
+                            ValueScale.None when baseEvent.Value > 0 && !baseEvent.SoundEvent.StartsWith('!')
+                                => "+" + valueText,
+                            _ => valueText
+                        };
+
+                        if (baseEvent.SoundEvent == "!volume") valueText += "%";
+                        break;
+                    }
                 }
 
-                renderable.Value = chunk._textBuffer.GetTextSlice(valueText, (value, buffer, range) =>
+                var valueBuffer = chunk._textBuffer.GetTextSlice(valueText, (value, buffer, range) =>
                     new TextSlice(buffer, range)
                     {
                         Value = value,
                         FontSize = sizing.ValueFontSize * settings.RenderScale
                     }, MaxValueLength);
+                
+                renderable.Value = new NormalText(valueBuffer);
             }
 
             if (baseEvent.Volume is not null)
-                renderable.Volume = chunk._textBuffer.GetTextSlice($"{baseEvent.Volume:0.##}%",
+            {
+                var volumeBuffer = chunk._textBuffer.GetTextSlice($"{baseEvent.Volume:0.##}%",
                     (value, buffer, range) => new TextSlice(buffer, range)
                     {
                         Value = value,
                         FontSize = sizing.VolumeFontSize * settings.RenderScale
                     });
+                renderable.Volume = new NormalText(volumeBuffer);
+            }
 
             if (baseEvent is not PannedEvent pannedEvent) continue;
             if (pannedEvent.Pan == 0) continue;
@@ -117,20 +141,21 @@ public class PlayfieldChunk : IDisposable
             else
             {
                 var panString = Math.Abs(pannedEvent.Pan).ToString("0.##");
-                if (panString.StartsWith("0.")) 
+                if (panString.StartsWith("0."))
                     panString = panString[1..];
-                
+
                 panText = pannedEvent.Pan > 0
                     ? $"|{panString}"
                     : $"{panString}|";
             }
 
-            renderable.Pan = chunk._textBuffer.GetTextSlice(panText, (value, buffer, range) =>
+            var panBuffer = chunk._textBuffer.GetTextSlice(panText, (value, buffer, range) =>
                 new TextSlice(buffer, range)
                 {
                     Value = value,
                     FontSize = sizing.PanFontSize * settings.RenderScale
                 });
+            renderable.Pan = new NormalText(panBuffer);
         }
 
         chunk.EndY = layoutHandler.Height + layoutHandler.Size;

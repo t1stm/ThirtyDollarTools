@@ -14,6 +14,8 @@ public class TextSlice(TextBuffer textBuffer, Range range)
 
     public int Length { get; private set; }
     public int Offset { get; } = range.Start.Value;
+    
+    public bool UpdateManually { get; set; }
 
     public ReadOnlySpan<char> Value
     {
@@ -40,6 +42,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         set
         {
             field = value;
+            if (UpdateManually) return;
             UpdateCharacters();
         }
     } = 16;
@@ -60,6 +63,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         set
         {
             field = value;
+            if (UpdateManually) return;
             UpdateCharacters();
         }
     } = Vector3.Zero;
@@ -69,7 +73,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         Value = value;
     }
 
-    private void UpdateCharacters()
+    public void UpdateCharacters()
     {
         var val = Value;
         var textProvider = textBuffer.TextProvider;

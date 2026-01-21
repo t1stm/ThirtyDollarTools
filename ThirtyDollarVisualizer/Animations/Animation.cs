@@ -6,11 +6,12 @@ namespace ThirtyDollarVisualizer.Animations;
 
 public abstract class Animation(TimeSpan timespan)
 {
-    protected readonly Stopwatch TimingStopwatch = new();
-    public bool AffectsChildren = true;
-    protected TimeSpan AnimationLength = timespan;
-    protected Action? CallbackOnFinish = null;
-    public AnimationFeature Features = AnimationFeature.None;
+    public AnimationFeature Features { get; set; } = AnimationFeature.None;
+    public bool AffectsChildren { get; set; } = true;
+
+    protected Stopwatch TimingStopwatch { get; } = new();
+    protected TimeSpan AnimationLength { get; set; }= timespan;
+    protected Action? CallbackOnFinish { get; set; }
     protected bool IsReset;
 
     protected Animation(int animationLengthMs) : this(TimeSpan.FromMilliseconds(animationLengthMs))

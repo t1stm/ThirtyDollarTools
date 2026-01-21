@@ -80,8 +80,12 @@ public class PlayfieldContainer(
         // dispose old playfields
         foreach (var playfield in _playfields.AsSpan()) playfield.Dispose();
 
-        _playfields = playfields;
-        _playfieldsUpdated = true;
+        lock (_playfields)
+        {
+            Reset();
+            _playfields = playfields;
+            _playfieldsUpdated = true;
+        }
         
         RegisterSequencePlayerEvents(sequencePlayer);
     }
@@ -95,31 +99,37 @@ public class PlayfieldContainer(
 
     public void Update(double deltaTime)
     {
-        BackgroundPlane.Update();
-        FlashOverlayPlane.Update();
-        Camera.Update(deltaTime);
-        StaticCamera.Update(deltaTime);
+        lock (_playfields)
+        {
+            BackgroundPlane.Update();
+            FlashOverlayPlane.Update();
+            Camera.Update(deltaTime);
+            StaticCamera.Update(deltaTime);
 
-        if (!_playfieldsUpdated) return;
+            if (!_playfieldsUpdated) return;
 
-        foreach (var playfield in _playfields)
-            playfield.Render(OffscreenCamera, 0, 0);
-        _playfieldsUpdated = false;
+            foreach (var playfield in _playfields)
+                playfield.Render(OffscreenCamera, 0, 0);
+            _playfieldsUpdated = false;
+        }
     }
 
     public void Render(double renderDelta)
     {
-        BackgroundPlane.Render(StaticCamera);
-
-        if (_playfields.Length > 0)
+        lock (_playfields)
         {
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(CurrentSequence, _playfields.Length);
+            BackgroundPlane.Render(StaticCamera);
 
-            var currentPlayfield = _playfields.AsSpan()[CurrentSequence];
-            currentPlayfield.Render(Camera, Camera.GetRenderScale(), renderDelta);
+            if (_playfields.Length > 0)
+            {
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(CurrentSequence, _playfields.Length);
+
+                var currentPlayfield = _playfields.AsSpan()[CurrentSequence];
+                currentPlayfield.Render(Camera, Camera.GetRenderScale(), renderDelta);
+            }
+
+            FlashOverlayPlane.Render(StaticCamera);
         }
-
-        FlashOverlayPlane.Render(StaticCamera);
     }
 
     public void Resize(Vector2i viewport)
@@ -186,16 +196,19 @@ public class PlayfieldContainer(
 
     private SoundRenderable? GetRenderable(Placement placement, int sequenceIndex)
     {
-        if (sequenceIndex >= _playfields.Length) return null;
+        lock (_playfields)
+        {
+            if (sequenceIndex >= _playfields.Length) return null;
 
-        var playfields = _playfields.AsSpan();
-        var objects = CollectionsMarshal.AsSpan(playfields[sequenceIndex].Renderables);
+            var playfields = _playfields.AsSpan();
+            var objects = CollectionsMarshal.AsSpan(playfields[sequenceIndex].Renderables);
 
-        var len = objects.Length;
-        var placement_idx = (int)placement.SequenceIndex;
-        var element = placement_idx >= len || placement_idx < 0 ? null : objects[placement_idx];
+            var len = objects.Length;
+            var placement_idx = (int)placement.SequenceIndex;
+            var element = placement_idx >= len || placement_idx < 0 ? null : objects[placement_idx];
 
-        return element;
+            return element;
+        }
     }
 
     private void CameraBoundsCheck(Placement placement, int sequenceIndex)

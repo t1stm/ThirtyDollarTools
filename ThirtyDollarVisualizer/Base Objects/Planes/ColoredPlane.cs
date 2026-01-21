@@ -83,8 +83,6 @@ public class ColoredPlane : Renderable, IGamePreloadable
 
     public override void Render(Camera camera)
     {
-        if (Shader == null) return;
-
         _staticVAO.Bind();
         _staticVAO.Update();
 

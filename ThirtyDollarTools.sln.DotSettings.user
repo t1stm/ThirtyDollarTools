@@ -53,6 +53,7 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AInvalidOperationException_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002Econfig_003FJetBrains_003FRider2025_002E3_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F384e456bc26f45f5a6a6a20ae50c6e0dd1a400_003F1b_003F06e42fcb_003FInvalidOperationException_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AIPixel_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002Econfig_003FJetBrains_003FRider2025_002E3_003Fresharper_002Dhost_003FSourcesCache_003F2862141a16d1df199065fbfee92442080ac65464df6618b2d35d6a1ed332669_003FIPixel_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AIQueryable_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002Econfig_003FJetBrains_003FRider2025_002E3_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003Fe3aefa2ea63f4518a8164b07143cac8e383000_003F2b_003F29fda517_003FIQueryable_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
+	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AISpanFormattable_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002Econfig_003FJetBrains_003FRider2025_002E3_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003Fe7f701bc05fe4c4c938e43df30078ba3dba800_003Feb_003F60a87eb5_003FISpanFormattable_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AKeys_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002Econfig_003FJetBrains_003FRider2024_002E2_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F84f27e81d3694907913d7960f70f359ebc00_003F1b_003F24e5eda6_003FKeys_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AList_00601_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002Econfig_003FJetBrains_003FRider2024_002E3_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003Fb066b4cc93ae49c4b7ebf939229f4395d1be00_003Fe7_003F31cf3f44_003FList_00601_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003ALoggerExtensions_002Ecs_002Fl_003A_002E_002E_003F_002E_002E_003F_002Econfig_003FJetBrains_003FRider2025_002E3_003Fresharper_002Dhost_003FSourcesCache_003F5328b8781cd9aafb0c784622d271e874977e837c6d30222a754bc2e6ac02f_003FLoggerExtensions_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
@@ -122,14 +123,9 @@
   &lt;Assembly Path="/home/kris/.nuget/packages/sixlabors.imagesharp/3.1.7/lib/net6.0/SixLabors.ImageSharp.dll" /&gt;
 &lt;/AssemblyExplorer&gt;</s:String>
 	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EPredefinedNamingRulesToUserRulesUpgrade/@EntryIndexedValue">True</s:Boolean>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=73a9118a_002Dde0a_002D4e83_002D8939_002Df92a30dd1d91/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
-  &lt;And&gt;
-    &lt;TestAncestor&gt;
-      &lt;TestId&gt;NUnit3x::FE2C6896-F05A-4CBA-A0C8-E969FBC0803C::net7.0::ThirtyDollarEncoder.Tests.Tests.Test_DPCM_Functionality&lt;/TestId&gt;
-    &lt;/TestAncestor&gt;
-    &lt;Project Location="/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarEncoder.Tests" Presentation="&amp;lt;ThirtyDollarEncoder.Tests&amp;gt;" /&gt;
-    &lt;Namespace&gt;ThirtyDollarEncoder.Tests&lt;/Namespace&gt;
-  &lt;/And&gt;
+	
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7ce84f90_002D6ae2_002D4e9e_002D860e_002Deb90f45871f3/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Junie Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;Project Location="/home/kris/RiderProjects/ThirtyDollarTools/ThirtyDollarConverter.Tests" Presentation="&amp;lt;Converter&amp;gt;\&amp;lt;ThirtyDollarConverter.Tests&amp;gt;" /&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:Boolean x:Key="/Default/ResxEditorPersonal/Initialized/@EntryValue">True</s:Boolean>
 	

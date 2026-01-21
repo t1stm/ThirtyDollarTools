@@ -34,6 +34,9 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
     {
         _disposed = true;
         foreach (var chunk in Chunks) chunk.Dispose();
+        Chunks = [];
+        Renderables = [];
+        
         GC.SuppressFinalize(this);
     }
 
