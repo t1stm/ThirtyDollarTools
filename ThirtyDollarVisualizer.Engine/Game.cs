@@ -45,6 +45,7 @@ public class Game : GameWindow
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
     private GLInfo GLInfo { get; set; } = new();
+    private Queue<Action<Game>> _enqueuedEvents = new();
 
     protected override void OnLoad()
     {
@@ -72,13 +73,6 @@ public class Game : GameWindow
 
         ReflectionPreloadObjects(Assembly.GetExecutingAssembly()); // preload engine stuff first
         ReflectionPreloadObjects(ExternalAssetAssembly);
-
-        RenderMarker.Debug("Reflection Preload Complete");
-        SceneManager.Initialize(new InitArguments
-        {
-            StartingResolution = ClientSize,
-            GLInfo = GLInfo
-        });
 
         RenderMarker.Debug("Finished OnLoad() Procedure");
     }
@@ -180,6 +174,16 @@ public class Game : GameWindow
         base.OnUpdateFrame(args);
         MakeCurrent();
         AssetProvider.Update();
+        
+        lock (_enqueuedEvents)
+            while (_enqueuedEvents.TryDequeue(out var action)) 
+                action(this);
+        
+        SceneManager.Initialize(new InitArguments
+        {
+            StartingResolution = ClientSize,
+            GLInfo = GLInfo
+        });
 
         if (KeyboardState.IsAnyKeyDown)
             SceneManager.Keyboard(KeyboardState);
@@ -206,5 +210,11 @@ public class Game : GameWindow
     {
         base.OnClosing(e);
         SceneManager.Shutdown();
+    }
+
+    public void Enqueue(Action<Game> action)
+    {
+        lock (_enqueuedEvents)
+            _enqueuedEvents.Enqueue(action);
     }
 }

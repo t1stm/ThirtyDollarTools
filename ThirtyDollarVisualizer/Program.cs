@@ -98,7 +98,7 @@ public static class Program
 
         if (fps == null && !settings.UseVsync)
             fps = 0;
-        
+
         var nativeWindowSettings = new NativeWindowSettings
         {
             Icon = null,
@@ -125,24 +125,24 @@ public static class Program
         {
             case "Editor":
             {
-                game.SceneManager.LoadScene<ThirtyDollarEditor>(settings.Mode,
-                    sceneManager => new ThirtyDollarEditor(sceneManager, settings, audio_context));
+                game.Enqueue(instance => instance.SceneManager.LoadScene<ThirtyDollarEditor>(settings.Mode,
+                    sceneManager => new ThirtyDollarEditor(sceneManager, settings, audio_context)));
                 break;
             }
             default:
             {
-                game.SceneManager.LoadScene<ThirtyDollarApplication>(settings.Mode,
+                game.Enqueue(instance => instance.SceneManager.LoadScene<ThirtyDollarApplication>(settings.Mode,
                     sceneManager =>
                         new ThirtyDollarApplication(sceneManager, width, height, [sequence], settings, audio_context)
                         {
                             Scale = scale ?? 1f,
                             Greeting = greeting ?? settings.Greeting
-                        });
+                        }));
                 break;
             }
         }
 
-        game.SceneManager.TransitionTo(settings.Mode);
+        game.Enqueue(instance => instance.SceneManager.TransitionTo(settings.Mode));
         game.Run();
     }
 

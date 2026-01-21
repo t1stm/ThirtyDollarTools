@@ -5,15 +5,14 @@ public class StringFormatter
     private char[] _output = [];
     private int _totalCurrentLength;
     
-    private Dictionary<string, long> _fixedNumbers = [];
-    private Dictionary<string, double> _floatingNumbers = [];
-    private Dictionary<string, TimeSpan> _times = [];
-    private Dictionary<string, char[]> _strings = [];
-    private Dictionary<string, bool> _booleans = [];
-    private Dictionary<string, string> _formats = [];
-    
-    private List<Segment> _segments = [];
-    private Dictionary<string, Segment> _parameterSegments = [];
+    private readonly Dictionary<string, long> _fixedNumbers = [];
+    private readonly Dictionary<string, double> _floatingNumbers = [];
+    private readonly Dictionary<string, TimeSpan> _times = [];
+    private readonly Dictionary<string, char[]> _strings = [];
+    private readonly Dictionary<string, bool> _booleans = [];
+    private readonly Dictionary<string, string> _formats = [];
+    private readonly Dictionary<string, Segment> _parameterSegments = [];
+    private readonly List<Segment> _segments = [];
     
     private class Segment
     {
@@ -163,7 +162,8 @@ public class StringFormatter
         }
 
         _output = new char[totalMaxLength];
-        _segments = new List<Segment>(segmentsCount);
+        _segments.Clear();
+        _segments.EnsureCapacity(segmentsCount);
         _parameterSegments.Clear();
         _totalCurrentLength = 0;
 
