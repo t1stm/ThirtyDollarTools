@@ -51,6 +51,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     
     private ulong _updateId;
     private int _width;
+    private Task? loadingAsyncTask;
 
     /// <summary>
     ///     Creates a TDW sequence visualizer.
@@ -128,7 +129,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
         Log = str => SetStatusMessage(str, 3500);
 
-        var asyncTask = Task.Run(async () =>
+        loadingAsyncTask = Task.Run(async () =>
         {
             try
             {
@@ -158,9 +159,6 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
                 SceneManager.ExceptionThrown(e);
             }
         }, Token);
-
-        asyncTask.Wait(Token);
-        Log("Loaded sequence and placement.");
     }
 
     public override void Resize(int w, int h)
@@ -189,13 +187,16 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         // sets debug values if debugging is enabled.
         RunDebugUpdate(deltaTime);
 
-        // get static values from current camera, for this frame
-        _tempCamera.CopyFrom(_playfieldContainer.Camera);
+        if (loadingAsyncTask is { IsCompleted: true })
+        {
+            // get static values from current camera, for this frame
+            _tempCamera.CopyFrom(_playfieldContainer.Camera);
 
-        _playfieldContainer.Render((float)deltaTime);
-
-        // render the greeting
-        _applicationTextContainer.RenderGreeting(_tempCamera);
+            _playfieldContainer.Render((float)deltaTime);
+            
+            // render the greeting
+            _applicationTextContainer.RenderGreeting(_tempCamera);
+        }
 
         // renders the static layout
         _applicationTextContainer.RenderStaticText(_textCamera);
@@ -210,6 +211,8 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     {
         AtlasStore?.Update();
 
+        if (loadingAsyncTask is not { IsCompleted: true }) return;
+        
         // check if one of the sequences has been updated, and handle it
         if (_fileUpdateStopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
 
