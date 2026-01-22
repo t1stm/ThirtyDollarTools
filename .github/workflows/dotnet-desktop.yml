@@ -101,10 +101,36 @@ jobs:
           
       - name: Update CHANGELOG
         id: changelog
-        uses: requarks/changelog-action@v1
+        uses: mikepenz/release-changelog-builder-action@v5
         with:
-          token: ${{ github.token }}
-          tag: nightly-${{ github.ref_name }}
+          mode: "HYBRID"
+          configurationJson: |
+            {
+              "template": "#{{What's New}}",
+              "categories": [
+                {
+                    "title": "## Feature",
+                    "labels": ["feat", "feature"]
+                },
+                {
+                    "title": "## Fix",
+                    "labels": ["fix", "bug"]
+                },
+                {
+                    "title": "## Other",
+                    "labels": []
+                }
+              ],
+              "label_extractor": [
+                {
+                  "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
+                  "on_property": "title",
+                  "target": "$1"
+                }
+              ]
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create or update Nightly prerelease
         uses: ncipollo/release-action@v1.20.0
