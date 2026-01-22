@@ -104,6 +104,8 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v5
         with:
           mode: "HYBRID"
+          fromTag: "nightly-master"
+          toTag: "nightly-${{ github.ref_name }}"
           configuration: ".github/changelog-config.json"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
