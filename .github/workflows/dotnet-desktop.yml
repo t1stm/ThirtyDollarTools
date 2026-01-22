@@ -75,6 +75,9 @@ jobs:
     needs: build
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -91,9 +94,6 @@ jobs:
             (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/dist/ThirtyDollarTools-${name}.zip" .)
           done
 
-      - name: Checkout code
-        uses: actions/checkout@v5
-
       - name: Update tag ref
         uses: EndBug/latest-tag@latest
         with:
@@ -106,7 +106,7 @@ jobs:
           mode: "HYBRID"
           configurationJson: |
             {
-              "template": "#{{What's New}}",
+              "template": "#{{CHANGELOG}}",
               "categories": [
                 {
                     "title": "## Feature",
