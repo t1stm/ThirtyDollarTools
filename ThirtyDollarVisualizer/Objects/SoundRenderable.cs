@@ -100,12 +100,8 @@ public sealed class SoundRenderable : Renderable
 
         if (_expandAnimation?.IsRunning == true)
         {
-            var transformAdd = _expandAnimation.GetTransform_Add(this);
-            transformAdd.X /= Scale.X;
-            transformAdd.Y /= Scale.Y;
-            
             var scaleMultiplier = _expandAnimation.GetScale_Multiply(this);
-            UpdateExpandToTexts(transformAdd, scaleMultiplier.X);
+            UpdateExpandToTexts(scaleMultiplier.X);
         }
         
         UpdateModel(false, _renderableAnimations.Span);
@@ -122,15 +118,10 @@ public sealed class SoundRenderable : Renderable
         Volume?.UpdatePosition();
     }
     
-    private void UpdateExpandToTexts(Vector3 translate, float scale)
+    private void UpdateExpandToTexts(float scale)
     {
-        Value?.Translation = Value.Scale * translate / 2;
         Value?.ScaleMultiplier = scale;
-        
-        Pan?.Translation = Pan.Scale * translate / 2;
         Pan?.ScaleMultiplier = scale;
-        
-        Volume?.Translation = Volume.Scale * translate / 2;
         Volume?.ScaleMultiplier = scale;
         
         Value?.UpdatePosition();
