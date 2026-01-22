@@ -92,7 +92,7 @@ public class ChunkGenerator(PlayfieldSettings settings)
         var bottom_center = box_position + (box_scale.X / 2f, box_scale.Y);
         var top_right = box_position + (box_scale.X + 6f, 0f);
 
-        sound.Value?.PositionAlign = PositionAlign.CenterY | PositionAlign.CenterX;
+        sound.Value?.PositionAlign = PositionAlign.Center;
         sound.Value?.Position = (bottom_center.X, bottom_center.Y - 1f, 0);
         
         sound.Volume?.PositionAlign = PositionAlign.Top | PositionAlign.Right;
