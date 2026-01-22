@@ -143,6 +143,12 @@ public class Game : GameWindow
 
         glInfo.SupportsKHRDebug = glInfo.Extensions.Contains("GL_KHR_debug");
         glInfo.SupportsDirectStateAccess = glInfo.Extensions.Contains("GL_ARB_direct_state_access");
+        
+        glInfo.Vendor = GL.GetString(StringName.Vendor) ?? "";
+        glInfo.Renderer = GL.GetString(StringName.Renderer) ?? "";
+        glInfo.Version = GL.GetString(StringName.Version) ?? "";
+        glInfo.MaxTexture2DSize = GL.GetInteger(GetPName.MaxTextureSize);
+        glInfo.MaxTexture2DLayers = GL.GetInteger(GetPName.MaxArrayTextureLayers);
     }
 
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)

@@ -80,11 +80,11 @@ public class ApplicationTextContainer
                 C -> Change the camera modes.
                 F -> Toggle between fullscreen and windowed.
                 Space -> Pause / resume the sequence.
-                Escape -> Close the program.
                 0-9 -> Seek to bookmark.
                 Ctrl+0-9 -> Set bookmark to current time.
                 Ctrl+Shift+0-9 -> Clear given bookmark time.
                 Ctrl+D -> Show debugging info.
+                Ctrl+Q -> Close the program.
                 Page Up/Down -> Seek to previous/next sequence.
 
                 """,
