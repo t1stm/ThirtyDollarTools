@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
@@ -91,8 +91,23 @@ jobs:
             (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/dist/ThirtyDollarTools-${name}.zip" .)
           done
 
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Update tag ref
+        uses: EndBug/latest-tag@latest
+        with:
+          tag-name: nightly-${{ github.ref_name }}
+          
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ github.token }}
+          tag: nightly-${{ github.ref_name }}
+
       - name: Create or update Nightly prerelease
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@v1.20.0
         with:
           tag: nightly-${{ github.ref_name }}
           name: "Nightly Build of [${{ github.ref_name }}]"
@@ -100,11 +115,12 @@ jobs:
             This is a nightly release for the branch "${{ github.ref_name }}". 
             This means that the changes in this release are probably not tested thoroughly, or not ready for general use. 
             Use this release on the side of caution.
+            ${{ steps.changelog.outputs.changelog }}
           
           prerelease: true
           allowUpdates: true
           removeArtifacts: true
-          generateReleaseNotes: true
+          generateReleaseNotes: false
           artifacts: dist/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
     
