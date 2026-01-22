@@ -8,7 +8,7 @@ using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 namespace ThirtyDollarVisualizer.Objects.Planes;
 
 [PreloadGraphicsContext]
-public class FlashOverlayPlane(Vector4 peakColor, float stageOneTimeMs = 0.125f, float stageTwoTimeMs = 0.25f)
+public class FlashOverlayPlane(Vector4 peakColor, float stageOneTimeMs = 125f, float stageTwoTimeMs = 250f)
     : ColoredPlane
 {
     private readonly float _lengthToEndMilliseconds = stageOneTimeMs + stageTwoTimeMs;
@@ -45,7 +45,7 @@ public class FlashOverlayPlane(Vector4 peakColor, float stageOneTimeMs = 0.125f,
         var factor = currentTime / _lengthToEndMilliseconds;
         if (factor <= 1) return Vector4.Lerp(peakColor, Vector4.Zero, factor);
 
-        _timingStopwatch.Stop();
+        _timingStopwatch.Reset();
         return Vector4.Zero;
     }
 

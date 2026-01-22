@@ -119,16 +119,13 @@ public class PlayfieldContainer(
         lock (_playfields)
         {
             BackgroundPlane.Render(StaticCamera);
-
-            if (_playfields.Length > 0)
-            {
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(CurrentSequence, _playfields.Length);
-
-                var currentPlayfield = _playfields.AsSpan()[CurrentSequence];
-                currentPlayfield.Render(Camera, Camera.GetRenderScale(), renderDelta);
-            }
-
             FlashOverlayPlane.Render(StaticCamera);
+
+            if (_playfields.Length <= 0) return;
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(CurrentSequence, _playfields.Length);
+
+            var currentPlayfield = _playfields.AsSpan()[CurrentSequence];
+            currentPlayfield.Render(Camera, Camera.GetRenderScale(), renderDelta);
         }
     }
 
@@ -140,6 +137,7 @@ public class PlayfieldContainer(
         Camera.Viewport = StaticCamera.Viewport = (width, height);
         Camera.UpdateMatrix();
         StaticCamera.UpdateMatrix();
+        FlashOverlayPlane.Scale = (width, height, 0);
     }
 
     /// <summary>
