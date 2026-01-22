@@ -104,31 +104,7 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v5
         with:
           mode: "HYBRID"
-          configurationJson: |
-            {
-              "template": "#{{CHANGELOG}}",
-              "categories": [
-                {
-                    "title": "## Feature",
-                    "labels": ["feat", "feature"]
-                },
-                {
-                    "title": "## Fix",
-                    "labels": ["fix", "bug"]
-                },
-                {
-                    "title": "## Other",
-                    "labels": []
-                }
-              ],
-              "label_extractor": [
-                {
-                  "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
-                  "on_property": "title",
-                  "target": "$1"
-                }
-              ]
-            }
+          configuration: ".github/changelog-config.json"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -141,8 +117,9 @@ jobs:
             This is a nightly release for the branch "${{ github.ref_name }}". 
             This means that the changes in this release are probably not tested thoroughly, or not ready for general use. 
             Use this release on the side of caution.
+            
             ${{ steps.changelog.outputs.changelog }}
-          
+            
           prerelease: true
           allowUpdates: true
           removeArtifacts: true

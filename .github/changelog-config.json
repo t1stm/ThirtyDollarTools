@@ -1,0 +1,39 @@
+{
+  "categories": [
+    {
+      "title": "## What's New: ",
+      "labels": ["feat"]
+    },
+    {
+      "title": "## Fixed Stuff: ",
+      "labels": ["fix"]
+    },
+    {
+      "title": "## Small Changes: ",
+      "labels": ["random", "chore", "refactor", "test", "build"]
+    },
+    {
+      "title": "## Documentation Changes: ",
+      "labels": ["docs"]
+    },
+    {
+      "title": "## Dependency Updates: ",
+      "labels": ["deps"]
+    },
+    {
+      "title": "## Performance Improvements: ",
+      "labels": ["perf"]
+    },
+    {
+      "title": "## Uncategorized: ",
+      "labels": []
+    }
+  ],
+  "sort": "DESC",
+  "template": "${{CHANGELOG}}",
+  "pr_template": "- Pull Request ${{URL}}: ${{TITLE}} by ${{AUTHOR}}",
+  "commit_template": "- https://github.com/t1stm/ThirtyDollarTools/commit/#{{MERGE_SHA}}: ${{TITLE}} by ${{AUTHOR}} on ${{CREATED_AT}}",
+  "empty_template": "- no changes",
+  "max_pull_requests": 1000,
+  "max_back_track_time_days": 1000
+}
