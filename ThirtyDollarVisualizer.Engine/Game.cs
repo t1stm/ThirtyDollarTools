@@ -25,8 +25,16 @@ public class Game : GameWindow
         NativeWindowSettings nativeWindowSettings) :
         base(gameSettings, nativeWindowSettings)
     {
+#if RELEASE
+        const string logFilePath = "Visualizer_Release.log";
+#endif
+#if DEBUG
+        const string logFilePath = "Visualizer_Debug.log";
+#endif
+
         var serilogLogger = new LoggerConfiguration()
             .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
+            .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Infinite)
             .MinimumLevel.Debug()
             .CreateLogger();
 
@@ -37,20 +45,20 @@ public class Game : GameWindow
             throw new Exception("Asset Assembly cannot be the calling assembly.");
 
         ExternalAssetAssembly = externalAssetAssembly;
-        AssetProvider = new AssetProvider(Logger, [callingAssembly, ExternalAssetAssembly]);
+        AssetProvider = new AssetProvider(Logger, [callingAssembly, ExternalAssetAssembly], GLInfo);
         SceneManager = new SceneManager(Logger, AssetProvider);
     }
 
     public Assembly ExternalAssetAssembly { get; }
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
+    private readonly Queue<Action<Game>> _enqueuedEvents = new();
     private GLInfo GLInfo { get; set; } = new();
-    private Queue<Action<Game>> _enqueuedEvents = new();
 
     protected override void OnLoad()
     {
         base.OnLoad();
-        GLInfo = GetGLInfo();
+        GetGLInfo(GLInfo);
 
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
@@ -121,30 +129,20 @@ public class Game : GameWindow
             sourceText, typeText, id, severityText, stringBuffer.ToString());
     }
 
-    private static GLInfo GetGLInfo()
+    private static void GetGLInfo(GLInfo glInfo)
     {
-        var gl_info = new GLInfo
-        {
-            Vendor = GL.GetString(StringName.Vendor) ?? "",
-            Renderer = GL.GetString(StringName.Renderer) ?? "",
-            Version = GL.GetString(StringName.Version) ?? "",
-            MaxTexture2DSize = GL.GetInteger(GetPName.MaxTextureSize),
-            MaxTexture2DLayers = GL.GetInteger(GetPName.MaxArrayTextureLayers)
-        };
+        var extCount = GL.GetInteger(GetPName.NumExtensions);
+        glInfo.Extensions.EnsureCapacity(extCount);
 
-        var ext_count = GL.GetInteger(GetPName.NumExtensions);
-        gl_info.Extensions.EnsureCapacity(ext_count);
-
-        for (uint i = 0; i < ext_count; i++)
+        for (uint i = 0; i < extCount; i++)
         {
             var ext = GL.GetStringi(StringName.Extensions, i);
             if (ext is not null)
-                gl_info.Extensions.Add(ext);
+                glInfo.Extensions.Add(ext);
         }
 
-        gl_info.SupportsKHRDebug = gl_info.Extensions.Contains("GL_KHR_debug");
-
-        return gl_info;
+        glInfo.SupportsKHRDebug = glInfo.Extensions.Contains("GL_KHR_debug");
+        glInfo.SupportsDirectStateAccess = glInfo.Extensions.Contains("GL_ARB_direct_state_access");
     }
 
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
@@ -174,11 +172,11 @@ public class Game : GameWindow
         base.OnUpdateFrame(args);
         MakeCurrent();
         AssetProvider.Update();
-        
+
         lock (_enqueuedEvents)
-            while (_enqueuedEvents.TryDequeue(out var action)) 
+            while (_enqueuedEvents.TryDequeue(out var action))
                 action(this);
-        
+
         SceneManager.Initialize(new InitArguments
         {
             StartingResolution = ClientSize,

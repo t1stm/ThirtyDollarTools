@@ -15,7 +15,15 @@ namespace ThirtyDollarVisualizer.Engine.Renderer;
 [PreloadGraphicsContext]
 public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
 {
+    private static GLInfo _glInfo = null!;
     private static DeleteQueue _deleteQueue = null!;
+    
+    public static void Preload(AssetProvider assetProvider)
+    {
+        _deleteQueue = assetProvider.DeleteQueue;
+        _glInfo = assetProvider.GLInfo;
+    }
+    
     private readonly List<IBuffer> _buffers = [];
     private readonly Queue<(IBuffer, VertexBufferLayout)> _uploadQueue = [];
     private bool _disposed;
@@ -56,11 +64,6 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public static void Preload(AssetProvider assetProvider)
-    {
-        _deleteQueue = assetProvider.DeleteQueue;
-    }
-
     private void Create()
     {
         Handle = GL.GenVertexArray();
@@ -87,6 +90,8 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
         Bind();
         vbo.Bind();
         vbo.Update();
+        if (!_glInfo.SupportsDirectStateAccess)
+            _ibo?.Bind();
 
         _buffers.Add(vbo);
 
@@ -135,7 +140,7 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
                 UploadBuffer(buffer, layout);
             }
 
-            if (_ibo is null || _isIBOUploaded) return;
+            if (!_glInfo.SupportsDirectStateAccess || _ibo is null || _isIBOUploaded) return;
             BindIndexBuffer(_ibo);
             _isIBOUploaded = true;
         }

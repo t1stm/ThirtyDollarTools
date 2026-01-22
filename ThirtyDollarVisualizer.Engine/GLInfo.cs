@@ -11,4 +11,5 @@ public class GLInfo
     public int MaxTexture2DLayers { get; set; }
 
     public bool SupportsKHRDebug { get; set; }
+    public bool SupportsDirectStateAccess { get; set; }
 }

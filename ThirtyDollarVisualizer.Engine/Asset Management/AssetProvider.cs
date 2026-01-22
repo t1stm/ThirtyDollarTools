@@ -10,10 +10,11 @@ public class AssetProvider
 {
     private readonly Logger _logger;
 
-    public AssetProvider(Logger logger, Assembly[] assetAssemblies)
+    public AssetProvider(Logger logger, Assembly[] assetAssemblies, GLInfo glInfo)
     {
         _logger = logger;
         AssetAssemblies = assetAssemblies;
+        GLInfo = glInfo;
         ShaderPool = new ShaderPool(logger, this);
         CacheProvider = new CacheProvider(this);
     }
@@ -22,6 +23,7 @@ public class AssetProvider
     public ShaderPool ShaderPool { get; }
     public DeleteQueue DeleteQueue { get; } = new();
     public CacheProvider CacheProvider { get; }
+    public GLInfo GLInfo { get; }
 
     /// <summary>
     ///     Checks if an asset can be loaded using the specified create info.
