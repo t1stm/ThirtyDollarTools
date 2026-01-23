@@ -21,7 +21,6 @@ public class SequencePlayer
     protected readonly Action<string>? Log;
     protected readonly SeekableStopwatch TimingStopwatch = new();
     protected readonly SemaphoreSlim UpdateLock = new(1);
-    private int _currentSequence;
     private bool _cutSounds;
     private bool _dead;
 
@@ -68,11 +67,11 @@ public class SequencePlayer
 
     protected int CurrentSequence
     {
-        get => _currentSequence;
+        get;
         set
         {
-            _currentSequence = value;
-            SequenceUpdateAction?.Invoke(_currentSequence);
+            field = value;
+            SequenceUpdateAction?.Invoke(field);
         }
     }
 

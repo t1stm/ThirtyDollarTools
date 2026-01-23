@@ -103,7 +103,7 @@ public class PlayfieldChunk : IDisposable
                             _ => valueText
                         };
 
-                        if (baseEvent.SoundEvent == "!volume") valueText += "%";
+                        if (baseEvent is { SoundEvent: "!volume", ValueScale: ValueScale.None }) valueText += "%";
                         break;
                     }
                 }

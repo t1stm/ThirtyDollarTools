@@ -14,6 +14,7 @@ public class SceneManager(Logger logger, AssetProvider assetProvider)
     public AssetProvider AssetProvider { get; } = assetProvider;
     public Dictionary<string, Scene> Scenes { get; } = new();
     public List<Scene> ActiveScenes { get; } = [];
+    public Logger Logger => logger;
     private Queue<Scene> ScenesToInitialize { get; } = [];
 
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene

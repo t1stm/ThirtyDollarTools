@@ -11,17 +11,16 @@ public class OpenALContext : AudioContext
 {
     private ALCContext _context;
     private ALCDevice _device;
-    private int _updateRate = 48000; // Hz
 
     public int UpdateRate
     {
-        get => _updateRate;
+        get;
         set
         {
-            _updateRate = value;
+            field = value;
             Create();
         }
-    }
+    } = 48000;
 
     public override string Name => "OpenAL";
 
@@ -52,7 +51,6 @@ public class OpenALContext : AudioContext
         catch (Exception e)
         {
             DefaultLogger.Log("OpenAL Error", e.ToString());
-            ;
             return false;
         }
     }

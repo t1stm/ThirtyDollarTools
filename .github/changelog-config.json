@@ -1,38 +1,49 @@
 {
   "categories": [
     {
+      "title": "## Pull Requests: ",
+      "mode": "PR"
+    },
+    {
       "title": "## What's New: ",
-      "labels": ["feat"]
+      "labels": ["feat"],
+      "mode": "COMMIT"
     },
     {
       "title": "## Fixed Stuff: ",
-      "labels": ["fix"]
+      "labels": ["fix"],
+      "mode": "COMMIT"
     },
     {
       "title": "## Small Changes: ",
-      "labels": ["random", "chore", "refactor", "test", "build"]
+      "labels": ["random", "chore", "refactor", "test", "build"],
+      "mode": "COMMIT"
     },
     {
       "title": "## Documentation Changes: ",
-      "labels": ["docs"]
+      "labels": ["docs"],
+      "mode": "COMMIT"
     },
     {
       "title": "## Dependency Updates: ",
-      "labels": ["deps"]
+      "labels": ["deps"],
+      "mode": "COMMIT"
     },
     {
       "title": "## Performance Improvements: ",
-      "labels": ["perf"]
+      "labels": ["perf"],
+      "mode": "COMMIT"
     },
     {
       "title": "## Uncategorized: ",
-      "labels": []
+      "labels": [],
+      "mode": "COMMIT"
     }
   ],
   "sort": "DESC",
-  "template": "${{CHANGELOG}}",
-  "pr_template": "- Pull Request ${{URL}}: ${{TITLE}} by ${{AUTHOR}}",
-  "commit_template": "- https://github.com/t1stm/ThirtyDollarTools/commit/#{{MERGE_SHA}}: ${{TITLE}} by ${{AUTHOR}} on ${{CREATED_AT}}",
+  "template": "# Changelog: \n\n#{{CHANGELOG}}",
+  "pr_template": "- Pull Request #{{URL}}: #{{TITLE}} by #{{AUTHOR}} `#{{STATUS}}`",
+  "commit_template": "- https://github.com/t1stm/ThirtyDollarTools/commit/#{{MERGE_SHA}}: #{{TITLE}} by #{{AUTHOR}} on #{{CREATED_AT}}",
   "empty_template": "- no changes",
   "max_pull_requests": 1000,
   "max_back_track_time_days": 1000
