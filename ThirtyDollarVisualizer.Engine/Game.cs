@@ -59,8 +59,7 @@ public class Game : GameWindow
     {
         base.OnLoad();
         GetGLInfo(GLInfo);
-
-        Logger.Information("OpenGL Info: {@GLInfo}", GLInfo);
+        Logger.Information("[OpenGL Info]: {@GLInfo}", GLInfo);
 
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
