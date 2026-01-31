@@ -64,7 +64,7 @@ jobs:
         run: |
           cd "./bin/${{ matrix.platform }}-${{ matrix.configuration }}"
           rm -rf ./*.dll ./*.dylib ./*.so ./runtimes
-          if [ "${{ matrix.configuration }}" = "release" ]; then
+          if [ "${{ matrix.configuration }}" = "Release" ]; then
             rm -rf ./*.pdb
           fi
 
