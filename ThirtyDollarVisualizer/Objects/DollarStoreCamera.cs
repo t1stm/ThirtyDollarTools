@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using OpenTK.Mathematics;
+using ThirtyDollarVisualizer.Animations;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
 
 namespace ThirtyDollarVisualizer.Objects;
@@ -7,7 +7,7 @@ namespace ThirtyDollarVisualizer.Objects;
 public sealed class DollarStoreCamera : Camera
 {
     private readonly float _scrollSpeed;
-    private long _lastScaleUpdate = Stopwatch.GetTimestamp();
+    private PulseAnimation? _pulseAnimation;
     private Vector3 _offset = (0, 0, 0);
     private Vector3 _virtualPosition;
     public Action<float>? OnZoom = null;
@@ -47,44 +47,6 @@ public sealed class DollarStoreCamera : Camera
         _virtualPosition += delta;
     }
 
-    private void BlockingPulse(int times, float delayMs)
-    {
-        var t = times;
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-
-        const float maxAddScale = .05f;
-        var now = _lastScaleUpdate = Stopwatch.GetTimestamp();
-        do
-        {
-            if (Disposing) return;
-            if (now != _lastScaleUpdate) break;
-
-            var elapsed = stopwatch.ElapsedMilliseconds;
-            var factor = elapsed / delayMs;
-            if (factor > 1)
-            {
-                t--;
-                factor = 1;
-                stopwatch.Restart();
-            }
-
-            var zoom = RenderScale + MathF.Sin(MathF.PI * factor) * maxAddScale;
-            Scale = zoom;
-            UpdateMatrix();
-
-            Thread.Sleep(1);
-        } while (t > 0);
-
-        if (now == _lastScaleUpdate)
-        {
-            Scale = RenderScale;
-            UpdateMatrix();
-        }
-
-        stopwatch.Reset();
-    }
-
     /// <summary>
     ///     This method copies values from another camera to this one.
     /// </summary>
@@ -110,6 +72,18 @@ public sealed class DollarStoreCamera : Camera
 
     public void Update(double secondsLastFrame)
     {
+        if (Disposing) return;
+        if (_pulseAnimation is { IsRunning: true })
+        {
+            var scaleAdd = _pulseAnimation.GetScale_Add(null!);
+            Scale = RenderScale + scaleAdd.X;
+        }
+        else if (_pulseAnimation != null)
+        {
+            Scale = RenderScale;
+            _pulseAnimation.Reset();
+        }
+
         var current = Position;
         var target = _virtualPosition;
 
@@ -118,7 +92,8 @@ public sealed class DollarStoreCamera : Camera
 
     public void Pulse(int times = 1, float frequency = 0)
     {
-        new Thread(() => { BlockingPulse(times, frequency); }).Start();
+        _pulseAnimation ??= new PulseAnimation(times, frequency);
+        _pulseAnimation.ResetWith(times, frequency);
     }
 
     public void SetOffset(Vector3 offset)

@@ -46,4 +46,6 @@ public class EncoderSettings
     ///     The sample rate to export in.
     /// </summary>
     public uint SampleRate;
+    
+    public string DownloadLocation { get; set; }
 }

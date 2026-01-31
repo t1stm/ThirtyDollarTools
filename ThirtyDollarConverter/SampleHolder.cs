@@ -51,7 +51,7 @@ public class SampleHolder
     /// </summary>
     /// <exception cref="InvalidProgramException">
     ///     Exception thrown when the application is offline and the sounds.json file
-    ///     doens't exist.
+    ///     doesn't exist.
     /// </exception>
     /// <exception cref="Exception">Exception thrown when there's an error reading the sounds list.</exception>
     public async Task LoadSampleList()

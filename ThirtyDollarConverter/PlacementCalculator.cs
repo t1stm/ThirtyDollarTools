@@ -24,7 +24,7 @@ public class PlacementCalculator
     /// </summary>
     /// <param name="encoderSettings">Encoder settings to base the placement on.</param>
     /// <param name="log">Action that handles log messages.</param>
-    /// <param name="indexReport">Action that recieves encode progress.</param>
+    /// <param name="indexReport">Action that receives encode progress.</param>
     public PlacementCalculator(EncoderSettings encoderSettings, Action<string>? log = null,
         Action<ulong, ulong>? indexReport = null)
     {

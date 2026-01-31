@@ -16,11 +16,11 @@ namespace ThirtyDollarConverter;
 
 public class PcmEncoder
 {
-    private readonly uint _channels;
     private readonly SemaphoreSlim _indexLock = new(1);
     private readonly SampleProcessor _sampleProcessor;
-    private readonly uint _sampleRate;
     private readonly EncoderSettings _settings;
+    private readonly uint _sampleRate;
+    private readonly uint _channels;
 
     /// <summary>
     ///     Creates a TDW sequence encoder.
@@ -28,7 +28,7 @@ public class PcmEncoder
     /// <param name="samples">The sample holder that stores the sequence's samples.</param>
     /// <param name="settings">The encoder's settings.</param>
     /// <param name="loggerAction">Action that handles log messages.</param>
-    /// <param name="indexReport">Action that recieves encode progress.</param>
+    /// <param name="indexReport">Action that receives encode progress.</param>
     /// <exception cref="Exception">Exception that is thrown when the amount of channels is invalid.</exception>
     public PcmEncoder(SampleHolder samples, EncoderSettings settings,
         Action<string>? loggerAction = null,
@@ -99,14 +99,14 @@ public class PcmEncoder
         return await GetAudioFromTimedEvents(timed_events);
     }
 
-    public async Task<AudioData<float>> GetAudioFromTimedEvents(TimedEvents timed_events)
+    public async Task<AudioData<float>> GetAudioFromTimedEvents(TimedEvents timedEvents)
     {
         Log("Calculated placement. Starting sample processing.");
 
-        var processed_events = await GetAudioSamples(timed_events);
+        var processed_events = await GetAudioSamples(timedEvents);
 
         Log("Finished processing all samples. Starting audio mixing.");
-        var audioData = await GenerateAudioData(timed_events, processed_events);
+        var audioData = await GenerateAudioData(timedEvents, processed_events);
         return audioData;
     }
 
@@ -246,7 +246,7 @@ public class PcmEncoder
 
         var ratio = (float)length / min_length_for_working_threads;
         if (ratio < 1)
-            throw new Exception($"Invalid calculation of seperated threads.\n" +
+            throw new Exception($"Invalid calculation of separated threads.\n" +
                                 $"Length: {length}, MinLengthThreads: {min_length_for_working_threads}, " +
                                 $"MinLengthForThread: {min_length_per_thread}, Ratio: {ratio}");
 
