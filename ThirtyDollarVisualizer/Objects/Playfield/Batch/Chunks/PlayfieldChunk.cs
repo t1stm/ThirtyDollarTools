@@ -75,7 +75,7 @@ public class PlayfieldChunk : IDisposable
                     continue;
             }
 
-            if (baseEvent.Value != 0)
+            if (baseEvent.Value != 0 || SoundShouldAlwaysHaveValue(baseEvent.SoundEvent))
             {
                 string valueText;
                 switch (baseEvent.SoundEvent)
@@ -103,7 +103,8 @@ public class PlayfieldChunk : IDisposable
                             _ => valueText
                         };
 
-                        if (baseEvent is { SoundEvent: "!volume", ValueScale: ValueScale.None }) valueText += "%";
+                        if (baseEvent is { SoundEvent: "!volume" } and not { ValueScale: ValueScale.Times } and not
+                            { ValueScale: ValueScale.Divide }) valueText += "%";
                         break;
                     }
                 }
@@ -114,7 +115,7 @@ public class PlayfieldChunk : IDisposable
                         Value = value,
                         FontSize = sizing.ValueFontSize * settings.RenderScale
                     }, MaxValueLength);
-                
+
                 renderable.Value = new NormalText(valueBuffer);
             }
 
@@ -164,8 +165,18 @@ public class PlayfieldChunk : IDisposable
         chunk.Renderables = renderables;
         chunk.AnimatedStacks = factory.AnimatedAtlases;
         chunk.StaticStacks = factory.StaticAtlases;
-        
+
         return chunk;
+    }
+
+    private static bool SoundShouldAlwaysHaveValue(ReadOnlySpan<char> sound)
+    {
+        return sound switch
+        {
+            "!loopmany" or "!volume" or "!speed" or "!stop" or "!transpose" or "!target" or "!jump" or "!bg"
+                or "!pulse" => true,
+            _ => false
+        };
     }
 
 
@@ -183,7 +194,7 @@ public class PlayfieldChunk : IDisposable
         {
             atlas.Bind();
             render_stack.Shader.Use(); // not a very optimal bind here, but it helps to not refactor the code a lot.
-            
+
             atlas.SetUniforms(render_stack.Shader);
             render_stack.Render(temporaryCamera);
         }
