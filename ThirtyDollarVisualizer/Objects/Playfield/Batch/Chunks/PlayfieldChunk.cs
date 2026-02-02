@@ -164,6 +164,7 @@ public class PlayfieldChunk : IDisposable
         chunk.Renderables = renderables;
         chunk.AnimatedStacks = factory.AnimatedAtlases;
         chunk.StaticStacks = factory.StaticAtlases;
+        
         return chunk;
     }
 
@@ -181,6 +182,9 @@ public class PlayfieldChunk : IDisposable
         foreach (var (atlas, render_stack) in AnimatedStacks)
         {
             atlas.Bind();
+            render_stack.Shader.Use(); // not a very optimal bind here, but it helps to not refactor the code a lot.
+            
+            atlas.SetUniforms(render_stack.Shader);
             render_stack.Render(temporaryCamera);
         }
 

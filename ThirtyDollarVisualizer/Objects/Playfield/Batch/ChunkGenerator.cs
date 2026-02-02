@@ -1,6 +1,5 @@
 using OpenTK.Mathematics;
 using ThirtyDollarParser;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 using ThirtyDollarVisualizer.Engine.Renderer.Enums;
 using ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 

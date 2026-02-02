@@ -64,14 +64,14 @@ public readonly struct RenderableFactory(AtlasStore store)
     public SoundRenderable CookUp(BaseEvent baseEvent)
     {
         var soundName = baseEvent.SoundEvent ?? throw new Exception("Sound name is null");
-
         var soundRenderable = new SoundRenderable
         {
             IsDivider = soundName == "!divider"
         };
         var storedStaticAtlases = store.StaticAtlases;
-
-        var renderable = store.AnimatedAtlases.TryGetValue(soundName, out var storedAnimatedAtlas)
+     
+        var renderable = store.AnimatedAtlases.GetAlternateLookup<ReadOnlySpan<char>>()
+            .TryGetValue(soundName, out var storedAnimatedAtlas)
             ? GetAnimatedSoundRenderableData(AnimatedAtlases, storedAnimatedAtlas, soundRenderable)
             : GetStaticSoundRenderableData(soundName, StaticAtlases, storedStaticAtlases, soundRenderable) ??
               GetStaticSoundRenderableData("#missing", StaticAtlases, storedStaticAtlases, soundRenderable) ??
@@ -175,6 +175,7 @@ public readonly struct RenderableFactory(AtlasStore store)
             trackedReference.Value = oldValue with { RGBA = rgba };
         };
 
+        soundRenderable.HasAnimatedTexture = true;
         return soundRenderable;
     }
 }

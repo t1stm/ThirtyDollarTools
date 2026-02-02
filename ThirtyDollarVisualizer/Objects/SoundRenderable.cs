@@ -61,6 +61,7 @@ public sealed class SoundRenderable : Renderable
     }
 
     public bool IsDivider { get; set; }
+    public bool HasAnimatedTexture { get; set; }
 
     private void ResetAnimationState()
     {

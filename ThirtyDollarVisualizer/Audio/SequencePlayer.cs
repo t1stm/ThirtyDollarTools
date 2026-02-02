@@ -4,6 +4,7 @@ using ThirtyDollarVisualizer.Audio.BASS;
 using ThirtyDollarVisualizer.Audio.Features;
 using ThirtyDollarVisualizer.Audio.Null;
 using ThirtyDollarVisualizer.Audio.OpenAL;
+using ThirtyDollarVisualizer.Engine.Threading;
 using ThirtyDollarVisualizer.Helpers.Timing;
 using ThirtyDollarVisualizer.Objects;
 
@@ -148,16 +149,6 @@ public class SequencePlayer
         UpdateLock.Release();
     }
 
-    public async ValueTask RestartAfter(long milliseconds)
-    {
-        await UpdateLock.WaitAsync();
-        TimingStopwatch.Restart();
-        TimingStopwatch.Seek(-milliseconds);
-        AlignToTime();
-        UpdateLock.Release();
-        await Start();
-    }
-
     public void Seek(long milliseconds)
     {
         UpdateLock.Wait();
@@ -177,13 +168,13 @@ public class SequencePlayer
         UpdateLock.Release();
     }
 
-    public async ValueTask Start()
+    public async ValueTask Start(ThreadRunner threadRunner)
     {
         await (Greeting?.PlayWaitFinish() ?? Task.CompletedTask);
         TimingStopwatch.Restart();
         AlignToTime();
         // Spawns a new thread object for the Thread.Sleep in the update loop.
-        new Thread(UpdateLoop).Start();
+        threadRunner.RunThread(UpdateLoop);
     }
 
     public async ValueTask Stop()

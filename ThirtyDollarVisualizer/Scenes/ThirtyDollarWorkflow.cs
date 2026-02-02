@@ -4,6 +4,7 @@ using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Audio;
+using ThirtyDollarVisualizer.Engine;
 using ThirtyDollarVisualizer.Engine.Scenes;
 using ThirtyDollarVisualizer.Helpers.Logging;
 using ThirtyDollarVisualizer.Objects;
@@ -16,8 +17,11 @@ public abstract class ThirtyDollarWorkflow : Scene
     private readonly SemaphoreSlim _atlasLock = new(0, 1);
     private readonly SemaphoreSlim _sampleHolderLock = new(1);
 
-    protected readonly SequencePlayer SequencePlayer;
-    protected AtlasStore? AtlasStore;
+    protected Game Game { get; }
+    protected SequencePlayer SequencePlayer { get; }
+    protected AtlasStore? AtlasStore { get; set; }
+    protected SampleHolder? SampleHolder { get; set; }
+    
     protected bool AutoUpdate = true;
     protected bool Debug;
 
@@ -25,7 +29,6 @@ public abstract class ThirtyDollarWorkflow : Scene
     protected Action<string> Log;
 
     protected Action? OnLoaded;
-    protected SampleHolder? SampleHolder;
     protected SequenceIndices SequenceIndices = new();
     protected Memory<SequenceInfo> Sequences = Array.Empty<SequenceInfo>();
 
@@ -35,11 +38,12 @@ public abstract class ThirtyDollarWorkflow : Scene
         TimingSampleRate = 100_000
     };
 
-    public ThirtyDollarWorkflow(SceneManager sceneManager, AudioContext? context = null,
-        Action<string>? loggingAction = null) : base(sceneManager)
+    protected ThirtyDollarWorkflow(Game game, AudioContext? context = null,
+        Action<string>? loggingAction = null) : base(game.SceneManager)
     {
         SequencePlayer = new SequencePlayer(context);
         Log = loggingAction ?? (log => { DefaultLogger.Log("ThirtyDollarWorkflow", log); });
+        Game = game;
     }
 
     /// <summary>
@@ -85,8 +89,16 @@ public abstract class ThirtyDollarWorkflow : Scene
 
             if (animatedTextures.Count > 0)
                 animatedAtlases = animatedTextures.Select(texture =>
-                    (texture.Key, FramedAtlas.FromAnimatedTexture(texture.Key, texture.Value))
-                ).ToDictionary(r => r.Key, r => r.Item2);
+                    {
+                        var soundID = texture.Key;
+                        var holder = texture.Value;
+
+                        if (soundID.StartsWith("action_"))
+                            soundID = "!" + soundID[7..];
+                        
+                        return (soundID, FramedAtlas.FromAnimatedTexture(soundID, holder));
+                    }
+                ).ToDictionary(r => r.soundID, r => r.Item2);
             else animatedAtlases = new Dictionary<string, FramedAtlas>();
 
             var atlases = new AtlasStore
@@ -94,6 +106,11 @@ public abstract class ThirtyDollarWorkflow : Scene
                 StaticAtlases = staticAtlas,
                 AnimatedAtlases = animatedAtlases
             };
+
+            foreach (var (_, atlas) in animatedAtlases)
+            {
+                atlas.Start();
+            }
 
             AtlasStore = atlases;
             Log("[Atlas Generation] Finished.");
@@ -227,7 +244,7 @@ public abstract class ThirtyDollarWorkflow : Scene
         await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents, SequenceIndices);
 
         if (restartPlayer)
-            await SequencePlayer.Start();
+            await SequencePlayer.Start(Game.ThreadRunner);
     }
 
     protected static SequenceIndices GenerateSequenceIndexes(IEnumerable<Placement> placements)

@@ -13,6 +13,7 @@ using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Debug;
 using ThirtyDollarVisualizer.Engine.Scenes;
 using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
+using ThirtyDollarVisualizer.Engine.Threading;
 
 namespace ThirtyDollarVisualizer.Engine;
 
@@ -20,9 +21,10 @@ public class Game : GameWindow
 {
     public readonly Logger Logger;
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
+    private string Id { get; }
 
     public Game(Assembly externalAssetAssembly, GameWindowSettings gameSettings,
-        NativeWindowSettings nativeWindowSettings) :
+        NativeWindowSettings nativeWindowSettings, string id) :
         base(gameSettings, nativeWindowSettings)
     {
 #if RELEASE
@@ -31,10 +33,12 @@ public class Game : GameWindow
 #if DEBUG
         const string logFilePath = "Visualizer_Debug.log";
 #endif
+        Id = id;
 
         var serilogLogger = new LoggerConfiguration()
             .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
-            .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Infinite)
+            .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Infinite,
+                retainedFileTimeLimit: TimeSpan.FromMinutes(15))
             .MinimumLevel.Debug()
             .CreateLogger();
 
@@ -46,12 +50,15 @@ public class Game : GameWindow
 
         ExternalAssetAssembly = externalAssetAssembly;
         AssetProvider = new AssetProvider(Logger, [callingAssembly, ExternalAssetAssembly], GLInfo);
-        SceneManager = new SceneManager(Logger, AssetProvider);
+        SceneManager = new SceneManager(this, Logger);
+        ThreadRunner = new ThreadRunner(this);
     }
-
+    
     public Assembly ExternalAssetAssembly { get; }
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
+    public ThreadRunner ThreadRunner { get; }
+    
     private readonly Queue<Action<Game>> _enqueuedEvents = new();
     private GLInfo GLInfo { get; set; } = new();
 
@@ -68,7 +75,7 @@ public class Game : GameWindow
         GL.Enable(EnableCap.DebugOutputSynchronous);
 
         // .NET GC automatically collects this unless it's stored somewhere in a class.
-        // See: 
+        // See: https://opentk.net/learn/appendix_opengl/debug_callback.html
         _storedDebugCallback = DebugCallback;
 
         if (GLInfo.SupportsKHRDebug)
@@ -82,6 +89,13 @@ public class Game : GameWindow
 
         ReflectionPreloadObjects(Assembly.GetExecutingAssembly()); // preload engine stuff first
         ReflectionPreloadObjects(ExternalAssetAssembly);
+
+        AppDomain.CurrentDomain.UnhandledException +=
+            (_, e) =>
+            {
+                Logger.Fatal(e.ExceptionObject as Exception,
+                    "[Unhandled Exception]: ({GameName}, {Id}) ", nameof(Game), Id);
+            };
 
         RenderMarker.Debug("Finished OnLoad() Procedure");
     }
@@ -144,7 +158,7 @@ public class Game : GameWindow
 
         glInfo.SupportsKHRDebug = glInfo.Extensions.Contains("GL_KHR_debug");
         glInfo.SupportsDirectStateAccess = glInfo.Extensions.Contains("GL_ARB_direct_state_access");
-        
+
         glInfo.Vendor = GL.GetString(StringName.Vendor) ?? "";
         glInfo.Renderer = GL.GetString(StringName.Renderer) ?? "";
         glInfo.Version = GL.GetString(StringName.Version) ?? "";
@@ -178,7 +192,9 @@ public class Game : GameWindow
     {
         base.OnUpdateFrame(args);
         MakeCurrent();
+        
         AssetProvider.Update();
+        ThreadRunner.Update();
 
         lock (_enqueuedEvents)
             while (_enqueuedEvents.TryDequeue(out var action))

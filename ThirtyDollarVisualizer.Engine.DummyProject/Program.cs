@@ -11,7 +11,7 @@ var game = new Game(Assembly.GetExecutingAssembly(), new GameWindowSettings(), n
     APIVersion = new Version(3, 3),
     Title = "Thirty Dollar Visualizer",
     Flags = ContextFlags.ForwardCompatible
-});
+}, "Dummy");
 
 var scene = game.SceneManager.LoadScene<DummyScene>("dummy", manager => new DummyScene(manager));
 game.SceneManager.TransitionTo(scene);

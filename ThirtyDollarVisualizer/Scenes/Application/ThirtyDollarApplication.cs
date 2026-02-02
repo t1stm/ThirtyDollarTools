@@ -13,7 +13,6 @@ using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Enums;
-using ThirtyDollarVisualizer.Engine.Scenes;
 using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 using ThirtyDollarVisualizer.Engine.Text;
 using ThirtyDollarVisualizer.Engine.Text.Allocationless;
@@ -51,20 +50,20 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     
     private ulong _updateId;
     private int _width;
-    private Task? loadingAsyncTask;
+    private Task? _loadingAsyncTask;
 
     /// <summary>
     ///     Creates a TDW sequence visualizer.
     /// </summary>
-    /// <param name="sceneManager">The scene manager instance.</param>
+    /// <param name="game">The Game instance.</param>
     /// <param name="width">The width of the visualizer.</param>
     /// <param name="height">The height of the visualizer.</param>
     /// <param name="sequenceLocations">The location of the sequence.</param>
     /// <param name="settings">The visualizer settings object this uses.</param>
     /// <param name="audioContext">The audio context the application will use.</param>
-    public ThirtyDollarApplication(SceneManager sceneManager, int width, int height, string?[] sequenceLocations,
+    public ThirtyDollarApplication(Game game, int width, int height, string?[] sequenceLocations,
         VisualizerSettings settings,
-        AudioContext? audioContext = null) : base(sceneManager, audioContext)
+        AudioContext? audioContext = null) : base(game, audioContext)
     {
         _fileUpdateStopwatch = new Stopwatch();
         _seekDelayStopwatch = new Stopwatch();
@@ -129,36 +128,29 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
         Log = str => SetStatusMessage(str, 3500);
 
-        loadingAsyncTask = Task.Run(async () =>
+        _loadingAsyncTask = Game.ThreadRunner.RunTask(() =>
         {
-            try
-            {
-                await GetSampleHolder();
+            GetSampleHolder().GetAwaiter().GetResult();
 
-                var playfieldSettings = new PlayfieldSettings
-                {
-                    SampleHolder = SampleHolder ?? throw new Exception("SampleHolder is null"),
-                    AtlasStore = AtlasStore ?? throw new Exception("AtlasStore is null"),
-                    PlayfieldSizing = _playfieldSizing,
-                    RenderScale = Scale,
-                    Fonts = _applicationFonts,
-                    ScrollSpeed = _settings.ScrollSpeed
-                };
-
-                _playfieldContainer =
-                    new PlayfieldContainer(playfieldSettings, SequencePlayer, new Vector2i(_width, _height));
-                _playfieldContainer.Camera.OnZoom = zoom =>
-                {
-                    UpdateStaticRenderables(_width, _height, zoom);
-                    SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
-                };
-                UpdateStaticRenderables(_width, _height, Scale);
-            }
-            catch (Exception e)
+            var playfieldSettings = new PlayfieldSettings
             {
-                SceneManager.ExceptionThrown(e);
-            }
-        }, Token);
+                SampleHolder = SampleHolder ?? throw new Exception("SampleHolder is null"),
+                AtlasStore = AtlasStore ?? throw new Exception("AtlasStore is null"),
+                PlayfieldSizing = _playfieldSizing,
+                RenderScale = Scale,
+                Fonts = _applicationFonts,
+                ScrollSpeed = _settings.ScrollSpeed
+            };
+
+            _playfieldContainer =
+                new PlayfieldContainer(playfieldSettings, SequencePlayer, new Vector2i(_width, _height));
+            _playfieldContainer.Camera.OnZoom = zoom =>
+            {
+                UpdateStaticRenderables(_width, _height, zoom);
+                SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
+            };
+            UpdateStaticRenderables(_width, _height, Scale);
+        });
     }
 
     public override void Resize(int w, int h)
@@ -171,7 +163,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         greeting.SetPosition(greeting.Position - (_width - w) / 2f * Vector3.UnitX);
 
         Overlay.Resize(w, h);
-        if (loadingAsyncTask is { IsCompleted: true })
+        if (_loadingAsyncTask is { IsCompleted: true })
         {
             _playfieldContainer.Resize(resize);
             UpdateStaticRenderables(w, h, _playfieldContainer.Camera.GetRenderScale());
@@ -191,7 +183,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         // sets debug values if debugging is enabled.
         RunDebugUpdate(deltaTime);
 
-        if (loadingAsyncTask is { IsCompleted: true })
+        if (_loadingAsyncTask is { IsCompleted: true })
         {
             // get static values from current camera, for this frame
             _tempCamera.CopyFrom(_playfieldContainer.Camera);
@@ -215,7 +207,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     {
         AtlasStore?.Update();
 
-        if (loadingAsyncTask is not { IsCompleted: true }) return;
+        if (_loadingAsyncTask is not { IsCompleted: true }) return;
         
         // check if one of the sequences has been updated, and handle it
         if (_fileUpdateStopwatch.ElapsedMilliseconds > 250) HandleIfSequenceUpdate();
@@ -234,6 +226,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     public override void Shutdown()
     {
         SequencePlayer.Die();
+        if (_loadingAsyncTask is not { IsCompleted: true }) return;
         _playfieldContainer.Dispose();
     }
 
@@ -261,7 +254,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
         // gets scroll
         var scroll = mouseState.ScrollDelta;
         if (scroll == Vector2.Zero) return;
-        if (loadingAsyncTask is not { IsCompleted: true }) return;
+        if (_loadingAsyncTask is not { IsCompleted: true }) return;
 
         var new_delta = Vector3.UnitY * (scroll.Y * 100f);
 
@@ -275,7 +268,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
     public override void Keyboard(KeyboardState state)
     {
-        if (loadingAsyncTask is not { IsCompleted: true }) return;
+        if (_loadingAsyncTask is not { IsCompleted: true }) return;
         const int seekLength = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
 
@@ -547,7 +540,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
     private void RunDebugUpdate(double deltaTime)
     {
         if (!Debug || SampleHolder is null) return;
-        if (loadingAsyncTask is not { IsCompleted: true }) return;
+        if (_loadingAsyncTask is not { IsCompleted: true }) return;
 
         if (_debugFormatter == null)
         {
@@ -735,7 +728,7 @@ public sealed class ThirtyDollarApplication : ThirtyDollarWorkflow, IGamePreload
 
     private void FileDrop(IReadOnlyCollection<string?> locations, bool resetTime)
     {
-        if (loadingAsyncTask is not { IsCompleted: true }) return;
+        if (_loadingAsyncTask is not { IsCompleted: true }) return;
         var log = Overlay.Get<TextSlice>("log");
         _playfieldContainer.Camera.ScrollTo((0, -300, 0));
 

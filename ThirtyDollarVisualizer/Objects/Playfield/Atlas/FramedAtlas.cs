@@ -2,6 +2,7 @@ using System.Diagnostics;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Texture;
+using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
 
 namespace ThirtyDollarVisualizer.Objects.Playfield.Atlas;
@@ -9,56 +10,64 @@ namespace ThirtyDollarVisualizer.Objects.Playfield.Atlas;
 public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
 {
     protected Dictionary<int, Rectangle> FrameCoordinates { get; set; } = new();
+    protected Dictionary<int, float> FrameDurationMap { get; set; } = new();
+    protected float CurrentFrameStartTime { get; set; }
     public Rectangle CurrentRectangle => FrameCoordinates[CurrentFrameIndex];
-
     public int CurrentFrameIndex { get; protected set; }
+    public float TotalLength { get; set; }
     public int FrameCount => FrameCoordinates.Count;
-    public float FrameDurationMilliseconds { get; protected set; } = 1f;
+    
     protected Stopwatch TimingStopwatch { get; set; } = new();
 
     private static Vector2i GetAtlasSizeForTotalFrames(int frameCount, Vector2 imageSize)
     {
-        // Calculate optimal atlas size for best fit
-        var totalArea = frameCount * imageSize.X * imageSize.Y;
-        var aspectRatio = imageSize.X / imageSize.Y;
+        // Add padding to the frame size to match GuillotineAtlas logic
+        const int padding = 2;
+        var paddedWidth = (int)imageSize.X + padding * 2;
+        var paddedHeight = (int)imageSize.Y + padding * 2;
 
-        // Start with square root of total area and adjust based on aspect ratio
-        var baseSize = (int)Math.Ceiling(Math.Sqrt(totalArea));
+        var aspectRatio = (float)paddedWidth / paddedHeight;
 
-        // Calculate optimal dimensions considering frame aspect ratio
-        var optimalWidth = (int)Math.Ceiling(baseSize * Math.Sqrt(aspectRatio));
-        var optimalHeight = (int)Math.Ceiling(baseSize / Math.Sqrt(aspectRatio));
+        // Start by guessing columns based on the frame count and aspect ratio to keep the atlas somewhat square
+        var columns = (int)Math.Ceiling(Math.Sqrt(frameCount * aspectRatio));
+        if (columns < 1) columns = 1;
 
-        // Ensure dimensions can fit at least one frame
-        optimalWidth = Math.Max(optimalWidth, (int)imageSize.X);
-        optimalHeight = Math.Max(optimalHeight, (int)imageSize.Y);
+        var rows = (int)Math.Ceiling((double)frameCount / columns);
 
-        // Add some padding (10% extra space) to account for packing inefficiency
-        optimalWidth = (int)(optimalWidth * 1.1f);
-        optimalHeight = (int)(optimalHeight * 1.1f);
+        var optimalWidth = columns * paddedWidth;
+        var optimalHeight = rows * paddedHeight;
 
-        Vector2i atlasSize = new(optimalWidth, optimalHeight);
-
-        return atlasSize;
+        return new Vector2i(optimalWidth, optimalHeight);
     }
 
     public void Update()
     {
-        var elapsed = TimingStopwatch.ElapsedMilliseconds;
-        var currentFrame = elapsed / FrameDurationMilliseconds;
-        var currentFrameFloored = (int)MathF.Floor(currentFrame);
+        if (!TimingStopwatch.IsRunning) return;
+        var elapsed = TimingStopwatch.ElapsedMilliseconds % TotalLength;
 
-        if (currentFrameFloored == CurrentFrameIndex)
-            return;
+        if (elapsed < CurrentFrameStartTime)
+        {
+            CurrentFrameStartTime = 0;
+            CurrentFrameIndex = 0;
+        }
 
-        if (currentFrameFloored >= FrameCount)
-            TimingStopwatch.Reset();
-
-        CurrentFrameIndex = currentFrameFloored % FrameCount;
+        var currentLength = CurrentFrameStartTime;
+        for (var i = CurrentFrameIndex; i < FrameCount; i++)
+        {
+            var nextLength = currentLength + FrameDurationMap[i];
+            if (elapsed < nextLength)
+            {
+                CurrentFrameIndex = i;
+                CurrentFrameStartTime = currentLength;
+                break;
+            }
+            currentLength = nextLength;
+        }
     }
 
     public void Start()
     {
+        if (TimingStopwatch.IsRunning) return;
         TimingStopwatch.Start();
     }
 
@@ -77,6 +86,8 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
         {
             AtlasID = "FramedAtlas_" + textureID
         };
+
+        float length = 0;
         for (var index = 0; index < image.Frames.Count; index++)
         {
             var frame = image.Frames[index];
@@ -84,9 +95,34 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
             atlas.AddTexture(textureName, frame);
 
             var rect = atlas.Atlas.GetImageRectangle(textureName);
+            if (rect.IsEmpty)
+                throw new Exception("Failed to get image data from texture.");
+            
             atlas.FrameCoordinates.Add(index, rect);
+            length += atlas.FrameDurationMap[index] = TryGetFrameDelay(frame) ?? 100f;
         }
 
+        atlas.TotalLength = length;
         return atlas;
+    }
+
+    public void SetUniforms(Shader shader)
+    {
+        var quad = QuadUV.FromRectangle(CurrentRectangle, Width, Height);
+        shader.SetUniform("u_UV", quad.UV);
+    }
+
+    private static float? TryGetFrameDelay(ImageFrame frame)
+    {
+        if (frame.Metadata.TryGetGifMetadata(out var gif))
+            return gif.FrameDelay * 10f;
+        
+        if (frame.Metadata.TryGetPngMetadata(out var png))
+            return png.FrameDelay.ToSingle() * 100f;
+
+        if (frame.Metadata.TryGetWebpFrameMetadata(out var webp))
+            return webp.FrameDelay;
+        
+        return null;
     }
 }

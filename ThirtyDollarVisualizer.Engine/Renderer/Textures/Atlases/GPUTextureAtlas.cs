@@ -8,7 +8,7 @@ using ThirtyDollarVisualizer.Engine.Common;
 
 namespace ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
 
-public class GPUTextureAtlas(int width, int height, InternalFormat internalFormat = InternalFormat.Rgba8)
+public class GPUTextureAtlas(int width, int height, InternalFormat internalFormat = InternalFormat.Rgba8, MipmapMode mipmapMode = MipmapMode.Enabled)
 {
     public required string AtlasID { get; init; } // used for identification of the atlas when caching
     public int Width { get; } = width;
@@ -18,7 +18,8 @@ public class GPUTextureAtlas(int width, int height, InternalFormat internalForma
     {
         Width = width,
         Height = height,
-        InternalFormat = internalFormat
+        InternalFormat = internalFormat,
+        MipmapMode = mipmapMode
     };
 
     public GuillotineAtlas Atlas { get; set; } = new(width, height);

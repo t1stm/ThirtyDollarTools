@@ -8,6 +8,7 @@ using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
 using ThirtyDollarVisualizer.Engine.Renderer.Debug;
 using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
+using ThirtyDollarVisualizer.Engine.Renderer.Textures;
 using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
 using ThirtyDollarVisualizer.Engine.Text.Fonts;
 
@@ -21,7 +22,7 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
 
     public readonly GlyphProvider GlyphProvider = new(fontProvider, fontName);
 
-    public readonly GPUTextureAtlas TextAtlas = new(2048, 2048, InternalFormat.Rgba32f)
+    public readonly GPUTextureAtlas TextAtlas = new(2048, 2048, InternalFormat.Rgba32f, MipmapMode.Disabled)
     {
         AtlasID = "TextAtlas_" + fontName.Replace(' ', '_')
     };

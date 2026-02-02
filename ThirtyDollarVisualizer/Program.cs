@@ -114,7 +114,7 @@ public static class Program
             ClientSize = (width, height)
         };
 
-        var game = new Game(Assembly.GetExecutingAssembly(), gameWindowSettings, nativeWindowSettings);
+        var game = new Game(Assembly.GetExecutingAssembly(), gameWindowSettings, nativeWindowSettings, "ThirtyDollarVisualizer");
         if (game.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
@@ -133,7 +133,7 @@ public static class Program
             {
                 game.Enqueue(instance => instance.SceneManager.LoadScene<ThirtyDollarApplication>(settings.Mode,
                     sceneManager =>
-                        new ThirtyDollarApplication(sceneManager, width, height, [sequence], settings, audio_context)
+                        new ThirtyDollarApplication(instance, width, height, [sequence], settings, audio_context)
                         {
                             Scale = scale ?? 1f,
                             Greeting = greeting ?? settings.Greeting

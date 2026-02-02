@@ -18,22 +18,22 @@ public class SampleHolder
 
     public static readonly string[] ActionsArray =
     [
-        "action_bg.png",
-        "action_combine.png",
-        "action_cut.png",
-        "action_divider.png",
-        "action_flash.png",
-        "action_jump.png",
-        "action_loop.png",
-        "action_loopmany.png",
-        "action_looptarget.png",
-        "action_pulse.png",
-        "action_speed.png",
-        "action_startpos.png",
-        "action_stop.png",
-        "action_target.png",
-        "action_transpose.png",
-        "action_volume.png"
+        "action_bg",
+        "action_combine",
+        "action_cut",
+        "action_divider",
+        "action_flash",
+        "action_jump",
+        "action_loop",
+        "action_loopmany",
+        "action_looptarget",
+        "action_pulse",
+        "action_speed",
+        "action_startpos",
+        "action_stop",
+        "action_target",
+        "action_transpose",
+        "action_volume"
     ];
 
     private static readonly char Slash = Path.DirectorySeparatorChar;
@@ -206,11 +206,11 @@ public class SampleHolder
         await Parallel.ForEachAsync(ActionsArray, async (action, token) =>
         {
             var file_name = $"{action}";
-            var download_location = $"{ImagesLocation}{Slash}{file_name}";
+            var download_location = $"{ImagesLocation}{Slash}{file_name}.png";
 
-            if (File.Exists(download_location)) return;
+            if (Exists($"{ImagesLocation}{Slash}{file_name}.*")) return;
 
-            await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}", token);
+            await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}.png", token);
             await using var fs = File.Open(download_location, FileMode.CreateNew);
             await stream.CopyToAsync(fs, token);
             DownloadUpdate?.Invoke(action, i++, ActionsArray.Length);
