@@ -11,13 +11,8 @@ void main() {
     vec4 textureColor = texture(u_Texture, fragmentCoords);
     float textureAlpha = textureColor.a;
 
-    vec4 mixedColor;
     if (textureAlpha < 0.01) {
-        mixedColor = textureColor;
+        discard;
     }
-    else {
-        mixedColor = textureColor * RGBA;
-    }
-
-    color = mixedColor;
+    color = textureColor * RGBA;
 }

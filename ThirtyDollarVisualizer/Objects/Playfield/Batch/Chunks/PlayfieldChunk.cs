@@ -1,3 +1,4 @@
+using OpenTK.Graphics.OpenGL;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Engine.Text;
@@ -181,6 +182,9 @@ public class PlayfieldChunk : IDisposable
 
     public void Render(DollarStoreCamera temporaryCamera)
     {
+        GL.Enable(EnableCap.DepthTest);
+        GL.DepthFunc(DepthFunction.Less);
+        
         foreach (var renderable in Renderables) renderable.Update();
 
         foreach (var (atlas, render_stack) in StaticStacks)
@@ -199,5 +203,6 @@ public class PlayfieldChunk : IDisposable
         }
 
         _textBuffer.Render(temporaryCamera);
+        GL.Disable(EnableCap.DepthTest);
     }
 }
