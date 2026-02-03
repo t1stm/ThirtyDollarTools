@@ -21,6 +21,7 @@ public class PlayfieldChunk : IDisposable
 
     private Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticStacks { get; set; } = [];
     private Dictionary<FramedAtlas, RenderStack<SoundData>> AnimatedStacks { get; set; } = [];
+    private RenderStack<SoundData>? _backgroundStack;
 
     public SoundRenderable[] Renderables { get; private set; }
     public float StartY { get; set; }
@@ -64,14 +65,12 @@ public class PlayfieldChunk : IDisposable
             {
                 case IndividualCutEvent ice:
                 {
-                    // TODO
-                    renderable.Value = new IndividualCutValue(ice);
+                    renderable.Value = new IndividualCutValue(ice, factory);
                     continue;
                 }
 
                 case NormalEvent { SoundEvent: "!bg" }:
                     renderable.Value = new BackgroundEventValue(baseEvent.Value);
-
                     continue;
             }
 

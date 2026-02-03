@@ -21,7 +21,7 @@ public class ChunkGenerator(PlayfieldSettings settings)
         var chunkCount = (events.Length + ChunkSize - 1) / ChunkSize;
         var chunksList = new PlayfieldChunk[chunkCount];
 
-        Parallel.For(0, chunkCount,
+        Parallel.For(0, chunkCount, new ParallelOptions { MaxDegreeOfParallelism = 1 },
             chunkIndex =>
             {
                 var eventsSpan = events.AsSpan();
@@ -92,13 +92,13 @@ public class ChunkGenerator(PlayfieldSettings settings)
         var top_right = box_position + (box_scale.X + 6f, 0f);
 
         sound.Value?.PositionAlign = PositionAlign.Center;
-        sound.Value?.Position = (bottom_center.X, bottom_center.Y - 1f, 0);
+        sound.Value?.Position = (bottom_center.X, bottom_center.Y - 1f, -0.5f);
         
         sound.Volume?.PositionAlign = PositionAlign.Top | PositionAlign.Right;
-        sound.Volume?.Position = (top_right.X, top_right.Y, 0);
+        sound.Volume?.Position = (top_right.X, top_right.Y, -0.5f);
         
         sound.Pan?.PositionAlign = PositionAlign.Top | PositionAlign.Left;
-        sound.Pan?.Position = (box_position.X, box_position.Y, 0);
+        sound.Pan?.Position = (box_position.X, box_position.Y, -0.5f);
 
         sound.UpdateModel(false);
     }

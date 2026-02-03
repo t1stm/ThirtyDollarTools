@@ -14,7 +14,7 @@ namespace ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 ///     The type of data stored in the buffer. It must be an unmanaged type.
 /// </typeparam>
 public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTarget)
-    : IGPUBuffer<TDataType> where TDataType : unmanaged
+    : IGPUBuffer<TDataType>, IIndexableCollection<int, TDataType> where TDataType : unmanaged
 {
     private const int MaxPreallocatedUpdateCapacity = 32;
 
@@ -23,6 +23,7 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     public BufferState BufferState { get; protected set; } = BufferState.PendingCreation;
     public int Handle { get; protected set; }
     public int Capacity { get; protected set; }
+    public int Count => Capacity;
 
     public void Bind()
     {
@@ -160,7 +161,6 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     {
         private readonly DeleteQueue _deleteQueue = deleteQueue;
         protected TDataType[] CPUBuffer { get; set; } = [];
-
         public ReadOnlySpan<TDataType> Data => CPUBuffer;
 
         protected override void DangerousGLThread_Resize(int capacity)

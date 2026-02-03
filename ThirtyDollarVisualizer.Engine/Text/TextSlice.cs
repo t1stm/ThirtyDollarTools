@@ -1,3 +1,4 @@
+using System.Buffers;
 using OpenTK.Mathematics;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
@@ -14,7 +15,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
 
     public int Length { get; private set; }
     public int Offset { get; } = range.Start.Value;
-    
+
     public bool UpdateManually { get; set; }
 
     public ReadOnlySpan<char> Value
@@ -78,16 +79,21 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         var val = Value;
         var textProvider = textBuffer.TextProvider;
         var fontMetrics = FontMetrics;
-        var fontSize = FontSize;
-        var cursorX = Position.X;
-        var cursorY = Position.Y;
 
-        var minX = cursorX;
-        var minY = cursorY;
-        var maxX = cursorX;
-        var maxY = cursorY;
+        var positioningProvider = new FlexLinePositioningProvider<TextCharacter>
+        {
+            FontSize = FontSize,
+            BasePosition = Position,
+            LineHeight = fontMetrics.LineHeight,
+            EmSize = fontMetrics.EmSize
+        };
 
+        var layouts = ArrayPool<FlexLineItemPlacementLayout>.Shared.Rent(val.Length);
+        var layoutsSpan = layouts.AsSpan()[..val.Length];
+        layoutsSpan.Clear();
+        
         var bufferIndex = 0;
+        var newLineCount = 0;
 
         Span<char> characters = stackalloc char[2]; // this is an array because we need to support surrogate pairs
         for (var index = 0; index < val.Length; index++)
@@ -98,13 +104,14 @@ public class TextSlice(TextBuffer textBuffer, Range range)
                 case (char)0:
                     if (Offset + bufferIndex >= textBuffer.Characters.Capacity)
                         throw new Exception("TextSlice capacity exceeded.");
+                        
                     textBuffer.Characters[Offset + bufferIndex] = new TextCharacter();
+                    layoutsSpan[bufferIndex] = new FlexLineItemPlacementLayout();
                     bufferIndex++;
                     continue;
 
                 case '\n':
-                    cursorX = Position.X;
-                    cursorY += FontSize * (float)(fontMetrics.LineHeight / fontMetrics.EmSize);
+                    newLineCount += 1;
                     continue;
             }
 
@@ -136,33 +143,30 @@ public class TextSlice(TextBuffer textBuffer, Range range)
                     (textureRectangle.X + textureRectangle.Z) / atlasSize.X,
                     (textureRectangle.Y + textureRectangle.W) / atlasSize.Y);
 
-            var (advanceUnitSpace, translate, scale) = textAlignmentData;
-
-            var translateX = (float)translate.X; // unit space
-            var translateY = (float)translate.Y; // unit space
-            var scaleX = (float)scale.X; // multiplier of unit space
-            var scaleY = (float)scale.Y; // multiplier of unit space
-
-            var positionX = cursorX - translateX * fontSize;
-            var positionY = cursorY + fontSize - (GlyphProvider.GlyphSize / scaleY - translateY) * fontSize;
-            var scaleW = GlyphProvider.GlyphSize / scaleX * fontSize;
-            var scaleH = GlyphProvider.GlyphSize / scaleY * fontSize;
-
-            textCharacter.Position = new Vector3(positionX, positionY, Position.Z);
-            textCharacter.Scale = new Vector2(scaleW, scaleH);
-
-            cursorX += (float)advanceUnitSpace * fontSize;
-
-            maxX = Math.Max(maxX, cursorX);
-            maxY = Math.Max(maxY, cursorY + FontSize * (float)(fontMetrics.LineHeight / fontMetrics.EmSize));
+            layoutsSpan[bufferIndex] = new FlexLineItemPlacementLayout
+            {
+                Advance = textAlignmentData.AdvanceInUnitSpace,
+                Translate = new Vector2((float)textAlignmentData.Translate.X, (float)textAlignmentData.Translate.Y),
+                Scale = new Vector2((float)textAlignmentData.Scale.X, (float)textAlignmentData.Scale.Y),
+                NewLines = newLineCount
+            };
 
             if (Offset + bufferIndex >= textBuffer.Characters.Capacity)
+            {
+                ArrayPool<FlexLineItemPlacementLayout>.Shared.Return(layouts);
                 throw new Exception("TextSlice capacity exceeded.");
+            }
 
             textBuffer.Characters[Offset + bufferIndex] = textCharacter;
             bufferIndex++;
+            newLineCount = 0;
         }
 
-        Scale = new Vector3(maxX - minX, maxY - minY, 1);
+        var textCharacters = textBuffer.Characters;
+        var size = positioningProvider.UpdatePositions(
+            ref textCharacters, layoutsSpan, Offset, bufferIndex);
+        Scale = new Vector3(size.X, size.Y, 1);
+        
+        ArrayPool<FlexLineItemPlacementLayout>.Shared.Return(layouts);
     }
 }
