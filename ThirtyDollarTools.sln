@@ -3,45 +3,54 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarConverter.Parser", "ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj", "{0E225E10-F638-497A-881D-8358D21FE31A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{F4A49CCF-2FF0-4C4F-9D25-934393D5F839}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarConverter", "ThirtyDollarConverter\ThirtyDollarConverter.csproj", "{B878BC71-E458-4630-82C2-9FF42408BB58}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Converter", "Converter", "{34B0E74F-F3BD-4A74-889E-1FA1CEC0B1B7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarConverter.Audio", "ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj", "{19D1A131-E40C-456B-A336-744A2FBA4EA7}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.Debug", "ThirtyDollarConverter.Debug\ThirtyDollarConverter.Debug.csproj", "{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer", "ThirtyDollarVisualizer\ThirtyDollarVisualizer.csproj", "{5ECD91C4-8558-4274-AD0E-2C0B0C122466}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.Tests", "ThirtyDollarConverter.Tests\ThirtyDollarConverter.Tests.csproj", "{FE2C6896-F05A-4CBA-A0C8-E969FBC0803C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.GUI", "ThirtyDollarConverter.GUI\ThirtyDollarConverter.GUI.csproj", "{25200C66-0009-4F41-BAC5-0FC955FB9029}"
-EndProject
+
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarBenchmarks", "ThirtyDollarBenchmarks\ThirtyDollarBenchmarks.csproj", "{7F1702B3-DB77-4F77-A454-007B3D853495}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BASS.Redist", "BASS.Redist\BASS.Redist.csproj", "{F5FAD4FD-05C2-461D-8A4A-6E97242BE164}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BMS2TDWex", "BMS2TDWex\BMS2TDWex.csproj", "{56E6C399-DF17-4A26-A959-0795C8C8E4A5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.CLI", "ThirtyDollarConverter.CLI\ThirtyDollarConverter.CLI.csproj", "{40BA8D3A-4735-412C-911A-1A698B6BE2A5}"
+
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarConverter.Parser", "Converter\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj", "{0E225E10-F638-497A-881D-8358D21FE31A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.DiscordBot", "ThirtyDollarConverter.DiscordBot\ThirtyDollarConverter.DiscordBot.csproj", "{E89170DA-D51D-4C65-9F3E-0D890F22E591}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarConverter", "Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj", "{B878BC71-E458-4630-82C2-9FF42408BB58}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.Migrate", "ThirtyDollarConverter.Migrate\ThirtyDollarConverter.Migrate.csproj", "{C13D23BF-3750-46A5-ABFC-B15314962D18}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirtyDollarConverter.Audio", "Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj", "{19D1A131-E40C-456B-A336-744A2FBA4EA7}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Converter", "Converter", "{34B0E74F-F3BD-4A74-889E-1FA1CEC0B1B7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.Debug", "Converter\ThirtyDollarConverter.Debug\ThirtyDollarConverter.Debug.csproj", "{03E1C58E-F88C-4728-B4B8-69D4C0061BCE}"
 EndProject
+
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.Tests", "Converter\ThirtyDollarConverter.Tests\ThirtyDollarConverter.Tests.csproj", "{FE2C6896-F05A-4CBA-A0C8-E969FBC0803C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.GUI", "Converter\ThirtyDollarConverter.GUI\ThirtyDollarConverter.GUI.csproj", "{25200C66-0009-4F41-BAC5-0FC955FB9029}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.CLI", "Converter\ThirtyDollarConverter.CLI\ThirtyDollarConverter.CLI.csproj", "{40BA8D3A-4735-412C-911A-1A698B6BE2A5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.DiscordBot", "Converter\ThirtyDollarConverter.DiscordBot\ThirtyDollarConverter.DiscordBot.csproj", "{E89170DA-D51D-4C65-9F3E-0D890F22E591}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.Migrate", "Converter\ThirtyDollarConverter.Migrate\ThirtyDollarConverter.Migrate.csproj", "{C13D23BF-3750-46A5-ABFC-B15314962D18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.EngineerSounds", "Converter\ThirtyDollarConverter.EngineerSounds\ThirtyDollarConverter.EngineerSounds.csproj", "{5AD32620-10EF-401C-99AE-8F725BAF2AC9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.Next", "Converter\ThirtyDollarConverter.Next\ThirtyDollarConverter.Next.csproj", "{A7009182-F3E8-4269-B0A9-37537D1B55B9}"
+EndProject
+
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Visualizer", "Visualizer", "{D5C41107-A123-4D71-943F-3A3B5EAC7322}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer.Engine", "ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj", "{DF517DC7-35F6-4382-8522-693F6E5E1D2B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer", "Visualizer\ThirtyDollarVisualizer\ThirtyDollarVisualizer.csproj", "{5ECD91C4-8558-4274-AD0E-2C0B0C122466}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.EngineerSounds", "ThirtyDollarConverter.EngineerSounds\ThirtyDollarConverter.EngineerSounds.csproj", "{5AD32620-10EF-401C-99AE-8F725BAF2AC9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer.Engine", "Visualizer\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj", "{DF517DC7-35F6-4382-8522-693F6E5E1D2B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer.Engine.DummyProject", "ThirtyDollarVisualizer.Engine.DummyProject\ThirtyDollarVisualizer.Engine.DummyProject.csproj", "{EDBB0343-21E7-42EE-8E5F-0F819A64E783}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer.Engine.DummyProject", "Visualizer\Engine\ThirtyDollarVisualizer.Engine.DummyProject\ThirtyDollarVisualizer.Engine.DummyProject.csproj", "{EDBB0343-21E7-42EE-8E5F-0F819A64E783}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{F4A49CCF-2FF0-4C4F-9D25-934393D5F839}"
+
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scenes", "Scenes", "{DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarConverter.Next", "ThirtyDollarConverter.Next\ThirtyDollarConverter.Next.csproj", "{A7009182-F3E8-4269-B0A9-37537D1B55B9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoadingScene", "Visualizer\Scenes\LoadingScene\LoadingScene.csproj", "{5E96A329-BE07-4C94-8864-1F1E573DC695}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -117,6 +126,10 @@ Global
 		{A7009182-F3E8-4269-B0A9-37537D1B55B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7009182-F3E8-4269-B0A9-37537D1B55B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7009182-F3E8-4269-B0A9-37537D1B55B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E96A329-BE07-4C94-8864-1F1E573DC695}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E96A329-BE07-4C94-8864-1F1E573DC695}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E96A329-BE07-4C94-8864-1F1E573DC695}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E96A329-BE07-4C94-8864-1F1E573DC695}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -140,5 +153,7 @@ Global
 		{DF517DC7-35F6-4382-8522-693F6E5E1D2B} = {F4A49CCF-2FF0-4C4F-9D25-934393D5F839}
 		{EDBB0343-21E7-42EE-8E5F-0F819A64E783} = {F4A49CCF-2FF0-4C4F-9D25-934393D5F839}
 		{A7009182-F3E8-4269-B0A9-37537D1B55B9} = {34B0E74F-F3BD-4A74-889E-1FA1CEC0B1B7}
+		{DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
+		{5E96A329-BE07-4C94-8864-1F1E573DC695} = {DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA}
 	EndGlobalSection
 EndGlobal

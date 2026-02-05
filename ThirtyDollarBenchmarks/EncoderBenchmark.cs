@@ -36,7 +36,7 @@ public class EncoderBenchmark
         {
             _holder = new SampleHolder
             {
-                DownloadLocation =
+                SamplesLocation =
                     "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarConverter.GUI/bin/Debug/net7.0/Sounds/"
             };
 

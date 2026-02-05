@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-NET_FOLDER="net9.0"
+NET_FOLDER="net10.0"
 platforms=("linux-x64" "win-x64" "osx-x64" "osx-arm64")
 
 publish() {
@@ -23,8 +23,8 @@ create_release_dirs() {
 
 copy_releases() {
   for platform in "${platforms[@]}"; do
-    cp -r "$SCRIPT_DIR/ThirtyDollarVisualizer/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
-    cp -r "$SCRIPT_DIR/ThirtyDollarConverter.GUI/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
+    cp -r "$SCRIPT_DIR/Visualizer/ThirtyDollarVisualizer/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
+    cp -r "$SCRIPT_DIR/Converter/ThirtyDollarConverter.GUI/bin/Release/$NET_FOLDER/$platform/publish/" "$SCRIPT_DIR/bin/$platform" || exit
   done;
 }
 
@@ -57,12 +57,10 @@ fi
 rm -rf "${SCRIPT_DIR:?}/bin"
 mkdir "$SCRIPT_DIR/bin"
 
-cd ./ThirtyDollarConverter.GUI || exit
+cd "$SCRIPT_DIR/Converter/ThirtyDollarConverter.GUI/" || exit
 publish
 
-cd "$SCRIPT_DIR" || exit
-
-cd ./ThirtyDollarVisualizer || exit
+cd "$SCRIPT_DIR/Visualizer/ThirtyDollarVisualizer/" || exit
 publish
 
 create_release_dirs

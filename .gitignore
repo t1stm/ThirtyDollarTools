@@ -5,8 +5,10 @@ riderModule.iml
 /_ReSharper.Caches/
 catastrophe_tdw_v2.🗿
 *.wav
-/ThirtyDollarApp/Sounds/
-/ThirtyDollarApp/*.wav
 .idea/
 .vs/
 *.bat
+
+Sounds/
+Sounds/*.json
+Sounds/Images/

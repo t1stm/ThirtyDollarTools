@@ -12,7 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+        <ProjectReference Include="..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
