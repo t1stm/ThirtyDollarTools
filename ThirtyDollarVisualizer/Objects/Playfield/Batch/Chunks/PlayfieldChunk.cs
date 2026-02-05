@@ -22,7 +22,7 @@ public class PlayfieldChunk : IDisposable
 
     private Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticStacks { get; set; } = [];
     private Dictionary<FramedAtlas, RenderStack<SoundData>> AnimatedStacks { get; set; } = [];
-    private RenderStack<SoundData>? _backgroundStack;
+    private RenderStack<BackgroundBlip>? BackgroundBlips { get; set; }
 
     public SoundRenderable[] Renderables { get; private set; }
     public float StartY { get; set; }
@@ -32,6 +32,7 @@ public class PlayfieldChunk : IDisposable
     {
         foreach (var (_, buffer_object) in StaticStacks) buffer_object.Dispose();
         foreach (var (_, buffer_object) in AnimatedStacks) buffer_object.Dispose();
+        BackgroundBlips?.Dispose();
 
         _textBuffer.Dispose();
         StaticStacks.Clear();
@@ -71,7 +72,10 @@ public class PlayfieldChunk : IDisposable
                 }
 
                 case NormalEvent { SoundEvent: "!bg" }:
-                    renderable.Value = new BackgroundEventValue(baseEvent.Value);
+                    renderable.Value = new BackgroundEventValue(baseEvent.Value, factory, chunk._textBuffer, sizing.ValueFontSize)
+                    {
+                        ScaleMultiplier = settings.RenderScale
+                    };
                     continue;
             }
 
@@ -165,6 +169,7 @@ public class PlayfieldChunk : IDisposable
         chunk.Renderables = renderables;
         chunk.AnimatedStacks = factory.AnimatedAtlases;
         chunk.StaticStacks = factory.StaticAtlases;
+        chunk.BackgroundBlips = factory.BackgroundBlips;
 
         return chunk;
     }
@@ -202,6 +207,7 @@ public class PlayfieldChunk : IDisposable
             render_stack.Render(temporaryCamera);
         }
 
+        BackgroundBlips?.Render(temporaryCamera);
         _textBuffer.Render(temporaryCamera);
         GL.Disable(EnableCap.DepthTest);
     }

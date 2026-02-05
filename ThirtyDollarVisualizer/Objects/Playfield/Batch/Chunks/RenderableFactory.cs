@@ -5,8 +5,10 @@ using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Helpers;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
+using ThirtyDollarVisualizer.Engine.Renderer;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
+using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 using ThirtyDollarVisualizer.Engine.Renderer.Queues;
 using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
 using ThirtyDollarVisualizer.Objects.Playfield.Atlas;
@@ -15,7 +17,7 @@ using ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Chunks;
 
 [PreloadGraphicsContext]
-public readonly struct RenderableFactory(AtlasStore store)
+public class RenderableFactory(AtlasStore store)
     : IGamePreloadable
 {
     private static ShaderPool _shaderPool = null!;
@@ -33,6 +35,11 @@ public readonly struct RenderableFactory(AtlasStore store)
     /// </summary>
     public Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticAtlases { get; } = new();
 
+    /// <summary>
+    /// Contains all blips for background events.
+    /// </summary>
+    public RenderStack<BackgroundBlip>? BackgroundBlips { get; set; }
+
     public static void Preload(AssetProvider assetProvider)
     {
         _deleteQueue = assetProvider.DeleteQueue;
@@ -41,22 +48,33 @@ public readonly struct RenderableFactory(AtlasStore store)
         assetProvider.ShaderPool.PreloadShader(AnimatedShaderLocation, provider =>
             new Shader(provider, provider.LoadShaders(
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
-                    "Assets/Shaders/Playfield/Chunk/Animated.vert"),
+                    $"{AnimatedShaderLocation}.vert"),
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
-                    "Assets/Shaders/Playfield/Chunk/Animated.frag")))
+                    $"{AnimatedShaderLocation}.frag")))
         );
 
         assetProvider.ShaderPool.PreloadShader(StaticShaderLocation, provider =>
             new Shader(provider, provider.LoadShaders(
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
-                    "Assets/Shaders/Playfield/Chunk/Static.vert"),
+                    $"{StaticShaderLocation}.vert"),
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
-                    "Assets/Shaders/Playfield/Chunk/Static.frag")))
+                    $"{StaticShaderLocation}.frag")))
+        );
+
+
+        assetProvider.ShaderPool.PreloadShader(BackgroundBlipShaderLocation, provider =>
+            new Shader(provider, provider.LoadShaders(
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
+                    $"{BackgroundBlipShaderLocation}.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
+                    $"{BackgroundBlipShaderLocation}.frag")
+            ))
         );
     }
 
     private const string AnimatedShaderLocation = "Assets/Shaders/Playfield/Chunk/Animated";
     private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
+    private const string BackgroundBlipShaderLocation = "Assets/Shaders/Playfield/Background/Blip";
 
     /// <summary>
     ///     Creates a new SoundRenderable from a given Thirty Dollar event.
@@ -69,7 +87,7 @@ public readonly struct RenderableFactory(AtlasStore store)
             IsDivider = soundName == "!divider"
         };
         var storedStaticAtlases = store.StaticAtlases;
-     
+
         var renderable = store.AnimatedAtlases.GetAlternateLookup<ReadOnlySpan<char>>()
             .TryGetValue(soundName, out var storedAnimatedAtlas)
             ? GetAnimatedSoundRenderableData(AnimatedAtlases, storedAnimatedAtlas, soundRenderable)
@@ -78,6 +96,24 @@ public readonly struct RenderableFactory(AtlasStore store)
               throw new Exception("#missing sound is null");
 
         return renderable;
+    }
+
+    public TrackedBufferReference<BackgroundBlip> NewBackgroundBlip(Vector4 color)
+    {
+        var blip = new BackgroundBlip
+        {
+            Color = color,
+            Model = Matrix4.Identity
+        };
+
+        BackgroundBlips ??= new RenderStack<BackgroundBlip>(_deleteQueue, 0, GLQuad.VBOWithUV,
+            new VertexBufferLayout().PushFloat(3).PushFloat(2),
+            GLQuad.EBO)
+        {
+            Shader = _shaderPool.GetNamedShader(BackgroundBlipShaderLocation)
+        };
+        BackgroundBlips.List.Add(blip);
+        return BackgroundBlips.List.GetReferenceAt(BackgroundBlips.List.Count - 1);
     }
 
     private static SoundRenderable? GetStaticSoundRenderableData(
@@ -96,7 +132,7 @@ public readonly struct RenderableFactory(AtlasStore store)
             var soundData = new SoundData
             {
                 Model = Matrix4.Identity,
-                RGBA = Vector4.One
+                InverseRGBA = Vector4.One
             };
 
             var staticSound = new StaticSound
@@ -124,11 +160,11 @@ public readonly struct RenderableFactory(AtlasStore store)
                 trackedReference.Value = oldValue with { Data = oldValue.Data with { Model = model } };
             };
 
-            soundRenderable.GetRGBA = () => trackedReference.Value.Data.RGBA;
+            soundRenderable.GetRGBA = () => trackedReference.Value.Data.InverseRGBA;
             soundRenderable.SetRGBA = rgba =>
             {
                 var oldValue = trackedReference.Value;
-                trackedReference.Value = oldValue with { Data = oldValue.Data with { RGBA = rgba } };
+                trackedReference.Value = oldValue with { Data = oldValue.Data with { InverseRGBA = rgba } };
             };
             return soundRenderable;
         }
@@ -149,7 +185,7 @@ public readonly struct RenderableFactory(AtlasStore store)
         var soundData = new SoundData
         {
             Model = Matrix4.Identity,
-            RGBA = Vector4.One
+            InverseRGBA = Vector4.One
         };
 
         if (!animatedAtlases.TryGetValue(animatedAtlas, out var renderStack))
@@ -168,11 +204,11 @@ public readonly struct RenderableFactory(AtlasStore store)
             trackedReference.Value = oldValue with { Model = matrix };
         };
 
-        soundRenderable.GetRGBA = () => trackedReference.Value.RGBA;
+        soundRenderable.GetRGBA = () => trackedReference.Value.InverseRGBA;
         soundRenderable.SetRGBA = rgba =>
         {
             var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { RGBA = rgba };
+            trackedReference.Value = oldValue with { InverseRGBA = rgba };
         };
 
         soundRenderable.HasAnimatedTexture = true;

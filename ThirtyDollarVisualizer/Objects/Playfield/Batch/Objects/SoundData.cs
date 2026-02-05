@@ -9,7 +9,7 @@ namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 public struct SoundData : IGPUReflection
 {
     public Matrix4 Model;
-    public Vector4 RGBA;
+    public Vector4 InverseRGBA;
 
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {
@@ -22,6 +22,6 @@ public struct SoundData : IGPUReflection
         var modelString = Model.ToString();
         modelString = modelString.Replace('\n', ' ');
 
-        return $"Model: {{{modelString}}} InverseRGBA: {{{RGBA}}}";
+        return $"Model: {{{modelString}}} InverseRGBA: {{{InverseRGBA}}}";
     }
 }

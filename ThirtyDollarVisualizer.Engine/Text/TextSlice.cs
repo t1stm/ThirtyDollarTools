@@ -73,7 +73,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
     {
         Value = value;
     }
-
+    
     public void UpdateCharacters()
     {
         var val = Value;

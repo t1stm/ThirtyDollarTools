@@ -10,12 +10,19 @@ namespace ThirtyDollarVisualizer.Objects.Playfield.Batch.Objects;
 
 public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, IGPUReflection
 {
-    public RenderStack(DeleteQueue deleteQueue, int capacity = 0)
+    public RenderStack(DeleteQueue deleteQueue, int capacity = 0, 
+        GLBuffer<float>? initialVertexBuffer = null,
+        VertexBufferLayout? initialLayout = null,
+        GLBuffer<int>? initialIndexElementBuffer = null)
     {
+        initialVertexBuffer ??= GLQuad.VBOWithoutUV;
+        initialLayout ??= new VertexBufferLayout().PushFloat(3);
+        initialIndexElementBuffer ??= GLQuad.EBO;
+        
         VAO = new VertexArrayObject();
         List = new GLBufferList<TDataType>(deleteQueue, capacity);
 
-        AddQuadDataToVAO(VAO);
+        AddQuadDataToVAO(VAO, initialVertexBuffer, initialLayout, initialIndexElementBuffer);
         AddBufferTypeRefectionToVAO(List, VAO);
     }
 
@@ -30,13 +37,11 @@ public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, I
         GC.SuppressFinalize(this);
     }
 
-    protected void AddQuadDataToVAO(VertexArrayObject vao)
+    protected void AddQuadDataToVAO(VertexArrayObject vao, GLBuffer<float> vertexBuffer,
+        VertexBufferLayout initialLayout, GLBuffer<int> indexBuffer)
     {
-        var layout = new VertexBufferLayout()
-            .PushFloat(3);
-
-        vao.AddBuffer(GLQuad.VBOWithoutUV, layout);
-        vao.SetIndexBuffer(GLQuad.EBO);
+        vao.AddBuffer(vertexBuffer, initialLayout);
+        vao.SetIndexBuffer(indexBuffer);
     }
 
     protected void AddBufferTypeRefectionToVAO(IGPUBuffer<TDataType> buffer, VertexArrayObject vao)

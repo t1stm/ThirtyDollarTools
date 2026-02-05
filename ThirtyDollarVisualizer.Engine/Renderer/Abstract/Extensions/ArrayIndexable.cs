@@ -1,14 +1,17 @@
 namespace ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 
-public readonly ref struct ArrayIndexable<T>(T[] array) : IIndexableCollection<int, T>
+public readonly ref struct ArrayIndexable<T>(Span<T> span) : IIndexableCollection<int, T>
 {
+    private readonly Span<T> _span = span;
+
     public T this[int key]
     {
-        get => array[key];
-        set => array[key] = value;
+        get => _span[key];
+        set => _span[key] = value;
     }
 
-    public int Count => array.Length;
+    public int Count => _span.Length;
 
-    public static implicit operator ArrayIndexable<T>(T[] array) => new(array);
+    public static implicit operator ArrayIndexable<T>(T[] array) => new(array.AsSpan());
+    public static implicit operator ArrayIndexable<T>(Span<T> array) => new(array);
 }
