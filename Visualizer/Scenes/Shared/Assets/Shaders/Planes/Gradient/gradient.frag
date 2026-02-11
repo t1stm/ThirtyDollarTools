@@ -33,12 +33,12 @@ vec4 getGradientColor(float t) {
         if (i >= u_GradientStopCount - 1) break;
 
         float lower = u_GradientStops[i];
-        float upper = u_GradientStops[i+1];
+        float upper = u_GradientStops[i + 1];
 
         if (t <= upper) {
             float diff = upper - lower;
             float factor = diff > 0.0 ? (t - lower) / diff : 0.0;
-            return mix(u_GradientColors[i], u_GradientColors[i+1], factor);
+            return mix(u_GradientColors[i], u_GradientColors[i + 1], factor);
         }
     }
     return u_GradientColors[u_GradientStopCount - 1];
@@ -53,18 +53,18 @@ void main() {
     float t = 0.0;
 
     if (u_GradientType == 0) { // solid
-        color = u_GradientColors[0];
+                               color = u_GradientColors[0];
     }
     else {
         if (u_GradientType == 1) { // linear
-            t = vUV.x;
+                                   t = vUV.x;
         }
         else if (u_GradientType == 2) { // radial
-            float max_dim = max(u_ScaleAndBorderPx.x, u_ScaleAndBorderPx.y);
-            t = length(vLocalPos) / (max_dim * 0.5);
+                                        float max_dim = max(u_ScaleAndBorderPx.x, u_ScaleAndBorderPx.y);
+                                        t = length(vLocalPos) / (max_dim * 0.5);
         }
         else if (u_GradientType == 3) { // conical
-            t = atan(vLocalPos.y, vLocalPos.x) / (2.0 * PI) + 0.5;
+                                        t = atan(vLocalPos.y, vLocalPos.x) / (2.0 * PI) + 0.5;
         }
         color = getGradientColor(t);
     }

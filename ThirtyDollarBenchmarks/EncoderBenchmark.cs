@@ -37,7 +37,7 @@ public class EncoderBenchmark
             .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
             .MinimumLevel.Debug()
             .CreateLogger();
-        
+
         if (_holder == null)
         {
             _holder = new SampleHolder(serilogLogger)

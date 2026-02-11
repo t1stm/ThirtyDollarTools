@@ -23,7 +23,6 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     public BufferState BufferState { get; protected set; } = BufferState.PendingCreation;
     public int Handle { get; protected set; }
     public int Capacity { get; protected set; }
-    public int Count => Capacity;
 
     public void Bind()
     {
@@ -69,6 +68,8 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
         deleteQueue.Enqueue(DeleteType.VBO, Handle);
         GC.SuppressFinalize(this);
     }
+
+    public int Count => Capacity;
 
     public void EnqueueNewData(ReadOnlySpan<TDataType> newData)
     {

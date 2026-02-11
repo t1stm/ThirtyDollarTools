@@ -168,6 +168,7 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
                     child.X = Padding;
                     child.Width = innerWidth;
                     break;
+                case Align.Start:
                 default:
                     child.X = Padding;
                     break;

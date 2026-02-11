@@ -5,9 +5,9 @@ namespace Shared.Animations;
 
 public class PulseAnimation : Animation
 {
-    private int _repeats;
-    private float _frequency;
     private const float MaxAddScale = 0.05f;
+    private float _frequency;
+    private int _repeats;
 
     public PulseAnimation(int repeats, float frequency) : base((int)(repeats * frequency))
     {

@@ -22,7 +22,7 @@ var samples_location = Environment.GetEnvironmentVariable("SAMPLES_LOCATION");
 if (!string.IsNullOrEmpty(samples_location))
     Static.SampleHolder = new SampleHolder(serilogLogger)
     {
-        SamplesLocation = samples_location,
+        SamplesLocation = samples_location
     };
 else Static.SampleHolder = new SampleHolder(serilogLogger);
 

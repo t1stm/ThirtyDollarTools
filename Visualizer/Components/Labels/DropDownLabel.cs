@@ -7,7 +7,8 @@ namespace Components.Labels;
 
 public sealed class DropDownLabel : Panel
 {
-    public DropDownLabel(UIContext context, string text, List<UIElement> panelChildren, bool hoverChildren = true) : base(context, 0, 0, 0, 0)
+    public DropDownLabel(UIContext context, string text, List<UIElement> panelChildren, bool hoverChildren = true) :
+        base(context, 0, 0, 0, 0)
     {
         if (hoverChildren)
             panelChildren.ForEach(child => child.UpdateCursorOnHover = true);

@@ -11,9 +11,10 @@ namespace Playground;
 
 public class PlaygroundScene(SceneManager sceneManager) : Scene(sceneManager)
 {
-    private readonly List<GradientPlane> _gradientPlanes = [];
     private readonly Camera _camera =
         new DollarStoreCamera(Vector3.Zero, (sceneManager.Game.ClientSize.X, sceneManager.Game.ClientSize.Y));
+
+    private readonly List<GradientPlane> _gradientPlanes = [];
 
     public override void Initialize(InitArguments initArguments)
     {
@@ -48,10 +49,7 @@ public class PlaygroundScene(SceneManager sceneManager) : Scene(sceneManager)
 
     public override void Render(RenderArguments renderArgs)
     {
-        foreach (var plane in _gradientPlanes)
-        {
-            plane.Render(_camera);
-        }
+        foreach (var plane in _gradientPlanes) plane.Render(_camera);
     }
 
     public override void TransitionedTo()
@@ -61,10 +59,7 @@ public class PlaygroundScene(SceneManager sceneManager) : Scene(sceneManager)
     public override void Update(UpdateArguments updateArgs)
     {
         _camera.UpdateMatrix();
-        foreach (var plane in _gradientPlanes)
-        {
-            plane.Update();
-        }
+        foreach (var plane in _gradientPlanes) plane.Update();
     }
 
     public override void Resize(int w, int h)

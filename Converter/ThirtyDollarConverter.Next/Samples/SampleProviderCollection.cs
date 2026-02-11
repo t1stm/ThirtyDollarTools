@@ -9,9 +9,9 @@ public class SampleProviderCollection(string downloadLocation) : ISampleProvider
     private readonly string _defaultCustomSampleLocation = $"{downloadLocation}/Custom/";
     private readonly string _defaultTDWSampleLocation = $"{downloadLocation}/";
     private readonly SemaphoreSlim _semaphore = new(1);
-    
-    public bool Initialized { get; private set; }
     private ISampleProvider[] _providers = [];
+
+    public bool Initialized { get; private set; }
 
     public async Task Initialize()
     {
@@ -21,20 +21,17 @@ public class SampleProviderCollection(string downloadLocation) : ISampleProvider
             _semaphore.Release();
             return;
         }
-        
+
         _providers =
         [
             new TDWSampleProvider(_defaultTDWSampleLocation),
-            new CustomSampleProvider(_defaultCustomSampleLocation),
+            new CustomSampleProvider(_defaultCustomSampleLocation)
         ];
 
         try
         {
-            foreach (var provider in _providers)
-            {
-                await provider.Initialize();
-            }
-        
+            foreach (var provider in _providers) await provider.Initialize();
+
             Initialized = true;
         }
         finally
@@ -47,11 +44,9 @@ public class SampleProviderCollection(string downloadLocation) : ISampleProvider
     {
         sample = null;
         foreach (var provider in _providers)
-        {
             if (provider.TryGetSample(name, out sample))
                 return true;
-        }
-        
+
         return false;
     }
 }

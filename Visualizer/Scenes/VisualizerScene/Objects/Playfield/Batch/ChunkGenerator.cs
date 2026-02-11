@@ -93,10 +93,10 @@ public class ChunkGenerator(PlayfieldSettings settings)
 
         sound.Value?.PositionAlign = PositionAlign.Center;
         sound.Value?.Position = (bottom_center.X, bottom_center.Y - 1f, 0.5f);
-        
+
         sound.Volume?.PositionAlign = PositionAlign.Top | PositionAlign.Right;
         sound.Volume?.Position = (top_right.X, top_right.Y, 0.5f);
-        
+
         sound.Pan?.PositionAlign = PositionAlign.Top | PositionAlign.Left;
         sound.Pan?.Position = (box_position.X, box_position.Y, 0.5f);
 

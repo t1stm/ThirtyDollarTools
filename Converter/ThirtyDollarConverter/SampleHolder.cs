@@ -38,14 +38,14 @@ public class SampleHolder(ILogger logger)
     ];
 
     private static readonly char Slash = Path.DirectorySeparatorChar;
+    private readonly ILogger _logger = logger.ForContext<SampleHolder>();
 
     public Dictionary<Sound, PcmDataHolder> SampleList { get; } = new();
     public Dictionary<string, Sound> StringToSoundReferences { get; } = new();
     public Action<Sound, int, int>? DownloadUpdate { get; set; }
-    
+
     public string SamplesLocation { get; init; } = $".{Slash}Sounds";
     public string ImagesLocation => $"{SamplesLocation}{Slash}Images";
-    private readonly ILogger _logger = logger.ForContext<SampleHolder>();
 
 
     /// <summary>
@@ -69,13 +69,15 @@ public class SampleHolder(ILogger logger)
             await using var response = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
             await using var download_file_stream = File.Open(sample_list_location, FileMode.Create,
                 FileAccess.ReadWrite, FileShare.ReadWrite);
-            
+
             await response.CopyToAsync(download_file_stream);
             await download_file_stream.FlushAsync();
         }
         catch (Exception e)
         {
-            _logger.Error("Trying to reach the Thirty Dollar Website failed with error '{Exception}'. Trying to use the cache instead.", e);
+            _logger.Error(
+                "Trying to reach the Thirty Dollar Website failed with error '{Exception}'. Trying to use the cache instead.",
+                e);
             if (!File.Exists(sample_list_location))
                 throw new InvalidProgramException("Cache file \'sounds.json\' not found.");
         }
@@ -137,7 +139,7 @@ public class SampleHolder(ILogger logger)
         await Parallel.ForEachAsync(SampleList, async (pair, token) =>
         {
             var sound = pair.Key;
-            
+
             var requestUrl = $"{DownloadSampleUrl}/{sound.Id}.wav";
             var dll = $"{SamplesLocation}{Slash}{sound.Id}.wav";
 
@@ -150,7 +152,7 @@ public class SampleHolder(ILogger logger)
                 await httpStream.CopyToAsync(fileStream, token);
                 await fileStream.FlushAsync(token);
             }
-            
+
             DownloadUpdate?.Invoke(sound, i, count);
             i++;
         });
@@ -193,14 +195,14 @@ public class SampleHolder(ILogger logger)
             var download_location = $"{file}.{downloadExtension}";
 
             if (Exists($"{file}.*")) return;
-            
+
             {
                 var stream = await client.GetStreamAsync(sound.IconUrl, token);
                 await using var fs = File.Open(download_location, FileMode.CreateNew);
                 await stream.CopyToAsync(fs, token);
                 await fs.FlushAsync(token);
             }
-            
+
             DownloadUpdate?.Invoke(sound, i++, SampleList.Count);
         });
 
@@ -214,11 +216,12 @@ public class SampleHolder(ILogger logger)
             if (Exists($"{ImagesLocation}{Slash}{file_name}.*")) return;
 
             {
-                await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}.png", token);
+                await using var stream =
+                    await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}.png", token);
                 await using var fs = File.Open(download_location, FileMode.CreateNew);
                 await stream.CopyToAsync(fs, token);
             }
-            
+
             DownloadUpdate?.Invoke(new Sound
             {
                 Id = action.Replace("action_", "!")

@@ -10,7 +10,8 @@ using Shared;
 using ThirtyDollarVisualizer.Engine;
 using VisualizerScene;
 
-Assembly[] assemblies = [
+Assembly[] assemblies =
+[
     Assembly.GetExecutingAssembly(),
     SharedAssembly.Assembly,
     ComponentsAssembly.Assembly,

@@ -17,6 +17,10 @@ public class NormalText : ISoundValue
         UpdatePosition();
     }
 
+    public TextSlice Text { get; }
+
+    private float OriginalTextSize { get; }
+
     public Vector3 Position
     {
         get;
@@ -28,18 +32,15 @@ public class NormalText : ISoundValue
     }
 
     public Vector3 Scale { get; set; }
-    
+
     public PositionAlign PositionAlign { get; set; } = PositionAlign.Top | PositionAlign.Left;
     public Vector3 Translation { get; set; }
     public float ScaleMultiplier { get; set; } = 1;
-    public TextSlice Text { get; }
-    
-    private float OriginalTextSize { get; }
-    
+
     public void UpdatePosition()
     {
         var realPosition = Position + Translation;
-        
+
         Text.FontSize = OriginalTextSize * ScaleMultiplier;
         Text.SetPosition(realPosition, PositionAlign);
         Text.UpdateCharacters();
@@ -49,7 +50,7 @@ public class NormalText : ISoundValue
     {
         Translation = Vector3.Zero;
         ScaleMultiplier = 1;
-        
+
         Text.FontSize = OriginalTextSize;
         Text.SetPosition(Position, PositionAlign);
         Text.UpdateCharacters();

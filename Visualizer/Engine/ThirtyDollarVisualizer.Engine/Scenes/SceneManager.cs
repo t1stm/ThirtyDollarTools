@@ -3,7 +3,6 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
-using Serilog.Core;
 using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Debug;
 using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
@@ -12,13 +11,13 @@ namespace ThirtyDollarVisualizer.Engine.Scenes;
 
 public class SceneManager(Game game, ILogger logger)
 {
+    private Exception? _exception;
     public AssetProvider AssetProvider { get; } = game.AssetProvider;
     public Dictionary<string, Scene> Scenes { get; } = new();
     public List<Scene> ActiveScenes { get; } = [];
     public ILogger Logger => logger;
     public Game Game => game;
     private Queue<Scene> ScenesToInitialize { get; } = [];
-    private Exception? _exception;
 
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
     {
@@ -29,9 +28,11 @@ public class SceneManager(Game game, ILogger logger)
             if (!alternativeLookup.TryAdd(sceneName, scene))
                 throw new Exception($"Duplicated scene name: {sceneName}");
         }
-        
-        lock (ScenesToInitialize) 
+
+        lock (ScenesToInitialize)
+        {
             ScenesToInitialize.Enqueue(scene);
+        }
 
         return scene;
     }

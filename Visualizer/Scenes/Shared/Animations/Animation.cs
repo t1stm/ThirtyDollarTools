@@ -6,17 +6,18 @@ namespace Shared.Animations;
 
 public abstract class Animation(TimeSpan timespan)
 {
+    protected bool IsReset;
+
+    protected Animation(int animationLengthMs) : this(TimeSpan.FromMilliseconds(animationLengthMs))
+    {
+    }
+
     public AnimationFeature Features { get; set; } = AnimationFeature.None;
     public bool AffectsChildren { get; set; } = true;
 
     protected SeekableStopwatch TimingStopwatch { get; } = new();
     protected TimeSpan AnimationLength { get; set; } = timespan;
     protected Action? CallbackOnFinish { get; set; }
-    protected bool IsReset;
-
-    protected Animation(int animationLengthMs) : this(TimeSpan.FromMilliseconds(animationLengthMs))
-    {
-    }
 
     public bool IsRunning => TimingStopwatch.IsRunning || (IsReset && !(IsReset = false));
 

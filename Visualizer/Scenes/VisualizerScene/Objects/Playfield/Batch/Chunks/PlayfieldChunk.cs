@@ -1,5 +1,3 @@
-using OpenTK.Graphics.OpenGL;
-using Shared.Atlases;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Engine.Text;
@@ -71,7 +69,8 @@ public class PlayfieldChunk : IDisposable
                 }
 
                 case NormalEvent { SoundEvent: "!bg" }:
-                    renderable.Value = new BackgroundEventValue(baseEvent.Value, factory, chunk._textBuffer, sizing.ValueFontSize)
+                    renderable.Value = new BackgroundEventValue(baseEvent.Value, factory, chunk._textBuffer,
+                        sizing.ValueFontSize)
                     {
                         ScaleMultiplier = settings.RenderScale
                     };
@@ -175,7 +174,7 @@ public class PlayfieldChunk : IDisposable
             chunk.CutSoundsStackCollection.AnimatedStacks = iceFactory.AnimatedAtlases;
             chunk.CutSoundsStackCollection.StaticStacks = iceFactory.StaticAtlases;
         }
-        
+
         chunk.BackgroundBlips = factory.BackgroundBlips;
         return chunk;
     }
@@ -198,7 +197,7 @@ public class PlayfieldChunk : IDisposable
         MainStackCollection.Render(temporaryCamera);
         BackgroundBlips?.Render(temporaryCamera);
         _textBuffer.Render(temporaryCamera);
-        
+
         CutSoundsStackCollection?.Render(temporaryCamera);
     }
 }

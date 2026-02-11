@@ -16,11 +16,11 @@ namespace ThirtyDollarConverter;
 
 public class PcmEncoder
 {
+    private readonly uint _channels;
     private readonly SemaphoreSlim _indexLock = new(1);
     private readonly SampleProcessor _sampleProcessor;
-    private readonly EncoderSettings _settings;
     private readonly uint _sampleRate;
-    private readonly uint _channels;
+    private readonly EncoderSettings _settings;
 
     /// <summary>
     ///     Creates a TDW sequence encoder.

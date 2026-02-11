@@ -21,6 +21,9 @@ namespace VisualizerScene.Objects.Playfield.Batch.Chunks;
 public class RenderableFactory(AtlasStore store)
     : IGamePreloadable
 {
+    private const string AnimatedShaderLocation = "Assets/Shaders/Playfield/Chunk/Animated";
+    private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
+    private const string BackgroundBlipShaderLocation = "Assets/Shaders/Playfield/Background/Blip";
     private static ShaderPool _shaderPool = null!;
     private static DeleteQueue _deleteQueue = null!;
     private static ILogger _logger = null!;
@@ -38,7 +41,7 @@ public class RenderableFactory(AtlasStore store)
     public Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticAtlases { get; } = new();
 
     /// <summary>
-    /// Contains all blips for background events.
+    ///     Contains all blips for background events.
     /// </summary>
     public RenderStack<BackgroundBlip>? BackgroundBlips { get; set; }
 
@@ -74,10 +77,6 @@ public class RenderableFactory(AtlasStore store)
             ))
         );
     }
-
-    private const string AnimatedShaderLocation = "Assets/Shaders/Playfield/Chunk/Animated";
-    private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
-    private const string BackgroundBlipShaderLocation = "Assets/Shaders/Playfield/Background/Blip";
 
     /// <summary>
     ///     Creates a new SoundRenderable from a given Thirty Dollar event.
@@ -131,10 +130,10 @@ public class RenderableFactory(AtlasStore store)
             _logger.Error("Unable to find static sound atlas for sound: {SoundName}", soundName.ToString());
             return null;
         }
-        
+
         var found = atlas.TryGetSound(soundName, out var reference);
         if (!found) return null;
-        
+
         var soundData = new SoundData
         {
             Model = Matrix4.Identity,

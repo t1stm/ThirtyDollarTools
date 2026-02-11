@@ -14,17 +14,12 @@ namespace LoadingScene;
 public class Loader : Scene, IGamePreloadable
 {
     private static AssetProvider _assetProvider = null!;
-    public static void Preload(AssetProvider assetProvider)
-    {
-        _assetProvider = assetProvider;
-    }
-    
-    public Action<ThirtyDollarWorkflow>? OnFinish;
-    public bool Finished { get; private set; }
-    
-    private readonly ThirtyDollarDownloader _thirtyDollarDownloader;
     private readonly AudioContext? _context;
+
+    private readonly ThirtyDollarDownloader _thirtyDollarDownloader;
     private IProgressReport _progressReport = new NotStartedReport();
+
+    public Action<ThirtyDollarWorkflow>? OnFinish;
 
     public Loader(SceneManager sceneManager, AudioContext? context) : base(sceneManager)
     {
@@ -33,6 +28,13 @@ public class Loader : Scene, IGamePreloadable
         {
             StatusUpdate = StatusUpdate
         };
+    }
+
+    public bool Finished { get; private set; }
+
+    public static void Preload(AssetProvider assetProvider)
+    {
+        _assetProvider = assetProvider;
     }
 
     private void StatusUpdate(IProgressReport obj)
@@ -54,7 +56,6 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Render(RenderArguments renderArgs)
     {
-        
     }
 
     public override void TransitionedTo()

@@ -35,14 +35,14 @@ public ref struct FlexLinePositioningProvider<TValue>() where TValue : IPosition
                 newLines--;
             }
 
-            if (offset + index >= items.Count) 
+            if (offset + index >= items.Count)
                 throw new Exception("TCollection capacity exceeded.");
-            
+
             var item = items[offset + index];
             var fontSize = FontSize;
 
-            var (advanceUnitSpace, 
-                (translateX, translateY), 
+            var (advanceUnitSpace,
+                (translateX, translateY),
                 (scaleX, scaleY)) = alignmentData;
 
             var positionX = cursorX - translateX * fontSize;
@@ -52,7 +52,7 @@ public ref struct FlexLinePositioningProvider<TValue>() where TValue : IPosition
 
             item.Position = new Vector3(positionX, positionY, BasePosition.Z);
             item.Scale = new Vector3(scaleW, scaleH, 1);
-            
+
             cursorX += (float)advanceUnitSpace * fontSize;
 
             maxX = Math.Max(maxX, cursorX);

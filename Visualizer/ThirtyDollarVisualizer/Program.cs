@@ -138,13 +138,10 @@ public static class Program
             instance.SceneManager.LoadScene<Loader>("loader",
                 sceneManager => new Loader(sceneManager, audio_context)
                 {
-                    OnFinish = workflow =>
-                    {
-                        OnLoadHandler(instance, workflow, sequence, greeting, scale);
-                    }
+                    OnFinish = workflow => { OnLoadHandler(instance, workflow, sequence, greeting, scale); }
                 });
         });
-        
+
         game.Enqueue(instance => instance.SceneManager.TransitionTo("loader"));
         game.Run();
     }
@@ -162,7 +159,7 @@ public static class Program
                 }
             );
         });
-        
+
         game.Enqueue(instance => instance.SceneManager.TransitionTo("visualizer"));
     }
 

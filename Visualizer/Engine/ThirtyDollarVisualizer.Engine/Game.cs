@@ -6,7 +6,6 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
-using Serilog.Expressions;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
 using ThirtyDollarVisualizer.Engine.Asset_Management;
@@ -21,11 +20,11 @@ namespace ThirtyDollarVisualizer.Engine;
 
 public class Game : GameWindow
 {
-    public readonly ILogger Logger;
+    private readonly Queue<Action<Game>> _enqueuedEvents = new();
     private readonly ILogger _loggerGL;
-    
+    public readonly ILogger Logger;
+
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
-    private string Id { get; }
 
     public Game(Assembly[] assemblies, GameWindowSettings gameSettings,
         NativeWindowSettings nativeWindowSettings, string id) :
@@ -62,13 +61,13 @@ public class Game : GameWindow
         ThreadRunner = new ThreadRunner(this);
     }
 
+    private string Id { get; }
+
     public Assembly[] AssetAssemblies { get; }
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
     public ThreadRunner ThreadRunner { get; }
-
-    private readonly Queue<Action<Game>> _enqueuedEvents = new();
-    private GLInfo GLInfo { get; set; } = new();
+    private GLInfo GLInfo { get; } = new();
 
     protected override void OnLoad()
     {
@@ -94,10 +93,7 @@ public class Game : GameWindow
         GL.Hint(HintTarget.LineSmoothHint, HintMode.Nicest);
 
         RenderMarker.Debug("Game Window Initialized");
-        foreach (var assembly in AssetAssemblies)
-        {
-            ReflectionPreloadObjects(assembly);
-        }
+        foreach (var assembly in AssetAssemblies) ReflectionPreloadObjects(assembly);
 
         AppDomain.CurrentDomain.UnhandledException +=
             (_, e) =>
@@ -210,14 +206,16 @@ public class Game : GameWindow
             StartingResolution = ClientSize,
             GLInfo = GLInfo
         };
-        
+
         lock (_enqueuedEvents)
+        {
             while (_enqueuedEvents.TryDequeue(out var action))
             {
                 action(this);
                 // initialize scenes enqueued using game.Enqueue() and then continue with other enqueued events.
-                SceneManager.Initialize(initArguments); 
+                SceneManager.Initialize(initArguments);
             }
+        }
 
         SceneManager.Initialize(initArguments);
 
@@ -251,6 +249,8 @@ public class Game : GameWindow
     public void Enqueue(Action<Game> action)
     {
         lock (_enqueuedEvents)
+        {
             _enqueuedEvents.Enqueue(action);
+        }
     }
 }

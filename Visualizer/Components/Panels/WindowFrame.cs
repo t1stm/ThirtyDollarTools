@@ -15,7 +15,8 @@ public class WindowFrame : Panel
     private byte _resizingYMode;
     protected CursorType RequestedCursor;
 
-    public WindowFrame(UIContext context, float x = 0, float y = 0, float w = 600, float h = 400) : base(context, x, y, w, h)
+    public WindowFrame(UIContext context, float x = 0, float y = 0, float w = 600, float h = 400) : base(context, x, y,
+        w, h)
     {
         Header = new FlexPanel(context, 0, 0, w, 30)
         {
@@ -29,7 +30,7 @@ public class WindowFrame : Panel
             Padding = 10,
             Children =
             [
-                new Label(Context,"X")
+                new Label(Context, "X")
             ]
         };
         Container = new FlexPanel(context, x, y, w, h)

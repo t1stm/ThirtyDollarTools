@@ -17,13 +17,7 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
 {
     private static GLInfo _glInfo = null!;
     private static DeleteQueue _deleteQueue = null!;
-    
-    public static void Preload(AssetProvider assetProvider)
-    {
-        _deleteQueue = assetProvider.DeleteQueue;
-        _glInfo = assetProvider.GLInfo;
-    }
-    
+
     private readonly List<IBuffer> _buffers = [];
     private readonly Queue<(IBuffer, VertexBufferLayout)> _uploadQueue = [];
     private bool _disposed;
@@ -62,6 +56,12 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
 
         _deleteQueue.Enqueue(DeleteType.VAO, Handle);
         GC.SuppressFinalize(this);
+    }
+
+    public static void Preload(AssetProvider assetProvider)
+    {
+        _deleteQueue = assetProvider.DeleteQueue;
+        _glInfo = assetProvider.GLInfo;
     }
 
     private void Create()

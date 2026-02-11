@@ -11,10 +11,10 @@ namespace VisualizerScene.Objects.Sound_Values;
 
 public class BackgroundEventValue : ISoundValue
 {
+    private const float Gap = 5.0f;
+    private readonly float _baseFontSize;
     private readonly TrackedBufferReference<BackgroundBlip> _blip;
     private readonly TextSlice _value;
-    private readonly float _baseFontSize;
-    private const float Gap = 5.0f;
 
     public BackgroundEventValue(double value, RenderableFactory factory, TextBuffer buffer, float baseFontSize)
     {
@@ -51,10 +51,10 @@ public class BackgroundEventValue : ISoundValue
         var realPosition = Position + Translation;
         var fontSize = _baseFontSize * ScaleMultiplier;
         var gap = Gap * ScaleMultiplier;
-        
+
         _value.FontSize = fontSize;
         _value.UpdateCharacters();
-        
+
         var blipSize = fontSize * blipScaleMultiplier;
         var textWidth = _value.Scale.X;
         var textHeight = _value.Scale.Y;
@@ -70,7 +70,8 @@ public class BackgroundEventValue : ISoundValue
 
         // Position Blip
         var blipYOffset = blipSize / 4f;
-        var blipModel = Matrix4.CreateScale(blipSize, blipSize, 1f) * Matrix4.CreateTranslation(startPos.X, startPos.Y + blipYOffset, startPos.Z);
+        var blipModel = Matrix4.CreateScale(blipSize, blipSize, 1f) *
+                        Matrix4.CreateTranslation(startPos.X, startPos.Y + blipYOffset, startPos.Z);
         _blip.Value = _blip.Value with { Model = blipModel };
 
         // Position Text

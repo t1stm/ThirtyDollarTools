@@ -8,8 +8,6 @@ namespace ThirtyDollarVisualizer.Engine.Asset_Management;
 
 public class AssetProvider
 {
-    public ILogger Logger { get; private set; }
-
     public AssetProvider(ILogger logger, Assembly[] assetAssemblies, GLInfo glInfo)
     {
         Logger = logger.ForContext<AssetProvider>();
@@ -18,6 +16,8 @@ public class AssetProvider
         ShaderPool = new ShaderPool(logger, this);
         CacheProvider = new CacheProvider(this);
     }
+
+    public ILogger Logger { get; private set; }
 
     public Assembly[] AssetAssemblies { get; }
     public ShaderPool ShaderPool { get; }

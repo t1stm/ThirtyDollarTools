@@ -31,14 +31,17 @@ public class PlayfieldContainer(
         new(initialCameraPosition ?? (0, -300, 0), initialViewport, settings.ScrollSpeed);
 
     public DollarStoreCamera StaticCamera { get; set; } = new(Vector3.Zero, initialViewport, settings.ScrollSpeed);
+
     public BackgroundPlane BackgroundPlane { get; } = new(settings.BackgroundColor)
     {
         Position = (0, 0, 0.9f)
     };
+
     public FlashOverlayPlane FlashOverlayPlane { get; } = new(Vector4.One)
     {
         Position = (0, 0, -0.4f)
     };
+
     public CameraFollowMode CameraFollowMode { get; set; } = CameraFollowMode.TDWLike;
     public double SequenceVolume { get; private set; } = 100;
     public float LastBPM { get; private set; } = 300;
@@ -92,13 +95,10 @@ public class PlayfieldContainer(
             _playfields = playfields;
             _playfieldsUpdated = true;
         }
-        
+
         RegisterSequencePlayerEvents(sequencePlayer);
 
-        foreach (var (_, atlas) in settings.AtlasStore.AnimatedSounds)
-        {
-            atlas.Start();
-        }
+        foreach (var (_, atlas) in settings.AtlasStore.AnimatedSounds) atlas.Start();
     }
 
     public void Reset()

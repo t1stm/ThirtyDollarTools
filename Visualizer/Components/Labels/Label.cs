@@ -1,10 +1,7 @@
 using Components.Abstractions;
-using ThirtyDollarVisualizer.Engine.Asset_Management;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Text;
-using ThirtyDollarVisualizer.Engine.Text.Fonts;
 
 namespace Components.Labels;
 

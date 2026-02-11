@@ -11,20 +11,19 @@ namespace LoadingScene;
 
 public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider assetProvider)
 {
+    private readonly ILogger _logger = threadRunner.Game.Logger.ForContext<ThirtyDollarDownloader>();
     public required Action<IProgressReport>? StatusUpdate { get; set; }
     public SampleHolder SampleHolder { get; set; } = new(threadRunner.Game.Logger);
     public AtlasStore AtlasStore { get; set; } = new(assetProvider, threadRunner.Game.Logger);
-    
+
     public bool AssetsLoaded { get; private set; }
     public bool Loading { get; set; }
-
-    private readonly ILogger _logger = threadRunner.Game.Logger.ForContext<ThirtyDollarDownloader>();
 
     public void Load()
     {
         if (Loading) return;
         Loading = true;
-        
+
         threadRunner.RunThread(() =>
         {
             LoadTask().GetAwaiter().GetResult();
@@ -55,11 +54,11 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
             sampleDownloadReport.Percentage = current / (float)total;
             sampleDownloadReport.SoundName = sound.Id;
             var imagePath = sampleDownloadReport.DownloadLocation = $"{SampleHolder.ImagesLocation}/{sound.Id}.png";
-            
+
             LoadTextureToAtlasStore(imagePath, sound.Filename);
             loadedSounds.Add(sound);
             StatusUpdate?.Invoke(sampleDownloadReport);
-            
+
             _logger.Debug("Downloaded and loaded image {SoundName} to {ImagePath}", sound, imagePath);
         };
         await SampleHolder.DownloadImages();
@@ -70,36 +69,37 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
             sampleDownloadReport.Percentage = current / (float)total;
             sampleDownloadReport.SoundName = sound.Id;
             sampleDownloadReport.DownloadLocation = $"{SampleHolder.SamplesLocation}/{sound.Id}.wav";
-            
+
             StatusUpdate?.Invoke(sampleDownloadReport);
-            _logger.Debug("Downloaded sound {SoundName} to {SampleLocation}", sound, sampleDownloadReport.DownloadLocation);
+            _logger.Debug("Downloaded sound {SoundName} to {SampleLocation}", sound,
+                sampleDownloadReport.DownloadLocation);
         };
         await SampleHolder.DownloadSamples();
         SampleHolder.LoadSamplesIntoMemory();
-        
+
         return loadedSounds;
     }
-    
+
     private void LoadRemainingSoundsToAssetStore(HashSet<Sound> loadedImages, SampleHolder sampleHolder)
     {
         var loadingEvent = new SampleLoadingReport
         {
             Message = "Loading Sample Sounds..."
         };
-        
+
         var index = 0;
         var length = sampleHolder.SampleList.Count;
         foreach (var (sound, _) in sampleHolder.SampleList)
         {
             loadingEvent.Percentage = index / (double)length;
             StatusUpdate?.Invoke(loadingEvent);
-            
+
             if (loadedImages.Contains(sound))
             {
                 index++;
                 continue;
             }
-            
+
             LoadTextureToAtlasStore($"{sampleHolder.ImagesLocation}/{sound.Id}.*", sound.Filename);
             index++;
         }
@@ -110,13 +110,14 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
             if (loadedImages.Any(image => image.Id == soundName)) continue;
             LoadTextureToAtlasStore($"{sampleHolder.ImagesLocation}/{action}.*", soundName);
         }
-        
+
         LoadTextureToAtlasStore("Assets/Textures/action_icut.png",
             "#icut", StorageLocation.Assembly);
         LoadTextureToAtlasStore("Assets/Textures/action_missing.png", "#missing", StorageLocation.Assembly);
     }
-    
-    private void LoadTextureToAtlasStore(string imagePath, string soundName, StorageLocation storageLocation = StorageLocation.Disk)
+
+    private void LoadTextureToAtlasStore(string imagePath, string soundName,
+        StorageLocation storageLocation = StorageLocation.Disk)
     {
         lock (AtlasStore)
         {

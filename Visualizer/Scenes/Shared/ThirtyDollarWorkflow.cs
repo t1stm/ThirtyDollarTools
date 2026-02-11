@@ -1,4 +1,3 @@
-using Serilog.Core;
 using Shared.Atlases;
 using Shared.Audio;
 using Shared.Objects;
@@ -14,24 +13,29 @@ namespace Shared;
 
 public class ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? context = null)
 {
-    public Game Game { get; } = game;
-    public ILogger Log { get; set; } = logger.ForContext<ThirtyDollarWorkflow>();
-    public required AtlasStore AtlasStore { get; set; }
-    public required SampleHolder SampleHolder { get; set; }
-    public SequencePlayer SequencePlayer { get; } = new(context);
-    public bool ShowDebugInfo { get; set; }
-    
     public bool AutoUpdate = true;
 
     public Placement[] ExtractedSpeedEvents = [];
-    public SequenceIndices SequenceIndices { get; private set; } = new();
-    public Memory<SequenceInfo> Sequences { get; private set; }= Array.Empty<SequenceInfo>();
+
+    /// <summary>
+    ///     Called after the sequence has finished loading, but before the audio events have finished processing.
+    /// </summary>
+    public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
 
     public TimedEvents TimedEvents = new()
     {
         Placement = [],
         TimingSampleRate = 100_000
     };
+
+    public Game Game { get; } = game;
+    public ILogger Log { get; set; } = logger.ForContext<ThirtyDollarWorkflow>();
+    public required AtlasStore AtlasStore { get; set; }
+    public required SampleHolder SampleHolder { get; set; }
+    public SequencePlayer SequencePlayer { get; } = new(context);
+    public bool ShowDebugInfo { get; set; }
+    public SequenceIndices SequenceIndices { get; private set; } = new();
+    public Memory<SequenceInfo> Sequences { get; private set; } = Array.Empty<SequenceInfo>();
 
     /// <summary>
     ///     This method updates the current sequence.
@@ -165,11 +169,6 @@ public class ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? conte
             ExtractedSpeedEvents = TimedEvents.Placement.Where(p => p.Event.SoundEvent is "!speed").ToArray();
         }
     }
-
-    /// <summary>
-    ///     Called after the sequence has finished loading, but before the audio events have finished processing.
-    /// </summary>
-    public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
 
     /// <summary>
     ///     Call this when you want to check if the sequence is updated and you want to update it if it is.

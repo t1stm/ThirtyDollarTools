@@ -39,13 +39,13 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
         <ProjectReference Include="..\..\BASS.Redist\BASS.Redist.csproj"/>
-        <ProjectReference Include="..\..\Visualizer\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj" />
-        <ProjectReference Include="..\Components\Components.csproj" />
-        <ProjectReference Include="..\Scenes\EditorScene\EditorScene.csproj" />
-        <ProjectReference Include="..\Scenes\HomeScene\HomeScene.csproj" />
-        <ProjectReference Include="..\Scenes\LoadingScene\LoadingScene.csproj" />
-        <ProjectReference Include="..\Scenes\Shared\Shared.csproj" />
-        <ProjectReference Include="..\Scenes\VisualizerScene\VisualizerScene.csproj" />
+        <ProjectReference Include="..\..\Visualizer\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj"/>
+        <ProjectReference Include="..\Components\Components.csproj"/>
+        <ProjectReference Include="..\Scenes\EditorScene\EditorScene.csproj"/>
+        <ProjectReference Include="..\Scenes\HomeScene\HomeScene.csproj"/>
+        <ProjectReference Include="..\Scenes\LoadingScene\LoadingScene.csproj"/>
+        <ProjectReference Include="..\Scenes\Shared\Shared.csproj"/>
+        <ProjectReference Include="..\Scenes\VisualizerScene\VisualizerScene.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -54,6 +54,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <_DeploymentManifestIconFile Remove="Assets\Textures\moai.ico" />
+        <_DeploymentManifestIconFile Remove="Assets\Textures\moai.ico"/>
     </ItemGroup>
 </Project>

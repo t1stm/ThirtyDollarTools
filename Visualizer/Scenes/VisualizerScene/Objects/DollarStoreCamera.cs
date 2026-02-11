@@ -7,8 +7,8 @@ namespace VisualizerScene.Objects;
 public sealed class DollarStoreCamera : Camera
 {
     private readonly float _scrollSpeed;
-    private PulseAnimation? _pulseAnimation;
     private Vector3 _offset = (0, 0, 0);
+    private PulseAnimation? _pulseAnimation;
     private Vector3 _virtualPosition;
     public Action<float>? OnZoom = null;
 

@@ -12,6 +12,13 @@ public readonly ref struct ArrayIndexable<T>(Span<T> span) : IIndexableCollectio
 
     public int Count => _span.Length;
 
-    public static implicit operator ArrayIndexable<T>(T[] array) => new(array.AsSpan());
-    public static implicit operator ArrayIndexable<T>(Span<T> array) => new(array);
+    public static implicit operator ArrayIndexable<T>(T[] array)
+    {
+        return new ArrayIndexable<T>(array.AsSpan());
+    }
+
+    public static implicit operator ArrayIndexable<T>(Span<T> array)
+    {
+        return new ArrayIndexable<T>(array);
+    }
 }

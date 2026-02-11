@@ -10,14 +10,14 @@ namespace Shared.Atlases;
 public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
 {
     public Rectangle CurrentRectangle => FrameCoordinates[CurrentFrameIndex];
-    
-    private Dictionary<int, Rectangle> FrameCoordinates { get; set; } = new();
-    private Dictionary<int, float> FrameDurationMap { get; set; } = new();
+
+    private Dictionary<int, Rectangle> FrameCoordinates { get; } = new();
+    private Dictionary<int, float> FrameDurationMap { get; } = new();
     private float CurrentFrameStartTime { get; set; }
     private int CurrentFrameIndex { get; set; }
     private float TotalLength { get; set; }
     private int FrameCount => FrameCoordinates.Count;
-    
+
     protected Stopwatch TimingStopwatch { get; set; } = new();
 
     private static Vector2i GetAtlasSizeForTotalFrames(int frameCount, Vector2 imageSize)
@@ -62,6 +62,7 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
                 CurrentFrameStartTime = currentLength;
                 break;
             }
+
             currentLength = nextLength;
         }
     }
@@ -98,7 +99,7 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
             var rect = atlas.Atlas.GetImageRectangle(textureName);
             if (rect.IsEmpty)
                 throw new Exception("Failed to get image data from texture.");
-            
+
             atlas.FrameCoordinates.Add(index, rect);
             length += atlas.FrameDurationMap[index] = TryGetFrameDelay(frame) ?? 100f;
         }
@@ -117,13 +118,13 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
     {
         if (frame.Metadata.TryGetGifMetadata(out var gif))
             return gif.FrameDelay * 10f;
-        
+
         if (frame.Metadata.TryGetPngMetadata(out var png))
             return png.FrameDelay.ToSingle() * 100f;
 
         if (frame.Metadata.TryGetWebpFrameMetadata(out var webp))
             return webp.FrameDelay;
-        
+
         return null;
     }
 }

@@ -43,7 +43,7 @@ public class MainWindowViewModel : ViewModelBase
             .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
             .MinimumLevel.Debug()
             .CreateLogger();
-        
+
         _sampleHolder = new SampleHolder(serilogLogger);
         CheckSampleAvailability();
     }

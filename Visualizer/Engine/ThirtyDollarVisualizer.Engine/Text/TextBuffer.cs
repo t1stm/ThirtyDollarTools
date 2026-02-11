@@ -4,7 +4,6 @@ using ThirtyDollarVisualizer.Engine.Renderer;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
-using ThirtyDollarVisualizer.Engine.Renderer.Debug;
 
 namespace ThirtyDollarVisualizer.Engine.Text;
 

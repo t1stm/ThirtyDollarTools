@@ -15,7 +15,7 @@ internal static class Program
             .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
             .MinimumLevel.Debug()
             .CreateLogger();
-        
+
         const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarTools/ThirtyDollarConverter.Debug";
         const string sequenceDirectory = $"{workingDirectory}/Included Sequences";
 

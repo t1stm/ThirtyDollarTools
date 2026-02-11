@@ -44,7 +44,7 @@ public class FontProvider
     public FontHandle GetFont(ReadOnlySpan<char> fontName)
     {
         var lookup = LoadedFontBytes.GetAlternateLookup<ReadOnlySpan<char>>();
-        
+
         return lookup.TryGetValue(fontName, out var font)
             ? FontHandle.LoadFontData(_freetypeHandle, font) ?? throw new Exception("Unable to load font data.")
             : throw new Exception($"Unable to find font bytes for: {fontName}");

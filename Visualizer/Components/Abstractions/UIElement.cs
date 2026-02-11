@@ -19,8 +19,8 @@ public enum Align
 
 public abstract class UIElement(UIContext context, float x, float y, float width, float height)
 {
-    public UIContext Context => context;
     public bool AutoWidth = false, AutoHeight = false;
+    public UIContext Context => context;
     public virtual float X { get; set; } = x;
     public virtual float Y { get; set; } = y;
     public virtual float AbsoluteX => Parent?.AbsoluteX + X ?? X;

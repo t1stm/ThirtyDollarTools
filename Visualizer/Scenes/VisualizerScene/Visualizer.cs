@@ -35,24 +35,24 @@ public sealed class Visualizer : Scene, IGamePreloadable
     private readonly FpsCounter _fpsCounter = new();
     private readonly PlayfieldSizing _playfieldSizing;
     private readonly VisualizerSettings _settings;
-    private readonly ThirtyDollarWorkflow _workflow;
 
     private readonly string[] _startingSequences;
     private readonly DollarStoreCamera _tempCamera;
     private readonly DollarStoreCamera _textCamera;
     private readonly CancellationTokenSource _tokenSource = new();
-
-    private VisualizerTextContainer _visualizerTextContainer = null!;
+    private readonly ThirtyDollarWorkflow _workflow;
 
     private BackingAudio? _backingAudio;
+    private StringFormatter? _debugFormatter;
     private GLInfo _glInfo = null!;
 
     private int _height;
 
     private PlayfieldContainer _playfieldContainer = null!;
-    private StringFormatter? _debugFormatter;
 
     private ulong _updateId;
+
+    private VisualizerTextContainer _visualizerTextContainer = null!;
     private int _width;
 
     /// <summary>
@@ -61,7 +61,8 @@ public sealed class Visualizer : Scene, IGamePreloadable
     /// <param name="game">The Game instance.</param>
     /// <param name="settings">The visualizer settings object this uses.</param>
     /// <param name="workflow">The workflow dependency.</param>
-    /// /// <param name="sequenceLocations">The location of the sequence.</param>
+    /// ///
+    /// <param name="sequenceLocations">The location of the sequence.</param>
     public Visualizer(Game game, VisualizerSettings settings,
         ThirtyDollarWorkflow workflow, string?[] sequenceLocations) : base(game.SceneManager)
     {
@@ -98,6 +99,14 @@ public sealed class Visualizer : Scene, IGamePreloadable
     public float Scale { get; set; } = 1f;
     public string? Greeting { get; set; }
 
+    private SequenceIndices SequenceIndices => _workflow.SequenceIndices;
+    private Memory<SequenceInfo> Sequences => _workflow.Sequences;
+    private TimedEvents TimedEvents => _workflow.TimedEvents;
+    private Placement[] ExtractedSpeedEvents => _workflow.ExtractedSpeedEvents;
+    private bool ShowDebugInfo => _workflow.ShowDebugInfo;
+
+    private SequencePlayer SequencePlayer => _workflow.SequencePlayer;
+
     public static void Preload(AssetProvider assetProvider)
     {
         _visualizerFonts = new VisualizerFonts(assetProvider);
@@ -111,13 +120,13 @@ public sealed class Visualizer : Scene, IGamePreloadable
     {
         _glInfo = initArguments.GLInfo;
         _visualizerTextContainer = new VisualizerTextContainer(_visualizerFonts, Version, _width, _height, Scale)
+        {
+            Greeting =
             {
-                Greeting =
-                {
-                    Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER",
-                    FontSize = 36f * Scale
-                }
-            };
+                Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER",
+                FontSize = 36f * Scale
+            }
+        };
 
         _visualizerTextContainer.Greeting.SetPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
 
@@ -141,8 +150,8 @@ public sealed class Visualizer : Scene, IGamePreloadable
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
         UpdateStaticRenderables(_width, _height, Scale);
-        
-        
+
+
         try
         {
             if (_startingSequences.Length < 1) return;
@@ -504,7 +513,7 @@ public sealed class Visualizer : Scene, IGamePreloadable
 
         _playfieldContainer.BackgroundPlane.Reset(0.66f);
         _playfieldContainer.ChangeFromTimedEvents(events);
-        
+
         return Task.CompletedTask;
     }
 
@@ -623,9 +632,7 @@ public sealed class Visualizer : Scene, IGamePreloadable
             current_note_idx = (int)current_placement.SequenceIndex;
             if (current_placement.Event.SoundEvent is not null &&
                 soundReferences.TryGetValue(current_placement.Event.SoundEvent, out var sound))
-            {
                 current_note = sound.Id;
-            }
 
             var current_time = current_placement.Index;
 
@@ -745,18 +752,10 @@ public sealed class Visualizer : Scene, IGamePreloadable
         return _seekDelayStopwatch.ElapsedMilliseconds > seekTimeout / divide;
     }
 
-    private SequenceIndices SequenceIndices => _workflow.SequenceIndices;
-    private Memory<SequenceInfo> Sequences => _workflow.Sequences;
-    private TimedEvents TimedEvents => _workflow.TimedEvents;
-    private Placement[] ExtractedSpeedEvents => _workflow.ExtractedSpeedEvents;
-    private bool ShowDebugInfo => _workflow.ShowDebugInfo;
-
     private void RestartSeekTimer()
     {
         _seekDelayStopwatch.Restart();
     }
-
-    private SequencePlayer SequencePlayer => _workflow.SequencePlayer;
 
     #region Stopwatches
 

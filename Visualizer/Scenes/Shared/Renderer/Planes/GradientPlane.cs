@@ -24,18 +24,19 @@ public class GradientPlane : Renderable, IGamePreloadable
     private static bool _areVerticesGenerated;
     private static VertexArrayObject _staticVAO = null!;
     private static GLBuffer<GradientUniform>? _uniformBuffer;
-    
+
     private GradientUniform _uniform;
-    public float BorderRadius { get; set; }
-    public GradientType GradientType { get; set; } = GradientType.Linear;
-    public List<Vector4> GradientColors { get; set; } = [];
-    public List<float> GradientStops { get; set; } = [];
 
     public GradientPlane()
     {
         if (!_areVerticesGenerated) SetVertices();
         _uniform = new GradientUniform();
     }
+
+    public float BorderRadius { get; set; }
+    public GradientType GradientType { get; set; } = GradientType.Linear;
+    public List<Vector4> GradientColors { get; set; } = [];
+    public List<float> GradientStops { get; set; } = [];
 
     public override Vector3 Position
     {
@@ -69,8 +70,10 @@ public class GradientPlane : Renderable, IGamePreloadable
         _deleteQueue = assetProvider.DeleteQueue;
         _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/GradientPlane", provider =>
             new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/Planes/Gradient/gradient.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/Planes/Gradient/gradient.frag")))
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
+                    "Assets/Shaders/Planes/Gradient/gradient.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
+                    "Assets/Shaders/Planes/Gradient/gradient.frag")))
         );
     }
 
@@ -108,18 +111,44 @@ public class GradientPlane : Renderable, IGamePreloadable
         for (var i = 0; i < _uniform.GradientStopCount; i++)
         {
             var color = GradientColors[i];
-            var stop = i < GradientStops.Count ? GradientStops[i] : (float)i / Math.Max(1, _uniform.GradientStopCount - 1);
+            var stop = i < GradientStops.Count
+                ? GradientStops[i]
+                : (float)i / Math.Max(1, _uniform.GradientStopCount - 1);
 
             switch (i)
             {
-                case 0: _uniform.Color0 = color; _uniform.Stop0 = stop; break;
-                case 1: _uniform.Color1 = color; _uniform.Stop1 = stop; break;
-                case 2: _uniform.Color2 = color; _uniform.Stop2 = stop; break;
-                case 3: _uniform.Color3 = color; _uniform.Stop3 = stop; break;
-                case 4: _uniform.Color4 = color; _uniform.Stop4 = stop; break;
-                case 5: _uniform.Color5 = color; _uniform.Stop5 = stop; break;
-                case 6: _uniform.Color6 = color; _uniform.Stop6 = stop; break;
-                case 7: _uniform.Color7 = color; _uniform.Stop7 = stop; break;
+                case 0:
+                    _uniform.Color0 = color;
+                    _uniform.Stop0 = stop;
+                    break;
+                case 1:
+                    _uniform.Color1 = color;
+                    _uniform.Stop1 = stop;
+                    break;
+                case 2:
+                    _uniform.Color2 = color;
+                    _uniform.Stop2 = stop;
+                    break;
+                case 3:
+                    _uniform.Color3 = color;
+                    _uniform.Stop3 = stop;
+                    break;
+                case 4:
+                    _uniform.Color4 = color;
+                    _uniform.Stop4 = stop;
+                    break;
+                case 5:
+                    _uniform.Color5 = color;
+                    _uniform.Stop5 = stop;
+                    break;
+                case 6:
+                    _uniform.Color6 = color;
+                    _uniform.Stop6 = stop;
+                    break;
+                case 7:
+                    _uniform.Color7 = color;
+                    _uniform.Stop7 = stop;
+                    break;
             }
         }
 

@@ -7,8 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj" />
-      <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
+        <ProjectReference Include="..\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj"/>
+        <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
     </ItemGroup>
 
 </Project>

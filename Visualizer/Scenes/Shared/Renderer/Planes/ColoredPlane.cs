@@ -66,8 +66,10 @@ public class ColoredPlane : Renderable, IGamePreloadable
         _deleteQueue = assetProvider.DeleteQueue;
         _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/ColoredPlane", provider =>
             new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/Planes/Colored/colored.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/Planes/Colored/colored.frag")))
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
+                    "Assets/Shaders/Planes/Colored/colored.vert"),
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
+                    "Assets/Shaders/Planes/Colored/colored.frag")))
         );
     }
 

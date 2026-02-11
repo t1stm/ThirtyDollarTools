@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj" />
+        <ProjectReference Include="..\..\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj"/>
     </ItemGroup>
 
 </Project>

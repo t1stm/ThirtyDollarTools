@@ -1,6 +1,5 @@
 using OpenTK.Graphics.OpenGL;
 using Serilog;
-using Serilog.Core;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
 using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
@@ -12,10 +11,10 @@ namespace ThirtyDollarVisualizer.Engine.Asset_Management.Helpers;
 /// </summary>
 public class ShaderPool(ILogger logger, AssetProvider assetProvider)
 {
+    private readonly ILogger _logger = logger.ForContext<ShaderPool>();
     private readonly Dictionary<string, Shader> _namedShaders = new();
     private readonly SemaphoreSlim _preloadLock = new(1, 1);
     private readonly List<(string shaderName, Func<AssetProvider, Shader> createFunction)> _shadersToPreload = [];
-    private readonly ILogger _logger = logger.ForContext<ShaderPool>();
 
     /// <summary>
     ///     Gets or loads a shader with the specified location.

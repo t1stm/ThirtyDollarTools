@@ -11,8 +11,8 @@ namespace VisualizerScene.Objects.Sound_Values;
 
 public class IndividualCutValue : ISoundValue
 {
-    private readonly SoundRenderable[] _renderables;
     private const float RenderableSize = 24;
+    private readonly SoundRenderable[] _renderables;
 
     public IndividualCutValue(IndividualCutEvent ice, RenderableFactory factory)
     {

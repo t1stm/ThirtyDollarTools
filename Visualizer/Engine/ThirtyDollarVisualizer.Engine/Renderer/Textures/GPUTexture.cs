@@ -13,9 +13,9 @@ public class GPUTexture : IBindable
     public required int Height { get; init; }
     public InternalFormat InternalFormat { get; set; } = InternalFormat.Rgba8;
     public MipmapMode MipmapMode { get; set; } = MipmapMode.Enabled;
-    public int Handle { get; private set; }
-    
+
     protected Queue<Action> UploadQueue { get; } = [];
+    public int Handle { get; private set; }
 
     public BufferState BufferState { get; private set; } = BufferState.PendingCreation;
 
@@ -49,7 +49,7 @@ public class GPUTexture : IBindable
         GL.BindTexture(TextureTarget.Texture2d, Handle);
         GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat, Width, Height,
             0, PixelFormat.Rgba, PixelType.Byte, IntPtr.Zero);
-        
+
         SetTexParams();
         RenderMarker.Debug(
             "Uploaded Blank Texture: ", $"({Handle.ToString()}) {Width}x{Height} InternalFormat: {InternalFormat}");
@@ -83,27 +83,34 @@ public class GPUTexture : IBindable
         switch (MipmapMode)
         {
             case MipmapMode.Enabled:
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS,
+                    (int)TextureWrapMode.ClampToEdge);
+                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT,
+                    (int)TextureWrapMode.ClampToEdge);
 
                 GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter,
                     (int)TextureMinFilter.LinearMipmapLinear);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-                
+                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter,
+                    (int)TextureMagFilter.Linear);
+
                 GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureBaseLevel, 0);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMaxLevel, (int)Math.Floor(Math.Log2(Math.Max(Width, Height))));
+                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMaxLevel,
+                    (int)Math.Floor(Math.Log2(Math.Max(Width, Height))));
                 GL.GenerateMipmap(TextureTarget.Texture2d);
                 break;
-            
+
             case MipmapMode.Disabled:
             default:
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS,
+                    (int)TextureWrapMode.ClampToEdge);
+                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT,
+                    (int)TextureWrapMode.ClampToEdge);
 
                 GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter,
                     (int)TextureMinFilter.Linear);
-                
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+
+                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter,
+                    (int)TextureMagFilter.Linear);
                 GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureBaseLevel, 0);
                 GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMaxLevel, 0);
                 break;
@@ -118,7 +125,7 @@ public class GPUTexture : IBindable
             count = UploadQueue.Count;
             while (UploadQueue.TryDequeue(out var uploadAction)) uploadAction.Invoke();
         }
-        
+
         if (count > 0) SetTexParams();
     }
 }

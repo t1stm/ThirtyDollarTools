@@ -8,7 +8,7 @@ out vec4 color;
 void main()
 {
     vec2 radius = vec2(0.5);
-    
+
     // move to center space (-0.5 .. 0.5)
     vec2 p = fragmentCoords - vec2(0.5);
 

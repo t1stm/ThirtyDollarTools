@@ -12,10 +12,10 @@ public class StackCollection : IDisposable
     {
         foreach (var (_, buffer_object) in StaticStacks) buffer_object.Dispose();
         foreach (var (_, buffer_object) in AnimatedStacks) buffer_object.Dispose();
-        
+
         StaticStacks.Clear();
         AnimatedStacks.Clear();
-        
+
         GC.SuppressFinalize(this);
     }
 

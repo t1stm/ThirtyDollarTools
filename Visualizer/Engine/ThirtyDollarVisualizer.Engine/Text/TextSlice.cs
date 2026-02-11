@@ -73,7 +73,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
     {
         Value = value;
     }
-    
+
     public void UpdateCharacters()
     {
         var val = Value;
@@ -91,7 +91,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         var layouts = ArrayPool<FlexLineItemPlacementLayout>.Shared.Rent(val.Length);
         var layoutsSpan = layouts.AsSpan()[..val.Length];
         layoutsSpan.Clear();
-        
+
         var bufferIndex = 0;
         var newLineCount = 0;
 
@@ -104,7 +104,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
                 case (char)0:
                     if (Offset + bufferIndex >= textBuffer.Characters.Capacity)
                         throw new Exception("TextSlice capacity exceeded.");
-                        
+
                     textBuffer.Characters[Offset + bufferIndex] = new TextCharacter();
                     layoutsSpan[bufferIndex] = new FlexLineItemPlacementLayout();
                     bufferIndex++;
@@ -166,7 +166,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         var size = positioningProvider.UpdatePositions(
             ref textCharacters, layoutsSpan, Offset, bufferIndex);
         Scale = new Vector3(size.X, size.Y, 1);
-        
+
         ArrayPool<FlexLineItemPlacementLayout>.Shared.Return(layouts);
     }
 }

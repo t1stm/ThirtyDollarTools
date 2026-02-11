@@ -2,27 +2,18 @@ namespace ThirtyDollarVisualizer.Engine.Text.Allocationless;
 
 public class StringFormatter
 {
-    private char[] _output = [];
-    private int _totalCurrentLength;
-    
+    private readonly Dictionary<string, bool> _booleans = [];
+
     private readonly Dictionary<string, long> _fixedNumbers = [];
     private readonly Dictionary<string, double> _floatingNumbers = [];
-    private readonly Dictionary<string, TimeSpan> _times = [];
-    private readonly Dictionary<string, char[]> _strings = [];
-    private readonly Dictionary<string, bool> _booleans = [];
     private readonly Dictionary<string, string> _formats = [];
     private readonly Dictionary<string, Segment> _parameterSegments = [];
     private readonly List<Segment> _segments = [];
-    
-    private class Segment
-    {
-        public bool IsParameter;
-        public string Name; // Parameter name or Literal content
-        public int Start;
-        public int MaxLength;
-        public int CurrentLength;
-    }
-    
+    private readonly Dictionary<string, char[]> _strings = [];
+    private readonly Dictionary<string, TimeSpan> _times = [];
+    private char[] _output = [];
+    private int _totalCurrentLength;
+
     public StringFormatter(string format)
     {
         ParseFormat(format);
@@ -59,6 +50,7 @@ public class StringFormatter
             var length = Math.Min(value.Length, buffer.Length);
             value[..length].CopyTo(buffer);
         }
+
         UpdateOutput(name, value);
     }
 
@@ -71,25 +63,20 @@ public class StringFormatter
 
     private void ApplyUpdate(Segment segment, ReadOnlySpan<char> newValue)
     {
-        int delta = newValue.Length - segment.CurrentLength;
+        var delta = newValue.Length - segment.CurrentLength;
         if (delta != 0)
         {
-            int restStart = segment.Start + segment.CurrentLength;
-            int restCount = _totalCurrentLength - restStart;
-            
-            if (restCount > 0)
-            {
-                _output.AsSpan(restStart, restCount).CopyTo(_output.AsSpan(restStart + delta));
-            }
+            var restStart = segment.Start + segment.CurrentLength;
+            var restCount = _totalCurrentLength - restStart;
+
+            if (restCount > 0) _output.AsSpan(restStart, restCount).CopyTo(_output.AsSpan(restStart + delta));
 
             // Update starts of following segments
-            bool found = false;
+            var found = false;
             foreach (var s in _segments)
-            {
                 if (found) s.Start += delta;
                 else if (s == segment) found = true;
-            }
-            
+
             _totalCurrentLength += delta;
         }
 
@@ -106,10 +93,8 @@ public class StringFormatter
         var format = formatsLookup.TryGetValue(name, out var f) ? f.AsSpan() : default;
 
         Span<char> scratch = stackalloc char[256];
-        if (value.TryFormat(scratch, out int bytesWritten, format, null))
-        {
+        if (value.TryFormat(scratch, out var bytesWritten, format, null))
             ApplyUpdate(segment, scratch[..Math.Min(bytesWritten, segment.MaxLength)]);
-        }
     }
 
     private void UpdateOutput(ReadOnlySpan<char> name, ReadOnlySpan<char> value)
@@ -124,7 +109,7 @@ public class StringFormatter
     {
         var span = format.AsSpan();
         var totalMaxLength = 0;
-        int segmentsCount = 0;
+        var segmentsCount = 0;
 
         // Pass 1: Calculate total max length and count segments
         var i = 0;
@@ -143,7 +128,7 @@ public class StringFormatter
                 totalMaxLength += openBrace;
                 segmentsCount++;
             }
-            
+
             i += openBrace;
 
             var closeBrace = span[i..].IndexOf('}');
@@ -178,16 +163,13 @@ public class StringFormatter
                 break;
             }
 
-            if (openBrace > 0)
-            {
-                AddLiteralSegment(span[i..(i + openBrace)]);
-            }
+            if (openBrace > 0) AddLiteralSegment(span[i..(i + openBrace)]);
 
             i += openBrace;
 
             var closeBrace = span[i..].IndexOf('}');
             var tagContent = span[(i + 1)..(i + closeBrace)];
-            
+
             ProcessTag(tagContent);
 
             i += closeBrace + 1;
@@ -213,7 +195,7 @@ public class StringFormatter
     {
         ParseTagParts(content, out var name, out var type, out var p3, out var p4);
         if (type.IsEmpty) return;
-        
+
         var maxLength = GetDefaultMaxLength(type);
         ReadOnlySpan<char> format = default;
 
@@ -225,26 +207,24 @@ public class StringFormatter
         else if (p3.Length > 0)
         {
             if (int.TryParse(p3, out var m))
-            {
                 maxLength = m;
-            }
             else
-            {
                 format = p3;
-            }
         }
-        
-        var nameStr = name.ToString();
-        if (type.Equals("int", StringComparison.OrdinalIgnoreCase)) _fixedNumbers.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, 0);
-        else if (type.Equals("float", StringComparison.OrdinalIgnoreCase)) _floatingNumbers.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, 0);
-        else if (type.Equals("time", StringComparison.OrdinalIgnoreCase)) _times.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, TimeSpan.Zero);
-        else if (type.Equals("string", StringComparison.OrdinalIgnoreCase)) _strings.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, new char[maxLength]);
-        else if (type.Equals("bool", StringComparison.OrdinalIgnoreCase)) _booleans.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, false);
 
-        if (format.Length > 0)
-        {
-            _formats.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, format.ToString());
-        }
+        var nameStr = name.ToString();
+        if (type.Equals("int", StringComparison.OrdinalIgnoreCase))
+            _fixedNumbers.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, 0);
+        else if (type.Equals("float", StringComparison.OrdinalIgnoreCase))
+            _floatingNumbers.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, 0);
+        else if (type.Equals("time", StringComparison.OrdinalIgnoreCase))
+            _times.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, TimeSpan.Zero);
+        else if (type.Equals("string", StringComparison.OrdinalIgnoreCase))
+            _strings.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, new char[maxLength]);
+        else if (type.Equals("bool", StringComparison.OrdinalIgnoreCase))
+            _booleans.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, false);
+
+        if (format.Length > 0) _formats.GetAlternateLookup<ReadOnlySpan<char>>().TryAdd(nameStr, format.ToString());
 
         var seg = new Segment
         {
@@ -284,7 +264,7 @@ public class StringFormatter
 
         type = typeAndMore[..secondColon];
         var remainder = typeAndMore[(secondColon + 1)..];
-        
+
         var lastColon = remainder.LastIndexOf(':');
         if (lastColon != -1 && int.TryParse(remainder[(lastColon + 1)..], out _))
         {
@@ -318,8 +298,18 @@ public class StringFormatter
     private static int GetDefaultMaxLength(ReadOnlySpan<char> type)
     {
         if (type.Equals("int", StringComparison.OrdinalIgnoreCase)) return 20;
-        if (type.Equals("float", StringComparison.OrdinalIgnoreCase) || type.Equals("time", StringComparison.OrdinalIgnoreCase)) return 32;
+        if (type.Equals("float", StringComparison.OrdinalIgnoreCase) ||
+            type.Equals("time", StringComparison.OrdinalIgnoreCase)) return 32;
         if (type.Equals("string", StringComparison.OrdinalIgnoreCase)) return 256;
         return type.Equals("bool", StringComparison.OrdinalIgnoreCase) ? 5 : 0;
+    }
+
+    private class Segment
+    {
+        public int CurrentLength;
+        public bool IsParameter;
+        public int MaxLength;
+        public string Name; // Parameter name or Literal content
+        public int Start;
     }
 }

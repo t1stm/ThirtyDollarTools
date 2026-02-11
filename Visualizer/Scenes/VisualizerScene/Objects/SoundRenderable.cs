@@ -82,7 +82,7 @@ public sealed class SoundRenderable : Renderable
         UpdateTextSlicesAndModel();
         _resetAnimationState = false;
     }
-    
+
     private void UpdateTextSlicesAndModel()
     {
         if (_resetAnimationState)
@@ -92,7 +92,7 @@ public sealed class SoundRenderable : Renderable
             Volume?.Reset();
             return;
         }
-        
+
         if (_bounceAnimation?.IsRunning == true)
         {
             var transformAdd = _bounceAnimation.GetTransform_Add(this);
@@ -104,7 +104,7 @@ public sealed class SoundRenderable : Renderable
             var scaleMultiplier = _expandAnimation.GetScale_Multiply(this);
             UpdateExpandToTexts(scaleMultiplier.X);
         }
-        
+
         UpdateModel(false, _renderableAnimations.Span);
     }
 
@@ -113,23 +113,23 @@ public sealed class SoundRenderable : Renderable
         Value?.Translation = translation;
         Pan?.Translation = translation;
         Volume?.Translation = translation;
-        
+
         Value?.UpdatePosition();
         Pan?.UpdatePosition();
         Volume?.UpdatePosition();
     }
-    
+
     private void UpdateExpandToTexts(float scale)
     {
         Value?.ScaleMultiplier = scale;
         Pan?.ScaleMultiplier = scale;
         Volume?.ScaleMultiplier = scale;
-        
+
         Value?.UpdatePosition();
         Pan?.UpdatePosition();
         Volume?.UpdatePosition();
     }
-    
+
 
     public void Bounce()
     {
@@ -150,10 +150,10 @@ public sealed class SoundRenderable : Renderable
     {
         foreach (var animation in _renderableAnimations.Span) animation.Reset();
     }
-    
+
     public void SetValue(BaseEvent ev, ValueChangeWrapMode valueChangeWrapMode)
     {
-        if (Value is not NormalText wrapper) 
+        if (Value is not NormalText wrapper)
             throw new Exception("SetValue() called on a value that is not NormalText");
 
         lock (Value)

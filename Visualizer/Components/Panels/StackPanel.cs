@@ -45,7 +45,6 @@ public class StackPanel(UIContext context, float x = 0, float y = 0, float width
         }
 
         Background?.SetPosition((start_x, start_y, 0));
-        if (Background != null)
-            Background.Scale = (Width, Height, 1);
+        Background?.Scale = (Width, Height, 1);
     }
 }

@@ -11,13 +11,17 @@ public class GlyphProvider(FontProvider fontProvider, string fontName)
 {
     public const int GlyphSize = 48;
     public const float MsdfRange = 4.0f;
+    private FontMetrics? _cachedMetrics;
+
+    protected Dictionary<string, TextAlignmentData> SizingData { get; } = new();
 
     // Font cannot be a cached due to some constraint with the underlying library / unmanaged C#
     // probably disposing the handle somewhere in the code.
     // as much as I would've wanted to cache this, I cannot at the moment.
-    public FontHandle GetFont() => fontProvider.GetFont(fontName);
-    protected Dictionary<string, TextAlignmentData> SizingData { get; } = new();
-    private FontMetrics? _cachedMetrics;
+    public FontHandle GetFont()
+    {
+        return fontProvider.GetFont(fontName);
+    }
 
     private static void FixGeometry(Shape shape)
     {
@@ -146,12 +150,12 @@ public class GlyphProvider(FontProvider fontProvider, string fontName)
     {
         if (_cachedMetrics.HasValue) return _cachedMetrics.Value;
         using var font = GetFont();
-        
-        return FontLoader.GetFontMetrics(out var metrics, font) ? 
-            (_cachedMetrics = metrics).Value : 
-            throw new Exception("Unable to get font metrics.");
+
+        return FontLoader.GetFontMetrics(out var metrics, font)
+            ? (_cachedMetrics = metrics).Value
+            : throw new Exception("Unable to get font metrics.");
     }
-    
+
     public TextAlignmentData GetSizingData(ReadOnlySpan<char> character)
     {
         lock (SizingData)

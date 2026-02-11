@@ -10,7 +10,7 @@ namespace VisualizerScene.Objects.Playfield.Batch.Objects;
 
 public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, IGPUReflection
 {
-    public RenderStack(DeleteQueue deleteQueue, int capacity = 0, 
+    public RenderStack(DeleteQueue deleteQueue, int capacity = 0,
         GLBuffer<float>? initialVertexBuffer = null,
         VertexBufferLayout? initialLayout = null,
         GLBuffer<int>? initialIndexElementBuffer = null)
@@ -18,7 +18,7 @@ public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, I
         initialVertexBuffer ??= GLQuad.VBOWithoutUV;
         initialLayout ??= new VertexBufferLayout().PushFloat(3);
         initialIndexElementBuffer ??= GLQuad.EBO;
-        
+
         VAO = new VertexArrayObject();
         List = new GLBufferList<TDataType>(deleteQueue, capacity);
 

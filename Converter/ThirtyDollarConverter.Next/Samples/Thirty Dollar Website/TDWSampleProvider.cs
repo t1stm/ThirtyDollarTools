@@ -4,10 +4,10 @@ namespace ThirtyDollarConverter.Next.Samples.Thirty_Dollar_Website;
 
 public class TDWSampleProvider(string path) : ISampleProvider
 {
-    private readonly SemaphoreSlim _semaphore = new(1);
     private readonly Dictionary<string, Sample> _samples = [];
+    private readonly SemaphoreSlim _semaphore = new(1);
     public bool Initialized { get; private set; }
-    
+
     public async Task Initialize()
     {
         await _semaphore.WaitAsync();
@@ -23,7 +23,7 @@ public class TDWSampleProvider(string path) : ISampleProvider
                 FileLocation = file
             });
         }
-        
+
         _semaphore.Release();
     }
 
