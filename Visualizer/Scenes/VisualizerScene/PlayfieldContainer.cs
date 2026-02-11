@@ -94,6 +94,11 @@ public class PlayfieldContainer(
         }
         
         RegisterSequencePlayerEvents(sequencePlayer);
+
+        foreach (var (_, atlas) in settings.AtlasStore.AnimatedSounds)
+        {
+            atlas.Start();
+        }
     }
 
     public void Reset()

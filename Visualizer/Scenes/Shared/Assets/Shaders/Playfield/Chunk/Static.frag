@@ -10,9 +10,6 @@ out vec4 color;
 void main() {
     vec4 textureColor = texture(u_Texture, fragmentCoords);
     float textureAlpha = textureColor.a;
-
-    if (textureAlpha < 0.01) {
-        discard;
-    }
+    
     color = textureColor * RGBA;
 }

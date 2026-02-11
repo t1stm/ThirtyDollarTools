@@ -20,11 +20,6 @@ void main()
     float aa = fwidth(d);
     float alpha = 1.0 - smoothstep(1.0 - aa, 1.0 + aa, d);
 
-    if (alpha < 0.01)
-    {
-        discard;
-    }
-
     color = vec4(1.0) * RGBA;
     color.a *= alpha;
 }

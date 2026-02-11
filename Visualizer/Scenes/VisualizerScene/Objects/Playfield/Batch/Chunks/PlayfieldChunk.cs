@@ -20,8 +20,8 @@ public class PlayfieldChunk : IDisposable
         _textBuffer.Resize(size * MaxValueLength * 3);
     }
 
-    private Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticStacks { get; set; } = [];
-    private Dictionary<FramedAtlas, RenderStack<SoundData>> AnimatedStacks { get; set; } = [];
+    private StackCollection MainStackCollection { get; } = new();
+    private StackCollection? CutSoundsStackCollection { get; set; }
     private RenderStack<BackgroundBlip>? BackgroundBlips { get; set; }
 
     public SoundRenderable[] Renderables { get; private set; }
@@ -30,13 +30,10 @@ public class PlayfieldChunk : IDisposable
 
     public void Dispose()
     {
-        foreach (var (_, buffer_object) in StaticStacks) buffer_object.Dispose();
-        foreach (var (_, buffer_object) in AnimatedStacks) buffer_object.Dispose();
+        MainStackCollection.Dispose();
         BackgroundBlips?.Dispose();
 
         _textBuffer.Dispose();
-        StaticStacks.Clear();
-        AnimatedStacks.Clear();
         GC.SuppressFinalize(this);
     }
 
@@ -55,6 +52,7 @@ public class PlayfieldChunk : IDisposable
 
         var renderables = new SoundRenderable[length];
         var factory = new RenderableFactory(store);
+        RenderableFactory? iceFactory = null;
 
         for (var i = 0; i < length; i++)
         {
@@ -67,7 +65,8 @@ public class PlayfieldChunk : IDisposable
             {
                 case IndividualCutEvent ice:
                 {
-                    renderable.Value = new IndividualCutValue(ice, factory);
+                    iceFactory ??= new RenderableFactory(store);
+                    renderable.Value = new IndividualCutValue(ice, iceFactory);
                     continue;
                 }
 
@@ -167,10 +166,17 @@ public class PlayfieldChunk : IDisposable
 
         chunk.EndY = layoutHandler.Height + layoutHandler.Size;
         chunk.Renderables = renderables;
-        chunk.AnimatedStacks = factory.AnimatedAtlases;
-        chunk.StaticStacks = factory.StaticAtlases;
-        chunk.BackgroundBlips = factory.BackgroundBlips;
+        chunk.MainStackCollection.AnimatedStacks = factory.AnimatedAtlases;
+        chunk.MainStackCollection.StaticStacks = factory.StaticAtlases;
 
+        if (iceFactory is not null)
+        {
+            chunk.CutSoundsStackCollection ??= new StackCollection();
+            chunk.CutSoundsStackCollection.AnimatedStacks = iceFactory.AnimatedAtlases;
+            chunk.CutSoundsStackCollection.StaticStacks = iceFactory.StaticAtlases;
+        }
+        
+        chunk.BackgroundBlips = factory.BackgroundBlips;
         return chunk;
     }
 
@@ -187,28 +193,12 @@ public class PlayfieldChunk : IDisposable
 
     public void Render(DollarStoreCamera temporaryCamera)
     {
-        GL.Enable(EnableCap.DepthTest);
-        GL.DepthFunc(DepthFunction.Less);
-        
         foreach (var renderable in Renderables) renderable.Update();
 
-        foreach (var (atlas, render_stack) in StaticStacks)
-        {
-            atlas.Bind();
-            render_stack.Render(temporaryCamera);
-        }
-
-        foreach (var (atlas, render_stack) in AnimatedStacks)
-        {
-            atlas.Bind();
-            render_stack.Shader.Use(); // not a very optimal bind here, but it helps to not refactor the code a lot.
-
-            atlas.SetUniforms(render_stack.Shader);
-            render_stack.Render(temporaryCamera);
-        }
-
+        MainStackCollection.Render(temporaryCamera);
         BackgroundBlips?.Render(temporaryCamera);
         _textBuffer.Render(temporaryCamera);
-        GL.Disable(EnableCap.DepthTest);
+        
+        CutSoundsStackCollection?.Render(temporaryCamera);
     }
 }

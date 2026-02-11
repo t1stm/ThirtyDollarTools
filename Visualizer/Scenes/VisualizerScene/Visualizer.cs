@@ -504,7 +504,7 @@ public sealed class Visualizer : Scene, IGamePreloadable
 
         _playfieldContainer.BackgroundPlane.Reset(0.66f);
         _playfieldContainer.ChangeFromTimedEvents(events);
-
+        
         return Task.CompletedTask;
     }
 
