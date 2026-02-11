@@ -7,11 +7,11 @@ namespace Components.Labels;
 
 public sealed class DropDownLabel : Panel
 {
-    public DropDownLabel(string text, List<UIElement> panelChildren, bool hoverChildren = true) : base(0, 0, 0, 0)
+    public DropDownLabel(UIContext context, string text, List<UIElement> panelChildren, bool hoverChildren = true) : base(context, 0, 0, 0, 0)
     {
         if (hoverChildren)
             panelChildren.ForEach(child => child.UpdateCursorOnHover = true);
-        Panel = new FlexPanel
+        Panel = new FlexPanel(context)
         {
             Parent = this,
             AutoWidth = true,
@@ -28,7 +28,7 @@ public sealed class DropDownLabel : Panel
             Padding = 4
         };
 
-        Label = new Label(text)
+        Label = new Label(context, text)
         {
             Parent = this,
             UpdateCursorOnHover = true,

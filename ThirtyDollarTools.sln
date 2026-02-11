@@ -62,6 +62,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Components", "Visualizer\Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeScene", "Visualizer\Scenes\HomeScene\HomeScene.csproj", "{D87C5CF3-5C84-4A5B-A8B8-85039C835F80}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Playground", "Visualizer\Playground\Playground.csproj", "{6F84DB70-0D5F-4E60-9725-80B5622AEEB9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -160,6 +162,10 @@ Global
 		{D87C5CF3-5C84-4A5B-A8B8-85039C835F80}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D87C5CF3-5C84-4A5B-A8B8-85039C835F80}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D87C5CF3-5C84-4A5B-A8B8-85039C835F80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F84DB70-0D5F-4E60-9725-80B5622AEEB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F84DB70-0D5F-4E60-9725-80B5622AEEB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F84DB70-0D5F-4E60-9725-80B5622AEEB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F84DB70-0D5F-4E60-9725-80B5622AEEB9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -190,5 +196,6 @@ Global
 		{16CF0613-8DC6-403B-A9D0-5D714396F100} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
 		{200A65BA-4A08-4FE2-89B5-6530A86BB0FA} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
 		{D87C5CF3-5C84-4A5B-A8B8-85039C835F80} = {DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA}
+		{6F84DB70-0D5F-4E60-9725-80B5622AEEB9} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
 	EndGlobalSection
 EndGlobal

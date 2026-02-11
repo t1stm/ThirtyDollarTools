@@ -1,16 +1,36 @@
 using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
+using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
+using ThirtyDollarVisualizer.Engine.Text;
+using ThirtyDollarVisualizer.Engine.Text.Fonts;
 
 namespace Components.Abstractions;
 
-public class UIContext
+[PreloadGraphicsContext]
+public class UIContext : IGamePreloadable
 {
+    private static AssetProvider _assetProvider = null!;
+    private static FontProvider _fontProvider = null!;
+    private static TextProvider _textProvider = null!;
+    
     protected readonly List<Queue<IRenderable>> LayeredRenderQueue = [];
     public required Camera Camera { get; set; }
     public float ViewportWidth => Camera.Width;
     public float ViewportHeight => Camera.Height;
+
+    public AssetProvider AssetProvider => _assetProvider;
+    public FontProvider FontProvider => _fontProvider;
+    public TextProvider TextProvider => _textProvider;
+    
+    public static void Preload(AssetProvider assetProvider)
+    {
+        _assetProvider = assetProvider;
+        _fontProvider = new FontProvider(assetProvider);
+        _textProvider = new TextProvider(_assetProvider, _fontProvider, "Lato Regular");
+    }
 
     public Action<CursorType> RequestCursor { get; set; } = _ => { };
 

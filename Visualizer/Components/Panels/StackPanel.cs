@@ -3,13 +3,9 @@ using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 
 namespace Components.Panels;
 
-public class StackPanel(float x, float y, float width, float height)
-    : Panel(x, y, width, height), IPositioningElement
+public class StackPanel(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
+    : Panel(context, x, y, width, height), IPositioningElement
 {
-    public StackPanel() : this(0, 0, 0, 0)
-    {
-    }
-
     public LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
     public float Spacing { get; set; } = 0;
     public float Padding { get; set; } = 0;

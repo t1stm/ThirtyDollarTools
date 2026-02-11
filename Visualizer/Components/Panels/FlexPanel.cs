@@ -3,8 +3,8 @@ using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 
 namespace Components.Panels;
 
-public class FlexPanel(float x = 0, float y = 0, float width = 0, float height = 0)
-    : Panel(x, y, width, height), IPositioningElement
+public class FlexPanel(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
+    : Panel(context, x, y, width, height), IPositioningElement
 {
     public bool AutoSizeSelf { get; set; }
 
@@ -46,8 +46,7 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
         if (count < 1)
         {
             Background?.SetPosition((a_x, a_y, 0));
-            if (Background != null)
-                Background.Scale = (Width, Height, 1);
+            Background?.Scale = (Width, Height, 1);
             return;
         }
 
@@ -57,8 +56,7 @@ public class FlexPanel(float x = 0, float y = 0, float width = 0, float height =
             Layout_Vertical(count, inner_height, inner_width);
 
         Background?.SetPosition((a_x, a_y, 0));
-        if (Background != null)
-            Background.Scale = (Width, Height, 1);
+        Background?.Scale = (Width, Height, 1);
     }
 
     protected void AutoSize(int count)

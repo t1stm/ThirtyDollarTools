@@ -15,9 +15,9 @@ public class WindowFrame : Panel
     private byte _resizingYMode;
     protected CursorType RequestedCursor;
 
-    public WindowFrame(float x = 0, float y = 0, float w = 600, float h = 400) : base(x, y, w, h)
+    public WindowFrame(UIContext context, float x = 0, float y = 0, float w = 600, float h = 400) : base(context, x, y, w, h)
     {
-        Header = new FlexPanel(0, 0, w, 30)
+        Header = new FlexPanel(context, 0, 0, w, 30)
         {
             Background = new ColoredPlane
             {
@@ -29,10 +29,10 @@ public class WindowFrame : Panel
             Padding = 10,
             Children =
             [
-                new Label("X")
+                new Label(Context,"X")
             ]
         };
-        Container = new FlexPanel(x, y, w, h)
+        Container = new FlexPanel(context, x, y, w, h)
         {
             Children = [Header],
             Direction = LayoutDirection.Vertical
@@ -153,9 +153,9 @@ public class WindowFrame : Panel
         Layout();
     }
 
-    public override void Update(UIContext context)
+    public override void Update(UIContext uiContext)
     {
         if (RequestedCursor != CursorType.Normal)
-            context.RequestCursor.Invoke(RequestedCursor);
+            uiContext.RequestCursor.Invoke(RequestedCursor);
     }
 }

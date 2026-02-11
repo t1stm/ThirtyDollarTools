@@ -1,7 +1,7 @@
 using Components.Abstractions;
 using Components.Scroll;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
+using Shared.Renderer;
 
 namespace Components.Panels;
 
@@ -10,13 +10,13 @@ public class Panel : UIElement, IColoredBackground
     private List<UIElement> _children = [];
     protected Lazy<ScrollBar> ScrollBar;
 
-    public Panel() : this(0, 0, 0, 0)
+    public Panel(UIContext context) : this(context, 0, 0, 0, 0)
     {
     }
 
-    protected Panel(float x, float y, float width, float height) : base(x, y, width, height)
+    protected Panel(UIContext context, float x, float y, float width, float height) : base(context, x, y, width, height)
     {
-        ScrollBar = new Lazy<ScrollBar>(() => new ScrollBar(this));
+        ScrollBar = new Lazy<ScrollBar>(() => new ScrollBar(Context, this));
     }
 
     public bool Overflowing { get; protected set; }
@@ -43,7 +43,7 @@ public class Panel : UIElement, IColoredBackground
         }
     }
 
-    public ColoredPlane? Background { get; set; }
+    public Renderable? Background { get; set; }
 
     public override void Test(MouseState mouse)
     {
@@ -54,10 +54,10 @@ public class Panel : UIElement, IColoredBackground
             child.Test(mouse);
     }
 
-    public override void Update(UIContext context)
+    public override void Update(UIContext uiContext)
     {
-        base.Update(context);
-        foreach (var child in Children) child.Update(context);
+        base.Update(uiContext);
+        foreach (var child in Children) child.Update(uiContext);
     }
 
     public override void Layout()

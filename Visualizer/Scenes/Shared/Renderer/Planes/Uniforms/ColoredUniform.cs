@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 
-namespace ThirtyDollarVisualizer.Base_Objects.Planes.Uniforms;
+namespace Shared.Renderer.Planes.Uniforms;
 
 [StructLayout(LayoutKind.Explicit, Size = 160)]
 public struct ColoredUniform

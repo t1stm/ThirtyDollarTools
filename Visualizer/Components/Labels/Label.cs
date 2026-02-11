@@ -9,17 +9,15 @@ using ThirtyDollarVisualizer.Engine.Text.Fonts;
 namespace Components.Labels;
 
 [PreloadGraphicsContext]
-public class Label : UIElement, IGamePreloadable
+public class Label : UIElement
 {
-    private static TextProvider _textProvider = null!;
-
     protected readonly TextBuffer TextBuffer;
     protected readonly TextSlice TextSlice;
 
-    public Label(ReadOnlySpan<char> text, float x = 0, float y = 0) : base(x, y, 0, 0)
+    public Label(UIContext context, ReadOnlySpan<char> text, float x = 0, float y = 0) : base(context, x, y, 0, 0)
     {
         SetTextContents(text);
-        TextBuffer = new TextBuffer(_textProvider);
+        TextBuffer = new TextBuffer(context.TextProvider);
         TextSlice = TextBuffer.GetTextSlice(text);
     }
 
@@ -33,12 +31,6 @@ public class Label : UIElement, IGamePreloadable
     {
         get => TextSlice.FontSize;
         set => TextSlice.FontSize = value;
-    }
-
-    public static void Preload(AssetProvider assetProvider)
-    {
-        _textProvider = new TextProvider(assetProvider, new FontProvider(assetProvider),
-            "Lato Bold");
     }
 
     public void SetTextContents(ReadOnlySpan<char> text)

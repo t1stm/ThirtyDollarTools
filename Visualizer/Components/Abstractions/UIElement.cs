@@ -17,11 +17,9 @@ public enum Align
     Stretch
 }
 
-public abstract class UIElement(float x, float y, float width, float height)
+public abstract class UIElement(UIContext context, float x, float y, float width, float height)
 {
-    private UIElement? _parent;
-
-    private Vector4i? _viewport;
+    public UIContext Context => context;
     public bool AutoWidth = false, AutoHeight = false;
     public virtual float X { get; set; } = x;
     public virtual float Y { get; set; } = y;
@@ -38,18 +36,18 @@ public abstract class UIElement(float x, float y, float width, float height)
 
     public virtual UIElement? Parent
     {
-        get => _parent;
+        get;
         set
         {
-            _parent = value;
-            Index = _parent?.Index + 1 ?? 0;
+            field = value;
+            Index = field?.Index + 1 ?? 0;
         }
     }
 
     public virtual Vector4i? Viewport
     {
-        get => _viewport ?? Parent?.Viewport;
-        set => _viewport = value;
+        get => field ?? Parent?.Viewport;
+        set;
     }
 
     public Action<UIElement>? OnClick { get; set; }
@@ -71,10 +69,10 @@ public abstract class UIElement(float x, float y, float width, float height)
         if (IsHovered && mouse.IsButtonDown(MouseButton.Left)) IsPressed = true;
     }
 
-    public virtual void Update(UIContext context)
+    public virtual void Update(UIContext uiContext)
     {
         if (IsHovered && UpdateCursorOnHover)
-            context.RequestCursor(CursorType.Pointer);
+            uiContext.RequestCursor(CursorType.Pointer);
     }
 
     public virtual void Layout()
@@ -82,10 +80,10 @@ public abstract class UIElement(float x, float y, float width, float height)
         // overriden by inheritors
     }
 
-    public virtual void Draw(UIContext context)
+    public virtual void Draw(UIContext uiContext)
     {
         if (!Visible) return;
-        DrawSelf(context);
+        DrawSelf(uiContext);
     }
 
     protected abstract void DrawSelf(UIContext context);

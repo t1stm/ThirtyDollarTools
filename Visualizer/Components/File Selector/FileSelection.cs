@@ -12,13 +12,10 @@ public sealed class FileSelection : Panel
     private readonly FlexPanel _mainLayout;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    public FileSelection() : this(0, 0, 600, 400)
+    public FileSelection(UIContext context, float x = 0, float y = 0, float width = 600, float height = 400) : base(
+        context, x, y, width, height)
     {
-    }
-
-    public FileSelection(float x, float y, float width, float height) : base(x, y, width, height)
-    {
-        var top_section = new FlexPanel(0, 0, 0, 30)
+        var top_section = new FlexPanel(context, 0, 0, 0, 30)
         {
             Direction = LayoutDirection.Horizontal,
             Padding = 5,
@@ -31,13 +28,13 @@ public sealed class FileSelection : Panel
             },
             Children =
             [
-                new Label("↑ Up")
+                new Label(Context, "↑ Up")
                 {
                     FontSizePx = 12,
                     UpdateCursorOnHover = true,
                     OnClick = _ => NavigateUp()
                 },
-                _currentPathLabel = new Label(CurrentPath)
+                _currentPathLabel = new Label(Context, CurrentPath)
                 {
                     FontSizePx = 12,
                     AutoWidth = true,
@@ -46,7 +43,7 @@ public sealed class FileSelection : Panel
             ]
         };
 
-        _filesSection = new FlexPanel
+        _filesSection = new FlexPanel(context)
         {
             Direction = LayoutDirection.Vertical,
             Padding = 5,
@@ -60,7 +57,7 @@ public sealed class FileSelection : Panel
             ScrollOnOverflow = true
         };
 
-        var bottom_section = new FlexPanel(0, 0, 0, 34)
+        var bottom_section = new FlexPanel(context, 0, 0, 0, 34)
         {
             Direction = LayoutDirection.Horizontal,
             VerticalAlign = Align.Center,
@@ -74,13 +71,13 @@ public sealed class FileSelection : Panel
             },
             Children =
             [
-                new Button("Select")
+                new Button(Context, "Select")
                 {
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
                     OnClick = _ => OnSelect?.Invoke(this)
                 },
-                new Button("Cancel")
+                new Button(Context, "Cancel")
                 {
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
@@ -89,7 +86,7 @@ public sealed class FileSelection : Panel
             ]
         };
 
-        _mainLayout = new FlexPanel
+        _mainLayout = new FlexPanel(context)
         {
             AutoWidth = true,
             AutoHeight = true,
@@ -103,7 +100,7 @@ public sealed class FileSelection : Panel
             Children = [top_section, _filesSection, bottom_section]
         };
 
-        var window = new WindowFrame
+        var window = new WindowFrame(context)
         {
             Child = _mainLayout,
             Resizable = true
@@ -154,19 +151,19 @@ public sealed class FileSelection : Panel
             list.AddRange(from directory in directories
                 let dirInfo = new DirectoryInfo(directory)
                 where (dirInfo.Attributes & FileAttributes.Hidden) == 0
-                select new Label($"📁 {dirInfo.Name}")
+                select new Label(Context, $"📁 {dirInfo.Name}")
                     { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
 
             var files = Directory.GetFiles(CurrentPath);
             list.AddRange(files.Select(file => new FileInfo(file)).Select(fileInfo =>
-                new Label($"📄 {fileInfo.Name}")
+                new Label(Context, $"📄 {fileInfo.Name}")
                 {
                     FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => { OnSelectFile?.Invoke(this); }
                 }));
         }
         catch (Exception ex)
         {
-            var errorLabel = new Label($"Error: {ex.Message}")
+            var errorLabel = new Label(Context, $"Error: {ex.Message}")
             {
                 FontSizePx = 14
             };

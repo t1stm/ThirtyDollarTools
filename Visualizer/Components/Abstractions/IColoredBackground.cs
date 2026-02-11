@@ -1,8 +1,8 @@
-using Shared.Renderer.Planes;
+using Shared.Renderer;
 
 namespace Components.Abstractions;
 
 public interface IColoredBackground
 {
-    public ColoredPlane? Background { get; set; }
+    public Renderable? Background { get; set; }
 }

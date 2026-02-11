@@ -1,3 +1,4 @@
+using Components.Abstractions;
 using Components.Panels;
 using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
@@ -8,7 +9,7 @@ public class Button : FlexPanel
 {
     private readonly Label _label;
 
-    public Button(string label, Vector4? background = null)
+    public Button(UIContext context, string label, Vector4? background = null) : base(context)
     {
         AutoSizeSelf = true;
         AutoWidth = true;
@@ -20,7 +21,7 @@ public class Button : FlexPanel
             Color = background ?? (0.2f, 0.2f, 0.2f, 1.0f)
         };
 
-        Children = [_label = new Label(label)];
+        Children = [_label = new Label(context, label)];
         UpdateCursorOnHover = true;
     }
 

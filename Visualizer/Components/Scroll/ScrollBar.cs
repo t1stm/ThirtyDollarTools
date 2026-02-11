@@ -8,17 +8,18 @@ namespace Components.Scroll;
 
 public sealed class ScrollBar : Panel
 {
-    public readonly Panel ScrollBlock = new()
-    {
-        Background = new ColoredPlane
-        {
-            Color = Vector4.One
-        },
-        Height = 20
-    };
+    public readonly Panel ScrollBlock;
 
-    public ScrollBar(Panel parent)
+    public ScrollBar(UIContext context, Panel parent) : base(context)
     {
+        ScrollBlock = new Panel(Context)
+        {
+            Background = new ColoredPlane
+            {
+                Color = Vector4.One
+            },
+            Height = 20
+        };
         Parent = parent;
         Background = new ColoredPlane
         {

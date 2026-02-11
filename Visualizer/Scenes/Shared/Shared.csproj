@@ -12,8 +12,10 @@
       <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf" />
       <EmbeddedResource Include="Assets\Fonts\README.md" />
       <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf" />
-      <EmbeddedResource Include="Assets\Shaders\colored.frag" />
-      <EmbeddedResource Include="Assets\Shaders\colored.vert" />
+      <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.frag" />
+      <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.vert" />
+      <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.frag" />
+      <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.vert" />
       <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.frag" />
       <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.vert" />
       <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Animated.frag" />
@@ -28,7 +30,7 @@
     <ItemGroup>
       <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj" />
       <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
-        <ProjectReference Include="..\..\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj" />
+      <ProjectReference Include="..\..\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj" />
     </ItemGroup>
 
     <ItemGroup>
