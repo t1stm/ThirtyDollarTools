@@ -29,27 +29,24 @@ public class FontProvider
         }));
     }
 
-    private Dictionary<string, FontHandle> LoadedFonts { get; } = new();
+    private Dictionary<string, byte[]> LoadedFontBytes { get; } = new();
 
     private void AddFont(string fontName, AssetStream assetStream)
     {
         var length = (int)assetStream.Stream.Length;
         var array = new byte[length];
-
         assetStream.Stream.ReadExactly(array);
 
-        var font = FontHandle.LoadFontData(_freetypeHandle, array);
-        if (font == null) throw new Exception("Unable to load font.");
-
-        var lookup = LoadedFonts.GetAlternateLookup<ReadOnlySpan<char>>();
-        lookup.TryAdd(fontName, font);
+        var lookup = LoadedFontBytes.GetAlternateLookup<ReadOnlySpan<char>>();
+        lookup.TryAdd(fontName, array);
     }
 
     public FontHandle GetFont(ReadOnlySpan<char> fontName)
     {
-        var lookup = LoadedFonts.GetAlternateLookup<ReadOnlySpan<char>>();
+        var lookup = LoadedFontBytes.GetAlternateLookup<ReadOnlySpan<char>>();
+        
         return lookup.TryGetValue(fontName, out var font)
-            ? font
-            : throw new Exception($"Unable to find font: {fontName}");
+            ? FontHandle.LoadFontData(_freetypeHandle, font) ?? throw new Exception("Unable to load font data.")
+            : throw new Exception($"Unable to find font bytes for: {fontName}");
     }
 }

@@ -5,7 +5,7 @@ namespace ThirtyDollarConverter.DiscordBot;
 
 public class Static
 {
-    public static SampleHolder SampleHolder { get; set; } = new();
+    public static SampleHolder SampleHolder { get; set; } = null!;
 
     public static EncoderSettings EncoderSettings { get; set; } = new()
     {

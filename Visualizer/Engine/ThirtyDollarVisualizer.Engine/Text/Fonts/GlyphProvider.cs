@@ -7,21 +7,17 @@ using Range = Msdfgen.Range;
 
 namespace ThirtyDollarVisualizer.Engine.Text.Fonts;
 
-public class GlyphProvider
+public class GlyphProvider(FontProvider fontProvider, string fontName)
 {
     public const int GlyphSize = 48;
     public const float MsdfRange = 4.0f;
 
-    public GlyphProvider(FontProvider fontProvider, string fontName)
-    {
-        Font = fontProvider.GetFont(fontName);
-        FontLoader.GetFontMetrics(out var metrics, Font);
-        FontMetrics = metrics;
-    }
-
-    public FontHandle Font { get; }
-    public FontMetrics FontMetrics { get; }
+    // Font cannot be a cached due to some constraint with the underlying library / unmanaged C#
+    // probably disposing the handle somewhere in the code.
+    // as much as I would've wanted to cache this, I cannot at the moment.
+    public FontHandle GetFont() => fontProvider.GetFont(fontName);
     protected Dictionary<string, TextAlignmentData> SizingData { get; } = new();
+    private FontMetrics? _cachedMetrics;
 
     private static void FixGeometry(Shape shape)
     {
@@ -94,7 +90,8 @@ public class GlyphProvider
         charBytes.CopyTo(MemoryMarshal.AsBytes(charUintSpan));
 
         var glyph = charUintSpan[0];
-        FontLoader.LoadGlyph(shape, Font, glyph, FontCoordinateScaling.EmNormalized, out var advance);
+        using var font = GetFont();
+        FontLoader.LoadGlyph(shape, font, glyph, FontCoordinateScaling.EmNormalized, out var advance);
 
         if (!shape.Validate())
             throw new Exception("Invalid shape.");
@@ -145,6 +142,16 @@ public class GlyphProvider
         return image;
     }
 
+    public FontMetrics GetFontMetrics()
+    {
+        if (_cachedMetrics.HasValue) return _cachedMetrics.Value;
+        using var font = GetFont();
+        
+        return FontLoader.GetFontMetrics(out var metrics, font) ? 
+            (_cachedMetrics = metrics).Value : 
+            throw new Exception("Unable to get font metrics.");
+    }
+    
     public TextAlignmentData GetSizingData(ReadOnlySpan<char> character)
     {
         lock (SizingData)

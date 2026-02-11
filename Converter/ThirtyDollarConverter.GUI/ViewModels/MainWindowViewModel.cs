@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
 using ReactiveUI;
+using Serilog;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarGUI.Helpers;
@@ -38,7 +39,12 @@ public class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
-        _sampleHolder = new SampleHolder();
+        var serilogLogger = new LoggerConfiguration()
+            .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
+            .MinimumLevel.Debug()
+            .CreateLogger();
+        
+        _sampleHolder = new SampleHolder(serilogLogger);
         CheckSampleAvailability();
     }
 

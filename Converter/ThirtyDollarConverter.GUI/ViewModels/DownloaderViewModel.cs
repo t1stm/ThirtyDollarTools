@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using ReactiveUI;
 using ThirtyDollarConverter;
+using ThirtyDollarParser;
 
 namespace ThirtyDollarGUI.ViewModels;
 
@@ -53,9 +54,9 @@ public class DownloaderViewModel(SampleHolder sampleHolder, DownloaderMode downl
         Log += $"[{current_time:HH:mm:ss}] {message}\n";
     }
 
-    private void DownloadMessageHandler(string thing, int current, int max)
+    private void DownloadMessageHandler(Sound thing, int current, int max)
     {
-        CreateLog($"[({current}) - ({max})] Downloaded \'{thing}\'.");
+        CreateLog($"[({current}) - ({max})] Downloaded \'{thing.Filename}\'.");
         ProgressBarValue = (int)Math.Floor(current * 100f / max);
     }
 
@@ -83,7 +84,7 @@ public class DownloaderViewModel(SampleHolder sampleHolder, DownloaderMode downl
             const string fileExtension = "png";
 
             var download_location = $"{sampleHolder.ImagesLocation}/{filename}.{fileExtension}";
-            DownloadMessageHandler($"{filename}.{fileExtension}", current, total_length);
+            DownloadMessageHandler(sound, current, total_length);
 
             if (File.Exists(download_location))
             {
@@ -104,7 +105,10 @@ public class DownloaderViewModel(SampleHolder sampleHolder, DownloaderMode downl
             var file_name = $"{action}";
             var download_location = $"{sampleHolder.ImagesLocation}/{file_name}";
 
-            DownloadMessageHandler(file_name, current, total_length);
+            DownloadMessageHandler(new Sound
+            {
+                Id = action
+            }, current, total_length);
             if (File.Exists(download_location))
             {
                 current++;

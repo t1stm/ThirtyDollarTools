@@ -106,12 +106,7 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
 
     private static AssetStream CreateFromAssemblies(AssetInfo createInfo, Assembly[] assetAssemblies)
     {
-        var newLocation = ArrayPool<char>.Shared.Rent(createInfo.Location.Length);
-        var newLocationSpan = newLocation.AsSpan();
-        createInfo.Location.AsSpan().Replace(newLocationSpan, '/', '.');
-
-        ReadOnlySpan<char> readonlySpan = newLocationSpan;
-        var assetStream = assetAssemblies.GetManifestResourceStream(readonlySpan);
+        var assetStream = assetAssemblies.GetManifestResourceStream(createInfo.Location);
 
         if (assetStream is null)
             throw new FileNotFoundException($"Assembly file: \'{createInfo.Location}\' not found.");

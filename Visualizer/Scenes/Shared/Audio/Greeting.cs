@@ -1,0 +1,53 @@
+using ThirtyDollarEncoder.PCM;
+
+namespace Shared.Audio;
+
+public class Greeting(AudioContext context, BufferHolder holder)
+{
+    private GreetingType _greeting;
+    public int LengthMilliseconds;
+
+    public GreetingType GreetingType
+    {
+        get => _greeting;
+        set => SetBuffer(value);
+    }
+
+    public AudibleBuffer? AudibleBuffer { get; set; }
+
+    public void SetBuffer(GreetingType greeting)
+    {
+        _greeting = greeting;
+        if (greeting == GreetingType.None)
+        {
+            AudibleBuffer = null;
+            LengthMilliseconds = 0;
+            return;
+        }
+
+        var greeting_name = $"greeting_{(int)greeting}";
+        holder.TryGetBuffer(greeting_name, 0, out _);
+
+        var audio_data = AudioData<float>.Empty(2);
+        var sample_rate = 48000;
+
+        AudibleBuffer = context.GetBufferObject(audio_data, sample_rate);
+        LengthMilliseconds = audio_data.GetLength() * 1000 / sample_rate;
+    }
+
+    public async Task PlayWaitFinish()
+    {
+        AudibleBuffer?.Play();
+        await Task.Delay(LengthMilliseconds);
+    }
+}
+
+public enum GreetingType
+{
+    None,
+    DontLectureMeWithYour30DollarHaircut = 1,
+    HowYouGonnaTalkBehindMyBackWhenYouDeadassBuiltLikeA = 2,
+    WhitePeopleBeLike = 3,
+
+    DontLectureMeWithYour30DollarVisualizer = 4
+}

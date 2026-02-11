@@ -1,5 +1,5 @@
 using System.Reflection;
-using Serilog.Core;
+using Serilog;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Abstract;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Helpers;
 using ThirtyDollarVisualizer.Engine.Renderer.Queues;
@@ -8,11 +8,11 @@ namespace ThirtyDollarVisualizer.Engine.Asset_Management;
 
 public class AssetProvider
 {
-    private readonly Logger _logger;
+    public ILogger Logger { get; private set; }
 
-    public AssetProvider(Logger logger, Assembly[] assetAssemblies, GLInfo glInfo)
+    public AssetProvider(ILogger logger, Assembly[] assetAssemblies, GLInfo glInfo)
     {
-        _logger = logger;
+        Logger = logger.ForContext<AssetProvider>();
         AssetAssemblies = assetAssemblies;
         GLInfo = glInfo;
         ShaderPool = new ShaderPool(logger, this);
@@ -55,7 +55,7 @@ public class AssetProvider
         where TReturn : ILoadableAsset<TReturn, TCreate>
     {
 #if DEBUG
-        _logger.Debug("[{ClassName}] Loading {ReturnType} with params: {@CreateInfo}", nameof(AssetProvider),
+        Logger.Debug("Loading {ReturnType} with params: {@CreateInfo}",
             typeof(TReturn).Name, createInfo);
 #endif
 

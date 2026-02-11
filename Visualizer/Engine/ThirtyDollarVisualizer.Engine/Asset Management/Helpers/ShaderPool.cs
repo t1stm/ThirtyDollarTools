@@ -1,4 +1,5 @@
 using OpenTK.Graphics.OpenGL;
+using Serilog;
 using Serilog.Core;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
 using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
@@ -9,11 +10,12 @@ namespace ThirtyDollarVisualizer.Engine.Asset_Management.Helpers;
 /// <summary>
 ///     A pool of shaders.
 /// </summary>
-public class ShaderPool(Logger logger, AssetProvider assetProvider)
+public class ShaderPool(ILogger logger, AssetProvider assetProvider)
 {
     private readonly Dictionary<string, Shader> _namedShaders = new();
     private readonly SemaphoreSlim _preloadLock = new(1, 1);
     private readonly List<(string shaderName, Func<AssetProvider, Shader> createFunction)> _shadersToPreload = [];
+    private readonly ILogger _logger = logger.ForContext<ShaderPool>();
 
     /// <summary>
     ///     Gets or loads a shader with the specified location.
@@ -54,7 +56,7 @@ public class ShaderPool(Logger logger, AssetProvider assetProvider)
         Func<AssetProvider, Shader> missingFunction)
     {
 #if DEBUG
-        logger.Debug("[{ClassName}] Searching for shader with name: '{ShaderName}'", nameof(ShaderPool),
+        _logger.Debug("Searching for shader with name: '{ShaderName}'",
             shaderLocation);
 #endif
         var alternative_lookup = _namedShaders.GetAlternateLookup<ReadOnlySpan<char>>();
@@ -62,8 +64,7 @@ public class ShaderPool(Logger logger, AssetProvider assetProvider)
             return shader;
 
 #if DEBUG
-        logger.Debug("[{ClassName}] Shader with name: '{ShaderName}' not found, invoking load function.",
-            nameof(ShaderPool), shaderLocation);
+        _logger.Debug("Shader with name: '{ShaderName}' not found, invoking load function.", shaderLocation);
 #endif
 
         var result = missingFunction.Invoke(assetProvider);

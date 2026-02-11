@@ -48,7 +48,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         }
     } = 16;
 
-    private FontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.FontMetrics;
+    private FontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.GetFontMetrics();
 
     public void Dispose()
     {

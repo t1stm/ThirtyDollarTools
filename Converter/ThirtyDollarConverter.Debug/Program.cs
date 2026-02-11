@@ -1,3 +1,4 @@
+using Serilog;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.CLI;
 using ThirtyDollarConverter.Objects;
@@ -10,10 +11,15 @@ internal static class Program
 {
     private static async Task Main(string[] args)
     {
+        var serilogLogger = new LoggerConfiguration()
+            .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
+            .MinimumLevel.Debug()
+            .CreateLogger();
+        
         const string workingDirectory = "/home/kris/RiderProjects/ThirtyDollarTools/ThirtyDollarConverter.Debug";
         const string sequenceDirectory = $"{workingDirectory}/Included Sequences";
 
-        var holder = new SampleHolder
+        var holder = new SampleHolder(serilogLogger)
         {
             SamplesLocation = $"{workingDirectory}/Sounds"
         };

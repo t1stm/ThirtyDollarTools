@@ -5,13 +5,14 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Serilog;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;
 using ThirtyDollarParser;
 
 namespace ThirtyDollarConverter;
 
-public class SampleHolder
+public class SampleHolder(ILogger logger)
 {
     public const string ThirtyDollarWebsiteUrl = "https://thirtydollar.website";
     public const string DownloadSampleUrl = "https://thirtydollar.website/sounds";
@@ -40,10 +41,11 @@ public class SampleHolder
 
     public Dictionary<Sound, PcmDataHolder> SampleList { get; } = new();
     public Dictionary<string, Sound> StringToSoundReferences { get; } = new();
-    public Action<string, int, int>? DownloadUpdate { get; set; }
+    public Action<Sound, int, int>? DownloadUpdate { get; set; }
     
     public string SamplesLocation { get; init; } = $".{Slash}Sounds";
     public string ImagesLocation => $"{SamplesLocation}{Slash}Images";
+    private readonly ILogger _logger = logger.ForContext<SampleHolder>();
 
 
     /// <summary>
@@ -60,22 +62,20 @@ public class SampleHolder
         SampleList.Clear();
         PrepareDirectory();
 
-        Console.WriteLine("Loading sounds.json file.");
+        _logger.Information("Loading sounds.json file.");
         var client = new HttpClient();
         try
         {
-            var response = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
-
+            await using var response = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
             await using var download_file_stream = File.Open(sample_list_location, FileMode.Create,
                 FileAccess.ReadWrite, FileShare.ReadWrite);
+            
             await response.CopyToAsync(download_file_stream);
             await download_file_stream.FlushAsync();
-            download_file_stream.Close();
         }
         catch (Exception e)
         {
-            Console.WriteLine(
-                $"Trying to reach the Thirty Dollar Website failed with error \'{e}\'. Trying to use the cache instead.");
+            _logger.Error("Trying to reach the Thirty Dollar Website failed with error '{Exception}'. Trying to use the cache instead.", e);
             if (!File.Exists(sample_list_location))
                 throw new InvalidProgramException("Cache file \'sounds.json\' not found.");
         }
@@ -137,21 +137,21 @@ public class SampleHolder
         await Parallel.ForEachAsync(SampleList, async (pair, token) =>
         {
             var sound = pair.Key;
-
-            var file = sound.Id;
-            var requestUrl = $"{DownloadSampleUrl}/{file}.wav";
-            var dll = $"{SamplesLocation}{Slash}{file}.wav";
+            
+            var requestUrl = $"{DownloadSampleUrl}/{sound.Id}.wav";
+            var dll = $"{SamplesLocation}{Slash}{sound.Id}.wav";
 
             if (File.Exists(dll)) return;
 
-            await using var httpStream = await client.GetStreamAsync(requestUrl, token);
-            await using var fileStream = File.Open($"{SamplesLocation}{Slash}{file}.wav", FileMode.Create);
+            {
+                await using var httpStream = await client.GetStreamAsync(requestUrl, token);
+                await using var fileStream = File.Open(dll, FileMode.Create);
+
+                await httpStream.CopyToAsync(fileStream, token);
+                await fileStream.FlushAsync(token);
+            }
             
-            await httpStream.CopyToAsync(fileStream, token);
-            await fileStream.FlushAsync(token);
-            fileStream.Close();
-            
-            DownloadUpdate?.Invoke(sound.Filename, i, count);
+            DownloadUpdate?.Invoke(sound, i, count);
             i++;
         });
 
@@ -180,28 +180,28 @@ public class SampleHolder
         if (SampleList.Count == 0) await LoadSampleList();
 
         PrepareDirectory();
-        await DownloadSamples();
-
         var i = 0;
 
         await Parallel.ForEachAsync(SampleList, async (pair, token) =>
         {
             var sound = pair.Key;
 
-            var filename = sound.Filename;
+            var filename = sound.Id;
             const string downloadExtension = "png";
 
             var file = $"{ImagesLocation}{Slash}{filename}";
             var download_location = $"{file}.{downloadExtension}";
 
             if (Exists($"{file}.*")) return;
-
-            var stream = await client.GetStreamAsync(sound.IconUrl, token);
-            await using var fs = File.Open(download_location, FileMode.CreateNew);
-            await stream.CopyToAsync(fs, token);
-            DownloadUpdate?.Invoke(sound.IconUrl, i++, SampleList.Count);
-
-            fs.Close();
+            
+            {
+                var stream = await client.GetStreamAsync(sound.IconUrl, token);
+                await using var fs = File.Open(download_location, FileMode.CreateNew);
+                await stream.CopyToAsync(fs, token);
+                await fs.FlushAsync(token);
+            }
+            
+            DownloadUpdate?.Invoke(sound, i++, SampleList.Count);
         });
 
         i = 0;
@@ -213,12 +213,16 @@ public class SampleHolder
 
             if (Exists($"{ImagesLocation}{Slash}{file_name}.*")) return;
 
-            await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}.png", token);
-            await using var fs = File.Open(download_location, FileMode.CreateNew);
-            await stream.CopyToAsync(fs, token);
-            DownloadUpdate?.Invoke(action, i++, ActionsArray.Length);
-
-            fs.Close();
+            {
+                await using var stream = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}.png", token);
+                await using var fs = File.Open(download_location, FileMode.CreateNew);
+                await stream.CopyToAsync(fs, token);
+            }
+            
+            DownloadUpdate?.Invoke(new Sound
+            {
+                Id = action.Replace("action_", "!")
+            }, i++, ActionsArray.Length);
         });
     }
 

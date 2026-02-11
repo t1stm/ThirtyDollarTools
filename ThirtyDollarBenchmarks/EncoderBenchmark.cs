@@ -1,5 +1,6 @@
 using System.Reflection;
 using BenchmarkDotNet.Attributes;
+using Serilog;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser;
@@ -32,9 +33,14 @@ public class EncoderBenchmark
     [GlobalSetup]
     public void Setup()
     {
+        var serilogLogger = new LoggerConfiguration()
+            .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
+            .MinimumLevel.Debug()
+            .CreateLogger();
+        
         if (_holder == null)
         {
-            _holder = new SampleHolder
+            _holder = new SampleHolder(serilogLogger)
             {
                 SamplesLocation =
                     "/home/kris/RiderProjects/ThirtyDollarWebsiteConverter/ThirtyDollarConverter.GUI/bin/Debug/net7.0/Sounds/"

@@ -1,9 +1,14 @@
 ﻿using CommandLine;
+using Serilog;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.CLI;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
+
+var serilogLogger = new LoggerConfiguration()
+    .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
 
 var options = new Options();
 
@@ -29,7 +34,7 @@ if (inputs.Length != outputs.Length)
 
 var sequences = await Readers.GetSequencesFromFileList(inputs);
 
-var holder = new SampleHolder
+var holder = new SampleHolder(serilogLogger)
 {
     SamplesLocation = options.DownloadLocation ?? "./Sounds"
 };

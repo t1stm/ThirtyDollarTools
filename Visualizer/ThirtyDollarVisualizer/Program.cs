@@ -3,18 +3,22 @@
 
 using System.Reflection;
 using CommandLine;
+using Components;
+using EditorScene;
+using HomeScene;
+using LoadingScene;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
+using Shared;
+using Shared.Audio;
+using Shared.Audio.BASS;
+using Shared.Audio.Null;
+using Shared.Audio.OpenAL;
+using Shared.Helpers.Logging;
 using SixLabors.ImageSharp;
-using ThirtyDollarVisualizer.Audio;
-using ThirtyDollarVisualizer.Audio.BASS;
-using ThirtyDollarVisualizer.Audio.Null;
-using ThirtyDollarVisualizer.Audio.OpenAL;
 using ThirtyDollarVisualizer.Engine;
-using ThirtyDollarVisualizer.Helpers.Logging;
-using ThirtyDollarVisualizer.Scenes;
-using ThirtyDollarVisualizer.Scenes.Application;
 using ThirtyDollarVisualizer.Settings;
+using VisualizerScene;
 
 namespace ThirtyDollarVisualizer;
 
@@ -114,39 +118,52 @@ public static class Program
             ClientSize = (width, height)
         };
 
-        var game = new Game(Assembly.GetExecutingAssembly(), gameWindowSettings, nativeWindowSettings, "ThirtyDollarVisualizer");
+        Assembly[] assemblies =
+        [
+            Assembly.GetExecutingAssembly(),
+            SharedAssembly.Assembly,
+            ComponentsAssembly.Assembly,
+            LoaderAssembly.Assembly,
+            HomeAssembly.Assembly,
+            VisualizerAssembly.Assembly,
+            EditorAssembly.Assembly
+        ];
+
+        var game = new Game(assemblies, gameWindowSettings, nativeWindowSettings, "ThirtyDollarVisualizer");
         if (game.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
-        if (mode != null)
-            settings.Mode = mode;
-
-        switch (settings.Mode)
+        game.Enqueue(instance =>
         {
-            case "Editor":
-            {
-                game.Enqueue(instance => instance.SceneManager.LoadScene<ThirtyDollarEditor>(settings.Mode,
-                    sceneManager => new ThirtyDollarEditor(sceneManager, settings, audio_context)));
-                break;
-            }
-            default:
-            {
-                game.Enqueue(instance =>
+            instance.SceneManager.LoadScene<Loader>("loader",
+                sceneManager => new Loader(sceneManager, audio_context)
                 {
-                    var workflow = new ThirtyDollarWorkflow(instance, audio_context);
-                    instance.SceneManager.LoadScene<ThirtyDollarApplication>(settings.Mode,
-                        _ => new ThirtyDollarApplication(instance, width, height, [sequence], settings, workflow)
-                        {
-                            Scale = scale ?? 1f,
-                            Greeting = greeting ?? settings.Greeting
-                        });
+                    OnFinish = workflow =>
+                    {
+                        OnLoadHandler(instance, workflow, sequence, greeting, scale);
+                    }
                 });
-                break;
-            }
-        }
-
-        game.Enqueue(instance => instance.SceneManager.TransitionTo(settings.Mode));
+        });
+        
+        game.Enqueue(instance => instance.SceneManager.TransitionTo("loader"));
         game.Run();
+    }
+
+    private static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow,
+        string? sequence, string? greeting, float? scale)
+    {
+        game.Enqueue(instance =>
+        {
+            instance.SceneManager.LoadScene<Visualizer>("visualizer", _ =>
+                new Visualizer(instance, SettingsHandler.Settings, workflow, [sequence])
+                {
+                    Greeting = greeting,
+                    Scale = scale ?? 1f
+                }
+            );
+        });
+        
+        game.Enqueue(instance => instance.SceneManager.TransitionTo("visualizer"));
     }
 
     public class Options

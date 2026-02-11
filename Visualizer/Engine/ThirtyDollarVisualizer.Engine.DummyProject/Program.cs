@@ -4,7 +4,7 @@ using OpenTK.Windowing.Desktop;
 using ThirtyDollarVisualizer.Engine;
 using ThirtyDollarVisualizer.Engine.DummyProject;
 
-var game = new Game(Assembly.GetExecutingAssembly(), new GameWindowSettings(), new NativeWindowSettings
+var game = new Game([Assembly.GetExecutingAssembly()], new GameWindowSettings(), new NativeWindowSettings
 {
     ClientSize = (1024, 600),
     Vsync = VSyncMode.On,

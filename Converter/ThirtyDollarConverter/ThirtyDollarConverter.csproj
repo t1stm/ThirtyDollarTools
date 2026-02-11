@@ -12,4 +12,10 @@
         <ProjectReference Include="..\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="Serilog">
+        <HintPath>..\..\..\..\.nuget\packages\serilog\4.3.0\lib\net9.0\Serilog.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

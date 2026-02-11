@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Serilog;
 using Serilog.Core;
 using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Debug;
@@ -9,12 +10,12 @@ using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 
 namespace ThirtyDollarVisualizer.Engine.Scenes;
 
-public class SceneManager(Game game, Logger logger)
+public class SceneManager(Game game, ILogger logger)
 {
     public AssetProvider AssetProvider { get; } = game.AssetProvider;
     public Dictionary<string, Scene> Scenes { get; } = new();
     public List<Scene> ActiveScenes { get; } = [];
-    public Logger Logger => logger;
+    public ILogger Logger => logger;
     public Game Game => game;
     private Queue<Scene> ScenesToInitialize { get; } = [];
     private Exception? _exception;

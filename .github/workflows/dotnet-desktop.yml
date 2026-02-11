@@ -40,7 +40,7 @@ jobs:
 
       - name: Publish ThirtyDollarConverter.GUI
         run: |
-          dotnet publish ./ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj \
+          dotnet publish ./Converter/ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj \
             -c ${{ matrix.configuration }} \
             -f ${{ matrix.net_version }} \
             -r ${{ matrix.platform }} \
@@ -51,7 +51,7 @@ jobs:
 
       - name: Publish ThirtyDollarVisualizer
         run: |
-          dotnet publish ./ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj \
+          dotnet publish ./Visualizer/ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj \
             -c ${{ matrix.configuration }} \
             -f ${{ matrix.net_version }} \
             -r ${{ matrix.platform }} \

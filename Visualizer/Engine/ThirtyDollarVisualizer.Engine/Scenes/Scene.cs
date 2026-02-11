@@ -1,6 +1,8 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Serilog;
 using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
+using ThirtyDollarVisualizer.Engine.Threading;
 
 namespace ThirtyDollarVisualizer.Engine.Scenes;
 
@@ -8,6 +10,10 @@ public abstract class Scene(SceneManager sceneManager)
 {
     public SceneManager SceneManager { get; set; } = sceneManager;
     public AssetProvider AssetProvider { get; set; } = sceneManager.AssetProvider;
+    
+    public Game Game => SceneManager.Game;
+    public ILogger Logger => Game.Logger;
+    public ThreadRunner ThreadRunner => Game.ThreadRunner;
 
     /// <summary>
     ///     Method called during the OnLoad procedure.

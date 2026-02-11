@@ -6,7 +6,9 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
-using Serilog.Core;
+using Serilog.Expressions;
+using Serilog.Templates;
+using Serilog.Templates.Themes;
 using ThirtyDollarVisualizer.Engine.Asset_Management;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
@@ -19,11 +21,13 @@ namespace ThirtyDollarVisualizer.Engine;
 
 public class Game : GameWindow
 {
-    public readonly Logger Logger;
+    public readonly ILogger Logger;
+    private readonly ILogger _loggerGL;
+    
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
     private string Id { get; }
 
-    public Game(Assembly externalAssetAssembly, GameWindowSettings gameSettings,
+    public Game(Assembly[] assemblies, GameWindowSettings gameSettings,
         NativeWindowSettings nativeWindowSettings, string id) :
         base(gameSettings, nativeWindowSettings)
     {
@@ -36,29 +40,33 @@ public class Game : GameWindow
         Id = id;
 
         var serilogLogger = new LoggerConfiguration()
-            .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")
+            .Enrich.FromLogContext()
+            .WriteTo.Console(new ExpressionTemplate(
+                "[{@t:HH:mm:ss} {@l:u3}" +
+                "{#if SourceContext is not null} {Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}{#end}] {@m}\n{@x}",
+                theme: TemplateTheme.Code))
             .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Infinite,
                 retainedFileTimeLimit: TimeSpan.FromMinutes(15))
             .MinimumLevel.Debug()
-            .CreateLogger();
+            .CreateLogger()
+            .ForContext<Game>();
 
         Logger = serilogLogger;
+        _loggerGL = Logger.ForContext("SourceContext", "OpenGL");
 
         var callingAssembly = Assembly.GetExecutingAssembly();
-        if (ExternalAssetAssembly == callingAssembly)
-            throw new Exception("Asset Assembly cannot be the calling assembly.");
+        AssetAssemblies = [callingAssembly, ..assemblies];
 
-        ExternalAssetAssembly = externalAssetAssembly;
-        AssetProvider = new AssetProvider(Logger, [callingAssembly, ExternalAssetAssembly], GLInfo);
+        AssetProvider = new AssetProvider(Logger, AssetAssemblies, GLInfo);
         SceneManager = new SceneManager(this, Logger);
         ThreadRunner = new ThreadRunner(this);
     }
-    
-    public Assembly ExternalAssetAssembly { get; }
+
+    public Assembly[] AssetAssemblies { get; }
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
     public ThreadRunner ThreadRunner { get; }
-    
+
     private readonly Queue<Action<Game>> _enqueuedEvents = new();
     private GLInfo GLInfo { get; set; } = new();
 
@@ -66,7 +74,7 @@ public class Game : GameWindow
     {
         base.OnLoad();
         GetGLInfo(GLInfo);
-        Logger.Information("[OpenGL Info]: {@GLInfo}", GLInfo);
+        _loggerGL.ForContext<GLInfo>().Information("{@GLInfo}", GLInfo);
 
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
@@ -86,9 +94,10 @@ public class Game : GameWindow
         GL.Hint(HintTarget.LineSmoothHint, HintMode.Nicest);
 
         RenderMarker.Debug("Game Window Initialized");
-
-        ReflectionPreloadObjects(Assembly.GetExecutingAssembly()); // preload engine stuff first
-        ReflectionPreloadObjects(ExternalAssetAssembly);
+        foreach (var assembly in AssetAssemblies)
+        {
+            ReflectionPreloadObjects(assembly);
+        }
 
         AppDomain.CurrentDomain.UnhandledException +=
             (_, e) =>
@@ -140,7 +149,7 @@ public class Game : GameWindow
         var typeText = type != DebugType.DontCare ? type.ToString()[9..] : "Unknown";
         var severityText = severity != DebugSeverity.DontCare ? severity.ToString()[13..] : "Unknown";
 
-        Logger.Debug("[OpenGL]: {sourceText}, ({typeText}, {id}) {severityText}: {callbackMessage}",
+        _loggerGL.Debug("{sourceText}, ({typeText}, {id}) {severityText}: {callbackMessage}",
             sourceText, typeText, id, severityText, stringBuffer.ToString());
     }
 
@@ -192,19 +201,25 @@ public class Game : GameWindow
     {
         base.OnUpdateFrame(args);
         MakeCurrent();
-        
+
         AssetProvider.Update();
         ThreadRunner.Update();
 
-        lock (_enqueuedEvents)
-            while (_enqueuedEvents.TryDequeue(out var action))
-                action(this);
-
-        SceneManager.Initialize(new InitArguments
+        var initArguments = new InitArguments
         {
             StartingResolution = ClientSize,
             GLInfo = GLInfo
-        });
+        };
+        
+        lock (_enqueuedEvents)
+            while (_enqueuedEvents.TryDequeue(out var action))
+            {
+                action(this);
+                // initialize scenes enqueued using game.Enqueue() and then continue with other enqueued events.
+                SceneManager.Initialize(initArguments); 
+            }
+
+        SceneManager.Initialize(initArguments);
 
         if (KeyboardState.IsAnyKeyDown)
             SceneManager.Keyboard(KeyboardState);
