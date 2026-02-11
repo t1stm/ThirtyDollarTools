@@ -13,9 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="Serilog">
-        <HintPath>..\..\..\..\.nuget\packages\serilog\4.3.0\lib\net9.0\Serilog.dll</HintPath>
-      </Reference>
+      <PackageReference Include="Serilog" Version="4.3.1" />
     </ItemGroup>
 
 </Project>

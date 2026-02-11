@@ -26,15 +26,13 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="ManagedBass">
-        <HintPath>..\..\..\..\..\.nuget\packages\managedbass\4.0.2\lib\net8.0\ManagedBass.dll</HintPath>
-      </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj" />
       <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj" />
         <ProjectReference Include="..\..\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="ManagedBass" Version="4.0.2" />
     </ItemGroup>
 
 </Project>
