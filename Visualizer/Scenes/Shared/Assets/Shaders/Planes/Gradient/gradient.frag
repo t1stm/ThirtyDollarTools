@@ -3,6 +3,7 @@
 
 #define PI 3.14159265359
 
+precision highp float;
 out vec4 color;
 
 in vec2 vLocalPos;
@@ -49,6 +50,13 @@ float roundedBoxSDF(vec2 p, vec2 b, float r) {
     return length(max(d, 0.0)) - r;
 }
 
+/* Gradient noise from Jorge Jimenez's presentation: */
+/* http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare */
+float gradientNoise(in vec2 uv)
+{
+    return fract(52.9829189 * fract(dot(uv, vec2(0.06711056, 0.00583715))));
+}
+
 void main() {
     float t = 0.0;
 
@@ -81,9 +89,8 @@ void main() {
         float alpha = 1.0 - smoothstep(0.0, edge, dist);
         color.a *= alpha;
     }
-
-    // dither noise
-    float noise = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    float dither = (noise - 0.5) / 255.0;
+    
+    float noise = gradientNoise(gl_FragCoord.xy);
+    float dither = (1.0 / 255.0) * gradientNoise(gl_FragCoord.xy) - (0.5 / 255.0);
     color.rgb += dither;
 }
