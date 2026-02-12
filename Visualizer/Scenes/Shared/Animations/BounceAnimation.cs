@@ -20,19 +20,44 @@ public class BounceAnimation : Animation
 
     public override Vector3 GetTransform_Add(Renderable renderable)
     {
-        if (!TimingStopwatch.IsRunning) return base.GetTransform_Add(renderable);
+        if (!TimingStopwatch.IsRunning && LoopingMode == AnimationLoopingMode.None)
+            return base.GetTransform_Add(renderable);
 
         var transformation = new Vector3();
 
-        var current_time = TimingStopwatch.ElapsedMilliseconds;
-        var normalized = (float)Math.Max(current_time / AnimationLength.TotalMilliseconds, 0);
+        var elapsed = (float)TimingStopwatch.ElapsedMilliseconds;
+        var totalLength = (float)AnimationLength.TotalMilliseconds;
 
-        if (normalized > 1)
-        {
-            TimingStopwatch.Stop();
-            CallbackOnFinish?.Invoke();
-            normalized = 1;
-        }
+        if (totalLength > 0)
+            switch (LoopingMode)
+            {
+                case AnimationLoopingMode.ResetToStart:
+                    elapsed %= totalLength;
+                    break;
+                case AnimationLoopingMode.Invert:
+                    var loopCount = (int)(elapsed / totalLength);
+                    elapsed %= totalLength;
+                    if (loopCount % 2 == 1) elapsed = totalLength - elapsed;
+                    break;
+                case AnimationLoopingMode.None:
+                case AnimationLoopingMode.LoopStart:
+                default:
+                    if (elapsed >= totalLength)
+                    {
+                        if (TimingStopwatch.IsRunning)
+                        {
+                            TimingStopwatch.Stop();
+                            CallbackOnFinish?.Invoke();
+                        }
+
+                        elapsed = totalLength;
+                    }
+
+                    break;
+            }
+
+        var normalized = totalLength > 0 ? Math.Max(elapsed / totalLength, 0) : 1f;
+        if (normalized > 1) normalized = 1;
 
         float factor;
 

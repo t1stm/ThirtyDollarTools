@@ -99,10 +99,8 @@ public class ColoredPlane : Renderable, IGamePreloadable
     public override void SetShaderUniforms(Camera camera)
     {
         _uniform.Color = Color;
-        _uniform.BorderRadiusPx = BorderRadius;
+        _uniform.ScaleAndBorderPx = new Vector4(Scale.X, Scale.Y, BorderRadius, 0);
 
-        _uniform.ScalePx = Scale.X;
-        _uniform.AspectRatio = Scale.X / Scale.Y;
         _uniform.Model = Model;
         _uniform.Projection = camera.GetVPMatrix();
 

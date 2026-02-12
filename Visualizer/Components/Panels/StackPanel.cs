@@ -6,11 +6,11 @@ namespace Components.Panels;
 public class StackPanel(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
     : Panel(context, x, y, width, height), IPositioningElement
 {
-    public LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
-    public float Spacing { get; set; } = 0;
-    public float Padding { get; set; } = 0;
+    public LayoutDirection Direction { get => field; set { if (field == value) return; field = value; InvalidateLayout(); } } = LayoutDirection.Vertical;
+    public float Spacing { get => field; set { if (field == value) return; field = value; InvalidateLayout(); } } = 0;
+    public float Padding { get => field; set { if (field == value) return; field = value; InvalidateLayout(); } } = 0;
 
-    public override void Layout()
+    protected override void DoLayout()
     {
         var start_x = AbsoluteX + Padding;
         var start_y = AbsoluteY + Padding;
@@ -26,16 +26,16 @@ public class StackPanel(UIContext context, float x = 0, float y = 0, float width
         {
             if (Direction == LayoutDirection.Vertical)
             {
-                child.X = start_x;
-                child.Y = offset;
+                child.X = start_x - AbsoluteX;
+                child.Y = offset - AbsoluteY;
 
                 if (child.AutoWidth) child.Width = Width - 2 * Padding;
                 offset += child.Height + Spacing;
             }
             else
             {
-                child.X = offset;
-                child.Y = start_y;
+                child.X = offset - AbsoluteX;
+                child.Y = start_y - AbsoluteY;
 
                 if (child.AutoHeight) child.Height = Height - 2 * Padding;
                 offset += child.Width + Spacing;

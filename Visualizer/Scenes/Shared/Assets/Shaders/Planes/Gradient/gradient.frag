@@ -52,19 +52,23 @@ float roundedBoxSDF(vec2 p, vec2 b, float r) {
 void main() {
     float t = 0.0;
 
-    if (u_GradientType == 0) { // solid
-                               color = u_GradientColors[0];
+    if (u_GradientType == 0) {
+        color = u_GradientColors[0];
     }
     else {
-        if (u_GradientType == 1) { // linear
-                                   t = vUV.x;
+        if (u_GradientType == 1) { 
+            // linear
+            t = vUV.x;
         }
-        else if (u_GradientType == 2) { // radial
-                                        float max_dim = max(u_ScaleAndBorderPx.x, u_ScaleAndBorderPx.y);
-                                        t = length(vLocalPos) / (max_dim * 0.5);
+        else if (u_GradientType == 2) { 
+            // radial
+            vec2 halfSize = u_ScaleAndBorderPx.xy * 0.5;
+            vec2 normalized = vLocalPos / halfSize;
+            t = length(normalized);
         }
-        else if (u_GradientType == 3) { // conical
-                                        t = atan(vLocalPos.y, vLocalPos.x) / (2.0 * PI) + 0.5;
+        else if (u_GradientType == 3) { 
+            // conical
+            t = atan(vLocalPos.y, vLocalPos.x) / (2.0 * PI) + 0.5;
         }
         color = getGradientColor(t);
     }
@@ -73,7 +77,13 @@ void main() {
     float borderRadius = u_ScaleAndBorderPx.z;
     if (borderRadius > 0.0) {
         float dist = roundedBoxSDF(vLocalPos, u_ScaleAndBorderPx.xy * 0.5, borderRadius);
-        float alpha = 1.0 - smoothstep(0.0, 1.0, dist);
+        float edge = fwidth(dist);
+        float alpha = 1.0 - smoothstep(0.0, edge, dist);
         color.a *= alpha;
     }
+
+    // dither noise
+    float noise = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    float dither = (noise - 0.5) / 255.0;
+    color.rgb += dither;
 }

@@ -1,4 +1,5 @@
 using Components.Abstractions;
+using Components.Color_Scheme;
 using Components.Panels;
 using Shared.Renderer;
 using Shared.Renderer.Planes;
@@ -9,7 +10,12 @@ public class Button : FlexPanel
 {
     private readonly Label _label;
 
-    public Button(UIContext context, string label, Renderable? background = null) : base(context)
+    public Button(UIContext context, string label, Renderable? background = null) : this(context,
+        new Label(context, label), background)
+    {
+    }
+
+    public Button(UIContext context, Label label, Renderable? background = null) : base(context)
     {
         AutoSizeSelf = true;
         AutoWidth = true;
@@ -18,10 +24,11 @@ public class Button : FlexPanel
         Padding = 5;
         Background = background ?? new ColoredPlane
         {
-            Color = (0.2f, 0.2f, 0.2f, 1.0f)
+            Color = DarkScheme.AccentBlue,
+            BorderRadius = 10
         };
 
-        Children = [_label = new Label(context, label)];
+        Children = [_label = label];
         UpdateCursorOnHover = true;
     }
 
@@ -35,10 +42,5 @@ public class Button : FlexPanel
     {
         get => _label.FontSizePx;
         set => _label.FontSizePx = value;
-    }
-
-    public void SetTextContents(string text)
-    {
-        _label.SetTextContents(text);
     }
 }

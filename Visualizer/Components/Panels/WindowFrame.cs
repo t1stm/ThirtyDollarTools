@@ -33,7 +33,7 @@ public class WindowFrame : Panel
                 new Label(Context, "X")
             ]
         };
-        Container = new FlexPanel(context, x, y, w, h)
+        Container = new FlexPanel(context, 0, 0, w, h)
         {
             Children = [Header],
             Direction = LayoutDirection.Vertical
@@ -86,8 +86,6 @@ public class WindowFrame : Panel
     {
         X += mouse.Delta.X;
         Y += mouse.Delta.Y;
-
-        Layout();
     }
 
     protected void ComputeResize(MouseState mouse)
@@ -117,8 +115,6 @@ public class WindowFrame : Panel
         if (!mouse.IsButtonDown(MouseButton.Left)) return;
         _resizingXMode = (byte)(x_positive ? 1 : x_negative ? 2 : 0);
         _resizingYMode = (byte)(y_positive ? 1 : y_negative ? 2 : 0);
-
-        Layout();
     }
 
     protected void SetChild(UIElement child)
@@ -150,8 +146,6 @@ public class WindowFrame : Panel
                 Height += mouse.Delta.Y;
                 break;
         }
-
-        Layout();
     }
 
     public override void Update(UIContext uiContext)

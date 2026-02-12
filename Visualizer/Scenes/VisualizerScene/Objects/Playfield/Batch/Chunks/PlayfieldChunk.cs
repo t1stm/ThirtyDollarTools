@@ -1,3 +1,4 @@
+using Shared;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ThirtyDollarVisualizer.Engine.Text;

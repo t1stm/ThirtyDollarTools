@@ -8,6 +8,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+        <ProjectReference Include="..\..\Components\Components.csproj" />
         <ProjectReference Include="..\..\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj"/>
         <ProjectReference Include="..\Shared\Shared.csproj"/>
     </ItemGroup>

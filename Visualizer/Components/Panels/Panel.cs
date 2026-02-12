@@ -2,6 +2,7 @@ using Components.Abstractions;
 using Components.Scroll;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer;
+using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
 
 namespace Components.Panels;
 
@@ -29,7 +30,7 @@ public class Panel : UIElement, IColoredBackground
         {
             _children = value;
             SetChildrenParent();
-            Layout();
+            InvalidateLayout();
         }
     }
 
@@ -57,14 +58,24 @@ public class Panel : UIElement, IColoredBackground
     public override void Update(UIContext uiContext)
     {
         base.Update(uiContext);
+        Background?.Update();
         foreach (var child in Children) child.Update(uiContext);
     }
 
-    public override void Layout()
+    public override void InvalidateCoordinates()
+    {
+        base.InvalidateCoordinates();
+        foreach (var child in Children) child.InvalidateCoordinates();
+    }
+
+    protected override void DoLayout()
     {
         var x = (int)AbsoluteX;
         var y = (int)AbsoluteY;
         Viewport = (x, y, x + (int)Width, y + (int)Height);
+
+        Background?.SetPosition((x, y, 0));
+        Background?.Scale = (Width, Height, 1);
 
         foreach (var child in Children) child.Layout();
     }
@@ -78,14 +89,15 @@ public class Panel : UIElement, IColoredBackground
     {
         child.Parent = this;
         _children.Add(child);
+        InvalidateLayout();
     }
 
-    public override void Draw(UIContext context)
+    public override void DrawTo(UIContext context)
     {
         if (!Visible) return;
-        base.Draw(context);
+        base.DrawTo(context);
         foreach (var child in _children)
-            child.Draw(context);
+            child.DrawTo(context);
     }
 
     protected override void DrawSelf(UIContext context)

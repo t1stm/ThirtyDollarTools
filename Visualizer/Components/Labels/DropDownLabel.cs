@@ -45,7 +45,7 @@ public sealed class DropDownLabel : Panel
     public override float Width => Label.Width;
     public override float Height => Label.Height;
 
-    public override void Layout()
+    protected override void DoLayout()
     {
         Label.Layout();
 

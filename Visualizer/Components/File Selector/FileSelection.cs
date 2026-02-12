@@ -172,9 +172,7 @@ public sealed class FileSelection : Panel
 
         _semaphore.Wait();
         _filesSection.Children = list;
-        _filesSection.Layout();
         _semaphore.Release();
-        _mainLayout.Layout();
     }
 
     protected override void DrawSelf(UIContext context)

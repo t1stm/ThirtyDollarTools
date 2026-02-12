@@ -4,9 +4,11 @@ layout (location = 0) in vec3 aPosition;
 layout (location = 1) in vec4 aUVRect;
 layout (location = 2) in vec3 aTranslateXYZ;
 layout (location = 3) in vec3 aScale;
+layout (location = 4) in vec4 aColor;
 
 uniform mat4 uVPMatrix;
-out vec2 fragTexCoord;
+out vec2 vFragTexCoord;
+out vec4 vColor;
 
 vec2 getFragCoordsBasedOnVertexID(int vertexID) {
     int normedID = vertexID % 4; // four coordinates
@@ -30,6 +32,7 @@ void main() {
 
     vec4 final_coords = uVPMatrix * transformMatrix * vec4(aPosition.xyz, 1.0);
 
-    fragTexCoord = getFragCoordsBasedOnVertexID(gl_VertexID);
+    vColor = aColor;
+    vFragTexCoord = getFragCoordsBasedOnVertexID(gl_VertexID);
     gl_Position = final_coords;
 }

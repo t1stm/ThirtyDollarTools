@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
+using Shared;
 using Shared.Audio;
 using Shared.Helpers.Decoders;
 using Shared.Renderer.Settings;

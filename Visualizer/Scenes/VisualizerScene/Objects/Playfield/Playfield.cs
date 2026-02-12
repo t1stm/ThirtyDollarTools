@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
+using Shared;
 using Shared.Renderer.Planes;
 using ThirtyDollarParser;
 using VisualizerScene.Objects.Playfield.Batch;

@@ -4,6 +4,7 @@ using ThirtyDollarVisualizer.Engine.Renderer;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
 using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
+using ThirtyDollarVisualizer.Engine.Renderer.Debug;
 
 namespace ThirtyDollarVisualizer.Engine.Text;
 
@@ -127,7 +128,7 @@ public class TextBuffer : IRenderable, IDisposable
 
         _vao.Bind();
         _vao.Update();
-        TextProvider.BindAndSetUniforms(camera, Vector4.One);
+        TextProvider.BindAndSetUniforms(camera);
 
         GL.DrawElementsInstanced(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt,
             IntPtr.Zero, endIndex);
@@ -147,17 +148,21 @@ public class TextBuffer : IRenderable, IDisposable
         lock (_usedRanges)
         {
             range = _usedRanges[textSlice];
-            _usedRanges.Remove(textSlice);
+        }
+        
+        if (!_disposing)
+        {
+            var (offset, length) = range.GetOffsetAndLength(Characters.Capacity);
+            for (var i = offset; i < offset + length; i++) Characters[i] = new TextCharacter();
         }
 
+        lock (_usedRanges)
+        {
+            _usedRanges.Remove(textSlice);
+        }
         lock (_freeRanges)
         {
             _freeRanges.Add(range);
         }
-
-        if (_disposing) return;
-
-        var (offset, length) = range.GetOffsetAndLength(Characters.Capacity);
-        for (var i = offset; i < length; i++) Characters[i] = new TextCharacter();
     }
 }

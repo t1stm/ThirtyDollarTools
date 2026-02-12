@@ -52,6 +52,8 @@ public sealed class ScrollBar : Panel
 
     public override void Test(MouseState mouse)
     {
+        if (!Visible) return;
+        base.Test(mouse);
         ScrollBlock.Test(mouse);
         if (!ScrollBlock.IsPressed) return;
 
@@ -63,11 +65,12 @@ public sealed class ScrollBar : Panel
         ScrollBlock.Y = Percentage * (Height - ScrollBlock.Height);
     }
 
-    public override void Layout()
+    protected override void DoLayout()
     {
-        ScrollBlock.X = X;
+        ScrollBlock.X = 0;
         ScrollBlock.Y = Percentage * (Height - ScrollBlock.Height);
         ScrollBlock.Width = Width;
+        base.DoLayout();
     }
 
     protected override void DrawSelf(UIContext context)

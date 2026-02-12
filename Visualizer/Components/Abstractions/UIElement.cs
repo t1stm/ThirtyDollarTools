@@ -19,28 +19,102 @@ public enum Align
 
 public abstract class UIElement(UIContext context, float x, float y, float width, float height)
 {
-    public bool AutoWidth = false, AutoHeight = false;
+    private float _absoluteX;
+    private float _absoluteY;
+    private bool _coordinatesDirty = true;
+
+    public bool AutoWidth { get => field; set { if (field == value) return; field = value; InvalidateLayout(); } } = false;
+    public bool AutoHeight { get => field; set { if (field == value) return; field = value; InvalidateLayout(); } } = false;
     public UIContext Context => context;
-    public virtual float X { get; set; } = x;
-    public virtual float Y { get; set; } = y;
-    public virtual float AbsoluteX => Parent?.AbsoluteX + X ?? X;
-    public virtual float AbsoluteY => Parent?.AbsoluteY + Y ?? Y;
+
+    public virtual float X
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateCoordinates();
+            InvalidateLayout();
+        }
+    } = x;
+
+    public virtual float Y
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateCoordinates();
+            InvalidateLayout();
+        }
+    } = y;
+
+    public virtual float AbsoluteX
+    {
+        get
+        {
+            if (_coordinatesDirty) UpdateAbsoluteCoordinates();
+            return _absoluteX;
+        }
+    }
+
+    public virtual float AbsoluteY
+    {
+        get
+        {
+            if (_coordinatesDirty) UpdateAbsoluteCoordinates();
+            return _absoluteY;
+        }
+    }
+
     protected virtual int Index { get; set; }
 
-    public virtual float Width { get; set; } = width;
-    public virtual float Height { get; set; } = height;
-    public bool Visible { get; set; } = true;
+    public virtual float Width
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateLayout();
+        }
+    } = width;
+
+    public virtual float Height
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateLayout();
+        }
+    } = height;
+
+    public bool Visible
+    {
+        get => field;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            InvalidateLayout();
+        }
+    } = true;
     public bool IsHovered { get; set; }
     public bool IsPressed { get; set; }
     public bool UpdateCursorOnHover { get; set; }
+
+    public bool NeedsLayout { get; protected set; } = true;
 
     public virtual UIElement? Parent
     {
         get;
         set
         {
+            if (field == value) return;
             field = value;
             Index = field?.Index + 1 ?? 0;
+            InvalidateCoordinates();
+            InvalidateLayout();
         }
     }
 
@@ -75,14 +149,41 @@ public abstract class UIElement(UIContext context, float x, float y, float width
             uiContext.RequestCursor(CursorType.Pointer);
     }
 
-    public virtual void Layout()
+    public virtual void InvalidateLayout()
     {
-        // overriden by inheritors
+        if (NeedsLayout) return;
+        NeedsLayout = true;
+        Parent?.InvalidateLayout();
     }
 
-    public virtual void Draw(UIContext uiContext)
+    public virtual void InvalidateCoordinates()
+    {
+        _coordinatesDirty = true;
+        NeedsLayout = true;
+    }
+
+    protected virtual void UpdateAbsoluteCoordinates()
+    {
+        _absoluteX = Parent?.AbsoluteX + X ?? X;
+        _absoluteY = Parent?.AbsoluteY + Y ?? Y;
+        _coordinatesDirty = false;
+    }
+
+    public virtual void Layout()
+    {
+        if (!NeedsLayout) return;
+        DoLayout();
+        NeedsLayout = false;
+    }
+
+    protected virtual void DoLayout()
+    {
+    }
+
+    public virtual void DrawTo(UIContext uiContext)
     {
         if (!Visible) return;
+        Layout();
         DrawSelf(uiContext);
     }
 

@@ -1,3 +1,4 @@
+using Shared;
 using Shared.Atlases;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 

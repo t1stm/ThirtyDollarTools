@@ -47,6 +47,8 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             UpdateCharacters();
         }
     } = 16;
+    
+    public Vector4 Color { get; set; } = Vector4.One;
 
     private FontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.GetFontMetrics();
 
@@ -134,7 +136,10 @@ public class TextSlice(TextBuffer textBuffer, Range range)
                 (textureRectangle, textAlignmentData) = textProvider.GetTextCharacterRect(characters[..1]);
             }
 
-            var textCharacter = new TextCharacter();
+            var textCharacter = new TextCharacter
+            {
+                Color = Color
+            };
             var atlasSize = new Vector2(textProvider.TextAtlas.Width, textProvider.TextAtlas.Height);
 
             textCharacter.TextureUV =

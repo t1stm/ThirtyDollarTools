@@ -31,7 +31,7 @@ public class UIContext : IGamePreloadable
     {
         _assetProvider = assetProvider;
         _fontProvider = new FontProvider(assetProvider);
-        _textProvider = new TextProvider(_assetProvider, _fontProvider, "Lato Regular");
+        _textProvider = new TextProvider(_assetProvider, _fontProvider, "Lato Bold");
     }
 
     public void Clear()

@@ -2,7 +2,7 @@ using OpenTK.Mathematics;
 using Shared.Animations;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
 
-namespace VisualizerScene.Objects;
+namespace Shared;
 
 public sealed class DollarStoreCamera : Camera
 {

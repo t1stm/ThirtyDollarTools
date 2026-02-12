@@ -68,8 +68,7 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
     ///     Binds the text atlas to the OpenGL context and activates the shader program.
     /// </summary>
     /// <param name="camera">The camera that contains the VP matrix to use in the shader.</param>
-    /// <param name="color">The color of the text.</param>
-    public void BindAndSetUniforms(Camera camera, Vector4 color)
+    public void BindAndSetUniforms(Camera camera)
     {
         lock (TextAtlas)
         {
@@ -78,7 +77,6 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
             _shader.Use();
 
             _shader.SetUniform("uVPMatrix", camera.GetVPMatrix());
-            _shader.SetUniform("uOutputColor", color);
             _shader.SetUniform("uPxRange", GlyphProvider.GlyphSize * GlyphProvider.MsdfRange);
 
             RenderMarker.Debug("Bound Text Atlas and Set Uniforms: ", TextAtlas.AtlasID, MarkerType.Hidden);

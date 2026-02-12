@@ -1,4 +1,7 @@
+using Components.Abstractions;
 using LoadingScene.Reports;
+using LoadingScene.Scene;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Audio;
@@ -11,26 +14,36 @@ using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
 namespace LoadingScene;
 
 [PreloadGraphicsContext]
-public class Loader : Scene, IGamePreloadable
+public class Loader : ThirtyDollarVisualizer.Engine.Scenes.Scene, IGamePreloadable
 {
     private static AssetProvider _assetProvider = null!;
-    private readonly AudioContext? _context;
+    private readonly AudioContext? _audioContext;
+    private readonly UIContext _context;
+    private readonly DollarStoreCamera _camera;
 
     private readonly ThirtyDollarDownloader _thirtyDollarDownloader;
     private IProgressReport _progressReport = new NotStartedReport();
+    
+    public Action<ThirtyDollarWorkflow>? OnFinish { get; set; }
+    public bool Finished { get; private set; }
+    
+    private readonly LoaderInterface _loaderInterface;
 
-    public Action<ThirtyDollarWorkflow>? OnFinish;
-
-    public Loader(SceneManager sceneManager, AudioContext? context) : base(sceneManager)
+    public Loader(SceneManager sceneManager, AudioContext? audioContext) : base(sceneManager)
     {
-        _context = context;
+        _audioContext = audioContext;
+        _camera = new DollarStoreCamera(Vector3.Zero, sceneManager.Game.ClientSize);
+        _context = new UIContext
+        {
+            Camera = _camera
+        };
         _thirtyDollarDownloader = new ThirtyDollarDownloader(sceneManager.Game.ThreadRunner, _assetProvider)
         {
             StatusUpdate = StatusUpdate
         };
+        
+        _loaderInterface = new LoaderInterface(_context, _camera, () => _thirtyDollarDownloader.Load());
     }
-
-    public bool Finished { get; private set; }
 
     public static void Preload(AssetProvider assetProvider)
     {
@@ -56,20 +69,25 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Render(RenderArguments renderArgs)
     {
+        _loaderInterface.Render(_camera, _context);
     }
 
     public override void TransitionedTo()
     {
-        _thirtyDollarDownloader.Load();
-        // Trigger Animations
+        
     }
 
     public override void Update(UpdateArguments updateArgs)
     {
-        // TODO: progress bar update here.
+        lock (_progressReport)
+        {
+            var progressReport = _progressReport;
+            _loaderInterface.Update(progressReport, Game.MouseState);
+        }
+        
         if (!_thirtyDollarDownloader.AssetsLoaded && !Finished) return;
 
-        var workflow = new ThirtyDollarWorkflow(Game, Logger, _context)
+        var workflow = new ThirtyDollarWorkflow(Game, Logger, _audioContext)
         {
             AtlasStore = _thirtyDollarDownloader.AtlasStore,
             SampleHolder = _thirtyDollarDownloader.SampleHolder
@@ -80,6 +98,9 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Resize(int w, int h)
     {
+        _camera.Viewport = new Vector2i(w, h);
+        _camera.UpdateMatrix();
+        _loaderInterface.Resize(w, h);
     }
 
     public override void Shutdown()

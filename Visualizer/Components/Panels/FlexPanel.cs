@@ -7,14 +7,15 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
     : Panel(context, x, y, width, height), IPositioningElement
 {
     public bool AutoSizeSelf { get; set; }
-
+    
     public Align HorizontalAlign
     {
         get;
         set
         {
+            if (field == value) return;
             field = value;
-            Layout();
+            InvalidateLayout();
         }
     } = Align.Start;
 
@@ -23,16 +24,37 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
         get;
         set
         {
+            if (field == value) return;
             field = value;
-            Layout();
+            InvalidateLayout();
         }
     } = Align.Start;
 
     public LayoutDirection Direction { get; set; } = LayoutDirection.Horizontal;
-    public float Padding { get; set; }
-    public float Spacing { get; set; }
 
-    public override void Layout()
+    public float Padding
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            InvalidateLayout();
+        }
+    }
+
+    public float Spacing
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            InvalidateLayout();
+        }
+    }
+
+    protected override void DoLayout()
     {
         var count = Children.Count;
         var a_x = AbsoluteX;
@@ -100,10 +122,11 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
 
         foreach (var child in Children)
         {
-            child.X = Padding + offset;
-
-            if (child.AutoHeight)
+            if (child.AutoHeight && child is not FlexPanel { AutoSizeSelf: true })
                 child.Height = innerHeight;
+
+            child.Layout();
+            child.X = Padding + offset;
 
             switch (VerticalAlign)
             {
@@ -117,6 +140,7 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
                     child.Y = Padding;
                     child.Height = innerHeight;
                     break;
+                case Align.Start:
                 default:
                     child.Y = Padding;
                     break;
@@ -151,10 +175,11 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
 
         foreach (var child in Children)
         {
-            child.Y = Padding + offset;
-
-            if (child.AutoWidth)
+            if (child.AutoWidth && child is not FlexPanel { AutoSizeSelf: true })
                 child.Width = innerWidth;
+
+            child.Layout();
+            child.Y = Padding + offset;
 
             switch (HorizontalAlign)
             {

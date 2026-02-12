@@ -1,5 +1,7 @@
+using Components.Color_Scheme;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Shared;
 using Shared.Renderer.Planes;
 using Shared.Renderer.Planes.Uniforms;
 using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
@@ -18,29 +20,24 @@ public class PlaygroundScene(SceneManager sceneManager) : Scene(sceneManager)
 
     public override void Initialize(InitArguments initArguments)
     {
-        var types = Enum.GetValues<GradientType>();
         const float spacing = 550f;
-        var startX = -(types.Length - 1) * spacing / 2f;
+        const int startX = 0;
 
-        for (var i = 0; i < types.Length; i++)
-        {
-            var type = types[i];
-            var plane = new GradientPlane
-            {
-                Position = new Vector3(startX + i * spacing, 0, 0),
-                Scale = new Vector3(500, 500, 1),
-                GradientType = type,
-                GradientColors =
-                [
-                    new Vector4(1, 0, 0, 0.6f),
-                    new Vector4(0, 1, 0, 0.6f),
-                    new Vector4(0, 0, 0, 0.6f)
-                ],
-                GradientStops = [0f, 0.5f, 1f],
-                BorderRadius = 50f
-            };
-            _gradientPlanes.Add(plane);
-        }
+        var gradient1 = GradientPlaneDefinitions.NewAccentBlueRadial();
+        gradient1.Position = new Vector3(startX, 0, 0);
+        gradient1.Scale = new Vector3(500, 500, 1);
+        
+        var gradient2 = GradientPlaneDefinitions.NewMagentaBlueRadial();
+        gradient2.Position = new Vector3(startX + spacing, 0, 0);
+        gradient2.Scale = new Vector3(500, 500, 1);
+        
+        var gradient3 = GradientPlaneDefinitions.NewTealToBgSurfaceRadial();
+        gradient3.Position = new Vector3(startX + spacing * 2, 0, 0);
+        gradient3.Scale = new Vector3(500, 500, 1);
+        
+        _gradientPlanes.Add(gradient1);
+        _gradientPlanes.Add(gradient2);
+        _gradientPlanes.Add(gradient3);
     }
 
     public override void Start()
