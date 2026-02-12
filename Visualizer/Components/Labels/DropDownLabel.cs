@@ -1,5 +1,6 @@
 using Components.Abstractions;
 using Components.Panels;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 
@@ -53,11 +54,11 @@ public sealed class DropDownLabel : Panel
         Panel.Layout();
     }
 
-    public override void Test(MouseState mouse)
+    public override void Test(MouseState mouse, Vector2 scale)
     {
         var hide_panel = mouse.IsButtonPressed(MouseButton.Left);
-        Label.Test(mouse);
-        Panel.Test(mouse);
+        Label.Test(mouse, scale);
+        Panel.Test(mouse, scale);
 
         if (hide_panel && !Label.IsHovered)
             Panel.Visible = false;

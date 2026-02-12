@@ -88,14 +88,14 @@ public class LoaderInterface
         RootPlanes.PositionGradients(RootGradients, width, height);
     }
 
-    public void Update(IProgressReport progressReport, MouseState mouseState)
+    public void Update(IProgressReport progressReport, MouseState mouseState, Vector2 scale)
     {
         foreach (var gradient in RootGradients)
         {
             gradient.Update();
         }
 
-        RootPanel.Test(mouseState);
+        RootPanel.Test(mouseState, scale);
         Label.SetTextContents(progressReport.Message);
         ProgressBar.Progress = (float)progressReport.Percentage;
     }

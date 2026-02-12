@@ -126,15 +126,18 @@ public abstract class UIElement(UIContext context, float x, float y, float width
 
     public Action<UIElement>? OnClick { get; set; }
 
-    public virtual void Test(MouseState mouse)
+    public virtual void Test(MouseState mouse, Vector2 scale)
     {
         if (!Visible) return;
 
         var absX = AbsoluteX;
         var absY = AbsoluteY;
+        
+        var mouseX = mouse.X / scale.X;
+        var mouseY = mouse.Y / scale.Y;
 
-        IsHovered = mouse.X >= absX && mouse.X <= absX + Width &&
-                    mouse.Y >= absY && mouse.Y <= absY + Height;
+        IsHovered = mouse.X >= absX && mouseX <= absX + Width &&
+                    mouse.Y >= absY && mouseY <= absY + Height;
 
         IsPressed = false;
 

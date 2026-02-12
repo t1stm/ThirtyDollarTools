@@ -28,11 +28,21 @@ public class Loader : ThirtyDollarVisualizer.Engine.Scenes.Scene, IGamePreloadab
     public bool Finished { get; private set; }
     
     private readonly LoaderInterface _loaderInterface;
+    private Vector2 _lastScale = Vector2.One;
 
     public Loader(SceneManager sceneManager, AudioContext? audioContext) : base(sceneManager)
     {
+        var clientSize = sceneManager.Game.ClientSize;
+        if (sceneManager.Game.TryGetCurrentMonitorScale(out var scaleX, out var scaleY))
+        {
+            _lastScale = new Vector2(scaleX, scaleY);
+            clientSize.X = (int)(clientSize.X / scaleX);
+            clientSize.Y = (int)(clientSize.Y / scaleY);
+        }
+        
         _audioContext = audioContext;
-        _camera = new DollarStoreCamera(Vector3.Zero, sceneManager.Game.ClientSize);
+        _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
+        
         _context = new UIContext
         {
             Camera = _camera
@@ -79,10 +89,11 @@ public class Loader : ThirtyDollarVisualizer.Engine.Scenes.Scene, IGamePreloadab
 
     public override void Update(UpdateArguments updateArgs)
     {
+        var mouseState = Game.MouseState;
         lock (_progressReport)
         {
             var progressReport = _progressReport;
-            _loaderInterface.Update(progressReport, Game.MouseState);
+            _loaderInterface.Update(progressReport, mouseState, _lastScale);
         }
         
         if (!_thirtyDollarDownloader.AssetsLoaded && !Finished) return;
@@ -98,9 +109,19 @@ public class Loader : ThirtyDollarVisualizer.Engine.Scenes.Scene, IGamePreloadab
 
     public override void Resize(int w, int h)
     {
-        _camera.Viewport = new Vector2i(w, h);
+        float width = w;
+        float height = h;
+        if (Game.TryGetCurrentMonitorScale(out var scaleX, out var scaleY))
+        {
+            width /= scaleX;
+            height /= scaleY;
+            _lastScale = new Vector2(scaleX, scaleY);
+        }
+        
+        _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
-        _loaderInterface.Resize(w, h);
+        
+        _loaderInterface.Resize(_camera.Width, _camera.Height);
     }
 
     public override void Shutdown()

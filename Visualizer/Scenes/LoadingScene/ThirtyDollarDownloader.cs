@@ -54,12 +54,15 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
             sampleDownloadReport.Percentage = current / (float)total;
             sampleDownloadReport.SoundName = sound.Id;
             var imagePath = sampleDownloadReport.DownloadLocation = $"{SampleHolder.ImagesLocation}/{sound.Id}.png";
-
-            LoadTextureToAtlasStore(imagePath, sound.Filename);
+            var filename = sound.Filename;
+            if (filename.StartsWith("action_"))
+                filename = filename.Replace("action_", "!");
+            
+            LoadTextureToAtlasStore(imagePath, filename);
             loadedSounds.Add(sound);
             StatusUpdate?.Invoke(sampleDownloadReport);
 
-            _logger.Debug("Downloaded and loaded image {SoundName} to {ImagePath}", sound, imagePath);
+            _logger.Debug("Downloaded and loaded image {SoundName} to {ImagePath}", filename, imagePath);
         };
         await SampleHolder.DownloadImages();
 
@@ -71,7 +74,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
             sampleDownloadReport.DownloadLocation = $"{SampleHolder.SamplesLocation}/{sound.Id}.wav";
 
             StatusUpdate?.Invoke(sampleDownloadReport);
-            _logger.Debug("Downloaded sound {SoundName} to {SampleLocation}", sound,
+            _logger.Debug("Downloaded sound {SoundName} to {SampleLocation}", sound.Id,
                 sampleDownloadReport.DownloadLocation);
         };
         await SampleHolder.DownloadSamples();
@@ -84,7 +87,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
     {
         var loadingEvent = new SampleLoadingReport
         {
-            Message = "Loading Sample Sounds..."
+            Message = "Loading Images..."
         };
 
         var index = 0;

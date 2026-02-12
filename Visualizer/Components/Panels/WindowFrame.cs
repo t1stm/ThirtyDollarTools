@@ -1,5 +1,6 @@
 using Components.Abstractions;
 using Components.Labels;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 
@@ -67,9 +68,9 @@ public class WindowFrame : Panel
         }
     }
 
-    public override void Test(MouseState mouse)
+    public override void Test(MouseState mouse, Vector2 scale)
     {
-        base.Test(mouse);
+        base.Test(mouse, scale);
 
         if (Header.IsPressed)
             ComputeHeaderPressed(mouse);

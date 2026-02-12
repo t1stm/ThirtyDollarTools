@@ -224,7 +224,7 @@ public class SampleHolder(ILogger logger)
 
             DownloadUpdate?.Invoke(new Sound
             {
-                Id = action.Replace("action_", "!")
+                Id = action
             }, i++, ActionsArray.Length);
         });
     }

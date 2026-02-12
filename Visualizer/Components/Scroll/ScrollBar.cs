@@ -50,11 +50,11 @@ public sealed class ScrollBar : Panel
         set => throw new NotSupportedException();
     }
 
-    public override void Test(MouseState mouse)
+    public override void Test(MouseState mouse, Vector2 scale)
     {
         if (!Visible) return;
-        base.Test(mouse);
-        ScrollBlock.Test(mouse);
+        base.Test(mouse, scale);
+        ScrollBlock.Test(mouse, scale);
         if (!ScrollBlock.IsPressed) return;
 
         var delta_y = mouse.Delta.Y;

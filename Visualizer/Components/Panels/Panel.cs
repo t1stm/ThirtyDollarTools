@@ -1,5 +1,6 @@
 using Components.Abstractions;
 using Components.Scroll;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer;
 using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
@@ -46,13 +47,13 @@ public class Panel : UIElement, IColoredBackground
 
     public Renderable? Background { get; set; }
 
-    public override void Test(MouseState mouse)
+    public override void Test(MouseState mouse, Vector2 scale)
     {
         if (!Visible) return;
-        base.Test(mouse);
+        base.Test(mouse, scale);
 
         foreach (var child in Children)
-            child.Test(mouse);
+            child.Test(mouse, scale);
     }
 
     public override void Update(UIContext uiContext)

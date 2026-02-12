@@ -1,5 +1,6 @@
 using Components.Abstractions;
 using Components.Panels;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer;
 
@@ -71,11 +72,11 @@ public class ProgressBar : UIElement
         ForegroundPanel.Update(uiContext);
     }
 
-    public override void Test(MouseState mouse)
+    public override void Test(MouseState mouse, Vector2 scale)
     {
         if (!Visible) return;
-        base.Test(mouse);
-        BackgroundPanel.Test(mouse);
+        base.Test(mouse, scale);
+        BackgroundPanel.Test(mouse, scale);
     }
 
     public override void InvalidateLayout()
