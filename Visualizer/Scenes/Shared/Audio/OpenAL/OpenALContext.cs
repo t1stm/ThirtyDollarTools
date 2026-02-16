@@ -1,16 +1,17 @@
 using OpenTK.Audio.OpenAL;
 using OpenTK.Audio.OpenAL.ALC;
-using Shared.Helpers.Logging;
+using Serilog;
 using ThirtyDollarEncoder.PCM;
 using ErrorCodeAl = OpenTK.Audio.OpenAL.ErrorCode;
 using ErrorCodeAlc = OpenTK.Audio.OpenAL.ALC.ErrorCode;
 
 namespace Shared.Audio.OpenAL;
 
-public class OpenALContext : AudioContext
+public class OpenALContext(ILogger logger) : AudioContext
 {
     private ALCContext _context;
     private ALCDevice _device;
+    private readonly ILogger _logger = logger.ForContext<OpenALContext>();
 
     public int UpdateRate
     {
@@ -50,7 +51,7 @@ public class OpenALContext : AudioContext
         }
         catch (Exception e)
         {
-            DefaultLogger.Log("OpenAL Error", e.ToString());
+            _logger.Error("Creation Error: {@Error}", e);
             return false;
         }
     }
@@ -78,14 +79,14 @@ public class OpenALContext : AudioContext
         while ((error = AL.GetError()) != ErrorCodeAl.NoError)
         {
             has_error = true;
-            DefaultLogger.Log("OpenAL Error", $"(0x{(int)error:x8}) \'{error}\'");
+            _logger.Error("OpenAL Error: ({@ErrorCode}) {@Error}", $"0x{error:x8}", error);
         }
 
         ErrorCodeAlc alc_error;
         while ((alc_error = ALC.GetError(_device)) != ErrorCodeAlc.NoError)
         {
             has_error = true;
-            DefaultLogger.Log("OpenAL Error", $"(0x{(int)error:x8}) \'{alc_error}\'");
+            _logger.Error("OpenALC Error: ({@ErrorCode}) {@Error}", $"0x{alc_error:x8}", alc_error);
         }
 
         return has_error;
@@ -93,6 +94,6 @@ public class OpenALContext : AudioContext
 
     public override OpenALBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
-        return new OpenALBuffer(this, sampleData, sampleRate);
+        return new OpenALBuffer(this, _logger, sampleData, sampleRate);
     }
 }

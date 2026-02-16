@@ -39,8 +39,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
         <ProjectReference Include="..\..\BASS.Redist\BASS.Redist.csproj"/>
-        <ProjectReference Include="..\..\Visualizer\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj"/>
-        <ProjectReference Include="..\Components\Components.csproj"/>
+        <ProjectReference Include="..\Engine\Sundex.Engine\Sundex.Engine.csproj" />
+        <ProjectReference Include="..\Sundex.Components\Sundex.Components.csproj" />
         <ProjectReference Include="..\Scenes\EditorScene\EditorScene.csproj"/>
         <ProjectReference Include="..\Scenes\HomeScene\HomeScene.csproj"/>
         <ProjectReference Include="..\Scenes\LoadingScene\LoadingScene.csproj"/>

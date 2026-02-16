@@ -2,8 +2,8 @@ using System.Diagnostics;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
-using ThirtyDollarVisualizer.Engine.Asset_Management;
-using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
+using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Renderer.Attributes;
 
 namespace VisualizerScene.Objects.Planes;
 

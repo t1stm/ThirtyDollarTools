@@ -6,7 +6,7 @@ using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
-using ThirtyDollarVisualizer.Engine;
+using Sundex.Engine;
 using ILogger = Serilog.ILogger;
 
 namespace Shared;
@@ -32,7 +32,7 @@ public class ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? conte
     public ILogger Log { get; set; } = logger.ForContext<ThirtyDollarWorkflow>();
     public required AtlasStore AtlasStore { get; set; }
     public required SampleHolder SampleHolder { get; set; }
-    public SequencePlayer SequencePlayer { get; } = new(context);
+    public SequencePlayer SequencePlayer { get; } = new(logger, context);
     public bool ShowDebugInfo { get; set; }
     public SequenceIndices SequenceIndices { get; private set; } = new();
     public Memory<SequenceInfo> Sequences { get; private set; } = Array.Empty<SequenceInfo>();

@@ -1,13 +1,16 @@
 ﻿using System.Reflection;
-using Components;
+using Sundex.Components;
 using EditorScene;
 using HomeScene;
 using LoadingScene;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using Playground;
+using Serilog;
+using Serilog.Templates;
+using Serilog.Templates.Themes;
 using Shared;
-using ThirtyDollarVisualizer.Engine;
+using Sundex.Engine;
 using VisualizerScene;
 
 Assembly[] assemblies =
@@ -21,7 +24,26 @@ Assembly[] assemblies =
     EditorAssembly.Assembly
 ];
 
-var game = new Game(assemblies, new GameWindowSettings(), new NativeWindowSettings
+        
+#if RELEASE
+const string logFilePath = "Visualizer_Release.log";
+#endif
+#if DEBUG
+        const string logFilePath = "Visualizer_Debug.log";
+#endif
+
+var serilogLogger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.Console(new ExpressionTemplate(
+        "[{@t:HH:mm:ss} {@l:u3}" +
+        "{#if SourceContext is not null} {Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}{#end}] {@m}\n{@x}",
+        theme: TemplateTheme.Code))
+    .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day,
+        rollOnFileSizeLimit: true, fileSizeLimitBytes: 100_000_000)
+    .MinimumLevel.Debug()
+    .CreateLogger();
+
+var game = new Game(serilogLogger, assemblies, new GameWindowSettings(), new NativeWindowSettings
 {
     ClientSize = (1024, 600),
     Vsync = VSyncMode.On,

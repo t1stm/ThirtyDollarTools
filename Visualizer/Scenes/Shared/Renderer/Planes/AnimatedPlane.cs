@@ -1,7 +1,8 @@
 using OpenTK.Mathematics;
 using Shared.Animations;
-using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
-using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
+using Sundex.Core.Animations;
+using Sundex.Engine.Renderer.Cameras;
+using Sundex.Engine.Renderer.Shaders;
 
 namespace Shared.Renderer.Planes;
 
@@ -19,13 +20,48 @@ public class AnimatedPlane<T>(T renderable, Animation animation) : Renderable
     
     #region Renderable Passthrough
 
-    public override Vector4 Color => Renderable.Color;
-    public override Matrix4 Model => Renderable.Model;
-    public override Vector3 Scale => Renderable.Scale;
-    public override Vector3 Position => Renderable.Position;
-    public override Vector3 Rotation => Renderable.Rotation;
-    public override Shader Shader => Renderable.Shader;
-    public override Vector3 Translation => Renderable.Translation;
+    public override Vector4 Color
+    {
+        get => Renderable.Color;
+        set => Renderable.Color = value;
+    }
+
+    public override Matrix4 Model
+    {
+        get => Renderable.Model;
+        set => Renderable.Model = value;
+    }
+
+    public override Vector3 Scale
+    {
+        get => Renderable.Scale;
+        set => Renderable.Scale = value;
+    }
+
+    public override Vector3 Position
+    {
+        get => Renderable.Position;
+        set => Renderable.Position = value;
+    }
+
+    public override Vector3 Rotation
+    {
+        get => Renderable.Rotation;
+        set => Renderable.Rotation = value;
+    }
+
+    public override Shader Shader
+    {
+        get => Renderable.Shader;
+        set => Renderable.Shader = value;
+    }
+
+    public override Vector3 Translation
+    {
+        get => Renderable.Translation;
+        set => Renderable.Translation = value;
+    }
+
     public override void Render(Camera camera) => Renderable.Render(camera);
     public override void SetShaderUniforms(Camera camera) => Renderable.SetShaderUniforms(camera);
     public override void SetTranslation(Vector3 translation) => Renderable.SetTranslation(translation);

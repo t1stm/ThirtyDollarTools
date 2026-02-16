@@ -2,11 +2,11 @@ using Shared.Audio.BASS;
 using Shared.Audio.Features;
 using Shared.Audio.Null;
 using Shared.Audio.OpenAL;
-using Shared.Helpers.Timing;
 using Shared.Objects;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser.Custom_Events;
-using ThirtyDollarVisualizer.Engine.Threading;
+using Sundex.Engine.Threading;
+using Serilog;
 
 namespace Shared.Audio;
 
@@ -19,7 +19,7 @@ public class SequencePlayer
     protected readonly long[] Bookmarks = new long[10];
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
     protected readonly Greeting? Greeting;
-    protected readonly Action<string>? Log;
+    protected readonly ILogger _logger;
     protected readonly SeekableStopwatch TimingStopwatch = new();
     protected readonly SemaphoreSlim UpdateLock = new(1);
     private bool _cutSounds;
@@ -38,18 +38,19 @@ public class SequencePlayer
     /// <summary>
     ///     Creates a player that plays Thirty Dollar sequences.
     /// </summary>
+    /// <param name="logger">The Logger instance you want to give.</param>
     /// <param name="context">The audio context you want to use.</param>
-    /// <param name="logAction">The logging action.</param>
-    public SequencePlayer(AudioContext? context = null, Action<string>? logAction = null)
+    public SequencePlayer(ILogger logger, AudioContext? context = null)
     {
         ++_instanceID;
+        _logger = logger.ForContext<SequencePlayer>();
+        
         BufferHolder = new BufferHolder();
         Events = new TimedEvents
         {
             Placement = [],
             TimingSampleRate = 100_000
         };
-        Log = logAction;
 
         var c = context;
         c?.Create();
@@ -82,11 +83,11 @@ public class SequencePlayer
     {
         AudioContext context;
 
-        if ((context = new BassAudioContext()).Create() ||
-            (context = new OpenALContext()).Create())
+        if ((context = new BassAudioContext(_logger)).Create() ||
+            (context = new OpenALContext(_logger)).Create())
             return context;
 
-        Log?.Invoke("Unable to initialize the audio device.");
+        _logger.Error("Unable to initialize the audio device.");
         return null;
     }
 

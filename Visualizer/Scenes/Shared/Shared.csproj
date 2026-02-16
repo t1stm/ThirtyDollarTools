@@ -16,6 +16,8 @@
         <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.vert"/>
         <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.frag"/>
         <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.vert"/>
+        <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.frag" />
+        <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.vert" />
         <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.frag"/>
         <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.vert"/>
         <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Animated.frag"/>
@@ -30,7 +32,8 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj"/>
         <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-        <ProjectReference Include="..\..\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj"/>
+        <ProjectReference Include="..\..\Engine\Sundex.Core\Sundex.Core.csproj" />
+        <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj" />
     </ItemGroup>
 
     <ItemGroup>

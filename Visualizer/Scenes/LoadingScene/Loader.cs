@@ -1,20 +1,21 @@
-using Components.Abstractions;
+using Sundex.Components.Abstractions;
 using LoadingScene.Reports;
-using LoadingScene.Scene;
+using LoadingScene.Scenes;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Audio;
-using ThirtyDollarVisualizer.Engine.Asset_Management;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
-using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
-using ThirtyDollarVisualizer.Engine.Scenes;
-using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
+using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer.Attributes;
+using Sundex.Engine.Scenes;
+using Sundex.Engine.Scenes.Arguments;
 
 namespace LoadingScene;
 
 [PreloadGraphicsContext]
-public class Loader : ThirtyDollarVisualizer.Engine.Scenes.Scene, IGamePreloadable
+public class Loader : Scene, IGamePreloadable
 {
     private static AssetProvider _assetProvider = null!;
     private readonly AudioContext? _audioContext;
@@ -29,6 +30,7 @@ public class Loader : ThirtyDollarVisualizer.Engine.Scenes.Scene, IGamePreloadab
     
     private readonly LoaderInterface _loaderInterface;
     private Vector2 _lastScale = Vector2.One;
+    private CursorType _cursorType = CursorType.Normal;
 
     public Loader(SceneManager sceneManager, AudioContext? audioContext) : base(sceneManager)
     {
@@ -45,7 +47,8 @@ public class Loader : ThirtyDollarVisualizer.Engine.Scenes.Scene, IGamePreloadab
         
         _context = new UIContext
         {
-            Camera = _camera
+            Camera = _camera,
+            RequestCursor = type => _cursorType = type
         };
         _thirtyDollarDownloader = new ThirtyDollarDownloader(sceneManager.Game.ThreadRunner, _assetProvider)
         {
@@ -84,27 +87,38 @@ public class Loader : ThirtyDollarVisualizer.Engine.Scenes.Scene, IGamePreloadab
 
     public override void TransitionedTo()
     {
-        
+        _loaderInterface.StartAnimations();
     }
 
     public override void Update(UpdateArguments updateArgs)
     {
+        _cursorType = CursorType.Normal;
         var mouseState = Game.MouseState;
+        
         lock (_progressReport)
         {
             var progressReport = _progressReport;
-            _loaderInterface.Update(progressReport, mouseState, _lastScale);
+            _loaderInterface.Update(progressReport, _context, mouseState, _lastScale);
         }
         
+        Game.Cursor = _cursorType switch
+        {
+            CursorType.Normal => MouseCursor.Default,
+            CursorType.Pointer => MouseCursor.PointingHand,
+            CursorType.ResizeX => MouseCursor.ResizeEW,
+            CursorType.ResizeY => MouseCursor.ResizeNS,
+            _ => MouseCursor.Default
+        };
+        
         if (!_thirtyDollarDownloader.AssetsLoaded && !Finished) return;
-
+        Finished = true;
+        
         var workflow = new ThirtyDollarWorkflow(Game, Logger, _audioContext)
         {
             AtlasStore = _thirtyDollarDownloader.AtlasStore,
             SampleHolder = _thirtyDollarDownloader.SampleHolder
         };
         OnFinish?.Invoke(workflow);
-        Finished = true;
     }
 
     public override void Resize(int w, int h)

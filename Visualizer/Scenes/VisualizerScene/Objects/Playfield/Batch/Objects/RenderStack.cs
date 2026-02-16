@@ -1,10 +1,10 @@
 using OpenTK.Graphics.OpenGL;
-using ThirtyDollarVisualizer.Engine.Renderer;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
-using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
-using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
-using ThirtyDollarVisualizer.Engine.Renderer.Queues;
-using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
+using Sundex.Engine.Renderer;
+using Sundex.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer.Buffers;
+using Sundex.Engine.Renderer.Cameras;
+using Sundex.Engine.Renderer.Queues;
+using Sundex.Engine.Renderer.Shaders;
 
 namespace VisualizerScene.Objects.Playfield.Batch.Objects;
 

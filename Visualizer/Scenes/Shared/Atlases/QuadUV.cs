@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
-using ThirtyDollarVisualizer.Engine.Renderer;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer;
+using Sundex.Engine.Renderer.Abstract;
 
 namespace Shared.Atlases;
 

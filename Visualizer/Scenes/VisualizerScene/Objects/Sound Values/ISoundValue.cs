@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
-using ThirtyDollarVisualizer.Engine.Renderer.Enums;
+using Sundex.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer.Enums;
 
 namespace VisualizerScene.Objects.Sound_Values;
 

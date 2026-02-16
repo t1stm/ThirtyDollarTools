@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Runtime.InteropServices;
 using ManagedBass;
-using Shared.Helpers.Logging;
+using Serilog;
 using ThirtyDollarEncoder.PCM;
 
 namespace Shared.Audio.BASS;
@@ -9,6 +9,7 @@ namespace Shared.Audio.BASS;
 public class BassBuffer : AudibleBuffer, IDisposable
 {
     private readonly List<int> _activeChannels = [];
+    private readonly ILogger _logger;
 
     private readonly AudioContext _context;
     private readonly SampleInfo _sampleInfo;
@@ -16,8 +17,10 @@ public class BassBuffer : AudibleBuffer, IDisposable
     private float _pan = 0.5f;
     public float RelativeVolume = .5f;
 
-    public unsafe BassBuffer(AudioContext context, AudioData<float> data, int sampleRate, int maxCount = 65535)
+    public unsafe BassBuffer(AudioContext context, ILogger logger, AudioData<float> data, int sampleRate,
+        int maxCount = 65535)
     {
+        _logger = logger.ForContext<BassBuffer>();
         var length = data.GetLength();
         var channels = (int)data.ChannelCount;
         _context = context;
@@ -91,7 +94,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
     {
         if (Bass.CPUUsage > 75d)
         {
-            DefaultLogger.Log("Bass", $"CPU usage reached: {Bass.CPUUsage:0.##}% CPU. Cutting old sounds.");
+            _logger.Warning("CPU usage reached: {CPUUsage:0.##}% CPU. Cutting old sounds.", Bass.CPUUsage);
             HandleCPUOverloaded();
         }
 

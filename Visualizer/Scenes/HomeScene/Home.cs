@@ -1,6 +1,6 @@
 ﻿using OpenTK.Windowing.GraphicsLibraryFramework;
-using ThirtyDollarVisualizer.Engine.Scenes;
-using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
+using Sundex.Engine.Scenes;
+using Sundex.Engine.Scenes.Arguments;
 
 namespace HomeScene;
 

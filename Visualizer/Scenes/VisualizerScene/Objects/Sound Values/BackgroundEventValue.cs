@@ -1,9 +1,9 @@
 using OpenTK.Mathematics;
 using Shared.Helpers.Decoders;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
-using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
-using ThirtyDollarVisualizer.Engine.Renderer.Enums;
-using ThirtyDollarVisualizer.Engine.Text;
+using Sundex.Engine.Renderer.Abstract.Extensions;
+using Sundex.Engine.Renderer.Buffers;
+using Sundex.Engine.Renderer.Enums;
+using Sundex.Engine.Text;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 

@@ -1,4 +1,4 @@
-using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
+using Sundex.Engine.Renderer.Shaders;
 
 namespace Shared.Renderer;
 

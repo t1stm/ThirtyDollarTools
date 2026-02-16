@@ -1,9 +1,9 @@
 using Shared.Helpers.Positioning;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract.Extensions;
-using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
-using ThirtyDollarVisualizer.Engine.Renderer.Enums;
-using ThirtyDollarVisualizer.Engine.Text;
+using Sundex.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer.Abstract.Extensions;
+using Sundex.Engine.Renderer.Cameras;
+using Sundex.Engine.Renderer.Enums;
+using Sundex.Engine.Text;
 
 namespace VisualizerScene;
 

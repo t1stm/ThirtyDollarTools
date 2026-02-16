@@ -1,5 +1,5 @@
 using OpenTK.Mathematics;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer.Abstract;
 
 namespace Shared.Helpers.Positioning;
 

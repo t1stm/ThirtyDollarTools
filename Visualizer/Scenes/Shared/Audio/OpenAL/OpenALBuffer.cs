@@ -1,5 +1,5 @@
 using OpenTK.Audio.OpenAL;
-using Shared.Helpers.Logging;
+using Serilog;
 using ThirtyDollarEncoder.PCM;
 
 namespace Shared.Audio.OpenAL;
@@ -11,8 +11,11 @@ public class OpenALBuffer : AudibleBuffer
     private float _pan;
     public float RelativeVolume = .5f;
 
-    public OpenALBuffer(AudioContext context, AudioData<float> sampleData, int sampleRate)
+    private readonly ILogger _logger;
+
+    public OpenALBuffer(AudioContext context, ILogger logger, AudioData<float> sampleData, int sampleRate)
     {
+        _logger = logger.ForContext<OpenALBuffer>();
         var length = sampleData.Samples[0].LongLength;
         var channels = (int)sampleData.ChannelCount;
         _context = context;
@@ -47,7 +50,7 @@ public class OpenALBuffer : AudibleBuffer
 
         if (!AL.IsSource(source))
         {
-            DefaultLogger.Log("OpenAL Error", $"Audio source ID \'{source}\' isn't a valid source.");
+            _logger.Error("Audio source ID '{Source}' isn't a valid source.", source);
             return;
         }
 

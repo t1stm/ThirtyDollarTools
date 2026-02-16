@@ -1,6 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
-using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
+using Sundex.Engine.Renderer.Textures.Atlases;
 
 namespace Shared.Atlases;
 

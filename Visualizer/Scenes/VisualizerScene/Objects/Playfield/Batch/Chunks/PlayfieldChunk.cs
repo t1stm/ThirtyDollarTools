@@ -1,7 +1,7 @@
 using Shared;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
-using ThirtyDollarVisualizer.Engine.Text;
+using Sundex.Engine.Text;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 using VisualizerScene.Objects.Sound_Values;
 

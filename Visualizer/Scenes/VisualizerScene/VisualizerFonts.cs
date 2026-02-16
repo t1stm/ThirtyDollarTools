@@ -1,6 +1,6 @@
-using ThirtyDollarVisualizer.Engine.Asset_Management;
-using ThirtyDollarVisualizer.Engine.Text;
-using ThirtyDollarVisualizer.Engine.Text.Fonts;
+using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Text;
+using Sundex.Engine.Text.Fonts;
 
 namespace VisualizerScene;
 

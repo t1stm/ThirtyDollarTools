@@ -1,0 +1,87 @@
+using OpenTK.Mathematics;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using Shared.Renderer.Planes;
+using Sundex.Components.Abstractions;
+using Sundex.Components.Panels;
+
+namespace Sundex.Components.Labels;
+
+public sealed class DropDownLabel : Panel
+{
+    public DropDownLabel(UIContext context, string text, List<UIElement> panelChildren, bool hoverChildren = true) :
+        base(context, 0, 0, 0, 0)
+    {
+        if (hoverChildren)
+            panelChildren.ForEach(child => child.UpdateCursorOnHover = true);
+        Panel = new FlexPanel(context)
+        {
+            Parent = this,
+            AutoWidth = true,
+            AutoHeight = true,
+            AutoSizeSelf = true,
+            Children = panelChildren,
+            Direction = LayoutDirection.Vertical,
+            Visible = false,
+            Background = new ColoredPlane
+            {
+                Color = (0.2f, 0.2f, 0.2f, 1f)
+            },
+            Spacing = 4,
+            Padding = 4
+        };
+
+        Label = new Label(context, text)
+        {
+            Parent = this,
+            UpdateCursorOnHover = true,
+            OnClick = _ => { Panel.Visible = !Panel.Visible; }
+        };
+
+        Children = [Label, Panel];
+    }
+
+    public FlexPanel Panel { get; }
+    public Label Label { get; }
+
+    public override float Width => Label.Width;
+    public override float Height => Label.Height;
+
+    protected override void DoLayout()
+    {
+        Label.Layout();
+
+        Panel.Y = Height + 10;
+        Panel.Layout();
+    }
+
+    public override void Test(MouseState mouse, Vector2 scale)
+    {
+        var hide_panel = mouse.IsButtonPressed(MouseButton.Left);
+        Label.Test(mouse, scale);
+        Panel.Test(mouse, scale);
+
+        if (hide_panel && !Label.IsHovered)
+            Panel.Visible = false;
+    }
+
+    protected override void DrawSelf(UIContext context)
+    {
+    }
+
+    #region IText
+
+    public ReadOnlySpan<char> Value
+    {
+        get => Label.Value;
+        set => Label.Value = value;
+    }
+
+    public float FontSizePx => Label.FontSizePx;
+
+    public void SetTextContents(string text)
+    {
+        Label.SetTextContents(text);
+    }
+
+    #endregion
+}

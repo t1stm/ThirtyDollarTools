@@ -1,0 +1,39 @@
+<sundex version="1.0" requires="[base, controls]">
+  <style language="engine">
+    class bigButton {
+    Width = 100px;
+    }
+
+    id firstButton {
+    Background = #001122AA;
+    }
+
+    component button {
+    Background = #998877DD;
+    }
+  </style>
+
+  <logic language="csharp">
+    <!-- 
+    SundexLogic<T> is a class that is passed to the logic block.
+    It can be accessed using `this.Context`.
+    <T> can be any class that is given to the SundexLogic constructor.
+    <T> can be accessed using the `this.Context.Data` property.
+    
+    For example:
+    var data = Context.Data;
+    data.MyProperty = 123;
+    data.OnClick = () => { }
+    
+    Side note: this XML comment is not supported by C#
+    -->
+  </logic>
+
+  <layout>
+
+    <button id="firstButton" class="bigButton">
+      <label value="" />
+    </button>
+
+  </layout>
+</sundex>

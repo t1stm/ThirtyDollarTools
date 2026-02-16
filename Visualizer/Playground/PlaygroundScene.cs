@@ -1,12 +1,12 @@
-using Components.Color_Scheme;
+using Sundex.Components.Color_Scheme;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Renderer.Planes;
 using Shared.Renderer.Planes.Uniforms;
-using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
-using ThirtyDollarVisualizer.Engine.Scenes;
-using ThirtyDollarVisualizer.Engine.Scenes.Arguments;
+using Sundex.Engine.Renderer.Cameras;
+using Sundex.Engine.Scenes;
+using Sundex.Engine.Scenes.Arguments;
 using VisualizerScene.Objects;
 
 namespace Playground;

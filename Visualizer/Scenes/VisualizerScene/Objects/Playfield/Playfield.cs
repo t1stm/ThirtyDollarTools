@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using Shared;
 using Shared.Renderer.Planes;
+using Sundex.Core.Animations;
 using ThirtyDollarParser;
 using VisualizerScene.Objects.Playfield.Batch;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;

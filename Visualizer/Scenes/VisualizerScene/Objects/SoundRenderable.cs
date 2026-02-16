@@ -1,6 +1,7 @@
 using OpenTK.Mathematics;
 using Shared.Animations;
 using Shared.Renderer;
+using Sundex.Core.Animations;
 using ThirtyDollarParser;
 using VisualizerScene.Objects.Sound_Values;
 

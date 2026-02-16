@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
-using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Texture;
-using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
-using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
+using Sundex.Engine.Asset_Management.Types.Texture;
+using Sundex.Engine.Renderer.Shaders;
+using Sundex.Engine.Renderer.Textures.Atlases;
 
 namespace Shared.Atlases;
 

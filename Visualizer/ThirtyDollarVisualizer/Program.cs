@@ -3,20 +3,22 @@
 
 using System.Reflection;
 using CommandLine;
-using Components;
+using Sundex.Components;
 using EditorScene;
 using HomeScene;
 using LoadingScene;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
+using Serilog;
+using Serilog.Templates;
+using Serilog.Templates.Themes;
 using Shared;
 using Shared.Audio;
 using Shared.Audio.BASS;
 using Shared.Audio.Null;
 using Shared.Audio.OpenAL;
-using Shared.Helpers.Logging;
 using SixLabors.ImageSharp;
-using ThirtyDollarVisualizer.Engine;
+using Sundex.Engine;
 using ThirtyDollarVisualizer.Settings;
 using VisualizerScene;
 
@@ -39,7 +41,25 @@ public static class Program
         int? line_amount = null;
         string? settings_location = null;
         bool? transparent_framebuffer = null;
-        string? mode = null;
+        
+#if RELEASE
+        const string logFilePath = "Visualizer_Release.log";
+#endif
+#if DEBUG
+        const string logFilePath = "Visualizer_Debug.log";
+#endif
+
+        var serilogLogger = new LoggerConfiguration()
+            .Enrich.FromLogContext()
+            .WriteTo.Console(new ExpressionTemplate(
+                "[{@t:HH:mm:ss} {@l:u3}" +
+                "{#if SourceContext is not null} {Substring(SourceContext, LastIndexOf(SourceContext, '.') + 1)}{#end}] {@m}\n{@x}",
+                theme: TemplateTheme.Code))
+            .WriteTo.File(logFilePath, rollingInterval: RollingInterval.Day,
+                rollOnFileSizeLimit: true, fileSizeLimitBytes: 100_000_000)
+            .MinimumLevel.Debug()
+            .CreateLogger();
+        
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -57,25 +77,22 @@ public static class Program
                 settings_location = options.SettingsLocation;
                 transparent_framebuffer = options.TransparentFramebuffer;
 
-                mode = options.Mode;
-
                 audio_context = no_audio
                     ? new NullAudioContext()
                     : options.AudioBackend switch
                     {
                         "null" => new NullAudioContext(),
-                        "openal" => new OpenALContext(),
-                        "bass" => new BassAudioContext(),
+                        "openal" => new OpenALContext(serilogLogger),
+                        "bass" => new BassAudioContext(serilogLogger),
                         _ => null
                     };
             });
-
-        DefaultLogger.Init();
+        
         Configuration.Default.PreferContiguousImageBuffers = true;
 
         if (sequence != null && !File.Exists(sequence))
         {
-            DefaultLogger.Log("Program", "Unable to find specified sequence. Running without a specified sequence.");
+            serilogLogger.Warning("Unable to find specified sequence. Running without a specified sequence.");
             sequence = null;
         }
 
@@ -129,7 +146,7 @@ public static class Program
             EditorAssembly.Assembly
         ];
 
-        var game = new Game(assemblies, gameWindowSettings, nativeWindowSettings, "ThirtyDollarVisualizer");
+        var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings, "ThirtyDollarVisualizer");
         if (game.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 

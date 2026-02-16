@@ -1,10 +1,10 @@
 using Serilog;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using ThirtyDollarVisualizer.Engine.Asset_Management;
-using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
-using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Texture;
-using ThirtyDollarVisualizer.Engine.Renderer.Textures.Atlases;
+using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.Asset_Management.Types.Texture;
+using Sundex.Engine.Renderer.Textures.Atlases;
 
 namespace Shared.Atlases;
 

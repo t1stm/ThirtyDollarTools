@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Shared.Atlases;
-using ThirtyDollarVisualizer.Engine.Renderer;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer;
+using Sundex.Engine.Renderer.Abstract;
 
 namespace VisualizerScene.Objects.Playfield.Batch.Objects;
 

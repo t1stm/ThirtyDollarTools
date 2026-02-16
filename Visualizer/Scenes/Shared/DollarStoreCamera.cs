@@ -1,6 +1,7 @@
 using OpenTK.Mathematics;
 using Shared.Animations;
-using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
+using Sundex.Core.Animations;
+using Sundex.Engine.Renderer.Cameras;
 
 namespace Shared;
 

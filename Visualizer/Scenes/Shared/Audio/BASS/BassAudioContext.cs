@@ -1,12 +1,13 @@
 using ManagedBass;
-using Shared.Helpers.Logging;
+using Serilog;
 using ThirtyDollarEncoder.PCM;
 
 namespace Shared.Audio.BASS;
 
-public class BassAudioContext : AudioContext
+public class BassAudioContext(ILogger logger) : AudioContext
 {
     public override string Name => "BASS";
+    private readonly ILogger _logger = logger.ForContext<BassAudioContext>(); 
 
     /// <summary>
     ///     Creates a global audio context.
@@ -30,7 +31,7 @@ public class BassAudioContext : AudioContext
         }
         catch (Exception e)
         {
-            DefaultLogger.Log("Bass Error", e.ToString());
+            _logger.Error("Creation Exception: {@Exception}", e);
             return false;
         }
     }
@@ -53,7 +54,7 @@ public class BassAudioContext : AudioContext
 
         while ((error = Bass.LastError) != Errors.OK)
         {
-            DefaultLogger.Log("Bass Error", error.ToString());
+            _logger.Error("Check Error: {@Exception}", error);
             has_error = true;
         }
 
@@ -62,6 +63,6 @@ public class BassAudioContext : AudioContext
 
     public override BassBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
-        return new BassBuffer(this, sampleData, sampleRate);
+        return new BassBuffer(this, _logger, sampleData, sampleRate);
     }
 }

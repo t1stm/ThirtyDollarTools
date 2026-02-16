@@ -3,9 +3,9 @@ using Serilog;
 using Shared.Atlases;
 using ThirtyDollarConverter;
 using ThirtyDollarParser;
-using ThirtyDollarVisualizer.Engine.Asset_Management;
-using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Asset;
-using ThirtyDollarVisualizer.Engine.Threading;
+using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.Threading;
 
 namespace LoadingScene;
 

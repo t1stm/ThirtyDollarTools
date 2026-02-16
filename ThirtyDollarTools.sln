@@ -43,9 +43,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Visualizer", "Visualizer", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer", "Visualizer\ThirtyDollarVisualizer\ThirtyDollarVisualizer.csproj", "{5ECD91C4-8558-4274-AD0E-2C0B0C122466}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer.Engine", "Visualizer\Engine\ThirtyDollarVisualizer.Engine\ThirtyDollarVisualizer.Engine.csproj", "{DF517DC7-35F6-4382-8522-693F6E5E1D2B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sundex.Engine", "Visualizer\Engine\Sundex.Engine\Sundex.Engine.csproj", "{DF517DC7-35F6-4382-8522-693F6E5E1D2B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirtyDollarVisualizer.Engine.DummyProject", "Visualizer\Engine\ThirtyDollarVisualizer.Engine.DummyProject\ThirtyDollarVisualizer.Engine.DummyProject.csproj", "{EDBB0343-21E7-42EE-8E5F-0F819A64E783}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sundex.Engine.DummyProject", "Visualizer\Engine\Sundex.Engine.DummyProject\Sundex.Engine.DummyProject.csproj", "{EDBB0343-21E7-42EE-8E5F-0F819A64E783}"
 EndProject
 
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scenes", "Scenes", "{DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA}"
@@ -58,14 +58,23 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EditorScene", "Visualizer\S
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Visualizer\Scenes\Shared\Shared.csproj", "{200A65BA-4A08-4FE2-89B5-6530A86BB0FA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Components", "Visualizer\Components\Components.csproj", "{16CF0613-8DC6-403B-A9D0-5D714396F100}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sundex.Components", "Visualizer\Sundex.Components\Sundex.Components.csproj", "{16CF0613-8DC6-403B-A9D0-5D714396F100}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HomeScene", "Visualizer\Scenes\HomeScene\HomeScene.csproj", "{D87C5CF3-5C84-4A5B-A8B8-85039C835F80}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Playground", "Visualizer\Playground\Playground.csproj", "{6F84DB70-0D5F-4E60-9725-80B5622AEEB9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Components.Tests", "Visualizer\Components.Tests\Components.Tests.csproj", "{C7E6AB35-090C-4C90-A28E-C0A87FFD8C6E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sundex.Components.Tests", "Visualizer\Sundex.Components.Tests\Sundex.Components.Tests.csproj", "{C7E6AB35-090C-4C90-A28E-C0A87FFD8C6E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sundex.Markup", "Visualizer\Engine\Sundex.Markup\Sundex.Markup.csproj", "{0FCCD5FF-F78E-43B3-94E3-CAA42528ABAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sundex.Markup.Tests", "Visualizer\Engine\Sundex.Markup.Tests\Sundex.Markup.Tests.csproj", "{B488B03A-DE2E-48AF-8DDB-83E68DBC1E41}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sundex.Core", "Visualizer\Engine\Sundex.Core\Sundex.Core.csproj", "{DF285298-BE38-48E5-A74D-88F1E22B119D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "User Interface", "User Interface", "{94C8139D-B973-4E28-9DB0-8EA791871E41}"
+EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -172,6 +181,18 @@ Global
 		{C7E6AB35-090C-4C90-A28E-C0A87FFD8C6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7E6AB35-090C-4C90-A28E-C0A87FFD8C6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7E6AB35-090C-4C90-A28E-C0A87FFD8C6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FCCD5FF-F78E-43B3-94E3-CAA42528ABAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FCCD5FF-F78E-43B3-94E3-CAA42528ABAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FCCD5FF-F78E-43B3-94E3-CAA42528ABAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FCCD5FF-F78E-43B3-94E3-CAA42528ABAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B488B03A-DE2E-48AF-8DDB-83E68DBC1E41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B488B03A-DE2E-48AF-8DDB-83E68DBC1E41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B488B03A-DE2E-48AF-8DDB-83E68DBC1E41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B488B03A-DE2E-48AF-8DDB-83E68DBC1E41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF285298-BE38-48E5-A74D-88F1E22B119D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF285298-BE38-48E5-A74D-88F1E22B119D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF285298-BE38-48E5-A74D-88F1E22B119D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF285298-BE38-48E5-A74D-88F1E22B119D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -199,10 +220,14 @@ Global
 		{5E96A329-BE07-4C94-8864-1F1E573DC695} = {DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA}
 		{2B8E07AF-5E15-4DE7-89D1-A50EAC23D5ED} = {DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA}
 		{25F27C8A-3154-45F4-ABCC-D03293A5117B} = {DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA}
-		{16CF0613-8DC6-403B-A9D0-5D714396F100} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
 		{200A65BA-4A08-4FE2-89B5-6530A86BB0FA} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
 		{D87C5CF3-5C84-4A5B-A8B8-85039C835F80} = {DADD5FC2-3922-457E-8BF2-DF7C38CBA2BA}
 		{6F84DB70-0D5F-4E60-9725-80B5622AEEB9} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
-		{C7E6AB35-090C-4C90-A28E-C0A87FFD8C6E} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
+		{DF285298-BE38-48E5-A74D-88F1E22B119D} = {F4A49CCF-2FF0-4C4F-9D25-934393D5F839}
+		{94C8139D-B973-4E28-9DB0-8EA791871E41} = {D5C41107-A123-4D71-943F-3A3B5EAC7322}
+		{C7E6AB35-090C-4C90-A28E-C0A87FFD8C6E} = {94C8139D-B973-4E28-9DB0-8EA791871E41}
+		{16CF0613-8DC6-403B-A9D0-5D714396F100} = {94C8139D-B973-4E28-9DB0-8EA791871E41}
+		{0FCCD5FF-F78E-43B3-94E3-CAA42528ABAC} = {94C8139D-B973-4E28-9DB0-8EA791871E41}
+		{B488B03A-DE2E-48AF-8DDB-83E68DBC1E41} = {94C8139D-B973-4E28-9DB0-8EA791871E41}
 	EndGlobalSection
 EndGlobal

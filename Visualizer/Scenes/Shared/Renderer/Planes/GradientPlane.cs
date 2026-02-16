@@ -2,16 +2,16 @@ using JetBrains.Annotations;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Shared.Renderer.Planes.Uniforms;
-using ThirtyDollarVisualizer.Engine.Asset_Management;
-using ThirtyDollarVisualizer.Engine.Asset_Management.Extensions;
-using ThirtyDollarVisualizer.Engine.Asset_Management.Types.Shader;
-using ThirtyDollarVisualizer.Engine.Renderer;
-using ThirtyDollarVisualizer.Engine.Renderer.Abstract;
-using ThirtyDollarVisualizer.Engine.Renderer.Attributes;
-using ThirtyDollarVisualizer.Engine.Renderer.Buffers;
-using ThirtyDollarVisualizer.Engine.Renderer.Cameras;
-using ThirtyDollarVisualizer.Engine.Renderer.Queues;
-using ThirtyDollarVisualizer.Engine.Renderer.Shaders;
+using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.Asset_Management.Types.Shader;
+using Sundex.Engine.Renderer;
+using Sundex.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer.Attributes;
+using Sundex.Engine.Renderer.Buffers;
+using Sundex.Engine.Renderer.Cameras;
+using Sundex.Engine.Renderer.Queues;
+using Sundex.Engine.Renderer.Shaders;
 
 namespace Shared.Renderer.Planes;
 
