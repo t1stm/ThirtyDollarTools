@@ -3,9 +3,11 @@ using Sundex.Engine.Renderer.Abstract.Extensions;
 
 namespace Sundex.Components.Panels;
 
-public class StackPanel(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
-    : Panel(context, x, y, width, height), IPositioningElement
+public class StackPanel(UIContext context)
+    : Panel(context), IPositioningElement
 {
+    public override string Tag => "stack";
+
     public LayoutDirection Direction
     {
         get;
@@ -38,8 +40,10 @@ public class StackPanel(UIContext context, float x = 0, float y = 0, float width
 
     protected override void DoLayout()
     {
-        var start_x = AbsoluteX + Padding;
-        var start_y = AbsoluteY + Padding;
+        var start_x = Computed.AbsoluteX + Padding;
+        var start_y = Computed.AbsoluteY + Padding;
+        var inner_width = Computed.Width - 2 * Padding;
+        var inner_height = Computed.Height - 2 * Padding;
 
         var offset = Direction switch
         {
@@ -52,25 +56,25 @@ public class StackPanel(UIContext context, float x = 0, float y = 0, float width
         {
             if (Direction == LayoutDirection.Vertical)
             {
-                child.X = start_x - AbsoluteX;
-                child.Y = offset - AbsoluteY;
-
-                if (child.AutoWidth) child.Width = Width - 2 * Padding;
-                offset += child.Height + Spacing;
+                child.X = start_x - Computed.AbsoluteX;
+                child.Y = offset - Computed.AbsoluteY;
+                
+                var ch = child.Height.IsPercentage ? inner_height * (child.Height.Value / 100f) : child.Height.Value;
+                offset += ch + Spacing;
             }
             else
             {
-                child.X = offset - AbsoluteX;
-                child.Y = start_y - AbsoluteY;
-
-                if (child.AutoHeight) child.Height = Height - 2 * Padding;
-                offset += child.Width + Spacing;
+                child.X = offset - Computed.AbsoluteX;
+                child.Y = start_y - Computed.AbsoluteY;
+                
+                var cw = child.Width.IsPercentage ? inner_width * (child.Width.Value / 100f) : child.Width.Value;
+                offset += cw + Spacing;
             }
 
             child.Layout();
         }
 
         Background?.SetPosition((start_x, start_y, 0));
-        Background?.Scale = (Width, Height, 1);
+        Background?.Scale = (Computed.Width, Computed.Height, 1);
     }
 }

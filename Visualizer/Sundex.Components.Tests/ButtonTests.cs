@@ -14,16 +14,16 @@ public class ButtonTests
 
         Assert.Equal("Click Me", button.Value.ToString());
         Assert.True(button.AutoSizeSelf);
-        Assert.True(button.AutoWidth);
-        Assert.True(button.AutoHeight);
     }
 
     [Fact]
     public void TestButtonValueChange()
     {
         var context = new TestUIContext();
-        var button = new Button(context, "Old Value");
-        button.Value = "New Value";
+        var button = new Button(context, "Old Value")
+        {
+            Value = "New Value"
+        };
 
         Assert.Equal("New Value", button.Value.ToString());
     }

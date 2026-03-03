@@ -1,5 +1,3 @@
-using Sundex.Style.DSL.Abstract.Values;
-
 namespace Sundex.Style.DSL.Abstract.Values.Keywords;
 
 public record GradientValue(IStyleValue Value) : IStyleValue

@@ -1,16 +1,20 @@
-using Sunder.Markup.Logic;
-using Sunder.Markup.State;
-using Sunder.Markup.Style;
+using Sunder.Markup.Abstract;
+using Sundex.Components.Abstractions;
 
 namespace Sunder.Markup;
 
-public class SundexComponent(SundexContext context, SundexState state)
+public class SundexComponent : ISundexComponent
 {
-    public SundexContext Context { get; } = context;
-    public string? Name { get; init; } = "";
-    public HashSet<SundexComponent> Dependencies { get; init; } = [];
-    public SundexState State { get; } = state;
+    public required ISundexContext Context { get; init; }
+    public required string Version { get; set; }
+    public required UIElement Element { get; set; }
     
-    public SundexStyle? Style { get; init; }
-    public SundexLogic? Logic { get; init; }
+    public HashSet<ISundexComponent> Dependencies { get; init; } = [];
+    public List<ISundexComponent> Children { get; init; } = [];
+    
+    public string? Name { get; init; }
+    public Action? RunLogic { get; init; }
+    
+    public Dictionary<string, UIElement> RegisteredIDs { get; init; } = [];
+    public Dictionary<string, List<UIElement>> RegisteredClasses { get; init; } = [];
 }

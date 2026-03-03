@@ -2,6 +2,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 
 namespace Sundex.Components.Panels;
@@ -16,10 +17,9 @@ public class WindowFrame : Panel
     private byte _resizingYMode;
     protected CursorType RequestedCursor;
 
-    public WindowFrame(UIContext context, float x = 0, float y = 0, float w = 600, float h = 400) : base(context, x, y,
-        w, h)
+    public WindowFrame(UIContext context) : base(context)
     {
-        Header = new FlexPanel(context, 0, 0, w, 30)
+        Header = new FlexPanel(context)
         {
             Background = new ColoredPlane
             {
@@ -27,14 +27,13 @@ public class WindowFrame : Panel
             },
             VerticalAlign = Align.Center,
             HorizontalAlign = Align.End,
-            AutoWidth = true,
             Padding = 10,
             Children =
             [
                 new Label(Context, "X")
             ]
         };
-        Container = new FlexPanel(context, 0, 0, w, h)
+        Container = new FlexPanel(context)
         {
             Children = [Header],
             Direction = LayoutDirection.Vertical
@@ -43,13 +42,13 @@ public class WindowFrame : Panel
         Children = [Container];
     }
 
-    public override float Width
+    public override LiteralOrPercentage Width
     {
         get => Container.Width;
         set => Container.Width = value;
     }
 
-    public override float Height
+    public override LiteralOrPercentage Height
     {
         get => Container.Height;
         set => Container.Height = value;
@@ -85,8 +84,8 @@ public class WindowFrame : Panel
 
     protected void ComputeHeaderPressed(MouseState mouse)
     {
-        X += mouse.Delta.X;
-        Y += mouse.Delta.Y;
+        X = Computed.X + mouse.Delta.X;
+        Y = Computed.Y + mouse.Delta.Y;
     }
 
     protected void ComputeResize(MouseState mouse)
@@ -96,10 +95,10 @@ public class WindowFrame : Panel
         var mx = mouse.X;
         var my = mouse.Y;
 
-        var x = AbsoluteX;
-        var y = AbsoluteY;
-        var xw = x + Width;
-        var yh = y + Height;
+        var x = Computed.AbsoluteX;
+        var y = Computed.AbsoluteY;
+        var xw = x + Computed.Width;
+        var yh = y + Computed.Height;
 
         var x_negative = mx > x - rt && mx <= x + rt;
         var x_positive = mx >= xw - rt && mx < xw + rt;
@@ -129,22 +128,22 @@ public class WindowFrame : Panel
         switch (_resizingXMode)
         {
             case 1:
-                Width += mouse.Delta.X;
+                Width = Computed.Width + mouse.Delta.X;
                 break;
             case 2:
-                X += mouse.Delta.X;
-                Width -= mouse.Delta.X;
+                X = Computed.X + mouse.Delta.X;
+                Width = Computed.Width - mouse.Delta.X;
                 break;
         }
 
         switch (_resizingYMode)
         {
             case 1:
-                Height += mouse.Delta.Y;
+                Height = Computed.Height + mouse.Delta.Y;
                 break;
             case 2:
-                Y -= mouse.Delta.Y;
-                Height += mouse.Delta.Y;
+                Y = Computed.Y - mouse.Delta.Y;
+                Height = Computed.Height + mouse.Delta.Y;
                 break;
         }
     }

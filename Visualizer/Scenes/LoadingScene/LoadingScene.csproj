@@ -8,9 +8,20 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+        <ProjectReference Include="..\..\Engine\Sundex.Markup\Sundex.Markup.csproj" />
         <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj" />
         <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj" />
         <ProjectReference Include="..\Shared\Shared.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Scenes\Layout\LoaderInterface.snx.sml" />
+      <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.xml" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Scenes\Layout\LoaderInterface.snx.ss" />
+      <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.ss" />
     </ItemGroup>
 
 </Project>

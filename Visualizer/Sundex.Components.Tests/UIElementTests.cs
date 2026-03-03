@@ -6,8 +6,9 @@ namespace Sundex.Components.Tests;
 public class UIElementTests
 {
     private class TestElement(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
-        : UIElement(context, x, y, width, height)
+        : UIElement(context)
     {
+        public override string Tag => "test";
         protected override void DrawSelf(UIContext context) { }
     }
 
@@ -17,8 +18,8 @@ public class UIElementTests
         var context = new TestUIContext();
         var element = new TestElement(context, 10, 20);
 
-        Assert.Equal(10, element.AbsoluteX);
-        Assert.Equal(20, element.AbsoluteY);
+        Assert.Equal(10, element.Computed.AbsoluteX);
+        Assert.Equal(20, element.Computed.AbsoluteY);
     }
 
     [Fact]
@@ -28,8 +29,8 @@ public class UIElementTests
         var parent = new TestElement(context, 100, 200);
         var child = new TestElement(context, 10, 20) { Parent = parent };
 
-        Assert.Equal(110, child.AbsoluteX);
-        Assert.Equal(220, child.AbsoluteY);
+        Assert.Equal(110, child.Computed.AbsoluteX);
+        Assert.Equal(220, child.Computed.AbsoluteY);
     }
 
     [Fact]
@@ -40,8 +41,8 @@ public class UIElementTests
         var middle = new TestElement(context, 50, 50) { Parent = root };
         var leaf = new TestElement(context, 10, 10) { Parent = middle };
 
-        Assert.Equal(160, leaf.AbsoluteX);
-        Assert.Equal(160, leaf.AbsoluteY);
+        Assert.Equal(160, leaf.Computed.AbsoluteX);
+        Assert.Equal(160, leaf.Computed.AbsoluteY);
     }
 
     [Fact]
@@ -53,10 +54,10 @@ public class UIElementTests
         var context = new TestUIContext();
         var element = new TestElement(context, 10, 10);
         
-        // Access AbsoluteX to clear dirty flag
-        _ = element.AbsoluteX;
+        // Access Computed.AbsoluteX to clear dirty flag
+        _ = element.Computed.AbsoluteX;
         
         element.X = 20;
-        Assert.Equal(20, element.AbsoluteX);
+        Assert.Equal(20, element.Computed.AbsoluteX);
     }
 }

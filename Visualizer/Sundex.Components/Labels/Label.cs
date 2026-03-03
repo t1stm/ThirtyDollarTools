@@ -1,5 +1,6 @@
 using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Attributes;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Text;
@@ -10,7 +11,7 @@ namespace Sundex.Components.Labels;
 public class Label : UIElement
 {
     protected readonly TextBuffer? TextBuffer;
-    private string _textValue = string.Empty;
+    private string _textValue;
 
     protected TextSlice? TextSlice
     {
@@ -24,20 +25,21 @@ public class Label : UIElement
         }
     }
 
-    public Label(UIContext context, ReadOnlySpan<char> text, float x = 0, float y = 0) : base(context, x, y, 0, 0)
+    public Label(UIContext context, ReadOnlySpan<char> text) : base(context)
     {
         _textValue = text.ToString();
-        if (context.TextProvider == null) return;
         TextBuffer = new TextBuffer(context.TextProvider);
         TextSlice = TextBuffer.GetTextSlice(text);
     }
 
+    [NamedSetting("text-value")]
     public ReadOnlySpan<char> Value
     {
         get => TextSlice != null ? TextSlice.Value : _textValue;
         set => SetTextContents(value);
     }
 
+    [NamedSetting("font-size")]
     public float FontSizePx
     {
         get;
@@ -54,14 +56,14 @@ public class Label : UIElement
         }
     }
 
+    [NamedSetting("font-color")]
     public Vector4 Color
     {
         get;
         set
         {
             field = value;
-            if (TextSlice != null)
-                TextSlice.Color = value;
+            TextSlice?.Color = value;
         }
     } = Vector4.One;
 
@@ -69,6 +71,8 @@ public class Label : UIElement
     {
         _textValue = text.ToString();
         if (TextSlice == null) return;
+        if (TextBuffer == null) return;
+        
         if (text.Length > TextSlice.Length)
         {
             TextSlice.Dispose();
@@ -79,7 +83,7 @@ public class Label : UIElement
             TextSlice.Color = Color;
 
             TextSlice.UpdateManually = false;
-            TextSlice.SetPosition((AbsoluteX, AbsoluteY, 0));
+            TextSlice.SetPosition((Computed.AbsoluteX, Computed.AbsoluteY, 0));
         }
         else
         {
@@ -101,9 +105,11 @@ public class Label : UIElement
         InvalidateLayout();
     }
 
+    public override string Tag => "label";
+
     protected override void DoLayout()
     {
-        TextSlice?.SetPosition((AbsoluteX, AbsoluteY, 0));
+        TextSlice?.SetPosition((Computed.AbsoluteX, Computed.AbsoluteY, 0));
     }
 
     protected override void DrawSelf(UIContext context)

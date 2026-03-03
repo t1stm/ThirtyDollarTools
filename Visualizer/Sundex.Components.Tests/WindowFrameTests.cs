@@ -7,8 +7,9 @@ namespace Sundex.Components.Tests;
 public class WindowFrameTests
 {
     private class TestElement(UIContext context, float width = 0, float height = 0)
-        : UIElement(context, 0, 0, width, height)
+        : UIElement(context)
     {
+        public override string Tag => "test";
         protected override void DrawSelf(UIContext context) { }
     }
 
@@ -16,7 +17,13 @@ public class WindowFrameTests
     public void TestWindowFrameInitialization()
     {
         var context = new TestUIContext();
-        var window = new WindowFrame(context, 100, 100, 400, 300);
+        var window = new WindowFrame(context)
+        {
+            X = 100,
+            Y = 100,
+            Width = 400,
+            Height = 300
+        };
 
         Assert.Equal(100, window.X);
         Assert.Equal(100, window.Y);
@@ -28,7 +35,13 @@ public class WindowFrameTests
     public void TestWindowFrameSetChild()
     {
         var context = new TestUIContext();
-        var window = new WindowFrame(context, 100, 100, 400, 300);
+        var window = new WindowFrame(context)
+        {
+            X = 100,
+            Y = 100,
+            Width = 400,
+            Height = 300
+        };
         var child = new TestElement(context, 200, 200);
         
         window.Child = child;
@@ -41,7 +54,13 @@ public class WindowFrameTests
     public void TestWindowFrameSizePropagation()
     {
         var context = new TestUIContext();
-        var window = new WindowFrame(context, 0, 0, 400, 300);
+        var window = new WindowFrame(context)
+        {
+            X = 0,
+            Y = 0,
+            Width = 400,
+            Height = 300,
+        };
         
         window.Width = 500;
         window.Height = 400;

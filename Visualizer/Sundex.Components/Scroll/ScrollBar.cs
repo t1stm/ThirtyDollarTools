@@ -2,6 +2,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
 
 namespace Sundex.Components.Scroll;
@@ -30,23 +31,34 @@ public sealed class ScrollBar : Panel
 
     public float Percentage { get; private set; }
 
-    public override float X
+    public override LiteralOrPercentage X
     {
-        get => Parent?.Width - Width ?? 0;
+        get
+        {
+            var pv = Parent?.Viewport;
+            if (pv is null) return 0;
+            var parentWidthPx = pv.Value.Z - pv.Value.X;
+            return parentWidthPx - Computed.Width;
+        }
         set => throw new NotSupportedException();
     }
 
-    public override float Y
+    public override LiteralOrPercentage Y
     {
         get => 0;
         set => throw new NotSupportedException();
     }
 
-    public override float Width { get; set; } = 20;
+    public override LiteralOrPercentage Width { get; set; } = 20;
 
-    public override float Height
+    public override LiteralOrPercentage Height
     {
-        get => Parent?.Height ?? 0;
+        get
+        {
+            var pv = Parent?.Viewport;
+            if (pv is null) return 0;
+            return pv.Value.W - pv.Value.Y;
+        }
         set => throw new NotSupportedException();
     }
 
@@ -58,18 +70,22 @@ public sealed class ScrollBar : Panel
         if (!ScrollBlock.IsPressed) return;
 
         var delta_y = mouse.Delta.Y;
-        var percentage_diff = delta_y / Height;
+        var percentage_diff = delta_y / Computed.Height;
 
         Percentage += percentage_diff;
         Percentage = Math.Clamp(Percentage, 0, 1);
-        ScrollBlock.Y = Percentage * (Height - ScrollBlock.Height);
+        var sbh = ScrollBlock.Height.IsPercentage ? Computed.Height * (ScrollBlock.Height.Value / 100f) : ScrollBlock.Height.Value;
+        var innerH = Computed.Height - sbh;
+        ScrollBlock.Y = Percentage * innerH;
     }
 
     protected override void DoLayout()
     {
         ScrollBlock.X = 0;
-        ScrollBlock.Y = Percentage * (Height - ScrollBlock.Height);
-        ScrollBlock.Width = Width;
+        var sbh = ScrollBlock.Height.IsPercentage ? Computed.Height * (ScrollBlock.Height.Value / 100f) : ScrollBlock.Height.Value;
+        var innerH = Computed.Height - sbh;
+        ScrollBlock.Y = Percentage * innerH;
+        ScrollBlock.Width = Computed.Width;
         base.DoLayout();
     }
 

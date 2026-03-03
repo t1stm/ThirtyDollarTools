@@ -4,9 +4,9 @@ namespace Sundex.Core.Animations;
 
 public class KeyframedAnimation : Animation
 {
-    public Keyframe[] Keyframes { get; }
+    public IReadOnlyList<Keyframe> Keyframes { get; }
     
-    public KeyframedAnimation(Keyframe[] keyframes) : base((int)
+    public KeyframedAnimation(IReadOnlyList<Keyframe> keyframes) : base((int)
         Math.Ceiling(keyframes.Sum(position => position.LengthMs)))
     {
         Keyframes = keyframes;
@@ -25,7 +25,7 @@ public class KeyframedAnimation : Animation
         var invertMs = 0f;
 
         var currentMs = 0f;
-        for (var i = 0; i < Keyframes.Length; i++)
+        for (var i = 0; i < Keyframes.Count; i++)
         {
             if (Keyframes[i].LoopingMode == AnimationLoopingMode.LoopStart)
             {
@@ -86,7 +86,7 @@ public class KeyframedAnimation : Animation
                 default:
                     if (elapsed >= totalLength)
                     {
-                        if (Keyframes.Length == 0) return (default, null, 0);
+                        if (Keyframes.Count == 0) return (default, null, 0);
                         if (!TimingStopwatch.IsRunning) return (Keyframes[^1], null, 1f);
 
                         TimingStopwatch.Stop();
@@ -100,20 +100,20 @@ public class KeyframedAnimation : Animation
 
         var currentStart = 0f;
 
-        for (var i = 0; i < Keyframes.Length; i++)
+        for (var i = 0; i < Keyframes.Count; i++)
         {
             var data = Keyframes[i];
             if (elapsed < currentStart + data.LengthMs)
             {
                 var progress = (elapsed - currentStart) / data.LengthMs;
                 progress = SteppingFunctions.Apply(data.SteppingFunction, progress);
-                return (data, i + 1 < Keyframes.Length ? Keyframes[i + 1] : null, progress);
+                return (data, i + 1 < Keyframes.Count ? Keyframes[i + 1] : null, progress);
             }
 
             currentStart += data.LengthMs;
         }
 
-        if (Keyframes.Length == 0) return (default, null, 0);
+        if (Keyframes.Count == 0) return (default, null, 0);
 
         return (Keyframes[^1], null, 1f);
     }

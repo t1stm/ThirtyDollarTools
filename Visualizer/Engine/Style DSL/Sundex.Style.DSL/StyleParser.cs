@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Text;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
@@ -6,22 +8,21 @@ namespace Sundex.Style.DSL;
 
 public class StyleParser(
     string dsl,
-    string? basePath = null,
     Func<string, string>? fileLoader = null,
     HashSet<string>? importedPaths = null)
 {
     private int _pos;
     private readonly HashSet<string> _importedPaths = importedPaths ?? [];
 
-    public static StyleSheet Parse(string dsl, string? basePath = null, Func<string, string>? fileLoader = null)
+    public static StyleSheetHolder Parse(string dsl, Func<string, string>? fileLoader = null)
     {
-        var parser = new StyleParser(dsl, basePath, fileLoader);
+        var parser = new StyleParser(dsl, fileLoader);
         return parser.ParseSheet();
     }
 
-    private StyleSheet ParseSheet()
+    private StyleSheetHolder ParseSheet()
     {
-        var sheet = new StyleSheet();
+        var sheet = new StyleSheetHolder();
         while (!IsAtEnd())
         {
             SkipWhitespaceAndComments();
@@ -45,7 +46,7 @@ public class StyleParser(
     }
 
     private void ParseBlock(Dictionary<string, Dictionary<string, IStyleValue>> target, bool allowState = false,
-        bool isOverride = false, StyleSheet? sheet = null)
+        bool isOverride = false, StyleSheetHolder? sheet = null)
     {
         SkipWhitespaceAndComments();
         var name = ReadIdentifier();
@@ -118,9 +119,13 @@ public class StyleParser(
         if (Check('[')) return ParseArrayOrMap();
 
         var identifier = ReadIdentifier();
-        if (identifier == "vec2") return ParseVector();
-
-        return new StringValue(identifier); // Fallback for unquoted strings/keywords
+        return identifier switch
+        {
+            "vec2" => ParseVector(2),
+            "vec3" => ParseVector(3),
+            "vec4" => ParseVector(4),
+            _ => new StringValue(identifier)
+        };
     }
 
     private NumberValue ParseNumber()
@@ -129,10 +134,10 @@ public class StyleParser(
         if (Peek() == '-') Advance();
         while (!IsAtEnd() && (char.IsDigit(Peek()) || Peek() == '.')) Advance();
         var numStr = dsl[start.._pos];
-        var val = double.Parse(numStr);
+        var val = float.Parse(numStr);
 
         var unitStart = _pos;
-        while (!IsAtEnd() && char.IsLetter(Peek()) || Peek() == '%') Advance();
+        while (!IsAtEnd() && (char.IsLetter(Peek()) || Peek() == '%')) Advance();
         var unit = dsl[unitStart.._pos];
 
         return new NumberValue(val, unit);
@@ -177,7 +182,8 @@ public class StyleParser(
             var value = ParseValue();
             properties[key] = value;
             SkipWhitespaceAndComments();
-            if (Check(';')) Advance();
+            // Allow either ';' or ',' as a property separator inside nested blocks
+            if (Check(';') || Check(',')) Advance();
             SkipWhitespaceAndComments();
         }
 
@@ -219,19 +225,32 @@ public class StyleParser(
         return isMap ? new MapValue(map) : new ArrayValue(list);
     }
 
-    private VectorValue ParseVector()
+    private VectorValue ParseVector(int dimensions)
     {
+        var values = ArrayPool<NumberValue>.Shared.Rent(dimensions);
+        var span = values.AsSpan()[..dimensions];
+
         Consume('(');
-        var x = ParseValue();
-        SkipWhitespaceAndComments();
-        Consume(',');
-        var y = ParseValue();
-        SkipWhitespaceAndComments();
+        for (var i = 0; i < dimensions; i++)
+        {
+            SkipWhitespaceAndComments();
+            var parsed = ParseValue();
+            if (parsed is not NumberValue number)
+                throw new Exception($"Expected number value for vector dimension {i + 1} but found {parsed}");
+
+            span[i] = number;
+            SkipWhitespaceAndComments();
+            if (i < dimensions - 1)
+                Consume(',');
+        }
+
         Consume(')');
-        return new VectorValue(((NumberValue)x).Value, ((NumberValue)y).Value);
+
+        ArrayPool<NumberValue>.Shared.Return(values);
+        return new VectorValue(span);
     }
 
-    private void ParseImport(StyleSheet sheet)
+    private void ParseImport(StyleSheetHolder sheetHolder)
     {
         SkipWhitespaceAndComments();
         var path = ReadString();
@@ -240,22 +259,12 @@ public class StyleParser(
 
         if (fileLoader == null) return;
 
-        var fullPath = basePath != null ? Path.Combine(basePath, path) : path;
-        try
-        {
-            fullPath = Path.GetFullPath(fullPath);
-        }
-        catch
-        {
-            // Fallback for non-file paths in tests if needed
-        }
+        if (!_importedPaths.Add(path)) return;
+        var importedDsl = fileLoader(path);
 
-        if (!_importedPaths.Add(fullPath)) return;
-
-        var importedDsl = fileLoader(fullPath);
-        var importedParser = new StyleParser(importedDsl, Path.GetDirectoryName(fullPath), fileLoader, _importedPaths);
+        var importedParser = new StyleParser(importedDsl, fileLoader, _importedPaths);
         var importedSheet = importedParser.ParseSheet();
-        sheet.Merge(importedSheet);
+        sheetHolder.Merge(importedSheet);
     }
 
     private string ReadIdentifier()
@@ -311,7 +320,48 @@ public class StyleParser(
 
     private void Consume(char c)
     {
-        if (Peek() != c) throw new Exception($"Expected {c} but found {Peek()} at {_pos}");
-        Advance();
+        var foundChar = IsAtEnd() ? '\0' : Peek();
+        if (foundChar == c)
+        {
+            Advance();
+            return;
+        }
+
+        const int linesBefore = 5;
+        const int linesAfter = 5;
+
+        var errorPosition = _pos;
+        var text = dsl.AsSpan();
+
+        int startI;
+        int endI;
+
+        var count = 0;
+        for (startI = errorPosition; startI >= 0; startI--)
+        {
+            if (text[startI] == '\n')
+                count++;
+
+            if (count == linesBefore)
+                break;
+        }
+
+        for (endI = errorPosition; endI < dsl.Length; endI++)
+        {
+            if (text[endI] == '\n')
+                count++;
+
+            if (count == linesAfter)
+                break;
+        }
+
+        var slice = text[startI..endI];
+        var normalizedPosition = errorPosition - startI;
+        var stringified = slice.ToString();
+
+        stringified = stringified.Insert(normalizedPosition, "<--- HERE");
+        throw new Exception($"Expected '{c}' but found character '{foundChar}.\n" +
+                            "=== SOURCE CODE===\n\n" +
+                            stringified);
     }
 }

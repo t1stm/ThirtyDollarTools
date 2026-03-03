@@ -9,11 +9,10 @@
 // special keywords like !override, !gradient, !deg and !direction are prefixed with "!".
 
 animation fade-in {
-    timing-function = "ease-in";
-    duration = 1s;
+    timing-function = "ease-in-out";
     keyframes = !keyframes [
         0% = { opacity = 0 },
-        100% = { opacity = 1 }
+        100% = { opacity = 1, loop = "reset" }
     ];
 }
 
@@ -22,7 +21,7 @@ animation fade-out {
     duration = 1s;
     keyframes = !keyframes [
         { opacity = 100% },
-        { opacity = 0% }
+        { opacity = 0%, loop = "invert" }
     ];
 }
 

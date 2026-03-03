@@ -6,9 +6,10 @@ namespace Sundex.Components.Tests;
 
 public class PanelTests
 {
-    private class TestElement(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
-        : UIElement(context, x, y, width, height)
+    private class TestElement(UIContext context)
+        : UIElement(context)
     {
+        public override string Tag => "test";
         protected override void DrawSelf(UIContext context) { }
     }
 
@@ -59,7 +60,13 @@ public class PanelTests
     {
         var context = new TestUIContext();
         var panel = new Panel(context) { Width = 100, Height = 100 };
-        var child = new TestElement(context, 10, 10, 50, 50);
+        var child = new TestElement(context)
+        {
+            X = 10,
+            Y = 10,
+            Width = 50,
+            Height = 50
+        };
         panel.AddChild(child);
 
         // Child should start with NeedsLayout = true
@@ -68,7 +75,7 @@ public class PanelTests
         panel.Layout();
 
         Assert.False(child.NeedsLayout);
-        Assert.Equal(10, child.AbsoluteX);
-        Assert.Equal(10, child.AbsoluteY);
+        Assert.Equal(10, child.Computed.AbsoluteX);
+        Assert.Equal(10, child.Computed.AbsoluteY);
     }
 }

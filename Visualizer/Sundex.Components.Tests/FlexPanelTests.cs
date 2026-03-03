@@ -1,14 +1,15 @@
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 
 public class FlexPanelTests
 {
-    private class TestElement(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
-        : UIElement(context, x, y, width, height)
+    private class TestElement(UIContext context)
+        : UIElement(context)
     {
+        public override string Tag => "test";
         protected override void DrawSelf(UIContext context) { }
     }
 
@@ -123,7 +124,7 @@ public class FlexPanelTests
             Height = 100,
             Direction = LayoutDirection.Horizontal
         };
-        var child1 = new TestElement(context) { AutoWidth = true, Height = 20 };
+        var child1 = new TestElement(context) { Width = new LiteralOrPercentage(100, true), Height = 20 };
         var child2 = new TestElement(context) { Width = 30, Height = 20 };
         flex.Children = [child1, child2];
 

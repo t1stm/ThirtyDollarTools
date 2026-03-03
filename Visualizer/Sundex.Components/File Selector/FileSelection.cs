@@ -12,16 +12,15 @@ public sealed class FileSelection : Panel
     private readonly FlexPanel _mainLayout;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    public FileSelection(UIContext context, float x = 0, float y = 0, float width = 600, float height = 400) : base(
-        context, x, y, width, height)
+    public FileSelection(UIContext context) : base(context)
     {
-        var top_section = new FlexPanel(context, 0, 0, 0, 30)
+        var top_section = new FlexPanel(context)
         {
             Direction = LayoutDirection.Horizontal,
+            Height = 30,
             Padding = 5,
             Spacing = 10,
             VerticalAlign = Align.Center,
-            AutoWidth = true,
             Background = new ColoredPlane
             {
                 Color = (0.15f, 0.15f, 0.15f, 1.0f)
@@ -37,7 +36,6 @@ public sealed class FileSelection : Panel
                 _currentPathLabel = new Label(Context, CurrentPath)
                 {
                     FontSizePx = 12,
-                    AutoWidth = true,
                     UpdateCursorOnHover = true
                 }
             ]
@@ -48,8 +46,6 @@ public sealed class FileSelection : Panel
             Direction = LayoutDirection.Vertical,
             Padding = 5,
             Spacing = 10,
-            AutoWidth = true,
-            AutoHeight = true,
             Background = new ColoredPlane
             {
                 Color = (0.1f, 0.1f, 0.1f, 1.0f)
@@ -57,14 +53,14 @@ public sealed class FileSelection : Panel
             ScrollOnOverflow = true
         };
 
-        var bottom_section = new FlexPanel(context, 0, 0, 0, 34)
+        var bottom_section = new FlexPanel(context)
         {
+            Height = 34,
             Direction = LayoutDirection.Horizontal,
             VerticalAlign = Align.Center,
             HorizontalAlign = Align.End,
             Padding = 5,
             Spacing = 10,
-            AutoWidth = true,
             Background = new ColoredPlane
             {
                 Color = (0.15f, 0.15f, 0.15f, 1.0f)
@@ -88,8 +84,6 @@ public sealed class FileSelection : Panel
 
         _mainLayout = new FlexPanel(context)
         {
-            AutoWidth = true,
-            AutoHeight = true,
             Direction = LayoutDirection.Vertical,
             Padding = 10,
             Spacing = 10,

@@ -2,6 +2,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
 
 namespace Sundex.Components.Labels;
@@ -9,15 +10,14 @@ namespace Sundex.Components.Labels;
 public sealed class DropDownLabel : Panel
 {
     public DropDownLabel(UIContext context, string text, List<UIElement> panelChildren, bool hoverChildren = true) :
-        base(context, 0, 0, 0, 0)
+        base(context)
     {
         if (hoverChildren)
             panelChildren.ForEach(child => child.UpdateCursorOnHover = true);
+        
         Panel = new FlexPanel(context)
         {
             Parent = this,
-            AutoWidth = true,
-            AutoHeight = true,
             AutoSizeSelf = true,
             Children = panelChildren,
             Direction = LayoutDirection.Vertical,
@@ -43,14 +43,14 @@ public sealed class DropDownLabel : Panel
     public FlexPanel Panel { get; }
     public Label Label { get; }
 
-    public override float Width => Label.Width;
-    public override float Height => Label.Height;
+    public override LiteralOrPercentage Width => Label.Width;
+    public override LiteralOrPercentage Height => Label.Height;
 
     protected override void DoLayout()
     {
         Label.Layout();
 
-        Panel.Y = Height + 10;
+        Panel.Y = Computed.Height + 10;
         Panel.Layout();
     }
 

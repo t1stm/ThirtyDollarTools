@@ -1,4 +1,3 @@
-using Shared.Renderer;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Color_Scheme;
@@ -8,7 +7,8 @@ namespace Sundex.Components.Labels;
 
 public class Button : FlexPanel
 {
-    private readonly Label _label;
+    public override string Tag => "button";
+    public Label Label { get; set; }
 
     public Button(UIContext context, string label, Renderable? background = null) : this(context,
         new Label(context, label), background)
@@ -18,9 +18,6 @@ public class Button : FlexPanel
     public Button(UIContext context, Label label, Renderable? background = null) : base(context)
     {
         AutoSizeSelf = true;
-        AutoWidth = true;
-        AutoHeight = true;
-
         Padding = 5;
         Background = background ?? new ColoredPlane
         {
@@ -28,19 +25,19 @@ public class Button : FlexPanel
             BorderRadius = 10
         };
 
-        Children = [_label = label];
+        Children = [Label = label];
         UpdateCursorOnHover = true;
     }
 
     public ReadOnlySpan<char> Value
     {
-        get => _label.Value;
-        set => _label.Value = value;
+        get => Label.Value;
+        set => Label.Value = value;
     }
 
     public float FontSizePx
     {
-        get => _label.FontSizePx;
-        set => _label.FontSizePx = value;
+        get => Label.FontSizePx;
+        set => Label.FontSizePx = value;
     }
 }

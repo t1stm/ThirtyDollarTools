@@ -10,7 +10,7 @@ Incredibly simple HTML-style markup language.
 
 ```xml
 <sundex version="1.0" requires="[base, controls, custom-component]">
-  <style language="engine">
+  <style language="sundex">
     class bigButton {
       Width = 100px;
     }
@@ -25,14 +25,13 @@ Incredibly simple HTML-style markup language.
   </style>
   
   <logic language="csharp" context-hint="MyCustomComponentClass" using="[System]">
-    <!-- For more information check the dedicated logic language documentation: ./docs/LOGIC.md -->
+    <!-- For more information check the dedicated logic language documentation: ./docs/logic.md -->
     [!<![CDATA[
     
-    var state = Context.State;
     MyCustomComponentClass data = Context.Data;
-
-    TrackedState<T> buttonValue = state.Get<T>(id: "", bind: "firstButton");
-    Assert.Types<string>(buttonValue); // will throw an exception if TrackedState<T> is not a string
+    
+    TrackedState<T> buttonValue = State.Get<T>(id: "", bind: "firstButton");
+    buttonValue.Assert<string>();
 
     string value = buttonValue.Value;
     data.MyProperty = 123; // not sure why you'd want to do this, but it's possible
@@ -62,9 +61,9 @@ The base building components are defined as C# classes first but other component
 Here's an example of a component that is defined in markup:
 
 ```xml
-<sundex version="1.0" component="custom-component" collections="[custom-components, other-custom-stuff]" requires="[base]">
+<sundex version="1.0" component="custom-component" part-of="[custom-components, other-custom-stuff]" requires="[base]">
   <!-- <logic> and <style> are optional for all custom components -->
-  <style language="engine">
+  <style language="sundex">
     
   </style>
   

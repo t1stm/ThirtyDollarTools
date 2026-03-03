@@ -21,7 +21,7 @@ public class StyleParserKeywordTests
     public void KeyframesValue_TypedAccess_Works()
     {
         var root = GetProjectRoot();
-        var path = Path.Combine(root, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snxs");
+        var path = Path.Combine(root, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
 
@@ -42,7 +42,7 @@ public class StyleParserKeywordTests
     public void GradientValue_Linear_TypedAccess_Works()
     {
         var root = GetProjectRoot();
-        var path = Path.Combine(root, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snxs");
+        var path = Path.Combine(root, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
 
@@ -74,7 +74,7 @@ public class StyleParserKeywordTests
     public void GradientValue_Radial_TypedAccess_Works()
     {
         var root = GetProjectRoot();
-        var path = Path.Combine(root, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snxs");
+        var path = Path.Combine(root, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
 
@@ -105,7 +105,7 @@ public class StyleParserKeywordTests
     public void OverrideValue_TypedAccess_Works()
     {
         var root = GetProjectRoot();
-        var path = Path.Combine(root, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snxs");
+        var path = Path.Combine(root, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
 

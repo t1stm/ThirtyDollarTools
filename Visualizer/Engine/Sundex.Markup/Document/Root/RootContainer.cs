@@ -10,7 +10,7 @@ public class RootContainer
 {
     public RootContainer(XmlElement rootElement)
     {
-        if (rootElement is not { Name: "sunder" })
+        if (rootElement is not { Name: "sundex" })
         {
             throw new XmlException("Root element must be <sunder>");
         }
@@ -46,7 +46,7 @@ public class RootContainer
             Implements = implements;
         
         Imports = TryParseListTypeAttribute(rootElement, "imports");
-        Collections = TryParseListTypeAttribute(rootElement, "collections");
+        PartOfCollections = TryParseListTypeAttribute(rootElement, "part-of");
     }
 
     private static List<string> TryParseListTypeAttribute(XmlElement rootElement, string attribute)
@@ -69,7 +69,6 @@ public class RootContainer
     public string Version { get; private set; }
     public string? Component { get; private set; }
     public string? Implements { get; private set; }
-    
-    public List<string> Collections { get; private set; } = [];
-    public List<string> Imports { get; private set; } = [];
+    public List<string> Imports { get; private set; }
+    public List<string> PartOfCollections { get; init; }
 }

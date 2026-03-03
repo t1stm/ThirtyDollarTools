@@ -1,91 +1,47 @@
-using Sunder.Markup.Document;
-using Sunder.Markup.Logic;
-using Sunder.Markup.State;
-using Sunder.Markup.Style;
+using Sunder.Markup.Abstract;
+using Sunder.Markup.Builders;
+using Sundex.Components.Abstractions;
 
 namespace Sunder.Markup;
 
-public class SundexContext
+public class SundexContext<T>(T contextProvider, UIContext context) : ISundexContext where T : class
 {
-    // base => [flex, stack, label, etc...]
-    // controls => [button, input (future), dropdown (future)]
-    public Dictionary<string, List<SundexComponent>> ComponentCollections { get; } = []; 
+    public UIContext UIContext { get; } = context;
+    public T ContextProvider { get; } = contextProvider;
     
-    public SundexComponent LoadComponent(SundexDocument document)
+    public Dictionary<string, IComponentBuilder> ComponentBuilderVersions { get; } = new()
     {
-        var lookup = ComponentCollections.GetAlternateLookup<ReadOnlySpan<char>>();
+        {ComponentBuilderV1.Version, new ComponentBuilderV1()}
+    };
+    
+    public Dictionary<string, ISundexComponent> LoadedComponents { get; } = [];
 
-        var componentName = document.Root.Component;
-        var imports = document.Root.Imports;
-        HashSet<SundexComponent> dependencies = [];
+    public SundexComponent NewComponent(string smxlMarkup)
+    {
+        var layout = MarkupParser.Parse(smxlMarkup);
+        var version = layout.Root.Version;
 
-        LoadDependenciesFromCollections(imports, lookup, dependencies);
-        var state = new SundexState();
-        
-        SundexLogic? logic = null;
-        if (document.Logic is not null)
-        {
-            logic = new SundexLogic(this, document.Logic, state);
-        }
-        
-        SundexStyle? style = null;
-        if (document.Style is not null)
-        {
-            style = new SundexStyle(this, document.Style, state);
-        }
-        
-        var component = new SundexComponent(this, state)
-        {
-            Name = componentName,
-            Dependencies = dependencies,
-            Logic = logic,
-            Style = style
-        };
-        
-        // stage: finalize add component to collections
-        AddComponentToLookup(document, componentName, lookup, component);
-        return component;
+        var lookup = ComponentBuilderVersions.GetAlternateLookup<ReadOnlySpan<char>>();
+        return !lookup.TryGetValue(version, out var builder)
+            ? throw new Exception("No builder found for the version specified in the document markup.")
+            : builder.CreateComponent(layout, this);
     }
 
-    private static void AddComponentToLookup(SundexDocument document, string? componentName, Dictionary<string, List<SundexComponent>>.AlternateLookup<ReadOnlySpan<char>> lookup,
-        SundexComponent component)
+    public void RegisterBuilder(string version, IComponentBuilder builder)
     {
-        if (componentName is not null)
-        {
-            lookup.TryAdd(componentName, [component]);
-        }
-
-        foreach (var collection in document.Root.Collections)
-        {
-            if (!lookup.TryGetValue(collection, out var existing))
-            {
-                lookup.TryAdd(collection, [component]);
-                continue;
-            }
-            
-            existing.Add(component);
-        }
+        if (!ComponentBuilderVersions.TryAdd(version, builder))
+            throw new Exception("A builder with the same version already exists.");
     }
 
-    private void LoadDependenciesFromCollections(List<string> imports, Dictionary<string, List<SundexComponent>>.AlternateLookup<ReadOnlySpan<char>> lookup, HashSet<SundexComponent> dependencies)
+    public ISundexComponent ResolveComponent(ReadOnlySpan<char> dependency)
     {
-        foreach (var import in imports)
-        {
-            if (lookup.TryGetValue(import, out var collection))
-            {
-                foreach (var comp in collection)
-                    dependencies.Add(comp);
-                continue;
-            }
-
-            foreach (var (_, components) in ComponentCollections)
-            {
-                var found = components.Find(comp => comp.Name == import);
-                if (found == null) continue;
-
-                dependencies.Add(found);
-                break;
-            }
-        }
+        var lookup = LoadedComponents.GetAlternateLookup<ReadOnlySpan<char>>();
+        return lookup.TryGetValue(dependency, out var component) ? component : throw new Exception($"Unable to find component: {dependency}");
+    }
+    
+    public void RegisterComponent(ISundexComponent component)
+    {
+        if (component.Name == null) throw new Exception("Component name cannot be null.");
+        LoadedComponents.Add(component.Name, component);
     }
 }

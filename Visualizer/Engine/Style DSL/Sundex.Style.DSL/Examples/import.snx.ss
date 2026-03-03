@@ -1,4 +1,4 @@
-import "Sundex.Style.DSL/Examples/default.snxs";
+import "Sundex.Style.DSL/Examples/default.snx.ss";
 
 // here when specifying a component with a "@" prefix, we fully override the default imported one.
 // when it's not specified, values that aren't specified in the new definition will be inherited from the old definition.

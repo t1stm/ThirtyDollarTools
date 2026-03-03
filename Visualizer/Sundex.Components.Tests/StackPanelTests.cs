@@ -1,14 +1,15 @@
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 
 public class StackPanelTests
 {
     private class TestElement(UIContext context, float width = 0, float height = 0)
-        : UIElement(context, 0, 0, width, height)
+        : UIElement(context)
     {
+        public override string Tag => "test";
         protected override void DrawSelf(UIContext context) { }
     }
 
@@ -77,10 +78,10 @@ public class StackPanelTests
 
         stack.Layout();
 
-        Assert.Equal(10, child1.X + stack.AbsoluteX - stack.AbsoluteX); // child.X is relative to parent
+        Assert.Equal(10, child1.Computed.X + stack.Computed.AbsoluteX - stack.Computed.AbsoluteX); // child.X is relative to parent
         // Wait, StackPanel.cs:
-        // child.X = start_x - AbsoluteX;
-        // start_x = AbsoluteX + Padding;
+        // child.X = start_x - Computed.AbsoluteX;
+        // start_x = Computed.AbsoluteX + Padding;
         // So child.X should be Padding.
 
         Assert.Equal(10, child1.X);
@@ -101,7 +102,10 @@ public class StackPanelTests
             Height = 200
         };
 
-        var child = new TestElement(context, 0, 30) { AutoWidth = true };
+        var child = new TestElement(context, 0, 30)
+        {
+            Width = new LiteralOrPercentage(100, true)
+        };
         stack.Children = [child];
 
         stack.Layout();
@@ -121,7 +125,10 @@ public class StackPanelTests
             Height = 100
         };
 
-        var child = new TestElement(context, 50, 0) { AutoHeight = true };
+        var child = new TestElement(context, 50)
+        {
+            Height = new LiteralOrPercentage(100, true)
+        };
         stack.Children = [child];
 
         stack.Layout();

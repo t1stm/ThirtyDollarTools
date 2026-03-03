@@ -87,7 +87,6 @@ public class Loader : Scene, IGamePreloadable
 
     public override void TransitionedTo()
     {
-        _loaderInterface.StartAnimations();
     }
 
     public override void Update(UpdateArguments updateArgs)
@@ -135,7 +134,7 @@ public class Loader : Scene, IGamePreloadable
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
         
-        _loaderInterface.Resize(_camera.Width, _camera.Height);
+        _loaderInterface.Resize();
     }
 
     public override void Shutdown()

@@ -1,5 +1,11 @@
+using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Attributes;
+using Sundex.Style.DSL;
+using Sundex.Style.DSL.Abstract;
+using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Abstractions;
 
@@ -17,134 +23,61 @@ public enum Align
     Stretch
 }
 
-public abstract class UIElement(UIContext context, float x, float y, float width, float height)
+public abstract class UIElement
 {
-    private float _absoluteX;
-    private float _absoluteY;
-    private bool _coordinatesDirty = true;
-
-    /// <summary>
-    /// Whether the width of this element is automatically calculated.
-    /// </summary>
-    public bool AutoWidth
+    protected UIElement(UIContext context)
     {
-        get;
-        set
-        {
-            if (field == value) return;
-            field = value;
-            InvalidateLayout();
-        }
-    } = false;
-
-    /// <summary>
-    /// Whether the height of this element is automatically calculated.
-    /// </summary>
-    public bool AutoHeight
-    {
-        get;
-        set
-        {
-            if (field == value) return;
-            field = value;
-            InvalidateLayout();
-        }
-    } = false;
-
-    /// <summary>
-    /// The context this element is associated with.
-    /// </summary>
-    public UIContext Context => context;
-
-    /// <summary>
-    /// The X coordinate relative to its parent.
-    /// </summary>
-    public virtual float X
-    {
-        get;
-        set
-        {
-            field = value;
-            InvalidateCoordinates();
-            InvalidateLayout();
-        }
-    } = x;
-
-    /// <summary>
-    /// The Y coordinate relative to its parent.
-    /// </summary>
-    public virtual float Y
-    {
-        get;
-        set
-        {
-            field = value;
-            InvalidateCoordinates();
-            InvalidateLayout();
-        }
-    } = y;
-
-    /// <summary>
-    /// The X coordinate relative to the screen.
-    /// </summary>
-    public virtual float AbsoluteX
-    {
-        get
-        {
-            if (_coordinatesDirty) UpdateAbsoluteCoordinates();
-            return _absoluteX;
-        }
+        Context = context;
+        Computed = new ComputedRectangle(this);
     }
 
-    /// <summary>
-    /// The Y coordinate relative to the screen.
-    /// </summary>
-    public virtual float AbsoluteY
+    public abstract string Tag { get; }
+    public UIContext Context { get; }
+
+    public string ID { get; set; } = "";
+    public HashSet<string> Classes { get; set; } = [];
+    public ComputedRectangle Computed { get; }
+
+    private void UpdateSetDirty<T>(out T field, T value)
     {
-        get
-        {
-            if (_coordinatesDirty) UpdateAbsoluteCoordinates();
-            return _absoluteY;
-        }
+        field = value;
+        NeedsLayout = true;
     }
 
-    /// <summary>
-    /// The index of this element in its parent.
-    /// </summary>
-    protected virtual int Index { get; set; }
-
-    /// <summary>
-    /// The width of this element.
-    /// </summary>
-    public virtual float Width
+    [NamedSetting("x")]
+    public virtual LiteralOrPercentage X
     {
         get;
-        set
-        {
-            field = value;
-            InvalidateLayout();
-        }
-    } = width;
+        set => UpdateSetDirty(out field, value);
+    }
 
-    /// <summary>
-    /// The height of this element.
-    /// </summary>
-    public virtual float Height
+    [NamedSetting("y")]
+    public virtual LiteralOrPercentage Y
     {
         get;
-        set
-        {
-            field = value;
-            InvalidateLayout();
-        }
-    } = height;
+        set => UpdateSetDirty(out field, value);
+    }
 
-    /// <summary>
-    /// Whether this element is visible and should be rendered.
-    /// </summary>
+    [NamedSetting("width")]
+    public virtual LiteralOrPercentage Width
+    {
+        get;
+        set => UpdateSetDirty(out field, value);
+    }
+
+    [NamedSetting("height")]
+    public virtual LiteralOrPercentage Height
+    {
+        get;
+        set => UpdateSetDirty(out field, value);
+    }
+
+    [NamedSetting("index")] protected virtual int Index { get; set; }
+
+    [NamedSetting("visible")]
     public bool Visible
     {
-        get => field;
+        get;
         set
         {
             if (field == value) return;
@@ -153,29 +86,11 @@ public abstract class UIElement(UIContext context, float x, float y, float width
         }
     } = true;
 
-    /// <summary>
-    /// Whether the mouse is currently over this element.
-    /// </summary>
     public bool IsHovered { get; set; }
-
-    /// <summary>
-    /// Whether this element is currently being pressed by the mouse.
-    /// </summary>
     public bool IsPressed { get; set; }
-
-    /// <summary>
-    /// Whether to update the mouse cursor when this element is hovered.
-    /// </summary>
     public bool UpdateCursorOnHover { get; set; }
-
-    /// <summary>
-    /// Whether this element needs its layout recalculated.
-    /// </summary>
     public bool NeedsLayout { get; protected set; } = true;
 
-    /// <summary>
-    /// The parent of this element.
-    /// </summary>
     public virtual UIElement? Parent
     {
         get;
@@ -189,28 +104,14 @@ public abstract class UIElement(UIContext context, float x, float y, float width
         }
     }
 
-    /// <summary>
-    /// The viewport this element is rendered in.
-    /// </summary>
     public virtual Vector4i? Viewport
     {
         get => field ?? Parent?.Viewport;
         set;
     }
 
-    /// <summary>
-    /// Action invoked when this element is clicked.
-    /// </summary>
     public Action<UIElement>? OnClick { get; set; }
-    
-    /// <summary>
-    /// Action invoked when this element gets hovered.
-    /// </summary>
     public Action<UIElement>? OnHoverEnter { get; set; }
-    
-    /// <summary>
-    /// Action invoked when this element gets unhovered.
-    /// </summary>
     public Action<UIElement>? OnHoverExit { get; set; }
 
     /// <summary>
@@ -222,37 +123,37 @@ public abstract class UIElement(UIContext context, float x, float y, float width
     {
         if (!Visible) return;
 
-        var absX = AbsoluteX;
-        var absY = AbsoluteY;
+        var absX = Computed.AbsoluteX;
+        var absY = Computed.AbsoluteY;
 
         var mouseX = mouse.X / scale.X;
         var mouseY = mouse.Y / scale.Y;
 
         var oldHovered = IsHovered;
-        IsHovered = mouse.X >= absX && mouseX <= absX + Width &&
-                    mouse.Y >= absY && mouseY <= absY + Height;
+        IsHovered = mouse.X >= absX && mouseX <= absX + Computed.Width &&
+                    mouse.Y >= absY && mouseY <= absY + Computed.Height;
 
         switch (oldHovered, IsHovered)
         {
             case (false, true):
                 OnHoverEnter?.Invoke(this);
                 break;
-            
+
             case (true, false):
                 OnHoverExit?.Invoke(this);
                 break;
         }
-        
+
         IsPressed = false;
         switch (IsHovered)
         {
             case false:
                 return;
-            
+
             case true when mouse.IsButtonPressed(MouseButton.Left):
                 OnClick?.Invoke(this);
                 break;
-            
+
             case true when mouse.IsButtonDown(MouseButton.Left):
                 IsPressed = true;
                 break;
@@ -284,18 +185,7 @@ public abstract class UIElement(UIContext context, float x, float y, float width
     /// </summary>
     public virtual void InvalidateCoordinates()
     {
-        _coordinatesDirty = true;
         NeedsLayout = true;
-    }
-
-    /// <summary>
-    /// Recalculates the absolute coordinates based on the parent's position.
-    /// </summary>
-    protected virtual void UpdateAbsoluteCoordinates()
-    {
-        _absoluteX = Parent?.AbsoluteX + X ?? X;
-        _absoluteY = Parent?.AbsoluteY + Y ?? Y;
-        _coordinatesDirty = false;
     }
 
     /// <summary>
@@ -304,6 +194,7 @@ public abstract class UIElement(UIContext context, float x, float y, float width
     public virtual void Layout()
     {
         if (!NeedsLayout) return;
+        Computed.UpdateAbsoluteBasedOnParent(this, Parent);
         DoLayout();
         NeedsLayout = false;
     }
@@ -331,4 +222,76 @@ public abstract class UIElement(UIContext context, float x, float y, float width
     /// </summary>
     /// <param name="context">The UI context to render into.</param>
     protected abstract void DrawSelf(UIContext context);
+
+    public virtual void ApplyStyleSheet(StyleSheet styleSheet)
+    {
+        var type = GetType();
+        var properties = type.GetProperties();
+        foreach (var propertyInfo in properties)
+        {
+            var attribute = propertyInfo.GetCustomAttribute<NamedSettingAttribute>();
+            if (attribute is null) continue;
+
+            SetNamedSetting(styleSheet, propertyInfo, attribute);
+        }
+    }
+
+    private void SetNamedSetting(StyleSheet styleSheet, PropertyInfo propertyInfo,
+        NamedSettingAttribute namedSettingAttribute)
+    {
+        ApplyStyleValue(styleSheet.GetStyleValueForTag(Tag, namedSettingAttribute.Name), propertyInfo);
+        foreach (var cls in Classes)
+        {
+            ApplyStyleValue(styleSheet.GetStyleValueForTag(cls, namedSettingAttribute.Name), propertyInfo);
+        }
+
+        ApplyStyleValue(styleSheet.GetStyleValueForTag(ID, namedSettingAttribute.Name), propertyInfo);
+    }
+
+    protected virtual void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
+    {
+        if (styleValue == null)
+            return;
+
+        switch (styleValue)
+        {
+            case NumberValue nv when propertyInfo.PropertyType == typeof(LiteralOrPercentage):
+            {
+                var newValue = new LiteralOrPercentage(nv.Value, nv.Unit is "%");
+                propertyInfo.SetValue(this, newValue);
+                break;
+            }
+
+            case NumberValue nv when propertyInfo.PropertyType == typeof(float):
+            {
+                propertyInfo.SetValue(this, nv.Value);
+                break;
+            }
+
+            case ColorValue cv when propertyInfo.PropertyType == typeof(Vector4):
+            {
+                propertyInfo.SetValue(this, cv.Vector);
+                break;
+            }
+
+            case VectorValue vv when propertyInfo.PropertyType == typeof(Vector3):
+            {
+                propertyInfo.SetValue(this, new Vector3((float)vv.X, (float)vv.Y, (float)(vv.Z ?? 0)));
+                break;
+            }
+
+            case StringValue sv when propertyInfo.PropertyType == typeof(string) ||
+                                     propertyInfo.PropertyType == typeof(ReadOnlySpan<char>):
+            {
+                propertyInfo.SetValue(this, sv.Value);
+                break;
+            }
+
+            case StringValue sv when propertyInfo.PropertyType == typeof(bool):
+            {
+                propertyInfo.SetValue(this, sv.Value == "true");
+                break;
+            }
+        }
+    }
 }

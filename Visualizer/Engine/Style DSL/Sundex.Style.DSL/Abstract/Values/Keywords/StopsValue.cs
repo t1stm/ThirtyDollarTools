@@ -8,7 +8,7 @@ public record StopsValue(IStyleValue Value) : IStyleValue
     public List<GradientStop> Stops => BuildStops(Value);
     public override string ToString() => "!stops " + Value;
 
-    public record GradientStop(ColorValue Color, double Percentage);
+    public record GradientStop(ColorValue Color, float Percentage);
 
     internal static List<GradientStop> BuildStops(IStyleValue value)
     {
@@ -34,7 +34,7 @@ public record StopsValue(IStyleValue Value) : IStyleValue
                     var v = arr.Values[i];
                     if (v is not ColorValue color)
                         throw new ArgumentException("Gradient stop array items must be colors");
-                    var pct = n <= 1 ? 0 : 100.0 * i / (n - 1);
+                    var pct = n <= 1 ? 0 : 100.0f * i / (n - 1);
                     list.Add(new GradientStop(color, pct));
                 }
                 break;
@@ -45,7 +45,7 @@ public record StopsValue(IStyleValue Value) : IStyleValue
         return list;
     }
 
-    private static double ExtractPercentage(IStyleValue key)
+    private static float ExtractPercentage(IStyleValue key)
     {
         return key switch
         {

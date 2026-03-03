@@ -108,7 +108,10 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
         var assetStream = assetAssemblies.GetManifestResourceStream(createInfo.Location);
 
         if (assetStream is null)
-            throw new FileNotFoundException($"Assembly file: \'{createInfo.Location}\' not found.");
+        {
+            var available = assetAssemblies.SelectMany(a => a.GetManifestResourceNames()).ToList();
+            throw new FileNotFoundException($"Assembly file: \'{createInfo.Location}\' not found. \nAvailable assembly files: {string.Join(", ", available)}");
+        }
 
         createInfo.Storage = StorageLocation.Assembly;
         return new AssetStream { Stream = assetStream, Info = createInfo };

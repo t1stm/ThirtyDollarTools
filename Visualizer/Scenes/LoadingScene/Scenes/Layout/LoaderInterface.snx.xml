@@ -1,0 +1,28 @@
+<sundex version="1.0">
+  <style language="sundex">
+    // TODO: default style 
+    // import "Assets/Default/StyleSheet.snx.ss"
+    import "Scenes/Layout/LoaderInterface.snx.ss";
+  </style>
+  
+  <layout>
+    <panel id="main-holder">
+      <panel id="background-holder">
+        <panel class="background-gradients" id="grad-1" />
+        <panel class="background-gradients" id="grad-2" />
+        <panel class="background-gradients" id="grad-3" />
+        <panel class="background-gradients" id="grad-4" />
+        <panel class="background-gradients" id="grad-5" />
+      </panel>
+
+      <flex id="main-view">
+        <label id="loader-label" value="" />
+        <progress id="loader-progress" percentage="0" />
+
+        <button id="start-button">
+          <label value="Start Loading"/>
+        </button>
+      </flex>
+    </panel>
+  </layout>
+</sundex>

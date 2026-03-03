@@ -68,15 +68,83 @@ public static class SteppingFunctions
             _ => t
         };
     }
+    
+    public static SteppingFunction ParseSteppingFunction(ReadOnlySpan<char> steppingFunctionString)
+    {
+        return steppingFunctionString switch
+        {
+            // Generic/ease aliases
+            "linear" => SteppingFunction.Linear,
+            "ease-in" => SteppingFunction.SineIn,
+            "ease-out" => SteppingFunction.SineOut,
+            "ease-in-out" => SteppingFunction.SineInOut,
+
+            // Sine
+            "sine-in" => SteppingFunction.SineIn,
+            "sine-out" => SteppingFunction.SineOut,
+            "sine-in-out" => SteppingFunction.SineInOut,
+
+            // Quadratic
+            "quad-in" => SteppingFunction.QuadIn,
+            "quad-out" => SteppingFunction.QuadOut,
+            "quad-in-out" => SteppingFunction.QuadInOut,
+
+            // Cubic
+            "cubic-in" => SteppingFunction.CubicIn,
+            "cubic-out" => SteppingFunction.CubicOut,
+            "cubic-in-out" => SteppingFunction.CubicInOut,
+
+            // Quartic
+            "quart-in" => SteppingFunction.QuartIn,
+            "quart-out" => SteppingFunction.QuartOut,
+            "quart-in-out" => SteppingFunction.QuartInOut,
+
+            // Quintic
+            "quint-in" => SteppingFunction.QuintIn,
+            "quint-out" => SteppingFunction.QuintOut,
+            "quint-in-out" => SteppingFunction.QuintInOut,
+
+            // Exponential (aliases + explicit expo variants)
+            "exponential" => SteppingFunction.Exponential,
+            "expo-in" => SteppingFunction.ExpoIn,
+            "expo-out" => SteppingFunction.ExpoOut,
+            "expo-in-out" => SteppingFunction.ExpoInOut,
+
+            // Circular
+            "circ-in" => SteppingFunction.CircIn,
+            "circ-out" => SteppingFunction.CircOut,
+            "circ-in-out" => SteppingFunction.CircInOut,
+
+            // Back
+            "back-in" => SteppingFunction.BackIn,
+            "back-out" => SteppingFunction.BackOut,
+            "back-in-out" => SteppingFunction.BackInOut,
+
+            // Elastic
+            "elastic-in" => SteppingFunction.ElasticIn,
+            "elastic-out" => SteppingFunction.ElasticOut,
+            "elastic-in-out" => SteppingFunction.ElasticInOut,
+
+            // Bounce
+            "bounce-in" => SteppingFunction.BounceIn,
+            "bounce-out" => SteppingFunction.BounceOut,
+            "bounce-in-out" => SteppingFunction.BounceInOut,
+
+            _ => throw new Exception($"Unknown stepping function: {steppingFunctionString}")
+        };
+    }
 
     private static float BounceOut(float t)
     {
         const float n1 = 7.5625f;
         const float d1 = 2.75f;
 
-        if (t < 1f / d1) return n1 * t * t;
-        if (t < 2f / d1) return n1 * (t -= 1.5f / d1) * t + 0.75f;
-        if (t < 2.5f / d1) return n1 * (t -= 2.25f / d1) * t + 0.9375f;
-        return n1 * (t -= 2.625f / d1) * t + 0.984375f;
+        return t switch
+        {
+            < 1f / d1 => n1 * t * t,
+            < 2f / d1 => n1 * (t -= 1.5f / d1) * t + 0.75f,
+            < 2.5f / d1 => n1 * (t -= 2.25f / d1) * t + 0.9375f,
+            _ => n1 * (t -= 2.625f / d1) * t + 0.984375f
+        };
     }
 }

@@ -1,13 +1,20 @@
+using System.Reflection;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Attributes;
 using Sundex.Engine.Renderer.Abstract.Extensions;
+using Sundex.Style.DSL.Abstract;
+using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Panels;
 
-public class FlexPanel(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
-    : Panel(context, x, y, width, height), IPositioningElement
+public class FlexPanel(UIContext context)
+    : Panel(context), IPositioningElement
 {
-    public bool AutoSizeSelf { get; set; }
-    
+    [NamedSetting("autosize-self")] public bool AutoSizeSelf { get; set; }
+
+    public override string Tag => "flex";
+
+    [NamedSetting("horizontal-align")]
     public Align HorizontalAlign
     {
         get;
@@ -19,6 +26,7 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
         }
     } = Align.Start;
 
+    [NamedSetting("vertical-align")]
     public Align VerticalAlign
     {
         get;
@@ -30,8 +38,9 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
         }
     } = Align.Start;
 
-    public LayoutDirection Direction { get; set; } = LayoutDirection.Horizontal;
+    [NamedSetting("direction")] public LayoutDirection Direction { get; set; } = LayoutDirection.Horizontal;
 
+    [NamedSetting("padding")]
     public float Padding
     {
         get;
@@ -42,6 +51,7 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
         }
     }
 
+    [NamedSetting("spacing")]
     public float Spacing
     {
         get;
@@ -55,18 +65,16 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
     protected override void DoLayout()
     {
         var count = Children.Count;
-        var a_x = AbsoluteX;
-        var a_y = AbsoluteY;
+        var a_x = Computed.AbsoluteX;
+        var a_y = Computed.AbsoluteY;
 
-        if (AutoSizeSelf) AutoSize(count);
-
-        var inner_width = Width - 2 * Padding;
-        var inner_height = Height - 2 * Padding;
+        var inner_width = Computed.Width - 2 * Padding;
+        var inner_height = Computed.Height - 2 * Padding;
 
         if (count < 1)
         {
             Background?.SetPosition((a_x, a_y, 0));
-            Background?.Scale = (Width, Height, 1);
+            Background?.Scale = (Computed.Width, Computed.Height, 1);
             return;
         }
 
@@ -76,40 +84,13 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
             Layout_Vertical(count, inner_height, inner_width);
 
         Background?.SetPosition((a_x, a_y, 0));
-        Background?.Scale = (Width, Height, 1);
-    }
-
-    protected void AutoSize(int count)
-    {
-        if (AutoWidth)
-        {
-            if (Direction == LayoutDirection.Horizontal)
-                Width = 2 * Padding + (count > 0 ? Children.Sum(c => c.Width) + Spacing * (count - 1) : 0);
-            else
-                Width = 2 * Padding + (count > 0 ? Children.Max(c => c.Width) : 0);
-        }
-
-        if (!AutoHeight) return;
-
-        if (Direction == LayoutDirection.Vertical)
-            Height = 2 * Padding + (count > 0 ? Children.Sum(c => c.Height) + Spacing * (count - 1) : 0);
-        else
-            Height = 2 * Padding + (count > 0 ? Children.Max(c => c.Height) : 0);
+        Background?.Scale = (Computed.Width, Computed.Height, 1);
     }
 
     private void Layout_Horizontal(int count, float innerWidth, float innerHeight)
     {
-        var flex_count = Children.Count(c => c.AutoWidth);
-        var total_fixed = Children.Where(c => !c.AutoWidth).Sum(c => c.Width);
         var total_spacing = Spacing * (count - 1);
-        var free_space = innerWidth - total_fixed - total_spacing;
-        var flex_size = flex_count > 0 ? free_space / flex_count : 0;
-
-        foreach (var child in Children.Where(child => child.AutoWidth && child is not FlexPanel { AutoSizeSelf: true }))
-            child.Width = flex_size;
-
-        // Recalculate total width after setting AutoWidth elements
-        var total_width = Children.Sum(c => c.Width);
+        var total_width = Children.Sum(c => c.Width.IsPercentage ? innerWidth * (c.Width.Value / 100f) : c.Width.Value);
 
         var offset = HorizontalAlign switch
         {
@@ -120,19 +101,17 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
 
         foreach (var child in Children)
         {
-            if (child.AutoHeight && child is not FlexPanel { AutoSizeSelf: true })
-                child.Height = innerHeight;
-
             child.Layout();
             child.X = Padding + offset;
 
+            var ch = child.Height.IsPercentage ? innerHeight * (child.Height.Value / 100f) : child.Height.Value;
             switch (VerticalAlign)
             {
                 case Align.Center:
-                    child.Y = Padding + (innerHeight - child.Height) / 2;
+                    child.Y = Padding + (innerHeight - ch) / 2;
                     break;
                 case Align.End:
-                    child.Y = Padding + innerHeight - child.Height;
+                    child.Y = Padding + innerHeight - ch;
                     break;
                 case Align.Stretch:
                     child.Y = Padding;
@@ -145,24 +124,16 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
             }
 
             child.Layout();
-            offset += child.Width + Spacing;
+            var cw = child.Width.IsPercentage ? innerWidth * (child.Width.Value / 100f) : child.Width.Value;
+            offset += cw + Spacing;
         }
     }
 
     private void Layout_Vertical(int count, float innerHeight, float innerWidth)
     {
-        var flex_count = Children.Count(c => c.AutoHeight);
-        var total_fixed = Children.Where(c => !c.AutoHeight).Sum(c => c.Height);
         var total_spacing = Spacing * (count - 1);
-        var free_space = innerHeight - total_fixed - total_spacing;
-        var flex_size = flex_count > 0 ? free_space / flex_count : 0;
-
-        foreach (var child in Children.Where(child =>
-                     child.AutoHeight && child is not FlexPanel { AutoSizeSelf: true }))
-            child.Height = flex_size;
-
-        // Recalculate total height after setting AutoHeight elements
-        var total_height = Children.Sum(c => c.Height);
+        var total_height =
+            Children.Sum(c => c.Height.IsPercentage ? innerHeight * (c.Height.Value / 100f) : c.Height.Value);
 
         var offset = VerticalAlign switch
         {
@@ -173,19 +144,17 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
 
         foreach (var child in Children)
         {
-            if (child.AutoWidth && child is not FlexPanel { AutoSizeSelf: true })
-                child.Width = innerWidth;
-
             child.Layout();
             child.Y = Padding + offset;
 
+            var cw = child.Width.IsPercentage ? innerWidth * (child.Width.Value / 100f) : child.Width.Value;
             switch (HorizontalAlign)
             {
                 case Align.Center:
-                    child.X = Padding + (innerWidth - child.Width) / 2;
+                    child.X = Padding + (innerWidth - cw) / 2;
                     break;
                 case Align.End:
-                    child.X = Padding + innerWidth - child.Width;
+                    child.X = Padding + innerWidth - cw;
                     break;
                 case Align.Stretch:
                     child.X = Padding;
@@ -198,7 +167,52 @@ public class FlexPanel(UIContext context, float x = 0, float y = 0, float width 
             }
 
             child.Layout();
-            offset += child.Height + Spacing;
+            var ch = child.Height.IsPercentage ? innerHeight * (child.Height.Value / 100f) : child.Height.Value;
+            offset += ch + Spacing;
+        }
+    }
+
+    protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
+    {
+        if (styleValue is null) return;
+
+        switch (styleValue)
+        {
+            case StringValue sv when propertyInfo.PropertyType == typeof(Align):
+            {
+                Align? align = sv.Value switch
+                { 
+                    "center" => Align.Center,
+                    "end" => Align.End,
+                    "stretch" => Align.Stretch,
+                    "start" => Align.Start,
+                    _ => null
+                };
+                
+                if (align is not null)
+                    propertyInfo.SetValue(this, align.Value);
+                return;
+            }
+
+            case StringValue sv when propertyInfo.PropertyType == typeof(LayoutDirection):
+            {
+                LayoutDirection? direction = sv.Value switch
+                {
+                    "horizontal" => LayoutDirection.Horizontal,
+                    "vertical" => LayoutDirection.Vertical,
+                    _ => null
+                };
+                
+                if (direction is not null)
+                    propertyInfo.SetValue(this, direction.Value);
+                return;
+            }
+            
+            default:
+            {
+                base.ApplyStyleValue(styleValue, propertyInfo);
+                return;
+            }
         }
     }
 }

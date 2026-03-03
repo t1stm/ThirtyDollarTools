@@ -100,7 +100,7 @@ public class StyleParserTests
             projectRoot = Path.GetDirectoryName(projectRoot);
         }
 
-        var path = Path.Combine(projectRoot!, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snxs");
+        var path = Path.Combine(projectRoot!, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
         var sheet = StyleParser.Parse(dsl);
         using (Assert.EnterMultipleScope())
@@ -130,12 +130,12 @@ public class StyleParserTests
             projectRoot = Path.GetDirectoryName(projectRoot);
         }
 
-        var path = Path.Combine(projectRoot!, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/import.snxs");
+        var path = Path.Combine(projectRoot!, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/import.snx.ss");
         var dsl = File.ReadAllText(path);
         
         // Use the directory of the style DSL project as base path for the examples to work
         var styleDslRoot = Path.Combine(projectRoot!, "Visualizer/Engine/Style DSL");
-        var sheet = StyleParser.Parse(dsl, styleDslRoot, File.ReadAllText);
+        var sheet = StyleParser.Parse(dsl, p => File.ReadAllText(Path.Combine(styleDslRoot, p)));
 
         Assert.That(sheet.Components, Has.Count.EqualTo(2));
         using (Assert.EnterMultipleScope())
@@ -147,18 +147,18 @@ public class StyleParserTests
 
         Assert.That(sheet.FullOverrides, Does.Not.Contain("label"));
         
-        // Verify that label has properties from both default.snxs and import.snxs
+        // Verify that label has properties from both default.snx.ss and import.snx.ss
         var label = sheet.Components["label"];
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(label["font-size"], Is.TypeOf<NumberValue>()); // From default.snxs
-            Assert.That(label["font-color"].Value, Is.EqualTo("#000000")); // Overridden in import.snxs
-            Assert.That(label["background"].Value, Is.EqualTo("#ffffff")); // Overridden in import.snxs
+            Assert.That(label["font-size"], Is.TypeOf<NumberValue>()); // From default.snx.ss
+            Assert.That(label["font-color"].Value, Is.EqualTo("#000000")); // Overridden in import.snx.ss
+            Assert.That(label["background"].Value, Is.EqualTo("#ffffff")); // Overridden in import.snx.ss
         }
 
         // Verify button is a full override
         var button = sheet.Components["button"];
-        Assert.That(button.ContainsKey("font-size"), Is.False); // font-size was in default.snxs but should be gone
+        Assert.That(button.ContainsKey("font-size"), Is.False); // font-size was in default.snx.ss but should be gone
     }
 
     [Test]
@@ -170,7 +170,7 @@ public class StyleParserTests
             ["b.snxs"] = "import \"a.snxs\"; component b { color = \"blue\" }"
         };
 
-        var sheet = StyleParser.Parse(files["a.snxs"], "", path => files[Path.GetFileName(path)]);
+        var sheet = StyleParser.Parse(files["a.snxs"], path => files[Path.GetFileName(path)]);
 
         using (Assert.EnterMultipleScope())
         {
@@ -188,7 +188,7 @@ public class StyleParserTests
             ["main.snxs"] = "import \"base.snxs\"; component btn { color = \"red\" }"
         };
 
-        var sheet = StyleParser.Parse(files["main.snxs"], "", path => files[Path.GetFileName(path)]);
+        var sheet = StyleParser.Parse(files["main.snxs"], path => files[Path.GetFileName(path)]);
 
         var btn = sheet.Components["btn"];
         using (Assert.EnterMultipleScope())

@@ -1,8 +1,17 @@
+using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Shared.Renderer.Planes;
+using Shared.Renderer.Planes.Uniforms;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Attributes;
 using Sundex.Components.Scroll;
 using Sundex.Engine.Renderer.Abstract.Extensions;
+using Sundex.Style.DSL;
+using Sundex.Style.DSL.Abstract;
+using Sundex.Style.DSL.Abstract.Values;
+using Sundex.Style.DSL.Abstract.Values.Keywords;
 
 namespace Sundex.Components.Panels;
 
@@ -11,17 +20,16 @@ public class Panel : UIElement, IColoredBackground
     private List<UIElement> _children = [];
     protected Lazy<ScrollBar> ScrollBar;
 
-    public Panel(UIContext context) : this(context, 0, 0, 0, 0)
-    {
-    }
-
-    protected Panel(UIContext context, float x, float y, float width, float height) : base(context, x, y, width, height)
+    public Panel(UIContext context) : base(context)
     {
         ScrollBar = new Lazy<ScrollBar>(() => new ScrollBar(Context, this));
     }
 
     public bool Overflowing { get; protected set; }
     public bool ScrollOnOverflow { get; set; }
+    
+    [NamedSetting("border-radius")]
+    public LiteralOrPercentage BorderRadius { get; set; } = 0;
 
     public List<UIElement> Children
     {
@@ -34,6 +42,8 @@ public class Panel : UIElement, IColoredBackground
         }
     }
 
+    public override string Tag => "panel";
+
     public override UIElement? Parent
     {
         get => base.Parent;
@@ -44,6 +54,7 @@ public class Panel : UIElement, IColoredBackground
         }
     }
 
+    [NamedSetting("background")]
     public Renderable? Background { get; set; }
 
     public override void Test(MouseState mouse, Vector2 scale)
@@ -70,12 +81,12 @@ public class Panel : UIElement, IColoredBackground
 
     protected override void DoLayout()
     {
-        var x = (int)AbsoluteX;
-        var y = (int)AbsoluteY;
-        Viewport = (x, y, x + (int)Width, y + (int)Height);
+        var x = (int)Computed.AbsoluteX;
+        var y = (int)Computed.AbsoluteY;
+        Viewport = (x, y, x + (int)Computed.Width, y + (int)Computed.Height);
 
         Background?.SetPosition((x, y, 0));
-        Background?.Scale = (Width, Height, 1);
+        Background?.Scale = (Computed.Width, Computed.Height, 1);
 
         foreach (var child in Children) child.Layout();
     }
@@ -104,5 +115,61 @@ public class Panel : UIElement, IColoredBackground
     {
         if (Background != null && Visible)
             context.QueueRender(Background, Index);
+    }
+
+    protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
+    {
+        if (styleValue is null) return;
+
+        switch (styleValue)
+        {
+            case GradientValue gv when propertyInfo.PropertyType == typeof(Renderable):
+            {
+                // TODO: duplicated code with ComponentBuilderV1. Extract somewhere else and use both places.
+                var stopsColor = gv.Stops.Select(x => x.Color.Vector).ToList();
+                var stopsPercentage = gv.Stops.Select(x => x.Percentage).ToList();
+                
+                var gradientRenderable = new GradientPlane
+                {
+                    BorderRadius = BorderRadius.Resolve(Computed.Height),
+                    GradientColors = stopsColor,
+                    GradientStops = stopsPercentage,
+                    GradientType = gv.Type switch
+                    {
+                        "radial" => GradientType.Radial,
+                        "conical" => GradientType.Conical,
+                        "solid" => GradientType.Solid,
+                        _ => GradientType.Linear
+                    },
+                };
+
+                propertyInfo.SetValue(this, gv.Value);
+                return;
+            }
+
+            case ColorValue cv when propertyInfo.PropertyType == typeof(Renderable):
+            {
+                propertyInfo.SetValue(this, new ColoredPlane
+                {
+                    Color = cv.Vector
+                });
+                return;
+            }
+            
+            default:
+            {
+                base.ApplyStyleValue(styleValue, propertyInfo);
+                return;
+            }
+        }
+    }
+
+    public override void ApplyStyleSheet(StyleSheet styleSheet)
+    {
+        base.ApplyStyleSheet(styleSheet);
+        foreach (var child in Children)
+        {
+            child.ApplyStyleSheet(styleSheet);
+        }
     }
 }
