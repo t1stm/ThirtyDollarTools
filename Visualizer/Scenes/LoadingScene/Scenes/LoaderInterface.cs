@@ -5,46 +5,45 @@ using Sundex.Components.Panels;
 using LoadingScene.Reports;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared;
 using Sunder.Markup;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
-using Sundex.Engine.Renderer.Cameras;
 
 namespace LoadingScene.Scenes;
 
 public class LoaderInterface
 {
-    public LoaderInterface(UIContext context, Camera camera, Action action)
+    public LoaderInterface(UIContext context, Action action)
     {
         var sundexContext = new SundexContext<LoaderInterface>(this, context);
         var componentSource = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
         {
             AssetInfo = new AssetInfo
             {
-                Location = "Scenes/Layout/LoaderInterface.snx.xml",
+                Location = "Scenes/Layout/LoaderInterface.snx.xml"
             }
         });
         
-        var component = sundexContext.NewComponent(componentSource.Value);
+        Component = sundexContext.NewComponent(componentSource.Value);
         
-        RootPanel = component.Element as Panel ?? throw new Exception("Root panel not found");
+        RootPanel = Component.Element as Panel ?? throw new Exception("Root panel not found");
         /*
             Ideally the code down below will be in the logic block in the future and will be called with RunLogic?.Invoke().
             The only thing this class will have is actions that will be called / registered by the logic block.
          */
-        ProgressBar = component.RegisteredIDs["loader-progress"] as ProgressBar ?? throw new Exception("Progress bar not found");
-        Label = component.RegisteredIDs["loader-label"] as Label ?? throw new Exception("Label not found");
+        ProgressBar = Component.RegisteredIDs["loader-progress"] as ProgressBar ?? throw new Exception("Progress bar not found");
+        Label = Component.RegisteredIDs["loader-label"] as Label ?? throw new Exception("Label not found");
         
-        var button = component.RegisteredIDs["start-button"] as Button ?? throw new Exception("Button not found");
+        var button = Component.RegisteredIDs["start-button"] as Button ?? throw new Exception("Button not found");
         button.OnClick = _ => action();
         
-        component.RunLogic?.Invoke();
+        Component.RunLogic?.Invoke();
         
         // queue to render each time context.Render() is called
         RootPanel.DrawTo(context);
     }
     
+    protected SundexComponent Component { get; }
     public Panel RootPanel { get; }
     public ProgressBar ProgressBar { get; set; }
     public Label Label { get; set; }
@@ -63,9 +62,8 @@ public class LoaderInterface
         ProgressBar.Progress = (float)progressReport.Percentage;
     }
 
-    public void Render(DollarStoreCamera camera, UIContext context)
+    public void Render(UIContext context)
     {
-        _ = camera;
         context.Render();
     }
 }

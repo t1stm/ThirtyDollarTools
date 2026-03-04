@@ -1,6 +1,4 @@
-using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 
@@ -13,7 +11,8 @@ public class ButtonTests
         var button = new Button(context, "Click Me");
 
         Assert.Equal("Click Me", button.Value.ToString());
-        Assert.True(button.AutoSizeSelf);
+        Assert.True(button.Width.Auto);
+        Assert.True(button.Height.Auto);
     }
 
     [Fact]

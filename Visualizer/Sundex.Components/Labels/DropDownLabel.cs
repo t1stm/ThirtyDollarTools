@@ -3,6 +3,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
 
 namespace Sundex.Components.Labels;
@@ -18,7 +19,6 @@ public sealed class DropDownLabel : Panel
         Panel = new FlexPanel(context)
         {
             Parent = this,
-            AutoSizeSelf = true,
             Children = panelChildren,
             Direction = LayoutDirection.Vertical,
             Visible = false,
@@ -27,7 +27,9 @@ public sealed class DropDownLabel : Panel
                 Color = (0.2f, 0.2f, 0.2f, 1f)
             },
             Spacing = 4,
-            Padding = 4
+            Padding = 4,
+            Width = LiteralOrComputable.AutoSize,
+            Height = LiteralOrComputable.AutoSize
         };
 
         Label = new Label(context, text)
@@ -43,8 +45,8 @@ public sealed class DropDownLabel : Panel
     public FlexPanel Panel { get; }
     public Label Label { get; }
 
-    public override LiteralOrPercentage Width => Label.Width;
-    public override LiteralOrPercentage Height => Label.Height;
+    public override LiteralOrComputable Width => Label?.Width ?? LiteralOrComputable.AutoSize;
+    public override LiteralOrComputable Height => Label?.Height ?? LiteralOrComputable.AutoSize;
 
     protected override void DoLayout()
     {
@@ -52,6 +54,16 @@ public sealed class DropDownLabel : Panel
 
         Panel.Y = Computed.Height + 10;
         Panel.Layout();
+    }
+
+    public override (float width, float height) Measure(float parentWidth, float parentHeight)
+    {
+        // During base construction, Label is not yet assigned; avoid accessing it
+        if (Label is null)
+            return (0, 0);
+
+        // Desired size equals the label's desired size
+        return Label.Measure(parentWidth, parentHeight);
     }
 
     public override void Test(MouseState mouse, Vector2 scale)
@@ -70,13 +82,15 @@ public sealed class DropDownLabel : Panel
 
     #region IText
 
+    [NamedSetting("text-value")]
     public ReadOnlySpan<char> Value
     {
         get => Label.Value;
         set => Label.Value = value;
     }
 
-    public float FontSizePx => Label.FontSizePx;
+    [NamedSetting("font-size")]
+    public LiteralOrComputable FontSizePx => Label.FontSizePx;
 
     public void SetTextContents(string text)
     {

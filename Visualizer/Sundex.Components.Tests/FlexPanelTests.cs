@@ -124,7 +124,7 @@ public class FlexPanelTests
             Height = 100,
             Direction = LayoutDirection.Horizontal
         };
-        var child1 = new TestElement(context) { Width = new LiteralOrPercentage(100, true), Height = 20 };
+        var child1 = new TestElement(context) { Width = new LiteralOrComputable(100, true), Height = 20 };
         var child2 = new TestElement(context) { Width = 30, Height = 20 };
         flex.Children = [child1, child2];
 

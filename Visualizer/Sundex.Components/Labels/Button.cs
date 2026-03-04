@@ -1,5 +1,7 @@
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Attributes;
 using Sundex.Components.Color_Scheme;
 using Sundex.Components.Panels;
 
@@ -17,27 +19,31 @@ public class Button : FlexPanel
 
     public Button(UIContext context, Label label, Renderable? background = null) : base(context)
     {
-        AutoSizeSelf = true;
         Padding = 5;
         Background = background ?? new ColoredPlane
         {
             Color = DarkScheme.AccentBlue,
             BorderRadius = 10
         };
-
+        
         Children = [Label = label];
         UpdateCursorOnHover = true;
     }
 
+    [NamedSetting("text-value")]
     public ReadOnlySpan<char> Value
     {
         get => Label.Value;
         set => Label.Value = value;
     }
 
-    public float FontSizePx
+    [NamedSetting("font-size")]
+    public LiteralOrComputable FontSizePx
     {
         get => Label.FontSizePx;
         set => Label.FontSizePx = value;
     }
+
+    [NamedSetting("width")]
+    public override LiteralOrComputable Width { get; set; } = new(0, false, true);
 }

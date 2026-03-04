@@ -1,4 +1,5 @@
 using Shared.Renderer.Planes;
+using Shared.Renderer.Planes.Extensions;
 using Shared.Renderer.Planes.Uniforms;
 using Sunder.Markup.Abstract;
 using Sunder.Markup.Document;
@@ -130,7 +131,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
             case "label":
             {
-                node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("text", out var text);
+                node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var text);
                 element = new Label(context, text ?? string.Empty);
                 break;
             }
@@ -218,19 +219,8 @@ public class ComponentBuilderV1 : IComponentBuilder
         var background = GetStyleForNode(node, property, styleSheet);
         return background switch
         {
-            GradientValue keyword => new GradientPlane
-            {
-                GradientType = keyword.Type switch
-                {
-                    "radial" => GradientType.Radial,
-                    "conical" => GradientType.Conical,
-                    "solid" => GradientType.Solid,
-                    _ => GradientType.Linear // also matches linear
-                },
-                GradientStops = keyword.Stops.Select(stop => stop.Percentage).ToList(),
-                GradientColors = keyword.Stops.Select(stop => stop.Color.Vector).ToList(),
-            },
-            ColorValue color => new ColoredPlane { Color = color.Vector },
+            GradientValue gv => gv.GenerateGradientPlane(),
+            ColorValue cv => new ColoredPlane { Color = cv.Vector },
             _ => null
         };
     }

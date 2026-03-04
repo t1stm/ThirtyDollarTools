@@ -1,5 +1,6 @@
 using System.Reflection;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Style.DSL.Abstract;
@@ -7,11 +8,8 @@ using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Panels;
 
-public class FlexPanel(UIContext context)
-    : Panel(context), IPositioningElement
+public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
 {
-    [NamedSetting("autosize-self")] public bool AutoSizeSelf { get; set; }
-
     public override string Tag => "flex";
 
     [NamedSetting("horizontal-align")]
@@ -62,6 +60,12 @@ public class FlexPanel(UIContext context)
         }
     }
 
+    [NamedSetting("width")]
+    public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.AutoSize;
+    
+    [NamedSetting("height")]
+    public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
+
     protected override void DoLayout()
     {
         var count = Children.Count;
@@ -87,10 +91,71 @@ public class FlexPanel(UIContext context)
         Background?.Scale = (Computed.Width, Computed.Height, 1);
     }
 
+    public override (float width, float height) Measure(float parentWidth, float parentHeight)
+    {
+        // If explicit sizes are provided (not Auto), default measurement is fine
+        var explicitW = !Width.Auto ? Width.Resolve(parentWidth) : (float?)null;
+        var explicitH = !Height.Auto ? Height.Resolve(parentHeight) : (float?)null;
+
+        // Available inner space to measure children against
+        var baseW = explicitW ?? parentWidth;
+        var baseH = explicitH ?? parentHeight;
+
+        var innerW = Math.Max(0, baseW - 2 * Padding);
+        var innerH = Math.Max(0, baseH - 2 * Padding);
+
+        float contentW = 0;
+        float contentH = 0;
+
+        if (Children.Count == 0)
+        {
+            contentW = 0;
+            contentH = 0;
+        }
+        else if (Direction == LayoutDirection.Horizontal)
+        {
+            float sumW = 0;
+            float maxH = 0;
+            var i = 0;
+            foreach (var child in Children)
+            {
+                var (cw, ch) = child.Measure(innerW, innerH);
+                sumW += cw;
+                if (i++ > 0) sumW += Spacing;
+                if (ch > maxH) maxH = ch;
+            }
+            contentW = sumW;
+            contentH = maxH;
+        }
+        else // Vertical
+        {
+            float sumH = 0;
+            float maxW = 0;
+            var i = 0;
+            foreach (var child in Children)
+            {
+                var (cw, ch) = child.Measure(innerW, innerH);
+                sumH += ch;
+                if (i++ > 0) sumH += Spacing;
+                if (cw > maxW) maxW = cw;
+            }
+            contentW = maxW;
+            contentH = sumH;
+        }
+
+        var measuredW = (explicitW ?? (contentW + 2 * Padding));
+        var measuredH = (explicitH ?? (contentH + 2 * Padding));
+
+        return (measuredW, measuredH);
+    }
+
     private void Layout_Horizontal(int count, float innerWidth, float innerHeight)
     {
         var total_spacing = Spacing * (count - 1);
-        var total_width = Children.Sum(c => c.Width.IsPercentage ? innerWidth * (c.Width.Value / 100f) : c.Width.Value);
+        var total_fixed = Children.Where(c => !c.Width.IsPercentage).Sum(c => c.Width.Value);
+        var total_percent = Children.Where(c => c.Width.IsPercentage).Sum(c => c.Width.Value);
+        var free_space = Math.Max(0, innerWidth - total_fixed - total_spacing);
+        var total_width = total_fixed + (total_percent > 0 ? free_space : 0); // percent children occupy free_space
 
         var offset = HorizontalAlign switch
         {
@@ -104,7 +169,10 @@ public class FlexPanel(UIContext context)
             child.Layout();
             child.X = Padding + offset;
 
+            // Resolve child height
             var ch = child.Height.IsPercentage ? innerHeight * (child.Height.Value / 100f) : child.Height.Value;
+            if (child.Height.IsPercentage)
+                child.Height = ch;
             switch (VerticalAlign)
             {
                 case Align.Center:
@@ -124,7 +192,18 @@ public class FlexPanel(UIContext context)
             }
 
             child.Layout();
-            var cw = child.Width.IsPercentage ? innerWidth * (child.Width.Value / 100f) : child.Width.Value;
+            // Resolve child width: distribute free space among percentage children proportionally
+            float cw;
+            if (child.Width.IsPercentage)
+            {
+                cw = total_percent > 0 ? free_space * (child.Width.Value / total_percent) : 0;
+            }
+            else
+            {
+                cw = child.Width.Value;
+            }
+            if (child.Width.IsPercentage)
+                child.Width = cw;
             offset += cw + Spacing;
         }
     }
@@ -132,8 +211,10 @@ public class FlexPanel(UIContext context)
     private void Layout_Vertical(int count, float innerHeight, float innerWidth)
     {
         var total_spacing = Spacing * (count - 1);
-        var total_height =
-            Children.Sum(c => c.Height.IsPercentage ? innerHeight * (c.Height.Value / 100f) : c.Height.Value);
+        var total_fixed = Children.Where(c => !c.Height.IsPercentage).Sum(c => c.Height.Value);
+        var total_percent = Children.Where(c => c.Height.IsPercentage).Sum(c => c.Height.Value);
+        var free_space = Math.Max(0, innerHeight - total_fixed - total_spacing);
+        var total_height = total_fixed + (total_percent > 0 ? free_space : 0);
 
         var offset = VerticalAlign switch
         {
@@ -147,7 +228,10 @@ public class FlexPanel(UIContext context)
             child.Layout();
             child.Y = Padding + offset;
 
+            // Resolve child width
             var cw = child.Width.IsPercentage ? innerWidth * (child.Width.Value / 100f) : child.Width.Value;
+            if (child.Width.IsPercentage)
+                child.Width = cw;
             switch (HorizontalAlign)
             {
                 case Align.Center:
@@ -165,9 +249,20 @@ public class FlexPanel(UIContext context)
                     child.X = Padding;
                     break;
             }
-
+            
             child.Layout();
-            var ch = child.Height.IsPercentage ? innerHeight * (child.Height.Value / 100f) : child.Height.Value;
+            // Resolve child height: distribute free space among percentage children proportionally
+            float ch;
+            if (child.Height.IsPercentage)
+            {
+                ch = total_percent > 0 ? free_space * (child.Height.Value / total_percent) : 0;
+            }
+            else
+            {
+                ch = child.Height.Value;
+            }
+            if (child.Height.IsPercentage)
+                child.Height = ch;
             offset += ch + Spacing;
         }
     }

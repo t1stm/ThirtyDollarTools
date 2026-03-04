@@ -32,6 +32,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj"/>
         <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+        <ProjectReference Include="..\..\Engine\Style DSL\Sundex.Style.DSL\Sundex.Style.DSL.csproj" />
         <ProjectReference Include="..\..\Engine\Sundex.Core\Sundex.Core.csproj" />
         <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj" />
     </ItemGroup>

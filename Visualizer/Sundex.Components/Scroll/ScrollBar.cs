@@ -31,7 +31,7 @@ public sealed class ScrollBar : Panel
 
     public float Percentage { get; private set; }
 
-    public override LiteralOrPercentage X
+    public override LiteralOrComputable X
     {
         get
         {
@@ -43,15 +43,15 @@ public sealed class ScrollBar : Panel
         set => throw new NotSupportedException();
     }
 
-    public override LiteralOrPercentage Y
+    public override LiteralOrComputable Y
     {
         get => 0;
         set => throw new NotSupportedException();
     }
 
-    public override LiteralOrPercentage Width { get; set; } = 20;
+    public override LiteralOrComputable Width { get; set; } = 20;
 
-    public override LiteralOrPercentage Height
+    public override LiteralOrComputable Height
     {
         get
         {

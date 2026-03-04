@@ -1,6 +1,8 @@
 using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Shared.Renderer.Planes;
+using Shared.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
@@ -17,7 +19,7 @@ public class ProgressBar : UIElement
         but in that case we lose the ability to apply multiple children to the elements.
         
         This will be useful if there's a need for multiple gradients in a progress bar (kinda overkill no?).
-    */     
+    */
     [NamedSetting("background")]
     public Panel BackgroundPanel { get; set; }
     
@@ -116,13 +118,24 @@ public class ProgressBar : UIElement
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Panel):
             {
-                // TODO
+                var panel = new Panel(Context)
+                {
+                    Background = gv.GenerateGradientPlane()
+                };
+                propertyInfo.SetValue(this, panel);
                 return;
             }
 
             case ColorValue cv when propertyInfo.PropertyType == typeof(Panel):
             {
-                // TODO
+                var panel = new Panel(Context)
+                {
+                    Background = new ColoredPlane
+                    {
+                        Color = cv.Vector
+                    }
+                };
+                propertyInfo.SetValue(this, panel);
                 return;
             }
             

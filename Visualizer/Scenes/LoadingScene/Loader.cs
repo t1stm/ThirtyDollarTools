@@ -55,7 +55,7 @@ public class Loader : Scene, IGamePreloadable
             StatusUpdate = StatusUpdate
         };
         
-        _loaderInterface = new LoaderInterface(_context, _camera, () => _thirtyDollarDownloader.Load());
+        _loaderInterface = new LoaderInterface(_context, () => _thirtyDollarDownloader.Load());
     }
 
     public static void Preload(AssetProvider assetProvider)
@@ -82,7 +82,7 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Render(RenderArguments renderArgs)
     {
-        _loaderInterface.Render(_camera, _context);
+        _loaderInterface.Render(_context);
     }
 
     public override void TransitionedTo()

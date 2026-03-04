@@ -1,5 +1,6 @@
 using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Attributes;
@@ -10,6 +11,8 @@ namespace Sundex.Components.Labels;
 [PreloadGraphicsContext]
 public class Label : UIElement
 {
+    private const float ReferenceFontSize = 14;
+
     protected readonly TextBuffer? TextBuffer;
     private string _textValue;
 
@@ -40,16 +43,16 @@ public class Label : UIElement
     }
 
     [NamedSetting("font-size")]
-    public float FontSizePx
+    public LiteralOrComputable FontSizePx
     {
         get;
         set
         {
-            if (Math.Abs(field - value) < 0.01f) return;
+            if (field.IsPercentage == value.IsPercentage && Math.Abs(field.Value - value.Value) < 0.01f) return;
             field = value;
             if (TextSlice == null) return;
-            TextSlice.FontSize = value;
-            
+            TextSlice.FontSize = value.Resolve(ReferenceFontSize);
+
             var scale = TextSlice.Scale;
             Width = scale.X;
             Height = scale.Y;
@@ -72,14 +75,14 @@ public class Label : UIElement
         _textValue = text.ToString();
         if (TextSlice == null) return;
         if (TextBuffer == null) return;
-        
+
         if (text.Length > TextSlice.Length)
         {
             TextSlice.Dispose();
             TextSlice = TextBuffer.GetTextSlice(text);
             TextSlice.UpdateManually = true;
-            
-            TextSlice.FontSize = FontSizePx;
+
+            TextSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
             TextSlice.Color = Color;
 
             TextSlice.UpdateManually = false;
@@ -88,20 +91,21 @@ public class Label : UIElement
         else
         {
             TextSlice.UpdateManually = true;
-            
+
             TextSlice.Value = text;
-            TextSlice.FontSize = FontSizePx;
+            TextSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
             TextSlice.Color = Color;
-            
+
             TextSlice.UpdateManually = false;
             TextSlice.UpdateCharacters();
         }
-        
+
         var scale = TextSlice.Scale;
 
         Width = scale.X;
         Height = scale.Y;
 
+        NeedsLayout = true;
         InvalidateLayout();
     }
 

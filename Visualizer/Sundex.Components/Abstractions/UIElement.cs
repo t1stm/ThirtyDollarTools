@@ -45,28 +45,28 @@ public abstract class UIElement
     }
 
     [NamedSetting("x")]
-    public virtual LiteralOrPercentage X
+    public virtual LiteralOrComputable X
     {
         get;
         set => UpdateSetDirty(out field, value);
     }
 
     [NamedSetting("y")]
-    public virtual LiteralOrPercentage Y
+    public virtual LiteralOrComputable Y
     {
         get;
         set => UpdateSetDirty(out field, value);
     }
 
     [NamedSetting("width")]
-    public virtual LiteralOrPercentage Width
+    public virtual LiteralOrComputable Width
     {
         get;
         set => UpdateSetDirty(out field, value);
     }
 
     [NamedSetting("height")]
-    public virtual LiteralOrPercentage Height
+    public virtual LiteralOrComputable Height
     {
         get;
         set => UpdateSetDirty(out field, value);
@@ -200,6 +200,21 @@ public abstract class UIElement
     }
 
     /// <summary>
+    /// Measures the desired size of this element given the available parent size.
+    /// Default implementation resolves literal/percentage sizes against parent size.
+    /// Containers can override to size to content when Width/Height are set to Auto.
+    /// </summary>
+    /// <param name="parentWidth">Available width from parent.</param>
+    /// <param name="parentHeight">Available height from parent.</param>
+    /// <returns>Tuple of desired (width, height).</returns>
+    public virtual (float width, float height) Measure(float parentWidth, float parentHeight)
+    {
+        var w = Width.Resolve(parentWidth);
+        var h = Height.Resolve(parentHeight);
+        return (w, h);
+    }
+
+    /// <summary>
     /// Internal method to handle specific layout logic.
     /// </summary>
     protected virtual void DoLayout()
@@ -255,9 +270,9 @@ public abstract class UIElement
 
         switch (styleValue)
         {
-            case NumberValue nv when propertyInfo.PropertyType == typeof(LiteralOrPercentage):
+            case NumberValue nv when propertyInfo.PropertyType == typeof(LiteralOrComputable):
             {
-                var newValue = new LiteralOrPercentage(nv.Value, nv.Unit is "%");
+                var newValue = new LiteralOrComputable(nv.Value, nv.Unit is "%");
                 propertyInfo.SetValue(this, newValue);
                 break;
             }

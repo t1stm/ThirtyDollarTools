@@ -2,6 +2,7 @@ using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
+using Shared.Renderer.Planes.Extensions;
 using Shared.Renderer.Planes.Uniforms;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
@@ -29,7 +30,7 @@ public class Panel : UIElement, IColoredBackground
     public bool ScrollOnOverflow { get; set; }
     
     [NamedSetting("border-radius")]
-    public LiteralOrPercentage BorderRadius { get; set; } = 0;
+    public LiteralOrComputable BorderRadius { get; set; } = 0;
 
     public List<UIElement> Children
     {
@@ -125,25 +126,7 @@ public class Panel : UIElement, IColoredBackground
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Renderable):
             {
-                // TODO: duplicated code with ComponentBuilderV1. Extract somewhere else and use both places.
-                var stopsColor = gv.Stops.Select(x => x.Color.Vector).ToList();
-                var stopsPercentage = gv.Stops.Select(x => x.Percentage).ToList();
-                
-                var gradientRenderable = new GradientPlane
-                {
-                    BorderRadius = BorderRadius.Resolve(Computed.Height),
-                    GradientColors = stopsColor,
-                    GradientStops = stopsPercentage,
-                    GradientType = gv.Type switch
-                    {
-                        "radial" => GradientType.Radial,
-                        "conical" => GradientType.Conical,
-                        "solid" => GradientType.Solid,
-                        _ => GradientType.Linear
-                    },
-                };
-
-                propertyInfo.SetValue(this, gv.Value);
+                propertyInfo.SetValue(this, gv.GenerateGradientPlane());
                 return;
             }
 

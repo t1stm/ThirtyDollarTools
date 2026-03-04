@@ -42,13 +42,13 @@ public class WindowFrame : Panel
         Children = [Container];
     }
 
-    public override LiteralOrPercentage Width
+    public override LiteralOrComputable Width
     {
         get => Container.Width;
         set => Container.Width = value;
     }
 
-    public override LiteralOrPercentage Height
+    public override LiteralOrComputable Height
     {
         get => Container.Height;
         set => Container.Height = value;

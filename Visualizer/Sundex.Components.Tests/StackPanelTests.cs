@@ -30,10 +30,10 @@ public class StackPanelTests
 
         stack.Layout();
 
-        Assert.Equal(0, child1.X);
-        Assert.Equal(0, child1.Y);
-        Assert.Equal(0, child2.X);
-        Assert.Equal(30, child2.Y);
+        Assert.Equal(0, child1.Computed.X);
+        Assert.Equal(0, child1.Computed.Y);
+        Assert.Equal(0, child2.Computed.X);
+        Assert.Equal(30, child2.Computed.Y);
     }
 
     [Fact]
@@ -53,10 +53,10 @@ public class StackPanelTests
 
         stack.Layout();
 
-        Assert.Equal(0, child1.X);
-        Assert.Equal(0, child1.Y);
-        Assert.Equal(50, child2.X);
-        Assert.Equal(0, child2.Y);
+        Assert.Equal(0, child1.Computed.X);
+        Assert.Equal(0, child1.Computed.Y);
+        Assert.Equal(50, child2.Computed.X);
+        Assert.Equal(0, child2.Computed.Y);
     }
 
     [Fact]
@@ -84,10 +84,10 @@ public class StackPanelTests
         // start_x = Computed.AbsoluteX + Padding;
         // So child.X should be Padding.
 
-        Assert.Equal(10, child1.X);
-        Assert.Equal(10, child1.Y);
-        Assert.Equal(10, child2.X);
-        Assert.Equal(10 + 30 + 5, child2.Y); // Padding + child1.Height + Spacing
+        Assert.Equal(10, child1.Computed.X);
+        Assert.Equal(10, child1.Computed.Y);
+        Assert.Equal(10, child2.Computed.X);
+        Assert.Equal(10 + 30 + 5, child2.Computed.Y); // Padding + child1.Height + Spacing
     }
 
     [Fact]
@@ -104,13 +104,13 @@ public class StackPanelTests
 
         var child = new TestElement(context, 0, 30)
         {
-            Width = new LiteralOrPercentage(100, true)
+            Width = new LiteralOrComputable(100, true)
         };
         stack.Children = [child];
 
         stack.Layout();
 
-        Assert.Equal(80, child.Width); // Width - 2 * Padding = 100 - 20 = 80
+        Assert.Equal(80, child.Computed.Width); // Width - 2 * Padding = 100 - 20 = 80
     }
 
     [Fact]
@@ -127,12 +127,12 @@ public class StackPanelTests
 
         var child = new TestElement(context, 50)
         {
-            Height = new LiteralOrPercentage(100, true)
+            Height = new LiteralOrComputable(100, true)
         };
         stack.Children = [child];
 
         stack.Layout();
 
-        Assert.Equal(80, child.Height); // Height - 2 * Padding = 100 - 20 = 80
+        Assert.Equal(80, child.Computed.Height); // Height - 2 * Padding = 100 - 20 = 80
     }
 }
