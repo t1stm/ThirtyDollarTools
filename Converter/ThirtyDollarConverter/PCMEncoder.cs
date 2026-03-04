@@ -131,6 +131,9 @@ public class PcmEncoder
             var event_value = ev.Value;
             if (event_name == "!cut" || ev is ICustomActionEvent) continue;
 
+            if (Holder.StringToSoundReferences.TryGetValue(event_name, out var sound))
+                event_name = sound.Id;
+            
             event_dictionary.TryAdd((event_name, event_value), ev);
         }
 
@@ -286,6 +289,9 @@ public class PcmEncoder
             var current_event = current.Event;
             var (event_name, event_value, event_volume) = current.Event;
             event_name ??= string.Empty;
+            
+            if (Holder.StringToSoundReferences.TryGetValue(event_name, out var sound_reference))
+                event_name = sound_reference.Id;
 
             // get specified event track if exists
             var track_data = mixer.GetTrackOrDefault(event_name);
