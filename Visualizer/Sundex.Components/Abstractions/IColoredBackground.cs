@@ -1,6 +1,8 @@
+using Sundex.Components.Attributes;
+
 namespace Sundex.Components.Abstractions;
 
 public interface IColoredBackground
 {
-    public Renderable? Background { get; set; }
+    [NamedSetting("background")] public Renderable? Background { get; set; }
 }

@@ -147,7 +147,7 @@ public static class Program
         ];
 
         var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings, "ThirtyDollarVisualizer");
-        if (game.TryGetCurrentMonitorScale(out var horizontal_scale, out var vertical_scale) &&
+        if (game.TryGetScreenScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 
         game.Enqueue(instance =>

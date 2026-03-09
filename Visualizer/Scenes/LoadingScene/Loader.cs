@@ -35,7 +35,7 @@ public class Loader : Scene, IGamePreloadable
     public Loader(SceneManager sceneManager, AudioContext? audioContext) : base(sceneManager)
     {
         var clientSize = sceneManager.Game.ClientSize;
-        if (sceneManager.Game.TryGetCurrentMonitorScale(out var scaleX, out var scaleY))
+        if (sceneManager.Game.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             _lastScale = new Vector2(scaleX, scaleY);
             clientSize.X = (int)(clientSize.X / scaleX);
@@ -124,7 +124,7 @@ public class Loader : Scene, IGamePreloadable
     {
         float width = w;
         float height = h;
-        if (Game.TryGetCurrentMonitorScale(out var scaleX, out var scaleY))
+        if (Game.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             width /= scaleX;
             height /= scaleY;

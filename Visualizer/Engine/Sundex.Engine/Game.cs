@@ -51,6 +51,15 @@ public class Game : GameWindow
     public ThreadRunner ThreadRunner { get; }
     private GLInfo GLInfo { get; } = new();
 
+    public bool TryGetScreenScale(out float horizontalScale, out float verticalScale)
+    {
+        horizontalScale = 1f;
+        verticalScale = 1f;
+
+        return GLFW.GetPlatform() != Platform.Wayland &&
+               TryGetCurrentMonitorScale(out horizontalScale, out verticalScale);
+    }
+
     protected override void OnLoad()
     {
         base.OnLoad();

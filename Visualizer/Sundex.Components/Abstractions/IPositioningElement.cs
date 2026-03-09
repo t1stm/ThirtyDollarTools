@@ -1,8 +1,10 @@
+using Sundex.Components.Attributes;
+
 namespace Sundex.Components.Abstractions;
 
 public interface IPositioningElement
 {
-    public LayoutDirection Direction { get; set; }
-    public float Padding { get; set; }
-    public float Spacing { get; set; }
+    [NamedSetting("direction")] public LayoutDirection Direction { get; set; }
+    [NamedSetting("padding")] public float Padding { get; set; }
+    [NamedSetting("spacing")] public float Spacing { get; set; }
 }

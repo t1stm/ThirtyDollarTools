@@ -58,10 +58,6 @@ public sealed class DropDownLabel : Panel
 
     public override (float width, float height) Measure(float parentWidth, float parentHeight)
     {
-        // During base construction, Label is not yet assigned; avoid accessing it
-        if (Label is null)
-            return (0, 0);
-
         // Desired size equals the label's desired size
         return Label.Measure(parentWidth, parentHeight);
     }
