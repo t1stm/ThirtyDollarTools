@@ -17,7 +17,7 @@ using Sundex.Engine.Renderer.Textures;
 namespace Shared.Renderer.Planes;
 
 [PreloadGraphicsContext]
-public class TexturedPlane : Renderable, IGamePreloadable
+public class TexturedPlane : Renderable, IGamePreloadable, IBorderRadius
 {
     private static DeleteQueue _deleteQueue = null!;
     private static Shader _shader = null!;

@@ -86,6 +86,9 @@ public class Panel : UIElement, IColoredBackground
         var y = (int)Computed.AbsoluteY;
         Viewport = (x, y, x + (int)Computed.Width, y + (int)Computed.Height);
 
+        if (Background is IBorderRadius br)
+            br.BorderRadius = BorderRadius.Resolve(0);
+
         Background?.SetPosition((x, y, 0));
         Background?.Scale = (Computed.Width, Computed.Height, 1);
 
@@ -154,5 +157,12 @@ public class Panel : UIElement, IColoredBackground
         {
             child.ApplyStyleSheet(styleSheet);
         }
+    }
+
+    public override void ApplyStateOverride(StyleSheet styleSheet, string state)
+    {
+        base.ApplyStateOverride(styleSheet, state);
+        foreach (var child in Children)
+            child.ApplyStateOverride(styleSheet, state);
     }
 }

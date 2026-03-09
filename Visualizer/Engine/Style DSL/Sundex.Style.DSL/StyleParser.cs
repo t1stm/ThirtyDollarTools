@@ -30,8 +30,8 @@ public class StyleParser(
 
             if (Match("animation")) ParseBlock(sheet.Animations, false, false, sheet);
             else if (Match("component")) ParseBlock(sheet.Components, true, false, sheet);
-            else if (Match("class")) ParseBlock(sheet.Classes, false, false, sheet);
-            else if (Match("id")) ParseBlock(sheet.IDTags, false, false, sheet);
+            else if (Match("class")) ParseBlock(sheet.Classes, true, false, sheet);
+            else if (Match("id")) ParseBlock(sheet.IDTags, true, false, sheet);
             else if (Match("import")) ParseImport(sheet);
             else if (Peek() == '@')
             {

@@ -38,8 +38,8 @@ public class LoaderInterface
         button.OnClick = _ => action();
         
         Component.RunLogic?.Invoke();
-        
-        // queue to render each time context.Render() is called
+
+        // register renderables once — they stay in the queue permanently
         RootPanel.DrawTo(context);
     }
     
@@ -64,6 +64,7 @@ public class LoaderInterface
 
     public void Render(UIContext context)
     {
+        RootPanel.Layout();
         context.Render();
     }
 }

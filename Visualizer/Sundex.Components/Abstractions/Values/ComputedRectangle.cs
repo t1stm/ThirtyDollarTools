@@ -14,8 +14,7 @@ public class ComputedRectangle
     public float Y { get; private set; }
     public float Width { get; private set; }
     public float Height { get; private set; }
-    
-    // TODO this explodes when the parent has a padding set. currently there is no way to signal that the parent has this. i'll probably need to add an interface called IPositioningElement or something like that
+
     public void UpdateAbsoluteBasedOnParent(UIElement current, UIElement? parent)
     {
         var parentWidth = parent?.Computed.Width ?? current.Context.ViewportWidth;
@@ -32,10 +31,22 @@ public class ComputedRectangle
             ? desiredH
             : current.Height.Resolve(parentHeight);
 
-        X = current.X.Resolve(Width);
-        Y = current.Y.Resolve(Height);
+        // X and Y are relative to the parent's content origin (after padding).
+        // The parent's layout pass is responsible for setting these.
+        X = current.X.Resolve(parentWidth);
+        Y = current.Y.Resolve(parentHeight);
 
-        AbsoluteX = X + parent?.Computed.X ?? 0;
-        AbsoluteY = Y + parent?.Computed.Y ?? 0;
+        // Apply anchor offsets so that e.g. anchor-x="center" shifts the element left by half its width
+        X += current.AnchorOffsetX(Width);
+        Y += current.AnchorOffsetY(Height);
+
+        // AbsoluteX/Y: start from parent's absolute origin, then add parent padding if it is a
+        // positioning container (IPositioningElement), then add this element's own X/Y offset.
+        var parentAbsX = parent?.Computed.AbsoluteX ?? 0;
+        var parentAbsY = parent?.Computed.AbsoluteY ?? 0;
+        var parentPadding = parent is IPositioningElement pe ? pe.Padding : 0;
+
+        AbsoluteX = parentAbsX + parentPadding + X;
+        AbsoluteY = parentAbsY + parentPadding + Y;
     }
 }

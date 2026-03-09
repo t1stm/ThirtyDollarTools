@@ -23,6 +23,20 @@ public enum Align
     Stretch
 }
 
+public enum Anchor
+{
+    Start,
+    Center,
+    End,
+}
+
+public enum UIState
+{
+    None,
+    Hovered,
+    Pressed,
+}
+
 public abstract class UIElement
 {
     protected UIElement(UIContext context)
@@ -42,20 +56,27 @@ public abstract class UIElement
     {
         field = value;
         NeedsLayout = true;
+        Parent?.InvalidateLayout();
+    }
+
+    private void UpdateSetDirtySelf<T>(out T field, T value)
+    {
+        field = value;
+        NeedsLayout = true;
     }
 
     [NamedSetting("x")]
     public virtual LiteralOrComputable X
     {
         get;
-        set => UpdateSetDirty(out field, value);
+        set => UpdateSetDirtySelf(out field, value);
     }
 
     [NamedSetting("y")]
     public virtual LiteralOrComputable Y
     {
         get;
-        set => UpdateSetDirty(out field, value);
+        set => UpdateSetDirtySelf(out field, value);
     }
 
     [NamedSetting("width")]
@@ -74,6 +95,38 @@ public abstract class UIElement
 
     [NamedSetting("index")] protected virtual int Index { get; set; }
 
+    /// <summary>Horizontal anchor point. "center" shifts left by width/2, "end" shifts left by width.</summary>
+    [NamedSetting("anchor-x")]
+    public Anchor AnchorX
+    {
+        get;
+        set => UpdateSetDirty(out field, value);
+    } = Anchor.Start;
+
+    /// <summary>Vertical anchor point. "center" shifts up by height/2, "end" shifts up by height.</summary>
+    [NamedSetting("anchor-y")]
+    public Anchor AnchorY
+    {
+        get;
+        set => UpdateSetDirty(out field, value);
+    } = Anchor.Start;
+
+    /// <summary>Returns the X pixel offset introduced by the <see cref="AnchorX"/> setting.</summary>
+    public float AnchorOffsetX(float elementWidth) => AnchorX switch
+    {
+        Anchor.Center => -elementWidth / 2f,
+        Anchor.End    => -elementWidth,
+        _             => 0f
+    };
+
+    /// <summary>Returns the Y pixel offset introduced by the <see cref="AnchorY"/> setting.</summary>
+    public float AnchorOffsetY(float elementHeight) => AnchorY switch
+    {
+        Anchor.Center => -elementHeight / 2f,
+        Anchor.End    => -elementHeight,
+        _             => 0f
+    };
+
     [NamedSetting("visible")]
     public bool Visible
     {
@@ -90,6 +143,19 @@ public abstract class UIElement
     public bool IsPressed { get; set; }
     public bool UpdateCursorOnHover { get; set; }
     public bool NeedsLayout { get; protected set; } = true;
+
+    protected StyleSheet? StoredStyleSheet { get; private set; }
+
+    public UIState CurrentState
+    {
+        get;
+        private set
+        {
+            if (field == value) return;
+            field = value;
+            InvalidateStyle();
+        }
+    } = UIState.None;
 
     public virtual UIElement? Parent
     {
@@ -130,8 +196,8 @@ public abstract class UIElement
         var mouseY = mouse.Y / scale.Y;
 
         var oldHovered = IsHovered;
-        IsHovered = mouse.X >= absX && mouseX <= absX + Computed.Width &&
-                    mouse.Y >= absY && mouseY <= absY + Computed.Height;
+        IsHovered = mouseX >= absX && mouseX <= absX + Computed.Width &&
+                    mouseY >= absY && mouseY <= absY + Computed.Height;
 
         switch (oldHovered, IsHovered)
         {
@@ -148,6 +214,7 @@ public abstract class UIElement
         switch (IsHovered)
         {
             case false:
+                CurrentState = UIState.None;
                 return;
 
             case true when mouse.IsButtonPressed(MouseButton.Left):
@@ -158,6 +225,8 @@ public abstract class UIElement
                 IsPressed = true;
                 break;
         }
+
+        CurrentState = IsPressed ? UIState.Pressed : UIState.Hovered;
     }
 
     /// <summary>
@@ -228,7 +297,6 @@ public abstract class UIElement
     public virtual void DrawTo(UIContext uiContext)
     {
         if (!Visible) return;
-        Layout();
         DrawSelf(uiContext);
     }
 
@@ -240,6 +308,7 @@ public abstract class UIElement
 
     public virtual void ApplyStyleSheet(StyleSheet styleSheet)
     {
+        StoredStyleSheet = styleSheet;
         var type = GetType();
         var properties = type.GetProperties();
         foreach (var propertyInfo in properties)
@@ -248,6 +317,82 @@ public abstract class UIElement
             if (attribute is null) continue;
 
             SetNamedSetting(styleSheet, propertyInfo, attribute);
+        }
+
+        // Snapshot the post-base-style values for any property that has at least one state override,
+        // so we can restore them without re-running ApplyStyleSheet (which would recreate renderables).
+        _baseSnapshot.Clear();
+        foreach (var propertyInfo in properties)
+        {
+            var attribute = propertyInfo.GetCustomAttribute<NamedSettingAttribute>();
+            if (attribute is null) continue;
+
+            var hasOverride =
+                styleSheet.GetStateOverrideForTag(ID, "hovered")?.ContainsKey(attribute.Name) == true ||
+                styleSheet.GetStateOverrideForTag(ID, "pressed")?.ContainsKey(attribute.Name) == true ||
+                Classes.Any(cls =>
+                    styleSheet.GetStateOverrideForTag(cls, "hovered")?.ContainsKey(attribute.Name) == true ||
+                    styleSheet.GetStateOverrideForTag(cls, "pressed")?.ContainsKey(attribute.Name) == true) ||
+                styleSheet.GetStateOverrideForTag(Tag, "hovered")?.ContainsKey(attribute.Name) == true ||
+                styleSheet.GetStateOverrideForTag(Tag, "pressed")?.ContainsKey(attribute.Name) == true;
+
+            if (hasOverride)
+                _baseSnapshot[attribute.Name] = (propertyInfo, propertyInfo.GetValue(this));
+        }
+    }
+
+    // Stores (PropertyInfo, base value) for each property that has a state override defined.
+    private readonly Dictionary<string, (PropertyInfo prop, object? value)> _baseSnapshot = new();
+
+    /// <summary>
+    /// Re-applies state styling on top of the snapshotted base values.
+    /// Called automatically when <see cref="CurrentState"/> changes.
+    /// </summary>
+    public virtual void InvalidateStyle()
+    {
+        if (StoredStyleSheet is null) return;
+
+        // Restore snapshot first so we always start from the base style
+        foreach (var (prop, value) in _baseSnapshot.Values)
+            prop.SetValue(this, value);
+
+        var stateName = CurrentState switch
+        {
+            UIState.Hovered => "hovered",
+            UIState.Pressed => "pressed",
+            _ => null
+        };
+
+        if (stateName is not null)
+            ApplyStateOverride(StoredStyleSheet, stateName);
+
+        InvalidateLayout();
+    }
+
+    /// <summary>
+    /// Applies only the properties defined in the state override block for the given state,
+    /// on top of the already-applied base styles.
+    /// </summary>
+    public virtual void ApplyStateOverride(StyleSheet styleSheet, string state)
+    {
+        var type = GetType();
+        var properties = type.GetProperties();
+        foreach (var propertyInfo in properties)
+        {
+            var attribute = propertyInfo.GetCustomAttribute<NamedSettingAttribute>();
+            if (attribute is null) continue;
+
+            // Check ID, then classes, then tag — same priority as base styles
+            var overrideValue = styleSheet.GetStateOverrideForTag(ID, state)
+                ?.GetValueOrDefault(attribute.Name)
+                ?? Classes.Select(cls => styleSheet.GetStateOverrideForTag(cls, state)
+                    ?.GetValueOrDefault(attribute.Name))
+                    .FirstOrDefault(v => v is not null)
+                ?? styleSheet.GetStateOverrideForTag(Tag, state)
+                    ?.GetValueOrDefault(attribute.Name);
+
+            if (overrideValue is not null)
+                ApplyStyleValue(overrideValue, propertyInfo);
         }
     }
 
@@ -292,6 +437,21 @@ public abstract class UIElement
             case VectorValue vv when propertyInfo.PropertyType == typeof(Vector3):
             {
                 propertyInfo.SetValue(this, new Vector3((float)vv.X, (float)vv.Y, (float)(vv.Z ?? 0)));
+                break;
+            }
+
+            case StringValue sv when propertyInfo.PropertyType == typeof(Anchor):
+            {
+                Anchor? anchor = sv.Value switch
+                {
+                    "center" => Anchor.Center,
+                    "end"    => Anchor.End,
+                    "start"  => Anchor.Start,
+                    _        => null
+                };
+
+                if (anchor is not null)
+                    propertyInfo.SetValue(this, anchor.Value);
                 break;
             }
 

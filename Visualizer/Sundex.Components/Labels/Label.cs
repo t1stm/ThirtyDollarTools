@@ -79,14 +79,12 @@ public class Label : UIElement
         if (text.Length > TextSlice.Length)
         {
             TextSlice.Dispose();
-            TextSlice = TextBuffer.GetTextSlice(text);
-            TextSlice.UpdateManually = true;
-
-            TextSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
-            TextSlice.Color = Color;
-
-            TextSlice.UpdateManually = false;
-            TextSlice.SetPosition((Computed.AbsoluteX, Computed.AbsoluteY, 0));
+            var newSlice = TextBuffer.GetTextSlice(text);
+            newSlice.UpdateManually = true;
+            newSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
+            newSlice.Color = Color;
+            newSlice.UpdateManually = false;
+            TextSlice = newSlice; // setter reads Scale — FontSize is already correct at this point
         }
         else
         {
@@ -104,9 +102,6 @@ public class Label : UIElement
 
         Width = scale.X;
         Height = scale.Y;
-
-        NeedsLayout = true;
-        InvalidateLayout();
     }
 
     public override string Tag => "label";

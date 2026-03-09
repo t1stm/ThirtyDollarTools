@@ -152,4 +152,25 @@ public class StyleSheet(StyleSheetHolder holder)
             componentProps.TryGetValue(property, out var componentValue)) return componentValue;
         return null;
     }
+
+    /// <summary>
+    /// Returns the property overrides for a given state on a tag (id, class, or component),
+    /// or null if no state block is defined for that tag/state combination.
+    /// </summary>
+    public Dictionary<string, IStyleValue>? GetStateOverrideForTag(string name, string state)
+    {
+        var key = $"state[{state}]";
+
+        var ids = IDTags.GetAlternateLookup<ReadOnlySpan<char>>();
+        var classes = Classes.GetAlternateLookup<ReadOnlySpan<char>>();
+        var components = Components.GetAlternateLookup<ReadOnlySpan<char>>();
+
+        if (ids.TryGetValue(name, out var idProps) && idProps.TryGetValue(key, out var idState) &&
+            idState is BlockValue idBlock) return idBlock.Properties;
+        if (classes.TryGetValue(name, out var classProps) && classProps.TryGetValue(key, out var classState) &&
+            classState is BlockValue classBlock) return classBlock.Properties;
+        if (components.TryGetValue(name, out var componentProps) && componentProps.TryGetValue(key, out var componentState) &&
+            componentState is BlockValue componentBlock) return componentBlock.Properties;
+        return null;
+    }
 }

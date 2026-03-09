@@ -45,6 +45,8 @@ component progress {
             "#ff4499"
         ]
     }
+    
+    foreground = "#00ffd2";
 }
 
 component button {

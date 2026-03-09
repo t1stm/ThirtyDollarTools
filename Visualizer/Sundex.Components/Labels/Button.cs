@@ -20,6 +20,8 @@ public class Button : FlexPanel
     public Button(UIContext context, Label label, Renderable? background = null) : base(context)
     {
         Padding = 5;
+        HorizontalAlign = Align.Center;
+        VerticalAlign = Align.Center;
         Background = background ?? new ColoredPlane
         {
             Color = DarkScheme.AccentBlue,

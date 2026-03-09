@@ -4,11 +4,13 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Shared.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
+using Sundex.Style.DSL;
 
 namespace Sundex.Components.Bars;
 
@@ -21,10 +23,41 @@ public class ProgressBar : UIElement
         This will be useful if there's a need for multiple gradients in a progress bar (kinda overkill no?).
     */
     [NamedSetting("background")]
-    public Panel BackgroundPanel { get; set; }
+    public Panel BackgroundPanel
+    {
+        get;
+        set
+        {
+            field = value;
+            field.Parent = this;
+            InvalidateLayout();
+        }
+    }
     
     [NamedSetting("foreground")]
-    public Panel ForegroundPanel { get; set; }
+    public Panel ForegroundPanel
+    {
+        get;
+        set
+        {
+            field = value;
+            field.Parent = this;
+            InvalidateLayout();
+        }
+    }
+
+    [NamedSetting("border-radius")]
+    public LiteralOrComputable BorderRadius
+    {
+        get;
+        set
+        {
+            field = value;
+            BackgroundPanel.BorderRadius = value;
+            ForegroundPanel.BorderRadius = value;
+            InvalidateLayout();
+        }
+    }
 
     [NamedSetting("progress")]
     public float Progress
@@ -56,6 +89,20 @@ public class ProgressBar : UIElement
             Background = fgPlaneBackground,
         })
     {
+    }
+
+    public override void ApplyStyleSheet(StyleSheet styleSheet)
+    {
+        base.ApplyStyleSheet(styleSheet);
+        BackgroundPanel.ApplyStyleSheet(styleSheet);
+        ForegroundPanel.ApplyStyleSheet(styleSheet);
+    }
+
+    public override void ApplyStateOverride(StyleSheet styleSheet, string state)
+    {
+        base.ApplyStateOverride(styleSheet, state);
+        BackgroundPanel.ApplyStateOverride(styleSheet, state);
+        ForegroundPanel.ApplyStateOverride(styleSheet, state);
     }
 
     protected override void DrawSelf(UIContext context)
