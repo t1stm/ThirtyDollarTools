@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Text;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
@@ -11,8 +10,8 @@ public class StyleParser(
     Func<string, string>? fileLoader = null,
     HashSet<string>? importedPaths = null)
 {
-    private int _pos;
     private readonly HashSet<string> _importedPaths = importedPaths ?? [];
+    private int _pos;
 
     public static StyleSheetHolder Parse(string dsl, Func<string, string>? fileLoader = null)
     {
@@ -28,18 +27,36 @@ public class StyleParser(
             SkipWhitespaceAndComments();
             if (IsAtEnd()) break;
 
-            if (Match("animation")) ParseBlock(sheet.Animations, false, false, sheet);
-            else if (Match("component")) ParseBlock(sheet.Components, true, false, sheet);
-            else if (Match("class")) ParseBlock(sheet.Classes, true, false, sheet);
-            else if (Match("id")) ParseBlock(sheet.IDTags, true, false, sheet);
-            else if (Match("import")) ParseImport(sheet);
+            if (Match("animation"))
+            {
+                ParseBlock(sheet.Animations, false, false, sheet);
+            }
+            else if (Match("component"))
+            {
+                ParseBlock(sheet.Components, true, false, sheet);
+            }
+            else if (Match("class"))
+            {
+                ParseBlock(sheet.Classes, true, false, sheet);
+            }
+            else if (Match("id"))
+            {
+                ParseBlock(sheet.IDTags, true, false, sheet);
+            }
+            else if (Match("import"))
+            {
+                ParseImport(sheet);
+            }
             else if (Peek() == '@')
             {
                 Advance();
                 if (Match("component")) ParseBlock(sheet.Components, true, true, sheet);
                 else throw new Exception($"Unexpected token @ at {_pos}");
             }
-            else throw new Exception($"Unexpected token {Peek()} at {_pos}");
+            else
+            {
+                throw new Exception($"Unexpected token {Peek()} at {_pos}");
+            }
         }
 
         return sheet;
@@ -86,20 +103,12 @@ public class StyleParser(
         Consume('}');
 
         if (isOverride)
-        {
             target[name] = properties;
-        }
         else if (target.TryGetValue(name, out var existingProperties))
-        {
             foreach (var kvp in properties)
-            {
                 existingProperties[kvp.Key] = kvp.Value;
-            }
-        }
         else
-        {
             target[name] = properties;
-        }
     }
 
     private IStyleValue ParseValue()
@@ -287,14 +296,11 @@ public class StyleParser(
     private void SkipWhitespaceAndComments()
     {
         while (!IsAtEnd())
-        {
             if (char.IsWhiteSpace(Peek())) Advance();
             else if (Peek() == '/' && PeekNext() == '/')
-            {
-                while (!IsAtEnd() && Peek() != '\n') Advance();
-            }
+                while (!IsAtEnd() && Peek() != '\n')
+                    Advance();
             else break;
-        }
     }
 
     private bool Match(ReadOnlySpan<char> s)
@@ -303,20 +309,37 @@ public class StyleParser(
         if (!dsl.AsSpan(_pos, s.Length).SequenceEqual(s)) return false;
 
         // Ensure word boundary
-        if (_pos + s.Length < dsl.Length && (char.IsLetterOrDigit(dsl[_pos + s.Length]) || dsl[_pos + s.Length] == '-'))
-        {
-            return false;
-        }
+        if (_pos + s.Length < dsl.Length &&
+            (char.IsLetterOrDigit(dsl[_pos + s.Length]) || dsl[_pos + s.Length] == '-')) return false;
 
         _pos += s.Length;
         return true;
     }
 
-    private bool Check(char c) => !IsAtEnd() && Peek() == c;
-    private char Peek() => dsl[_pos];
-    private char PeekNext() => _pos + 1 < dsl.Length ? dsl[_pos + 1] : '\0';
-    private void Advance() => _pos++;
-    private bool IsAtEnd() => _pos >= dsl.Length;
+    private bool Check(char c)
+    {
+        return !IsAtEnd() && Peek() == c;
+    }
+
+    private char Peek()
+    {
+        return dsl[_pos];
+    }
+
+    private char PeekNext()
+    {
+        return _pos + 1 < dsl.Length ? dsl[_pos + 1] : '\0';
+    }
+
+    private void Advance()
+    {
+        _pos++;
+    }
+
+    private bool IsAtEnd()
+    {
+        return _pos >= dsl.Length;
+    }
 
     private void Consume(char c)
     {

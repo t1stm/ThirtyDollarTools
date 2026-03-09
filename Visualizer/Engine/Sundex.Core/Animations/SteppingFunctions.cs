@@ -60,15 +60,18 @@ public static class SteppingFunctions
                 MathF.Pow(2f, -10f * t) * MathF.Sin((t * 10f - 0.75f) * (2f * MathF.PI / 3f)) + 1f,
             SteppingFunction.ElasticInOut => Math.Abs(t) < 0.001f ? 0f :
                 Math.Abs(t - 1f) < 0.001f ? 1f :
-                t < 0.5f ? -(MathF.Pow(2f, 20f * t - 10f) * MathF.Sin((20f * t - 11.125f) * (2f * MathF.PI / 4.5f))) / 2f :
+                t < 0.5f ? -(MathF.Pow(2f, 20f * t - 10f) * MathF.Sin((20f * t - 11.125f) * (2f * MathF.PI / 4.5f))) /
+                           2f :
                 MathF.Pow(2f, -20f * t + 10f) * MathF.Sin((20f * t - 11.125f) * (2f * MathF.PI / 4.5f)) / 2f + 1f,
             SteppingFunction.BounceIn => 1f - BounceOut(1f - t),
             SteppingFunction.BounceOut => BounceOut(t),
-            SteppingFunction.BounceInOut => t < 0.5f ? (1f - BounceOut(1f - 2f * t)) / 2f : (1f + BounceOut(2f * t - 1f)) / 2f,
+            SteppingFunction.BounceInOut => t < 0.5f
+                ? (1f - BounceOut(1f - 2f * t)) / 2f
+                : (1f + BounceOut(2f * t - 1f)) / 2f,
             _ => t
         };
     }
-    
+
     public static SteppingFunction ParseSteppingFunction(ReadOnlySpan<char> steppingFunctionString)
     {
         return steppingFunctionString switch

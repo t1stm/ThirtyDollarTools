@@ -1,4 +1,3 @@
-using Shared.Renderer;
 using Sundex.Core.Animations;
 
 namespace Shared.Animations;

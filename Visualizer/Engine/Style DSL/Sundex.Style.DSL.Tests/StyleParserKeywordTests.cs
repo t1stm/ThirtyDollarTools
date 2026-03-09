@@ -10,9 +10,7 @@ public class StyleParserKeywordTests
         var basePath = AppContext.BaseDirectory;
         var projectRoot = basePath;
         while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.sln")))
-        {
             projectRoot = Path.GetDirectoryName(projectRoot);
-        }
 
         return projectRoot!;
     }

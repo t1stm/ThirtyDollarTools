@@ -6,8 +6,6 @@ using Serilog.Templates;
 using Serilog.Templates.Themes;
 using Sundex.Engine;
 using Sundex.Engine.DummyProject;
-
-
 #if RELEASE
 const string logFilePath = "Visualizer_Release.log";
 #endif

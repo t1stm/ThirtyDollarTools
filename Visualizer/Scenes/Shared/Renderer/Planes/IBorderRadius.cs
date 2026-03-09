@@ -4,4 +4,3 @@ public interface IBorderRadius
 {
     public float BorderRadius { get; set; }
 }
-

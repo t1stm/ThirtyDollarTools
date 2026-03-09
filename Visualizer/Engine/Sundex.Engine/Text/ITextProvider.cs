@@ -9,6 +9,11 @@ namespace Sundex.Engine.Text;
 /// </summary>
 public interface ITextProvider
 {
+    IGlyphProvider GlyphProvider { get; }
+
+    float TextureWidth { get; }
+    float TextureHeight { get; }
+
     /// <summary>
     ///     Returns the UV rectangle and alignment data for a single character glyph.
     /// </summary>
@@ -18,11 +23,4 @@ public interface ITextProvider
     ///     Binds the text atlas to the OpenGL context and activates the shader program.
     /// </summary>
     void BindAndSetUniforms(Camera camera);
-    
-    IGlyphProvider GlyphProvider { get; }
-    
-    float TextureWidth { get; }
-    float TextureHeight { get; }
 }
-
-

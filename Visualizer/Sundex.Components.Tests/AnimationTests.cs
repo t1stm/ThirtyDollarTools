@@ -29,11 +29,11 @@ public class AnimationTests
         };
 
         var animation = new KeyframedAnimation(positions);
-        
+
         // LoopStart at 2000ms
         // Invert at 5000ms
         // Loop duration = 3000ms
-        
+
         var stopwatch = animation.TimingStopwatch;
 
         // 1. Initial play (before LoopStart)
@@ -102,7 +102,7 @@ public class AnimationTests
         // QuadIn(0.5) = 0.5 * 0.5 = 0.25.
         stopwatch.Seek(500);
         var transform = animation.GetTransform_Add(null);
-        
+
         // Expected position = Lerp(0, 1, 0.25) = 0.25
         Assert.Equal(new Vector3(0.25f), transform);
     }
@@ -114,7 +114,7 @@ public class AnimationTests
         // P0: (0,0,0), 1000ms
         // P1: (1,1,1), 1000ms, LoopStart
         // P2: (2,2,2), 1000ms
-        
+
         var positions = new[]
         {
             new Keyframe { Position = new Vector3(0), LengthMs = 1000 },
@@ -137,7 +137,7 @@ public class AnimationTests
         // 3500ms -> (3500-1000) % 2000 = 500. elapsed = 1000 + 500 = 1500ms
         stopwatch.Seek(3500);
         Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f), animation.GetTransform_Add(null));
-        
+
         // 3. Loop play later
         // 5500ms -> (5500-1000) % 2000 = 500. elapsed = 1000 + 500 = 1500ms
         stopwatch.Seek(5500);
@@ -167,7 +167,7 @@ public class AnimationTests
         // At 500ms, progress is 0.5
         stopwatch.Seek(500);
         var color = animation.GetColor_Value(null);
-        
+
         // Expected color = Lerp(Red, Blue, 0.5) = (0.5, 0, 0.5, 1)
         Assert.Equal(new Vector4(0.5f, 0, 0.5f, 1), color);
     }

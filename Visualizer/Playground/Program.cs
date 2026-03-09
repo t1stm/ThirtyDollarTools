@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using Sundex.Components;
 using EditorScene;
 using HomeScene;
 using LoadingScene;
@@ -10,6 +9,7 @@ using Serilog;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
 using Shared;
+using Sundex.Components;
 using Sundex.Engine;
 using VisualizerScene;
 
@@ -24,12 +24,12 @@ Assembly[] assemblies =
     EditorAssembly.Assembly
 ];
 
-        
+
 #if RELEASE
 const string logFilePath = "Visualizer_Release.log";
 #endif
 #if DEBUG
-        const string logFilePath = "Visualizer_Debug.log";
+const string logFilePath = "Visualizer_Debug.log";
 #endif
 
 var serilogLogger = new LoggerConfiguration()

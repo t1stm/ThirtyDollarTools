@@ -64,17 +64,17 @@ void main() {
         color = u_GradientColors[0];
     }
     else {
-        if (u_GradientType == 1) { 
+        if (u_GradientType == 1) {
             // linear
             t = vUV.x;
         }
-        else if (u_GradientType == 2) { 
+        else if (u_GradientType == 2) {
             // radial
             vec2 halfSize = u_ScaleAndBorderPx.xy * 0.5;
             vec2 normalized = vLocalPos / halfSize;
             t = length(normalized);
         }
-        else if (u_GradientType == 3) { 
+        else if (u_GradientType == 3) {
             // conical
             t = atan(vLocalPos.y, vLocalPos.x) / (2.0 * PI) + 0.5;
         }
@@ -89,7 +89,7 @@ void main() {
         float alpha = 1.0 - smoothstep(0.0, edge, dist);
         color.a *= alpha;
     }
-    
+
     float noise = gradientNoise(gl_FragCoord.xy);
     float dither = (1.0 / 255.0) * gradientNoise(gl_FragCoord.xy) - (0.5 / 255.0);
     color.rgb += dither;

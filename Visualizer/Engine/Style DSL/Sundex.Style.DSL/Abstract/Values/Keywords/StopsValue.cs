@@ -2,13 +2,15 @@ namespace Sundex.Style.DSL.Abstract.Values.Keywords;
 
 public record StopsValue(IStyleValue Value) : IStyleValue
 {
-    object IStyleValue.Value => Value;
     public IStyleValue Elements => Value;
 
     public List<GradientStop> Stops => BuildStops(Value);
-    public override string ToString() => "!stops " + Value;
+    object IStyleValue.Value => Value;
 
-    public record GradientStop(ColorValue Color, float Percentage);
+    public override string ToString()
+    {
+        return "!stops " + Value;
+    }
 
     internal static List<GradientStop> BuildStops(IStyleValue value)
     {
@@ -24,6 +26,7 @@ public record StopsValue(IStyleValue Value) : IStyleValue
                         throw new ArgumentException("Gradient stop must be a color value");
                     list.Add(new GradientStop(color, pct));
                 }
+
                 break;
             }
             case ArrayValue arr:
@@ -37,6 +40,7 @@ public record StopsValue(IStyleValue Value) : IStyleValue
                     var pct = n <= 1 ? 0 : (float)i / (n - 1);
                     list.Add(new GradientStop(color, pct));
                 }
+
                 break;
             }
         }
@@ -54,4 +58,6 @@ public record StopsValue(IStyleValue Value) : IStyleValue
             _ => throw new ArgumentException("Key for stops map must be a percentage number")
         };
     }
+
+    public record GradientStop(ColorValue Color, float Percentage);
 }

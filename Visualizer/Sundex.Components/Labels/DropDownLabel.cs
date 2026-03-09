@@ -15,7 +15,7 @@ public sealed class DropDownLabel : Panel
     {
         if (hoverChildren)
             panelChildren.ForEach(child => child.UpdateCursorOnHover = true);
-        
+
         Panel = new FlexPanel(context)
         {
             Parent = this,
@@ -85,8 +85,7 @@ public sealed class DropDownLabel : Panel
         set => Label.Value = value;
     }
 
-    [NamedSetting("font-size")]
-    public LiteralOrComputable FontSizePx => Label.FontSizePx;
+    [NamedSetting("font-size")] public LiteralOrComputable FontSizePx => Label.FontSizePx;
 
     public void SetTextContents(string text)
     {

@@ -5,19 +5,29 @@ using SixLabors.ImageSharp.PixelFormats;
 using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Text;
 using Sundex.Engine.Text.Fonts;
+using Vector2 = Msdfgen.Vector2;
 
 namespace Sundex.Components.Tests;
 
 public class MockFontProvider : IFontProvider
 {
-    public FontHandle GetFont(ReadOnlySpan<char> fontName) => default;
+    public FontHandle GetFont(ReadOnlySpan<char> fontName)
+    {
+        return default;
+    }
 }
 
 public class MockGlyphProvider : IGlyphProvider
 {
-    public FontHandle GetFont() => default;
+    public FontHandle GetFont()
+    {
+        return default;
+    }
 
-    public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character) => new(1, 1);
+    public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character)
+    {
+        return new Image<RgbaVector>(1, 1);
+    }
 
     public FontMetrics GetFontMetrics()
     {
@@ -37,8 +47,8 @@ public class MockGlyphProvider : IGlyphProvider
         return new TextAlignmentData
         {
             AdvanceInUnitSpace = 0.6,
-            Scale = new Msdfgen.Vector2(1, 1),
-            Translate = new Msdfgen.Vector2(0, 0)
+            Scale = new Vector2(1, 1),
+            Translate = new Vector2(0, 0)
         };
     }
 }
@@ -54,5 +64,7 @@ public class MockTextProvider : ITextProvider
         return (new Vector4(0, 0, 10, 10), GlyphProvider.GetSizingData(character));
     }
 
-    public void BindAndSetUniforms(Camera camera) { }
+    public void BindAndSetUniforms(Camera camera)
+    {
+    }
 }

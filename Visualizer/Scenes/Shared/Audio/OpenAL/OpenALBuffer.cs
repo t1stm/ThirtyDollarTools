@@ -8,10 +8,10 @@ public class OpenALBuffer : AudibleBuffer
 {
     private readonly List<int> _audioSources = [];
     private readonly AudioContext _context;
-    private float _pan;
-    public float RelativeVolume = .5f;
 
     private readonly ILogger _logger;
+    private float _pan;
+    public float RelativeVolume = .5f;
 
     public OpenALBuffer(AudioContext context, ILogger logger, AudioData<float> sampleData, int sampleRate)
     {

@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj" />
-    <ProjectReference Include="..\Style DSL\Sundex.Style.DSL\Sundex.Style.DSL.csproj" />
+    <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj"/>
+    <ProjectReference Include="..\Style DSL\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
   </ItemGroup>
 
 </Project>

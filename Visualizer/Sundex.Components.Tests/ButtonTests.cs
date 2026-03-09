@@ -1,3 +1,5 @@
+using OpenTK.Mathematics;
+using Shared.Renderer.Planes;
 using Sundex.Components.Labels;
 
 namespace Sundex.Components.Tests;
@@ -50,13 +52,13 @@ public class ButtonTests
         var context = new TestUIContext();
         var button = new Button(context, "Rounded");
         button.BorderRadius = 15;
-        
+
         // Emulate styling a background
-        button.Background = new Shared.Renderer.Planes.ColoredPlane { Color = OpenTK.Mathematics.Vector4.One };
-        
+        button.Background = new ColoredPlane { Color = Vector4.One };
+
         button.Layout();
-        
-        var background = button.Background as Shared.Renderer.Planes.IBorderRadius;
+
+        var background = button.Background as IBorderRadius;
         Assert.NotNull(background);
         Assert.Equal(15, background.BorderRadius);
     }

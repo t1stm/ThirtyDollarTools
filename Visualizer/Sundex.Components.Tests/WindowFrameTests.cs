@@ -1,24 +1,10 @@
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 
 public class WindowFrameTests
 {
-    private class TestElement : UIElement
-    {
-        public TestElement(UIContext context, float width = 0, float height = 0) : base(context)
-        {
-            Width = width;
-            Height = height;
-        }
-
-        public override string Tag => "test";
-        protected override void DrawSelf(UIContext context) { }
-    }
-
     [Fact]
     public void TestWindowFrameInitialization()
     {
@@ -49,9 +35,9 @@ public class WindowFrameTests
             Height = 300
         };
         var child = new TestElement(context, 200, 200);
-        
+
         window.Child = child;
-        
+
         Assert.Equal(child, window.Child);
         // Container has Header and Child
     }
@@ -65,13 +51,28 @@ public class WindowFrameTests
             X = 0,
             Y = 0,
             Width = 400,
-            Height = 300,
+            Height = 300
         };
-        
+
         window.Width = 500;
         window.Height = 400;
-        
+
         Assert.Equal(500, window.Width);
         Assert.Equal(400, window.Height);
+    }
+
+    private class TestElement : UIElement
+    {
+        public TestElement(UIContext context, float width = 0, float height = 0) : base(context)
+        {
+            Width = width;
+            Height = height;
+        }
+
+        public override string Tag => "test";
+
+        protected override void DrawSelf(UIContext context)
+        {
+        }
     }
 }

@@ -1,13 +1,11 @@
-using Sundex.Components.Color_Scheme;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Renderer.Planes;
-using Shared.Renderer.Planes.Uniforms;
+using Sundex.Components.Color_Scheme;
 using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
-using VisualizerScene.Objects;
 
 namespace Playground;
 
@@ -26,15 +24,15 @@ public class PlaygroundScene(SceneManager sceneManager) : Scene(sceneManager)
         var gradient1 = GradientPlaneDefinitions.NewAccentBlueRadial();
         gradient1.Position = new Vector3(startX, 0, 0);
         gradient1.Scale = new Vector3(500, 500, 1);
-        
+
         var gradient2 = GradientPlaneDefinitions.NewMagentaBlueRadial();
         gradient2.Position = new Vector3(startX + spacing, 0, 0);
         gradient2.Scale = new Vector3(500, 500, 1);
-        
+
         var gradient3 = GradientPlaneDefinitions.NewTealToBgSurfaceRadial();
         gradient3.Position = new Vector3(startX + spacing * 2, 0, 0);
         gradient3.Scale = new Vector3(500, 500, 1);
-        
+
         _gradientPlanes.Add(gradient1);
         _gradientPlanes.Add(gradient2);
         _gradientPlanes.Add(gradient3);

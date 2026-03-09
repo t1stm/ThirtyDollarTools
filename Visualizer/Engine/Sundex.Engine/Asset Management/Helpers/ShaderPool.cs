@@ -1,8 +1,8 @@
 using OpenTK.Graphics.OpenGL;
 using Serilog;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Types.Shader;
 using Sundex.Engine.Renderer.Shaders;
-using Sundex.Engine.Asset_Management.Extensions;
 
 namespace Sundex.Engine.Asset_Management.Helpers;
 

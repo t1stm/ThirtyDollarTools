@@ -4,8 +4,6 @@ namespace Sundex.Core.Animations;
 
 public class KeyframedAnimation : Animation
 {
-    public IReadOnlyList<Keyframe> Keyframes { get; }
-    
     public KeyframedAnimation(IReadOnlyList<Keyframe> keyframes) : base((int)
         Math.Ceiling(keyframes.Sum(position => position.LengthMs)))
     {
@@ -13,6 +11,8 @@ public class KeyframedAnimation : Animation
         Features = AnimationFeature.TransformAdd | AnimationFeature.ScaleMultiply | AnimationFeature.RotationAdd |
                    AnimationFeature.DeltaAlpha | AnimationFeature.ColorValue;
     }
+
+    public IReadOnlyList<Keyframe> Keyframes { get; }
 
     private (Keyframe Current, Keyframe? Next, float Progress) GetCurrentState()
     {
@@ -49,15 +49,11 @@ public class KeyframedAnimation : Animation
             {
                 var loopElapsed = (elapsed - loopStartMs) % (loopDuration * 2);
                 if (loopElapsed > loopDuration)
-                {
                     // Playing backwards from Invert to LoopStart
                     elapsed = invertMs - (loopElapsed - loopDuration);
-                }
                 else
-                {
                     // Playing forwards from LoopStart to Invert
                     elapsed = loopStartMs + loopElapsed;
-                }
             }
         }
         else if (loopStartIndex != -1 && invertIndex == -1)
@@ -80,7 +76,7 @@ public class KeyframedAnimation : Animation
                     elapsed %= totalLength;
                     if (loopCount % 2 == 1) elapsed = totalLength - elapsed;
                     break;
-                
+
                 case AnimationLoopingMode.None:
                 case AnimationLoopingMode.LoopStart:
                 default:

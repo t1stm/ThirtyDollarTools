@@ -17,7 +17,7 @@ public class AssetProvider : IAssetProvider
         CacheProvider = new CacheProvider(this);
     }
 
-    public ILogger Logger { get; private set; }
+    public ILogger Logger { get; }
 
     public Assembly[] AssetAssemblies { get; }
     public ShaderPool ShaderPool { get; }

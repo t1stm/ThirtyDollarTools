@@ -9,9 +9,9 @@ namespace Shared.Audio.OpenAL;
 
 public class OpenALContext(ILogger logger) : AudioContext
 {
+    private readonly ILogger _logger = logger.ForContext<OpenALContext>();
     private ALCContext _context;
     private ALCDevice _device;
-    private readonly ILogger _logger = logger.ForContext<OpenALContext>();
 
     public int UpdateRate
     {

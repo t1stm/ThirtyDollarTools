@@ -97,8 +97,9 @@ These nodes are typically used for flexible layouts and can contain any number o
 
 ### Nodes that support a set of predefined children
 
-These nodes have predefined layouts and can only contain a specific set of child elements. 
-This decision is made to simplify the markup and to avoid confusing situations like having an entire layout inside a single button.
+These nodes have predefined layouts and can only contain a specific set of child elements.
+This decision is made to simplify the markup and to avoid confusing situations like having an entire layout inside a
+single button.
 
 - `<button>`
 - `<dropdown>`
@@ -113,7 +114,7 @@ These nodes only accept children of a specific type related to their purpose.
 
 ### Nodes that support no children
 
-These nodes do not accept any children, but may be used in other components. 
+These nodes do not accept any children, but may be used in other components.
 They are only modified with attributes.
 
 - `<label>`

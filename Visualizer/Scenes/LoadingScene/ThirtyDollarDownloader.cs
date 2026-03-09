@@ -1,11 +1,11 @@
 using LoadingScene.Reports;
 using Serilog;
 using Shared.Atlases;
-using ThirtyDollarConverter;
-using ThirtyDollarParser;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Threading;
+using ThirtyDollarConverter;
+using ThirtyDollarParser;
 
 namespace LoadingScene;
 
@@ -57,7 +57,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
             var filename = sound.Filename;
             if (filename.StartsWith("action_"))
                 filename = filename.Replace("action_", "!");
-            
+
             LoadTextureToAtlasStore(imagePath, filename);
             loadedSounds.Add(sound);
             StatusUpdate?.Invoke(sampleDownloadReport);

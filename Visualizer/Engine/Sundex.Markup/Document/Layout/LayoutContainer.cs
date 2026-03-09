@@ -8,15 +8,13 @@ public class LayoutContainer(RootContainer root, XmlElement layoutElement)
 {
     public RootContainer Root { get; } = root;
     public XmlElement LayoutElement { get; } = layoutElement;
-    
+
     public List<SundexNode> BuildTree()
     {
         var nodes = new List<SundexNode>();
         foreach (XmlNode child in LayoutElement.ChildNodes)
-        {
             if (child is XmlElement el)
                 nodes.Add(ParseNode(el));
-        }
         return nodes;
     }
 
@@ -28,24 +26,20 @@ public class LayoutContainer(RootContainer root, XmlElement layoutElement)
 
         attributes.Remove("id", out var idString);
         attributes.Remove("class", out var classString);
-        
+
         HashSet<string>? classes = null;
         if (classString is not null)
         {
             classes = [];
             if (classString.StartsWith('[') && classString.EndsWith(']'))
-            {
                 classes = classString[1..^1].Split(',').ToHashSet();
-            }
             else classes.Add(classString);
         }
 
         var children = new List<SundexNode>();
         foreach (XmlNode child in element.ChildNodes)
-        {
             if (child is XmlElement el)
                 children.Add(ParseNode(el));
-        }
 
         return new SundexNode
         {

@@ -33,4 +33,3 @@ public interface IAssetProvider
     /// <summary>Performs maintenance tasks like uploading shaders and executing deletes.</summary>
     void Update();
 }
-

@@ -3,7 +3,6 @@
 
 using System.Reflection;
 using CommandLine;
-using Sundex.Components;
 using EditorScene;
 using HomeScene;
 using LoadingScene;
@@ -18,6 +17,7 @@ using Shared.Audio.BASS;
 using Shared.Audio.Null;
 using Shared.Audio.OpenAL;
 using SixLabors.ImageSharp;
+using Sundex.Components;
 using Sundex.Engine;
 using ThirtyDollarVisualizer.Settings;
 using VisualizerScene;
@@ -41,7 +41,7 @@ public static class Program
         int? line_amount = null;
         string? settings_location = null;
         bool? transparent_framebuffer = null;
-        
+
 #if RELEASE
         const string logFilePath = "Visualizer_Release.log";
 #endif
@@ -59,7 +59,7 @@ public static class Program
                 rollOnFileSizeLimit: true, fileSizeLimitBytes: 100_000_000)
             .MinimumLevel.Debug()
             .CreateLogger();
-        
+
 
         Parser.Default.ParseArguments<Options>(args)
             .WithParsed(options =>
@@ -87,7 +87,7 @@ public static class Program
                         _ => null
                     };
             });
-        
+
         Configuration.Default.PreferContiguousImageBuffers = true;
 
         if (sequence != null && !File.Exists(sequence))
@@ -146,7 +146,8 @@ public static class Program
             EditorAssembly.Assembly
         ];
 
-        var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings, "ThirtyDollarVisualizer");
+        var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings,
+            "ThirtyDollarVisualizer");
         if (game.TryGetScreenScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 

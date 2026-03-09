@@ -2,11 +2,14 @@ namespace Sundex.Style.DSL.Abstract.Values.Keywords;
 
 public record KeyframesValue(IStyleValue Value) : IStyleValue
 {
-    object IStyleValue.Value => Value;
     public IStyleValue Elements => Value;
     public List<KeyframeStep> Keyframes => BuildKeyframes(Value);
+    object IStyleValue.Value => Value;
 
-    public override string ToString() => "!keyframes " + Value;
+    public override string ToString()
+    {
+        return "!keyframes " + Value;
+    }
 
     private static List<KeyframeStep> BuildKeyframes(IStyleValue value)
     {
@@ -43,12 +46,8 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
         if (value is not ArrayValue || list.Count <= 0) return list;
         var explicitPoints = new List<(int index, double pct)>();
         for (var i = 0; i < list.Count; i++)
-        {
             if (TryGetExplicitPercentage(list[i].Properties, out var pct))
-            {
                 explicitPoints.Add((i, pct));
-            }
-        }
 
         if (explicitPoints.Count == 0 || explicitPoints[0].index != 0)
         {
@@ -56,30 +55,20 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
         }
         else
         {
-            if (Math.Abs(explicitPoints[0].pct - 0.0) > double.Epsilon)
-            {
-                explicitPoints[0] = (0, 0.0);
-            }
+            if (Math.Abs(explicitPoints[0].pct - 0.0) > double.Epsilon) explicitPoints[0] = (0, 0.0);
         }
 
         if (explicitPoints[^1].index != list.Count - 1)
-        {
             explicitPoints.Add((list.Count - 1, 1.0));
-        }
         else if (Math.Abs(explicitPoints[^1].pct - 1.0) > double.Epsilon)
-        {
             explicitPoints[^1] = (explicitPoints[^1].index, 1.0);
-        }
 
         for (var p = 0; p < explicitPoints.Count - 1; p++)
         {
             var (startIdx, startPct) = explicitPoints[p];
             var (endIdx, endPct) = explicitPoints[p + 1];
             var length = endIdx - startIdx;
-            if (length <= 0)
-            {
-                continue;
-            }
+            if (length <= 0) continue;
 
             list[startIdx] = list[startIdx] with { Percentage = startPct };
             list[endIdx] = list[endIdx] with { Percentage = endPct };
@@ -103,7 +92,6 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
         if (props.TryGetValue("%", out var v) ||
             props.TryGetValue("percent", out v) ||
             props.TryGetValue("percentage", out v))
-        {
             switch (v)
             {
                 case NumberValue { Unit: "%" } nv:
@@ -113,7 +101,6 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
                     pct = nv2.Value;
                     return true;
             }
-        }
 
         pct = 0;
         return false;

@@ -2,13 +2,11 @@ namespace Sundex.Style.DSL.Abstract.Values.Keywords;
 
 public record GradientValue(IStyleValue Value) : IStyleValue
 {
-    object IStyleValue.Value => Value;
-
     // Native typed properties extracted from the inner block
     public string? Type { get; } = (Value as BlockValue)?.Properties.TryGetValue("type", out var v) == true
         ? v.Value as string
         : null;
-    
+
     public IStyleValue? Direction { get; } =
         (Value as BlockValue)?.Properties.TryGetValue("direction", out var v) == true
             ? v
@@ -24,5 +22,10 @@ public record GradientValue(IStyleValue Value) : IStyleValue
                 _ => []
             };
 
-    public override string ToString() => "!gradient " + Value;
+    object IStyleValue.Value => Value;
+
+    public override string ToString()
+    {
+        return "!gradient " + Value;
+    }
 }

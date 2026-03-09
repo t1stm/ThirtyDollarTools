@@ -10,13 +10,13 @@ public class AnimatedPlane<T>(T renderable, Animation animation) : Renderable
 {
     public T Renderable { get; } = renderable;
     public Animation Animation { get; } = animation;
-    
+
     public override void Update()
     {
         Renderable.UpdateModel(false, [Animation]);
         Renderable.Update();
     }
-    
+
     #region Renderable Passthrough
 
     public override Vector4 Color
@@ -61,9 +61,20 @@ public class AnimatedPlane<T>(T renderable, Animation animation) : Renderable
         set => Renderable.Translation = value;
     }
 
-    public override void Render(Camera camera) => Renderable.Render(camera);
-    public override void SetShaderUniforms(Camera camera) => Renderable.SetShaderUniforms(camera);
-    public override void SetTranslation(Vector3 translation) => Renderable.SetTranslation(translation);
+    public override void Render(Camera camera)
+    {
+        Renderable.Render(camera);
+    }
+
+    public override void SetShaderUniforms(Camera camera)
+    {
+        Renderable.SetShaderUniforms(camera);
+    }
+
+    public override void SetTranslation(Vector3 translation)
+    {
+        Renderable.SetTranslation(translation);
+    }
 
     #endregion
 }

@@ -19,7 +19,7 @@ float roundedBoxSDF(vec2 p, vec2 b, float r) {
 
 void main() {
     color = u_Color;
-    
+
     float borderRadius = u_ScaleAndBorderPx.z;
     if (borderRadius > 0.0) {
         float dist = roundedBoxSDF(vLocalPos, u_ScaleAndBorderPx.xy * 0.5, borderRadius);

@@ -2,7 +2,6 @@ using System.Reflection;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
-using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 
@@ -36,6 +35,10 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
         }
     } = Align.Start;
 
+    [NamedSetting("width")] public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.AutoSize;
+
+    [NamedSetting("height")] public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
+
     [NamedSetting("direction")] public LayoutDirection Direction { get; set; } = LayoutDirection.Horizontal;
 
     [NamedSetting("padding")]
@@ -60,16 +63,10 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
         }
     }
 
-    [NamedSetting("width")]
-    public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.AutoSize;
-    
-    [NamedSetting("height")]
-    public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
-
     protected override void DoLayout()
     {
         base.DoLayout();
-        
+
         var count = Children.Count;
         var a_x = Computed.AbsoluteX;
         var a_y = Computed.AbsoluteY;
@@ -77,10 +74,7 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
         var inner_width = Computed.Width - 2 * Padding;
         var inner_height = Computed.Height - 2 * Padding;
 
-        if (count < 1)
-        {
-            return;
-        }
+        if (count < 1) return;
 
         if (Direction == LayoutDirection.Horizontal)
             Layout_Horizontal(count, inner_width, inner_height);
@@ -92,7 +86,7 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
     {
         var explicitW = !Width.Auto ? Width.Resolve(parentWidth) : (float?)null;
         var explicitH = !Height.Auto ? Height.Resolve(parentHeight) : (float?)null;
-        
+
         var baseW = explicitW ?? parentWidth;
         var baseH = explicitH ?? parentHeight;
 
@@ -102,10 +96,7 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
         float contentW;
         float contentH;
 
-        if (Children.Count == 0)
-        {
-            return (explicitW ?? 0, explicitH ?? 0);
-        }
+        if (Children.Count == 0) return (explicitW ?? 0, explicitH ?? 0);
 
         switch (Direction)
         {
@@ -121,6 +112,7 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
                     if (i++ > 0) sumW += Spacing;
                     if (ch > maxH) maxH = ch;
                 }
+
                 contentW = sumW;
                 contentH = maxH;
                 break;
@@ -137,6 +129,7 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
                     if (i++ > 0) sumH += Spacing;
                     if (cw > maxW) maxW = cw;
                 }
+
                 contentW = maxW;
                 contentH = sumH;
                 break;
@@ -287,14 +280,14 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
             case StringValue sv when propertyInfo.PropertyType == typeof(Align):
             {
                 Align? align = sv.Value switch
-                { 
+                {
                     "center" => Align.Center,
                     "end" => Align.End,
                     "stretch" => Align.Stretch,
                     "start" => Align.Start,
                     _ => null
                 };
-                
+
                 if (align is not null)
                     propertyInfo.SetValue(this, align.Value);
                 return;
@@ -308,12 +301,12 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
                     "vertical" => LayoutDirection.Vertical,
                     _ => null
                 };
-                
+
                 if (direction is not null)
                     propertyInfo.SetValue(this, direction.Value);
                 return;
             }
-            
+
             default:
             {
                 base.ApplyStyleValue(styleValue, propertyInfo);

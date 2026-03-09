@@ -1,9 +1,7 @@
+using OpenTK.Mathematics;
+using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Color_Scheme;
-using OpenTK.Mathematics;
-using Shared.Animations;
-using Shared.Renderer;
-using Shared.Renderer.Planes;
 using Sundex.Core.Animations;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Enums;
@@ -46,7 +44,7 @@ public static class RootPlanes
                     Scale = new Vector3(1.1f, 1.1f, 1f),
                     BezierP1 = new Vector3(75f * scaleFactor, 75f * scaleFactor, 0),
                     LoopingMode = AnimationLoopingMode.LoopStart,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 },
                 new Keyframe
                 {
@@ -54,7 +52,7 @@ public static class RootPlanes
                     LengthMs = 15000,
                     Scale = new Vector3(1f, 1f, 1f), BezierP1 = new Vector3(-75f * scaleFactor, -75f * scaleFactor, 0),
                     LoopingMode = AnimationLoopingMode.Invert,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 }
             ])),
 
@@ -71,7 +69,7 @@ public static class RootPlanes
                     LengthMs = 20000,
                     Rotation = 0.2f, BezierP1 = new Vector3(-120f * scaleFactor, 0, 0),
                     LoopingMode = AnimationLoopingMode.LoopStart,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 },
                 new Keyframe
                 {
@@ -79,7 +77,7 @@ public static class RootPlanes
                     LengthMs = 20000,
                     Rotation = -0.2f, BezierP1 = new Vector3(120f * scaleFactor, 0, 0),
                     LoopingMode = AnimationLoopingMode.Invert,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 }
             ])),
 
@@ -88,7 +86,7 @@ public static class RootPlanes
                 {
                     Position = new Vector3(viewportX / 2f, 0, 0),
                     LengthMs = 7500,
-                    SteppingFunction = initialSteppingFunction,
+                    SteppingFunction = initialSteppingFunction
                 },
                 new Keyframe
                 {
@@ -96,7 +94,7 @@ public static class RootPlanes
                     LengthMs = 18000,
                     Opacity = 0.4f, BezierP1 = new Vector3(0, 150f * scaleFactor, 0),
                     LoopingMode = AnimationLoopingMode.LoopStart,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 },
                 new Keyframe
                 {
@@ -104,7 +102,7 @@ public static class RootPlanes
                     LengthMs = 18000,
                     Opacity = 0.7f, BezierP1 = new Vector3(0, -150f * scaleFactor, 0),
                     LoopingMode = AnimationLoopingMode.Invert,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 }
             ])),
 
@@ -113,7 +111,7 @@ public static class RootPlanes
                 {
                     Position = new Vector3(0, viewportY / 2f, 0),
                     LengthMs = 7500,
-                    SteppingFunction = initialSteppingFunction,
+                    SteppingFunction = initialSteppingFunction
                 },
                 new Keyframe
                 {
@@ -122,7 +120,7 @@ public static class RootPlanes
                     Scale = new Vector3(0.9f, 0.9f, 1f),
                     BezierP1 = new Vector3(-45f * scaleFactor, -150f * scaleFactor, 0),
                     LoopingMode = AnimationLoopingMode.LoopStart,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 },
                 new Keyframe
                 {
@@ -131,7 +129,7 @@ public static class RootPlanes
                     Scale = new Vector3(1.05f, 1.05f, 1f),
                     BezierP1 = new Vector3(45f * scaleFactor, 150f * scaleFactor, 0),
                     LoopingMode = AnimationLoopingMode.Invert,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 }
             ])),
 
@@ -140,7 +138,7 @@ public static class RootPlanes
                 {
                     Position = new Vector3(0, -viewportY / 2f, 0),
                     LengthMs = 7500,
-                    SteppingFunction = initialSteppingFunction,
+                    SteppingFunction = initialSteppingFunction
                 },
                 new Keyframe
                 {
@@ -148,7 +146,7 @@ public static class RootPlanes
                     LengthMs = 22000,
                     Rotation = -0.4f, BezierP1 = new Vector3(0, 225f * scaleFactor, 0),
                     LoopingMode = AnimationLoopingMode.LoopStart,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 },
                 new Keyframe
                 {
@@ -156,7 +154,7 @@ public static class RootPlanes
                     LengthMs = 22000,
                     Rotation = 0.1f, BezierP1 = new Vector3(0, -225f * scaleFactor, 0),
                     LoopingMode = AnimationLoopingMode.Invert,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 }
             ])),
 
@@ -165,7 +163,7 @@ public static class RootPlanes
                 {
                     Position = new Vector3(0, viewportY / 2f, 0),
                     LengthMs = 7500,
-                    SteppingFunction = initialSteppingFunction,
+                    SteppingFunction = initialSteppingFunction
                 },
                 new Keyframe
                 {
@@ -173,7 +171,7 @@ public static class RootPlanes
                     LengthMs = 19000,
                     Opacity = 0.5f, BezierP1 = new Vector3(-180f * scaleFactor, 0, 0),
                     LoopingMode = AnimationLoopingMode.LoopStart,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 },
                 new Keyframe
                 {
@@ -181,7 +179,7 @@ public static class RootPlanes
                     LengthMs = 19000,
                     Opacity = 0.8f, BezierP1 = new Vector3(180f * scaleFactor, 0, 0),
                     LoopingMode = AnimationLoopingMode.Invert,
-                    SteppingFunction = finalSteppingFunction,
+                    SteppingFunction = finalSteppingFunction
                 }
             ]))
         ];
@@ -212,7 +210,7 @@ public static class RootPlanes
         {
             var gradient = gradients[i].Renderable;
             var baseScale = 1100f * scaleFactor;
-            
+
             gradient.Scale = new Vector3(baseScale, baseScale, 1);
             gradient.SetPosition(positions[i], PositionAlign.Center);
         }

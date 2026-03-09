@@ -6,18 +6,6 @@ namespace Sundex.Components.Tests;
 
 public class StackPanelTests
 {
-    private class TestElement : UIElement
-    {
-        public TestElement(UIContext context, float width = 0, float height = 0) : base(context)
-        {
-            Width = width;
-            Height = height;
-        }
-
-        public override string Tag => "test";
-        protected override void DrawSelf(UIContext context) { }
-    }
-
     [Fact]
     public void TestVerticalStack()
     {
@@ -86,7 +74,8 @@ public class StackPanelTests
         Assert.Equal(10, child1.Computed.AbsoluteX - stack.Computed.AbsoluteX);
         Assert.Equal(10, child1.Computed.AbsoluteY - stack.Computed.AbsoluteY);
         Assert.Equal(10, child2.Computed.AbsoluteX - stack.Computed.AbsoluteX);
-        Assert.Equal(10 + 30 + 5, child2.Computed.AbsoluteY - stack.Computed.AbsoluteY); // Padding + child1.Height + Spacing
+        Assert.Equal(10 + 30 + 5,
+            child2.Computed.AbsoluteY - stack.Computed.AbsoluteY); // Padding + child1.Height + Spacing
     }
 
     [Fact]
@@ -133,5 +122,20 @@ public class StackPanelTests
         stack.Layout();
 
         Assert.Equal(80, child.Computed.Height); // Height - 2 * Padding = 100 - 20 = 80
+    }
+
+    private class TestElement : UIElement
+    {
+        public TestElement(UIContext context, float width = 0, float height = 0) : base(context)
+        {
+            Width = width;
+            Height = height;
+        }
+
+        public override string Tag => "test";
+
+        protected override void DrawSelf(UIContext context)
+        {
+        }
     }
 }

@@ -1,6 +1,7 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Types.Shader;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
@@ -10,7 +11,6 @@ using Sundex.Engine.Renderer.Shaders;
 using Sundex.Engine.Renderer.Textures;
 using Sundex.Engine.Renderer.Textures.Atlases;
 using Sundex.Engine.Text.Fonts;
-using Sundex.Engine.Asset_Management.Extensions;
 
 namespace Sundex.Engine.Text;
 
@@ -19,8 +19,6 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
     : IGamePreloadable, ITextProvider
 {
     private static Shader _shader = null!;
-
-    public IGlyphProvider GlyphProvider { get; } = new GlyphProvider(fontProvider, fontName);
 
     public readonly GPUTextureAtlas TextAtlas = new(2048, 2048, InternalFormat.Rgba32f, MipmapMode.Disabled)
     {
@@ -38,14 +36,7 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
         );
     }
 
-    private void AddCharacter(ReadOnlySpan<char> character)
-    {
-        lock (TextAtlas)
-        {
-            var image = GlyphProvider.GetGlyph(character);
-            TextAtlas.AddTexture(character.ToString(), image.Frames.RootFrame);
-        }
-    }
+    public IGlyphProvider GlyphProvider { get; } = new GlyphProvider(fontProvider, fontName);
 
     public (Vector4, TextAlignmentData) GetTextCharacterRect(ReadOnlySpan<char> character)
     {
@@ -82,7 +73,7 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
             RenderMarker.Debug("Bound Text Atlas and Set Uniforms: ", TextAtlas.AtlasID, MarkerType.Hidden);
         }
     }
-    
+
     public float TextureWidth
     {
         get
@@ -102,6 +93,15 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
             {
                 return TextAtlas.Height;
             }
+        }
+    }
+
+    private void AddCharacter(ReadOnlySpan<char> character)
+    {
+        lock (TextAtlas)
+        {
+            var image = GlyphProvider.GetGlyph(character);
+            TextAtlas.AddTexture(character.ToString(), image.Frames.RootFrame);
         }
     }
 }

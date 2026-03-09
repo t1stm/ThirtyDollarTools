@@ -46,6 +46,7 @@ id my-id {
 - Align (Start, Center, End, Stretch)
 
 ### Text Elements
+
 - FontSize (allows px only)
 - FontColor (uses Hex)
 

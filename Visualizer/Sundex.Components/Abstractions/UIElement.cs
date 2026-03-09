@@ -27,18 +27,21 @@ public enum Anchor
 {
     Start,
     Center,
-    End,
+    End
 }
 
 public enum UIState
 {
     None,
     Hovered,
-    Pressed,
+    Pressed
 }
 
 public abstract class UIElement
 {
+    // Stores (PropertyInfo, base value) for each property that has a state override defined.
+    private readonly Dictionary<string, (PropertyInfo prop, object? value)> _baseSnapshot = new();
+
     protected UIElement(UIContext context)
     {
         Context = context;
@@ -51,19 +54,6 @@ public abstract class UIElement
     public string ID { get; set; } = "";
     public HashSet<string> Classes { get; set; } = [];
     public ComputedRectangle Computed { get; }
-
-    private void UpdateSetDirty<T>(out T field, T value)
-    {
-        field = value;
-        NeedsLayout = true;
-        Parent?.InvalidateLayout();
-    }
-
-    protected void UpdateSetDirtySelf<T>(out T field, T value)
-    {
-        field = value;
-        NeedsLayout = true;
-    }
 
     [NamedSetting("x")]
     public virtual LiteralOrComputable X
@@ -110,22 +100,6 @@ public abstract class UIElement
         get;
         set => UpdateSetDirty(out field, value);
     } = Anchor.Start;
-
-    /// <summary>Returns the X pixel offset introduced by the <see cref="AnchorX"/> setting.</summary>
-    public float AnchorOffsetX(float elementWidth) => AnchorX switch
-    {
-        Anchor.Center => -elementWidth / 2f,
-        Anchor.End    => -elementWidth,
-        _             => 0f
-    };
-
-    /// <summary>Returns the Y pixel offset introduced by the <see cref="AnchorY"/> setting.</summary>
-    public float AnchorOffsetY(float elementHeight) => AnchorY switch
-    {
-        Anchor.Center => -elementHeight / 2f,
-        Anchor.End    => -elementHeight,
-        _             => 0f
-    };
 
     [NamedSetting("visible")]
     public bool Visible
@@ -180,8 +154,43 @@ public abstract class UIElement
     public Action<UIElement>? OnHoverEnter { get; set; }
     public Action<UIElement>? OnHoverExit { get; set; }
 
+    private void UpdateSetDirty<T>(out T field, T value)
+    {
+        field = value;
+        NeedsLayout = true;
+        Parent?.InvalidateLayout();
+    }
+
+    protected void UpdateSetDirtySelf<T>(out T field, T value)
+    {
+        field = value;
+        NeedsLayout = true;
+    }
+
+    /// <summary>Returns the X pixel offset introduced by the <see cref="AnchorX" /> setting.</summary>
+    public float AnchorOffsetX(float elementWidth)
+    {
+        return AnchorX switch
+        {
+            Anchor.Center => -elementWidth / 2f,
+            Anchor.End => -elementWidth,
+            _ => 0f
+        };
+    }
+
+    /// <summary>Returns the Y pixel offset introduced by the <see cref="AnchorY" /> setting.</summary>
+    public float AnchorOffsetY(float elementHeight)
+    {
+        return AnchorY switch
+        {
+            Anchor.Center => -elementHeight / 2f,
+            Anchor.End => -elementHeight,
+            _ => 0f
+        };
+    }
+
     /// <summary>
-    /// Tests mouse interaction with this element.
+    ///     Tests mouse interaction with this element.
     /// </summary>
     /// <param name="mouse">The current mouse state.</param>
     /// <param name="scale">The UI scale.</param>
@@ -230,7 +239,7 @@ public abstract class UIElement
     }
 
     /// <summary>
-    /// Updates this element's state.
+    ///     Updates this element's state.
     /// </summary>
     /// <param name="uiContext">The current UI context.</param>
     public virtual void Update(UIContext uiContext)
@@ -240,7 +249,7 @@ public abstract class UIElement
     }
 
     /// <summary>
-    /// Marks this element's layout as dirty and notifies the parent.
+    ///     Marks this element's layout as dirty and notifies the parent.
     /// </summary>
     public virtual void InvalidateLayout()
     {
@@ -250,7 +259,7 @@ public abstract class UIElement
     }
 
     /// <summary>
-    /// Marks coordinates as dirty, requiring a recalculation.
+    ///     Marks coordinates as dirty, requiring a recalculation.
     /// </summary>
     public virtual void InvalidateCoordinates()
     {
@@ -258,7 +267,7 @@ public abstract class UIElement
     }
 
     /// <summary>
-    /// Performs layout calculations if needed.
+    ///     Performs layout calculations if needed.
     /// </summary>
     public virtual void Layout()
     {
@@ -269,9 +278,9 @@ public abstract class UIElement
     }
 
     /// <summary>
-    /// Measures the desired size of this element given the available parent size.
-    /// Default implementation resolves literal/percentage sizes against parent size.
-    /// Containers can override to size to content when Width/Height are set to Auto.
+    ///     Measures the desired size of this element given the available parent size.
+    ///     Default implementation resolves literal/percentage sizes against parent size.
+    ///     Containers can override to size to content when Width/Height are set to Auto.
     /// </summary>
     /// <param name="parentWidth">Available width from parent.</param>
     /// <param name="parentHeight">Available height from parent.</param>
@@ -284,14 +293,14 @@ public abstract class UIElement
     }
 
     /// <summary>
-    /// Internal method to handle specific layout logic.
+    ///     Internal method to handle specific layout logic.
     /// </summary>
     protected virtual void DoLayout()
     {
     }
 
     /// <summary>
-    /// Renders this element to the specified context.
+    ///     Renders this element to the specified context.
     /// </summary>
     /// <param name="uiContext">The UI context to render into.</param>
     public virtual void DrawTo(UIContext uiContext)
@@ -301,7 +310,7 @@ public abstract class UIElement
     }
 
     /// <summary>
-    /// Internal method to handle specific rendering logic.
+    ///     Internal method to handle specific rendering logic.
     /// </summary>
     /// <param name="context">The UI context to render into.</param>
     protected abstract void DrawSelf(UIContext context);
@@ -341,12 +350,9 @@ public abstract class UIElement
         }
     }
 
-    // Stores (PropertyInfo, base value) for each property that has a state override defined.
-    private readonly Dictionary<string, (PropertyInfo prop, object? value)> _baseSnapshot = new();
-
     /// <summary>
-    /// Re-applies state styling on top of the snapshotted base values.
-    /// Called automatically when <see cref="CurrentState"/> changes.
+    ///     Re-applies state styling on top of the snapshotted base values.
+    ///     Called automatically when <see cref="CurrentState" /> changes.
     /// </summary>
     public virtual void InvalidateStyle()
     {
@@ -370,8 +376,8 @@ public abstract class UIElement
     }
 
     /// <summary>
-    /// Applies only the properties defined in the state override block for the given state,
-    /// on top of the already-applied base styles.
+    ///     Applies only the properties defined in the state override block for the given state,
+    ///     on top of the already-applied base styles.
     /// </summary>
     public virtual void ApplyStateOverride(StyleSheet styleSheet, string state)
     {
@@ -384,12 +390,12 @@ public abstract class UIElement
 
             // Check ID, then classes, then tag — same priority as base styles
             var overrideValue = styleSheet.GetStateOverrideForTag(ID, state)
-                ?.GetValueOrDefault(attribute.Name)
-                ?? Classes.Select(cls => styleSheet.GetStateOverrideForTag(cls, state)
-                    ?.GetValueOrDefault(attribute.Name))
-                    .FirstOrDefault(v => v is not null)
-                ?? styleSheet.GetStateOverrideForTag(Tag, state)
-                    ?.GetValueOrDefault(attribute.Name);
+                                    ?.GetValueOrDefault(attribute.Name)
+                                ?? Classes.Select(cls => styleSheet.GetStateOverrideForTag(cls, state)
+                                        ?.GetValueOrDefault(attribute.Name))
+                                    .FirstOrDefault(v => v is not null)
+                                ?? styleSheet.GetStateOverrideForTag(Tag, state)
+                                    ?.GetValueOrDefault(attribute.Name);
 
             if (overrideValue is not null)
                 ApplyStyleValue(overrideValue, propertyInfo);
@@ -401,9 +407,7 @@ public abstract class UIElement
     {
         ApplyStyleValue(styleSheet.GetStyleValueForTag(Tag, namedSettingAttribute.Name), propertyInfo);
         foreach (var cls in Classes)
-        {
             ApplyStyleValue(styleSheet.GetStyleValueForTag(cls, namedSettingAttribute.Name), propertyInfo);
-        }
 
         ApplyStyleValue(styleSheet.GetStyleValueForTag(ID, namedSettingAttribute.Name), propertyInfo);
     }
@@ -445,9 +449,9 @@ public abstract class UIElement
                 Anchor? anchor = sv.Value switch
                 {
                     "center" => Anchor.Center,
-                    "end"    => Anchor.End,
-                    "start"  => Anchor.Start,
-                    _        => null
+                    "end" => Anchor.End,
+                    "start" => Anchor.Start,
+                    _ => null
                 };
 
                 if (anchor is not null)

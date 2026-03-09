@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
-using ThirtyDollarParser;
 using Sundex.Engine.Renderer.Enums;
+using ThirtyDollarParser;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 
 namespace VisualizerScene.Objects.Playfield.Batch;

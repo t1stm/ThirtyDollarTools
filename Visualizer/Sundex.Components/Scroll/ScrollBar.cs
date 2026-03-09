@@ -21,7 +21,7 @@ public sealed class ScrollBar : Panel
             },
             Height = 20
         };
-        base.Parent = parent;
+        Parent = parent;
         Background = new ColoredPlane
         {
             Color = (0.3f, 0.3f, 0.3f, 1)
@@ -77,7 +77,9 @@ public sealed class ScrollBar : Panel
 
         Percentage += percentage_diff;
         Percentage = Math.Clamp(Percentage, 0, 1);
-        var sbh = ScrollBlock.Height.IsPercentage ? Computed.Height * (ScrollBlock.Height.Value / 100f) : ScrollBlock.Height.Value;
+        var sbh = ScrollBlock.Height.IsPercentage
+            ? Computed.Height * (ScrollBlock.Height.Value / 100f)
+            : ScrollBlock.Height.Value;
         var innerH = Computed.Height - sbh;
         ScrollBlock.Y = Percentage * innerH;
     }
@@ -85,7 +87,9 @@ public sealed class ScrollBar : Panel
     protected override void DoLayout()
     {
         ScrollBlock.X = 0;
-        var sbh = ScrollBlock.Height.IsPercentage ? Computed.Height * (ScrollBlock.Height.Value / 100f) : ScrollBlock.Height.Value;
+        var sbh = ScrollBlock.Height.IsPercentage
+            ? Computed.Height * (ScrollBlock.Height.Value / 100f)
+            : ScrollBlock.Height.Value;
         var innerH = Computed.Height - sbh;
         ScrollBlock.Y = Percentage * innerH;
         ScrollBlock.Width = Computed.Width;

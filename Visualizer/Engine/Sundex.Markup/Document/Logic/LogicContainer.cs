@@ -14,7 +14,7 @@ public class LogicContainer(RootContainer root, XmlElement logicElement)
     {
         List<string> importsList = [];
         if (imports.Length == 0) return importsList;
-        
+
         if (imports.StartsWith('[') && imports.EndsWith(']'))
             importsList = imports[1..^1].Split(',').ToList();
         else importsList.Add(imports);

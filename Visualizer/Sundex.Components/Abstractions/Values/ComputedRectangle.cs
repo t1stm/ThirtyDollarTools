@@ -6,7 +6,7 @@ public class ComputedRectangle
     {
         UpdateAbsoluteBasedOnParent(current, current.Parent);
     }
-    
+
     public float AbsoluteX { get; private set; }
     public float AbsoluteY { get; private set; }
 

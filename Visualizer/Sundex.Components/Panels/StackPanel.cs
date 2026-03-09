@@ -1,7 +1,6 @@
 using System.Reflection;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
-using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 
@@ -11,7 +10,7 @@ public class StackPanel(UIContext context)
     : Panel(context), IPositioningElement
 {
     public override string Tag => "stack";
-    
+
     [NamedSetting("direction")]
     public LayoutDirection Direction
     {
@@ -48,20 +47,19 @@ public class StackPanel(UIContext context)
     protected override void DoLayout()
     {
         base.DoLayout();
-        
+
         var inner_width = Computed.Width - 2 * Padding;
         var inner_height = Computed.Height - 2 * Padding;
 
         float offset = 0;
 
         foreach (var child in Children)
-        {
             if (Direction == LayoutDirection.Vertical)
             {
                 child.X = 0;
                 var currentY = offset;
                 child.Y = currentY;
-                
+
                 var (cw, ch) = child.Measure(inner_width, inner_height);
                 if (child.Width.IsPercentage)
                     child.Width = inner_width * (child.Width.Value / 100f);
@@ -81,7 +79,7 @@ public class StackPanel(UIContext context)
                 var currentX = offset;
                 child.X = currentX;
                 child.Y = 0;
-                
+
                 var (cw, ch) = child.Measure(inner_width, inner_height);
                 if (child.Width.IsPercentage)
                     child.Width = inner_width * (child.Width.Value / 100f);
@@ -96,14 +94,13 @@ public class StackPanel(UIContext context)
                 child.Layout();
                 offset += child.Computed.Width + Spacing;
             }
-        }
     }
 
     public override (float width, float height) Measure(float parentWidth, float parentHeight)
     {
         var explicitW = !Width.Auto ? Width.Resolve(parentWidth) : (float?)null;
         var explicitH = !Height.Auto ? Height.Resolve(parentHeight) : (float?)null;
-        
+
         var baseW = explicitW ?? parentWidth;
         var baseH = explicitH ?? parentHeight;
 
@@ -113,10 +110,7 @@ public class StackPanel(UIContext context)
         float contentW;
         float contentH;
 
-        if (Children.Count == 0)
-        {
-            return (explicitW ?? 0, explicitH ?? 0);
-        }
+        if (Children.Count == 0) return (explicitW ?? 0, explicitH ?? 0);
 
         switch (Direction)
         {
@@ -132,6 +126,7 @@ public class StackPanel(UIContext context)
                     if (i++ > 0) sumW += Spacing;
                     if (ch > maxH) maxH = ch;
                 }
+
                 contentW = sumW;
                 contentH = maxH;
                 break;
@@ -148,6 +143,7 @@ public class StackPanel(UIContext context)
                     if (i++ > 0) sumH += Spacing;
                     if (cw > maxW) maxW = cw;
                 }
+
                 contentW = maxW;
                 contentH = sumH;
                 break;
@@ -161,7 +157,7 @@ public class StackPanel(UIContext context)
 
         return (measuredW, measuredH);
     }
-    
+
     protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
     {
         if (styleValue is null) return;
@@ -176,12 +172,12 @@ public class StackPanel(UIContext context)
                     "vertical" => LayoutDirection.Vertical,
                     _ => null
                 };
-                
+
                 if (direction is not null)
                     propertyInfo.SetValue(this, direction.Value);
                 return;
             }
-            
+
             default:
             {
                 base.ApplyStyleValue(styleValue, propertyInfo);

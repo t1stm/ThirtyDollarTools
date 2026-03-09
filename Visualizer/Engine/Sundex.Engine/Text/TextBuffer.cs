@@ -1,5 +1,4 @@
 using OpenTK.Graphics.OpenGL;
-using OpenTK.Mathematics;
 using Sundex.Engine.Renderer;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Buffers;
@@ -135,7 +134,7 @@ public class TextBuffer : IRenderable, IDisposable
             IntPtr.Zero, endIndex);
 
 #if DEBUG
-        Span<char> characterHandleString 
+        Span<char> characterHandleString
             = stackalloc char[11]; // 11 is the max characters an int can be represented with
         Characters.Handle.TryFormat(characterHandleString, out _);
 
@@ -150,7 +149,7 @@ public class TextBuffer : IRenderable, IDisposable
         {
             range = _usedRanges[textSlice];
         }
-        
+
         if (!_disposing)
         {
             var (offset, length) = range.GetOffsetAndLength(Characters.Capacity);
@@ -161,6 +160,7 @@ public class TextBuffer : IRenderable, IDisposable
         {
             _usedRanges.Remove(textSlice);
         }
+
         lock (_freeRanges)
         {
             _freeRanges.Add(range);

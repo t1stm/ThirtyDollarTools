@@ -24,21 +24,15 @@ public class StyleSheet(StyleSheetHolder holder)
                 ? (KeyframesValue)keyframesStyleValue
                 : null;
 
-            if (keyframesValue is null)
-            {
-                continue;
-            }
+            if (keyframesValue is null) continue;
 
             var globalSteppingFunction = SteppingFunction.Linear;
             if (values.TryGetValue("timing-function", out var steppingFunctionValue) &&
                 steppingFunctionValue is StringValue sv)
-            {
                 globalSteppingFunction = SteppingFunctions.ParseSteppingFunction(sv.Value);
-            }
 
             var globalLength = 0;
             if (values.TryGetValue("length", out var lengthValue) && lengthValue is NumberValue lv)
-            {
                 globalLength = lv.Unit switch
                 {
                     "ms" => (int)lv.Value,
@@ -46,21 +40,17 @@ public class StyleSheet(StyleSheetHolder holder)
                     "m" => (int)(lv.Value * 60000),
                     _ => throw new ArgumentException($"Invalid length unit {lv.Unit}")
                 };
-            }
-            
+
             if (globalLength < 1)
                 throw new ArgumentException("Keyframes length must be positive");
-            
+
             var previousPercentage = 0.0;
             foreach (var (percentage, propertiesBlock) in keyframesValue.Keyframes)
             {
                 var deltaPct = percentage - previousPercentage;
-                if (deltaPct < 0)
-                {
-                    deltaPct = 0;
-                }
+                if (deltaPct < 0) deltaPct = 0;
                 previousPercentage = percentage;
-                
+
                 var keyframe = new Keyframe
                 {
                     SteppingFunction = globalSteppingFunction,
@@ -68,9 +58,7 @@ public class StyleSheet(StyleSheetHolder holder)
                 };
 
                 foreach (var (property, value) in propertiesBlock)
-                {
                     ParseKeyframeProperties(property, value, ref keyframe);
-                }
                 keyframes.Add(keyframe);
             }
 
@@ -80,9 +68,7 @@ public class StyleSheet(StyleSheetHolder holder)
                 : null;
 
             if (loopingMode is not null && Enum.TryParse<AnimationLoopingMode>(loopingMode.Value, out var loopMode))
-            {
                 keyframed.LoopingMode = loopMode;
-            }
 
             animations.Add(animationName, keyframed);
         }
@@ -108,7 +94,7 @@ public class StyleSheet(StyleSheetHolder holder)
                     2 => new Vector3((float)vectorValue.X, (float)vectorValue.Y, 0),
                     3 => new Vector3((float)vectorValue.X, (float)vectorValue.Y,
                         (float)(vectorValue.Z ?? 0)),
-                    _ => throw new ArgumentException("Invalid vector count for transform property"),
+                    _ => throw new ArgumentException("Invalid vector count for transform property")
                 };
                 break;
             }
@@ -154,8 +140,8 @@ public class StyleSheet(StyleSheetHolder holder)
     }
 
     /// <summary>
-    /// Returns the property overrides for a given state on a tag (id, class, or component),
-    /// or null if no state block is defined for that tag/state combination.
+    ///     Returns the property overrides for a given state on a tag (id, class, or component),
+    ///     or null if no state block is defined for that tag/state combination.
     /// </summary>
     public Dictionary<string, IStyleValue>? GetStateOverrideForTag(string name, string state)
     {
@@ -169,7 +155,8 @@ public class StyleSheet(StyleSheetHolder holder)
             idState is BlockValue idBlock) return idBlock.Properties;
         if (classes.TryGetValue(name, out var classProps) && classProps.TryGetValue(key, out var classState) &&
             classState is BlockValue classBlock) return classBlock.Properties;
-        if (components.TryGetValue(name, out var componentProps) && componentProps.TryGetValue(key, out var componentState) &&
+        if (components.TryGetValue(name, out var componentProps) &&
+            componentProps.TryGetValue(key, out var componentState) &&
             componentState is BlockValue componentBlock) return componentBlock.Properties;
         return null;
     }

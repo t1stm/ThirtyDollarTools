@@ -1,15 +1,15 @@
 <sundex version="1.0" requires="[base, controls]">
   <style language="sundex">
     class bigButton {
-        width = 100px;
+    width = 100px;
     }
 
     id firstButton {
-        background = #001122AA;
+    background = #001122AA;
     }
 
     component button {
-        background = #998877DD;
+    background = #998877DD;
     }
   </style>
 
@@ -32,7 +32,7 @@
   <layout>
 
     <button id="firstButton" class="bigButton">
-      <label value="Big Ass Button Text" />
+      <label value="Big Ass Button Text"/>
     </button>
 
   </layout>

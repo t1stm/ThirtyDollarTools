@@ -7,6 +7,6 @@ public static class LanguageProvider
 {
     public static Dictionary<string, SundexScript> Languages { get; } = new()
     {
-        {"csharp", new CSharpScript()}
+        { "csharp", new CSharpScript() }
     };
 }

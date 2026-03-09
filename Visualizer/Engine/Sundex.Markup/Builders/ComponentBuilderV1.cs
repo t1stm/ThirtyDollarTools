@@ -1,14 +1,13 @@
 using Shared.Renderer.Planes;
 using Shared.Renderer.Planes.Extensions;
-using Shared.Renderer.Planes.Uniforms;
 using Sunder.Markup.Abstract;
 using Sunder.Markup.Document;
 using Sunder.Markup.Layout;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Core;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Style.DSL;
@@ -34,7 +33,7 @@ public class ComponentBuilderV1 : IComponentBuilder
         StyleSheet? styleSheet = null;
         if (layout.Style is not null)
         {
-            var styleSheetHolder = StyleParser.Parse(layout.Style.StyleString, fileLoader: path =>
+            var styleSheetHolder = StyleParser.Parse(layout.Style.StyleString, path =>
             {
                 var assetStream = context.UIContext.AssetProvider
                     .Load<AssetStream, AssetInfo>(new AssetInfo
@@ -46,7 +45,7 @@ public class ComponentBuilderV1 : IComponentBuilder
                 using var stringReader = new StreamReader(assetString);
                 return stringReader.ReadToEnd();
             });
-            
+
             styleSheet = new StyleSheet(styleSheetHolder);
         }
 
@@ -62,7 +61,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
         if (styleSheet is not null)
             uiElement.ApplyStyleSheet(styleSheet);
-        
+
         if (layout.Logic is not null)
         {
             // TODO
@@ -74,7 +73,7 @@ public class ComponentBuilderV1 : IComponentBuilder
             Context = context,
             Element = uiElement,
             RegisteredIDs = registeredIds,
-            RegisteredClasses = registeredClasses,
+            RegisteredClasses = registeredClasses
         };
 
         if (root.Implements?.Length > 0)
@@ -150,9 +149,7 @@ public class ComponentBuilderV1 : IComponentBuilder
                         Progress = progress
                     };
                 else
-                {
                     element = new ProgressBar(context, background, foreground);
-                }
 
                 break;
             }
@@ -184,25 +181,16 @@ public class ComponentBuilderV1 : IComponentBuilder
 
         ApplyAttributes(element, node);
 
-        if (node.Id is not null)
-        {
-            element.ID = node.Id;
-        }
+        if (node.Id is not null) element.ID = node.Id;
 
-        if (node.Classes is not null)
-        {
-            element.Classes = node.Classes;
-        }
-        
+        if (node.Classes is not null) element.Classes = node.Classes;
+
         // Register ID
-        if (!string.IsNullOrEmpty(node.Id))
-        {
-            registeredIds[node.Id] = element;
-        }
+        if (!string.IsNullOrEmpty(node.Id)) registeredIds[node.Id] = element;
 
         // Register classes
         if (node.Classes is not { Count: > 0 }) return element;
-        
+
         foreach (var @class in node.Classes)
         {
             if (!registeredClasses.TryGetValue(@class, out var list))
@@ -210,6 +198,7 @@ public class ComponentBuilderV1 : IComponentBuilder
                 list = [];
                 registeredClasses[@class] = list;
             }
+
             list.Add(element);
         }
 
@@ -219,7 +208,6 @@ public class ComponentBuilderV1 : IComponentBuilder
     private static void ApplyAttributes(UIElement element, SundexNode node)
     {
         foreach (var (key, value) in node.Attributes)
-        {
             switch (key)
             {
                 case "width":
@@ -230,13 +218,11 @@ public class ComponentBuilderV1 : IComponentBuilder
                     break;
                 case "padding":
                     if (float.TryParse(value, out var p))
-                    {
-                        if (element is IPositioningElement pe) pe.Padding = p;
-                    }
+                        if (element is IPositioningElement pe)
+                            pe.Padding = p;
                     break;
                 case "spacing":
                     if (float.TryParse(value, out var s))
-                    {
                         switch (element)
                         {
                             case StackPanel sp:
@@ -246,11 +232,10 @@ public class ComponentBuilderV1 : IComponentBuilder
                                 fp.Spacing = s;
                                 break;
                         }
-                    }
+
                     break;
                 case "direction":
                     if (Enum.TryParse<LayoutDirection>(value, true, out var dir))
-                    {
                         switch (element)
                         {
                             case StackPanel sp:
@@ -260,10 +245,9 @@ public class ComponentBuilderV1 : IComponentBuilder
                                 fp.Direction = dir;
                                 break;
                         }
-                    }
+
                     break;
             }
-        }
     }
 
     private static LiteralOrComputable ParseLiteralOrComputable(string value)
@@ -279,7 +263,7 @@ public class ComponentBuilderV1 : IComponentBuilder
         }
         else if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase))
         {
-             if (float.TryParse(value[..^2], out var v))
+            if (float.TryParse(value[..^2], out var v))
                 return new LiteralOrComputable(v, false);
         }
         else
@@ -287,6 +271,7 @@ public class ComponentBuilderV1 : IComponentBuilder
             if (float.TryParse(value, out var v))
                 return new LiteralOrComputable(v, false);
         }
+
         return new LiteralOrComputable(0, false);
     }
 

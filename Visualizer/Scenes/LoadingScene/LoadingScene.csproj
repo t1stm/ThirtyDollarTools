@@ -1,29 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-        <ProjectReference Include="..\..\Engine\Sundex.Markup\Sundex.Markup.csproj" />
-        <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj" />
-        <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj" />
-        <ProjectReference Include="..\Shared\Shared.csproj"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+    <ProjectReference Include="..\..\Engine\Sundex.Markup\Sundex.Markup.csproj"/>
+    <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj"/>
+    <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj"/>
+    <ProjectReference Include="..\Shared\Shared.csproj"/>
+  </ItemGroup>
 
-    <ItemGroup>
-      <None Remove="Scenes\Layout\LoaderInterface.snx.sml" />
-      <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.xml" />
-      <None Remove="Scenes\Layout\LoaderGradients.snx.ss" />
-      <EmbeddedResource Include="Scenes\Layout\LoaderGradients.snx.ss" />
-    </ItemGroup>
+  <ItemGroup>
+    <None Remove="Scenes\Layout\LoaderInterface.snx.sml"/>
+    <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.xml"/>
+    <None Remove="Scenes\Layout\LoaderGradients.snx.ss"/>
+    <EmbeddedResource Include="Scenes\Layout\LoaderGradients.snx.ss"/>
+  </ItemGroup>
 
-    <ItemGroup>
-      <None Remove="Scenes\Layout\LoaderInterface.snx.ss" />
-      <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.ss" />
-    </ItemGroup>
+  <ItemGroup>
+    <None Remove="Scenes\Layout\LoaderInterface.snx.ss"/>
+    <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.ss"/>
+  </ItemGroup>
 
 </Project>

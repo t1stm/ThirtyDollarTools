@@ -23,67 +23,6 @@ public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyph
         return fontProvider.GetFont(fontName);
     }
 
-    private static void FixGeometry(Shape shape)
-    {
-        var bounds = shape.GetBounds();
-        Vector2 outerPoint = new(
-            bounds.L - (bounds.R - bounds.L) - 1,
-            bounds.B - (bounds.T - bounds.B) - 1
-        );
-
-        var combiner = new SimpleContourCombiner<TrueDistanceSelector>(shape);
-        var finder = new ShapeDistanceFinder<SimpleContourCombiner<TrueDistanceSelector>>(shape, combiner);
-        double distance = finder.Distance(outerPoint);
-
-        if (!(distance > 0)) return;
-        foreach (var contour in shape.Contours)
-            contour.Reverse();
-    }
-
-    private static (Vector2 translate, Vector2 scale) AutoFrame(Shape shape)
-    {
-        const double pxRange = MsdfRange;
-
-        var translate = new Vector2(0, 0);
-        var scale = new Vector2(1, 1);
-
-        double l = 1e240, b = 1e240, r = -1e240, t = -1e240;
-        shape.Bound(ref l, ref b, ref r, ref t);
-
-        if (l >= r || b >= t)
-        {
-            l = 0;
-            b = 0;
-            r = 1;
-            t = 1;
-        }
-
-        var frame = new Vector2(GlyphSize, GlyphSize);
-        frame = new Vector2(frame.X - pxRange, frame.Y - pxRange);
-
-        if (frame.X <= 0 || frame.Y <= 0) return (translate, scale);
-
-        var dims = new Vector2(r - l, t - b);
-
-        if (dims.X * frame.Y < dims.Y * frame.X)
-        {
-            var fitScale = frame.Y / dims.Y;
-            translate = new Vector2(0.5 * (frame.X / frame.Y * dims.Y - dims.X) - l, -b);
-            scale = new Vector2(fitScale, fitScale);
-        }
-        else
-        {
-            var fitScale = frame.X / dims.X;
-            translate = new Vector2(-l, 0.5 * (frame.Y / frame.X * dims.X - dims.Y) - b);
-            scale = new Vector2(fitScale, fitScale);
-        }
-
-        translate +=
-            new Vector2(pxRange / 2 / scale.X, pxRange / 2 / scale.Y);
-
-        return (translate, scale);
-    }
-
     public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character)
     {
         const double rangeSymmetricalWidth = MsdfRange;
@@ -165,5 +104,66 @@ public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyph
                 ? data
                 : throw new Exception($"Unable to find sizing data for character: {character}");
         }
+    }
+
+    private static void FixGeometry(Shape shape)
+    {
+        var bounds = shape.GetBounds();
+        Vector2 outerPoint = new(
+            bounds.L - (bounds.R - bounds.L) - 1,
+            bounds.B - (bounds.T - bounds.B) - 1
+        );
+
+        var combiner = new SimpleContourCombiner<TrueDistanceSelector>(shape);
+        var finder = new ShapeDistanceFinder<SimpleContourCombiner<TrueDistanceSelector>>(shape, combiner);
+        double distance = finder.Distance(outerPoint);
+
+        if (!(distance > 0)) return;
+        foreach (var contour in shape.Contours)
+            contour.Reverse();
+    }
+
+    private static (Vector2 translate, Vector2 scale) AutoFrame(Shape shape)
+    {
+        const double pxRange = MsdfRange;
+
+        var translate = new Vector2(0, 0);
+        var scale = new Vector2(1, 1);
+
+        double l = 1e240, b = 1e240, r = -1e240, t = -1e240;
+        shape.Bound(ref l, ref b, ref r, ref t);
+
+        if (l >= r || b >= t)
+        {
+            l = 0;
+            b = 0;
+            r = 1;
+            t = 1;
+        }
+
+        var frame = new Vector2(GlyphSize, GlyphSize);
+        frame = new Vector2(frame.X - pxRange, frame.Y - pxRange);
+
+        if (frame.X <= 0 || frame.Y <= 0) return (translate, scale);
+
+        var dims = new Vector2(r - l, t - b);
+
+        if (dims.X * frame.Y < dims.Y * frame.X)
+        {
+            var fitScale = frame.Y / dims.Y;
+            translate = new Vector2(0.5 * (frame.X / frame.Y * dims.Y - dims.X) - l, -b);
+            scale = new Vector2(fitScale, fitScale);
+        }
+        else
+        {
+            var fitScale = frame.X / dims.X;
+            translate = new Vector2(-l, 0.5 * (frame.Y / frame.X * dims.X - dims.Y) - b);
+            scale = new Vector2(fitScale, fitScale);
+        }
+
+        translate +=
+            new Vector2(pxRange / 2 / scale.X, pxRange / 2 / scale.Y);
+
+        return (translate, scale);
     }
 }

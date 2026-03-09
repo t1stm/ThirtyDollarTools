@@ -9,9 +9,9 @@ namespace Shared.Audio.BASS;
 public class BassBuffer : AudibleBuffer, IDisposable
 {
     private readonly List<int> _activeChannels = [];
-    private readonly ILogger _logger;
 
     private readonly AudioContext _context;
+    private readonly ILogger _logger;
     private readonly SampleInfo _sampleInfo;
     protected readonly int SampleHandle;
     private float _pan = 0.5f;

@@ -7,19 +7,40 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
+using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
-using Sundex.Style.DSL;
 
 namespace Sundex.Components.Bars;
 
 public class ProgressBar : UIElement
 {
+    public ProgressBar(UIContext context, Panel backgroundPanel, Panel foregroundPanel)
+        : base(context)
+    {
+        BackgroundPanel = backgroundPanel;
+        ForegroundPanel = foregroundPanel;
+        BackgroundPanel.Parent = this;
+        ForegroundPanel.Parent = this;
+    }
+
+    public ProgressBar(UIContext context, Renderable? bgPlaneBackground = null, Renderable? fgPlaneBackground = null) :
+        this(context,
+            new Panel(context)
+            {
+                Background = bgPlaneBackground
+            }, new Panel(context)
+            {
+                Background = fgPlaneBackground
+            })
+    {
+    }
+
     /*
         TODO, do these need to be panels? They can be replaced with Renderables,
         but in that case we lose the ability to apply multiple children to the elements.
-        
+
         This will be useful if there's a need for multiple gradients in a progress bar (kinda overkill no?).
     */
     [NamedSetting("background")]
@@ -33,7 +54,7 @@ public class ProgressBar : UIElement
             InvalidateLayout();
         }
     }
-    
+
     [NamedSetting("foreground")]
     public Panel ForegroundPanel
     {
@@ -71,25 +92,7 @@ public class ProgressBar : UIElement
         }
     }
 
-    public ProgressBar(UIContext context, Panel backgroundPanel, Panel foregroundPanel)
-        : base(context)
-    {
-        BackgroundPanel = backgroundPanel;
-        ForegroundPanel = foregroundPanel;
-        BackgroundPanel.Parent = this;
-        ForegroundPanel.Parent = this;
-    }
-
-    public ProgressBar(UIContext context, Renderable? bgPlaneBackground = null, Renderable? fgPlaneBackground = null) : this(context,
-        new Panel(context)
-        {
-            Background = bgPlaneBackground
-        }, new Panel(context)
-        {
-            Background = fgPlaneBackground,
-        })
-    {
-    }
+    public override string Tag => "progress";
 
     public override void ApplyStyleSheet(StyleSheet styleSheet)
     {
@@ -121,7 +124,7 @@ public class ProgressBar : UIElement
         BackgroundPanel.Height = Computed.Height;
         ForegroundPanel.Width = Computed.Width * Progress;
         ForegroundPanel.Height = Computed.Height;
-        
+
         BackgroundPanel.BorderRadius = BorderRadius;
         ForegroundPanel.BorderRadius = BorderRadius;
 
@@ -135,8 +138,6 @@ public class ProgressBar : UIElement
         BackgroundPanel.Update(uiContext);
         ForegroundPanel.Update(uiContext);
     }
-
-    public override string Tag => "progress";
 
     public override void Test(MouseState mouse, Vector2 scale)
     {
@@ -163,7 +164,7 @@ public class ProgressBar : UIElement
     protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
     {
         if (styleValue is null) return;
-        
+
         switch (styleValue)
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Panel):
@@ -190,7 +191,7 @@ public class ProgressBar : UIElement
                 propertyInfo.SetValue(this, panel);
                 return;
             }
-            
+
             default:
             {
                 base.ApplyStyleValue(styleValue, propertyInfo);

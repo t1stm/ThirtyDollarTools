@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
-using Shared.Renderer;
 
 namespace Shared.Helpers.Color;
 

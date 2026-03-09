@@ -1,6 +1,4 @@
-using Sundex.Components.Abstractions;
 using Sundex.Components.File_Selector;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 
@@ -24,7 +22,7 @@ public class FileSelectionTests
         var initialPath = fileSelection.CurrentPath;
 
         // Note: NavigateUp and NavigateTo use Task.Run, so they are asynchronous.
-        
+
         Assert.Equal(initialPath, fileSelection.CurrentPath);
     }
 }

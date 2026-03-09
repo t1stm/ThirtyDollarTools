@@ -1,18 +1,10 @@
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 
 public class PanelTests
 {
-    private class TestElement(UIContext context)
-        : UIElement(context)
-    {
-        public override string Tag => "test";
-        protected override void DrawSelf(UIContext context) { }
-    }
-
     [Fact]
     public void TestAddChild_SetsParent()
     {
@@ -77,5 +69,15 @@ public class PanelTests
         Assert.False(child.NeedsLayout);
         Assert.Equal(10, child.Computed.AbsoluteX);
         Assert.Equal(10, child.Computed.AbsoluteY);
+    }
+
+    private class TestElement(UIContext context)
+        : UIElement(context)
+    {
+        public override string Tag => "test";
+
+        protected override void DrawSelf(UIContext context)
+        {
+        }
     }
 }

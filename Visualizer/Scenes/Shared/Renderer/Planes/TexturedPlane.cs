@@ -27,14 +27,14 @@ public class TexturedPlane : Renderable, IGamePreloadable, IBorderRadius
     private static GLBuffer<TexturedUniform>? _uniformBuffer;
 
     private TexturedUniform _uniform;
-    public float BorderRadius { get; set; }
-    public GPUTexture? Texture { get; set; }
 
     public TexturedPlane()
     {
         if (!_areVerticesGenerated) SetVertices();
         _uniform = new TexturedUniform();
     }
+
+    public GPUTexture? Texture { get; set; }
 
     public override Vector3 Position
     {
@@ -61,6 +61,8 @@ public class TexturedPlane : Renderable, IGamePreloadable, IBorderRadius
         get => _shader;
         set => _shader = value ?? throw new ArgumentNullException(nameof(value));
     }
+
+    public float BorderRadius { get; set; }
 
     [UsedImplicitly]
     public static void Preload(AssetProvider assetProvider)

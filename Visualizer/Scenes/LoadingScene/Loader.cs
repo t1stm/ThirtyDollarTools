@@ -1,4 +1,3 @@
-using Sundex.Components.Abstractions;
 using LoadingScene.Reports;
 using LoadingScene.Scenes;
 using OpenTK.Mathematics;
@@ -6,6 +5,7 @@ using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Audio;
+using Sundex.Components.Abstractions;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
@@ -19,18 +19,15 @@ public class Loader : Scene, IGamePreloadable
 {
     private static AssetProvider _assetProvider = null!;
     private readonly AudioContext? _audioContext;
-    private readonly UIContext _context;
     private readonly DollarStoreCamera _camera;
+    private readonly UIContext _context;
+
+    private readonly LoaderInterface _loaderInterface;
 
     private readonly ThirtyDollarDownloader _thirtyDollarDownloader;
-    private IProgressReport _progressReport = new NotStartedReport();
-    
-    public Action<ThirtyDollarWorkflow>? OnFinish { get; set; }
-    public bool Finished { get; private set; }
-    
-    private readonly LoaderInterface _loaderInterface;
-    private Vector2 _lastScale = Vector2.One;
     private CursorType _cursorType = CursorType.Normal;
+    private Vector2 _lastScale = Vector2.One;
+    private IProgressReport _progressReport = new NotStartedReport();
 
     public Loader(SceneManager sceneManager, AudioContext? audioContext) : base(sceneManager)
     {
@@ -41,10 +38,10 @@ public class Loader : Scene, IGamePreloadable
             clientSize.X = (int)(clientSize.X / scaleX);
             clientSize.Y = (int)(clientSize.Y / scaleY);
         }
-        
+
         _audioContext = audioContext;
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
-        
+
         _context = new UIContext
         {
             Camera = _camera,
@@ -54,9 +51,12 @@ public class Loader : Scene, IGamePreloadable
         {
             StatusUpdate = StatusUpdate
         };
-        
+
         _loaderInterface = new LoaderInterface(_context, () => _thirtyDollarDownloader.Load());
     }
+
+    public Action<ThirtyDollarWorkflow>? OnFinish { get; set; }
+    public bool Finished { get; private set; }
 
     public static void Preload(AssetProvider assetProvider)
     {
@@ -93,13 +93,13 @@ public class Loader : Scene, IGamePreloadable
     {
         _cursorType = CursorType.Normal;
         var mouseState = Game.MouseState;
-        
+
         lock (_progressReport)
         {
             var progressReport = _progressReport;
             _loaderInterface.Update(progressReport, _context, mouseState, _lastScale);
         }
-        
+
         Game.Cursor = _cursorType switch
         {
             CursorType.Normal => MouseCursor.Default,
@@ -108,10 +108,10 @@ public class Loader : Scene, IGamePreloadable
             CursorType.ResizeY => MouseCursor.ResizeNS,
             _ => MouseCursor.Default
         };
-        
+
         if (!_thirtyDollarDownloader.AssetsLoaded && !Finished) return;
         Finished = true;
-        
+
         var workflow = new ThirtyDollarWorkflow(Game, Logger, _audioContext)
         {
             AtlasStore = _thirtyDollarDownloader.AtlasStore,
@@ -130,10 +130,10 @@ public class Loader : Scene, IGamePreloadable
             height /= scaleY;
             _lastScale = new Vector2(scaleX, scaleY);
         }
-        
+
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
-        
+
         _loaderInterface.Resize();
     }
 

@@ -1,7 +1,5 @@
-using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 
@@ -13,7 +11,7 @@ public class ScrollBarTests
         var context = new TestUIContext();
         var parent = new Panel(context) { Width = 100, Height = 500 };
         var scrollBar = new ScrollBar(context, parent);
-        
+
         // Ensure parent is added to children so it gets layout updates?
         // Actually ScrollBar is a sibling or child?
         // In ScrollBar constructor: Parent = parent; Children = [ScrollBlock];
@@ -23,9 +21,9 @@ public class ScrollBarTests
         parent.Layout();
 
         Assert.Equal(parent, scrollBar.Parent);
-        Assert.Equal(20, (float)scrollBar.Width.Value);
+        Assert.Equal(20, scrollBar.Width.Value);
         Assert.Equal(500, scrollBar.Computed.Height);
-        Assert.Equal(80, scrollBar.Computed.AbsoluteX - parent.Computed.AbsoluteX); 
+        Assert.Equal(80, scrollBar.Computed.AbsoluteX - parent.Computed.AbsoluteX);
     }
 
     [Fact]

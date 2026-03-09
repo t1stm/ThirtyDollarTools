@@ -33,7 +33,6 @@ public class GradientPlane : Renderable, IGamePreloadable, IBorderRadius
         _uniform = new GradientUniform();
     }
 
-    public float BorderRadius { get; set; }
     public GradientType GradientType { get; set; } = GradientType.Linear;
     public List<Vector4> GradientColors { get; set; } = [];
     public List<float> GradientStops { get; set; } = [];
@@ -63,6 +62,8 @@ public class GradientPlane : Renderable, IGamePreloadable, IBorderRadius
         get => _shader;
         set => _shader = value ?? throw new ArgumentNullException(nameof(value));
     }
+
+    public float BorderRadius { get; set; }
 
     [UsedImplicitly]
     public static void Preload(AssetProvider assetProvider)

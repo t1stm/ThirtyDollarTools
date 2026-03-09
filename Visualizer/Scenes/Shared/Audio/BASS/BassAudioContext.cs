@@ -6,8 +6,8 @@ namespace Shared.Audio.BASS;
 
 public class BassAudioContext(ILogger logger) : AudioContext
 {
+    private readonly ILogger _logger = logger.ForContext<BassAudioContext>();
     public override string Name => "BASS";
-    private readonly ILogger _logger = logger.ForContext<BassAudioContext>(); 
 
     /// <summary>
     ///     Creates a global audio context.

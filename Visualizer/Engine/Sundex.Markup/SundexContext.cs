@@ -6,15 +6,29 @@ namespace Sunder.Markup;
 
 public class SundexContext<T>(T contextProvider, UIContext context) : ISundexContext where T : class
 {
-    public UIContext UIContext { get; } = context;
     public T ContextProvider { get; } = contextProvider;
-    
+
     public Dictionary<string, IComponentBuilder> ComponentBuilderVersions { get; } = new()
     {
-        {ComponentBuilderV1.Version, new ComponentBuilderV1()}
+        { ComponentBuilderV1.Version, new ComponentBuilderV1() }
     };
-    
+
     public Dictionary<string, ISundexComponent> LoadedComponents { get; } = [];
+    public UIContext UIContext { get; } = context;
+
+    public ISundexComponent ResolveComponent(ReadOnlySpan<char> dependency)
+    {
+        var lookup = LoadedComponents.GetAlternateLookup<ReadOnlySpan<char>>();
+        return lookup.TryGetValue(dependency, out var component)
+            ? component
+            : throw new Exception($"Unable to find component: {dependency}");
+    }
+
+    public void RegisterComponent(ISundexComponent component)
+    {
+        if (component.Name == null) throw new Exception("Component name cannot be null.");
+        LoadedComponents.Add(component.Name, component);
+    }
 
     public SundexComponent NewComponent(string smxlMarkup)
     {
@@ -31,17 +45,5 @@ public class SundexContext<T>(T contextProvider, UIContext context) : ISundexCon
     {
         if (!ComponentBuilderVersions.TryAdd(version, builder))
             throw new Exception("A builder with the same version already exists.");
-    }
-
-    public ISundexComponent ResolveComponent(ReadOnlySpan<char> dependency)
-    {
-        var lookup = LoadedComponents.GetAlternateLookup<ReadOnlySpan<char>>();
-        return lookup.TryGetValue(dependency, out var component) ? component : throw new Exception($"Unable to find component: {dependency}");
-    }
-    
-    public void RegisterComponent(ISundexComponent component)
-    {
-        if (component.Name == null) throw new Exception("Component name cannot be null.");
-        LoadedComponents.Add(component.Name, component);
     }
 }

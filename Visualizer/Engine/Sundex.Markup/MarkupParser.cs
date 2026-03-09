@@ -14,10 +14,10 @@ public class MarkupParser
         var rootElement = xmlDocument.DocumentElement;
         if (rootElement == null) throw new XmlException("The root element is missing.");
         var root = new RootContainer(rootElement);
-        
+
         return new SundexDocument
         {
-            Root = root,
+            Root = root
         };
     }
 }

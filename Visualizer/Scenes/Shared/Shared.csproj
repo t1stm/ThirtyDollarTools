@@ -1,44 +1,44 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf"/>
-        <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf"/>
-        <EmbeddedResource Include="Assets\Fonts\README.md"/>
-        <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf"/>
-        <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.vert"/>
-        <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.vert"/>
-        <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.frag" />
-        <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.vert" />
-        <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.vert"/>
-        <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Animated.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Animated.vert"/>
-        <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Static.frag"/>
-        <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Static.vert"/>
-        <EmbeddedResource Include="Assets\Textures\action_icut.png"/>
-        <EmbeddedResource Include="Assets\Textures\action_missing.png"/>
-        <EmbeddedResource Include="Assets\Textures\moai.png"/>
-    </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\Fonts\Lato-Bold.ttf"/>
+    <EmbeddedResource Include="Assets\Fonts\Lato-Regular.ttf"/>
+    <EmbeddedResource Include="Assets\Fonts\README.md"/>
+    <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.frag"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.vert"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.frag"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.vert"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.frag"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.vert"/>
+    <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.frag"/>
+    <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.vert"/>
+    <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Animated.frag"/>
+    <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Animated.vert"/>
+    <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Static.frag"/>
+    <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Static.vert"/>
+    <EmbeddedResource Include="Assets\Textures\action_icut.png"/>
+    <EmbeddedResource Include="Assets\Textures\action_missing.png"/>
+    <EmbeddedResource Include="Assets\Textures\moai.png"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj"/>
-        <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-        <ProjectReference Include="..\..\Engine\Style DSL\Sundex.Style.DSL\Sundex.Style.DSL.csproj" />
-        <ProjectReference Include="..\..\Engine\Sundex.Core\Sundex.Core.csproj" />
-        <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj"/>
+    <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+    <ProjectReference Include="..\..\Engine\Style DSL\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
+    <ProjectReference Include="..\..\Engine\Sundex.Core\Sundex.Core.csproj"/>
+    <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="ManagedBass" Version="4.0.2"/>
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ManagedBass" Version="4.0.2"/>
+  </ItemGroup>
 
 </Project>

@@ -28,9 +28,12 @@ public static class DarkScheme
     public static Vector4 ColorError { get; } = ParseHexColor("#F7768E");
     public static Vector4 ColorInfo { get; } = ParseHexColor("#7AA2F7");
 
-    private static Vector4 ParseHexColor(string hex) => new(
-        int.Parse(hex.Substring(1, 2), NumberStyles.HexNumber) / 255f,
-        int.Parse(hex.Substring(3, 2), NumberStyles.HexNumber) / 255f,
-        int.Parse(hex.Substring(5, 2), NumberStyles.HexNumber) / 255f, 
-        1f);
+    private static Vector4 ParseHexColor(string hex)
+    {
+        return new Vector4(
+            int.Parse(hex.Substring(1, 2), NumberStyles.HexNumber) / 255f,
+            int.Parse(hex.Substring(3, 2), NumberStyles.HexNumber) / 255f,
+            int.Parse(hex.Substring(5, 2), NumberStyles.HexNumber) / 255f,
+            1f);
+    }
 }

@@ -1,7 +1,6 @@
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 

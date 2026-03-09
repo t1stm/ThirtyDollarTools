@@ -6,7 +6,7 @@ public class CSharpScript : SundexScript
     {
         if (context is null)
             throw new ArgumentNullException(nameof(context));
-        
+
         /*
          * TODO: implement C# execution logic. Should use Roslyn for the compilation and
          * a virtual environment should be made with the following properties:

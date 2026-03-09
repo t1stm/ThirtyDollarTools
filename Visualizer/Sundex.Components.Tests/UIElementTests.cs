@@ -1,25 +1,9 @@
 using Sundex.Components.Abstractions;
-using Xunit;
 
 namespace Sundex.Components.Tests;
 
 public class UIElementTests
 {
-    private class TestElement : UIElement
-    {
-        public TestElement(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
-            : base(context)
-        {
-            X = x;
-            Y = y;
-            Width = width;
-            Height = height;
-        }
-
-        public override string Tag => "test";
-        protected override void DrawSelf(UIContext context) { }
-    }
-
     [Fact]
     public void TestAbsoluteCoordinates_NoParent()
     {
@@ -78,5 +62,23 @@ public class UIElementTests
         element.X = 20;
         element.Layout();
         Assert.Equal(20, element.Computed.AbsoluteX);
+    }
+
+    private class TestElement : UIElement
+    {
+        public TestElement(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
+            : base(context)
+        {
+            X = x;
+            Y = y;
+            Width = width;
+            Height = height;
+        }
+
+        public override string Tag => "test";
+
+        protected override void DrawSelf(UIContext context)
+        {
+        }
     }
 }

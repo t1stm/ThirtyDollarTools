@@ -28,7 +28,7 @@ public class UIContext : IGamePreloadable
     public DeleteQueue DeleteQueue => _assetProvider.DeleteQueue;
 
     public Action<CursorType> RequestCursor { get; set; } = _ => { };
-    
+
 
     public static void Preload(AssetProvider assetProvider)
     {

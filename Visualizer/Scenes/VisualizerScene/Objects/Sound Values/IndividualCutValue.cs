@@ -1,10 +1,10 @@
 using System.Buffers;
 using OpenTK.Mathematics;
-using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Enums;
 using Sundex.Engine.Text;
+using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 
 namespace VisualizerScene.Objects.Sound_Values;

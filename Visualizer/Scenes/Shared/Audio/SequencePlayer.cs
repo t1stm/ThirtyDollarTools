@@ -1,12 +1,12 @@
+using Serilog;
 using Shared.Audio.BASS;
 using Shared.Audio.Features;
 using Shared.Audio.Null;
 using Shared.Audio.OpenAL;
 using Shared.Objects;
+using Sundex.Engine.Threading;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser.Custom_Events;
-using Sundex.Engine.Threading;
-using Serilog;
 
 namespace Shared.Audio;
 
@@ -19,7 +19,7 @@ public class SequencePlayer
     protected readonly long[] Bookmarks = new long[10];
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
     protected readonly Greeting? Greeting;
-    protected readonly ILogger _logger;
+    protected readonly ILogger Logger;
     protected readonly SeekableStopwatch TimingStopwatch = new();
     protected readonly SemaphoreSlim UpdateLock = new(1);
     private bool _cutSounds;
@@ -43,8 +43,8 @@ public class SequencePlayer
     public SequencePlayer(ILogger logger, AudioContext? context = null)
     {
         ++_instanceID;
-        _logger = logger.ForContext<SequencePlayer>();
-        
+        Logger = logger.ForContext<SequencePlayer>();
+
         BufferHolder = new BufferHolder();
         Events = new TimedEvents
         {
@@ -83,11 +83,11 @@ public class SequencePlayer
     {
         AudioContext context;
 
-        if ((context = new BassAudioContext(_logger)).Create() ||
-            (context = new OpenALContext(_logger)).Create())
+        if ((context = new BassAudioContext(Logger)).Create() ||
+            (context = new OpenALContext(Logger)).Create())
             return context;
 
-        _logger.Error("Unable to initialize the audio device.");
+        Logger.Error("Unable to initialize the audio device.");
         return null;
     }
 

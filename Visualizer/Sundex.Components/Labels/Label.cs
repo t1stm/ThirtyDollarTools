@@ -16,6 +16,13 @@ public class Label : UIElement
     protected readonly TextBuffer? TextBuffer;
     private string _textValue;
 
+    public Label(UIContext context, ReadOnlySpan<char> text) : base(context)
+    {
+        _textValue = text.ToString();
+        TextBuffer = new TextBuffer(context.TextProvider, context.DeleteQueue);
+        TextSlice = TextBuffer.GetTextSlice(text);
+    }
+
     protected TextSlice? TextSlice
     {
         get;
@@ -26,13 +33,6 @@ public class Label : UIElement
             Width = field.Scale.X;
             Height = field.Scale.Y;
         }
-    }
-
-    public Label(UIContext context, ReadOnlySpan<char> text) : base(context)
-    {
-        _textValue = text.ToString();
-        TextBuffer = new TextBuffer(context.TextProvider, context.DeleteQueue);
-        TextSlice = TextBuffer.GetTextSlice(text);
     }
 
     [NamedSetting("text-value")]
@@ -70,6 +70,8 @@ public class Label : UIElement
         }
     } = Vector4.One;
 
+    public override string Tag => "label";
+
     public void SetTextContents(ReadOnlySpan<char> text)
     {
         _textValue = text.ToString();
@@ -103,8 +105,6 @@ public class Label : UIElement
         Width = scale.X;
         Height = scale.Y;
     }
-
-    public override string Tag => "label";
 
     protected override void DoLayout()
     {

@@ -26,7 +26,6 @@ public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
     private static GLBuffer<ColoredUniform>? _uniformBuffer;
 
     private ColoredUniform _uniform;
-    public float BorderRadius { get; set; }
 
     public ColoredPlane()
     {
@@ -59,6 +58,8 @@ public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
         get => _shader;
         set => _shader = value ?? throw new ArgumentNullException(nameof(value));
     }
+
+    public float BorderRadius { get; set; }
 
     [UsedImplicitly]
     public static void Preload(AssetProvider assetProvider)

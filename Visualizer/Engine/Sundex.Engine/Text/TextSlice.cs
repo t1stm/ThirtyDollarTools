@@ -47,7 +47,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             UpdateCharacters();
         }
     } = 16;
-    
+
     public Vector4 Color { get; set; } = Vector4.One;
 
     private FontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.GetFontMetrics();

@@ -2,7 +2,6 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Serilog;
 using Shared.Atlases;
-using ThirtyDollarParser;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Helpers;
@@ -13,6 +12,7 @@ using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Buffers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
+using ThirtyDollarParser;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 
 namespace VisualizerScene.Objects.Playfield.Batch.Chunks;

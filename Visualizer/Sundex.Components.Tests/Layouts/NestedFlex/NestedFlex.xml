@@ -2,11 +2,11 @@
   <layout>
     <flex direction="vertical" width="500" height="500" padding="10">
       <flex direction="horizontal" width="100%" height="100">
-        <panel width="50" height="50" />
-        <panel width="50" height="50" />
+        <panel width="50" height="50"/>
+        <panel width="50" height="50"/>
       </flex>
       <flex direction="horizontal" width="100%" height="100">
-        <panel width="80" height="50" />
+        <panel width="80" height="50"/>
       </flex>
     </flex>
   </layout>

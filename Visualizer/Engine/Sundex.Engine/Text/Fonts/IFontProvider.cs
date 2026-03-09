@@ -10,4 +10,3 @@ public interface IFontProvider
     /// <summary>Returns a <see cref="FontHandle" /> for the named font.</summary>
     FontHandle GetFont(ReadOnlySpan<char> fontName);
 }
-

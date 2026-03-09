@@ -11,9 +11,6 @@ var context = new SundexContext<ExampleContext>(new ExampleContext(), new UICont
 
 var component =
     context.NewComponent(File.ReadAllText(
-            "/home/kris/RiderProjects/ThirtyDollarTools/Visualizer/Engine/Sundex.Markup/EXAMPLE.snx.xml"));
+        "/home/kris/RiderProjects/ThirtyDollarTools/Visualizer/Engine/Sundex.Markup/EXAMPLE.snx.xml"));
 
-if (component is null)
-{
-    throw new InvalidOperationException("Component creation failed");
-}
+if (component is null) throw new InvalidOperationException("Component creation failed");

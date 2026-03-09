@@ -96,9 +96,7 @@ public class StyleParserTests
         // Try to find the project root
         var projectRoot = basePath;
         while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.sln")))
-        {
             projectRoot = Path.GetDirectoryName(projectRoot);
-        }
 
         var path = Path.Combine(projectRoot!, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/default.snx.ss");
         var dsl = File.ReadAllText(path);
@@ -126,13 +124,11 @@ public class StyleParserTests
         var basePath = AppContext.BaseDirectory;
         var projectRoot = basePath;
         while (projectRoot != null && !File.Exists(Path.Combine(projectRoot, "ThirtyDollarTools.sln")))
-        {
             projectRoot = Path.GetDirectoryName(projectRoot);
-        }
 
         var path = Path.Combine(projectRoot!, "Visualizer/Engine/Style DSL/Sundex.Style.DSL/Examples/import.snx.ss");
         var dsl = File.ReadAllText(path);
-        
+
         // Use the directory of the style DSL project as base path for the examples to work
         var styleDslRoot = Path.Combine(projectRoot!, "Visualizer/Engine/Style DSL");
         var sheet = StyleParser.Parse(dsl, p => File.ReadAllText(Path.Combine(styleDslRoot, p)));
@@ -146,7 +142,7 @@ public class StyleParserTests
         }
 
         Assert.That(sheet.FullOverrides, Does.Not.Contain("label"));
-        
+
         // Verify that label has properties from both default.snx.ss and import.snx.ss
         var label = sheet.Components["label"];
         using (Assert.EnterMultipleScope())

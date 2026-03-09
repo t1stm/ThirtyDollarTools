@@ -6,13 +6,6 @@ namespace Sundex.Components.Tests;
 
 public class FlexPanelTests
 {
-    private class TestElement(UIContext context)
-        : UIElement(context)
-    {
-        public override string Tag => "test";
-        protected override void DrawSelf(UIContext context) { }
-    }
-
     [Fact]
     public void TestHorizontalLayout_AlignStart()
     {
@@ -138,5 +131,15 @@ public class FlexPanelTests
         // free_space = 70. flex_size = 70 / 1 = 70.
         Assert.Equal(70, child1.Width);
         Assert.Equal(30, child2.Width);
+    }
+
+    private class TestElement(UIContext context)
+        : UIElement(context)
+    {
+        public override string Tag => "test";
+
+        protected override void DrawSelf(UIContext context)
+        {
+        }
     }
 }

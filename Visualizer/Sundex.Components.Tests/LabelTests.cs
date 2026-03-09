@@ -9,7 +9,7 @@ public class LabelTests
     {
         var context = new TestUIContext();
         var label = new Label(context, "Test");
-        
+
         Assert.Equal("Test", label.Value.ToString());
         Assert.NotEqual(0, label.Width);
         Assert.NotEqual(0, label.Height);
@@ -24,7 +24,7 @@ public class LabelTests
             FontSizePx = 24
         };
         label.SetTextContents("New Text");
-        
+
         Assert.Equal(24, label.FontSizePx.Value);
         Assert.Equal("New Text", label.Value.ToString());
     }

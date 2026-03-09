@@ -27,7 +27,7 @@ public class Panel : UIElement, IColoredBackground
 
     public bool Overflowing { get; protected set; }
     public bool ScrollOnOverflow { get; set; }
-    
+
     [NamedSetting("border-radius")]
     public LiteralOrComputable BorderRadius
     {
@@ -62,8 +62,7 @@ public class Panel : UIElement, IColoredBackground
         }
     }
 
-    [NamedSetting("background")]
-    public Renderable? Background { get; set; }
+    [NamedSetting("background")] public Renderable? Background { get; set; }
 
     public override void Test(MouseState mouse, Vector2 scale)
     {
@@ -152,7 +151,7 @@ public class Panel : UIElement, IColoredBackground
                 });
                 return;
             }
-            
+
             default:
             {
                 base.ApplyStyleValue(styleValue, propertyInfo);
@@ -164,10 +163,7 @@ public class Panel : UIElement, IColoredBackground
     public override void ApplyStyleSheet(StyleSheet styleSheet)
     {
         base.ApplyStyleSheet(styleSheet);
-        foreach (var child in Children)
-        {
-            child.ApplyStyleSheet(styleSheet);
-        }
+        foreach (var child in Children) child.ApplyStyleSheet(styleSheet);
     }
 
     public override void ApplyStateOverride(StyleSheet styleSheet, string state)
