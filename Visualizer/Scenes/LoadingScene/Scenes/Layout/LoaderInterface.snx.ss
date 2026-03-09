@@ -54,4 +54,12 @@ component button {
     border-radius = 10;
     width = auto;
     height = 40;
+    
+    state[hovered] = {
+        background = "#00ff99";
+    }
+   
+    state[pressed] = {
+        background = "#00ff66";
+    }
 }

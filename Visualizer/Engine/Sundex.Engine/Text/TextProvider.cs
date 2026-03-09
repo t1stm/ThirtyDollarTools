@@ -15,8 +15,8 @@ using Sundex.Engine.Asset_Management.Extensions;
 namespace Sundex.Engine.Text;
 
 [PreloadGraphicsContext]
-public class TextProvider(AssetProvider provider, FontProvider fontProvider, string fontName)
-    : IGamePreloadable
+public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, string fontName)
+    : IGamePreloadable, ITextProvider
 {
     private static Shader _shader = null!;
 
@@ -27,7 +27,7 @@ public class TextProvider(AssetProvider provider, FontProvider fontProvider, str
         AtlasID = "TextAtlas_" + fontName.Replace(' ', '_')
     };
 
-    public AssetProvider AssetProvider { get; } = provider;
+    public IAssetProvider AssetProvider { get; } = provider;
 
     public static void Preload(AssetProvider assetProvider)
     {

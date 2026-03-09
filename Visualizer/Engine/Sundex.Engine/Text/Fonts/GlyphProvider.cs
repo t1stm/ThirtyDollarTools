@@ -7,7 +7,7 @@ using Range = Msdfgen.Range;
 
 namespace Sundex.Engine.Text.Fonts;
 
-public class GlyphProvider(FontProvider fontProvider, string fontName)
+public class GlyphProvider(IFontProvider fontProvider, string fontName)
 {
     public const int GlyphSize = 48;
     public const float MsdfRange = 4.0f;

@@ -6,7 +6,7 @@ using Sundex.Engine.Renderer.Queues;
 
 namespace Sundex.Engine.Asset_Management;
 
-public class AssetProvider
+public class AssetProvider : IAssetProvider
 {
     public AssetProvider(ILogger logger, Assembly[] assetAssemblies, GLInfo glInfo)
     {

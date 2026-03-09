@@ -4,7 +4,7 @@ using Sundex.Engine.Asset_Management.Types.Asset;
 
 namespace Sundex.Engine.Text.Fonts;
 
-public class FontProvider
+public class FontProvider : IFontProvider
 {
     private readonly FreetypeHandle _freetypeHandle;
 
