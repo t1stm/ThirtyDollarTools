@@ -140,7 +140,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             {
                 Color = Color
             };
-            var atlasSize = new Vector2(textProvider.TextAtlas.Width, textProvider.TextAtlas.Height);
+            var atlasSize = new Vector2(textProvider.TextureWidth, textProvider.TextureHeight);
 
             textCharacter.TextureUV =
                 (textureRectangle.X / atlasSize.X,

@@ -5,6 +5,7 @@ using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Buffers;
 using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Renderer.Debug;
+using Sundex.Engine.Renderer.Queues;
 
 namespace Sundex.Engine.Text;
 
@@ -15,15 +16,15 @@ public class TextBuffer : IRenderable, IDisposable
 
     private readonly VertexArrayObject _vao = new();
     public readonly GLBuffer<TextCharacter>.WithCPUCache Characters;
-    public readonly TextProvider TextProvider;
+    public readonly ITextProvider TextProvider;
 
     private int _currentOffset;
     private bool _disposing;
 
-    public TextBuffer(TextProvider provider)
+    public TextBuffer(ITextProvider provider, DeleteQueue deleteQueue)
     {
         Characters = new GLBuffer<TextCharacter>.WithCPUCache(
-            provider.AssetProvider.DeleteQueue, BufferTarget.ArrayBuffer);
+            deleteQueue, BufferTarget.ArrayBuffer);
         TextProvider = provider;
         InitializeVAO(_vao, Characters);
     }

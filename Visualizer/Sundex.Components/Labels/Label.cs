@@ -31,7 +31,7 @@ public class Label : UIElement
     public Label(UIContext context, ReadOnlySpan<char> text) : base(context)
     {
         _textValue = text.ToString();
-        TextBuffer = new TextBuffer(context.TextProvider);
+        TextBuffer = new TextBuffer(context.TextProvider, context.DeleteQueue);
         TextSlice = TextBuffer.GetTextSlice(text);
     }
 

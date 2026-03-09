@@ -4,6 +4,7 @@ using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Cameras;
+using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Text;
 using Sundex.Engine.Text.Fonts;
 
@@ -24,8 +25,10 @@ public class UIContext : IGamePreloadable
     public IAssetProvider AssetProvider => _assetProvider;
     public IFontProvider FontProvider => _fontProvider;
     public ITextProvider TextProvider => _textProvider;
+    public DeleteQueue DeleteQueue => _assetProvider.DeleteQueue;
 
     public Action<CursorType> RequestCursor { get; set; } = _ => { };
+    
 
     public static void Preload(AssetProvider assetProvider)
     {

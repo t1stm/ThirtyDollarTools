@@ -26,11 +26,11 @@ public class VisualizerTextContainer
         _version = version;
         _scale = scale;
 
-        _genericBuffer = new TextBuffer(fonts.LatoBoldProvider);
-        _debugBuffer = new TextBuffer(fonts.LatoBoldProvider);
-        _greetingBuffer = new TextBuffer(fonts.LatoBoldProvider);
-        _versionBuffer = new TextBuffer(fonts.LatoBoldProvider);
-        _controlsBuffer = new TextBuffer(fonts.LatoBoldProvider);
+        _genericBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
+        _debugBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
+        _greetingBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
+        _versionBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
+        _controlsBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
         Overlay = CreateLayout(width, height);
         Greeting = _greetingBuffer.GetTextSlice(" ", UpdatableTextSliceMaxLength);
     }

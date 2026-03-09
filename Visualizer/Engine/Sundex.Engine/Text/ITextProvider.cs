@@ -18,6 +18,11 @@ public interface ITextProvider
     ///     Binds the text atlas to the OpenGL context and activates the shader program.
     /// </summary>
     void BindAndSetUniforms(Camera camera);
+    
+    IGlyphProvider GlyphProvider { get; }
+    
+    float TextureWidth { get; }
+    float TextureHeight { get; }
 }
 
 

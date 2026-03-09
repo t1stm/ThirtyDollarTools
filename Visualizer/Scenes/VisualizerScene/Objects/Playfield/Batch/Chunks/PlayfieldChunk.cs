@@ -15,7 +15,7 @@ public class PlayfieldChunk : IDisposable
     private PlayfieldChunk(int size, TextProvider provider)
     {
         Renderables = new SoundRenderable[size];
-        _textBuffer = new TextBuffer(provider);
+        _textBuffer = new TextBuffer(provider, provider.AssetProvider.DeleteQueue);
         _textBuffer.Resize(size * MaxValueLength * 3);
     }
 

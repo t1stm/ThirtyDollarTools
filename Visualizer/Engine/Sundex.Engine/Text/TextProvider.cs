@@ -20,7 +20,7 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
 {
     private static Shader _shader = null!;
 
-    public readonly GlyphProvider GlyphProvider = new(fontProvider, fontName);
+    public IGlyphProvider GlyphProvider { get; } = new GlyphProvider(fontProvider, fontName);
 
     public readonly GPUTextureAtlas TextAtlas = new(2048, 2048, InternalFormat.Rgba32f, MipmapMode.Disabled)
     {
@@ -77,9 +77,31 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
             _shader.Use();
 
             _shader.SetUniform("uVPMatrix", camera.GetVPMatrix());
-            _shader.SetUniform("uPxRange", GlyphProvider.GlyphSize * GlyphProvider.MsdfRange);
+            _shader.SetUniform("uPxRange", Fonts.GlyphProvider.GlyphSize * Fonts.GlyphProvider.MsdfRange);
 
             RenderMarker.Debug("Bound Text Atlas and Set Uniforms: ", TextAtlas.AtlasID, MarkerType.Hidden);
+        }
+    }
+    
+    public float TextureWidth
+    {
+        get
+        {
+            lock (TextAtlas)
+            {
+                return TextAtlas.Width;
+            }
+        }
+    }
+
+    public float TextureHeight
+    {
+        get
+        {
+            lock (TextAtlas)
+            {
+                return TextAtlas.Height;
+            }
         }
     }
 }

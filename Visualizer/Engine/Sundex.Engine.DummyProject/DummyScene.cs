@@ -22,7 +22,7 @@ public class DummyScene(SceneManager sceneManager) : Scene(sceneManager)
     {
         _fontProvider = new FontProvider(AssetProvider);
         _textProvider = new TextProvider(AssetProvider, _fontProvider, "Lato Regular");
-        _textBuffer = new TextBuffer(_textProvider);
+        _textBuffer = new TextBuffer(_textProvider, AssetProvider.DeleteQueue);
 
         _textSlice = _textBuffer.GetTextSlice(
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \n" +
