@@ -59,7 +59,7 @@ public abstract class UIElement
         Parent?.InvalidateLayout();
     }
 
-    private void UpdateSetDirtySelf<T>(out T field, T value)
+    protected void UpdateSetDirtySelf<T>(out T field, T value)
     {
         field = value;
         NeedsLayout = true;

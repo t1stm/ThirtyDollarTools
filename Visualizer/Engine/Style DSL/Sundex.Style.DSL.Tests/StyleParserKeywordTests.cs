@@ -32,7 +32,7 @@ public class StyleParserKeywordTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(kf.Keyframes[0].Percentage, Is.EqualTo(0));
-            Assert.That(kf.Keyframes[1].Percentage, Is.EqualTo(100));
+            Assert.That(kf.Keyframes[1].Percentage, Is.EqualTo(1));
             Assert.That(kf.Keyframes[0].Properties.ContainsKey("opacity"), Is.True);
             Assert.That(kf.Keyframes[1].Properties.ContainsKey("opacity"), Is.True);
         }
@@ -64,9 +64,9 @@ public class StyleParserKeywordTests
             Assert.That(grad.Stops[0].Color.Value, Is.EqualTo("#ff0000"));
             Assert.That(grad.Stops[0].Percentage, Is.EqualTo(0));
             Assert.That(grad.Stops[1].Color.Value, Is.EqualTo("#ffff00"));
-            Assert.That(grad.Stops[1].Percentage, Is.EqualTo(50));
+            Assert.That(grad.Stops[1].Percentage, Is.EqualTo(0.5f));
             Assert.That(grad.Stops[2].Color.Value, Is.EqualTo("#00ff00"));
-            Assert.That(grad.Stops[2].Percentage, Is.EqualTo(100));
+            Assert.That(grad.Stops[2].Percentage, Is.EqualTo(1));
         }
     }
 
@@ -95,9 +95,9 @@ public class StyleParserKeywordTests
             Assert.That(grad.Stops[0].Color.Value, Is.EqualTo("#ff0000"));
             Assert.That(grad.Stops[0].Percentage, Is.EqualTo(0));
             Assert.That(grad.Stops[1].Color.Value, Is.EqualTo("#ffff00"));
-            Assert.That(grad.Stops[1].Percentage, Is.EqualTo(50));
+            Assert.That(grad.Stops[1].Percentage, Is.EqualTo(0.5f));
             Assert.That(grad.Stops[2].Color.Value, Is.EqualTo("#00ffff"));
-            Assert.That(grad.Stops[2].Percentage, Is.EqualTo(100));
+            Assert.That(grad.Stops[2].Percentage, Is.EqualTo(1));
         }
     }
 

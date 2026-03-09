@@ -34,7 +34,7 @@ public record StopsValue(IStyleValue Value) : IStyleValue
                     var v = arr.Values[i];
                     if (v is not ColorValue color)
                         throw new ArgumentException("Gradient stop array items must be colors");
-                    var pct = n <= 1 ? 0 : 100.0f * i / (n - 1);
+                    var pct = n <= 1 ? 0 : (float)i / (n - 1);
                     list.Add(new GradientStop(color, pct));
                 }
                 break;
@@ -49,7 +49,7 @@ public record StopsValue(IStyleValue Value) : IStyleValue
     {
         return key switch
         {
-            NumberValue { Unit: "%" } num => num.Value,
+            NumberValue { Unit: "%" } num => num.Value / 100f,
             NumberValue num when string.IsNullOrEmpty(num.Unit) => num.Value,
             _ => throw new ArgumentException("Key for stops map must be a percentage number")
         };

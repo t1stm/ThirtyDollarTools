@@ -1,4 +1,5 @@
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
 using Xunit;
 
@@ -6,9 +7,14 @@ namespace Sundex.Components.Tests;
 
 public class WindowFrameTests
 {
-    private class TestElement(UIContext context, float width = 0, float height = 0)
-        : UIElement(context)
+    private class TestElement : UIElement
     {
+        public TestElement(UIContext context, float width = 0, float height = 0) : base(context)
+        {
+            Width = width;
+            Height = height;
+        }
+
         public override string Tag => "test";
         protected override void DrawSelf(UIContext context) { }
     }

@@ -64,7 +64,7 @@ public class StyleSheet(StyleSheetHolder holder)
                 var keyframe = new Keyframe
                 {
                     SteppingFunction = globalSteppingFunction,
-                    LengthMs = (float)(globalLength * (deltaPct / 100.0))
+                    LengthMs = (float)(globalLength * deltaPct)
                 };
 
                 foreach (var (property, value) in propertiesBlock)

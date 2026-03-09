@@ -16,7 +16,8 @@
       </panel>
 
       <flex id="main-view">
-        <label id="loader-label" value="" />
+        <label id="loader-title" value="Thirty Dollar Visualizer" />
+        <label id="loader-label" value="Ready to load" />
         <progress id="loader-progress" percentage="0" />
 
         <button id="start-button">

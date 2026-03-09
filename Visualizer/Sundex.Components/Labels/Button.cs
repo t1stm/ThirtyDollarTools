@@ -22,11 +22,7 @@ public class Button : FlexPanel
         Padding = 5;
         HorizontalAlign = Align.Center;
         VerticalAlign = Align.Center;
-        Background = background ?? new ColoredPlane
-        {
-            Color = DarkScheme.AccentBlue,
-            BorderRadius = 10
-        };
+        Background = background;
         
         Children = [Label = label];
         UpdateCursorOnHover = true;

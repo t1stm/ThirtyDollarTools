@@ -8,6 +8,7 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Core;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Style.DSL;
@@ -181,6 +182,8 @@ public class ComponentBuilderV1 : IComponentBuilder
             }
         }
 
+        ApplyAttributes(element, node);
+
         if (node.Id is not null)
         {
             element.ID = node.Id;
@@ -211,6 +214,80 @@ public class ComponentBuilderV1 : IComponentBuilder
         }
 
         return element;
+    }
+
+    private static void ApplyAttributes(UIElement element, SundexNode node)
+    {
+        foreach (var (key, value) in node.Attributes)
+        {
+            switch (key)
+            {
+                case "width":
+                    element.Width = ParseLiteralOrComputable(value);
+                    break;
+                case "height":
+                    element.Height = ParseLiteralOrComputable(value);
+                    break;
+                case "padding":
+                    if (float.TryParse(value, out var p))
+                    {
+                        if (element is IPositioningElement pe) pe.Padding = p;
+                    }
+                    break;
+                case "spacing":
+                    if (float.TryParse(value, out var s))
+                    {
+                        switch (element)
+                        {
+                            case StackPanel sp:
+                                sp.Spacing = s;
+                                break;
+                            case FlexPanel fp:
+                                fp.Spacing = s;
+                                break;
+                        }
+                    }
+                    break;
+                case "direction":
+                    if (Enum.TryParse<LayoutDirection>(value, true, out var dir))
+                    {
+                        switch (element)
+                        {
+                            case StackPanel sp:
+                                sp.Direction = dir;
+                                break;
+                            case FlexPanel fp:
+                                fp.Direction = dir;
+                                break;
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+
+    private static LiteralOrComputable ParseLiteralOrComputable(string value)
+    {
+        if (value.EndsWith('%'))
+        {
+            if (float.TryParse(value[..^1], out var p))
+                return new LiteralOrComputable(p, true);
+        }
+        else if (value.Equals("auto", StringComparison.OrdinalIgnoreCase))
+        {
+            return new LiteralOrComputable(0, false, true);
+        }
+        else if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase))
+        {
+             if (float.TryParse(value[..^2], out var v))
+                return new LiteralOrComputable(v, false);
+        }
+        else
+        {
+            if (float.TryParse(value, out var v))
+                return new LiteralOrComputable(v, false);
+        }
+        return new LiteralOrComputable(0, false);
     }
 
     private static Renderable? ExtractBackgroundStyle(SundexNode node, StyleSheet? styleSheet,

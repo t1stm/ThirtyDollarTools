@@ -37,6 +37,20 @@ public class UIContext : IGamePreloadable
         _textProvider = new TextProvider(_assetProvider, _fontProvider, "Lato Bold");
     }
 
+    /// <summary>
+    ///     Injects mock provider instances for use in unit tests.
+    ///     Should not be called in production code.
+    /// </summary>
+    internal static void InjectForTesting(
+        IAssetProvider assetProvider,
+        IFontProvider? fontProvider = null,
+        ITextProvider? textProvider = null)
+    {
+        _assetProvider = assetProvider;
+        _fontProvider = fontProvider!;
+        _textProvider = textProvider!;
+    }
+
     public void Clear()
     {
         foreach (var queue in LayeredRenderQueue) queue.Clear();

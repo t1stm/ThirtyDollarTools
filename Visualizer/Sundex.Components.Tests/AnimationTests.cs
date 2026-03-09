@@ -1,8 +1,4 @@
-using Shared.Animations;
 using OpenTK.Mathematics;
-using Xunit;
-using System.Reflection;
-using Sundex.Core;
 using Sundex.Core.Animations;
 
 namespace Sundex.Components.Tests;
@@ -38,12 +34,7 @@ public class AnimationTests
         // Invert at 5000ms
         // Loop duration = 3000ms
         
-        // We need to simulate time. Since TimingStopwatch is protected/internal-ish, 
-        // we might need to use reflection or a wrapper if we can't control it.
-        // Looking at SeekableStopwatch, it has Seek(long delta).
-        
-        var stopwatchField = typeof(Animation).GetProperty("TimingStopwatch", BindingFlags.NonPublic | BindingFlags.Instance);
-        var stopwatch = (SeekableStopwatch)stopwatchField.GetValue(animation);
+        var stopwatch = animation.TimingStopwatch;
 
         // 1. Initial play (before LoopStart)
         stopwatch.Seek(500);
@@ -105,8 +96,7 @@ public class AnimationTests
         };
 
         var animation = new KeyframedAnimation(positions);
-        var stopwatchField = typeof(Animation).GetProperty("TimingStopwatch", BindingFlags.NonPublic | BindingFlags.Instance);
-        var stopwatch = (SeekableStopwatch)stopwatchField.GetValue(animation);
+        var stopwatch = animation.TimingStopwatch;
 
         // At 500ms, progress is 0.5.
         // QuadIn(0.5) = 0.5 * 0.5 = 0.25.
@@ -133,8 +123,7 @@ public class AnimationTests
         };
 
         var animation = new KeyframedAnimation(positions);
-        var stopwatchField = typeof(Animation).GetProperty("TimingStopwatch", BindingFlags.NonPublic | BindingFlags.Instance);
-        var stopwatch = (SeekableStopwatch)stopwatchField.GetValue(animation);
+        var stopwatch = animation.TimingStopwatch;
 
         // totalLength = 3000ms
         // loopStart = 1000ms
@@ -173,8 +162,7 @@ public class AnimationTests
         };
 
         var animation = new KeyframedAnimation(positions);
-        var stopwatchField = typeof(Animation).GetProperty("TimingStopwatch", BindingFlags.NonPublic | BindingFlags.Instance);
-        var stopwatch = (SeekableStopwatch)stopwatchField.GetValue(animation);
+        var stopwatch = animation.TimingStopwatch;
 
         // At 500ms, progress is 0.5
         stopwatch.Seek(500);

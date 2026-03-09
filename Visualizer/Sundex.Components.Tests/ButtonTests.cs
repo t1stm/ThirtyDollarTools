@@ -43,4 +43,21 @@ public class ButtonTests
 
         Assert.True(clicked);
     }
+
+    [Fact]
+    public void TestButtonBorderRadiusPropagation()
+    {
+        var context = new TestUIContext();
+        var button = new Button(context, "Rounded");
+        button.BorderRadius = 15;
+        
+        // Emulate styling a background
+        button.Background = new Shared.Renderer.Planes.ColoredPlane { Color = OpenTK.Mathematics.Vector4.One };
+        
+        button.Layout();
+        
+        var background = button.Background as Shared.Renderer.Planes.IBorderRadius;
+        Assert.NotNull(background);
+        Assert.Equal(15, background.BorderRadius);
+    }
 }

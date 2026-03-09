@@ -21,7 +21,7 @@ public sealed class ScrollBar : Panel
             },
             Height = 20
         };
-        Parent = parent;
+        base.Parent = parent;
         Background = new ColoredPlane
         {
             Color = (0.3f, 0.3f, 0.3f, 1)
@@ -35,10 +35,11 @@ public sealed class ScrollBar : Panel
     {
         get
         {
-            var pv = Parent?.Viewport;
-            if (pv is null) return 0;
-            var parentWidthPx = pv.Value.Z - pv.Value.X;
-            return parentWidthPx - Computed.Width;
+            var p = Parent;
+            if (p is null) return 0;
+            var pc = p.Computed;
+            if (pc is null) return 0;
+            return pc.Width - Computed.Width;
         }
         set => throw new NotSupportedException();
     }
@@ -55,9 +56,11 @@ public sealed class ScrollBar : Panel
     {
         get
         {
-            var pv = Parent?.Viewport;
-            if (pv is null) return 0;
-            return pv.Value.W - pv.Value.Y;
+            var p = Parent;
+            if (p is null) return 0;
+            var pc = p.Computed;
+            if (pc is null) return 0;
+            return pc.Height;
         }
         set => throw new NotSupportedException();
     }

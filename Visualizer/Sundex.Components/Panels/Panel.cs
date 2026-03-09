@@ -30,7 +30,15 @@ public class Panel : UIElement, IColoredBackground
     public bool ScrollOnOverflow { get; set; }
     
     [NamedSetting("border-radius")]
-    public LiteralOrComputable BorderRadius { get; set; } = 0;
+    public LiteralOrComputable BorderRadius
+    {
+        get;
+        set
+        {
+            field = value;
+            InvalidateLayout();
+        }
+    } = 0;
 
     public List<UIElement> Children
     {
@@ -129,7 +137,10 @@ public class Panel : UIElement, IColoredBackground
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Renderable):
             {
-                propertyInfo.SetValue(this, gv.GenerateGradientPlane());
+                var gradient = gv.GenerateGradientPlane();
+                if (gradient is IBorderRadius br)
+                    br.BorderRadius = BorderRadius.Resolve(0);
+                propertyInfo.SetValue(this, gradient);
                 return;
             }
 
@@ -137,7 +148,8 @@ public class Panel : UIElement, IColoredBackground
             {
                 propertyInfo.SetValue(this, new ColoredPlane
                 {
-                    Color = cv.Vector
+                    Color = cv.Vector,
+                    BorderRadius = BorderRadius.Resolve(0)
                 });
                 return;
             }

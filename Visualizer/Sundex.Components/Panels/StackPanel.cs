@@ -47,46 +47,56 @@ public class StackPanel(UIContext context)
 
     protected override void DoLayout()
     {
-        var start_x = Computed.AbsoluteX + Padding;
-        var start_y = Computed.AbsoluteY + Padding;
+        base.DoLayout();
+        
         var inner_width = Computed.Width - 2 * Padding;
         var inner_height = Computed.Height - 2 * Padding;
 
-        var offset = Direction switch
-        {
-            LayoutDirection.Horizontal => start_x,
-            LayoutDirection.Vertical => start_y,
-            _ => throw new ArgumentOutOfRangeException()
-        };
+        float offset = 0;
 
         foreach (var child in Children)
         {
             if (Direction == LayoutDirection.Vertical)
             {
-                child.X = start_x - Computed.AbsoluteX;
-                child.Y = offset - Computed.AbsoluteY;
+                child.X = 0;
+                var currentY = offset;
+                child.Y = currentY;
                 
-                var ch = child.Height.IsPercentage ? inner_height * (child.Height.Value / 100f) : child.Height.Value;
+                var (cw, ch) = child.Measure(inner_width, inner_height);
+                if (child.Width.IsPercentage)
+                    child.Width = inner_width * (child.Width.Value / 100f);
+                else if (child.Width.Auto)
+                    child.Width = cw;
+
                 if (child.Height.IsPercentage)
+                    child.Height = inner_height * (child.Height.Value / 100f);
+                else if (child.Height.Auto)
                     child.Height = ch;
-                offset += ch + Spacing;
+
+                child.Layout();
+                offset += child.Computed.Height + Spacing;
             }
             else
             {
-                child.X = offset - Computed.AbsoluteX;
-                child.Y = start_y - Computed.AbsoluteY;
+                var currentX = offset;
+                child.X = currentX;
+                child.Y = 0;
                 
-                var cw = child.Width.IsPercentage ? inner_width * (child.Width.Value / 100f) : child.Width.Value;
+                var (cw, ch) = child.Measure(inner_width, inner_height);
                 if (child.Width.IsPercentage)
+                    child.Width = inner_width * (child.Width.Value / 100f);
+                else if (child.Width.Auto)
                     child.Width = cw;
-                offset += cw + Spacing;
+
+                if (child.Height.IsPercentage)
+                    child.Height = inner_height * (child.Height.Value / 100f);
+                else if (child.Height.Auto)
+                    child.Height = ch;
+
+                child.Layout();
+                offset += child.Computed.Width + Spacing;
             }
-
-            child.Layout();
         }
-
-        Background?.SetPosition((start_x, start_y, 0));
-        Background?.Scale = (Computed.Width, Computed.Height, 1);
     }
 
     public override (float width, float height) Measure(float parentWidth, float parentHeight)

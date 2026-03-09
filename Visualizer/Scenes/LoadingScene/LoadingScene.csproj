@@ -17,6 +17,8 @@
     <ItemGroup>
       <None Remove="Scenes\Layout\LoaderInterface.snx.sml" />
       <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.xml" />
+      <None Remove="Scenes\Layout\LoaderGradients.snx.ss" />
+      <EmbeddedResource Include="Scenes\Layout\LoaderGradients.snx.ss" />
     </ItemGroup>
 
     <ItemGroup>

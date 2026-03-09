@@ -44,14 +44,20 @@ public class WindowFrame : Panel
 
     public override LiteralOrComputable Width
     {
-        get => Container.Width;
-        set => Container.Width = value;
+        get => Container?.Width ?? new LiteralOrComputable(0, false, true);
+        set
+        {
+            if (Container != null) Container.Width = value;
+        }
     }
 
     public override LiteralOrComputable Height
     {
-        get => Container.Height;
-        set => Container.Height = value;
+        get => Container?.Height ?? new LiteralOrComputable(0, false, true);
+        set
+        {
+            if (Container != null) Container.Height = value;
+        }
     }
 
     public bool Resizable { get; set; }

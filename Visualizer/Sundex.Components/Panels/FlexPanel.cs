@@ -68,6 +68,8 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
 
     protected override void DoLayout()
     {
+        base.DoLayout();
+        
         var count = Children.Count;
         var a_x = Computed.AbsoluteX;
         var a_y = Computed.AbsoluteY;
@@ -77,8 +79,6 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
 
         if (count < 1)
         {
-            Background?.SetPosition((a_x, a_y, 0));
-            Background?.Scale = (Computed.Width, Computed.Height, 1);
             return;
         }
 
@@ -86,9 +86,6 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
             Layout_Horizontal(count, inner_width, inner_height);
         else
             Layout_Vertical(count, inner_height, inner_width);
-
-        Background?.SetPosition((a_x, a_y, 0));
-        Background?.Scale = (Computed.Width, Computed.Height, 1);
     }
 
     public override (float width, float height) Measure(float parentWidth, float parentHeight)
@@ -177,6 +174,7 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
                 : child.Height.Value;
             if (child.Height.IsPercentage || child.Height.Auto)
                 child.Height = ch;
+
             switch (VerticalAlign)
             {
                 case Align.Center:

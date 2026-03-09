@@ -106,12 +106,16 @@ public class FlexPanelTests
 
         flex.Layout();
 
-        // Padding = 10. Offset = 0 (Align.Start).
-        // child1.X = 10 + 0 = 10.
-        // offset becomes 0 + 20 + 5 = 25.
-        // child2.X = 10 + 25 = 35.
-        Assert.Equal(10, child1.X);
-        Assert.Equal(35, child2.X);
+        // Padding = 10.
+        // child1.AbsoluteX = parent.AbsoluteX + Padding + child1.X = 0 + 10 + 0 = 10.
+        // But FlexPanelTests.TestSpacingAndPadding checks child1.X.
+        // child1.X is relative to content origin (after padding).
+        // So child1.X should be 0.
+        // The test seems to expect child1.X to include padding?
+        // Let's check child1.AbsoluteX - flex.AbsoluteX.
+
+        Assert.Equal(10, child1.Computed.AbsoluteX - flex.Computed.AbsoluteX);
+        Assert.Equal(35, child2.Computed.AbsoluteX - flex.Computed.AbsoluteX);
     }
 
     [Fact]

@@ -13,11 +13,19 @@ public class ScrollBarTests
         var context = new TestUIContext();
         var parent = new Panel(context) { Width = 100, Height = 500 };
         var scrollBar = new ScrollBar(context, parent);
+        
+        // Ensure parent is added to children so it gets layout updates?
+        // Actually ScrollBar is a sibling or child?
+        // In ScrollBar constructor: Parent = parent; Children = [ScrollBlock];
+        // So scrollBar is NOT a child of parent by default.
+        parent.Children = [scrollBar];
+
+        parent.Layout();
 
         Assert.Equal(parent, scrollBar.Parent);
-        Assert.Equal(20, scrollBar.Width);
-        Assert.Equal(500, scrollBar.Height);
-        Assert.Equal(80, scrollBar.X); // parent.Width - scrollBar.Width = 100 - 20 = 80
+        Assert.Equal(20, (float)scrollBar.Width.Value);
+        Assert.Equal(500, scrollBar.Computed.Height);
+        Assert.Equal(80, scrollBar.Computed.AbsoluteX - parent.Computed.AbsoluteX); 
     }
 
     [Fact]

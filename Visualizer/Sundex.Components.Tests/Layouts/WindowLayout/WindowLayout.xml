@@ -1,0 +1,10 @@
+<sundex version="1.0">
+  <layout>
+    <panel width="400" height="300">
+      <stack direction="vertical" padding="10" spacing="5">
+        <label value="Welcome to the Mock Markup Window" />
+        <panel width="100" height="30" />
+      </stack>
+    </panel>
+  </layout>
+</sundex>

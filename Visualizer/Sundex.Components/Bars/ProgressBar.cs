@@ -121,6 +121,9 @@ public class ProgressBar : UIElement
         BackgroundPanel.Height = Computed.Height;
         ForegroundPanel.Width = Computed.Width * Progress;
         ForegroundPanel.Height = Computed.Height;
+        
+        BackgroundPanel.BorderRadius = BorderRadius;
+        ForegroundPanel.BorderRadius = BorderRadius;
 
         BackgroundPanel.Layout();
         ForegroundPanel.Layout();
@@ -167,7 +170,8 @@ public class ProgressBar : UIElement
             {
                 var panel = new Panel(Context)
                 {
-                    Background = gv.GenerateGradientPlane()
+                    Background = gv.GenerateGradientPlane(),
+                    BorderRadius = BorderRadius
                 };
                 propertyInfo.SetValue(this, panel);
                 return;
@@ -180,7 +184,8 @@ public class ProgressBar : UIElement
                     Background = new ColoredPlane
                     {
                         Color = cv.Vector
-                    }
+                    },
+                    BorderRadius = BorderRadius
                 };
                 propertyInfo.SetValue(this, panel);
                 return;

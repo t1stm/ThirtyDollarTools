@@ -64,11 +64,11 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
 
         if (explicitPoints[^1].index != list.Count - 1)
         {
-            explicitPoints.Add((list.Count - 1, 100.0));
+            explicitPoints.Add((list.Count - 1, 1.0));
         }
-        else if (Math.Abs(explicitPoints[^1].pct - 100.0) > double.Epsilon)
+        else if (Math.Abs(explicitPoints[^1].pct - 1.0) > double.Epsilon)
         {
-            explicitPoints[^1] = (explicitPoints[^1].index, 100.0);
+            explicitPoints[^1] = (explicitPoints[^1].index, 1.0);
         }
 
         for (var p = 0; p < explicitPoints.Count - 1; p++)
@@ -107,7 +107,7 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
             switch (v)
             {
                 case NumberValue { Unit: "%" } nv:
-                    pct = nv.Value;
+                    pct = nv.Value / 100.0;
                     return true;
                 case NumberValue nv2 when string.IsNullOrEmpty(nv2.Unit):
                     pct = nv2.Value;
@@ -123,7 +123,7 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
     {
         return key switch
         {
-            NumberValue { Unit: "%" } num => num.Value,
+            NumberValue { Unit: "%" } num => num.Value / 100.0,
             NumberValue num when string.IsNullOrEmpty(num.Unit) => num.Value,
             _ => throw new ArgumentException("Key for keyframes map must be a percentage number")
         };
