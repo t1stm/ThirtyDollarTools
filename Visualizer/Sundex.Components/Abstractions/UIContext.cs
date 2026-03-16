@@ -17,7 +17,7 @@ public class UIContext : IGamePreloadable
     private static IFontProvider _fontProvider = null!;
     private static ITextProvider _textProvider = null!;
 
-    protected readonly List<Queue<IRenderable>> LayeredRenderQueue = [];
+    protected readonly List<List<IRenderable>> LayeredRenderQueue = [];
     public required Camera Camera { get; set; }
     public float ViewportWidth => Camera.Width;
     public float ViewportHeight => Camera.Height;
@@ -56,12 +56,35 @@ public class UIContext : IGamePreloadable
         foreach (var queue in LayeredRenderQueue) queue.Clear();
     }
 
-    public void QueueRender(IRenderable renderable, int index)
+    public void QueueRender(IRenderable renderable, int renderIndex, int queueIndex = -1)
     {
-        while (LayeredRenderQueue.Count <= index) LayeredRenderQueue.Add(new Queue<IRenderable>());
+        while (LayeredRenderQueue.Count <= renderIndex)
+            LayeredRenderQueue.Add([]);
 
+        var queue = LayeredRenderQueue[renderIndex];
+        if (queueIndex < 0 || queueIndex >= queue.Count)
+        {
+            queue.Add(renderable);
+            return;
+        }
+
+        queue.Insert(queueIndex, renderable);
+    }
+
+    public int DequeueRender(IRenderable renderable, int index)
+    {
+        if (index < 0 || index >= LayeredRenderQueue.Count) return -1;
         var queue = LayeredRenderQueue[index];
-        queue.Enqueue(renderable);
+
+        for (var i = 0; i < queue.Count; i++)
+        {
+            if (!ReferenceEquals(queue[i], renderable)) continue;
+
+            queue.RemoveAt(i);
+            return i;
+        }
+
+        return -1;
     }
 
     public void Render()

@@ -104,8 +104,6 @@ public class ProgressBar : UIElement
     public override void ApplyStateOverride(StyleSheet styleSheet, string state)
     {
         base.ApplyStateOverride(styleSheet, state);
-        BackgroundPanel.ApplyStateOverride(styleSheet, state);
-        ForegroundPanel.ApplyStateOverride(styleSheet, state);
     }
 
     protected override void DrawSelf(UIContext context)

@@ -57,6 +57,7 @@ public class LoaderInterface
 
     public void Update(IProgressReport progressReport, UIContext context, MouseState mouseState, Vector2 scale)
     {
+        RootPanel.Layout();
         RootPanel.Update(context);
         RootPanel.Test(mouseState, scale);
         Label.SetTextContents(progressReport.Message);
@@ -65,7 +66,6 @@ public class LoaderInterface
 
     public void Render(UIContext context)
     {
-        RootPanel.Layout();
         context.Render();
     }
 }

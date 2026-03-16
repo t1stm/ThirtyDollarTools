@@ -62,6 +62,7 @@ public class Panel : UIElement, IColoredBackground
         }
     }
 
+    [RenderPriority(0)]
     [NamedSetting("background")] public Renderable? Background { get; set; }
 
     public override void Test(MouseState mouse, Vector2 scale)
@@ -123,33 +124,35 @@ public class Panel : UIElement, IColoredBackground
 
     protected override void DrawSelf(UIContext context)
     {
-        if (Background != null && Visible)
-            context.QueueRender(Background, Index);
     }
 
     protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
     {
         if (styleValue is null) return;
 
+        var oldValue = propertyInfo.GetValue(this);
+        Renderable? plane;
         switch (styleValue)
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Renderable):
             {
                 var gradient = gv.GenerateGradientPlane();
-                if (gradient is IBorderRadius br)
-                    br.BorderRadius = BorderRadius.Resolve(0);
-                propertyInfo.SetValue(this, gradient);
-                return;
+                gradient.BorderRadius = BorderRadius.Resolve(Computed.Height);
+                
+                propertyInfo.SetValue(this, plane = gradient);
+                break;
             }
 
             case ColorValue cv when propertyInfo.PropertyType == typeof(Renderable):
             {
-                propertyInfo.SetValue(this, new ColoredPlane
+                var colored = new ColoredPlane
                 {
                     Color = cv.Vector,
-                    BorderRadius = BorderRadius.Resolve(0)
-                });
-                return;
+                    BorderRadius = BorderRadius.Resolve(Computed.Height)
+                };
+                
+                propertyInfo.SetValue(this, plane = colored);
+                break;
             }
 
             default:
@@ -158,18 +161,13 @@ public class Panel : UIElement, IColoredBackground
                 return;
             }
         }
+
+        HandleRenderableSwap(oldValue, plane, propertyInfo.Name);
     }
 
     public override void ApplyStyleSheet(StyleSheet styleSheet)
     {
         base.ApplyStyleSheet(styleSheet);
         foreach (var child in Children) child.ApplyStyleSheet(styleSheet);
-    }
-
-    public override void ApplyStateOverride(StyleSheet styleSheet, string state)
-    {
-        base.ApplyStateOverride(styleSheet, state);
-        foreach (var child in Children)
-            child.ApplyStateOverride(styleSheet, state);
     }
 }

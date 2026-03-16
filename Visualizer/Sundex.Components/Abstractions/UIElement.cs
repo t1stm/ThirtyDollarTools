@@ -6,6 +6,7 @@ using Sundex.Components.Attributes;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
+using Sundex.Engine.Renderer.Abstract;
 
 namespace Sundex.Components.Abstractions;
 
@@ -357,10 +358,12 @@ public abstract class UIElement
     public virtual void InvalidateStyle()
     {
         if (StoredStyleSheet is null) return;
-
-        // Restore snapshot first so we always start from the base style
         foreach (var (prop, value) in _baseSnapshot.Values)
+        {
+            var oldValue = prop.GetValue(this);
             prop.SetValue(this, value);
+            HandleRenderableSwap(oldValue, value, prop.Name);
+        }
 
         var stateName = CurrentState switch
         {
@@ -417,30 +420,37 @@ public abstract class UIElement
         if (styleValue == null)
             return;
 
+        // Capture old property value to allow generic post-set handling (e.g., renderable re-queueing)
+        var oldValue = propertyInfo.GetValue(this);
+
         switch (styleValue)
         {
             case NumberValue nv when propertyInfo.PropertyType == typeof(LiteralOrComputable):
             {
                 var newValue = new LiteralOrComputable(nv.Value, nv.Unit is "%");
                 propertyInfo.SetValue(this, newValue);
+                HandleRenderableSwap(oldValue, newValue, propertyInfo.Name);
                 break;
             }
 
             case NumberValue nv when propertyInfo.PropertyType == typeof(float):
             {
                 propertyInfo.SetValue(this, nv.Value);
+                HandleRenderableSwap(oldValue, nv.Value, propertyInfo.Name);
                 break;
             }
 
             case ColorValue cv when propertyInfo.PropertyType == typeof(Vector4):
             {
                 propertyInfo.SetValue(this, cv.Vector);
+                HandleRenderableSwap(oldValue, cv.Vector, propertyInfo.Name);
                 break;
             }
 
             case VectorValue vv when propertyInfo.PropertyType == typeof(Vector3):
             {
                 propertyInfo.SetValue(this, new Vector3((float)vv.X, (float)vv.Y, (float)(vv.Z ?? 0)));
+                HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
                 break;
             }
 
@@ -456,6 +466,7 @@ public abstract class UIElement
 
                 if (anchor is not null)
                     propertyInfo.SetValue(this, anchor.Value);
+                HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
                 break;
             }
 
@@ -463,14 +474,39 @@ public abstract class UIElement
                                      propertyInfo.PropertyType == typeof(ReadOnlySpan<char>):
             {
                 propertyInfo.SetValue(this, sv.Value);
+                HandleRenderableSwap(oldValue, sv.Value, propertyInfo.Name);
                 break;
             }
 
             case StringValue sv when propertyInfo.PropertyType == typeof(bool):
             {
                 propertyInfo.SetValue(this, sv.Value == "true");
+                HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
                 break;
             }
         }
+    }
+
+    /// <summary>
+    ///     Generic hook to keep render queue consistent when a property of type IRenderable changes.
+    ///     Swaps the old renderable with the new one while preserving order within the same render layer (Index).
+    /// </summary>
+    protected void HandleRenderableSwap(object? oldValue, object? newValue, string? propertyName = null)
+    {
+        var queueIndex = -1;
+        if (oldValue is IRenderable oldRenderable)
+            queueIndex = Context.DequeueRender(oldRenderable, Index);
+
+        if (newValue is not IRenderable newRenderable) return;
+
+        if (queueIndex == -1 && !string.IsNullOrEmpty(propertyName))
+        {
+            var property = GetType().GetProperty(propertyName);
+            var priorityAttr = property?.GetCustomAttribute<RenderPriorityAttribute>();
+            if (priorityAttr != null)
+                queueIndex = priorityAttr.Priority;
+        }
+
+        Context.QueueRender(newRenderable, Index, queueIndex);
     }
 }
