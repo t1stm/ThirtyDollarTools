@@ -192,7 +192,7 @@ public class StyleParser(
             properties[key] = value;
             SkipWhitespaceAndComments();
             // Allow either ';' or ',' as a property separator inside nested blocks
-            if (Check(';') || Check(',')) Advance();
+            if (Check(';')) Advance();
             SkipWhitespaceAndComments();
         }
 

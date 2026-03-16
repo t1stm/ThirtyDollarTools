@@ -111,6 +111,11 @@ public class Label : UIElement
         TextSlice?.SetPosition((Computed.AbsoluteX, Computed.AbsoluteY, 0));
     }
 
+    public override void Update(UIContext uiContext)
+    {
+        base.Update(uiContext);
+    }
+
     protected override void DrawSelf(UIContext context)
     {
         if (TextBuffer != null)

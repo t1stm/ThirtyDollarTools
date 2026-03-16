@@ -159,7 +159,7 @@ public class ProgressBar : UIElement
         ForegroundPanel.InvalidateCoordinates();
     }
 
-    protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
+    protected override void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)
     {
         if (styleValue is null) return;
 
@@ -192,7 +192,7 @@ public class ProgressBar : UIElement
 
             default:
             {
-                base.ApplyStyleValue(styleValue, propertyInfo);
+                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
                 return;
             }
         }

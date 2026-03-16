@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions.Values;
@@ -7,6 +8,7 @@ using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Engine.Renderer.Abstract;
+using Sundex.Core.Animations;
 
 namespace Sundex.Components.Abstractions;
 
@@ -40,7 +42,6 @@ public enum UIState
 
 public abstract class UIElement
 {
-    // Stores (PropertyInfo, base value) for each property that has a state override defined.
     private readonly Dictionary<string, (PropertyInfo prop, object? value)> _baseSnapshot = new();
 
     protected UIElement(UIContext context)
@@ -55,6 +56,17 @@ public abstract class UIElement
     public string ID { get; set; } = "";
     public HashSet<string> Classes { get; set; } = [];
     public ComputedRectangle Computed { get; }
+
+    [NamedSetting("animations")]
+    public List<Animation> Animations
+    {
+        get;
+        set
+        {
+            field = value;
+            UpdateAnimationRegistrationState();
+        }
+    } = [];
 
     [NamedSetting("x")]
     public virtual LiteralOrComputable X
@@ -155,6 +167,24 @@ public abstract class UIElement
     public Action<UIElement>? OnHoverEnter { get; set; }
     public Action<UIElement>? OnHoverExit { get; set; }
 
+    public void AddAnimation(Animation animation)
+    {
+        Animations.Add(animation);
+        UpdateAnimationRegistrationState();
+    }
+
+    public void RemoveAnimation(Animation animation)
+    {
+        Animations.Remove(animation);
+        UpdateAnimationRegistrationState();
+    }
+
+    public void UpdateAnimationRegistrationState()
+    {
+        if (Animations.Count == 0) Context.UnregisterUpdate(this);
+        else Context.RegisterUpdate(this);
+    }
+
     private void UpdateSetDirty<T>(out T field, T value)
     {
         field = value;
@@ -247,6 +277,15 @@ public abstract class UIElement
     {
         if (IsHovered && UpdateCursorOnHover)
             uiContext.RequestCursor(CursorType.Pointer);
+    }
+
+    protected virtual void ApplyAnimations(params ReadOnlySpan<Renderable?> renderables)
+    {
+        var animations = CollectionsMarshal.AsSpan(Animations);
+        foreach (var renderable in renderables)
+        {
+            renderable?.UpdateModel(false, animations);
+        }
     }
 
     /// <summary>
@@ -401,21 +440,21 @@ public abstract class UIElement
                                     ?.GetValueOrDefault(attribute.Name);
 
             if (overrideValue is not null)
-                ApplyStyleValue(overrideValue, propertyInfo);
+                ApplyStyleValue(styleSheet, overrideValue, propertyInfo);
         }
     }
 
     private void SetNamedSetting(StyleSheet styleSheet, PropertyInfo propertyInfo,
         NamedSettingAttribute namedSettingAttribute)
     {
-        ApplyStyleValue(styleSheet.GetStyleValueForTag(Tag, namedSettingAttribute.Name), propertyInfo);
+        ApplyStyleValue(styleSheet, styleSheet.GetStyleValueForTag(Tag, namedSettingAttribute.Name), propertyInfo);
         foreach (var cls in Classes)
-            ApplyStyleValue(styleSheet.GetStyleValueForTag(cls, namedSettingAttribute.Name), propertyInfo);
+            ApplyStyleValue(styleSheet, styleSheet.GetStyleValueForTag(cls, namedSettingAttribute.Name), propertyInfo);
 
-        ApplyStyleValue(styleSheet.GetStyleValueForTag(ID, namedSettingAttribute.Name), propertyInfo);
+        ApplyStyleValue(styleSheet, styleSheet.GetStyleValueForTag(ID, namedSettingAttribute.Name), propertyInfo);
     }
 
-    protected virtual void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
+    protected virtual void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)
     {
         if (styleValue == null)
             return;
@@ -425,6 +464,19 @@ public abstract class UIElement
 
         switch (styleValue)
         {
+            case ArrayValue av when propertyInfo.PropertyType == typeof(List<Animation>):
+            {
+                var animations = new List<Animation>();
+                foreach (var value in av.Values)
+                {
+                    if (value is StringValue sv && styleSheet.ComputedAnimations.TryGetValue(sv.Value, out var anim))
+                        animations.Add(anim);
+                }
+
+                propertyInfo.SetValue(this, animations);
+                break;
+            }
+
             case NumberValue nv when propertyInfo.PropertyType == typeof(LiteralOrComputable):
             {
                 var newValue = new LiteralOrComputable(nv.Value, nv.Unit is "%");

@@ -2,6 +2,7 @@ using System.Reflection;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
+using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 
@@ -68,8 +69,6 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
         base.DoLayout();
 
         var count = Children.Count;
-        var a_x = Computed.AbsoluteX;
-        var a_y = Computed.AbsoluteY;
 
         var inner_width = Computed.Width - 2 * Padding;
         var inner_height = Computed.Height - 2 * Padding;
@@ -271,7 +270,7 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
         }
     }
 
-    protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
+    protected override void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)
     {
         if (styleValue is null) return;
 
@@ -309,7 +308,7 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
 
             default:
             {
-                base.ApplyStyleValue(styleValue, propertyInfo);
+                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
                 return;
             }
         }

@@ -32,7 +32,7 @@ public class StyleSheet(StyleSheetHolder holder)
                 globalSteppingFunction = SteppingFunctions.ParseSteppingFunction(sv.Value);
 
             var globalLength = 0;
-            if (values.TryGetValue("length", out var lengthValue) && lengthValue is NumberValue lv)
+            if (values.TryGetValue("duration", out var lengthValue) && lengthValue is NumberValue lv)
                 globalLength = lv.Unit switch
                 {
                     "ms" => (int)lv.Value,
@@ -63,13 +63,6 @@ public class StyleSheet(StyleSheetHolder holder)
             }
 
             var keyframed = new KeyframedAnimation(keyframes);
-            var loopingMode = values.TryGetValue("looping-mode", out var loopingModeValue)
-                ? (StringValue)loopingModeValue
-                : null;
-
-            if (loopingMode is not null && Enum.TryParse<AnimationLoopingMode>(loopingMode.Value, out var loopMode))
-                keyframed.LoopingMode = loopMode;
-
             animations.Add(animationName, keyframed);
         }
 
@@ -108,6 +101,19 @@ public class StyleSheet(StyleSheetHolder holder)
             case "color" when value is ColorValue colorValue:
             {
                 keyframe.Color = colorValue.Vector;
+                break;
+            }
+
+            case "loop" when value is StringValue loopString:
+            {
+                keyframe.LoopingMode = loopString.Value switch
+                {
+                    "none" => AnimationLoopingMode.None,
+                    "invert" => AnimationLoopingMode.Invert,
+                    "loop-start" => AnimationLoopingMode.LoopStart,
+                    "reset" => AnimationLoopingMode.ResetToStart,
+                    _ => throw new ArgumentException("Invalid loop mode")
+                };
                 break;
             }
 

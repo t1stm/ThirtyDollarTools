@@ -12,7 +12,7 @@ animation fade-in {
     timing-function = "ease-in-out";
     keyframes = !keyframes [
         0% = { opacity = 0 },
-        100% = { opacity = 1, loop = "reset" }
+        100% = { opacity = 1; loop = "reset" }
     ];
 }
 
@@ -21,7 +21,7 @@ animation fade-out {
     duration = 1s;
     keyframes = !keyframes [
         { opacity = 100% },
-        { opacity = 0%, loop = "invert" }
+        { opacity = 0%; loop = "invert" }
     ];
 }
 

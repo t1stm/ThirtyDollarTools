@@ -1,4 +1,48 @@
+animation float-slow {
+    timing-function = "ease-in-out";
+    duration = 18s;
+    keyframes = !keyframes [
+        0% = { transform = vec2(0, 0) },
+        25% = { transform = vec2(100px, 40px) },
+        50% = { transform = vec2(40px, -120px) },
+        75% = { transform = vec2(-80px, -30px) },
+        100% = { transform = vec2(0, 0); loop = "reset" }
+    ];
+}
+
+animation float-medium {
+    timing-function = "ease-in-out";
+    duration = 12s;
+    keyframes = !keyframes [
+        0% = { transform = vec2(0, 0) },
+        33% = { transform = vec2(-120px, 60px) },
+        66% = { transform = vec2(80px, 100px) },
+        100% = { transform = vec2(0, 0); loop = "reset" }
+    ];
+}
+
+animation float-fast {
+    timing-function = "ease-in-out";
+    duration = 8s;
+    keyframes = !keyframes [
+        0% = { transform = vec2(0, 0) },
+        50% = { transform = vec2(150px, -150px) },
+        100% = { transform = vec2(0, 0); loop = "reset" }
+    ];
+}
+
+animation pulse-soft {
+    timing-function = "ease-in-out";
+    duration = 8s;
+    keyframes = !keyframes [
+        0% = { opacity = 0.6 },
+        50% = { opacity = 0.9 },
+        100% = { opacity = 0.6; loop = "reset" }
+    ];
+}
+
 id grad-1 {
+    animations = ["float-slow", "pulse-soft"];
     background = !gradient {
         type = "radial";
         direction = !direction outward;
@@ -17,6 +61,7 @@ id grad-1 {
 }
 
 id grad-2 {
+    animations = ["float-fast"];
     background = !gradient {
         type = "radial";
         direction = !direction outward;
@@ -35,6 +80,7 @@ id grad-2 {
 }
 
 id grad-3 {
+    animations = ["float-medium", "pulse-soft"];
     background = !gradient {
         type = "radial";
         direction = !direction outward;
@@ -53,6 +99,7 @@ id grad-3 {
 }
 
 id grad-4 {
+    animations = ["pulse-soft", "float-slow"];
     background = !gradient {
         type = "radial";
         direction = !direction outward;
@@ -71,6 +118,7 @@ id grad-4 {
 }
 
 id grad-5 {
+    animations = ["float-fast", "pulse-soft"];
     background = !gradient {
         type = "radial";
         direction = !direction outward;

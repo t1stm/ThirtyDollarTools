@@ -77,6 +77,7 @@ public class Panel : UIElement, IColoredBackground
     public override void Update(UIContext uiContext)
     {
         base.Update(uiContext);
+        ApplyAnimations(Background);
         Background?.Update();
         foreach (var child in Children) child.Update(uiContext);
     }
@@ -126,7 +127,7 @@ public class Panel : UIElement, IColoredBackground
     {
     }
 
-    protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
+    protected override void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)
     {
         if (styleValue is null) return;
 
@@ -157,7 +158,7 @@ public class Panel : UIElement, IColoredBackground
 
             default:
             {
-                base.ApplyStyleValue(styleValue, propertyInfo);
+                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
                 return;
             }
         }

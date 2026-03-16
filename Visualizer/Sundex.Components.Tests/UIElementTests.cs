@@ -1,9 +1,36 @@
+using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
+using Sundex.Core.Animations;
 
 namespace Sundex.Components.Tests;
 
 public class UIElementTests
 {
+    [Fact]
+    public void TestAnimations_RegistersInContext()
+    {
+        var context = new TestUIContext();
+        var element = new TestElement(context);
+        var animation = new KeyframedAnimation([new Keyframe { Position = Vector3.Zero, LengthMs = 100 }]);
+
+        element.AddAnimation(animation);
+        Assert.Single(element.Animations);
+
+        // UIElement.Update should be called during Render
+        var updateCalled = false;
+        element.OnUpdate = () => updateCalled = true;
+
+        context.Render();
+        Assert.True(updateCalled);
+
+        element.RemoveAnimation(animation);
+        Assert.Empty(element.Animations);
+
+        updateCalled = false;
+        context.Render();
+        Assert.False(updateCalled);
+    }
+
     [Fact]
     public void TestAbsoluteCoordinates_NoParent()
     {
@@ -66,6 +93,8 @@ public class UIElementTests
 
     private class TestElement : UIElement
     {
+        public Action? OnUpdate { get; set; }
+
         public TestElement(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
             : base(context)
         {
@@ -76,6 +105,12 @@ public class UIElementTests
         }
 
         public override string Tag => "test";
+
+        public override void Update(UIContext uiContext)
+        {
+            base.Update(uiContext);
+            OnUpdate?.Invoke();
+        }
 
         protected override void DrawSelf(UIContext context)
         {

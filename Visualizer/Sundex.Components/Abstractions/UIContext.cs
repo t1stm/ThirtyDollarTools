@@ -17,6 +17,7 @@ public class UIContext : IGamePreloadable
     private static IFontProvider _fontProvider = null!;
     private static ITextProvider _textProvider = null!;
 
+    private readonly HashSet<UIElement> _updatingElements = [];
     protected readonly List<List<IRenderable>> LayeredRenderQueue = [];
     public required Camera Camera { get; set; }
     public float ViewportWidth => Camera.Width;
@@ -87,13 +88,20 @@ public class UIContext : IGamePreloadable
         return -1;
     }
 
+    public void RegisterUpdate(UIElement element) => _updatingElements.Add(element);
+
+    public void UnregisterUpdate(UIElement element) => _updatingElements.Remove(element);
+
     public void Render()
     {
+        foreach (var element in _updatingElements) element.Update(this);
+
         foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
         foreach (var renderable in queue)
             renderable.Render(Camera);
 
-        GL.Scissor(0, 0, (int)ViewportWidth, (int)ViewportHeight);
+        if (LayeredRenderQueue.Count > 0)
+            GL.Scissor(0, 0, (int)ViewportWidth, (int)ViewportHeight);
     }
 }
 

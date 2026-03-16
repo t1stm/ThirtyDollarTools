@@ -1,6 +1,7 @@
 using System.Reflection;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
+using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 
@@ -158,7 +159,7 @@ public class StackPanel(UIContext context)
         return (measuredW, measuredH);
     }
 
-    protected override void ApplyStyleValue(IStyleValue? styleValue, PropertyInfo propertyInfo)
+    protected override void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)
     {
         if (styleValue is null) return;
 
@@ -180,7 +181,7 @@ public class StackPanel(UIContext context)
 
             default:
             {
-                base.ApplyStyleValue(styleValue, propertyInfo);
+                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
                 return;
             }
         }
