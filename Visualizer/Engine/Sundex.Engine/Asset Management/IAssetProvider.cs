@@ -1,3 +1,4 @@
+using System.Reflection;
 using Sundex.Engine.Asset_Management.Abstract;
 using Sundex.Engine.Asset_Management.Helpers;
 using Sundex.Engine.Renderer.Queues;
@@ -9,6 +10,7 @@ namespace Sundex.Engine.Asset_Management;
 /// </summary>
 public interface IAssetProvider
 {
+    Assembly[] AssetAssemblies { get; }
     ShaderPool ShaderPool { get; }
     DeleteQueue DeleteQueue { get; }
     CacheProvider CacheProvider { get; }

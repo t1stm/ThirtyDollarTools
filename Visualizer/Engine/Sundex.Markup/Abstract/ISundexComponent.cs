@@ -1,6 +1,6 @@
 using Sundex.Components.Abstractions;
 
-namespace Sunder.Markup.Abstract;
+namespace Sundex.Markup.Abstract;
 
 public interface ISundexComponent
 {

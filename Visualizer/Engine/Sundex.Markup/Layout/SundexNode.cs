@@ -1,4 +1,4 @@
-namespace Sunder.Markup.Layout;
+namespace Sundex.Markup.Layout;
 
 public class SundexNode
 {

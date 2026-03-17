@@ -1,19 +1,20 @@
 using System.Text.Json;
 using System.Xml;
-using Sunder.Markup.Document.Layout;
-using Sunder.Markup.Document.Logic;
-using Sunder.Markup.Document.Style;
+using Sundex.Engine.Asset_Management;
+using Sundex.Markup.Document.Layout;
+using Sundex.Markup.Document.Logic;
+using Sundex.Markup.Document.Style;
 
-namespace Sunder.Markup.Document.Root;
+namespace Sundex.Markup.Document.Root;
 
 public class RootContainer
 {
     public RootContainer(XmlElement rootElement)
     {
-        if (rootElement is not { Name: "sundex" }) throw new XmlException("Root element must be <sunder>");
+        if (rootElement is not { Name: "sundex" }) throw new XmlException("Root element must be <sundex>");
 
         var layoutElement = rootElement["layout"];
-        if (layoutElement == null) throw new XmlException("The <layout> element is required in <sunder>.");
+        if (layoutElement == null) throw new XmlException("The <layout> element is required in <sundex>.");
 
         RootElement = rootElement;
         Layout = new LayoutContainer(this, layoutElement);

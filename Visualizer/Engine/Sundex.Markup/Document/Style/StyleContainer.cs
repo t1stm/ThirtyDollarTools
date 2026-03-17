@@ -1,7 +1,7 @@
 using System.Xml;
-using Sunder.Markup.Document.Root;
+using Sundex.Markup.Document.Root;
 
-namespace Sunder.Markup.Document.Style;
+namespace Sundex.Markup.Document.Style;
 
 public class StyleContainer(RootContainer root, XmlElement styleElement)
 {

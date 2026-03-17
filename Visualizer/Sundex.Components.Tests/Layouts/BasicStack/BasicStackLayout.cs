@@ -1,4 +1,4 @@
-using Sunder.Markup;
+using Sundex.Markup;
 using Sundex.Components.Abstractions;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
@@ -9,7 +9,7 @@ public class BasicStackLayout
 {
     public static SundexComponent Create(UIContext uiContext)
     {
-        var markupContext = new SundexContext<object>(new object(), uiContext);
+        var markupContext = new SundexContext(uiContext);
         var asset = uiContext.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
         {
             AssetInfo = new AssetInfo

@@ -1,13 +1,14 @@
-using Sunder.Markup.Abstract;
-using Sunder.Markup.Builders;
+using System.Reflection;
+using System.Buffers;
 using Sundex.Components.Abstractions;
+using Sundex.Markup.Abstract;
+using Sundex.Markup.Attributes;
+using Sundex.Markup.Builders;
 
-namespace Sunder.Markup;
+namespace Sundex.Markup;
 
-public class SundexContext<T>(T contextProvider, UIContext context) : ISundexContext where T : class
+public class SundexContext(UIContext context) : ISundexContext
 {
-    public T ContextProvider { get; } = contextProvider;
-
     public Dictionary<string, IComponentBuilder> ComponentBuilderVersions { get; } = new()
     {
         { ComponentBuilderV1.Version, new ComponentBuilderV1() }
@@ -45,5 +46,70 @@ public class SundexContext<T>(T contextProvider, UIContext context) : ISundexCon
     {
         if (!ComponentBuilderVersions.TryAdd(version, builder))
             throw new Exception("A builder with the same version already exists.");
+    }
+
+    public void RunLogicAndVerify(SundexComponent component, params Span<Func<object?>> objectGetters)
+    {
+        var previousValuesRent = ArrayPool<object?>.Shared.Rent(objectGetters.Length);
+        try
+        {
+            var previousValues = previousValuesRent.AsSpan()[..objectGetters.Length];
+            object? target = null;
+            for (var index = 0; index < objectGetters.Length; index++)
+            {
+                var obj = objectGetters[index].Invoke();
+                previousValues[index] = obj;
+                if (target == null && objectGetters[index].Target != null)
+                    target = objectGetters[index].Target;
+            }
+
+            component.RunLogic?.Invoke(target ?? this);
+
+            for (var i = 0; i < objectGetters.Length; i++)
+            {
+                var oldObj = previousValues[i];
+                var newObj = objectGetters[i].Invoke();
+                if (newObj is null && oldObj is not null)
+                    throw new Exception(
+                        $"Object getter {objectGetters[i]} returned null but was expecting a non-null value.");
+            }
+
+            if (target == null) return;
+            var type = target.GetType();
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
+            
+            foreach (var property in type.GetProperties(flags))
+            {
+                if (property.GetCustomAttribute<SetFromLogicAttribute>() == null) continue;
+                if (property.GetValue(target) == null)
+                    throw new Exception(
+                        $"Property {property.Name} in {type.Name} was marked with [SetFromLogic] but remains null after logic execution.");
+            }
+
+            foreach (var field in type.GetFields(flags))
+            {
+                if (field.GetCustomAttribute<SetFromLogicAttribute>() == null) continue;
+                if (field.GetValue(target) == null)
+                    throw new Exception(
+                        $"Field {field.Name} in {type.Name} was marked with [SetFromLogic] but remains null after logic execution.");
+            }
+
+            const BindingFlags nonPublicFlags = BindingFlags.Instance | BindingFlags.NonPublic;
+            foreach (var property in type.GetProperties(nonPublicFlags))
+            {
+                if (property.GetCustomAttribute<SetFromLogicAttribute>() != null)
+                    throw new Exception($"Property {property.Name} in {type.Name} is marked with [SetFromLogic] but is not public.");
+            }
+            
+            foreach (var field in type.GetFields(nonPublicFlags))
+            {
+                if (field.GetCustomAttribute<SetFromLogicAttribute>() != null)
+                    throw new Exception($"Field {field.Name} in {type.Name} is marked with [SetFromLogic] but is not public.");
+            }
+        }
+        finally
+        {
+            ArrayPool<object?>.Shared.Return(previousValuesRent);
+        }
     }
 }

@@ -4,12 +4,17 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>Sunder.Markup</RootNamespace>
+    <RootNamespace>Sundex.Markup</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj"/>
-    <ProjectReference Include="..\Style DSL\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
+    <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj" />
+    <ProjectReference Include="..\Style DSL\Sundex.Style.DSL\Sundex.Style.DSL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
   </ItemGroup>
 
 </Project>

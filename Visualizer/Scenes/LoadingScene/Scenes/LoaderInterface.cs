@@ -1,7 +1,9 @@
+using JetBrains.Annotations;
 using LoadingScene.Reports;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Sunder.Markup;
+using Sundex.Markup;
+using Sundex.Markup.Attributes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
@@ -15,7 +17,7 @@ public class LoaderInterface
 {
     public LoaderInterface(UIContext context, Action action)
     {
-        var sundexContext = new SundexContext<LoaderInterface>(this, context);
+        var sundexContext = new SundexContext(context);
         var componentSource = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
         {
             AssetInfo = new AssetInfo
@@ -24,30 +26,28 @@ public class LoaderInterface
             }
         });
 
+        OnClickAction = action;
+
         Component = sundexContext.NewComponent(componentSource.Value);
+        Component.RunLogic?.Invoke(this);
 
-        RootPanel = Component.Element as Panel ?? throw new Exception("Root panel not found");
-        /*
-            Ideally the code down below will be in the logic block in the future and will be called with RunLogic?.Invoke().
-            The only thing this class will have is actions that will be called / registered by the logic block.
-         */
-        ProgressBar = Component.RegisteredIDs["loader-progress"] as ProgressBar ??
-                      throw new Exception("Progress bar not found");
-        Label = Component.RegisteredIDs["loader-label"] as Label ?? throw new Exception("Label not found");
-
-        var button = Component.RegisteredIDs["start-button"] as Button ?? throw new Exception("Button not found");
-        button.OnClick = _ => action();
-
-        Component.RunLogic?.Invoke();
-
-        // register renderables once — they stay in the queue permanently
+        sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => ProgressBar, () => Label);
         RootPanel.DrawTo(context);
     }
 
-    protected SundexComponent Component { get; }
-    public Panel RootPanel { get; }
-    public ProgressBar ProgressBar { get; set; }
-    public Label Label { get; set; }
+    public Action OnClickAction { get; }
+
+    [UsedImplicitly]
+    public SundexComponent Component { get; }
+    
+    [SetFromLogic]
+    public Panel RootPanel { get; set; } = null!;
+    
+    [SetFromLogic]
+    public ProgressBar ProgressBar { get; set; } = null!;
+    
+    [SetFromLogic]
+    public Label Label { get; set; } = null!;
 
     public void Resize()
     {
@@ -62,10 +62,5 @@ public class LoaderInterface
         RootPanel.Test(mouseState, scale);
         Label.SetTextContents(progressReport.Message);
         ProgressBar.Progress = (float)progressReport.Percentage;
-    }
-
-    public void Render(UIContext context)
-    {
-        context.Render();
     }
 }

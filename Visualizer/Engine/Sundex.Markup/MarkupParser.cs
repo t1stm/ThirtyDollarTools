@@ -1,8 +1,8 @@
 using System.Xml;
-using Sunder.Markup.Document;
-using Sunder.Markup.Document.Root;
+using Sundex.Markup.Document;
+using Sundex.Markup.Document.Root;
 
-namespace Sunder.Markup;
+namespace Sundex.Markup;
 
 public class MarkupParser
 {

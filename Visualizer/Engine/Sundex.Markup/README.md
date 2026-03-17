@@ -1,4 +1,4 @@
-# Sunder.Markup
+# Sundex.Markup
 
 A UI markup language for the (future name: Sundex) project.
 (initially Sunder, decided on a whim, and means to break into multiple parts)

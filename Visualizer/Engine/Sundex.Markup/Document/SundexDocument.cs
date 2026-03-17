@@ -1,9 +1,9 @@
-using Sunder.Markup.Document.Layout;
-using Sunder.Markup.Document.Logic;
-using Sunder.Markup.Document.Root;
-using Sunder.Markup.Document.Style;
+using Sundex.Markup.Document.Layout;
+using Sundex.Markup.Document.Logic;
+using Sundex.Markup.Document.Root;
+using Sundex.Markup.Document.Style;
 
-namespace Sunder.Markup.Document;
+namespace Sundex.Markup.Document;
 
 public class SundexDocument
 {

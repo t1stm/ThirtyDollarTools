@@ -4,6 +4,8 @@
     // import "Assets/Default/StyleSheet.snx.ss"
     import "Scenes/Layout/LoaderInterface.snx.ss";
   </style>
+  
+  <logic src="Scenes/Layout/LoaderInterface.snx.csx" language="csharp" imports="[System.Text.Json, LoadingScene.Scenes]" />
 
   <layout>
     <panel id="main-holder">

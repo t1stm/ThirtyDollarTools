@@ -1,21 +1,28 @@
+using System.Globalization;
+using Newtonsoft.Json;
 using Shared.Renderer.Planes;
 using Shared.Renderer.Planes.Extensions;
-using Sunder.Markup.Abstract;
-using Sunder.Markup.Document;
-using Sunder.Markup.Layout;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Core;
+using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Markup.Abstract;
+using Sundex.Markup.Document;
+using Sundex.Markup.Layout;
+using Sundex.Markup.Logic;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
+using JsonSerializer = System.Text.Json.JsonSerializer;
+using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
-namespace Sunder.Markup.Builders;
+namespace Sundex.Markup.Builders;
 
 public class ComponentBuilderV1 : IComponentBuilder
 {
@@ -61,10 +68,24 @@ public class ComponentBuilderV1 : IComponentBuilder
 
         if (styleSheet is not null)
             uiElement.ApplyStyleSheet(styleSheet);
-
-        if (layout.Logic is not null)
+        
+        var logic = layout.Logic;
+        Action<object?>? runLogic = null;
+        if (logic is not null)
         {
-            // TODO
+            LanguageProvider.Languages.TryGetValue(logic.Language, out var language);
+            if (language is null)
+                throw new NotSupportedException($"Language {logic.Language} is not supported.");
+
+            if (!string.IsNullOrEmpty(logic.SrcLocation))
+            {
+                var newSource =
+                    context.UIContext.AssetProvider.Load<StringAsset, StringInfo>(
+                        StringInfo.CreateFromUnknownStorage(logic.SrcLocation));
+                logic.UpdateSourceCode(newSource.Value);
+            }
+
+            runLogic = language.Compile(logic.SourceCode, context, logic.LanguageImports);
         }
 
         var component = new SundexComponent
@@ -73,7 +94,8 @@ public class ComponentBuilderV1 : IComponentBuilder
             Context = context,
             Element = uiElement,
             RegisteredIDs = registeredIds,
-            RegisteredClasses = registeredClasses
+            RegisteredClasses = registeredClasses,
+            RunLogic = runLogic
         };
 
         if (root.Implements?.Length > 0)

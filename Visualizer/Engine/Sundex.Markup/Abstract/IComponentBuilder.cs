@@ -1,6 +1,6 @@
-using Sunder.Markup.Document;
+using Sundex.Markup.Document;
 
-namespace Sunder.Markup.Abstract;
+namespace Sundex.Markup.Abstract;
 
 public interface IComponentBuilder
 {

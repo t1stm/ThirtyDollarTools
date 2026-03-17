@@ -1,10 +1,10 @@
 ﻿using OpenTK.Mathematics;
 using Shared;
-using Sunder.Markup;
+using Sundex.Markup;
 using Sundex.Components.Abstractions;
 using Sundex.Markup.Debug;
 
-var context = new SundexContext<ExampleContext>(new ExampleContext(), new UIContext
+var context = new SundexContext(new UIContext
 {
     Camera = new DollarStoreCamera(new Vector3(0, 0, 0), new Vector2i(1920, 1080))
 });

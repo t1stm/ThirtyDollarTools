@@ -1,12 +1,12 @@
-using Sunder.Markup.Logic.Languages;
-using Sunder.Markup.Logic.Languages.CSharp;
+using Sundex.Markup.Logic.Languages;
+using Sundex.Markup.Logic.Languages.CSharp;
 
-namespace Sunder.Markup.Logic;
+namespace Sundex.Markup.Logic;
 
 public static class LanguageProvider
 {
     public static Dictionary<string, SundexScript> Languages { get; } = new()
     {
-        { "csharp", new CSharpScript() }
+        { "csharp", new CSharp() }
     };
 }

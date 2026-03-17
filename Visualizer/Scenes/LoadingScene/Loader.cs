@@ -82,7 +82,7 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Render(RenderArguments renderArgs)
     {
-        _loaderInterface.Render(_context);
+        _context.Render();
     }
 
     public override void TransitionedTo()
