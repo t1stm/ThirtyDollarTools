@@ -8,6 +8,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj"/>
+    <ProjectReference Include="..\..\Engine\Sundex.Markup\Sundex.Markup.csproj"/>
+    <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj"/>
+    <ProjectReference Include="..\Shared\Shared.csproj"/>
   </ItemGroup>
-
+  <ItemGroup>
+    <EmbeddedResource Include="Scenes\Layout\HomeInterface.snx.xml"/>
+    <EmbeddedResource Include="Scenes\Layout\HomeInterface.snx.ss"/>
+    <EmbeddedResource Include="Scenes\Layout\HomeInterface.snx.csx"/>
+  </ItemGroup>
 </Project>

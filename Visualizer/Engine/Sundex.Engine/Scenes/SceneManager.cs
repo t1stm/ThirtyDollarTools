@@ -65,7 +65,7 @@ public class SceneManager(Game game, ILogger logger)
     {
         lock (Scenes)
         {
-            foreach (var scene in Scenes.Values)
+            foreach (var scene in ActiveScenes)
             {
                 DebugMarker("Resizing scene: ", $"{scene.GetType().Name} {eWidth}x{eHeight}");
                 scene.Resize(eWidth, eHeight);
@@ -79,9 +79,11 @@ public class SceneManager(Game game, ILogger logger)
         {
             ActiveScenes.Clear();
             ActiveScenes.AddRange(scenes);
+            
             foreach (var scene in ActiveScenes)
             {
                 DebugMarker("Transitioning to scene: ", scene.GetType().Name);
+                scene.Resize(Game.ClientSize.X, Game.ClientSize.Y);
                 scene.TransitionedTo();
             }
         }

@@ -149,6 +149,8 @@ public sealed class Visualizer : Scene, IGamePreloadable
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
         UpdateStaticRenderables(_width, _height, Scale);
+        
+        _playfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
 
 
         try

@@ -48,7 +48,7 @@ public class SundexContext(UIContext context) : ISundexContext
             throw new Exception("A builder with the same version already exists.");
     }
 
-    public void RunLogicAndVerify(SundexComponent component, params Span<Func<object?>> objectGetters)
+    public void RunLogicAndVerify(SundexComponent component, params ReadOnlySpan<Func<object?>> objectGetters)
     {
         var previousValuesRent = ArrayPool<object?>.Shared.Rent(objectGetters.Length);
         try

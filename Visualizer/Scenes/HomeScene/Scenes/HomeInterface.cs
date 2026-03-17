@@ -1,53 +1,48 @@
 using JetBrains.Annotations;
-using LoadingScene.Reports;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Markup;
 using Sundex.Markup.Attributes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Bars;
-using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 
-namespace LoadingScene.Scenes;
+namespace HomeScene.Scenes;
 
-public class LoaderInterface
+public class HomeInterface
 {
-    public LoaderInterface(UIContext context, Action action)
+    public HomeInterface(UIContext context, Action visualizer, Action drumMaster, Action editor, Action settings)
     {
         var sundexContext = new SundexContext(context);
         var componentSource = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
         {
             AssetInfo = new AssetInfo
             {
-                Location = "Scenes/Layout/LoaderInterface.snx.xml"
+                Location = "Scenes/Layout/HomeInterface.snx.xml"
             }
         });
 
-        OnClickAction = action;
+        OnVisualizer = visualizer;
+        OnEditor = editor;
+        OnDrumMaster = drumMaster;
+        OnSettings = settings;
 
         Component = sundexContext.NewComponent(componentSource.Value);
-        Component.RunLogic?.Invoke(this);
-
-        sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => ProgressBar, () => Label);
+        sundexContext.RunLogicAndVerify(Component, () => RootPanel);
         RootPanel.DrawTo(context);
     }
 
-    public Action OnClickAction { get; }
+    public Action OnVisualizer { get; }
+    public Action OnEditor { get; }
+    public Action OnDrumMaster { get; }
+    public Action OnSettings { get; }
 
     [UsedImplicitly]
     public SundexComponent Component { get; }
     
     [SetFromLogic]
     public Panel RootPanel { get; set; } = null!;
-    
-    [SetFromLogic]
-    public ProgressBar ProgressBar { get; set; } = null!;
-    
-    [SetFromLogic]
-    public Label Label { get; set; } = null!;
 
     public void Resize()
     {
@@ -55,12 +50,10 @@ public class LoaderInterface
         RootPanel.Layout();
     }
 
-    public void Update(IProgressReport progressReport, UIContext context, MouseState mouseState, Vector2 scale)
+    public void Update(UIContext context, MouseState mouseState, Vector2 scale)
     {
         RootPanel.Update(context);
         RootPanel.Test(mouseState, scale);
-        Label.SetTextContents(progressReport.Message);
-        ProgressBar.Progress = (float)progressReport.Percentage;
         RootPanel.Layout();
     }
 }

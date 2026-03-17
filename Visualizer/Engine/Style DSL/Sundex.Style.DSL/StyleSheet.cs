@@ -94,7 +94,7 @@ public class StyleSheet(StyleSheetHolder holder)
 
             case "opacity" when value is NumberValue numberValue:
             {
-                keyframe.Opacity = numberValue.Value;
+                keyframe.Opacity = numberValue.Unit is "%" ? numberValue.Value / 100f : numberValue.Value;
                 break;
             }
 

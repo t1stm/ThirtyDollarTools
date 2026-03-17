@@ -7,6 +7,7 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
+using Sundex.Engine.Renderer.Abstract;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
@@ -29,20 +30,18 @@ public class ProgressBar : UIElement
         this(context,
             new Panel(context)
             {
-                Background = bgPlaneBackground
+                Background = bgPlaneBackground,
+                Width = new LiteralOrComputable(100, true),
+                Height = new LiteralOrComputable(100, true)
             }, new Panel(context)
             {
-                Background = fgPlaneBackground
+                Background = fgPlaneBackground,
+                Width = new LiteralOrComputable(0, true),
+                Height = new LiteralOrComputable(100, true)
             })
     {
     }
-
-    /*
-        TODO, do these need to be panels? They can be replaced with Renderables,
-        but in that case we lose the ability to apply multiple children to the elements.
-
-        This will be useful if there's a need for multiple gradients in a progress bar (kinda overkill no?).
-    */
+    
     [NamedSetting("background")]
     public Panel BackgroundPanel
     {
@@ -101,11 +100,6 @@ public class ProgressBar : UIElement
         ForegroundPanel.ApplyStyleSheet(styleSheet);
     }
 
-    public override void ApplyStateOverride(StyleSheet styleSheet, string state)
-    {
-        base.ApplyStateOverride(styleSheet, state);
-    }
-
     protected override void DrawSelf(UIContext context)
     {
         BackgroundPanel.DrawTo(context);
@@ -118,10 +112,10 @@ public class ProgressBar : UIElement
         var y = (int)Computed.AbsoluteY;
         Viewport = (x, y, x + (int)Computed.Width, y + (int)Computed.Height);
 
-        BackgroundPanel.Width = Computed.Width;
-        BackgroundPanel.Height = Computed.Height;
-        ForegroundPanel.Width = Computed.Width * Progress;
-        ForegroundPanel.Height = Computed.Height;
+        BackgroundPanel.Width = new LiteralOrComputable(100, true);
+        BackgroundPanel.Height = new LiteralOrComputable(100, true);
+        ForegroundPanel.Width = new LiteralOrComputable(MathF.Min(Progress * 100, 100), true);
+        ForegroundPanel.Height = new LiteralOrComputable(100, true);
 
         BackgroundPanel.BorderRadius = BorderRadius;
         ForegroundPanel.BorderRadius = BorderRadius;
@@ -163,31 +157,37 @@ public class ProgressBar : UIElement
     {
         if (styleValue is null) return;
 
+        var oldValue = propertyInfo.GetValue(this) as Panel;
+        Panel newPanel;
         switch (styleValue)
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Panel):
             {
-                var panel = new Panel(Context)
+                newPanel = new Panel(Context)
                 {
                     Background = gv.GenerateGradientPlane(),
-                    BorderRadius = BorderRadius
+                    BorderRadius = BorderRadius,
+                    Width = new LiteralOrComputable(100, true),
+                    Height = new LiteralOrComputable(100, true)
                 };
-                propertyInfo.SetValue(this, panel);
-                return;
+
+                break;
             }
 
             case ColorValue cv when propertyInfo.PropertyType == typeof(Panel):
             {
-                var panel = new Panel(Context)
+                newPanel = new Panel(Context)
                 {
                     Background = new ColoredPlane
                     {
                         Color = cv.Vector
                     },
-                    BorderRadius = BorderRadius
+                    BorderRadius = BorderRadius,
+                    Width = new LiteralOrComputable(100, true),
+                    Height = new LiteralOrComputable(100, true)
                 };
-                propertyInfo.SetValue(this, panel);
-                return;
+
+                break;
             }
 
             default:
@@ -196,5 +196,8 @@ public class ProgressBar : UIElement
                 return;
             }
         }
+
+        HandleRenderableSwap(oldValue?.Background, newPanel.Background, propertyInfo.Name);
+        propertyInfo.SetValue(this, newPanel);
     }
 }

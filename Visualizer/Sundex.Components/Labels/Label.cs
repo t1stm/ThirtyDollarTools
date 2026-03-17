@@ -91,10 +91,10 @@ public class Label : UIElement
         else
         {
             TextSlice.UpdateManually = true;
-
-            TextSlice.Value = text;
+            
             TextSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
             TextSlice.Color = Color;
+            TextSlice.Value = text;
 
             TextSlice.UpdateManually = false;
             TextSlice.UpdateCharacters();
@@ -109,11 +109,6 @@ public class Label : UIElement
     protected override void DoLayout()
     {
         TextSlice?.SetPosition((Computed.AbsoluteX, Computed.AbsoluteY, 0));
-    }
-
-    public override void Update(UIContext uiContext)
-    {
-        base.Update(uiContext);
     }
 
     protected override void DrawSelf(UIContext context)

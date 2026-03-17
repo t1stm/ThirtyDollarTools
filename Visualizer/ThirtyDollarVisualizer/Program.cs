@@ -169,6 +169,8 @@ public static class Program
     {
         game.Enqueue(instance =>
         {
+            instance.SceneManager.LoadScene<Home>("home", _ => new Home(instance.SceneManager));
+
             instance.SceneManager.LoadScene<Visualizer>("visualizer", _ =>
                 new Visualizer(instance, SettingsHandler.Settings, workflow, [sequence])
                 {
@@ -178,7 +180,7 @@ public static class Program
             );
         });
 
-        game.Enqueue(instance => instance.SceneManager.TransitionTo("visualizer"));
+        game.Enqueue(instance => instance.SceneManager.TransitionTo("home"));
     }
 
     public class Options

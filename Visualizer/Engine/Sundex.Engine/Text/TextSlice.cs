@@ -33,6 +33,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             if (_value.Length > value.Length)
                 _value.AsSpan(value.Length).Clear();
 
+            if (UpdateManually) return;
             UpdateCharacters();
         }
     }

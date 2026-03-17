@@ -11,7 +11,7 @@ id background-holder {
     height = 100%;
 }
 
-id main-view {
+id home-view {
     anchor-x = "center";
     anchor-y = "center";
     x = 50%;
@@ -20,53 +20,33 @@ id main-view {
     width = 600px;
     height = auto;
     
-    padding = 24;
+    padding = 32;
     spacing = 16;
     direction = "vertical";
-    horizontal-align = "start";
+    horizontal-align = "center";
     
     background = "#16161e80"; // 50% opacity
-    border-radius = 16;
+    border-radius = 24;
 }
 
-id loader-title {
-    font-size = 32;
+id spacer {
+    width = 100%;
+    height = 40;
+}
+
+id home-title {
+    font-size = 48px;
     font-color = "#7aa2f7";
-    font-weight = "bold";
 }
 
-id loader-label {
-    font-size = 14;
-    font-color = "#565f89";
-}
-
-id loader-progress {
+class menu-button {
     width = 100%;
-    height = 16;
-    border-radius = 50%;
-}
-
-id start-button {
-    width = 100%;
-    height = 44;
-}
-
-component flex {
-    horizontal-align = "center";
-    vertical-align = "center";
-    direction = "vertical";
-    padding = 10;
-    spacing = 10;
+    height = 50;
 }
 
 component label {
-    font-size = 16;
+    font-size = 18;
     font-color = "#d6dadc";
-}
-
-component progress {
-    background = "#2a2e3a";
-    foreground = "#7aa2f7";
 }
 
 component button {

@@ -1,3 +1,4 @@
+using HomeScene;
 using LoadingScene.Reports;
 using LoadingScene.Scenes;
 using OpenTK.Mathematics;
@@ -110,6 +111,8 @@ public class Loader : Scene, IGamePreloadable
         };
 
         if (!_thirtyDollarDownloader.AssetsLoaded && !Finished) return;
+        _loaderInterface.Label.SetTextContents("Loading interface...");
+        _loaderInterface.Label.Layout();
         Finished = true;
 
         var workflow = new ThirtyDollarWorkflow(Game, Logger, _audioContext)

@@ -51,11 +51,11 @@ public class StyleParser(
             {
                 Advance();
                 if (Match("component")) ParseBlock(sheet.Components, true, true, sheet);
-                else throw new Exception($"Unexpected token @ at {_pos}");
+                else throw CreateException($"Unexpected token @ at {_pos}");
             }
             else
             {
-                throw new Exception($"Unexpected token {Peek()} at {_pos}");
+                throw CreateException($"Unexpected token {Peek()} at {_pos}");
             }
         }
 
@@ -143,7 +143,8 @@ public class StyleParser(
         if (Peek() == '-') Advance();
         while (!IsAtEnd() && (char.IsDigit(Peek()) || Peek() == '.')) Advance();
         var numStr = dsl[start.._pos];
-        var val = float.Parse(numStr);
+        if (!float.TryParse(numStr, out var val))
+            throw CreateException($"Failed to parse number: {numStr}");
 
         var unitStart = _pos;
         while (!IsAtEnd() && (char.IsLetter(Peek()) || Peek() == '%')) Advance();
@@ -245,7 +246,7 @@ public class StyleParser(
             SkipWhitespaceAndComments();
             var parsed = ParseValue();
             if (parsed is not NumberValue number)
-                throw new Exception($"Expected number value for vector dimension {i + 1} but found {parsed}");
+                throw CreateException($"Expected number value for vector dimension {i + 1} but found {parsed}");
 
             span[i] = number;
             SkipWhitespaceAndComments();
@@ -288,6 +289,7 @@ public class StyleParser(
         Consume('"');
         var start = _pos;
         while (!IsAtEnd() && Peek() != '"') Advance();
+        if (IsAtEnd()) throw CreateException("Unterminated string");
         var s = dsl[start.._pos];
         Consume('"');
         return s;
@@ -341,15 +343,8 @@ public class StyleParser(
         return _pos >= dsl.Length;
     }
 
-    private void Consume(char c)
+    private Exception CreateException(string message)
     {
-        var foundChar = IsAtEnd() ? '\0' : Peek();
-        if (foundChar == c)
-        {
-            Advance();
-            return;
-        }
-
         const int linesBefore = 5;
         const int linesAfter = 5;
 
@@ -383,8 +378,15 @@ public class StyleParser(
         var stringified = slice.ToString();
 
         stringified = stringified.Insert(normalizedPosition, "<--- HERE");
-        throw new Exception($"Expected '{c}' but found character '{foundChar}.\n" +
-                            "=== SOURCE CODE===\n\n" +
-                            stringified);
+        return new Exception(message + ".\n" +
+                             "=== SOURCE CODE===\n\n" +
+                             stringified);
+    }
+
+    private void Consume(char c)
+    {
+        var foundChar = IsAtEnd() ? '\0' : Peek();
+        if (foundChar != c) throw CreateException($"Expected '{c}' but found character '{foundChar}'");
+        Advance();
     }
 }

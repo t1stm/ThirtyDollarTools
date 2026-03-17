@@ -15,18 +15,9 @@ using Sundex.Style.DSL.Abstract.Values.Keywords;
 
 namespace Sundex.Components.Panels;
 
-public class Panel : UIElement, IColoredBackground
+public class Panel(UIContext context) : UIElement(context), IColoredBackground
 {
     private List<UIElement> _children = [];
-    protected Lazy<ScrollBar> ScrollBar;
-
-    public Panel(UIContext context) : base(context)
-    {
-        ScrollBar = new Lazy<ScrollBar>(() => new ScrollBar(Context, this));
-    }
-
-    public bool Overflowing { get; protected set; }
-    public bool ScrollOnOverflow { get; set; }
 
     [NamedSetting("border-radius")]
     public LiteralOrComputable BorderRadius
@@ -63,7 +54,17 @@ public class Panel : UIElement, IColoredBackground
     }
 
     [RenderPriority(0)]
-    [NamedSetting("background")] public Renderable? Background { get; set; }
+    [NamedSetting("background")]
+    public Renderable? Background
+    {
+        get;
+        set
+        {
+            var old = field;
+            field = value;
+            HandleRenderableSwap(old, value, nameof(Background));
+        }
+    }
 
     public override void Test(MouseState mouse, Vector2 scale)
     {
@@ -78,7 +79,6 @@ public class Panel : UIElement, IColoredBackground
     {
         base.Update(uiContext);
         ApplyAnimations(Background);
-        Background?.Update();
         foreach (var child in Children) child.Update(uiContext);
     }
 
@@ -95,7 +95,7 @@ public class Panel : UIElement, IColoredBackground
         Viewport = (x, y, x + (int)Computed.Width, y + (int)Computed.Height);
 
         if (Background is IBorderRadius br)
-            br.BorderRadius = BorderRadius.Resolve(0);
+            br.BorderRadius = BorderRadius.Resolve(Computed.Height);
 
         Background?.SetPosition((x, y, 0));
         Background?.Scale = (Computed.Width, Computed.Height, 1);
@@ -119,6 +119,7 @@ public class Panel : UIElement, IColoredBackground
     {
         if (!Visible) return;
         base.DrawTo(context);
+        Background?.Update();
         foreach (var child in _children)
             child.DrawTo(context);
     }

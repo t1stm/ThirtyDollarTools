@@ -50,7 +50,6 @@ public sealed class FileSelection : Panel
             {
                 Color = (0.1f, 0.1f, 0.1f, 1.0f)
             },
-            ScrollOnOverflow = true
         };
 
         var bottom_section = new FlexPanel(context)
