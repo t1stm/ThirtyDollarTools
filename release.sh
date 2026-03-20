@@ -7,7 +7,7 @@ platforms=("linux-x64" "win-x64" "osx-x64" "osx-arm64")
 publish() {
   for platform in "${platforms[@]}"; do
   
-  dotnet publish -c Release -r "$platform" --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+  dotnet publish -c Release -r "$platform" --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:IncludeAllContentForSelfExtract=true
   
   done;
   
