@@ -201,7 +201,8 @@ public class Visualizer : Scene, IGamePreloadable
 
     public override void TransitionedTo()
     {
-        // Does nothing for now.
+        // TODO: this is a workaround for now
+        Resize(Game.ClientSize.X, Game.ClientSize.Y);
     }
 
     public override void Update(UpdateArguments updateArgs)
