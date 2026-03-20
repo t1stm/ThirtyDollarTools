@@ -6,14 +6,14 @@ using Sundex.Engine.Threading;
 
 namespace Sundex.Engine.Scenes;
 
-public abstract class Scene(SceneManager sceneManager)
+public abstract class Scene(Game game)
 {
-    public SceneManager SceneManager { get; set; } = sceneManager;
-    public AssetProvider AssetProvider { get; set; } = sceneManager.AssetProvider;
-
-    public Game Game => SceneManager.Game;
-    public ILogger Logger => Game.Logger;
+    public Game Game { get; } = game;
+    public AssetProvider AssetProvider => Game.AssetProvider;
+    public SceneManager SceneManager => Game.SceneManager;
     public ThreadRunner ThreadRunner => Game.ThreadRunner;
+    public ILogger Logger => Game.Logger;
+    
 
     /// <summary>
     ///     Method called during the OnLoad procedure.

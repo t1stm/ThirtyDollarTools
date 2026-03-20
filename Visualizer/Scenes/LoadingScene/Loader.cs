@@ -1,4 +1,5 @@
 using HomeScene;
+using LoadingScene.Background;
 using LoadingScene.Reports;
 using LoadingScene.Scenes;
 using OpenTK.Mathematics;
@@ -7,6 +8,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Audio;
 using Sundex.Components.Abstractions;
+using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
@@ -29,11 +31,12 @@ public class Loader : Scene, IGamePreloadable
     private CursorType _cursorType = CursorType.Normal;
     private Vector2 _lastScale = Vector2.One;
     private IProgressReport _progressReport = new NotStartedReport();
+    private readonly DollarStoreLoaderBackground _background;
 
-    public Loader(SceneManager sceneManager, AudioContext? audioContext) : base(sceneManager)
+    public Loader(Game game, AudioContext? audioContext) : base(game)
     {
-        var clientSize = sceneManager.Game.ClientSize;
-        if (sceneManager.Game.TryGetScreenScale(out var scaleX, out var scaleY))
+        var clientSize = game.ClientSize;
+        if (game.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             _lastScale = new Vector2(scaleX, scaleY);
             clientSize.X = (int)(clientSize.X / scaleX);
@@ -48,11 +51,17 @@ public class Loader : Scene, IGamePreloadable
             Camera = _camera,
             RequestCursor = type => _cursorType = type
         };
-        _thirtyDollarDownloader = new ThirtyDollarDownloader(sceneManager.Game.ThreadRunner, _assetProvider)
+        _thirtyDollarDownloader = new ThirtyDollarDownloader(game.ThreadRunner, _assetProvider)
         {
             StatusUpdate = StatusUpdate
         };
-
+        
+        _background = new DollarStoreLoaderBackground(game.AssetProvider.DeleteQueue)
+        {
+            AtlasStore = _thirtyDollarDownloader.AtlasStore
+        };
+        _thirtyDollarDownloader.OnLoadSound = sound => _background.AddSound(sound);
+        
         _loaderInterface = new LoaderInterface(_context, () => _thirtyDollarDownloader.Load());
     }
 
@@ -83,6 +92,7 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Render(RenderArguments renderArgs)
     {
+        _background.Render();
         _context.Render();
     }
 
@@ -92,6 +102,7 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Update(UpdateArguments updateArgs)
     {
+        _background.Update();
         _cursorType = CursorType.Normal;
         var mouseState = Game.MouseState;
 
@@ -112,7 +123,6 @@ public class Loader : Scene, IGamePreloadable
 
         if (!_thirtyDollarDownloader.AssetsLoaded && !Finished) return;
         _loaderInterface.Label.SetTextContents("Loading interface...");
-        _loaderInterface.Label.Layout();
         Finished = true;
 
         var workflow = new ThirtyDollarWorkflow(Game, Logger, _audioContext)
@@ -137,6 +147,7 @@ public class Loader : Scene, IGamePreloadable
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
 
+        _background.Resize(_camera.Viewport.X, _camera.Viewport.Y);
         _loaderInterface.Resize();
     }
 

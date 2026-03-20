@@ -26,15 +26,25 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
     ///     Map Sound -> StaticSoundAtlas.
     /// </summary>
     public Dictionary<string, StaticSoundAtlas> StaticSounds { get; } = [];
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public void Update()
     {
-        foreach (var (_, atlas) in AnimatedSounds) atlas.Update();
+        _semaphore.Wait();
+        try
+        {
+            foreach (var (_, atlas) in AnimatedSounds) atlas.Update();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     public void LoadImageAtPath(string imagePath, string soundName,
         StorageLocation storageLocation = StorageLocation.Disk)
     {
+        
         var assetInfo = new AssetInfo
         {
             Location = imagePath,
@@ -50,25 +60,31 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
             throw new FileNotFoundException($"Image file not found at path: {imagePath}");
 
         var textureHolder = assetProvider.Load<TextureHolder, TextureInfo>(textureInfo);
-        if (textureHolder.TextureInfo.IsAnimated)
-            HandleAnimatedImage(textureHolder, soundName);
-        else
-            HandleStaticImage(textureHolder, soundName);
+        _semaphore.Wait();
+        try
+        {
+            if (textureHolder.TextureInfo.IsAnimated)
+                HandleAnimatedImage(textureHolder, soundName);
+            else
+                HandleStaticImage(textureHolder, soundName);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
 
         _logger.Debug("Loaded asset {ImagePath} with {FrameCount} frames", imagePath,
             textureHolder.Texture.Frames.Count);
+        
     }
 
     private void HandleAnimatedImage(TextureHolder holder, string soundName)
     {
-        lock (AnimatedSounds)
-        {
-            var lookup = AnimatedSounds.GetAlternateLookup<ReadOnlySpan<char>>();
-            if (lookup.TryGetValue(soundName, out var atlas)) return;
+        var lookup = AnimatedSounds.GetAlternateLookup<ReadOnlySpan<char>>();
+        if (lookup.TryGetValue(soundName, out var atlas)) return;
 
-            atlas = FramedAtlas.FromAnimatedTexture(soundName, holder);
-            AnimatedSounds.Add(soundName, atlas);
-        }
+        atlas = FramedAtlas.FromAnimatedTexture(soundName, holder);
+        AnimatedSounds.Add(soundName, atlas);
     }
 
     private void HandleStaticImage(TextureHolder holder, string soundName)
@@ -80,16 +96,12 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
 
         var frame = image.Frames[0];
 
-        StaticSoundAtlas? atlas;
-        lock (StaticSounds)
-        {
-            atlas = StaticAtlases.FirstOrDefault(soundAtlas => soundAtlas.Atlas.CanFit(frame.Width, frame.Height));
-            if (atlas == null)
-                StaticAtlases.Add(atlas = new StaticSoundAtlas(4096, 4096)
-                {
-                    AtlasID = $"StaticAtlas_{StaticAtlases.Count}"
-                });
-        }
+        var atlas = StaticAtlases.FirstOrDefault(soundAtlas => soundAtlas.Atlas.CanFit(frame.Width, frame.Height));
+        if (atlas == null)
+            StaticAtlases.Add(atlas = new StaticSoundAtlas(4096, 4096)
+            {
+                AtlasID = $"StaticAtlas_{StaticAtlases.Count}"
+            });
 
         StaticSounds[soundName] = atlas;
         AddImageFrameToAtlas(frame, soundName, atlas);

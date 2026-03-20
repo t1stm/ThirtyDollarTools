@@ -9,14 +9,10 @@ using Sundex.Engine.Scenes.Arguments;
 
 namespace Sundex.Engine.Scenes;
 
-public class SceneManager(Game game, ILogger logger)
+public class SceneManager(ILogger logger)
 {
-    private Exception? _exception;
-    public AssetProvider AssetProvider { get; } = game.AssetProvider;
     public Dictionary<string, Scene> Scenes { get; } = new();
     public List<Scene> ActiveScenes { get; } = [];
-    public ILogger Logger => logger;
-    public Game Game => game;
     private Queue<Scene> ScenesToInitialize { get; } = [];
 
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
@@ -83,7 +79,6 @@ public class SceneManager(Game game, ILogger logger)
             foreach (var scene in ActiveScenes)
             {
                 DebugMarker("Transitioning to scene: ", scene.GetType().Name);
-                scene.Resize(Game.ClientSize.X, Game.ClientSize.Y);
                 scene.TransitionedTo();
             }
         }
@@ -142,9 +137,6 @@ public class SceneManager(Game game, ILogger logger)
 
     public void Update(UpdateArguments updateArgs)
     {
-        if (_exception != null)
-            throw _exception;
-
         lock (ActiveScenes)
         {
             foreach (var scene in ActiveScenes)
@@ -153,10 +145,5 @@ public class SceneManager(Game game, ILogger logger)
                 scene.Update(updateArgs);
             }
         }
-    }
-
-    public void ExceptionThrown(ExceptionDispatchInfo exceptionDispatchInfo)
-    {
-        Game.ThreadRunner.AddException(exceptionDispatchInfo);
     }
 }

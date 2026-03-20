@@ -27,7 +27,7 @@ using VisualizerScene.Settings;
 namespace VisualizerScene;
 
 [PreloadGraphicsContext]
-public sealed class Visualizer : Scene, IGamePreloadable
+public class Visualizer : Scene, IGamePreloadable
 {
     private const string Version = "2.0.0 (Insider Build)";
     private static VisualizerFonts _visualizerFonts = null!;
@@ -63,10 +63,9 @@ public sealed class Visualizer : Scene, IGamePreloadable
     /// ///
     /// <param name="sequenceLocations">The location of the sequence.</param>
     public Visualizer(Game game, VisualizerSettings settings,
-        ThirtyDollarWorkflow workflow, string?[] sequenceLocations) : base(game.SceneManager)
+        ThirtyDollarWorkflow workflow, string?[] sequenceLocations) : base(game)
     {
         _workflow = workflow;
-        _fileUpdateStopwatch = new Stopwatch();
         _seekDelayStopwatch = new Stopwatch();
 
         _width = game.ClientSize.X;
@@ -81,7 +80,6 @@ public sealed class Visualizer : Scene, IGamePreloadable
         _textCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(_width, _height), settings.ScrollSpeed);
 
         _seekDelayStopwatch.Start();
-        _fileUpdateStopwatch.Start();
 
         _playfieldSizing = new PlayfieldSizing(settings.EventSize)
         {
@@ -99,7 +97,7 @@ public sealed class Visualizer : Scene, IGamePreloadable
     public string? Greeting { get; set; }
 
     private SequenceIndices SequenceIndices => _workflow.SequenceIndices;
-    private Memory<SequenceInfo> Sequences => _workflow.Sequences;
+    private Memory<SequenceInfo> Sequences => _workflow.SequenceInfos;
     private TimedEvents TimedEvents => _workflow.TimedEvents;
     private Placement[] ExtractedSpeedEvents => _workflow.ExtractedSpeedEvents;
     private bool ShowDebugInfo => _workflow.ShowDebugInfo;
@@ -128,8 +126,6 @@ public sealed class Visualizer : Scene, IGamePreloadable
         };
 
         _visualizerTextContainer.Greeting.SetPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
-
-        _workflow.Log = _workflow.Log.ForContext<Visualizer>();
 
         var playfieldSettings = new PlayfieldSettings
         {
@@ -210,11 +206,7 @@ public sealed class Visualizer : Scene, IGamePreloadable
 
     public override void Update(UpdateArguments updateArgs)
     {
-        _workflow.AtlasStore.Update();
-
-        // check if one of the sequences has been updated, and handle it
-        if (_fileUpdateStopwatch.ElapsedMilliseconds > 250) _workflow.HandleIfSequenceUpdate();
-
+        _workflow.Update();
         _playfieldContainer.Update(updateArgs.Delta);
 
         // checks if there is a backing audio
@@ -308,12 +300,6 @@ public sealed class Visualizer : Scene, IGamePreloadable
             true when oldFollowMode is CameraFollowMode.NoAnimationTDW => CameraFollowMode.None,
             _ => oldFollowMode
         };
-
-        // toggle fullscreen
-        if (state.IsKeyPressed(Keys.F))
-        {
-            // TODO
-        }
 
         // bookmark handlers
         switch (left_control)
@@ -759,8 +745,7 @@ public sealed class Visualizer : Scene, IGamePreloadable
     }
 
     #region Stopwatches
-
-    private readonly Stopwatch _fileUpdateStopwatch;
+    
     private readonly Stopwatch _seekDelayStopwatch;
 
     #endregion

@@ -8,7 +8,7 @@ using Sundex.Engine.Text.Fonts;
 
 namespace Sundex.Engine.DummyProject;
 
-public class DummyScene(SceneManager sceneManager) : Scene(sceneManager)
+public class DummyScene(Game game) : Scene(game)
 {
     private Camera _camera = null!;
     private Vector2 _dvdDirection = Vector2.One;

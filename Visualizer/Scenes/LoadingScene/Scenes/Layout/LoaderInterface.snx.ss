@@ -3,7 +3,7 @@ import "Scenes/Layout/LoaderGradients.snx.ss";
 id main-holder {
     width = 100%;
     height = 100%;
-    background = "#1a1b26";
+    // background = "#1a1b26";
 }
 
 id background-holder {

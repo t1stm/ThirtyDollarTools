@@ -1,10 +1,5 @@
 <sundex version="1.0">
-  <style language="sundex">
-    // TODO: default style
-    // import "Assets/Default/StyleSheet.snx.ss"
-    import "Scenes/Layout/LoaderInterface.snx.ss";
-  </style>
-  
+  <style language="sundex" src="Scenes/Layout/LoaderInterface.snx.ss" />
   <logic src="Scenes/Layout/LoaderInterface.snx.csx" language="csharp" imports="[System.Text.Json, LoadingScene.Scenes]" />
 
   <layout>

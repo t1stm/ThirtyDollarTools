@@ -1,41 +1,58 @@
+using System.Diagnostics;
+using System.Globalization;
 using Shared.Atlases;
 using Shared.Audio;
 using Shared.Objects;
 using Sundex.Engine;
+using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.Asset_Management.Types.String;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using ILogger = Serilog.ILogger;
+using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace Shared;
 
-public class ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? context = null)
+public class ThirtyDollarWorkflow
 {
-    public bool AutoUpdate = true;
+    private readonly Stopwatch _fileUpdateStopwatch;
+    private readonly AssetProvider _assetProvider;
+    private const int ModifiedSequenceUpdateIntervalMs = 250;
 
-    public Placement[] ExtractedSpeedEvents = [];
+    public ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? context = null)
+    {
+        _assetProvider = game.AssetProvider;
+        Game = game;
+        Log = logger.ForContext<ThirtyDollarWorkflow>();
+        SequencePlayer = new SequencePlayer(logger, context);
+        _fileUpdateStopwatch = new Stopwatch();
+        _fileUpdateStopwatch.Start();
+    }
 
-    /// <summary>
-    ///     Called after the sequence has finished loading, but before the audio events have finished processing.
-    /// </summary>
+    /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
     public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
 
-    public TimedEvents TimedEvents = new()
+    public TimedEvents TimedEvents { get; } = new()
     {
         Placement = [],
-        TimingSampleRate = 100_000
+        TimingSampleRate = 100_000,
     };
 
-    public Game Game { get; } = game;
-    public ILogger Log { get; set; } = logger.ForContext<ThirtyDollarWorkflow>();
-    public required AtlasStore AtlasStore { get; set; }
-    public required SampleHolder SampleHolder { get; set; }
-    public SequencePlayer SequencePlayer { get; } = new(logger, context);
+    public required AtlasStore AtlasStore { get; init; }
+    public required SampleHolder SampleHolder { get; init; }
+    public Game Game { get; }
+    public ILogger Log { get; }
+    public SequencePlayer SequencePlayer { get; }
+
+    public bool AutoUpdate { get; set; } = true;
     public bool ShowDebugInfo { get; set; }
     public SequenceIndices SequenceIndices { get; private set; } = new();
-    public Memory<SequenceInfo> Sequences { get; private set; } = Array.Empty<SequenceInfo>();
+    public SequenceInfo[] SequenceInfos { get; private set; } = [];
+    public Placement[] ExtractedSpeedEvents { get; private set; } = [];
 
     /// <summary>
     ///     This method updates the current sequence.
@@ -45,21 +62,21 @@ public class ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? conte
     public async Task UpdateSequences(string?[] locations, bool restartPlayer = true)
     {
         var sequence_array = new Sequence[locations.Length];
-        var i = 0;
-        Sequences = GetSequenceInfos(locations);
-        if (Sequences.Length < 1)
+        SequenceInfos = GetSequenceInfos(locations);
+        if (SequenceInfos.Length < 1)
         {
             Log.Debug(
                 "[Sequence Update] No valid files were dropped on the window. If dragging a folder, drag the files inside it.");
             return;
         }
 
-        for (var index = 0; index < Sequences.Span.Length; index++)
+        for (var index = 0; index < SequenceInfos.Length; index++)
         {
-            var sequence_info = Sequences.Span[index];
-            var read = await File.ReadAllTextAsync(sequence_info.FileLocation);
-            var sequence = Sequence.FromString(read);
-            sequence_array[i++] = sequence;
+            var sequence_info = SequenceInfos[index];
+            var asset = _assetProvider.Load<StringAsset, StringInfo>(
+                StringInfo.CreateFromUnknownStorage(sequence_info.FileLocation));
+            var sequence = Sequence.FromString(asset.Value);
+            sequence_array[index] = sequence;
         }
 
         await UpdateSequences(sequence_array, restartPlayer);
@@ -153,12 +170,13 @@ public class ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? conte
         };
     }
 
-    public static SequenceInfo[] GetSequenceInfos(IEnumerable<string?> locations)
+    public SequenceInfo[] GetSequenceInfos(IEnumerable<string?> locations)
     {
         return locations.Where(l => File.Exists(l) && !Directory.Exists(l)).Select(l => new SequenceInfo
         {
             FileLocation = l!,
-            FileModifiedTime = File.GetLastWriteTime(l!)
+            FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo { Location = l! })
+                .ModifiedDate
         }).ToArray();
     }
 
@@ -170,17 +188,29 @@ public class ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? conte
         }
     }
 
-    /// <summary>
-    ///     Call this when you want to check if the sequence is updated and you want to update it if it is.
-    /// </summary>
-    public void HandleIfSequenceUpdate()
+    public void Update()
     {
-        if (Sequences.Length < 1 || !AutoUpdate) return;
-        foreach (var sequence_info in Sequences.Span)
+        AtlasStore.Update();
+
+        if (_fileUpdateStopwatch.ElapsedMilliseconds < ModifiedSequenceUpdateIntervalMs)
+            return;
+        
+        HandleIfSequenceUpdate();
+        _fileUpdateStopwatch.Restart();
+    }
+
+    private readonly AssetInfo _assetInfo = new(); // cached to avoid re-allocating each update
+
+    private void HandleIfSequenceUpdate()
+    {
+        if (SequenceInfos.Length < 1 || !AutoUpdate) return;
+        foreach (var sequence_info in SequenceInfos.AsSpan())
         {
-            var filename = sequence_info.FileLocation;
+            _assetInfo.Location = sequence_info.FileLocation;
             var recorded_m_time = sequence_info.FileModifiedTime;
-            if (!File.Exists(filename))
+            var metadata = _assetProvider.Metadata<AssetMetadata, AssetInfo>(_assetInfo);
+
+            if (!metadata.Found)
             {
                 AutoUpdate = false;
                 Log.Debug(
@@ -190,15 +220,13 @@ public class ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? conte
                 return;
             }
 
-            var m_time = File.GetLastWriteTime(filename);
-            if (recorded_m_time != m_time) break;
+            if (recorded_m_time != metadata.ModifiedDate) break;
             return;
         }
 
         try
         {
-            Log.Debug("[Auto Update] Recalculating all sequences.");
-            UpdateSequences(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), false)
+            UpdateSequences(SequenceInfos.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), false)
                 .GetAwaiter().GetResult();
         }
         catch (Exception e)

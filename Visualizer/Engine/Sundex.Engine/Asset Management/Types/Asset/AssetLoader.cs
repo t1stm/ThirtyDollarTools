@@ -1,10 +1,11 @@
 using System.Reflection;
-using Sundex.Engine.Asset_Management.Abstract;
+using Sundex.Engine.Asset_Management.Abstract.Loading;
+using Sundex.Engine.Asset_Management.Abstract.Metadata;
 using Sundex.Engine.Asset_Management.Extensions;
 
 namespace Sundex.Engine.Asset_Management.Types.Asset;
 
-public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
+public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader<AssetMetadata, AssetInfo>
 {
     private static readonly Lazy<HttpClient> HttpClient = new(() => new HttpClient());
 
@@ -126,5 +127,24 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>
 
         return new AssetStream
             { Stream = connection.Content.ReadAsStreamAsync().GetAwaiter().GetResult(), Info = createInfo };
+    }
+
+    public AssetMetadata Metadata(AssetInfo createInfo)
+    {
+        return createInfo.Storage switch
+        {
+            StorageLocation.Disk => new AssetMetadata
+            {
+                Found = File.Exists(createInfo.Location),
+                ModifiedDate = File.GetLastWriteTime(createInfo.Location)
+            },
+            StorageLocation.Unknown or StorageLocation.Network or StorageLocation.Assembly => new AssetMetadata
+            {
+                Found = true,
+                ModifiedDate = DateTime.UnixEpoch // it's best to not overcomplicate things sometimes
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(createInfo), createInfo,
+                "Invalid AssetInfo.Storage value")
+        };
     }
 }

@@ -137,7 +137,7 @@ public class RenderableFactory(AtlasStore store)
         var soundData = new SoundData
         {
             Model = Matrix4.Identity,
-            InverseRGBA = Vector4.One
+            RGBA = Vector4.One
         };
 
         var staticSound = new StaticSound
@@ -165,11 +165,11 @@ public class RenderableFactory(AtlasStore store)
             trackedReference.Value = oldValue with { Data = oldValue.Data with { Model = model } };
         };
 
-        soundRenderable.GetRGBA = () => trackedReference.Value.Data.InverseRGBA;
+        soundRenderable.GetRGBA = () => trackedReference.Value.Data.RGBA;
         soundRenderable.SetRGBA = rgba =>
         {
             var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { Data = oldValue.Data with { InverseRGBA = rgba } };
+            trackedReference.Value = oldValue with { Data = oldValue.Data with { RGBA = rgba } };
         };
         return soundRenderable;
     }
@@ -187,7 +187,7 @@ public class RenderableFactory(AtlasStore store)
         var soundData = new SoundData
         {
             Model = Matrix4.Identity,
-            InverseRGBA = Vector4.One
+            RGBA = Vector4.One
         };
 
         if (!animatedAtlases.TryGetValue(animatedAtlas, out var renderStack))
@@ -206,11 +206,11 @@ public class RenderableFactory(AtlasStore store)
             trackedReference.Value = oldValue with { Model = matrix };
         };
 
-        soundRenderable.GetRGBA = () => trackedReference.Value.InverseRGBA;
+        soundRenderable.GetRGBA = () => trackedReference.Value.RGBA;
         soundRenderable.SetRGBA = rgba =>
         {
             var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { InverseRGBA = rgba };
+            trackedReference.Value = oldValue with { RGBA = rgba };
         };
 
         soundRenderable.HasAnimatedTexture = true;

@@ -2,9 +2,9 @@ using ThirtyDollarParser;
 
 namespace ThirtyDollarConverter.Objects;
 
-public struct TimedEvents
+public class TimedEvents
 {
-    public Sequence[] Sequences;
-    public Placement[] Placement;
-    public int TimingSampleRate;
+    public Sequence[] Sequences { get; set; } = [];
+    public Placement[] Placement { get; set; } = [];
+    public int TimingSampleRate { get; set; } = 48000;
 }

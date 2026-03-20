@@ -1,4 +1,4 @@
-namespace Sundex.Engine.Asset_Management.Abstract;
+namespace Sundex.Engine.Asset_Management.Abstract.Loading;
 
 /// <summary>
 ///     Represents a loadable asset.

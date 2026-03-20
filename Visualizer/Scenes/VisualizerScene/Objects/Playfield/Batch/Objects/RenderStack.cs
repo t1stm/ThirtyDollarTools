@@ -1,4 +1,3 @@
-using OpenTK.Graphics.OpenGL;
 using Sundex.Engine.Renderer;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Buffers;
@@ -60,12 +59,6 @@ public class RenderStack<TDataType> : IDisposable where TDataType : unmanaged, I
         VAO.Bind();
         VAO.Update();
 
-        InstancedDrawCall();
-    }
-
-    private void InstancedDrawCall()
-    {
-        GL.DrawElementsInstanced(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt,
-            IntPtr.Zero, List.Count);
+        GLQuad.DrawInstanced(List.Count);
     }
 }

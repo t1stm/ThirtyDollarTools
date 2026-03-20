@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj"/>
     <ProjectReference Include="..\HomeScene\HomeScene.csproj"/>
     <ProjectReference Include="..\Shared\Shared.csproj"/>
+    <ProjectReference Include="..\VisualizerScene\VisualizerScene.csproj" />
   </ItemGroup>
 
   <ItemGroup>

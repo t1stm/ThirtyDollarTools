@@ -1,6 +1,7 @@
 using System.Reflection;
 using Serilog;
-using Sundex.Engine.Asset_Management.Abstract;
+using Sundex.Engine.Asset_Management.Abstract.Loading;
+using Sundex.Engine.Asset_Management.Abstract.Metadata;
 using Sundex.Engine.Asset_Management.Helpers;
 using Sundex.Engine.Renderer.Queues;
 
@@ -111,6 +112,28 @@ public class AssetProvider : IAssetProvider
         var returnArray = new TReturn[createInfos.Length];
         Load(returnArray.AsSpan(), createInfos);
         return returnArray;
+    }
+
+    /// <summary>
+    /// Retrieves metadata of the specified type for an asset based on the provided creation information.
+    /// </summary>
+    /// <typeparam name="TMetadata">
+    /// The type of metadata to retrieve, which must implement
+    /// <see cref="IAssetMetadata&lt;TMetadata, TCreate&gt;" />.
+    /// </typeparam>
+    /// <typeparam name="TCreate">
+    /// The type of the creation information required to query the metadata.
+    /// </typeparam>
+    /// <param name="createInfo">
+    /// The creation information used to retrieve the metadata for the asset.
+    /// </param>
+    /// <returns>
+    /// The retrieved metadata of type <typeparamref name="TMetadata" />.
+    /// </returns>
+    public TMetadata Metadata<TMetadata, TCreate>(TCreate createInfo)
+        where TMetadata : IAssetMetadata<TMetadata, TCreate>, allows ref struct
+    {
+        return TMetadata.MetadataProvider.Metadata(createInfo);
     }
 
     /// <summary>

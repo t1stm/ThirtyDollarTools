@@ -1,8 +1,5 @@
 <sundex version="1.0">
-  <style language="sundex">
-    import "Scenes/Layout/HomeInterface.snx.ss";
-  </style>
-  
+  <style language="sundex" src="Scenes/Layout/HomeInterface.snx.ss"/>
   <logic src="Scenes/Layout/HomeInterface.snx.csx" language="csharp" imports="[HomeScene.Scenes]" />
 
   <layout>

@@ -1,5 +1,7 @@
 using System.Reflection;
 using Sundex.Engine.Asset_Management.Abstract;
+using Sundex.Engine.Asset_Management.Abstract.Loading;
+using Sundex.Engine.Asset_Management.Abstract.Metadata;
 using Sundex.Engine.Asset_Management.Helpers;
 using Sundex.Engine.Renderer.Queues;
 
@@ -31,6 +33,10 @@ public interface IAssetProvider
     /// <summary>Loads multiple assets and returns them as an array.</summary>
     TReturn[] Load<TReturn, TCreate>(params ReadOnlySpan<TCreate> createInfos)
         where TReturn : ILoadableAsset<TReturn, TCreate>;
+
+    /// <summary>Retrieves metadata of type <typeparamref name="TMetadata" />.</summary>
+    TMetadata Metadata<TMetadata, TCreate>(TCreate createInfo)
+        where TMetadata : IAssetMetadata<TMetadata, TCreate>, allows ref struct;
 
     /// <summary>Performs maintenance tasks like uploading shaders and executing deletes.</summary>
     void Update();

@@ -35,6 +35,6 @@ var game = new Game(serilogLogger, [Assembly.GetExecutingAssembly()], new GameWi
     Flags = ContextFlags.ForwardCompatible
 }, "Dummy");
 
-var scene = game.SceneManager.LoadScene<DummyScene>("dummy", manager => new DummyScene(manager));
+var scene = game.SceneManager.LoadScene<DummyScene>("dummy", _ => new DummyScene(game));
 game.SceneManager.TransitionTo(scene);
 game.Run();

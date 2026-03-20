@@ -4,6 +4,7 @@ using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Sundex.Components.Abstractions;
+using Sundex.Engine;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
@@ -21,10 +22,10 @@ public class Home : Scene
     private CursorType _cursorType = CursorType.Normal;
     private Vector2 _lastScale = Vector2.One;
 
-    public Home(SceneManager sceneManager) : base(sceneManager)
+    public Home(Game game) : base(game)
     {
-        var clientSize = sceneManager.Game.ClientSize;
-        if (sceneManager.Game.TryGetScreenScale(out var scaleX, out var scaleY))
+        var clientSize = game.ClientSize;
+        if (game.TryGetScreenScale(out var scaleX, out var scaleY))
         {
             _lastScale = new Vector2(scaleX, scaleY);
             clientSize.X = (int)(clientSize.X / scaleX);
@@ -39,10 +40,10 @@ public class Home : Scene
         };
 
         _homeInterface = new HomeInterface(_context,
-            () => { sceneManager.Game.Enqueue(instance => instance.SceneManager.TransitionTo("visualizer")); },
-            () => { sceneManager.Game.Enqueue(instance => instance.SceneManager.TransitionTo("drum-master")); },
-            () => { sceneManager.Game.Enqueue(instance => instance.SceneManager.TransitionTo("editor")); },
-            () => { sceneManager.Game.Enqueue(instance => instance.SceneManager.TransitionTo("settings")); });
+            () => { game.Enqueue(instance => instance.SceneManager.TransitionTo("visualizer")); },
+            () => { game.Enqueue(instance => instance.SceneManager.TransitionTo("drum-master")); },
+            () => { game.Enqueue(instance => instance.SceneManager.TransitionTo("editor")); },
+            () => { game.Enqueue(instance => instance.SceneManager.TransitionTo("settings")); });
     }
 
     public override void Initialize(InitArguments initArguments)

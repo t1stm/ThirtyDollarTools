@@ -9,12 +9,12 @@ namespace VisualizerScene.Objects.Playfield.Batch.Objects;
 public struct SoundData : IGPUReflection
 {
     public Matrix4 Model;
-    public Vector4 InverseRGBA;
+    public Vector4 RGBA;
 
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {
         layout.PushMatrix4(1); // Model
-        layout.PushFloat(4, true); // InverseRGBA
+        layout.PushFloat(4, true); // RGBA
     }
 
     public override string ToString()
@@ -22,6 +22,6 @@ public struct SoundData : IGPUReflection
         var modelString = Model.ToString();
         modelString = modelString.Replace('\n', ' ');
 
-        return $"Model: {{{modelString}}} InverseRGBA: {{{InverseRGBA}}}";
+        return $"Model: {{{modelString}}} RGBA: {{{RGBA}}}";
     }
 }

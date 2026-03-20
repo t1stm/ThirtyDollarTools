@@ -1,6 +1,6 @@
 using JetBrains.Annotations;
 
-namespace Sundex.Engine.Asset_Management.Abstract;
+namespace Sundex.Engine.Asset_Management.Abstract.Loading;
 
 /// <summary>
 ///     Represents a loader for assets.

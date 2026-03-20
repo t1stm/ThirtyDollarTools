@@ -17,6 +17,8 @@ public class LoaderInterface
 {
     public LoaderInterface(UIContext context, Action action)
     {
+        OnClickAction = action;
+        
         var sundexContext = new SundexContext(context);
         var componentSource = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
         {
@@ -25,9 +27,7 @@ public class LoaderInterface
                 Location = "Scenes/Layout/LoaderInterface.snx.xml"
             }
         });
-
-        OnClickAction = action;
-
+        
         Component = sundexContext.NewComponent(componentSource.Value);
         Component.RunLogic?.Invoke(this);
 

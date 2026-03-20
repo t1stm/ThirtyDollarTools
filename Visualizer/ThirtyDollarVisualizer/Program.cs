@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using CommandLine;
+using DrumMasterScene;
 using EditorScene;
 using HomeScene;
 using LoadingScene;
@@ -11,6 +12,7 @@ using OpenTK.Windowing.Desktop;
 using Serilog;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
+using SettingsScene;
 using Shared;
 using Shared.Audio;
 using Shared.Audio.BASS;
@@ -143,7 +145,9 @@ public static class Program
             LoaderAssembly.Assembly,
             HomeAssembly.Assembly,
             VisualizerAssembly.Assembly,
-            EditorAssembly.Assembly
+            EditorAssembly.Assembly,
+            DrumMasterAssembly.Assembly,
+            SettingsAssembly.Assembly
         ];
 
         var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings,
@@ -154,7 +158,7 @@ public static class Program
         game.Enqueue(instance =>
         {
             instance.SceneManager.LoadScene<Loader>("loader",
-                sceneManager => new Loader(sceneManager, audio_context)
+                _ => new Loader(instance, audio_context)
                 {
                     OnFinish = workflow => { OnLoadHandler(instance, workflow, sequence, greeting, scale); }
                 });
@@ -167,9 +171,10 @@ public static class Program
     private static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow,
         string? sequence, string? greeting, float? scale)
     {
+        // preload all scenes in memory (inefficient i know, but leads to better UX)
         game.Enqueue(instance =>
         {
-            instance.SceneManager.LoadScene<Home>("home", _ => new Home(instance.SceneManager));
+            instance.SceneManager.LoadScene<Home>("home", _ => new Home(instance));
 
             instance.SceneManager.LoadScene<Visualizer>("visualizer", _ =>
                 new Visualizer(instance, SettingsHandler.Settings, workflow, [sequence])
@@ -178,6 +183,8 @@ public static class Program
                     Scale = scale ?? 1f
                 }
             );
+
+            instance.SceneManager.LoadScene<DrumMaster>("drum-master", _ => new DrumMaster(instance, workflow));
         });
 
         game.Enqueue(instance => instance.SceneManager.TransitionTo("home"));

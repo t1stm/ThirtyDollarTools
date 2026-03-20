@@ -104,6 +104,7 @@ public class Label : UIElement
 
         Width = scale.X;
         Height = scale.Y;
+        Layout();
     }
 
     protected override void DoLayout()

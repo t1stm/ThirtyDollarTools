@@ -1,11 +1,12 @@
 using System.Runtime.ExceptionServices;
+using Serilog;
 
 namespace Sundex.Engine.Threading;
 
-public class ThreadRunner(Game game)
+public class ThreadRunner(ILogger logger)
 {
     private readonly Queue<ExceptionDispatchInfo> _exceptions = [];
-    public Game Game { get; } = game;
+    public ILogger Logger { get; } = logger;
 
     public Thread RunThread(Action action)
     {

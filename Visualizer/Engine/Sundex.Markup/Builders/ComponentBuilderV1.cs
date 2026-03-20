@@ -40,7 +40,16 @@ public class ComponentBuilderV1 : IComponentBuilder
         StyleSheet? styleSheet = null;
         if (layout.Style is not null)
         {
-            var styleSheetHolder = StyleParser.Parse(layout.Style.StyleString, path =>
+            var src = layout.Style.SrcLocation;
+            if (!string.IsNullOrEmpty(src))
+            {
+                var newSource =
+                    context.UIContext.AssetProvider.Load<StringAsset, StringInfo>(
+                        StringInfo.CreateFromUnknownStorage(src));
+                layout.Style.UpdateSourceCode(newSource.Value);
+            }
+
+            var styleSheetHolder = StyleParser.Parse(layout.Style.SourceCode, path =>
             {
                 var assetStream = context.UIContext.AssetProvider
                     .Load<AssetStream, AssetInfo>(new AssetInfo
@@ -68,7 +77,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
         if (styleSheet is not null)
             uiElement.ApplyStyleSheet(styleSheet);
-        
+
         var logic = layout.Logic;
         Action<object?>? runLogic = null;
         if (logic is not null)

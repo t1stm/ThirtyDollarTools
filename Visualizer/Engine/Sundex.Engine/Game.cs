@@ -20,7 +20,7 @@ public class Game : GameWindow
 {
     private readonly Queue<Action<Game>> _enqueuedEvents = new();
     private readonly ILogger _loggerGL;
-    public readonly ILogger Logger;
+    private readonly string _id;
 
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
 
@@ -28,7 +28,7 @@ public class Game : GameWindow
         NativeWindowSettings nativeWindowSettings, string id) :
         base(gameSettings, nativeWindowSettings)
     {
-        Id = id;
+        _id = id;
 
         Logger = serilogLogger.ForContext<Game>();
         _loggerGL = Logger.ForContext("SourceContext", "OpenGL");
@@ -37,16 +37,17 @@ public class Game : GameWindow
         AssetAssemblies = [callingAssembly, ..assemblies];
 
         AssetProvider = new AssetProvider(Logger, AssetAssemblies, GLInfo);
-        SceneManager = new SceneManager(this, Logger);
-        ThreadRunner = new ThreadRunner(this);
+        SceneManager = new SceneManager(Logger);
+        ThreadRunner = new ThreadRunner(Logger);
     }
-
-    private string Id { get; }
-
+    
+    public ILogger Logger { get; }
     public Assembly[] AssetAssemblies { get; }
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
     public ThreadRunner ThreadRunner { get; }
+    
+    public GameGlobals Globals { get; } = new();
     private GLInfo GLInfo { get; } = new();
 
     public bool TryGetScreenScale(out float horizontalScale, out float verticalScale)
@@ -88,7 +89,7 @@ public class Game : GameWindow
             (_, e) =>
             {
                 Logger.Fatal(e.ExceptionObject as Exception,
-                    "[Unhandled Exception]: ({GameName}, {Id}) ", nameof(Game), Id);
+                    "[Unhandled Exception]: ({GameName}, {Id}) ", nameof(Game), _id);
             };
 
         RenderMarker.Debug("Finished OnLoad() Procedure");

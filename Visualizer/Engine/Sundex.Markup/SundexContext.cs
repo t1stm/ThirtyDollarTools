@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Buffers;
 using Sundex.Components.Abstractions;
+using Sundex.Core;
 using Sundex.Markup.Abstract;
 using Sundex.Markup.Attributes;
 using Sundex.Markup.Builders;
@@ -15,6 +16,7 @@ public class SundexContext(UIContext context) : ISundexContext
     };
 
     public Dictionary<string, ISundexComponent> LoadedComponents { get; } = [];
+    public Dictionary<string, Renderable> Renderables { get; } = [];
     public UIContext UIContext { get; } = context;
 
     public ISundexComponent ResolveComponent(ReadOnlySpan<char> dependency)

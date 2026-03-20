@@ -63,4 +63,10 @@ public class GLQuad : IGamePreloadable
         EBO.Bind();
         EBO.Dangerous_SetBufferData(indices);
     }
+
+    public static void DrawInstanced(int count)
+    {
+        GL.DrawElementsInstanced(PrimitiveType.Triangles, EBO.Capacity, DrawElementsType.UnsignedInt,
+            IntPtr.Zero, count);
+    }
 }

@@ -6,6 +6,12 @@ namespace Sundex.Markup.Document.Style;
 public class StyleContainer(RootContainer root, XmlElement styleElement)
 {
     public RootContainer Root { get; } = root;
-    public string StyleString { get; } = styleElement.InnerText;
+    public string SourceCode { get; private set; } = styleElement.InnerText;
+    public string SrcLocation { get; private set; } = styleElement.GetAttribute("src");
     public string Language { get; } = styleElement.GetAttribute("language");
+
+    public void UpdateSourceCode(string sourceCode)
+    {
+        SourceCode = sourceCode;
+    }
 }

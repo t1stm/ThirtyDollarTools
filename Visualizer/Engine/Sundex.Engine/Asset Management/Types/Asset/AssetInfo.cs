@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Sundex.Engine.Asset_Management.Abstract;
+using Sundex.Engine.Asset_Management.Abstract.Loading;
 using Sundex.Engine.Common;
 
 namespace Sundex.Engine.Asset_Management.Types.Asset;

@@ -11,11 +11,12 @@ namespace LoadingScene;
 
 public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider assetProvider)
 {
-    private readonly ILogger _logger = threadRunner.Game.Logger.ForContext<ThirtyDollarDownloader>();
+    private readonly ILogger _logger = threadRunner.Logger.ForContext<ThirtyDollarDownloader>();
     public required Action<IProgressReport>? StatusUpdate { get; set; }
-    public SampleHolder SampleHolder { get; set; } = new(threadRunner.Game.Logger);
-    public AtlasStore AtlasStore { get; set; } = new(assetProvider, threadRunner.Game.Logger);
+    public SampleHolder SampleHolder { get; set; } = new(threadRunner.Logger);
+    public AtlasStore AtlasStore { get; set; } = new(assetProvider, threadRunner.Logger);
 
+    public Action<string>? OnLoadSound { get; set; }
     public bool AssetsLoaded { get; private set; }
     public bool Loading { get; set; }
 
@@ -126,6 +127,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
         {
             var atlasStore = AtlasStore;
             atlasStore.LoadImageAtPath(imagePath, soundName, storageLocation);
+            OnLoadSound?.Invoke(soundName);
         }
     }
 }

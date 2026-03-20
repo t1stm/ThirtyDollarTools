@@ -130,8 +130,7 @@ public class TextBuffer : IRenderable, IDisposable
         _vao.Update();
         TextProvider.BindAndSetUniforms(camera);
 
-        GL.DrawElementsInstanced(PrimitiveType.Triangles, GLQuad.EBO.Capacity, DrawElementsType.UnsignedInt,
-            IntPtr.Zero, endIndex);
+        GLQuad.DrawInstanced(endIndex);
 
 #if DEBUG
         Span<char> characterHandleString
