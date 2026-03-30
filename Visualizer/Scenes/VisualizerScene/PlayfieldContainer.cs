@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using Shared;
 using Shared.Audio;
@@ -21,7 +22,7 @@ public class PlayfieldContainer(
 {
     private static readonly DollarStoreCamera OffscreenCamera = new((-1, -1, -1), (0, 0));
     private readonly CancellationTokenSource _tokenSource = new();
-    private TimedEvents _currentEvents;
+    private TimedEvents _currentEvents = new();
 
     private Playfield[] _playfields = [];
     private bool _playfieldsUpdated;
@@ -156,7 +157,8 @@ public class PlayfieldContainer(
     ///     Call this method when there is a change to the objects of a given sequence.
     /// </summary>
     /// <param name="sequenceIndex">The changed sequence's index.</param>
-    private void HandleSequenceChange(int sequenceIndex)
+    [UsedImplicitly]
+    public void HandleSequenceChange(int sequenceIndex)
     {
         if (_currentEvents.Placement.Length <= 1) return;
         var old_sequence = CurrentSequence;
@@ -191,7 +193,8 @@ public class PlayfieldContainer(
         BackgroundPlane.TransitionToColor(settings.BackgroundColor, 0.33f);
     }
 
-    private void RegisterSequencePlayerEvents(SequencePlayer player)
+    [UsedImplicitly]
+    public void RegisterSequencePlayerEvents(SequencePlayer player)
     {
         player.SubscribeSequenceChange(HandleSequenceChange);
         player.SubscribeActionToEvent(string.Empty, NormalSubscription);
@@ -266,7 +269,8 @@ public class PlayfieldContainer(
         }
     }
 
-    private void NormalSubscription(Placement placement, int index)
+    [UsedImplicitly]
+    public void NormalSubscription(Placement placement, int index)
     {
         var element = GetRenderable(placement, index);
         if (element == null) return;
@@ -283,7 +287,8 @@ public class PlayfieldContainer(
         }
     }
 
-    private void SpeedEventHandler(Placement placement, int index)
+    [UsedImplicitly]
+    public void SpeedEventHandler(Placement placement, int index)
     {
         var val = (float)placement.Event.Value;
 
@@ -298,18 +303,21 @@ public class PlayfieldContainer(
         };
     }
 
-    private void BackgroundEventHandler(Placement placement, int index)
+    [UsedImplicitly]
+    public void BackgroundEventHandler(Placement placement, int index)
     {
         var (color, seconds) = BackgroundParser.ParseFromDouble(placement.Event.Value);
         BackgroundPlane.TransitionToColor(color, seconds);
     }
 
-    private void FlashEventHandler(Placement placement, int index)
+    [UsedImplicitly]
+    public void FlashEventHandler(Placement placement, int index)
     {
         FlashOverlayPlane.Flash();
     }
 
-    private void PulseEventHandler(Placement placement, int index)
+    [UsedImplicitly]
+    public void PulseEventHandler(Placement placement, int index)
     {
         var parsed_value = (long)placement.Event.Value;
         var repeats = (byte)parsed_value;
@@ -320,7 +328,8 @@ public class PlayfieldContainer(
         StaticCamera.Pulse(repeats, computed_frequency);
     }
 
-    private void LoopManyEventHandler(Placement placement, int sequenceIndex)
+    [UsedImplicitly]
+    public void LoopManyEventHandler(Placement placement, int sequenceIndex)
     {
         if (sequenceIndex >= _playfields.Length) return;
 
@@ -328,7 +337,8 @@ public class PlayfieldContainer(
         element?.SetValue(placement.Event, ValueChangeWrapMode.RemoveTexture);
     }
 
-    private void StopEventHandler(Placement placement, int sequenceIndex)
+    [UsedImplicitly]
+    public void StopEventHandler(Placement placement, int sequenceIndex)
     {
         if (sequenceIndex >= _playfields.Length) return;
 
@@ -336,7 +346,8 @@ public class PlayfieldContainer(
         element?.SetValue(placement.Event, ValueChangeWrapMode.ResetToDefault);
     }
 
-    private void VolumeEventHandler(Placement placement, int index)
+    [UsedImplicitly]
+    public void VolumeEventHandler(Placement placement, int index)
     {
         SequenceVolume = placement.Event.WorkingVolume;
     }

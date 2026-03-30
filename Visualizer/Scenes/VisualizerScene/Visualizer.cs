@@ -31,8 +31,10 @@ public class Visualizer : Scene, IGamePreloadable
 {
     private const string Version = "2.0.0 (Insider Build)";
     private static VisualizerFonts _visualizerFonts = null!;
+    public static VisualizerFonts VisualizerFonts => _visualizerFonts;
     private readonly FpsCounter _fpsCounter = new();
     private readonly PlayfieldSizing _playfieldSizing;
+    public PlayfieldSizing PlayfieldSizing => _playfieldSizing;
     private readonly VisualizerSettings _settings;
 
     private readonly string[] _startingSequences;
@@ -47,7 +49,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     private int _height;
 
-    private PlayfieldContainer _playfieldContainer = null!;
+    public PlayfieldContainer PlayfieldContainer { get; private set; } = null!;
 
     private ulong _updateId;
 
@@ -137,16 +139,16 @@ public class Visualizer : Scene, IGamePreloadable
             ScrollSpeed = _settings.ScrollSpeed
         };
 
-        _playfieldContainer =
+        PlayfieldContainer =
             new PlayfieldContainer(playfieldSettings, SequencePlayer, new Vector2i(_width, _height));
-        _playfieldContainer.Camera.OnZoom = zoom =>
+        PlayfieldContainer.Camera.OnZoom = zoom =>
         {
             UpdateStaticRenderables(_width, _height, zoom);
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
         UpdateStaticRenderables(_width, _height, Scale);
         
-        _playfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
+        PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
 
 
         try
@@ -170,8 +172,8 @@ public class Visualizer : Scene, IGamePreloadable
         greeting.SetPosition(greeting.Position - (_width - w) / 2f * Vector3.UnitX);
 
         Overlay.Resize(w, h);
-        _playfieldContainer.Resize(resize);
-        UpdateStaticRenderables(w, h, _playfieldContainer.Camera.GetRenderScale());
+        PlayfieldContainer.Resize(resize);
+        UpdateStaticRenderables(w, h, PlayfieldContainer.Camera.GetRenderScale());
 
         _width = w;
         _height = h;
@@ -188,9 +190,9 @@ public class Visualizer : Scene, IGamePreloadable
         RunDebugUpdate(deltaTime);
 
         // get static values from current camera, for this frame
-        _tempCamera.CopyFrom(_playfieldContainer.Camera);
+        _tempCamera.CopyFrom(PlayfieldContainer.Camera);
 
-        _playfieldContainer.Render((float)deltaTime);
+        PlayfieldContainer.Render((float)deltaTime);
 
         // render the greeting
         _visualizerTextContainer.RenderGreeting(_tempCamera);
@@ -201,6 +203,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     public override void TransitionedTo()
     {
+        _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
         Resize(Game.ClientSize.X, Game.ClientSize.Y);
     }
@@ -208,7 +211,7 @@ public class Visualizer : Scene, IGamePreloadable
     public override void Update(UpdateArguments updateArgs)
     {
         _workflow.Update();
-        _playfieldContainer.Update(updateArgs.Delta);
+        PlayfieldContainer.Update(updateArgs.Delta);
 
         // checks if there is a backing audio
         if (_backingAudio is null) return;
@@ -222,7 +225,7 @@ public class Visualizer : Scene, IGamePreloadable
     public override void Shutdown()
     {
         SequencePlayer.Die();
-        _playfieldContainer.Dispose();
+        PlayfieldContainer.Dispose();
     }
 
     public override void FileDrop(string?[] locations)
@@ -254,10 +257,10 @@ public class Visualizer : Scene, IGamePreloadable
 
         // if control is pressed handle zoom
         if (keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl))
-            _playfieldContainer.Camera.ZoomStep(scroll.Y);
+            PlayfieldContainer.Camera.ZoomStep(scroll.Y);
         // otherwise scrolls the camera
         else
-            _playfieldContainer.Camera.ScrollDelta(new_delta);
+            PlayfieldContainer.Camera.ScrollDelta(new_delta);
     }
 
     public override void Keyboard(KeyboardState state)
@@ -290,8 +293,8 @@ public class Visualizer : Scene, IGamePreloadable
         }
 
         // toggle camera modes
-        var oldFollowMode = _playfieldContainer.CameraFollowMode;
-        _playfieldContainer.CameraFollowMode = state.IsKeyPressed(Keys.C) switch
+        var oldFollowMode = PlayfieldContainer.CameraFollowMode;
+        PlayfieldContainer.CameraFollowMode = state.IsKeyPressed(Keys.C) switch
         {
             true when oldFollowMode is CameraFollowMode.None => CameraFollowMode.CurrentLine,
             true when oldFollowMode is CameraFollowMode.CurrentLine => CameraFollowMode.TDWLike,
@@ -330,13 +333,13 @@ public class Visualizer : Scene, IGamePreloadable
                 if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
                 {
                     RestartSeekTimer();
-                    _playfieldContainer.Camera.ZoomStep(+1);
+                    PlayfieldContainer.Camera.ZoomStep(+1);
                 }
 
                 if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
                 {
                     RestartSeekTimer();
-                    _playfieldContainer.Camera.ZoomStep(-1);
+                    PlayfieldContainer.Camera.ZoomStep(-1);
                 }
 
                 if (state.IsKeyPressed(Keys.D))
@@ -368,8 +371,8 @@ public class Visualizer : Scene, IGamePreloadable
         }
 
         // set message if camera mode is updated
-        if (oldFollowMode != _playfieldContainer.CameraFollowMode)
-            SetStatusMessage($"[Camera] Follow Mode is now: {_playfieldContainer.CameraFollowMode}");
+        if (oldFollowMode != PlayfieldContainer.CameraFollowMode)
+            SetStatusMessage($"[Camera] Follow Mode is now: {PlayfieldContainer.CameraFollowMode}");
 
         // check backwards seeking
         var elapsed = stopwatch.ElapsedMilliseconds;
@@ -427,7 +430,7 @@ public class Visualizer : Scene, IGamePreloadable
         {
             RestartSeekTimer();
             var requested_sequence =
-                Math.Clamp(_playfieldContainer.CurrentSequence - 2, -1, SequenceIndices.Ends.Length - 1);
+                Math.Clamp(PlayfieldContainer.CurrentSequence - 2, -1, SequenceIndices.Ends.Length - 1);
             if (requested_sequence == -1)
             {
                 SequencePlayer.Seek(0);
@@ -447,7 +450,7 @@ public class Visualizer : Scene, IGamePreloadable
         {
             RestartSeekTimer();
             var requested_sequence =
-                Math.Clamp(_playfieldContainer.CurrentSequence, 0, SequenceIndices.Ends.Length - 1);
+                Math.Clamp(PlayfieldContainer.CurrentSequence, 0, SequenceIndices.Ends.Length - 1);
             var (index, _) = SequenceIndices.Ends[requested_sequence];
 
             SequencePlayer.Seek(SequencePlayer.GetTimeFromIndex(index));
@@ -458,7 +461,7 @@ public class Visualizer : Scene, IGamePreloadable
 
         // check for restarting the current sequences
         if (!state.IsKeyPressed(Keys.R)) return;
-        _playfieldContainer.Reset();
+        PlayfieldContainer.Reset();
 
         if (control && shift)
         {
@@ -466,12 +469,12 @@ public class Visualizer : Scene, IGamePreloadable
             return;
         }
 
-        _playfieldContainer.Camera.ScrollTo((0, -300, 0));
-        _playfieldContainer.BackgroundPlane.Reset(0.16f);
+        PlayfieldContainer.Camera.ScrollTo((0, -300, 0));
+        PlayfieldContainer.BackgroundPlane.Reset(0.16f);
         SequencePlayer.Seek(0);
 
         if (shift) SequencePlayer.GetTimingStopwatch().Stop();
-        _playfieldContainer.ResetAllAnimations();
+        PlayfieldContainer.ResetAllAnimations();
     }
 
     /// <summary>
@@ -492,15 +495,15 @@ public class Visualizer : Scene, IGamePreloadable
         return timespan.ToString(format);
     }
 
-    private Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer)
+    public Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer)
     {
         _visualizerTextContainer.ShowControls = false;
         _visualizerTextContainer.ShowVersion = false;
 
-        _playfieldContainer.Camera.ScrollTo((0, -300, 0));
+        PlayfieldContainer.Camera.ScrollTo((0, -300, 0));
 
-        _playfieldContainer.BackgroundPlane.Reset(0.66f);
-        _playfieldContainer.ChangeFromTimedEvents(events);
+        PlayfieldContainer.BackgroundPlane.Reset(0.66f);
+        PlayfieldContainer.ChangeFromTimedEvents(events);
 
         return Task.CompletedTask;
     }
@@ -573,14 +576,14 @@ public class Visualizer : Scene, IGamePreloadable
         var fps = _fpsCounter.GetAverageFPS(1 / deltaTime);
         var audio_engine = SequencePlayer.AudioContext.Name;
 
-        var volume = _playfieldContainer.SequenceVolume;
+        var volume = PlayfieldContainer.SequenceVolume;
         var soundReferences =
             _workflow.SampleHolder.StringToSoundReferences.GetAlternateLookup<ReadOnlySpan<char>>();
 
         // remove full path from sequence filename.
         ReadOnlySpan<char> sequence_location = "None";
-        if (Sequences.Length > 0 && Sequences.Length > _playfieldContainer.CurrentSequence)
-            sequence_location = Sequences.Span[_playfieldContainer.CurrentSequence].FileLocation;
+        if (Sequences.Length > 0 && Sequences.Length > PlayfieldContainer.CurrentSequence)
+            sequence_location = Sequences.Span[PlayfieldContainer.CurrentSequence].FileLocation;
 
         var folder_index = sequence_location.LastIndexOf(Path.DirectorySeparatorChar);
         if (folder_index != -1)
@@ -657,7 +660,7 @@ public class Visualizer : Scene, IGamePreloadable
         var debug = Overlay.Get<TextSlice>("debug");
         _debugFormatter.Set("fps", fps);
         _debugFormatter.Set("audioEngine", audio_engine);
-        _debugFormatter.Set("currentSequence", _playfieldContainer.CurrentSequence + 1);
+        _debugFormatter.Set("currentSequence", PlayfieldContainer.CurrentSequence + 1);
         _debugFormatter.Set("maxSequences", Sequences.Length);
         _debugFormatter.Set("sequenceLocation", sequence_location);
         _debugFormatter.Set("bpm", bpm);
@@ -676,14 +679,14 @@ public class Visualizer : Scene, IGamePreloadable
 
     private void UpdateStaticRenderables(int w, int h, float scale)
     {
-        _playfieldContainer.StaticCamera.SetRenderScale(scale);
+        PlayfieldContainer.StaticCamera.SetRenderScale(scale);
 
         scale = Math.Min(scale, 1f);
         var width_scale = w / scale - w;
         var height_scale = h / scale - h;
 
-        var backgroundPlane = _playfieldContainer.BackgroundPlane;
-        var flashOverlay = _playfieldContainer.FlashOverlayPlane;
+        var backgroundPlane = PlayfieldContainer.BackgroundPlane;
+        var flashOverlay = PlayfieldContainer.FlashOverlayPlane;
 
         var background = backgroundPlane.Scale;
         var b_z = backgroundPlane.Position.Z;
@@ -712,7 +715,7 @@ public class Visualizer : Scene, IGamePreloadable
     private void FileDrop(IReadOnlyCollection<string?> locations, bool resetTime)
     {
         var log = Overlay.Get<TextSlice>("log");
-        _playfieldContainer.Camera.ScrollTo((0, -300, 0));
+        PlayfieldContainer.Camera.ScrollTo((0, -300, 0));
 
         if (locations.Count < 1) return;
 

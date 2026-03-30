@@ -13,7 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Components\" />
+    <None Remove="Assets\Shaders\Taiko\HitBox.frag" />
+    <None Remove="Assets\Shaders\Taiko\HitBox.vert" />
+    <None Remove="Assets\Shaders\Taiko\Lane.frag" />
+    <None Remove="Assets\Shaders\Taiko\Lane.vert" />
   </ItemGroup>
 
 </Project>

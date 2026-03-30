@@ -21,7 +21,7 @@
         </button>
 
         <button id="drum-master-button" class="menu-button">
-          <label value="Important Button"/>
+          <label value="Drum Master"/>
         </button>
 
         <button id="editor-button" class="menu-button">

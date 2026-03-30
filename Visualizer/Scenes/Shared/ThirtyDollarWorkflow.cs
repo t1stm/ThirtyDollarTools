@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 using Shared.Atlases;
 using Shared.Audio;
 using Shared.Objects;
@@ -27,7 +26,7 @@ public class ThirtyDollarWorkflow
     {
         _assetProvider = game.AssetProvider;
         Game = game;
-        Log = logger.ForContext<ThirtyDollarWorkflow>();
+        Logger = logger.ForContext<ThirtyDollarWorkflow>();
         SequencePlayer = new SequencePlayer(logger, context);
         _fileUpdateStopwatch = new Stopwatch();
         _fileUpdateStopwatch.Start();
@@ -45,7 +44,7 @@ public class ThirtyDollarWorkflow
     public required AtlasStore AtlasStore { get; init; }
     public required SampleHolder SampleHolder { get; init; }
     public Game Game { get; }
-    public ILogger Log { get; }
+    public ILogger Logger { get; }
     public SequencePlayer SequencePlayer { get; }
 
     public bool AutoUpdate { get; set; } = true;
@@ -65,7 +64,7 @@ public class ThirtyDollarWorkflow
         SequenceInfos = GetSequenceInfos(locations);
         if (SequenceInfos.Length < 1)
         {
-            Log.Debug(
+            Logger.Debug(
                 "[Sequence Update] No valid files were dropped on the window. If dragging a folder, drag the files inside it.");
             return;
         }
@@ -213,7 +212,7 @@ public class ThirtyDollarWorkflow
             if (!metadata.Found)
             {
                 AutoUpdate = false;
-                Log.Debug(
+                Logger.Debug(
                     "[Auto Update] One of the sequences was deleted. \n" +
                     "Disabling auto-reload until the next manual update.");
 
@@ -231,7 +230,7 @@ public class ThirtyDollarWorkflow
         }
         catch (Exception e)
         {
-            Log.Debug("[Sequence Loader] Failed to load sequence with error: '{Exception}'", e);
+            Logger.Debug("[Sequence Loader] Failed to load sequence with error: '{Exception}'", e);
         }
     }
 }

@@ -1,6 +1,7 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Serilog;
+using Shared;
 using Shared.Atlases;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Extensions;
@@ -12,8 +13,12 @@ using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Buffers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
+using Sundex.Engine.Text;
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
+using VisualizerScene.Objects.Playfield;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
+using VisualizerScene.Objects.Sound_Values;
 
 namespace VisualizerScene.Objects.Playfield.Batch.Chunks;
 
@@ -76,6 +81,109 @@ public class RenderableFactory(AtlasStore store)
                     $"{BackgroundBlipShaderLocation}.frag")
             ))
         );
+    }
+
+    private const int MaxValueLength = 32;
+
+    public static void AssignTextBuffers(SoundRenderable renderable, BaseEvent baseEvent, TextBuffer textBuffer,
+        PlayfieldSizing sizing, float renderScale)
+    {
+        if (baseEvent.Value != 0 || SoundShouldAlwaysHaveValue(baseEvent.SoundEvent))
+        {
+            string valueText;
+            switch (baseEvent.SoundEvent)
+            {
+                case "!pulse":
+                {
+                    var parsed_value = (long)baseEvent.Value;
+                    var repeats = (byte)parsed_value;
+                    float frequency = (short)(parsed_value >> 8);
+                    valueText = $"{repeats}, {frequency}";
+                    break;
+                }
+
+                default:
+                {
+                    valueText = $"{baseEvent.Value:0.##}";
+                    valueText = baseEvent.ValueScale switch
+                    {
+                        ValueScale.Divide => "/" + valueText,
+                        ValueScale.Times => "x" + valueText,
+                        ValueScale.Add when baseEvent is { Value: > 0, SoundEvent: not null } &&
+                                            baseEvent.SoundEvent.StartsWith('!')
+                            => "+" + valueText,
+                        ValueScale.None when baseEvent is { Value: > 0, SoundEvent: not null } &&
+                                             !baseEvent.SoundEvent.StartsWith('!')
+                            => "+" + valueText,
+                        _ => valueText
+                    };
+
+                    if (baseEvent is { SoundEvent: "!volume" } and not { ValueScale: ValueScale.Times } and not
+                        { ValueScale: ValueScale.Divide }) valueText += "%";
+                    break;
+                }
+            }
+
+            var valueBuffer = textBuffer.GetTextSlice(valueText, (value, buffer, range) =>
+                new TextSlice(buffer, range)
+                {
+                    Value = value,
+                    FontSize = sizing.ValueFontSize * renderScale
+                }, MaxValueLength);
+
+            renderable.Value = new NormalText(valueBuffer);
+        }
+
+        if (baseEvent.Volume is not null)
+        {
+            var volumeBuffer = textBuffer.GetTextSlice($"{baseEvent.Volume:0.##}%",
+                (value, buffer, range) => new TextSlice(buffer, range)
+                {
+                    Value = value,
+                    FontSize = sizing.VolumeFontSize * renderScale
+                });
+            renderable.Volume = new NormalText(volumeBuffer);
+        }
+
+        if (baseEvent is not PannedEvent pannedEvent) return;
+        if (pannedEvent.Pan == 0) return;
+
+        string panText;
+        if (pannedEvent.IsStandardImplementation)
+        {
+            var panString = Math.Abs((double)pannedEvent.TDWPan).ToString("0.##");
+            panText = pannedEvent.Pan > 0
+                ? $"{panString}>"
+                : $"<{panString}";
+        }
+        else
+        {
+            var panString = Math.Abs((double)pannedEvent.Pan).ToString("0.##");
+            if (panString.StartsWith("0."))
+                panString = panString[1..];
+
+            panText = pannedEvent.Pan > 0
+                ? $"|{panString}"
+                : $"{panString}|";
+        }
+
+        var panBuffer = textBuffer.GetTextSlice(panText, (value, buffer, range) =>
+            new TextSlice(buffer, range)
+            {
+                Value = value,
+                FontSize = sizing.PanFontSize * renderScale
+            });
+        renderable.Pan = new NormalText(panBuffer);
+    }
+
+    private static bool SoundShouldAlwaysHaveValue(ReadOnlySpan<char> sound)
+    {
+        return sound switch
+        {
+            "!loopmany" or "!volume" or "!speed" or "!stop" or "!transpose" or "!target" or "!jump" or "!bg"
+                or "!pulse" => true,
+            _ => false
+        };
     }
 
     /// <summary>

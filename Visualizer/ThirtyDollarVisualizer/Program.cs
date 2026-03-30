@@ -152,6 +152,8 @@ public static class Program
 
         var game = new Game(serilogLogger, assemblies, gameWindowSettings, nativeWindowSettings,
             "ThirtyDollarVisualizer");
+        game.Globals.Set("visualizer-settings", settings);
+
         if (game.TryGetScreenScale(out var horizontal_scale, out var vertical_scale) &&
             settings.AutomaticScaling) scale ??= (horizontal_scale + vertical_scale) / 2f;
 

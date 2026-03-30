@@ -78,90 +78,7 @@ public class PlayfieldChunk : IDisposable
                     continue;
             }
 
-            if (baseEvent.Value != 0 || SoundShouldAlwaysHaveValue(baseEvent.SoundEvent))
-            {
-                string valueText;
-                switch (baseEvent.SoundEvent)
-                {
-                    case "!pulse":
-                    {
-                        var parsed_value = (long)baseEvent.Value;
-                        var repeats = (byte)parsed_value;
-                        float frequency = (short)(parsed_value >> 8);
-                        valueText = $"{repeats}, {frequency}";
-                        break;
-                    }
-
-                    default:
-                    {
-                        valueText = $"{baseEvent.Value:0.##}";
-                        valueText = baseEvent.ValueScale switch
-                        {
-                            ValueScale.Divide => "/" + valueText,
-                            ValueScale.Times => "x" + valueText,
-                            ValueScale.Add when baseEvent.Value > 0 && baseEvent.SoundEvent.StartsWith('!')
-                                => "+" + valueText,
-                            ValueScale.None when baseEvent.Value > 0 && !baseEvent.SoundEvent.StartsWith('!')
-                                => "+" + valueText,
-                            _ => valueText
-                        };
-
-                        if (baseEvent is { SoundEvent: "!volume" } and not { ValueScale: ValueScale.Times } and not
-                            { ValueScale: ValueScale.Divide }) valueText += "%";
-                        break;
-                    }
-                }
-
-                var valueBuffer = chunk._textBuffer.GetTextSlice(valueText, (value, buffer, range) =>
-                    new TextSlice(buffer, range)
-                    {
-                        Value = value,
-                        FontSize = sizing.ValueFontSize * settings.RenderScale
-                    }, MaxValueLength);
-
-                renderable.Value = new NormalText(valueBuffer);
-            }
-
-            if (baseEvent.Volume is not null)
-            {
-                var volumeBuffer = chunk._textBuffer.GetTextSlice($"{baseEvent.Volume:0.##}%",
-                    (value, buffer, range) => new TextSlice(buffer, range)
-                    {
-                        Value = value,
-                        FontSize = sizing.VolumeFontSize * settings.RenderScale
-                    });
-                renderable.Volume = new NormalText(volumeBuffer);
-            }
-
-            if (baseEvent is not PannedEvent pannedEvent) continue;
-            if (pannedEvent.Pan == 0) continue;
-
-            string panText;
-            if (pannedEvent.IsStandardImplementation)
-            {
-                var panString = Math.Abs(pannedEvent.TDWPan).ToString("0.##");
-                panText = pannedEvent.Pan > 0
-                    ? $"{panString}>"
-                    : $"<{panString}";
-            }
-            else
-            {
-                var panString = Math.Abs(pannedEvent.Pan).ToString("0.##");
-                if (panString.StartsWith("0."))
-                    panString = panString[1..];
-
-                panText = pannedEvent.Pan > 0
-                    ? $"|{panString}"
-                    : $"{panString}|";
-            }
-
-            var panBuffer = chunk._textBuffer.GetTextSlice(panText, (value, buffer, range) =>
-                new TextSlice(buffer, range)
-                {
-                    Value = value,
-                    FontSize = sizing.PanFontSize * settings.RenderScale
-                });
-            renderable.Pan = new NormalText(panBuffer);
+            RenderableFactory.AssignTextBuffers(renderable, baseEvent, chunk._textBuffer, sizing, settings.RenderScale);
         }
 
         chunk.EndY = layoutHandler.Height + layoutHandler.Size;
@@ -179,17 +96,6 @@ public class PlayfieldChunk : IDisposable
         chunk.BackgroundBlips = factory.BackgroundBlips;
         return chunk;
     }
-
-    private static bool SoundShouldAlwaysHaveValue(ReadOnlySpan<char> sound)
-    {
-        return sound switch
-        {
-            "!loopmany" or "!volume" or "!speed" or "!stop" or "!transpose" or "!target" or "!jump" or "!bg"
-                or "!pulse" => true,
-            _ => false
-        };
-    }
-
 
     public void Render(DollarStoreCamera temporaryCamera)
     {

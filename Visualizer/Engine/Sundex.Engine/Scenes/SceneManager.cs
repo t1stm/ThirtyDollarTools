@@ -146,4 +146,15 @@ public class SceneManager(ILogger logger)
             }
         }
     }
+
+    public T Get<T>() where T : Scene
+    {
+        foreach (var (_, scene) in Scenes)
+        {
+            if (scene is T scene1)
+                return scene1;
+        }
+        
+        throw new Exception("Unable to find scene");
+    }
 }

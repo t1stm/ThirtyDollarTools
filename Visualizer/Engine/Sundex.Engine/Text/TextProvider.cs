@@ -29,11 +29,7 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
 
     public static void Preload(AssetProvider assetProvider)
     {
-        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Text/Batched", provider =>
-            new Shader(provider, provider.LoadShaders(
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader, "Assets/Shaders/Text/Batched.vert"),
-                ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader, "Assets/Shaders/Text/Batched.frag")))
-        );
+        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Text/Batched");
     }
 
     public IGlyphProvider GlyphProvider { get; } = new GlyphProvider(fontProvider, fontName);
