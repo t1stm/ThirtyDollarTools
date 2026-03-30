@@ -243,32 +243,30 @@ public class PlacementCalculator
 
                 case "!loop":
                 {
-                    if (!ev.Triggered)
+                    if (ev.Triggered) break;
+                    ev.Triggered = true;
+                    default_return = false;
+                    yield return new Placement
                     {
-                        ev.Triggered = true;
-                        default_return = false;
-                        yield return new Placement
-                        {
-                            Index = position,
-                            SequenceIndex = index,
-                            Event = ev,
-                            Audible = false
-                        };
+                        Index = position,
+                        SequenceIndex = index,
+                        Event = ev,
+                        Audible = false
+                    };
 
-                        modify_index = false;
-                        index = loop_target;
+                    modify_index = false;
+                    index = loop_target;
 
-                        Untrigger(ref sequence, index, LoopUntriggers);
-                        Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
-                    }
+                    Untrigger(ref sequence, index, LoopUntriggers);
+                    Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
 
                     break;
                 }
 
                 case "!jump":
                 {
-                    if (ev.WorkingValue <= 0) break;
-                    ev.WorkingValue--;
+                    if (ev.Triggered) break;
+                    ev.Triggered = true;
 
                     var item = sequence.Events.FirstOrDefault(r =>
                         r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && !r.Triggered);
@@ -378,7 +376,7 @@ public class PlacementCalculator
             if (except.Any(r => r == current_event.SoundEvent)) continue;
 
             current_event.Triggered = false;
-            current_event.WorkingValue = current_event.WorkingValue;
+            current_event.WorkingValue = current_event.Value;
         }
     }
 }
