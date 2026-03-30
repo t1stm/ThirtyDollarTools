@@ -163,7 +163,7 @@ public sealed class SoundRenderable : Renderable
 
             Span<char> characters = stackalloc char[32];
             var written = 0;
-            switch (ev.Value)
+            switch (ev.WorkingValue)
             {
                 case <= 0 when valueChangeWrapMode == ValueChangeWrapMode.ResetToDefault &&
                                !ev.Value.TryFormat(characters, out written, "0.##"):
