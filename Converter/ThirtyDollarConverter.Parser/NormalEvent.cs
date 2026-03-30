@@ -61,10 +61,10 @@ public class NormalEvent : BaseEvent
         {
             SoundEvent = SoundEvent is null ? null : string.Intern(SoundEvent),
             Value = Value,
-            OriginalLoop = OriginalLoop,
             PlayTimes = PlayTimes,
             Volume = Volume,
             WorkingVolume = WorkingVolume,
+            WorkingValue = WorkingValue,
             ValueScale = ValueScale
         };
     }

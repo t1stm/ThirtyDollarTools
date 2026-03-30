@@ -163,14 +163,13 @@ public sealed class SoundRenderable : Renderable
 
             Span<char> characters = stackalloc char[32];
             var written = 0;
-            switch (ev.PlayTimes)
+            switch (ev.Value)
             {
                 case <= 0 when valueChangeWrapMode == ValueChangeWrapMode.ResetToDefault &&
-                               !ev.OriginalLoop.TryFormat(characters, out written, "0.##") &&
-                               !ev.OriginalLoop.TryFormat(characters, out written, "0.##"):
-                    throw new Exception("Failed to format original loop");
-                case > 0 when !ev.PlayTimes.TryFormat(characters, out written, "0.##"):
-                    throw new Exception("Failed to format play times");
+                               !ev.Value.TryFormat(characters, out written, "0.##"):
+                    throw new Exception("Failed to format to original loop value");
+                case > 0 when !ev.WorkingValue.TryFormat(characters, out written, "0.##"):
+                    throw new Exception("Failed to format to play times");
             }
 
             wrapper.Text.SetValue(characters[..written]);

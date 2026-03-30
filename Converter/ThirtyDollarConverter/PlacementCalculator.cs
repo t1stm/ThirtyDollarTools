@@ -191,16 +191,16 @@ public class PlacementCalculator
                 case "!stop":
                 {
                     var working_value = ev.Value;
-                    while (ev.PlayTimes > 0)
+                    while (ev.WorkingValue > 0)
                     {
                         var multiplier = Math.Min(working_value, 1);
                         position += (ulong)(multiplier * SampleRate / (bpm / 60));
 
-                        ev.PlayTimes -= 1;
+                        ev.WorkingValue -= 1;
                         working_value -= 1;
 
-                        if (ev.PlayTimes < 0)
-                            ev.PlayTimes = 0;
+                        if (ev.WorkingValue < 0)
+                            ev.WorkingValue = 0;
 
                         if (AddVisualTimings)
                             yield return new Placement
@@ -217,10 +217,10 @@ public class PlacementCalculator
 
                 case "!loopmany":
                 {
-                    if (ev.PlayTimes > 0)
+                    if (ev.WorkingValue > 0)
                     {
                         default_return = false;
-                        ev.PlayTimes--;
+                        ev.WorkingValue--;
 
                         modify_index = false;
 
@@ -267,8 +267,8 @@ public class PlacementCalculator
 
                 case "!jump":
                 {
-                    if (ev.PlayTimes <= 0) break;
-                    ev.PlayTimes--;
+                    if (ev.WorkingValue <= 0) break;
+                    ev.WorkingValue--;
 
                     var item = sequence.Events.FirstOrDefault(r =>
                         r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && !r.Triggered);
@@ -378,7 +378,7 @@ public class PlacementCalculator
             if (except.Any(r => r == current_event.SoundEvent)) continue;
 
             current_event.Triggered = false;
-            current_event.PlayTimes = current_event.OriginalLoop;
+            current_event.WorkingValue = current_event.WorkingValue;
         }
     }
 }

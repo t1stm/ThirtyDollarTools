@@ -3,11 +3,6 @@ namespace ThirtyDollarParser;
 public abstract class BaseEvent
 {
     /// <summary>
-    ///     Original loop value of the event. Do not modify.
-    /// </summary>
-    public float OriginalLoop = 1;
-
-    /// <summary>
     ///     Loop value of the event. Can be modified as long as it's restored from original loop after finishing.
     /// </summary>
     public float PlayTimes = 1;
@@ -41,6 +36,11 @@ public abstract class BaseEvent
     ///     The final volume of the current sample.
     /// </summary>
     public double WorkingVolume = 100;
+    
+    /// <summary>
+    /// The value used while processing different events.
+    /// </summary>
+    public double WorkingValue { get; set; }
 
     /// <summary>
     ///     A method that gives a copy of the current event with no addresses shared between the two objects.

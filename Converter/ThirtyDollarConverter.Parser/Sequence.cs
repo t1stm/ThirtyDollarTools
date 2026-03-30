@@ -11,6 +11,7 @@ public partial class Sequence
     public HashSet<string> SeparatedChannels = [];
     public HashSet<string> UsedSounds = [];
     public BaseEvent[] Events { get; set; } = [];
+    public bool IsNewFormat { get; set; } = true;
 
     public Sequence Copy()
     {
@@ -45,16 +46,7 @@ public partial class Sequence
                     continue;
 
             var new_event = ParseEvent(text, sequence);
-
-            if ((new_event.SoundEvent?.StartsWith('!') ?? false) && new_event.SoundEvent is not "!divider")
-            {
-                list.Add(new_event);
-                continue;
-            }
-
             var repeats = new_event.PlayTimes;
-
-            new_event.OriginalLoop = 1;
             new_event.PlayTimes = 1;
 
             if (new_event.SoundEvent is not null)
@@ -110,6 +102,7 @@ public partial class Sequence
 
         foreach (var ev in split_events) sequence.SeparatedChannels.Add(ev);
 
+        sequence.IsNewFormat = false;
         return true;
     }
 
@@ -317,9 +310,6 @@ public partial class Sequence
 
         switch (sound)
         {
-            case "!loopmany" or "!loop" or "!stop" or "_pause":
-                loop_times = (float)(value > 0 ? value : loop_times);
-                break;
             case "#bookmark":
                 return new BookmarkEvent
                 {
@@ -332,9 +322,9 @@ public partial class Sequence
             var new_event = new NormalEvent
             {
                 Value = value,
+                WorkingValue = value,
                 SoundEvent = string.Intern(sound),
                 PlayTimes = loop_times,
-                OriginalLoop = loop_times,
                 ValueScale = scale,
                 Volume = event_volume
             };
@@ -343,18 +333,16 @@ public partial class Sequence
         }
         else
         {
-            var isNewFormat = Math.Abs(pan) > 1;
-
             var new_event = new PannedEvent
             {
-                Pan = isNewFormat ? pan / 100f : pan,
+                Pan = sequence.IsNewFormat ? pan / 100f : pan,
                 Value = value,
+                WorkingValue = value,
                 SoundEvent = string.Intern(sound),
                 PlayTimes = loop_times,
-                OriginalLoop = loop_times,
                 ValueScale = scale,
                 Volume = event_volume,
-                IsStandardImplementation = isNewFormat
+                IsStandardImplementation = sequence.IsNewFormat
             };
 
             return new_event;
@@ -431,7 +419,6 @@ public partial class Sequence
             Value = value,
             SoundEvent = action,
             PlayTimes = 1,
-            OriginalLoop = 1,
             ValueScale = ValueScale.None,
             Volume = null
         };

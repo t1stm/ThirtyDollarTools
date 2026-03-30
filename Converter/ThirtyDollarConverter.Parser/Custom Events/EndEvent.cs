@@ -6,7 +6,6 @@ public class EndEvent : BaseEvent, IHiddenEvent, ICustomActionEvent
     {
         return new EndEvent
         {
-            OriginalLoop = OriginalLoop,
             PlayTimes = PlayTimes,
             SoundEvent = "#sequence_end"
         };

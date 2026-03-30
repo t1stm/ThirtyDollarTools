@@ -1,6 +1,6 @@
 namespace ThirtyDollarParser.Custom_Events;
 
-public class PannedEvent : BaseEvent, ICustomAudibleEvent
+public class PannedEvent : NormalEvent, ICustomAudibleEvent
 {
     public PannedEvent()
     {
@@ -10,7 +10,6 @@ public class PannedEvent : BaseEvent, ICustomAudibleEvent
     {
         SoundEvent = baseEvent.SoundEvent;
         Value = baseEvent.Value;
-        OriginalLoop = baseEvent.OriginalLoop;
         PlayTimes = baseEvent.PlayTimes;
         Volume = baseEvent.Volume;
         ValueScale = baseEvent.ValueScale;
@@ -42,12 +41,13 @@ public class PannedEvent : BaseEvent, ICustomAudibleEvent
         {
             SoundEvent = SoundEvent,
             Value = Value,
-            OriginalLoop = OriginalLoop,
             PlayTimes = PlayTimes,
             Volume = Volume,
             ValueScale = ValueScale,
             Pan = Pan,
-            IsStandardImplementation = IsStandardImplementation
+            IsStandardImplementation = IsStandardImplementation,
+            WorkingValue = WorkingValue,
+            WorkingVolume = WorkingVolume
         };
     }
 }
