@@ -106,6 +106,13 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
 
     public override void FileDrop(string[] locations)
     {
+        if (locations.Length == 1 && locations[0].EndsWith(".wav"))
+        {
+            _visualizer.UpdateBackingTrack(locations[0]);
+            return;
+        }
+        
+        _visualizer.UpdateBackingTrack(null);
         var sequenceInfos = Workflow.GetSequenceInfos(locations);
         var sequences = new Sequence[locations.Length];
 

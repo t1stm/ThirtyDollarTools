@@ -32,4 +32,9 @@ public class BackingAudio(AudioContext context, AudioData<float> data, int sampl
     {
         _buffer.SetPause(!playing);
     }
+
+    public void Stop()
+    {
+        _buffer.Stop();
+    }
 }

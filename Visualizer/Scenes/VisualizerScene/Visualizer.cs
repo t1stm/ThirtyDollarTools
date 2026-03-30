@@ -699,8 +699,15 @@ public class Visualizer : Scene, IGamePreloadable
         flashOverlay.SetPosition((-width_scale / 2f, -height_scale / 2f, f_z));
     }
 
-    private void UpdateBackingTrack(string location)
+    public void UpdateBackingTrack(string? location)
     {
+        if (location == null)
+        {
+            _backingAudio?.Stop();
+            _backingAudio = null;
+            return;
+        }
+        
         var decoder = new WaveDecoder();
         var file_stream = File.OpenRead(location);
         var pcm_data = decoder.Read(file_stream);

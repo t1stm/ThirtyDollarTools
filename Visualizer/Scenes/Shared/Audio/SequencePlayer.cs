@@ -203,7 +203,8 @@ public class SequencePlayer
     {
         await UpdateLock.WaitAsync();
         CutSounds();
-
+        
+        TimingStopwatch.Reset();
         BufferHolder = holder;
         Events = events;
         SequenceIndices = sequenceIndices;
