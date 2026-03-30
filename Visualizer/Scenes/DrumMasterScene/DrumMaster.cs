@@ -112,6 +112,8 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             return;
         }
         
+        Workflow.SequencePlayer.GetTimingStopwatch().Reset();
+        
         _visualizer.UpdateBackingTrack(null);
         var sequenceInfos = Workflow.GetSequenceInfos(locations);
         var sequences = new Sequence[locations.Length];
