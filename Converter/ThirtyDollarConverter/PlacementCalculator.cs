@@ -269,7 +269,7 @@ public class PlacementCalculator
                     ev.Triggered = true;
 
                     var item = sequence.Events.FirstOrDefault(r =>
-                        r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f);
+                        r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && !r.Triggered);
                     if (item == null)
                     {
                         Log($"Unable to jump to target with id: {ev.Value}");
@@ -333,8 +333,6 @@ public class PlacementCalculator
                         case ValueScale.None:
                             transpose = ev.Value;
                             break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
                     }
 
                     Log($"Transposing samples by: \'{transpose}\'");
