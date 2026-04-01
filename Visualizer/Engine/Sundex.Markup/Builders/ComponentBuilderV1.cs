@@ -72,7 +72,7 @@ public class ComponentBuilderV1 : IComponentBuilder
         var registeredIds = new Dictionary<string, UIElement>(StringComparer.Ordinal);
         var registeredClasses = new Dictionary<string, List<UIElement>>(StringComparer.Ordinal);
 
-        var uiElement = BuildUIElement(rootNode, context.UIContext, dependencies, styleSheet,
+        var uiElement = BuildUIElement(rootNode, context, dependencies, styleSheet,
             registeredIds, registeredClasses);
 
         if (styleSheet is not null)
@@ -80,6 +80,16 @@ public class ComponentBuilderV1 : IComponentBuilder
 
         var logic = layout.Logic;
         Action<object?>? runLogic = null;
+
+        var component = new SundexComponent
+        {
+            Version = Version,
+            Context = context,
+            Element = uiElement,
+            RegisteredIDs = registeredIds,
+            RegisteredClasses = registeredClasses,
+        };
+        
         if (logic is not null)
         {
             LanguageProvider.Languages.TryGetValue(logic.Language, out var language);
@@ -94,18 +104,9 @@ public class ComponentBuilderV1 : IComponentBuilder
                 logic.UpdateSourceCode(newSource.Value);
             }
 
-            runLogic = language.Compile(logic.SourceCode, context, logic.LanguageImports);
+            runLogic = language.Compile(logic.SourceCode, context, component, logic.LanguageImports);
         }
-
-        var component = new SundexComponent
-        {
-            Version = Version,
-            Context = context,
-            Element = uiElement,
-            RegisteredIDs = registeredIds,
-            RegisteredClasses = registeredClasses,
-            RunLogic = runLogic
-        };
+        component.RunLogic = runLogic;
 
         if (root.Implements?.Length > 0)
             HandleImplements(component, context);
@@ -114,7 +115,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
     private static UIElement BuildUIElement(
         SundexNode node,
-        UIContext context,
+        ISundexContext context,
         List<ISundexComponent>? dependencies,
         StyleSheet? styleSheet,
         Dictionary<string, UIElement> registeredIds,
@@ -126,7 +127,7 @@ public class ComponentBuilderV1 : IComponentBuilder
         {
             case "stack":
             {
-                element = new StackPanel(context)
+                element = new StackPanel(context.UIContext)
                 {
                     Children = node.Children
                         .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
@@ -138,7 +139,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
             case "flex":
             {
-                element = new FlexPanel(context)
+                element = new FlexPanel(context.UIContext)
                 {
                     Children = node.Children
                         .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
@@ -150,7 +151,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
             case "panel":
             {
-                element = new Panel(context)
+                element = new Panel(context.UIContext)
                 {
                     Children = node.Children
                         .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
@@ -163,7 +164,7 @@ public class ComponentBuilderV1 : IComponentBuilder
             case "label":
             {
                 node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var text);
-                element = new Label(context, text ?? string.Empty);
+                element = new Label(context.UIContext, text ?? string.Empty);
                 break;
             }
 
@@ -175,12 +176,12 @@ public class ComponentBuilderV1 : IComponentBuilder
                 if (node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>()
                         .TryGetValue("value", out var progressString) &&
                     float.TryParse(progressString, out var progress))
-                    element = new ProgressBar(context, background, foreground)
+                    element = new ProgressBar(context.UIContext, background, foreground)
                     {
                         Progress = progress
                     };
                 else
-                    element = new ProgressBar(context, background, foreground);
+                    element = new ProgressBar(context.UIContext, background, foreground);
 
                 break;
             }
@@ -193,12 +194,27 @@ public class ComponentBuilderV1 : IComponentBuilder
                 var background = ExtractBackgroundStyle(node, styleSheet);
                 element = BuildUIElement(labelNode, context, dependencies, styleSheet, registeredIds, registeredClasses)
                     is Label label
-                    ? new Button(context, label, background)
+                    ? new Button(context.UIContext, label, background)
                     : throw new Exception("Button label wasn't parsed as a label.");
                 break;
             }
             default:
             {
+                // Check for custom element factories first
+                var customElement = context.CreateElement(nodeTag);
+
+                if (customElement != null)
+                {
+                    element = customElement;
+                    if (element is Panel panel && node.Children.Count > 0)
+                    {
+                        panel.Children.AddRange(node.Children
+                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                                registeredClasses)));
+                    }
+                    break;
+                }
+
                 if (dependencies is null) throw new Exception($"Unknown tag: {nodeTag}");
                 var dependency = dependencies
                     .FirstOrDefault(dependency => dependency.Name == nodeTag);

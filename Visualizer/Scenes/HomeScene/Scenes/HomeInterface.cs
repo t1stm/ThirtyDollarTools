@@ -50,10 +50,14 @@ public class HomeInterface
         RootPanel.Layout();
     }
 
-    public void Update(UIContext context, MouseState mouseState, Vector2 scale)
+    public void Update(UIContext context)
     {
         RootPanel.Update(context);
-        RootPanel.Test(mouseState, scale);
         RootPanel.Layout();
+    }
+
+    public void MouseEvent(MouseState mouseState, Vector2 scale)
+    {
+        RootPanel.Test(mouseState, scale);
     }
 }

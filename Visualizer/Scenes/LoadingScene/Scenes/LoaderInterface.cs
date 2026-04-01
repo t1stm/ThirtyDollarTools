@@ -29,8 +29,6 @@ public class LoaderInterface
         });
         
         Component = sundexContext.NewComponent(componentSource.Value);
-        Component.RunLogic?.Invoke(this);
-
         sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => ProgressBar, () => Label);
         RootPanel.DrawTo(context);
     }
@@ -55,10 +53,14 @@ public class LoaderInterface
         RootPanel.Layout();
     }
 
-    public void Update(IProgressReport progressReport, UIContext context, MouseState mouseState, Vector2 scale)
+    public void MouseEvent(MouseState mouseState, Vector2 scale)
+    {
+        RootPanel.Test(mouseState, scale);
+    }
+    
+    public void Update(IProgressReport progressReport, UIContext context)
     {
         RootPanel.Update(context);
-        RootPanel.Test(mouseState, scale);
         Label.SetTextContents(progressReport.Message);
         ProgressBar.Progress = (float)progressReport.Percentage;
         RootPanel.Layout();

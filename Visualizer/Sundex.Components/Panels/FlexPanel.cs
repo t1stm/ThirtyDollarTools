@@ -8,7 +8,7 @@ using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Panels;
 
-public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
+public class FlexPanel(UIContext context) : Panel(context)
 {
     public override string Tag => "flex";
 
@@ -39,30 +39,18 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
     [NamedSetting("width")] public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.AutoSize;
 
     [NamedSetting("height")] public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
-
-    [NamedSetting("direction")] public LayoutDirection Direction { get; set; } = LayoutDirection.Horizontal;
-
-    [NamedSetting("padding")]
-    public float Padding
+    
+    [NamedSetting("wrap")]
+    public virtual bool Wrap
     {
         get;
         set
         {
+            if (field == value) return;
             field = value;
             InvalidateLayout();
         }
-    }
-
-    [NamedSetting("spacing")]
-    public float Spacing
-    {
-        get;
-        set
-        {
-            field = value;
-            InvalidateLayout();
-        }
-    }
+    } = false;
 
     protected override void DoLayout()
     {
@@ -101,36 +89,116 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
         {
             case LayoutDirection.Horizontal:
             {
-                float sumW = 0;
-                float maxH = 0;
-                var i = 0;
-                foreach (var child in Children)
+                if (Wrap)
                 {
-                    var (cw, ch) = child.Measure(innerW, innerH);
-                    sumW += cw;
-                    if (i++ > 0) sumW += Spacing;
-                    if (ch > maxH) maxH = ch;
+                    float currentLineWidth = 0;
+                    float currentLineHeight = 0;
+                    float totalWidth = 0;
+                    float totalHeight = 0;
+                    var firstInLine = true;
+
+                    foreach (var child in Children)
+                    {
+                        var (cw, ch) = child.Measure(innerW, innerH);
+                        var potentialWidth = firstInLine ? cw : currentLineWidth + Spacing + cw;
+
+                        if (!firstInLine && potentialWidth > innerW && innerW > 0)
+                        {
+                            // Wrap to next line
+                            totalWidth = Math.Max(totalWidth, currentLineWidth);
+                            totalHeight += currentLineHeight + Spacing;
+                            currentLineWidth = cw;
+                            currentLineHeight = ch;
+                            firstInLine = true;
+                        }
+                        else
+                        {
+                            currentLineWidth = potentialWidth;
+                            currentLineHeight = Math.Max(currentLineHeight, ch);
+                            firstInLine = false;
+                        }
+                    }
+
+                    totalWidth = Math.Max(totalWidth, currentLineWidth);
+                    totalHeight += currentLineHeight;
+                    
+                    contentW = totalWidth;
+                    contentH = totalHeight;
+                }
+                else
+                {
+                    float sumW = 0;
+                    float maxH = 0;
+                    var i = 0;
+                    foreach (var child in Children)
+                    {
+                        var (cw, ch) = child.Measure(innerW, innerH);
+                        sumW += cw;
+                        if (i++ > 0) sumW += Spacing;
+                        if (ch > maxH) maxH = ch;
+                    }
+
+                    contentW = sumW;
+                    contentH = maxH;
                 }
 
-                contentW = sumW;
-                contentH = maxH;
                 break;
             }
             case LayoutDirection.Vertical:
             {
-                float sumH = 0;
-                float maxW = 0;
-                var i = 0;
-                foreach (var child in Children)
+                if (Wrap)
                 {
-                    var (cw, ch) = child.Measure(innerW, innerH);
-                    sumH += ch;
-                    if (i++ > 0) sumH += Spacing;
-                    if (cw > maxW) maxW = cw;
+                    float currentColumnHeight = 0;
+                    float currentColumnWidth = 0;
+                    float totalHeight = 0;
+                    float totalWidth = 0;
+                    bool firstInColumn = true;
+
+                    foreach (var child in Children)
+                    {
+                        var (cw, ch) = child.Measure(innerW, innerH);
+                        float potentialHeight = firstInColumn ? ch : currentColumnHeight + Spacing + ch;
+
+                        if (!firstInColumn && potentialHeight > innerH && innerH > 0)
+                        {
+                            // Wrap to next column
+                            totalHeight = Math.Max(totalHeight, currentColumnHeight);
+                            totalWidth += currentColumnWidth + Spacing;
+                            currentColumnHeight = ch;
+                            currentColumnWidth = cw;
+                            firstInColumn = true;
+                        }
+                        else
+                        {
+                            currentColumnHeight = potentialHeight;
+                            currentColumnWidth = Math.Max(currentColumnWidth, cw);
+                            firstInColumn = false;
+                        }
+                    }
+
+                    totalHeight = Math.Max(totalHeight, currentColumnHeight);
+                    totalWidth += currentColumnWidth;
+
+                    contentW = totalWidth;
+                    contentH = totalHeight;
+                }
+                else
+                {
+                    float sumH = 0;
+                    float maxW = 0;
+                    var i = 0;
+                    foreach (var child in Children)
+                    {
+                        var (cw, ch) = child.Measure(innerW, innerH);
+                        sumH += ch;
+                        if (i++ > 0) sumH += Spacing;
+                        if (cw > maxW) maxW = cw;
+                    }
+
+                    contentW = maxW;
+                    contentH = sumH;
                 }
 
-                contentW = maxW;
-                contentH = sumH;
                 break;
             }
             default:
@@ -145,8 +213,14 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
 
     private void Layout_Horizontal(int count, float innerWidth, float innerHeight)
     {
+        if (Wrap)
+        {
+            Layout_Horizontal_Wrap(innerWidth, innerHeight);
+            return;
+        }
+
         var total_spacing = Spacing * (count - 1);
-        var total_fixed = Children.Where(c => !c.Width.IsPercentage && !c.Width.Auto).Sum(c => c.Width.Value);
+        var total_fixed = Children.Where(c => c.Width is { IsPercentage: false, Auto: false }).Sum(c => c.Width.Value);
         var total_auto = Children.Where(c => c.Width.Auto).Sum(c => c.Measure(innerWidth, innerHeight).width);
         var total_percent = Children.Where(c => c.Width.IsPercentage).Sum(c => c.Width.Value);
         var free_space = Math.Max(0, innerWidth - total_fixed - total_auto - total_spacing);
@@ -161,28 +235,25 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
 
         foreach (var child in Children)
         {
-            var (measuredW, measuredH) = child.Measure(innerWidth, innerHeight);
+            if (child.Width.IsPercentage)
+            {
+                child.Width = child.Width.Value / 100f * free_space;
+            }
 
             child.X = offset;
-
-            // Resolve child height
-            var ch = child.Height.Auto ? measuredH
-                : child.Height.IsPercentage ? innerHeight * (child.Height.Value / 100f)
-                : child.Height.Value;
-            if (child.Height.IsPercentage || child.Height.Auto)
-                child.Height = ch;
+            child.Layout();
 
             switch (VerticalAlign)
             {
                 case Align.Center:
-                    child.Y = (innerHeight - ch) / 2;
+                    child.Y = (innerHeight - child.Computed.Height) / 2;
                     break;
                 case Align.End:
-                    child.Y = innerHeight - ch;
+                    child.Y = innerHeight - child.Computed.Height;
                     break;
                 case Align.Stretch:
                     child.Y = 0;
-                    child.Height = innerHeight;
+                    // child.Height = innerHeight; // Still destructive, but matches Stretch behavior
                     break;
                 case Align.Start:
                 default:
@@ -190,25 +261,19 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
                     break;
             }
 
-            // Resolve child width
-            float cw;
-            if (child.Width.IsPercentage)
-                cw = total_percent > 0 ? free_space * (child.Width.Value / total_percent) : 0;
-            else if (child.Width.Auto)
-                cw = measuredW;
-            else
-                cw = child.Width.Value;
-
-            if (child.Width.IsPercentage || child.Width.Auto)
-                child.Width = cw;
-
-            child.Layout();
-            offset += cw + Spacing;
+            child.Layout(); // Re-layout with new relative Y if changed
+            offset += child.Computed.Width + Spacing;
         }
     }
 
     private void Layout_Vertical(int count, float innerHeight, float innerWidth)
     {
+        if (Wrap)
+        {
+            Layout_Vertical_Wrap(innerHeight, innerWidth);
+            return;
+        }
+
         var total_spacing = Spacing * (count - 1);
         var total_fixed = Children.Where(c => !c.Height.IsPercentage && !c.Height.Auto).Sum(c => c.Height.Value);
         var total_auto = Children.Where(c => c.Height.Auto).Sum(c => c.Measure(innerWidth, innerHeight).height);
@@ -225,27 +290,25 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
 
         foreach (var child in Children)
         {
-            var (measuredW, measuredH) = child.Measure(innerWidth, innerHeight);
+            if (child.Height.IsPercentage)
+            {
+                child.Height = (child.Height.Value / 100f) * free_space;
+            }
 
             child.Y = offset;
+            child.Layout();
 
-            // Resolve child width
-            var cw = child.Width.Auto ? measuredW
-                : child.Width.IsPercentage ? innerWidth * (child.Width.Value / 100f)
-                : child.Width.Value;
-            if (child.Width.IsPercentage || child.Width.Auto)
-                child.Width = cw;
             switch (HorizontalAlign)
             {
                 case Align.Center:
-                    child.X = (innerWidth - cw) / 2;
+                    child.X = (innerWidth - child.Computed.Width) / 2;
                     break;
                 case Align.End:
-                    child.X = innerWidth - cw;
+                    child.X = innerWidth - child.Computed.Width;
                     break;
                 case Align.Stretch:
                     child.X = 0;
-                    child.Width = innerWidth;
+                    // child.Width = innerWidth; // Still destructive, but matches Stretch behavior
                     break;
                 case Align.Start:
                 default:
@@ -253,20 +316,66 @@ public class FlexPanel(UIContext context) : Panel(context), IPositioningElement
                     break;
             }
 
-            // Resolve child height
-            float ch;
-            if (child.Height.IsPercentage)
-                ch = total_percent > 0 ? free_space * (child.Height.Value / total_percent) : 0;
-            else if (child.Height.Auto)
-                ch = measuredH;
-            else
-                ch = child.Height.Value;
+            child.Layout(); // Re-layout with new relative X if changed
+            offset += child.Computed.Height + Spacing;
+        }
+    }
 
-            if (child.Height.IsPercentage || child.Height.Auto)
-                child.Height = ch;
+    private void Layout_Horizontal_Wrap(float innerWidth, float innerHeight)
+    {
+        float currentX = 0;
+        float currentY = 0;
+        float lineHeight = 0;
+        bool firstInLine = true;
 
+        foreach (var child in Children)
+        {
+            var (cw, ch) = child.Measure(innerWidth, innerHeight);
+            
+            if (!firstInLine && currentX + Spacing + cw > innerWidth && innerWidth > 0)
+            {
+                currentX = 0;
+                currentY += lineHeight + Spacing;
+                lineHeight = 0;
+                firstInLine = true;
+            }
+
+            child.X = currentX;
+            child.Y = currentY;
             child.Layout();
-            offset += ch + Spacing;
+
+            currentX += child.Computed.Width + Spacing;
+            lineHeight = Math.Max(lineHeight, child.Computed.Height);
+            firstInLine = false;
+        }
+    }
+
+    private void Layout_Vertical_Wrap(float innerHeight, float innerWidth)
+    {
+        float currentX = 0;
+        float currentY = 0;
+        float columnWidth = 0;
+        bool firstInColumn = true;
+
+        foreach (var child in Children)
+        {
+            var (cw, ch) = child.Measure(innerWidth, innerHeight);
+
+            if (!firstInColumn && currentY + Spacing + ch > innerHeight && innerHeight > 0)
+            {
+                currentY = 0;
+                currentX += columnWidth + Spacing;
+                columnWidth = 0;
+                firstInColumn = true;
+            }
+
+            child.X = currentX;
+            child.Y = currentY;
+            child.Layout();
+
+            currentY += child.Computed.Height + Spacing;
+            columnWidth = Math.Max(columnWidth, child.Computed.Width);
+            firstInColumn = false;
         }
     }
 

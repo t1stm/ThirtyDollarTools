@@ -7,14 +7,19 @@ namespace Sundex.Components.Labels;
 
 public class Button : FlexPanel
 {
+    public override LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
+    public override float Padding { get; set; } = 5;
+
     public Button(UIContext context, string label, Renderable? background = null) : this(context,
-        new Label(context, label), background)
+        new Label(context, label)
+        {
+            AnchorX = Anchor.Center, AnchorY = Anchor.Center
+        }, background)
     {
     }
 
     public Button(UIContext context, Label label, Renderable? background = null) : base(context)
     {
-        Padding = 5;
         HorizontalAlign = Align.Center;
         VerticalAlign = Align.Center;
         Background = background;

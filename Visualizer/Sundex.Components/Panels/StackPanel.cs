@@ -8,42 +8,9 @@ using Sundex.Style.DSL.Abstract.Values;
 namespace Sundex.Components.Panels;
 
 public class StackPanel(UIContext context)
-    : Panel(context), IPositioningElement
+    : Panel(context)
 {
     public override string Tag => "stack";
-
-    [NamedSetting("direction")]
-    public LayoutDirection Direction
-    {
-        get;
-        set
-        {
-            field = value;
-            InvalidateLayout();
-        }
-    } = LayoutDirection.Vertical;
-
-    [NamedSetting("spacing")]
-    public float Spacing
-    {
-        get;
-        set
-        {
-            field = value;
-            InvalidateLayout();
-        }
-    } = 0;
-
-    [NamedSetting("padding")]
-    public float Padding
-    {
-        get;
-        set
-        {
-            field = value;
-            InvalidateLayout();
-        }
-    } = 0;
 
     protected override void DoLayout()
     {
@@ -61,17 +28,6 @@ public class StackPanel(UIContext context)
                 var currentY = offset;
                 child.Y = currentY;
 
-                var (cw, ch) = child.Measure(inner_width, inner_height);
-                if (child.Width.IsPercentage)
-                    child.Width = inner_width * (child.Width.Value / 100f);
-                else if (child.Width.Auto)
-                    child.Width = cw;
-
-                if (child.Height.IsPercentage)
-                    child.Height = inner_height * (child.Height.Value / 100f);
-                else if (child.Height.Auto)
-                    child.Height = ch;
-
                 child.Layout();
                 offset += child.Computed.Height + Spacing;
             }
@@ -80,17 +36,6 @@ public class StackPanel(UIContext context)
                 var currentX = offset;
                 child.X = currentX;
                 child.Y = 0;
-
-                var (cw, ch) = child.Measure(inner_width, inner_height);
-                if (child.Width.IsPercentage)
-                    child.Width = inner_width * (child.Width.Value / 100f);
-                else if (child.Width.Auto)
-                    child.Width = cw;
-
-                if (child.Height.IsPercentage)
-                    child.Height = inner_height * (child.Height.Value / 100f);
-                else if (child.Height.Auto)
-                    child.Height = ch;
 
                 child.Layout();
                 offset += child.Computed.Width + Spacing;

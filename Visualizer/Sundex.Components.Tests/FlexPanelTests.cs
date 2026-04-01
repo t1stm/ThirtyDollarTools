@@ -124,13 +124,75 @@ public class FlexPanelTests
         var child1 = new TestElement(context) { Width = new LiteralOrComputable(100, true), Height = 20 };
         var child2 = new TestElement(context) { Width = 30, Height = 20 };
         flex.Children = [child1, child2];
+        child1.Parent = flex;
+        child2.Parent = flex;
 
         flex.Layout();
 
         // innerWidth = 100. total_fixed = 30. total_spacing = 0.
         // free_space = 70. flex_size = 70 / 1 = 70.
-        Assert.Equal(70, child1.Width);
-        Assert.Equal(30, child2.Width);
+        Assert.Equal(70, child1.Computed.Width);
+        Assert.Equal(30, child2.Computed.Width);
+    }
+
+    [Fact]
+    public void TestHorizontalLayout_Wrap()
+    {
+        var context = new TestUIContext();
+        var flex = new FlexPanel(context)
+        {
+            Width = 100,
+            Height = 100,
+            Direction = LayoutDirection.Horizontal,
+            Wrap = true,
+            Spacing = 10,
+            Padding = 0
+        };
+        var child1 = new TestElement(context) { Width = 40, Height = 20 };
+        var child2 = new TestElement(context) { Width = 40, Height = 20 };
+        var child3 = new TestElement(context) { Width = 40, Height = 20 };
+        flex.Children = [child1, child2, child3];
+
+        flex.Layout();
+
+        // child1: X=0, Y=0. currentX becomes 40+10=50.
+        // child2: X=50, Y=0. currentX becomes 50+40+10=100.
+        // child3: 100 + 40 > 100 (if Spacing is added? potentialWidth = 100+40 = 140).
+        // It wraps. X=0, Y=20+10=30.
+        Assert.Equal(0, child1.X);
+        Assert.Equal(0, child1.Y);
+        Assert.Equal(50, child2.X);
+        Assert.Equal(0, child2.Y);
+        Assert.Equal(0, child3.X);
+        Assert.Equal(30, child3.Y);
+    }
+
+    [Fact]
+    public void TestVerticalLayout_Wrap()
+    {
+        var context = new TestUIContext();
+        var flex = new FlexPanel(context)
+        {
+            Width = 100,
+            Height = 100,
+            Direction = LayoutDirection.Vertical,
+            Wrap = true,
+            Spacing = 10,
+            Padding = 0
+        };
+        var child1 = new TestElement(context) { Width = 20, Height = 50 };
+        var child2 = new TestElement(context) { Width = 20, Height = 50 };
+        flex.Children = [child1, child2];
+
+        flex.Layout();
+
+        // child1: X=0, Y=0. currentY becomes 50+10=60.
+        // child2: potentialHeight = 60 + 50 = 110 > 100. Wraps.
+        // child2: X=30, Y=0.
+        Assert.Equal(0, child1.X);
+        Assert.Equal(0, child1.Y);
+        Assert.Equal(30, child2.X);
+        Assert.Equal(0, child2.Y);
     }
 
     private class TestElement(UIContext context)

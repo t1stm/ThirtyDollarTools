@@ -1,10 +1,12 @@
 using Shared;
 using Shared.Atlases;
+using Sundex.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer.Cameras;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 
 namespace VisualizerScene.Objects.Playfield.Batch.Chunks;
 
-public class StackCollection : IDisposable
+public class StackCollection : IDisposable, IRenderable
 {
     public Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> StaticStacks { get; set; } = [];
     public Dictionary<FramedAtlas, RenderStack<SoundData>> AnimatedStacks { get; set; } = [];
@@ -20,7 +22,7 @@ public class StackCollection : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public void Render(DollarStoreCamera temporaryCamera)
+    public void Render(Camera temporaryCamera)
     {
         foreach (var (atlas, render_stack) in StaticStacks)
         {

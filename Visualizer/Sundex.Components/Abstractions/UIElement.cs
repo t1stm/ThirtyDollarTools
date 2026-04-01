@@ -47,7 +47,10 @@ public abstract class UIElement
     protected UIElement(UIContext context)
     {
         Context = context;
-        Computed = new ComputedRectangle(this);
+        Computed = new ComputedRectangle(this)
+        {
+            OnUpdate = InvalidateCoordinates
+        };
     }
 
     public abstract string Tag { get; }
@@ -55,7 +58,7 @@ public abstract class UIElement
 
     public string ID { get; set; } = "";
     public HashSet<string> Classes { get; set; } = [];
-    public ComputedRectangle Computed { get; }
+    public virtual ComputedRectangle Computed { get; protected set; }
 
     [NamedSetting("animations")]
     public List<Animation> Animations
@@ -72,38 +75,42 @@ public abstract class UIElement
     public virtual LiteralOrComputable X
     {
         get;
-        set => UpdateSetDirtySelf(out field, value);
+        set => UpdateSetDirty(ref field, value);
     }
 
     [NamedSetting("y")]
     public virtual LiteralOrComputable Y
     {
         get;
-        set => UpdateSetDirtySelf(out field, value);
+        set => UpdateSetDirty(ref field, value);
     }
 
     [NamedSetting("width")]
     public virtual LiteralOrComputable Width
     {
         get;
-        set => UpdateSetDirty(out field, value);
+        set => UpdateSetDirty(ref field, value);
     }
 
     [NamedSetting("height")]
     public virtual LiteralOrComputable Height
     {
         get;
-        set => UpdateSetDirty(out field, value);
+        set => UpdateSetDirty(ref field, value);
     }
 
-    [NamedSetting("index")] protected virtual int Index { get; set; }
+    public virtual void StopRendering()
+    {
+    }
+
+    [NamedSetting("index")] public virtual int Index { get; internal set; }
 
     /// <summary>Horizontal anchor point. "center" shifts left by width/2, "end" shifts left by width.</summary>
     [NamedSetting("anchor-x")]
     public Anchor AnchorX
     {
         get;
-        set => UpdateSetDirty(out field, value);
+        set => UpdateSetDirty(ref field, value);
     } = Anchor.Start;
 
     /// <summary>Vertical anchor point. "center" shifts up by height/2, "end" shifts up by height.</summary>
@@ -111,7 +118,7 @@ public abstract class UIElement
     public Anchor AnchorY
     {
         get;
-        set => UpdateSetDirty(out field, value);
+        set => UpdateSetDirty(ref field, value);
     } = Anchor.Start;
 
     [NamedSetting("visible")]
@@ -185,17 +192,11 @@ public abstract class UIElement
         else Context.RegisterUpdate(this);
     }
 
-    private void UpdateSetDirty<T>(out T field, T value)
+    protected void UpdateSetDirty<T>(ref T field, T value)
     {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return;
         field = value;
-        NeedsLayout = true;
-        Parent?.InvalidateLayout();
-    }
-
-    protected void UpdateSetDirtySelf<T>(out T field, T value)
-    {
-        field = value;
-        NeedsLayout = true;
+        InvalidateLayout();
     }
 
     /// <summary>Returns the X pixel offset introduced by the <see cref="AnchorX" /> setting.</summary>
@@ -303,6 +304,7 @@ public abstract class UIElement
     /// </summary>
     public virtual void InvalidateCoordinates()
     {
+        if (NeedsLayout) return;
         NeedsLayout = true;
     }
 
@@ -346,6 +348,7 @@ public abstract class UIElement
     public virtual void DrawTo(UIContext uiContext)
     {
         if (!Visible) return;
+        Layout();
         DrawSelf(uiContext);
     }
 

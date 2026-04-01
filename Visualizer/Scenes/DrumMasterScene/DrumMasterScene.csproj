@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj" />
+    <ProjectReference Include="..\..\Engine\Sundex.Markup\Sundex.Markup.csproj" />
+    <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj" />
     <ProjectReference Include="..\Shared\Shared.csproj" />
     <ProjectReference Include="..\VisualizerScene\VisualizerScene.csproj" />
   </ItemGroup>
@@ -17,6 +19,17 @@
     <None Remove="Assets\Shaders\Taiko\HitBox.vert" />
     <None Remove="Assets\Shaders\Taiko\Lane.frag" />
     <None Remove="Assets\Shaders\Taiko\Lane.vert" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="UI\Select Sounds\SelectSounds.snx.csx" />
+    <EmbeddedResource Include="UI\Select Sounds\SelectSounds.snx.csx" />
+    <None Remove="UI\Select Sounds\SelectSounds.snx.ss" />
+    <EmbeddedResource Include="UI\Select Sounds\SelectSounds.snx.ss" />
+    <None Remove="UI\Select Sounds\SelectSounds.snx.xml" />
+    <EmbeddedResource Include="UI\Select Sounds\SelectSounds.snx.xml" />
+    <None Remove="UI\WaitingForSequence.snx.xml" />
+    <EmbeddedResource Include="UI\WaitingForSequence.snx.xml" />
   </ItemGroup>
 
 </Project>

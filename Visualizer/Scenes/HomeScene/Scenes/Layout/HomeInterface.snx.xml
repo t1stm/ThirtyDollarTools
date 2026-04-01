@@ -1,6 +1,6 @@
 <sundex version="1.0">
   <style language="sundex" src="Scenes/Layout/HomeInterface.snx.ss"/>
-  <logic src="Scenes/Layout/HomeInterface.snx.csx" language="csharp" imports="[HomeScene.Scenes]" />
+  <logic language="csharp" src="Scenes/Layout/HomeInterface.snx.csx" imports="[HomeScene.Scenes]" />
 
   <layout>
     <panel id="main-holder">

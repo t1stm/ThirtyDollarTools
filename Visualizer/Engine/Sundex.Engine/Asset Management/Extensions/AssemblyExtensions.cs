@@ -7,11 +7,22 @@ public static class AssemblyExtensions
 {
     extension(Assembly[] assemblies)
     {
+        private static void Sanitize(ReadOnlySpan<char> src, Span<char> dest, char searchChar, char replaceChar)
+        {
+            src.Replace(dest, searchChar, replaceChar);
+        }
+
+        private static void Sanitize(ReadOnlySpan<char> src, Span<char> dest)
+        {
+            Sanitize(src, dest, '/', '.');
+            Sanitize(dest, dest, ' ', '_');
+        }
+        
         public ManifestResourceInfo? GetManifestResourceInfo(ReadOnlySpan<char> name)
         {
             var newLocation = ArrayPool<char>.Shared.Rent(name.Length);
             var location = newLocation.AsSpan()[..name.Length];
-            name.Replace(location, '/', '.');
+            Sanitize(name, location);
 
             ReadOnlySpan<char> locationSpan = location;
             try
@@ -35,7 +46,7 @@ public static class AssemblyExtensions
         {
             var newLocation = ArrayPool<char>.Shared.Rent(name.Length);
             var location = newLocation.AsSpan()[..name.Length];
-            name.Replace(location, '/', '.');
+            Sanitize(name, location);
 
             ReadOnlySpan<char> locationSpan = location;
             try

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -7,7 +8,6 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
-using Sundex.Engine.Renderer.Abstract;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
@@ -22,8 +22,6 @@ public class ProgressBar : UIElement
     {
         BackgroundPanel = backgroundPanel;
         ForegroundPanel = foregroundPanel;
-        BackgroundPanel.Parent = this;
-        ForegroundPanel.Parent = this;
     }
 
     public ProgressBar(UIContext context, Renderable? bgPlaneBackground = null, Renderable? fgPlaneBackground = null) :
@@ -48,9 +46,9 @@ public class ProgressBar : UIElement
         get;
         set
         {
-            field = value;
+            UpdateSetDirty(ref field, value);
             field.Parent = this;
-            InvalidateLayout();
+            UpdatePanelIndices(BackgroundPanel, ForegroundPanel);
         }
     }
 
@@ -60,9 +58,9 @@ public class ProgressBar : UIElement
         get;
         set
         {
-            field = value;
+            UpdateSetDirty(ref field, value);
             field.Parent = this;
-            InvalidateLayout();
+            UpdatePanelIndices(BackgroundPanel, ForegroundPanel);
         }
     }
 
@@ -72,10 +70,9 @@ public class ProgressBar : UIElement
         get;
         set
         {
-            field = value;
+            UpdateSetDirty(ref field, value);
             BackgroundPanel.BorderRadius = value;
             ForegroundPanel.BorderRadius = value;
-            InvalidateLayout();
         }
     }
 
@@ -86,12 +83,36 @@ public class ProgressBar : UIElement
         set
         {
             if (Math.Abs(field - value) < 0.001f) return;
-            field = value;
-            InvalidateLayout();
+            UpdateSetDirty(ref field, value);
         }
     }
 
     public override string Tag => "progress";
+
+    public override UIElement? Parent
+    {
+        get => base.Parent;
+        set
+        {
+            base.Parent = value;
+            BackgroundPanel.Parent = this;
+            ForegroundPanel.Parent = this;
+            UpdatePanelIndices(BackgroundPanel, ForegroundPanel);
+        }
+    }
+
+    private void UpdatePanelIndices(Panel? backgroundPanel, Panel? foregroundPanel)
+    {
+        var baseIndex = Index;
+        backgroundPanel?.Index = baseIndex + 1;
+        foregroundPanel?.Index = baseIndex + 2;
+    }
+
+    public override void StopRendering()
+    {
+        BackgroundPanel.StopRendering();
+        ForegroundPanel.StopRendering();
+    }
 
     public override void ApplyStyleSheet(StyleSheet styleSheet)
     {
@@ -168,7 +189,8 @@ public class ProgressBar : UIElement
                     Background = gv.GenerateGradientPlane(),
                     BorderRadius = BorderRadius,
                     Width = new LiteralOrComputable(100, true),
-                    Height = new LiteralOrComputable(100, true)
+                    Height = new LiteralOrComputable(100, true),
+                    Parent = this
                 };
 
                 break;
@@ -184,7 +206,8 @@ public class ProgressBar : UIElement
                     },
                     BorderRadius = BorderRadius,
                     Width = new LiteralOrComputable(100, true),
-                    Height = new LiteralOrComputable(100, true)
+                    Height = new LiteralOrComputable(100, true),
+                    Parent = this
                 };
 
                 break;

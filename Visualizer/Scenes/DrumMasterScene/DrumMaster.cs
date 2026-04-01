@@ -1,12 +1,15 @@
 using DrumMasterScene.Components;
+using DrumMasterScene.UI;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Audio;
+using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
+using Sundex.Markup;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser;
@@ -16,52 +19,136 @@ namespace DrumMasterScene;
 
 public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
 {
-    private const string TaikoDon = "taiko_don";
-    private const string TaikoKa = "taiko_ka";
-    
-    private static readonly (string, Keys)[] OtherDrumSounds =
-    [
-        (TaikoDon, Keys.Unknown),
-        ("adofaikick", Keys.Unknown), ("🥁", Keys.Unknown), ("hammer", Keys.Unknown), ("🪘", Keys.Unknown),
-        ("🏏", Keys.Unknown), ("adofai_fire", Keys.Unknown), ("tab_rows", Keys.Unknown), ("midspin", Keys.Unknown),
-        ("noteblock_snare", Keys.Unknown),
-    ];
-
-    private static readonly (string, Keys)[] OtherCymbalSounds =
-    [
-        (TaikoKa, Keys.Unknown),
-        ("adofaicymbal", Keys.Unknown), ("shaker", Keys.Unknown), ("ride2", Keys.Unknown), ("hitmarker", Keys.Unknown),
-        ("adofai_ice", Keys.Unknown), ("rdclap", Keys.Unknown), ("tab_rooms", Keys.Unknown),
-        ("noteblock_click", Keys.Unknown), ("whipcrack", Keys.Unknown), ("sidestick", Keys.Unknown),
-        ("pan", Keys.Unknown)
-    ];
-
     private readonly Visualizer _visualizer = game.SceneManager.Get<Visualizer>();
     private readonly DollarStoreCamera _camera = new((0, 0, 0), (game.ClientSize.X, game.ClientSize.Y));
-
     private ThirtyDollarWorkflow Workflow { get; } = workflow;
 
-    private List<TaikoLane> TaikoLanes { get; set; } = [];
+    private SundexComponent _configUI = null!;
+    private SundexComponent _messageUI = null!;
+    private SundexContext _sundexContext = null!;
+
+    private List<TaikoLane> PlayerTaikoLanes { get; set; } = [];
+
+    private enum DrumMasterState
+    {
+        WaitingForSequence,
+        Configuring,
+        Playing
+    }
+
+    private readonly Queue<UIElement> _deletionQueue = [];
+
+    private DrumMasterState _state = DrumMasterState.WaitingForSequence;
+    private Sequence[] _pendingSequences = [];
+    private readonly List<TaikoLaneConfiguration> _taikoLaneConfigurations = [];
 
     public override void Initialize(InitArguments initArguments)
     {
+        var uiContext = new UIContext
+        {
+            Camera = _camera,
+        };
+        _sundexContext = new SundexContext(uiContext);
+        
+        // Register custom element factories
+        _sundexContext.RegisterElementFactory("sound-list", ctx => new SoundList(ctx, Workflow.AtlasStore));
+        _sundexContext.RegisterElementFactory("taiko-lane-configuration", ctx =>
+        {
+            var config = new TaikoLaneConfiguration(ctx, _sundexContext)
+            {
+                OnDeleteRequested = QueueDeletion
+            };
+            _taikoLaneConfigurations.Add(config);
+            return config;
+        });
+
+        _configUI = _sundexContext.NewComponent(Game.AssetProvider.Load<StringAsset, StringInfo>(
+            StringInfo.CreateFromUnknownStorage("UI/Select Sounds/SelectSounds.snx.xml")).Value);
+        _configUI.RunLogic?.Invoke(this);
+        _configUI.Element.Layout();
+        
+        _messageUI = _sundexContext.NewComponent(Game.AssetProvider.Load<StringAsset, StringInfo>(
+            StringInfo.CreateFromUnknownStorage("UI/WaitingForSequence.snx.xml")).Value);
+        _messageUI.RunLogic?.Invoke(this);
+        _messageUI.Element.Layout();
+
+        ChangeState(DrumMasterState.WaitingForSequence);
+    }
+
+    public void StartPlayback()
+    {
+        if (_pendingSequences.Length == 0) return;
+
+        var calculator = new PlacementCalculator(new EncoderSettings
+        {
+            SampleRate = 100_000,
+            AddVisualEvents = false
+        });
+
+        var originalPlacements = calculator.CalculateMany(_pendingSequences).ToArray();
+        foreach (var lane in PlayerTaikoLanes)
+        {
+            lane.Dispose();
+        }
+
+        PlayerTaikoLanes.Clear();
+        var y = 100;
+        foreach (var configuration in _taikoLaneConfigurations)
+        {
+            var sounds = configuration.SelectedSounds;
+            PlayerTaikoLanes.Add(GenerateTaikoLaneFor(originalPlacements, sounds, (0, y)));
+            y += 160 + 25;
+        }
+
+        ChangeState(DrumMasterState.Playing);
+
+        Game.ThreadRunner.RunTask(Action);
+        return;
+
+        async void Action()
+        {
+            await Workflow.UpdateSequences(_pendingSequences);
+        }
     }
 
     public override void Start()
     {
     }
 
+    private SundexComponent? _currentUI;
+
+    private void ChangeState(DrumMasterState state)
+    {
+        _state = state;
+        _sundexContext.UIContext.Clear();
+        _currentUI = _state switch
+        {
+            DrumMasterState.WaitingForSequence => _messageUI,
+            DrumMasterState.Configuring => _configUI,
+            DrumMasterState.Playing => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
+        };
+        
+        _currentUI?.Element.DrawTo(_sundexContext.UIContext);
+    }
+
     public override void Render(RenderArguments renderArgs)
     {
-        _visualizer.Render(renderArgs);
-        foreach (var taikoLane in TaikoLanes)
+        if (_state is DrumMasterState.Playing)
         {
-            taikoLane.Render(_camera);
+            _visualizer.Render(renderArgs);
+            foreach (var taikoLane in PlayerTaikoLanes)
+            {
+                taikoLane.Render(_camera);
+            }
         }
+
+        _sundexContext.UIContext.Render();
     }
 
     public override void TransitionedTo()
     {
+        _visualizer.TextContainer.Greeting.Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR DRUM MASTER";
         Workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
     }
 
@@ -74,34 +161,73 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
 
     public override void Update(UpdateArguments updateArgs)
     {
-        _visualizer.Update(updateArgs);
-        foreach (var taikoLane in TaikoLanes)
+        if (_state is DrumMasterState.Playing)
         {
-            taikoLane.Update();
+            _visualizer.Update(updateArgs);
+            foreach (var taikoLane in PlayerTaikoLanes)
+            {
+                taikoLane.Update();
+            }
         }
+        else Workflow.Update();
+        
+        _currentUI?.Element.Update(_sundexContext.UIContext);
+        _currentUI?.Element.Layout();
+
+        ProcessDeletionQueue();
+    }
+
+    private void QueueDeletion(UIElement element)
+    {
+        _deletionQueue.Enqueue(element);
+    }
+
+    private void ProcessDeletionQueue()
+    {
+        if (_deletionQueue.Count == 0) return;
+
+        while (_deletionQueue.TryDequeue(out var element))
+        {
+            if (element is TaikoLaneConfiguration config)
+            {
+                _taikoLaneConfigurations.Remove(config);
+            }
+
+            if (element.Parent is Sundex.Components.Panels.Panel panel)
+            {
+                panel.RemoveChild(element);
+            }
+        }
+        
+        _currentUI?.Element.Layout();
     }
 
     public override void Resize(int w, int h)
     {
         _camera.Viewport = (w, h);
         _camera.UpdateMatrix();
+        
+        _messageUI.Element.InvalidateCoordinates();
+        _configUI.Element.InvalidateCoordinates();
+        
+        _messageUI.Element.Layout();
+        _configUI.Element.Layout();
 
         _visualizer.Resize(w, h);
-        foreach (var lane in TaikoLanes)
+        foreach (var lane in PlayerTaikoLanes)
         {
-            lane.LaneScale = (w, 200);
+            lane.LaneScale = (w, 160);
         }
     }
 
     public override void Shutdown()
     {
-        _visualizer.Shutdown();
-        foreach (var lane in TaikoLanes)
+        foreach (var lane in PlayerTaikoLanes)
         {
             lane.Dispose();
         }
 
-        TaikoLanes.Clear();
+        PlayerTaikoLanes.Clear();
     }
 
     public override void FileDrop(string[] locations)
@@ -113,10 +239,10 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
         }
         
         Workflow.SequencePlayer.GetTimingStopwatch().Reset();
-        
+
         _visualizer.UpdateBackingTrack(null);
         var sequenceInfos = Workflow.GetSequenceInfos(locations);
-        var sequences = new Sequence[locations.Length];
+        _pendingSequences = new Sequence[locations.Length];
 
         for (var index = 0; index < sequenceInfos.Length; index++)
         {
@@ -124,56 +250,70 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             var asset = Game.AssetProvider.Load<StringAsset, StringInfo>(
                 StringInfo.CreateFromUnknownStorage(sequence_info.FileLocation));
             var sequence = Sequence.FromString(asset.Value);
-            sequences[index] = sequence;
+            _pendingSequences[index] = sequence;
         }
 
-        var calculator = new PlacementCalculator(new EncoderSettings
-        {
-            SampleRate = 100_000,
-            AddVisualEvents = false
-        });
+        var usedSoundsSet = _pendingSequences.SelectMany(s => s.UsedSounds).Distinct().ToHashSet();
+        var allAvailableSounds = Workflow.AtlasStore.StaticSounds.Keys
+            .Concat(Workflow.AtlasStore.AnimatedSounds.Keys).Distinct();
 
+        var filteredSounds = allAvailableSounds.Where(usedSoundsSet.Contains).ToList();
 
-        var originalPlacements = calculator.CalculateMany(sequences).ToArray();
-        foreach (var lane in TaikoLanes)
+        // Reset UI components for configuration
+        if (_configUI.RegisteredIDs.TryGetValue("available-sounds", out var soundListElement) && 
+            soundListElement is SoundList soundList)
         {
-            lane.Dispose();
+            soundList.Clear();
+            foreach (var sound in filteredSounds)
+            {
+                soundList.AddSound(sound);
+            }
+            soundList.InvalidateLayout();
         }
 
-        TaikoLanes.Clear();
-        TaikoLanes.Add(GenerateTaikoLaneFor(originalPlacements, OtherDrumSounds, (0, 100)));
-        TaikoLanes.Add(GenerateTaikoLaneFor(originalPlacements, OtherCymbalSounds, (0, 325)));
-
-        Game.ThreadRunner.RunTask(Action);
-        return;
-
-        async void Action()
+        // Find all taiko-lane-configuration elements and clear them
+        foreach (var registeredElement in _configUI.RegisteredIDs.Values)
         {
-            await Workflow.UpdateSequences(sequences);
+            if (registeredElement is not TaikoLaneConfiguration config) continue;
+            config.SelectedSounds.Clear();
+            config.DropZone.Children.Clear();
+            config.DropZone.InvalidateLayout();
         }
+
+        ChangeState(DrumMasterState.Configuring);
     }
 
-    private TaikoLane GenerateTaikoLaneFor(Placement[] placements, (string, Keys)[] sounds, Vector2 position)
+    private TaikoLane GenerateTaikoLaneFor(Placement[] placements, List<string> sounds, Vector2 position)
     {
         var soundMap = new TaikoSoundMap();
-        foreach (var (sound, key) in sounds)
+        foreach (var sound in sounds)
         {
-            soundMap.Bind(key, sound);
+            soundMap.Bind(Keys.Unknown, sound);
         }
 
         return new TaikoLane(placements, Workflow.SequencePlayer.GetTimingStopwatch(),
             soundMap, Workflow.AtlasStore, Visualizer.VisualizerFonts, _visualizer.PlayfieldSizing)
         {
             LanePosition = position,
-            LaneScale = (Game.ClientSize.X, 200),
+            LaneScale = (Game.ClientSize.X, 160),
             AutoPlay = true
         };
     }
 
     public override void Keyboard(KeyboardState state)
     {
+        if (_state is DrumMasterState.Playing)
+        {
+            if (state.IsKeyPressed(Keys.Escape))
+            {
+                ChangeState(DrumMasterState.Configuring);
+                Workflow.SequencePlayer.GetTimingStopwatch().Reset();
+                return;
+            }
+        }
+        
         _visualizer.Keyboard(state);
-        foreach (var taikoLane in TaikoLanes)
+        foreach (var taikoLane in PlayerTaikoLanes)
         {
             taikoLane.Keyboard(state);
         }
@@ -181,5 +321,10 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
+        _currentUI?.Element.Test(mouseState, Vector2.One);
+        if (mouseState.IsButtonReleased(MouseButton.Left))
+        {
+            DragManager.DraggedElement = null;
+        }
     }
 }

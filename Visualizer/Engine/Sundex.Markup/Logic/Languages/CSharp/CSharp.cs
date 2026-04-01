@@ -6,9 +6,10 @@ namespace Sundex.Markup.Logic.Languages.CSharp;
 
 public class CSharp : SundexScript
 {
-    public class ScriptGlobals(ISundexContext sundex, object? contextObject)
+    public class ScriptGlobals(ISundexContext sundex, SundexComponent component, object? contextObject)
     {
         public ISundexContext Sundex { get; } = sundex;
+        public SundexComponent Component { get; } = component;
         public object? Context { get; set; } = contextObject;
 
         public static T As<T>(object? obj)
@@ -20,13 +21,13 @@ public class CSharp : SundexScript
     }
 
     public override Action<object?> Compile(string sourceCode, ISundexContext context,
-        List<string> logicLanguageImports)
+        SundexComponent component, List<string> logicLanguageImports)
     {
         /* AddReferences doesn't work for some reason on SingleFilePublish when -p:IncludeAllContentForSelfExtract is not enabled. 
          * See: https://github.com/dotnet/roslyn/issues/50719 */
         var options = ScriptOptions.Default
             .AddReferences([typeof(CSharp).Assembly, ..context.UIContext.AssetProvider.AssetAssemblies])
-            .AddImports("System", "Sundex.Markup.Abstract", "Sundex.Markup.Logic.Languages.CSharp", "Sundex.Components")
+            .AddImports("System", "Sundex.Markup.Abstract", "Sundex.Markup.Logic.Languages.CSharp", "Sundex.Components", "Sundex.Components.Abstractions")
             .AddImports(logicLanguageImports);
 
         var script = CSharpScript.Create(sourceCode, options, typeof(ScriptGlobals));
@@ -34,7 +35,7 @@ public class CSharp : SundexScript
 
         return obj =>
         {
-            var globals = new ScriptGlobals(context, obj);
+            var globals = new ScriptGlobals(context, component, obj);
             script.RunAsync(globals).GetAwaiter().GetResult();
         };
     }

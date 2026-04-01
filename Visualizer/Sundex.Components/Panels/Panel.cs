@@ -6,7 +6,6 @@ using Shared.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
-using Sundex.Components.Scroll;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
@@ -15,19 +14,36 @@ using Sundex.Style.DSL.Abstract.Values.Keywords;
 
 namespace Sundex.Components.Panels;
 
-public class Panel(UIContext context) : UIElement(context), IColoredBackground
+public class Panel(UIContext context) : UIElement(context), IColoredBackground, IPositioningElement
 {
     private List<UIElement> _children = [];
+
+    [NamedSetting("direction")]
+    public virtual LayoutDirection Direction
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    } = LayoutDirection.Horizontal;
+
+    [NamedSetting("padding")]
+    public virtual float Padding
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    } = 0;
+
+    [NamedSetting("spacing")]
+    public virtual float Spacing
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    } = 0;
 
     [NamedSetting("border-radius")]
     public LiteralOrComputable BorderRadius
     {
         get;
-        set
-        {
-            field = value;
-            InvalidateLayout();
-        }
+        set => UpdateSetDirty(ref field, value);
     } = 0;
 
     public List<UIElement> Children
@@ -64,6 +80,12 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground
             field = value;
             HandleRenderableSwap(old, value, nameof(Background));
         }
+    }
+
+    public override void StopRendering()
+    {
+        if (Background != null)
+            Context.DequeueRender(Background, Index);
     }
 
     public override void Test(MouseState mouse, Vector2 scale)
@@ -110,22 +132,37 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground
 
     public virtual void AddChild(UIElement child)
     {
-        child.Parent = this;
+        if (child.Parent is Panel oldParent)
+        {
+            oldParent.RemoveChild(child);
+        }
         _children.Add(child);
+        child.Parent = this;
+        child.DrawTo(Context);
+        InvalidateLayout();
+    }
+    
+    public void RemoveChild(UIElement child)
+    {
+        _children.Remove(child);
+        child.Parent = null;
+        child.StopRendering();
         InvalidateLayout();
     }
 
-    public override void DrawTo(UIContext context)
+    public override void DrawTo(UIContext ctx)
     {
         if (!Visible) return;
-        base.DrawTo(context);
+        base.DrawTo(ctx);
         Background?.Update();
         foreach (var child in _children)
-            child.DrawTo(context);
+            child.DrawTo(ctx);
     }
 
-    protected override void DrawSelf(UIContext context)
+    protected override void DrawSelf(UIContext ctx)
     {
+        if (Background != null)
+            ctx.QueueRender(Background, Index, 0);
     }
 
     protected override void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)

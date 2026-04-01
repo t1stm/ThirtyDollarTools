@@ -204,6 +204,9 @@ public partial class Sequence
         foreach (var ev in array)
         {
             if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
+            if (ev.SoundEvent is not null)
+                comp.UsedSounds.Add(ev.SoundEvent);
+            
             if (ev is PannedEvent panned)
             {
                 var new_pan = Math.Clamp(pan + panned.Pan, -1f, 1f);

@@ -188,6 +188,7 @@ public class Game : GameWindow
         base.OnUpdateFrame(args);
         MakeCurrent();
 
+        CursorState = CursorState.Normal;
         AssetProvider.Update();
         ThreadRunner.Update();
 

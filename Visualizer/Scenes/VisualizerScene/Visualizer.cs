@@ -53,7 +53,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     private ulong _updateId;
 
-    private VisualizerTextContainer _visualizerTextContainer = null!;
+    public VisualizerTextContainer TextContainer { get; private set; } = null!;
     private int _width;
 
     /// <summary>
@@ -92,7 +92,7 @@ public class Visualizer : Scene, IGamePreloadable
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
     }
 
-    private Layout Overlay => _visualizerTextContainer.Overlay;
+    private Layout Overlay => TextContainer.Overlay;
 
     private CancellationToken Token => _tokenSource.Token;
     public float Scale { get; set; } = 1f;
@@ -118,16 +118,16 @@ public class Visualizer : Scene, IGamePreloadable
     public override void Initialize(InitArguments initArguments)
     {
         _glInfo = initArguments.GLInfo;
-        _visualizerTextContainer = new VisualizerTextContainer(_visualizerFonts, Version, _width, _height, Scale)
+        TextContainer = new VisualizerTextContainer(_visualizerFonts, Version, _width, _height, Scale)
         {
             Greeting =
             {
-                Value = Greeting ?? "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER",
+                Value = Greeting ??= "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER",
                 FontSize = 36f * Scale
             }
         };
 
-        _visualizerTextContainer.Greeting.SetPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
+        TextContainer.Greeting.SetPosition((_width / 2f, -200f, 0.25f), PositionAlign.Center);
 
         var playfieldSettings = new PlayfieldSettings
         {
@@ -168,7 +168,7 @@ public class Visualizer : Scene, IGamePreloadable
         _textCamera.Viewport = resize;
         _textCamera.UpdateMatrix();
 
-        var greeting = _visualizerTextContainer.Greeting;
+        var greeting = TextContainer.Greeting;
         greeting.SetPosition(greeting.Position - (_width - w) / 2f * Vector3.UnitX);
 
         Overlay.Resize(w, h);
@@ -195,14 +195,15 @@ public class Visualizer : Scene, IGamePreloadable
         PlayfieldContainer.Render((float)deltaTime);
 
         // render the greeting
-        _visualizerTextContainer.RenderGreeting(_tempCamera);
+        TextContainer.RenderGreeting(_tempCamera);
 
         // renders the static layout
-        _visualizerTextContainer.RenderStaticText(_textCamera);
+        TextContainer.RenderStaticText(_textCamera);
     }
 
     public override void TransitionedTo()
     {
+        TextContainer.Greeting.Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR DRUM MASTER";
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
         Resize(Game.ClientSize.X, Game.ClientSize.Y);
@@ -345,7 +346,7 @@ public class Visualizer : Scene, IGamePreloadable
                 if (state.IsKeyPressed(Keys.D))
                 {
                     _workflow.ShowDebugInfo = !_workflow.ShowDebugInfo;
-                    _visualizerTextContainer.ShowDebug = _workflow.ShowDebugInfo;
+                    TextContainer.ShowDebug = _workflow.ShowDebugInfo;
                     SetStatusMessage(_workflow.ShowDebugInfo switch
                     {
                         true => "[Debug]: Enabled",
@@ -497,8 +498,8 @@ public class Visualizer : Scene, IGamePreloadable
 
     public Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer)
     {
-        _visualizerTextContainer.ShowControls = false;
-        _visualizerTextContainer.ShowVersion = false;
+        TextContainer.ShowControls = false;
+        TextContainer.ShowVersion = false;
 
         PlayfieldContainer.Camera.ScrollTo((0, -300, 0));
 

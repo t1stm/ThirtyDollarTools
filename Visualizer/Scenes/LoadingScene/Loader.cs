@@ -104,12 +104,11 @@ public class Loader : Scene, IGamePreloadable
     {
         _background.Update();
         _cursorType = CursorType.Normal;
-        var mouseState = Game.MouseState;
 
         lock (_progressReport)
         {
             var progressReport = _progressReport;
-            _loaderInterface.Update(progressReport, _context, mouseState, _lastScale);
+            _loaderInterface.Update(progressReport, _context);
         }
 
         Game.Cursor = _cursorType switch
@@ -165,5 +164,6 @@ public class Loader : Scene, IGamePreloadable
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
+        _loaderInterface.MouseEvent(mouseState, _lastScale);
     }
 }

@@ -72,6 +72,12 @@ public class Label : UIElement
 
     public override string Tag => "label";
 
+    public override void StopRendering()
+    {
+        if (TextBuffer != null)
+            Context.DequeueRender(TextBuffer, Index);
+    }
+
     public void SetTextContents(ReadOnlySpan<char> text)
     {
         _textValue = text.ToString();

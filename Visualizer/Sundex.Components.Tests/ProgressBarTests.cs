@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using Sundex.Engine.Renderer.Abstract;
 using Shared;
 using Sundex.Engine.Renderer.Cameras;
+using Shared.Renderer.Planes;
 
 namespace Sundex.Components.Tests;
 
@@ -55,6 +56,70 @@ public class ProgressBarTests
             }
         }
         Assert.True(found, "New BackgroundPanel's background should be in the render queue");
+        Assert.Equal(progressBar, progressBar.BackgroundPanel.Parent);
+        
+        var barIndex = progressBar.Index;
+        var panelIndex = progressBar.BackgroundPanel.Index;
+        Assert.Equal(barIndex + 1, panelIndex);
+    }
+
+    [Fact]
+    public void ProgressBar_DrawTo_ShouldReQueueRenderablesAfterClear()
+    {
+        // Arrange
+        var camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+        var context = new TestContext { Camera = camera };
+        var progressBar = new ProgressBar(context, new ColoredPlane { Color = Vector4.One }, new ColoredPlane { Color = Vector4.UnitX });
+        
+        // Initial draw
+        progressBar.DrawTo(context);
+        
+        // Act
+        context.Clear();
+        progressBar.DrawTo(context);
+        
+        // Assert
+        var queue = context.GetRenderQueue();
+        int bgLayer = -1;
+        int fgLayer = -1;
+        int bgPos = -1;
+        int fgPos = -1;
+        
+        for (int i = 0; i < queue.Count; i++)
+        {
+            for (int j = 0; j < queue[i].Count; j++)
+            {
+                if (queue[i][j] == progressBar.BackgroundPanel.Background)
+                {
+                    bgLayer = i;
+                    bgPos = j;
+                }
+                if (queue[i][j] == progressBar.ForegroundPanel.Background)
+                {
+                    fgLayer = i;
+                    fgPos = j;
+                }
+            }
+        }
+        
+        Assert.True(bgLayer != -1, "Background should be re-queued after Clear()");
+        Assert.True(fgLayer != -1, "Foreground should be re-queued after Clear()");
+        
+        var barIndex = progressBar.Index;
+        var bgIndex = progressBar.BackgroundPanel.Index;
+        var fgIndex = progressBar.ForegroundPanel.Index;
+        
+        Assert.Equal(barIndex + 1, bgIndex);
+        Assert.Equal(barIndex + 2, fgIndex);
+
+        if (bgLayer == fgLayer)
+        {
+            Assert.True(fgPos > bgPos, "Foreground should be queued after background in the same layer");
+        }
+        else
+        {
+            Assert.True(fgLayer > bgLayer, "Foreground layer should be above background layer");
+        }
     }
 
     [Fact]

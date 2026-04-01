@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Buffers;
 using Sundex.Components.Abstractions;
-using Sundex.Core;
 using Sundex.Markup.Abstract;
 using Sundex.Markup.Attributes;
 using Sundex.Markup.Builders;
@@ -16,7 +15,7 @@ public class SundexContext(UIContext context) : ISundexContext
     };
 
     public Dictionary<string, ISundexComponent> LoadedComponents { get; } = [];
-    public Dictionary<string, Renderable> Renderables { get; } = [];
+    public Dictionary<string, Func<UIContext, UIElement>> ElementFactories { get; } = [];
     public UIContext UIContext { get; } = context;
 
     public ISundexComponent ResolveComponent(ReadOnlySpan<char> dependency)
@@ -31,6 +30,18 @@ public class SundexContext(UIContext context) : ISundexContext
     {
         if (component.Name == null) throw new Exception("Component name cannot be null.");
         LoadedComponents.Add(component.Name, component);
+    }
+
+    public void RegisterElementFactory(string tagName, Func<UIContext, UIElement> factory)
+    {
+        if (!ElementFactories.TryAdd(tagName, factory))
+            throw new Exception($"A factory for tag '{tagName}' is already registered.");
+    }
+
+    public UIElement? CreateElement(string tagName)
+    {
+        var lookup = ElementFactories.GetAlternateLookup<ReadOnlySpan<char>>();
+        return lookup.TryGetValue(tagName, out var factory) ? factory(UIContext) : null;
     }
 
     public SundexComponent NewComponent(string smxlMarkup)

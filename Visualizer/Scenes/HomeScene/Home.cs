@@ -40,10 +40,10 @@ public class Home : Scene
         };
 
         _homeInterface = new HomeInterface(_context,
-            () => { game.Enqueue(instance => instance.SceneManager.TransitionTo("visualizer")); },
-            () => { game.Enqueue(instance => instance.SceneManager.TransitionTo("drum-master")); },
-            () => { game.Enqueue(instance => instance.SceneManager.TransitionTo("editor")); },
-            () => { game.Enqueue(instance => instance.SceneManager.TransitionTo("settings")); });
+            () => { Game.Enqueue(instance => instance.SceneManager.TransitionTo("visualizer")); },
+            () => { Game.Enqueue(instance => instance.SceneManager.TransitionTo("drum-master")); },
+            () => { Game.Enqueue(instance => instance.SceneManager.TransitionTo("editor")); },
+            () => { Game.Enqueue(instance => instance.SceneManager.TransitionTo("settings")); });
     }
 
     public override void Initialize(InitArguments initArguments)
@@ -66,9 +66,7 @@ public class Home : Scene
     public override void Update(UpdateArguments updateArgs)
     {
         _cursorType = CursorType.Normal;
-        var mouseState = Game.MouseState;
-
-        _homeInterface.Update(_context, mouseState, _lastScale);
+        _homeInterface.Update(_context);
 
         Game.Cursor = _cursorType switch
         {
@@ -111,5 +109,6 @@ public class Home : Scene
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
+        _homeInterface.MouseEvent(mouseState, _lastScale);
     }
 }

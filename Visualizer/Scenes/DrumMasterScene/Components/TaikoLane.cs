@@ -7,39 +7,20 @@ using Sundex.Core;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Enums;
 using ThirtyDollarConverter.Objects;
-using VisualizerScene.Objects;
 using Sundex.Engine.Text;
 using VisualizerScene;
 using VisualizerScene.Objects.Playfield;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
-using VisualizerScene.Objects.Playfield.Batch.Objects;
-using VisualizerScene.Objects.Sound_Values;
 
 namespace DrumMasterScene.Components;
 
 public class TaikoLane : IDisposable
 {
-    private class TaikoChunk(TextBuffer textBuffer, StackCollection stacks) : IDisposable
-    {
-        public TextBuffer TextBuffer { get; } = textBuffer;
-        public StackCollection Stacks { get; } = stacks;
-        public List<SoundRenderable> Renderables { get; } = [];
-        public List<TaikoSound> Sounds { get; } = [];
-        public RenderStack<BackgroundBlip>? BackgroundBlips { get; set; }
-
-        public void Dispose()
-        {
-            TextBuffer.Dispose();
-            Stacks.Dispose();
-            BackgroundBlips?.Dispose();
-        }
-    }
-
+    private const double LookaheadLengthMs = 15000;
     private readonly List<TaikoChunk> _chunks = [];
     public TaikoTimedSounds TimedSounds { get; }
     public TaikoSoundMap SoundMap { get; }
     public SeekableStopwatch Stopwatch { get; }
-    private readonly VisualizerFonts _fonts;
 
     public Vector2 LanePosition
     {
@@ -70,7 +51,7 @@ public class TaikoLane : IDisposable
             field = value;
             UpdatePosition();
         }
-    } = 100;
+    } = 80;
 
     // LanePosition.X + this = _hitBox.Position.X / _hitBox.Position.Y = centered to (Lane.Y + Lane.Height) / 2f
     public float HitBoxOffset
@@ -88,7 +69,7 @@ public class TaikoLane : IDisposable
 
     private readonly ColoredPlane _lane = new()
     {
-        Color = (0, 0, 0, 0.8f)
+        Color = (0.1f, 0.1f, 0.1f, 0.8f)
     };
 
     private readonly ColoredPlane _hitBox = new()
@@ -96,7 +77,7 @@ public class TaikoLane : IDisposable
         Color = (1, 0, 0, 0.25f)
     };
 
-    public List<double> AccuracyScores { get; } = [];
+    public List<double> AccuracyScores { get; }
     public int MissCount { get; set; }
     public float HitWindowMs { get; set; } = 100f;
 
@@ -107,7 +88,6 @@ public class TaikoLane : IDisposable
         VisualizerFonts fonts,
         PlayfieldSizing sizing)
     {
-        _fonts = fonts;
         TimedSounds = new TaikoTimedSounds(placement, soundMap);
         SoundMap = soundMap;
         Stopwatch = stopwatch;
@@ -116,12 +96,13 @@ public class TaikoLane : IDisposable
         TaikoChunk? currentChunk = null;
         RenderableFactory? factory = null;
 
+        AccuracyScores = new List<double>(TimedSounds.Sounds.Count);
         for (var i = 0; i < TimedSounds.Sounds.Count; i++)
         {
             if (i % chunkSize == 0)
             {
                 var textBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
-                textBuffer.Resize(chunkSize * 32 * 3);
+                textBuffer.Resize(chunkSize * 6 /* avg chars */ * 3 /* max fields */);
                 currentChunk = new TaikoChunk(textBuffer, new StackCollection());
                 _chunks.Add(currentChunk);
                 factory = new RenderableFactory(atlasStore);
@@ -129,16 +110,7 @@ public class TaikoLane : IDisposable
 
             var sound = TimedSounds.Sounds[i];
             var renderable = factory!.CookUp(sound.Event);
-
-            if (sound.Event is { SoundEvent: "!bg" })
-            {
-                renderable.Value = new BackgroundEventValue(sound.Event.Value, factory, currentChunk!.TextBuffer,
-                    sizing.ValueFontSize);
-            }
-            else
-            {
-                RenderableFactory.AssignTextBuffers(renderable, sound.Event, currentChunk!.TextBuffer, sizing, 1f);
-            }
+            RenderableFactory.AssignTextBuffers(renderable, sound.Event, currentChunk!.TextBuffer, sizing, 1f);
 
             var originalScale = renderable.Scale;
             var aspectRatio = originalScale.X / originalScale.Y;
@@ -148,16 +120,16 @@ public class TaikoLane : IDisposable
                 : (HitBoxSize * aspectRatio, HitBoxSize, 1);
 
             renderable.Color = Vector4.Zero;
-            
+
             renderable.Value?.Position = new Vector3(-10000, -10000, 0);
             renderable.Volume?.Position = new Vector3(-10000, -10000, 0);
             renderable.Pan?.Position = new Vector3(-10000, -10000, 0);
-            
+
             currentChunk.Renderables.Add(renderable);
             currentChunk.Sounds.Add(sound);
 
             if (i % chunkSize != chunkSize - 1 && i != TimedSounds.Sounds.Count - 1) continue;
-            
+
             currentChunk.Stacks.AnimatedStacks = factory.AnimatedAtlases;
             currentChunk.Stacks.StaticStacks = factory.StaticAtlases;
             currentChunk.BackgroundBlips = factory.BackgroundBlips;
@@ -243,6 +215,7 @@ public class TaikoLane : IDisposable
                     break;
                 }
             }
+
             skipInChunk = 0; // Reset for subsequent chunks
             if (stopSkipping) break;
         }
@@ -261,7 +234,7 @@ public class TaikoLane : IDisposable
                 var timeDiff = sound.Timestamp - currentTime;
 
                 // Optimization: skip sounds far in the future
-                if (timeDiff > 5000)
+                if (timeDiff > LookaheadLengthMs)
                 {
                     if (renderable.Color != Vector4.Zero)
                     {
@@ -323,10 +296,10 @@ public class TaikoLane : IDisposable
                         renderable.SetPosition(new Vector3(x, y, 0), PositionAlign.Center);
                         renderable.Color = Vector4.One;
                         renderable.UpdateModel(false);
-                        
+
                         var box_position = renderable.Position.Xy;
                         var box_scale = renderable.Scale.Xy;
-                        
+
                         var bottom_center = box_position + (box_scale.X / 2f, box_scale.Y);
                         var top_right = box_position + (box_scale.X + 6f, 0f);
 
@@ -343,7 +316,7 @@ public class TaikoLane : IDisposable
                     else
                     {
                         if (renderable.Color == Vector4.Zero) continue;
-                        
+
                         renderable.Color = Vector4.Zero;
                         renderable.Value?.Position = new Vector3(-10000, -10000, 0);
                         renderable.Volume?.Position = new Vector3(-10000, -10000, 0);
@@ -352,7 +325,7 @@ public class TaikoLane : IDisposable
                     }
                 }
             }
-            
+
             // If we are deep into the future and no sounds were visible in this chunk,
             // we might be able to break early. But some sounds might have different scroll speeds.
             // However, scroll speeds are usually positive and similar.
@@ -390,14 +363,14 @@ public class TaikoLane : IDisposable
         var startSearchIdx = _lastActiveIndex;
         var skipChunks = 0;
         var skipInChunk = 0;
-        
+
         {
             var temp = startSearchIdx;
-            for (var i = 0; i < _chunks.Count; i++)
+            foreach (var chunk in _chunks)
             {
-                if (temp >= _chunks[i].Sounds.Count)
+                if (temp >= chunk.Sounds.Count)
                 {
-                    temp -= _chunks[i].Sounds.Count;
+                    temp -= chunk.Sounds.Count;
                     skipChunks++;
                 }
                 else
@@ -416,26 +389,24 @@ public class TaikoLane : IDisposable
             {
                 var sound = chunk.Sounds[i];
                 var timeDiff = sound.Timestamp - currentTime;
-                
+
                 // If this sound is too far in the future, we can stop searching this and further chunks
                 if (timeDiff > HitWindowMs)
                 {
                     foundInRange = true; // Not really in range, but to break outer loop
-                    break; 
+                    break;
                 }
 
-                if (sound.IsHit || sound.Sound != pressedSound) continue;
+                if (sound.IsHit || sound.Event.SoundEvent != pressedSound) continue;
 
-                if (Math.Abs(timeDiff) <= HitWindowMs)
-                {
-                    if (Math.Abs(timeDiff) < bestDiff)
-                    {
-                        bestDiff = Math.Abs(timeDiff);
-                        bestChunkIdx = chunkIdx;
-                        bestIdx = i;
-                    }
-                }
+                if (!(Math.Abs(timeDiff) <= HitWindowMs)) continue;
+                if (!(Math.Abs(timeDiff) < bestDiff)) continue;
+
+                bestDiff = Math.Abs(timeDiff);
+                bestChunkIdx = chunkIdx;
+                bestIdx = i;
             }
+
             skipInChunk = 0;
             if (foundInRange) break;
         }
@@ -483,5 +454,6 @@ public class TaikoLane : IDisposable
 
         _hitBox.SetPosition(new Vector3(LanePosition.X + HitBoxOffset, LanePosition.Y + LaneScale.Y / 2f, 0),
             PositionAlign.Center);
+        _hitBox.BorderRadius = HitBoxSize / 4f;
     }
 }

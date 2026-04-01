@@ -63,6 +63,11 @@ public class UIContext : IGamePreloadable
             LayeredRenderQueue.Add([]);
 
         var queue = LayeredRenderQueue[renderIndex];
+
+        // Check for duplicates to prevent same renderable from being queued multiple times in the same layer
+        if (queue.Any(r => ReferenceEquals(r, renderable)))
+            return;
+
         if (queueIndex < 0 || queueIndex >= queue.Count)
         {
             queue.Add(renderable);
@@ -99,9 +104,6 @@ public class UIContext : IGamePreloadable
         foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
         foreach (var renderable in queue)
             renderable.Render(Camera);
-
-        if (LayeredRenderQueue.Count > 0)
-            GL.Scissor(0, 0, (int)ViewportWidth, (int)ViewportHeight);
     }
 }
 

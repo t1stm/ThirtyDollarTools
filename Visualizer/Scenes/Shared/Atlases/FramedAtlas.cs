@@ -43,7 +43,10 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
 
     public void Update()
     {
-        if (!TimingStopwatch.IsRunning) return;
+        if (!TimingStopwatch.IsRunning)
+        {
+            TimingStopwatch.Restart();
+        }
         var elapsed = TimingStopwatch.ElapsedMilliseconds % TotalLength;
 
         if (elapsed < CurrentFrameStartTime)
@@ -67,10 +70,9 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
         }
     }
 
-    public void Start()
+    public void Restart()
     {
-        if (TimingStopwatch.IsRunning) return;
-        TimingStopwatch.Start();
+        TimingStopwatch.Restart();
     }
 
     public static FramedAtlas FromAnimatedTexture(string textureID, TextureHolder texture)

@@ -9,8 +9,10 @@ public abstract class SundexScript
     /// </summary>
     /// <param name="sourceCode">The source code to compile.</param>
     /// <param name="context">The Sundex context for the script execution.</param>
+    /// <param name="component">The component associated with the script.</param>
     /// <param name="logicLanguageImports"></param>
     /// <returns>An executable action representing the compiled script.</returns>
     public abstract Action<object?> Compile(string sourceCode, ISundexContext context,
+        SundexComponent component,
         List<string> logicLanguageImports);
 }
