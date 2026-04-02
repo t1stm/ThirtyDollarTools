@@ -139,6 +139,7 @@ public partial class Sequence
 
             if (!sequence.Definitions.TryGetValue(parsed.SoundEvent, out var defined_events))
             {
+                sequence.UsedSounds.Add(parsed.SoundEvent);
                 events.Add(parsed);
                 if (!enumerator.MoveNext()) break;
                 continue;
@@ -149,6 +150,8 @@ public partial class Sequence
 
             events.AddRange(defined_events.Select(e =>
             {
+                if (e.SoundEvent is not null)
+                    sequence.UsedSounds.Add(e.SoundEvent);
                 switch (e)
                 {
                     case ICustomActionEvent custom_action_event:
@@ -172,13 +175,13 @@ public partial class Sequence
 
             if (!enumerator.MoveNext()) break;
         }
-
+        
         return events.ToArray();
     }
 
-    private static bool ProcessDefines(Sequence comp, BaseEvent newEvent, List<BaseEvent> list)
+    private static bool ProcessDefines(Sequence sequence, BaseEvent newEvent, List<BaseEvent> list)
     {
-        if (!comp.Definitions.TryGetValue(newEvent.SoundEvent ?? "", out var events)) return false;
+        if (!sequence.Definitions.TryGetValue(newEvent.SoundEvent ?? "", out var events)) return false;
 
         var pan = 0f;
         if (newEvent is PannedEvent panned_event) pan = panned_event.Pan;
@@ -187,7 +190,6 @@ public partial class Sequence
         for (var i = 0; i < events.Length; i++)
         {
             var base_event = events[i];
-
             array[i] = base_event switch
             {
                 NormalEvent => new PannedEvent(base_event),
@@ -204,9 +206,6 @@ public partial class Sequence
         foreach (var ev in array)
         {
             if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
-            if (ev.SoundEvent is not null)
-                comp.UsedSounds.Add(ev.SoundEvent);
-            
             if (ev is PannedEvent panned)
             {
                 var new_pan = Math.Clamp(pan + panned.Pan, -1f, 1f);

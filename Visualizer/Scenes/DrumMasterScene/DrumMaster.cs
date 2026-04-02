@@ -49,7 +49,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             Camera = _camera,
         };
         _sundexContext = new SundexContext(uiContext);
-        
+
         // Register custom element factories
         _sundexContext.RegisterElementFactory("sound-list", ctx => new SoundList(ctx, Workflow.AtlasStore));
         _sundexContext.RegisterElementFactory("taiko-lane-configuration", ctx =>
@@ -66,7 +66,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             StringInfo.CreateFromUnknownStorage("UI/Select Sounds/SelectSounds.snx.xml")).Value);
         _configUI.RunLogic?.Invoke(this);
         _configUI.Element.Layout();
-        
+
         _messageUI = _sundexContext.NewComponent(Game.AssetProvider.Load<StringAsset, StringInfo>(
             StringInfo.CreateFromUnknownStorage("UI/WaitingForSequence.snx.xml")).Value);
         _messageUI.RunLogic?.Invoke(this);
@@ -128,7 +128,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             DrumMasterState.Playing => null,
             _ => throw new ArgumentOutOfRangeException(nameof(state), state, null)
         };
-        
+
         _currentUI?.Element.DrawTo(_sundexContext.UIContext);
     }
 
@@ -170,7 +170,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             }
         }
         else Workflow.Update();
-        
+
         _currentUI?.Element.Update(_sundexContext.UIContext);
         _currentUI?.Element.Layout();
 
@@ -198,7 +198,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
                 panel.RemoveChild(element);
             }
         }
-        
+
         _currentUI?.Element.Layout();
     }
 
@@ -206,10 +206,10 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
     {
         _camera.Viewport = (w, h);
         _camera.UpdateMatrix();
-        
+
         _messageUI.Element.InvalidateCoordinates();
         _configUI.Element.InvalidateCoordinates();
-        
+
         _messageUI.Element.Layout();
         _configUI.Element.Layout();
 
@@ -237,7 +237,11 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             _visualizer.UpdateBackingTrack(locations[0]);
             return;
         }
-        
+
+        foreach (var configuration in _taikoLaneConfigurations)
+        {
+            configuration.ReturnChildren();
+        }
         Workflow.SequencePlayer.GetTimingStopwatch().Reset();
 
         _visualizer.UpdateBackingTrack(null);
@@ -260,7 +264,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
         var filteredSounds = allAvailableSounds.Where(usedSoundsSet.Contains).ToList();
 
         // Reset UI components for configuration
-        if (_configUI.RegisteredIDs.TryGetValue("available-sounds", out var soundListElement) && 
+        if (_configUI.RegisteredIDs.TryGetValue("available-sounds", out var soundListElement) &&
             soundListElement is SoundList soundList)
         {
             soundList.Clear();
@@ -311,7 +315,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
                 return;
             }
         }
-        
+
         _visualizer.Keyboard(state);
         foreach (var taikoLane in PlayerTaikoLanes)
         {

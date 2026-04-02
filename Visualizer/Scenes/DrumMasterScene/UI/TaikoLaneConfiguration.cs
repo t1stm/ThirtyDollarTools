@@ -79,7 +79,7 @@ public class TaikoLaneConfiguration : FlexPanel
         VerticalAlign = Align.Start;
     }
 
-    private void ReturnChildren()
+    public void ReturnChildren()
     {
         var children = DropZone.Children.ToArray();
         if (SundexContext is not SundexContext sundexContext) return;
