@@ -30,7 +30,6 @@ public class MainWindowViewModel : ViewModelBase
     private bool _encodeRunning;
 
     private string? _exportFileLocation = "";
-    private int _progressBarValue;
     private string? _sequenceFileLocations = "";
     private Sequence[]? _sequences;
     public bool IsExportLocationGood = true;
@@ -73,8 +72,8 @@ public class MainWindowViewModel : ViewModelBase
 
     public int ProgressBarValue
     {
-        get => _progressBarValue;
-        set => this.RaiseAndSetIfChanged(ref _progressBarValue, value);
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     public ObservableCollection<string> Logs { get; } = [];

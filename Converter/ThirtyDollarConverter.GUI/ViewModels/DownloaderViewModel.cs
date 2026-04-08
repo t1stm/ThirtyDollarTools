@@ -18,21 +18,19 @@ public class DownloaderViewModel(SampleHolder sampleHolder, DownloaderMode downl
     : ViewModelBase
 {
     private bool _downloadRunning;
-    private string? _log = $"Logs go here...{Environment.NewLine}";
-    private int _progressBarValue;
-    public DownloaderMode DownloadMode = downloadMode;
+    public DownloaderMode DownloadMode { get; } = downloadMode;
     public Action? OnFinishDownloading { get; init; }
 
     public string? Log
     {
-        get => _log;
-        set => this.RaiseAndSetIfChanged(ref _log, value);
-    }
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
+    } = $"Logs go here...{Environment.NewLine}";
 
     public int ProgressBarValue
     {
-        get => _progressBarValue;
-        set => this.RaiseAndSetIfChanged(ref _progressBarValue, value);
+        get;
+        set => this.RaiseAndSetIfChanged(ref field, value);
     }
 
     public string DownloadText => DownloadMode switch

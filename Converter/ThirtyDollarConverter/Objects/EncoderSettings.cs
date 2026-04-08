@@ -25,7 +25,7 @@ public class EncoderSettings
     /// <summary>
     ///     How long the cut event lowers the event's volume before absolutely stopping it. Value is in milliseconds.
     /// </summary>
-    public uint CutFadeLengthMs = 25;
+    public uint CutFadeLengthMs = 4;
 
     /// <summary>
     ///     This controls whether the converter should normalize the final export of a cover.
