@@ -76,6 +76,7 @@ public class EncoderBenchmark
     [Benchmark]
     public async Task Standard_PCM_Encoder_NoSave()
     {
-        await _encoder.GetSequenceAudio(_sequence);
+        var rendered = await _encoder.GetSequenceAudio(_sequence);
+        _ = rendered.Audio;
     }
 }

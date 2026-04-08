@@ -56,7 +56,8 @@ internal static class Program
                 Console.Write(Progressbar.Generate(current, (long)total, statusbarLength));
             });
 
-            var audioData = await encoder.GetSequenceAudio(sequence);
+            var rendered = await encoder.GetSequenceAudio(sequence);
+            var audioData = rendered.Audio;
             encoder.WriteAsWavFile($"./Export/{file.Location.Split('/').Last()}.wav", audioData);
         }
 

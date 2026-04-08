@@ -58,7 +58,8 @@ for (var i = 0; i < inputs.Length; i++)
         Resampler = new HermiteResampler()
     }, LogAction, ProgressAction);
 
-    var audioData = await encoder.GetSequenceAudio(sequence);
+    var rendered = await encoder.GetSequenceAudio(sequence);
+    var audioData = rendered.Audio;
     encoder.WriteAsWavFile(output, audioData);
 
     continue;

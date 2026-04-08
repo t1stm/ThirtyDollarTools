@@ -62,8 +62,8 @@ public class PcmEncoder
     ///     This method starts the encoding process for multiple sequences to be combined.
     /// </summary>
     /// <param name="sequences">The sequences you want to encode.</param>
-    /// <returns>An AudioData object that stores the encoded audio.</returns>
-    public async Task<AudioData<float>> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences)
+    /// <returns>A RenderedSequence object that stores the encoded audio and metadata.</returns>
+    public async Task<RenderedSequence> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences)
     {
         var array = sequences as Sequence[] ?? sequences.ToArray();
         var placement = PlacementCalculator.CalculateMany(array);
@@ -76,34 +76,105 @@ public class PcmEncoder
             TimingSampleRate = (int)_sampleRate
         };
 
-        return await GetAudioFromTimedEvents(timed_events);
+        var audio = await GetAudioFromTimedEvents(timed_events);
+        return new RenderedSequence
+        {
+            TimedEvents = timed_events,
+            Audio = audio,
+            AudioSampleRate = _sampleRate
+        };
     }
 
     /// <summary>
     ///     This method starts the encoding process.
     /// </summary>
     /// <param name="sequence">The sequence you want to encode.</param>
-    /// <returns>An AudioData object that stores the encoded audio.</returns>
-    public async Task<AudioData<float>> GetSequenceAudio(Sequence sequence)
+    /// <returns>A RenderedSequence object that stores the encoded audio and metadata.</returns>
+    public async Task<RenderedSequence> GetSequenceAudio(Sequence sequence)
     {
-        var placement = PlacementCalculator.CalculateOne(sequence);
-        var placement_array = placement.ToArray();
+        return await GetMultipleSequencesAudio([sequence]);
+    }
+
+    public async Task<RenderedSequence> GetIncrementalAudio(RenderedSequence oldRendered, IEnumerable<Sequence> newSequences)
+    {
+        var array = newSequences as Sequence[] ?? newSequences.ToArray();
+        var placement = PlacementCalculator.CalculateMany(array);
+        var new_placement_array = placement.ToArray();
 
         var timed_events = new TimedEvents
         {
-            Sequences = [sequence],
-            Placement = placement_array,
+            Sequences = array,
+            Placement = new_placement_array,
             TimingSampleRate = (int)_sampleRate
         };
 
-        return await GetAudioFromTimedEvents(timed_events);
+        // Determine difference
+        var old_placement = oldRendered.Placement;
+        var to_remove = old_placement.Except(new_placement_array).ToArray();
+        var to_add = new_placement_array.Except(old_placement).ToArray();
+
+        var processed_events = await GetAudioSamples(timed_events, null);
+
+        // We need an AudioMixer to perform the operations
+        var last_placement = new_placement_array[^1];
+        var big_event = processed_events.Values.MaxBy(e => e.AudioData.GetLength());
+        var big_event_length = big_event?.AudioData.GetLength() ?? 0;
+        var length = (int)last_placement.Index + big_event_length;
+
+        // If the length changed, we might need to re-allocate or handle it.
+        // For simplicity, we assume the user wants to update the existing audio in place if possible, 
+        // but AudioData size is fixed.
+        var audio_data = oldRendered.Audio;
+        if (audio_data.GetLength() < length)
+        {
+            // Re-allocation case - this is tricky because we'd lose the old audio data.
+            // If the sequence gets longer, we should probably resize the AudioData.
+            // However, incremental updates usually imply staying within a similar range.
+            // Let's assume we can create a new AudioData and copy the old one if needed, or just allocate enough.
+            var new_audio_data = AudioData<float>.WithLength(_channels, length);
+            for (var i = 0; i < _channels; i++)
+            {
+                audio_data.Samples[i].CopyTo(new_audio_data.Samples[i]);
+            }
+            audio_data = new_audio_data;
+        }
+
+        var mixer = new AudioMixer(audio_data);
+        // Ensure tracks exist for new sounds
+        foreach (var sequence in array)
+        foreach (var channel in sequence.SeparatedChannels)
+        {
+            if (mixer.HasTrack(channel)) continue;
+            var new_track = AudioData<float>.WithLength(_channels, audio_data.GetLength());
+            mixer.AddTrack(channel, new_track);
+        }
+
+        // Subtract removed events
+        if (to_remove.Length > 0)
+        {
+            var remove_timed = new TimedEvents { Placement = to_remove, Sequences = oldRendered.Sequences, TimingSampleRate = (int)_sampleRate };
+            await RenderTimedEvents(mixer, remove_timed, processed_events, big_event_length, true);
+        }
+
+        // Add new events
+        if (to_add.Length > 0)
+        {
+            var add_timed = new TimedEvents { Placement = to_add, Sequences = array, TimingSampleRate = (int)_sampleRate };
+            await RenderTimedEvents(mixer, add_timed, processed_events, big_event_length, false);
+        }
+
+        oldRendered.Audio = mixer.MixDown();
+        oldRendered.TimedEvents = timed_events;
+
+        return oldRendered;
     }
 
-    public async Task<AudioData<float>> GetAudioFromTimedEvents(TimedEvents timedEvents)
+    public async Task<AudioData<float>> GetAudioFromTimedEvents(TimedEvents timedEvents,
+        Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents = null)
     {
         Log("Calculated placement. Starting sample processing.");
 
-        var processed_events = await GetAudioSamples(timedEvents);
+        var processed_events = await GetAudioSamples(timedEvents, existingProcessedEvents);
 
         Log("Finished processing all samples. Starting audio mixing.");
         var audioData = await GenerateAudioData(timedEvents, processed_events);
@@ -116,11 +187,13 @@ public class PcmEncoder
     /// <param name="events">The calculated events.</param>
     /// <returns>An array containing all processed events.</returns>
     /// <exception cref="Exception">Edge case that only can happen if something is wrong with the program.</exception>
-    public async Task<Dictionary<(string, double), ProcessedEvent>> GetAudioSamples(TimedEvents events)
+    public async Task<Dictionary<(string, double), ProcessedEvent>> GetAudioSamples(TimedEvents events,
+        Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents = null)
     {
         var placement = events.Placement;
         // Get only unique events. Duplicates get removed.
         var event_dictionary = new Dictionary<(string event_name, double event_value), BaseEvent>();
+        var dictionary = existingProcessedEvents ?? new Dictionary<(string, double), ProcessedEvent>();
 
         foreach (var p in placement)
         {
@@ -134,10 +207,12 @@ public class PcmEncoder
             if (Holder.StringToSoundReferences.TryGetValue(event_name, out var sound))
                 event_name = sound.Id;
 
+            if (dictionary.ContainsKey((event_name, event_value))) continue;
             event_dictionary.TryAdd((event_name, event_value), ev);
         }
 
         // Start setting up tasks to process all events.
+        if (event_dictionary.Count == 0) return dictionary;
         var todo_samples = event_dictionary.Values.ToArray();
         var processed_events = new ProcessedEvent[todo_samples.Length];
         var processed_events_memory = processed_events.AsMemory();
@@ -165,7 +240,8 @@ public class PcmEncoder
             _indexLock.Release();
         });
 
-        var dictionary = new Dictionary<(string, double), ProcessedEvent>();
+        await task;
+
         var idx = 0;
         foreach (var tuple in event_dictionary.Keys)
         {
@@ -173,7 +249,6 @@ public class PcmEncoder
             idx++;
         }
 
-        await task;
         return dictionary;
     }
 
@@ -192,9 +267,7 @@ public class PcmEncoder
         var last_placement = events.Placement[^1];
 
         var big_event = processedEvents.Values.MaxBy(e => e.AudioData.GetLength());
-        if (big_event == null) throw new Exception("No processed events.");
-
-        var big_event_length = big_event.AudioData.GetLength();
+        var big_event_length = big_event?.AudioData.GetLength() ?? 0;
         var length = (int)last_placement.Index + big_event_length;
         var audio_data = AudioData<float>.WithLength(_channels, length);
 
@@ -207,6 +280,27 @@ public class PcmEncoder
         }
 
         // Map channel tasks.
+        await RenderTimedEvents(mixer, events, processedEvents, big_event_length, false, token);
+
+        return mixer.MixDown();
+    }
+
+    /// <summary>
+    ///     Adds/Subtracts events from an existing AudioMixer.
+    /// </summary>
+    /// <param name="mixer">The mixer to render into.</param>
+    /// <param name="events">The events to render.</param>
+    /// <param name="processedEvents">The processed audio samples.</param>
+    /// <param name="biggestEventLength">The length of the biggest event in the sequence.</param>
+    /// <param name="invert">Whether to subtract the events from the mixer.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    public async Task RenderTimedEvents(AudioMixer mixer, TimedEvents events,
+        Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength,
+        bool invert = false, CancellationToken? cancellationToken = null)
+    {
+        var token = cancellationToken ?? CancellationToken.None;
+
+        // Map channel tasks.
         var channels = new Task[_channels];
         for (var i = 0; i < _channels; i++)
         {
@@ -214,18 +308,15 @@ public class PcmEncoder
 
             channels[index] =
                 Task.Run(
-                    async () => { await ProcessChannel(mixer, index, events, processedEvents, big_event_length); },
+                    async () =>
+                    {
+                        await ProcessChannel(mixer, index, events, processedEvents, biggestEventLength, invert);
+                    },
                     token);
         }
 
         // Wait for all tasks to finish.
         await Task.WhenAll(channels);
-        return mixer.MixDown();
-    }
-
-    public void SetMultithreadingSlices(int threadCount)
-    {
-        _settings.MultithreadingSlices = threadCount;
     }
 
     /// <summary>
@@ -237,7 +328,7 @@ public class PcmEncoder
     /// <param name="processedEvents">The processed events for the sequence.</param>
     /// <param name="biggestEventLength">The sequence's biggest event's length.</param>
     private async Task ProcessChannel(AudioMixer mixer, int channel, TimedEvents events,
-        Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength)
+        Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength, bool invert = false)
     {
         var length = mixer.GetLength();
         var min_length_per_thread = Math.Min(1 << 15, length);
@@ -266,7 +357,7 @@ public class PcmEncoder
             if (start > length) return ValueTask.CompletedTask;
 
             var start_time = Stopwatch.GetTimestamp();
-            ProcessChunk(start, end, mixer, channel, events, processedEvents, biggestEventLength);
+            ProcessChunk(start, end, mixer, channel, events, processedEvents, biggestEventLength, invert);
             var delta = Stopwatch.GetElapsedTime(start_time);
             Log(
                 $@"Processed chunk i: {i} in {delta:ss\.ffff} s. Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
@@ -276,7 +367,8 @@ public class PcmEncoder
     }
 
     private void ProcessChunk(int start, int end, AudioMixer mixer, int channel,
-        TimedEvents events, Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength)
+        TimedEvents events, Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength,
+        bool invert = false)
     {
         var placement = events.Placement.AsSpan();
 
@@ -285,122 +377,122 @@ public class PcmEncoder
             // skip non audible
             if (!current.Audible) continue;
 
-            // extract event values
-            var current_event = current.Event;
-            var (event_name, event_value, event_volume) = current.Event;
-            event_name ??= string.Empty;
-
-            if (Holder.StringToSoundReferences.TryGetValue(event_name, out var sound_reference))
-                event_name = sound_reference.Id;
-
-            // get specified event track if exists
-            var track_data = mixer.GetTrackOrDefault(event_name);
-            var channel_data = track_data.GetChannel(channel).AsSpan();
-            var mixer_length = mixer.GetLength();
-
-            if (mixer_length != channel_data.Length)
-                throw new Exception(
-                    $"Mismatch between channel and mixer length. Mixer: {mixer_length}, Channel: {channel_data.Length}");
-
-            if (start > channel_data.Length || end > channel_data.Length)
-                throw new Exception($"Trying to make a slice bigger than the mixer's length. " +
-                                    $"Length: {channel_data.Length}, Start: {start}, End: {end}");
-
-            // slice only memory which will be worked on
-            var mix_slice = channel_data[start..end];
-
             // get current event start.
             var current_start = (int)current.Index;
             if (current_start < start - biggestEventLength) continue;
             if (current_start >= end) break;
 
-            // put pan variable here to be used later
-            var pan = 0f;
-
-            switch (current_event)
-            {
-                // handle #icut event
-                case IndividualCutEvent individual_cut_event:
-                {
-                    foreach (var cut_track in from sound in individual_cut_event.CutSounds
-                             where mixer.HasTrack(sound)
-                             select mixer.GetTrack(sound))
-                    {
-                        var cut_slice = cut_track.GetChannel(channel).AsSpan()[start..end];
-                        HandleCut(start, end, current_start, cut_slice);
-                    }
-
-                    continue;
-                }
-
-                case PannedEvent panned_event:
-                {
-                    pan = Math.Clamp(panned_event.Pan, -1f, 1f);
-                    break;
-                }
-            }
-
-            // handle !cut event
-            if (event_name == "!cut")
-            {
-                foreach (var (_, data) in mixer.GetTracks())
-                    HandleCut(start, end, current_start, data.GetChannel(channel).AsSpan()[start..end]);
-
-                continue;
-            }
-
-            // search for processed sample
-            if (!processedEvents.TryGetValue((event_name, event_value), out var processed_event)) continue;
-
-            // get its length
-            var current_length = processed_event.AudioData.GetLength();
-            // get the channel that the mixer is also on
-            var current_channel = processed_event.AudioData.GetChannel(channel);
-
-            // case: event not valid for current mixer slice
-            if (current_start + current_length < start) continue;
-
-            // normalize values to current mixer slice
-            var delta_start = current_start - start;
-            var delta_end = current_length;
-
-            var offset = 0;
-            if (delta_start < 0)
-            {
-                offset = -delta_start;
-                delta_start = 0;
-            }
-
-            delta_end -= offset;
-
-            if (delta_end >= mix_slice.Length) delta_end = mix_slice.Length;
-
-            var volume = event_volume;
-
-            // when panning is used dims the channel opposite to what the value represents
-            // if it's -1 (left channel only), dims the right channel and vice-versa
-            switch (pan)
-            {
-                // Channel = Right
-                case < 0 when channel == 1:
-                {
-                    var percent_dim = 1f + pan;
-                    volume *= percent_dim;
-                    break;
-                }
-
-                // Channel = Left
-                case > 0 when channel == 0:
-                {
-                    var percent_dim = 1f - pan;
-                    volume *= percent_dim;
-                    break;
-                }
-            }
-
-            RenderSample(current_channel, mix_slice, delta_start,
-                volume, delta_end, offset);
+            RenderEventToSlice(start, end, mixer, channel, current, processedEvents, invert);
         }
+    }
+
+    private void RenderEventToSlice(int start, int end, AudioMixer mixer, int channel,
+        Placement current, Dictionary<(string, double), ProcessedEvent> processedEvents, bool invert = false)
+    {
+        // extract event values
+        var current_event = current.Event;
+        var (event_name, event_value, event_volume) = current.Event;
+        event_name ??= string.Empty;
+
+        if (Holder.StringToSoundReferences.TryGetValue(event_name, out var sound_reference))
+            event_name = sound_reference.Id;
+
+        // get specified event track if exists
+        var track_data = mixer.GetTrackOrDefault(event_name);
+        var channel_data = track_data.GetChannel(channel).AsSpan();
+
+        // slice only memory which will be worked on
+        var mix_slice = channel_data[start..end];
+
+        // get current event start.
+        var current_start = (int)current.Index;
+
+        // put pan variable here to be used later
+        var pan = 0f;
+
+        switch (current_event)
+        {
+            // handle #icut event
+            case IndividualCutEvent individual_cut_event:
+            {
+                foreach (var cut_track in from sound in individual_cut_event.CutSounds
+                         where mixer.HasTrack(sound)
+                         select mixer.GetTrack(sound))
+                {
+                    var cut_slice = cut_track.GetChannel(channel).AsSpan()[start..end];
+                    HandleCut(start, end, current_start, cut_slice);
+                }
+
+                return;
+            }
+
+            case PannedEvent panned_event:
+            {
+                pan = Math.Clamp(panned_event.Pan, -1f, 1f);
+                break;
+            }
+        }
+
+        // handle !cut event
+        if (event_name == "!cut")
+        {
+            foreach (var (_, data) in mixer.GetTracks())
+                HandleCut(start, end, current_start, data.GetChannel(channel).AsSpan()[start..end]);
+
+            return;
+        }
+
+        // search for processed sample
+        if (!processedEvents.TryGetValue((event_name, event_value), out var processed_event)) return;
+
+        // get its length
+        var current_length = processed_event.AudioData.GetLength();
+        // get the channel that the mixer is also on
+        var current_channel = processed_event.AudioData.GetChannel(channel);
+
+        // case: event not valid for current mixer slice
+        if (current_start + current_length < start) return;
+
+        // normalize values to current mixer slice
+        var delta_start = current_start - start;
+        var delta_end = current_length;
+
+        var offset = 0;
+        if (delta_start < 0)
+        {
+            offset = -delta_start;
+            delta_start = 0;
+        }
+
+        delta_end -= offset;
+
+        if (delta_end >= mix_slice.Length) delta_end = mix_slice.Length;
+
+        var volume = event_volume;
+
+        // when panning is used dims the channel opposite to what the value represents
+        // if it's -1 (left channel only), dims the right channel and vice-versa
+        switch (pan)
+        {
+            // Channel = Right
+            case < 0 when channel == 1:
+            {
+                var percent_dim = 1f + pan;
+                volume *= percent_dim;
+                break;
+            }
+
+            // Channel = Left
+            case > 0 when channel == 0:
+            {
+                var percent_dim = 1f - pan;
+                volume *= percent_dim;
+                break;
+            }
+        }
+
+        RenderSample(current_channel, mix_slice, delta_start,
+            volume, delta_end, offset, invert);
     }
 
     private void HandleCut(int start, int end, int currentStart, Span<float> mixSlice)
@@ -570,7 +662,8 @@ public class PcmEncoder
         for (var i = min; i < min_final; i++)
         {
             var src = s_slice[i] * final_volume;
-            d_slice[i] += src;
+            if (invert) d_slice[i] -= src;
+            else d_slice[i] += src;
         }
     }
 

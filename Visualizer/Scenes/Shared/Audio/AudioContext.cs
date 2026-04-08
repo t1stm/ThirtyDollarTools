@@ -5,7 +5,6 @@ namespace Shared.Audio;
 public abstract class AudioContext
 {
     public int SampleRate { get; protected set; } = 48000;
-    public float GlobalVolume { get; set; } = .25f;
     public abstract string Name { get; }
 
     public abstract bool Create();

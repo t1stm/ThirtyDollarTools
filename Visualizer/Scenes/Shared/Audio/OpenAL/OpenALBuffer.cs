@@ -11,7 +11,7 @@ public class OpenALBuffer : AudibleBuffer
 
     private readonly ILogger _logger;
     private float _pan;
-    public float RelativeVolume = .5f;
+    public float Volume = .5f;
 
     public OpenALBuffer(AudioContext context, ILogger logger, AudioData<float> sampleData, int sampleRate)
     {
@@ -40,8 +40,13 @@ public class OpenALBuffer : AudibleBuffer
         AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
     }
 
-    public float Volume => RelativeVolume * _context.GlobalVolume;
     public int AudioBuffer { get; set; }
+
+    public override bool UploadNewData(AudioData<float> data, int sampleRate)
+    {
+        // TODO
+        return false;
+    }
 
     public override void Play(Action? callbackWhenFinished = null, bool autoRemove = true)
     {
@@ -77,6 +82,7 @@ public class OpenALBuffer : AudibleBuffer
 
         AL.SourcePlay(source);
         audio_context.CheckErrors();
+        IsRunning = true;
 
         Task.Run(async () =>
         {
@@ -94,6 +100,8 @@ public class OpenALBuffer : AudibleBuffer
             callbackWhenFinished?.Invoke();
         });
     }
+
+    public override bool IsRunning { get; protected set; }
 
     public override void Stop()
     {
@@ -127,9 +135,13 @@ public class OpenALBuffer : AudibleBuffer
         }
     }
 
-    public override void SetVolume(float volume, bool absolute = false)
+    public override void SetVolume(float volume)
     {
-        RelativeVolume = absolute ? volume * (1 / _context.GlobalVolume) : volume;
+        Volume = volume;
+        lock (_audioSources)
+        {
+            foreach (var source in _audioSources) AL.Sourcef(source, SourcePNameF.Gain, Volume);
+        }
     }
 
     public override void Delete()
@@ -164,9 +176,11 @@ public class OpenALBuffer : AudibleBuffer
                     case SourceState.Initial when !state:
                     case SourceState.Paused when !state:
                         AL.SourcePlay(source);
+                        IsRunning = true;
                         break;
                     case SourceState.Playing when state:
                         AL.SourcePause(source);
+                        IsRunning = false;
                         break;
                 }
             }

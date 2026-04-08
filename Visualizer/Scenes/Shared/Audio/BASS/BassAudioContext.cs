@@ -21,7 +21,6 @@ public class BassAudioContext(ILogger logger) : AudioContext
             Bass.DeviceBufferLength = 16;
             Bass.PlaybackBufferLength = 128;
 
-            Bass.GlobalSampleVolume = (int)(GlobalVolume * 10000);
             Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
             Bass.Configure(Configuration.TruePlayPosition, 0);
 
@@ -63,6 +62,6 @@ public class BassAudioContext(ILogger logger) : AudioContext
 
     public override BassBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
-        return new BassBuffer(this, _logger, sampleData, sampleRate);
+        return new BassBuffer(_logger, sampleData, sampleRate);
     }
 }

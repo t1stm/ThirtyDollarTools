@@ -45,7 +45,6 @@ public class OpenALContext(ILogger logger) : AudioContext
             ALC.MakeContextCurrent(_context);
             AL.DistanceModel(DistanceModel.LinearDistanceClamped);
 
-            AL.Listenerf(ListenerPNameF.Gain, GlobalVolume);
             AL.Listener3f(ListenerPName3F.Position, 0f, 0f, 0f);
             return true;
         }

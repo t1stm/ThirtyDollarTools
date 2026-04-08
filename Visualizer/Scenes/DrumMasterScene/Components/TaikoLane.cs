@@ -20,7 +20,7 @@ public class TaikoLane : IDisposable
     private readonly List<TaikoChunk> _chunks = [];
     public TaikoTimedSounds TimedSounds { get; }
     public TaikoSoundMap SoundMap { get; }
-    public SeekableStopwatch Stopwatch { get; }
+    public ISeekableStopwatch Stopwatch { get; }
 
     public Vector2 LanePosition
     {
@@ -82,7 +82,7 @@ public class TaikoLane : IDisposable
     public float HitWindowMs { get; set; } = 100f;
 
     public TaikoLane(Placement[] placement,
-        SeekableStopwatch stopwatch,
+        ISeekableStopwatch stopwatch,
         TaikoSoundMap soundMap,
         AtlasStore atlasStore,
         VisualizerFonts fonts,

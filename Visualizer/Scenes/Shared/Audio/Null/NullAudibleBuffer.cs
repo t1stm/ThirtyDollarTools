@@ -4,13 +4,14 @@ namespace Shared.Audio.Null;
 
 public class NullAudibleBuffer : AudibleBuffer
 {
-    public static readonly AudibleBuffer EmptyBuffer = new NullAudibleBuffer(AudioData<float>.Empty(2), 48000);
-
-    public NullAudibleBuffer(AudioData<float> data, int sampleRate)
-    {
-    }
+    public static readonly AudibleBuffer EmptyBuffer = new NullAudibleBuffer();
 
     // Methods with some implementation.
+    public override bool UploadNewData(AudioData<float> data, int sampleRate)
+    {
+        return true;
+    }
+
     public override void Play(Action? callbackWhenFinished = null, bool autoRemove = true)
     {
         callbackWhenFinished?.Invoke();
@@ -22,6 +23,8 @@ public class NullAudibleBuffer : AudibleBuffer
     }
 
     // Methods that don't need an implementation.
+    public override bool IsRunning { get; protected set; } = true;
+
     public override void Stop()
     {
     }
@@ -30,7 +33,7 @@ public class NullAudibleBuffer : AudibleBuffer
     {
     }
 
-    public override void SetVolume(float volume, bool absolute = false)
+    public override void SetVolume(float volume)
     {
     }
 

@@ -8,22 +8,49 @@ namespace Shared.Audio.BASS;
 
 public class BassBuffer : AudibleBuffer, IDisposable
 {
-    private readonly List<int> _activeChannels = [];
+    private SampleInfo SampleInfo { get; set; } = new();
+    protected int SampleHandle { get; set; }
+    private float Pan { get; set; } = 0.5f;
+    public float Volume { get; set; } = .5f;
+    public override bool IsRunning { get; protected set; }
 
-    private readonly AudioContext _context;
-    private readonly ILogger _logger;
-    private readonly SampleInfo _sampleInfo;
-    protected readonly int SampleHandle;
-    private float _pan = 0.5f;
-    public float RelativeVolume = .5f;
+    private int _sampleRate;
+    private readonly int _maxCount;
+    private int[] _channels = [];
 
-    public unsafe BassBuffer(AudioContext context, ILogger logger, AudioData<float> data, int sampleRate,
-        int maxCount = 65535)
+    public BassBuffer(ILogger logger, AudioData<float> data, int sampleRate, int maxCount = 65535)
     {
-        _logger = logger.ForContext<BassBuffer>();
+        var bassLogger = logger.ForContext<BassBuffer>();
+        _maxCount = maxCount;
+
+        if (!UploadNewData(data, sampleRate))
+            bassLogger.Fatal("Failed to upload new data to BASS.");
+    }
+
+    public void Dispose()
+    {
+        Delete();
+        GC.SuppressFinalize(this);
+    }
+
+    public override void SetVolume(float volume)
+    {
+        Volume = volume;
+        SampleInfo.Volume = volume;
+        Bass.SampleSetInfo(SampleHandle, SampleInfo);
+
+        lock (_channels)
+        {
+            foreach (var channel in _channels)
+                Bass.ChannelSetAttribute(channel, ChannelAttribute.Volume, volume);
+        }
+    }
+
+    public sealed override unsafe bool UploadNewData(AudioData<float> data, int sampleRate)
+    {
+        _sampleRate = sampleRate;
         var length = data.GetLength();
         var channels = (int)data.ChannelCount;
-        _context = context;
 
         var pool = ArrayPool<byte>.Shared.Rent(length * channels * sizeof(float));
         var samples = MemoryMarshal.Cast<byte, float>(pool.AsSpan());
@@ -35,102 +62,59 @@ public class BassBuffer : AudibleBuffer, IDisposable
             samples[idx] = data.Samples[j][i];
         }
 
-        var sample = Bass.CreateSample(length * channels * sizeof(float), sampleRate, channels, maxCount,
+        if (SampleHandle != 0)
+            Delete();
+
+        SampleHandle = Bass.CreateSample(length * channels * sizeof(float), _sampleRate, channels, _maxCount,
             BassFlags.Float);
+
         fixed (void* s = samples)
         {
-            Bass.SampleSetData(sample, new IntPtr(s));
+            if (!Bass.SampleSetData(SampleHandle, new IntPtr(s))) return false;
         }
 
-        SampleHandle = sample;
-        _sampleInfo = new SampleInfo
+        SampleInfo = new SampleInfo
         {
-            Frequency = sampleRate,
+            Frequency = _sampleRate,
             Volume = Volume,
             Flags = BassFlags.Float,
             Length = length * channels * sizeof(float),
-            Max = maxCount,
+            Max = 65535,
             Channels = 2,
             Mode3D = Mode3D.Off
         };
 
-        Bass.SampleSetInfo(SampleHandle, _sampleInfo);
-        ArrayPool<byte>.Shared.Return(pool);
-    }
-
-    public float Volume => RelativeVolume * _context.GlobalVolume;
-
-    public void Dispose()
-    {
-        Delete();
-        GC.SuppressFinalize(this);
-    }
-
-    public override void SetVolume(float volume, bool absolute = false)
-    {
-        RelativeVolume = volume;
-
-        _sampleInfo.Volume = absolute ? volume / _context.GlobalVolume : Volume;
-        Bass.SampleSetInfo(SampleHandle, _sampleInfo);
-    }
-
-    private void HandleCPUOverloaded()
-    {
-        lock (_activeChannels)
+        lock (_channels)
         {
-            var count = _activeChannels.Count;
-            var divide = Math.Max(1, count / 32);
-
-            var taken = _activeChannels.Take(divide);
-            foreach (var channel in taken)
-            {
-                Bass.ChannelStop(channel);
-                _activeChannels.Remove(channel);
-            }
+            _channels = Bass.SampleGetChannels(SampleHandle);
         }
+
+        Bass.SampleSetInfo(SampleHandle, SampleInfo);
+        ArrayPool<byte>.Shared.Return(pool);
+
+        return true;
     }
 
     public override void Play(Action? callbackWhenFinished = null, bool autoRemove = true)
     {
-        if (Bass.CPUUsage > 75d)
-        {
-            _logger.Warning("CPU usage reached: {CPUUsage:0.##}% CPU. Cutting old sounds.", Bass.CPUUsage);
-            HandleCPUOverloaded();
-        }
-
-        if (Volume < 0.001f) return;
-
         var channel = Bass.SampleGetChannel(SampleHandle);
-        if (Math.Abs(_pan - 0.5f) > 0.01f)
-            Bass.ChannelSetAttribute(channel, ChannelAttribute.Pan, _pan);
+        if (Math.Abs(Pan - 0.5f) > 0.01f)
+            Bass.ChannelSetAttribute(channel, ChannelAttribute.Pan, Pan);
         Bass.ChannelPlay(channel);
-        lock (_activeChannels)
-        {
-            _activeChannels.Add(channel);
-        }
-
-        var byte_length = Bass.ChannelGetLength(channel);
-        var seconds = Bass.ChannelBytes2Seconds(channel, byte_length);
-
-        Task.Run(async () =>
-        {
-            await Task.Delay((int)(seconds * 1000));
-            callbackWhenFinished?.Invoke();
-            lock (_activeChannels)
-            {
-                _activeChannels.Remove(channel);
-            }
-        });
+        IsRunning = true;
     }
 
     public override void Stop()
     {
         Bass.SampleStop(SampleHandle);
+        IsRunning = false;
     }
 
     public override long GetTime_Milliseconds()
     {
         var channels = Bass.SampleGetChannels(SampleHandle);
+        if (channels == null) return 0;
+        if (channels.Length < 1) return 0;
         var channel = channels[0];
 
         var length = Bass.ChannelGetPosition(channel);
@@ -149,13 +133,16 @@ public class BassBuffer : AudibleBuffer, IDisposable
 
     public override void Delete()
     {
+        Bass.SampleStop(SampleHandle);
         Bass.SampleFree(SampleHandle);
+        _channels = [];
+        SampleHandle = 0;
     }
 
     public override void SetPan(float pan)
     {
         pan = Math.Max(-1, Math.Min(1, pan));
-        _pan = pan;
+        Pan = pan;
     }
 
     public override void SetPause(bool state)
@@ -166,7 +153,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
             {
                 var channels = Bass.SampleGetChannels(SampleHandle);
                 foreach (var channel in channels) Bass.ChannelPlay(channel);
-
+                IsRunning = true;
                 break;
             }
 
@@ -174,7 +161,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
             {
                 var channels = Bass.SampleGetChannels(SampleHandle);
                 foreach (var channel in channels) Bass.ChannelPause(channel);
-
+                IsRunning = false;
                 break;
             }
         }

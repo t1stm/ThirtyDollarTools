@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Sundex.Core;
 
-public class SeekableStopwatch
+public class SeekableStopwatch : ISeekableStopwatch
 {
     protected readonly SemaphoreSlim Lock = new(1);
     protected TimeSpan LastValue = TimeSpan.Zero;

@@ -3,13 +3,9 @@ using ThirtyDollarEncoder.PCM;
 
 namespace Shared.Audio.Null;
 
-public class NullAudioContext : AudioContext, IBatchSupported
+public class NullAudioContext : AudioContext
 {
     public override string Name => "Null";
-
-    public void PlayBatch(Span<AudibleBuffer> buffers)
-    {
-    }
 
     public override bool Create()
     {
@@ -27,6 +23,6 @@ public class NullAudioContext : AudioContext, IBatchSupported
 
     public override AudibleBuffer GetBufferObject(AudioData<float> sampleData, int sampleRate)
     {
-        return new NullAudibleBuffer(sampleData, sampleRate);
+        return new NullAudibleBuffer();
     }
 }

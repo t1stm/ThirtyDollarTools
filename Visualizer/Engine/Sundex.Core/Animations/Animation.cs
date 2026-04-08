@@ -14,7 +14,7 @@ public abstract class Animation(TimeSpan timespan)
     public bool AffectsChildren { get; set; } = true;
     public AnimationLoopingMode LoopingMode { get; set; } = AnimationLoopingMode.None;
 
-    protected internal SeekableStopwatch TimingStopwatch { get; } = new();
+    protected internal ISeekableStopwatch TimingStopwatch { get; } = new SeekableStopwatch();
     protected TimeSpan AnimationLength { get; set; } = timespan;
     protected Action? CallbackOnFinish { get; set; }
 

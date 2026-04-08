@@ -8,6 +8,7 @@ using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
@@ -22,15 +23,23 @@ public class ThirtyDollarWorkflow
     private readonly AssetProvider _assetProvider;
     private const int ModifiedSequenceUpdateIntervalMs = 250;
 
-    public ThirtyDollarWorkflow(Game game, ILogger logger, AudioContext? context = null)
+    public ThirtyDollarWorkflow(Game game, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
+        AudioContext? context = null)
     {
         _assetProvider = game.AssetProvider;
         Game = game;
         Logger = logger.ForContext<ThirtyDollarWorkflow>();
         SequencePlayer = new SequencePlayer(logger, context);
+        AtlasStore = atlasStore;
+        SampleHolder = sampleHolder;
+
         _fileUpdateStopwatch = new Stopwatch();
         _fileUpdateStopwatch.Start();
     }
+
+    private readonly Dictionary<(string, double), ProcessedEvent> _processedEvents = [];
+    private readonly Dictionary<string, Dictionary<double, AudibleBuffer>> _processedBuffers = [];
+    private RenderedSequence? _renderedSequence;
 
     /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
     public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
@@ -41,8 +50,8 @@ public class ThirtyDollarWorkflow
         TimingSampleRate = 100_000,
     };
 
-    public required AtlasStore AtlasStore { get; init; }
-    public required SampleHolder SampleHolder { get; init; }
+    public AtlasStore AtlasStore { get; init; }
+    public SampleHolder SampleHolder { get; init; }
     public Game Game { get; }
     public ILogger Logger { get; }
     public SequencePlayer SequencePlayer { get; }
@@ -78,6 +87,7 @@ public class ThirtyDollarWorkflow
             sequence_array[index] = sequence;
         }
 
+        _renderedSequence = null;
         await UpdateSequences(sequence_array, restartPlayer);
     }
 
@@ -97,7 +107,7 @@ public class ThirtyDollarWorkflow
         const int updateRate = 100_000;
 
         if (restartPlayer)
-            await SequencePlayer.Stop();
+            SequencePlayer.Stop();
 
         var calculator = new PlacementCalculator(new EncoderSettings
         {
@@ -120,41 +130,23 @@ public class ThirtyDollarWorkflow
         {
             SampleRate = (uint)audio_context.SampleRate,
             Channels = 2,
-            Resampler = new HermiteResampler()
+            Resampler = new LinearResampler(), // TODO probably add the functionality to leave the user to select it
+            EnableNormalization = false
         });
 
-        var samples = await pcm_encoder.GetAudioSamples(TimedEvents);
-        var buffer_holder = new BufferHolder();
+        _renderedSequence = _renderedSequence == null
+            ? await pcm_encoder.GetMultipleSequencesAudio(sequences)
+            : await pcm_encoder.GetIncrementalAudio(_renderedSequence, sequences);
 
-        foreach (var ev in samples)
-        {
-            var val = ev.Value;
-            var value = val.Value;
-            var name = val.Name ?? string.Empty;
+        _ = Game.ThreadRunner.RunTask(UpdateExtractedSpeedEvents);
+        Game.ThreadRunner.RunThread(() => UpdateAndStart(_renderedSequence, restartPlayer));
+    }
 
-            if (buffer_holder.ProcessedBuffers.TryGetValue(name, out var event_buffers))
-                if (event_buffers.ContainsKey(value))
-                    continue;
-
-            var sample = audio_context.GetBufferObject(val.AudioData, audio_context.SampleRate);
-            if (event_buffers != null)
-            {
-                event_buffers.Add(value, sample);
-                continue;
-            }
-
-            buffer_holder.ProcessedBuffers.Add(name, new Dictionary<double, AudibleBuffer>
-            {
-                { value, sample }
-            });
-        }
-
-        _ = Task.Run(UpdateExtractedSpeedEvents);
-
-        await SequencePlayer.UpdateSequence(buffer_holder, TimedEvents, SequenceIndices);
-
+    private void UpdateAndStart(RenderedSequence renderedSequence, bool restartPlayer)
+    {
+        SequencePlayer.UpdateSequence(TimedEvents, SequenceIndices, renderedSequence);
         if (restartPlayer)
-            await SequencePlayer.Start(Game.ThreadRunner);
+            SequencePlayer.Start(Game.ThreadRunner);
     }
 
     public static SequenceIndices GenerateSequenceIndexes(IEnumerable<Placement> placements)
@@ -174,7 +166,7 @@ public class ThirtyDollarWorkflow
         return locations.Where(l => File.Exists(l) && !Directory.Exists(l)).Select(l => new SequenceInfo
         {
             FileLocation = l!,
-            FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo { Location = l! })
+            FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo { Location = l!, Storage = StorageLocation.Disk})
                 .ModifiedDate
         }).ToArray();
     }
@@ -193,12 +185,15 @@ public class ThirtyDollarWorkflow
 
         if (_fileUpdateStopwatch.ElapsedMilliseconds < ModifiedSequenceUpdateIntervalMs)
             return;
-        
+
         HandleIfSequenceUpdate();
         _fileUpdateStopwatch.Restart();
     }
 
-    private readonly AssetInfo _assetInfo = new(); // cached to avoid re-allocating each update
+    private readonly AssetInfo _assetInfo = new()
+    {
+        Storage = StorageLocation.Disk
+    }; // cached to avoid re-allocating each update
 
     private void HandleIfSequenceUpdate()
     {

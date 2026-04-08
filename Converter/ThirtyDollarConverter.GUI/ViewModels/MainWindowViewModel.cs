@@ -249,7 +249,7 @@ public class MainWindowViewModel : ViewModelBase
         var output = await pcmEncoder.GetMultipleSequencesAudio(localSequences);
         CreateLog("Finished encoding.");
 
-        pcmEncoder.WriteAsWavFile(_exportFileLocation ?? throw new Exception("Export path is null."), output);
+        pcmEncoder.WriteAsWavFile(_exportFileLocation ?? throw new Exception("Export path is null."), output.Audio);
         _encodeRunning = false;
     }
 

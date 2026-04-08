@@ -12,23 +12,26 @@ namespace Shared.Audio;
 
 public class SequencePlayer
 {
-    private static int _instanceID;
+    public float Volume
+    {
+        get;
+        protected set
+        {
+            field = value;
+            AudioBuffer?.SetVolume(field);
+        }
+    } = .25f;
 
-    protected readonly List<(string, AudibleBuffer)> ActiveSamples = new(256);
     public readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly long[] Bookmarks = new long[10];
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
-    protected readonly Greeting? Greeting;
     protected readonly ILogger Logger;
-    protected readonly SeekableStopwatch TimingStopwatch = new();
     protected readonly SemaphoreSlim UpdateLock = new(1);
-    private bool _cutSounds;
     private bool _dead;
-
     private bool _updateRunning;
-    protected BackingAudio? BackingAudio;
-
-    protected BufferHolder BufferHolder;
+    private long _oldTime;
+    
+    protected AudibleBuffer? AudioBuffer;
     protected PlayerErrors Errors = PlayerErrors.None;
     protected TimedEvents Events;
 
@@ -42,10 +45,7 @@ public class SequencePlayer
     /// <param name="context">The audio context you want to use.</param>
     public SequencePlayer(ILogger logger, AudioContext? context = null)
     {
-        ++_instanceID;
         Logger = logger.ForContext<SequencePlayer>();
-
-        BufferHolder = new BufferHolder();
         Events = new TimedEvents
         {
             Placement = [],
@@ -63,8 +63,6 @@ public class SequencePlayer
         }
 
         AudioContext = c;
-        Greeting = new Greeting(AudioContext, BufferHolder);
-        TimingStopwatch.Reset();
     }
 
     protected int CurrentSequence
@@ -132,29 +130,25 @@ public class SequencePlayer
         EventActions.Clear();
     }
 
-    public SeekableStopwatch GetTimingStopwatch()
-    {
-        return TimingStopwatch;
-    }
+    public AudioContext GetContext() => AudioContext;
+    public IBufferStopwatch? GetTimingStopwatch() => AudioBuffer;
 
-    public AudioContext GetContext()
+    public void Restart()
     {
-        return AudioContext;
-    }
-
-    public async ValueTask Restart()
-    {
-        await UpdateLock.WaitAsync();
-        TimingStopwatch.Restart();
-        AlignToTime();
+        UpdateLock.Wait();
+        AudioBuffer?.Restart();
         UpdateLock.Release();
+    }
+
+    public void SetVolume(float volume)
+    {
+        Volume = volume;
     }
 
     public void Seek(long milliseconds)
     {
         UpdateLock.Wait();
-        TimingStopwatch.Seek(milliseconds);
-        AlignToTime();
+        AudioBuffer?.SeekTime_Milliseconds(milliseconds);
 
         var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
         if (!alternative_lookup.TryGetValue(string.Empty, out var event_action))
@@ -169,54 +163,42 @@ public class SequencePlayer
         UpdateLock.Release();
     }
 
-    public async ValueTask Start(ThreadRunner threadRunner)
+    public void Start(ThreadRunner threadRunner)
     {
-        await (Greeting?.PlayWaitFinish() ?? Task.CompletedTask);
-        TimingStopwatch.Restart();
-        AlignToTime();
-        // Spawns a new thread object for the Thread.Sleep in the update loop.
+        AudioBuffer?.Play();
         threadRunner.RunThread(UpdateLoop);
     }
 
-    public async ValueTask Stop()
+    public void Stop()
     {
-        await UpdateLock.WaitAsync();
-        TimingStopwatch.Stop();
+        UpdateLock.Wait();
+        AudioBuffer?.Stop();
         UpdateLock.Release();
     }
 
     public void TogglePause()
     {
-        switch (TimingStopwatch.IsRunning)
-        {
-            case true:
-                TimingStopwatch.Stop();
-                break;
-
-            case false:
-                TimingStopwatch.Start();
-                break;
-        }
+        AudioBuffer?.SetPause(AudioBuffer.IsRunning);
     }
 
-    public async ValueTask UpdateSequence(BufferHolder holder, TimedEvents events, SequenceIndices sequenceIndices)
+    public void UpdateSequence(TimedEvents events, SequenceIndices sequenceIndices,
+        RenderedSequence fullSequenceData)
     {
-        await UpdateLock.WaitAsync();
-        CutSounds();
-        
-        TimingStopwatch.Reset();
-        BufferHolder = holder;
+        UpdateLock.Wait();
         Events = events;
         SequenceIndices = sequenceIndices;
-        CurrentSequence = 0;
 
-        AlignToTime();
+        if (AudioBuffer == null)
+            AudioBuffer = AudioContext.GetBufferObject(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
+        else AudioBuffer.UploadNewData(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
+
+        AudioBuffer.SetVolume(Volume);
         UpdateLock.Release();
     }
 
     protected void AlignToTime()
     {
-        var current_time = TimingStopwatch.ElapsedMilliseconds;
+        var current_time = AudioBuffer?.GetTime_Milliseconds() ?? 0;
         var span = Events.Placement.AsSpan();
         if (span.Length < 1) return;
 
@@ -239,7 +221,8 @@ public class SequencePlayer
         placement = span[idx];
         CurrentSequence = SequenceIndices.GetSequenceIDFromIndex(placement.Index);
     }
-
+    
+    
     protected void UpdateLoop()
     {
         if (_updateRunning) return;
@@ -247,37 +230,18 @@ public class SequencePlayer
 
         while (_updateRunning && !_dead)
         {
-            PlaybackUpdate();
-            // Using Thread.Sleep since it doesn't allocate memory.
+            UpdateLock.Wait();
+            try
+            {
+                PlaybackUpdate();
+            }
+            finally
+            {
+                UpdateLock.Release();
+            }
+            
             Thread.Sleep(1);
         }
-    }
-
-    public void CutSounds()
-    {
-        lock (ActiveSamples)
-        {
-            foreach (var (_, buffer) in ActiveSamples) buffer.Stop();
-        }
-    }
-
-    public void IndividualCutSamples(HashSet<string> cutSamples)
-    {
-        var alternative_lookup = cutSamples.GetAlternateLookup<ReadOnlySpan<char>>();
-
-        lock (ActiveSamples)
-        {
-            foreach (var (event_name, buffer) in ActiveSamples)
-            {
-                if (!alternative_lookup.Contains(event_name)) continue;
-                buffer.Stop();
-            }
-        }
-    }
-
-    public void SetGreeting(GreetingType type)
-    {
-        Greeting?.GreetingType = type;
     }
 
     public long SeekToBookmark(int bookmarkIndex)
@@ -295,7 +259,7 @@ public class SequencePlayer
 
     public long SetBookmark(int bookmarkIndex)
     {
-        var current_time = TimingStopwatch.ElapsedMilliseconds;
+        var current_time = AudioBuffer?.GetTime_Milliseconds() ?? 0;
         SetBookmarkTo(bookmarkIndex, current_time);
         return current_time;
     }
@@ -318,67 +282,46 @@ public class SequencePlayer
 
     protected void PlaybackUpdate()
     {
-        try
+        var placement_memory = Events.Placement.AsMemory();
+
+        var end_placement = placement_memory.Span[^1];
+        var end_time = end_placement.Index;
+
+        var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
+        var currentTime = AudioBuffer?.GetTime_Milliseconds() ?? 0;
+        
+        if (GetIndexFromTime(currentTime) + 1000 > end_time)
+            currentTime = GetTimeFromIndex(end_time) + 100;
+        
+        if (_oldTime > currentTime)
+            AlignToTime();
+        
+        _oldTime = currentTime;
+
+        var current_idx = PlacementIndex;
+        int end_idx;
+        for (end_idx = current_idx; end_idx < placement_memory.Length; end_idx++)
         {
-            UpdateLock.Wait();
-            var placement_memory = Events.Placement.AsMemory();
-            var current_idx = PlacementIndex;
-            int end_idx;
+            var placement = placement_memory.Span[end_idx];
+            if (placement.Index > GetIndexFromTime(currentTime))
+                break;
 
-            var end_placement = placement_memory.Span[^1];
-            var end_time = end_placement.Index;
-
-            var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
-
-            if (GetIndexFromTime(TimingStopwatch.ElapsedMilliseconds) + 1000 > end_time)
-                TimingStopwatch.Seek(GetTimeFromIndex(end_time) + 100);
-
-            for (end_idx = current_idx; end_idx < placement_memory.Length; end_idx++)
+            if (placement.Event is EndEvent)
             {
-                var placement = placement_memory.Span[end_idx];
-                if (placement.Index > GetIndexFromTime(TimingStopwatch.ElapsedMilliseconds))
-                    break;
-
-                var isIce = false;
-                switch (placement.Event)
-                {
-                    case IndividualCutEvent ice:
-                        isIce = true;
-                        IndividualCutSamples(ice.CutSounds);
-                        break;
-
-                    case EndEvent:
-                        CurrentSequence = SequenceIndices.GetSequenceIDFromIndex(placement.Index);
-                        continue;
-                }
-
-                switch (placement.Event.SoundEvent)
-                {
-                    case "!cut" when !isIce:
-                        CutSounds();
-                        break;
-                }
-
-                // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
-                if (alternative_lookup.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
-                    explicit_action.Invoke(placement, CurrentSequence);
-
-                // Normal pass.
-                if (!alternative_lookup.TryGetValue(string.Empty, out var event_action)) continue;
-                event_action.Invoke(placement, CurrentSequence);
+                CurrentSequence = SequenceIndices.GetSequenceIDFromIndex(placement.Index);
+                continue;
             }
 
-            PlacementIndex = end_idx;
+            // Explicit pass. Checks whether there are events that need to execute differently from normal ones.
+            if (alternative_lookup.TryGetValue(placement.Event.SoundEvent ?? "", out var explicit_action))
+                explicit_action.Invoke(placement, CurrentSequence);
 
-            var length = end_idx - current_idx;
-            if (length < 1) return;
+            // Normal pass.
+            if (!alternative_lookup.TryGetValue(string.Empty, out var event_action)) continue;
+            event_action.Invoke(placement, CurrentSequence);
+        }
 
-            PlayBatch(placement_memory.Span.Slice(current_idx, length));
-        }
-        finally
-        {
-            UpdateLock.Release();
-        }
+        PlacementIndex = end_idx;
     }
 
     /// <summary>
@@ -401,71 +344,6 @@ public class SequencePlayer
         return (ulong)(milliseconds * Events.TimingSampleRate / 1000f);
     }
 
-    protected void PlayBatch(Span<Placement> batch)
-    {
-        if (batch.Length < 1) return;
-
-        if (AudioContext is IBatchSupported batch_supported)
-        {
-            var batch_span = new Span<AudibleBuffer>(new AudibleBuffer[batch.Length]);
-            for (var i = 0; i < batch_span.Length; i++)
-            {
-                if (_cutSounds)
-                {
-                    _cutSounds = false;
-                    return;
-                }
-
-                var el = batch[i];
-                if (!el.Audible ||
-                    !BufferHolder.TryGetBuffer(el.Event.SoundEvent ?? "", el.Event.Value, out var buffer))
-                {
-                    batch_span[i] = NullAudibleBuffer.EmptyBuffer;
-                    continue;
-                }
-
-                batch_span[i] = buffer;
-            }
-
-            batch_supported.PlayBatch(batch_span);
-            return;
-        }
-
-        foreach (var placement in batch)
-        {
-            if (!placement.Audible ||
-                !BufferHolder.TryGetBuffer(placement.Event.SoundEvent ?? "", placement.Event.Value, out var buffer))
-                continue;
-
-            var name = placement.Event.SoundEvent ?? "";
-            var tuple = (name, buffer);
-            lock (ActiveSamples)
-            {
-                ActiveSamples.Add(tuple);
-            }
-
-            if (placement.Event is PannedEvent panned_event)
-                buffer.SetPan(panned_event.Pan);
-            else
-                buffer.SetPan(0f);
-
-            buffer.SetVolume((float)placement.Event.WorkingVolume / 100f);
-            buffer.Play(RemoveCallback);
-            continue;
-
-            void RemoveCallback()
-            {
-                lock (ActiveSamples)
-                {
-                    ActiveSamples.Remove(tuple);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    ///     Signals to the SequencePlayer to stop all execution and free all busy threads.
-    /// </summary>
     public void Die()
     {
         UpdateLock.Wait();
@@ -476,6 +354,7 @@ public class SequencePlayer
 
         UpdateLock.Release();
     }
+
 
     ~SequencePlayer()
     {

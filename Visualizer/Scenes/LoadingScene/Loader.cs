@@ -124,11 +124,7 @@ public class Loader : Scene, IGamePreloadable
         _loaderInterface.Label.SetTextContents("Loading interface...");
         Finished = true;
 
-        var workflow = new ThirtyDollarWorkflow(Game, Logger, _audioContext)
-        {
-            AtlasStore = _thirtyDollarDownloader.AtlasStore,
-            SampleHolder = _thirtyDollarDownloader.SampleHolder
-        };
+        var workflow = new ThirtyDollarWorkflow(Game, Logger, _thirtyDollarDownloader.SampleHolder, _thirtyDollarDownloader.AtlasStore, _audioContext);
         OnFinish?.Invoke(workflow);
     }
 
