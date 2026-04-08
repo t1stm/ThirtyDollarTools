@@ -417,7 +417,7 @@ public class Visualizer : Scene, IGamePreloadable
         {
             RestartSeekTimer();
             SequencePlayer.SetVolume(SequencePlayer.Volume + 0.01f);
-            SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.Volume * 100:0.##}%");
+            SetStatusMessage($"[Playback]: Volume = {SequencePlayer.Volume * 100:0.##}%");
         }
 
         // check volume decrease
@@ -425,7 +425,7 @@ public class Visualizer : Scene, IGamePreloadable
         {
             RestartSeekTimer();
             SequencePlayer.SetVolume(Math.Max(0f, SequencePlayer.Volume - 0.01f));
-            SetStatusMessage($"[Playback]: Global Volume = {SequencePlayer.Volume * 100:0.##}%");
+            SetStatusMessage($"[Playback]: Volume = {SequencePlayer.Volume * 100:0.##}%");
         }
 
         // check previous sequence seeking

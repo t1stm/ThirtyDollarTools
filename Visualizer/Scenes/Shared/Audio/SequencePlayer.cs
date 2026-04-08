@@ -143,6 +143,7 @@ public class SequencePlayer
     public void SetVolume(float volume)
     {
         Volume = volume;
+        AudioBuffer?.SetVolume(volume);
     }
 
     public void Seek(long milliseconds)

@@ -16,7 +16,6 @@ public class BassBuffer : AudibleBuffer, IDisposable
 
     private int _sampleRate;
     private readonly int _maxCount;
-    private int[] _channels = [];
 
     public BassBuffer(ILogger logger, AudioData<float> data, int sampleRate, int maxCount = 65535)
     {
@@ -39,11 +38,10 @@ public class BassBuffer : AudibleBuffer, IDisposable
         SampleInfo.Volume = volume;
         Bass.SampleSetInfo(SampleHandle, SampleInfo);
 
-        lock (_channels)
-        {
-            foreach (var channel in _channels)
-                Bass.ChannelSetAttribute(channel, ChannelAttribute.Volume, volume);
-        }
+        var channels = Bass.SampleGetChannels(SampleHandle);
+        if (channels == null) return;
+        foreach (var channel in channels)
+            Bass.ChannelSetAttribute(channel, ChannelAttribute.Volume, volume);
     }
 
     public sealed override unsafe bool UploadNewData(AudioData<float> data, int sampleRate)
@@ -84,11 +82,6 @@ public class BassBuffer : AudibleBuffer, IDisposable
             Mode3D = Mode3D.Off
         };
 
-        lock (_channels)
-        {
-            _channels = Bass.SampleGetChannels(SampleHandle);
-        }
-
         Bass.SampleSetInfo(SampleHandle, SampleInfo);
         ArrayPool<byte>.Shared.Return(pool);
 
@@ -100,6 +93,7 @@ public class BassBuffer : AudibleBuffer, IDisposable
         var channel = Bass.SampleGetChannel(SampleHandle);
         if (Math.Abs(Pan - 0.5f) > 0.01f)
             Bass.ChannelSetAttribute(channel, ChannelAttribute.Pan, Pan);
+        Bass.ChannelSetAttribute(channel, ChannelAttribute.Volume, Volume);
         Bass.ChannelPlay(channel);
         IsRunning = true;
     }
@@ -135,7 +129,6 @@ public class BassBuffer : AudibleBuffer, IDisposable
     {
         Bass.SampleStop(SampleHandle);
         Bass.SampleFree(SampleHandle);
-        _channels = [];
         SampleHandle = 0;
     }
 
