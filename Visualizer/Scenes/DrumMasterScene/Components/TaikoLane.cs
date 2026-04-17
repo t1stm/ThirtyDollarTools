@@ -148,7 +148,6 @@ public class TaikoLane : IDisposable
 
     public void Update()
     {
-        if (Stopwatch is null) return;
         var currentTime = Stopwatch.ElapsedMilliseconds;
         var hitBoxX = LanePosition.X + HitBoxOffset;
         var centerY = LanePosition.Y + LaneScale.Y / 2f;
@@ -156,6 +155,7 @@ public class TaikoLane : IDisposable
         if (_lastTime > currentTime)
         {
             _lastActiveIndex = 0;
+            // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
             foreach (var chunk in _chunks)
             foreach (var sound in chunk.Sounds)
             {
@@ -415,6 +415,7 @@ public class TaikoLane : IDisposable
     {
         _lane.Render(camera);
         _hitBox.Render(camera);
+        // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
         foreach (var chunk in _chunks)
         {
             // Simple culling for chunks

@@ -102,11 +102,6 @@ public sealed class DollarStoreCamera : Camera
         _offset = offset;
     }
 
-    public Vector3 GetOffset()
-    {
-        return _offset;
-    }
-
     public void ZoomStep(float scale)
     {
         const float stepping = .05f;

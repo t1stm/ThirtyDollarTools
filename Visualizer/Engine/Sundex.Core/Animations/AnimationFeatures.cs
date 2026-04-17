@@ -19,26 +19,28 @@ public enum AnimationFeature
 
 public static class FeatureExtensions
 {
-    /// <summary>
-    ///     Checks if the current animation feature is in a bit stack.
-    /// </summary>
     /// <param name="feature">The feature you want to check for.</param>
-    /// <param name="bitStack">The bit stack.</param>
-    /// <returns>Whether the feature can be found in the bit stack.</returns>
-    public static bool In(this AnimationFeature feature, AnimationFeature bitStack)
+    extension(AnimationFeature feature)
     {
-        return (bitStack & feature) != 0;
-    }
+        /// <summary>
+        ///     Checks if the current animation feature is in a bit stack.
+        /// </summary>
+        /// <param name="bitStack">The bit stack.</param>
+        /// <returns>Whether the feature can be found in the bit stack.</returns>
+        public bool In(AnimationFeature bitStack)
+        {
+            return (bitStack & feature) != 0;
+        }
 
-    /// <summary>
-    ///     Checks if the current integer has an animation feature enabled.
-    /// </summary>
-    /// <param name="bitStack">The integer you want to check.</param>
-    /// <param name="feature">The animation feature you want to check.</param>
-    /// <returns>Whether the bit stack contains the feature. </returns>
-    public static bool IsEnabled(this AnimationFeature bitStack, AnimationFeature feature)
-    {
-        return (bitStack & feature) != 0;
+        /// <summary>
+        ///     Checks if the current integer has an animation feature enabled.
+        /// </summary>
+        /// <param name="feature1">The animation feature you want to check.</param>
+        /// <returns>Whether the bit stack contains the feature. </returns>
+        public bool IsEnabled(AnimationFeature feature1)
+        {
+            return (feature & feature1) != 0;
+        }
     }
 }
 

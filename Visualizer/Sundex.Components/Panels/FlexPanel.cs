@@ -272,7 +272,7 @@ public class FlexPanel(UIContext context) : Panel(context)
         }
 
         var total_spacing = Spacing * (count - 1);
-        var total_fixed = Children.Where(c => !c.Height.IsPercentage && !c.Height.Auto).Sum(c => c.Height.Value);
+        var total_fixed = Children.Where(c => c.Height is { IsPercentage: false, Auto: false }).Sum(c => c.Height.Value);
         var total_auto = Children.Where(c => c.Height.Auto).Sum(c => c.Measure(innerWidth, innerHeight).height);
         var total_percent = Children.Where(c => c.Height.IsPercentage).Sum(c => c.Height.Value);
         var free_space = Math.Max(0, innerHeight - total_fixed - total_auto - total_spacing);
@@ -324,14 +324,13 @@ public class FlexPanel(UIContext context) : Panel(context)
 
         foreach (var child in Children)
         {
-            var (cw, ch) = child.Measure(innerWidth, innerHeight);
+            var (cw, _) = child.Measure(innerWidth, innerHeight);
 
             if (!firstInLine && currentX + Spacing + cw > innerWidth && innerWidth > 0)
             {
                 currentX = 0;
                 currentY += lineHeight + Spacing;
                 lineHeight = 0;
-                firstInLine = true;
             }
 
             child.X = currentX;
@@ -353,14 +352,13 @@ public class FlexPanel(UIContext context) : Panel(context)
 
         foreach (var child in Children)
         {
-            var (cw, ch) = child.Measure(innerWidth, innerHeight);
+            var (_, ch) = child.Measure(innerWidth, innerHeight);
 
             if (!firstInColumn && currentY + Spacing + ch > innerHeight && innerHeight > 0)
             {
                 currentY = 0;
                 currentX += columnWidth + Spacing;
                 columnWidth = 0;
-                firstInColumn = true;
             }
 
             child.X = currentX;

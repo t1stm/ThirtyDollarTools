@@ -16,7 +16,7 @@ public class StyleSheetAnimationTests
 
         // 1. Setup a StyleSheet with a computed animation
         var holder = new StyleSheetHolder();
-        var animationName = "fade-in";
+        const string animationName = "fade-in";
         var keyframe = new Keyframe { Opacity = 1, LengthMs = 100 };
         var animation = new KeyframedAnimation(new List<Keyframe> { keyframe });
 
@@ -28,13 +28,18 @@ public class StyleSheetAnimationTests
         // if we want it to parse properly, or just use reflection/internal to inject.
         // Actually, ComputedAnimations is public getter.
 
-        var styleSheet = new StyleSheet(holder);
-        styleSheet.ComputedAnimations[animationName] = animation;
+        var styleSheet = new StyleSheet(holder)
+        {
+            ComputedAnimations =
+            {
+                [animationName] = animation
+            }
+        };
 
         // 2. Setup the component style with the animation name
         holder.Components[element.Tag] = new Dictionary<string, IStyleValue>
         {
-            ["animations"] = new ArrayValue(new List<IStyleValue> { new StringValue(animationName) })
+            ["animations"] = new ArrayValue([new StringValue(animationName)])
         };
 
         // 3. Apply the style sheet

@@ -135,7 +135,7 @@ public class Game : GameWindow
         var typeText = type != DebugType.DontCare ? type.ToString()[9..] : "Unknown";
         var severityText = severity != DebugSeverity.DontCare ? severity.ToString()[13..] : "Unknown";
 
-        _loggerGL.Debug("{sourceText}, ({typeText}, {id}) {severityText}: {callbackMessage}",
+        _loggerGL.Debug("{SourceText}, ({TypeText}, {Id}) {SeverityText}: {CallbackMessage}",
             sourceText, typeText, id, severityText, stringBuffer.ToString());
     }
 

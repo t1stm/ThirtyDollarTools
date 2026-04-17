@@ -3,6 +3,7 @@ using Shared.Audio.BASS;
 using Shared.Audio.Null;
 using Shared.Audio.OpenAL;
 using Shared.Objects;
+using Sundex.Core;
 using Sundex.Engine.Threading;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser.Custom_Events;

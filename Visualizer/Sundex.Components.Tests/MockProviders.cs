@@ -13,7 +13,7 @@ public class MockFontProvider : IFontProvider
 {
     public FontHandle GetFont(ReadOnlySpan<char> fontName)
     {
-        return default;
+        return null!;
     }
 }
 
@@ -21,7 +21,7 @@ public class MockGlyphProvider : IGlyphProvider
 {
     public FontHandle GetFont()
     {
-        return default;
+        return null!;
     }
 
     public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character)

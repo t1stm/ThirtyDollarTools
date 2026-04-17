@@ -22,7 +22,7 @@ public abstract class Renderable : IRenderable, IPositionable
     /// </summary>
     public bool IsVisible = true;
 
-    public virtual Shader Shader { get; set; }
+    public virtual Shader Shader { get; set; } = Shader.Dummy;
 
     /// <summary>
     ///     The rotation of the current renderable.

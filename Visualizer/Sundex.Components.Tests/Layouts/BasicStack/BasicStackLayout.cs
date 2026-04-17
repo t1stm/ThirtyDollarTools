@@ -5,7 +5,7 @@ using Sundex.Markup;
 
 namespace Sundex.Components.Tests.Layouts.BasicStack;
 
-public class BasicStackLayout
+public static class BasicStackLayout
 {
     public static SundexComponent Create(UIContext uiContext)
     {

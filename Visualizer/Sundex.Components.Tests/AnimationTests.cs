@@ -1,4 +1,5 @@
 using OpenTK.Mathematics;
+using Shared.Renderer;
 using Sundex.Core.Animations;
 
 namespace Sundex.Components.Tests;
@@ -38,17 +39,17 @@ public class AnimationTests
 
         // 1. Initial play (before LoopStart)
         stopwatch.Seek(500);
-        var transform = animation.GetTransform_Add(null);
+        var transform = animation.GetTransform_Add(new DummyRenderable());
         Assert.Equal(Vector3.Lerp(new Vector3(0), new Vector3(1), 0.5f), transform);
 
         // 2. Just before Invert
         stopwatch.Seek(4500);
-        transform = animation.GetTransform_Add(null);
+        transform = animation.GetTransform_Add(new DummyRenderable());
         Assert.Equal(Vector3.Lerp(new Vector3(4), new Vector3(5), 0.5f), transform);
 
         // 3. Exactly at Invert
         stopwatch.Seek(5000);
-        transform = animation.GetTransform_Add(null);
+        transform = animation.GetTransform_Add(new DummyRenderable());
         Assert.Equal(new Vector3(5), transform);
 
         // 4. After Invert (should be playing backwards)
@@ -57,7 +58,7 @@ public class AnimationTests
         // 3500 > 3000, so backwards.
         // elapsed = 5000 - (3500 - 3000) = 4500.
         stopwatch.Seek(5500);
-        transform = animation.GetTransform_Add(null);
+        transform = animation.GetTransform_Add(new DummyRenderable());
         Assert.Equal(Vector3.Lerp(new Vector3(4), new Vector3(5), 0.5f), transform);
 
         // 5. Back to LoopStart
@@ -65,7 +66,7 @@ public class AnimationTests
         // loopElapsed = (8000 - 2000) % 6000 = 0.
         // elapsed = 2000 + 0 = 2000.
         stopwatch.Seek(8000);
-        transform = animation.GetTransform_Add(null);
+        transform = animation.GetTransform_Add(new DummyRenderable());
         Assert.Equal(new Vector3(2), transform);
 
         // 6. Loop again forward
@@ -73,7 +74,7 @@ public class AnimationTests
         // loopElapsed = (8500 - 2000) % 6000 = 500.
         // elapsed = 2000 + 500 = 2500.
         stopwatch.Seek(8500);
-        transform = animation.GetTransform_Add(null);
+        transform = animation.GetTransform_Add(new DummyRenderable());
         Assert.Equal(Vector3.Lerp(new Vector3(2), new Vector3(3), 0.5f), transform);
     }
 
@@ -101,7 +102,7 @@ public class AnimationTests
         // At 500ms, progress is 0.5.
         // QuadIn(0.5) = 0.5 * 0.5 = 0.25.
         stopwatch.Seek(500);
-        var transform = animation.GetTransform_Add(null);
+        var transform = animation.GetTransform_Add(new DummyRenderable());
 
         // Expected position = Lerp(0, 1, 0.25) = 0.25
         Assert.Equal(new Vector3(0.25f), transform);
@@ -131,17 +132,17 @@ public class AnimationTests
 
         // 1. Initial play
         stopwatch.Seek(500);
-        Assert.Equal(Vector3.Lerp(new Vector3(0), new Vector3(1), 0.5f), animation.GetTransform_Add(null));
+        Assert.Equal(Vector3.Lerp(new Vector3(0), new Vector3(1), 0.5f), animation.GetTransform_Add(new DummyRenderable()));
 
         // 2. Loop play
         // 3500ms -> (3500-1000) % 2000 = 500. elapsed = 1000 + 500 = 1500ms
         stopwatch.Seek(3500);
-        Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f), animation.GetTransform_Add(null));
+        Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f), animation.GetTransform_Add(new DummyRenderable()));
 
         // 3. Loop play later
         // 5500ms -> (5500-1000) % 2000 = 500. elapsed = 1000 + 500 = 1500ms
         stopwatch.Seek(5500);
-        Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f), animation.GetTransform_Add(null));
+        Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f), animation.GetTransform_Add(new DummyRenderable()));
     }
 
     [Fact]
@@ -166,7 +167,7 @@ public class AnimationTests
 
         // At 500ms, progress is 0.5
         stopwatch.Seek(500);
-        var color = animation.GetColor_Value(null);
+        var color = animation.GetColor_Value(new DummyRenderable());
 
         // Expected color = Lerp(Red, Blue, 0.5) = (0.5, 0, 0.5, 1)
         Assert.Equal(new Vector4(0.5f, 0, 0.5f, 1), color);

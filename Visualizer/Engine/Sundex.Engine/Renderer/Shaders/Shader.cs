@@ -146,7 +146,7 @@ public class Shader(AssetProvider assetProvider, params ShaderSource[] shaderSou
             var span = Sources.AsSpan();
             for (var index = 0; index < span.Length; index++) shaderInfos[index] = span[index].Info;
 
-            assetProvider.Load<ShaderSource, ShaderInfo>(Sources, shaderInfos);
+            assetProvider.Load(Sources, shaderInfos);
             Load();
         }
         finally

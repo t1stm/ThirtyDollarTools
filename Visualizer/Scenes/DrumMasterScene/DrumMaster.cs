@@ -215,7 +215,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
         }
 
         foreach (var configuration in _taikoLaneConfigurations) configuration.ReturnChildren();
-        Workflow.SequencePlayer.GetTimingStopwatch()?.Reset();
+        Workflow.SequencePlayer.GetTimingStopwatch().Reset();
 
         _visualizer.UpdateBackingTrack(null);
         var sequenceInfos = Workflow.GetSequenceInfos(locations);
@@ -277,7 +277,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             if (state.IsKeyPressed(Keys.Escape))
             {
                 ChangeState(DrumMasterState.Configuring);
-                Workflow.SequencePlayer.GetTimingStopwatch()?.Reset();
+                Workflow.SequencePlayer.GetTimingStopwatch().Reset();
                 return;
             }
 

@@ -226,7 +226,6 @@ public class Visualizer : Scene, IGamePreloadable
 
         // syncs the backing audio to the current sequence time
         var stopwatch = SequencePlayer.GetTimingStopwatch();
-        if (stopwatch is null) return;
         _backingAudio.UpdatePlayState(stopwatch.IsRunning);
         _backingAudio.SyncTime(stopwatch.Elapsed);
     }
@@ -276,7 +275,6 @@ public class Visualizer : Scene, IGamePreloadable
     {
         const int seekLength = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
-        if (stopwatch is null) return;
 
         // extract modifier buttons
         var left_control = state.IsKeyDown(Keys.LeftControl);
@@ -573,8 +571,9 @@ public class Visualizer : Scene, IGamePreloadable
 
         // define values used in generating the debug string.
         var bpm = 300f;
-        var elapsed_time = SequencePlayer.GetTimingStopwatch()?.Elapsed;
-        var elapsed_milliseconds = SequencePlayer.GetTimingStopwatch()?.ElapsedMilliseconds;
+        var elapsed_time = SequencePlayer.GetTimingStopwatch().Elapsed;
+        var elapsed_milliseconds = SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
+
         var current_note = "None";
         var current_note_idx = 0;
 
@@ -610,7 +609,7 @@ public class Visualizer : Scene, IGamePreloadable
         // get accurate bpm info.
         foreach (var ev in ExtractedSpeedEvents)
         {
-            if (ev.Index >= SequencePlayer.GetIndexFromTime(elapsed_milliseconds ?? 0)) break;
+            if (ev.Index >= SequencePlayer.GetIndexFromTime(elapsed_milliseconds)) break;
             var val = (float)ev.Event.Value;
 
             bpm = ev.Event.ValueScale switch
@@ -627,7 +626,7 @@ public class Visualizer : Scene, IGamePreloadable
         // get next note info.
         if (current_index < placement_length)
         {
-            var normalized_time = SequencePlayer.GetIndexFromTime(elapsed_milliseconds ?? 0);
+            var normalized_time = SequencePlayer.GetIndexFromTime(elapsed_milliseconds);
             var current_placement = TimedEvents.Placement[current_index];
 
             current_note_idx = (int)current_placement.SequenceIndex;
@@ -674,7 +673,7 @@ public class Visualizer : Scene, IGamePreloadable
         _debugFormatter.Set("maxSequences", Sequences.Length);
         _debugFormatter.Set("sequenceLocation", sequence_location);
         _debugFormatter.Set("bpm", bpm);
-        _debugFormatter.Set("elapsedTime", elapsed_time ?? TimeSpan.Zero);
+        _debugFormatter.Set("elapsedTime", elapsed_time);
         _debugFormatter.Set("volume", volume);
         _debugFormatter.Set("currentNote", current_note);
         _debugFormatter.Set("currentNoteIndex", current_note_idx);

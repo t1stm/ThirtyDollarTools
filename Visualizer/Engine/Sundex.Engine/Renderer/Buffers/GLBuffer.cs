@@ -161,6 +161,8 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
         : GLBuffer<TDataType>(deleteQueue, bufferTarget)
     {
         private readonly DeleteQueue _deleteQueue = deleteQueue;
+        private readonly BufferTarget _bufferTarget = bufferTarget;
+        
         protected TDataType[] CPUBuffer { get; set; } = [];
         public ReadOnlySpan<TDataType> Data => CPUBuffer;
 
@@ -231,7 +233,7 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
         public override string ToString()
         {
             return
-                $"GLBuffer<{typeof(TDataType).Name}>.WithCPUCache [Handle: {Handle}, Target: {bufferTarget}, Capacity: {Capacity}, UpdatesCount: {Updates.Count}]";
+                $"GLBuffer<{typeof(TDataType).Name}>.WithCPUCache [Handle: {Handle}, Target: {_bufferTarget}, Capacity: {Capacity}, UpdatesCount: {Updates.Count}]";
         }
     }
 }

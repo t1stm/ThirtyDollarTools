@@ -94,7 +94,7 @@ public static class Program
 
         if (sequence != null && !File.Exists(sequence))
         {
-            serilogLogger.Warning("Unable to find specified sequence. Running without a specified sequence.");
+            serilogLogger.Warning("Unable to find specified sequence. Running without a specified sequence");
             sequence = null;
         }
 
@@ -113,6 +113,7 @@ public static class Program
             UpdateFrequency = fps ?? 0
         };
 
+        // ReSharper disable once ConvertToConstant.Local
         var contextFlags = ContextFlags.ForwardCompatible;
 
 #if DEBUG

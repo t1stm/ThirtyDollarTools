@@ -50,11 +50,12 @@ public class ButtonTests
     public void TestButtonBorderRadiusPropagation()
     {
         var context = new TestUIContext();
-        var button = new Button(context, "Rounded");
-        button.BorderRadius = 15;
-
-        // Emulate styling a background
-        button.Background = new ColoredPlane { Color = Vector4.One };
+        var button = new Button(context, "Rounded")
+        {
+            BorderRadius = 15,
+            // Emulate styling a background
+            Background = new ColoredPlane { Color = Vector4.One }
+        };
 
         button.Layout();
 

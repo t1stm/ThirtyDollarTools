@@ -79,7 +79,7 @@ public class ThirtyDollarWorkflow
         if (SequenceInfos.Length < 1)
         {
             Logger.Debug(
-                "[Sequence Update] No valid files were dropped on the window. If dragging a folder, drag the files inside it.");
+                "[Sequence Update] No valid files were dropped on the window. If dragging a folder, drag the files inside it");
             return;
         }
 
@@ -210,7 +210,7 @@ public class ThirtyDollarWorkflow
                 AutoUpdate = false;
                 Logger.Debug(
                     "[Auto Update] One of the sequences was deleted. \n" +
-                    "Disabling auto-reload until the next manual update.");
+                    "Disabling auto-reload until the next manual update");
 
                 return;
             }

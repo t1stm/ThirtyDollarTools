@@ -5,7 +5,7 @@ using Sundex.Markup;
 
 namespace Sundex.Components.Tests.Layouts.WindowLayout;
 
-public class WindowLayoutMock
+public static class WindowLayoutMock
 {
     public static SundexComponent Create(UIContext uiContext)
     {

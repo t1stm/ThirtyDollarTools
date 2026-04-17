@@ -31,14 +31,8 @@ public class ProgressBarTests
 
         // Assert
         var queue = context.GetRenderQueue();
-        var found = false;
-        foreach (var layer in queue)
-        foreach (var item in layer)
-            if (item == progressBar.BackgroundPanel.Background)
-            {
-                found = true;
-                break;
-            }
+        var found = queue.Any(layer => layer.Any(item => item == progressBar.BackgroundPanel.Background));
+        ;
 
         Assert.True(found, "New BackgroundPanel's background should be in the render queue");
         Assert.Equal(progressBar, progressBar.BackgroundPanel.Parent);
@@ -80,11 +74,9 @@ public class ProgressBarTests
                 bgPos = j;
             }
 
-            if (queue[i][j] == progressBar.ForegroundPanel.Background)
-            {
-                fgLayer = i;
-                fgPos = j;
-            }
+            if (queue[i][j] != progressBar.ForegroundPanel.Background) continue;
+            fgLayer = i;
+            fgPos = j;
         }
 
         Assert.True(bgLayer != -1, "Background should be re-queued after Clear()");
@@ -119,10 +111,10 @@ public class ProgressBarTests
         // This simulates 'background = #2a2e3a' in DSL
         var bgPanel = new Panel(context)
         {
-            Background = null // Simplified
+            Background = null,
+            // Resetting to zero like it happens when new Panel() is called and style value is applied
+            Height = 0 // Simplified
         };
-        // Resetting to zero like it happens when new Panel() is called and style value is applied
-        bgPanel.Height = 0;
 
         progressBar.BackgroundPanel = bgPanel;
 
@@ -164,6 +156,6 @@ public static class ProgressBarTestExtensions
         PropertyInfo propertyInfo)
     {
         var method = typeof(ProgressBar).GetMethod("ApplyStyleValue", BindingFlags.Instance | BindingFlags.NonPublic);
-        method!.Invoke(bar, new object?[] { styleSheet, styleValue, propertyInfo });
+        method!.Invoke(bar, [styleSheet, styleValue, propertyInfo]);
     }
 }

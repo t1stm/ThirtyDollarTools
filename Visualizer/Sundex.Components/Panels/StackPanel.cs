@@ -14,10 +14,6 @@ public class StackPanel(UIContext context)
     protected override void DoLayout()
     {
         base.DoLayout();
-
-        var inner_width = Computed.Width - 2 * Padding;
-        var inner_height = Computed.Height - 2 * Padding;
-
         float offset = 0;
 
         foreach (var child in Children)

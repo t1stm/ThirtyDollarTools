@@ -38,7 +38,6 @@ public sealed class ScrollBar : Panel
             var p = Parent;
             if (p is null) return 0;
             var pc = p.Computed;
-            if (pc is null) return 0;
             return pc.Width - Computed.Width;
         }
         set => throw new NotSupportedException();
@@ -59,7 +58,6 @@ public sealed class ScrollBar : Panel
             var p = Parent;
             if (p is null) return 0;
             var pc = p.Computed;
-            if (pc is null) return 0;
             return pc.Height;
         }
         set => throw new NotSupportedException();

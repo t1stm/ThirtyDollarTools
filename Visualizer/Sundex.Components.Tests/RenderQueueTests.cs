@@ -248,18 +248,25 @@ public class RenderQueueTests
     public void TestHoverStateChange_NoDuplicatesInQueue()
     {
         var context = new TestUIContext();
-        var element = new TestPanel(context);
-        element.CustomTag = "panel";
-        element.Index = 5;
+        var element = new TestPanel(context)
+        {
+            CustomTag = "panel",
+            Index = 5
+        };
 
         // Mock a stylesheet with a hover state for background
-        var holder = new StyleSheetHolder();
-        holder.Components["panel"] = new Dictionary<string, IStyleValue>
+        var holder = new StyleSheetHolder
         {
-            { "background", new ColorValue("#7aa2f7") },
+            Components =
             {
-                "state[hovered]",
-                new BlockValue(new Dictionary<string, IStyleValue> { { "background", new ColorValue("#000000") } })
+                ["panel"] = new Dictionary<string, IStyleValue>
+                {
+                    { "background", new ColorValue("#7aa2f7") },
+                    {
+                        "state[hovered]",
+                        new BlockValue(new Dictionary<string, IStyleValue> { { "background", new ColorValue("#000000") } })
+                    }
+                }
             }
         };
         var stylesheet = new StyleSheet(holder);
@@ -278,6 +285,7 @@ public class RenderQueueTests
 
         // Change state to Hovered
         var propCurrentState = typeof(UIElement).GetProperty("CurrentState");
+        Assert.NotNull(propCurrentState);
         propCurrentState.SetValue(element, UIState.Hovered);
 
         var hoverBackground = element.Background;
@@ -293,9 +301,11 @@ public class RenderQueueTests
     public void TestHoverStateChange_ActuallyChangesColor()
     {
         var context = new TestUIContext();
-        var element = new TestPanel(context);
-        element.CustomTag = "panel";
-        element.Index = 5;
+        var element = new TestPanel(context)
+        {
+            CustomTag = "panel",
+            Index = 5
+        };
 
         var baseBackground = new MockRenderable();
         element.Background = baseBackground;
@@ -318,6 +328,7 @@ public class RenderQueueTests
 
         // Change state to Hovered
         var propCurrentState = typeof(UIElement).GetProperty("CurrentState");
+        Assert.NotNull(propCurrentState);
         propCurrentState.SetValue(element, UIState.Hovered);
         // CurrentState setter calls InvalidateStyle
 
@@ -334,9 +345,11 @@ public class RenderQueueTests
     public void TestInvalidateStyle_RestoresBackgroundToQueue()
     {
         var context = new TestUIContext();
-        var element = new TestPanel(context);
-        element.CustomTag = "panel";
-        element.Index = 5;
+        var element = new TestPanel(context)
+        {
+            CustomTag = "panel",
+            Index = 5
+        };
 
         var baseBackground = new MockRenderable();
         element.Background = baseBackground;
@@ -362,6 +375,7 @@ public class RenderQueueTests
 
         // Change state to Hovered
         var propCurrentState = typeof(UIElement).GetProperty("CurrentState");
+        Assert.NotNull(propCurrentState);
         propCurrentState.SetValue(element, UIState.Hovered);
         element.InvalidateStyle();
 
@@ -495,12 +509,8 @@ public class RenderQueueTests
     }
 }
 
-public class TestPanel : Panel
+public class TestPanel(UIContext context) : Panel(context)
 {
-    public TestPanel(UIContext context) : base(context)
-    {
-    }
-
     public string CustomTag { get; set; } = "panel";
     public override string Tag => CustomTag;
 
@@ -516,12 +526,8 @@ public class TestPanel : Panel
     }
 }
 
-public class TestButton : Button
+public class TestButton(UIContext context, string label) : Button(context, label)
 {
-    public TestButton(UIContext context, string label) : base(context, label)
-    {
-    }
-
     public int GetIndex()
     {
         return Index;

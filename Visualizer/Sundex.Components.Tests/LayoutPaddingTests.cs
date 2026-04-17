@@ -3,7 +3,6 @@ using Shared;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
-using Sundex.Core.Animations;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Cameras;
 
@@ -228,7 +227,7 @@ public class LayoutPaddingTests
 
     private class TestContext : UIContext
     {
-        public readonly List<IRenderable> QueuedRenderables = new();
+        public readonly List<IRenderable> QueuedRenderables = [];
 
         public TestContext()
         {
@@ -242,13 +241,9 @@ public class LayoutPaddingTests
         }
     }
 
-    private class TestPanel : Panel
+    private class TestPanel(UIContext context) : Panel(context)
     {
         public readonly IRenderable TestRenderable = new MockRenderable();
-
-        public TestPanel(UIContext context) : base(context)
-        {
-        }
 
         protected override void DrawSelf(UIContext context)
         {
@@ -260,10 +255,6 @@ public class LayoutPaddingTests
     private class MockRenderable : IRenderable
     {
         public void Render(Camera camera)
-        {
-        }
-
-        public void UpdateModel(bool isScreenSpace, ReadOnlySpan<Animation> animations)
         {
         }
     }

@@ -91,7 +91,7 @@ public class UIElementTests
         Assert.Equal(20, element.Computed.AbsoluteX);
     }
 
-    private class TestElement : UIElement
+    private sealed class TestElement : UIElement
     {
         public TestElement(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
             : base(context)

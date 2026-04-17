@@ -5,7 +5,7 @@ using Sundex.Markup;
 
 namespace Sundex.Components.Tests.Layouts.NestedFlex;
 
-public class NestedFlexLayout
+public static class NestedFlexLayout
 {
     public static SundexComponent Create(UIContext uiContext)
     {

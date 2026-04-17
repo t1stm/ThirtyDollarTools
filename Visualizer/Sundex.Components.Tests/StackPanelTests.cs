@@ -124,7 +124,7 @@ public class StackPanelTests
         Assert.Equal(80, child.Computed.Height); // Height - 2 * Padding = 100 - 20 = 80
     }
 
-    private class TestElement : UIElement
+    private sealed class TestElement : UIElement
     {
         public TestElement(UIContext context, float width = 0, float height = 0) : base(context)
         {

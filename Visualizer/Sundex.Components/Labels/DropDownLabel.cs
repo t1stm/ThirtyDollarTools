@@ -45,8 +45,8 @@ public sealed class DropDownLabel : Panel
     public FlexPanel Panel { get; }
     public Label Label { get; }
 
-    public override LiteralOrComputable Width => Label?.Width ?? LiteralOrComputable.AutoSize;
-    public override LiteralOrComputable Height => Label?.Height ?? LiteralOrComputable.AutoSize;
+    public override LiteralOrComputable Width => Label.Width;
+    public override LiteralOrComputable Height => Label.Height;
 
     protected override void DoLayout()
     {

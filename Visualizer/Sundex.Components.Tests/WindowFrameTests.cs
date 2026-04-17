@@ -61,7 +61,7 @@ public class WindowFrameTests
         Assert.Equal(400, window.Height);
     }
 
-    private class TestElement : UIElement
+    private sealed class TestElement : UIElement
     {
         public TestElement(UIContext context, float width = 0, float height = 0) : base(context)
         {

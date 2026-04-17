@@ -57,7 +57,7 @@ public class OpenALBuffer : AudibleBuffer
 
         if (!AL.IsSource(source))
         {
-            _logger.Error("Audio source ID '{Source}' isn't a valid source.", source);
+            _logger.Error("Audio source ID '{Source}' isn't a valid source", source);
             return;
         }
 
