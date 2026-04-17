@@ -39,7 +39,7 @@ public class FlexPanel(UIContext context) : Panel(context)
     [NamedSetting("width")] public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.AutoSize;
 
     [NamedSetting("height")] public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
-    
+
     [NamedSetting("wrap")]
     public virtual bool Wrap
     {
@@ -121,7 +121,7 @@ public class FlexPanel(UIContext context) : Panel(context)
 
                     totalWidth = Math.Max(totalWidth, currentLineWidth);
                     totalHeight += currentLineHeight;
-                    
+
                     contentW = totalWidth;
                     contentH = totalHeight;
                 }
@@ -152,12 +152,12 @@ public class FlexPanel(UIContext context) : Panel(context)
                     float currentColumnWidth = 0;
                     float totalHeight = 0;
                     float totalWidth = 0;
-                    bool firstInColumn = true;
+                    var firstInColumn = true;
 
                     foreach (var child in Children)
                     {
                         var (cw, ch) = child.Measure(innerW, innerH);
-                        float potentialHeight = firstInColumn ? ch : currentColumnHeight + Spacing + ch;
+                        var potentialHeight = firstInColumn ? ch : currentColumnHeight + Spacing + ch;
 
                         if (!firstInColumn && potentialHeight > innerH && innerH > 0)
                         {
@@ -235,10 +235,7 @@ public class FlexPanel(UIContext context) : Panel(context)
 
         foreach (var child in Children)
         {
-            if (child.Width.IsPercentage)
-            {
-                child.Width = child.Width.Value / 100f * free_space;
-            }
+            if (child.Width.IsPercentage) child.Width = child.Width.Value / 100f * free_space;
 
             child.X = offset;
             child.Layout();
@@ -290,10 +287,7 @@ public class FlexPanel(UIContext context) : Panel(context)
 
         foreach (var child in Children)
         {
-            if (child.Height.IsPercentage)
-            {
-                child.Height = (child.Height.Value / 100f) * free_space;
-            }
+            if (child.Height.IsPercentage) child.Height = child.Height.Value / 100f * free_space;
 
             child.Y = offset;
             child.Layout();
@@ -326,12 +320,12 @@ public class FlexPanel(UIContext context) : Panel(context)
         float currentX = 0;
         float currentY = 0;
         float lineHeight = 0;
-        bool firstInLine = true;
+        var firstInLine = true;
 
         foreach (var child in Children)
         {
             var (cw, ch) = child.Measure(innerWidth, innerHeight);
-            
+
             if (!firstInLine && currentX + Spacing + cw > innerWidth && innerWidth > 0)
             {
                 currentX = 0;
@@ -355,7 +349,7 @@ public class FlexPanel(UIContext context) : Panel(context)
         float currentX = 0;
         float currentY = 0;
         float columnWidth = 0;
-        bool firstInColumn = true;
+        var firstInColumn = true;
 
         foreach (var child in Children)
         {

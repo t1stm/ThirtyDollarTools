@@ -1,7 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Serilog;
-using Shared;
 using Shared.Atlases;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Extensions;
@@ -16,7 +15,6 @@ using Sundex.Engine.Renderer.Shaders;
 using Sundex.Engine.Text;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
-using VisualizerScene.Objects.Playfield;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 using VisualizerScene.Objects.Sound_Values;
 
@@ -29,6 +27,8 @@ public class RenderableFactory(AtlasStore store)
     private const string AnimatedShaderLocation = "Assets/Shaders/Playfield/Chunk/Animated";
     private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
     private const string BackgroundBlipShaderLocation = "Assets/Shaders/Playfield/Background/Blip";
+
+    private const int MaxValueLength = 32;
     private static ShaderPool _shaderPool = null!;
     private static DeleteQueue _deleteQueue = null!;
     private static ILogger _logger = null!;
@@ -82,8 +82,6 @@ public class RenderableFactory(AtlasStore store)
             ))
         );
     }
-
-    private const int MaxValueLength = 32;
 
     public static void AssignTextBuffers(SoundRenderable renderable, BaseEvent baseEvent, TextBuffer textBuffer,
         PlayfieldSizing sizing, float renderScale)

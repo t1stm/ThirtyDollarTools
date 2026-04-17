@@ -8,7 +8,6 @@ using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
@@ -19,9 +18,22 @@ namespace Shared;
 
 public class ThirtyDollarWorkflow
 {
-    private readonly Stopwatch _fileUpdateStopwatch;
-    private readonly AssetProvider _assetProvider;
     private const int ModifiedSequenceUpdateIntervalMs = 250;
+
+    private readonly AssetInfo _assetInfo = new()
+    {
+        Storage = StorageLocation.Disk
+    }; // cached to avoid re-allocating each update
+
+    private readonly AssetProvider _assetProvider;
+    private readonly Stopwatch _fileUpdateStopwatch;
+    private readonly Dictionary<string, Dictionary<double, AudibleBuffer>> _processedBuffers = [];
+
+    private readonly Dictionary<(string, double), ProcessedEvent> _processedEvents = [];
+    private RenderedSequence? _renderedSequence;
+
+    /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
+    public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
 
     public ThirtyDollarWorkflow(Game game, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
         AudioContext? context = null)
@@ -37,17 +49,10 @@ public class ThirtyDollarWorkflow
         _fileUpdateStopwatch.Start();
     }
 
-    private readonly Dictionary<(string, double), ProcessedEvent> _processedEvents = [];
-    private readonly Dictionary<string, Dictionary<double, AudibleBuffer>> _processedBuffers = [];
-    private RenderedSequence? _renderedSequence;
-
-    /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
-    public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
-
     public TimedEvents TimedEvents { get; } = new()
     {
         Placement = [],
-        TimingSampleRate = 100_000,
+        TimingSampleRate = 100_000
     };
 
     public AtlasStore AtlasStore { get; init; }
@@ -166,7 +171,8 @@ public class ThirtyDollarWorkflow
         return locations.Where(l => File.Exists(l) && !Directory.Exists(l)).Select(l => new SequenceInfo
         {
             FileLocation = l!,
-            FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo { Location = l!, Storage = StorageLocation.Disk})
+            FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo
+                    { Location = l!, Storage = StorageLocation.Disk })
                 .ModifiedDate
         }).ToArray();
     }
@@ -189,11 +195,6 @@ public class ThirtyDollarWorkflow
         HandleIfSequenceUpdate();
         _fileUpdateStopwatch.Restart();
     }
-
-    private readonly AssetInfo _assetInfo = new()
-    {
-        Storage = StorageLocation.Disk
-    }; // cached to avoid re-allocating each update
 
     private void HandleIfSequenceUpdate()
     {

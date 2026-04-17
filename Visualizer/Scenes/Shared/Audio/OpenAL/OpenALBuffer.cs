@@ -42,6 +42,8 @@ public class OpenALBuffer : AudibleBuffer
 
     public int AudioBuffer { get; set; }
 
+    public override bool IsRunning { get; protected set; }
+
     public override bool UploadNewData(AudioData<float> data, int sampleRate)
     {
         // TODO
@@ -100,8 +102,6 @@ public class OpenALBuffer : AudibleBuffer
             callbackWhenFinished?.Invoke();
         });
     }
-
-    public override bool IsRunning { get; protected set; }
 
     public override void Stop()
     {

@@ -40,11 +40,6 @@ public class SeekableStopwatch : ISeekableStopwatch
     public long ElapsedMilliseconds => (long)Elapsed.TotalMilliseconds;
     public bool IsRunning => Running;
 
-    protected static long GetCurrentTime()
-    {
-        return Stopwatch.GetTimestamp();
-    }
-
     public void Start()
     {
         if (Running) return;
@@ -101,5 +96,10 @@ public class SeekableStopwatch : ISeekableStopwatch
         if (StopTime != null) StopTime = current;
 
         Lock.Release();
+    }
+
+    protected static long GetCurrentTime()
+    {
+        return Stopwatch.GetTimestamp();
     }
 }

@@ -6,7 +6,8 @@ namespace Sundex.Components.Abstractions.Values;
 ///     Represents a literal pixel value or a percentage value.
 ///     When <see cref="IsPercentage" /> is true, <see cref="Value" /> is interpreted as percent (0-100).
 /// </summary>
-public readonly struct LiteralOrComputable(float value, bool isPercentage = false, bool auto = false) : IEquatable<LiteralOrComputable>
+public readonly struct LiteralOrComputable(float value, bool isPercentage = false, bool auto = false)
+    : IEquatable<LiteralOrComputable>
 {
     public float Value { get; } = value;
     public bool IsPercentage { get; } = isPercentage;
@@ -16,7 +17,7 @@ public readonly struct LiteralOrComputable(float value, bool isPercentage = fals
 
     public static implicit operator LiteralOrComputable(float value)
     {
-        return new LiteralOrComputable(value, false);
+        return new LiteralOrComputable(value);
     }
 
 

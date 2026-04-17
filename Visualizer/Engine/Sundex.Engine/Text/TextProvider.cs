@@ -1,8 +1,6 @@
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Sundex.Engine.Asset_Management;
-using Sundex.Engine.Asset_Management.Extensions;
-using Sundex.Engine.Asset_Management.Types.Shader;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Cameras;

@@ -1,8 +1,7 @@
 ﻿using OpenTK.Mathematics;
 using Shared;
-using Sundex.Markup;
 using Sundex.Components.Abstractions;
-using Sundex.Markup.Debug;
+using Sundex.Markup;
 
 var context = new SundexContext(new UIContext
 {

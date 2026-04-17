@@ -6,8 +6,8 @@ using Shared.Renderer.Planes;
 using Sundex.Core;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Enums;
-using ThirtyDollarConverter.Objects;
 using Sundex.Engine.Text;
+using ThirtyDollarConverter.Objects;
 using VisualizerScene;
 using VisualizerScene.Objects.Playfield;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
@@ -18,68 +18,19 @@ public class TaikoLane : IDisposable
 {
     private const double LookaheadLengthMs = 15000;
     private readonly List<TaikoChunk> _chunks = [];
-    public TaikoTimedSounds TimedSounds { get; }
-    public TaikoSoundMap SoundMap { get; }
-    public ISeekableStopwatch Stopwatch { get; }
-
-    public Vector2 LanePosition
-    {
-        get;
-        set
-        {
-            field = value;
-            UpdatePosition();
-        }
-    }
-
-    public Vector2 LaneScale
-    {
-        get;
-        set
-        {
-            field = value;
-            UpdatePosition();
-        }
-    }
-
-    // _hitBox.Scale.X = this && _hitBox.Scale.Y = this
-    public float HitBoxSize
-    {
-        get;
-        set
-        {
-            field = value;
-            UpdatePosition();
-        }
-    } = 80;
-
-    // LanePosition.X + this = _hitBox.Position.X / _hitBox.Position.Y = centered to (Lane.Y + Lane.Height) / 2f
-    public float HitBoxOffset
-    {
-        get;
-        set
-        {
-            field = value;
-            UpdatePosition();
-        }
-    } = 450;
-
-    // controls whether the sounds will automatically play at the right time, if false the user will have to press them.
-    public bool AutoPlay { get; set; }
-
-    private readonly ColoredPlane _lane = new()
-    {
-        Color = (0.1f, 0.1f, 0.1f, 0.8f)
-    };
 
     private readonly ColoredPlane _hitBox = new()
     {
         Color = (1, 0, 0, 0.25f)
     };
 
-    public List<double> AccuracyScores { get; }
-    public int MissCount { get; set; }
-    public float HitWindowMs { get; set; } = 100f;
+    private readonly ColoredPlane _lane = new()
+    {
+        Color = (0.1f, 0.1f, 0.1f, 0.8f)
+    };
+
+    private int _lastActiveIndex;
+    private long _lastTime;
 
     public TaikoLane(Placement[] placement,
         ISeekableStopwatch stopwatch,
@@ -136,17 +87,68 @@ public class TaikoLane : IDisposable
         }
     }
 
+    public TaikoTimedSounds TimedSounds { get; }
+    public TaikoSoundMap SoundMap { get; }
+    public ISeekableStopwatch Stopwatch { get; }
+
+    public Vector2 LanePosition
+    {
+        get;
+        set
+        {
+            field = value;
+            UpdatePosition();
+        }
+    }
+
+    public Vector2 LaneScale
+    {
+        get;
+        set
+        {
+            field = value;
+            UpdatePosition();
+        }
+    }
+
+    // _hitBox.Scale.X = this && _hitBox.Scale.Y = this
+    public float HitBoxSize
+    {
+        get;
+        set
+        {
+            field = value;
+            UpdatePosition();
+        }
+    } = 80;
+
+    // LanePosition.X + this = _hitBox.Position.X / _hitBox.Position.Y = centered to (Lane.Y + Lane.Height) / 2f
+    public float HitBoxOffset
+    {
+        get;
+        set
+        {
+            field = value;
+            UpdatePosition();
+        }
+    } = 450;
+
+    // controls whether the sounds will automatically play at the right time, if false the user will have to press them.
+    public bool AutoPlay { get; set; }
+
+    public List<double> AccuracyScores { get; }
+    public int MissCount { get; set; }
+    public float HitWindowMs { get; set; } = 100f;
+
     public void Dispose()
     {
         foreach (var chunk in _chunks) chunk.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    private int _lastActiveIndex;
-    private long _lastTime;
-
     public void Update()
     {
+        if (Stopwatch is null) return;
         var currentTime = Stopwatch.ElapsedMilliseconds;
         var hitBoxX = LanePosition.X + HitBoxOffset;
         var centerY = LanePosition.Y + LaneScale.Y / 2f;
@@ -155,12 +157,10 @@ public class TaikoLane : IDisposable
         {
             _lastActiveIndex = 0;
             foreach (var chunk in _chunks)
+            foreach (var sound in chunk.Sounds)
             {
-                foreach (var sound in chunk.Sounds)
-                {
-                    sound.IsHit = false;
-                    sound.HitTime = null;
-                }
+                sound.IsHit = false;
+                sound.HitTime = null;
             }
 
             AccuracyScores.Clear();
@@ -177,7 +177,6 @@ public class TaikoLane : IDisposable
         {
             var temp = totalProcessed;
             foreach (var chunk in _chunks)
-            {
                 if (temp >= chunk.Sounds.Count)
                 {
                     temp -= chunk.Sounds.Count;
@@ -188,7 +187,6 @@ public class TaikoLane : IDisposable
                     skipInChunk = temp;
                     break;
                 }
-            }
         }
 
         var stopSkipping = false;
@@ -208,7 +206,10 @@ public class TaikoLane : IDisposable
                 var canSkip = (!sound.HitTime.HasValue && sound.Timestamp < currentTime - 1000) ||
                               (sound.HitTime.HasValue && currentTime - sound.HitTime.Value > 2000);
 
-                if (canSkip) totalProcessed++;
+                if (canSkip)
+                {
+                    totalProcessed++;
+                }
                 else
                 {
                     stopSkipping = true;
@@ -255,10 +256,7 @@ public class TaikoLane : IDisposable
                     MissCount++;
                 }
 
-                if (AutoPlay && !sound.IsHit && sound.Timestamp <= currentTime)
-                {
-                    RegisterHit(sound, chunkIdx, i, 0);
-                }
+                if (AutoPlay && !sound.IsHit && sound.Timestamp <= currentTime) RegisterHit(sound, chunkIdx, i, 0);
 
                 // Horizontal position calculation
                 var x = hitBoxX + (float)(timeDiff * sound.ScrollSpeed);
@@ -289,7 +287,7 @@ public class TaikoLane : IDisposable
                 {
                     // Hit notes are always visible until off-screen.
                     // Missed notes disappear after they pass the hit window if they didn't have a HitTime.
-                    var shouldBeVisible = !sound.IsHit || sound.HitTime.HasValue || (timeDiff >= -HitWindowMs);
+                    var shouldBeVisible = !sound.IsHit || sound.HitTime.HasValue || timeDiff >= -HitWindowMs;
 
                     if (shouldBeVisible)
                     {
@@ -330,10 +328,7 @@ public class TaikoLane : IDisposable
             // we might be able to break early. But some sounds might have different scroll speeds.
             // However, scroll speeds are usually positive and similar.
             // For safety, let's only break if the first sound of the chunk is very far in the future.
-            if (chunk.Sounds.Count > 0 && chunk.Sounds[0].Timestamp - currentTime > 10000)
-            {
-                break;
-            }
+            if (chunk.Sounds.Count > 0 && chunk.Sounds[0].Timestamp - currentTime > 10000) break;
         }
     }
 
@@ -367,7 +362,6 @@ public class TaikoLane : IDisposable
         {
             var temp = startSearchIdx;
             foreach (var chunk in _chunks)
-            {
                 if (temp >= chunk.Sounds.Count)
                 {
                     temp -= chunk.Sounds.Count;
@@ -378,7 +372,6 @@ public class TaikoLane : IDisposable
                     skipInChunk = temp;
                     break;
                 }
-            }
         }
 
         for (var chunkIdx = skipChunks; chunkIdx < _chunks.Count; chunkIdx++)

@@ -1,5 +1,4 @@
 using System.Reflection;
-using Sundex.Engine.Asset_Management.Abstract;
 using Sundex.Engine.Asset_Management.Abstract.Loading;
 using Sundex.Engine.Asset_Management.Abstract.Metadata;
 using Sundex.Engine.Asset_Management.Helpers;

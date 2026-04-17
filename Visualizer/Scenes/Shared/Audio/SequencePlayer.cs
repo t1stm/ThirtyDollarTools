@@ -1,6 +1,5 @@
 using Serilog;
 using Shared.Audio.BASS;
-using Shared.Audio.Features;
 using Shared.Audio.Null;
 using Shared.Audio.OpenAL;
 using Shared.Objects;
@@ -12,26 +11,15 @@ namespace Shared.Audio;
 
 public class SequencePlayer
 {
-    public float Volume
-    {
-        get;
-        protected set
-        {
-            field = value;
-            AudioBuffer?.SetVolume(field);
-        }
-    } = .25f;
-
     public readonly AudioContext AudioContext = new NullAudioContext();
     protected readonly long[] Bookmarks = new long[10];
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
     protected readonly ILogger Logger;
     protected readonly SemaphoreSlim UpdateLock = new(1);
     private bool _dead;
-    private bool _updateRunning;
     private long _oldTime;
-    
-    protected AudibleBuffer? AudioBuffer;
+    private bool _updateRunning;
+
     protected PlayerErrors Errors = PlayerErrors.None;
     protected TimedEvents Events;
 
@@ -65,6 +53,28 @@ public class SequencePlayer
         AudioContext = c;
     }
 
+    public float Volume
+    {
+        get;
+        protected set
+        {
+            field = value;
+            AudioBuffer?.SetVolume(field);
+        }
+    } = .25f;
+
+    protected TimingStopwatchWrapper TimingStopwatch { get; } = new();
+
+    protected AudibleBuffer? AudioBuffer
+    {
+        get;
+        set
+        {
+            field = value;
+            TimingStopwatch.AudibleBuffer = field;
+        }
+    }
+
     protected int CurrentSequence
     {
         get;
@@ -85,7 +95,7 @@ public class SequencePlayer
             (context = new OpenALContext(Logger)).Create())
             return context;
 
-        Logger.Error("Unable to initialize the audio device.");
+        Logger.Error("Unable to initialize the audio device");
         return null;
     }
 
@@ -130,8 +140,15 @@ public class SequencePlayer
         EventActions.Clear();
     }
 
-    public AudioContext GetContext() => AudioContext;
-    public IBufferStopwatch? GetTimingStopwatch() => AudioBuffer;
+    public AudioContext GetContext()
+    {
+        return AudioContext;
+    }
+
+    public ISeekableStopwatch GetTimingStopwatch()
+    {
+        return TimingStopwatch;
+    }
 
     public void Restart()
     {
@@ -222,8 +239,8 @@ public class SequencePlayer
         placement = span[idx];
         CurrentSequence = SequenceIndices.GetSequenceIDFromIndex(placement.Index);
     }
-    
-    
+
+
     protected void UpdateLoop()
     {
         if (_updateRunning) return;
@@ -240,7 +257,7 @@ public class SequencePlayer
             {
                 UpdateLock.Release();
             }
-            
+
             Thread.Sleep(1);
         }
     }
@@ -290,13 +307,13 @@ public class SequencePlayer
 
         var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
         var currentTime = AudioBuffer?.GetTime_Milliseconds() ?? 0;
-        
+
         if (GetIndexFromTime(currentTime) + 1000 > end_time)
             currentTime = GetTimeFromIndex(end_time) + 100;
-        
+
         if (_oldTime > currentTime)
             AlignToTime();
-        
+
         _oldTime = currentTime;
 
         var current_idx = PlacementIndex;

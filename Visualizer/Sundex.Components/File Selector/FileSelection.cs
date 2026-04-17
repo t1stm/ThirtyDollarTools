@@ -49,7 +49,7 @@ public sealed class FileSelection : Panel
             Background = new ColoredPlane
             {
                 Color = (0.1f, 0.1f, 0.1f, 1.0f)
-            },
+            }
         };
 
         var bottom_section = new FlexPanel(context)

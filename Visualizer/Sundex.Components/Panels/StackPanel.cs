@@ -1,6 +1,5 @@
 using System.Reflection;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Attributes;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;

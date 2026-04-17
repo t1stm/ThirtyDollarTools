@@ -1,6 +1,5 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared;
 using Shared.Atlases;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
@@ -24,13 +23,19 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
     public override bool Wrap { get; set; } = true;
     public StackCollection StackCollection { get; private set; } = new();
 
+    public void Dispose()
+    {
+        StackCollection.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     public void Clear()
     {
         Children.Clear();
         StackCollection.Dispose();
         StackCollection = new StackCollection();
     }
-    
+
     public void AddSound(string soundName)
     {
         SoundListElement? element = null;
@@ -87,10 +92,7 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
             };
         }
 
-        if (element != null)
-        {
-            AddChild(element);
-        }
+        if (element != null) AddChild(element);
     }
 
     public override void Test(MouseState mouse, Vector2 scale)
@@ -99,15 +101,12 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
         if (!mouse.IsButtonReleased(MouseButton.Left) || DragManager.DraggedElement == null) return;
 
         if (!IsHovered) return;
-        
+
         var element = DragManager.DraggedElement;
-        
+
         // If it was already in the sound list, it will just snap back due to AddChild's logic and InvalidateLayout.
         // If it was in a lane, we need to remove it from that lane's configuration list.
-        if (element.Parent?.Parent is TaikoLaneConfiguration config)
-        {
-            config.SelectedSounds.Remove(element.SoundName);
-        }
+        if (element.Parent?.Parent is TaikoLaneConfiguration config) config.SelectedSounds.Remove(element.SoundName);
 
         AddChild(element);
         DragManager.DraggedElement = null;
@@ -116,11 +115,5 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
     protected override void DrawSelf(UIContext context)
     {
         context.QueueRender(StackCollection, Index);
-    }
-
-    public void Dispose()
-    {
-        StackCollection.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

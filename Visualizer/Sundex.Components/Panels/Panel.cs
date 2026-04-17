@@ -18,27 +18,6 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
 {
     private List<UIElement> _children = [];
 
-    [NamedSetting("direction")]
-    public virtual LayoutDirection Direction
-    {
-        get;
-        set => UpdateSetDirty(ref field, value);
-    } = LayoutDirection.Horizontal;
-
-    [NamedSetting("padding")]
-    public virtual float Padding
-    {
-        get;
-        set => UpdateSetDirty(ref field, value);
-    } = 0;
-
-    [NamedSetting("spacing")]
-    public virtual float Spacing
-    {
-        get;
-        set => UpdateSetDirty(ref field, value);
-    } = 0;
-
     [NamedSetting("border-radius")]
     public LiteralOrComputable BorderRadius
     {
@@ -81,6 +60,27 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
             HandleRenderableSwap(old, value, nameof(Background));
         }
     }
+
+    [NamedSetting("direction")]
+    public virtual LayoutDirection Direction
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    } = LayoutDirection.Horizontal;
+
+    [NamedSetting("padding")]
+    public virtual float Padding
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    } = 0;
+
+    [NamedSetting("spacing")]
+    public virtual float Spacing
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    } = 0;
 
     public override void StopRendering()
     {
@@ -132,16 +132,13 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
 
     public virtual void AddChild(UIElement child)
     {
-        if (child.Parent is Panel oldParent)
-        {
-            oldParent.RemoveChild(child);
-        }
+        if (child.Parent is Panel oldParent) oldParent.RemoveChild(child);
         _children.Add(child);
         child.Parent = this;
         child.DrawTo(Context);
         InvalidateLayout();
     }
-    
+
     public void RemoveChild(UIElement child)
     {
         _children.Remove(child);
@@ -177,7 +174,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
             {
                 var gradient = gv.GenerateGradientPlane();
                 gradient.BorderRadius = BorderRadius.Resolve(Computed.Height);
-                
+
                 propertyInfo.SetValue(this, plane = gradient);
                 break;
             }
@@ -189,7 +186,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
                     Color = cv.Vector,
                     BorderRadius = BorderRadius.Resolve(Computed.Height)
                 };
-                
+
                 propertyInfo.SetValue(this, plane = colored);
                 break;
             }

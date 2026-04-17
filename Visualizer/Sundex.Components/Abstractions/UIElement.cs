@@ -4,11 +4,11 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
+using Sundex.Core.Animations;
+using Sundex.Engine.Renderer.Abstract;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
-using Sundex.Engine.Renderer.Abstract;
-using Sundex.Core.Animations;
 
 namespace Sundex.Components.Abstractions;
 
@@ -99,10 +99,6 @@ public abstract class UIElement
         set => UpdateSetDirty(ref field, value);
     }
 
-    public virtual void StopRendering()
-    {
-    }
-
     [NamedSetting("index")] public virtual int Index { get; internal set; }
 
     /// <summary>Horizontal anchor point. "center" shifts left by width/2, "end" shifts left by width.</summary>
@@ -173,6 +169,10 @@ public abstract class UIElement
     public Action<UIElement>? OnClick { get; set; }
     public Action<UIElement>? OnHoverEnter { get; set; }
     public Action<UIElement>? OnHoverExit { get; set; }
+
+    public virtual void StopRendering()
+    {
+    }
 
     public void AddAnimation(Animation animation)
     {
@@ -283,10 +283,7 @@ public abstract class UIElement
     protected virtual void ApplyAnimations(params ReadOnlySpan<Renderable?> renderables)
     {
         var animations = CollectionsMarshal.AsSpan(Animations);
-        foreach (var renderable in renderables)
-        {
-            renderable?.UpdateModel(false, animations);
-        }
+        foreach (var renderable in renderables) renderable?.UpdateModel(false, animations);
     }
 
     /// <summary>
@@ -471,10 +468,8 @@ public abstract class UIElement
             {
                 var animations = new List<Animation>();
                 foreach (var value in av.Values)
-                {
                     if (value is StringValue sv && styleSheet.ComputedAnimations.TryGetValue(sv.Value, out var anim))
                         animations.Add(anim);
-                }
 
                 propertyInfo.SetValue(this, animations);
                 break;

@@ -1,5 +1,3 @@
-using System.Globalization;
-using Newtonsoft.Json;
 using Shared.Renderer.Planes;
 using Shared.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
@@ -8,7 +6,6 @@ using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Core;
-using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup.Abstract;
@@ -19,7 +16,6 @@ using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
-using JsonSerializer = System.Text.Json.JsonSerializer;
 using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace Sundex.Markup.Builders;
@@ -87,9 +83,9 @@ public class ComponentBuilderV1 : IComponentBuilder
             Context = context,
             Element = uiElement,
             RegisteredIDs = registeredIds,
-            RegisteredClasses = registeredClasses,
+            RegisteredClasses = registeredClasses
         };
-        
+
         if (logic is not null)
         {
             LanguageProvider.Languages.TryGetValue(logic.Language, out var language);
@@ -106,6 +102,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
             runLogic = language.Compile(logic.SourceCode, context, component, logic.LanguageImports);
         }
+
         component.RunLogic = runLogic;
 
         if (root.Implements?.Length > 0)
@@ -207,11 +204,9 @@ public class ComponentBuilderV1 : IComponentBuilder
                 {
                     element = customElement;
                     if (element is Panel panel && node.Children.Count > 0)
-                    {
                         panel.Children.AddRange(node.Children
                             .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
                                 registeredClasses)));
-                    }
                     break;
                 }
 
@@ -311,15 +306,15 @@ public class ComponentBuilderV1 : IComponentBuilder
         else if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase))
         {
             if (float.TryParse(value[..^2], out var v))
-                return new LiteralOrComputable(v, false);
+                return new LiteralOrComputable(v);
         }
         else
         {
             if (float.TryParse(value, out var v))
-                return new LiteralOrComputable(v, false);
+                return new LiteralOrComputable(v);
         }
 
-        return new LiteralOrComputable(0, false);
+        return new LiteralOrComputable(0);
     }
 
     private static Renderable? ExtractBackgroundStyle(SundexNode node, StyleSheet? styleSheet,

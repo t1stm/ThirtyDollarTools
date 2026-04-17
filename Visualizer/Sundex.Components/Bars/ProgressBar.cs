@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -39,7 +38,7 @@ public class ProgressBar : UIElement
             })
     {
     }
-    
+
     [NamedSetting("background")]
     public Panel BackgroundPanel
     {

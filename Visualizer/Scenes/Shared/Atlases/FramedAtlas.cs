@@ -43,10 +43,7 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
 
     public void Update()
     {
-        if (!TimingStopwatch.IsRunning)
-        {
-            TimingStopwatch.Restart();
-        }
+        if (!TimingStopwatch.IsRunning) TimingStopwatch.Restart();
         var elapsed = TimingStopwatch.ElapsedMilliseconds % TotalLength;
 
         if (elapsed < CurrentFrameStartTime)

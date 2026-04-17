@@ -8,14 +8,9 @@ namespace Shared.Audio.BASS;
 
 public class BassBuffer : AudibleBuffer, IDisposable
 {
-    private SampleInfo SampleInfo { get; set; } = new();
-    protected int SampleHandle { get; set; }
-    private float Pan { get; set; } = 0.5f;
-    public float Volume { get; set; } = .5f;
-    public override bool IsRunning { get; protected set; }
+    private readonly int _maxCount;
 
     private int _sampleRate;
-    private readonly int _maxCount;
 
     public BassBuffer(ILogger logger, AudioData<float> data, int sampleRate, int maxCount = 65535)
     {
@@ -23,8 +18,14 @@ public class BassBuffer : AudibleBuffer, IDisposable
         _maxCount = maxCount;
 
         if (!UploadNewData(data, sampleRate))
-            bassLogger.Fatal("Failed to upload new data to BASS.");
+            bassLogger.Fatal("Failed to upload new data to BASS");
     }
+
+    private SampleInfo SampleInfo { get; set; } = new();
+    protected int SampleHandle { get; set; }
+    private float Pan { get; set; } = 0.5f;
+    public float Volume { get; set; } = .5f;
+    public override bool IsRunning { get; protected set; }
 
     public void Dispose()
     {

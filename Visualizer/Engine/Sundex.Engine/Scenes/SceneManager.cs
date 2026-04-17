@@ -1,9 +1,7 @@
 using System.Diagnostics;
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
-using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Scenes.Arguments;
 
@@ -75,7 +73,7 @@ public class SceneManager(ILogger logger)
         {
             ActiveScenes.Clear();
             ActiveScenes.AddRange(scenes);
-            
+
             foreach (var scene in ActiveScenes)
             {
                 DebugMarker("Transitioning to scene: ", scene.GetType().Name);
@@ -150,11 +148,9 @@ public class SceneManager(ILogger logger)
     public T Get<T>() where T : Scene
     {
         foreach (var (_, scene) in Scenes)
-        {
             if (scene is T scene1)
                 return scene1;
-        }
-        
+
         throw new Exception("Unable to find scene");
     }
 }

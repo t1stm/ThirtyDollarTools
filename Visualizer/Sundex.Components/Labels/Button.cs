@@ -7,9 +7,6 @@ namespace Sundex.Components.Labels;
 
 public class Button : FlexPanel
 {
-    public override LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
-    public override float Padding { get; set; } = 5;
-
     public Button(UIContext context, string label, Renderable? background = null) : this(context,
         new Label(context, label)
         {
@@ -27,6 +24,9 @@ public class Button : FlexPanel
         Children = [Label = label];
         UpdateCursorOnHover = true;
     }
+
+    public override LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
+    public override float Padding { get; set; } = 5;
 
     public override string Tag => "button";
     public Label Label { get; set; }

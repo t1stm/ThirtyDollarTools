@@ -95,7 +95,8 @@ public class PcmEncoder
         return await GetMultipleSequencesAudio([sequence]);
     }
 
-    public async Task<RenderedSequence> GetIncrementalAudio(RenderedSequence oldRendered, IEnumerable<Sequence> newSequences)
+    public async Task<RenderedSequence> GetIncrementalAudio(RenderedSequence oldRendered,
+        IEnumerable<Sequence> newSequences)
     {
         var array = newSequences as Sequence[] ?? newSequences.ToArray();
         var placement = PlacementCalculator.CalculateMany(array);
@@ -113,7 +114,7 @@ public class PcmEncoder
         var to_remove = old_placement.Except(new_placement_array).ToArray();
         var to_add = new_placement_array.Except(old_placement).ToArray();
 
-        var processed_events = await GetAudioSamples(timed_events, null);
+        var processed_events = await GetAudioSamples(timed_events);
 
         // We need an AudioMixer to perform the operations
         var last_placement = new_placement_array[^1];
@@ -132,10 +133,7 @@ public class PcmEncoder
             // However, incremental updates usually imply staying within a similar range.
             // Let's assume we can create a new AudioData and copy the old one if needed, or just allocate enough.
             var new_audio_data = AudioData<float>.WithLength(_channels, length);
-            for (var i = 0; i < _channels; i++)
-            {
-                audio_data.Samples[i].CopyTo(new_audio_data.Samples[i]);
-            }
+            for (var i = 0; i < _channels; i++) audio_data.Samples[i].CopyTo(new_audio_data.Samples[i]);
             audio_data = new_audio_data;
         }
 
@@ -152,15 +150,17 @@ public class PcmEncoder
         // Subtract removed events
         if (to_remove.Length > 0)
         {
-            var remove_timed = new TimedEvents { Placement = to_remove, Sequences = oldRendered.Sequences, TimingSampleRate = (int)_sampleRate };
+            var remove_timed = new TimedEvents
+                { Placement = to_remove, Sequences = oldRendered.Sequences, TimingSampleRate = (int)_sampleRate };
             await RenderTimedEvents(mixer, remove_timed, processed_events, big_event_length, true);
         }
 
         // Add new events
         if (to_add.Length > 0)
         {
-            var add_timed = new TimedEvents { Placement = to_add, Sequences = array, TimingSampleRate = (int)_sampleRate };
-            await RenderTimedEvents(mixer, add_timed, processed_events, big_event_length, false);
+            var add_timed = new TimedEvents
+                { Placement = to_add, Sequences = array, TimingSampleRate = (int)_sampleRate };
+            await RenderTimedEvents(mixer, add_timed, processed_events, big_event_length);
         }
 
         oldRendered.Audio = mixer.MixDown();

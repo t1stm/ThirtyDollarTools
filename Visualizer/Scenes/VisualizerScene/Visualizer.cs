@@ -30,11 +30,14 @@ namespace VisualizerScene;
 public class Visualizer : Scene, IGamePreloadable
 {
     private const string Version = "2.0.0 (Insider Build)";
-    private static VisualizerFonts _visualizerFonts = null!;
-    public static VisualizerFonts VisualizerFonts => _visualizerFonts;
     private readonly FpsCounter _fpsCounter = new();
-    private readonly PlayfieldSizing _playfieldSizing;
-    public PlayfieldSizing PlayfieldSizing => _playfieldSizing;
+
+    #region Stopwatches
+
+    private readonly Stopwatch _seekDelayStopwatch;
+
+    #endregion
+
     private readonly VisualizerSettings _settings;
 
     private readonly string[] _startingSequences;
@@ -49,11 +52,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     private int _height;
 
-    public PlayfieldContainer PlayfieldContainer { get; private set; } = null!;
-
     private ulong _updateId;
-
-    public VisualizerTextContainer TextContainer { get; private set; } = null!;
     private int _width;
 
     /// <summary>
@@ -83,7 +82,7 @@ public class Visualizer : Scene, IGamePreloadable
 
         _seekDelayStopwatch.Start();
 
-        _playfieldSizing = new PlayfieldSizing(settings.EventSize)
+        PlayfieldSizing = new PlayfieldSizing(settings.EventSize)
         {
             SoundMargin = settings.EventMargin,
             SoundsOnASingleLine = settings.LineAmount
@@ -91,6 +90,14 @@ public class Visualizer : Scene, IGamePreloadable
 
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
     }
+
+    public static VisualizerFonts VisualizerFonts { get; private set; } = null!;
+
+    public PlayfieldSizing PlayfieldSizing { get; }
+
+    public PlayfieldContainer PlayfieldContainer { get; private set; } = null!;
+
+    public VisualizerTextContainer TextContainer { get; private set; } = null!;
 
     private Layout Overlay => TextContainer.Overlay;
 
@@ -108,7 +115,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     public static void Preload(AssetProvider assetProvider)
     {
-        _visualizerFonts = new VisualizerFonts(assetProvider);
+        VisualizerFonts = new VisualizerFonts(assetProvider);
     }
 
     /// <summary>
@@ -118,7 +125,7 @@ public class Visualizer : Scene, IGamePreloadable
     public override void Initialize(InitArguments initArguments)
     {
         _glInfo = initArguments.GLInfo;
-        TextContainer = new VisualizerTextContainer(_visualizerFonts, Version, _width, _height, Scale)
+        TextContainer = new VisualizerTextContainer(VisualizerFonts, Version, _width, _height, Scale)
         {
             Greeting =
             {
@@ -133,9 +140,9 @@ public class Visualizer : Scene, IGamePreloadable
         {
             SampleHolder = _workflow.SampleHolder ?? throw new Exception("SampleHolder is null"),
             AtlasStore = _workflow.AtlasStore ?? throw new Exception("AtlasStore is null"),
-            PlayfieldSizing = _playfieldSizing,
+            PlayfieldSizing = PlayfieldSizing,
             RenderScale = Scale,
-            Fonts = _visualizerFonts,
+            Fonts = VisualizerFonts,
             ScrollSpeed = _settings.ScrollSpeed
         };
 
@@ -147,7 +154,7 @@ public class Visualizer : Scene, IGamePreloadable
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
         UpdateStaticRenderables(_width, _height, Scale);
-        
+
         PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
 
 
@@ -285,7 +292,7 @@ public class Visualizer : Scene, IGamePreloadable
         switch (state.IsKeyPressed(Keys.Space))
         {
             case true:
-                 SequencePlayer.TogglePause();
+                SequencePlayer.TogglePause();
                 if (!shift)
                     SetStatusMessage(stopwatch.IsRunning switch
                     {
@@ -710,7 +717,7 @@ public class Visualizer : Scene, IGamePreloadable
             _backingAudio = null;
             return;
         }
-        
+
         var decoder = new WaveDecoder();
         var file_stream = File.OpenRead(location);
         var pcm_data = decoder.Read(file_stream);
@@ -757,10 +764,4 @@ public class Visualizer : Scene, IGamePreloadable
     {
         _seekDelayStopwatch.Restart();
     }
-
-    #region Stopwatches
-    
-    private readonly Stopwatch _seekDelayStopwatch;
-
-    #endregion
 }

@@ -1,4 +1,3 @@
-using Shared;
 using Shared.Atlases;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Cameras;

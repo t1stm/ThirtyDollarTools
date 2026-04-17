@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Sundex.Core;
 
 public interface ISeekableStopwatch

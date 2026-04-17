@@ -175,7 +175,7 @@ public partial class Sequence
 
             if (!enumerator.MoveNext()) break;
         }
-        
+
         return events.ToArray();
     }
 

@@ -24,30 +24,33 @@ internal record StaticTexture(TrackedBufferReference<StaticSound> Reference)
 [PreloadGraphicsContext]
 public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreloadable
 {
+    private const int SoundSize = 32;
+    private static readonly Vector4 SoundColorMultiply = new(1f, 1f, 1f, 0.4f);
+
+    private readonly List<AnimatedTexture> _animatedSoundData = [];
+    private readonly Dictionary<FramedAtlas, RenderStack<SoundData>> _animatedSounds = [];
+
+    private readonly DollarStoreCamera _camera = new((0, 0, 0), (1920, 1080));
+    private readonly Random _random = new();
+    private readonly SemaphoreSlim _semaphore = new(1);
+    private readonly List<StaticTexture> _staticSoundData = [];
+
+    private readonly Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> _staticSounds = [];
     public static Shader AnimatedShader { get; private set; } = null!;
     public static Shader StaticShader { get; private set; } = null!;
-    
+
+    public required AtlasStore AtlasStore { get; init; }
+
     public static void Preload(AssetProvider assetProvider)
     {
         AnimatedShader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Playfield/Chunk/Animated");
         StaticShader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Playfield/Chunk/Static");
     }
-    
-    public required AtlasStore AtlasStore { get; init; }
-    private readonly Random _random = new();
-    private float RandomFloat(float min, float max) => (float)_random.NextDouble() * (max - min) + min;
-    
-    private readonly DollarStoreCamera _camera = new((0, 0, 0), (1920, 1080));
-    
-    private readonly Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> _staticSounds = [];
-    private readonly Dictionary<FramedAtlas, RenderStack<SoundData>> _animatedSounds = [];
 
-    private readonly List<AnimatedTexture> _animatedSoundData = [];
-    private readonly List<StaticTexture> _staticSoundData = [];
-    private readonly SemaphoreSlim _semaphore = new(1);
-
-    private const int SoundSize = 32;
-    private static readonly Vector4 SoundColorMultiply = new(1f, 1f, 1f, 0.4f);
+    private float RandomFloat(float min, float max)
+    {
+        return (float)_random.NextDouble() * (max - min) + min;
+    }
 
     public void AddSound(string sound)
     {
@@ -72,12 +75,10 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
     private void HandleStatic(string sound, StaticSoundAtlas staticAtlas)
     {
         if (!_staticSounds.TryGetValue(staticAtlas, out var renderBuffer))
-        {
             _staticSounds.Add(staticAtlas, renderBuffer = new RenderStack<StaticSound>(deleteQueue)
             {
                 Shader = StaticShader
             });
-        }
 
         var rect = staticAtlas.GetSoundUV(sound);
         var staticSound = new StaticSound
@@ -102,12 +103,10 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
     private void HandleAnimated(FramedAtlas framedAtlas)
     {
         if (!_animatedSounds.TryGetValue(framedAtlas, out var renderBuffer))
-        {
             _animatedSounds.Add(framedAtlas, renderBuffer = new RenderStack<SoundData>(deleteQueue)
             {
                 Shader = AnimatedShader
             });
-        }
 
         var soundData = new SoundData
         {
@@ -118,7 +117,7 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
 
         renderBuffer.List.Add(soundData);
         var reference = renderBuffer.List.GetReferenceAt(renderBuffer.List.Count - 1);
-        
+
         _animatedSoundData.Add(new AnimatedTexture(reference)
         {
             Velocity = new Vector2(RandomFloat(-1, 1), RandomFloat(-1, 1))
@@ -138,29 +137,29 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
             foreach (var sound in _animatedSoundData)
             {
                 var oldValue = sound.Reference.Value;
-            
+
                 var x = oldValue.Model.M41;
                 var y = oldValue.Model.M42;
                 var w = x + SoundSize;
                 var h = y + SoundSize;
-            
+
                 sound.Velocity = GetNewVelocity(sound.Velocity, x, y, w, h, _camera.Viewport);
-            
+
                 oldValue.Model *= Matrix4.CreateTranslation(sound.Velocity.X, sound.Velocity.Y, 0);
                 sound.Reference.Value = oldValue;
             }
-        
+
             foreach (var sound in _staticSoundData)
             {
                 var oldValue = sound.Reference.Value;
-            
+
                 var x = oldValue.Data.Model.M41;
                 var y = oldValue.Data.Model.M42;
                 var w = x + SoundSize;
                 var h = y + SoundSize;
-            
+
                 sound.Velocity = GetNewVelocity(sound.Velocity, x, y, w, h, _camera.Viewport);
-            
+
                 oldValue.Data.Model *= Matrix4.CreateTranslation(sound.Velocity.X, sound.Velocity.Y, 0);
                 sound.Reference.Value = oldValue;
             }
@@ -173,15 +172,9 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
 
     private static Vector2 GetNewVelocity(Vector2 velocity, float x, float y, float w, float h, Vector2i viewport)
     {
-        if (x < 0 && velocity.X < 0 || w > viewport.X && velocity.X > 0)
-        {
-            velocity.X *= -1;
-        }
+        if ((x < 0 && velocity.X < 0) || (w > viewport.X && velocity.X > 0)) velocity.X *= -1;
 
-        if (y < 0 && velocity.Y < 0 || h > viewport.Y && velocity.Y > 0)
-        {
-            velocity.Y *= -1;
-        }
+        if ((y < 0 && velocity.Y < 0) || (h > viewport.Y && velocity.Y > 0)) velocity.Y *= -1;
 
         return velocity;
     }

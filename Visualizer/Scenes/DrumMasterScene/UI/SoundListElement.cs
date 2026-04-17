@@ -10,15 +10,6 @@ namespace DrumMasterScene.UI;
 
 public class SoundListElement : FlexPanel
 {
-    public string SoundName { get; }
-    public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.AutoSize;
-    public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
-
-    public TrackedBufferReference<StaticSound>? StaticReference { get; set; }
-    public TrackedBufferReference<SoundData>? AnimatedReference { get; set; }
-
-    public sealed override ComputedRectangle Computed { get; protected set; }
-
     public SoundListElement(UIContext context, string soundName) : base(context)
     {
         SoundName = soundName;
@@ -28,6 +19,15 @@ public class SoundListElement : FlexPanel
             OnUpdate = UpdateMatrix
         };
     }
+
+    public string SoundName { get; }
+    public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.AutoSize;
+    public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
+
+    public TrackedBufferReference<StaticSound>? StaticReference { get; set; }
+    public TrackedBufferReference<SoundData>? AnimatedReference { get; set; }
+
+    public sealed override ComputedRectangle Computed { get; protected set; }
 
     private void UpdateMatrix()
     {
@@ -63,7 +63,8 @@ public class SoundListElement : FlexPanel
                 return;
             }
 
-            Computed.OverrideAbsolutePositions(mouse.X / scale.X - Computed.Width / 2, mouse.Y / scale.Y - Computed.Height / 2);
+            Computed.OverrideAbsolutePositions(mouse.X / scale.X - Computed.Width / 2,
+                mouse.Y / scale.Y - Computed.Height / 2);
             UpdateMatrix();
         }
         else if (CurrentState == UIState.Pressed && DragManager.DraggedElement == null)

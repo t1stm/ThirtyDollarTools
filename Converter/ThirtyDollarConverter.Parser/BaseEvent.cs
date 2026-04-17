@@ -36,9 +36,9 @@ public abstract class BaseEvent
     ///     The final volume of the current sample.
     /// </summary>
     public double WorkingVolume = 100;
-    
+
     /// <summary>
-    /// The value used while processing different events.
+    ///     The value used while processing different events.
     /// </summary>
     public double WorkingValue { get; set; }
 

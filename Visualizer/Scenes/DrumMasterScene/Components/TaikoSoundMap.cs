@@ -16,13 +16,14 @@ public class TaikoSoundMap
     public string? GetPressedSound(KeyboardState keyboardState)
     {
         foreach (var (key, sound) in KeyToSoundMap)
-        {
             if (keyboardState.IsKeyPressed(key))
                 return sound;
-        }
 
         return null;
     }
 
-    public bool Has(string sound) => SoundToKeyMap.ContainsKey(sound);
+    public bool Has(string sound)
+    {
+        return SoundToKeyMap.ContainsKey(sound);
+    }
 }

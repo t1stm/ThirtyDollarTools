@@ -1,51 +1,16 @@
-using Xunit;
-using Sundex.Components.Panels;
+using OpenTK.Mathematics;
+using Shared;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
-using OpenTK.Mathematics;
-using Sundex.Engine.Renderer.Cameras;
-using Shared;
-using Sundex.Engine.Renderer.Abstract;
+using Sundex.Components.Panels;
 using Sundex.Core.Animations;
+using Sundex.Engine.Renderer.Abstract;
+using Sundex.Engine.Renderer.Cameras;
 
 namespace Sundex.Components.Tests;
 
 public class LayoutPaddingTests
 {
-    private class TestContext : UIContext
-    {
-        public List<IRenderable> QueuedRenderables = new();
-
-        public TestContext()
-        {
-            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
-        }
-
-        public new void QueueRender(IRenderable renderable, int renderIndex, int queueIndex = -1)
-        {
-            QueuedRenderables.Add(renderable);
-            base.QueueRender(renderable, renderIndex, queueIndex);
-        }
-    }
-
-    private class TestPanel : Panel
-    {
-        public TestPanel(UIContext context) : base(context) { }
-        public IRenderable TestRenderable = new MockRenderable();
-
-        protected override void DrawSelf(UIContext context)
-        {
-            base.DrawSelf(context);
-            context.QueueRender(TestRenderable, Index);
-        }
-    }
-
-    private class MockRenderable : IRenderable
-    {
-        public void Render(Camera camera) { }
-        public void UpdateModel(bool isScreenSpace, ReadOnlySpan<Animation> animations) { }
-    }
-
     [Fact]
     public void UIElement_DrawTo_ShouldEnsureLayoutBeforeQueuing()
     {
@@ -57,26 +22,26 @@ public class LayoutPaddingTests
             Height = 100,
             Padding = 10
         };
-        
+
         var child = new TestPanel(context)
         {
             Width = LiteralOrComputable.Percent(100),
             Height = 10
         };
-        
+
         parent.AddChild(child);
-        
+
         // Assert initial state
         Assert.True(parent.NeedsLayout);
         Assert.True(child.NeedsLayout);
-        
+
         // Act
         parent.DrawTo(context);
-        
+
         // Assert
         Assert.False(parent.NeedsLayout);
         Assert.False(child.NeedsLayout);
-        
+
         // Coordinates should be correctly calculated before DrawSelf was called
         // Parent Padding = 10, so Child AbsoluteX should be 10.
         Assert.Equal(10, child.Computed.AbsoluteX);
@@ -96,18 +61,18 @@ public class LayoutPaddingTests
             Padding = 10,
             Direction = LayoutDirection.Vertical
         };
-        
+
         var child = new Panel(context)
         {
             Width = LiteralOrComputable.Percent(100),
             Height = 10
         };
-        
+
         parent.AddChild(child);
-        
+
         // Act
         parent.Layout();
-        
+
         // Assert
         // Parent Width = 100. Padding = 10. Inner Width = 100 - 2 * 10 = 80.
         // Child Width = 100% of Inner Width = 80.
@@ -128,18 +93,18 @@ public class LayoutPaddingTests
             Padding = 10,
             Direction = LayoutDirection.Vertical
         };
-        
+
         var child = new Panel(context)
         {
             Width = LiteralOrComputable.Percent(100),
             Height = 10
         };
-        
+
         parent.AddChild(child);
-        
+
         // Act
         parent.Layout();
-        
+
         // Assert
         // Parent AbsoluteX/Y is 0 (root).
         // Parent Padding is 10.
@@ -162,23 +127,24 @@ public class LayoutPaddingTests
             Padding = 10,
             Direction = LayoutDirection.Horizontal
         };
-        
+
         var child = new Panel(context)
         {
             Width = LiteralOrComputable.Percent(100),
             Height = 10
         };
-        
+
         parent.AddChild(child);
-        
+
         // Act
         parent.Layout();
-        
+
         // Assert
         // Parent Width = 100. Padding = 10. Inner Width = 80.
         // Child Width = 100% of free space = 80.
         Assert.Equal(80, child.Computed.Width);
     }
+
     [Fact]
     public void UIElement_NestedLayout_ShouldUpdateWhenParentMoves()
     {
@@ -189,7 +155,7 @@ public class LayoutPaddingTests
             Width = 1000,
             Height = 1000
         };
-        
+
         var parent = new Panel(context)
         {
             X = 100,
@@ -197,7 +163,7 @@ public class LayoutPaddingTests
             Width = 500,
             Height = 500
         };
-        
+
         var child = new Panel(context)
         {
             X = 50,
@@ -205,23 +171,23 @@ public class LayoutPaddingTests
             Width = 100,
             Height = 100
         };
-        
+
         root.AddChild(parent);
         parent.AddChild(child);
-        
+
         // Act 1: Initial Layout
         root.Layout();
-        
+
         // Assert initial coordinates
         Assert.Equal(100, parent.Computed.AbsoluteX);
         Assert.Equal(150, child.Computed.AbsoluteX); // Parent X(100) + Parent Padding(0) + Child X(50)
-        
+
         // Act 2: Move parent
         parent.X = 200;
         // In reality, setting X should call InvalidateLayout which sets NeedsLayout = true on parent and notifies root.
-        
+
         root.Layout();
-        
+
         // Assert updated coordinates
         Assert.Equal(200, parent.Computed.AbsoluteX);
         Assert.Equal(250, child.Computed.AbsoluteX); // Parent X(200) + Parent Padding(0) + Child X(50)
@@ -239,11 +205,11 @@ public class LayoutPaddingTests
             Width = 100,
             Height = 100
         };
-        
+
         // Act 1: Layout without parent (uses viewport)
         child.Layout();
         Assert.Equal(50, child.Computed.AbsoluteX);
-        
+
         // Act 2: Add to parent
         var parent = new Panel(context)
         {
@@ -253,10 +219,52 @@ public class LayoutPaddingTests
             Height = 500
         };
         parent.AddChild(child);
-        
+
         parent.Layout();
-        
+
         // Assert updated coordinates
         Assert.Equal(150, child.Computed.AbsoluteX);
+    }
+
+    private class TestContext : UIContext
+    {
+        public readonly List<IRenderable> QueuedRenderables = new();
+
+        public TestContext()
+        {
+            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+        }
+
+        public new void QueueRender(IRenderable renderable, int renderIndex, int queueIndex = -1)
+        {
+            QueuedRenderables.Add(renderable);
+            base.QueueRender(renderable, renderIndex, queueIndex);
+        }
+    }
+
+    private class TestPanel : Panel
+    {
+        public readonly IRenderable TestRenderable = new MockRenderable();
+
+        public TestPanel(UIContext context) : base(context)
+        {
+        }
+
+        protected override void DrawSelf(UIContext context)
+        {
+            base.DrawSelf(context);
+            context.QueueRender(TestRenderable, Index);
+        }
+    }
+
+    private class MockRenderable : IRenderable
+    {
+        public void Render(Camera camera)
+        {
+        }
+
+        public void UpdateModel(bool isScreenSpace, ReadOnlySpan<Animation> animations)
+        {
+        }
     }
 }

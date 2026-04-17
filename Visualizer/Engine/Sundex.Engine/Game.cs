@@ -19,8 +19,8 @@ namespace Sundex.Engine;
 public class Game : GameWindow
 {
     private readonly Queue<Action<Game>> _enqueuedEvents = new();
-    private readonly ILogger _loggerGL;
     private readonly string _id;
+    private readonly ILogger _loggerGL;
 
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
 
@@ -40,13 +40,13 @@ public class Game : GameWindow
         SceneManager = new SceneManager(Logger);
         ThreadRunner = new ThreadRunner(Logger);
     }
-    
+
     public ILogger Logger { get; }
     public Assembly[] AssetAssemblies { get; }
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
     public ThreadRunner ThreadRunner { get; }
-    
+
     public GameGlobals Globals { get; } = new();
     private GLInfo GLInfo { get; } = new();
 

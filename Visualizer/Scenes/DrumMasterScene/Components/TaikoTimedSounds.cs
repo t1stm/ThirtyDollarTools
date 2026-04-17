@@ -5,9 +5,6 @@ namespace DrumMasterScene.Components;
 
 public class TaikoTimedSounds
 {
-    public List<TaikoSound> Sounds { get; set; }
-    public float BaseScrollSpeed { get; set; } = 0.5f;
-
     public TaikoTimedSounds(Placement[] placements, TaikoSoundMap soundMap, double sampleRate = 100_000,
         bool useBPMForScrollSpeed = true)
     {
@@ -52,8 +49,11 @@ public class TaikoTimedSounds
             {
                 Event = ev,
                 Timestamp = timestamp,
-                ScrollSpeed = scrollSpeed,
+                ScrollSpeed = scrollSpeed
             });
         }
     }
+
+    public List<TaikoSound> Sounds { get; set; }
+    public float BaseScrollSpeed { get; set; } = 0.5f;
 }

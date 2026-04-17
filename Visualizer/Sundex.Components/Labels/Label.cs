@@ -97,7 +97,7 @@ public class Label : UIElement
         else
         {
             TextSlice.UpdateManually = true;
-            
+
             TextSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
             TextSlice.Color = Color;
             TextSlice.Value = text;

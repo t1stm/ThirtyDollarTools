@@ -93,8 +93,6 @@ public class UIElementTests
 
     private class TestElement : UIElement
     {
-        public Action? OnUpdate { get; set; }
-
         public TestElement(UIContext context, float x = 0, float y = 0, float width = 0, float height = 0)
             : base(context)
         {
@@ -103,6 +101,8 @@ public class UIElementTests
             Width = width;
             Height = height;
         }
+
+        public Action? OnUpdate { get; set; }
 
         public override string Tag => "test";
 

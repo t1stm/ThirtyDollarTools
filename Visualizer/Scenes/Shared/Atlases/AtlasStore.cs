@@ -11,6 +11,7 @@ namespace Shared.Atlases;
 public class AtlasStore(AssetProvider assetProvider, ILogger logger)
 {
     private readonly ILogger _logger = logger.ForContext<AtlasStore>();
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     /// <summary>
     ///     Generic container for static sound atlases.
@@ -26,7 +27,6 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
     ///     Map Sound -> StaticSoundAtlas.
     /// </summary>
     public Dictionary<string, StaticSoundAtlas> StaticSounds { get; } = [];
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public void Update()
     {
@@ -44,7 +44,6 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
     public void LoadImageAtPath(string imagePath, string soundName,
         StorageLocation storageLocation = StorageLocation.Disk)
     {
-        
         var assetInfo = new AssetInfo
         {
             Location = imagePath,
@@ -75,7 +74,6 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
 
         _logger.Debug("Loaded asset {ImagePath} with {FrameCount} frames", imagePath,
             textureHolder.Texture.Frames.Count);
-        
     }
 
     private void HandleAnimatedImage(TextureHolder holder, string soundName)

@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using OpenTK.Graphics.OpenGL;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
@@ -93,9 +92,15 @@ public class UIContext : IGamePreloadable
         return -1;
     }
 
-    public void RegisterUpdate(UIElement element) => _updatingElements.Add(element);
+    public void RegisterUpdate(UIElement element)
+    {
+        _updatingElements.Add(element);
+    }
 
-    public void UnregisterUpdate(UIElement element) => _updatingElements.Remove(element);
+    public void UnregisterUpdate(UIElement element)
+    {
+        _updatingElements.Remove(element);
+    }
 
     public void Render()
     {

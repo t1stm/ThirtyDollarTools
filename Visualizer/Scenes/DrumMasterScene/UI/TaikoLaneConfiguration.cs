@@ -12,19 +12,6 @@ namespace DrumMasterScene.UI;
 
 public class TaikoLaneConfiguration : FlexPanel
 {
-    public Label LaneLabel { get; }
-    public FlexPanel DropZone { get; }
-    public List<string> SelectedSounds { get; } = [];
-    public ISundexContext? SundexContext { get; }
-    public Action<UIElement>? OnDeleteRequested { get; set; }
-
-    public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.Percent(100);
-    public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
-    
-    public override LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
-    public override float Spacing { get; set; } = 5;
-    public override float Padding { get; set; } = 10;
-
     public TaikoLaneConfiguration(UIContext context, ISundexContext? sundexContext = null) : base(context)
     {
         SundexContext = sundexContext;
@@ -46,16 +33,16 @@ public class TaikoLaneConfiguration : FlexPanel
             }
         };
 
-        var buttonRow = new FlexPanel(context) { Direction = LayoutDirection.Horizontal, Spacing = 5, Width = LiteralOrComputable.AutoSize };
-        buttonRow.AddChild(new Button(context, new Label(context, "Clear"), new ColoredPlane { Color = new Vector4(0.3f, 0.3f, 0.3f, 1f) })
+        var buttonRow = new FlexPanel(context)
+            { Direction = LayoutDirection.Horizontal, Spacing = 5, Width = LiteralOrComputable.AutoSize };
+        buttonRow.AddChild(new Button(context, new Label(context, "Clear"),
+            new ColoredPlane { Color = new Vector4(0.3f, 0.3f, 0.3f, 1f) })
         {
             Width = 60,
-            OnClick = _ =>
-            {
-                ReturnChildren();
-            }
+            OnClick = _ => { ReturnChildren(); }
         });
-        buttonRow.AddChild(new Button(context, new Label(context, "Delete"), new ColoredPlane { Color = new Vector4(0.3f, 0.3f, 0.3f, 1f) })
+        buttonRow.AddChild(new Button(context, new Label(context, "Delete"),
+            new ColoredPlane { Color = new Vector4(0.3f, 0.3f, 0.3f, 1f) })
         {
             Width = 60,
             OnClick = _ =>
@@ -79,11 +66,24 @@ public class TaikoLaneConfiguration : FlexPanel
         VerticalAlign = Align.Start;
     }
 
+    public Label LaneLabel { get; }
+    public FlexPanel DropZone { get; }
+    public List<string> SelectedSounds { get; } = [];
+    public ISundexContext? SundexContext { get; }
+    public Action<UIElement>? OnDeleteRequested { get; set; }
+
+    public override LiteralOrComputable Width { get; set; } = LiteralOrComputable.Percent(100);
+    public override LiteralOrComputable Height { get; set; } = LiteralOrComputable.AutoSize;
+
+    public override LayoutDirection Direction { get; set; } = LayoutDirection.Vertical;
+    public override float Spacing { get; set; } = 5;
+    public override float Padding { get; set; } = 10;
+
     public void ReturnChildren()
     {
         var children = DropZone.Children.ToArray();
         if (SundexContext is not SundexContext sundexContext) return;
-        
+
         foreach (var child in children)
         {
             if (child is not SoundListElement element) continue;
@@ -93,9 +93,10 @@ public class TaikoLaneConfiguration : FlexPanel
                 soundList.AddChild(element);
                 continue;
             }
-            
+
             DropZone.RemoveChild(child);
         }
+
         SelectedSounds.Clear();
     }
 
@@ -105,12 +106,10 @@ public class TaikoLaneConfiguration : FlexPanel
         if (!mouse.IsButtonReleased(MouseButton.Left) || DragManager.DraggedElement == null) return;
 
         if (!IsHovered) return;
-        
+
         var element = DragManager.DraggedElement;
         if (element.Parent?.Parent is TaikoLaneConfiguration oldConfig)
-        {
             oldConfig.SelectedSounds.Remove(element.SoundName);
-        }
 
         AddSound(element.SoundName, element);
         DragManager.DraggedElement = null;

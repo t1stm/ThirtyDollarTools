@@ -65,9 +65,7 @@ public class ComputedRectangle
         if (Math.Abs(oldW - Width) > float.Epsilon || Math.Abs(oldH - Height) > float.Epsilon ||
             Math.Abs(oldX - X) > float.Epsilon || Math.Abs(oldY - Y) > float.Epsilon ||
             Math.Abs(oldAbsX - AbsoluteX) > float.Epsilon || Math.Abs(oldAbsY - AbsoluteY) > float.Epsilon)
-        {
             OnUpdate?.Invoke();
-        }
     }
 
     public void OverrideAbsolutePositions(float x, float y)

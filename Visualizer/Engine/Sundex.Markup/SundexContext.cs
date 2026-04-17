@@ -1,5 +1,5 @@
-using System.Reflection;
 using System.Buffers;
+using System.Reflection;
 using Sundex.Components.Abstractions;
 using Sundex.Markup.Abstract;
 using Sundex.Markup.Attributes;
@@ -90,7 +90,7 @@ public class SundexContext(UIContext context) : ISundexContext
             if (target == null) return;
             var type = target.GetType();
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
-            
+
             foreach (var property in type.GetProperties(flags))
             {
                 if (property.GetCustomAttribute<SetFromLogicAttribute>() == null) continue;
@@ -109,16 +109,14 @@ public class SundexContext(UIContext context) : ISundexContext
 
             const BindingFlags nonPublicFlags = BindingFlags.Instance | BindingFlags.NonPublic;
             foreach (var property in type.GetProperties(nonPublicFlags))
-            {
                 if (property.GetCustomAttribute<SetFromLogicAttribute>() != null)
-                    throw new Exception($"Property {property.Name} in {type.Name} is marked with [SetFromLogic] but is not public.");
-            }
-            
+                    throw new Exception(
+                        $"Property {property.Name} in {type.Name} is marked with [SetFromLogic] but is not public.");
+
             foreach (var field in type.GetFields(nonPublicFlags))
-            {
                 if (field.GetCustomAttribute<SetFromLogicAttribute>() != null)
-                    throw new Exception($"Field {field.Name} in {type.Name} is marked with [SetFromLogic] but is not public.");
-            }
+                    throw new Exception(
+                        $"Field {field.Name} in {type.Name} is marked with [SetFromLogic] but is not public.");
         }
         finally
         {

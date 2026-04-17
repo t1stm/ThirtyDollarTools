@@ -115,20 +115,20 @@ public class AssetProvider : IAssetProvider
     }
 
     /// <summary>
-    /// Retrieves metadata of the specified type for an asset based on the provided creation information.
+    ///     Retrieves metadata of the specified type for an asset based on the provided creation information.
     /// </summary>
     /// <typeparam name="TMetadata">
-    /// The type of metadata to retrieve, which must implement
-    /// <see cref="IAssetMetadata&lt;TMetadata, TCreate&gt;" />.
+    ///     The type of metadata to retrieve, which must implement
+    ///     <see cref="IAssetMetadata&lt;TMetadata, TCreate&gt;" />.
     /// </typeparam>
     /// <typeparam name="TCreate">
-    /// The type of the creation information required to query the metadata.
+    ///     The type of the creation information required to query the metadata.
     /// </typeparam>
     /// <param name="createInfo">
-    /// The creation information used to retrieve the metadata for the asset.
+    ///     The creation information used to retrieve the metadata for the asset.
     /// </param>
     /// <returns>
-    /// The retrieved metadata of type <typeparamref name="TMetadata" />.
+    ///     The retrieved metadata of type <typeparamref name="TMetadata" />.
     /// </returns>
     public TMetadata Metadata<TMetadata, TCreate>(TCreate createInfo)
         where TMetadata : IAssetMetadata<TMetadata, TCreate>, allows ref struct

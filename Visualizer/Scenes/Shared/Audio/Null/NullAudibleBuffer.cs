@@ -6,6 +6,9 @@ public class NullAudibleBuffer : AudibleBuffer
 {
     public static readonly AudibleBuffer EmptyBuffer = new NullAudibleBuffer();
 
+    // Methods that don't need an implementation.
+    public override bool IsRunning { get; protected set; } = true;
+
     // Methods with some implementation.
     public override bool UploadNewData(AudioData<float> data, int sampleRate)
     {
@@ -21,9 +24,6 @@ public class NullAudibleBuffer : AudibleBuffer
     {
         return long.MaxValue;
     }
-
-    // Methods that don't need an implementation.
-    public override bool IsRunning { get; protected set; } = true;
 
     public override void Stop()
     {

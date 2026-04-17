@@ -5,15 +5,6 @@ namespace Shared.Audio;
 
 public abstract class AudibleBuffer : IBufferStopwatch
 {
-    public abstract bool UploadNewData(AudioData<float> data, int sampleRate);
-    public abstract void Play(Action? callbackWhenFinished = null, bool autoRemove = true);
-    public abstract long GetTime_Milliseconds();
-    public abstract void SeekTime_Milliseconds(long milliseconds);
-    public abstract void SetVolume(float volume);
-    public abstract void Delete();
-    public abstract void SetPause(bool state);
-    public abstract void SetPan(float pan);
-    
     public TimeSpan Elapsed => TimeSpan.FromMilliseconds(ElapsedMilliseconds);
     public long ElapsedMilliseconds => GetTime_Milliseconds();
     public abstract bool IsRunning { get; protected set; }
@@ -25,6 +16,7 @@ public abstract class AudibleBuffer : IBufferStopwatch
     }
 
     public abstract void Stop();
+
     public void Restart()
     {
         SeekTime_Milliseconds(0);
@@ -43,4 +35,13 @@ public abstract class AudibleBuffer : IBufferStopwatch
     {
         SeekTime_Milliseconds(milliseconds);
     }
+
+    public abstract bool UploadNewData(AudioData<float> data, int sampleRate);
+    public abstract void Play(Action? callbackWhenFinished = null, bool autoRemove = true);
+    public abstract long GetTime_Milliseconds();
+    public abstract void SeekTime_Milliseconds(long milliseconds);
+    public abstract void SetVolume(float volume);
+    public abstract void Delete();
+    public abstract void SetPause(bool state);
+    public abstract void SetPan(float pan);
 }

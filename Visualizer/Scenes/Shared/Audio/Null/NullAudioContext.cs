@@ -1,4 +1,3 @@
-using Shared.Audio.Features;
 using ThirtyDollarEncoder.PCM;
 
 namespace Shared.Audio.Null;

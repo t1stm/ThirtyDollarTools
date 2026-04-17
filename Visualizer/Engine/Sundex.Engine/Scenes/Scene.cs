@@ -13,7 +13,7 @@ public abstract class Scene(Game game)
     public SceneManager SceneManager => Game.SceneManager;
     public ThreadRunner ThreadRunner => Game.ThreadRunner;
     public ILogger Logger => Game.Logger;
-    
+
 
     /// <summary>
     ///     Method called during the OnLoad procedure.

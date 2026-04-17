@@ -1,12 +1,12 @@
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Sundex.Markup;
-using Sundex.Markup.Attributes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Markup;
+using Sundex.Markup.Attributes;
 
 namespace HomeScene.Scenes;
 
@@ -38,11 +38,9 @@ public class HomeInterface
     public Action OnDrumMaster { get; }
     public Action OnSettings { get; }
 
-    [UsedImplicitly]
-    public SundexComponent Component { get; }
-    
-    [SetFromLogic]
-    public Panel RootPanel { get; set; } = null!;
+    [UsedImplicitly] public SundexComponent Component { get; }
+
+    [SetFromLogic] public Panel RootPanel { get; set; } = null!;
 
     public void Resize()
     {

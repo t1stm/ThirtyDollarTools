@@ -17,7 +17,7 @@ public static class AssemblyExtensions
             Sanitize(src, dest, '/', '.');
             Sanitize(dest, dest, ' ', '_');
         }
-        
+
         public ManifestResourceInfo? GetManifestResourceInfo(ReadOnlySpan<char> name)
         {
             var newLocation = ArrayPool<char>.Shared.Rent(name.Length);

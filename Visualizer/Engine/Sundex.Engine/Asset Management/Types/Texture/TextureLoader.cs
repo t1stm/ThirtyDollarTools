@@ -1,7 +1,6 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using Sundex.Engine.Asset_Management.Abstract;
 using Sundex.Engine.Asset_Management.Abstract.Loading;
 using Sundex.Engine.Asset_Management.Types.Asset;
 

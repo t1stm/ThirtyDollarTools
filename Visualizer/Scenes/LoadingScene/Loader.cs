@@ -1,4 +1,3 @@
-using HomeScene;
 using LoadingScene.Background;
 using LoadingScene.Reports;
 using LoadingScene.Scenes;
@@ -22,6 +21,7 @@ public class Loader : Scene, IGamePreloadable
 {
     private static AssetProvider _assetProvider = null!;
     private readonly AudioContext? _audioContext;
+    private readonly DollarStoreLoaderBackground _background;
     private readonly DollarStoreCamera _camera;
     private readonly UIContext _context;
 
@@ -31,7 +31,6 @@ public class Loader : Scene, IGamePreloadable
     private CursorType _cursorType = CursorType.Normal;
     private Vector2 _lastScale = Vector2.One;
     private IProgressReport _progressReport = new NotStartedReport();
-    private readonly DollarStoreLoaderBackground _background;
 
     public Loader(Game game, AudioContext? audioContext) : base(game)
     {
@@ -55,13 +54,13 @@ public class Loader : Scene, IGamePreloadable
         {
             StatusUpdate = StatusUpdate
         };
-        
+
         _background = new DollarStoreLoaderBackground(game.AssetProvider.DeleteQueue)
         {
             AtlasStore = _thirtyDollarDownloader.AtlasStore
         };
         _thirtyDollarDownloader.OnLoadSound = sound => _background.AddSound(sound);
-        
+
         _loaderInterface = new LoaderInterface(_context, () => _thirtyDollarDownloader.Load());
     }
 
@@ -124,7 +123,8 @@ public class Loader : Scene, IGamePreloadable
         _loaderInterface.Label.SetTextContents("Loading interface...");
         Finished = true;
 
-        var workflow = new ThirtyDollarWorkflow(Game, Logger, _thirtyDollarDownloader.SampleHolder, _thirtyDollarDownloader.AtlasStore, _audioContext);
+        var workflow = new ThirtyDollarWorkflow(Game, Logger, _thirtyDollarDownloader.SampleHolder,
+            _thirtyDollarDownloader.AtlasStore, _audioContext);
         OnFinish?.Invoke(workflow);
     }
 
