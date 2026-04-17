@@ -203,7 +203,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     public override void TransitionedTo()
     {
-        TextContainer.Greeting.Value = "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR DRUM MASTER";
+        TextContainer.Greeting.Value = Greeting ??= "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER";
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
         Resize(Game.ClientSize.X, Game.ClientSize.Y);
