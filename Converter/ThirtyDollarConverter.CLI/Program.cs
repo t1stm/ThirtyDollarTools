@@ -13,7 +13,8 @@ var serilogLogger = new LoggerConfiguration()
 var options = new Options();
 
 Parser.Default.ParseArguments<Options>(args)
-    .WithParsed(o => { options = o; });
+    .WithParsed(o => { options = o; })
+    .WithNotParsed(_ => Environment.Exit(1));
 
 var inputs = options.Input.ToArray();
 var outputs = options.Output.ToArray();
@@ -61,6 +62,8 @@ for (var i = 0; i < inputs.Length; i++)
     var rendered = await encoder.GetSequenceAudio(sequence);
     var audioData = rendered.Audio;
     encoder.WriteAsWavFile(output, audioData);
+    
+    Console.WriteLine($"\nSuccessfully converted \'{input.Location}\' to \'{output}\'.");
 
     continue;
 
@@ -69,9 +72,8 @@ for (var i = 0; i < inputs.Length; i++)
         var progress_bar = Progressbar.Generate(current, (long)total);
         var percentage = (float)current / total;
 
-        Console.Clear();
-        Console.WriteLine($"[Converting] \'{input.Location}\'");
-        Console.WriteLine($"({percentage:0%}) {progress_bar}");
+        Console.CursorLeft = 0;
+        Console.Write($"[Converting] \'{input.Location}\' ({percentage:P0}) {progress_bar}");
     }
 }
 
@@ -79,4 +81,5 @@ return;
 
 void LogAction(string s)
 {
+    serilogLogger.Information(s);
 }

@@ -77,6 +77,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SettingsScene", "Visualizer\Scenes\SettingsScene\SettingsScene.csproj", "{F0CAD6D1-12C8-49B2-94EB-F057A7168C48}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sundex", "Sundex", "{DC2DD939-4F3E-4895-8A50-BDC082B455C0}"
+	ProjectSection(SolutionItems) = preProject
+		Sundex\README.md = Sundex\README.md
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{76AB0782-2913-410F-823E-328BED055A79}"
 EndProject
