@@ -30,19 +30,16 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj"/>
-        <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-        <ProjectReference Include="..\..\Engine\Style DSL\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
-        <ProjectReference Include="..\..\Engine\Sundex.Core\Sundex.Core.csproj"/>
-        <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj"/>
+        <ProjectReference Include="..\..\Converter\ThirtyDollarConverter.Audio\ThirtyDollarConverter.Audio.csproj"/>
+        <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+        <ProjectReference Include="..\..\Sundex\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
+        <ProjectReference Include="..\..\Sundex\Sundex.Core\Sundex.Core.csproj"/>
+        <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+        <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj" />
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="ManagedBass" Version="4.0.2"/>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Helpers\Color\" />
     </ItemGroup>
 
 </Project>

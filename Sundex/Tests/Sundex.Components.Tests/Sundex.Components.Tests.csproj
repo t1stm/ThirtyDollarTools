@@ -8,9 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Sundex.Components\Sundex.Components.csproj"/>
-        <ProjectReference Include="..\Engine\Sundex.Markup\Sundex.Markup.csproj"/>
-        <ProjectReference Include="../Scenes/Shared/Shared.csproj"/>
+        <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj"/>
+        <ProjectReference Include="..\..\Sundex.Markup\Sundex.Markup.csproj"/>
+        <ProjectReference Include="..\..\..\Visualizer\Shared\Shared.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

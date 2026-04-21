@@ -40,14 +40,14 @@
     <ItemGroup>
         <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
         <ProjectReference Include="..\..\BASS.Redist\BASS.Redist.csproj"/>
-        <ProjectReference Include="..\Engine\Sundex.Engine\Sundex.Engine.csproj"/>
+        <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
         <ProjectReference Include="..\Scenes\DrumMasterScene\DrumMasterScene.csproj"/>
         <ProjectReference Include="..\Scenes\SettingsScene\SettingsScene.csproj"/>
-        <ProjectReference Include="..\Sundex.Components\Sundex.Components.csproj"/>
+        <ProjectReference Include="..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
         <ProjectReference Include="..\Scenes\EditorScene\EditorScene.csproj"/>
         <ProjectReference Include="..\Scenes\HomeScene\HomeScene.csproj"/>
         <ProjectReference Include="..\Scenes\LoadingScene\LoadingScene.csproj"/>
-        <ProjectReference Include="..\Scenes\Shared\Shared.csproj"/>
+        <ProjectReference Include="..\Shared\Shared.csproj"/>
         <ProjectReference Include="..\Scenes\VisualizerScene\VisualizerScene.csproj"/>
     </ItemGroup>
 

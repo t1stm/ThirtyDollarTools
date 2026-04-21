@@ -21,7 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Sundex.Markup\Sundex.Markup.csproj"/>
+        <ProjectReference Include="..\..\Sundex.Markup\Sundex.Markup.csproj"/>
     </ItemGroup>
 
 </Project>

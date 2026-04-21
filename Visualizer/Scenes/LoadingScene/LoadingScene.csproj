@@ -8,11 +8,11 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-        <ProjectReference Include="..\..\Engine\Sundex.Markup\Sundex.Markup.csproj"/>
-        <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj"/>
-        <ProjectReference Include="..\..\Engine\Sundex.Engine\Sundex.Engine.csproj"/>
+        <ProjectReference Include="..\..\..\Sundex\Sundex.Markup\Sundex.Markup.csproj"/>
+        <ProjectReference Include="..\..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
+        <ProjectReference Include="..\..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
         <ProjectReference Include="..\HomeScene\HomeScene.csproj"/>
-        <ProjectReference Include="..\Shared\Shared.csproj"/>
+        <ProjectReference Include="..\..\Shared\Shared.csproj"/>
         <ProjectReference Include="..\VisualizerScene\VisualizerScene.csproj"/>
     </ItemGroup>
 
