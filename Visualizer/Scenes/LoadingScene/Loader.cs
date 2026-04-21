@@ -26,8 +26,8 @@ public class Loader : Scene, IGamePreloadable
     private readonly UIContext _context;
 
     private readonly LoaderInterface _loaderInterface;
-
     private readonly ThirtyDollarDownloader _thirtyDollarDownloader;
+    private bool _autoLoadStarted;
     private CursorType _cursorType = CursorType.Normal;
     private Vector2 _lastScale = Vector2.One;
     private IProgressReport _progressReport = new NotStartedReport();
@@ -103,6 +103,23 @@ public class Loader : Scene, IGamePreloadable
     {
         _background.Update();
         _cursorType = CursorType.Normal;
+
+        if (!_autoLoadStarted)
+        {
+            _autoLoadStarted = true;
+            Task.Run(async () =>
+            {
+                StatusUpdate(new SampleLoadingReport
+                {
+                    Message = "Checking for new sounds...",
+                    Percentage = 0
+                });
+                if (!await _thirtyDollarDownloader.IsDownloadNecessary())
+                {
+                    _thirtyDollarDownloader.Load();
+                }
+            });
+        }
 
         lock (_progressReport)
         {
