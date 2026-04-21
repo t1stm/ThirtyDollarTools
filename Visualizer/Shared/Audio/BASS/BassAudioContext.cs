@@ -21,6 +21,7 @@ public class BassAudioContext(ILogger logger) : AudioContext
             Bass.DeviceBufferLength = 16;
             Bass.PlaybackBufferLength = 128;
 
+            Bass.GlobalSampleVolume = 5000;
             Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
             Bass.Configure(Configuration.TruePlayPosition, 0);
 

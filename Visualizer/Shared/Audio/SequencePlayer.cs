@@ -62,7 +62,7 @@ public class SequencePlayer
             field = value;
             AudioBuffer?.SetVolume(field);
         }
-    } = .25f;
+    } = 0.5f;
 
     protected TimingStopwatchWrapper TimingStopwatch { get; } = new();
 
