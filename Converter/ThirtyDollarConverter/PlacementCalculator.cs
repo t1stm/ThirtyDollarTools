@@ -7,12 +7,6 @@ using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter;
 
-internal enum EventType
-{
-    Action,
-    Sound
-}
-
 public class PlacementCalculator
 {
     private static readonly string[] JumpUntriggers = ["!loop", "!loopmany", "!jump", "!target"];

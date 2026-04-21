@@ -1,4 +1,3 @@
-using System.Reflection;
 using OpenTK.Mathematics;
 using Shared;
 using Shared.Renderer.Planes;
@@ -7,7 +6,6 @@ using Sundex.Components.Bars;
 using Sundex.Components.Panels;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Style.DSL;
-using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Tests;
@@ -147,15 +145,5 @@ public class ProgressBarTests
         {
             return LayeredRenderQueue;
         }
-    }
-}
-
-public static class ProgressBarTestExtensions
-{
-    public static void TestApplyStyleValue(this ProgressBar bar, StyleSheet styleSheet, IStyleValue? styleValue,
-        PropertyInfo propertyInfo)
-    {
-        var method = typeof(ProgressBar).GetMethod("ApplyStyleValue", BindingFlags.Instance | BindingFlags.NonPublic);
-        method!.Invoke(bar, [styleSheet, styleValue, propertyInfo]);
     }
 }

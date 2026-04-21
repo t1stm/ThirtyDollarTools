@@ -4,22 +4,11 @@ using Shared.Atlases;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
-using Sundex.Engine.Renderer.Buffers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 
 namespace LoadingScene.Background;
-
-internal record AnimatedTexture(TrackedBufferReference<SoundData> Reference)
-{
-    public Vector2 Velocity { get; set; }
-}
-
-internal record StaticTexture(TrackedBufferReference<StaticSound> Reference)
-{
-    public Vector2 Velocity { get; set; }
-}
 
 [PreloadGraphicsContext]
 public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreloadable

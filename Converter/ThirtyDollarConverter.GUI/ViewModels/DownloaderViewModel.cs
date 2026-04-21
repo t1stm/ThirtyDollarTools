@@ -8,12 +8,6 @@ using ThirtyDollarParser;
 
 namespace ThirtyDollarGUI.ViewModels;
 
-public enum DownloaderMode
-{
-    Samples,
-    Images
-}
-
 public class DownloaderViewModel(SampleHolder sampleHolder, DownloaderMode downloadMode = DownloaderMode.Samples)
     : ViewModelBase
 {

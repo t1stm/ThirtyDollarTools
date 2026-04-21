@@ -380,9 +380,3 @@ public class SequencePlayer
         Die();
     }
 }
-
-public enum PlayerErrors
-{
-    None,
-    NoContext
-}

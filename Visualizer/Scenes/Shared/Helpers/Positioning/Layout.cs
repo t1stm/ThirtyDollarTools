@@ -3,12 +3,6 @@ using Sundex.Engine.Renderer.Abstract;
 
 namespace Shared.Helpers.Positioning;
 
-public struct Resizable
-{
-    public IPositionable Renderable;
-    public Action<float, float>? OnResize;
-}
-
 public class Layout(float width, float height)
 {
     protected readonly Dictionary<string, Resizable> Resizables = new();

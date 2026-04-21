@@ -11,11 +11,3 @@ public class PcmDataHolder
     public byte[]? AudioData { get; set; }
     public AdditionalData? AdditionalData { get; set; } = null;
 }
-
-public enum Encoding
-{
-    Int8 = 8,
-    Int16 = 16,
-    Int24 = 24,
-    Float32 = 32
-}

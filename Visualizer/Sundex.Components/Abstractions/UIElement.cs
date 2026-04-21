@@ -12,34 +12,6 @@ using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Abstractions;
 
-public enum LayoutDirection
-{
-    Horizontal,
-    Vertical
-}
-
-public enum Align
-{
-    Start,
-    Center,
-    End,
-    Stretch
-}
-
-public enum Anchor
-{
-    Start,
-    Center,
-    End
-}
-
-public enum UIState
-{
-    None,
-    Hovered,
-    Pressed
-}
-
 public abstract class UIElement
 {
     private readonly Dictionary<string, (PropertyInfo prop, object? value)> _baseSnapshot = new();

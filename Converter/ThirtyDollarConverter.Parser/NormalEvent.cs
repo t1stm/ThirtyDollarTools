@@ -69,11 +69,3 @@ public class NormalEvent : BaseEvent
         };
     }
 }
-
-public enum ValueScale
-{
-    Divide,
-    Times,
-    Add,
-    None
-}

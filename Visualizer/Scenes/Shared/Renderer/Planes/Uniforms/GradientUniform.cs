@@ -30,11 +30,3 @@ public struct GradientUniform
     [FieldOffset(384)] public float Stop6;
     [FieldOffset(400)] public float Stop7;
 }
-
-public enum GradientType
-{
-    Solid = 0,
-    Linear = 1,
-    Radial = 2,
-    Conical = 3
-}

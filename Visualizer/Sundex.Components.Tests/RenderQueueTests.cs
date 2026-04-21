@@ -4,8 +4,6 @@ using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
-using Sundex.Components.Labels;
-using Sundex.Components.Panels;
 using Sundex.Core;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
@@ -506,35 +504,5 @@ public class RenderQueueTests
         {
             return Index;
         }
-    }
-}
-
-public class TestPanel(UIContext context) : Panel(context)
-{
-    public string CustomTag { get; set; } = "panel";
-    public override string Tag => CustomTag;
-
-    public new int Index
-    {
-        get => base.Index;
-        set => base.Index = value;
-    }
-
-    public void TestHandleRenderableSwap(object? oldV, object? newV, string? propName = null)
-    {
-        HandleRenderableSwap(oldV, newV, propName);
-    }
-}
-
-public class TestButton(UIContext context, string label) : Button(context, label)
-{
-    public int GetIndex()
-    {
-        return Index;
-    }
-
-    public void TestHandleRenderableSwap(object? oldV, object? newV, string? propName = null)
-    {
-        HandleRenderableSwap(oldV, newV, propName);
     }
 }

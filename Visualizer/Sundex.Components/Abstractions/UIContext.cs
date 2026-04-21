@@ -111,11 +111,3 @@ public class UIContext : IGamePreloadable
             renderable.Render(Camera);
     }
 }
-
-public enum CursorType
-{
-    Normal,
-    Pointer,
-    ResizeX,
-    ResizeY
-}
