@@ -143,8 +143,10 @@ public class PcmEncoder
         foreach (var channel in sequence.SeparatedChannels)
         {
             if (mixer.HasTrack(channel)) continue;
+            var channelID = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
+                ? sound.Id : channel;
             var new_track = AudioData<float>.WithLength(_channels, audio_data.GetLength());
-            mixer.AddTrack(channel, new_track);
+            mixer.AddTrack(channelID, new_track);
         }
 
         // Subtract removed events
@@ -275,8 +277,11 @@ public class PcmEncoder
         foreach (var sequence in events.Sequences)
         foreach (var channel in sequence.SeparatedChannels)
         {
+            if (mixer.HasTrack(channel)) continue;
+            var channelID = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
+                ? sound.Id : channel;
             var new_track = AudioData<float>.WithLength(_channels, length);
-            mixer.AddTrack(channel, new_track);
+            mixer.AddTrack(channelID, new_track);
         }
 
         // Map channel tasks.
@@ -415,9 +420,12 @@ public class PcmEncoder
             // handle #icut event
             case IndividualCutEvent individual_cut_event:
             {
-                foreach (var cut_track in from sound in individual_cut_event.CutSounds
-                         where mixer.HasTrack(sound)
-                         select mixer.GetTrack(sound))
+                foreach (var cut_track in individual_cut_event.CutSounds
+                             .Select(sound => Holder.StringToSoundReferences.TryGetValue(sound, out var reference)
+                                 ? reference.Id
+                                 : sound)
+                             .Where(sound => mixer.HasTrack(sound))
+                             .Select(sound => mixer.GetTrack(sound)))
                 {
                     var cut_slice = cut_track.GetChannel(channel).AsSpan()[start..end];
                     HandleCut(start, end, current_start, cut_slice);
