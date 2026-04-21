@@ -2,7 +2,6 @@ using OpenTK.Graphics.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Sundex.Engine.Renderer.Abstract;
-using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Renderer.Enums;
 
 namespace Sundex.Engine.Renderer.Textures;

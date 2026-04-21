@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
-using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Scenes.Arguments;
 
 namespace Sundex.Engine.Scenes;

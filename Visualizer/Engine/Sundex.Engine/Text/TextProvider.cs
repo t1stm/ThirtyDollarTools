@@ -4,7 +4,6 @@ using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Cameras;
-using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Renderer.Shaders;
 using Sundex.Engine.Renderer.Textures;
 using Sundex.Engine.Renderer.Textures.Atlases;

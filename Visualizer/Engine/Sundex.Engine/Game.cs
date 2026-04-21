@@ -9,7 +9,6 @@ using Serilog;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
-using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 using Sundex.Engine.Threading;

@@ -3,7 +3,6 @@ using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Buffers;
-using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Renderer.Enums;
 using Sundex.Engine.Renderer.Queues;
 

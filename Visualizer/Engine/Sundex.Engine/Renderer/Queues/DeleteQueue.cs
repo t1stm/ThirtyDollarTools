@@ -1,5 +1,4 @@
 using OpenTK.Graphics.OpenGL;
-using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Renderer.Enums;
 
 namespace Sundex.Engine.Renderer.Queues;
