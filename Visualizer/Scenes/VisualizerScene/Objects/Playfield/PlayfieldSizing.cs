@@ -21,6 +21,11 @@ public class PlayfieldSizing(int renderableSize)
     ///     How big in pixels the volume font will be.
     /// </summary>
     public float PanFontSize { get; set; } = renderableSize * 0.18f; // magic number that looks "just right"
+    
+    /// <summary>
+    ///     How big in pixels the offset font will be.
+    /// </summary>
+    public float OffsetFontSize { get; set; } = renderableSize * 0.18f; // magic number that looks "just right"
 
     /// <summary>
     ///     How many sounds are contained on a single line.

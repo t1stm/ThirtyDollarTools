@@ -176,7 +176,8 @@ public class SequencePlayer
             return;
         }
 
-        var placement = Events.Placement[PlacementIndex];
+        var index = Math.Clamp(PlacementIndex, 0, Events.Placement.Length - 1);
+        var placement = Events.Placement[index];
         event_action.Invoke(placement, CurrentSequence);
 
         UpdateLock.Release();

@@ -527,10 +527,10 @@ public class PcmEncoder
                 return;
             }
 
-            case ExtendedEvent panned_event:
+            case ExtendedEvent extended_event:
             {
-                pan = Math.Clamp(panned_event.Pan, -1f, 1f);
-                startOffset = Math.Max(panned_event.OffsetInSeconds, 0);
+                pan = Math.Clamp(extended_event.Pan, -1f, 1f);
+                startOffset = Math.Max(extended_event.OffsetInSeconds, 0);
                 break;
             }
         }
@@ -572,7 +572,20 @@ public class PcmEncoder
 
         delta_end -= offset;
 
-        if (delta_end >= mix_slice.Length) delta_end = mix_slice.Length;
+        // the current sample rate is calculated using (uint)(_sampleRate / Math.Pow(2, ev.Value / 12))
+        if (startOffset > 0)
+        {
+            var event_sample_rate = _sampleRate / Math.Pow(2, event_value / 12);
+            var offsetInSamples = (int)(startOffset * event_sample_rate);
+            if (offsetInSamples > current_length) offsetInSamples = current_length;
+        
+            offset += offsetInSamples;
+            delta_end -= offsetInSamples;
+        }
+
+        if (delta_end <= 0) return;
+
+        if (delta_end + delta_start >= mix_slice.Length) delta_end = mix_slice.Length - delta_start;
 
         var volume = event_volume;
 
@@ -596,19 +609,6 @@ public class PcmEncoder
                 break;
             }
         }
-        
-        // the current sample rate is calculated using (uint)(_sampleRate / Math.Pow(2, ev.Value / 12))
-        if (startOffset > 0)
-        {
-            var event_sample_rate = _sampleRate / Math.Pow(2, event_value / 12);
-            var offsetInSamples = (int)(startOffset * event_sample_rate);
-            if (offsetInSamples > current_length) offsetInSamples = current_length;
-        
-            offset += offsetInSamples;
-            delta_end -= offsetInSamples;
-        }
-
-        if (delta_end <= 0) return;
         
         RenderSample(current_channel, mix_slice, delta_start,
             volume, delta_end, offset, invert);

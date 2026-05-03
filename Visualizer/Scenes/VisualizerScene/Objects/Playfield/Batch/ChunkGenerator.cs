@@ -99,6 +99,9 @@ public class ChunkGenerator(PlayfieldSettings settings)
 
         sound.Pan?.PositionAlign = PositionAlign.Top | PositionAlign.Left;
         sound.Pan?.Position = (box_position.X, box_position.Y, 0.5f);
+        
+        sound.Offset?.PositionAlign = PositionAlign.Bottom | PositionAlign.Left;
+        sound.Offset?.Position = (box_position.X, box_position.Y + box_scale.Y - 8f, 0.5f);
 
         sound.UpdateModel(false);
     }

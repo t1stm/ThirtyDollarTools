@@ -38,6 +38,7 @@ public class SampleHolder(ILogger logger)
     ];
 
     private static readonly char Slash = Path.DirectorySeparatorChar;
+    private static readonly HttpClient Client = new();
     private readonly ILogger _logger = logger.ForContext<SampleHolder>();
 
     public Dictionary<Sound, PcmDataHolder> SampleList { get; } = new();
@@ -58,15 +59,15 @@ public class SampleHolder(ILogger logger)
     /// <exception cref="Exception">Exception thrown when there's an error reading the sounds list.</exception>
     public async Task LoadSampleList()
     {
+        if (SampleList.Count > 0) return;
         var sample_list_location = $"{SamplesLocation}{Slash}sounds.json";
         SampleList.Clear();
         PrepareDirectory();
 
         _logger.Information("Loading sounds.json file.");
-        var client = new HttpClient();
         try
         {
-            await using var response = await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
+            await using var response = await Client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
             await using var download_file_stream = File.Open(sample_list_location, FileMode.Create,
                 FileAccess.ReadWrite, FileShare.ReadWrite);
 

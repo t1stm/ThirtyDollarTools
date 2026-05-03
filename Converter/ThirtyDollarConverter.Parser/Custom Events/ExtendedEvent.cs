@@ -26,7 +26,7 @@ public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
     /// <summary>
     ///     The offset of the start of the sound measured in seconds.
     /// </summary>
-    public double OffsetInSeconds { get; set; } = 0;
+    public double OffsetInSeconds { get; set; }
 
     /// <summary>
     ///     How the pan is represented visually.
@@ -57,6 +57,7 @@ public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
             Volume = Volume,
             ValueScale = ValueScale,
             Pan = Pan,
+            OffsetInSeconds = OffsetInSeconds,
             IsStandardImplementation = IsStandardImplementation,
             WorkingValue = WorkingValue,
             WorkingVolume = WorkingVolume

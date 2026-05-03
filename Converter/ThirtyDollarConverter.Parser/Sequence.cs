@@ -436,7 +436,7 @@ public partial class Sequence
         return Math.Truncate(d * 1000) / 1000;
     }
 
-    [GeneratedRegex("^[^@%^=]*", RegexOptions.IgnoreCase | RegexOptions.Multiline, "en-US")]
+    [GeneratedRegex("^[^@%^=>]*", RegexOptions.IgnoreCase | RegexOptions.Multiline, "en-US")]
     private static partial Regex SoundNameRegex();
 
     [GeneratedRegex("@[-0-9.]+")]

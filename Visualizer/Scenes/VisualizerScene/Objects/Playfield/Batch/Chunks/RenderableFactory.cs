@@ -143,35 +143,48 @@ public class RenderableFactory(AtlasStore store)
             renderable.Volume = new NormalText(volumeBuffer);
         }
 
-        if (baseEvent is not ExtendedEvent pannedEvent) return;
-        if (pannedEvent.Pan == 0) return;
+        if (baseEvent is not ExtendedEvent extendedEvent) return;
+        if (extendedEvent is { Pan: 0, OffsetInSeconds: 0 }) return;
 
-        string panText;
-        if (pannedEvent.IsStandardImplementation)
+        if (extendedEvent.Pan != 0)
         {
-            var panString = Math.Abs((double)pannedEvent.TDWPan).ToString("0.##");
-            panText = pannedEvent.Pan > 0
-                ? $"{panString}>"
-                : $"<{panString}";
-        }
-        else
-        {
-            var panString = Math.Abs((double)pannedEvent.Pan).ToString("0.##");
-            if (panString.StartsWith("0."))
-                panString = panString[1..];
+            string panText;
+            if (extendedEvent.IsStandardImplementation)
+            {
+                var panString = Math.Abs((double)extendedEvent.TDWPan).ToString("0.##");
+                panText = extendedEvent.Pan > 0
+                    ? $"{panString}>"
+                    : $"<{panString}";
+            }
+            else
+            {
+                var panString = Math.Abs((double)extendedEvent.Pan).ToString("0.##");
+                if (panString.StartsWith("0."))
+                    panString = panString[1..];
 
-            panText = pannedEvent.Pan > 0
-                ? $"|{panString}"
-                : $"{panString}|";
+                panText = extendedEvent.Pan > 0
+                    ? $"|{panString}"
+                    : $"{panString}|";
+            }
+
+            var panBuffer = textBuffer.GetTextSlice(panText, (value, buffer, range) =>
+                new TextSlice(buffer, range)
+                {
+                    Value = value,
+                    FontSize = sizing.PanFontSize * renderScale
+                });
+            renderable.Pan = new NormalText(panBuffer);
         }
 
-        var panBuffer = textBuffer.GetTextSlice(panText, (value, buffer, range) =>
+        if (!(extendedEvent.OffsetInSeconds > 0)) return;
+        
+        var offsetBuffer = textBuffer.GetTextSlice($">{extendedEvent.OffsetInSeconds:0.###}s", (value, buffer, range) =>
             new TextSlice(buffer, range)
             {
                 Value = value,
-                FontSize = sizing.PanFontSize * renderScale
+                FontSize = sizing.OffsetFontSize * renderScale
             });
-        renderable.Pan = new NormalText(panBuffer);
+        renderable.Offset = new NormalText(offsetBuffer);
     }
 
     private static bool SoundShouldAlwaysHaveValue(ReadOnlySpan<char> sound)
