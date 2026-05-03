@@ -27,9 +27,6 @@ public class ThirtyDollarWorkflow
 
     private readonly AssetProvider _assetProvider;
     private readonly Stopwatch _fileUpdateStopwatch;
-    private readonly Dictionary<string, Dictionary<double, AudibleBuffer>> _processedBuffers = [];
-
-    private readonly Dictionary<(string, double), ProcessedEvent> _processedEvents = [];
     private RenderedSequence? _renderedSequence;
 
     /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
@@ -92,7 +89,8 @@ public class ThirtyDollarWorkflow
             sequence_array[index] = sequence;
         }
 
-        _renderedSequence = null;
+        if (restartPlayer)
+            _renderedSequence = null;
         await UpdateSequences(sequence_array, restartPlayer);
     }
 
@@ -109,14 +107,15 @@ public class ThirtyDollarWorkflow
             ExtractedSpeedEvents = [];
         }
 
-        const int updateRate = 100_000;
+        var audio_context = SequencePlayer.GetContext();
+        var updateRate = audio_context.SampleRate;
 
         if (restartPlayer)
             SequencePlayer.Stop();
 
         var calculator = new PlacementCalculator(new EncoderSettings
         {
-            SampleRate = updateRate,
+            SampleRate = (uint)updateRate,
             AddVisualEvents = true
         });
 
@@ -130,7 +129,7 @@ public class ThirtyDollarWorkflow
         if (HandleAfterSequenceLoad != null)
             await HandleAfterSequenceLoad(TimedEvents, SequencePlayer);
 
-        var audio_context = SequencePlayer.GetContext();
+        
         var pcm_encoder = new PcmEncoder(SampleHolder, new EncoderSettings
         {
             SampleRate = (uint)audio_context.SampleRate,
@@ -141,7 +140,7 @@ public class ThirtyDollarWorkflow
 
         _renderedSequence = _renderedSequence == null
             ? await pcm_encoder.GetMultipleSequencesAudio(sequences)
-            : await pcm_encoder.GetIncrementalAudio(_renderedSequence, sequences);
+            : await pcm_encoder.ComputeIncrementalAudio(_renderedSequence, sequences);
 
         _ = Game.ThreadRunner.RunTask(UpdateExtractedSpeedEvents);
         Game.ThreadRunner.RunThread(() => UpdateAndStart(_renderedSequence, restartPlayer));
@@ -149,9 +148,10 @@ public class ThirtyDollarWorkflow
 
     private void UpdateAndStart(RenderedSequence renderedSequence, bool restartPlayer)
     {
-        SequencePlayer.UpdateSequence(TimedEvents, SequenceIndices, renderedSequence);
+        SequencePlayer.UpdateSequence(TimedEvents, SequenceIndices, renderedSequence, restartPlayer);
         if (restartPlayer)
             SequencePlayer.Start(Game.ThreadRunner);
+        else SequencePlayer.AlignToTime();
     }
 
     public static SequenceIndices GenerateSequenceIndexes(IEnumerable<Placement> placements)
@@ -199,6 +199,7 @@ public class ThirtyDollarWorkflow
     private void HandleIfSequenceUpdate()
     {
         if (SequenceInfos.Length < 1 || !AutoUpdate) return;
+        var anyChanged = false;
         foreach (var sequence_info in SequenceInfos.AsSpan())
         {
             _assetInfo.Location = sequence_info.FileLocation;
@@ -215,13 +216,16 @@ public class ThirtyDollarWorkflow
                 return;
             }
 
-            if (recorded_m_time != metadata.ModifiedDate) break;
-            return;
+            if (recorded_m_time == metadata.ModifiedDate) continue;
+            anyChanged = true;
+            break;
         }
+
+        if (!anyChanged) return;
 
         try
         {
-            UpdateSequences(SequenceInfos.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), false)
+            UpdateSequences(SequenceInfos.Select(s => s.FileLocation).Where(File.Exists).ToArray(), false)
                 .GetAwaiter().GetResult();
         }
         catch (Exception e)

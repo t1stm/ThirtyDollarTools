@@ -48,7 +48,7 @@ public class AudioData<T> : IDisposable
         }
     }
 
-    public void Normalize(float maxVolume = 1f)
+    public void Normalize()
     {
         lock (Samples)
         {

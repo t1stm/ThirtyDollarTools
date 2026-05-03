@@ -46,8 +46,38 @@ public class OpenALBuffer : AudibleBuffer
 
     public override bool UploadNewData(AudioData<float> data, int sampleRate)
     {
-        // TODO
-        return false;
+        var length = data.GetLength();
+        var channels = (int)data.ChannelCount;
+
+        var format = channels switch
+        {
+            1 => Format.FormatMonoFloat32,
+            2 => Format.FormatStereoFloat32,
+            _ => throw new ArgumentOutOfRangeException(nameof(data), "The given channels count is invalid.")
+        };
+
+        var samples = new float[length * channels];
+        for (var i = 0; i < length; i++)
+        for (var j = 0; j < channels; j++)
+        {
+            var idx = i * channels + j;
+            samples[idx] = data.Samples[j][i];
+        }
+
+        if (AL.IsBuffer(AudioBuffer))
+        {
+            // We can't update buffer data while it's being used by sources in some OpenAL implementations.
+            // But usually AL.BufferData on an existing buffer is fine if we are careful.
+            AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
+        }
+        else
+        {
+            AudioBuffer = AL.GenBuffer();
+            AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
+        }
+
+        _context.CheckErrors();
+        return true;
     }
 
     public override void Play(Action? callbackWhenFinished = null, bool autoRemove = true)

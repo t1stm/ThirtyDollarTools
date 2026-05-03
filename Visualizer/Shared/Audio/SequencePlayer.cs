@@ -201,21 +201,26 @@ public class SequencePlayer
     }
 
     public void UpdateSequence(TimedEvents events, SequenceIndices sequenceIndices,
-        RenderedSequence fullSequenceData)
+        RenderedSequence fullSequenceData, bool restartPlayer = true)
     {
         UpdateLock.Wait();
         Events = events;
         SequenceIndices = sequenceIndices;
 
+        var currentTime = AudioBuffer?.GetTime_Milliseconds() ?? 0;
+
         if (AudioBuffer == null)
             AudioBuffer = AudioContext.GetBufferObject(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
         else AudioBuffer.UploadNewData(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
+
+        if (!restartPlayer)
+            AudioBuffer.SeekTime_Milliseconds(currentTime);
 
         AudioBuffer.SetVolume(Volume);
         UpdateLock.Release();
     }
 
-    protected void AlignToTime()
+    public void AlignToTime()
     {
         var current_time = AudioBuffer?.GetTime_Milliseconds() ?? 0;
         var span = Events.Placement.AsSpan();

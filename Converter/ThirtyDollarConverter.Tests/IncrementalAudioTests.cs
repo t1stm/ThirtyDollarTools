@@ -1,0 +1,167 @@
+using Serilog.Core;
+using ThirtyDollarConverter.Objects;
+using ThirtyDollarEncoder.PCM;
+using ThirtyDollarParser;
+
+namespace ThirtyDollarConverter.Tests;
+
+public class IncrementalAudioTests
+{
+    private readonly SampleHolder _sampleHolder;
+    private readonly PcmEncoder _encoder;
+    private readonly EncoderSettings _settings;
+
+    public IncrementalAudioTests()
+    {
+        _sampleHolder = new SampleHolder(Logger.None);
+        AddExampleSounds();
+        _settings = new EncoderSettings
+        {
+            SampleRate = 44100,
+            Channels = 2
+        };
+        _encoder = new PcmEncoder(_sampleHolder, _settings);
+    }
+
+    private void AddExampleSounds()
+    {
+        _sampleHolder.SampleList.Add(new Sound { Id = "test1" }, GenerateSineWave(440, 0.1f));
+        _sampleHolder.SampleList.Add(new Sound { Id = "test2" }, GenerateSineWave(880, 0.1f));
+        _sampleHolder.SampleList.Add(new Sound { Id = "test3" }, GenerateSineWave(1320, 0.1f));
+    }
+
+    private static PcmDataHolder GenerateSineWave(float frequency, float duration)
+    {
+        const uint sampleRate = 44100;
+        var sampleCount = (int)(sampleRate * duration);
+        var data = AudioData<float>.WithLength(2, sampleCount);
+        for (var i = 0; i < sampleCount; i++)
+        {
+            var sample = (float)Math.Sin(2 * Math.PI * frequency * i / sampleRate);
+            data.Samples[0][i] = sample;
+            data.Samples[1][i] = sample;
+        }
+
+        return new PcmDataHolder
+        {
+            FloatData = data,
+            SampleRate = sampleRate,
+            Channels = 2
+        };
+    }
+
+    private static Sequence Sequence(params BaseEvent[] events) => new() { Events = events };
+
+    private static NormalEvent Event(string soundEvent, float value = 0)
+    {
+        return new NormalEvent
+        {
+            SoundEvent = soundEvent,
+            Value = value
+        };
+    }
+
+    private static NormalEvent Combine() => Event("!combine");
+
+    private static void CompareAudio(AudioData<float> audio1, AudioData<float> audio2)
+    {
+        Assert.Equal(audio1.ChannelCount, audio2.ChannelCount);
+        for (var channel = 0; channel < audio1.ChannelCount; channel++)
+        {
+            var a1Channel = audio1.Samples[channel];
+            var a2Channel = audio2.Samples[channel];
+            Assert.Equal(a1Channel, a2Channel, (f, f1) => MathF.Abs(f - f1) < 0.001f);
+        }
+    }
+
+    [Fact]
+    public async Task ShouldAddSoundsCorrectly()
+    {
+        var sequence = Sequence(Event("test1"));
+        var new_sequence = Sequence(Event("test1"), Combine(), Event("test2"), Combine(), Event("test3"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    [Fact]
+    public async Task ShouldRemoveSoundsCorrectly()
+    {
+        var sequence = Sequence(Event("test1"), Combine(), Event("test2"), Combine(), Event("test3"));
+        var new_sequence = Sequence(Event("test1"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    [Fact]
+    public async Task ShouldReplaceSoundsCorrectly()
+    {
+        var sequence = Sequence(Event("test1"), Combine(), Event("test3"));
+        var new_sequence = Sequence(Event("test1"), Combine(), Event("test2"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    [Fact]
+    public async Task ShouldRemoveSoundsCorrectly_WithCutEvent()
+    {
+        var sequence = Sequence(Event("test1"), Combine(), Event("test2"), Combine(), Event("test3"), Event("!cut"));
+        var new_sequence = Sequence(Event("test1"), Combine(), Event("test2"), Event("!cut"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+    
+    [Fact]
+    public async Task ShouldReplaceSoundsCorrectly_WithCutEvent()
+    {
+        var sequence = Sequence(Event("test1"), Combine(), Event("test3"), Event("!cut"));
+        var new_sequence = Sequence(Event("test1"), Combine(), Event("test2"), Event("!cut"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+    
+    [Fact]
+    public async Task ShouldHandleChangingValuesCorrectly()
+    {
+        var sequence = Sequence(Event("test1"), Combine(), Event("test3"));
+        var new_sequence = Sequence(Event("test1"), Combine(), Event("test3", 6));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+    
+    [Fact]
+    public async Task ShouldHandleChangingValuesCorrectly_WithCutEvent()
+    {
+        var sequence = Sequence(Event("test1"), Combine(), Event("test3"), Event("!cut"));
+        var new_sequence = Sequence(Event("test1"), Combine(), Event("test3", 6), Event("!cut"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+}

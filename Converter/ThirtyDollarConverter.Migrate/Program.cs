@@ -21,7 +21,7 @@ return;
 
 BaseEvent Process(BaseEvent ev)
 {
-    if (ev is PannedEvent ne) ne.Pan *= 100;
+    if (ev is ExtendedEvent ne) ne.Pan *= 100;
 
     return ev;
 }

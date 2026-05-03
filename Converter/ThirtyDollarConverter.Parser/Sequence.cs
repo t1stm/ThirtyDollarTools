@@ -146,7 +146,7 @@ public partial class Sequence
             }
 
             var pan = 0f;
-            if (parsed is PannedEvent panned) pan = panned.Pan;
+            if (parsed is ExtendedEvent panned) pan = panned.Pan;
 
             events.AddRange(defined_events.Select(e =>
             {
@@ -159,12 +159,12 @@ public partial class Sequence
 
                     default:
                     {
-                        var panned_event = new PannedEvent
+                        var panned_event = new ExtendedEvent
                         {
                             SoundEvent = e.SoundEvent,
                             Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
                             Volume = e.Volume * ((parsed.Volume ?? 100) / 100),
-                            Pan = (e.SoundEvent ?? "").StartsWith('!') ? 0 : pan + (e is PannedEvent p ? p.Pan : 0),
+                            Pan = (e.SoundEvent ?? "").StartsWith('!') ? 0 : pan + (e is ExtendedEvent p ? p.Pan : 0),
                             ValueScale = e.ValueScale
                         };
 
@@ -184,7 +184,7 @@ public partial class Sequence
         if (!sequence.Definitions.TryGetValue(newEvent.SoundEvent ?? "", out var events)) return false;
 
         var pan = 0f;
-        if (newEvent is PannedEvent panned_event) pan = panned_event.Pan;
+        if (newEvent is ExtendedEvent panned_event) pan = panned_event.Pan;
 
         var array = new BaseEvent[events.Length];
         for (var i = 0; i < events.Length; i++)
@@ -192,7 +192,7 @@ public partial class Sequence
             var base_event = events[i];
             array[i] = base_event switch
             {
-                NormalEvent => new PannedEvent(base_event),
+                NormalEvent => new ExtendedEvent(base_event),
                 IndividualCutEvent ice => ice.Copy(),
                 _ => base_event.Copy()
             };
@@ -206,7 +206,7 @@ public partial class Sequence
         foreach (var ev in array)
         {
             if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
-            if (ev is PannedEvent panned)
+            if (ev is ExtendedEvent panned)
             {
                 var new_pan = Math.Clamp(pan + panned.Pan, -1f, 1f);
                 panned.Pan = new_pan;
@@ -309,6 +309,9 @@ public partial class Sequence
 
         var pan_match = PanRegex().Match(text);
         var pan = pan_match.Success ? float.Parse(pan_match.Value[1..], CultureInfo) : 0f;
+        
+        var offset_match = OffsetRegex().Match(text);
+        var offset = offset_match.Success ? double.Parse(offset_match.Value[1..], CultureInfo) : 0f;
 
         switch (sound)
         {
@@ -319,7 +322,7 @@ public partial class Sequence
                 };
         }
 
-        if (pan == 0f)
+        if (pan == 0f && offset == 0d)
         {
             var new_event = new NormalEvent
             {
@@ -335,9 +338,10 @@ public partial class Sequence
         }
         else
         {
-            var new_event = new PannedEvent
+            var new_event = new ExtendedEvent
             {
                 Pan = sequence.IsNewFormat ? pan / 100f : pan,
+                OffsetInSeconds = offset,
                 Value = value,
                 WorkingValue = value,
                 SoundEvent = string.Intern(sound),
@@ -449,6 +453,9 @@ public partial class Sequence
 
     [GeneratedRegex(@"\^[-0-9.]+")]
     private static partial Regex PanRegex();
+    
+    [GeneratedRegex(@">[-0-9.]+")]
+    private static partial Regex OffsetRegex();
 
     [GeneratedRegex(@"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)")]
     private static partial Regex DefineRegex();

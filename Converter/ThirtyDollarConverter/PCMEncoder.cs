@@ -76,12 +76,19 @@ public class PcmEncoder
             TimingSampleRate = (int)_sampleRate
         };
 
-        var audio = await GetAudioFromTimedEvents(timed_events);
+        Log("Calculated placement. Starting sample processing.");
+        var processed_events = await GetAudioSamples(timed_events);
+
+        Log("Finished processing all samples. Starting audio mixing.");
+        var (audio, mixer) = await GenerateAudioAndMixer(timed_events, processed_events);
+
         return new RenderedSequence
         {
             TimedEvents = timed_events,
             Audio = audio,
-            AudioSampleRate = _sampleRate
+            AudioSampleRate = _sampleRate,
+            Mixer = mixer,
+            ProcessedEvents = processed_events
         };
     }
 
@@ -95,83 +102,124 @@ public class PcmEncoder
         return await GetMultipleSequencesAudio([sequence]);
     }
 
-    public async Task<RenderedSequence> GetIncrementalAudio(RenderedSequence oldRendered,
+    /// <summary>
+    /// Re-renders <paramref name="oldRendered" /> against a new set of sequences, re-using its mixer and processed samples when possible.
+    /// Falls back to a full render when cut events appear in the diff (they can't be cleanly inverted).
+    /// </summary>
+    /// <fun-fact>
+    /// I burnt 7 dollars worth of AI credits to try to write this method and ended up writing it myself anyway.
+    /// <i>(AI is going to overtake us oooohhhh scary...)</i> (23 more left :D)
+    /// </fun-fact>
+    public async Task<RenderedSequence> ComputeIncrementalAudio(RenderedSequence oldRendered,
         IEnumerable<Sequence> newSequences)
     {
-        var array = newSequences as Sequence[] ?? newSequences.ToArray();
-        var placement = PlacementCalculator.CalculateMany(array);
-        var new_placement_array = placement.ToArray();
+        if (oldRendered.Mixer == null) return await GetMultipleSequencesAudio(newSequences);
 
-        var timed_events = new TimedEvents
+        var new_sequences = newSequences as Sequence[] ?? newSequences.ToArray();
+        var new_placements = PlacementCalculator.CalculateMany(new_sequences).ToArray();
+        var old_placements = oldRendered.Placement;
+
+        // extract differences
+        var to_remove = old_placements.Except(new_placements, PlacementEqualityComparer.Instance).ToArray();
+        var to_add = new_placements.Except(old_placements, PlacementEqualityComparer.Instance).ToArray();
+
+        // !cut check
+        if (to_remove.Any(pl => pl.Event.SoundEvent == "!cut") ||
+            to_add.Any(pl => pl.Event.SoundEvent == "!cut"))
         {
-            Sequences = array,
-            Placement = new_placement_array,
+            return await GetMultipleSequencesAudio(new_sequences);
+        }
+
+        var final_timed_events = new TimedEvents
+        {
+            Sequences = new_sequences,
+            Placement = new_placements,
             TimingSampleRate = (int)_sampleRate
         };
 
-        // Determine difference
-        var old_placement = oldRendered.Placement;
-        var to_remove = old_placement.Except(new_placement_array).ToArray();
-        var to_add = new_placement_array.Except(old_placement).ToArray();
-
-        var processed_events = await GetAudioSamples(timed_events);
-
-        // We need an AudioMixer to perform the operations
-        var last_placement = new_placement_array[^1];
-        var big_event = processed_events.Values.MaxBy(e => e.AudioData.GetLength());
+        var final_sounds = await GetAudioSamples(final_timed_events, oldRendered.ProcessedEvents);
+        var big_event = final_sounds.Values.MaxBy(e => e.AudioData.GetLength());
         var big_event_length = big_event?.AudioData.GetLength() ?? 0;
-        var length = (int)last_placement.Index + big_event_length;
 
-        // If the length changed, we might need to re-allocate or handle it.
-        // For simplicity, we assume the user wants to update the existing audio in place if possible, 
-        // but AudioData size is fixed.
-        var audio_data = oldRendered.Audio;
-        if (audio_data.GetLength() < length)
-        {
-            // Re-allocation case - this is tricky because we'd lose the old audio data.
-            // If the sequence gets longer, we should probably resize the AudioData.
-            // However, incremental updates usually imply staying within a similar range.
-            // Let's assume we can create a new AudioData and copy the old one if needed, or just allocate enough.
-            var new_audio_data = AudioData<float>.WithLength(_channels, length);
-            for (var i = 0; i < _channels; i++) audio_data.Samples[i].CopyTo(new_audio_data.Samples[i]);
-            audio_data = new_audio_data;
-        }
+        var cuts = new_placements
+            .Where(pl => pl.Event is IndividualCutEvent || pl.Event.SoundEvent == "!cut")
+            .ToArray();
+        var mixer = oldRendered.Mixer;
+        
+        // remove stage
+        mixer = await ProcessIncrementalPlacements(mixer, to_remove.Concat(cuts).ToArray(),
+            oldRendered.ProcessedEvents ?? final_sounds, big_event_length, true);
 
-        var mixer = new AudioMixer(audio_data);
-        // Ensure tracks exist for new sounds
-        foreach (var sequence in array)
-        foreach (var channel in sequence.SeparatedChannels)
-        {
-            if (mixer.HasTrack(channel)) continue;
-            var channelID = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
-                ? sound.Id : channel;
-            var new_track = AudioData<float>.WithLength(_channels, audio_data.GetLength());
-            mixer.AddTrack(channelID, new_track);
-        }
+        // add stage
+        mixer = await ProcessIncrementalPlacements(mixer, to_add.Concat(cuts).ToArray(), final_sounds,
+            big_event_length);
 
-        // Subtract removed events
-        if (to_remove.Length > 0)
-        {
-            var remove_timed = new TimedEvents
-                { Placement = to_remove, Sequences = oldRendered.Sequences, TimingSampleRate = (int)_sampleRate };
-            await RenderTimedEvents(mixer, remove_timed, processed_events, big_event_length, true);
-        }
-
-        // Add new events
-        if (to_add.Length > 0)
-        {
-            var add_timed = new TimedEvents
-                { Placement = to_add, Sequences = array, TimingSampleRate = (int)_sampleRate };
-            await RenderTimedEvents(mixer, add_timed, processed_events, big_event_length);
-        }
-
+        RemoveUnusedAudioSamples(final_sounds, final_timed_events);
+        
+        oldRendered.ProcessedEvents = final_sounds;
+        oldRendered.AudioSampleRate = _sampleRate;
         oldRendered.Audio = mixer.MixDown();
-        oldRendered.TimedEvents = timed_events;
-
+        oldRendered.Mixer = mixer;
+        oldRendered.TimedEvents = final_timed_events;
         return oldRendered;
     }
 
+    /// <summary>
+    /// Processes incremental placements by combining audio data based on the provided placements and settings.
+    /// </summary>
+    /// <param name="oldMixer">The existing audio mixer that holds current audio data.</param>
+    /// <param name="placements">An array of placement objects specifying the positions and details of new audio elements.</param>
+    /// <param name="allSounds">A dictionary containing preprocessed audio events mapped by a unique key.</param>
+    /// <param name="bigEventLength">The duration of the significant audio event to append.</param>
+    /// <param name="invert">A boolean indicating whether to invert the audio data while processing.</param>
+    /// <returns>
+    /// A task representing the asynchronous operation, which returns a combined <see cref="AudioMixer"/>
+    /// containing the updated audio mix.
+    /// </returns>
+    /// <exception cref="ArgumentException">Thrown when the provided placements array is null or empty.</exception>
+    private async Task<AudioMixer> ProcessIncrementalPlacements(AudioMixer oldMixer, Placement[] placements,
+        Dictionary<(string, double), ProcessedEvent> allSounds, int bigEventLength, bool invert = false)
+    {
+        if (placements.Length == 0) return oldMixer;
+        var timed_events = new TimedEvents
+        {
+            Placement = placements,
+            TimingSampleRate = (int)_sampleRate
+        };
+
+        var last_placement = timed_events.Placement[^1];
+        var length = (int)last_placement.Index + bigEventLength;
+        var overlay = new AudioMixer(AudioData<float>.WithLength(_channels, length));
+
+        await RenderTimedEvents(overlay, timed_events, allSounds, length, invert);
+
+        AudioMixer holding_mixer;
+        AudioMixer add_mixer;
+        if (oldMixer.GetLength() < overlay.GetLength())
+        {
+            holding_mixer = overlay;
+            add_mixer = oldMixer;
+        }
+        else
+        {
+            holding_mixer = oldMixer;
+            add_mixer = overlay;
+        }
+
+        holding_mixer.Sum(add_mixer);
+        add_mixer.Dispose();
+        return holding_mixer;
+    }
+
+
     public async Task<AudioData<float>> GetAudioFromTimedEvents(TimedEvents timedEvents,
+        Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents = null)
+    {
+        var (audio, _) = await GetAudioAndMixerFromTimedEvents(timedEvents, existingProcessedEvents);
+        return audio;
+    }
+
+    public async Task<(AudioData<float>, AudioMixer)> GetAudioAndMixerFromTimedEvents(TimedEvents timedEvents,
         Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents = null)
     {
         Log("Calculated placement. Starting sample processing.");
@@ -179,14 +227,14 @@ public class PcmEncoder
         var processed_events = await GetAudioSamples(timedEvents, existingProcessedEvents);
 
         Log("Finished processing all samples. Starting audio mixing.");
-        var audioData = await GenerateAudioData(timedEvents, processed_events);
-        return audioData;
+        return await GenerateAudioAndMixer(timedEvents, processed_events);
     }
 
     /// <summary>
     ///     This method gets all resampled audio samples.
     /// </summary>
     /// <param name="events">The calculated events.</param>
+    /// <param name="existingProcessedEvents">A dictionary containing already processed events from a possible previous conversion.</param>
     /// <returns>An array containing all processed events.</returns>
     /// <exception cref="Exception">Edge case that only can happen if something is wrong with the program.</exception>
     public async Task<Dictionary<(string, double), ProcessedEvent>> GetAudioSamples(TimedEvents events,
@@ -194,8 +242,8 @@ public class PcmEncoder
     {
         var placement = events.Placement;
         // Get only unique events. Duplicates get removed.
-        var event_dictionary = new Dictionary<(string event_name, double event_value), BaseEvent>();
-        var dictionary = existingProcessedEvents ?? new Dictionary<(string, double), ProcessedEvent>();
+        var to_process_dictionary = new Dictionary<(string event_name, double event_value), BaseEvent>();
+        var processed_events_dictionary = existingProcessedEvents ?? new Dictionary<(string, double), ProcessedEvent>();
 
         foreach (var p in placement)
         {
@@ -209,13 +257,18 @@ public class PcmEncoder
             if (Holder.StringToSoundReferences.TryGetValue(event_name, out var sound))
                 event_name = sound.Id;
 
-            if (dictionary.ContainsKey((event_name, event_value))) continue;
-            event_dictionary.TryAdd((event_name, event_value), ev);
+            var key = (event_name, event_value);
+            if (processed_events_dictionary.ContainsKey(key)) continue;
+            to_process_dictionary.TryAdd(key, ev);
         }
 
         // Start setting up tasks to process all events.
-        if (event_dictionary.Count == 0) return dictionary;
-        var todo_samples = event_dictionary.Values.ToArray();
+        if (to_process_dictionary.Count == 0)
+        {
+            return processed_events_dictionary;
+        }
+
+        var todo_samples = to_process_dictionary.Values.ToArray();
         var processed_events = new ProcessedEvent[todo_samples.Length];
         var processed_events_memory = processed_events.AsMemory();
 
@@ -245,13 +298,42 @@ public class PcmEncoder
         await task;
 
         var idx = 0;
-        foreach (var tuple in event_dictionary.Keys)
+        foreach (var tuple in to_process_dictionary.Keys)
         {
-            dictionary.Add(tuple, processed_events_memory.Span[idx]);
+            processed_events_dictionary.Add(tuple, processed_events_memory.Span[idx]);
             idx++;
         }
 
-        return dictionary;
+        return processed_events_dictionary;
+    }
+
+    /// <summary>
+    ///     Removes all events from the dictionary that are not present in the used keys set.
+    /// </summary>
+    /// <param name="processedEvents">The dictionary of processed events.</param>
+    /// <param name="events">The timed events to build the used keys from.</param>
+    private void RemoveUnusedAudioSamples(Dictionary<(string, double), ProcessedEvent> processedEvents, TimedEvents events)
+    {
+        var usedKeys = new HashSet<(string, double)>();
+        foreach (var p in events.Placement)
+        {
+            if (!p.Audible) continue;
+
+            var ev = p.Event;
+            var eventName = ev.SoundEvent ?? string.Empty;
+            var eventValue = ev.Value;
+            if (eventName == "!cut" || ev is ICustomActionEvent) continue;
+
+            if (Holder.StringToSoundReferences.TryGetValue(eventName, out var sound))
+                eventName = sound.Id;
+
+            usedKeys.Add((eventName, eventValue));
+        }
+
+        foreach (var key in processedEvents.Keys.Where(key => !usedKeys.Contains(key)).ToList())
+        {
+            processedEvents.Remove(key);
+        }
     }
 
     /// <summary>
@@ -261,7 +343,7 @@ public class PcmEncoder
     /// <param name="processedEvents">The resampled sounds.</param>
     /// <param name="cancellationToken">A token that cancels the waiting task.</param>
     /// <returns>An AudioData object that stores the encoded audio.</returns>
-    private async Task<AudioData<float>> GenerateAudioData(TimedEvents events,
+    private async Task<(AudioData<float>, AudioMixer)> GenerateAudioAndMixer(TimedEvents events,
         Dictionary<(string, double), ProcessedEvent> processedEvents,
         CancellationToken? cancellationToken = null)
     {
@@ -279,7 +361,8 @@ public class PcmEncoder
         {
             if (mixer.HasTrack(channel)) continue;
             var channelID = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
-                ? sound.Id : channel;
+                ? sound.Id
+                : channel;
             var new_track = AudioData<float>.WithLength(_channels, length);
             mixer.AddTrack(channelID, new_track);
         }
@@ -287,7 +370,15 @@ public class PcmEncoder
         // Map channel tasks.
         await RenderTimedEvents(mixer, events, processedEvents, big_event_length, false, token);
 
-        return mixer.MixDown();
+        return (mixer.MixDown(), mixer);
+    }
+
+    private async Task<AudioData<float>> GenerateAudioData(TimedEvents events,
+        Dictionary<(string, double), ProcessedEvent> processedEvents,
+        CancellationToken? cancellationToken = null)
+    {
+        var (audio, _) = await GenerateAudioAndMixer(events, processedEvents, cancellationToken);
+        return audio;
     }
 
     /// <summary>
@@ -332,6 +423,7 @@ public class PcmEncoder
     /// <param name="events">The calculated events.</param>
     /// <param name="processedEvents">The processed events for the sequence.</param>
     /// <param name="biggestEventLength">The sequence's biggest event's length.</param>
+    /// <param name="invert">Whether to invert the sounds that are coming in the channel.</param>
     private async Task ProcessChannel(AudioMixer mixer, int channel, TimedEvents events,
         Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength, bool invert = false)
     {
@@ -412,8 +504,9 @@ public class PcmEncoder
         // get current event start.
         var current_start = (int)current.Index;
 
-        // put pan variable here to be used later
+        // put extended variables here to be used later
         var pan = 0f;
+        var startOffset = 0d;
 
         switch (current_event)
         {
@@ -434,9 +527,10 @@ public class PcmEncoder
                 return;
             }
 
-            case PannedEvent panned_event:
+            case ExtendedEvent panned_event:
             {
                 pan = Math.Clamp(panned_event.Pan, -1f, 1f);
+                startOffset = Math.Max(panned_event.OffsetInSeconds, 0);
                 break;
             }
         }
@@ -451,7 +545,11 @@ public class PcmEncoder
         }
 
         // search for processed sample
-        if (!processedEvents.TryGetValue((event_name, event_value), out var processed_event)) return;
+        if (!processedEvents.TryGetValue((event_name, event_value), out var processed_event))
+        {
+            Log($"Event {event_name} with value {event_value} not found in processed events");
+            return;
+        }
 
         // get its length
         var current_length = processed_event.AudioData.GetLength();
@@ -478,27 +576,40 @@ public class PcmEncoder
 
         var volume = event_volume;
 
-        // when panning is used dims the channel opposite to what the value represents
-        // if it's -1 (left channel only), dims the right channel and vice-versa
+        // when panning is used, subtracts the channel opposite to what the value represents
+        // if it's -1 (left channel only), subtracts the right channel and vice versa
         switch (pan)
         {
             // Channel = Right
             case < 0 when channel == 1:
             {
-                var percent_dim = 1f + pan;
-                volume *= percent_dim;
+                var percent_subtract = 1f + pan;
+                volume *= percent_subtract;
                 break;
             }
 
             // Channel = Left
             case > 0 when channel == 0:
             {
-                var percent_dim = 1f - pan;
-                volume *= percent_dim;
+                var percent_subtract = 1f - pan;
+                volume *= percent_subtract;
                 break;
             }
         }
+        
+        // the current sample rate is calculated using (uint)(_sampleRate / Math.Pow(2, ev.Value / 12))
+        if (startOffset > 0)
+        {
+            var event_sample_rate = _sampleRate / Math.Pow(2, event_value / 12);
+            var offsetInSamples = (int)(startOffset * event_sample_rate);
+            if (offsetInSamples > current_length) offsetInSamples = current_length;
+        
+            offset += offsetInSamples;
+            delta_end -= offsetInSamples;
+        }
 
+        if (delta_end <= 0) return;
+        
         RenderSample(current_channel, mix_slice, delta_start,
             volume, delta_end, offset, invert);
     }
@@ -632,7 +743,7 @@ public class PcmEncoder
     /// <param name="volume">The volume of the source audio while being added.</param>
     /// <param name="offset">The source sample offset. Used in multithreading.</param>
     /// <param name="invert">Whether to invert the sample so that if exists in the audio already it gets removed.</param>
-    private static void RenderSample(Span<float> source, Span<float> destination, int index,
+    public static void RenderSample(Span<float> source, Span<float> destination, int index,
         double volume, int length = -1, int offset = -1, bool invert = false)
     {
         if (length == -1) length = source.Length;
@@ -661,7 +772,7 @@ public class PcmEncoder
             var s_vector = new Vector<float>(s);
 
             var src = s_vector * final_volume;
-            var final = invert ? src - d_vector : src + d_vector;
+            var final = invert ? d_vector - src : d_vector + src;
 
             final.CopyTo(d);
         }
@@ -670,10 +781,38 @@ public class PcmEncoder
         for (var i = min; i < min_final; i++)
         {
             var src = s_slice[i] * final_volume;
-            if (invert) d_slice[i] -= src;
-            else d_slice[i] += src;
+            var d = d_slice[i];
+            
+            switch (invert)
+            {
+                case true:
+                    d -= src;
+                    break;
+                default:
+                    d += src;
+                    break;
+            }
+            
+            d_slice[i] = d;
         }
     }
 
     #endregion
+
+    private class PlacementEqualityComparer : IEqualityComparer<Placement>
+    {
+        public static readonly PlacementEqualityComparer Instance = new();
+
+        public bool Equals(Placement? x, Placement? y)
+        {
+            if (ReferenceEquals(x, y)) return true;
+            if (x is null || y is null) return false;
+            return x.Equals(y);
+        }
+
+        public int GetHashCode(Placement obj)
+        {
+            return obj.GetHashCode();
+        }
+    }
 }

@@ -143,7 +143,7 @@ public class RenderableFactory(AtlasStore store)
             renderable.Volume = new NormalText(volumeBuffer);
         }
 
-        if (baseEvent is not PannedEvent pannedEvent) return;
+        if (baseEvent is not ExtendedEvent pannedEvent) return;
         if (pannedEvent.Pan == 0) return;
 
         string panText;

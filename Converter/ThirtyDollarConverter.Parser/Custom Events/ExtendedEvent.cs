@@ -1,12 +1,12 @@
 namespace ThirtyDollarParser.Custom_Events;
 
-public class PannedEvent : NormalEvent, ICustomAudibleEvent
+public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
 {
-    public PannedEvent()
+    public ExtendedEvent()
     {
     }
 
-    public PannedEvent(BaseEvent baseEvent)
+    public ExtendedEvent(BaseEvent baseEvent)
     {
         SoundEvent = baseEvent.SoundEvent;
         Value = baseEvent.Value;
@@ -24,20 +24,32 @@ public class PannedEvent : NormalEvent, ICustomAudibleEvent
     public float Pan { get; set; }
 
     /// <summary>
+    ///     The offset of the start of the sound measured in seconds.
+    /// </summary>
+    public double OffsetInSeconds { get; set; } = 0;
+
+    /// <summary>
     ///     How the pan is represented visually.
     /// </summary>
     public float TDWPan => Pan * 10;
 
     public override string Stringify()
     {
+        if (Pan != 0 && OffsetInSeconds != 0)
+            return base.Stringify() + $"^{Pan:0.##}" + $">{OffsetInSeconds}";
+        
         if (Pan != 0)
             return base.Stringify() + $"^{Pan:0.##}";
+        
+        if (OffsetInSeconds != 0)
+            return base.Stringify() + $">{OffsetInSeconds}";
+        
         return base.Stringify();
     }
 
-    public override PannedEvent Copy()
+    public override ExtendedEvent Copy()
     {
-        return new PannedEvent
+        return new ExtendedEvent
         {
             SoundEvent = SoundEvent,
             Value = Value,

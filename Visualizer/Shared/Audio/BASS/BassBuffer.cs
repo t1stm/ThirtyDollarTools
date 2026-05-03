@@ -119,6 +119,14 @@ public class BassBuffer : AudibleBuffer, IDisposable
     public override void SeekTime_Milliseconds(long milliseconds)
     {
         var channels = Bass.SampleGetChannels(SampleHandle);
+        if (channels == null || channels.Length == 0)
+        {
+            var channel = Bass.SampleGetChannel(SampleHandle);
+            if (channel == 0) return;
+            channels = [channel];
+            if (IsRunning) Bass.ChannelPlay(channel);
+        }
+
         foreach (var channel in channels)
         {
             var position = Bass.ChannelSeconds2Bytes(channel, milliseconds / 1000f);
