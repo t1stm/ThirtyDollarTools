@@ -136,7 +136,7 @@ public class ThirtyDollarWorkflow
             Channels = 2,
             Resampler = new LinearResampler(), // TODO probably add the functionality to leave the user to select it
             EnableNormalization = false,
-            CutFadeLengthMs = 0
+            CutFadeLengthMs = 2
         });
 
         _renderedSequence = _renderedSequence == null
