@@ -41,9 +41,8 @@ public partial class Sequence
 
             text = text.Replace("\n", "").Trim();
             if (string.IsNullOrEmpty(text)) continue;
-            if (text.StartsWith('#'))
-                if (TryDefine(text, enumerator, sequence))
-                    continue;
+            if (text.StartsWith('#') && TryDefine(text, enumerator, sequence))
+                continue;
 
             var new_event = ParseEvent(text, sequence);
             var repeats = new_event.PlayTimes;
@@ -146,7 +145,12 @@ public partial class Sequence
             }
 
             var pan = 0f;
-            if (parsed is ExtendedEvent panned) pan = panned.Pan;
+            var offset = 0d;
+            if (parsed is ExtendedEvent extended)
+            {
+                pan = extended.Pan;
+                offset = extended.OffsetInSeconds;
+            }
 
             events.AddRange(defined_events.Select(e =>
             {
@@ -159,16 +163,20 @@ public partial class Sequence
 
                     default:
                     {
-                        var panned_event = new ExtendedEvent
+                        var extended_event = new ExtendedEvent
                         {
                             SoundEvent = e.SoundEvent,
                             Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
                             Volume = e.Volume * ((parsed.Volume ?? 100) / 100),
-                            Pan = (e.SoundEvent ?? "").StartsWith('!') ? 0 : pan + (e is ExtendedEvent p ? p.Pan : 0),
                             ValueScale = e.ValueScale
                         };
 
-                        return panned_event;
+                        if (e is not ExtendedEvent ex || (e.SoundEvent ?? "").StartsWith('!')) return extended_event;
+                        
+                        extended_event.Pan = pan + ex.Pan;
+                        extended_event.OffsetInSeconds = offset + ex.OffsetInSeconds;
+                        extended_event.IsStandardImplementation = ex.IsStandardImplementation;
+                        return extended_event;
                     }
                 }
             }));
@@ -184,7 +192,12 @@ public partial class Sequence
         if (!sequence.Definitions.TryGetValue(newEvent.SoundEvent ?? "", out var events)) return false;
 
         var pan = 0f;
-        if (newEvent is ExtendedEvent panned_event) pan = panned_event.Pan;
+        var offset = 0d;
+        if (newEvent is ExtendedEvent extendedEvent)
+        {
+            pan = extendedEvent.Pan;
+            offset = extendedEvent.OffsetInSeconds;
+        }
 
         var array = new BaseEvent[events.Length];
         for (var i = 0; i < events.Length; i++)
@@ -192,6 +205,7 @@ public partial class Sequence
             var base_event = events[i];
             array[i] = base_event switch
             {
+                ExtendedEvent ee => ee.Copy(),
                 NormalEvent => new ExtendedEvent(base_event),
                 IndividualCutEvent ice => ice.Copy(),
                 _ => base_event.Copy()
@@ -199,17 +213,27 @@ public partial class Sequence
         }
 
         if (newEvent is
-                { Value: 0, ValueScale: ValueScale.None or ValueScale.Add, Volume: null or 100d } &&
-            pan == 0f) goto return_path;
+            {
+                Value: 0, ValueScale: ValueScale.None or
+                ValueScale.Add,
+                Volume: null or
+                100d
+            } && pan == 0f && offset == 0d)
+        {
+            list.AddRange(array);
+            return true;
+        }
 
         var val = newEvent.Value;
         foreach (var ev in array)
         {
             if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
-            if (ev is ExtendedEvent panned)
+            if (ev is ExtendedEvent extended)
             {
-                var new_pan = Math.Clamp(pan + panned.Pan, -1f, 1f);
-                panned.Pan = new_pan;
+                var new_pan = Math.Clamp(pan + extended.Pan, -1f, 1f);
+                var new_offset = Math.Max(offset + extended.OffsetInSeconds, 0);
+                extended.Pan = new_pan;
+                extended.OffsetInSeconds = new_offset;
             }
 
             switch (newEvent.ValueScale)
@@ -243,7 +267,7 @@ public partial class Sequence
             }
         }
 
-        return_path:
+
         list.AddRange(array);
         return true;
     }
@@ -309,7 +333,7 @@ public partial class Sequence
 
         var pan_match = PanRegex().Match(text);
         var pan = pan_match.Success ? float.Parse(pan_match.Value[1..], CultureInfo) : 0f;
-        
+
         var offset_match = OffsetRegex().Match(text);
         var offset = offset_match.Success ? double.Parse(offset_match.Value[1..], CultureInfo) : 0f;
 
@@ -453,7 +477,7 @@ public partial class Sequence
 
     [GeneratedRegex(@"\^[-0-9.]+")]
     private static partial Regex PanRegex();
-    
+
     [GeneratedRegex(@">[-0-9.]+")]
     private static partial Regex OffsetRegex();
 

@@ -51,13 +51,14 @@ public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
     {
         return new ExtendedEvent
         {
+            Pan = Pan,
+            OffsetInSeconds = OffsetInSeconds,
+            
             SoundEvent = SoundEvent,
             Value = Value,
             PlayTimes = PlayTimes,
             Volume = Volume,
             ValueScale = ValueScale,
-            Pan = Pan,
-            OffsetInSeconds = OffsetInSeconds,
             IsStandardImplementation = IsStandardImplementation,
             WorkingValue = WorkingValue,
             WorkingVolume = WorkingVolume
