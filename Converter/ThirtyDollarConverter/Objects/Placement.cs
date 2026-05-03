@@ -34,7 +34,8 @@ public class Placement : IEquatable<Placement>
                Event.SoundEvent.AsSpan() == other.Event.SoundEvent.AsSpan() &&
                !Different(Event.Value, other.Event.Value) &&
                !Different(Event.Volume ?? 100, other.Event.Volume ?? 100) &&
-               !Different((Event as ExtendedEvent)?.Pan, (other.Event as ExtendedEvent)?.Pan);
+               !Different((Event as ExtendedEvent)?.Pan, (other.Event as ExtendedEvent)?.Pan) &&
+               !Different((Event as ExtendedEvent)?.OffsetInSeconds, (other.Event as ExtendedEvent)?.OffsetInSeconds);
     }
 
     private static bool Different(double? a, double? b)
