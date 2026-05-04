@@ -1,6 +1,6 @@
 namespace ThirtyDollarEncoder.Resamplers;
 
-public class BandlimitedResampler(int filterSize = 64) : IResampler
+public class HannSincResampler(int filterSize = 64) : IResampler
 {
     /// <summary>
     ///     Resamples the given audio data to another sample rate using bandlimited interpolation.

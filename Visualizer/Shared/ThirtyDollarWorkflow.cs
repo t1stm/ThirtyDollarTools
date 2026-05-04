@@ -134,7 +134,7 @@ public class ThirtyDollarWorkflow
         {
             SampleRate = (uint)audio_context.SampleRate,
             Channels = 2,
-            Resampler = new LinearResampler(), // TODO probably add the functionality to leave the user to select it
+            Resampler = new LanczosSincResampler(), // TODO probably add the functionality to leave the user to select it
             EnableNormalization = false,
             CutFadeLengthMs = 2
         });

@@ -11,7 +11,8 @@ public static class ResamplerService
         return new ResamplerModel[]
         {
             new(new HermiteResampler()),
-            new(new BandlimitedResampler()),
+            new(new HannSincResampler()),
+            new(new LanczosSincResampler()),
             new(new LinearResampler()),
             new(new NoInterpolationResampler()),
             new(new ByteCruncherResampler())
