@@ -2,11 +2,8 @@ namespace ThirtyDollarEncoder.Resamplers;
 
 public class LanczosSincResampler : IResampler
 {
-    /// <summary>
-    /// This is the radius of the Lanczos kernel. Directly related to the quality of the resampling.
-    /// </summary>
-    public int KernelRadius { get; init; } = 8;
-    public int KernelResolution { get; init; } = 0x400;
+    public int KernelRadius { get; init; } = 3;
+    public int KernelResolution { get; init; } = 0x1000;
     public int FixedPointFractionalSize { get; init; } = 1 << 16;
     private const double Pi = Math.PI;
 

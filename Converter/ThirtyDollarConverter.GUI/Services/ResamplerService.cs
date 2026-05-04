@@ -8,14 +8,14 @@ public static class ResamplerService
 {
     public static IEnumerable<ResamplerModel> GetItems()
     {
-        return new ResamplerModel[]
-        {
-            new(new HermiteResampler()),
-            new(new HannSincResampler()),
-            new(new LanczosSincResampler()),
-            new(new LinearResampler()),
-            new(new NoInterpolationResampler()),
-            new(new ByteCruncherResampler())
-        };
+        return
+        [
+            new ResamplerModel(new LanczosSincResampler()),
+            new ResamplerModel(new HermiteResampler()),
+            new ResamplerModel(new HannSincResampler()),
+            new ResamplerModel(new LinearResampler()),
+            new ResamplerModel(new NoInterpolationResampler()),
+            new ResamplerModel(new ByteCruncherResampler())
+        ];
     }
 }
