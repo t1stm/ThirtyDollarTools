@@ -2,6 +2,8 @@ namespace ThirtyDollarEncoder.Resamplers;
 
 public class HermiteResampler : IResampler
 {
+    public string Name => "Hermite";
+
     public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
         var span = samples.Span;

@@ -2,6 +2,8 @@ namespace ThirtyDollarEncoder.Resamplers;
 
 public interface IResampler
 {
+    public string Name { get; }
+    
     /// <summary>
     ///     Method that resamples given audio data to another sample rate.
     /// </summary>

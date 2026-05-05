@@ -2,6 +2,8 @@ namespace ThirtyDollarEncoder.Resamplers;
 
 public class ByteCruncherResampler(float bitsPerSample = 64f) : IResampler
 {
+    public string Name => "Byte Cruncher";
+
     public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
         var span = samples.Span;

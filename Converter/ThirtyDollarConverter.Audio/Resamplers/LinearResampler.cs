@@ -2,6 +2,8 @@ namespace ThirtyDollarEncoder.Resamplers;
 
 public class LinearResampler : IResampler
 {
+    public string Name => "Linear";
+
     public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
         var span = samples.Span;

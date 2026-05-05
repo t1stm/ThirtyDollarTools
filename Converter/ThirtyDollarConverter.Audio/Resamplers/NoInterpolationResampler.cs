@@ -2,6 +2,8 @@ namespace ThirtyDollarEncoder.Resamplers;
 
 public class NoInterpolationResampler : IResampler
 {
+    public string Name => "No Interpolation";
+
     public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
         var span = samples.Span;

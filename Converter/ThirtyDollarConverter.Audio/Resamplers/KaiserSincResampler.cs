@@ -30,6 +30,8 @@ public abstract class KaiserSincResampler : IResampler
         _delta[n] = 0.0;
     }
 
+    public string Name => "Bandlimited Sinc With Kaiser window";
+
     public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
         double sampleRatio = (double)targetSampleRate / sampleRate;

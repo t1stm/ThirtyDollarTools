@@ -31,6 +31,8 @@ public class ThirtyDollarWorkflow
 
     /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
     public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
+    
+    public EncoderSettings EncoderSettings { get; }
 
     public ThirtyDollarWorkflow(Game game, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
         AudioContext? context = null)
@@ -41,6 +43,15 @@ public class ThirtyDollarWorkflow
         SequencePlayer = new SequencePlayer(logger, context);
         AtlasStore = atlasStore;
         SampleHolder = sampleHolder;
+
+        EncoderSettings = new EncoderSettings
+        {
+            SampleRate = (uint)SequencePlayer.AudioContext.SampleRate,
+            Channels = 2,
+            Resampler = new HannSincResampler(),
+            EnableNormalization = false,
+            CutFadeLengthMs = 4
+        };
 
         _fileUpdateStopwatch = new Stopwatch();
         _fileUpdateStopwatch.Start();
@@ -129,16 +140,8 @@ public class ThirtyDollarWorkflow
         if (HandleAfterSequenceLoad != null)
             await HandleAfterSequenceLoad(TimedEvents, SequencePlayer);
 
-        
-        var pcm_encoder = new PcmEncoder(SampleHolder, new EncoderSettings
-        {
-            SampleRate = (uint)audio_context.SampleRate,
-            Channels = 2,
-            Resampler = new HannSincResampler(), // TODO probably add the functionality to leave the user to select it
-            EnableNormalization = false,
-            CutFadeLengthMs = 4
-        });
 
+        var pcm_encoder = new PcmEncoder(SampleHolder, EncoderSettings);
         _renderedSequence = _renderedSequence == null
             ? await pcm_encoder.GetMultipleSequencesAudio(sequences)
             : await pcm_encoder.ComputeIncrementalAudio(_renderedSequence, sequences);
