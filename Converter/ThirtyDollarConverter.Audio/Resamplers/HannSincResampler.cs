@@ -1,14 +1,41 @@
 namespace ThirtyDollarEncoder.Resamplers;
 
-public class HannSincResampler(int filterSize = 64) : IResampler
+public class HannSincResampler : IResampler
 {
-    /// <summary>
-    ///     Resamples the given audio data to another sample rate using bandlimited interpolation.
-    /// </summary>
-    /// <param name="samples">The original sample data.</param>
-    /// <param name="sampleRate">The original sample rate.</param>
-    /// <param name="targetSampleRate">The target sample rate.</param>
-    /// <returns>Resampled audio data.</returns>
+    private readonly int _precision;
+    private readonly int _filterSize;
+    private readonly double[] _table;
+    private readonly double[] _delta;
+
+    public HannSincResampler(int filterSize = 64, int precision = 512)
+    {
+        _filterSize = filterSize;
+        _precision = precision;
+        _table = BuildTable(filterSize, precision);
+        _delta = BuildDelta(_table);
+    }
+
+    private static double[] BuildTable(int filterSize, int precision)
+    {
+        int n = (filterSize + 1) * precision;
+        var table = new double[n + 1];
+        for (int i = 0; i <= n; i++)
+        {
+            double t = (double)i / precision;
+            table[i] = Sinc(t) * HannWindow(t / filterSize);
+        }
+        return table;
+    }
+
+    private static double[] BuildDelta(double[] table)
+    {
+        var delta = new double[table.Length];
+        for (int i = 0; i < table.Length - 1; i++)
+            delta[i] = table[i + 1] - table[i];
+        delta[^1] = 0.0;
+        return delta;
+    }
+
     public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {
         var resample_ratio = (double)targetSampleRate / sampleRate;
@@ -22,12 +49,14 @@ public class HannSincResampler(int filterSize = 64) : IResampler
 
             var result = 0.0f;
 
-            for (var j = sample_index - filterSize; j <= sample_index + filterSize; j++)
+            for (var j = sample_index - _filterSize; j <= sample_index + _filterSize; j++)
             {
                 if (j < 0 || j >= samples.Length) continue;
 
-                var x = sample_position - j;
-                var window = samples.Span[j] * Sinc(x) * HannWindow(x / filterSize);
+                var t = Math.Abs(sample_position - j);
+                var idx = (int)(t * _precision);
+                var eta = t * _precision - idx;
+                var window = samples.Span[j] * (_table[idx] + eta * _delta[idx]);
                 result += (float)window;
             }
 
@@ -51,13 +80,14 @@ public class HannSincResampler(int filterSize = 64) : IResampler
 
             var result = 0.0d;
 
-            for (var j = sample_index - filterSize; j <= sample_index + filterSize; j++)
+            for (var j = sample_index - _filterSize; j <= sample_index + _filterSize; j++)
             {
                 if (j < 0 || j >= samples.Length) continue;
 
-                var x = sample_position - j;
-                var window = samples.Span[j] * Sinc(x) * HannWindow(x / filterSize);
-                result += window;
+                var t = Math.Abs(sample_position - j);
+                var idx = (int)(t * _precision);
+                var eta = t * _precision - idx;
+                result += samples.Span[j] * (_table[idx] + eta * _delta[idx]);
             }
 
             output[i] = result;
@@ -66,11 +96,6 @@ public class HannSincResampler(int filterSize = 64) : IResampler
         return output;
     }
 
-    /// <summary>
-    ///     Sinc function for bandlimited interpolation.
-    /// </summary>
-    /// <param name="x">The input value.</param>
-    /// <returns>Sinc function output.</returns>
     private static double Sinc(double x)
     {
         if (x == 0.0)
@@ -80,11 +105,6 @@ public class HannSincResampler(int filterSize = 64) : IResampler
         return Math.Sin(x) / x;
     }
 
-    /// <summary>
-    ///     Hann window function to reduce artifacts in the sinc interpolation.
-    /// </summary>
-    /// <param name="x">The normalized input value, scaled by the filter radius.</param>
-    /// <returns>Hann window output.</returns>
     private static double HannWindow(double x)
     {
         return 0.5 * (1.0 + Math.Cos(2.0 * Math.PI * x));

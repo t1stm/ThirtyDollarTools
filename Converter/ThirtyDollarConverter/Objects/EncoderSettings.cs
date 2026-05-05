@@ -40,7 +40,7 @@ public class EncoderSettings
     /// <summary>
     ///     Select the resampler you want to use.
     /// </summary>
-    public IResampler Resampler = new LanczosSincResampler();
+    public IResampler Resampler = new HannSincResampler();
 
     /// <summary>
     ///     The sample rate to export in.

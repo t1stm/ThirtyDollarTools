@@ -10,9 +10,10 @@ public static class ResamplerService
     {
         return
         [
-            new ResamplerModel(new LanczosSincResampler()),
-            new ResamplerModel(new HermiteResampler()),
             new ResamplerModel(new HannSincResampler()),
+            new ResamplerModel(new KaiserBestResampler()),
+            new ResamplerModel(new KaiserFastResampler()),
+            new ResamplerModel(new HermiteResampler()),
             new ResamplerModel(new LinearResampler()),
             new ResamplerModel(new NoInterpolationResampler()),
             new ResamplerModel(new ByteCruncherResampler())
