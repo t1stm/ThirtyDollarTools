@@ -3,7 +3,7 @@ namespace Sundex.Engine.Text.Allocationless;
 /// <summary>
 ///     A formatter that can be used to format strings with parameters.
 ///     100% allocation-free due to the use of span-based operations and dictionary lookups when updating the contents.
-///     Might be a bit slower than the standard string formatter, but it's a lot more memory efficient.
+///     Might be a bit slower than the standard string formatter, but it's a lot more memory efficient allocation-wise.
 /// </summary>
 public class StringFormatter
 {
