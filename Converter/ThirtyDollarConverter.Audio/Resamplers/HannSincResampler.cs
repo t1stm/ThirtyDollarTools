@@ -36,7 +36,7 @@ public class HannSincResampler : IResampler
         return delta;
     }
 
-    public string Name => "Bandlimited Sinc With Hann window";
+    public string Name => "Bandlimited Sinc with Hann window";
 
     public float[] Resample(Memory<float> samples, uint sampleRate, uint targetSampleRate)
     {

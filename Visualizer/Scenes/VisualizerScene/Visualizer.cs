@@ -545,7 +545,7 @@ public class Visualizer : Scene, IGamePreloadable
                 [Debug]
                 FPS: {fps:float:0.##}
                 Audio Engine: {audioEngine:string:16}
-                Resampler: {resampler:string:32}
+                Resampler: {resampler:string:40}
 
                 Sequence ({currentSequence:int} - {maxSequences:int}): {sequenceLocation:string:256}
                 BPM: {bpm:float:0.##:16}
@@ -568,7 +568,7 @@ public class Visualizer : Scene, IGamePreloadable
             _debugFormatter.Set("glInfoRenderer", _glInfo.Renderer);
             _debugFormatter.Set("glInfoMaxTexture2DSize", _glInfo.MaxTexture2DSize);
             _debugFormatter.Set("glInfoMaxTexture2DLayers", _glInfo.MaxTexture2DLayers);
-            _debugFormatter.Set("resampler", _workflow.EncoderSettings.Resampler.ToString());
+            _debugFormatter.Set("resampler", _workflow.EncoderSettings.Resampler.Name);
         }
 
         // define values used in generating the debug string.
