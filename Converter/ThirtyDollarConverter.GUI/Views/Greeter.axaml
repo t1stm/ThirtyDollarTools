@@ -31,7 +31,7 @@
                    Width="96" Height="96"
                    HorizontalAlignment="Center" Margin="0,0,0,16" />
 
-            <TextBlock Text="Thirty Dollar Tools"
+            <TextBlock Text="Thirty Dollar Converter"
                        Foreground="{StaticResource WinAccent}"
                        FontSize="16" FontWeight="SemiBold"
                        HorizontalAlignment="Center" Margin="0,0,0,12" />

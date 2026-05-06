@@ -42,7 +42,7 @@
                 <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <Image Source="avares://ThirtyDollarConverter.GUI/Assets/moai.png"
                            Width="20" Height="20" VerticalAlignment="Center" />
-                    <TextBlock Text="Thirty Dollar Tools"
+                    <TextBlock Text="Thirty Dollar Converter"
                                Foreground="{StaticResource WinAccent}"
                                FontWeight="SemiBold" FontSize="13"
                                VerticalAlignment="Center" />
