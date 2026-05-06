@@ -14,7 +14,7 @@
             <SolidColorBrush x:Key="WinAccentHover" Color="#9bc0ff" />
             <SolidColorBrush x:Key="WinAccentPressed" Color="#4c78a8" />
             <SolidColorBrush x:Key="WinText" Color="#d6dadc" />
-            <SolidColorBrush x:Key="WinMuted" Color="#565f89" />
+            <SolidColorBrush x:Key="WinMuted" Color="#a9b1d6" />
             <SolidColorBrush x:Key="WinScreen" Color="#16161e" />
 
             <!-- Button: filled accent -->

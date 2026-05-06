@@ -24,14 +24,15 @@
                     BackgroundSource="Digger"
                     TintColor="#1a1b26"
                     TintOpacity="1"
-                    MaterialOpacity="0.92" />
+                    MaterialOpacity="0.72" />
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
 
         <Grid RowDefinitions="38,Auto,*">
 
             <!-- Header -->
-            <Border Grid.Row="0" Background="{StaticResource WinSurface}" Padding="14,0">
+            <Border Grid.Row="0" Background="{StaticResource WinSurface}" Padding="14,0"
+                    PointerPressed="TitleBar_PointerPressed">
                 <TextBlock Text="Export Settings"
                            Foreground="{StaticResource WinAccent}"
                            FontWeight="SemiBold" FontSize="13"

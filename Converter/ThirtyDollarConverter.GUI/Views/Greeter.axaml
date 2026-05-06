@@ -22,10 +22,11 @@
                     BackgroundSource="Digger"
                     TintColor="#1a1b26"
                     TintOpacity="1"
-                    MaterialOpacity="0.92" />
+                    MaterialOpacity="0.72" />
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
 
+        <Border Background="Transparent" PointerPressed="TitleBar_PointerPressed" />
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24,0">
             <Image Source="avares://ThirtyDollarConverter.GUI/Assets/moai.png"
                    Width="96" Height="96"

@@ -31,14 +31,15 @@
                     BackgroundSource="Digger"
                     TintColor="#1a1b26"
                     TintOpacity="1"
-                    MaterialOpacity="0.92" />
+                    MaterialOpacity="0.72" />
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
 
         <Grid RowDefinitions="38,Auto,Auto,Auto,Auto,*,Auto,Auto,56">
 
             <!-- Header -->
-            <Border Grid.Row="0" Background="{StaticResource WinSurface}" Padding="14,0">
+            <Border Grid.Row="0" Background="{StaticResource WinSurface}" Padding="14,0"
+                    PointerPressed="TitleBar_PointerPressed">
                 <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                     <Image Source="avares://ThirtyDollarConverter.GUI/Assets/moai.png"
                            Width="20" Height="20" VerticalAlignment="Center" />

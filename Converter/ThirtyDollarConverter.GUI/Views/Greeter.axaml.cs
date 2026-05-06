@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using JetBrains.Annotations;
 
@@ -20,6 +21,12 @@ public partial class Greeter : Window
     {
         _mainWindow = mainWindow;
         InitializeComponent();
+    }
+
+    private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
     }
 
     private void ContinueButton_Click(object? sender, RoutedEventArgs e)
