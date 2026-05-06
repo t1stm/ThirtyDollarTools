@@ -8,9 +8,9 @@
         x:DataType="vm:ExportSettingsViewModel"
         Title="Export Settings"
         Icon="/Assets/moai.png"
-        MinHeight="460"
+        MinHeight="560"
         MinWidth="400"
-        Height="460"
+        Height="560"
         Width="400"
 
         TransparencyLevelHint="AcrylicBlur"
@@ -35,18 +35,17 @@
             </StackPanel>
             <StackPanel Margin="10">
                 <TextBlock FontSize="11">Channels</TextBlock>
-                <TextBox Text="{Binding ChannelsText}" />
+                <ComboBox SelectedIndex="{Binding ChannelsIndex}">
+                    <ComboBoxItem>Mono</ComboBoxItem>
+                    <ComboBoxItem>Stereo</ComboBoxItem>
+                </ComboBox>
             </StackPanel>
             <StackPanel Margin="10">
-                <TextBlock FontSize="11">Cut Event Delay</TextBlock>
+                <TextBlock FontSize="11">Cut Volume Fade in Milliseconds</TextBlock>
                 <TextBox Text="{Binding CutDelayText}" />
             </StackPanel>
             <StackPanel Margin="10">
-                <TextBlock FontSize="11">Combine Event Delay</TextBlock>
-                <TextBox Text="{Binding CombineDelayText}" />
-            </StackPanel>
-            <StackPanel Margin="10">
-                <TextBlock FontSize="11">Encoding Slices Count</TextBlock>
+                <TextBlock FontSize="11">Max Thread Slices Count</TextBlock>
                 <TextBox Text="{Binding EncodeSlicesCountText}" />
             </StackPanel>
             <StackPanel Margin="10">
@@ -62,6 +61,14 @@
             </StackPanel>
             <StackPanel Margin="10">
                 <CheckBox IsChecked="{Binding EnableNormalization}">Enable Normalization</CheckBox>
+            </StackPanel>
+            <StackPanel Margin="10">
+                <TextBlock FontSize="11">Volume Scale</TextBlock>
+                <ComboBox SelectedItem="{Binding VolumeScale}" ItemsSource="{Binding ScaleItems}" />
+            </StackPanel>
+            <StackPanel Margin="10">
+                <TextBlock FontSize="11">Pan Scale</TextBlock>
+                <ComboBox SelectedItem="{Binding PanScale}" ItemsSource="{Binding ScaleItems}" />
             </StackPanel>
         </StackPanel>
     </Panel>

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text.RegularExpressions;
 using ReactiveUI;
 using ThirtyDollarConverter.Objects;
@@ -10,6 +12,7 @@ namespace ThirtyDollarGUI.ViewModels;
 public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : ViewModelBase
 {
     public ObservableCollection<ResamplerModel> ListItems { get; } = new(ResamplerService.GetItems());
+    public PercentageScale[] ScaleItems { get; } = Enum.GetValues<PercentageScale>();
 
     public uint SampleRate
     {
@@ -17,10 +20,10 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         set => this.RaiseAndSetIfChanged(ref encoderSettings.SampleRate, value);
     }
 
-    public uint Channels
+    public int ChannelsIndex
     {
-        get => encoderSettings.Channels;
-        set => this.RaiseAndSetIfChanged(ref encoderSettings.Channels, value);
+        get => (int)encoderSettings.Channels - 1;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.Channels, (uint)(value + 1));
     }
 
     public uint CutDelayMs
@@ -35,17 +38,24 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         set => this.RaiseAndSetIfChanged(ref encoderSettings.MultithreadingSlices, value);
     }
 
-    public uint CombineDelayMs
-    {
-        get => encoderSettings.CombineDelayMs;
-        set => this.RaiseAndSetIfChanged(ref encoderSettings.CombineDelayMs, value);
-    }
-
     public bool EnableNormalization
     {
         get => encoderSettings.EnableNormalization;
         set => this.RaiseAndSetIfChanged(ref encoderSettings.EnableNormalization, value);
     }
+
+    public PercentageScale VolumeScale
+    {
+        get => encoderSettings.VolumeScale;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.VolumeScale, value);
+    }
+    
+    public PercentageScale PanScale
+    {
+        get => encoderSettings.PanScale;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.PanScale, value);
+    }
+
 
     public string SampleRateText
     {
@@ -66,25 +76,6 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         }
     }
 
-    public string ChannelsText
-    {
-        get => Channels.ToString();
-        set
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                Channels = 0;
-                return;
-            }
-
-            var regex = NumberRegex();
-            if (!regex.IsMatch(value)) return;
-
-            var parsed = uint.Parse(value);
-            Channels = parsed;
-        }
-    }
-
     public string CutDelayText
     {
         get => CutDelayMs.ToString();
@@ -101,25 +92,6 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
 
             var parsed = uint.Parse(value);
             CutDelayMs = parsed;
-        }
-    }
-
-    public string CombineDelayText
-    {
-        get => CombineDelayMs.ToString();
-        set
-        {
-            if (string.IsNullOrEmpty(value))
-            {
-                CombineDelayMs = 0;
-                return;
-            }
-
-            var regex = NumberRegex();
-            if (!regex.IsMatch(value)) return;
-
-            var parsed = uint.Parse(value);
-            CombineDelayMs = parsed;
         }
     }
 
@@ -144,7 +116,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
 
     public ResamplerModel SelectedExportSettings
     {
-        get => new(encoderSettings.Resampler);
+        get => ListItems.First(m => m.Resampler.GetType() == encoderSettings.Resampler.GetType());
         set
         {
             var resampler = value.Resampler;

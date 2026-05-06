@@ -145,7 +145,7 @@ public class PcmEncoder
             .Where(pl => pl.Event is IndividualCutEvent || pl.Event.SoundEvent == "!cut")
             .ToArray();
         var mixer = oldRendered.Mixer;
-        
+
         // remove stage
         mixer = await ProcessIncrementalPlacements(mixer, to_remove.Concat(cuts).ToArray(),
             oldRendered.ProcessedEvents ?? final_sounds, big_event_length, true);
@@ -155,7 +155,7 @@ public class PcmEncoder
             big_event_length);
 
         RemoveUnusedAudioSamples(final_sounds, final_timed_events);
-        
+
         oldRendered.ProcessedEvents = final_sounds;
         oldRendered.AudioSampleRate = _sampleRate;
         oldRendered.Audio = mixer.MixDown();
@@ -312,7 +312,8 @@ public class PcmEncoder
     /// </summary>
     /// <param name="processedEvents">The dictionary of processed events.</param>
     /// <param name="events">The timed events to build the used keys from.</param>
-    private void RemoveUnusedAudioSamples(Dictionary<(string, double), ProcessedEvent> processedEvents, TimedEvents events)
+    private void RemoveUnusedAudioSamples(Dictionary<(string, double), ProcessedEvent> processedEvents,
+        TimedEvents events)
     {
         var usedKeys = new HashSet<(string, double)>();
         foreach (var p in events.Placement)
@@ -471,7 +472,7 @@ public class PcmEncoder
 
         foreach (var current in placement)
         {
-            // skip non audible
+            // skip non-audible
             if (!current.Audible) continue;
 
             // get current event start.
@@ -578,7 +579,7 @@ public class PcmEncoder
             var event_sample_rate = _sampleRate / Math.Pow(2, event_value / 12);
             var offsetInSamples = (int)(startOffset * event_sample_rate);
             if (offsetInSamples > current_length) offsetInSamples = current_length;
-        
+
             offset += offsetInSamples;
             delta_end -= offsetInSamples;
         }
@@ -597,7 +598,12 @@ public class PcmEncoder
             case < 0 when channel == 1:
             {
                 var percent_subtract = 1f + pan;
-                volume *= percent_subtract;
+                volume *= _settings.PanScale switch
+                {
+                    PercentageScale.Logarithmic => MathF.Sqrt(percent_subtract),
+                    PercentageScale.LinearOverflowLogarithmic or PercentageScale.Linear => percent_subtract,
+                    _ => 0
+                };
                 break;
             }
 
@@ -605,13 +611,18 @@ public class PcmEncoder
             case > 0 when channel == 0:
             {
                 var percent_subtract = 1f - pan;
-                volume *= percent_subtract;
+                volume *= _settings.PanScale switch
+                {
+                    PercentageScale.Logarithmic => MathF.Sqrt(percent_subtract),
+                    PercentageScale.LinearOverflowLogarithmic or PercentageScale.Linear => percent_subtract,
+                    _ => 0
+                };
                 break;
             }
         }
-        
+
         RenderSample(current_channel, mix_slice, delta_start,
-            volume, delta_end, offset, invert);
+            volume, _settings.VolumeScale, delta_end, offset, invert);
     }
 
     private void HandleCut(int start, int end, int currentStart, Span<float> mixSlice)
@@ -739,12 +750,13 @@ public class PcmEncoder
     /// <param name="source">The source audio data you want to add.</param>
     /// <param name="destination">The destination you want to add to.</param>
     /// <param name="index">The index of the destination you want to start on.</param>
-    /// <param name="length">The length of the export you want to do.</param>
     /// <param name="volume">The volume of the source audio while being added.</param>
+    /// <param name="volumeScale"></param>
+    /// <param name="length">The length of the export you want to do.</param>
     /// <param name="offset">The source sample offset. Used in multithreading.</param>
     /// <param name="invert">Whether to invert the sample so that if exists in the audio already it gets removed.</param>
     public static void RenderSample(Span<float> source, Span<float> destination, int index,
-        double volume, int length = -1, int offset = -1, bool invert = false)
+        double volume, PercentageScale volumeScale, int length = -1, int offset = -1, bool invert = false)
     {
         if (length == -1) length = source.Length;
 
@@ -754,7 +766,13 @@ public class PcmEncoder
         var d_slice = destination[index..];
         var chunk_size = Vector<float>.Count;
         var final_volume = (float)volume / 100f;
-        if (final_volume > 1f) final_volume = MathF.Sqrt(final_volume);
+        switch (volumeScale)
+        {
+            case PercentageScale.Logarithmic:
+            case PercentageScale.LinearOverflowLogarithmic when final_volume > 1f:
+                final_volume = MathF.Sqrt(final_volume);
+                break;
+        }
 
         var s_chunked = s_slice.Length - s_slice.Length % chunk_size;
         var d_chunked = d_slice.Length - d_slice.Length % chunk_size;
@@ -782,7 +800,7 @@ public class PcmEncoder
         {
             var src = s_slice[i] * final_volume;
             var d = d_slice[i];
-            
+
             switch (invert)
             {
                 case true:
@@ -792,7 +810,7 @@ public class PcmEncoder
                     d += src;
                     break;
             }
-            
+
             d_slice[i] = d;
         }
     }

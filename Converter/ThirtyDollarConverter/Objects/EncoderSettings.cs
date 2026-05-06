@@ -47,5 +47,17 @@ public class EncoderSettings
     /// </summary>
     public uint SampleRate;
 
-    public string DownloadLocation { get; set; }
+    /// <summary>
+    /// Specifies the scaling method used to interpret volume levels.
+    /// </summary>
+    public PercentageScale VolumeScale = PercentageScale.LinearOverflowLogarithmic;
+
+    /// <summary>
+    /// Represents the scaling method applied to adjust pan values during audio rendering.
+    /// Determines how the percentage-based pan adjustments are calculated,
+    /// affecting the balance between the left and right audio channels.
+    /// </summary>
+    public PercentageScale PanScale = PercentageScale.Linear;
+
+    public string DownloadLocation { get; set; } = string.Empty;
 }
