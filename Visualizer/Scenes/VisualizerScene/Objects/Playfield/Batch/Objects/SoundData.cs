@@ -10,11 +10,13 @@ public struct SoundData : IGPUReflection
 {
     public Matrix4 Model;
     public Vector4 RGBA;
+    public float OffsetPercentage;
 
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {
         layout.PushMatrix4(1); // Model
         layout.PushFloat(4, true); // RGBA
+        layout.PushFloat(1, true); // OffsetPercentage
     }
 
     public override string ToString()

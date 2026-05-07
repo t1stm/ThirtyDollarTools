@@ -13,6 +13,7 @@ using Sundex.Engine.Renderer.Buffers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 using Sundex.Engine.Text;
+using ThirtyDollarConverter;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
@@ -84,7 +85,7 @@ public class RenderableFactory(AtlasStore store)
     }
 
     public static void AssignTextBuffers(SoundRenderable renderable, BaseEvent baseEvent, TextBuffer textBuffer,
-        PlayfieldSizing sizing, float renderScale)
+        PlayfieldSizing sizing, float renderScale, SampleHolder? sampleHolder = null)
     {
         if (baseEvent.Value != 0 || SoundShouldAlwaysHaveValue(baseEvent.SoundEvent))
         {
@@ -176,15 +177,18 @@ public class RenderableFactory(AtlasStore store)
             renderable.Pan = new NormalText(panBuffer);
         }
 
-        if (!(extendedEvent.OffsetInSeconds > 0)) return;
-        
-        var offsetBuffer = textBuffer.GetTextSlice($">{extendedEvent.OffsetInSeconds:0.###}s", (value, buffer, range) =>
-            new TextSlice(buffer, range)
-            {
-                Value = value,
-                FontSize = sizing.OffsetFontSize * renderScale
-            });
-        renderable.Offset = new NormalText(offsetBuffer);
+        if (!(extendedEvent.OffsetInSeconds > 0) || sampleHolder is null) return;
+
+        var soundName = baseEvent.SoundEvent;
+        if (soundName is null) return;
+        if (!sampleHolder.StringToSoundReferences.TryGetValue(soundName, out var sound)) return;
+        if (!sampleHolder.SampleList.TryGetValue(sound, out var pcmData)) return;
+
+        var durationSecs = (float)pcmData.Samples / pcmData.SampleRate;
+        if (durationSecs <= 0) return;
+
+        renderable.SetOffsetPercentage(
+            (float)Math.Clamp(extendedEvent.OffsetInSeconds / durationSecs, 0, 1));
     }
 
     private static bool SoundShouldAlwaysHaveValue(ReadOnlySpan<char> sound)
@@ -290,6 +294,13 @@ public class RenderableFactory(AtlasStore store)
             var oldValue = trackedReference.Value;
             trackedReference.Value = oldValue with { Data = oldValue.Data with { RGBA = rgba } };
         };
+
+        soundRenderable.GetOffsetPercentage = () => trackedReference.Value.Data.OffsetPercentage;
+        soundRenderable.SetOffsetPercentage = pct =>
+        {
+            var oldValue = trackedReference.Value;
+            trackedReference.Value = oldValue with { Data = oldValue.Data with { OffsetPercentage = pct } };
+        };
         return soundRenderable;
     }
 
@@ -330,6 +341,13 @@ public class RenderableFactory(AtlasStore store)
         {
             var oldValue = trackedReference.Value;
             trackedReference.Value = oldValue with { RGBA = rgba };
+        };
+
+        soundRenderable.GetOffsetPercentage = () => trackedReference.Value.OffsetPercentage;
+        soundRenderable.SetOffsetPercentage = pct =>
+        {
+            var oldValue = trackedReference.Value;
+            trackedReference.Value = oldValue with { OffsetPercentage = pct };
         };
 
         soundRenderable.HasAnimatedTexture = true;

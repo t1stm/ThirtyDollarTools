@@ -33,12 +33,13 @@ public sealed class SoundRenderable : Renderable
     public ISoundValue? Value { get; set; }
     public NormalText? Pan { get; set; }
     public NormalText? Volume { get; set; }
-    public NormalText? Offset { get; set; }
 
     public Func<Matrix4> GetModel { get; set; } = () => Matrix4.Identity;
     public Func<Vector4> GetRGBA { get; set; } = () => Vector4.One;
+    public Func<float> GetOffsetPercentage { get; set; } = () => 0f;
     public Action<Matrix4> SetModel { get; set; } = _ => { };
     public Action<Vector4> SetRGBA { get; set; } = _ => { };
+    public Action<float> SetOffsetPercentage { get; set; } = _ => { };
 
     public override Matrix4 Model
     {
@@ -92,7 +93,6 @@ public sealed class SoundRenderable : Renderable
             Value?.Reset();
             Pan?.Reset();
             Volume?.Reset();
-            Offset?.Reset();
             return;
         }
 
@@ -116,12 +116,10 @@ public sealed class SoundRenderable : Renderable
         Value?.Translation = translation;
         Pan?.Translation = translation;
         Volume?.Translation = translation;
-        Offset?.Translation = translation;
 
         Value?.UpdatePosition();
         Pan?.UpdatePosition();
         Volume?.UpdatePosition();
-        Offset?.UpdatePosition();
     }
 
     private void UpdateExpandToTexts(float scale)
@@ -129,12 +127,10 @@ public sealed class SoundRenderable : Renderable
         Value?.ScaleMultiplier = scale;
         Pan?.ScaleMultiplier = scale;
         Volume?.ScaleMultiplier = scale;
-        Offset?.ScaleMultiplier = scale;
 
         Value?.UpdatePosition();
         Pan?.UpdatePosition();
         Volume?.UpdatePosition();
-        Offset?.UpdatePosition();
     }
 
 
