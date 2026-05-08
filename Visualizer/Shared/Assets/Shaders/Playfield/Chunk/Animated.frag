@@ -14,6 +14,6 @@ void main() {
 
     color = textureColor * RGBA;
     if (localU < offsetPercentage) {
-        color.a = color.a * 0.35;
+        color = color * 0.35;
     }
 }
