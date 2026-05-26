@@ -8,10 +8,7 @@ namespace Sundex.Components.Labels;
 public class Button : FlexPanel
 {
     public Button(UIContext context, string label, Renderable? background = null) : this(context,
-        new Label(context, label)
-        {
-            AnchorX = Anchor.Center, AnchorY = Anchor.Center
-        }, background)
+        new Label(context, label), background)
     {
     }
 

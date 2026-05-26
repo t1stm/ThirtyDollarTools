@@ -119,7 +119,6 @@ public class SampleHolder(ILogger logger)
     /// </summary>
     public async Task<bool> DownloadSamples(bool checkOnly = false)
     {
-        var client = new HttpClient();
         var i = 0;
         var count = SampleList.Count;
 
@@ -147,7 +146,7 @@ public class SampleHolder(ILogger logger)
             if (File.Exists(dll)) return;
 
             {
-                await using var httpStream = await client.GetStreamAsync(requestUrl, token);
+                await using var httpStream = await Client.GetStreamAsync(requestUrl, token);
                 await using var fileStream = File.Open(dll, FileMode.Create);
 
                 await httpStream.CopyToAsync(fileStream, token);
@@ -179,7 +178,6 @@ public class SampleHolder(ILogger logger)
 
     public async Task DownloadImages()
     {
-        var client = new HttpClient();
         if (SampleList.Count == 0) await LoadSampleList();
 
         PrepareDirectory();
@@ -198,7 +196,7 @@ public class SampleHolder(ILogger logger)
             if (Exists($"{file}.*")) return;
 
             {
-                var stream = await client.GetStreamAsync(sound.IconUrl, token);
+                var stream = await Client.GetStreamAsync(sound.IconUrl, token);
                 await using var fs = File.Open(download_location, FileMode.CreateNew);
                 await stream.CopyToAsync(fs, token);
                 await fs.FlushAsync(token);
@@ -218,7 +216,7 @@ public class SampleHolder(ILogger logger)
 
             {
                 await using var stream =
-                    await client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}.png", token);
+                    await Client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/assets/{file_name}.png", token);
                 await using var fs = File.Open(download_location, FileMode.CreateNew);
                 await stream.CopyToAsync(fs, token);
             }

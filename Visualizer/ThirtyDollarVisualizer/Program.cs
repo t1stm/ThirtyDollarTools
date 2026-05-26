@@ -188,6 +188,7 @@ public static class Program
             );
 
             instance.SceneManager.LoadScene<DrumMaster>("drum-master", _ => new DrumMaster(instance, workflow));
+            instance.SceneManager.LoadScene<SettingsScene.Settings>("settings", _ => new SettingsScene.Settings(instance, SettingsHandler.Settings));
         });
 
         game.Enqueue(instance => instance.SceneManager.TransitionTo("home"));
