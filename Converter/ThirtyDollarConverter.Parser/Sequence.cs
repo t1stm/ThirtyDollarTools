@@ -169,7 +169,8 @@ public partial class Sequence
                             SoundEvent = e.SoundEvent,
                             Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
                             Volume = e.Volume * ((parsed.Volume ?? 100) / 100),
-                            ValueScale = e.ValueScale
+                            ValueScale = e.ValueScale,
+                            IsStandardImplementation = sequence.IsNewFormat
                         };
 
                         if (e is not ExtendedEvent ex || (e.SoundEvent ?? "").StartsWith('!')) return extended_event;
