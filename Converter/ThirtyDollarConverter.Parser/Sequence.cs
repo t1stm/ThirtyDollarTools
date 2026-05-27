@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using ThirtyDollarParser.Custom_Events;
@@ -78,9 +79,9 @@ public partial class Sequence
         return true;
     }
 
-    private static bool TryIndividualCut(string text, Sequence sequence, out BaseEvent newEvent)
+    private static bool TryIndividualCut(string text, Sequence sequence, [NotNullWhen(true)] out BaseEvent? newEvent)
     {
-        newEvent = NormalEvent.Empty;
+        newEvent = null;
 
         var match = ICutRegex().Match(text);
         if (!match.Success) return false;
@@ -105,9 +106,9 @@ public partial class Sequence
         return true;
     }
 
-    private static bool TryBookmark(string text, out BaseEvent newEvent)
+    private static bool TryBookmark(string text, [NotNullWhen(true)] out BaseEvent? newEvent)
     {
-        newEvent = NormalEvent.Empty;
+        newEvent = null;
 
         var match = BookmarkRegex().Match(text);
         if (!match.Success) return false;
@@ -172,7 +173,7 @@ public partial class Sequence
                         };
 
                         if (e is not ExtendedEvent ex || (e.SoundEvent ?? "").StartsWith('!')) return extended_event;
-                        
+
                         extended_event.Pan = pan + ex.Pan;
                         extended_event.OffsetInSeconds = offset + ex.OffsetInSeconds;
                         extended_event.IsStandardImplementation = ex.IsStandardImplementation;
@@ -272,12 +273,13 @@ public partial class Sequence
         return true;
     }
 
-    private static bool TryIndividualCutTDW(string text, Sequence sequence, out IndividualCutEvent icut)
+    private static bool TryIndividualCutTDW(string text, Sequence sequence,
+        [NotNullWhen(true)] out IndividualCutEvent? icut)
     {
         var splitForValue = text.Split('@');
         if (splitForValue is not ["!cut", _])
         {
-            icut = new IndividualCutEvent([]);
+            icut = null;
             return false;
         }
 
@@ -300,6 +302,7 @@ public partial class Sequence
         if (TryIndividualCutTDW(text, sequence, out var new_individual_cut_tdw_event))
             return new_individual_cut_tdw_event;
         if (TryBookmark(text, out var bookmark_event)) return bookmark_event;
+        if (TryLegacyEvent(text, sequence, out var legacy_event)) return legacy_event;
 
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
             // Special color lines get their own parser. 🗿
@@ -364,7 +367,7 @@ public partial class Sequence
         {
             var new_event = new ExtendedEvent
             {
-                Pan = sequence.IsNewFormat ? pan / 100f : pan,
+                Pan = sequence.IsNewFormat ? pan / 10f : pan,
                 OffsetInSeconds = offset,
                 Value = value,
                 WorkingValue = value,
@@ -377,6 +380,15 @@ public partial class Sequence
 
             return new_event;
         }
+    }
+
+    private static bool TryLegacyEvent(string text, Sequence sequence, [NotNullWhen(true)] out LegacySequenceEvent? legacy)
+    {
+        legacy = null;
+        if (!text.StartsWith("#legacy")) return false;
+        legacy = new LegacySequenceEvent();
+        sequence.IsNewFormat = false;
+        return true;
     }
 
     public static NormalEvent ParseColorEvent(string text)
