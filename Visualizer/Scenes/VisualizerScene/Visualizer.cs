@@ -245,6 +245,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     public override void Update(UpdateArguments updateArgs)
     {
+        _cursorType = CursorType.Default;
         _workflow.Update();
         PlayfieldContainer.Update(updateArgs.Delta);
 
