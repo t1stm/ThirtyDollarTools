@@ -28,7 +28,7 @@ public class Loader : Scene, IGamePreloadable
     private readonly LoaderInterface _loaderInterface;
     private readonly ThirtyDollarDownloader _thirtyDollarDownloader;
     private bool _autoLoadStarted;
-    private CursorType _cursorType = CursorType.Normal;
+    private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
     private IProgressReport _progressReport = new NotStartedReport();
 
@@ -102,7 +102,7 @@ public class Loader : Scene, IGamePreloadable
     public override void Update(UpdateArguments updateArgs)
     {
         _background.Update();
-        _cursorType = CursorType.Normal;
+        _cursorType = CursorType.Default;
 
         if (!_autoLoadStarted)
         {
@@ -127,14 +127,17 @@ public class Loader : Scene, IGamePreloadable
             _loaderInterface.Update(progressReport, _context);
         }
 
-        Game.Cursor = _cursorType switch
+        var cursor = _cursorType switch
         {
-            CursorType.Normal => MouseCursor.Default,
+            CursorType.Default => MouseCursor.Default,
             CursorType.Pointer => MouseCursor.PointingHand,
             CursorType.ResizeX => MouseCursor.ResizeEW,
             CursorType.ResizeY => MouseCursor.ResizeNS,
             _ => MouseCursor.Default
         };
+
+        if (Game.Cursor != cursor)
+            Game.Cursor = cursor;
 
         if (!_thirtyDollarDownloader.AssetsLoaded && !Finished) return;
         _loaderInterface.Label.SetTextContents("Loading interface...");

@@ -9,7 +9,9 @@ namespace Sundex.Engine.Scenes;
 public class SceneManager(ILogger logger)
 {
     public Dictionary<string, Scene> Scenes { get; } = new();
-    public List<Scene> ActiveScenes { get; } = [];
+    public List<Scene> ActiveScenes { get; private set; } = [];
+    private List<Scene>? _nextScenes = [];
+    
     private Queue<Scene> ScenesToInitialize { get; } = [];
 
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
@@ -58,7 +60,7 @@ public class SceneManager(ILogger logger)
     {
         lock (Scenes)
         {
-            foreach (var scene in ActiveScenes)
+            foreach (var (_, scene) in Scenes)
             {
                 DebugMarker("Resizing scene: ", $"{scene.GetType().Name} {eWidth}x{eHeight}");
                 scene.Resize(eWidth, eHeight);
@@ -70,10 +72,10 @@ public class SceneManager(ILogger logger)
     {
         lock (ActiveScenes)
         {
-            ActiveScenes.Clear();
-            ActiveScenes.AddRange(scenes);
+            _nextScenes = [];
+            _nextScenes.AddRange(scenes);
 
-            foreach (var scene in ActiveScenes)
+            foreach (var scene in _nextScenes)
             {
                 DebugMarker("Transitioning to scene: ", scene.GetType().Name);
                 scene.TransitionedTo();
@@ -136,6 +138,9 @@ public class SceneManager(ILogger logger)
     {
         lock (ActiveScenes)
         {
+            if (_nextScenes != null)
+                ActiveScenes = _nextScenes;
+            
             foreach (var scene in ActiveScenes)
             {
                 DebugMarker("Updating scene: ", scene.GetType().Name, true);

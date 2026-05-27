@@ -1,0 +1,27 @@
+<sundex version="1.0">
+  <style language="sundex" src="UI/Layout/PlayerBar.snx.ss"/>
+  <logic language="csharp" src="UI/Layout/PlayerBar.snx.csx" imports="[VisualizerScene.UI]"/>
+
+  <layout>
+    <panel id="bar-root">
+      <flex id="left-group">
+        <button id="back-button">
+          <label value="Back"/>
+        </button>
+      </flex>
+      <flex id="center-group">
+        <label id="current-time" value="00:00.00"/>
+        <progress id="progress-bar"/>
+        <label id="total-time" value="00:00.00"/>
+      </flex>
+      <flex id="right-group">
+        <button id="play-pause-button">
+          <label value="Play"/>
+        </button>
+        <button id="restart-button">
+          <label value="Restart"/>
+        </button>
+      </flex>
+    </panel>
+  </layout>
+</sundex>

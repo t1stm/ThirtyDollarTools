@@ -29,7 +29,6 @@ public class UIContext : IGamePreloadable
 
     public Action<CursorType> RequestCursor { get; set; } = _ => { };
 
-
     public static void Preload(AssetProvider assetProvider)
     {
         _assetProvider = assetProvider;

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Audio;
@@ -22,14 +23,16 @@ using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;
 using ThirtyDollarParser;
 using VisualizerScene.Objects.Playfield;
+using VisualizerScene.UI;
 using VisualizerScene.Settings;
+using Sundex.Components.Abstractions;
 
 namespace VisualizerScene;
 
 [PreloadGraphicsContext]
 public class Visualizer : Scene, IGamePreloadable
 {
-    private const string Version = "2.0.0 (Insider Build)";
+    public const string Version = "2.0.0 (Insider Build)";
     private readonly FpsCounter _fpsCounter = new();
 
     #region Stopwatches
@@ -45,6 +48,7 @@ public class Visualizer : Scene, IGamePreloadable
     private readonly DollarStoreCamera _textCamera;
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly ThirtyDollarWorkflow _workflow;
+    private PlayerBar? _playerBar;
 
     private BackingAudio? _backingAudio;
     private StringFormatter? _debugFormatter;
@@ -54,6 +58,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     private ulong _updateId;
     private int _width;
+    private CursorType _cursorType;
 
     /// <summary>
     ///     Creates a TDW sequence visualizer.
@@ -125,7 +130,7 @@ public class Visualizer : Scene, IGamePreloadable
     public override void Initialize(InitArguments initArguments)
     {
         _glInfo = initArguments.GLInfo;
-        TextContainer = new VisualizerTextContainer(VisualizerFonts, Version, _width, _height, Scale)
+        TextContainer = new VisualizerTextContainer(VisualizerFonts, _width, _height, Scale)
         {
             Greeting =
             {
@@ -155,8 +160,25 @@ public class Visualizer : Scene, IGamePreloadable
         };
         UpdateStaticRenderables(_width, _height, Scale);
 
-        PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
+        var playerBarContext = new UIContext { Camera = _textCamera, RequestCursor = type => _cursorType = type };
+        _playerBar = new PlayerBar(playerBarContext,
+            () => SceneManager.TransitionTo("home"),
+            () => SequencePlayer.TogglePause(),
+            () =>
+            {
+                PlayfieldContainer.Reset();
+                SequencePlayer.Seek(0);
+                PlayfieldContainer.ResetAllAnimations();
+            },
+            progress =>
+            {
+                if (TimedEvents.Placement.Length == 0) return;
+                SequencePlayer.Seek((long)(progress *
+                                           SequencePlayer.GetTimeFromIndex(TimedEvents.Placement[^1].Index)));
+            }
+        );
 
+        PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
 
         try
         {
@@ -180,6 +202,7 @@ public class Visualizer : Scene, IGamePreloadable
 
         Overlay.Resize(w, h);
         PlayfieldContainer.Resize(resize);
+        _playerBar?.Resize();
         UpdateStaticRenderables(w, h, PlayfieldContainer.Camera.GetRenderScale());
 
         _width = w;
@@ -206,6 +229,10 @@ public class Visualizer : Scene, IGamePreloadable
 
         // renders the static layout
         TextContainer.RenderStaticText(_textCamera);
+
+        if (_playerBar is null) return;
+        _playerBar.UpdateAlpha(Game.MouseState, _height, (float)deltaTime);
+        _playerBar.RootPanel.Context.Render();
     }
 
     public override void TransitionedTo()
@@ -220,6 +247,33 @@ public class Visualizer : Scene, IGamePreloadable
     {
         _workflow.Update();
         PlayfieldContainer.Update(updateArgs.Delta);
+
+        if (_playerBar is not null)
+        {
+            var p_stopwatch = SequencePlayer.GetTimingStopwatch();
+            var p_elapsed = p_stopwatch.ElapsedMilliseconds;
+            var p_total = TimedEvents.Placement.Length > 0
+                ? SequencePlayer.GetTimeFromIndex(TimedEvents.Placement[^1].Index)
+                : 0;
+            _playerBar.ProgressBar.Progress = p_total > 0 ? (float)p_elapsed / p_total : 0;
+            _playerBar.CurrentTimeLabel.Value = TimeString(p_elapsed);
+            _playerBar.TotalTimeLabel.Value = TimeString(p_total);
+            _playerBar.PlayPauseButton.Label.Value = p_stopwatch.IsRunning ? "Pause" : "Play";
+
+            _playerBar.Update(_playerBar.RootPanel.Context);
+        }
+
+        var cursor = _cursorType switch
+        {
+            CursorType.Default => MouseCursor.Default,
+            CursorType.Pointer => MouseCursor.PointingHand,
+            CursorType.ResizeX => MouseCursor.ResizeEW,
+            CursorType.ResizeY => MouseCursor.ResizeNS,
+            _ => MouseCursor.Default
+        };
+
+        if (Game.Cursor != cursor)
+            Game.Cursor = cursor;
 
         // checks if there is a backing audio
         if (_backingAudio is null) return;
@@ -257,6 +311,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
+        _playerBar?.MouseEvent(mouseState, Vector2.One);
         // gets scroll
         var scroll = mouseState.ScrollDelta;
         if (scroll == Vector2.Zero) return;
@@ -506,7 +561,6 @@ public class Visualizer : Scene, IGamePreloadable
     public Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer)
     {
         TextContainer.ShowControls = false;
-        TextContainer.ShowVersion = false;
 
         PlayfieldContainer.Camera.ScrollTo((0, -300, 0));
 

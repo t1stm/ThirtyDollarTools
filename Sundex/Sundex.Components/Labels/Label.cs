@@ -14,11 +14,9 @@ public class Label : UIElement
     private const float ReferenceFontSize = 14;
 
     protected readonly TextBuffer? TextBuffer;
-    private string _textValue;
 
     public Label(UIContext context, ReadOnlySpan<char> text) : base(context)
     {
-        _textValue = text.ToString();
         TextBuffer = new TextBuffer(context.TextProvider, context.DeleteQueue);
         TextSlice = TextBuffer.GetTextSlice(text);
     }
@@ -38,7 +36,7 @@ public class Label : UIElement
     [NamedSetting("text-value")]
     public ReadOnlySpan<char> Value
     {
-        get => TextSlice != null ? TextSlice.Value : _textValue;
+        get => TextSlice != null ? TextSlice.Value : "";
         set => SetTextContents(value);
     }
 
@@ -80,7 +78,6 @@ public class Label : UIElement
 
     public void SetTextContents(ReadOnlySpan<char> text)
     {
-        _textValue = text.ToString();
         if (TextSlice == null) return;
         if (TextBuffer == null) return;
 

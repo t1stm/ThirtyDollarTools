@@ -8,7 +8,15 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+        <ProjectReference Include="..\..\..\Sundex\Sundex.Markup\Sundex.Markup.csproj"/>
+        <ProjectReference Include="..\..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
         <ProjectReference Include="..\..\Shared\Shared.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="UI\Layout\PlayerBar.snx.xml"/>
+        <EmbeddedResource Include="UI\Layout\PlayerBar.snx.ss"/>
+        <EmbeddedResource Include="UI\Layout\PlayerBar.snx.csx"/>
     </ItemGroup>
 
 </Project>

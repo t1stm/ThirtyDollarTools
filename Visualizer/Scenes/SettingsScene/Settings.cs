@@ -19,7 +19,7 @@ public class Settings : Scene
     private readonly UIContext _context;
     private readonly SettingsInterface _settingsInterface;
 
-    private CursorType _cursorType = CursorType.Normal;
+    private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
 
     public Settings(Game game, VisualizerSettings settings) : base(game)
@@ -40,7 +40,7 @@ public class Settings : Scene
         };
 
         _settingsInterface = new SettingsInterface(_context, settings,
-            () => { Game.Enqueue(instance => instance.SceneManager.TransitionTo("home")); });
+            () => { Game.SceneManager.TransitionTo("home"); });
     }
 
     public override void Initialize(InitArguments initArguments)
@@ -62,17 +62,20 @@ public class Settings : Scene
 
     public override void Update(UpdateArguments updateArgs)
     {
-        _cursorType = CursorType.Normal;
+        _cursorType = CursorType.Default;
         _settingsInterface.Update(_context);
 
-        Game.Cursor = _cursorType switch
+        var cursor = _cursorType switch
         {
-            CursorType.Normal => MouseCursor.Default,
+            CursorType.Default => MouseCursor.Default,
             CursorType.Pointer => MouseCursor.PointingHand,
             CursorType.ResizeX => MouseCursor.ResizeEW,
             CursorType.ResizeY => MouseCursor.ResizeNS,
             _ => MouseCursor.Default
         };
+
+        if (Game.Cursor != cursor)
+            Game.Cursor = cursor;
     }
 
     public override void Resize(int w, int h)

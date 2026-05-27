@@ -32,6 +32,12 @@ public class SundexContext(UIContext context) : ISundexContext
         LoadedComponents.Add(component.Name, component);
     }
 
+    public void UnregisterComponent(ISundexComponent component)
+    {
+        if (component.Name == null) throw new Exception("Component name cannot be null.");
+        LoadedComponents.Remove(component.Name);
+    }
+    
     public void RegisterElementFactory(string tagName, Func<UIContext, UIElement> factory)
     {
         if (!ElementFactories.TryAdd(tagName, factory))

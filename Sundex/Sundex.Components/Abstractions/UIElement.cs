@@ -101,9 +101,22 @@ public abstract class UIElement
         }
     } = true;
 
+    [NamedSetting("cursor")]
+    public CursorType Cursor
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    } = CursorType.Default;
+
     public bool IsHovered { get; set; }
     public bool IsPressed { get; set; }
-    public bool UpdateCursorOnHover { get; set; }
+
+    public bool UpdateCursorOnHover
+    {
+        get => Cursor != CursorType.Default;
+        set => Cursor = value ? CursorType.Pointer : CursorType.Default;
+    }
+
     public bool NeedsLayout { get; protected set; } = true;
 
     protected StyleSheet? StoredStyleSheet { get; private set; }
@@ -248,8 +261,8 @@ public abstract class UIElement
     /// <param name="uiContext">The current UI context.</param>
     public virtual void Update(UIContext uiContext)
     {
-        if (IsHovered && UpdateCursorOnHover)
-            uiContext.RequestCursor(CursorType.Pointer);
+        if (IsHovered && Cursor != CursorType.Default)
+            uiContext.RequestCursor(Cursor);
     }
 
     protected virtual void ApplyAnimations(params ReadOnlySpan<Renderable?> renderables)
@@ -504,6 +517,13 @@ public abstract class UIElement
             {
                 propertyInfo.SetValue(this, sv.Value == "true");
                 HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
+                break;
+            }
+
+            case StringValue sv when propertyInfo.PropertyType == typeof(CursorType):
+            {
+                if (Enum.TryParse<CursorType>(sv.Value, true, out var cursor))
+                    propertyInfo.SetValue(this, cursor);
                 break;
             }
         }

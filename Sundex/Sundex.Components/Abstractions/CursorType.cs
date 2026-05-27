@@ -2,7 +2,7 @@ namespace Sundex.Components.Abstractions;
 
 public enum CursorType
 {
-    Normal,
+    Default,
     Pointer,
     ResizeX,
     ResizeY

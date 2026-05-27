@@ -2,7 +2,6 @@ using Shared.Helpers.Positioning;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Cameras;
-using Sundex.Engine.Renderer.Enums;
 using Sundex.Engine.Text;
 
 namespace VisualizerScene;
@@ -12,24 +11,17 @@ public class VisualizerTextContainer
     private const int UpdatableTextSliceMaxLength = 1024;
     private readonly TextBuffer _controlsBuffer;
     private readonly TextBuffer _debugBuffer;
-    private readonly VisualizerFonts _fonts;
     private readonly TextBuffer _genericBuffer;
     private readonly TextBuffer _greetingBuffer;
     private readonly float _scale;
 
-    private readonly string _version;
-    private readonly TextBuffer _versionBuffer;
-
-    public VisualizerTextContainer(VisualizerFonts fonts, string version, int width, int height, float scale = 1f)
+    public VisualizerTextContainer(VisualizerFonts fonts, int width, int height, float scale = 1f)
     {
-        _fonts = fonts;
-        _version = version;
         _scale = scale;
 
         _genericBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
         _debugBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
         _greetingBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
-        _versionBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
         _controlsBuffer = new TextBuffer(fonts.LatoBoldProvider, fonts.DeleteQueue);
         Overlay = CreateLayout(width, height);
         Greeting = _greetingBuffer.GetTextSlice(" ", UpdatableTextSliceMaxLength);
@@ -39,27 +31,10 @@ public class VisualizerTextContainer
     public TextSlice Greeting { get; }
     public bool ShowDebug { get; set; }
     public bool ShowControls { get; set; } = true;
-    public bool ShowVersion { get; set; } = true;
 
     private Layout CreateLayout(int width, int height)
     {
         var overlay = new Layout(width, height);
-        overlay.Add("version",
-            () => _versionBuffer.GetTextSlice(
-                    $"""
-                     Check regularly for updates at:
-                     https://github.com/t1stm/ThirtyDollarTools
-
-                     Current Version: {_version}
-                     """,
-                    (value, buffer, range) => new TextSlice(buffer, range)
-                    {
-                        Value = value,
-                        FontSize = 14 * _scale
-                    })
-                .WithPosition((10, height, 0), PositionAlign.Bottom | PositionAlign.Left),
-            onResize:
-            (text, _, h) => { text.SetPosition((10, h, 0), PositionAlign.Bottom | PositionAlign.Left); });
 
         overlay.Add("controls",
             () => _controlsBuffer.GetTextSlice(
@@ -123,8 +98,6 @@ public class VisualizerTextContainer
             _debugBuffer.RenderBuffer(camera);
         if (ShowControls)
             _controlsBuffer.RenderBuffer(camera);
-        if (ShowVersion)
-            _versionBuffer.RenderBuffer(camera);
     }
 
     public void RenderGreeting(Camera camera)

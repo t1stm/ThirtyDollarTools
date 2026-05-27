@@ -150,7 +150,7 @@ public class WindowFrame : Panel
 
     public override void Update(UIContext uiContext)
     {
-        if (RequestedCursor != CursorType.Normal)
+        if (RequestedCursor != CursorType.Default)
             uiContext.RequestCursor.Invoke(RequestedCursor);
     }
 }
