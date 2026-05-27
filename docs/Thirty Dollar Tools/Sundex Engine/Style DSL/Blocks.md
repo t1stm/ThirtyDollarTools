@@ -120,8 +120,8 @@ component button {
     font-size = 14px;
     border-radius = 5px;
 
-    state[hovered] = !override { background = "#2a2a2a"; };
-    state[pressed] = !override { background = "#0f0f0f"; };
+    state[hovered] = { background = "#2a2a2a" }
+    state[pressed] = { background = "#0f0f0f" }
 }
 ```
 
@@ -133,8 +133,8 @@ StyleSheetHolder.Components["button"] = {
     "background":       ColorValue("#1c1c1c"),
     "font-size":        NumberValue(14, "px"),
     "border-radius":    NumberValue(5, "px"),
-    "state[hovered]":   OverrideValue(BlockValue({...})),
-    "state[pressed]":   OverrideValue(BlockValue({...}))
+    "state[hovered]":   BlockValue({...}),
+    "state[pressed]":   BlockValue({...})
 }
 ```
 
@@ -267,23 +267,16 @@ Two reasons to want full replace:
 
 `FullOverrides` is just a `HashSet<string>` of names — the runtime doesn't currently use it for anything (it's metadata). It's preserved through merging in `StyleSheetHolder.Merge`. Future tooling could use it (e.g. linters that warn "you're inheriting 7 properties from `default.snx.ss`'s button — did you mean to?").
 
-## `state[name] = !override { ... }`
+## `state[name] = { ... }`
 
 Inside `component`, `class`, or `id` blocks:
 
 ```css
-state[hovered] = !override { background = "#2a2a2a"; };
-state[pressed] = !override { background = "#0f0f0f"; border-radius = 8px; };
+state[hovered] = { background = "#2a2a2a" }
+state[pressed] = { background = "#0f0f0f"; border-radius = 8px; }
 ```
 
-The `!override` keyword wraps a `BlockValue` to mark it as a state override. The `OverrideValue.Properties` accessor returns the inner block:
-
-```csharp
-public record OverrideValue(IStyleValue Value) : IStyleValue {
-    public BlockValue Properties => (BlockValue)Value;
-    ...
-}
-```
+State values are plain `BlockValue` — curly braces with one or more `key = value` pairs. No `!override` prefix. The stored key is the literal string `"state[hovered]"`.
 
 State names are free-form strings. The current renderer recognises:
 
@@ -306,7 +299,7 @@ public Dictionary<string, IStyleValue>? GetStateOverrideForTag(string name, stri
 }
 ```
 
-The parser stores states as `"state[hovered]"` literal keys. The lookup builds the same key from the requested state name. The value must be a `BlockValue` (which `OverrideValue.Properties` returns) — the `!override` wrapper is unwrapped by `OverrideValue` itself.
+The parser stores states as `"state[hovered]"` literal keys. The lookup builds the same key from the requested state name. The value must be a plain `BlockValue` — the `is BlockValue` check is what the lookup uses. This is why state blocks must be written as `{ ... }` without any `!override` prefix.
 
 ## Specificity
 

@@ -119,5 +119,5 @@ If you genuinely want to swallow an exception, do it inside the worker `try`/`ca
 ## Related
 
 - [[Entrypoint|`Game.OnUpdateFrame`]] is what drains the exception queue.
-- [[../Asset Management|AssetProvider]]'s `_cachedAssets` queue is a typical consumer — files are decoded off-thread and the byte payload bounces back here for the GL-thread-only `File.WriteAllBytes` call.
+- [[./Asset Management|AssetProvider]]'s `_cachedAssets` queue is a typical consumer — files are decoded off-thread and the byte payload bounces back here for the GL-thread-only `File.WriteAllBytes` call.
 - [[../Markup/Phases/Parsing Logic|Roslyn script compilation]] in the markup pipeline is the largest in-tree consumer of `RunTask`.

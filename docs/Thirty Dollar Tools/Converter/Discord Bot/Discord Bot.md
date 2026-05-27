@@ -2,7 +2,7 @@
 
 > Owning project: `Converter/ThirtyDollarConverter.DiscordBot/`
 
-The same converter as the [[../Converter.GUI/Converter.GUI|GUI]] and the [[../Converter.CLI/Converter.CLI|CLI]], but exposed as a Discord bot. Users upload (or right-click) a sequence file, the bot encodes it through the same five phases ([[../Phases/Getting All Samples|Getting All Samples]] → [[../Phases/Loading Into Memory|Loading Into Memory]] → [[../Phases/Parsing Sequences|Parsing Sequences]] → [[../Phases/Calculating the Placement|Calculating the Placement]] → [[../Phases/Encoding|Encoding]]), and replies with the audio attachment.
+The same converter as the [[../Converter.GUI/Converter.GUI|GUI]] and the [[../Converter.CLI/Converter.CLI|CLI]], but exposed as a Discord bot. Users upload (or right-click) a sequence file, the bot encodes it through the same five phases ([[../Phases/1 - Getting All Samples|Getting All Samples]] → [[../Phases/2 - Loading Into Memory|Loading Into Memory]] → [[../Phases/3 - Parsing Sequences|Parsing Sequences]] → [[../Phases/4 - Calculating the Placement|Calculating the Placement]] → [[../Phases/5 - Encoding|Encoding]]), and replies with the audio attachment.
 
 ## Files
 

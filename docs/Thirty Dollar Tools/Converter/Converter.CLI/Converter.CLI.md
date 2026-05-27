@@ -2,7 +2,7 @@
 
 > Owning project: `Converter/ThirtyDollarConverter.CLI/`
 
-A small command-line front-end for the converter pipeline. Wraps the same five-phase pipeline ([[../Phases/Getting All Samples|Getting All Samples]] → [[../Phases/Loading Into Memory|Loading Into Memory]] → [[../Phases/Parsing Sequences|Parsing Sequences]] → [[../Phases/Calculating the Placement|Calculating the Placement]] → [[../Phases/Encoding|Encoding]]) that the [[../Converter.GUI/Converter.GUI|GUI]] and [[../Discord Bot/Discord Bot|Discord Bot]] use, just driven by command-line flags instead of a UI.
+A small command-line front-end for the converter pipeline. Wraps the same five-phase pipeline ([[../Phases/1 - Getting All Samples|Getting All Samples]] → [[../Phases/2 - Loading Into Memory|Loading Into Memory]] → [[../Phases/3 - Parsing Sequences|Parsing Sequences]] → [[../Phases/4 - Calculating the Placement|Calculating the Placement]] → [[../Phases/5 - Encoding|Encoding]]) that the [[../Converter.GUI/Converter.GUI|GUI]] and [[../Discord Bot/Discord Bot|Discord Bot]] use, just driven by command-line flags instead of a UI.
 
 ## Files
 

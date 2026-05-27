@@ -2,14 +2,14 @@
 
 > Owning project: `Converter/ThirtyDollarConverter.GUI/`
 
-A small Avalonia + ReactiveUI desktop app that exposes the converter pipeline through a graphical UI. Same five phases as the [[../Converter.CLI/Converter.CLI|CLI]] ([[../Phases/Getting All Samples|Getting All Samples]] → [[../Phases/Loading Into Memory|Loading Into Memory]] → [[../Phases/Parsing Sequences|Parsing Sequences]] → [[../Phases/Calculating the Placement|Calculating the Placement]] → [[../Phases/Encoding|Encoding]]) — just with a window around them.
+A small Avalonia + ReactiveUI desktop app that exposes the converter pipeline through a graphical UI. Same five phases as the [[../Converter.CLI/Converter.CLI|CLI]] ([[../Phases/1 - Getting All Samples|Getting All Samples]] → [[../Phases/2 - Loading Into Memory|Loading Into Memory]] → [[../Phases/3 - Parsing Sequences|Parsing Sequences]] → [[../Phases/4 - Calculating the Placement|Calculating the Placement]] → [[../Phases/5 - Encoding|Encoding]]) — just with a window around them.
 
 ## Layout
 
 | Folder | Purpose |
 | --- | --- |
 | `Views/` | Avalonia `.axaml` + code-behind for each window (`MainWindow`, `Greeter`, `Downloader`, `ExportSettings`). |
-| `ViewModels/` | ReactiveUI view-models. `MainWindowViewModel` is the orchestrator; `ExportSettingsViewModel` is the form bound to `EncoderSettings`; `DownloaderViewModel` shows download progress for [[../Phases/Getting All Samples|Phase 1]]. |
+| `ViewModels/` | ReactiveUI view-models. `MainWindowViewModel` is the orchestrator; `ExportSettingsViewModel` is the form bound to `EncoderSettings`; `DownloaderViewModel` shows download progress for [[../Phases/1 - Getting All Samples|Phase 1]]. |
 | `Services/`  | `DialogService` for file pickers; `ResamplerService` for the resampler dropdown. |
 | `Models/`    | `ResamplerModel` — display-name + factory for each `IResampler` implementation. |
 | `Behaviors/` | Avalonia behaviors (e.g. auto-scroll for the log pane). |

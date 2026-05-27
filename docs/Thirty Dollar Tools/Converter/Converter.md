@@ -9,20 +9,20 @@ Conceptually it is one library (`ThirtyDollarConverter`) plus a few support libr
 ```
 .🗿 / TDW text
        │
-       │  Sequence.FromString()           [[Phases/Parsing Sequences|Parsing Sequences]]
+       │  Sequence.FromString()           [[Phases/3 - Parsing Sequences|Parsing Sequences]]
        ▼
    Sequence (BaseEvent[])
        │
-       │  PlacementCalculator             [[Phases/Calculating the Placement|Calculating the Placement]]
+       │  PlacementCalculator             [[Phases/4 - Calculating the Placement|Calculating the Placement]]
        ▼
    Placement[]   (sample-index timeline)
        │
-       │  SampleProcessor + IResampler    [[Phases/Loading Into Memory|Loading Into Memory]]
+       │  SampleProcessor + IResampler    [[Phases/2 - Loading Into Memory|Loading Into Memory]]
        ▼              ↑
    ProcessedEvent[]   │ raw samples come from
-       │              │ SampleHolder       [[Phases/Getting All Samples|Getting All Samples]]
+       │              │ SampleHolder       [[Phases/1 - Getting All Samples|Getting All Samples]]
        │
-       │  PCMEncoder (channels × chunks)  [[Phases/Encoding|Encoding]]
+       │  PCMEncoder (channels × chunks)  [[Phases/5 - Encoding|Encoding]]
        ▼
    AudioMixer → AudioData<float>
        │
@@ -37,11 +37,11 @@ Each block of the pipeline has its own page in **Phases/**, and they read in the
 
 The five phases of the encoder, in execution order:
 
-1. [[Phases/Getting All Samples|Getting All Samples]] — Loading `sounds.json`, downloading every sound, and discovering custom user samples. Owned by `SampleHolder`.
-2. [[Phases/Loading Into Memory|Loading Into Memory]] — Decoding every `.wav` from disk into `PcmDataHolder` / `AudioData<float>`. Covers `WaveDecoder`.
-3. [[Phases/Parsing Sequences|Parsing Sequences]] — Turning the raw `|`-delimited text into a `Sequence` of `BaseEvent`s, including `#define` macros, `#icut`, `!bg`, `!pulse`, etc.
-4. [[Phases/Calculating the Placement|Calculating the Placement]] — Walking the sequence as a tiny VM (BPM, transpose, volume, jumps, loops, cuts) to produce a flat `Placement[]` indexed in audio samples.
-5. [[Phases/Encoding|Encoding]] — Resampling each unique sound, then mixing every placement into the final stereo buffer using SIMD-vectorized chunks across multiple worker threads. Covers `PCMEncoder`, `AudioMixer`, `ProcessedEvent`, `RenderedSequence`, `TimedEvent`.
+1. [[Phases/1 - Getting All Samples|Getting All Samples]] — Loading `sounds.json`, downloading every sound, and discovering custom user samples. Owned by `SampleHolder`.
+2. [[Phases/2 - Loading Into Memory|Loading Into Memory]] — Decoding every `.wav` from disk into `PcmDataHolder` / `AudioData<float>`. Covers `WaveDecoder`.
+3. [[Phases/3 - Parsing Sequences|Parsing Sequences]] — Turning the raw `|`-delimited text into a `Sequence` of `BaseEvent`s, including `#define` macros, `#icut`, `!bg`, `!pulse`, etc.
+4. [[Phases/4 - Calculating the Placement|Calculating the Placement]] — Walking the sequence as a tiny VM (BPM, transpose, volume, jumps, loops, cuts) to produce a flat `Placement[]` indexed in audio samples.
+5. [[Phases/5 - Encoding|Encoding]] — Resampling each unique sound, then mixing every placement into the final stereo buffer using SIMD-vectorized chunks across multiple worker threads. Covers `PCMEncoder`, `AudioMixer`, `ProcessedEvent`, `RenderedSequence`, `TimedEvent`.
 
 ## Front-ends
 
@@ -113,10 +113,10 @@ Converter/
 
 If you are new to the project, read the phases linearly:
 
-1. [[Phases/Getting All Samples|Getting All Samples]]
-2. [[Phases/Loading Into Memory|Loading Into Memory]]
-3. [[Phases/Parsing Sequences|Parsing Sequences]]
-4. [[Phases/Calculating the Placement|Calculating the Placement]]
-5. [[Phases/Encoding|Encoding]]
+1. [[Phases/1 - Getting All Samples|Getting All Samples]]
+2. [[Phases/2 - Loading Into Memory|Loading Into Memory]]
+3. [[Phases/3 - Parsing Sequences|Parsing Sequences]]
+4. [[Phases/4 - Calculating the Placement|Calculating the Placement]]
+5. [[Phases/5 - Encoding|Encoding]]
 
 Then skim whichever front-end you actually plan to use ([[Converter.CLI/Converter.CLI|CLI]], [[Converter.GUI/Converter.GUI|GUI]] or [[Discord Bot/Discord Bot|Bot]]).

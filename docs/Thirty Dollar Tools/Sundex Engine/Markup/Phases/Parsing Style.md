@@ -9,7 +9,7 @@ The bridge between the markup pipeline and the [[../../Style DSL/Style DSL|Style
 ## The two-step pattern
 
 ```
-   <style src="x.smxs"/>            <style>...inline css-like syntax...</style>
+   <style src="x.snx.ss"/>           <style>...inline DSL syntax...</style>
         │                                    │
         │  AssetProvider.Load                │  (already in SourceCode)
         ▼                                    ▼
@@ -69,14 +69,14 @@ if (!string.IsNullOrEmpty(src)) {
 }
 ```
 
-If `<style src="theme.smxs"/>`, the builder loads `theme.smxs` via the [[../../Engine/Asset Management|`AssetProvider`]] and rewrites the container's `SourceCode`. From here on, the inline-vs-external distinction is invisible — both paths land in `layout.Style.SourceCode`.
+If `<style src="theme.snx.ss"/>`, the builder loads `theme.snx.ss` via the [[../../Engine/Asset Management|`AssetProvider`]] and rewrites the container's `SourceCode`. From here on, the inline-vs-external distinction is invisible — both paths land in `layout.Style.SourceCode`.
 
 `StringInfo.CreateFromUnknownStorage` is the asset-locator helper. It tries:
 1. The application's embedded resources (compiled into the assembly).
 2. The on-disk asset folder.
 3. The asset cache.
 
-Returns the first match. This way the same `src="theme.smxs"` works in development (on-disk) and production (embedded).
+Returns the first match. This way the same `src="theme.snx.ss"` works in development (on-disk) and production (embedded).
 
 ### 2. The import resolver
 
@@ -91,9 +91,9 @@ var styleSheetHolder = StyleParser.Parse(layout.Style.SourceCode, path => {
 });
 ```
 
-The second parameter to `StyleParser.Parse` is a `Func<string, string>` — the parser calls it whenever it sees `@import "...";` directives in the stylesheet. The argument is the path the directive specified; the return is the resolved source text.
+The second parameter to `StyleParser.Parse` is a `Func<string, string>` — the parser calls it whenever it sees `import "...";` directives in the stylesheet. The argument is the path the directive specified; the return is the resolved source text.
 
-The closure captures `context.UIContext.AssetProvider`. This means **imported stylesheets resolve through the same asset paths** as the source — `@import "buttons.smxs"` works the same way `<style src="buttons.smxs"/>` would.
+The closure captures `context.UIContext.AssetProvider`. This means **imported stylesheets resolve through the same asset paths** as the source — `import "buttons.snx.ss"` works the same way `<style src="buttons.snx.ss"/>` would.
 
 `AssetStream` (rather than `StringAsset`) is used here to return a stream that's read inline. This avoids caching the imported text in the `AssetProvider`'s string cache when it's only needed once.
 
@@ -144,8 +144,10 @@ Two equivalent ways to write the same stylesheet:
 <sundex>
     <layout>...</layout>
     <style>
-        button { background: rgb(50, 50, 50); }
-        button:hover { background: rgb(70, 70, 70); }
+        component button {
+            background = "#323232";
+            state[hovered] = { background = "#464646" }
+        }
     </style>
 </sundex>
 ```
@@ -156,20 +158,21 @@ vs.
 <!-- External -->
 <sundex>
     <layout>...</layout>
-    <style src="buttons.smxs"/>
+    <style src="buttons.snx.ss"/>
 </sundex>
 ```
 
-Where `buttons.smxs` contains:
+Where `buttons.snx.ss` contains:
 
 ```css
-button { background: rgb(50, 50, 50); }
-button:hover { background: rgb(70, 70, 70); }
+component button {
+    background = "#323232";
+    state[hovered] = { background = "#464646" }
+}
 ```
 
 The builder doesn't care which form was used — by the time `StyleParser.Parse` runs, `SourceCode` is set in both cases. External is preferred for any non-trivial stylesheet because:
 
-- Editors syntax-highlight `.smxs` correctly (XML-mixed CSS-like syntax confuses most editors).
 - Multiple components can share the same external stylesheet.
 - `src=` paths resolve through the asset cache, which means hot-reloads work.
 
@@ -190,7 +193,7 @@ Both blocks are skipped. The realised tree gets only the attribute-applied value
 A common pattern is **shared stylesheets**: register a stylesheet once at scene init and apply it to every component as it's built:
 
 ```csharp
-var theme = StyleParser.Parse(File.ReadAllText("theme.smxs"), resolver);
+var theme = StyleParser.Parse(File.ReadAllText("theme.snx.ss"), resolver);
 var themeSheet = new StyleSheet(theme);
 
 // Later, each component built without a <style> section gets:

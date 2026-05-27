@@ -2,9 +2,9 @@
 
 > Owning code: `SampleHolder.LoadSamplesIntoMemory()`, `WaveDecoder` (in `ThirtyDollarConverter.Audio/Wave/`), `PcmDataHolder`, `AudioData<T>`, `DataHolderExtensions`.
 
-After [[Getting All Samples]] has guaranteed every sound exists on disk, Phase 2 reads each `.wav` file, decodes its RIFF/WAVE container, and parks the result in a `PcmDataHolder` keyed by `Sound`. It also walks the samples directory a second time to pick up any **custom** `.wav` files the user dropped in, registering them as new sounds.
+After [[1 - Getting All Samples|Getting All Samples]] has guaranteed every sound exists on disk, Phase 2 reads each `.wav` file, decodes its RIFF/WAVE container, and parks the result in a `PcmDataHolder` keyed by `Sound`. It also walks the samples directory a second time to pick up any **custom** `.wav` files the user dropped in, registering them as new sounds.
 
-This is purely an in-memory load — no resampling happens here. Resampling is per-event and lazy, and it lives in [[Encoding]].
+This is purely an in-memory load — no resampling happens here. Resampling is per-event and lazy, and it lives in [[5 - Encoding|Encoding]].
 
 ## `SampleHolder.LoadSamplesIntoMemory()`
 
@@ -43,7 +43,7 @@ Key behaviors:
   1. First, every known TDW sound is decoded in parallel via `Parallel.ForEach`.
   2. Then `Directory.GetFiles(SamplesLocation)` is walked again to find any extra `.wav` files (custom user samples) that weren't in `sounds.json`. They get registered with a synthetic `Sound { Id = filename, Name = filename }`.
 - **Lock-protected dictionary writes.** `SampleList` is a `Dictionary<,>` (not concurrent), so the parallel loops `lock (SampleList)` for every assignment.
-- **Pre-warmed Float32 cache.** Right after decoding, `ReadAsFloat32Array(true)` is called. `true` here forces mono → stereo duplication so downstream stages can always assume two channels. The result is cached on the holder, so when [[Encoding]] later asks for the audio it's just a property read.
+- **Pre-warmed Float32 cache.** Right after decoding, `ReadAsFloat32Array(true)` is called. `true` here forces mono → stereo duplication so downstream stages can always assume two channels. The result is cached on the holder, so when [[5 - Encoding|Encoding]] later asks for the audio it's just a property read.
 
 The end-state is: every `Sound` key in `SampleList` maps to a fully populated `PcmDataHolder` with `FloatData` already converted.
 
@@ -137,7 +137,7 @@ public class AudioData<T> : IDisposable
 
 The shape is `T[channelCount][sampleCount]`. Crucially, **channels are separate arrays** (planar), not interleaved. This:
 
-- makes a single channel a contiguous `Span<T>` for SIMD operations in [[Encoding]],
+- makes a single channel a contiguous `Span<T>` for SIMD operations in [[5 - Encoding|Encoding]],
 - lets parallel workers operate on different channels without tripping on each other,
 - mirrors the layout `AudioMixer.Sum()` and `PCMEncoder.RenderSample()` consume directly.
 
@@ -168,10 +168,10 @@ After this method returns, `holder.FloatData` is non-null and every subsequent c
 
 ## Relationship to `SampleProcessor`
 
-`Phase 2` produces *file-rate* audio — the original samples at, say, 48 kHz, in their natural pitch. It does **not** apply the `Value` (semitone) transposition of an event yet. That happens per-event in `SampleProcessor.ProcessEvent()`, which passes `holder.ReadAsFloat32Array(...)` through an `IResampler` whose target rate depends on the event's `Value` and the encoder's `SampleRate`. See [[Encoding]] for the math.
+`Phase 2` produces *file-rate* audio — the original samples at, say, 48 kHz, in their natural pitch. It does **not** apply the `Value` (semitone) transposition of an event yet. That happens per-event in `SampleProcessor.ProcessEvent()`, which passes `holder.ReadAsFloat32Array(...)` through an `IResampler` whose target rate depends on the event's `Value` and the encoder's `SampleRate`. See [[5 - Encoding|Encoding]] for the math.
 
 ---
 
-**Previous:** [[Getting All Samples]]
-**Next:** [[Parsing Sequences]]
+**Previous:** [[1 - Getting All Samples|Getting All Samples]]
+**Next:** [[3 - Parsing Sequences|Parsing Sequences]]
 **Up:** [[../Converter|Converter]]

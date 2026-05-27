@@ -103,8 +103,8 @@ component button {
     border-radius  = 5px;
     padding        = 5px;
 
-    state[hovered] = !override { background = "#2a2a2a"; };
-    state[pressed] = !override { background = "#0f0f0f"; border-radius = 8px; };
+    state[hovered] = { background = "#2a2a2a" }
+    state[pressed] = { background = "#0f0f0f"; border-radius = 8px; }
 }
 
 // Class — opt-in via class="primary"

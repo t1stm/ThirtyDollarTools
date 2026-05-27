@@ -2,7 +2,7 @@
 
 > Owning code: `ThirtyDollarConverter/PCMEncoder.cs`, `SampleProcessor.cs`, `ProcessedEvent.cs`, `Objects/RenderedSequence.cs`, `Objects/EncoderSettings.cs`, `Objects/PercentageScale.cs`, plus `ThirtyDollarConverter.Audio/PCM/AudioMixer.cs` and the resampler library.
 
-This is the heaviest phase. Given a `TimedEvents` (the output of [[Calculating the Placement]]) and the in-memory `SampleHolder` (from [[Loading Into Memory]]), the encoder produces a fully-mixed stereo `AudioData<float>` and optionally writes it as a `.wav` file.
+This is the heaviest phase. Given a `TimedEvents` (the output of [[4 - Calculating the Placement|Calculating the Placement]]) and the in-memory `SampleHolder` (from [[2 - Loading Into Memory|Loading Into Memory]]), the encoder produces a fully-mixed stereo `AudioData<float>` and optionally writes it as a `.wav` file.
 
 Conceptually it is a four-step pipeline:
 
@@ -95,7 +95,7 @@ public void WriteAsWavFile(Stream stream, AudioData<float> data);
 
 `GetSequenceAudio` is the everyday path. It calls `GetMultipleSequencesAudio([seq])`, which:
 
-1. Asks the `PlacementCalculator` for a sorted `Placement[]` (this is [[Calculating the Placement]]).
+1. Asks the `PlacementCalculator` for a sorted `Placement[]` (this is [[4 - Calculating the Placement|Calculating the Placement]]).
 2. Wraps it in a `TimedEvents`.
 3. Calls `GetAudioSamples` (step A below) to resample each unique event.
 4. Calls `GenerateAudioAndMixer` (steps B+C below) to produce the final `AudioMixer` and a flat `AudioData<float>`.
@@ -267,7 +267,7 @@ var mixer            = new AudioMixer(audio_data);
 
 The output length is the index of the final placement plus the longest single sample (so the longest tail can ring out fully).
 
-Then it iterates `sequence.SeparatedChannels` (populated by [[Parsing Sequences]] from `#icut` and `!cut@…`) and adds one **track per separated sound** to the mixer:
+Then it iterates `sequence.SeparatedChannels` (populated by [[3 - Parsing Sequences|Parsing Sequences]] from `#icut` and `!cut@…`) and adds one **track per separated sound** to the mixer:
 
 ```csharp
 foreach (var sequence in events.Sequences)
@@ -719,5 +719,5 @@ So at peak the encoder uses up to `_channels × MultithreadingSlices` chunk-leve
 
 ---
 
-**Previous:** [[Calculating the Placement]]
+**Previous:** [[4 - Calculating the Placement|Calculating the Placement]]
 **Up:** [[../Converter|Converter]]

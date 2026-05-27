@@ -293,7 +293,7 @@ private IStyleValue ParseKeyword() {
 
 Unknown keywords (like `!my-custom`) become `KeywordValue("my-custom")` — the parser doesn't reject them. They're a no-op for consumers that don't recognise them. This is intentional: future extensions can add new keywords without breaking older parsers (forward compatibility).
 
-### `OverrideValue` — state blocks
+### `OverrideValue`
 
 ```csharp
 public record OverrideValue(IStyleValue Value) : IStyleValue {
@@ -303,52 +303,19 @@ public record OverrideValue(IStyleValue Value) : IStyleValue {
 }
 ```
 
-Wraps a `BlockValue`. The `Properties` accessor casts and exposes the inner block. Used in `state[name] = !override { ... };`:
+Produced by `!override { ... }` in the stylesheet. Wraps a `BlockValue` and exposes it via the `Properties` accessor (which casts the inner value — writing `!override "string"` instead of a block will throw at access time).
+
+`OverrideValue` is **not** used for state blocks. `GetStateOverrideForTag` checks `idState is BlockValue`, so it only matches plain `BlockValue` entries — an `OverrideValue` wrapper would fail that check silently. State blocks must be written without the `!override` prefix:
 
 ```css
-state[hovered] = !override {
-    background = "#2a2a2a";
-};
+// correct — GetStateOverrideForTag finds this:
+state[hovered] = { background = "#2a2a2a" }
+
+// wrong — the !override wrapper causes the lookup to return null:
+state[hovered] = !override { background = "#2a2a2a" }
 ```
 
-The cast in `Properties` will throw if you write `!override "string"` — the inner value must be a block.
-
-The `OverrideValue` wrapper exists to **distinguish** a state block from any other block value at lookup time. `GetStateOverrideForTag` checks `idState is BlockValue` — but because `ParseBlock` stores the state value as the parser produced it (`OverrideValue` wrapping `BlockValue`), the cast unwraps via `OverrideValue.Properties` returning `BlockValue`.
-
-Wait — actually, looking at the source more carefully:
-
-```csharp
-// ParseBlock for state:
-var stateValue = ParseValue();    // returns OverrideValue
-properties[$"state[{stateName}]"] = stateValue;   // stores OverrideValue
-```
-
-But `GetStateOverrideForTag` checks for `BlockValue`:
-
-```csharp
-if (ids.TryGetValue(name, out var idProps) && idProps.TryGetValue(key, out var idState) &&
-    idState is BlockValue idBlock) return idBlock.Properties;
-```
-
-This means **the `is BlockValue` check fails for `OverrideValue`**. The state lookup as written wouldn't work for the canonical `state[hovered] = !override { ... }` syntax. Either:
-
-- The runtime uses a different lookup path that unwraps `OverrideValue`, or
-- The state syntax is `state[hovered] = { ... }` without `!override`.
-
-Looking at the example file, both forms appear:
-
-```css
-state[pressed] = !override {       // example uses !override
-    background = "#020202ff";
-    border-radius = 10px;
-};
-
-state[hovered] = !override {       // also !override
-    background = "#020202ff"
-};
-```
-
-So in practice the syntax in actual stylesheets uses `!override`. The runtime lookup likely has a third dispatch path (or the `OverrideValue` is unwrapped elsewhere). This is a wart in the type system worth keeping an eye on.
+`OverrideValue` is parsed and stored in the `IStyleValue` AST when explicitly written, but no part of the current runtime lookup uses it.
 
 ### `GradientValue`
 

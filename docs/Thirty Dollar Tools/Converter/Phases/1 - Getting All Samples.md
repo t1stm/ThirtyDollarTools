@@ -4,7 +4,7 @@
 
 Before any sequence can be encoded, the converter needs the actual sound files. The Thirty Dollar Website hosts every "default" sound at `https://thirtydollar.website/sounds/{id}.wav`, listed in a manifest at `https://thirtydollar.website/sounds.json`. Phase 1 is responsible for fetching that manifest, downloading any missing samples to a local cache, and discovering custom user-supplied samples that live alongside them.
 
-This phase is implemented entirely by `SampleHolder`. It is intentionally **disk-and-network heavy and CPU light**; the next phase ([[Loading Into Memory|Loading Into Memory]]) is what actually decodes those `.wav` files.
+This phase is implemented entirely by `SampleHolder`. It is intentionally **disk-and-network heavy and CPU light**; the next phase ([[2 - Loading Into Memory|Loading Into Memory]]) is what actually decodes those `.wav` files.
 
 ## What `SampleHolder` is
 
@@ -30,7 +30,7 @@ Two dictionaries are the heart of the class:
 
 `SamplesLocation` defaults to `./Sounds` and is created on demand by `PrepareDirectory()`.
 
-`Sound` itself is a JSON-deserializable record from [[Parsing Sequences|Parsing Sequences]] / `Sound.cs` containing `Id`, optional `Emoji`, `Name`, `Source`, and `UseID` (a flag used when a sound's "name" should always be its ID, not its emoji).
+`Sound` itself is a JSON-deserializable record from [[3 - Parsing Sequences|Parsing Sequences]] / `Sound.cs` containing `Id`, optional `Emoji`, `Name`, `Source`, and `UseID` (a flag used when a sound's "name" should always be its ID, not its emoji).
 
 ## Step 1: `LoadSampleList()`
 
@@ -142,7 +142,7 @@ After `LoadSampleList()` + `DownloadSamples()` complete, `SampleHolder` exposes:
 - a populated `StringToSoundReferences` (every alias → canonical Sound),
 - `.wav` files on disk for every sound at `{SamplesLocation}/{id}.wav`.
 
-It does **not** have audio in memory yet. That happens in [[Loading Into Memory]].
+It does **not** have audio in memory yet. That happens in [[2 - Loading Into Memory|Loading Into Memory]].
 
 ## Front-end usage (illustrative)
 
@@ -150,12 +150,12 @@ It does **not** have audio in memory yet. That happens in [[Loading Into Memory]
 var holder = new SampleHolder(serilogLogger) { SamplesLocation = "./Sounds" };
 await holder.LoadSampleList();        // Phase 1a — manifest
 await holder.DownloadSamples();       // Phase 1b — download
-holder.LoadSamplesIntoMemory();       // Phase 2  — see [[Loading Into Memory]]
+holder.LoadSamplesIntoMemory();       // Phase 2  — see [[2 - Loading Into Memory|Loading Into Memory]]
 ```
 
 This exact sequence is used in `ThirtyDollarConverter.CLI/Program.cs` and analogously in the GUI's `MainWindowViewModel`. The Discord Bot performs Phase 1 at process startup (in `Static.cs`) and reuses the same holder for every request.
 
 ---
 
-**Next:** [[Loading Into Memory]] — turning the `.wav` files on disk into `PcmDataHolder` / `AudioData<float>` in memory.
+**Next:** [[2 - Loading Into Memory|Loading Into Memory]] — turning the `.wav` files on disk into `PcmDataHolder` / `AudioData<float>` in memory.
 **Up:** [[../Converter|Converter]]

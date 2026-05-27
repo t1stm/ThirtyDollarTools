@@ -2,7 +2,7 @@
 
 > Owning code: `ThirtyDollarConverter.Parser/Sequence.cs`, `BaseEvent.cs`, `NormalEvent.cs`, `ValueScale.cs`, `Sound.cs`, and the `Custom Events/` folder.
 
-A TDW save file is just a UTF-8 text blob — a `|`-separated list of "event tokens" describing which sound to play, at what pitch, how loud, when to loop, etc. Phase 3 parses that text into a strongly-typed `Sequence` of `BaseEvent`s ready for [[Calculating the Placement]].
+A TDW save file is just a UTF-8 text blob — a `|`-separated list of "event tokens" describing which sound to play, at what pitch, how loud, when to loop, etc. Phase 3 parses that text into a strongly-typed `Sequence` of `BaseEvent`s ready for [[4 - Calculating the Placement|Calculating the Placement]].
 
 The single entry point is `Sequence.FromString(string data)`.
 
@@ -85,7 +85,7 @@ The merging rules in `ProcessDefines` are nuanced:
 
 Both forms produce an `IndividualCutEvent` with a `HashSet<string>` of sound names to silence. The tokenizer goes through `TryIndividualCut` (regex `^#icut\((?<events>[^)]+)\)`) for the `#icut` syntax, and `TryIndividualCutTDW` for the legacy `!cut@…` syntax.
 
-A side-effect: every cut sound is added to `sequence.SeparatedChannels`, which tells the encoder to mix that sound into a *separate* track inside the `AudioMixer` so it can be silenced independently. (See [[Encoding]] for how that affects mixer track creation.)
+A side-effect: every cut sound is added to `sequence.SeparatedChannels`, which tells the encoder to mix that sound into a *separate* track inside the `AudioMixer` so it can be silenced independently. (See [[5 - Encoding|Encoding]] for how that affects mixer track creation.)
 
 `#icut` additionally flips `sequence.IsNewFormat = false`.
 
@@ -260,10 +260,10 @@ public class Sound
 
 ## What Phase 3 hands off
 
-A `Sequence` whose `Events` array is a flat, fully-expanded list of `BaseEvent`s — definitions inlined, repeats expanded, format quirks normalized. The next phase, [[Calculating the Placement]], walks that array as a tiny VM to produce a sample-accurate timeline.
+A `Sequence` whose `Events` array is a flat, fully-expanded list of `BaseEvent`s — definitions inlined, repeats expanded, format quirks normalized. The next phase, [[4 - Calculating the Placement|Calculating the Placement]], walks that array as a tiny VM to produce a sample-accurate timeline.
 
 ---
 
-**Previous:** [[Loading Into Memory]]
-**Next:** [[Calculating the Placement]]
+**Previous:** [[2 - Loading Into Memory|Loading Into Memory]]
+**Next:** [[4 - Calculating the Placement|Calculating the Placement]]
 **Up:** [[../Converter|Converter]]
