@@ -368,7 +368,7 @@ public partial class Sequence
         {
             var new_event = new ExtendedEvent
             {
-                Pan = sequence.IsNewFormat ? pan / 10f : pan,
+                Pan = sequence.IsNewFormat ? pan / 100f : pan,
                 OffsetInSeconds = offset,
                 Value = value,
                 WorkingValue = value,
