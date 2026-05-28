@@ -44,8 +44,17 @@ public partial class Sequence
 
             text = text.Replace("\n", "").Trim();
             if (string.IsNullOrEmpty(text)) continue;
-            if (text.StartsWith('#') && TryDefine(text, enumerator, sequence))
-                continue;
+            if (text.StartsWith('#'))
+            {
+                if (TryLegacyEvent(text, sequence, out _))
+                    continue;
+
+                if (!TryCustomEventSyntax(text, out var match))
+                    continue; // Not a custom event, so treat it as a comment since it starts with #.
+
+                if (TryDefine(match, enumerator, sequence))
+                    continue; // Define event, so skip adding it to the sequence.
+            }
 
             var new_event = ParseEvent(text, sequence);
             var repeats = new_event.PlayTimes;
@@ -65,17 +74,20 @@ public partial class Sequence
         sequence.Events = list.ToArray();
         return sequence;
     }
-
-    private static bool TryDefine(string text, IEnumerator<string> enumerator, Sequence sequence)
+    
+    private static bool TryCustomEventSyntax(string text, out Match match)
     {
-        var special_match = DefineRegex().Match(text);
-        if (!special_match.Success) return true;
+        match = CustomBracketEventRegex().Match(text);
+        return match.Success;
+    }
 
-        if (special_match.Groups["name"].Value != "define") return false;
+    private static bool TryDefine(Match match, IEnumerator<string> enumerator, Sequence sequence)
+    {
+        if (match.Groups["name"].Value != "define") return false;
         if (!enumerator.MoveNext()) return true;
 
         var defines = ParseDefines(in enumerator, sequence);
-        var define_name = special_match.Groups["value"].Value;
+        var define_name = match.Groups["value"].Value;
 
         sequence.Definitions.Add(define_name, defines);
         return true;
@@ -269,7 +281,6 @@ public partial class Sequence
             }
         }
 
-
         list.AddRange(array);
         return true;
     }
@@ -299,11 +310,11 @@ public partial class Sequence
     /// <returns>The parsed event.</returns>
     private static BaseEvent ParseEvent(string text, Sequence sequence)
     {
+        if (TryLegacyEvent(text, sequence, out var legacy_event)) return legacy_event;
         if (TryIndividualCut(text, sequence, out var new_individual_cut_event)) return new_individual_cut_event;
         if (TryIndividualCutTDW(text, sequence, out var new_individual_cut_tdw_event))
             return new_individual_cut_tdw_event;
         if (TryBookmark(text, out var bookmark_event)) return bookmark_event;
-        if (TryLegacyEvent(text, sequence, out var legacy_event)) return legacy_event;
 
         if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
             // Special color lines get their own parser. 🗿
@@ -340,15 +351,6 @@ public partial class Sequence
 
         var offset_match = OffsetRegex().Match(text);
         var offset = offset_match.Success ? double.Parse(offset_match.Value[1..], CultureInfo) : 0f;
-
-        switch (sound)
-        {
-            case "#bookmark":
-                return new BookmarkEvent
-                {
-                    Value = value
-                };
-        }
 
         if (pan == 0f && offset == 0d)
         {
@@ -492,7 +494,7 @@ public partial class Sequence
     private static partial Regex OffsetRegex();
 
     [GeneratedRegex(@"^#(?<name>[^\s(]+)\((?<value>[^)]+)\)")]
-    private static partial Regex DefineRegex();
+    private static partial Regex CustomBracketEventRegex();
 
     [GeneratedRegex(@"^#icut\((?<events>[^)]+)\)")]
     private static partial Regex IndividualCutRegex();
