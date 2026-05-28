@@ -60,7 +60,7 @@
                            FontSize="11" FontWeight="SemiBold"
                            VerticalAlignment="Top" Margin="0,6,10,0" />
                 <TextBox Grid.Column="1" AcceptsReturn="True" TextWrapping="Wrap"
-                         Height="52" Watermark="Choose sequence file/s..."
+                         Height="52" PlaceholderText="Choose sequence file/s..."
                          Text="{Binding SequenceFileLocation}" />
                 <Button Grid.Column="2" Content="Select"
                         Command="{Binding Select_SequenceFileLocation}"
@@ -73,7 +73,7 @@
                            Foreground="{StaticResource WinMuted}"
                            FontSize="11" FontWeight="SemiBold"
                            VerticalAlignment="Center" Margin="0,0,10,0" />
-                <TextBox Grid.Column="1" Watermark="Choose export location..."
+                <TextBox Grid.Column="1" PlaceholderText="Choose export location..."
                          Text="{Binding ExportFileLocation}" />
                 <Button Grid.Column="2" Content="Select"
                         Command="{Binding Select_ExportFileLocation}"

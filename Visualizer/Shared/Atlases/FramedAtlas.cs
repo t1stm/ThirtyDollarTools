@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
 using Sundex.Engine.Asset_Management.Types.Texture;
 using Sundex.Engine.Renderer.Shaders;
 using Sundex.Engine.Renderer.Textures.Atlases;
@@ -115,15 +118,15 @@ public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
 
     private static float? TryGetFrameDelay(ImageFrame frame)
     {
-        if (frame.Metadata.TryGetGifMetadata(out var gif))
-            return gif.FrameDelay * 10f;
+        var format = frame.Metadata.DecodedImageFormat;
+        if (format == null) return null;
 
-        if (frame.Metadata.TryGetPngMetadata(out var png))
-            return png.FrameDelay.ToSingle() * 100f;
-
-        if (frame.Metadata.TryGetWebpFrameMetadata(out var webp))
-            return webp.FrameDelay;
-
-        return null;
+        return format switch
+        {
+            GifFormat => frame.Metadata.GetGifMetadata().FrameDelay * 10f,
+            PngFormat => frame.Metadata.GetPngMetadata().FrameDelay.ToSingle() * 100f,
+            WebpFormat => frame.Metadata.GetWebpMetadata().FrameDelay,
+            _ => null
+        };
     }
 }

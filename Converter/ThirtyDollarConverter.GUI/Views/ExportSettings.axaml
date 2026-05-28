@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:ThirtyDollarGUI.ViewModels"
+        xmlns:models="using:ThirtyDollarGUI.Models"
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="480"
         x:Class="ThirtyDollarGUI.Views.ExportSettings"
         x:DataType="vm:ExportSettingsViewModel"
@@ -78,7 +79,7 @@
                                   ItemsSource="{Binding ListItems}"
                                   MaxDropDownHeight="200">
                             <ComboBox.ItemTemplate>
-                                <DataTemplate>
+                                <DataTemplate x:DataType="models:ResamplerModel">
                                     <TextBlock Text="{Binding ResamplerName}" />
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
