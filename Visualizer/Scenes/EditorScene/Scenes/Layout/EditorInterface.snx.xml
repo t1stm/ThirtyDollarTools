@@ -1,0 +1,27 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Layout/EditorInterface.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/EditorInterface.snx.csx" imports="[EditorScene.Scenes]" />
+
+  <layout>
+    <panel id="main-holder">
+      <panel id="background-holder">
+        <panel class="background-gradients" id="grad-1"/>
+        <panel class="background-gradients" id="grad-2"/>
+        <panel class="background-gradients" id="grad-3"/>
+        <panel class="background-gradients" id="grad-4"/>
+        <panel class="background-gradients" id="grad-5"/>
+      </panel>
+
+      <flex id="editor-view">
+        <flex id="editor-header">
+          <label id="editor-title" value="Editor"/>
+          <button id="back-button">
+            <label value="Back"/>
+          </button>
+        </flex>
+        <panel id="editor-divider"/>
+        <label id="editor-placeholder" value="Editor coming soon."/>
+      </flex>
+    </panel>
+  </layout>
+</sundex>

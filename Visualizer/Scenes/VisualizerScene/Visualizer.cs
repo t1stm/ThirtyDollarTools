@@ -231,7 +231,7 @@ public class Visualizer : Scene, IGamePreloadable
         TextContainer.RenderStaticText(_textCamera);
 
         if (_playerBar is null) return;
-        _playerBar.UpdateAlpha(Game.MouseState, _height, (float)deltaTime);
+        _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, (float)deltaTime);
         _playerBar.RootPanel.Context.Render();
     }
 
@@ -249,7 +249,7 @@ public class Visualizer : Scene, IGamePreloadable
         _workflow.Update();
         PlayfieldContainer.Update(updateArgs.Delta);
 
-        if (_playerBar is not null)
+        if (_playerBar is not null && _playerBar.CurrentAlpha >= 0.01f)
         {
             var p_stopwatch = SequencePlayer.GetTimingStopwatch();
             var p_elapsed = p_stopwatch.ElapsedMilliseconds;

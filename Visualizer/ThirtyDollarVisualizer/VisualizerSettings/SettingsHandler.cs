@@ -1,11 +1,10 @@
 using System.Text;
-using VisualizerScene.Settings;
 
-namespace ThirtyDollarVisualizer.Settings;
+namespace ThirtyDollarVisualizer.VisualizerSettings;
 
 public static class SettingsHandler
 {
-    public static readonly VisualizerSettings Settings = new(ChangeHandler);
+    public static readonly VisualizerScene.Settings.VisualizerSettings Settings = new(ChangeHandler);
     public static bool Loaded;
     private static string? _fileLocation;
 

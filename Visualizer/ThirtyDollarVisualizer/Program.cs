@@ -21,7 +21,7 @@ using Shared.Audio.OpenAL;
 using SixLabors.ImageSharp;
 using Sundex.Components;
 using Sundex.Engine;
-using ThirtyDollarVisualizer.Settings;
+using ThirtyDollarVisualizer.VisualizerSettings;
 using VisualizerScene;
 
 namespace ThirtyDollarVisualizer;
@@ -188,7 +188,8 @@ public static class Program
             );
 
             instance.SceneManager.LoadScene<DrumMaster>("drum-master", _ => new DrumMaster(instance, workflow));
-            instance.SceneManager.LoadScene<SettingsScene.Settings>("settings", _ => new SettingsScene.Settings(instance, SettingsHandler.Settings));
+            instance.SceneManager.LoadScene<Editor>("editor", _ => new Editor(instance));
+            instance.SceneManager.LoadScene<Settings>("settings", _ => new Settings(instance, SettingsHandler.Settings));
         });
 
         game.Enqueue(instance => instance.SceneManager.TransitionTo("home"));

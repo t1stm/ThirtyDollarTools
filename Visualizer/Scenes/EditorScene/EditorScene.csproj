@@ -1,9 +1,22 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+        <ProjectReference Include="..\..\..\Sundex\Sundex.Markup\Sundex.Markup.csproj"/>
+        <ProjectReference Include="..\..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
+        <ProjectReference Include="..\..\Shared\Shared.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.xml"/>
+        <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.ss"/>
+        <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.csx"/>
+    </ItemGroup>
 
 </Project>

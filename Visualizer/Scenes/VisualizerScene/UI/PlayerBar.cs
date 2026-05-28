@@ -26,6 +26,7 @@ public class PlayerBar
     private static readonly Vector3 ButtonHoverRgb = new(0x9a / 255f, 0xb8 / 255f, 1.0f);
 
     private float _currentAlpha;
+    public float CurrentAlpha => _currentAlpha;
     private float _inactivityTimer;
     private Vector2 _lastMousePos;
 
@@ -85,23 +86,24 @@ public class PlayerBar
 
     public void Update(UIContext context)
     {
+        if (_currentAlpha < 0.01f) return;
         RootPanel.Update(context);
         RootPanel.Layout();
     }
 
-    /* TODO: this currently works no matter where the mouse cursor is, even taking into account different windows and desktops.
-             change it so that it takes in the rect of the window and does bounds checks on it instead. */
-    public void UpdateAlpha(MouseState mouse, int windowHeight, float deltaTime)
+    public void UpdateAlpha(MouseState mouse, Vector2i windowSize, float deltaTime)
     {
         var mousePos = mouse.Position;
+        var inWindow = mousePos.X >= 0 && mousePos.X <= windowSize.X &&
+                       mousePos.Y >= 0 && mousePos.Y <= windowSize.Y;
         var moved = mousePos != _lastMousePos;
         _lastMousePos = mousePos;
 
-        if (moved || mouse.IsAnyButtonDown) _inactivityTimer = 0f;
+        if (inWindow && (moved || mouse.IsAnyButtonDown)) _inactivityTimer = 0f;
         else _inactivityTimer += deltaTime;
 
-        var normalizedY = windowHeight > 0 ? mousePos.Y / windowHeight : 0f;
-        var inZone = normalizedY > ZoneLow;
+        var normalizedY = windowSize.Y > 0 ? mousePos.Y / windowSize.Y : 0f;
+        var inZone = inWindow && normalizedY > ZoneLow;
         var isActive = inZone && _inactivityTimer < FadeDelay;
 
         var targetAlpha = isActive
