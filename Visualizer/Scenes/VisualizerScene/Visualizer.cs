@@ -231,7 +231,7 @@ public class Visualizer : Scene, IGamePreloadable
         TextContainer.RenderStaticText(_textCamera);
 
         if (_playerBar is null) return;
-        _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, (float)deltaTime);
+        _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, (float)deltaTime, TimedEvents.Placement.Length == 0);
         _playerBar.RootPanel.Context.Render();
     }
 

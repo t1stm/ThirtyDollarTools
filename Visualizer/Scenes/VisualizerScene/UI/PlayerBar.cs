@@ -91,8 +91,17 @@ public class PlayerBar
         RootPanel.Layout();
     }
 
-    public void UpdateAlpha(MouseState mouse, Vector2i windowSize, float deltaTime)
+    public void UpdateAlpha(MouseState mouse, Vector2i windowSize, float deltaTime, bool forceVisible = false)
     {
+        if (forceVisible)
+        {
+            _inactivityTimer = 0f;
+            _lastMousePos = mouse.Position;
+            _currentAlpha = 1f;
+            PropagateAlpha(1f);
+            return;
+        }
+
         var mousePos = mouse.Position;
         var inWindow = mousePos.X >= 0 && mousePos.X <= windowSize.X &&
                        mousePos.Y >= 0 && mousePos.Y <= windowSize.Y;
