@@ -39,6 +39,8 @@ jobs:
         run: mkdir -p bin/${{ matrix.platform }}-${{ matrix.configuration }}
 
       - name: Publish ThirtyDollarConverter.GUI
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
         run: |
           dotnet publish ./Converter/ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj \
             -c ${{ matrix.configuration }} \
@@ -50,6 +52,8 @@ jobs:
             -o ./bin/${{ matrix.platform }}-${{ matrix.configuration }}
 
       - name: Publish ThirtyDollarVisualizer
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
         run: |
           dotnet publish ./Visualizer/ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj \
             -c ${{ matrix.configuration }} \
