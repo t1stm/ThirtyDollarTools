@@ -8,12 +8,14 @@ namespace ThirtyDollarParser;
 public partial class Sequence
 {
     private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
+    private const float PanMaxValues = 100f;
+    
+    public readonly HashSet<string> UsedSounds = [];
     public Dictionary<string, BaseEvent[]> Definitions = new();
     public HashSet<string> SeparatedChannels = [];
-    public HashSet<string> UsedSounds = [];
     public BaseEvent[] Events { get; set; } = [];
     public bool IsNewFormat { get; set; } = true;
-
+    
     public Sequence Copy()
     {
         return new Sequence
@@ -83,7 +85,7 @@ public partial class Sequence
     {
         newEvent = null;
 
-        var match = ICutRegex().Match(text);
+        var match = IndividualCutRegex().Match(text);
         if (!match.Success) return false;
         if (!match.Groups["events"].Success) return false;
 
@@ -170,14 +172,12 @@ public partial class Sequence
                             Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
                             Volume = e.Volume * ((parsed.Volume ?? 100) / 100),
                             ValueScale = e.ValueScale,
-                            IsStandardImplementation = sequence.IsNewFormat
                         };
 
                         if (e is not ExtendedEvent ex || (e.SoundEvent ?? "").StartsWith('!')) return extended_event;
 
                         extended_event.Pan = pan + ex.Pan;
                         extended_event.OffsetInSeconds = offset + ex.OffsetInSeconds;
-                        extended_event.IsStandardImplementation = ex.IsStandardImplementation;
                         return extended_event;
                     }
                 }
@@ -232,7 +232,7 @@ public partial class Sequence
             if ((ev.SoundEvent?.StartsWith('!') ?? false) || ev is ICustomActionEvent) continue;
             if (ev is ExtendedEvent extended)
             {
-                var new_pan = Math.Clamp(pan + extended.Pan, -1f, 1f);
+                var new_pan = Math.Clamp(pan + extended.Pan, -PanMaxValues, PanMaxValues);
                 var new_offset = Math.Max(offset + extended.OffsetInSeconds, 0);
                 extended.Pan = new_pan;
                 extended.OffsetInSeconds = new_offset;
@@ -352,7 +352,7 @@ public partial class Sequence
 
         if (pan == 0f && offset == 0d)
         {
-            var new_event = new NormalEvent
+            var normal_event = new NormalEvent
             {
                 Value = value,
                 WorkingValue = value,
@@ -362,25 +362,22 @@ public partial class Sequence
                 Volume = event_volume
             };
 
-            return new_event;
+            return normal_event;
         }
-        else
+        
+        var extended_event = new ExtendedEvent
         {
-            var new_event = new ExtendedEvent
-            {
-                Pan = sequence.IsNewFormat ? pan / 100f : pan,
-                OffsetInSeconds = offset,
-                Value = value,
-                WorkingValue = value,
-                SoundEvent = string.Intern(sound),
-                PlayTimes = loop_times,
-                ValueScale = scale,
-                Volume = event_volume,
-                IsStandardImplementation = sequence.IsNewFormat
-            };
+            Pan = sequence.IsNewFormat ? pan : pan * 100,
+            OffsetInSeconds = offset,
+            Value = value,
+            WorkingValue = value,
+            SoundEvent = string.Intern(sound),
+            PlayTimes = loop_times,
+            ValueScale = scale,
+            Volume = event_volume,
+        };
 
-            return new_event;
-        }
+        return extended_event;
     }
 
     private static bool TryLegacyEvent(string text, Sequence sequence, [NotNullWhen(true)] out LegacySequenceEvent? legacy)
@@ -498,7 +495,7 @@ public partial class Sequence
     private static partial Regex DefineRegex();
 
     [GeneratedRegex(@"^#icut\((?<events>[^)]+)\)")]
-    private static partial Regex ICutRegex();
+    private static partial Regex IndividualCutRegex();
 
     [GeneratedRegex(@"^#bookmark\((?<index>[^)]+)\)")]
     private static partial Regex BookmarkRegex();

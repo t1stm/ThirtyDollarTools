@@ -530,7 +530,7 @@ public class PcmEncoder
 
             case ExtendedEvent extended_event:
             {
-                pan = Math.Clamp(extended_event.Pan, -1f, 1f);
+                pan = Math.Clamp(extended_event.Pan, -100f, 100f);
                 startOffset = Math.Max(extended_event.OffsetInSeconds, 0);
                 break;
             }
@@ -597,7 +597,7 @@ public class PcmEncoder
             // Channel = Right
             case < 0 when channel == 1:
             {
-                var percent_subtract = 1f + pan;
+                var percent_subtract = 1f + pan / 100f;
                 volume *= _settings.PanScale switch
                 {
                     PercentageScale.Logarithmic => MathF.Sqrt(percent_subtract),
@@ -610,7 +610,7 @@ public class PcmEncoder
             // Channel = Left
             case > 0 when channel == 0:
             {
-                var percent_subtract = 1f - pan;
+                var percent_subtract = 1f - pan / 100f;
                 volume *= _settings.PanScale switch
                 {
                     PercentageScale.Logarithmic => MathF.Sqrt(percent_subtract),

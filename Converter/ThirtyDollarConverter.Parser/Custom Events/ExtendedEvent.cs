@@ -15,10 +15,8 @@ public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
         ValueScale = baseEvent.ValueScale;
     }
 
-    public bool IsStandardImplementation { get; set; }
-
     /// <summary>
-    ///     Factor that shows in which direction the audio is panned. -1 - left, 0 - centered, 1 - right and values in between
+    ///     Factor that shows in which direction the audio is panned. -100 - left, 0 - centered, 100 - right and values in between
     ///     mix between them.
     /// </summary>
     public float Pan { get; set; }
@@ -31,7 +29,7 @@ public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
     /// <summary>
     ///     How the pan is represented visually.
     /// </summary>
-    public float TDWPan => Pan * 10;
+    public float TDWPan => Pan / 10;
 
     public override string Stringify()
     {
@@ -59,7 +57,6 @@ public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
             PlayTimes = PlayTimes,
             Volume = Volume,
             ValueScale = ValueScale,
-            IsStandardImplementation = IsStandardImplementation,
             WorkingValue = WorkingValue,
             WorkingVolume = WorkingVolume
         };

@@ -149,24 +149,10 @@ public class RenderableFactory(AtlasStore store)
 
         if (extendedEvent.Pan != 0)
         {
-            string panText;
-            if (extendedEvent.IsStandardImplementation)
-            {
-                var panString = Math.Abs((double)extendedEvent.TDWPan).ToString("0.##");
-                panText = extendedEvent.Pan > 0
-                    ? $"{panString}>"
-                    : $"<{panString}";
-            }
-            else
-            {
-                var panString = Math.Abs((double)extendedEvent.Pan).ToString("0.##");
-                if (panString.StartsWith("0."))
-                    panString = panString[1..];
-
-                panText = extendedEvent.Pan > 0
-                    ? $"|{panString}"
-                    : $"{panString}|";
-            }
+            var panString = Math.Abs((double)extendedEvent.TDWPan).ToString("0.##");
+            var panText = extendedEvent.Pan > 0
+                ? $"{panString}>"
+                : $"<{panString}";
 
             var panBuffer = textBuffer.GetTextSlice(panText, (value, buffer, range) =>
                 new TextSlice(buffer, range)
