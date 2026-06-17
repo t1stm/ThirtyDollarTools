@@ -1,4 +1,4 @@
-namespace Sundex.Engine.Renderer.Buffers;
+namespace Sundex.Engine.Renderer.Data_Buffers;
 
 /// <summary>
 ///     Represents a reference to an element within a GPU buffer that is tracked for

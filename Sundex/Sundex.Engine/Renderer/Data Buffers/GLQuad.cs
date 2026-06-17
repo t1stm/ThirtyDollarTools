@@ -4,7 +4,7 @@ using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 
-namespace Sundex.Engine.Renderer.Buffers;
+namespace Sundex.Engine.Renderer.Data_Buffers;
 
 [PreloadGraphicsContext]
 [UsedImplicitly]

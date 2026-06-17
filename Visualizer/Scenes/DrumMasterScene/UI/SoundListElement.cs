@@ -3,7 +3,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
-using Sundex.Engine.Renderer.Buffers;
+using Sundex.Engine.Renderer.Data_Buffers;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 
 namespace DrumMasterScene.UI;

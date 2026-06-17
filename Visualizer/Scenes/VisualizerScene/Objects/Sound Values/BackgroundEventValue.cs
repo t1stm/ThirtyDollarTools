@@ -1,7 +1,7 @@
 using OpenTK.Mathematics;
 using Shared.Helpers.Decoders;
 using Sundex.Engine.Renderer.Abstract.Extensions;
-using Sundex.Engine.Renderer.Buffers;
+using Sundex.Engine.Renderer.Data_Buffers;
 using Sundex.Engine.Renderer.Enums;
 using Sundex.Engine.Text;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;

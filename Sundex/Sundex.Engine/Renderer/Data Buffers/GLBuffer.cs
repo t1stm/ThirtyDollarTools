@@ -4,7 +4,7 @@ using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Enums;
 using Sundex.Engine.Renderer.Queues;
 
-namespace Sundex.Engine.Renderer.Buffers;
+namespace Sundex.Engine.Renderer.Data_Buffers;
 
 /// <summary>
 ///     The GLBuffer class is responsible for managing OpenGL buffer objects. It supports
