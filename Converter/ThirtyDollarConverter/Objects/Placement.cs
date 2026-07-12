@@ -31,9 +31,11 @@ public class Placement : IEquatable<Placement>
         if (ReferenceEquals(null, other)) return false;
         if (ReferenceEquals(this, other)) return true;
         return Audible == other.Audible && Index == other.Index &&
-               Event.SoundEvent.AsSpan() == other.Event.SoundEvent.AsSpan() &&
+               Event.SoundEvent == other.Event.SoundEvent &&
                !Different(Event.Value, other.Event.Value) &&
+               !Different(Event.WorkingValue, other.Event.WorkingValue) &&
                !Different(Event.Volume ?? 100, other.Event.Volume ?? 100) &&
+               !Different(Event.WorkingVolume, other.Event.WorkingVolume) &&
                !Different((Event as ExtendedEvent)?.Pan, (other.Event as ExtendedEvent)?.Pan) &&
                !Different((Event as ExtendedEvent)?.OffsetInSeconds, (other.Event as ExtendedEvent)?.OffsetInSeconds);
     }
@@ -54,6 +56,6 @@ public class Placement : IEquatable<Placement>
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Audible, Index, Event.Value, Event.SoundEvent, Event.Volume);
+        return HashCode.Combine(Audible, Index, Event.Value, Event.SoundEvent, Event.Volume ?? 100);
     }
 }

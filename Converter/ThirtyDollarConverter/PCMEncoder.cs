@@ -113,22 +113,17 @@ public class PcmEncoder
     public async Task<RenderedSequence> ComputeIncrementalAudio(RenderedSequence oldRendered,
         IEnumerable<Sequence> newSequences)
     {
-        if (oldRendered.Mixer == null) return await GetMultipleSequencesAudio(newSequences);
+        // without the old processed samples the remove stage can't subtract anything
+        if (oldRendered.Mixer == null || oldRendered.ProcessedEvents == null)
+            return await GetMultipleSequencesAudio(newSequences);
 
         var new_sequences = newSequences as Sequence[] ?? newSequences.ToArray();
         var new_placements = PlacementCalculator.CalculateMany(new_sequences).ToArray();
         var old_placements = oldRendered.Placement;
 
-        // extract differences
-        var to_remove = old_placements.Except(new_placements, PlacementEqualityComparer.Instance).ToArray();
-        var to_add = new_placements.Except(old_placements, PlacementEqualityComparer.Instance).ToArray();
-
-        // !cut check
-        if (to_remove.Any(pl => pl.Event.SoundEvent == "!cut") ||
-            to_add.Any(pl => pl.Event.SoundEvent == "!cut"))
-        {
-            return await GetMultipleSequencesAudio(new_sequences);
-        }
+        // extract differences, counting duplicate placements separately
+        var to_remove = MultisetDifference(old_placements, new_placements);
+        var to_add = MultisetDifference(new_placements, old_placements);
 
         var final_timed_events = new TimedEvents
         {
@@ -137,22 +132,45 @@ public class PcmEncoder
             TimingSampleRate = (int)_sampleRate
         };
 
+        // nothing audible changed, keep the old audio
+        if (to_remove.Length == 0 && to_add.Length == 0)
+        {
+            oldRendered.TimedEvents = final_timed_events;
+            return oldRendered;
+        }
+
+        // !cut check: changed cuts can't be cleanly inverted, and #icut cuts per-sound
+        // tracks that the incremental overlay mixers don't have
+        if (to_remove.Concat(to_add).Any(pl => pl.Event.SoundEvent == "!cut" || pl.Event is IndividualCutEvent) ||
+            new_placements.Any(pl => pl.Event is IndividualCutEvent) ||
+            oldRendered.Sequences.Concat(new_sequences).Any(s => s.SeparatedChannels.Count > 0))
+        {
+            return await GetMultipleSequencesAudio(new_sequences);
+        }
+
+        // merges the new sounds into the old rendered ones; pruning happens after both stages,
+        // so the remove stage still sees the old samples (and big_event_length covers them)
         var final_sounds = await GetAudioSamples(final_timed_events, oldRendered.ProcessedEvents);
         var big_event = final_sounds.Values.MaxBy(e => e.AudioData.GetLength());
         var big_event_length = big_event?.AudioData.GetLength() ?? 0;
 
         var cuts = new_placements
-            .Where(pl => pl.Event is IndividualCutEvent || pl.Event.SoundEvent == "!cut")
+            .Where(pl => pl.Event.SoundEvent == "!cut")
             .ToArray();
         var mixer = oldRendered.Mixer;
 
-        // remove stage
-        mixer = await ProcessIncrementalPlacements(mixer, to_remove.Concat(cuts).ToArray(),
-            oldRendered.ProcessedEvents ?? final_sounds, big_event_length, true);
+        // remove stage; ProcessChunk requires placements sorted by index, and cuts must keep
+        // their sequence order relative to sounds sharing the same index
+        if (to_remove.Length > 0)
+            mixer = await ProcessIncrementalPlacements(mixer,
+                to_remove.Concat(cuts).OrderBy(pl => pl.Index).ThenBy(pl => pl.SequenceIndex).ToArray(),
+                final_sounds, big_event_length, true);
 
         // add stage
-        mixer = await ProcessIncrementalPlacements(mixer, to_add.Concat(cuts).ToArray(), final_sounds,
-            big_event_length);
+        if (to_add.Length > 0)
+            mixer = await ProcessIncrementalPlacements(mixer,
+                to_add.Concat(cuts).OrderBy(pl => pl.Index).ThenBy(pl => pl.SequenceIndex).ToArray(),
+                final_sounds, big_event_length);
 
         RemoveUnusedAudioSamples(final_sounds, final_timed_events);
 
@@ -816,6 +834,27 @@ public class PcmEncoder
     }
 
     #endregion
+
+    /// <summary>
+    ///     Returns the placements in <paramref name="from" /> that are not in <paramref name="subtract" />.
+    ///     Unlike <see cref="Enumerable.Except{T}(IEnumerable{T},IEnumerable{T})" />, equal placements
+    ///     are counted separately, so removing one of two identical stacked sounds is detected.
+    /// </summary>
+    private static Placement[] MultisetDifference(Placement[] from, Placement[] subtract)
+    {
+        var counts = new Dictionary<Placement, int>(PlacementEqualityComparer.Instance);
+        foreach (var placement in subtract)
+            counts[placement] = counts.GetValueOrDefault(placement) + 1;
+
+        var result = new List<Placement>();
+        foreach (var placement in from)
+        {
+            if (counts.TryGetValue(placement, out var count) && count > 0) counts[placement] = count - 1;
+            else result.Add(placement);
+        }
+
+        return result.ToArray();
+    }
 
     private class PlacementEqualityComparer : IEqualityComparer<Placement>
     {

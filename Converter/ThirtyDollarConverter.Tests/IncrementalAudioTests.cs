@@ -63,6 +63,16 @@ public class IncrementalAudioTests
 
     private static NormalEvent Combine() => Event("!combine");
 
+    private static NormalEvent VolumeEvent(float value)
+    {
+        return new NormalEvent
+        {
+            SoundEvent = "!volume",
+            Value = value,
+            ValueScale = ValueScale.None
+        };
+    }
+
     private static void CompareAudio(AudioData<float> audio1, AudioData<float> audio2)
     {
         Assert.Equal(audio1.ChannelCount, audio2.ChannelCount);
@@ -157,6 +167,71 @@ public class IncrementalAudioTests
     {
         var sequence = Sequence(Event("test1"), Combine(), Event("test3"), Event("!cut"));
         var new_sequence = Sequence(Event("test1"), Combine(), Event("test3", 6), Event("!cut"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    [Fact]
+    public async Task ShouldRemoveOneOfTwoIdenticalStackedSounds()
+    {
+        var sequence = Sequence(Event("test1"), Combine(), Event("test1"));
+        var new_sequence = Sequence(Event("test1"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    [Fact]
+    public async Task ShouldHandleVolumeEventChanges()
+    {
+        var sequence = Sequence(VolumeEvent(50), Event("test1"));
+        var new_sequence = Sequence(VolumeEvent(100), Event("test1"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    [Fact]
+    public async Task ShouldHandleChangesAfterCutEvent()
+    {
+        var sequence = Sequence(Event("test1"), Event("!cut"), Event("test3"));
+        var new_sequence = Sequence(Event("test1"), Event("!cut"), Event("test2"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    [Fact]
+    public async Task ShouldHandleGrowingSequence()
+    {
+        var sequence = Sequence(Event("test1"));
+        var new_sequence = Sequence(Event("test1"), Event("test2"), Event("test3"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    [Fact]
+    public async Task ShouldKeepAudioWhenNothingChanged()
+    {
+        var sequence = Sequence(Event("test1"), Event("test2"));
+        var new_sequence = Sequence(Event("test1"), Event("test2"));
 
         var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
         var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);

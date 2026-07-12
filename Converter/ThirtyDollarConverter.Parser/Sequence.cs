@@ -182,7 +182,7 @@ public partial class Sequence
                         {
                             SoundEvent = e.SoundEvent,
                             Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
-                            Volume = (e.Volume ?? 100) * ((parsed.Volume ?? 100) / 100),
+                            Volume = !(e.SoundEvent ?? "").StartsWith('!') ? (e.Volume ?? 100) * ((parsed.Volume ?? 100) / 100) : null,
                             ValueScale = e.ValueScale,
                         };
 
