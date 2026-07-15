@@ -1,20 +1,63 @@
-﻿using BMS2TDW;
-using BMS2TDW.Converter;
+using System.Globalization;
+using BMS2TDW;
+using ThirtyDollarConverter.Editor;
+using ThirtyDollarParser;
 
 // This tool won't be documented for obvious purposes.
 // I don't want lazy people doing TDW covers.
 // If you are willing to put in the effort, understand it yourself.
 
-// Note to developers: The parser on this small project is far from perfect,
-// so don't rely on it for your implementation.
+if (args.Length < 1)
+{
+    Console.WriteLine("usage: BMS2TDWex <chart.bms> [output.tdw]");
+    return 1;
+}
 
-// Put in the effort to reverse engineer your own parser, like how I did.
+var input = args[0];
+var output = args.Length > 1 ? args[1] : Path.ChangeExtension(input, ".tdw");
 
-var read = await File.ReadAllTextAsync("/home/kris/Downloads/[clover]LeaF_Aleph0/_7ANOTHER.bms");
-var bms_level = BMSParser.ParseFile(read);
+var chart = BmsParser.Parse(await File.ReadAllTextAsync(input));
+var project = BmsToProject.Convert(chart);
 
-var builder = new TdwExBuilder();
-builder.ConvertBmsLevel(bms_level);
+// Dividers section the text: one before each tempo change, one every four bars
+// within a tempo section (BMS spans without tempo events are whole measures).
+// MigrateToStop = null: gaps render as "_pause"s, the TDW-native idiom.
+var sequence = project.ToSequence(new SequenceStyle
+{
+    DividerEveryBars = 2,
+    DividerOnSpeedChanges = true,
+    MigrateToStop = null
+});
 
-var converted = builder.Export();
-File.WriteAllText("/home/kris/Downloads/[clover]LeaF_Aleph0/_7ANOTHER.tdw", converted);
+await File.WriteAllTextAsync(output, Serialize(sequence));
+
+var events = sequence.Events;
+var sounds = events.Count(e => !(e.SoundEvent?.StartsWith('!') ?? true) && e.SoundEvent != "_pause");
+var speeds = events.Count(e => e.SoundEvent == "!speed");
+var minutes = 0d;
+var speed = 1d;
+for (var i = 0; i < events.Length; i++)
+{
+    var name = events[i].SoundEvent ?? "";
+    if (name == "!speed") speed = events[i].Value;
+    else if (name == "!stop") minutes += events[i].Value / speed;
+    else if (!name.StartsWith('!') && (i + 1 >= events.Length || events[i + 1].SoundEvent != "!combine"))
+        minutes += 1 / speed;
+}
+
+var duration = TimeSpan.FromMinutes(minutes);
+Console.WriteLine($"{chart.Title} - {chart.Artist} @ {chart.Bpm} BPM");
+Console.WriteLine($"{project.Tracks.Count} tracks, {sounds} sounds, {events.Length} events, " +
+                  $@"{speeds} !speed changes, {duration:mm\:ss\.fff}");
+Console.WriteLine($"-> {output}");
+return 0;
+
+// BaseEvent.Stringify rounds values to 2 decimals, which would wreck fractional stops;
+// the exporter only emits sounds and !speed/!stop/!combine, so serialize those exactly.
+static string Serialize(Sequence sequence)
+{
+    return string.Join("|\n", sequence.Events.Select(e =>
+        e.Value != 0
+            ? $"{e.SoundEvent}@{e.Value.ToString("0.######", CultureInfo.InvariantCulture)}"
+            : e.SoundEvent));
+}

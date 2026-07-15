@@ -3,6 +3,8 @@
     <Project Path="Converter/ThirtyDollarConverter.Audio/ThirtyDollarConverter.Audio.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.CLI/ThirtyDollarConverter.CLI.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.DiscordBot/ThirtyDollarConverter.DiscordBot.csproj" />
+    <Project Path="Converter/ThirtyDollarConverter.Editor/ThirtyDollarConverter.Editor.csproj" />
+    <Project Path="Converter/ThirtyDollarConverter.Editor.Tests/ThirtyDollarConverter.Editor.Tests.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.EngineerSounds/ThirtyDollarConverter.EngineerSounds.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.Migrate/ThirtyDollarConverter.Migrate.csproj" />

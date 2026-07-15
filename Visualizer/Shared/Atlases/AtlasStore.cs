@@ -56,7 +56,10 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
         };
 
         if (!assetProvider.Query<AssetStream, AssetInfo>(assetInfo))
-            throw new FileNotFoundException($"Image file not found at path: {imagePath}");
+        {
+            _logger.Warning("Image file not found at path: {ImagePath}. Skipping.", imagePath);
+            return;
+        }
 
         var textureHolder = assetProvider.Load<TextureHolder, TextureInfo>(textureInfo);
         _semaphore.Wait();

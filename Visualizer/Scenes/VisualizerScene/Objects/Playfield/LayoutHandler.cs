@@ -126,10 +126,10 @@ public class LayoutHandler
         Vector2 position = (x, y);
 
         CurrentSoundIndex++;
-        if (CurrentSoundIndex >= _calculatedPositions.Length) NewLine(1, isDivider);
         if (isDivider)
             NewLine(2, isDivider);
-
+        else if (CurrentSoundIndex >= _calculatedPositions.Length) NewLine(1, isDivider);
+        
         return position;
     }
 
