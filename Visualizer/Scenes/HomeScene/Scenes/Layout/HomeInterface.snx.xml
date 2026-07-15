@@ -1,6 +1,6 @@
 <sundex version="1.0">
   <style language="sundex" src="Scenes/Layout/HomeInterface.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/HomeInterface.snx.csx" imports="[HomeScene.Scenes]" />
+  <logic language="csharp" src="Scenes/Layout/HomeInterface.snx.csx" imports="[HomeScene.Scenes]"/>
 
   <layout>
     <panel id="main-holder">
@@ -15,7 +15,7 @@
       <flex id="home-view">
         <label id="home-title" value="Thirty Dollar Visualizer"/>
         <panel id="spacer"/>
-        
+
         <button id="visualizer-button" class="menu-button">
           <label value="Visualizer"/>
         </button>

@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <RootNamespace>BMS2TDW</RootNamespace>
-    </PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>BMS2TDW</RootNamespace>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\Converter\ThirtyDollarConverter.Editor\ThirtyDollarConverter.Editor.csproj" />
-        <ProjectReference Include="..\Converter\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Converter\ThirtyDollarConverter.Editor\ThirtyDollarConverter.Editor.csproj"/>
+    <ProjectReference Include="..\Converter\ThirtyDollarConverter.Parser\ThirtyDollarConverter.Parser.csproj"/>
+  </ItemGroup>
 
 </Project>

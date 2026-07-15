@@ -31,8 +31,6 @@ public class ThirtyDollarWorkflow
 
     /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
     public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
-    
-    public EncoderSettings EncoderSettings { get; }
 
     public ThirtyDollarWorkflow(Game game, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
         AudioContext? context = null)
@@ -56,6 +54,8 @@ public class ThirtyDollarWorkflow
         _fileUpdateStopwatch = new Stopwatch();
         _fileUpdateStopwatch.Start();
     }
+
+    public EncoderSettings EncoderSettings { get; }
 
     public TimedEvents TimedEvents { get; } = new()
     {

@@ -62,7 +62,7 @@ for (var i = 0; i < inputs.Length; i++)
     var rendered = await encoder.GetSequenceAudio(sequence);
     var audioData = rendered.Audio;
     encoder.WriteAsWavFile(output, audioData);
-    
+
     Console.WriteLine($"\nSuccessfully converted \'{input.Location}\' to \'{output}\'.");
 
     continue;

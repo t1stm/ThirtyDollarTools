@@ -11,9 +11,10 @@ public class PcmDataHolder
     public Encoding Encoding { get; set; }
     public byte[]? AudioData { get; set; }
     public AdditionalData? AdditionalData { get; set; } = null;
-    
+
     public override string ToString()
     {
-        return $"PcmDataHolder: SampleRate={SampleRate}, Channels={Channels}, Samples={Samples}, Encoding={Encoding}, AdditionalData={AdditionalData}";
+        return
+            $"PcmDataHolder: SampleRate={SampleRate}, Channels={Channels}, Samples={Samples}, Encoding={Encoding}, AdditionalData={AdditionalData}";
     }
 }

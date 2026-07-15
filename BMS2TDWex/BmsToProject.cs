@@ -88,10 +88,10 @@ public static class BmsToProject
 
                 if (stop_units.TryGetValue(start, out var pause))
                     foreach (var track in tracks.Values)
-                        AddSegment(track, numerator: (int)Math.Round(pause), denominator: 192, bpm);
+                        AddSegment(track, (int)Math.Round(pause), 192, bpm);
 
                 var by_track = tracks.ToDictionary(pair => pair.Key, pair =>
-                    AddSegment(pair.Value, numerator: (int)(end - start), denominator: (int)(q * L / p), bpm));
+                    AddSegment(pair.Value, (int)(end - start), (int)(q * L / p), bpm));
                 spans.Add((start, end, by_track));
             }
 
@@ -102,7 +102,9 @@ public static class BmsToProject
                 if (!chart.Sounds.TryGetValue(value, out var sound)) continue;
                 var track_channel = line.Channel;
 
-                if (stop_units.ContainsKey(unit) && (unit > 0 ? FindSpan(spans, unit - 1).ByTrack[track_channel] : last_spans[track_channel]) is { } previous)
+                if (stop_units.ContainsKey(unit) &&
+                    (unit > 0 ? FindSpan(spans, unit - 1).ByTrack[track_channel] : last_spans[track_channel]) is
+                    { } previous)
                 {
                     // Note exactly on a STOP: overhang on the span that just ended,
                     // so it sounds at the boundary, before the pause.

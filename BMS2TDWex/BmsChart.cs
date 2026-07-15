@@ -6,24 +6,24 @@ namespace BMS2TDW;
 /// </summary>
 public class BmsChart
 {
-    public string Title = "";
-    public string Artist = "";
-    public string Genre = "";
-    public double Bpm = 130;
-
-    /// <summary>#WAVxx: base-36 index to sample name (extension stripped).</summary>
-    public readonly Dictionary<int, string> Sounds = new();
-
     /// <summary>#BPMxx: base-36 index to an extended BPM value (channel 08 references these).</summary>
     public readonly Dictionary<int, double> ExBpms = new();
 
-    /// <summary>#STOPxx: base-36 index to a pause length in 1/192ths of a whole note.</summary>
-    public readonly Dictionary<int, double> Stops = new();
+    public readonly Dictionary<int, List<BmsLine>> Measures = new();
 
     /// <summary>Channel 02: measure length multiplier (1 = a 4/4 bar).</summary>
     public readonly Dictionary<int, decimal> Meters = new();
 
-    public readonly Dictionary<int, List<BmsLine>> Measures = new();
+    /// <summary>#WAVxx: base-36 index to sample name (extension stripped).</summary>
+    public readonly Dictionary<int, string> Sounds = new();
+
+    /// <summary>#STOPxx: base-36 index to a pause length in 1/192ths of a whole note.</summary>
+    public readonly Dictionary<int, double> Stops = new();
+
+    public string Artist = "";
+    public double Bpm = 130;
+    public string Genre = "";
+    public string Title = "";
 }
 
 /// <summary>

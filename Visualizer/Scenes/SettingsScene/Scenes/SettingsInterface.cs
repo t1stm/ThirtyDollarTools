@@ -5,7 +5,6 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Engine.Asset_Management.Types.Asset;
@@ -135,7 +134,9 @@ public class SettingsInterface
             Color = ColorMuted
         };
     }
-    
-    private static string FormatPropertyName(string name) =>
-        Regex.Replace(name, "([A-Z])", " $1").TrimStart();
+
+    private static string FormatPropertyName(string name)
+    {
+        return Regex.Replace(name, "([A-Z])", " $1").TrimStart();
+    }
 }

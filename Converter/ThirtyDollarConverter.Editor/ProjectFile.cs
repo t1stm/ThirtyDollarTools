@@ -126,10 +126,20 @@ public static class ProjectFile
 
     private record TrackDto(int Id, string Name, TimingInfo? Timing, List<SegmentDto> Segments);
 
-    private record SegmentDto(int Numerator, int Denominator, float? BPM, int Bars, int StepsPerBeat,
+    private record SegmentDto(
+        int Numerator,
+        int Denominator,
+        float? BPM,
+        int Bars,
+        int StepsPerBeat,
         List<NoteDto> Notes);
 
-    private record NoteDto(int Step, string Sound, double Value, double? Volume, float Pan,
+    private record NoteDto(
+        int Step,
+        string Sound,
+        double Value,
+        double? Volume,
+        float Pan,
         AutomationDto? Automation);
 
     private record AutomationDto(KeyframeTiming Timing, List<KeyframeDto> Keyframes);

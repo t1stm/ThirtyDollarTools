@@ -8,10 +8,10 @@ namespace Sundex.Engine.Scenes;
 
 public class SceneManager(ILogger logger)
 {
+    private List<Scene>? _nextScenes = [];
     public Dictionary<string, Scene> Scenes { get; } = new();
     public List<Scene> ActiveScenes { get; private set; } = [];
-    private List<Scene>? _nextScenes = [];
-    
+
     private Queue<Scene> ScenesToInitialize { get; } = [];
 
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
@@ -140,7 +140,7 @@ public class SceneManager(ILogger logger)
         {
             if (_nextScenes != null)
                 ActiveScenes = _nextScenes;
-            
+
             foreach (var scene in ActiveScenes)
             {
                 DebugMarker("Updating scene: ", scene.GetType().Name, true);

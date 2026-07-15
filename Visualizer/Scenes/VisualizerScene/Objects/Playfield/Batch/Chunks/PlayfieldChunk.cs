@@ -78,7 +78,8 @@ public class PlayfieldChunk : IDisposable
                     continue;
             }
 
-            RenderableFactory.AssignTextBuffers(renderable, baseEvent, chunk._textBuffer, sizing, settings.RenderScale, settings.SampleHolder);
+            RenderableFactory.AssignTextBuffers(renderable, baseEvent, chunk._textBuffer, sizing, settings.RenderScale,
+                settings.SampleHolder);
         }
 
         chunk.EndY = layoutHandler.Height + layoutHandler.Size;

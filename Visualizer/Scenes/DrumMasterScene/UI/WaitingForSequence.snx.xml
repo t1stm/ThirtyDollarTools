@@ -6,17 +6,17 @@
   </layout>
   <style language="sundex">
     id message-container {
-      width = 100%;
-      height = auto;
-      horizontal-align = "center";
-      vertical-align = "center";
+    width = 100%;
+    height = auto;
+    horizontal-align = "center";
+    vertical-align = "center";
     }
-    
+
     id message {
-      top = 50%;
-      anchor-y = "center";
-      font-size = 24;
-      font-color = "#ffffff";
+    top = 50%;
+    anchor-y = "center";
+    font-size = 24;
+    font-color = "#ffffff";
     }
   </style>
 </sundex>

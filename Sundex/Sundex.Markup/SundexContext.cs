@@ -32,12 +32,6 @@ public class SundexContext(UIContext context) : ISundexContext
         LoadedComponents.Add(component.Name, component);
     }
 
-    public void UnregisterComponent(ISundexComponent component)
-    {
-        if (component.Name == null) throw new Exception("Component name cannot be null.");
-        LoadedComponents.Remove(component.Name);
-    }
-    
     public void RegisterElementFactory(string tagName, Func<UIContext, UIElement> factory)
     {
         if (!ElementFactories.TryAdd(tagName, factory))
@@ -48,6 +42,12 @@ public class SundexContext(UIContext context) : ISundexContext
     {
         var lookup = ElementFactories.GetAlternateLookup<ReadOnlySpan<char>>();
         return lookup.TryGetValue(tagName, out var factory) ? factory(UIContext) : null;
+    }
+
+    public void UnregisterComponent(ISundexComponent component)
+    {
+        if (component.Name == null) throw new Exception("Component name cannot be null.");
+        LoadedComponents.Remove(component.Name);
     }
 
     public SundexComponent NewComponent(string smxlMarkup)

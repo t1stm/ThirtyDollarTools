@@ -6,7 +6,7 @@ public class LegacySequenceEvent : BaseEvent, IHiddenEvent
     {
         SoundEvent = "#legacy";
     }
-    
+
     public override BaseEvent Copy()
     {
         return new LegacySequenceEvent();

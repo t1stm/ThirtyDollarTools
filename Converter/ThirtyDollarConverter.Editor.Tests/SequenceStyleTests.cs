@@ -1,4 +1,3 @@
-using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
 
 namespace ThirtyDollarConverter.Editor.Tests;
@@ -7,7 +6,7 @@ public class SequenceStyleTests
 {
     private static ProjectTrack MakeTrack(float bpm = 120)
     {
-        return new ProjectTrack(new TimingInfo { BPM = bpm }, id: 1);
+        return new ProjectTrack(new TimingInfo { BPM = bpm }, 1);
     }
 
     [Fact]
@@ -90,8 +89,10 @@ public class SequenceStyleTests
         // snare (2 + 2 = 4). The tempo change starts a fresh count, so it lands on the
         // hat, four bars into the new section.
         Assert.Equal(
-            ["!speed", "boom", "!stop", "!divider", "!speed", "kick",
-                "!stop", "snare", "!stop", "!divider", "hat"],
+            [
+                "!speed", "boom", "!stop", "!divider", "!speed", "kick",
+                "!stop", "snare", "!stop", "!divider", "hat"
+            ],
             events.Select(e => e.SoundEvent));
     }
 

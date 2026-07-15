@@ -1,7 +1,7 @@
 namespace ThirtyDollarConverter.Objects;
 
 /// <summary>
-/// Defines the scaling methods available for percentage-based operations.
+///     Defines the scaling methods available for percentage-based operations.
 /// </summary>
 public enum PercentageScale
 {

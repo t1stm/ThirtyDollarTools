@@ -11,7 +11,7 @@
         <panel class="background-gradients" id="grad-4"/>
         <panel class="background-gradients" id="grad-5"/>
       </panel>
-      
+
       <flex id="main-view">
         <flex id="top-bar">
           <label id="title" value="Drum Master"/>
@@ -26,14 +26,14 @@
             <!-- Custom "TaikoLaneConfiguration" components will take place here that will be added by code. -->
           </flex>
 
-          <sound-list id="available-sounds" />
+          <sound-list id="available-sounds"/>
         </flex>
 
         <flex id="footer">
           <button id="back-button">
             <label value="Back"/>
           </button>
-          
+
           <flex id="footer-buttons">
             <button id="speed-influences">
               <label value="!speed Influences Scroll Speed"/>

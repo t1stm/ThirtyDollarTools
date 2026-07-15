@@ -1,7 +1,4 @@
-using ThirtyDollarConverter;
-using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor.Tests;
@@ -10,7 +7,7 @@ public class ProjectTrackTests
 {
     private static ProjectTrack MakeTrack(float bpm = 120, int stepsPerBeat = 4)
     {
-        var track = new ProjectTrack(new TimingInfo { BPM = bpm }, id: 1);
+        var track = new ProjectTrack(new TimingInfo { BPM = bpm }, 1);
         track.Segments[0].StepsPerBeat = stepsPerBeat;
         return track;
     }
@@ -18,7 +15,7 @@ public class ProjectTrackTests
     [Fact]
     public void EmptyTrack_EmitsOnlySpeed()
     {
-        var sequence = MakeTrack(bpm: 120, stepsPerBeat: 4).ToSequence();
+        var sequence = MakeTrack(120, 4).ToSequence();
 
         var ev = Assert.Single(sequence.Events);
         Assert.Equal("!speed", ev.SoundEvent);
@@ -97,7 +94,7 @@ public class ProjectTrackTests
 
         Assert.Equal(5, ev.Value);
         Assert.Equal(60, ev.Volume);
-        Assert.IsNotType<ExtendedEvent>(ev, exactMatch: false);
+        Assert.IsNotType<ExtendedEvent>(ev, false);
     }
 
     [Fact]
@@ -116,7 +113,7 @@ public class ProjectTrackTests
     public void Placements_LandOnTheGrid()
     {
         // 120 BPM, 4 steps per beat -> sequence runs at 480 "BPM", one step = 0.125 s.
-        var track = MakeTrack(bpm: 120, stepsPerBeat: 4);
+        var track = MakeTrack(120, 4);
         track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
         track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "clap" });
         track.Segments[0].Notes.Add(new Note { Step = 6, Sound = "snare" });

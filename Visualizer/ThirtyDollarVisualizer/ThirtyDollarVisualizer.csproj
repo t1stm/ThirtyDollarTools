@@ -1,63 +1,63 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    <ApplicationIcon>Assets\Textures\moai.ico</ApplicationIcon>
+    <SixLaborsLicenseKey>$(SIXLABORS_LICENSE_KEY)</SixLaborsLicenseKey>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.9.1"/>
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
+    <PackageReference Include="OpenAL.Soft" Version="1.19.1"/>
+    <PackageReference Include="OpenTK" Version="5.0.0-pre.15"/>
+    <PackageReference Include="OpenTK.redist.glfw" Version="3.4.0.47"/>
+    <PackageReference Include="SixLabors.Fonts" Version="3.0.0"/>
+    <PackageReference Include="SixLabors.ImageSharp" Version="4.0.0"/>
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="3.0.0"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\Fonts\**\*"/>
+    <EmbeddedResource Include="Assets\Textures\**\*"/>
+    <EmbeddedResource Include="Assets\Shaders\**\*"/>
+  </ItemGroup>
+
+  <Target Name="CreateOutputSymlink" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-        <ApplicationIcon>Assets\Textures\moai.ico</ApplicationIcon>
-        <SixLaborsLicenseKey>$(SIXLABORS_LICENSE_KEY)</SixLaborsLicenseKey>
+      <LinkPath>$(ProjectDir)\Assets</LinkPath>
+      <TargetPath>$(OutputPath)</TargetPath>
     </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="CommandLineParser" Version="2.9.1"/>
-        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
-        <PackageReference Include="OpenAL.Soft" Version="1.19.1"/>
-        <PackageReference Include="OpenTK" Version="5.0.0-pre.15"/>
-        <PackageReference Include="OpenTK.redist.glfw" Version="3.4.0.47"/>
-        <PackageReference Include="SixLabors.Fonts" Version="3.0.0" />
-        <PackageReference Include="SixLabors.ImageSharp" Version="4.0.0" />
-        <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="3.0.0" />
-    </ItemGroup>
+    <Exec Command="mklink /D &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' == 'Windows_NT'"/>
+    <Exec Command="ln -sf &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' != 'Windows_NT'"/>
+  </Target>
 
-    <ItemGroup>
-        <EmbeddedResource Include="Assets\Fonts\**\*"/>
-        <EmbeddedResource Include="Assets\Textures\**\*"/>
-        <EmbeddedResource Include="Assets\Shaders\**\*"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+    <ProjectReference Include="..\..\BASS.Redist\BASS.Redist.csproj"/>
+    <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+    <ProjectReference Include="..\Scenes\DrumMasterScene\DrumMasterScene.csproj"/>
+    <ProjectReference Include="..\Scenes\SettingsScene\SettingsScene.csproj"/>
+    <ProjectReference Include="..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
+    <ProjectReference Include="..\Scenes\EditorScene\EditorScene.csproj"/>
+    <ProjectReference Include="..\Scenes\HomeScene\HomeScene.csproj"/>
+    <ProjectReference Include="..\Scenes\LoadingScene\LoadingScene.csproj"/>
+    <ProjectReference Include="..\Shared\Shared.csproj"/>
+    <ProjectReference Include="..\Scenes\VisualizerScene\VisualizerScene.csproj"/>
+  </ItemGroup>
 
-    <Target Name="CreateOutputSymlink" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
-        <PropertyGroup>
-            <LinkPath>$(ProjectDir)\Assets</LinkPath>
-            <TargetPath>$(OutputPath)</TargetPath>
-        </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Objects\Playfield\Batch\PlayfieldChunk.cs"/>
+    <Compile Remove="Objects\Playfield\Batch\PlayfieldSound.cs"/>
+  </ItemGroup>
 
-        <Exec Command="mklink /D &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' == 'Windows_NT'"/>
-        <Exec Command="ln -sf &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' != 'Windows_NT'"/>
-    </Target>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-        <ProjectReference Include="..\..\BASS.Redist\BASS.Redist.csproj"/>
-        <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
-        <ProjectReference Include="..\Scenes\DrumMasterScene\DrumMasterScene.csproj"/>
-        <ProjectReference Include="..\Scenes\SettingsScene\SettingsScene.csproj"/>
-        <ProjectReference Include="..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
-        <ProjectReference Include="..\Scenes\EditorScene\EditorScene.csproj"/>
-        <ProjectReference Include="..\Scenes\HomeScene\HomeScene.csproj"/>
-        <ProjectReference Include="..\Scenes\LoadingScene\LoadingScene.csproj"/>
-        <ProjectReference Include="..\Shared\Shared.csproj"/>
-        <ProjectReference Include="..\Scenes\VisualizerScene\VisualizerScene.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Compile Remove="Objects\Playfield\Batch\PlayfieldChunk.cs"/>
-        <Compile Remove="Objects\Playfield\Batch\PlayfieldSound.cs"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <_DeploymentManifestIconFile Remove="Assets\Textures\moai.ico"/>
-    </ItemGroup>
+  <ItemGroup>
+    <_DeploymentManifestIconFile Remove="Assets\Textures\moai.ico"/>
+  </ItemGroup>
 </Project>

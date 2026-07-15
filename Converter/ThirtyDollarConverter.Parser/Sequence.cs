@@ -7,15 +7,15 @@ namespace ThirtyDollarParser;
 
 public partial class Sequence
 {
-    private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
     private const float PanMaxValues = 100f;
-    
+    private static readonly CultureInfo CultureInfo = CultureInfo.InvariantCulture;
+
     public readonly HashSet<string> UsedSounds = [];
     public Dictionary<string, BaseEvent[]> Definitions = new();
     public HashSet<string> SeparatedChannels = [];
     public BaseEvent[] Events { get; set; } = [];
     public bool IsNewFormat { get; set; } = true;
-    
+
     public Sequence Copy()
     {
         return new Sequence
@@ -74,7 +74,7 @@ public partial class Sequence
         sequence.Events = list.ToArray();
         return sequence;
     }
-    
+
     private static bool TryCustomEventSyntax(string text, out Match match)
     {
         match = CustomBracketEventRegex().Match(text);
@@ -182,8 +182,10 @@ public partial class Sequence
                         {
                             SoundEvent = e.SoundEvent,
                             Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
-                            Volume = !(e.SoundEvent ?? "").StartsWith('!') ? (e.Volume ?? 100) * ((parsed.Volume ?? 100) / 100) : null,
-                            ValueScale = e.ValueScale,
+                            Volume = !(e.SoundEvent ?? "").StartsWith('!')
+                                ? (e.Volume ?? 100) * ((parsed.Volume ?? 100) / 100)
+                                : null,
+                            ValueScale = e.ValueScale
                         };
 
                         if (e is not ExtendedEvent ex || (e.SoundEvent ?? "").StartsWith('!')) return extended_event;
@@ -366,7 +368,7 @@ public partial class Sequence
 
             return normal_event;
         }
-        
+
         var extended_event = new ExtendedEvent
         {
             Pan = sequence.IsNewFormat ? pan : pan * 100,
@@ -376,13 +378,14 @@ public partial class Sequence
             SoundEvent = string.Intern(sound),
             PlayTimes = loop_times,
             ValueScale = scale,
-            Volume = event_volume,
+            Volume = event_volume
         };
 
         return extended_event;
     }
 
-    private static bool TryLegacyEvent(string text, Sequence sequence, [NotNullWhen(true)] out LegacySequenceEvent? legacy)
+    private static bool TryLegacyEvent(string text, Sequence sequence,
+        [NotNullWhen(true)] out LegacySequenceEvent? legacy)
     {
         legacy = null;
         if (!text.StartsWith("#legacy")) return false;

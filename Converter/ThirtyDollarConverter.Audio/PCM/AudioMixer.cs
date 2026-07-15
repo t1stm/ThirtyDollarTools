@@ -18,6 +18,12 @@ public class AudioMixer : IDisposable
         _length = defaultChannel.GetLength();
     }
 
+    public void Dispose()
+    {
+        foreach (var (_, audioData) in _tracks) audioData.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
     public AudioData<float> MixDown()
     {
         var tracks = GetTracks();
@@ -94,7 +100,7 @@ public class AudioMixer : IDisposable
     }
 
     /// <summary>
-    /// Sums / add the channels of other mixers to the current one.
+    ///     Sums / add the channels of other mixers to the current one.
     /// </summary>
     /// <param name="addMixer">An array of AudioMixer to sum with the current one.</param>
     public void Sum(params ReadOnlySpan<AudioMixer> addMixer)
@@ -131,22 +137,10 @@ public class AudioMixer : IDisposable
                             (existingVector + incomingVector).CopyTo(existingChannel.Slice(j, chunkSize));
                         }
 
-                        for (var j = chunked; j < minLength; j++)
-                        {
-                            existingChannel[j] += incomingChannel[j];
-                        }
+                        for (var j = chunked; j < minLength; j++) existingChannel[j] += incomingChannel[j];
                     }
                 }
             }
         }
-    }
-
-    public void Dispose()
-    {
-        foreach (var (_, audioData) in _tracks)
-        {
-            audioData.Dispose();
-        }
-        GC.SuppressFinalize(this);
     }
 }

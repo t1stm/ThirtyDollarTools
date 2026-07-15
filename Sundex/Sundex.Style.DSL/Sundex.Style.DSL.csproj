@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <Reference Include="OpenTK.Mathematics">
-            <HintPath>..\..\..\..\..\..\.nuget\packages\opentk.mathematics\5.0.0-pre.15\lib\net8.0\OpenTK.Mathematics.dll</HintPath>
-        </Reference>
-    </ItemGroup>
+  <ItemGroup>
+    <Reference Include="OpenTK.Mathematics">
+      <HintPath>..\..\..\..\..\..\.nuget\packages\opentk.mathematics\5.0.0-pre.15\lib\net8.0\OpenTK.Mathematics.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\Sundex.Core\Sundex.Core.csproj"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Sundex.Core\Sundex.Core.csproj"/>
+  </ItemGroup>
 
 </Project>

@@ -7,8 +7,8 @@ namespace ThirtyDollarConverter.Tests;
 
 public class IncrementalAudioTests
 {
-    private readonly SampleHolder _sampleHolder;
     private readonly PcmEncoder _encoder;
+    private readonly SampleHolder _sampleHolder;
     private readonly EncoderSettings _settings;
 
     public IncrementalAudioTests()
@@ -50,7 +50,10 @@ public class IncrementalAudioTests
         };
     }
 
-    private static Sequence Sequence(params BaseEvent[] events) => new() { Events = events };
+    private static Sequence Sequence(params BaseEvent[] events)
+    {
+        return new Sequence { Events = events };
+    }
 
     private static NormalEvent Event(string soundEvent, float value = 0)
     {
@@ -61,7 +64,10 @@ public class IncrementalAudioTests
         };
     }
 
-    private static NormalEvent Combine() => Event("!combine");
+    private static NormalEvent Combine()
+    {
+        return Event("!combine");
+    }
 
     private static NormalEvent VolumeEvent(float value)
     {
@@ -135,7 +141,7 @@ public class IncrementalAudioTests
         var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
         CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
     }
-    
+
     [Fact]
     public async Task ShouldReplaceSoundsCorrectly_WithCutEvent()
     {
@@ -148,7 +154,7 @@ public class IncrementalAudioTests
         var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
         CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
     }
-    
+
     [Fact]
     public async Task ShouldHandleChangingValuesCorrectly()
     {
@@ -161,7 +167,7 @@ public class IncrementalAudioTests
         var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
         CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
     }
-    
+
     [Fact]
     public async Task ShouldHandleChangingValuesCorrectly_WithCutEvent()
     {

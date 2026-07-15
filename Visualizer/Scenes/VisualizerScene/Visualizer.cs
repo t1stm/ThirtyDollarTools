@@ -8,6 +8,7 @@ using Shared.Helpers.Miscellaneous;
 using Shared.Helpers.Positioning;
 using Shared.Objects;
 using Shared.Renderer.Settings;
+using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
@@ -23,9 +24,8 @@ using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Wave;
 using ThirtyDollarParser;
 using VisualizerScene.Objects.Playfield;
-using VisualizerScene.UI;
 using VisualizerScene.Settings;
-using Sundex.Components.Abstractions;
+using VisualizerScene.UI;
 
 namespace VisualizerScene;
 
@@ -48,17 +48,17 @@ public class Visualizer : Scene, IGamePreloadable
     private readonly DollarStoreCamera _textCamera;
     private readonly CancellationTokenSource _tokenSource = new();
     private readonly ThirtyDollarWorkflow _workflow;
-    private PlayerBar? _playerBar;
 
     private BackingAudio? _backingAudio;
+    private CursorType _cursorType;
     private StringFormatter? _debugFormatter;
     private GLInfo _glInfo = null!;
 
     private int _height;
+    private PlayerBar? _playerBar;
 
     private ulong _updateId;
     private int _width;
-    private CursorType _cursorType;
 
     /// <summary>
     ///     Creates a TDW sequence visualizer.

@@ -1,4 +1,3 @@
-using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
 
 namespace ThirtyDollarConverter.Editor.Tests;

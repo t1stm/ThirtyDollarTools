@@ -1,36 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-        <ApplicationManifest>app.manifest</ApplicationManifest>
-        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-        <RootNamespace>ThirtyDollarGUI</RootNamespace>
-    </PropertyGroup>
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    <RootNamespace>ThirtyDollarGUI</RootNamespace>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <AvaloniaResource Include="Assets\**"/>
-    </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**"/>
+  </ItemGroup>
 
 
-    <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.0.4" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.0.4" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.4" />
-        <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.17"/>
-        <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8"/>
-        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
-        <PackageReference Include="Serilog" Version="4.3.1"/>
-        <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1"/>
-        <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.0.0.1" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.0.4"/>
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.4"/>
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4"/>
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.4"/>
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.17"/>
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8"/>
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
+    <PackageReference Include="Serilog" Version="4.3.1"/>
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1"/>
+    <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.0.0.1"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+  </ItemGroup>
 
 </Project>

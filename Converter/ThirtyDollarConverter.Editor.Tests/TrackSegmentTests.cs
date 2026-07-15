@@ -1,4 +1,3 @@
-using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
 
 namespace ThirtyDollarConverter.Editor.Tests;
@@ -7,7 +6,7 @@ public class TrackSegmentTests
 {
     private static ProjectTrack MakeTrack(float bpm = 120)
     {
-        return new ProjectTrack(new TimingInfo { BPM = bpm }, id: 1);
+        return new ProjectTrack(new TimingInfo { BPM = bpm }, 1);
     }
 
     [Fact]

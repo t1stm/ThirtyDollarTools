@@ -1,5 +1,3 @@
-using ThirtyDollarConverter.Editor;
-
 namespace ThirtyDollarConverter.Editor.Tests;
 
 public class ProjectFileTests

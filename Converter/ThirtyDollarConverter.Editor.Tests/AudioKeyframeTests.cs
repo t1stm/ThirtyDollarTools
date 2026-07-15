@@ -1,4 +1,3 @@
-using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarParser.Custom_Events;
 
@@ -8,7 +7,7 @@ public class AudioKeyframeTests
 {
     private static ProjectTrack MakeTrack()
     {
-        return new ProjectTrack(new TimingInfo { BPM = 120 }, id: 1);
+        return new ProjectTrack(new TimingInfo { BPM = 120 }, 1);
     }
 
     [Fact]

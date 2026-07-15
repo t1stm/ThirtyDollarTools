@@ -49,7 +49,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         get => encoderSettings.VolumeScale;
         set => this.RaiseAndSetIfChanged(ref encoderSettings.VolumeScale, value);
     }
-    
+
     public PercentageScale PanScale
     {
         get => encoderSettings.PanScale;

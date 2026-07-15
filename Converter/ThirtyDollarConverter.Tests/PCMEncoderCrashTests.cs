@@ -1,8 +1,9 @@
+using System.Reflection;
+using Serilog;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
-using Serilog;
 
 namespace ThirtyDollarConverter.Tests;
 
@@ -32,7 +33,7 @@ public class PcmEncoderCrashTests
 
         var encoder = new PcmEncoder(holder, settings);
         var mixer = new AudioMixer(AudioData<float>.WithLength(1, 2000), AudioLayout.AudioMono);
-        
+
         var ev = new ExtendedEvent
         {
             SoundEvent = "test",
@@ -52,11 +53,11 @@ public class PcmEncoderCrashTests
         };
 
         // Act & Assert
-        var exception = Record.Exception(() => 
-            encoder.GetType().GetMethod("RenderEventToSlice", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+        var exception = Record.Exception(() =>
+            encoder.GetType().GetMethod("RenderEventToSlice", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?.Invoke(encoder, new object[] { 0, 2000, mixer, 0, placement, processedEvents, false })
         );
-        
+
         Assert.Null(exception);
     }
 }

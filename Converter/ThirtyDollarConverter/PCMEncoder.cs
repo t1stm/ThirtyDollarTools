@@ -103,12 +103,13 @@ public class PcmEncoder
     }
 
     /// <summary>
-    /// Re-renders <paramref name="oldRendered" /> against a new set of sequences, re-using its mixer and processed samples when possible.
-    /// Falls back to a full render when cut events appear in the diff (they can't be cleanly inverted).
+    ///     Re-renders <paramref name="oldRendered" /> against a new set of sequences, re-using its mixer and processed samples
+    ///     when possible.
+    ///     Falls back to a full render when cut events appear in the diff (they can't be cleanly inverted).
     /// </summary>
     /// <fun-fact>
-    /// I burnt 7 dollars worth of AI credits to try to write this method and ended up writing it myself anyway.
-    /// <i>(AI is going to overtake us oooohhhh scary...)</i> (23 more left :D)
+    ///     I burnt 7 dollars worth of AI credits to try to write this method and ended up writing it myself anyway.
+    ///     <i>(AI is going to overtake us oooohhhh scary...)</i> (23 more left :D)
     /// </fun-fact>
     public async Task<RenderedSequence> ComputeIncrementalAudio(RenderedSequence oldRendered,
         IEnumerable<Sequence> newSequences)
@@ -144,9 +145,7 @@ public class PcmEncoder
         if (to_remove.Concat(to_add).Any(pl => pl.Event.SoundEvent == "!cut" || pl.Event is IndividualCutEvent) ||
             new_placements.Any(pl => pl.Event is IndividualCutEvent) ||
             oldRendered.Sequences.Concat(new_sequences).Any(s => s.SeparatedChannels.Count > 0))
-        {
             return await GetMultipleSequencesAudio(new_sequences);
-        }
 
         // merges the new sounds into the old rendered ones; pruning happens after both stages,
         // so the remove stage still sees the old samples (and big_event_length covers them)
@@ -183,7 +182,7 @@ public class PcmEncoder
     }
 
     /// <summary>
-    /// Processes incremental placements by combining audio data based on the provided placements and settings.
+    ///     Processes incremental placements by combining audio data based on the provided placements and settings.
     /// </summary>
     /// <param name="oldMixer">The existing audio mixer that holds current audio data.</param>
     /// <param name="placements">An array of placement objects specifying the positions and details of new audio elements.</param>
@@ -191,8 +190,8 @@ public class PcmEncoder
     /// <param name="bigEventLength">The duration of the significant audio event to append.</param>
     /// <param name="invert">A boolean indicating whether to invert the audio data while processing.</param>
     /// <returns>
-    /// A task representing the asynchronous operation, which returns a combined <see cref="AudioMixer"/>
-    /// containing the updated audio mix.
+    ///     A task representing the asynchronous operation, which returns a combined <see cref="AudioMixer" />
+    ///     containing the updated audio mix.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when the provided placements array is null or empty.</exception>
     private async Task<AudioMixer> ProcessIncrementalPlacements(AudioMixer oldMixer, Placement[] placements,
@@ -252,7 +251,10 @@ public class PcmEncoder
     ///     This method gets all resampled audio samples.
     /// </summary>
     /// <param name="events">The calculated events.</param>
-    /// <param name="existingProcessedEvents">A dictionary containing already processed events from a possible previous conversion.</param>
+    /// <param name="existingProcessedEvents">
+    ///     A dictionary containing already processed events from a possible previous
+    ///     conversion.
+    /// </param>
     /// <returns>An array containing all processed events.</returns>
     /// <exception cref="Exception">Edge case that only can happen if something is wrong with the program.</exception>
     public async Task<Dictionary<(string, double), ProcessedEvent>> GetAudioSamples(TimedEvents events,
@@ -281,10 +283,7 @@ public class PcmEncoder
         }
 
         // Start setting up tasks to process all events.
-        if (to_process_dictionary.Count == 0)
-        {
-            return processed_events_dictionary;
-        }
+        if (to_process_dictionary.Count == 0) return processed_events_dictionary;
 
         var todo_samples = to_process_dictionary.Values.ToArray();
         var processed_events = new ProcessedEvent[todo_samples.Length];
@@ -350,9 +349,7 @@ public class PcmEncoder
         }
 
         foreach (var key in processedEvents.Keys.Where(key => !usedKeys.Contains(key)).ToList())
-        {
             processedEvents.Remove(key);
-        }
     }
 
     /// <summary>
@@ -848,10 +845,8 @@ public class PcmEncoder
 
         var result = new List<Placement>();
         foreach (var placement in from)
-        {
             if (counts.TryGetValue(placement, out var count) && count > 0) counts[placement] = count - 1;
             else result.Add(placement);
-        }
 
         return result.ToArray();
     }

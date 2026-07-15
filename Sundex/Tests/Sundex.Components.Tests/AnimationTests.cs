@@ -132,17 +132,20 @@ public class AnimationTests
 
         // 1. Initial play
         stopwatch.Seek(500);
-        Assert.Equal(Vector3.Lerp(new Vector3(0), new Vector3(1), 0.5f), animation.GetTransform_Add(new DummyRenderable()));
+        Assert.Equal(Vector3.Lerp(new Vector3(0), new Vector3(1), 0.5f),
+            animation.GetTransform_Add(new DummyRenderable()));
 
         // 2. Loop play
         // 3500ms -> (3500-1000) % 2000 = 500. elapsed = 1000 + 500 = 1500ms
         stopwatch.Seek(3500);
-        Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f), animation.GetTransform_Add(new DummyRenderable()));
+        Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f),
+            animation.GetTransform_Add(new DummyRenderable()));
 
         // 3. Loop play later
         // 5500ms -> (5500-1000) % 2000 = 500. elapsed = 1000 + 500 = 1500ms
         stopwatch.Seek(5500);
-        Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f), animation.GetTransform_Add(new DummyRenderable()));
+        Assert.Equal(Vector3.Lerp(new Vector3(1), new Vector3(2), 0.5f),
+            animation.GetTransform_Add(new DummyRenderable()));
     }
 
     [Fact]

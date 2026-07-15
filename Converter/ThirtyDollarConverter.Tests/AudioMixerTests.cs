@@ -23,9 +23,6 @@ public class AudioMixerTests
         // Assert
         Assert.True(mixer1.HasTrack("new_track", AudioLayout.AudioMono));
         var track = mixer1.GetTrack("new_track", AudioLayout.AudioMono);
-        for (var i = 0; i < length; i++)
-        {
-            Assert.Equal(0.5f, track.Samples[0][i], 1e-6f);
-        }
+        for (var i = 0; i < length; i++) Assert.Equal(0.5f, track.Samples[0][i], 1e-6f);
     }
 }

@@ -114,10 +114,7 @@ public class Loader : Scene, IGamePreloadable
                     Message = "Checking for new sounds...",
                     Percentage = 0
                 });
-                if (!await _thirtyDollarDownloader.IsDownloadNecessary())
-                {
-                    _thirtyDollarDownloader.Load();
-                }
+                if (!await _thirtyDollarDownloader.IsDownloadNecessary()) _thirtyDollarDownloader.Load();
             });
         }
 

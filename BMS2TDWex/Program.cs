@@ -39,10 +39,21 @@ var speed = 1d;
 for (var i = 0; i < events.Length; i++)
 {
     var name = events[i].SoundEvent ?? "";
-    if (name == "!speed") speed = events[i].Value;
-    else if (name == "!stop") minutes += events[i].Value / speed;
-    else if (!name.StartsWith('!') && (i + 1 >= events.Length || events[i + 1].SoundEvent != "!combine"))
-        minutes += 1 / speed;
+    switch (name)
+    {
+        case "!speed":
+            speed = events[i].Value;
+            break;
+        case "!stop":
+            minutes += events[i].Value / speed;
+            break;
+        default:
+        {
+            if (!name.StartsWith('!') && (i + 1 >= events.Length || events[i + 1].SoundEvent != "!combine"))
+                minutes += 1 / speed;
+            break;
+        }
+    }
 }
 
 var duration = TimeSpan.FromMinutes(minutes);

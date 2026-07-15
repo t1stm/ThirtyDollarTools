@@ -1,7 +1,7 @@
 // Warm thanks to The Cherno
 // https://youtube.com/playlist?list=PLlrATfBNZ98foTJPJ_Ev03o2oq3-GGOS2
 
-#region Usings 
+#region Usings
 
 using System.Reflection;
 using CommandLine;
@@ -44,7 +44,7 @@ string? settings_location = null;
 bool? transparent_framebuffer = null;
 
 #if RELEASE
-        const string logFilePath = "Visualizer_Release.log";
+const string logFilePath = "Visualizer_Release.log";
 #endif
 #if DEBUG
 const string logFilePath = "Visualizer_Debug.log";
@@ -170,7 +170,7 @@ game.Enqueue(instance => instance.SceneManager.TransitionTo("loader"));
 game.Run();
 
 return;
-        
+
 static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow,
     string? sequence, string? greeting, float? scale)
 {

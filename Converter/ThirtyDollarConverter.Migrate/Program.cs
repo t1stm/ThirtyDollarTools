@@ -1,7 +1,8 @@
 ﻿using System.Text;
 using ThirtyDollarParser;
 
-var sequence = Sequence.FromString("#legacy|" + File.ReadAllText("/home/kris/tdw/death by glamour/death_by_glamour.tdw"));
+var sequence =
+    Sequence.FromString("#legacy|" + File.ReadAllText("/home/kris/tdw/death by glamour/death_by_glamour.tdw"));
 
 var copy = sequence.Copy();
 for (var index = 0; index < copy.Events.Length; index++)

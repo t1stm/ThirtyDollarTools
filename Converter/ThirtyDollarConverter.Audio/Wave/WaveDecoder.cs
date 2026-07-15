@@ -71,7 +71,7 @@ public class WaveDecoder
         var read = reader.Read(bytes);
         reader.Close();
         _holder.AudioData = bytes;
-        _holder.Samples = (uint)(bytes.Length / _holder.Channels / (int) _holder.Encoding * 4);
+        _holder.Samples = (uint)(bytes.Length / _holder.Channels / (int)_holder.Encoding * 4);
         return _holder;
     }
 

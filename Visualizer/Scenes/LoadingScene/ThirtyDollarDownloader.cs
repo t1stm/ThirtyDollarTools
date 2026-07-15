@@ -91,6 +91,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
         {
             _logger.Error(e, "Loading sounds.json failed. Continuing with cached files if possible.");
         }
+
         SampleHolder.PrepareDirectory();
 
         var loadedSounds = new HashSet<Sound>();
@@ -141,6 +142,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
         {
             _logger.Error(e, "Downloading sounds failed. Some sounds may be missing.");
         }
+
         SampleHolder.LoadSamplesIntoMemory();
 
         return loadedSounds;

@@ -1,21 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <RootNamespace>Sundex.Markup</RootNamespace>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Sundex.Markup</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\Sundex.Components\Sundex.Components.csproj"/>
-        <ProjectReference Include="..\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Sundex.Components\Sundex.Components.csproj"/>
+    <ProjectReference Include="..\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0"/>
-        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0"/>
+    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
+  </ItemGroup>
 
 </Project>

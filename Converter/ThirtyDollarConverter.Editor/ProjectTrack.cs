@@ -4,11 +4,10 @@ namespace ThirtyDollarConverter.Editor;
 
 public class ProjectTrack(TimingInfo timing, int id)
 {
+    private readonly List<TrackSegment> _segments = [new()];
     public int Id { get; set; } = id;
     public string Name { get; set; } = $"Track {id}";
     public TimingInfo Timing { get; set; } = timing;
-
-    private readonly List<TrackSegment> _segments = [new()];
 
     /// <summary>
     ///     The consecutive timing regions of this track, laid out back to back.

@@ -38,6 +38,13 @@ public class EncoderSettings
     public int MultithreadingSlices = Environment.ProcessorCount * 4;
 
     /// <summary>
+    ///     Represents the scaling method applied to adjust pan values during audio rendering.
+    ///     Determines how the percentage-based pan adjustments are calculated,
+    ///     affecting the balance between the left and right audio channels.
+    /// </summary>
+    public PercentageScale PanScale = PercentageScale.Linear;
+
+    /// <summary>
     ///     Select the resampler you want to use.
     /// </summary>
     public IResampler Resampler = new HannSincResampler();
@@ -48,16 +55,9 @@ public class EncoderSettings
     public uint SampleRate;
 
     /// <summary>
-    /// Specifies the scaling method used to interpret volume levels.
+    ///     Specifies the scaling method used to interpret volume levels.
     /// </summary>
     public PercentageScale VolumeScale = PercentageScale.LinearOverflowLogarithmic;
-
-    /// <summary>
-    /// Represents the scaling method applied to adjust pan values during audio rendering.
-    /// Determines how the percentage-based pan adjustments are calculated,
-    /// affecting the balance between the left and right audio channels.
-    /// </summary>
-    public PercentageScale PanScale = PercentageScale.Linear;
 
     public string DownloadLocation { get; set; } = string.Empty;
 }

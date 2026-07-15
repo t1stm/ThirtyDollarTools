@@ -2,10 +2,10 @@ namespace ThirtyDollarEncoder.Resamplers;
 
 public class HannSincResampler : IResampler
 {
-    private readonly int _precision;
-    private readonly int _filterSize;
-    private readonly double[] _table;
     private readonly double[] _delta;
+    private readonly int _filterSize;
+    private readonly int _precision;
+    private readonly double[] _table;
 
     public HannSincResampler(int filterSize = 64, int precision = 512)
     {
@@ -13,27 +13,6 @@ public class HannSincResampler : IResampler
         _precision = precision;
         _table = BuildTable(filterSize, precision);
         _delta = BuildDelta(_table);
-    }
-
-    private static double[] BuildTable(int filterSize, int precision)
-    {
-        int n = (filterSize + 1) * precision;
-        var table = new double[n + 1];
-        for (int i = 0; i <= n; i++)
-        {
-            double t = (double)i / precision;
-            table[i] = Sinc(t) * HannWindow(t / filterSize);
-        }
-        return table;
-    }
-
-    private static double[] BuildDelta(double[] table)
-    {
-        var delta = new double[table.Length];
-        for (int i = 0; i < table.Length - 1; i++)
-            delta[i] = table[i + 1] - table[i];
-        delta[^1] = 0.0;
-        return delta;
     }
 
     public string Name => "Bandlimited Sinc with Hann window";
@@ -96,6 +75,28 @@ public class HannSincResampler : IResampler
         }
 
         return output;
+    }
+
+    private static double[] BuildTable(int filterSize, int precision)
+    {
+        var n = (filterSize + 1) * precision;
+        var table = new double[n + 1];
+        for (var i = 0; i <= n; i++)
+        {
+            var t = (double)i / precision;
+            table[i] = Sinc(t) * HannWindow(t / filterSize);
+        }
+
+        return table;
+    }
+
+    private static double[] BuildDelta(double[] table)
+    {
+        var delta = new double[table.Length];
+        for (var i = 0; i < table.Length - 1; i++)
+            delta[i] = table[i + 1] - table[i];
+        delta[^1] = 0.0;
+        return delta;
     }
 
     private static double Sinc(double x)

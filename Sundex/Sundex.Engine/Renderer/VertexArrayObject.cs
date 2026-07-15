@@ -107,7 +107,7 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
             offset += el.Count * el.Type.GetSize();
             if (el.Divisor != 0)
                 GL.VertexAttribDivisor(vi, (uint)el.Divisor);
-            
+
             RenderMarker.Debug("Uploaded Buffer to VAO: ", $"({Handle}), Params: [{vbo}, {layout}]");
         }
 

@@ -160,9 +160,9 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     public class WithCPUCache(DeleteQueue deleteQueue, BufferTarget bufferTarget)
         : GLBuffer<TDataType>(deleteQueue, bufferTarget)
     {
-        private readonly DeleteQueue _deleteQueue = deleteQueue;
         private readonly BufferTarget _bufferTarget = bufferTarget;
-        
+        private readonly DeleteQueue _deleteQueue = deleteQueue;
+
         protected TDataType[] CPUBuffer { get; set; } = [];
         public ReadOnlySpan<TDataType> Data => CPUBuffer;
 

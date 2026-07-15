@@ -222,11 +222,9 @@ public class FlexPanel(UIContext context) : Panel(context)
         var total_spacing = Spacing * (count - 1);
         float total_fixed = 0, total_auto = 0, total_percent = 0;
         foreach (var c in Children)
-        {
             if (c.Width.Auto) total_auto += c.Measure(innerWidth, innerHeight).width;
             else if (c.Width.IsPercentage) total_percent += c.Width.Value;
             else total_fixed += c.Width.Value;
-        }
         var free_space = Math.Max(0, innerWidth - total_fixed - total_auto - total_spacing);
         var total_width = total_fixed + total_auto + (total_percent > 0 ? free_space : 0);
 
@@ -278,11 +276,9 @@ public class FlexPanel(UIContext context) : Panel(context)
         var total_spacing = Spacing * (count - 1);
         float total_fixed = 0, total_auto = 0, total_percent = 0;
         foreach (var c in Children)
-        {
             if (c.Height.Auto) total_auto += c.Measure(innerWidth, innerHeight).height;
             else if (c.Height.IsPercentage) total_percent += c.Height.Value;
             else total_fixed += c.Height.Value;
-        }
         var free_space = Math.Max(0, innerHeight - total_fixed - total_auto - total_spacing);
         var total_height = total_fixed + total_auto + (total_percent > 0 ? free_space : 0);
 

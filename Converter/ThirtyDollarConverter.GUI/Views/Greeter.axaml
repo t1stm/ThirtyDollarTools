@@ -39,10 +39,11 @@
 
             <Border Height="1" Background="{StaticResource WinBorder}" Margin="0,0,0,14" />
 
-            <TextBlock Text="Hello! This project is not finished. Although I am not actively developing this program, I will still respond to any problems that you might encounter. If you encounter a bug / problem, please report it in the GitHub project's issues."
-                       HorizontalAlignment="Center"
-                       Foreground="{StaticResource WinMuted}"
-                       FontSize="11" TextWrapping="Wrap" />
+            <TextBlock
+                Text="Hello! This project is not finished. Although I am not actively developing this program, I will still respond to any problems that you might encounter. If you encounter a bug / problem, please report it in the GitHub project's issues."
+                HorizontalAlignment="Center"
+                Foreground="{StaticResource WinMuted}"
+                FontSize="11" TextWrapping="Wrap" />
 
             <Button Content="Continue"
                     Click="ContinueButton_Click"

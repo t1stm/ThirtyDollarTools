@@ -4,17 +4,17 @@ namespace ThirtyDollarConverter.Editor;
 
 public class ThirtyDollarProject
 {
-    private int _tracks = 0;
+    private readonly List<ProjectTrack> _projectTracks = [];
+    private int _tracks;
+
     public ProjectInfo Info { get; set; } = new()
     {
         Name = "Untitled Project"
     };
 
     public TimingInfo RootTiming { get; set; } = new();
-
-    private readonly List<ProjectTrack> _projectTracks = [];
     public IReadOnlyList<ProjectTrack> Tracks => _projectTracks;
-    
+
     public ProjectTrack NewTrack()
     {
         var track = new ProjectTrack(RootTiming, ++_tracks);
@@ -59,7 +59,7 @@ public class ThirtyDollarProject
         var tracks = _projectTracks.Select(track => track.TempoRegions()).ToList();
 
         var bounds = tracks.SelectMany(regions => regions)
-            .SelectMany(region => (double[]) [region.StartMinutes, region.EndMinutes])
+            .SelectMany(region => (double[])[region.StartMinutes, region.EndMinutes])
             .Order().ToArray();
 
         var merged = new List<TempoRegion>();

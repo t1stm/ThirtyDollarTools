@@ -80,8 +80,8 @@ public class Label : UIElement
     {
         if (TextSlice == null) return;
         if (TextBuffer == null) return;
-        
-        if (text.Length == TextSlice.Value.Length && text.SequenceEqual(TextSlice.Value)) 
+
+        if (text.Length == TextSlice.Value.Length && text.SequenceEqual(TextSlice.Value))
             return;
 
         if (text.Length > TextSlice.Length)

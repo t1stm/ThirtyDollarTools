@@ -25,8 +25,6 @@ public class PlayerBar
     private static readonly Vector3 ButtonBaseRgb = new(0x7a / 255f, 0xa2 / 255f, 0xf7 / 255f);
     private static readonly Vector3 ButtonHoverRgb = new(0x9a / 255f, 0xb8 / 255f, 1.0f);
 
-    private float _currentAlpha;
-    public float CurrentAlpha => _currentAlpha;
     private float _inactivityTimer;
     private Vector2 _lastMousePos;
 
@@ -63,6 +61,8 @@ public class PlayerBar
         RootPanel.Layout();
     }
 
+    public float CurrentAlpha { get; private set; }
+
     public Action OnBack { get; }
     public Action OnPlayPause { get; }
     public Action OnRestart { get; }
@@ -86,7 +86,7 @@ public class PlayerBar
 
     public void Update(UIContext context)
     {
-        if (_currentAlpha < 0.01f) return;
+        if (CurrentAlpha < 0.01f) return;
         RootPanel.Update(context);
         RootPanel.Layout();
     }
@@ -97,7 +97,7 @@ public class PlayerBar
         {
             _inactivityTimer = 0f;
             _lastMousePos = mouse.Position;
-            _currentAlpha = 1f;
+            CurrentAlpha = 1f;
             PropagateAlpha(1f);
             return;
         }
@@ -120,16 +120,16 @@ public class PlayerBar
             : 0f;
 
         var step = FadeSpeed * deltaTime;
-        _currentAlpha = _currentAlpha < targetAlpha
-            ? Math.Min(_currentAlpha + step, targetAlpha)
-            : Math.Max(_currentAlpha - step, targetAlpha);
+        CurrentAlpha = CurrentAlpha < targetAlpha
+            ? Math.Min(CurrentAlpha + step, targetAlpha)
+            : Math.Max(CurrentAlpha - step, targetAlpha);
 
-        PropagateAlpha(_currentAlpha);
+        PropagateAlpha(CurrentAlpha);
     }
 
     public void MouseEvent(MouseState mouse, Vector2 scale)
     {
-        if (_currentAlpha < 0.01f) return;
+        if (CurrentAlpha < 0.01f) return;
 
         RootPanel.Test(mouse, scale);
 
@@ -160,7 +160,9 @@ public class PlayerBar
     }
 
     private static void SetLabelAlpha(Label label, float a)
-        => label.Color = label.Color with { W = a };
+    {
+        label.Color = label.Color with { W = a };
+    }
 
     private static void SetButtonAlpha(Button button, float a)
     {

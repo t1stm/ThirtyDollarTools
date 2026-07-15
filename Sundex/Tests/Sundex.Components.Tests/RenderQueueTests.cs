@@ -262,7 +262,8 @@ public class RenderQueueTests
                     { "background", new ColorValue("#7aa2f7") },
                     {
                         "state[hovered]",
-                        new BlockValue(new Dictionary<string, IStyleValue> { { "background", new ColorValue("#000000") } })
+                        new BlockValue(new Dictionary<string, IStyleValue>
+                            { { "background", new ColorValue("#000000") } })
                     }
                 }
             }
