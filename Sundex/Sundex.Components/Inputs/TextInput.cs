@@ -1,3 +1,4 @@
+using System.Buffers;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -215,18 +216,27 @@ public class TextInput : Panel
         var remaining = HasSelection ? _text.Remove(SelectionStart, SelectionEnd - SelectionStart) : _text;
         var caret = HasSelection ? SelectionStart : _caret;
 
-        Span<char> accepted = stackalloc char[input.Length];
-        var count = 0;
-        foreach (var c in input)
+        // Keystrokes are 1-2 chars; only a large paste rents from the pool.
+        var rented = input.Length > 256 ? ArrayPool<char>.Shared.Rent(input.Length) : null;
+        try
         {
-            if (c is '\n' or '\r') continue;
-            if (!AllowsCharacter(c, remaining, caret + count)) continue;
-            accepted[count++] = c;
+            var accepted = rented ?? stackalloc char[256];
+            var count = 0;
+            foreach (var c in input)
+            {
+                if (c is '\n' or '\r') continue;
+                if (!AllowsCharacter(c, remaining, caret + count)) continue;
+                accepted[count++] = c;
+            }
+
+            if (count == 0 && remaining == _text) return;
+
+            SetText(remaining.Insert(caret, new string(accepted[..count])), caret + count);
         }
-
-        if (count == 0 && remaining == _text) return;
-
-        SetText(remaining.Insert(caret, new string(accepted[..count])), caret + count);
+        finally
+        {
+            if (rented != null) ArrayPool<char>.Shared.Return(rented);
+        }
     }
 
     public void SelectAll()

@@ -66,6 +66,8 @@ public class UIContext : IGamePreloadable
 
     private readonly List<UIElement> _hoverChain = [];
     private readonly List<UIElement> _pressChain = [];
+    private readonly List<UIElement> _newHoverCache = [];
+    private readonly List<UIElement> _newPressCache = [];
 
     private UIElement? _lastPressTarget;
     private long _lastPressTime;
@@ -186,18 +188,18 @@ public class UIContext : IGamePreloadable
 
     private void ApplyPointerState()
     {
-        var newHover = new List<UIElement>();
+        _newHoverCache.Clear();
         for (var e = HoverTarget; e != null; e = e.Parent)
             if (e.ContainsPoint(PointerX, PointerY))
-                newHover.Add(e);
+                _newHoverCache.Add(e);
 
-        var newPress = new List<UIElement>();
+        _newPressCache.Clear();
         if (PointerDown && CapturedElement != null)
             for (var e = CapturedElement; e != null; e = e.Parent)
-                newPress.Add(e);
+                _newPressCache.Add(e);
 
         foreach (var e in _hoverChain)
-            if (!newHover.Contains(e))
+            if (!_newHoverCache.Contains(e))
             {
                 e.IsHovered = false;
                 e.SyncPointerState();
@@ -205,19 +207,19 @@ public class UIContext : IGamePreloadable
             }
 
         foreach (var e in _pressChain)
-            if (!newPress.Contains(e))
+            if (!_newPressCache.Contains(e))
             {
                 e.IsPressed = false;
                 e.SyncPointerState();
             }
 
-        foreach (var e in newPress)
+        foreach (var e in _newPressCache)
         {
             e.IsPressed = true;
             e.SyncPointerState();
         }
 
-        foreach (var e in newHover)
+        foreach (var e in _newHoverCache)
         {
             var entered = !e.IsHovered;
             e.IsHovered = true;
@@ -226,9 +228,9 @@ public class UIContext : IGamePreloadable
         }
 
         _hoverChain.Clear();
-        _hoverChain.AddRange(newHover);
+        _hoverChain.AddRange(_newHoverCache);
         _pressChain.Clear();
-        _pressChain.AddRange(newPress);
+        _pressChain.AddRange(_newPressCache);
     }
 
     private static UIElement RootOf(UIElement element)

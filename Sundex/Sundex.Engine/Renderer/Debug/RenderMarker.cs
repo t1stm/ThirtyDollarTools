@@ -34,9 +34,7 @@ public static class RenderMarker
     {
         if (!Enabled) return;
         Span<char> message = stackalloc char[message1.Length + message2.Length];
-
-        message1.CopyTo(message);
-        message2.CopyTo(message[message1.Length..]);
+        message.TryWrite($"{message1}{message2}", out _);
         Debug(message, markerType, source, type);
     }
 }

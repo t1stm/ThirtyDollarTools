@@ -15,6 +15,7 @@ namespace Sundex.Components.Scroll;
 public class ScrollView : Panel
 {
     private readonly ScrollBar _bar;
+    private float[] _heightsCache = [];
     private Vector4i? _inheritedClip;
     private float _scrollY;
 
@@ -63,7 +64,10 @@ public class ScrollView : Panel
         var innerHeight = Math.Max(0, Computed.Height - 2 * Padding);
 
         // Measure once, then stack with the scroll offset applied.
-        var heights = new float[Children.Count];
+        // Reused across layout passes — this runs every scroll frame.
+        if (_heightsCache.Length < Children.Count)
+            _heightsCache = new float[Children.Count];
+        var heights = _heightsCache;
         ContentHeight = 0;
         for (var i = 0; i < Children.Count; i++)
         {

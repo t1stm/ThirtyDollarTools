@@ -151,18 +151,23 @@ public class StyleSheet(StyleSheetHolder holder)
     /// </summary>
     public Dictionary<string, IStyleValue>? GetStateOverrideForTag(string name, string state)
     {
-        var key = $"state[{state}]";
+        if (state.Length > 1024)
+            throw new ArgumentException("State name is too long.");
+
+        Span<char> keySpan = stackalloc char[state.Length + "state[]".Length];
+        keySpan.TryWrite($"state[{state}]", out _);
+        ReadOnlySpan<char> readonlyKeySpan = keySpan;
 
         var ids = IDTags.GetAlternateLookup<ReadOnlySpan<char>>();
         var classes = Classes.GetAlternateLookup<ReadOnlySpan<char>>();
         var components = Components.GetAlternateLookup<ReadOnlySpan<char>>();
 
-        if (ids.TryGetValue(name, out var idProps) && idProps.TryGetValue(key, out var idState) &&
+        if (ids.TryGetValue(name, out var idProps) && idProps.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(readonlyKeySpan, out var idState) &&
             idState is BlockValue idBlock) return idBlock.Properties;
-        if (classes.TryGetValue(name, out var classProps) && classProps.TryGetValue(key, out var classState) &&
+        if (classes.TryGetValue(name, out var classProps) && classProps.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(readonlyKeySpan, out var classState) &&
             classState is BlockValue classBlock) return classBlock.Properties;
         if (components.TryGetValue(name, out var componentProps) &&
-            componentProps.TryGetValue(key, out var componentState) &&
+            componentProps.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(readonlyKeySpan, out var componentState) &&
             componentState is BlockValue componentBlock) return componentBlock.Properties;
         return null;
     }
