@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using OpenTK.Mathematics;
 using Serilog;
 using Shared;
@@ -451,7 +452,7 @@ public class RenderQueueTests
         {
             var logger = new LoggerConfiguration().CreateLogger();
             InjectForTesting(
-                new AssetProvider(logger, [], new GLInfo()),
+                new AssetProvider(logger, [Assembly.GetExecutingAssembly()], new GLInfo()),
                 new MockFontProvider(),
                 new MockTextProvider());
             Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(800, 600));

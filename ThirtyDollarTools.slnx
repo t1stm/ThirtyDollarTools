@@ -30,6 +30,7 @@
     <Project Path="Sundex/Tests/Sundex.Style.DSL.Tests/Sundex.Style.DSL.Tests.csproj"/>
   </Folder>
   <Folder Name="/Visualizer/">
+    <Project Path="Visualizer/Playground/Playground.csproj"/>
     <Project Path="Visualizer/Shared/Shared.csproj"/>
     <Project Path="Visualizer/ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj"/>
   </Folder>

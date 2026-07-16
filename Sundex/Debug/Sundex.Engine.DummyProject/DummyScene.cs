@@ -1,91 +1,94 @@
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Inputs;
+using Sundex.Components.Labels;
+using Sundex.Components.Panels;
 using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
-using Sundex.Engine.Text;
-using Sundex.Engine.Text.Fonts;
 
 namespace Sundex.Engine.DummyProject;
 
 public class DummyScene(Game game) : Scene(game)
 {
-    private Camera _camera = null!;
-    private Vector2 _dvdDirection = Vector2.One;
-    private FontProvider _fontProvider = null!;
-    private TextBuffer _textBuffer = null!;
-    private TextProvider _textProvider = null!;
-
-    private TextSlice _textSlice = null!;
+    private DummyCamera _camera = null!;
+    private UIContext _context = null!;
+    private Panel _root = null!;
 
     public override void Initialize(InitArguments initArguments)
     {
-        _fontProvider = new FontProvider(AssetProvider);
-        _textProvider = new TextProvider(AssetProvider, _fontProvider, "Lato Regular");
-        _textBuffer = new TextBuffer(_textProvider, AssetProvider.DeleteQueue);
-
-        _textSlice = _textBuffer.GetTextSlice(
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \n" +
-            "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \n" +
-            "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. \n" +
-            "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. \n" +
-            "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum");
-        _textSlice.Position = (100f, 100f, 0f);
-
         _camera = new DummyCamera(Vector3.Zero, new Vector2i(1024, 600));
         _camera.UpdateMatrix();
+        _context = new UIContext { Camera = _camera };
+
+        var valueLabel = new Label(_context, "Hello, Sundex!") { FontSizePx = 16f };
+
+        var input = new TextInput(_context, "Hello, Sundex!") { Width = 300 };
+        input.OnValueChanged = ti => valueLabel.Value = ti.Value;
+
+        var column = new FlexPanel(_context)
+        {
+            Direction = LayoutDirection.Vertical,
+            HorizontalAlign = Align.Center,
+            Spacing = 12
+        };
+        column.Children = [input, valueLabel];
+
+        _root = new FlexPanel(_context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100),
+            HorizontalAlign = Align.Center,
+            VerticalAlign = Align.Center
+        };
+        _root.Children = [column];
+        _root.DrawTo(_context);
     }
 
-    public override void Start()
-    {
-    }
+    public override void Start() { }
 
     public override void Render(RenderArguments renderArgs)
     {
-        _textBuffer.RenderBuffer(_camera);
+        _context.Render();
     }
 
-    public override void TransitionedTo()
-    {
-    }
+    public override void TransitionedTo() { }
 
     public override void Update(UpdateArguments updateArgs)
     {
-        const float travelDistance = 3f;
-        _textSlice.Position += new Vector3(_dvdDirection * travelDistance);
-        if (_textSlice.Position.X > _camera.Width || _textSlice.Position.X < 0) _dvdDirection.X = -_dvdDirection.X;
-        if (_textSlice.Position.Y > _camera.Height || _textSlice.Position.Y < 0) _dvdDirection.Y = -_dvdDirection.Y;
+        _root.Update(_context);
+        _root.Layout();
     }
 
     public override void Resize(int w, int h)
     {
         _camera.Viewport = new Vector2i(w, h);
         _camera.UpdateMatrix();
+        _root.InvalidateCoordinates();
+        _root.Layout();
     }
 
-    public override void Shutdown()
-    {
-    }
+    public override void Shutdown() { }
 
-    public override void FileDrop(string[] locations)
-    {
-    }
+    public override void FileDrop(string[] locations) { }
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
+        _root.Test(mouseState, Vector2.One);
     }
 
-    public override void Keyboard(KeyboardState state)
+    public override void TextInput(TextInputEventArgs e)
     {
-        if (state.IsKeyPressed(Keys.R))
-        {
-            _textSlice.Dispose();
-            _textSlice = _textBuffer.GetTextSlice("Hello World!");
-            _textSlice.Position = (600f, 600f, 0f);
-        }
-
-        if (state.IsKeyPressed(Keys.G))
-            // Force GC
-            GC.Collect();
+        _context.DispatchTextInput(e);
     }
+
+    public override void KeyDown(KeyboardKeyEventArgs e)
+    {
+        _context.DispatchKeyDown(e);
+    }
+
+    public override void Keyboard(KeyboardState state) { }
 }

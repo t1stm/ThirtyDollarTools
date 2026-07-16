@@ -4,6 +4,8 @@ using OpenTK.Windowing.Desktop;
 using Serilog;
 using Serilog.Templates;
 using Serilog.Templates.Themes;
+using Shared.Renderer.Planes;
+using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.DummyProject;
 
@@ -27,7 +29,7 @@ var serilogLogger = new LoggerConfiguration()
     .CreateLogger()
     .ForContext<Game>();
 
-var game = new Game(serilogLogger, [Assembly.GetExecutingAssembly()], new GameWindowSettings(), new NativeWindowSettings
+var game = new Game(serilogLogger, [Assembly.GetExecutingAssembly(), typeof(UIContext).Assembly, typeof(ColoredPlane).Assembly], new GameWindowSettings(), new NativeWindowSettings
 {
     ClientSize = (1024, 600),
     Vsync = VSyncMode.On,

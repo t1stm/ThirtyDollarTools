@@ -6,9 +6,12 @@ using Sundex.Engine.Renderer.Shaders;
 
 namespace Sundex.Core;
 
-public abstract class Renderable : IRenderable, IPositionable
+public abstract class Renderable : IRenderable, IPositionable, IClippable
 {
     public readonly List<Renderable> Children = [];
+
+    /// <inheritdoc />
+    public Vector4i? ClipRect { get; set; }
 
     /// <summary>
     ///     A boolean made for external use.

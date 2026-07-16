@@ -1,4 +1,8 @@
 using System.Runtime.InteropServices;
+using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
@@ -55,6 +59,223 @@ public class UIContext : IGamePreloadable
         foreach (var queue in LayeredRenderQueue) queue.Clear();
     }
 
+    #region Pointer routing / focus
+
+    private const long DoubleClickMs = 400;
+    private const float DoubleClickSlopPx = 4;
+
+    private readonly List<UIElement> _hoverChain = [];
+    private readonly List<UIElement> _pressChain = [];
+
+    private UIElement? _lastPressTarget;
+    private long _lastPressTime;
+    private float _lastPressX;
+    private float _lastPressY;
+
+    /// <summary>The topmost element under the pointer (or the captured element during a drag).</summary>
+    public UIElement? HoverTarget { get; private set; }
+
+    /// <summary>The element that received the last press; it owns the pointer until release.</summary>
+    public UIElement? CapturedElement { get; private set; }
+
+    /// <summary>The element receiving keyboard/text input. One per context.</summary>
+    public UIElement? FocusedElement { get; private set; }
+
+    public float PointerX { get; private set; }
+    public float PointerY { get; private set; }
+    public bool PointerDown { get; private set; }
+
+    /// <summary>
+    ///     Routes a pointer update to the UI tree under <paramref name="root" />: resolves the
+    ///     topmost hit (occlusion), maintains hover/pressed chains, capture, click
+    ///     (press + release on the same element, bubbling to the first ancestor with a handler),
+    ///     wheel routing, and click-to-focus. Called by <see cref="UIElement.Test" /> on root
+    ///     elements; call directly with primitives in headless tests.
+    /// </summary>
+    public void UpdatePointer(UIElement root, float x, float y,
+        bool isDown, bool wasPressed, bool wasReleased, Vector2 scrollDelta)
+    {
+        PointerX = x;
+        PointerY = y;
+        PointerDown = isDown;
+
+        // A capture owned by another UI tree makes this tree unreachable for the pointer.
+        if (CapturedElement != null && !ReferenceEquals(RootOf(CapturedElement), root))
+            return;
+
+        var winner = CapturedElement ?? root.HitTest(x, y);
+
+        // Multiple roots share this context and are tested one after another each frame;
+        // when the pointer is over another tree, leave that tree's state alone.
+        if (winner == null && HoverTarget != null && !ReferenceEquals(RootOf(HoverTarget), root))
+            return;
+
+        HoverTarget = winner;
+
+        if (scrollDelta != Vector2.Zero)
+            for (var e = winner; e != null; e = e.Parent)
+                if (e.HandleScroll(scrollDelta))
+                    break;
+
+        if (wasPressed)
+        {
+            // The element that handles the press owns the capture (and future drag
+            // updates); otherwise the raw hit winner does.
+            UIElement? pressHandler = null;
+            for (var e = winner; e != null; e = e.Parent)
+                if (e.HandlePress(x, y))
+                {
+                    pressHandler = e;
+                    break;
+                }
+
+            CapturedElement = pressHandler ?? winner;
+
+            UIElement? focusable = null;
+            for (var e = winner; e != null; e = e.Parent)
+                if (e.Focusable)
+                {
+                    focusable = e;
+                    break;
+                }
+
+            if (focusable != null) Focus(focusable);
+            else if (FocusedElement != null && ReferenceEquals(RootOf(FocusedElement), root)) Blur();
+
+            var now = Environment.TickCount64;
+            var isDoubleClick = ReferenceEquals(winner, _lastPressTarget) &&
+                                now - _lastPressTime <= DoubleClickMs &&
+                                Math.Abs(x - _lastPressX) <= DoubleClickSlopPx &&
+                                Math.Abs(y - _lastPressY) <= DoubleClickSlopPx;
+            if (isDoubleClick)
+            {
+                for (var e = winner; e != null; e = e.Parent)
+                    if (e.HandleDoublePress(x, y))
+                        break;
+
+                _lastPressTarget = null; // a third press starts a fresh cycle
+            }
+            else
+            {
+                _lastPressTarget = winner;
+                _lastPressTime = now;
+                _lastPressX = x;
+                _lastPressY = y;
+            }
+        }
+
+        if (isDown && !wasPressed)
+            CapturedElement?.HandlePointerDrag(x, y);
+
+        if (wasReleased && CapturedElement != null)
+        {
+            var captured = CapturedElement;
+            CapturedElement = null;
+
+            if (captured.ContainsPoint(x, y))
+                for (var e = captured; e != null; e = e.Parent)
+                    if (e.OnClick != null)
+                    {
+                        e.OnClick(e);
+                        break;
+                    }
+        }
+
+        ApplyPointerState();
+    }
+
+    private void ApplyPointerState()
+    {
+        var newHover = new List<UIElement>();
+        for (var e = HoverTarget; e != null; e = e.Parent)
+            if (e.ContainsPoint(PointerX, PointerY))
+                newHover.Add(e);
+
+        var newPress = new List<UIElement>();
+        if (PointerDown && CapturedElement != null)
+            for (var e = CapturedElement; e != null; e = e.Parent)
+                newPress.Add(e);
+
+        foreach (var e in _hoverChain)
+            if (!newHover.Contains(e))
+            {
+                e.IsHovered = false;
+                e.SyncPointerState();
+                e.OnHoverExit?.Invoke(e);
+            }
+
+        foreach (var e in _pressChain)
+            if (!newPress.Contains(e))
+            {
+                e.IsPressed = false;
+                e.SyncPointerState();
+            }
+
+        foreach (var e in newPress)
+        {
+            e.IsPressed = true;
+            e.SyncPointerState();
+        }
+
+        foreach (var e in newHover)
+        {
+            var entered = !e.IsHovered;
+            e.IsHovered = true;
+            e.SyncPointerState();
+            if (entered) e.OnHoverEnter?.Invoke(e);
+        }
+
+        _hoverChain.Clear();
+        _hoverChain.AddRange(newHover);
+        _pressChain.Clear();
+        _pressChain.AddRange(newPress);
+    }
+
+    private static UIElement RootOf(UIElement element)
+    {
+        while (element.Parent != null) element = element.Parent;
+        return element;
+    }
+
+    /// <summary>Moves keyboard focus to <paramref name="element" />, blurring the previous one.</summary>
+    public void Focus(UIElement element)
+    {
+        if (ReferenceEquals(FocusedElement, element)) return;
+        Blur();
+        FocusedElement = element;
+        element.NotifyFocusGained();
+    }
+
+    /// <summary>Clears keyboard focus.</summary>
+    public void Blur()
+    {
+        var old = FocusedElement;
+        FocusedElement = null;
+        old?.NotifyFocusLost();
+    }
+
+    /// <summary>Forwards a unicode text input event to the focused element.</summary>
+    public void DispatchTextInput(TextInputEventArgs e)
+    {
+        FocusedElement?.HandleTextInput(e);
+    }
+
+    /// <summary>
+    ///     Forwards a key event to the focused element. Unhandled Escape blurs.
+    /// </summary>
+    /// <returns>True when the event was consumed by the UI.</returns>
+    public bool DispatchKeyDown(KeyboardKeyEventArgs e)
+    {
+        if (FocusedElement == null) return false;
+        if (FocusedElement.HandleKeyDown(e)) return true;
+        if (e.Key != Keys.Escape) return false;
+
+        Blur();
+        return true;
+    }
+
+    #endregion
+
     public void QueueRender(IRenderable renderable, int renderIndex, int queueIndex = -1)
     {
         while (LayeredRenderQueue.Count <= renderIndex)
@@ -65,6 +286,11 @@ public class UIContext : IGamePreloadable
         // Check for duplicates to prevent same renderable from being queued multiple times in the same layer
         if (queue.Any(r => ReferenceEquals(r, renderable)))
             return;
+
+        // Move semantics: a subtree re-parented to a new depth re-queues its renderables
+        // at the new layer; drop the stale entry from whichever layer still holds it, or
+        // the ghost keeps rendering after the element is removed (e.g. closing a modal).
+        RemoveFromAnyLayer(renderable);
 
         if (queueIndex < 0 || queueIndex >= queue.Count)
         {
@@ -77,18 +303,34 @@ public class UIContext : IGamePreloadable
 
     public int DequeueRender(IRenderable renderable, int index)
     {
-        if (index < 0 || index >= LayeredRenderQueue.Count) return -1;
-        var queue = LayeredRenderQueue[index];
-
-        for (var i = 0; i < queue.Count; i++)
+        if (index >= 0 && index < LayeredRenderQueue.Count)
         {
-            if (!ReferenceEquals(queue[i], renderable)) continue;
+            var queue = LayeredRenderQueue[index];
 
-            queue.RemoveAt(i);
-            return i;
+            for (var i = 0; i < queue.Count; i++)
+            {
+                if (!ReferenceEquals(queue[i], renderable)) continue;
+
+                queue.RemoveAt(i);
+                return i;
+            }
         }
 
+        // Stale index hint (element re-parented since it was queued): scan everything.
+        RemoveFromAnyLayer(renderable);
         return -1;
+    }
+
+    private void RemoveFromAnyLayer(IRenderable renderable)
+    {
+        foreach (var layer in LayeredRenderQueue)
+            for (var i = 0; i < layer.Count; i++)
+            {
+                if (!ReferenceEquals(layer[i], renderable)) continue;
+
+                layer.RemoveAt(i);
+                return;
+            }
     }
 
     public void RegisterUpdate(UIElement element)
@@ -105,8 +347,29 @@ public class UIContext : IGamePreloadable
     {
         foreach (var element in _updatingElements) element.Update(this);
 
+        // ponytail: scissor rects assume UI space == framebuffer pixels (true for all
+        // current scenes); add a scale factor here if a scene ever renders UI scaled.
+        var scissorOn = false;
         foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
         foreach (var renderable in queue)
+        {
+            if ((renderable as IClippable)?.ClipRect is { } clip)
+            {
+                if (!scissorOn) GL.Enable(EnableCap.ScissorTest);
+                scissorOn = true;
+                // GL scissor origin is bottom-left; UI rects are top-left based.
+                GL.Scissor(clip.X, (int)Camera.Height - clip.W,
+                    Math.Max(0, clip.Z - clip.X), Math.Max(0, clip.W - clip.Y));
+            }
+            else if (scissorOn)
+            {
+                GL.Disable(EnableCap.ScissorTest);
+                scissorOn = false;
+            }
+
             renderable.Render(Camera);
+        }
+
+        if (scissorOn) GL.Disable(EnableCap.ScissorTest);
     }
 }

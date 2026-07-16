@@ -76,6 +76,11 @@ public class Label : UIElement
             Context.DequeueRender(TextBuffer, Index);
     }
 
+    public override void ApplyClip(Vector4i? clip)
+    {
+        if (TextBuffer != null) TextBuffer.ClipRect = clip;
+    }
+
     public void SetTextContents(ReadOnlySpan<char> text)
     {
         if (TextSlice == null) return;

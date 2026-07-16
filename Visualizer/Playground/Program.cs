@@ -53,6 +53,6 @@ var game = new Game(serilogLogger, assemblies, new GameWindowSettings(), new Nat
 }, "Playground");
 
 game.Enqueue(instance =>
-    instance.SceneManager.LoadScene<PlaygroundScene>("playground", manager => new PlaygroundScene(manager)));
+    instance.SceneManager.LoadScene<PlaygroundScene>("playground", _ => new PlaygroundScene(instance)));
 game.Enqueue(instance => instance.SceneManager.TransitionTo("playground"));
 game.Run();

@@ -14,7 +14,7 @@ public class SoundListElement : FlexPanel
     {
         SoundName = soundName;
         UpdateCursorOnHover = true;
-        Computed = new ComputedRectangle(this)
+        Computed = new ComputedRectangle
         {
             OnUpdate = UpdateMatrix
         };

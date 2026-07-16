@@ -1,3 +1,4 @@
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
 using Sundex.Engine.Asset_Management;
@@ -70,4 +71,22 @@ public abstract class Scene(Game game)
     /// <param name="mouseState">A copy of the MouseState.</param>
     /// <param name="keyboardState">A copy of the KeyboardState.</param>
     public abstract void Mouse(MouseState mouseState, KeyboardState keyboardState);
+
+    /// <summary>
+    ///     Event triggered when the window receives a unicode text input.
+    ///     Virtual so scenes without text entry can ignore it.
+    /// </summary>
+    /// <param name="e">The text input event, carrying the unicode codepoint.</param>
+    public virtual void TextInput(TextInputEventArgs e)
+    {
+    }
+
+    /// <summary>
+    ///     Event triggered when a key is pressed (including OS key repeats).
+    ///     Virtual so scenes using only the polled <see cref="Keyboard" /> path can ignore it.
+    /// </summary>
+    /// <param name="e">The key event, including <see cref="KeyboardKeyEventArgs.IsRepeat" />.</param>
+    public virtual void KeyDown(KeyboardKeyEventArgs e)
+    {
+    }
 }

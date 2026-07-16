@@ -222,6 +222,18 @@ public class Game : GameWindow
             Close();
     }
 
+    protected override void OnTextInput(TextInputEventArgs e)
+    {
+        base.OnTextInput(e);
+        SceneManager.TextInput(e);
+    }
+
+    protected override void OnKeyDown(KeyboardKeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        SceneManager.KeyDown(e);
+    }
+
     protected override void OnFileDrop(FileDropEventArgs e)
     {
         base.OnFileDrop(e);

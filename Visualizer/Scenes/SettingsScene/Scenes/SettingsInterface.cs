@@ -38,8 +38,6 @@ public class SettingsInterface
         PopulateSettingRows(context, settings);
 
         RootPanel.DrawTo(context);
-        RootPanel.InvalidateCoordinates();
-        RootPanel.Layout();
     }
 
     public Action OnBack { get; }

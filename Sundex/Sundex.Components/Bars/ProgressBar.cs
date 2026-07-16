@@ -158,6 +158,13 @@ public class ProgressBar : UIElement
         BackgroundPanel.Test(mouse, scale);
     }
 
+    public override UIElement? HitTest(float x, float y)
+    {
+        // The panels aren't regular children, so include them explicitly.
+        if (!Visible) return null;
+        return BackgroundPanel.HitTest(x, y) ?? base.HitTest(x, y);
+    }
+
     public override void InvalidateLayout()
     {
         if (NeedsLayout) return;
@@ -171,6 +178,12 @@ public class ProgressBar : UIElement
         base.InvalidateCoordinates();
         BackgroundPanel.InvalidateCoordinates();
         ForegroundPanel.InvalidateCoordinates();
+    }
+
+    public override void ApplyClip(Vector4i? clip)
+    {
+        BackgroundPanel.ApplyClip(clip);
+        ForegroundPanel.ApplyClip(clip);
     }
 
     protected override void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)

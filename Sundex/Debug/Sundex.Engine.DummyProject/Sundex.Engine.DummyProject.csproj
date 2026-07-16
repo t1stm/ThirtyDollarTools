@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Sundex.Engine\Sundex.Engine.csproj"/>
+    <ProjectReference Include="..\..\Sundex.Components\Sundex.Components.csproj"/>
+    <ProjectReference Include="..\..\..\Visualizer\Shared\Shared.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

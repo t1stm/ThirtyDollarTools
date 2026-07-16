@@ -38,6 +38,21 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
 
     public override string Tag => "panel";
 
+    /// <summary>
+    ///     Depth index. Cascades to children so subtrees composed while detached
+    ///     (e.g. rows built before AddChild) get correct z-order/hit-test indices
+    ///     once parented into a deeper tree.
+    /// </summary>
+    public override int Index
+    {
+        get => base.Index;
+        internal set
+        {
+            base.Index = value;
+            foreach (var child in Children) child.Index = value + 1;
+        }
+    }
+
     public override UIElement? Parent
     {
         get => base.Parent;
@@ -86,6 +101,9 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
     {
         if (Background != null)
             Context.DequeueRender(Background, Index);
+
+        // Cascade so removing a subtree (e.g. closing a modal) dequeues everything in it.
+        foreach (var child in Children) child.StopRendering();
     }
 
     public override void Test(MouseState mouse, Vector2 scale)
@@ -95,6 +113,19 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
 
         foreach (var child in Children)
             child.Test(mouse, scale);
+    }
+
+    public override UIElement? HitTest(float x, float y)
+    {
+        if (!Visible) return null;
+        var best = base.HitTest(x, y);
+        foreach (var child in Children)
+        {
+            var hit = child.HitTest(x, y);
+            if (hit != null && (best == null || hit.Index >= best.Index)) best = hit;
+        }
+
+        return best;
     }
 
     public override void Update(UIContext uiContext)
@@ -108,6 +139,12 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
     {
         base.InvalidateCoordinates();
         foreach (var child in Children) child.InvalidateCoordinates();
+    }
+
+    public override void ApplyClip(Vector4i? clip)
+    {
+        if (Background != null) Background.ClipRect = clip;
+        foreach (var child in Children) child.ApplyClip(clip);
     }
 
     protected override void DoLayout()
@@ -135,7 +172,10 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         if (child.Parent is Panel oldParent) oldParent.RemoveChild(child);
         _children.Add(child);
         child.Parent = this;
+        // DrawTo queues the child's renderables but lays it out against this panel's
+        // possibly-stale Computed; re-invalidate so the next Layout pass repositions it.
         child.DrawTo(Context);
+        child.InvalidateCoordinates();
         InvalidateLayout();
     }
 

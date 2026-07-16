@@ -57,8 +57,6 @@ public class PlayerBar
             () => RestartButton);
 
         RootPanel.DrawTo(context);
-        RootPanel.InvalidateCoordinates();
-        RootPanel.Layout();
     }
 
     public float CurrentAlpha { get; private set; }

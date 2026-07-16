@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Attributes;
@@ -19,7 +20,7 @@ public abstract class UIElement
     protected UIElement(UIContext context)
     {
         Context = context;
-        Computed = new ComputedRectangle(this)
+        Computed = new ComputedRectangle
         {
             OnUpdate = InvalidateCoordinates
         };
@@ -154,9 +155,107 @@ public abstract class UIElement
     public Action<UIElement>? OnClick { get; set; }
     public Action<UIElement>? OnHoverEnter { get; set; }
     public Action<UIElement>? OnHoverExit { get; set; }
+    public Action<UIElement>? OnFocus { get; set; }
+    public Action<UIElement>? OnBlur { get; set; }
+
+    /// <summary>Whether clicking this element gives it keyboard focus.</summary>
+    public bool Focusable { get; set; }
+
+    public bool IsFocused => ReferenceEquals(Context.FocusedElement, this);
+
+    internal void NotifyFocusGained()
+    {
+        FocusGained();
+        OnFocus?.Invoke(this);
+    }
+
+    internal void NotifyFocusLost()
+    {
+        FocusLost();
+        OnBlur?.Invoke(this);
+    }
+
+    /// <summary>Component hook invoked when this element gains focus.</summary>
+    protected virtual void FocusGained()
+    {
+    }
+
+    /// <summary>Component hook invoked when this element loses focus.</summary>
+    protected virtual void FocusLost()
+    {
+    }
+
+    /// <summary>Receives unicode text input while focused.</summary>
+    public virtual void HandleTextInput(TextInputEventArgs e)
+    {
+    }
+
+    /// <summary>
+    ///     Receives key events (including repeats) while focused.
+    /// </summary>
+    /// <returns>True when the key was consumed; unhandled Escape blurs the element.</returns>
+    public virtual bool HandleKeyDown(KeyboardKeyEventArgs e)
+    {
+        return false;
+    }
+
+    /// <summary>
+    ///     Receives scroll wheel input when hovered; unhandled events bubble to ancestors.
+    /// </summary>
+    /// <returns>True when the scroll was consumed.</returns>
+    public virtual bool HandleScroll(Vector2 scrollDelta)
+    {
+        return false;
+    }
+
+    /// <summary>
+    ///     Receives a press at the given UI coordinates; unhandled presses bubble to ancestors.
+    ///     The handling element becomes the captured element and receives
+    ///     <see cref="HandlePointerDrag" /> until release.
+    /// </summary>
+    /// <returns>True when the press was consumed.</returns>
+    public virtual bool HandlePress(float x, float y)
+    {
+        return false;
+    }
+
+    /// <summary>Receives pointer movement while this element holds the capture.</summary>
+    public virtual void HandlePointerDrag(float x, float y)
+    {
+    }
+
+    /// <summary>
+    ///     Receives the second press of a double-click (same element, within the
+    ///     time/distance window), after the regular <see cref="HandlePress" />;
+    ///     unhandled presses bubble to ancestors.
+    /// </summary>
+    /// <returns>True when consumed.</returns>
+    public virtual bool HandleDoublePress(float x, float y)
+    {
+        return false;
+    }
 
     public virtual void StopRendering()
     {
+    }
+
+    /// <summary>
+    ///     Assigns the clip rectangle (UI-space x1, y1, x2, y2) applied to this element's
+    ///     renderables and its subtree; null removes clipping. Containers that clip
+    ///     (ScrollView, TextInput) call this during layout — re-applied every layout pass,
+    ///     so renderables swapped in between pick it up on the next one.
+    /// </summary>
+    public virtual void ApplyClip(Vector4i? clip)
+    {
+    }
+
+    /// <summary>Intersects a clip rect with an optional outer clip rect.</summary>
+    protected static Vector4i IntersectClip(Vector4i rect, Vector4i? outer)
+    {
+        if (outer is not { } o) return rect;
+        return new Vector4i(
+            Math.Max(rect.X, o.X), Math.Max(rect.Y, o.Y),
+            Math.Min(rect.Z, o.Z), Math.Min(rect.W, o.W));
     }
 
     public void AddAnimation(Animation animation)
@@ -208,6 +307,11 @@ public abstract class UIElement
 
     /// <summary>
     ///     Tests mouse interaction with this element.
+    ///     Root elements (no parent) route the pointer through
+    ///     <see cref="UIContext.UpdatePointer" />, which resolves the single topmost hit
+    ///     (occlusion), capture, clicks, focus, and wheel routing centrally. Hover/pressed
+    ///     state is applied there; overrides can still read the mouse for per-frame logic
+    ///     (drags, custom gestures).
     /// </summary>
     /// <param name="mouse">The current mouse state.</param>
     /// <param name="scale">The UI scale.</param>
@@ -215,44 +319,39 @@ public abstract class UIElement
     {
         if (!Visible) return;
 
+        if (Parent == null)
+            Context.UpdatePointer(this,
+                mouse.X / scale.X, mouse.Y / scale.Y,
+                mouse.IsButtonDown(MouseButton.Left),
+                mouse.IsButtonPressed(MouseButton.Left),
+                mouse.IsButtonReleased(MouseButton.Left),
+                mouse.ScrollDelta);
+    }
+
+    /// <summary>Whether the point (in UI coordinates) lies inside this element's bounds.</summary>
+    public bool ContainsPoint(float x, float y)
+    {
         var absX = Computed.AbsoluteX;
         var absY = Computed.AbsoluteY;
+        return x >= absX && x <= absX + Computed.Width &&
+               y >= absY && y <= absY + Computed.Height;
+    }
 
-        var mouseX = mouse.X / scale.X;
-        var mouseY = mouse.Y / scale.Y;
+    /// <summary>
+    ///     Returns the topmost element in this subtree containing the point, or null.
+    ///     "Topmost" follows render order: higher <see cref="Index" /> wins, later
+    ///     candidates win ties. Containers override to include their children.
+    /// </summary>
+    public virtual UIElement? HitTest(float x, float y)
+    {
+        if (!Visible) return null;
+        return ContainsPoint(x, y) ? this : null;
+    }
 
-        var oldHovered = IsHovered;
-        IsHovered = mouseX >= absX && mouseX <= absX + Computed.Width &&
-                    mouseY >= absY && mouseY <= absY + Computed.Height;
-
-        switch (oldHovered, IsHovered)
-        {
-            case (false, true):
-                OnHoverEnter?.Invoke(this);
-                break;
-
-            case (true, false):
-                OnHoverExit?.Invoke(this);
-                break;
-        }
-
-        IsPressed = false;
-        switch (IsHovered)
-        {
-            case false:
-                CurrentState = UIState.None;
-                return;
-
-            case true when mouse.IsButtonPressed(MouseButton.Left):
-                OnClick?.Invoke(this);
-                break;
-
-            case true when mouse.IsButtonDown(MouseButton.Left):
-                IsPressed = true;
-                break;
-        }
-
-        CurrentState = IsPressed ? UIState.Pressed : UIState.Hovered;
+    /// <summary>Recomputes <see cref="CurrentState" /> from the pointer flags. Called by the context.</summary>
+    internal void SyncPointerState()
+    {
+        CurrentState = IsPressed ? UIState.Pressed : IsHovered ? UIState.Hovered : UIState.None;
     }
 
     /// <summary>
@@ -283,11 +382,14 @@ public abstract class UIElement
 
     /// <summary>
     ///     Marks coordinates as dirty, requiring a recalculation.
+    ///     Notifies the parent (like <see cref="InvalidateLayout" />) so the dirty element
+    ///     is reachable from the root's next Layout() pass.
     /// </summary>
     public virtual void InvalidateCoordinates()
     {
         if (NeedsLayout) return;
         NeedsLayout = true;
+        Parent?.InvalidateLayout();
     }
 
     /// <summary>

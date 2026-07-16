@@ -7,8 +7,11 @@ using Sundex.Engine.Renderer.Queues;
 
 namespace Sundex.Engine.Text;
 
-public class TextBuffer : IRenderable, IDisposable
+public class TextBuffer : IRenderable, IClippable, IDisposable
 {
+    /// <inheritdoc />
+    public OpenTK.Mathematics.Vector4i? ClipRect { get; set; }
+
     private readonly List<Range> _freeRanges = [];
     private readonly Dictionary<TextSlice, Range> _usedRanges = [];
 

@@ -2,10 +2,10 @@ namespace Sundex.Components.Abstractions.Values;
 
 public class ComputedRectangle
 {
-    public ComputedRectangle(UIElement current)
-    {
-        UpdateAbsoluteBasedOnParent(current, current.Parent);
-    }
+    // No measuring here: this runs from the UIElement constructor, where virtual
+    // Width/Height overrides (e.g. WindowFrame → Container.Width) aren't initialized yet.
+    // The element starts with NeedsLayout = true, so the first Layout() computes everything.
+
 
     public Action? OnUpdate { get; set; }
 

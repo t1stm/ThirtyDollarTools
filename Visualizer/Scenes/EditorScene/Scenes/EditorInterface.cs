@@ -26,8 +26,6 @@ public class EditorInterface
         sundexContext.RunLogicAndVerify(Component, () => RootPanel);
 
         RootPanel.DrawTo(context);
-        RootPanel.InvalidateCoordinates();
-        RootPanel.Layout();
     }
 
     public Action OnBack { get; }

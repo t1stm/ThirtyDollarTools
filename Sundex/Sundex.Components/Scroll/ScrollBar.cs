@@ -1,5 +1,4 @@
 using OpenTK.Mathematics;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
@@ -7,6 +6,12 @@ using Sundex.Components.Panels;
 
 namespace Sundex.Components.Scroll;
 
+/// <summary>
+///     Vertical scroll bar: a draggable thumb on a track, self-positioned at the right
+///     edge of its parent. Only reports <see cref="Percentage" /> (0..1) — the consumer
+///     moves its own content (<see cref="ScrollView" /> does this). Dragging uses the
+///     capture hooks; clicking the track jumps the thumb.
+/// </summary>
 public sealed class ScrollBar : Panel
 {
     public readonly Panel ScrollBlock;
@@ -30,6 +35,9 @@ public sealed class ScrollBar : Panel
     }
 
     public float Percentage { get; private set; }
+
+    /// <summary>Fired when the user moves the thumb (not on programmatic <see cref="SetPercentage" />).</summary>
+    public Action<ScrollBar>? OnScrolled { get; set; }
 
     public override LiteralOrComputable X
     {
@@ -63,39 +71,48 @@ public sealed class ScrollBar : Panel
         set => throw new NotSupportedException();
     }
 
-    public override void Test(MouseState mouse, Vector2 scale)
+    /// <summary>Moves the thumb without firing <see cref="OnScrolled" />.</summary>
+    public void SetPercentage(float percentage)
     {
-        if (!Visible) return;
-        base.Test(mouse, scale);
-        ScrollBlock.Test(mouse, scale);
-        if (!ScrollBlock.IsPressed) return;
+        percentage = Math.Clamp(percentage, 0, 1);
+        if (Math.Abs(Percentage - percentage) < 0.0001f) return;
+        Percentage = percentage;
+        InvalidateLayout();
+    }
 
-        var delta_y = mouse.Delta.Y;
-        var percentage_diff = delta_y / Computed.Height;
+    public override bool HandlePress(float x, float y)
+    {
+        MoveThumbTo(y);
+        return true;
+    }
 
-        Percentage += percentage_diff;
-        Percentage = Math.Clamp(Percentage, 0, 1);
-        var sbh = ScrollBlock.Height.IsPercentage
-            ? Computed.Height * (ScrollBlock.Height.Value / 100f)
-            : ScrollBlock.Height.Value;
-        var innerH = Computed.Height - sbh;
-        ScrollBlock.Y = Percentage * innerH;
+    public override void HandlePointerDrag(float x, float y)
+    {
+        MoveThumbTo(y);
+    }
+
+    private float ThumbHeight => ScrollBlock.Height.IsPercentage
+        ? Computed.Height * (ScrollBlock.Height.Value / 100f)
+        : ScrollBlock.Height.Value;
+
+    private void MoveThumbTo(float y)
+    {
+        var track = Computed.Height - ThumbHeight;
+        if (track <= 0) return;
+
+        var percentage = Math.Clamp((y - Computed.AbsoluteY - ThumbHeight / 2) / track, 0, 1);
+        if (Math.Abs(Percentage - percentage) < 0.0001f) return;
+
+        Percentage = percentage;
+        InvalidateLayout();
+        OnScrolled?.Invoke(this);
     }
 
     protected override void DoLayout()
     {
         ScrollBlock.X = 0;
-        var sbh = ScrollBlock.Height.IsPercentage
-            ? Computed.Height * (ScrollBlock.Height.Value / 100f)
-            : ScrollBlock.Height.Value;
-        var innerH = Computed.Height - sbh;
-        ScrollBlock.Y = Percentage * innerH;
+        ScrollBlock.Y = Percentage * (Computed.Height - ThumbHeight);
         ScrollBlock.Width = Computed.Width;
         base.DoLayout();
-    }
-
-    protected override void DrawSelf(UIContext context)
-    {
-        // 
     }
 }

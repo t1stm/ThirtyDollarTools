@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
 using Sundex.Engine.Scenes.Arguments;
@@ -123,6 +124,22 @@ public class SceneManager(ILogger logger)
         {
             foreach (var scene in ActiveScenes)
                 scene.Keyboard(keyboardState);
+        }
+    }
+
+    public void TextInput(TextInputEventArgs e)
+    {
+        lock (ActiveScenes)
+        {
+            foreach (var scene in ActiveScenes) scene.TextInput(e);
+        }
+    }
+
+    public void KeyDown(KeyboardKeyEventArgs e)
+    {
+        lock (ActiveScenes)
+        {
+            foreach (var scene in ActiveScenes) scene.KeyDown(e);
         }
     }
 
