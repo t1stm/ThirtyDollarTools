@@ -36,6 +36,7 @@ public class Editor : Scene
         _context = new UIContext
         {
             Camera = _camera,
+            PixelScale = _lastScale,
             RequestCursor = type => _cursorType = type
         };
 
@@ -96,6 +97,7 @@ public class Editor : Scene
 
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
+        _context.PixelScale = _lastScale;
 
         _editorInterface.Resize(width, height);
     }

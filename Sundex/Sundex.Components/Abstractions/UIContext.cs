@@ -26,6 +26,12 @@ public class UIContext : IGamePreloadable
     public float ViewportWidth => Camera.Width;
     public float ViewportHeight => Camera.Height;
 
+    /// <summary>
+    ///     Ratio of physical framebuffer pixels to logical UI units (monitor content scale).
+    ///     Must be set by the owning scene whenever it divides window size by DPI scale for its Camera.
+    /// </summary>
+    public Vector2 PixelScale { get; set; } = Vector2.One;
+
     public IAssetProvider AssetProvider => _assetProvider;
     public IFontProvider FontProvider => _fontProvider;
     public ITextProvider TextProvider => _textProvider;
@@ -380,8 +386,6 @@ public class UIContext : IGamePreloadable
     {
         foreach (var element in _updatingElements) element.Update(this);
 
-        // ponytail: scissor rects assume UI space == framebuffer pixels (true for all
-        // current scenes); add a scale factor here if a scene ever renders UI scaled.
         var scissorOn = false;
         foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
         foreach (var renderable in queue)
@@ -390,9 +394,11 @@ public class UIContext : IGamePreloadable
             {
                 if (!scissorOn) GL.Enable(EnableCap.ScissorTest);
                 scissorOn = true;
-                // GL scissor origin is bottom-left; UI rects are top-left based.
-                GL.Scissor(clip.X, (int)Camera.Height - clip.W,
-                    Math.Max(0, clip.Z - clip.X), Math.Max(0, clip.W - clip.Y));
+                // GL.Scissor takes physical framebuffer pixels; clip/Camera are logical UI units, so
+                // scale by PixelScale. Origin is bottom-left; UI rects are top-left based.
+                GL.Scissor((int)(clip.X * PixelScale.X), (int)((Camera.Height - clip.W) * PixelScale.Y),
+                    Math.Max(0, (int)((clip.Z - clip.X) * PixelScale.X)),
+                    Math.Max(0, (int)((clip.W - clip.Y) * PixelScale.Y)));
             }
             else if (scissorOn)
             {

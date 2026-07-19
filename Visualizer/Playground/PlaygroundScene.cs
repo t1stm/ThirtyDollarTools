@@ -44,6 +44,7 @@ public class PlaygroundScene : Scene
         _context = new UIContext
         {
             Camera = _camera,
+            PixelScale = _lastScale,
             RequestCursor = type => _cursorType = type
         };
 
@@ -212,6 +213,7 @@ public class PlaygroundScene : Scene
 
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
+        _context.PixelScale = _lastScale;
 
         _root.InvalidateCoordinates();
         _root.Layout();

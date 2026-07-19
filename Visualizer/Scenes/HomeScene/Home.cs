@@ -41,6 +41,7 @@ public class Home : Scene
         _context = new UIContext
         {
             Camera = _camera,
+            PixelScale = _lastScale,
             RequestCursor = type => _cursorType = type
         };
 
@@ -115,6 +116,7 @@ public class Home : Scene
 
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
+        _context.PixelScale = _lastScale;
 
         _homeInterface.Resize();
         _versionNote.SetPosition((10, height, 0), PositionAlign.Bottom | PositionAlign.Left);

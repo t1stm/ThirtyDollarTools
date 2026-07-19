@@ -48,6 +48,7 @@ public class Loader : Scene, IGamePreloadable
         _context = new UIContext
         {
             Camera = _camera,
+            PixelScale = _lastScale,
             RequestCursor = type => _cursorType = type
         };
         _thirtyDollarDownloader = new ThirtyDollarDownloader(game.ThreadRunner, _assetProvider)
@@ -158,6 +159,7 @@ public class Loader : Scene, IGamePreloadable
 
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
+        _context.PixelScale = _lastScale;
 
         _background.Resize(_camera.Viewport.X, _camera.Viewport.Y);
         _loaderInterface.Resize();
