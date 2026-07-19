@@ -21,6 +21,10 @@ public class ProjectFileTests
         slow.BPM = 60;
         slow.Bars = 2;
 
+        var kickEcho = new AudioKeyframeManager();
+        kickEcho.Keyframes.Add(new AudioKeyframe { Gap = 2, Value = new Modifier(3) });
+        drums.AddTrackAutomation(kickEcho, ["kick"]);
+
         var melody = project.NewTrack();
         melody.Name = "Melody";
         melody.Timing = new TimingInfo { BPM = 90 }; // own tempo
@@ -59,6 +63,10 @@ public class ProjectFileTests
         Assert.Equal(-5, kick.Value);
         Assert.Equal(80, kick.Volume);
         Assert.Equal(-25, kick.Pan);
+
+        var trackAutomation = Assert.Single(drums.TrackAutomations);
+        Assert.Equal(["kick"], trackAutomation.Sounds);
+        Assert.Equal(new Modifier(3), trackAutomation.Keyframes.Keyframes[0].Value);
 
         var harp = loaded.Tracks[1].Segments[0].Notes[0];
         Assert.NotNull(harp.Automation);
@@ -99,5 +107,86 @@ public class ProjectFileTests
         Assert.Contains("\"multiply\"", json); // enums as words, not magic numbers
         Assert.DoesNotContain("$id", json); // no reference-tracking noise
         Assert.DoesNotContain(": null", json); // absent fields are omitted, not spelled out
+    }
+
+    [Fact]
+    public void Placements_SurviveTheRoundTrip_AndShareTheirPattern()
+    {
+        var project = MakeProject();
+        var pattern = project.Tracks[0];
+        project.Place(pattern, 0, 0);
+        project.Place(pattern, 3, 16.5);
+        project.Place(project.Tracks[1], 1, 4);
+
+        var loaded = ProjectFile.Load(ProjectFile.Save(project));
+
+        Assert.Equal(3, loaded.Placements.Count);
+        Assert.Equal(3, loaded.Placements[1].Channel);
+        Assert.Equal(16.5, loaded.Placements[1].StartQuarterNotes);
+        // Two clips of the same pattern reference the same loaded track instance —
+        // editing the pattern must update every clip.
+        Assert.Same(loaded.Placements[0].Track, loaded.Placements[1].Track);
+        Assert.Same(loaded.Tracks[0], loaded.Placements[0].Track);
+        Assert.Same(loaded.Tracks[1], loaded.Placements[2].Track);
+    }
+
+    [Fact]
+    public void LegacyFile_WithoutPlacements_AutoPlacesEveryTrackAtZero()
+    {
+        // Files from before the arrangement layer played all tracks from time 0.
+        const string legacy = """
+                              {
+                                "info": { "name": "Old" },
+                                "rootTiming": { "bpm": 120, "numerator": 4, "denominator": 4 },
+                                "tracks": [
+                                  { "id": 1, "name": "A", "segments": [] },
+                                  { "id": 2, "name": "B", "segments": [] }
+                                ]
+                              }
+                              """;
+
+        var loaded = ProjectFile.Load(legacy);
+
+        Assert.Equal(2, loaded.Placements.Count);
+        Assert.All(loaded.Placements, p => Assert.Equal(0, p.StartQuarterNotes));
+        Assert.Equal([0, 1], loaded.Placements.Select(p => p.Channel));
+        Assert.Same(loaded.Tracks[0], loaded.Placements[0].Track);
+
+        // An explicitly empty arrangement stays empty — only a missing key is legacy.
+        var project = new ThirtyDollarProject();
+        project.NewTrack();
+        Assert.Empty(ProjectFile.Load(ProjectFile.Save(project)).Placements);
+    }
+
+    [Fact]
+    public void TrackAutomation_WithNullSounds_RoundTripsAsAllSounds()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        track.AddTrackAutomation(new AudioKeyframeManager());
+
+        var loaded = ProjectFile.Load(ProjectFile.Save(project));
+
+        var automation = Assert.Single(loaded.Tracks[0].TrackAutomations);
+        Assert.Null(automation.Sounds);
+    }
+
+    [Fact]
+    public void LegacyFile_WithoutTrackAutomations_LoadsWithNone()
+    {
+        // Files from before this feature have no "trackAutomations" key at all.
+        const string legacy = """
+                              {
+                                "info": { "name": "Old" },
+                                "rootTiming": { "bpm": 120, "numerator": 4, "denominator": 4 },
+                                "tracks": [
+                                  { "id": 1, "name": "A", "segments": [] }
+                                ]
+                              }
+                              """;
+
+        var loaded = ProjectFile.Load(legacy);
+
+        Assert.Empty(loaded.Tracks[0].TrackAutomations);
     }
 }

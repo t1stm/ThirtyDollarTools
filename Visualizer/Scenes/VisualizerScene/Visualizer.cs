@@ -341,6 +341,9 @@ public class Visualizer : Scene, IGamePreloadable
         var control = left_control || right_control;
         var shift = left_shift || right_shift;
 
+        if (state.IsKeyPressed(Keys.Escape))
+            SceneManager.TransitionTo("home");
+
         // toggle play / pause
         switch (state.IsKeyPressed(Keys.Space))
         {

@@ -37,6 +37,7 @@
   <Folder Name="/Visualizer/Scenes/">
     <Project Path="Visualizer/Scenes/DrumMasterScene/DrumMasterScene.csproj"/>
     <Project Path="Visualizer/Scenes/EditorScene/EditorScene.csproj"/>
+    <Project Path="Visualizer/Scenes/EditorScene.Tests/EditorScene.Tests.csproj"/>
     <Project Path="Visualizer/Scenes/HomeScene/HomeScene.csproj"/>
     <Project Path="Visualizer/Scenes/LoadingScene/LoadingScene.csproj"/>
     <Project Path="Visualizer/Scenes/SettingsScene/SettingsScene.csproj"/>

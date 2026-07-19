@@ -4,23 +4,39 @@
 
   <layout>
     <panel id="main-holder">
-      <panel id="background-holder">
-        <panel class="background-gradients" id="grad-1"/>
-        <panel class="background-gradients" id="grad-2"/>
-        <panel class="background-gradients" id="grad-3"/>
-        <panel class="background-gradients" id="grad-4"/>
-        <panel class="background-gradients" id="grad-5"/>
-      </panel>
+      <flex id="editor-header">
+        <label id="editor-title" value="Editor"/>
+        <label id="project-name" value="Untitled Project"/>
+        <label id="project-bpm" value=""/>
 
-      <flex id="editor-view">
-        <flex id="editor-header">
-          <label id="editor-title" value="Editor"/>
-          <button id="back-button">
-            <label value="Back"/>
-          </button>
-        </flex>
-        <panel id="editor-divider"/>
-        <label id="editor-placeholder" value="Editor coming soon."/>
+        <panel class="header-divider"/>
+
+        <label id="load-button" value="Load"/>
+        <label id="save-button" value="Save"/>
+        <label id="export-button" value="Export"/>
+      </flex>
+
+      <panel id="track-column"/>
+
+      <flex id="grid-area"/>
+
+      <panel id="inspector-column"/>
+
+      <flex id="bottom-bar">
+        <button id="back-button">
+          <label value="Back"/>
+        </button>
+
+        <panel class="header-divider"/>
+
+        <button id="play-button">
+          <label value="Play"/>
+        </button>
+        <button id="stop-button">
+          <label value="Stop"/>
+        </button>
+        <progress id="transport-progress"/>
+        <label id="transport-time" value=""/>
       </flex>
     </panel>
   </layout>

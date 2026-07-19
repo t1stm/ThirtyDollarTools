@@ -37,4 +37,10 @@ public class AudioKeyframe
 
     /// <summary>Pan change, result clamped to -100..100.</summary>
     public Modifier Pan { get; set; }
+
+    /// <summary>
+    ///     Change to the sound-start offset in seconds (the TDW "&gt;" extension). An
+    ///     additive offset per keyframe walks the sound forward on every repeat.
+    /// </summary>
+    public Modifier Offset { get; set; }
 }

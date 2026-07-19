@@ -95,7 +95,8 @@ public class UIContext : IGamePreloadable
     ///     elements; call directly with primitives in headless tests.
     /// </summary>
     public void UpdatePointer(UIElement root, float x, float y,
-        bool isDown, bool wasPressed, bool wasReleased, Vector2 scrollDelta)
+        bool isDown, bool wasPressed, bool wasReleased, Vector2 scrollDelta,
+        bool isRightDown = false)
     {
         PointerX = x;
         PointerY = y;
@@ -165,6 +166,14 @@ public class UIContext : IGamePreloadable
                 _lastPressY = y;
             }
         }
+
+        // Level-triggered, not edge-triggered: fires on every update while the right
+        // button is held, so sweep gestures (erase everything crossed) work. Handlers
+        // must be idempotent for a stationary pointer.
+        if (isRightDown)
+            for (var e = winner; e != null; e = e.Parent)
+                if (e.HandleRightPress(x, y))
+                    break;
 
         if (isDown && !wasPressed)
             CapturedElement?.HandlePointerDrag(x, y);
@@ -237,6 +246,28 @@ public class UIContext : IGamePreloadable
     {
         while (element.Parent != null) element = element.Parent;
         return element;
+    }
+
+    /// <summary>
+    ///     Releases pointer/focus state held inside a subtree being removed from its
+    ///     tree. Without this, a capture on a detached element blocks all pointer input
+    ///     forever (its root no longer matches any live root), and keys keep routing to
+    ///     an element that is no longer on screen. Called by Panel.RemoveChild.
+    /// </summary>
+    public void NotifyDetached(UIElement subtreeRoot)
+    {
+        if (IsInSubtree(CapturedElement, subtreeRoot)) CapturedElement = null;
+        if (IsInSubtree(HoverTarget, subtreeRoot)) HoverTarget = null;
+        if (IsInSubtree(_lastPressTarget, subtreeRoot)) _lastPressTarget = null;
+        if (IsInSubtree(FocusedElement, subtreeRoot)) Blur();
+    }
+
+    private static bool IsInSubtree(UIElement? element, UIElement subtreeRoot)
+    {
+        for (; element != null; element = element.Parent)
+            if (ReferenceEquals(element, subtreeRoot))
+                return true;
+        return false;
     }
 
     /// <summary>Moves keyboard focus to <paramref name="element" />, blurring the previous one.</summary>

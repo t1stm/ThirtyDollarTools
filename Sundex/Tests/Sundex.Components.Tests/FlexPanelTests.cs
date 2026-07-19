@@ -195,6 +195,74 @@ public class FlexPanelTests
         Assert.Equal(0, child2.Y);
     }
 
+    [Fact]
+    public void PercentChild_KeepsItsDeclaration_AndReflowsOnResize()
+    {
+        var context = new TestUIContext();
+        var flex = new FlexPanel(context)
+        {
+            Width = 400,
+            Height = 1000,
+            Direction = LayoutDirection.Vertical
+        };
+        var header = new TestElement(context) { Width = 400, Height = 56 };
+        var body = new TestElement(context) { Width = 400, Height = new LiteralOrComputable(100, true) };
+        flex.Children = [header, body];
+
+        flex.Layout();
+
+        // First pass: body takes all the free space below the header.
+        Assert.Equal(944, body.Computed.Height);
+        // The declaration must survive the pass — resolving it may not overwrite it.
+        Assert.True(body.Height.IsPercentage);
+
+        // The scene-resize path (Resize handlers do InvalidateCoordinates + Layout).
+        flex.Height = 700;
+        flex.InvalidateCoordinates();
+        flex.Layout();
+
+        Assert.Equal(644, body.Computed.Height);
+
+        flex.Height = 1400;
+        flex.InvalidateCoordinates();
+        flex.Layout();
+
+        Assert.Equal(1344, body.Computed.Height);
+    }
+
+    [Fact]
+    public void PercentChildren_ShareTheFreeSpace_OnEveryPass()
+    {
+        var context = new TestUIContext();
+        var flex = new FlexPanel(context)
+        {
+            Width = 300,
+            Height = 100,
+            Direction = LayoutDirection.Horizontal
+        };
+        var sidebar = new TestElement(context) { Width = 100, Height = 20 };
+        var wide = new TestElement(context) { Width = new LiteralOrComputable(75, true), Height = 20 };
+        var narrow = new TestElement(context) { Width = new LiteralOrComputable(25, true), Height = 20 };
+        flex.Children = [sidebar, wide, narrow];
+
+        flex.Layout();
+
+        // free space = 300 - 100 = 200 → 150/50 split after the fixed sidebar.
+        Assert.Equal(150, wide.Computed.Width);
+        Assert.Equal(50, narrow.Computed.Width);
+        Assert.Equal(100, wide.X);
+        Assert.Equal(250, narrow.X);
+
+        flex.Width = 500;
+        flex.InvalidateCoordinates();
+        flex.Layout();
+
+        // free space = 400 → the split must follow.
+        Assert.Equal(300, wide.Computed.Width);
+        Assert.Equal(100, narrow.Computed.Width);
+        Assert.Equal(400, narrow.X);
+    }
+
     private class TestElement(UIContext context)
         : UIElement(context)
     {

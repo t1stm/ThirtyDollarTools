@@ -20,6 +20,7 @@ public class StopRenderingTests
     {
         var context = new TestUIContext();
         var parent = new Panel(context);
+        parent.DrawTo(context);
         var child = new Panel(context)
         {
             Background = new MockRenderable()
@@ -43,6 +44,7 @@ public class StopRenderingTests
     {
         var context = new TestUIContext();
         var root = new Panel(context);
+        root.DrawTo(context);
         var middle = new Panel(context);
         var leaf = new Panel(context) { Background = new MockRenderable() };
 
@@ -61,11 +63,12 @@ public class StopRenderingTests
     {
         var context = new TestUIContext();
         var root = new Panel(context);
+        root.DrawTo(context);
         var dialog = new Panel(context);
         var inner = new Panel(context) { Background = new MockRenderable() };
 
-        // Build the subtree detached (queues inner at a shallow index), then parent it
-        // deeper — the modal-dialog pattern. The renderable must move, not duplicate.
+        // Build the subtree detached, then parent it deeper — the modal-dialog
+        // pattern. The renderable must appear exactly once, at the final depth.
         dialog.AddChild(inner);
         root.AddChild(dialog);
 
@@ -76,6 +79,51 @@ public class StopRenderingTests
         // Removing the subtree must leave no ghost in any layer.
         root.RemoveChild(dialog);
         Assert.All(queue, layer => Assert.DoesNotContain(inner.Background, layer));
+    }
+
+    [Fact]
+    public void AddChild_OnANeverDrawnPanel_DoesNotDrawTheChild_UntilTheSubtreeIsDrawn()
+    {
+        // Renderables that queue through DrawSelf (e.g. a Label's text) must not
+        // appear while composing a subtree off-tree — they'd draw at 0,0 over
+        // whatever scene is live. (Background renderables queue through their
+        // property setter instead; that separate path is unchanged.)
+        var context = new TestUIContext();
+        var detached = new Panel(context);
+        var probe = new DrawSelfProbe(context);
+
+        detached.AddChild(probe);
+        var queue = context.GetRenderQueue();
+        Assert.All(queue, layer => Assert.DoesNotContain(probe.Renderable, layer));
+
+        // Parenting the subtree into a drawn tree queues the whole thing.
+        var root = new Panel(context);
+        root.DrawTo(context);
+        root.AddChild(detached);
+        Assert.Contains(probe.Renderable, queue[probe.Index]);
+
+        // And removing it dequeues again, so the cycle can repeat (view swapping).
+        root.RemoveChild(detached);
+        Assert.All(queue, layer => Assert.DoesNotContain(probe.Renderable, layer));
+        root.AddChild(detached);
+        Assert.Contains(probe.Renderable, queue[probe.Index]);
+    }
+
+    private class DrawSelfProbe(UIContext context) : UIElement(context)
+    {
+        public readonly MockRenderable Renderable = new();
+
+        public override string Tag => "probe";
+
+        protected override void DrawSelf(UIContext context)
+        {
+            context.QueueRender(Renderable, Index);
+        }
+
+        public override void StopRendering()
+        {
+            Context.DequeueRender(Renderable, Index);
+        }
     }
 
     private class TestUIContext : UIContext

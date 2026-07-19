@@ -72,6 +72,26 @@ public abstract class UIElement
         set => UpdateSetDirty(ref field, value);
     }
 
+    /// <summary>
+    ///     Main-axis size dictated by a flex parent to a percent-sized child: its share
+    ///     of the free space, recomputed on every flex layout pass. Kept apart from
+    ///     <see cref="Width" />/<see cref="Height" /> so the declared percentage survives
+    ///     resolution — overwriting it with the resolved pixels froze the layout after
+    ///     the first pass. Null everywhere outside a flex parent's layout.
+    /// </summary>
+    internal float? ParentAssignedWidth
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    }
+
+    /// <inheritdoc cref="ParentAssignedWidth" />
+    internal float? ParentAssignedHeight
+    {
+        get;
+        set => UpdateSetDirty(ref field, value);
+    }
+
     [NamedSetting("index")] public virtual int Index { get; internal set; }
 
     /// <summary>Horizontal anchor point. "center" shifts left by width/2, "end" shifts left by width.</summary>
@@ -235,6 +255,18 @@ public abstract class UIElement
         return false;
     }
 
+    /// <summary>
+    ///     Fired on every pointer update while the right button is held (sweep
+    ///     gestures); unhandled calls bubble to ancestors. Right presses never capture
+    ///     the pointer and never produce clicks. Handlers must tolerate repeated calls
+    ///     while the pointer rests on the same element.
+    /// </summary>
+    /// <returns>True when consumed.</returns>
+    public virtual bool HandleRightPress(float x, float y)
+    {
+        return false;
+    }
+
     public virtual void StopRendering()
     {
     }
@@ -325,7 +357,8 @@ public abstract class UIElement
                 mouse.IsButtonDown(MouseButton.Left),
                 mouse.IsButtonPressed(MouseButton.Left),
                 mouse.IsButtonReleased(MouseButton.Left),
-                mouse.ScrollDelta);
+                mouse.ScrollDelta,
+                mouse.IsButtonDown(MouseButton.Right));
     }
 
     /// <summary>Whether the point (in UI coordinates) lies inside this element's bounds.</summary>

@@ -1,4 +1,5 @@
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor.Tests;
@@ -101,6 +102,66 @@ public class AudioKeyframeTests
         var second = Assert.IsType<ExtendedEvent>(events[3]);
         Assert.Equal(100, second.Pan); // 80 + 80, clamped to full right
         Assert.Equal(0, second.Volume);
+    }
+
+    [Fact]
+    public void Repeats_RunTheKeyframeList_CompoundingEachPass()
+    {
+        var track = MakeTrack();
+        var echo = new AudioKeyframeManager { Repeats = 3 };
+        echo.Keyframes.Add(new AudioKeyframe { Gap = 1, Volume = new Modifier(0.5, ModifierKind.Multiply) });
+
+        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom", Automation = echo });
+
+        var events = track.ToSequence().Events;
+
+        // One keyframe repeated 3 times = 3 echoes, each halving the previous pass.
+        Assert.Equal(["!speed", "boom", "boom", "boom", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal([50d, 25d, 12.5], events.Skip(2).Select(e => e.Volume));
+    }
+
+    [Fact]
+    public void OffsetKeyframes_WalkTheSoundStart_AndSurviveTheTextExport()
+    {
+        var track = MakeTrack();
+        // The note starts 0.25 s into the sound; each repeat jumps one beat later on
+        // the grid AND another 0.5 s deeper into the sound (Kris's scrub use case).
+        var scrub = new AudioKeyframeManager { Repeats = 2 };
+        scrub.Keyframes.Add(new AudioKeyframe { Gap = 4, Offset = new Modifier(0.5) });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom", Offset = 0.25, Automation = scrub });
+
+        var events = track.ToSequence().Events;
+        Assert.Equal([0.25, 0.75, 1.25],
+            events.OfType<ExtendedEvent>().Select(e => e.OffsetInSeconds));
+
+        // The exact serializer keeps volume/pan/offset (BaseEvent-only text dropped them).
+        var parsed = Sequence.FromString(SequenceText.Serialize(track.ToSequence()));
+        Assert.Equal([0.25, 0.75, 1.25],
+            parsed.Events.OfType<ExtendedEvent>().Select(e => e.OffsetInSeconds));
+        Assert.Equal([100d, 100d],
+            parsed.Events.OfType<ExtendedEvent>().Skip(1).Select(e => e.Volume!.Value));
+    }
+
+    [Fact]
+    public void Repeats_SurviveTheProjectFileRoundTrip_AndOldFilesDefaultToOne()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        var echo = new AudioKeyframeManager { Repeats = 4 };
+        echo.Keyframes.Add(new AudioKeyframe { Gap = 1, Offset = new Modifier(0.5) });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom", Offset = 0.25, Automation = echo });
+
+        var loadedNote = ProjectFile.Load(ProjectFile.Save(project)).Tracks[0].Segments[0].Notes[0];
+        Assert.Equal(4, loadedNote.Automation!.Repeats);
+        Assert.Equal(0.25, loadedNote.Offset);
+        Assert.Equal(new Modifier(0.5), loadedNote.Automation.Keyframes[0].Offset);
+
+        // Repeats of 1 is never written, so the file is identical to a pre-feature one —
+        // and a missing key loads back as 1.
+        echo.Repeats = 1;
+        var legacy = ProjectFile.Save(project);
+        Assert.DoesNotContain("repeats", legacy);
+        Assert.Equal(1, ProjectFile.Load(legacy).Tracks[0].Segments[0].Notes[0].Automation!.Repeats);
     }
 
     [Fact]

@@ -1,22 +1,42 @@
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using Sundex.Components.Scroll;
 
 namespace Sundex.Components.File_Selector;
 
+/// <summary>
+///     A file open/save dialog body. Size it at the use site (e.g. inside a ModalLayer).
+///     Open mode: click a file (<see cref="SelectedFile" />), confirm with Select.
+///     Save mode (a <paramref name="saveFileName" /> was given): a filename input picks
+///     the name inside <see cref="CurrentPath" />; clicking a file copies its name.
+///     <see cref="SelectedPath" /> is the resulting full path for either mode.
+/// </summary>
 public sealed class FileSelection : Panel
 {
     private readonly Label _currentPathLabel;
     private readonly FlexPanel _filesSection;
-    private readonly FlexPanel _mainLayout;
+    private readonly TextInput? _nameInput;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    public FileSelection(UIContext context) : base(context)
+    /// <param name="context">The current UI context.</param>
+    /// <param name="saveFileName">Non-null switches to save mode and prefills the filename input.</param>
+    /// <param name="extensionFilter">
+    ///     Only files with this extension (e.g. ".tdwproj") are listed; in save mode a
+    ///     typed name missing it gets it appended. Directories always show.
+    /// </param>
+    public FileSelection(UIContext context, string? saveFileName = null, string? extensionFilter = null) :
+        base(context)
     {
+        ExtensionFilter = extensionFilter;
+
         var top_section = new FlexPanel(context)
         {
             Direction = LayoutDirection.Horizontal,
+            Width = LiteralOrComputable.Percent(100),
             Height = 30,
             Padding = 5,
             Spacing = 10,
@@ -35,8 +55,7 @@ public sealed class FileSelection : Panel
                 },
                 _currentPathLabel = new Label(Context, CurrentPath)
                 {
-                    FontSizePx = 12,
-                    UpdateCursorOnHover = true
+                    FontSizePx = 12
                 }
             ]
         };
@@ -44,6 +63,7 @@ public sealed class FileSelection : Panel
         _filesSection = new FlexPanel(context)
         {
             Direction = LayoutDirection.Vertical,
+            Width = LiteralOrComputable.Percent(100),
             Padding = 5,
             Spacing = 10,
             Background = new ColoredPlane
@@ -52,9 +72,24 @@ public sealed class FileSelection : Panel
             }
         };
 
+        var files_scroll = new ScrollView(context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100)
+        };
+        files_scroll.AddChild(_filesSection);
+
+        if (saveFileName != null)
+            _nameInput = new TextInput(context, saveFileName)
+            {
+                Width = 220,
+                FontSizePx = 14
+            };
+
         var bottom_section = new FlexPanel(context)
         {
-            Height = 34,
+            Width = LiteralOrComputable.Percent(100),
+            Height = 44,
             Direction = LayoutDirection.Horizontal,
             VerticalAlign = Align.Center,
             HorizontalAlign = Align.End,
@@ -63,68 +98,94 @@ public sealed class FileSelection : Panel
             Background = new ColoredPlane
             {
                 Color = (0.15f, 0.15f, 0.15f, 1.0f)
-            },
-            Children =
-            [
-                new Button(Context, "Select")
-                {
-                    FontSizePx = 14,
-                    UpdateCursorOnHover = true,
-                    OnClick = _ => OnSelect?.Invoke(this)
-                },
-                new Button(Context, "Cancel")
-                {
-                    FontSizePx = 14,
-                    UpdateCursorOnHover = true,
-                    OnClick = _ => OnCancel?.Invoke(this)
-                }
-            ]
+            }
         };
+        if (_nameInput != null) bottom_section.AddChild(_nameInput);
+        bottom_section.AddChild(new Button(Context, "Select")
+        {
+            FontSizePx = 14,
+            UpdateCursorOnHover = true,
+            OnClick = _ => OnSelect?.Invoke(this)
+        });
+        bottom_section.AddChild(new Button(Context, "Cancel")
+        {
+            FontSizePx = 14,
+            UpdateCursorOnHover = true,
+            OnClick = _ => OnCancel?.Invoke(this)
+        });
 
-        _mainLayout = new FlexPanel(context)
+        var main_layout = new FlexPanel(context)
         {
             Direction = LayoutDirection.Vertical,
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100),
             Padding = 10,
             Spacing = 10,
             Background = new ColoredPlane
             {
                 Color = (0.2f, 0.2f, 0.2f, 1.0f)
             },
-            Children = [top_section, _filesSection, bottom_section]
+            Children = [top_section, files_scroll, bottom_section]
         };
 
-        var window = new WindowFrame(context)
-        {
-            Child = _mainLayout,
-            Resizable = true
-        };
-
-        AddChild(window);
-        Task.Run(RefreshFiles);
+        AddChild(main_layout);
+        RefreshFiles();
     }
 
     public string CurrentPath { get; private set; } = Directory.GetCurrentDirectory();
+
+    /// <summary>The full path of the last clicked file; cleared when the directory changes.</summary>
+    public string? SelectedFile { get; private set; }
+
+    public string? ExtensionFilter { get; }
+
+    /// <summary>
+    ///     The confirmed full path: in save mode CurrentPath + the typed name (with
+    ///     <see cref="ExtensionFilter" /> appended when missing), otherwise
+    ///     <see cref="SelectedFile" />. Null while nothing usable is chosen.
+    /// </summary>
+    public string? SelectedPath
+    {
+        get
+        {
+            if (_nameInput == null) return SelectedFile;
+
+            var name = _nameInput.Value.Trim();
+            if (name.Length == 0) return null;
+            if (ExtensionFilter != null && !name.EndsWith(ExtensionFilter, StringComparison.OrdinalIgnoreCase))
+                name += ExtensionFilter;
+            return Path.Combine(CurrentPath, name);
+        }
+    }
+
     public Action<FileSelection>? OnSelectFile { get; set; }
     public Action<FileSelection>? OnChangeDirectory { get; set; }
 
     public Action<FileSelection>? OnCancel { get; set; }
     public Action<FileSelection>? OnSelect { get; set; }
 
+    /// <summary>Marks a file as chosen — what clicking a row does.</summary>
+    public void SelectFile(string path)
+    {
+        SelectedFile = path;
+        _nameInput?.Value = Path.GetFileName(path);
+        OnSelectFile?.Invoke(this);
+    }
+
     private void NavigateUp()
     {
         var directory = new DirectoryInfo(CurrentPath);
         if (directory.Parent == null) return;
 
-        CurrentPath = directory.Parent.FullName;
-        Task.Run(RefreshFiles);
-        OnChangeDirectory?.Invoke(this);
+        NavigateTo(directory.Parent.FullName);
     }
 
     private void NavigateTo(string path)
     {
         if (!Directory.Exists(path)) return;
         CurrentPath = path;
-        Task.Run(RefreshFiles);
+        SelectedFile = null; // a pick from another directory must not survive navigation
+        RefreshFiles();
         OnChangeDirectory?.Invoke(this);
     }
 
@@ -144,14 +205,18 @@ public sealed class FileSelection : Panel
             list.AddRange(from directory in directories
                 let dirInfo = new DirectoryInfo(directory)
                 where (dirInfo.Attributes & FileAttributes.Hidden) == 0
-                select new Label(Context, $"📁 {dirInfo.Name}")
+                orderby dirInfo.Name
+                select new Label(Context, $"{dirInfo.Name}/") // TODO emojis don't render with new label system
                     { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
 
-            var files = Directory.GetFiles(CurrentPath);
+            var files = Directory.GetFiles(CurrentPath)
+                .Where(file => ExtensionFilter == null ||
+                               file.EndsWith(ExtensionFilter, StringComparison.OrdinalIgnoreCase))
+                .Order();
             list.AddRange(files.Select(file => new FileInfo(file)).Select(fileInfo =>
                 new Label(Context, $"📄 {fileInfo.Name}")
                 {
-                    FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => { OnSelectFile?.Invoke(this); }
+                    FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => SelectFile(fileInfo.FullName),
                 }));
         }
         catch (Exception ex)
@@ -164,6 +229,13 @@ public sealed class FileSelection : Panel
         }
 
         _semaphore.Wait();
+        foreach (var child in _filesSection.Children)
+        {
+            if (child is Label label)
+            {
+                label.StopRendering();
+            }
+        }
         _filesSection.Children = list;
         _semaphore.Release();
     }

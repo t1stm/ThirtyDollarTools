@@ -97,8 +97,16 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         set => UpdateSetDirty(ref field, value);
     } = 0;
 
+    /// <summary>
+    ///     True while this panel's renderables are queued (DrawTo ran and StopRendering
+    ///     hasn't). AddChild consults it, so composing a subtree while detached never
+    ///     queues renders — the whole subtree queues when it is drawn into a live tree.
+    /// </summary>
+    protected internal bool Drawn { get; private set; }
+
     public override void StopRendering()
     {
+        Drawn = false;
         if (Background != null)
             Context.DequeueRender(Background, Index);
 
@@ -171,10 +179,15 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
     {
         if (child.Parent is Panel oldParent) oldParent.RemoveChild(child);
         _children.Add(child);
+        // A flex-dictated size from the previous parent must not follow the child here.
+        child.ParentAssignedWidth = null;
+        child.ParentAssignedHeight = null;
         child.Parent = this;
         // DrawTo queues the child's renderables but lays it out against this panel's
         // possibly-stale Computed; re-invalidate so the next Layout pass repositions it.
-        child.DrawTo(Context);
+        // A panel that isn't drawn itself must not queue its children either — they
+        // queue with the whole subtree once this panel gets its DrawTo.
+        if (Drawn) child.DrawTo(Context);
         child.InvalidateCoordinates();
         InvalidateLayout();
     }
@@ -182,6 +195,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
     public void RemoveChild(UIElement child)
     {
         _children.Remove(child);
+        Context.NotifyDetached(child);
         child.Parent = null;
         child.StopRendering();
         InvalidateLayout();
@@ -190,6 +204,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
     public override void DrawTo(UIContext ctx)
     {
         if (!Visible) return;
+        Drawn = true;
         base.DrawTo(ctx);
         Background?.Update();
         foreach (var child in _children)
@@ -198,8 +213,12 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
 
     protected override void DrawSelf(UIContext ctx)
     {
+        // Append: within a depth layer, render order follows draw order, so a later
+        // sibling stacks above an earlier one — matching hit-test priority. (Insert
+        // at the front would reverse sibling stacking: the first-drawn child would
+        // paint on top of everything drawn after it.)
         if (Background != null)
-            ctx.QueueRender(Background, Index, 0);
+            ctx.QueueRender(Background, Index);
     }
 
     protected override void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)

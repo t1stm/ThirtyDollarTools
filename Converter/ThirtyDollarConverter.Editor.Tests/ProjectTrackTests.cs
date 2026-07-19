@@ -131,4 +131,58 @@ public class ProjectTrackTests
         Assert.Equal(start, placements[1].Index); // combined with the first
         Assert.Equal(start + 6 * step_samples, placements[2].Index);
     }
+
+    [Fact]
+    public void TrackAutomation_WithSoundFilter_AppliesOnlyToMatchingNotes()
+    {
+        var track = MakeTrack();
+        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 4, Sound = "clap" });
+
+        var manager = new AudioKeyframeManager();
+        manager.Keyframes.Add(new AudioKeyframe { Gap = 2 });
+        track.AddTrackAutomation(manager, ["boom"]);
+
+        var events = track.ToSequence().Events;
+
+        // boom (step 0) + its echo (step 2); clap (step 4) is untouched, no echo.
+        Assert.Equal(["!speed", "boom", "!stop", "boom", "!stop", "clap"], events.Select(e => e.SoundEvent));
+    }
+
+    [Fact]
+    public void TrackAutomation_WithNoSoundFilter_AppliesToEveryNote()
+    {
+        var track = MakeTrack();
+        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 5, Sound = "clap" });
+
+        var manager = new AudioKeyframeManager();
+        manager.Keyframes.Add(new AudioKeyframe { Gap = 2 });
+        track.AddTrackAutomation(manager); // Sounds == null -> every sound
+
+        var events = track.ToSequence().Events;
+
+        Assert.Equal(
+            ["!speed", "boom", "!stop", "boom", "!stop", "clap", "!stop", "clap"],
+            events.Select(e => e.SoundEvent));
+    }
+
+    [Fact]
+    public void NoteWithOwnAutomation_AlsoGetsMatchingTrackAutomation()
+    {
+        var track = MakeTrack();
+        var note = new Note { Step = 0, Sound = "boom" };
+        note.Automation = new AudioKeyframeManager();
+        note.Automation.Keyframes.Add(new AudioKeyframe { Gap = 2 }); // note-level echo at step 2
+        track.Segments[0].Notes.Add(note);
+
+        var trackManager = new AudioKeyframeManager();
+        trackManager.Keyframes.Add(new AudioKeyframe { Gap = 4 }); // track-level echo at step 4
+        track.AddTrackAutomation(trackManager);
+
+        var events = track.ToSequence().Events;
+
+        // Both automations fire independently from the same base note.
+        Assert.Equal(["!speed", "boom", "!stop", "boom", "!stop", "boom"], events.Select(e => e.SoundEvent));
+    }
 }

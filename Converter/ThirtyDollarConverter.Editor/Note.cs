@@ -35,6 +35,11 @@ public class Note
     public float Pan { get; set; }
 
     /// <summary>
+    ///     Offset of the sound's start in seconds (the TDW "&gt;" extension).
+    /// </summary>
+    public double Offset { get; set; }
+
+    /// <summary>
     ///     Optional automation that generates follow-up events (echo, sustain, fades)
     ///     from this note. Managers are stateless — one instance can be shared by all
     ///     notes of a segment.
@@ -43,7 +48,7 @@ public class Note
 
     internal BaseEvent ToEvent()
     {
-        if (Pan == 0)
+        if (Pan == 0 && Offset == 0)
             return new NormalEvent
             {
                 SoundEvent = Sound,
@@ -60,7 +65,8 @@ public class Note
             WorkingValue = Value,
             Volume = Volume,
             ValueScale = ValueScale.None,
-            Pan = Pan
+            Pan = Pan,
+            OffsetInSeconds = Offset
         };
     }
 }

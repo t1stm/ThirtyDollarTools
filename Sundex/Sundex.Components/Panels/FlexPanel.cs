@@ -54,6 +54,14 @@ public class FlexPanel(UIContext context) : Panel(context)
 
     protected override void DoLayout()
     {
+        // Parent-assigned sizes are pass-scoped: the placement below recomputes them,
+        // and stale ones must not survive a Direction/Wrap change.
+        foreach (var child in Children)
+        {
+            child.ParentAssignedWidth = null;
+            child.ParentAssignedHeight = null;
+        }
+
         base.DoLayout();
 
         var count = Children.Count;
@@ -226,7 +234,7 @@ public class FlexPanel(UIContext context) : Panel(context)
             else if (c.Width.IsPercentage) total_percent += c.Width.Value;
             else total_fixed += c.Width.Value;
         var free_space = Math.Max(0, innerWidth - total_fixed - total_auto - total_spacing);
-        var total_width = total_fixed + total_auto + (total_percent > 0 ? free_space : 0);
+        var total_width = total_fixed + total_auto + free_space * total_percent / 100f;
 
         var offset = HorizontalAlign switch
         {
@@ -237,7 +245,7 @@ public class FlexPanel(UIContext context) : Panel(context)
 
         foreach (var child in Children)
         {
-            if (child.Width.IsPercentage) child.Width = child.Width.Value / 100f * free_space;
+            if (child.Width.IsPercentage) child.ParentAssignedWidth = child.Width.Value / 100f * free_space;
 
             child.X = offset;
             child.Layout();
@@ -280,7 +288,7 @@ public class FlexPanel(UIContext context) : Panel(context)
             else if (c.Height.IsPercentage) total_percent += c.Height.Value;
             else total_fixed += c.Height.Value;
         var free_space = Math.Max(0, innerHeight - total_fixed - total_auto - total_spacing);
-        var total_height = total_fixed + total_auto + (total_percent > 0 ? free_space : 0);
+        var total_height = total_fixed + total_auto + free_space * total_percent / 100f;
 
         var offset = VerticalAlign switch
         {
@@ -291,7 +299,7 @@ public class FlexPanel(UIContext context) : Panel(context)
 
         foreach (var child in Children)
         {
-            if (child.Height.IsPercentage) child.Height = child.Height.Value / 100f * free_space;
+            if (child.Height.IsPercentage) child.ParentAssignedHeight = child.Height.Value / 100f * free_space;
 
             child.Y = offset;
             child.Layout();

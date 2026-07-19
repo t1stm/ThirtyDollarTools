@@ -37,13 +37,16 @@ public class ComputedRectangle
         // Pass inner dimensions so that percentages and Auto resolve relative to the padded area.
         var (desiredW, desiredH) = current.Measure(innerWidth, innerHeight);
 
-        Width = current.Width.Auto
+        // A flex parent may dictate the main-axis size of a percent child (its share of
+        // the free space); the declared Width/Height stay untouched so they re-resolve
+        // on every pass.
+        Width = current.ParentAssignedWidth ?? (current.Width.Auto
             ? desiredW
-            : current.Width.Resolve(innerWidth);
+            : current.Width.Resolve(innerWidth));
 
-        Height = current.Height.Auto
+        Height = current.ParentAssignedHeight ?? (current.Height.Auto
             ? desiredH
-            : current.Height.Resolve(innerHeight);
+            : current.Height.Resolve(innerHeight));
 
         // X and Y are relative to the parent's content origin (after padding).
         // The parent's layout pass is responsible for setting these.

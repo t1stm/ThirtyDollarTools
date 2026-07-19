@@ -188,7 +188,7 @@ static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow,
         );
 
         instance.SceneManager.LoadScene<DrumMaster>("drum-master", _ => new DrumMaster(instance, workflow));
-        instance.SceneManager.LoadScene<Editor>("editor", _ => new Editor(instance));
+        instance.SceneManager.LoadScene<Editor>("editor", _ => new Editor(instance, workflow));
         instance.SceneManager.LoadScene<Settings>("settings", _ => new Settings(instance, SettingsHandler.Settings));
     });
 

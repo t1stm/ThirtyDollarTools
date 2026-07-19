@@ -11,6 +11,8 @@
     <ProjectReference Include="..\..\..\Sundex\Sundex.Markup\Sundex.Markup.csproj"/>
     <ProjectReference Include="..\..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
     <ProjectReference Include="..\..\Shared\Shared.csproj"/>
+    <ProjectReference Include="..\VisualizerScene\VisualizerScene.csproj"/>
+    <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter.Editor\ThirtyDollarConverter.Editor.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

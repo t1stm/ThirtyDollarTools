@@ -107,6 +107,8 @@ public class TrackSegmentTests
             odd.Denominator = 8;
             odd.StepsPerBeat = 1;
             odd.Notes.Add(new Note { Step = i * 2 + 1, Sound = sounds[i] });
+
+            project.Place(track, i, 0);
         }
 
         var events = project.ToSequence().Events;
@@ -173,6 +175,21 @@ public class TrackSegmentTests
         Assert.Equal(3, placements.Length);
         Assert.Equal(start + 4 * 24000ul, placements[1].Index); // one 4/4 bar of 0.5 s quarters
         Assert.Equal(start + 4 * 24000ul + 12000, placements[2].Index); // one 0.25 s step more
+    }
+
+    [Fact]
+    public void StepPositionAt_TracksEachSegmentsOwnStepRate()
+    {
+        var track = MakeTrack(); // segment 0: 16 sixteenth steps at 120 BPM (1/480 min/step)
+        var half_time = track.NewSegment(); // segment 1: quarter grid, 60 BPM (1/60 min/step)
+        half_time.StepsPerBeat = 1;
+        half_time.BPM = 60;
+
+        Assert.Equal(-1, track.StepPositionAt(-1d / 480), 3); // one step before the track starts
+        Assert.Equal(0, track.StepPositionAt(0), 3);
+        Assert.Equal(8, track.StepPositionAt(1d / 60), 3); // 8 steps into segment 0
+        Assert.Equal(16, track.StepPositionAt(1d / 30), 3); // segment 0 ends here
+        Assert.Equal(16.5, track.StepPositionAt(1d / 24), 3); // half a step into segment 1
     }
 
     [Fact]

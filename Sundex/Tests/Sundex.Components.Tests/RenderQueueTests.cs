@@ -54,6 +54,27 @@ public class RenderQueueTests
     }
 
     [Fact]
+    public void SiblingPanels_RenderInDrawOrder_LaterOnTop()
+    {
+        // Siblings share a depth layer; within it, render order must follow draw
+        // (child) order so the later sibling stacks above the earlier one — the same
+        // priority hit-testing uses. Regression: Panel.DrawSelf used to insert its
+        // background at the layer front, so the FIRST child painted on top of
+        // everything drawn after it (the note editor's zero-row band hid the notes).
+        var context = new TestUIContext();
+        var root = new Panels.Panel(context);
+        root.DrawTo(context);
+        var below = new Panels.Panel(context) { Background = new MockRenderable() };
+        var above = new Panels.Panel(context) { Background = new MockRenderable() };
+        root.AddChild(below);
+        root.AddChild(above);
+
+        var layer = context.GetRenderQueue()[below.Index];
+        Assert.True(layer.IndexOf(below.Background!) < layer.IndexOf(above.Background!),
+            "the later-drawn sibling must render after (above) the earlier one");
+    }
+
+    [Fact]
     public void TestDequeueRender_Found()
     {
         var context = new TestUIContext();

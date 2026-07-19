@@ -57,7 +57,7 @@ component progress {
 }
 
 component button {
-    background = "#7aa2f766";
+    background = "#6b82c466";
     border-radius = 8;
     width = 80;
     height = 36;

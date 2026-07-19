@@ -293,6 +293,57 @@ public class InputRoutingTests
         Assert.Same(rootA, ctx.HoverTarget);
     }
 
+    [Fact]
+    public void RemovingTheCapturedSubtree_ReleasesCaptureHoverAndFocus()
+    {
+        // The view-swap-on-double-click scenario: press #2 captures an element,
+        // the double-press handler removes that element's whole view from the
+        // tree. The stale capture must not brick pointer input (UpdatePointer
+        // early-returns while a capture belongs to no live root).
+        var (ctx, root) = NewTree();
+        var oldView = new Panel(ctx) { Width = 800, Height = 600 };
+        var capturer = new CapturingSwapper(ctx) { Width = 200, Height = 200, Focusable = true };
+        oldView.Children = [capturer];
+        var newView = new Panel(ctx) { Width = 800, Height = 600 };
+        capturer.OnDoublePress = () =>
+        {
+            root.RemoveChild(oldView);
+            root.AddChild(newView);
+        };
+        root.AddChild(oldView);
+        root.Layout();
+
+        Press(ctx, root, 50, 50);
+        Release(ctx, root, 50, 50);
+        Press(ctx, root, 50, 50); // double-press swaps the views mid-dispatch
+        Assert.Null(ctx.CapturedElement);
+        Assert.Null(ctx.FocusedElement);
+        Release(ctx, root, 50, 50);
+
+        // Pointer input still reaches the new view.
+        root.Layout(); // the app lays out every frame
+        Move(ctx, root, 50, 50);
+        Assert.Same(newView, ctx.HoverTarget);
+        Press(ctx, root, 50, 50);
+        Assert.Same(newView, ctx.CapturedElement);
+    }
+
+    private sealed class CapturingSwapper(UIContext context) : Panel(context)
+    {
+        public Action OnDoublePress { get; set; } = () => { };
+
+        public override bool HandlePress(float x, float y)
+        {
+            return true; // captures, like a draggable clip block
+        }
+
+        public override bool HandleDoublePress(float x, float y)
+        {
+            OnDoublePress();
+            return true;
+        }
+    }
+
     private sealed class ScrollRecorder(UIContext context) : Panel(context)
     {
         public bool Handles { get; set; }

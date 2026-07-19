@@ -8,7 +8,7 @@ public class ProjectExportTests
     public void EmptyProject_ExportsOnlySpeed()
     {
         var project = new ThirtyDollarProject();
-        project.NewTrack();
+        project.Place(project.NewTrack(), 0, 0);
 
         var events = project.ToSequence().Events;
 
@@ -26,6 +26,8 @@ public class ProjectExportTests
         drums.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
         drums.Segments[0].Notes.Add(new Note { Step = 2, Sound = "clap" });
         melody.Segments[0].Notes.Add(new Note { Step = 1, Sound = "noteblock_harp" });
+        project.Place(drums, 0, 0);
+        project.Place(melody, 1, 0);
 
         var events = project.ToSequence().Events;
 
@@ -42,6 +44,8 @@ public class ProjectExportTests
 
         a.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
         b.Segments[0].Notes.Add(new Note { Step = 0, Sound = "clap" });
+        project.Place(a, 0, 0);
+        project.Place(b, 1, 0);
 
         var events = project.ToSequence().Events;
 
@@ -60,6 +64,8 @@ public class ProjectExportTests
         // Both notes sit half a beat in: coarse step 1 of 2, fine step 2 of 4.
         coarse.Segments[0].Notes.Add(new Note { Step = 1, Sound = "boom" });
         fine.Segments[0].Notes.Add(new Note { Step = 2, Sound = "clap" });
+        project.Place(coarse, 0, 0);
+        project.Place(fine, 1, 0);
 
         var events = project.ToSequence().Events;
 
@@ -84,6 +90,8 @@ public class ProjectExportTests
         a.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
         a.Segments[0].Notes.Add(new Note { Step = 1, Sound = "kick" }); // 0.5 s in
         b.Segments[0].Notes.Add(new Note { Step = 1, Sound = "snare" }); // 2/3 s in
+        project.Place(a, 0, 0);
+        project.Place(b, 1, 0);
 
         var events = project.ToSequence().Events;
 
@@ -106,6 +114,8 @@ public class ProjectExportTests
         a.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
         a.Segments[0].Notes.Add(new Note { Step = 4, Sound = "kick" }); // beat 1 at 120 BPM, 0.5 s
         b.Segments[0].Notes.Add(new Note { Step = 4, Sound = "snare" }); // beat 1 at 121 BPM, ~0.4959 s
+        project.Place(a, 0, 0);
+        project.Place(b, 1, 0);
 
         var sequence = project.ToSequence();
         var events = sequence.Events;
@@ -150,6 +160,7 @@ public class ProjectExportTests
         track.Timing = new TimingInfo { BPM = 9_990_400 };
         track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
         track.Segments[0].Notes.Add(new Note { Step = 4, Sound = "clap" });
+        project.Place(track, 0, 0);
 
         var events = project.ToSequence().Events;
 
@@ -164,6 +175,7 @@ public class ProjectExportTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
+        project.Place(track, 0, 0);
 
         Assert.Contains("boom", project.ToSequence().UsedSounds);
     }

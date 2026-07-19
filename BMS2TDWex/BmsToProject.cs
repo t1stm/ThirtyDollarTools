@@ -121,6 +121,10 @@ public static class BmsToProject
                 last_spans[channel] = spans[^1].ByTrack[channel];
         }
 
+        // Only placed patterns sound; a BMS chart is one clip of every lane at time 0.
+        var lane = 0;
+        foreach (var track in project.Tracks) project.Place(track, lane++, 0);
+
         return project;
     }
 

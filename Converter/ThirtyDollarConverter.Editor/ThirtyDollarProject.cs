@@ -4,6 +4,7 @@ namespace ThirtyDollarConverter.Editor;
 
 public class ThirtyDollarProject
 {
+    private readonly List<TrackPlacement> _placements = [];
     private readonly List<ProjectTrack> _projectTracks = [];
     private int _tracks;
 
@@ -14,6 +15,12 @@ public class ThirtyDollarProject
 
     public TimingInfo RootTiming { get; set; } = new();
     public IReadOnlyList<ProjectTrack> Tracks => _projectTracks;
+
+    /// <summary>
+    ///     The arrangement: clips of patterns on channels. Only placed patterns sound —
+    ///     a track without placements is silent, FL-style.
+    /// </summary>
+    public IReadOnlyList<TrackPlacement> Placements => _placements;
 
     public ProjectTrack NewTrack()
     {
@@ -34,6 +41,34 @@ public class ThirtyDollarProject
         return track;
     }
 
+    public bool RemoveTrack(ProjectTrack track)
+    {
+        if (!_projectTracks.Remove(track)) return false;
+        _placements.RemoveAll(placement => placement.Track == track);
+        return true;
+    }
+
+    public TrackPlacement Place(ProjectTrack track, int channel, double startQuarterNotes)
+    {
+        if (!_projectTracks.Contains(track))
+            throw new ArgumentException("The track does not belong to this project.", nameof(track));
+
+        var placement = new TrackPlacement(track, channel, startQuarterNotes);
+        _placements.Add(placement);
+        return placement;
+    }
+
+    public bool RemovePlacement(TrackPlacement placement)
+    {
+        return _placements.Remove(placement);
+    }
+
+    /// <summary>Where a clip starts in absolute time: quarter notes at the root BPM.</summary>
+    internal double StartMinutes(TrackPlacement placement)
+    {
+        return placement.StartQuarterNotes / RootTiming.BPM;
+    }
+
     /// <summary>
     ///     Merges all tracks into a single TDW sequence for export, by absolute note time.
     ///     The timeline splits into tempo regions wherever any track changes grid rate and
@@ -43,9 +78,29 @@ public class ThirtyDollarProject
     /// </summary>
     public Sequence ToSequence(SequenceStyle? style = null)
     {
-        var timed = _projectTracks.SelectMany(track => track.TimedNotes()).ToArray();
-        var bar_times = _projectTracks.Count > 0 ? _projectTracks[0].BarTimes(style) : null;
-        return SequenceBuilder.Build(MergedRegions(), timed, style, bar_times);
+        return BuildSequence(_placements, style);
+    }
+
+    /// <summary>
+    ///     The sequence of a single arrangement channel — the unit of editor playback,
+    ///     where every lane renders separately and the enabled lanes are mixed. Anchored
+    ///     on the same timeline origin as <see cref="ToSequence" /> so the per-channel
+    ///     renders stay sample-aligned with each other and with the merged export.
+    /// </summary>
+    public Sequence ChannelSequence(int channel, SequenceStyle? style = null)
+    {
+        return BuildSequence(_placements.Where(p => p.Channel == channel).ToList(), style);
+    }
+
+    private Sequence BuildSequence(List<TrackPlacement> placements, SequenceStyle? style)
+    {
+        var timed = placements
+            .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement)))
+            .ToArray();
+        var bar_times = placements.Count > 0
+            ? placements[0].Track.BarTimes(style, StartMinutes(placements[0]))
+            : null;
+        return SequenceBuilder.Build(MergedRegions(placements), timed, style, bar_times);
     }
 
     /// <summary>
@@ -54,9 +109,11 @@ public class ThirtyDollarProject
     ///     <see cref="SequenceBuilder.MaxSpeedMultiplier" /> x the fastest one; past that
     ///     the fastest grid wins and the other tracks ride exact fractional stops.
     /// </summary>
-    private List<TempoRegion> MergedRegions()
+    private List<TempoRegion> MergedRegions(List<TrackPlacement> placements)
     {
-        var tracks = _projectTracks.Select(track => track.TempoRegions()).ToList();
+        var tracks = placements
+            .Select(placement => placement.Track.TempoRegions(StartMinutes(placement)))
+            .ToList();
 
         var bounds = tracks.SelectMany(regions => regions)
             .SelectMany(region => (double[])[region.StartMinutes, region.EndMinutes])
@@ -82,7 +139,15 @@ public class ThirtyDollarProject
                 if (!rates.Any(r => SequenceBuilder.SameSpeed(r, rate))) rates.Add(rate);
             }
 
-            if (rates.Count == 0) continue;
+            if (rates.Count == 0)
+            {
+                // Silence between placements is real time: extend the previous region
+                // so the timeline stays continuous (Build emits its gap as a stop tail).
+                // Silence before the first placement is dropped, like trailing silence.
+                if (merged.Count > 0)
+                    merged[^1] = merged[^1] with { DurationMinutes = end - merged[^1].StartMinutes };
+                continue;
+            }
 
             var speed = CommonSpeed(rates);
             if (merged.Count > 0 && SequenceBuilder.SameSpeed(merged[^1].Speed, speed) &&
@@ -93,7 +158,8 @@ public class ThirtyDollarProject
         }
 
         if (merged.Count == 0)
-            merged.Add(new TempoRegion(0, 0, tracks.Count > 0 ? tracks[0][0].Speed : RootTiming.BPM));
+            merged.Add(new TempoRegion(0, 0,
+                tracks.Count > 0 ? tracks[0][0].Speed : RootTiming.BPM));
 
         return merged;
     }

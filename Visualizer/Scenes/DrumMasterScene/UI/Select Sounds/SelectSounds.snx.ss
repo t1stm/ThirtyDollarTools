@@ -92,14 +92,14 @@ component label {
 }
 
 component button {
-    background = "#7aa2f7";
+    background = "#6b82c4";
     border-radius = 8;
     padding = 12;
     width = auto;
     height = 40;
     
     state[hovered] = {
-        background = "#9bc0ff";
+        background = "#8599d4";
     }
    
     state[pressed] = {

@@ -31,9 +31,14 @@ public class TrackSegment
     public List<Note> Notes { get; } = [];
 
     /// <summary>
+    ///     Total grid steps this segment spans — the width of its editing grid.
+    /// </summary>
+    public int StepCount => Bars * Numerator * StepsPerBeat;
+
+    /// <summary>
     ///     Length of one grid step in minutes, at the given quarter-note BPM.
     /// </summary>
-    internal double StepMinutes(double trackBpm)
+    public double StepMinutes(double trackBpm)
     {
         return 4d / (Denominator * (BPM ?? trackBpm) * StepsPerBeat);
     }

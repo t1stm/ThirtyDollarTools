@@ -1,5 +1,6 @@
 using EditorScene.Scenes;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
@@ -21,7 +22,7 @@ public class Editor : Scene
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
 
-    public Editor(Game game) : base(game)
+    public Editor(Game game, ThirtyDollarWorkflow workflow) : base(game)
     {
         var clientSize = game.ClientSize;
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
@@ -38,8 +39,12 @@ public class Editor : Scene
             RequestCursor = type => _cursorType = type
         };
 
-        _editorInterface = new EditorInterface(_context,
-            () => { Game.SceneManager.TransitionTo("home"); });
+        _editorInterface = new EditorInterface(_context, workflow, () =>
+        {
+            _editorInterface?.Playback.Stop();
+            Game.SceneManager.TransitionTo("home");
+        });
+        _editorInterface.Resize(clientSize.X, clientSize.Y);
     }
 
     public override void Initialize(InitArguments initArguments)
@@ -57,6 +62,7 @@ public class Editor : Scene
 
     public override void TransitionedTo()
     {
+        _editorInterface.SceneShown();
     }
 
     public override void Update(UpdateArguments updateArgs)
@@ -91,7 +97,7 @@ public class Editor : Scene
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
 
-        _editorInterface.Resize();
+        _editorInterface.Resize(width, height);
     }
 
     public override void Shutdown()
@@ -100,6 +106,8 @@ public class Editor : Scene
 
     public override void FileDrop(string[] locations)
     {
+        var project = locations.FirstOrDefault(l => l.EndsWith(".tdwproj", StringComparison.OrdinalIgnoreCase));
+        if (project != null) _editorInterface.LoadProjectFile(project);
     }
 
     public override void Keyboard(KeyboardState state)
@@ -108,6 +116,32 @@ public class Editor : Scene
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
+        // Runs every frame (unlike Keyboard, which only fires while a key is down),
+        // so modifier releases are seen too.
+        _editorInterface.SetModifiers(
+            keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift),
+            keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl));
         _editorInterface.MouseEvent(mouseState, _lastScale);
+    }
+
+    public override void TextInput(TextInputEventArgs e)
+    {
+        _context.DispatchTextInput(e);
+    }
+
+    public override void KeyDown(KeyboardKeyEventArgs e)
+    {
+        if (_context.DispatchKeyDown(e)) return;
+        if (e.Key == Keys.Escape)
+        {
+            if (_editorInterface.TryCloseTopModal()) return;
+            if (_editorInterface.State.OpenedTrack != null) _editorInterface.State.CloseTrack();
+            else _editorInterface.RequestBack();
+            return;
+        }
+        if (e.Key != Keys.Space) return;
+        
+        if (e.Modifiers.HasFlag(KeyModifiers.Shift)) _editorInterface.Playback.Restart();
+        else _editorInterface.Playback.PlayPause();
     }
 }

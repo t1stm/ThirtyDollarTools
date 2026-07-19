@@ -1,7 +1,5 @@
-using System.Globalization;
 using BMS2TDW;
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarParser;
 
 // This tool won't be documented for obvious purposes.
 // I don't want lazy people doing TDW covers.
@@ -9,7 +7,7 @@ using ThirtyDollarParser;
 
 if (args.Length < 1)
 {
-    Console.WriteLine("usage: BMS2TDWex <chart.bms> [output.tdw]");
+    Console.WriteLine("usage: BMS2TDWex <chart.bms> [output.tdw] [project.tdwproj]");
     return 1;
 }
 
@@ -18,6 +16,10 @@ var output = args.Length > 1 ? args[1] : Path.ChangeExtension(input, ".tdw");
 
 var chart = BmsParser.Parse(await File.ReadAllTextAsync(input));
 var project = BmsToProject.Convert(chart);
+
+// Optional editor-project dump: GUI stress fixtures without shipping BMS code there.
+if (args.Length > 2)
+    await File.WriteAllTextAsync(args[2], ProjectFile.Save(project));
 
 // Dividers section the text: one before each tempo change, one every four bars
 // within a tempo section (BMS spans without tempo events are whole measures).
@@ -29,7 +31,7 @@ var sequence = project.ToSequence(new SequenceStyle
     MigrateToStop = null
 });
 
-await File.WriteAllTextAsync(output, Serialize(sequence));
+await File.WriteAllTextAsync(output, SequenceText.Serialize(sequence));
 
 var events = sequence.Events;
 var sounds = events.Count(e => !(e.SoundEvent?.StartsWith('!') ?? true) && e.SoundEvent != "_pause");
@@ -62,13 +64,3 @@ Console.WriteLine($"{project.Tracks.Count} tracks, {sounds} sounds, {events.Leng
                   $@"{speeds} !speed changes, {duration:mm\:ss\.fff}");
 Console.WriteLine($"-> {output}");
 return 0;
-
-// BaseEvent.Stringify rounds values to 2 decimals, which would wreck fractional stops;
-// the exporter only emits sounds and !speed/!stop/!combine, so serialize those exactly.
-static string Serialize(Sequence sequence)
-{
-    return string.Join("|\n", sequence.Events.Select(e =>
-        e.Value != 0
-            ? $"{e.SoundEvent}@{e.Value.ToString("0.######", CultureInfo.InvariantCulture)}"
-            : e.SoundEvent));
-}

@@ -173,6 +173,21 @@ public class TextInputTests
     }
 
     [Fact]
+    public void PlainKeys_AreConsumed_ModifiedCombosAndEscapePassThrough()
+    {
+        var (ctx, _, input) = NewInput();
+        ctx.Focus(input);
+
+        // Space must not fall through to scene hotkeys (play/pause) mid-typing.
+        Assert.True(ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Space, 0, 0, false)));
+        Assert.True(ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Space, 0, KeyModifiers.Shift, false)));
+
+        // App-level combos still reach the scene.
+        Assert.False(input.HandleKeyDown(new KeyboardKeyEventArgs(Keys.S, 0, KeyModifiers.Control, false)));
+        Assert.False(input.HandleKeyDown(new KeyboardKeyEventArgs(Keys.Escape, 0, 0, false)));
+    }
+
+    [Fact]
     public void ClickFocusesAndPositionsCaret()
     {
         var (ctx, root, input) = NewInput();
