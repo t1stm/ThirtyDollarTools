@@ -49,13 +49,30 @@ public class Game : GameWindow
     public GameGlobals Globals { get; } = new();
     private GLInfo GLInfo { get; } = new();
 
+    /// <summary>
+    ///     Ratio between physical framebuffer pixels and logical window (client) size.
+    ///     Measured directly instead of asking the platform for its DPI/content scale:
+    ///     that value doesn't always match reality (e.g. on X11, KDE's "125% scaling" only
+    ///     changes Xft.dpi - the framebuffer stays 1:1 with the window - so dividing by a
+    ///     reported 1.25 shrank the UI relative to the untouched, unscaled mouse coordinates).
+    ///     FramebufferSize / ClientSize is correct on every platform by construction, and
+    ///     needs no per-platform (e.g. Wayland) special-casing.
+    /// </summary>
     public bool TryGetScreenScale(out float horizontalScale, out float verticalScale)
     {
-        horizontalScale = 1f;
-        verticalScale = 1f;
+        var client = ClientSize;
+        var framebuffer = FramebufferSize;
 
-        return GLFW.GetPlatform() != Platform.Wayland &&
-               TryGetCurrentMonitorScale(out horizontalScale, out verticalScale);
+        if (client.X <= 0 || client.Y <= 0)
+        {
+            horizontalScale = 1f;
+            verticalScale = 1f;
+            return false;
+        }
+
+        horizontalScale = (float)framebuffer.X / client.X;
+        verticalScale = (float)framebuffer.Y / client.Y;
+        return true;
     }
 
     protected override void OnLoad()
@@ -90,6 +107,13 @@ public class Game : GameWindow
                 Logger.Fatal(e.ExceptionObject as Exception,
                     "[Unhandled Exception]: ({GameName}, {Id}) ", nameof(Game), _id);
             };
+
+        // Some windowing backends don't reliably deliver a framebuffer-resize event on the
+        // very first frame (e.g. it can arrive after the window manager settles the real
+        // geometry), which left the GL viewport/scenes sized off whatever the driver
+        // defaulted to until the user resized the window by hand. Assign it up front too.
+        var framebufferSize = FramebufferSize;
+        ApplyFramebufferSize(framebufferSize.X, framebufferSize.Y);
 
         RenderMarker.Debug("Finished OnLoad() Procedure");
     }
@@ -163,8 +187,13 @@ public class Game : GameWindow
     protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
     {
         base.OnFramebufferResize(e);
-        SceneManager.Resize(e.Width, e.Height);
-        GL.Viewport(0, 0, e.Width, e.Height);
+        ApplyFramebufferSize(e.Width, e.Height);
+    }
+
+    private void ApplyFramebufferSize(int width, int height)
+    {
+        SceneManager.Resize(width, height);
+        GL.Viewport(0, 0, width, height);
     }
 
     protected override void OnRenderFrame(FrameEventArgs args)
