@@ -353,7 +353,7 @@ public abstract class UIElement
 
         if (Parent == null)
             Context.UpdatePointer(this,
-                mouse.X / scale.X, mouse.Y / scale.Y,
+                mouse.X, mouse.Y,
                 mouse.IsButtonDown(MouseButton.Left),
                 mouse.IsButtonPressed(MouseButton.Left),
                 mouse.IsButtonReleased(MouseButton.Left),

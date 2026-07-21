@@ -63,8 +63,8 @@ public class SoundListElement : FlexPanel
                 return;
             }
 
-            Computed.OverrideAbsolutePositions(mouse.X / scale.X - Computed.Width / 2,
-                mouse.Y / scale.Y - Computed.Height / 2);
+            Computed.OverrideAbsolutePositions(mouse.X - Computed.Width / 2,
+                mouse.Y - Computed.Height / 2);
             UpdateMatrix();
         }
         else if (CurrentState == UIState.Pressed && DragManager.DraggedElement == null)

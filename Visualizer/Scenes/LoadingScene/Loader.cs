@@ -36,11 +36,7 @@ public class Loader : Scene, IGamePreloadable
     {
         var clientSize = game.ClientSize;
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
-        {
             _lastScale = new Vector2(scaleX, scaleY);
-            clientSize.X = (int)(clientSize.X / scaleX);
-            clientSize.Y = (int)(clientSize.Y / scaleY);
-        }
 
         _audioContext = audioContext;
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
