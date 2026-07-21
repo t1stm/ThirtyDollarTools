@@ -1,5 +1,6 @@
 using OpenTK.Mathematics;
 using Shared.Atlases;
+using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
@@ -26,12 +27,17 @@ public sealed class SoundPicker : FlexPanel
     private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
     private const float SoundElementSize = 40f;
     private static readonly Vector4 HeaderColor = new(0.478f, 0.635f, 0.968f, 1f); // #7aa2f7
+    private static readonly Vector4 DividerColor = new(0.2f, 0.204f, 0.29f, 1f); // #33344a
+    private static readonly Vector4 BlandColor = new(0.337f, 0.373f, 0.537f, 1f); // #565f89
 
     private readonly AtlasStore _store;
     private readonly Label _selectedHeader;
     private readonly Label _availableHeader;
+    private readonly FlexPanel _selectedRow;
     private readonly FlexPanel _selectedGrid;
     private readonly FlexPanel _availableGrid;
+    private readonly Panel _keybindDivider;
+    private readonly Label _keybindNote;
     private StackCollection _stacks = new();
 
     public SoundPicker(UIContext context, AtlasStore store) : base(context)
@@ -45,6 +51,34 @@ public sealed class SoundPicker : FlexPanel
         _availableHeader = new Label(context, "Available") { FontSizePx = 13f, Color = HeaderColor };
         _selectedGrid = NewGrid(context);
         _availableGrid = NewGrid(context);
+
+        // Scroll-adjust hint: pinned to the right of a non-wrapping outer row, with the
+        // actual (wrapping) icon grid as its only other child — so icons wrap around
+        // within the narrower space the hint leaves, instead of just trailing the last
+        // icon inline. Only relevant with ShowAdjustments on (the instrument editor) and
+        // at least one icon selected (nothing to scroll-adjust otherwise);
+        // see RefreshKeybindNote.
+        _keybindDivider = new Panel(context)
+        {
+            Width = 1,
+            Height = SoundElementSize,
+            Background = new ColoredPlane { Color = DividerColor }
+        };
+        _keybindNote = new Label(context,
+            "Scroll - change value\n" +
+            "Ctrl+Scroll - change volume\n" +
+            "Shift+Scroll change pan")
+        {
+            FontSizePx = 12f,
+            Color = BlandColor
+        };
+        _selectedRow = new FlexPanel(context)
+        {
+            Direction = LayoutDirection.Horizontal,
+            Width = LiteralOrComputable.Percent(100),
+            Spacing = 14,
+            Children = [_selectedGrid]
+        };
     }
 
     private static FlexPanel NewGrid(UIContext context)
@@ -97,11 +131,6 @@ public sealed class SoundPicker : FlexPanel
 
     public HashSet<string> Selected { get; } = [];
 
-    /// <summary>Fired whenever <see cref="Selected" /> changes — from <see cref="SetSelected" />
-    /// or from toggling an icon. Multi-select consumers use this to react to the current
-    /// selection (e.g. showing a hint only while something is selected).</summary>
-    public Action? OnSelectionChanged { get; set; }
-
     public bool HasSounds => _selectedGrid.Children.Count > 0 || _availableGrid.Children.Count > 0;
 
     /// <summary>
@@ -133,8 +162,8 @@ public sealed class SoundPicker : FlexPanel
             icon.RefreshAdjustmentText();
         }
 
+        RefreshKeybindNote();
         RefreshSections();
-        OnSelectionChanged?.Invoke();
     }
 
     /// <summary>Reseeds <see cref="Adjustments" /> and refreshes every icon's readout — call
@@ -171,6 +200,27 @@ public sealed class SoundPicker : FlexPanel
         target.AddChild(icon);
     }
 
+    /// <summary>Shows/hides the divider + hint in the selected row, to the right of the
+    /// (fixed, always-present) icon grid — entering/leaving the tree via AddChild/RemoveChild
+    /// is what actually queues/dequeues a renderable, same as <see cref="RefreshSections" />.</summary>
+    private void RefreshKeybindNote()
+    {
+        var shouldShow = ShowAdjustments && Selected.Count > 0;
+        var showing = _selectedRow.Children.Contains(_keybindNote);
+        if (shouldShow == showing) return;
+
+        if (shouldShow)
+        {
+            _selectedRow.AddChild(_keybindDivider);
+            _selectedRow.AddChild(_keybindNote);
+        }
+        else
+        {
+            _selectedRow.RemoveChild(_keybindDivider);
+            _selectedRow.RemoveChild(_keybindNote);
+        }
+    }
+
     /// <summary>Shows/hides each section's header + grid depending on whether it has icons,
     /// and keeps "Selected" above "Available" in the child order.</summary>
     private void RefreshSections()
@@ -180,7 +230,7 @@ public sealed class SoundPicker : FlexPanel
         if (showSelected)
         {
             desired.Add(_selectedHeader);
-            desired.Add(_selectedGrid);
+            desired.Add(_selectedRow);
         }
 
         if (_availableGrid.Children.Count > 0)
@@ -315,8 +365,8 @@ public sealed class SoundPicker : FlexPanel
                     else DisableAdjustmentText();
                 }
 
+                picker.RefreshKeybindNote();
                 picker.RefreshSections();
-                picker.OnSelectionChanged?.Invoke();
             };
         }
 

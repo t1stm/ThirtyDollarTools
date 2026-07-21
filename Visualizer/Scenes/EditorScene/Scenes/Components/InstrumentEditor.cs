@@ -24,13 +24,6 @@ public sealed class InstrumentEditor : FlexPanel
     // reused here so code-built buttons (which get no stylesheet) still read as buttons.
     private static readonly Vector4 ButtonColor = new(0.30f, 0.42f, 0.80f, 1f);
 
-    // Bland/muted text, same tone as ExportDialog's field labels and the app's other
-    // secondary text (#565f89).
-    private static readonly Vector4 BlandColor = new(0.337f, 0.373f, 0.537f, 1f);
-
-    private readonly FlexPanel _soundsRow;
-    private readonly Label _keybindNote;
-
     public InstrumentEditor(UIContext context, AtlasStore store) : base(context)
     {
         Direction = LayoutDirection.Vertical;
@@ -69,27 +62,6 @@ public sealed class InstrumentEditor : FlexPanel
         var soundsList = new ScrollView(context) { Width = LiteralOrComputable.Percent(100), Height = 380 };
         soundsList.AddChild(SoundsPicker);
 
-        // Scroll-adjust hint: only meaningful once something is selected (that's the only
-        // state with adjustment badges to scroll), so it's added/removed rather than just
-        // Visible-toggled — entering/leaving the tree is what actually queues/dequeues a
-        // renderable here (see SoundPicker.RefreshSections).
-        _keybindNote = new Label(context,
-            "Scroll - change value\n" +
-            "Ctrl+Scroll - change volume\n" +
-            "Shift+Scroll change pan")
-        {
-            FontSizePx = 12f,
-            Color = BlandColor
-        };
-        _soundsRow = new FlexPanel(context)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = 380,
-            Spacing = 14,
-            Children = [soundsList]
-        };
-        SoundsPicker.OnSelectionChanged = RefreshKeybindNote;
-
         DoneButton = new Button(context, "Done", new ColoredPlane { Color = ButtonColor })
         {
             FontSizePx = 14, BorderRadius = 8
@@ -102,7 +74,7 @@ public sealed class InstrumentEditor : FlexPanel
         };
 
         AddChild(nameRow);
-        AddChild(_soundsRow);
+        AddChild(soundsList);
         AddChild(doneRow);
     }
 
@@ -110,9 +82,6 @@ public sealed class InstrumentEditor : FlexPanel
     public Button PreviewButton { get; }
     public SoundPicker SoundsPicker { get; }
     public Button DoneButton { get; }
-
-    /// <summary>Whether the scroll-adjust keybind hint is currently in the tree.</summary>
-    public bool ShowingKeybindNote => _soundsRow.Children.Contains(_keybindNote);
 
     /// <summary>Fills the sound grid on first use — lazily, same guard as the other pickers.</summary>
     public void EnsureSounds(IEnumerable<string> soundNames)
@@ -126,16 +95,6 @@ public sealed class InstrumentEditor : FlexPanel
     {
         NameInput.Value = name;
         SoundsPicker.SetAdjustments(adjustments ?? new Dictionary<string, SoundAdjustment>());
-        SoundsPicker.SetSelected(sounds); // fires OnSelectionChanged -> RefreshKeybindNote
-    }
-
-    private void RefreshKeybindNote()
-    {
-        var shouldShow = SoundsPicker.Selected.Count > 0;
-        var showing = _soundsRow.Children.Contains(_keybindNote);
-        if (shouldShow == showing) return;
-
-        if (shouldShow) _soundsRow.AddChild(_keybindNote);
-        else _soundsRow.RemoveChild(_keybindNote);
+        SoundsPicker.SetSelected(sounds);
     }
 }
