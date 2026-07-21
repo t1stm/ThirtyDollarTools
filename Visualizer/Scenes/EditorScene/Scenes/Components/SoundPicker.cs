@@ -38,7 +38,7 @@ public sealed class SoundPicker : FlexPanel
     private readonly FlexPanel _availableGrid;
     private readonly Panel _keybindDivider;
     private readonly Label _keybindNote;
-    private StackCollection _stacks = new();
+    private readonly StackCollection _stacks = new();
 
     public SoundPicker(UIContext context, AtlasStore store) : base(context)
     {

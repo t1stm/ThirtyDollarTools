@@ -17,6 +17,8 @@ namespace EditorScene.Scenes.Components;
 public sealed class ExportDialog : FlexPanel
 {
     private const float LabelWidth = 190f;
+    private static readonly Vector4 ButtonBlandColor = new(0.2f, 0.204f, 0.29f, 1f);
+    private static readonly Vector4 ButtonMainColor =  new(0.30f, 0.42f, 0.80f, 1f);
 
     public ExportDialog(UIContext context) : base(context)
     {
@@ -43,22 +45,28 @@ public sealed class ExportDialog : FlexPanel
             Width = 120, Height = 32, FontSizePx = 14, Min = 1, Max = 4096, AllowNull = true
         };
 
-        TdwButton = new Button(context, "Export .tdw") { FontSizePx = 14 };
-        WavButton = new Button(context, "Export .wav") { FontSizePx = 14 };
-        CancelButton = new Button(context, "Cancel") { FontSizePx = 14 };
+        TdwButton = new Button(context, "Export .tdw")
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+        WavButton = new Button(context, "Export .wav")
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+        CancelButton = new Button(context, "Cancel")
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
 
         AddChild(new Label(context, "Export") { FontSizePx = 18f, Color = new Vector4(0.478f, 0.635f, 0.968f, 1f) });
         Row("Divider every N bars (0 = off)", DividerEveryBars);
-        AddChild(DividerOnSpeedChanges);
         Row("!stop after N pauses (0 = never)", MigrateToStop);
+        AddChild(DividerOnSpeedChanges);
+
+        // Percent-width spacer soaks up the free space so Cancel sits flush left and the
+        // export actions flush right — this framework has no space-between align.
+        var buttonRowSpacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
         AddChild(new FlexPanel(context)
         {
             Width = LiteralOrComputable.Percent(100),
             Height = 44,
             Spacing = 10,
-            HorizontalAlign = Align.End,
             VerticalAlign = Align.Center,
-            Children = [TdwButton, WavButton, CancelButton]
+            Children = [CancelButton, buttonRowSpacer, TdwButton, WavButton]
         });
     }
 
