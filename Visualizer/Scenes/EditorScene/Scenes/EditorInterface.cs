@@ -193,6 +193,7 @@ public class EditorInterface
         _gridArea.AddChild(_laneHeader);
         _gridArea.AddChild(_arrangement);
         _arrangement.OnOpenTrack = State.OpenTrack;
+        _arrangement.OnSeekQuarters = Playback.Seek;
 
         _trackEditor = new TrackEditorView(context, State)
         {
@@ -397,6 +398,7 @@ public class EditorInterface
             _inspector.Rebuild();
         };
         _trackEditor.OnPreviewNote = Playback.PreviewNote;
+        _trackEditor.OnSeekQuarters = Playback.Seek;
         RefreshProject();
     }
 

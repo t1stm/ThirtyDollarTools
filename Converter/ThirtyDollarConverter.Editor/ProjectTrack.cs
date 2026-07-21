@@ -92,6 +92,27 @@ public class ProjectTrack(TimingInfo timing, int id)
     }
 
     /// <summary>
+    ///     Inverse of <see cref="StepPositionAt" />: the elapsed time at a given continuous
+    ///     grid-step position. Used to convert a note editor ruler click back into a time.
+    /// </summary>
+    public double MinutesAtStepPosition(double steps)
+    {
+        var elapsed = 0d;
+        var stepsAccum = 0d;
+        foreach (var segment in _segments)
+        {
+            if (segment.StepCount <= 0) continue;
+            if (steps < stepsAccum + segment.StepCount)
+                return elapsed + (steps - stepsAccum) * segment.StepMinutes(Timing.BPM);
+
+            elapsed += segment.DurationMinutes(Timing.BPM);
+            stepsAccum += segment.StepCount;
+        }
+
+        return elapsed;
+    }
+
+    /// <summary>
     ///     The absolute time of every bar line of this track, counted across segments.
     ///     Null when the style doesn't ask for bar dividers.
     /// </summary>

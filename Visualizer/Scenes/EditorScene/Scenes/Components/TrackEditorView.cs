@@ -197,6 +197,9 @@ public sealed class TrackEditorView : Panel
     /// <summary>Fired when a note is placed or moved, with its instrument and value — the preview seam.</summary>
     public Action<Instrument, double>? OnPreviewNote { get; set; }
 
+    /// <summary>Fired with the clicked arrangement-timeline position (quarter notes) when the beat ruler is clicked.</summary>
+    public Action<double>? OnSeekQuarters { get; set; }
+
     /// <summary>
     ///     Playback position on the arrangement timeline, in quarter notes at the root BPM
     ///     (same value the arrangement view's playhead uses). The opened track can be
@@ -674,6 +677,11 @@ public sealed class TrackEditorView : Panel
     {
         var localX = x - Computed.AbsoluteX;
         var localY = y - Computed.AbsoluteY;
+        if (localY is >= StripHeight and < GridTop)
+        {
+            SeekToPointer(x);
+            return true;
+        }
         if (localY < GridTop || localX < GutterWidth) return false;
 
         var (segment, step) = StepAt(x, false);
@@ -711,6 +719,27 @@ public sealed class TrackEditorView : Panel
         OnPreviewNote?.Invoke(instrument, note.Value);
         InvalidateLayout();
         return (segment, note);
+    }
+
+    /// <summary>
+    ///     Converts a ruler click's absolute x into an arrangement-timeline seek: the track can
+    ///     be placed on the arrangement more than once, so this seeks the occurrence nearest the
+    ///     current playhead rather than guessing "first".
+    /// </summary>
+    private void SeekToPointer(float absX)
+    {
+        if (_state.OpenedTrack is not { } track || OnSeekQuarters == null) return;
+
+        var steps = Math.Max(0, (absX - Computed.AbsoluteX - GutterWidth + _scrollX) / PixelsPerStep);
+        var localMinutes = track.MinutesAtStepPosition(steps);
+
+        var placements = _state.Project.Placements.Where(p => p.Track == track).ToArray();
+        if (placements.Length == 0) return;
+        var placement = placements.Length == 1
+            ? placements[0]
+            : placements.MinBy(p => Math.Abs(p.StartQuarterNotes - PlayheadQuarters))!;
+
+        OnSeekQuarters.Invoke(placement.StartQuarterNotes + localMinutes * _state.Project.RootTiming.BPM);
     }
 
     /// <summary>Maps an absolute x to (segment, local step); null outside the track's grid.</summary>

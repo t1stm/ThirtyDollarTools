@@ -52,7 +52,16 @@ public sealed class ArrangementView : Panel
         _state = state;
         Focusable = true;
         Background = new ColoredPlane { Color = new Vector4(0.067f, 0.07f, 0.1f, 1f) };
-        OnClick = _ => PlaceAtPointer();
+        OnClick = _ =>
+        {
+            var localY = context.PointerY - Computed.AbsoluteY;
+            if (localY < RulerHeight)
+            {
+                OnSeekQuarters?.Invoke(Math.Max(0, (context.PointerX - Computed.AbsoluteX + _scrollX) / PixelsPerQuarter));
+                return;
+            }
+            PlaceAtPointer();
+        };
 
         // Grid lines render as one instanced draw call (see LineBatch) queued in
         // DrawSelf, below Children in the same depth layer, so clips still paint above.
@@ -109,6 +118,9 @@ public sealed class ArrangementView : Panel
 
     /// <summary>Fired when a clip is double-clicked — the seam for the per-track editor.</summary>
     public Action<ProjectTrack>? OnOpenTrack { get; set; }
+
+    /// <summary>Fired with the clicked quarter-note position when the bar ruler is clicked.</summary>
+    public Action<double>? OnSeekQuarters { get; set; }
 
     private int ChannelCount
     {

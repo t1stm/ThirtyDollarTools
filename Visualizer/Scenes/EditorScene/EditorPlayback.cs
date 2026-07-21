@@ -147,6 +147,17 @@ public class EditorPlayback
     }
 
     /// <summary>
+    ///     Seeks to an arrangement-timeline position (quarter notes at the root BPM) without
+    ///     touching play/pause state — used by the ruler click-to-seek in both editor views.
+    /// </summary>
+    public void Seek(double quarters)
+    {
+        if (!HasSession) return;
+        var ms = (long)(((quarters / _state.Project.RootTiming.BPM) * 60 + LeadInSeconds) * 1000);
+        _workflow.SequencePlayer.Seek(Math.Clamp(ms, 0, TotalMs));
+    }
+
+    /// <summary>
     ///     Plays every sound of an instrument (a note being placed or moved), each combined
     ///     with its own <see cref="SoundAdjustment" /> if the instrument has one, replacing
     ///     any still-playing preview. Suppressed during playback unless
