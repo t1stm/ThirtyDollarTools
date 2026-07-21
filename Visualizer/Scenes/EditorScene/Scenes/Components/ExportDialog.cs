@@ -14,7 +14,7 @@ namespace EditorScene.Scenes.Components;
 ///     cosmetics plus the two export actions. Pure form — the owner handles file
 ///     dialogs and the actual writing.
 /// </summary>
-public class ExportDialog : FlexPanel
+public sealed class ExportDialog : FlexPanel
 {
     private const float LabelWidth = 190f;
 
@@ -27,12 +27,17 @@ public class ExportDialog : FlexPanel
         Background = new ColoredPlane { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) };
 
         var defaults = new SequenceStyle();
-        DividerEveryBars = new NumericInput(context, 0)
+        DividerEveryBars = new NumericInput(context, 2)
         {
             Width = 120, Height = 32, FontSizePx = 14, Min = 0, Max = 1024
         };
-        DividerOnSpeedChanges = new Checkbox(context, "Divider on !speed changes");
-        DividerOnSpeedChanges.Label.FontSizePx = 13f;
+        DividerOnSpeedChanges = new Checkbox(context, "Divider on !speed changes")
+        {
+            Label =
+            {
+                FontSizePx = 13f
+            }
+        };
         MigrateToStop = new NumericInput(context, defaults.MigrateToStop)
         {
             Width = 120, Height = 32, FontSizePx = 14, Min = 1, Max = 4096, AllowNull = true
@@ -45,7 +50,7 @@ public class ExportDialog : FlexPanel
         AddChild(new Label(context, "Export") { FontSizePx = 18f, Color = new Vector4(0.478f, 0.635f, 0.968f, 1f) });
         Row("Divider every N bars (0 = off)", DividerEveryBars);
         AddChild(DividerOnSpeedChanges);
-        Row("!stop after N silent steps (empty = never)", MigrateToStop);
+        Row("!stop after N pauses (0 = never)", MigrateToStop);
         AddChild(new FlexPanel(context)
         {
             Width = LiteralOrComputable.Percent(100),

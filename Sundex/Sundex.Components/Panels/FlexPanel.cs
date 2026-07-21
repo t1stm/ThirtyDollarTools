@@ -117,7 +117,7 @@ public class FlexPanel(UIContext context) : Panel(context)
                             totalHeight += currentLineHeight + Spacing;
                             currentLineWidth = cw;
                             currentLineHeight = ch;
-                            firstInLine = true;
+                            firstInLine = false;
                         }
                         else
                         {
@@ -174,7 +174,7 @@ public class FlexPanel(UIContext context) : Panel(context)
                             totalWidth += currentColumnWidth + Spacing;
                             currentColumnHeight = ch;
                             currentColumnWidth = cw;
-                            firstInColumn = true;
+                            firstInColumn = false;
                         }
                         else
                         {
@@ -338,7 +338,9 @@ public class FlexPanel(UIContext context) : Panel(context)
         {
             var (cw, _) = child.Measure(innerWidth, innerHeight);
 
-            if (!firstInLine && currentX + Spacing + cw > innerWidth && innerWidth > 0)
+            // currentX already includes the trailing spacing from the previous item, so
+            // it's the exact position this child would start at — no extra Spacing here.
+            if (!firstInLine && currentX + cw > innerWidth && innerWidth > 0)
             {
                 currentX = 0;
                 currentY += lineHeight + Spacing;
@@ -366,7 +368,9 @@ public class FlexPanel(UIContext context) : Panel(context)
         {
             var (_, ch) = child.Measure(innerWidth, innerHeight);
 
-            if (!firstInColumn && currentY + Spacing + ch > innerHeight && innerHeight > 0)
+            // currentY already includes the trailing spacing from the previous item, so
+            // it's the exact position this child would start at — no extra Spacing here.
+            if (!firstInColumn && currentY + ch > innerHeight && innerHeight > 0)
             {
                 currentY = 0;
                 currentX += columnWidth + Spacing;

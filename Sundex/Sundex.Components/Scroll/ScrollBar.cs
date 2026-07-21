@@ -14,6 +14,8 @@ namespace Sundex.Components.Scroll;
 /// </summary>
 public sealed class ScrollBar : Panel
 {
+    private static readonly Vector4 ThumbColor = new(0.478f, 0.635f, 0.968f, 1f); // #7aa2f7
+
     public readonly Panel ScrollBlock;
 
     public ScrollBar(UIContext context, Panel parent) : base(context)
@@ -22,15 +24,17 @@ public sealed class ScrollBar : Panel
         {
             Background = new ColoredPlane
             {
-                Color = Vector4.One
+                Color = ThumbColor
             },
-            Height = 20
+            Height = 20,
+            BorderRadius = 4
         };
         Parent = parent;
         Background = new ColoredPlane
         {
             Color = (0.3f, 0.3f, 0.3f, 1)
         };
+        BorderRadius = 4;
         Children = [ScrollBlock];
     }
 
@@ -57,7 +61,7 @@ public sealed class ScrollBar : Panel
         set => throw new NotSupportedException();
     }
 
-    public override LiteralOrComputable Width { get; set; } = 20;
+    public override LiteralOrComputable Width { get; set; } = 8;
 
     public override LiteralOrComputable Height
     {

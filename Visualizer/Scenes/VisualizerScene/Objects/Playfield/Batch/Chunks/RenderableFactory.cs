@@ -87,42 +87,8 @@ public class RenderableFactory(AtlasStore store)
     public static void AssignTextBuffers(SoundRenderable renderable, BaseEvent baseEvent, TextBuffer textBuffer,
         PlayfieldSizing sizing, float renderScale, SampleHolder? sampleHolder = null)
     {
-        if (baseEvent.Value != 0 || SoundShouldAlwaysHaveValue(baseEvent.SoundEvent))
+        if (FormatValueText(baseEvent) is { } valueText)
         {
-            string valueText;
-            switch (baseEvent.SoundEvent)
-            {
-                case "!pulse":
-                {
-                    var parsed_value = (long)baseEvent.Value;
-                    var repeats = (byte)parsed_value;
-                    float frequency = (short)(parsed_value >> 8);
-                    valueText = $"{repeats}, {frequency}";
-                    break;
-                }
-
-                default:
-                {
-                    valueText = $"{baseEvent.Value:0.##}";
-                    valueText = baseEvent.ValueScale switch
-                    {
-                        ValueScale.Divide => "/" + valueText,
-                        ValueScale.Times => "x" + valueText,
-                        ValueScale.Add when baseEvent is { Value: > 0, SoundEvent: not null } &&
-                                            baseEvent.SoundEvent.StartsWith('!')
-                            => "+" + valueText,
-                        ValueScale.None when baseEvent is { Value: > 0, SoundEvent: not null } &&
-                                             !baseEvent.SoundEvent.StartsWith('!')
-                            => "+" + valueText,
-                        _ => valueText
-                    };
-
-                    if (baseEvent is { SoundEvent: "!volume" } and not { ValueScale: ValueScale.Times } and not
-                        { ValueScale: ValueScale.Divide }) valueText += "%";
-                    break;
-                }
-            }
-
             var valueBuffer = textBuffer.GetTextSlice(valueText, (value, buffer, range) =>
                 new TextSlice(buffer, range)
                 {
@@ -133,9 +99,9 @@ public class RenderableFactory(AtlasStore store)
             renderable.Value = new NormalText(valueBuffer);
         }
 
-        if (baseEvent.Volume is not null)
+        if (FormatVolumeText(baseEvent) is { } volumeText)
         {
-            var volumeBuffer = textBuffer.GetTextSlice($"{baseEvent.Volume:0.##}%",
+            var volumeBuffer = textBuffer.GetTextSlice(volumeText,
                 (value, buffer, range) => new TextSlice(buffer, range)
                 {
                     Value = value,
@@ -147,13 +113,8 @@ public class RenderableFactory(AtlasStore store)
         if (baseEvent is not ExtendedEvent extendedEvent) return;
         if (extendedEvent is { Pan: 0, OffsetInSeconds: 0 }) return;
 
-        if (extendedEvent.Pan != 0)
+        if (FormatPanText(baseEvent) is { } panText)
         {
-            var panString = Math.Abs((double)extendedEvent.TDWPan).ToString("0.##");
-            var panText = extendedEvent.Pan > 0
-                ? $"{panString}>"
-                : $"<{panString}";
-
             var panBuffer = textBuffer.GetTextSlice(panText, (value, buffer, range) =>
                 new TextSlice(buffer, range)
                 {
@@ -175,6 +136,58 @@ public class RenderableFactory(AtlasStore store)
 
         renderable.SetOffsetPercentage(
             (float)Math.Clamp(extendedEvent.OffsetInSeconds / durationSecs, 0, 1));
+    }
+
+    /// <summary>
+    ///     The value badge's text ("+3", "-6", "/2", "100%" for !volume, ...), or null when
+    ///     it's suppressed (a zero value on a sound that doesn't always show one). Pulled out
+    ///     of <see cref="AssignTextBuffers" /> so anything that wants these exact conventions —
+    ///     e.g. the instrument editor's per-sound adjustment readout — can reuse them without
+    ///     owning a TextBuffer/SoundRenderable.
+    /// </summary>
+    public static string? FormatValueText(BaseEvent baseEvent)
+    {
+        if (baseEvent.Value == 0 && !SoundShouldAlwaysHaveValue(baseEvent.SoundEvent)) return null;
+
+        if (baseEvent.SoundEvent == "!pulse")
+        {
+            var parsed_value = (long)baseEvent.Value;
+            var repeats = (byte)parsed_value;
+            float frequency = (short)(parsed_value >> 8);
+            return $"{repeats}, {frequency}";
+        }
+
+        var valueText = $"{baseEvent.Value:0.##}";
+        valueText = baseEvent.ValueScale switch
+        {
+            ValueScale.Divide => "/" + valueText,
+            ValueScale.Times => "x" + valueText,
+            ValueScale.Add when baseEvent is { Value: > 0, SoundEvent: not null } &&
+                                baseEvent.SoundEvent.StartsWith('!')
+                => "+" + valueText,
+            ValueScale.None when baseEvent is { Value: > 0, SoundEvent: not null } &&
+                                 !baseEvent.SoundEvent.StartsWith('!')
+                => "+" + valueText,
+            _ => valueText
+        };
+
+        if (baseEvent is { SoundEvent: "!volume" } and not { ValueScale: ValueScale.Times } and not
+            { ValueScale: ValueScale.Divide }) valueText += "%";
+        return valueText;
+    }
+
+    /// <summary>The volume badge's text ("100%"), or null when the event has no explicit volume.</summary>
+    public static string? FormatVolumeText(BaseEvent baseEvent)
+    {
+        return baseEvent.Volume is { } volume ? $"{volume:0.##}%" : null;
+    }
+
+    /// <summary>The pan badge's text ("12&gt;" right, "&lt;12" left), or null when centered/not an <see cref="ExtendedEvent" />.</summary>
+    public static string? FormatPanText(BaseEvent baseEvent)
+    {
+        if (baseEvent is not ExtendedEvent { Pan: not 0 } extendedEvent) return null;
+        var panString = Math.Abs((double)extendedEvent.TDWPan).ToString("0.##");
+        return extendedEvent.Pan > 0 ? $"{panString}>" : $"<{panString}";
     }
 
     private static bool SoundShouldAlwaysHaveValue(ReadOnlySpan<char> sound)

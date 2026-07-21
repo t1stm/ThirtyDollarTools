@@ -14,11 +14,10 @@ namespace EditorScene.Scenes.Components;
 ///     rebuilds the rows when the project changes. Mute/solo lives on the arrangement
 ///     lanes (<see cref="LaneHeader" />), not on patterns.
 /// </summary>
-public class EditorTrack : FlexPanel
+public sealed class EditorTrack : FlexPanel
 {
     private static readonly Vector4 RowColor = new(0.086f, 0.086f, 0.118f, 1f); // #16161e
     private static readonly Vector4 SelectedColor = new(0.255f, 0.282f, 0.408f, 1f); // #414868
-    private static readonly Vector4 ToggleOff = new(0.337f, 0.373f, 0.537f, 1f); // #565f89
 
     private readonly ColoredPlane _background;
     private readonly EditorState _state;
@@ -32,7 +31,9 @@ public class EditorTrack : FlexPanel
         Height = 36;
         Padding = 6;
         Spacing = 10;
+        BorderRadius = 6;
         Background = _background = new ColoredPlane { Color = RowColor };
+        UpdateCursorOnHover = true;
         OnClick = _ => state.SelectTrack(track);
         _state = state;
 
@@ -41,13 +42,18 @@ public class EditorTrack : FlexPanel
             OnClick = _ => state.RemoveTrack(track),
             Label =
             {
-                Color = ToggleOff
+                Color = Vector4.One
             }
         };
+
+        // Percent-width spacer soaks up the free space so remove lands flush against
+        // the row's right edge — this framework has no space-between align.
+        var spacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
 
         Children =
         [
             new Label(context, track.Name) { FontSizePx = 14f },
+            spacer,
             remove
         ];
     }

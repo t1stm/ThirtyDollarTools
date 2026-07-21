@@ -15,9 +15,9 @@ public class Note
     public required int Step { get; set; }
 
     /// <summary>
-    ///     The TDW sound this note plays.
+    ///     The instrument this note plays.
     /// </summary>
-    public required string Sound { get; set; }
+    public required Instrument Instrument { get; set; }
 
     /// <summary>
     ///     Pitch offset in semitones.
@@ -46,27 +46,36 @@ public class Note
     /// </summary>
     public AudioKeyframeManager? Automation { get; set; }
 
-    internal BaseEvent ToEvent()
+    /// <summary>One event per instrument sound, layered on this note's step. Empty instrument -> none.</summary>
+    internal IEnumerable<BaseEvent> ToEvents()
     {
-        if (Pan == 0 && Offset == 0)
-            return new NormalEvent
-            {
-                SoundEvent = Sound,
-                Value = Value,
-                WorkingValue = Value,
-                Volume = Volume,
-                ValueScale = ValueScale.None
-            };
-
-        return new ExtendedEvent
+        foreach (var sound in Instrument.Sounds)
         {
-            SoundEvent = Sound,
-            Value = Value,
-            WorkingValue = Value,
-            Volume = Volume,
-            ValueScale = ValueScale.None,
-            Pan = Pan,
-            OffsetInSeconds = Offset
-        };
+            var adjustment = Instrument.Adjustments.GetValueOrDefault(sound);
+            var value = adjustment?.CombineValue(Value) ?? Value;
+            var volume = adjustment?.CombineVolume(Volume) ?? Volume;
+            var pan = adjustment?.CombinePan(Pan) ?? Pan;
+
+            if (pan == 0 && Offset == 0)
+                yield return new NormalEvent
+                {
+                    SoundEvent = sound,
+                    Value = value,
+                    WorkingValue = value,
+                    Volume = volume,
+                    ValueScale = ValueScale.None
+                };
+            else
+                yield return new ExtendedEvent
+                {
+                    SoundEvent = sound,
+                    Value = value,
+                    WorkingValue = value,
+                    Volume = volume,
+                    ValueScale = ValueScale.None,
+                    Pan = pan,
+                    OffsetInSeconds = Offset
+                };
+        }
     }
 }

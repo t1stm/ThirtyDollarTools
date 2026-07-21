@@ -18,7 +18,7 @@ namespace EditorScene.Scenes.Components;
 ///     model changes (<see cref="Sync" />), skipping the focused input so typing is
 ///     never interrupted by its own change events.
 /// </summary>
-public class InspectorPanel : Panel
+public sealed class InspectorPanel : Panel
 {
     public const float PanelWidth = 300f; // must match inspector-column's width in EditorInterface.snx.ss
     private const float LabelWidth = 84f;
@@ -29,6 +29,7 @@ public class InspectorPanel : Panel
     private static readonly Vector4 NameColor = new(0.337f, 0.373f, 0.537f, 1f); // #565f89
     private static readonly Vector4 EntryColor = new(0.16f, 0.18f, 0.26f, 1f); // #292e42, one shade above the #16161e panel
     private static readonly Vector4 KeyframeColor = new(0.21f, 0.23f, 0.33f, 1f); // #353a54, one more shade up, nested inside an entry
+    private static readonly Vector4 InputColor = new(0.15f, 0.16f, 0.21f, 1f); // matches InstrumentEditor's name field
 
     private readonly Dictionary<string, UIElement> _fields = [];
     private readonly ScrollView _rows;
@@ -65,6 +66,13 @@ public class InspectorPanel : Panel
     /// </summary>
     public Action<TrackAutomation>? OnEditTrackAutomationSounds { get; set; }
 
+    /// <summary>
+    ///     Fired when the user wants to reassign the selected note's instrument. The
+    ///     inspector has no instrument selector of its own — EditorInterface wires this
+    ///     the same way it wires <see cref="OnEditTrackAutomationSounds" />.
+    /// </summary>
+    public Action<Note>? OnReassignInstrument { get; set; }
+
     /// <summary>Rebuilds the rows for the current mode and selection.</summary>
     public void Rebuild()
     {
@@ -88,7 +96,8 @@ public class InspectorPanel : Panel
             if (_state.SelectedNote is { } note)
             {
                 Header("Note");
-                InfoRow("Sound", () => note.Sound);
+                InfoRow("Instrument", () => note.Instrument.Name);
+                ActionRow("Change", () => OnReassignInstrument?.Invoke(note));
                 NumberRow("Value", () => note.Value, v => note.Value = v!.Value,
                     -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
                 NumberRow("Volume", () => note.Volume, v => note.Volume = v, 0, 500, 5, allowNull: true);
@@ -205,6 +214,7 @@ public class InspectorPanel : Panel
             {
                 Header($"{keyframeHeaderPrefix}Keyframe {i + 1}");
                 NumberRow("Gap", () => keyframe.Gap, v => keyframe.Gap = (float)v!.Value, 0, 4096, 0.5);
+                CheckRow("Cut", () => keyframe.Cut, cut => _state.Edit(() => keyframe.Cut = cut));
                 ModifierRow("Value", () => keyframe.Value, m => keyframe.Value = m);
                 ModifierRow("Volume", () => keyframe.Volume, m => keyframe.Volume = m);
                 ModifierRow("Pan", () => keyframe.Pan, m => keyframe.Pan = m);
@@ -254,7 +264,9 @@ public class InspectorPanel : Panel
         var initial = get();
         var amount = new NumericInput(Context, initial.Amount)
         {
-            Width = 100, Height = 32, FontSizePx = 14, Min = -10000, Max = 10000
+            Width = 100, Height = 32, FontSizePx = 14, Min = -10000, Max = 10000,
+            BorderRadius = 4,
+            Background = new ColoredPlane { Color = InputColor }
         };
         var multiply = new Checkbox(Context, "×", initial.Kind == ModifierKind.Multiply)
         {
@@ -329,6 +341,8 @@ public class InspectorPanel : Panel
         {
             Width = FieldWidth,
             FontSizePx = 14f,
+            BorderRadius = 4,
+            Background = new ColoredPlane { Color = InputColor },
             OnValueChanged = i => set(i.Value)
         };
         Row(label, input);
@@ -354,7 +368,9 @@ public class InspectorPanel : Panel
             Min = min,
             Max = max,
             Step = step,
-            AllowNull = allowNull
+            AllowNull = allowNull,
+            BorderRadius = 4,
+            Background = new ColoredPlane { Color = InputColor }
         };
         input.OnValueChanged = _ =>
         {

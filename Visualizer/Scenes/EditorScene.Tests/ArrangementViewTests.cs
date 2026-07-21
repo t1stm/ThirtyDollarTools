@@ -44,21 +44,21 @@ public class ArrangementViewTests
         var placement = state.PlaceTrack(track, 1, 4);
         view.Layout();
 
-        // ppq 24, lane height 44: the clip spans x 96..192 on lane 1 (y 44..88).
-        Press(ctx, view, 100, 60);
+        // ppq 24, lane height 44, ruler 18: the clip spans x 96..192 on lane 1 (y 62..106).
+        Press(ctx, view, 100, 78);
         Assert.Same(placement, state.SelectedPlacement);
         Assert.Same(track, state.SelectedTrack);
 
         // One beat right, one lane down; the 4 px grab offset must not shift the snap.
-        Drag(ctx, view, 124, 104);
+        Drag(ctx, view, 124, 122);
         Assert.Equal(5, placement.StartQuarterNotes);
         Assert.Equal(2, placement.Channel);
 
-        Release(ctx, view, 124, 104);
+        Release(ctx, view, 124, 122);
         view.Update(ctx); // drag-end housekeeping (deferred rebuild)
 
         // The clip is still draggable after the rebuild: its block was recreated.
-        Press(ctx, view, 100 + 24, 60 + 44);
+        Press(ctx, view, 100 + 24, 78 + 44);
         Assert.Same(placement, state.SelectedPlacement);
     }
 
@@ -70,8 +70,8 @@ public class ArrangementViewTests
         state.SelectTrack(track);
         view.Layout();
 
-        Press(ctx, view, 98, 3 * ArrangementView.LaneHeight + 5);
-        Release(ctx, view, 98, 3 * ArrangementView.LaneHeight + 5);
+        Press(ctx, view, 98, ArrangementView.RulerHeight + 3 * ArrangementView.LaneHeight + 5);
+        Release(ctx, view, 98, ArrangementView.RulerHeight + 3 * ArrangementView.LaneHeight + 5);
 
         var placement = Assert.Single(state.Project.Placements);
         Assert.Same(track, placement.Track);
@@ -104,8 +104,8 @@ public class ArrangementViewTests
         state.PlaceTrack(track, 1, 0);
         view.Layout();
 
-        Press(ctx, view, 10, 50); // selects the clip and focuses the view
-        Release(ctx, view, 10, 50);
+        Press(ctx, view, 10, 68); // selects the clip and focuses the view
+        Release(ctx, view, 10, 68);
         Assert.Same(view, ctx.FocusedElement);
 
         ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Delete, 0, 0, false));
@@ -164,10 +164,10 @@ public class ArrangementViewTests
         ProjectTrack? opened = null;
         view.OnOpenTrack = t => opened = t;
 
-        Press(ctx, view, 10, 10);
-        Release(ctx, view, 10, 10);
-        Press(ctx, view, 10, 10); // within the double-click window
-        Release(ctx, view, 10, 10);
+        Press(ctx, view, 10, 28);
+        Release(ctx, view, 10, 28);
+        Press(ctx, view, 10, 28); // within the double-click window
+        Release(ctx, view, 10, 28);
 
         Assert.Same(track, opened);
     }
@@ -196,10 +196,10 @@ public class ArrangementViewTests
         state.PlaceTrack(track, 0, 0);
         gridArea.Layout();
 
-        Press(ctx, gridArea, 10, 10);
-        Release(ctx, gridArea, 10, 10);
-        Press(ctx, gridArea, 10, 10); // opens the track, swapping views mid-dispatch
-        Release(ctx, gridArea, 10, 10);
+        Press(ctx, gridArea, 10, 28);
+        Release(ctx, gridArea, 10, 28);
+        Press(ctx, gridArea, 10, 28); // opens the track, swapping views mid-dispatch
+        Release(ctx, gridArea, 10, 28);
 
         Assert.Same(track, state.OpenedTrack);
         Assert.Null(ctx.CapturedElement);
@@ -227,11 +227,11 @@ public class ArrangementViewTests
         // The app runs Update every frame. A plain click must not rebuild the clip
         // block, or the second press lands on a fresh element and UIContext's
         // same-element double-press check never fires.
-        Press(ctx, view, 10, 10);
-        Release(ctx, view, 10, 10);
+        Press(ctx, view, 10, 28);
+        Release(ctx, view, 10, 28);
         view.Update(ctx);
-        Press(ctx, view, 10, 10);
-        Release(ctx, view, 10, 10);
+        Press(ctx, view, 10, 28);
+        Release(ctx, view, 10, 28);
 
         Assert.Same(track, opened);
     }

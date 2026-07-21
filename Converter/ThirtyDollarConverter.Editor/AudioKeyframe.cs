@@ -29,6 +29,13 @@ public class AudioKeyframe
     /// </summary>
     public float Gap { get; set; }
 
+    /// <summary>
+    ///     When true, this keyframe cuts the note's instrument sounds immediately before
+    ///     placing its note (both at the same position) — restarting a sustained/looped
+    ///     sound cleanly instead of overlapping the new instance onto the old one.
+    /// </summary>
+    public bool Cut { get; set; }
+
     /// <summary>Pitch change in semitones.</summary>
     public Modifier Value { get; set; }
 

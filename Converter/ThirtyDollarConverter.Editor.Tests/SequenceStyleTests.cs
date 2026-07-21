@@ -15,8 +15,8 @@ public class SequenceStyleTests
         var track = MakeTrack(); // quarters at 120/min, 4 steps per bar
         track.Segments[0].StepsPerBeat = 1;
         track.Segments[0].Bars = 8;
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        track.Segments[0].Notes.Add(new Note { Step = 16, Sound = "kick" }); // downbeat of bar 5
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 16, Instrument = Instrument.Single("kick") }); // downbeat of bar 5
 
         var sequence = track.ToSequence(new SequenceStyle { DividerEveryBars = 4 });
 
@@ -41,7 +41,7 @@ public class SequenceStyleTests
 
         var next = track.NewSegment(); // inherited 120 BPM quarters
         next.StepsPerBeat = 1;
-        next.Notes.Add(new Note { Step = 0, Sound = "boom" });
+        next.Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var events = track.ToSequence(
             new SequenceStyle { DividerOnSpeedChanges = true, MigrateToStop = 1 }).Events;
@@ -58,7 +58,7 @@ public class SequenceStyleTests
         track.Segments[0].Bars = 4; // bar divider lands exactly on the segment change
 
         var fine = track.NewSegment(); // sixteenth grid, its own region
-        fine.Notes.Add(new Note { Step = 0, Sound = "boom" });
+        fine.Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var style = new SequenceStyle { DividerEveryBars = 4, DividerOnSpeedChanges = true };
         var events = track.ToSequence(style).Events;
@@ -73,13 +73,13 @@ public class SequenceStyleTests
         var track = MakeTrack();
         track.Segments[0].StepsPerBeat = 1; // quarters, 4 steps per bar
         track.Segments[0].Bars = 2; // two leftover bars that must NOT carry over
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var fine = track.NewSegment(); // sixteenth grid, 16 steps per bar
         fine.Bars = 6;
-        fine.Notes.Add(new Note { Step = 0, Sound = "kick" });
-        fine.Notes.Add(new Note { Step = 32, Sound = "snare" }); // bar 2 after the change
-        fine.Notes.Add(new Note { Step = 64, Sound = "hat" }); // bar 4 after the change
+        fine.Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
+        fine.Notes.Add(new Note { Step = 32, Instrument = Instrument.Single("snare") }); // bar 2 after the change
+        fine.Notes.Add(new Note { Step = 64, Instrument = Instrument.Single("hat") }); // bar 4 after the change
 
         var style = new SequenceStyle
             { DividerEveryBars = 4, DividerOnSpeedChanges = true, MigrateToStop = 1 };
@@ -101,7 +101,7 @@ public class SequenceStyleTests
     {
         var track = MakeTrack();
         track.Segments[0].StepsPerBeat = 1;
-        track.Segments[0].Notes.Add(new Note { Step = 3, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 3, Instrument = Instrument.Single("boom") });
 
         var sequence = track.ToSequence(new SequenceStyle { MigrateToStop = null });
 
@@ -121,9 +121,9 @@ public class SequenceStyleTests
         var track = MakeTrack();
         track.Segments[0].StepsPerBeat = 1;
         track.Segments[0].Bars = 4;
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        track.Segments[0].Notes.Add(new Note { Step = 3, Sound = "kick" }); // gap 2, below 4
-        track.Segments[0].Notes.Add(new Note { Step = 9, Sound = "snare" }); // gap 5, at/above 4
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 3, Instrument = Instrument.Single("kick") }); // gap 2, below 4
+        track.Segments[0].Notes.Add(new Note { Step = 9, Instrument = Instrument.Single("snare") }); // gap 5, at/above 4
 
         var events = track.ToSequence(new SequenceStyle { MigrateToStop = 4 }).Events;
 
@@ -140,7 +140,7 @@ public class SequenceStyleTests
         var track = MakeTrack();
         var slapback = new AudioKeyframeManager { Timing = KeyframeTiming.Time };
         slapback.Keyframes.Add(new AudioKeyframe { Gap = 0.007f });
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom", Automation = slapback });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = slapback });
 
         var events = track.ToSequence(new SequenceStyle { MigrateToStop = null }).Events;
 
@@ -154,8 +154,8 @@ public class SequenceStyleTests
         var track = MakeTrack(); // 4 steps per bar
         track.Segments[0].StepsPerBeat = 1;
         track.Segments[0].Bars = 8;
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        track.Segments[0].Notes.Add(new Note { Step = 30, Sound = "kick" }); // mid-bar 8
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 30, Instrument = Instrument.Single("kick") }); // mid-bar 8
 
         var events = track.ToSequence(new SequenceStyle { DividerEveryBars = 2 }).Events;
 

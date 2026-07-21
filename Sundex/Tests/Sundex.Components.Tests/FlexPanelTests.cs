@@ -1,3 +1,4 @@
+using System.Linq;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
@@ -168,6 +169,40 @@ public class FlexPanelTests
     }
 
     [Fact]
+    public void TestHorizontalLayout_Wrap_MeasureMatchesActualRowCountAcrossMultipleWraps()
+    {
+        // Regression test: after the first wrap, Measure() used to keep treating the new
+        // line's first item as still-pending ("firstInLine = true"), so the *next* item
+        // silently replaced its width contribution instead of adding to it. That let every
+        // row past the first pack one extra item before wrapping, under-reporting the
+        // total height once there were enough rows for it to show (2+ wraps).
+        var context = new TestUIContext();
+        var flex = new FlexPanel(context)
+        {
+            Width = 90,
+            Height = LiteralOrComputable.AutoSize,
+            Direction = LayoutDirection.Horizontal,
+            Wrap = true,
+            Spacing = 10,
+            Padding = 0
+        };
+        // Row capacity is 2 (40+10+40=90 fits, a 3rd would need 140). 6 items -> 3 rows of 2.
+        var children = Enumerable.Range(0, 6)
+            .Select(_ => new TestElement(context) { Width = 40, Height = 20 })
+            .ToList<UIElement>();
+        flex.Children = children;
+
+        var (_, measuredHeight) = flex.Measure(90, 1000);
+        Assert.Equal(80, measuredHeight); // 3 rows * 20 + 2 gaps * 10
+
+        flex.Layout();
+        Assert.Equal(80, flex.Computed.Height);
+        Assert.Equal(60, children[4].Y); // third row
+        Assert.Equal(0, children[4].X);
+        Assert.Equal(50, children[5].X);
+    }
+
+    [Fact]
     public void TestVerticalLayout_Wrap()
     {
         var context = new TestUIContext();
@@ -193,6 +228,36 @@ public class FlexPanelTests
         Assert.Equal(0, child1.Y);
         Assert.Equal(30, child2.X);
         Assert.Equal(0, child2.Y);
+    }
+
+    [Fact]
+    public void TestVerticalLayout_Wrap_MeasureMatchesActualColumnCountAcrossMultipleWraps()
+    {
+        // Same regression as the horizontal case, mirrored for columns.
+        var context = new TestUIContext();
+        var flex = new FlexPanel(context)
+        {
+            Width = LiteralOrComputable.AutoSize,
+            Height = 90,
+            Direction = LayoutDirection.Vertical,
+            Wrap = true,
+            Spacing = 10,
+            Padding = 0
+        };
+        // Column capacity is 2 (40+10+40=90 fits). 6 items -> 3 columns of 2.
+        var children = Enumerable.Range(0, 6)
+            .Select(_ => new TestElement(context) { Width = 20, Height = 40 })
+            .ToList<UIElement>();
+        flex.Children = children;
+
+        var (measuredWidth, _) = flex.Measure(1000, 90);
+        Assert.Equal(80, measuredWidth); // 3 columns * 20 + 2 gaps * 10
+
+        flex.Layout();
+        Assert.Equal(80, flex.Computed.Width);
+        Assert.Equal(60, children[4].X); // third column
+        Assert.Equal(0, children[4].Y);
+        Assert.Equal(50, children[5].Y);
     }
 
     [Fact]

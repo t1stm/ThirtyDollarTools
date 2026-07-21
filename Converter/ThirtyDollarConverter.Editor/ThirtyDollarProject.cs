@@ -6,7 +6,9 @@ public class ThirtyDollarProject
 {
     private readonly List<TrackPlacement> _placements = [];
     private readonly List<ProjectTrack> _projectTracks = [];
+    private readonly List<Instrument> _instruments = [];
     private int _tracks;
+    private int _instrumentIds;
 
     public ProjectInfo Info { get; set; } = new()
     {
@@ -15,6 +17,7 @@ public class ThirtyDollarProject
 
     public TimingInfo RootTiming { get; set; } = new();
     public IReadOnlyList<ProjectTrack> Tracks => _projectTracks;
+    public IReadOnlyList<Instrument> Instruments => _instruments;
 
     /// <summary>
     ///     The arrangement: clips of patterns on channels. Only placed patterns sound —
@@ -46,6 +49,50 @@ public class ThirtyDollarProject
         if (!_projectTracks.Remove(track)) return false;
         _placements.RemoveAll(placement => placement.Track == track);
         return true;
+    }
+
+    public Instrument NewInstrument(string name)
+    {
+        var instrument = new Instrument { Id = ++_instrumentIds, Name = name };
+        _instruments.Add(instrument);
+        return instrument;
+    }
+
+    /// <summary>
+    ///     Reconstructs an instrument from a saved project, keeping the id counter ahead
+    ///     of loaded ids.
+    /// </summary>
+    internal Instrument AddInstrument(int id, string name)
+    {
+        var instrument = new Instrument { Id = id, Name = name };
+        _instruments.Add(instrument);
+        _instrumentIds = Math.Max(_instrumentIds, id);
+        return instrument;
+    }
+
+    /// <summary>Refuses while any note still references the instrument.</summary>
+    public bool RemoveInstrument(Instrument instrument)
+    {
+        var referenced = _projectTracks
+            .SelectMany(track => track.Segments)
+            .SelectMany(segment => segment.Notes)
+            .Any(note => note.Instrument == instrument);
+        return !referenced && _instruments.Remove(instrument);
+    }
+
+    /// <summary>
+    ///     Migration helper: the single-sound instrument named after <paramref name="sound" />,
+    ///     creating and registering one if none exists yet. Dedups pre-instrument files where
+    ///     every note held a bare sound name, so repeated uses of one sound share an instrument.
+    /// </summary>
+    internal Instrument GetOrCreateInstrument(string sound)
+    {
+        var existing = _instruments.FirstOrDefault(instrument => instrument.Sounds is [var only] && only == sound);
+        if (existing is not null) return existing;
+
+        var instrument = NewInstrument(sound);
+        instrument.Sounds.Add(sound);
+        return instrument;
     }
 
     public TrackPlacement Place(ProjectTrack track, int channel, double startQuarterNotes)

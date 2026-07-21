@@ -12,7 +12,7 @@ namespace EditorScene.Scenes.Components;
 ///     it). Lives outside <see cref="ArrangementView" /> so clips can never cover or
 ///     out-hit the buttons.
 /// </summary>
-public class LaneHeader : Panel
+public sealed class LaneHeader : Panel
 {
     public const float GutterWidth = 60f;
 
@@ -60,8 +60,10 @@ public class LaneHeader : Panel
         for (var lane = 0; lane < _rows.Count; lane++)
         {
             var (mute, solo) = _rows[lane];
-            var visible = lane < lanes && (lane + 1) * ArrangementView.LaneHeight <= Computed.Height;
-            var y = lane * ArrangementView.LaneHeight + (ArrangementView.LaneHeight - 24) / 2;
+            var visible = lane < lanes &&
+                          ArrangementView.RulerHeight + (lane + 1) * ArrangementView.LaneHeight <= Computed.Height;
+            var y = ArrangementView.RulerHeight + lane * ArrangementView.LaneHeight +
+                    (ArrangementView.LaneHeight - 24) / 2;
 
             mute.Visible = solo.Visible = visible;
             mute.X = 4;
@@ -74,16 +76,15 @@ public class LaneHeader : Panel
 
     private static Button NewToggle(UIContext context, string text, Action toggle)
     {
-        var button = new Button(context, text)
+        var button = new Button(context, new Label(context, text)
+        {
+            FontSizePx = 12f,
+            Color = Inactive
+        })
         {
             Width = 24,
             Height = 24,
             OnClick = _ => toggle(),
-            Label =
-            {
-                FontSizePx = 12f,
-                Color = Inactive
-            }
         };
         return button;
     }

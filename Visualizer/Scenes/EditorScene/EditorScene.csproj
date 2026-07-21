@@ -18,7 +18,6 @@
   <ItemGroup>
     <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.xml"/>
     <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.ss"/>
-    <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.csx"/>
   </ItemGroup>
 
 </Project>

@@ -41,7 +41,7 @@ public class TrackSegmentTests
 
         var next = track.NewSegment();
         next.StepsPerBeat = 1;
-        next.Notes.Add(new Note { Step = 0, Sound = "boom" });
+        next.Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var events = track.ToSequence().Events;
 
@@ -58,7 +58,7 @@ public class TrackSegmentTests
     {
         var track = MakeTrack(); // 4/4, 1 bar, 4 steps per beat -> 16 steps
         var second = track.NewSegment();
-        second.Notes.Add(new Note { Step = 0, Sound = "boom" });
+        second.Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var events = track.ToSequence().Events;
 
@@ -78,7 +78,7 @@ public class TrackSegmentTests
 
         var next = track.NewSegment();
         next.StepsPerBeat = 1;
-        next.Notes.Add(new Note { Step = 0, Sound = "boom" });
+        next.Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var events = track.ToSequence().Events;
 
@@ -100,13 +100,13 @@ public class TrackSegmentTests
         for (var i = 0; i < 3; i++)
         {
             var track = project.NewTrack(); // segment 1: 4/4, sixteenth grid
-            track.Segments[0].Notes.Add(new Note { Step = i * 4, Sound = sounds[i] });
+            track.Segments[0].Notes.Add(new Note { Step = i * 4, Instrument = Instrument.Single(sounds[i]) });
 
             var odd = track.NewSegment(); // segment 2: 7/8, eighth grid
             odd.Numerator = 7;
             odd.Denominator = 8;
             odd.StepsPerBeat = 1;
-            odd.Notes.Add(new Note { Step = i * 2 + 1, Sound = sounds[i] });
+            odd.Notes.Add(new Note { Step = i * 2 + 1, Instrument = Instrument.Single(sounds[i]) });
 
             project.Place(track, i, 0);
         }
@@ -130,13 +130,13 @@ public class TrackSegmentTests
         var track = MakeTrack();
         var common = track.Segments[0]; // 4/4, quarter-note grid
         common.StepsPerBeat = 1;
-        common.Notes.Add(new Note { Step = 2, Sound = "kick" });
+        common.Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("kick") });
 
         var odd = track.NewSegment(); // 7/8, eighth-note grid
         odd.Numerator = 7;
         odd.Denominator = 8;
         odd.StepsPerBeat = 1;
-        odd.Notes.Add(new Note { Step = 1, Sound = "snare" });
+        odd.Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("snare") });
 
         var events = track.ToSequence().Events;
 
@@ -157,13 +157,13 @@ public class TrackSegmentTests
         // 120 BPM quarters (0.5 s/step), then a 240 BPM override (0.25 s/step).
         var track = MakeTrack();
         track.Segments[0].StepsPerBeat = 1;
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var fast = track.NewSegment();
         fast.BPM = 240;
         fast.StepsPerBeat = 1;
-        fast.Notes.Add(new Note { Step = 0, Sound = "kick" });
-        fast.Notes.Add(new Note { Step = 1, Sound = "snare" });
+        fast.Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
+        fast.Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("snare") });
 
         const uint sample_rate = 48000;
         var calculator = new PlacementCalculator(new EncoderSettings { SampleRate = sample_rate });
@@ -198,11 +198,11 @@ public class TrackSegmentTests
         // A note on its segment's end boundary (step == length, the BMS STOP case)
         // sounds exactly where the next region starts, after that region's !speed.
         var track = MakeTrack(); // 16 sixteenth steps at 480/min
-        track.Segments[0].Notes.Add(new Note { Step = 16, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 16, Instrument = Instrument.Single("boom") });
 
         var next = track.NewSegment();
         next.StepsPerBeat = 1; // quarter grid, 120/min
-        next.Notes.Add(new Note { Step = 2, Sound = "kick" });
+        next.Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("kick") });
 
         var events = track.ToSequence().Events;
 

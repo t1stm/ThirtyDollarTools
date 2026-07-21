@@ -14,6 +14,8 @@
     <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.frag"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.vert"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\instanced.frag"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\instanced.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.frag"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.frag"/>

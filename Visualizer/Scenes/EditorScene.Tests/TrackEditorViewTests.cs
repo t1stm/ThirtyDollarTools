@@ -15,6 +15,13 @@ namespace EditorScene.Tests;
 // exactly half that (+9), not the full 18 — the click coordinates already bake it in.
 public class TrackEditorViewTests
 {
+    private static Instrument MakeInstrument(EditorState state, string sound)
+    {
+        var instrument = state.AddInstrument(sound);
+        state.SetInstrumentSounds(instrument, [sound]);
+        return instrument;
+    }
+
     private static void Press(UIContext ctx, UIElement root, float x, float y)
     {
         ctx.UpdatePointer(root, x, y, true, true, false, Vector2.Zero);
@@ -52,10 +59,11 @@ public class TrackEditorViewTests
     }
 
     [Fact]
-    public void ClickOnAnEmptyCell_PlacesTheActiveSound_AtIntegerStepAndValue()
+    public void ClickOnAnEmptyCell_PlacesTheActiveInstrument_AtIntegerStepAndValue()
     {
         var (ctx, state, view, track) = NewView();
-        state.ActiveSound = "boom";
+        var boom = MakeInstrument(state, "boom");
+        state.ActiveInstrument = boom;
 
         // Step 3 (x = 44 + 3*16 + 8), value 0 (row center y = 22 + 24*8 + 4 + 9).
         Click(ctx, view, 100, 227);
@@ -63,7 +71,7 @@ public class TrackEditorViewTests
         var note = Assert.Single(track.Segments[0].Notes);
         Assert.Equal(3, note.Step);
         Assert.Equal(0, note.Value);
-        Assert.Equal("boom", note.Sound);
+        Assert.Same(boom, note.Instrument);
         Assert.Same(note, state.SelectedNote);
         Assert.Same(track.Segments[0], state.SelectedSegment);
     }
@@ -72,7 +80,7 @@ public class TrackEditorViewTests
     public void PressAndSweep_PaintsANoteIntoEveryCellCrossed()
     {
         var (ctx, state, view, track) = NewView();
-        state.ActiveSound = "boom";
+        state.ActiveInstrument = MakeInstrument(state, "boom");
 
         // The first note exists as soon as the button goes down (FL paint style)…
         Press(ctx, view, 100, 227); // step 3, value 0
@@ -92,8 +100,9 @@ public class TrackEditorViewTests
     public void HoldingRightAndSweeping_ErasesEveryNoteCrossed()
     {
         var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
         foreach (var step in (int[])[3, 4, 5])
-            state.AddNote(track.Segments[0], step, "boom", 0);
+            state.AddNote(track.Segments[0], step, boom, 0);
         view.Layout();
 
         // The right button stays held while the pointer crosses all three notes;
@@ -108,11 +117,11 @@ public class TrackEditorViewTests
     }
 
     [Fact]
-    public void ClickWithoutAnActiveSound_JustDeselects()
+    public void ClickWithoutAnActiveInstrument_JustDeselects()
     {
         var (ctx, state, view, track) = NewView();
-        state.ActiveSound = null;
-        var existing = state.AddNote(track.Segments[0], 0, "boom", 0);
+        state.ActiveInstrument = null;
+        var existing = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
         state.SelectNote(existing);
         view.Layout();
 
@@ -126,7 +135,7 @@ public class TrackEditorViewTests
     public void ClicksInTheGutter_NeverPlaceNotes()
     {
         var (ctx, state, view, track) = NewView();
-        state.ActiveSound = "boom";
+        state.ActiveInstrument = MakeInstrument(state, "boom");
 
         Click(ctx, view, 20, 218); // gutter column
 
@@ -138,7 +147,7 @@ public class TrackEditorViewTests
     {
         var (ctx, state, view, track) = NewView();
         var second = state.AddSegment(track);
-        var note = state.AddNote(track.Segments[0], 3, "boom", 0);
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
         view.Layout();
 
         // Press the note (step 3, value 0), then one step right and one value up.
@@ -168,7 +177,7 @@ public class TrackEditorViewTests
     public void FineSnap_PlacesFractionalValues_InFifthsOfASemitone()
     {
         var (ctx, state, view, track) = NewView();
-        state.ActiveSound = "boom";
+        state.ActiveInstrument = MakeInstrument(state, "boom");
         view.FineSnap = true;
 
         // r = 24.1 rows -> value centered at 0.4.
@@ -182,13 +191,14 @@ public class TrackEditorViewTests
     public void PlacingAndDragging_FireThePreviewSeam_OnlyOnCellChanges()
     {
         var (ctx, state, view, _) = NewView();
-        state.ActiveSound = "boom";
-        var previews = new List<(string sound, double value)>();
-        view.OnPreviewNote = (s, v) => previews.Add((s, v));
+        var boom = MakeInstrument(state, "boom");
+        state.ActiveInstrument = boom;
+        var previews = new List<(Instrument instrument, double value)>();
+        view.OnPreviewNote = (i, v) => previews.Add((i, v));
 
         // Placing previews the new note.
         Click(ctx, view, 100, 227); // step 3, value 0
-        Assert.Equal([("boom", 0d)], previews);
+        Assert.Equal([(boom, 0d)], previews);
         view.Layout(); // the app lays out every frame; the new note gets its block
 
         // Pressing the note does not re-preview; dragging within the same cell
@@ -198,7 +208,7 @@ public class TrackEditorViewTests
         Assert.Single(previews);
 
         Drag(ctx, view, 100, 219); // one value up
-        Assert.Equal(("boom", 1d), previews[^1]);
+        Assert.Equal((boom, 1d), previews[^1]);
         Assert.Equal(2, previews.Count);
         Release(ctx, view, 100, 219);
     }
@@ -207,7 +217,7 @@ public class TrackEditorViewTests
     public void RightClickOnANote_RemovesIt()
     {
         var (ctx, state, view, track) = NewView();
-        var note = state.AddNote(track.Segments[0], 3, "boom", 0);
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
         state.SelectNote(note);
         view.Layout();
 
@@ -226,7 +236,7 @@ public class TrackEditorViewTests
     public void DeleteKey_RemovesTheSelectedNote()
     {
         var (ctx, state, view, track) = NewView();
-        var note = state.AddNote(track.Segments[0], 3, "boom", 0);
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
         view.Layout();
 
         Click(ctx, view, 100, 227); // selects the note and focuses the view
@@ -257,13 +267,14 @@ public class TrackEditorViewTests
         // drops exactly the newest note — it lands in the model but never renders,
         // and the next click on its cell places a duplicate instead of hitting it.
         var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
         state.AddSegment(track);
         state.AddSegment(track); // 48 steps: the 800 px view shows ~47
         foreach (var segment in track.Segments)
             for (var step = 0; step < segment.StepCount; step++)
                 for (var i = 0; i < 6; i++)
-                    state.AddNote(segment, step, "boom", 2 + i);
-        state.ActiveSound = "boom";
+                    state.AddNote(segment, step, boom, 2 + i);
+        state.ActiveInstrument = boom;
         view.Layout();
         var before = track.Segments.Sum(s => s.Notes.Count);
 
@@ -287,7 +298,7 @@ public class TrackEditorViewTests
         state.AddSegment(track);
         state.AddSegment(track);
         state.AddSegment(track); // 64 steps = 1024 px of content, so zoom can scroll
-        state.ActiveSound = "boom";
+        state.ActiveInstrument = MakeInstrument(state, "boom");
         view.Layout();
         view.WheelZooms = true;
 
@@ -312,7 +323,7 @@ public class TrackEditorViewTests
         var state = new EditorState();
         var track = state.AddTrack();
         state.OpenTrack(track);
-        state.ActiveSound = "boom";
+        state.ActiveInstrument = MakeInstrument(state, "boom");
 
         var root = new Sundex.Components.Panels.Panel(ctx) { Width = 1200, Height = 800 };
         var gridArea = new Sundex.Components.Panels.FlexPanel(ctx) { X = 260, Y = 56, Width = 940, Height = 744 };
@@ -335,7 +346,7 @@ public class TrackEditorViewTests
             [
                 new Sundex.Components.Labels.Button(ctx, "← Arrangement"),
                 new Sundex.Components.Labels.Label(ctx, "Track 1"),
-                new Sundex.Components.Labels.Button(ctx, "Sound: —")
+                new Sundex.Components.Labels.Button(ctx, "Instrument: —")
             ]
         };
         var editorPanel = new Sundex.Components.Panels.FlexPanel(ctx)
@@ -369,7 +380,7 @@ public class TrackEditorViewTests
         var state = new EditorState();
         var track = state.AddTrack();
         state.OpenTrack(track);
-        state.ActiveSound = "boom";
+        state.ActiveInstrument = MakeInstrument(state, "boom");
         var view = new TrackEditorView(ctx, state) { Width = 800, Height = 414, PixelsPerStep = 16f };
         state.OnProjectChanged = view.InvalidateLayout;
         view.Layout();
@@ -397,7 +408,7 @@ public class TrackEditorViewTests
         state.OpenTrack(track);
         state.AddSegment(track);
         state.AddSegment(track); // 48 steps = 768 px, so there is room to pan into
-        state.ActiveSound = "boom";
+        state.ActiveInstrument = MakeInstrument(state, "boom");
         var view = new TrackEditorView(ctx, state) { Width = 400, Height = 414, PixelsPerStep = 16f };
         state.OnProjectChanged = view.InvalidateLayout;
         view.Layout(); // centers: scrollY = (2420 - 374) / 2 = 1023 (GridTop = 40)
@@ -430,7 +441,7 @@ public class TrackEditorViewTests
     public void AutomationDrawsAStepPath_RunJumpAndTickPerGeneratedEvent()
     {
         var (_, state, view, track) = NewView();
-        var note = state.AddNote(track.Segments[0], 3, "boom", 0);
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
         note.Automation = new AudioKeyframeManager
         {
             Repeats = 2,

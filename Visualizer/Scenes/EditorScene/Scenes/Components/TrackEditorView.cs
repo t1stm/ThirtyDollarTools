@@ -23,7 +23,7 @@ namespace EditorScene.Scenes.Components;
 ///     and the grid labels the running beat number at every beat boundary, highlighting
 ///     whichever beat the playhead is currently in.
 /// </summary>
-public class TrackEditorView : Panel
+public sealed class TrackEditorView : Panel
 {
     public const int MaxValue = 60; // the TDW default value range
     public const int Rows = MaxValue * 2 + 1;
@@ -41,6 +41,12 @@ public class TrackEditorView : Panel
     private const int StripBlockPool = 512; // changed from 256 for Aleph-0 demo
     private const int BoundaryLinePool = 512; // changed from 256 for Aleph-0 demo
     private const int AutomationMarkPool = 768; // ≤3 marks per generated automation event
+
+    // Slot ranges within _lineBatch: row lines, then step lines, then boundary lines.
+    private const int RowLineSlot = 0;
+    private const int StepLineSlot = RowLineSlot + Rows + 1;
+    private const int BoundaryLineSlot = StepLineSlot + StepLinePool;
+    private const int LineBatchTotal = BoundaryLineSlot + BoundaryLinePool;
 
     // ponytail: worst case (StepsPerBeat=1 at 4px/step min zoom) would need ~750 like
     // StepLinePool, but MinBeatLabelSpacingPx bounds real usage to ~110 labels for a
@@ -77,12 +83,10 @@ public class TrackEditorView : Panel
         new(0.48f, 0.44f, 0.78f, 1f) // violet
     ];
 
-    private readonly List<Panel> _boundaryLines = [];
     internal readonly List<Panel> AutomationMarks = [];
     private readonly List<NoteBlock> _noteBlocks = [];
-    private readonly List<Panel> _rowLines = [];
+    private readonly LineBatch _lineBatch = new();
     private readonly EditorState _state;
-    private readonly List<Panel> _stepLines = [];
     private readonly List<StripBlock> _stripBlocks = [];
     internal readonly List<Label> BeatLabels = [];
     private readonly List<Label> _gutterLabels = [];
@@ -108,16 +112,13 @@ public class TrackEditorView : Panel
         Focusable = true;
         Background = new ColoredPlane { Color = BackgroundColor };
 
-        // Child order is render order (and hit-test tie-break): grid furniture first,
-        // then notes, then the strip and gutter so scrolled content slides under them.
+        // Row/step/boundary lines render as one instanced draw call (see LineBatch)
+        // queued in DrawSelf, below Children in the same depth layer — same spot in
+        // paint order "grid furniture first" put them in before.
+        _lineBatch.Count = LineBatchTotal;
+
         _zeroRow = NewGhost(context, ZeroRowColor);
         AddChild(_zeroRow);
-        for (var i = 0; i < Rows + 1; i++) _rowLines.Add(NewLine(context, RowLineColor));
-        for (var i = 0; i < StepLinePool; i++) _stepLines.Add(NewLine(context, StepLineColor));
-        for (var i = 0; i < BoundaryLinePool; i++) _boundaryLines.Add(NewLine(context, BoundaryColor));
-        foreach (var line in _rowLines) AddChild(line);
-        foreach (var line in _stepLines) AddChild(line);
-        foreach (var line in _boundaryLines) AddChild(line);
 
         // Automation paths render under the note blocks and never take input.
         for (var i = 0; i < AutomationMarkPool; i++)
@@ -193,8 +194,8 @@ public class TrackEditorView : Panel
     /// <summary>While true (Ctrl held), the wheel zooms horizontally instead of panning.</summary>
     public bool WheelZooms { get; set; }
 
-    /// <summary>Fired when a note is placed or moved, with its sound and value — the preview seam.</summary>
-    public Action<string, double>? OnPreviewNote { get; set; }
+    /// <summary>Fired when a note is placed or moved, with its instrument and value — the preview seam.</summary>
+    public Action<Instrument, double>? OnPreviewNote { get; set; }
 
     /// <summary>
     ///     Playback position on the arrangement timeline, in quarter notes at the root BPM
@@ -245,15 +246,15 @@ public class TrackEditorView : Panel
         _zeroRow.Width = gridWidth;
         _zeroRow.Height = _rowHeight;
 
-        for (var r = 0; r < _rowLines.Count; r++)
+        var absX = Computed.AbsoluteX;
+        var absY = Computed.AbsoluteY;
+
+        for (var r = 0; r < Rows + 1; r++)
         {
             var y = GridTop + r * _rowHeight - _scrollY;
-            var line = _rowLines[r];
-            line.Width = y >= 0 && y <= height ? gridWidth : 0;
-            line.Height = 1;
-            line.X = GutterWidth;
-            line.Y = y;
-            ((ColoredPlane)line.Background!).Color = (MaxValue - r) % 12 == 0 ? OctaveLineColor : RowLineColor;
+            var visibleWidth = y >= 0 && y <= height ? gridWidth : 0;
+            var color = (MaxValue - r) % 12 == 0 ? OctaveLineColor : RowLineColor;
+            _lineBatch.Set(RowLineSlot + r, absX + GutterWidth, absY + y, visibleWidth, 1, color);
         }
 
         var stepLine = 0;
@@ -300,27 +301,21 @@ public class TrackEditorView : Panel
                             : StripSegmentB;
                 }
 
-                if (boundary < _boundaryLines.Count && segStart >= visibleStart)
+                if (boundary < BoundaryLinePool && segStart >= visibleStart)
                 {
-                    var line = _boundaryLines[boundary++];
-                    line.X = GutterWidth + segStart - _scrollX;
-                    line.Y = GridTop;
-                    line.Width = 1;
-                    line.Height = height - GridTop;
+                    var x = GutterWidth + segStart - _scrollX;
+                    _lineBatch.Set(BoundaryLineSlot + boundary++, absX + x, absY + GridTop, 1, height - GridTop,
+                        BoundaryColor);
                 }
 
                 var firstLocal = Math.Max(0, (int)Math.Floor((visibleStart - segStart) / pps));
                 var lastLocal = Math.Min(segment.StepCount - 1, (int)Math.Ceiling((visibleEnd - segStart) / pps));
-                for (var s = firstLocal; s <= lastLocal && stepLine < _stepLines.Count; s++)
+                for (var s = firstLocal; s <= lastLocal && stepLine < StepLinePool; s++)
                 {
                     if (s == 0) continue; // the boundary line already marks the segment start
-                    var line = _stepLines[stepLine++];
-                    line.X = GutterWidth + segStart + s * pps - _scrollX;
-                    line.Y = GridTop;
-                    line.Width = 1;
-                    line.Height = height - GridTop;
-                    ((ColoredPlane)line.Background!).Color =
-                        s % segment.StepsPerBeat == 0 ? BeatLineColor : StepLineColor;
+                    var x = GutterWidth + segStart + s * pps - _scrollX;
+                    var color = s % segment.StepsPerBeat == 0 ? BeatLineColor : StepLineColor;
+                    _lineBatch.Set(StepLineSlot + stepLine++, absX + x, absY + GridTop, 1, height - GridTop, color);
                 }
 
                 // The beat ruler labels every beat boundary the step-line loop above just
@@ -359,9 +354,11 @@ public class TrackEditorView : Panel
             if (_noteBlocks[i] != _dragging)
                 Hide(_noteBlocks[i]);
         for (var i = autoMark; i < AutomationMarks.Count; i++) Hide(AutomationMarks[i]);
-        for (var i = stepLine; i < _stepLines.Count; i++) Hide(_stepLines[i]);
+        for (var i = stepLine; i < StepLinePool; i++)
+            _lineBatch.Set(StepLineSlot + i, 0, 0, 0, 0, StepLineColor);
         for (var i = stripBlock; i < _stripBlocks.Count; i++) Hide(_stripBlocks[i]);
-        for (var i = boundary; i < _boundaryLines.Count; i++) Hide(_boundaryLines[i]);
+        for (var i = boundary; i < BoundaryLinePool; i++)
+            _lineBatch.Set(BoundaryLineSlot + i, 0, 0, 0, 0, BoundaryColor);
         // Labels don't gate their own draw on Width/Height, so releasing a slot means
         // parking it outside the view's clip instead of zeroing size like Hide() does.
         for (var i = beatLabel; i < BeatLabels.Count; i++) BeatLabels[i].X = -1000f;
@@ -485,11 +482,11 @@ public class TrackEditorView : Panel
         var stepMinutes = segment.StepMinutes(track.Timing.BPM);
         if (stepMinutes <= 0) return;
 
-        var color = SoundColor(note.Sound);
+        var color = InstrumentColor(note.Instrument);
         var prevX = GutterWidth + segStartPx + (note.Step + 0.5f) * PixelsPerStep - _scrollX;
         var prevY = ValueTop(Math.Clamp(note.Value, -MaxValue, MaxValue)) + _rowHeight / 2;
 
-        foreach (var (minutes, generated) in note.Automation!.Expand(note, 0, stepMinutes))
+        foreach (var (minutes, generated) in note.Automation!.ExpandNotes(note, 0, stepMinutes))
         {
             var x = GutterWidth + segStartPx +
                     (note.Step + 0.5f + (float)(minutes / stepMinutes)) * PixelsPerStep - _scrollX;
@@ -526,7 +523,7 @@ public class TrackEditorView : Panel
         block.Width = Math.Max(3, PixelsPerStep - 1);
         block.Height = Math.Max(3, _rowHeight - 1);
         ((ColoredPlane)block.Background!).Color =
-            note == _state.SelectedNote ? SelectedNoteColor : SoundColor(note.Sound);
+            note == _state.SelectedNote ? SelectedNoteColor : InstrumentColor(note.Instrument);
     }
 
     private float ValueTop(double value)
@@ -642,6 +639,19 @@ public class TrackEditorView : Panel
 
         foreach (var child in Children) child.ApplyClip(own);
         if (Background != null) Background.ClipRect = clip;
+        _lineBatch.ClipRect = own;
+    }
+
+    protected override void DrawSelf(UIContext ctx)
+    {
+        base.DrawSelf(ctx);
+        ctx.QueueRender(_lineBatch, Index);
+    }
+
+    public override void StopRendering()
+    {
+        base.StopRendering();
+        Context.DequeueRender(_lineBatch, Index);
     }
 
     public override void Update(UIContext uiContext)
@@ -667,13 +677,13 @@ public class TrackEditorView : Panel
         if (localY < GridTop || localX < GutterWidth) return false;
 
         var (segment, step) = StepAt(x, false);
-        if (_state.ActiveSound is not { } sound || segment == null)
+        if (_state.ActiveInstrument is not { } instrument || segment == null)
         {
             _state.SelectNote(null);
             return false;
         }
 
-        if (Paint(segment, step, sound, ValueAt(y)) is not { } painted) return false;
+        if (Paint(segment, step, instrument, ValueAt(y)) is not { } painted) return false;
         _placing = painted;
         return true; // capture: the sweep keeps painting
     }
@@ -687,18 +697,18 @@ public class TrackEditorView : Panel
         var value = ValueAt(y);
         if (segment == lastSegment && step == lastNote.Step && value == lastNote.Value) return; // same cell
 
-        if (Paint(segment, step, lastNote.Sound, value) is { } painted) _placing = painted;
+        if (Paint(segment, step, lastNote.Instrument, value) is { } painted) _placing = painted;
     }
 
     /// <summary>Places one painted note, unless the cell already holds an identical one.</summary>
-    private (TrackSegment segment, Note note)? Paint(TrackSegment segment, int step, string sound, double value)
+    private (TrackSegment segment, Note note)? Paint(TrackSegment segment, int step, Instrument instrument, double value)
     {
         if (segment.Notes.Any(n => n.Step == step && n.Value == value)) return null;
 
-        var note = _state.AddNote(segment, step, sound, value);
+        var note = _state.AddNote(segment, step, instrument, value);
         _state.SelectSegment(segment);
         _state.SelectNote(note);
-        OnPreviewNote?.Invoke(sound, note.Value);
+        OnPreviewNote?.Invoke(instrument, note.Value);
         InvalidateLayout();
         return (segment, note);
     }
@@ -751,21 +761,11 @@ public class TrackEditorView : Panel
         return offset;
     }
 
-    private static Vector4 SoundColor(string sound)
+    private static Vector4 InstrumentColor(Instrument instrument)
     {
         var hash = 0;
-        foreach (var c in sound) hash = hash * 31 + c;
+        foreach (var c in instrument.Name) hash = hash * 31 + c;
         return SoundPalette[(hash & 0x7fffffff) % SoundPalette.Length];
-    }
-
-    private static Panel NewLine(UIContext context, Vector4 color)
-    {
-        return new Panel(context)
-        {
-            Width = 0,
-            Height = 0,
-            Background = new ColoredPlane { Color = color }
-        };
     }
 
     private static Panel NewGhost(UIContext context, Vector4 color)
@@ -858,7 +858,7 @@ public class TrackEditorView : Panel
             Segment = segment;
             _view.InvalidateLayout();
             // Re-preview only on an actual cell change, replacing the old preview.
-            if (moved) _view.OnPreviewNote?.Invoke(Note.Sound, Note.Value);
+            if (moved) _view.OnPreviewNote?.Invoke(Note.Instrument, Note.Value);
         }
     }
 }

@@ -151,7 +151,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
 
     public override void ApplyClip(Vector4i? clip)
     {
-        if (Background != null) Background.ClipRect = clip;
+        Background?.ClipRect = clip;
         foreach (var child in Children) child.ApplyClip(clip);
     }
 

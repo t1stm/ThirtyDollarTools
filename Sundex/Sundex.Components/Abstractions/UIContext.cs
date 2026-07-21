@@ -3,10 +3,12 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Components.Labels;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Cameras;
+using Sundex.Engine.Renderer.Debug;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Text;
 using Sundex.Engine.Text.Fonts;
@@ -387,26 +389,51 @@ public class UIContext : IGamePreloadable
         foreach (var element in _updatingElements) element.Update(this);
 
         var scissorOn = false;
+        var layerIndex = 0;
         foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
-        foreach (var renderable in queue)
         {
-            if ((renderable as IClippable)?.ClipRect is { } clip)
+            // Position in LayeredRenderQueue is the UIElement.Index depth layer — an
+            // outsized count here pinpoints which nesting depth a draw-call spike lives
+            // at (e.g. a still-unbatched fixed pool queued at that layer).
+            if (queue.Count > 0)
+                RenderMarker.Debug("UI render layer ", $"{layerIndex} ({queue.Count} renderables)",
+                    MarkerType.Hidden);
+            layerIndex++;
+            
+            if (queue.Count == 0) continue;
+            var count = 0;
+            
+            foreach (var renderable in queue)
             {
-                if (!scissorOn) GL.Enable(EnableCap.ScissorTest);
-                scissorOn = true;
-                // GL.Scissor takes physical framebuffer pixels; clip/Camera are logical UI units, so
-                // scale by PixelScale. Origin is bottom-left; UI rects are top-left based.
-                GL.Scissor((int)(clip.X * PixelScale.X), (int)((Camera.Height - clip.W) * PixelScale.Y),
-                    Math.Max(0, (int)((clip.Z - clip.X) * PixelScale.X)),
-                    Math.Max(0, (int)((clip.W - clip.Y) * PixelScale.Y)));
-            }
-            else if (scissorOn)
-            {
-                GL.Disable(EnableCap.ScissorTest);
-                scissorOn = false;
-            }
+                // Pooled elements are "hidden" by zeroing scale rather than dequeuing (see
+                // Panel-pool patterns like TrackEditorView's NoteBlockPool) — cull those and
+                // anything fully clipped away before it costs a bind/upload/draw.
+                if (renderable is Renderable { Scale: var scale } && (scale.X <= 0 || scale.Y <= 0))
+                    continue;
 
-            renderable.Render(Camera);
+                if ((renderable as IClippable)?.ClipRect is { } clip)
+                {
+                    if (clip.Z <= clip.X || clip.W <= clip.Y) continue;
+
+                    if (!scissorOn) GL.Enable(EnableCap.ScissorTest);
+                    scissorOn = true;
+                    // GL.Scissor takes physical framebuffer pixels; clip/Camera are logical UI units, so
+                    // scale by PixelScale. Origin is bottom-left; UI rects are top-left based.
+                    GL.Scissor((int)(clip.X * PixelScale.X), (int)((Camera.Height - clip.W) * PixelScale.Y),
+                        Math.Max(0, (int)((clip.Z - clip.X) * PixelScale.X)),
+                        Math.Max(0, (int)((clip.W - clip.Y) * PixelScale.Y)));
+                }
+                else if (scissorOn)
+                {
+                    GL.Disable(EnableCap.ScissorTest);
+                    scissorOn = false;
+                }
+
+                renderable.Render(Camera);
+                count++;
+            }
+            RenderMarker.Debug("UI layer ", $"{layerIndex - 1} rendered {count} renderables",
+                MarkerType.Hidden);
         }
 
         if (scissorOn) GL.Disable(EnableCap.ScissorTest);

@@ -40,6 +40,9 @@ public class Label : UIElement
         set => SetTextContents(value);
     }
 
+    // Defaults to TextSlice's own hardcoded FontSize (16): SetTextContents resolves this
+    // into TextSlice.FontSize on every call, so a label that never sets this explicitly
+    // must still default to a real size — otherwise its first text update zeroes it out.
     [NamedSetting("font-size")]
     public LiteralOrComputable FontSizePx
     {
@@ -55,7 +58,7 @@ public class Label : UIElement
             Width = scale.X;
             Height = scale.Y;
         }
-    }
+    } = 16;
 
     [NamedSetting("font-color")]
     public Vector4 Color
@@ -78,7 +81,7 @@ public class Label : UIElement
 
     public override void ApplyClip(Vector4i? clip)
     {
-        if (TextBuffer != null) TextBuffer.ClipRect = clip;
+        TextBuffer?.ClipRect = clip;
     }
 
     public void SetTextContents(ReadOnlySpan<char> text)
@@ -91,13 +94,21 @@ public class Label : UIElement
 
         if (text.Length > TextSlice.Length)
         {
+            // The replacement slice's constructor already ran UpdateCharacters once, at the
+            // default (0,0,0) position — before Position/FontSize/Color below were applied.
+            // Without an explicit final UpdateCharacters call, that stale, wrongly-positioned
+            // (and wrongly-sized/colored) render is all that's ever written for this text,
+            // since nothing else is guaranteed to touch Position again this frame.
+            var position = TextSlice.Position;
             TextSlice.Dispose();
             var newSlice = TextBuffer.GetTextSlice(text);
             newSlice.UpdateManually = true;
+            newSlice.Position = position;
             newSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
             newSlice.Color = Color;
             newSlice.UpdateManually = false;
-            TextSlice = newSlice; // setter reads Scale — FontSize is already correct at this point
+            newSlice.UpdateCharacters();
+            TextSlice = newSlice; // setter reads Scale — already correct from the update above
         }
         else
         {

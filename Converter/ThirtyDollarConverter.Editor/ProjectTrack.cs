@@ -116,10 +116,11 @@ public class ProjectTrack(TimingInfo timing, int id)
     }
 
     /// <summary>
-    ///     Every note of this track with its absolute time. Segments inherit the track's
-    ///     BPM; their own time signature and resolution set the local step length.
+    ///     Every sound event of this track (notes and their generated automation, flattened
+    ///     to instrument sounds) with its absolute time. Segments inherit the track's BPM;
+    ///     their own time signature and resolution set the local step length.
     /// </summary>
-    internal IEnumerable<(double Minutes, Note Note)> TimedNotes(double startMinutes = 0)
+    internal IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0)
     {
         var offset = startMinutes;
         foreach (var segment in _segments)
@@ -128,7 +129,8 @@ public class ProjectTrack(TimingInfo timing, int id)
             foreach (var note in segment.Notes)
             {
                 var minutes = offset + note.Step * step_minutes;
-                yield return (minutes, note);
+                foreach (var ev in note.ToEvents())
+                    yield return (minutes, ev);
 
                 if (note.Automation is not null)
                     foreach (var generated in note.Automation.Expand(note, minutes, step_minutes))
@@ -136,7 +138,7 @@ public class ProjectTrack(TimingInfo timing, int id)
 
                 foreach (var automation in _trackAutomations)
                 {
-                    if (automation.Sounds is { } sounds && !sounds.Contains(note.Sound)) continue;
+                    if (automation.Sounds is { } sounds && !note.Instrument.Sounds.Any(sounds.Contains)) continue;
                     foreach (var generated in automation.Keyframes.Expand(note, minutes, step_minutes))
                         yield return generated;
                 }

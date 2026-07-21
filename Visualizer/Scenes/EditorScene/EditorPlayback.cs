@@ -3,10 +3,12 @@ using Shared;
 using Shared.Audio;
 using Shared.Objects;
 using ThirtyDollarConverter;
+using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 
 namespace EditorScene;
 
@@ -38,7 +40,7 @@ public class EditorPlayback
 
     private readonly SampleProcessor _previewProcessor;
     private readonly uint _previewSampleRate;
-    private AudibleBuffer? _preview;
+    private readonly List<AudibleBuffer> _preview = [];
 
     private bool _modelDirty;
     private bool _remixPending;
@@ -145,20 +147,66 @@ public class EditorPlayback
     }
 
     /// <summary>
-    ///     Plays one pitched sound (a note being placed or moved), replacing any
-    ///     still-playing preview. Suppressed during playback unless
-    ///     <see cref="PreviewDuringPlayback" /> is set.
+    ///     Plays every sound of an instrument (a note being placed or moved), each combined
+    ///     with its own <see cref="SoundAdjustment" /> if the instrument has one, replacing
+    ///     any still-playing preview. Suppressed during playback unless
+    ///     <see cref="PreviewDuringPlayback" /> is set. Empty instrument -> no preview.
     /// </summary>
-    public void PreviewNote(string sound, double value)
+    public void PreviewNote(Instrument instrument, double value)
     {
         if (IsPlaying && !PreviewDuringPlayback) return;
 
         StopPreview();
-        var audio = _previewProcessor.ProcessEvent(new NormalEvent { SoundEvent = sound, Value = value });
+        foreach (var sound in instrument.Sounds)
+        {
+            var adjustment = instrument.Adjustments.GetValueOrDefault(sound);
+            PlayOne(sound, adjustment?.CombineValue(value) ?? value,
+                adjustment?.CombineVolume(null), adjustment?.CombinePan(0) ?? 0);
+        }
+    }
+
+    /// <summary>Plays one sound with its adjustment applied on top of no base note (value 0,
+    /// default volume/pan) — the instrument editor's per-sound preview, fired as the user
+    /// scrolls a sound's value/volume/pan or hits its row's preview button. Replaces any
+    /// still-playing preview, same suppression as <see cref="PreviewNote" />.</summary>
+    public void PreviewSound(string sound, SoundAdjustment adjustment)
+    {
+        if (IsPlaying && !PreviewDuringPlayback) return;
+
+        StopPreview();
+        PlayOne(sound, adjustment.CombineValue(0), adjustment.CombineVolume(null), adjustment.CombinePan(0));
+    }
+
+    /// <summary>Plays every given sound layered together, each with its own adjustment on
+    /// top of no base note — the instrument editor's "Preview" button, previewing the whole
+    /// instrument as it would sound on a note at value 0.</summary>
+    public void PreviewInstrument(IEnumerable<(string Sound, SoundAdjustment Adjustment)> sounds)
+    {
+        if (IsPlaying && !PreviewDuringPlayback) return;
+
+        StopPreview();
+        foreach (var (sound, adjustment) in sounds)
+            PlayOne(sound, adjustment.CombineValue(0), adjustment.CombineVolume(null), adjustment.CombinePan(0));
+    }
+
+    private void PlayOne(string sound, double value, double? volume, float pan)
+    {
+        BaseEvent ev = pan == 0
+            ? new NormalEvent { SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume }
+            : new ExtendedEvent { SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume, Pan = pan };
+
+        var audio = _previewProcessor.ProcessEvent(ev);
         if (audio.GetLength() == 0) return; // unknown sound or samples still downloading
 
-        _preview = _workflow.SequencePlayer.AudioContext.GetBufferObject(audio, (int)_previewSampleRate);
-        _preview.Play();
+        var buffer = _workflow.SequencePlayer.AudioContext.GetBufferObject(audio, (int)_previewSampleRate);
+        // SampleProcessor only resamples for pitch — volume/pan are normally baked into PCM
+        // during PCMEncoder's mixdown, which a one-shot preview buffer never goes through.
+        // AudibleBuffer's own volume/pan (latched by Play(), see BassBuffer/OpenALBuffer) are
+        // on 0-1/-1-1 scales, unlike the event's 0-100/-100-100 — convert both.
+        buffer.SetVolume((float)(volume ?? 100) / 100f);
+        buffer.SetPan(pan / 100f);
+        buffer.Play();
+        _preview.Add(buffer);
     }
 
     /// <summary>
@@ -185,10 +233,13 @@ public class EditorPlayback
 
     public void StopPreview()
     {
-        if (_preview == null) return;
-        _preview.Stop();
-        _preview.Delete();
-        _preview = null;
+        foreach (var buffer in _preview)
+        {
+            buffer.Stop();
+            buffer.Delete();
+        }
+
+        _preview.Clear();
     }
 
     /// <summary>Call once per frame on the update thread.</summary>

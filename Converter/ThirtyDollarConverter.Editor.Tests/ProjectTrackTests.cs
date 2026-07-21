@@ -26,7 +26,7 @@ public class ProjectTrackTests
     public void SingleNoteAtStepZero_FollowsSpeedDirectly()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var events = track.ToSequence().Events;
 
@@ -37,7 +37,7 @@ public class ProjectTrackTests
     public void GapBeforeNote_EmitsStopWithGapLength()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 3, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 3, Instrument = Instrument.Single("boom") });
 
         var events = track.ToSequence().Events;
 
@@ -49,8 +49,8 @@ public class ProjectTrackTests
     public void NotesOnSameStep_AreCombined()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "clap" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("clap") });
 
         var events = track.ToSequence().Events;
 
@@ -61,8 +61,8 @@ public class ProjectTrackTests
     public void NotesAddedOutOfOrder_AreSortedByStep()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 2, Sound = "late" });
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "early" });
+        track.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("late") });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("early") });
 
         var events = track.ToSequence().Events;
 
@@ -74,9 +74,9 @@ public class ProjectTrackTests
     public void MovingANote_ChangesItsPlaceInTheSequence()
     {
         var track = MakeTrack();
-        var note = new Note { Step = 0, Sound = "boom" };
+        var note = new Note { Step = 0, Instrument = Instrument.Single("boom") };
         track.Segments[0].Notes.Add(note);
-        track.Segments[0].Notes.Add(new Note { Step = 1, Sound = "clap" });
+        track.Segments[0].Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("clap") });
 
         note.Step = 5;
         var events = track.ToSequence().Events;
@@ -88,7 +88,7 @@ public class ProjectTrackTests
     public void NoteValues_CarryIntoTheSequence()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom", Value = 5, Volume = 60 });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5, Volume = 60 });
 
         var ev = track.ToSequence().Events[1];
 
@@ -101,7 +101,7 @@ public class ProjectTrackTests
     public void PannedNote_BecomesAnExtendedEvent()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom", Pan = -50 });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Pan = -50 });
 
         var ev = track.ToSequence().Events[1];
 
@@ -114,9 +114,9 @@ public class ProjectTrackTests
     {
         // 120 BPM, 4 steps per beat -> sequence runs at 480 "BPM", one step = 0.125 s.
         var track = MakeTrack(120, 4);
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "clap" });
-        track.Segments[0].Notes.Add(new Note { Step = 6, Sound = "snare" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("clap") });
+        track.Segments[0].Notes.Add(new Note { Step = 6, Instrument = Instrument.Single("snare") });
 
         const uint sample_rate = 48000;
         var calculator = new PlacementCalculator(new EncoderSettings { SampleRate = sample_rate });
@@ -136,8 +136,8 @@ public class ProjectTrackTests
     public void TrackAutomation_WithSoundFilter_AppliesOnlyToMatchingNotes()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        track.Segments[0].Notes.Add(new Note { Step = 4, Sound = "clap" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 4, Instrument = Instrument.Single("clap") });
 
         var manager = new AudioKeyframeManager();
         manager.Keyframes.Add(new AudioKeyframe { Gap = 2 });
@@ -153,8 +153,8 @@ public class ProjectTrackTests
     public void TrackAutomation_WithNoSoundFilter_AppliesToEveryNote()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        track.Segments[0].Notes.Add(new Note { Step = 5, Sound = "clap" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 5, Instrument = Instrument.Single("clap") });
 
         var manager = new AudioKeyframeManager();
         manager.Keyframes.Add(new AudioKeyframe { Gap = 2 });
@@ -171,7 +171,7 @@ public class ProjectTrackTests
     public void NoteWithOwnAutomation_AlsoGetsMatchingTrackAutomation()
     {
         var track = MakeTrack();
-        var note = new Note { Step = 0, Sound = "boom" };
+        var note = new Note { Step = 0, Instrument = Instrument.Single("boom") };
         note.Automation = new AudioKeyframeManager();
         note.Automation.Keyframes.Add(new AudioKeyframe { Gap = 2 }); // note-level echo at step 2
         track.Segments[0].Notes.Add(note);

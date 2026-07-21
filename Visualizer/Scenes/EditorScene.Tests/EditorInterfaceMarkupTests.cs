@@ -33,8 +33,7 @@ public class EditorInterfaceMarkupTests
 
         string[] wired =
         [
-            "project-name", "project-bpm", "track-column", "grid-area", "inspector-column", "bottom-bar",
-            "back-button", "play-button", "stop-button", "transport-progress", "transport-time",
+            "project-name", "project-bpm", "track-column", "grid-area", "inspector-column",
             "load-button", "save-button", "export-button"
         ];
         foreach (var id in wired)

@@ -29,6 +29,9 @@ public class EditorState
     /// <summary>Fired when the selected segment in the note editor changes.</summary>
     public Action<TrackSegment?>? OnSegmentSelectionChanged;
 
+    /// <summary>Fired after an instrument is added/renamed/edited/removed.</summary>
+    public Action? OnInstrumentsChanged;
+
     private readonly HashSet<int> _muted = [];
     private readonly HashSet<int> _soloed = [];
 
@@ -42,8 +45,8 @@ public class EditorState
     public TrackSegment? SelectedSegment { get; private set; }
     public Note? SelectedNote { get; private set; }
 
-    /// <summary>The sound a click in the note editor places. Session-only, never saved.</summary>
-    public string? ActiveSound { get; set; }
+    /// <summary>The instrument a click in the note editor places. Session-only, never saved.</summary>
+    public Instrument? ActiveInstrument { get; set; }
 
     public bool Dirty { get; private set; }
     public bool IsCurrentlyPlayingAudio { get; set; }
@@ -74,7 +77,8 @@ public class EditorState
         OpenedTrack = track;
         SelectSegment(track.Segments[0]);
         SelectNote(null);
-        ActiveSound ??= track.Segments.SelectMany(s => s.Notes).FirstOrDefault()?.Sound;
+        ActiveInstrument ??= track.Segments.SelectMany(s => s.Notes).FirstOrDefault()?.Instrument
+            ?? Project.Instruments.FirstOrDefault();
         OnOpenedTrackChanged?.Invoke(track);
     }
 
@@ -101,12 +105,54 @@ public class EditorState
         OnNoteSelectionChanged?.Invoke(note);
     }
 
-    public Note AddNote(TrackSegment segment, int step, string sound, double value)
+    public Note AddNote(TrackSegment segment, int step, Instrument instrument, double value)
     {
-        var note = new Note { Step = step, Sound = sound, Value = value };
+        var note = new Note { Step = step, Instrument = instrument, Value = value };
         segment.Notes.Add(note);
         Touch();
         return note;
+    }
+
+    public Instrument AddInstrument(string name)
+    {
+        var instrument = Project.NewInstrument(name);
+        Touch();
+        OnInstrumentsChanged?.Invoke();
+        return instrument;
+    }
+
+    public void RenameInstrument(Instrument instrument, string name)
+    {
+        if (instrument.Name == name) return;
+        instrument.Name = name;
+        Touch();
+        OnInstrumentsChanged?.Invoke();
+    }
+
+    public void SetInstrumentSounds(Instrument instrument, IEnumerable<string> sounds,
+        IReadOnlyDictionary<string, SoundAdjustment>? adjustments = null)
+    {
+        instrument.Sounds.Clear();
+        instrument.Sounds.AddRange(sounds);
+
+        instrument.Adjustments.Clear();
+        if (adjustments != null)
+            foreach (var (sound, adjustment) in adjustments)
+                if (!adjustment.IsNoOp)
+                    instrument.Adjustments[sound] = adjustment;
+
+        Touch();
+        OnInstrumentsChanged?.Invoke();
+    }
+
+    /// <summary>Refuses while any note still references the instrument (library invariant).</summary>
+    public bool RemoveInstrument(Instrument instrument)
+    {
+        if (!Project.RemoveInstrument(instrument)) return false;
+        if (ActiveInstrument == instrument) ActiveInstrument = Project.Instruments.FirstOrDefault();
+        Touch();
+        OnInstrumentsChanged?.Invoke();
+        return true;
     }
 
     public void MoveNote(TrackSegment from, TrackSegment to, Note note, int step, double value)
@@ -288,11 +334,12 @@ public class EditorState
         ProjectPath = null;
         _muted.Clear();
         _soloed.Clear();
-        ActiveSound = null;
+        ActiveInstrument = null;
         CloseTrack();
         SelectTrack(null);
         SelectPlacement(null);
         OnProjectChanged?.Invoke();
+        OnInstrumentsChanged?.Invoke();
     }
 
     private void Touch()

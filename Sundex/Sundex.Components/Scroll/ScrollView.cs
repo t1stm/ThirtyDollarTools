@@ -14,6 +14,11 @@ namespace Sundex.Components.Scroll;
 /// </summary>
 public class ScrollView : Panel
 {
+    // Breathing room on both sides: between the rightmost content and the bar
+    // itself (on top of the bar's own width), mirrored on the left so content
+    // isn't flush against one edge and gapped from the other.
+    private const float ScrollBarGutter = 6f;
+
     private readonly ScrollBar _bar;
     private float[] _heightsCache = [];
     private Vector4i? _inheritedClip;
@@ -60,7 +65,7 @@ public class ScrollView : Panel
 
     protected override void DoLayout()
     {
-        var innerWidth = Math.Max(0, Computed.Width - 2 * Padding);
+        var innerWidth = Math.Max(0, Computed.Width - 2 * Padding - _bar.Width.Value - 2 * ScrollBarGutter);
         var innerHeight = Math.Max(0, Computed.Height - 2 * Padding);
 
         // Measure once, then stack with the scroll offset applied.
@@ -81,8 +86,13 @@ public class ScrollView : Panel
         var offset = -_scrollY;
         for (var i = 0; i < Children.Count; i++)
         {
-            Children[i].X = 0;
-            Children[i].Y = offset;
+            var child = Children[i];
+            child.X = ScrollBarGutter;
+            child.Y = offset;
+            // Percent-width rows fill this reserved (bar-inset) width instead of the
+            // full box, so they don't render underneath the bar. Fixed-width children
+            // (e.g. a centered dialog element) are left to their own declared width.
+            child.ParentAssignedWidth = child.Width.IsPercentage ? innerWidth : null;
             offset += heights[i] + Spacing;
         }
 

@@ -34,7 +34,7 @@ public class ChannelSequenceTests
     {
         var project = new ThirtyDollarProject();
         var track = OneBarQuarterGrid(project);
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "kick" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
         project.Place(track, 0, 0);
         project.Place(track, 0, 4);
 
@@ -47,9 +47,9 @@ public class ChannelSequenceTests
     {
         var project = new ThirtyDollarProject();
         var kick = OneBarQuarterGrid(project);
-        kick.Segments[0].Notes.Add(new Note { Step = 0, Sound = "kick" });
+        kick.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
         var snare = OneBarQuarterGrid(project);
-        snare.Segments[0].Notes.Add(new Note { Step = 0, Sound = "snare" });
+        snare.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("snare") });
 
         project.Place(kick, 0, 0);
         project.Place(snare, 1, 4); // second bar, other lane
@@ -69,7 +69,7 @@ public class ChannelSequenceTests
         // The editor playhead relies on this fixed mapping.
         var project = new ThirtyDollarProject();
         var track = OneBarQuarterGrid(project);
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "kick" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
         project.Place(track, 0, 4); // 4 quarters at 120 BPM = 2 s in
 
         Assert.Equal(2.2, AudibleSeconds(project.ToSequence()).Single(), 9);
@@ -81,7 +81,7 @@ public class ChannelSequenceTests
     {
         var project = new ThirtyDollarProject();
         var track = OneBarQuarterGrid(project);
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "kick" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
         project.Place(track, 0, 0);
 
         Assert.Empty(AudibleSeconds(project.ChannelSequence(3)));

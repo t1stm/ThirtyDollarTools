@@ -32,15 +32,25 @@ id project-bpm {
     font-color = "#565f89";
 }
 
-id load-button {
-    font-size = 14;
+// Subtle-filled menu-bar button (Load/Save/Export). state[] is safe here — real
+// buttons aren't PropagateAlpha-managed the way the old loose labels were.
+// pressed is overridden so it doesn't fall through to `component button`'s blue.
+class menu-button {
+    background = "#33344a";
+    border-radius = 6;
+    height = 24;
+
+    state[hovered] = {
+        background = "#3f4160";
+    }
+
+    state[pressed] = {
+        background = "#2b2c3f";
+    }
 }
 
-id save-button {
-    font-size = 14;
-}
-
-id export-button {
+// The label inside a menu-button: 14px, else `component label` makes it 16.
+class menu-label {
     font-size = 14;
 }
 
@@ -48,45 +58,6 @@ class header-divider {
     width = 1;
     height = 24;
     background = "#33344a";
-}
-
-// Transport bar: Back, then play/pause/stop + progress + time.
-id bottom-bar {
-    width = 100%;
-    height = 52;
-    direction = "horizontal";
-    vertical-align = "center";
-    padding = 6;
-    spacing = 14;
-    background = "#16161e";
-}
-
-id back-button {
-    width = 100;
-}
-
-id play-button {
-    width = 80;
-}
-
-id stop-button {
-    width = 80;
-}
-
-id transport-progress {
-    width = 220;
-    height = 8;
-    border-radius = 4;
-}
-
-id transport-time {
-    font-size = 14;
-    font-color = "#565f89";
-}
-
-component progress {
-    background = "#404060";
-    foreground = "#7aa2f7";
 }
 
 // Track column and grid area heights/widths are set from

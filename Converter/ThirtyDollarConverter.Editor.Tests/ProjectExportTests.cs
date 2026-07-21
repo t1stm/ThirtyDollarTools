@@ -23,9 +23,9 @@ public class ProjectExportTests
         var drums = project.NewTrack();
         var melody = project.NewTrack();
 
-        drums.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        drums.Segments[0].Notes.Add(new Note { Step = 2, Sound = "clap" });
-        melody.Segments[0].Notes.Add(new Note { Step = 1, Sound = "noteblock_harp" });
+        drums.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        drums.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("clap") });
+        melody.Segments[0].Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("noteblock_harp") });
         project.Place(drums, 0, 0);
         project.Place(melody, 1, 0);
 
@@ -42,14 +42,91 @@ public class ProjectExportTests
         var a = project.NewTrack();
         var b = project.NewTrack();
 
-        a.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        b.Segments[0].Notes.Add(new Note { Step = 0, Sound = "clap" });
+        a.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        b.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("clap") });
         project.Place(a, 0, 0);
         project.Place(b, 1, 0);
 
         var events = project.ToSequence().Events;
 
         Assert.Equal(["!speed", "boom", "!combine", "clap"], events.Select(e => e.SoundEvent));
+    }
+
+    [Fact]
+    public void NoteOnATwoSoundInstrument_LayersBothSounds()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        var layer = project.NewInstrument("Layer");
+        layer.Sounds.Add("boom");
+        layer.Sounds.Add("clap");
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layer });
+        project.Place(track, 0, 0);
+
+        var events = project.ToSequence().Events;
+
+        Assert.Equal(["!speed", "boom", "!combine", "clap"], events.Select(e => e.SoundEvent));
+    }
+
+    [Fact]
+    public void TwoNotesOfDifferentInstruments_OnTheSameStep_CombineAcrossAllTheirSounds()
+    {
+        var project = new ThirtyDollarProject();
+        var a = project.NewTrack();
+        var b = project.NewTrack();
+
+        var layerA = project.NewInstrument("A");
+        layerA.Sounds.Add("boom");
+        layerA.Sounds.Add("kick");
+        var layerB = project.NewInstrument("B");
+        layerB.Sounds.Add("clap");
+        layerB.Sounds.Add("snare");
+
+        a.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layerA });
+        b.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layerB });
+        project.Place(a, 0, 0);
+        project.Place(b, 1, 0);
+
+        var events = project.ToSequence().Events;
+
+        Assert.Equal(["!speed", "boom", "!combine", "kick", "!combine", "clap", "!combine", "snare"],
+            events.Select(e => e.SoundEvent));
+    }
+
+    [Fact]
+    public void AutomationOnAnInstrumentNote_GeneratedEventsCarryEveryInstrumentSound()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        var layer = project.NewInstrument("Layer");
+        layer.Sounds.Add("boom");
+        layer.Sounds.Add("clap");
+
+        var echo = new AudioKeyframeManager();
+        echo.Keyframes.Add(new AudioKeyframe { Gap = 2 });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layer, Automation = echo });
+        project.Place(track, 0, 0);
+
+        var events = project.ToSequence().Events;
+
+        Assert.Equal(
+            ["!speed", "boom", "!combine", "clap", "!stop", "boom", "!combine", "clap"],
+            events.Select(e => e.SoundEvent));
+    }
+
+    [Fact]
+    public void EmptyInstrument_YieldsNoEvents()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        var empty = project.NewInstrument("Empty");
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = empty });
+        project.Place(track, 0, 0);
+
+        var events = project.ToSequence().Events;
+
+        var ev = Assert.Single(events);
+        Assert.Equal("!speed", ev.SoundEvent);
     }
 
     [Fact]
@@ -62,8 +139,8 @@ public class ProjectExportTests
         fine.Segments[0].StepsPerBeat = 4;
 
         // Both notes sit half a beat in: coarse step 1 of 2, fine step 2 of 4.
-        coarse.Segments[0].Notes.Add(new Note { Step = 1, Sound = "boom" });
-        fine.Segments[0].Notes.Add(new Note { Step = 2, Sound = "clap" });
+        coarse.Segments[0].Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("boom") });
+        fine.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("clap") });
         project.Place(coarse, 0, 0);
         project.Place(fine, 1, 0);
 
@@ -87,9 +164,9 @@ public class ProjectExportTests
         a.Segments[0].StepsPerBeat = 1;
         b.Segments[0].StepsPerBeat = 1;
 
-        a.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        a.Segments[0].Notes.Add(new Note { Step = 1, Sound = "kick" }); // 0.5 s in
-        b.Segments[0].Notes.Add(new Note { Step = 1, Sound = "snare" }); // 2/3 s in
+        a.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        a.Segments[0].Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("kick") }); // 0.5 s in
+        b.Segments[0].Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("snare") }); // 2/3 s in
         project.Place(a, 0, 0);
         project.Place(b, 1, 0);
 
@@ -111,9 +188,9 @@ public class ProjectExportTests
         a.Timing = new TimingInfo { BPM = 120 };
         b.Timing = new TimingInfo { BPM = 121 };
 
-        a.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        a.Segments[0].Notes.Add(new Note { Step = 4, Sound = "kick" }); // beat 1 at 120 BPM, 0.5 s
-        b.Segments[0].Notes.Add(new Note { Step = 4, Sound = "snare" }); // beat 1 at 121 BPM, ~0.4959 s
+        a.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        a.Segments[0].Notes.Add(new Note { Step = 4, Instrument = Instrument.Single("kick") }); // beat 1 at 120 BPM, 0.5 s
+        b.Segments[0].Notes.Add(new Note { Step = 4, Instrument = Instrument.Single("snare") }); // beat 1 at 121 BPM, ~0.4959 s
         project.Place(a, 0, 0);
         project.Place(b, 1, 0);
 
@@ -158,8 +235,8 @@ public class ProjectExportTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         track.Timing = new TimingInfo { BPM = 9_990_400 };
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
-        track.Segments[0].Notes.Add(new Note { Step = 4, Sound = "clap" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 4, Instrument = Instrument.Single("clap") });
         project.Place(track, 0, 0);
 
         var events = project.ToSequence().Events;
@@ -174,7 +251,7 @@ public class ProjectExportTests
     {
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
         project.Place(track, 0, 0);
 
         Assert.Contains("boom", project.ToSequence().UsedSounds);

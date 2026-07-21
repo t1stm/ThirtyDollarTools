@@ -15,7 +15,6 @@ using Sundex.Components.Scroll;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
-using Sundex.Markup.Attributes;
 using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Scenes;
@@ -23,16 +22,20 @@ namespace EditorScene.Scenes;
 public class EditorInterface
 {
     private const float HeaderHeight = 32;
-    private const float FooterHeight = 52;
     private const float TrackColumnWidth = 260;
 
-    // Idle/hover colors for the menu-style clickable labels (top bar, add-track row).
-    private static readonly Vector4 MenuTextColor = new(0.839f, 0.855f, 0.863f, 1f); // #d6dadc
-    private static readonly Vector4 MenuHoverColor = new(0.478f, 0.635f, 0.969f, 1f); // #7aa2f7
+    // Subtle-filled look for code-built buttons (the "+ Add track" row and the track
+    // column's transport controls). Code-built children never receive the stylesheet
+    // (ApplyStyleSheet runs on the XML tree only), so the menu-button fill/hover is set
+    // inline here rather than via the .ss class.
+    private static readonly Vector4 MenuFillColor = new(0.2f, 0.204f, 0.29f, 1f); // #33344a
+    private static readonly Vector4 MenuFillHoverColor = new(0.247f, 0.255f, 0.376f, 1f); // #3f4160
+    private static readonly Vector4 TimeColor = new(0.337f, 0.373f, 0.537f, 1f); // #565f89
+    private static readonly Vector4 ProgressBackColor = new(0.251f, 0.251f, 0.376f, 1f); // #404060
+    private static readonly Vector4 ProgressForeColor = new(0.478f, 0.635f, 0.968f, 1f); // #7aa2f7
 
     private readonly ArrangementView _arrangement;
-    private readonly FlexPanel _addTrackRow;
-    private readonly FlexPanel _bottomBar;
+    private readonly Button _addTrackRow;
     private readonly UIContext _context;
     private readonly FlexPanel _gridArea;
     private readonly InspectorPanel _inspector;
@@ -42,11 +45,13 @@ public class EditorInterface
     private readonly Button _playButton;
     private readonly Label _projectBpm;
     private readonly Label _projectName;
-    private readonly SoundImage _activeSoundIcon;
-    private readonly Button _soundButton;
-    private readonly ScrollView _soundList;
-    private readonly ModalLayer _soundModal;
-    private readonly SoundPicker _soundPicker;
+    private readonly Button _instrumentButton;
+    private readonly InstrumentSelector _instrumentSelector;
+    private readonly ModalLayer _instrumentSelectorModal;
+    private readonly InstrumentEditor _instrumentEditor;
+    private readonly ModalLayer _instrumentEditorModal;
+    private Instrument? _editingInstrument;
+    private Note? _reassignTarget;
     private readonly ModalLayer _soundFilterModal;
     private readonly SoundPicker _soundFilterPicker;
     private TrackAutomation? _editingTrackAutomation;
@@ -55,7 +60,8 @@ public class EditorInterface
     private readonly FlexPanel _trackEditorPanel;
     private readonly ScrollView _trackList;
     private readonly ProgressBar _transportProgress;
-    private readonly Label _transportTime;
+    private readonly Label _elapsedLabel;
+    private readonly Label _totalLabel;
     private readonly ThirtyDollarWorkflow _workflow;
 
     private readonly string _defaultTitle;
@@ -78,7 +84,7 @@ public class EditorInterface
         });
 
         Component = sundexContext.NewComponent(componentSource.Value);
-        sundexContext.RunLogicAndVerify(Component, () => RootPanel);
+        RootPanel = Component.Element as Panel ?? throw new Exception("Root panel not found");
 
         RootPanel.DrawTo(context);
 
@@ -88,43 +94,91 @@ public class EditorInterface
         _trackColumn = (Panel)ids["track-column"];
         _gridArea = (FlexPanel)ids["grid-area"];
         _inspectorColumn = (Panel)ids["inspector-column"];
-        _transportProgress = (ProgressBar)ids["transport-progress"];
-        _transportTime = (Label)ids["transport-time"];
-        _playButton = (Button)ids["play-button"];
-        _bottomBar = (FlexPanel)ids["bottom-bar"];
 
         Playback = new EditorPlayback(workflow, State);
-        _playButton.OnClick = _ => Playback.PlayPause();
-        ((Button)ids["stop-button"]).OnClick = _ => Playback.Stop();
 
         _defaultTitle = workflow.Game.Title;
-        WireMenuLabel((Label)ids["load-button"], _ => ShowFileDialog(null, ".tdwproj", LoadProjectFile));
-        WireMenuLabel((Label)ids["save-button"], _ => SaveProject());
-        WireMenuLabel((Label)ids["export-button"], _ => ShowExportDialog());
+        ((Button)ids["load-button"]).OnClick = _ => ShowFileDialog(null, ".tdwproj", LoadProjectFile);
+        ((Button)ids["save-button"]).OnClick = _ => SaveProject();
+        ((Button)ids["export-button"]).OnClick = _ => ShowExportDialog();
+
+        // The column body stacks the scrollable track list above the transport
+        // controls: the list is percent-height, so it yields whatever room the
+        // auto-sized transport section (below) doesn't need — no separate full-width
+        // bottom bar, no magic footer-height constant to keep in sync.
+        var trackColumnBody = new FlexPanel(context)
+        {
+            Direction = LayoutDirection.Vertical,
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100)
+        };
+        _trackColumn.AddChild(trackColumnBody);
 
         _trackList = new ScrollView(context)
         {
             Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100)
+            Height = LiteralOrComputable.Percent(100),
+            Spacing = 4
         };
-        _trackColumn.AddChild(_trackList);
+        trackColumnBody.AddChild(_trackList);
 
-        // "Add track" lives at the end of the track list, styled like the menu
-        // labels above rather than a boxed button.
-        var addTrackLabel = new Label(context, "+ Add track") { FontSizePx = 14f, Color = MenuTextColor };
-        _addTrackRow = new FlexPanel(context)
+        // "Add track" lives at the end of the track list: a subtle-filled button
+        // matching the menu bar. Hover swaps only the background RGB (per the
+        // PropagateAlpha rule); code-built children get no stylesheet state[].
+        var addTrackFill = new ColoredPlane { Color = MenuFillColor };
+        _addTrackRow = new Button(context, "+ Add track")
         {
             Width = LiteralOrComputable.Percent(100),
             Height = 36,
-            HorizontalAlign = Align.Center,
-            VerticalAlign = Align.Center,
-            UpdateCursorOnHover = true,
+            FontSizePx = 14f,
+            BorderRadius = 6,
+            Background = addTrackFill,
             OnClick = _ => State.AddTrack(),
-            OnHoverEnter = _ => addTrackLabel.Color = MenuHoverColor,
-            OnHoverExit = _ => addTrackLabel.Color = MenuTextColor,
-            Children = [addTrackLabel]
+            OnHoverEnter = _ => addTrackFill.Color = MenuFillHoverColor,
+            OnHoverExit = _ => addTrackFill.Color = MenuFillColor
         };
         _trackList.AddChild(_addTrackRow);
+
+        _elapsedLabel = new Label(context, "0:00") { FontSizePx = 12f, Color = TimeColor };
+        _totalLabel = new Label(context, "0:00") { FontSizePx = 12f, Color = TimeColor };
+        _transportProgress = new ProgressBar(context,
+            new ColoredPlane { Color = ProgressBackColor }, new ColoredPlane { Color = ProgressForeColor })
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = 8,
+            BorderRadius = 4
+        };
+        var progressRow = new FlexPanel(context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Spacing = 8,
+            VerticalAlign = Align.Center,
+            Children = [_elapsedLabel, _transportProgress, _totalLabel]
+        };
+
+        _playButton = TransportButton(context, "Play", Playback.PlayPause);
+        _playButton.Width = LiteralOrComputable.Percent(50);
+        var stopButton = TransportButton(context, "Stop", Playback.Stop);
+        stopButton.Width = LiteralOrComputable.Percent(50);
+        var transportButtonsRow = new FlexPanel(context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Spacing = 8,
+            Children = [_playButton, stopButton]
+        };
+
+        var backButton = TransportButton(context, "Back", RequestBack);
+        backButton.Width = LiteralOrComputable.Percent(100);
+
+        var transportSection = new FlexPanel(context)
+        {
+            Direction = LayoutDirection.Vertical,
+            Width = LiteralOrComputable.Percent(100),
+            Padding = 8,
+            Spacing = 8,
+            Children = [Divider(context), progressRow, transportButtonsRow, Divider(context), backButton]
+        };
+        trackColumnBody.AddChild(transportSection);
 
         _arrangement = new ArrangementView(context, State)
         {
@@ -149,49 +203,64 @@ public class EditorInterface
         {
             FontSizePx = 15f,
             Width = 220,
+            BorderRadius = 4,
+            Background = new ColoredPlane { Color = new Vector4(0.15f, 0.16f, 0.21f, 1f) },
             OnValueChanged = input =>
             {
                 if (State.OpenedTrack is { } track) State.RenameTrack(track, input.Value);
             }
         };
 
-        // The sound picker opens as a modal (add/remove on the root, the tested
-        // show-hide pattern) instead of a DropDownLabel — hidden-panel toggling
-        // doesn't manage the render queue. Icons come from the same atlas grid
-        // DrumMaster's sound list uses.
-        _soundPicker = new SoundPicker(context, workflow.AtlasStore)
+        // The instrument selector/editor open as modals (add/remove on the root, the
+        // tested show-hide pattern) instead of a DropDownLabel — hidden-panel toggling
+        // doesn't manage the render queue.
+        _instrumentSelector = new InstrumentSelector(context);
+        _instrumentSelectorModal = new ModalLayer(context);
+        _instrumentSelectorModal.AddChild(_instrumentSelector);
+        _instrumentSelectorModal.OnDismissRequested = modal =>
         {
-            Width = 640,
-            OnPick = name =>
-            {
-                State.ActiveSound = name;
-                RefreshActiveSound();
-                RootPanel.RemoveChild(_soundModal!);
-            }
+            RootPanel.RemoveChild(modal);
+            _reassignTarget = null;
         };
-        _soundList = new ScrollView(context) { Width = 640, Height = 480 };
-        _soundList.AddChild(_soundPicker);
-        var soundListFrame = new Panel(context)
+        _instrumentSelector.OnPick = instrument =>
         {
-            Width = 640,
-            Height = 480,
-            Background = new ColoredPlane { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) }
+            ApplyInstrumentPick(instrument);
+            RootPanel.RemoveChild(_instrumentSelectorModal);
         };
-        soundListFrame.AddChild(_soundList);
-        _soundModal = new ModalLayer(context);
-        _soundModal.AddChild(soundListFrame);
-        _soundModal.OnDismissRequested = modal => RootPanel.RemoveChild(modal);
-        _soundButton = new Button(context, "Sound: —")
+        _instrumentSelector.OnNew = () =>
+        {
+            _editingInstrument = null;
+            _instrumentEditor!.Load("Instrument", []);
+            RootPanel.RemoveChild(_instrumentSelectorModal);
+            OpenInstrumentEditor();
+        };
+        _instrumentSelector.OnEdit = instrument =>
+        {
+            _editingInstrument = instrument;
+            _instrumentEditor!.Load(instrument.Name, instrument.Sounds, instrument.Adjustments);
+            RootPanel.RemoveChild(_instrumentSelectorModal);
+            OpenInstrumentEditor();
+        };
+
+        _instrumentEditor = new InstrumentEditor(context, workflow.AtlasStore);
+        _instrumentEditorModal = new ModalLayer(context);
+        _instrumentEditorModal.AddChild(_instrumentEditor);
+        _instrumentEditorModal.OnDismissRequested = modal => RootPanel.RemoveChild(modal);
+        _instrumentEditor.DoneButton.OnClick = _ => CommitInstrumentEditor();
+        _instrumentEditor.SoundsPicker.OnPreviewSound = Playback.PreviewSound;
+        _instrumentEditor.PreviewButton.OnClick = _ =>
+            Playback.PreviewInstrument(_instrumentEditor.SoundsPicker.Selected
+                .Select(sound => (sound, _instrumentEditor.SoundsPicker.Adjustments.GetValueOrDefault(sound)
+                                         ?? new SoundAdjustment())));
+
+        _instrumentButton = new Button(context, "Instrument: —")
         {
             OnClick = _ =>
             {
-                EnsureSoundItems();
-                RootPanel.AddChild(_soundModal);
+                _reassignTarget = null;
+                OpenInstrumentSelector();
             }
         };
-        // The active sound shows as its image; the label is the no-image fallback.
-        _activeSoundIcon = new SoundImage(context, workflow.AtlasStore) { Width = 0, Height = 0 };
-        _soundButton.AddChild(_activeSoundIcon);
 
         // A second, independent sound picker in multi-select mode: the track-automation
         // sound filter. Mirrors _soundPicker/_soundModal above but commits a whole set
@@ -232,13 +301,19 @@ public class EditorInterface
                     State.RemoveSegment(track, segment);
             }
         };
+        // Percent-width spacer soaks up the free space so the segment buttons land flush
+        // against the bar's right edge — this framework has no space-between align.
+        var editorBarSpacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
         var editorBar = new FlexPanel(context)
         {
             Width = LiteralOrComputable.Percent(100),
             Height = 40,
             Spacing = 12,
             Padding = 6,
-            Children = [backToArrangement, _openedTrackName, _soundButton, addSegment, removeSegment]
+            Children =
+            [
+                backToArrangement, _openedTrackName, _instrumentButton, editorBarSpacer, addSegment, removeSegment
+            ]
         };
         _trackEditorPanel = new FlexPanel(context)
         {
@@ -261,12 +336,18 @@ public class EditorInterface
             _soundFilterPicker.SetSelected(automation.Sounds ?? []);
             RootPanel.AddChild(_soundFilterModal);
         };
+        _inspector.OnReassignInstrument = note =>
+        {
+            _reassignTarget = note;
+            OpenInstrumentSelector();
+        };
 
         State.OnProjectChanged = () =>
         {
             RefreshProject();
             Playback.NotifyModelChanged();
         };
+        State.OnInstrumentsChanged = RefreshActiveInstrument;
         State.OnSelectionChanged = _ =>
         {
             RefreshSelection();
@@ -297,23 +378,46 @@ public class EditorInterface
         RefreshProject();
     }
 
-    private static void WireMenuLabel(Label label, Action<UIElement> onClick)
+    /// <summary>Subtle-filled button matching the menu bar/"+ Add track" look — code-built
+    /// children get no stylesheet, so the fill/hover swap is wired here instead of via the
+    /// .ss <c>menu-button</c> class.</summary>
+    private static Button TransportButton(UIContext context, string label, Action onClick)
     {
-        label.UpdateCursorOnHover = true;
-        label.OnClick = onClick;
-        label.OnHoverEnter = _ => label.Color = MenuHoverColor;
-        label.OnHoverExit = _ => label.Color = MenuTextColor;
+        var fill = new ColoredPlane { Color = MenuFillColor };
+        return new Button(context, label, fill)
+        {
+            FontSizePx = 13f,
+            BorderRadius = 6,
+            OnClick = _ => onClick(),
+            OnHoverEnter = _ => fill.Color = MenuFillHoverColor,
+            OnHoverExit = _ => fill.Color = MenuFillColor
+        };
+    }
+
+    /// <summary>A 1px full-width rule, same color as the header/menu dividers.</summary>
+    private static Panel Divider(UIContext context)
+    {
+        return new Panel(context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = 1,
+            Background = new ColoredPlane { Color = MenuFillColor }
+        };
     }
 
     /// <summary>
-    ///     Shift: the note editor snaps values to 0.2 instead of 1.
-    ///     Ctrl: the arrangement wheel zooms instead of panning.
+    ///     Shift: the note editor snaps values to 0.2 instead of 1, and scrolling a sound
+    ///     row in the instrument editor adjusts pan instead of value.
+    ///     Ctrl: the arrangement wheel zooms instead of panning, and scrolling a sound row
+    ///     in the instrument editor adjusts volume instead of value.
     /// </summary>
     public void SetModifiers(bool shift, bool ctrl)
     {
         _trackEditor.FineSnap = shift;
         _trackEditor.WheelZooms = ctrl;
         _arrangement.WheelZooms = ctrl;
+        _instrumentEditor.SoundsPicker.ShiftHeld = shift;
+        _instrumentEditor.SoundsPicker.CtrlHeld = ctrl;
     }
 
     private void SwapGridView(ProjectTrack? track)
@@ -328,8 +432,7 @@ public class EditorInterface
             _gridArea.RemoveChild(_arrangement);
             _gridArea.AddChild(_trackEditorPanel);
             _trackEditor.CenterOnZero();
-            EnsureSoundItems();
-            RefreshActiveSound();
+            RefreshActiveInstrument();
         }
         else
         {
@@ -340,17 +443,7 @@ public class EditorInterface
         }
     }
 
-    /// <summary>
-    ///     Fills the sound picker on first open — lazily, because the sample list and
-    ///     its images may still be downloading while the scene is constructed.
-    /// </summary>
-    private void EnsureSoundItems()
-    {
-        if (_soundPicker.HasSounds) return;
-        _soundPicker.Fill(_workflow.SampleHolder.StringToSoundReferences.Keys.Order());
-    }
-
-    /// <summary>Same lazy-fill guard as <see cref="EnsureSoundItems" />, for the second picker.</summary>
+    /// <summary>Same lazy-fill guard as <see cref="InstrumentEditor.EnsureSounds" />, for the filter picker.</summary>
     private void EnsureSoundFilterItems()
     {
         if (_soundFilterPicker.HasSounds) return;
@@ -365,14 +458,57 @@ public class EditorInterface
         _inspector.Rebuild();
     }
 
-    private void RefreshActiveSound()
+    private void OpenInstrumentSelector()
     {
-        var sound = State.ActiveSound;
-        var hasImage = _activeSoundIcon.ShowSound(sound);
-        _activeSoundIcon.Width = hasImage ? 26 : 0;
-        _activeSoundIcon.Height = hasImage ? 26 : 0;
-        _soundButton.Label.SetTextContents(hasImage ? "" : sound ?? "Sound: —");
-        _soundButton.InvalidateLayout();
+        _instrumentSelector.Fill(State.Project.Instruments);
+        RootPanel.AddChild(_instrumentSelectorModal);
+    }
+
+    private void OpenInstrumentEditor()
+    {
+        _instrumentEditor.EnsureSounds(_workflow.SampleHolder.StringToSoundReferences.Keys.Order());
+        RootPanel.AddChild(_instrumentEditorModal);
+    }
+
+    private void CommitInstrumentEditor()
+    {
+        var name = string.IsNullOrWhiteSpace(_instrumentEditor.NameInput.Value)
+            ? "Instrument"
+            : _instrumentEditor.NameInput.Value;
+
+        if (_editingInstrument is { } existing)
+        {
+            State.RenameInstrument(existing, name);
+            State.SetInstrumentSounds(existing, _instrumentEditor.SoundsPicker.Selected, _instrumentEditor.SoundsPicker.Adjustments);
+        }
+        else
+        {
+            var created = State.AddInstrument(name);
+            State.SetInstrumentSounds(created, _instrumentEditor.SoundsPicker.Selected, _instrumentEditor.SoundsPicker.Adjustments);
+            ApplyInstrumentPick(created);
+        }
+
+        RootPanel.RemoveChild(_instrumentEditorModal);
+        RefreshActiveInstrument();
+    }
+
+    /// <summary>
+    ///     "Picking" an instrument means setting it active, unless the selector was
+    ///     opened from the inspector's "Change" action targeting one note — then it
+    ///     reassigns that note instead.
+    /// </summary>
+    private void ApplyInstrumentPick(Instrument instrument)
+    {
+        if (_reassignTarget is { } note) State.Edit(() => note.Instrument = instrument);
+        else State.ActiveInstrument = instrument;
+        _reassignTarget = null;
+        RefreshActiveInstrument();
+    }
+
+    private void RefreshActiveInstrument()
+    {
+        _instrumentButton.Label.SetTextContents($"Instrument: {State.ActiveInstrument?.Name ?? "—"}");
+        _instrumentButton.InvalidateLayout();
     }
 
     public EditorState State { get; } = new();
@@ -380,7 +516,7 @@ public class EditorInterface
 
     public Action OnBack { get; }
     [UsedImplicitly] public SundexComponent Component { get; }
-    [SetFromLogic] public Panel RootPanel { get; set; } = null!;
+    public Panel RootPanel { get; }
 
     /// <summary>Dismisses the topmost open modal, if any. Used so Escape closes a dialog instead of the editor.</summary>
     public bool TryCloseTopModal()
@@ -587,16 +723,21 @@ public class EditorInterface
     public void Resize(float width, float height)
     {
         // The window remainder isn't expressible in the stylesheet (no calc()),
-        // so the body regions are sized here.
-        _trackColumn.Height = height - HeaderHeight - FooterHeight;
+        // so the body regions are sized here. The transport controls dock inside the
+        // track column now (see the constructor), so no separate footer band to
+        // subtract from the grid/inspector columns.
+        _trackColumn.Height = height - HeaderHeight;
         _gridArea.Width = width - TrackColumnWidth - InspectorPanel.PanelWidth;
-        _gridArea.Height = height - HeaderHeight - FooterHeight;
+        _gridArea.Height = height - HeaderHeight;
         _inspectorColumn.X = width - InspectorPanel.PanelWidth;
-        _inspectorColumn.Height = height - HeaderHeight - FooterHeight;
-        _bottomBar.Y = height - FooterHeight;
+        _inspectorColumn.Height = height - HeaderHeight;
 
+        // DrawTo (not just Layout): a row whose Visible flips true here (e.g. LaneHeader's
+        // M/S toggles, false on the very first pass while grid-area was still 0-height) needs
+        // its DrawSelf to run at least once to ever get QueueRender'd - Layout alone recomputes
+        // position/Visible but never queues a render.
         RootPanel.InvalidateCoordinates();
-        RootPanel.Layout();
+        RootPanel.DrawTo(_context);
     }
 
     public void Update(UIContext context)
@@ -609,7 +750,8 @@ public class EditorInterface
             var elapsed = Playback.ElapsedMs;
             var total = Playback.TotalMs;
             _transportProgress.Progress = total > 0 ? (float)elapsed / total : 0;
-            _transportTime.SetTextContents($"{TimeString(elapsed)} / {TimeString(total)}");
+            _elapsedLabel.SetTextContents(TimeString(elapsed));
+            _totalLabel.SetTextContents(TimeString(total));
             _arrangement.PlayheadQuarters = Playback.PlayheadQuarters;
             _trackEditor.PlayheadQuarters = Playback.PlayheadQuarters;
             State.IsCurrentlyPlayingAudio = Playback.IsPlaying;

@@ -22,8 +22,8 @@ public class TrackPlacementTests
     {
         var project = new ThirtyDollarProject();
         var track = OneBarQuarterGrid(project);
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "kick" });
-        track.Segments[0].Notes.Add(new Note { Step = 2, Sound = "snare" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
+        track.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("snare") });
 
         project.Place(track, 0, 0);
         project.Place(track, 1, 4); // next bar; the channel is visual only
@@ -41,7 +41,7 @@ public class TrackPlacementTests
     {
         var project = new ThirtyDollarProject();
         var track = OneBarQuarterGrid(project);
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "kick" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
 
         project.Place(track, 0, 0);
         project.Place(track, 0, 8); // one empty bar between the clips
@@ -66,7 +66,7 @@ public class TrackPlacementTests
     {
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Sound = "boom" });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
 
         var events = project.ToSequence().Events;
 

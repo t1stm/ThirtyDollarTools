@@ -37,7 +37,7 @@ public static class ProjectFile
                     segment.StepsPerBeat,
                     segment.Notes.Select(note => new NoteDto(
                         note.Step,
-                        note.Sound,
+                        note.Instrument.Id,
                         note.Value,
                         note.Volume,
                         note.Pan,
@@ -51,6 +51,14 @@ public static class ProjectFile
                         SaveAutomation(automation.Keyframes)!,
                         automation.Sounds)).ToList()
             )).ToList(),
+            project.Instruments.Select(instrument => new InstrumentDto(
+                instrument.Id,
+                instrument.Name,
+                instrument.Sounds,
+                instrument.Adjustments.Count == 0
+                    ? null
+                    : instrument.Adjustments.ToDictionary(pair => pair.Key,
+                        pair => new SoundAdjustmentDto(pair.Value.Value, pair.Value.Volume, pair.Value.Pan)))).ToList(),
             project.Placements.Select(placement => new PlacementDto(
                 placement.Track.Id,
                 placement.Channel,
@@ -70,6 +78,21 @@ public static class ProjectFile
             RootTiming = dto.RootTiming
         };
 
+        var instruments_by_id = new Dictionary<int, Instrument>();
+        foreach (var instrument_dto in dto.Instruments ?? [])
+        {
+            var instrument = project.AddInstrument(instrument_dto.Id, instrument_dto.Name);
+            instrument.Sounds.AddRange(instrument_dto.Sounds);
+            foreach (var (sound, adjustment) in instrument_dto.Adjustments ?? [])
+                instrument.Adjustments[sound] = new SoundAdjustment
+                {
+                    Value = adjustment.Value,
+                    Volume = adjustment.Volume,
+                    Pan = adjustment.Pan
+                };
+            instruments_by_id[instrument.Id] = instrument;
+        }
+
         foreach (var track_dto in dto.Tracks ?? [])
         {
             var track = project.AddTrack(track_dto.Id, track_dto.Timing);
@@ -87,16 +110,24 @@ public static class ProjectFile
                 segment.StepsPerBeat = segment_dto.StepsPerBeat;
 
                 foreach (var note in segment_dto.Notes ?? [])
+                {
+                    // Migration: pre-instrument files carried a bare sound name per note;
+                    // dedup those into one instrument per sound (see GetOrCreateInstrument).
+                    var instrument = note.InstrumentId is { } instrument_id
+                        ? instruments_by_id[instrument_id]
+                        : project.GetOrCreateInstrument(note.Sound!);
+
                     segment.Notes.Add(new Note
                     {
                         Step = note.Step,
-                        Sound = note.Sound,
+                        Instrument = instrument,
                         Value = note.Value,
                         Volume = note.Volume,
                         Pan = note.Pan,
                         Offset = note.Offset ?? 0,
                         Automation = LoadAutomation(note.Automation)
                     });
+                }
             }
 
             foreach (var automation_dto in track_dto.TrackAutomations ?? [])
@@ -132,7 +163,8 @@ public static class ProjectFile
                     NullIfNoOp(keyframe.Value),
                     NullIfNoOp(keyframe.Volume),
                     NullIfNoOp(keyframe.Pan),
-                    NullIfNoOp(keyframe.Offset))).ToList(),
+                    NullIfNoOp(keyframe.Offset),
+                    keyframe.Cut ? true : null)).ToList(),
                 manager.Repeats == 1 ? null : manager.Repeats);
     }
 
@@ -148,7 +180,8 @@ public static class ProjectFile
                 Value = keyframe.Value ?? default,
                 Volume = keyframe.Volume ?? default,
                 Pan = keyframe.Pan ?? default,
-                Offset = keyframe.Offset ?? default
+                Offset = keyframe.Offset ?? default,
+                Cut = keyframe.Cut ?? false
             });
 
         return manager;
@@ -163,8 +196,17 @@ public static class ProjectFile
         ProjectInfo Info,
         TimingInfo RootTiming,
         List<TrackDto> Tracks,
+        // Null (missing key) marks a pre-instrument file — its notes carry a bare Sound
+        // instead of an InstrumentId, and Load migrates them (see Load).
+        List<InstrumentDto>? Instruments = null,
         // Null (missing key) marks a pre-arrangement file — see Load.
         List<PlacementDto>? Placements = null);
+
+    private record InstrumentDto(int Id, string Name, List<string> Sounds,
+        // Null (missing key) = no sound has a value/volume/pan adjustment.
+        Dictionary<string, SoundAdjustmentDto>? Adjustments = null);
+
+    private record SoundAdjustmentDto(double Value, double? Volume, float Pan);
 
     private record PlacementDto(int TrackId, int Channel, double Start);
 
@@ -188,17 +230,21 @@ public static class ProjectFile
 
     private record NoteDto(
         int Step,
-        string Sound,
+        // Null (missing key) marks a pre-instrument note — Load resolves via Sound instead.
+        int? InstrumentId,
         double Value,
         double? Volume,
         float Pan,
         AutomationDto? Automation,
         // Sound-start offset in seconds; null (missing key) = 0.
-        double? Offset = null);
+        double? Offset = null,
+        // Pre-instrument sound name, kept only for reading old files; never written.
+        string? Sound = null);
 
     // Null Repeats (missing key) = 1 — files from before the feature stay valid.
     private record AutomationDto(KeyframeTiming Timing, List<KeyframeDto> Keyframes, int? Repeats = null);
 
     private record KeyframeDto(float Gap, Modifier? Value, Modifier? Volume, Modifier? Pan,
-        Modifier? Offset = null);
+        // Null (missing key) = false — files from before the feature stay valid.
+        Modifier? Offset = null, bool? Cut = null);
 }

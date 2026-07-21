@@ -10,7 +10,7 @@ namespace Sundex.Components.Tests;
 public class ScrollViewTests
 {
     // View at (10,10), 200x100 -> bounds x 10..210, y 10..110.
-    // Bar is 20 wide at the right edge: x 190..210.
+    // Bar is 8 wide at the right edge: x 202..210.
     private static (TestUIContext ctx, Panel root, ScrollView view) NewView(int rows, float rowHeight = 30)
     {
         var ctx = new TestUIContext();
@@ -112,14 +112,14 @@ public class ScrollViewTests
         var (ctx, root, view) = NewView(10);
 
         // Thumb is 33.3px (100/300 of the 100px track), sitting at the top.
-        ctx.UpdatePointer(root, 200, 20, true, true, false, Vector2.Zero); // press the thumb
-        ctx.UpdatePointer(root, 200, 110, true, false, false, Vector2.Zero); // drag to the bottom
+        ctx.UpdatePointer(root, 205, 20, true, true, false, Vector2.Zero); // press the thumb
+        ctx.UpdatePointer(root, 205, 110, true, false, false, Vector2.Zero); // drag to the bottom
         Assert.Equal(200, view.ScrollY);
 
         root.Layout();
         Assert.Equal(10 - 200, view.Children[0].Computed.AbsoluteY);
 
-        ctx.UpdatePointer(root, 200, 110, false, false, true, Vector2.Zero);
+        ctx.UpdatePointer(root, 205, 110, false, false, true, Vector2.Zero);
         Assert.Equal(200, view.ScrollY); // release keeps the position
     }
 

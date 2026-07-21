@@ -2,6 +2,13 @@ namespace ThirtyDollarConverter.Editor.Tests;
 
 public class ProjectFileTests
 {
+    private static Instrument MakeInstrument(ThirtyDollarProject project, string sound)
+    {
+        var instrument = project.NewInstrument(sound);
+        instrument.Sounds.Add(sound);
+        return instrument;
+    }
+
     private static ThirtyDollarProject MakeProject()
     {
         var project = new ThirtyDollarProject();
@@ -15,7 +22,8 @@ public class ProjectFileTests
         odd.Numerator = 7;
         odd.Denominator = 8;
         odd.StepsPerBeat = 2;
-        odd.Notes.Add(new Note { Step = 3, Sound = "kick", Value = -5, Volume = 80, Pan = -25 });
+        odd.Notes.Add(new Note
+            { Step = 3, Instrument = MakeInstrument(project, "kick"), Value = -5, Volume = 80, Pan = -25 });
 
         var slow = drums.NewSegment();
         slow.BPM = 60;
@@ -36,7 +44,7 @@ public class ProjectFileTests
             Volume = new Modifier(0.5, ModifierKind.Multiply),
             Value = new Modifier(12)
         });
-        melody.Segments[0].Notes.Add(new Note { Step = 0, Sound = "harp", Automation = echo });
+        melody.Segments[0].Notes.Add(new Note { Step = 0, Instrument = MakeInstrument(project, "harp"), Automation = echo });
 
         return project;
     }
@@ -63,6 +71,8 @@ public class ProjectFileTests
         Assert.Equal(-5, kick.Value);
         Assert.Equal(80, kick.Volume);
         Assert.Equal(-25, kick.Pan);
+        Assert.Equal("kick", kick.Instrument.Name);
+        Assert.Equal(["kick"], kick.Instrument.Sounds);
 
         var trackAutomation = Assert.Single(drums.TrackAutomations);
         Assert.Equal(["kick"], trackAutomation.Sounds);

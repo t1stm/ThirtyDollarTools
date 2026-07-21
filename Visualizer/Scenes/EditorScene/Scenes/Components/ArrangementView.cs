@@ -16,9 +16,10 @@ namespace EditorScene.Scenes.Components;
 ///     the selected clip; the wheel pans horizontally. Double-clicking a clip fires
 ///     <see cref="OnOpenTrack" /> (the future per-track note editor).
 /// </summary>
-public class ArrangementView : Panel
+public sealed class ArrangementView : Panel
 {
     public const float LaneHeight = 44f;
+    public const float RulerHeight = 18f;
     public const int MinChannels = 8;
 
     // ponytail: fixed pools — 128 bar lines cover a 3k px window at minimum zoom (6 ppq).
@@ -29,12 +30,15 @@ public class ArrangementView : Panel
     private static readonly Vector4 ClipColor = new(0.30f, 0.42f, 0.80f, 1f); // #4c6bcc
     private static readonly Vector4 SelectedClipColor = new(0.61f, 0.75f, 1f, 1f); // #9bc0ff
     private static readonly Vector4 LineColor = new(0.16f, 0.18f, 0.26f, 1f); // #292e42
+    private static readonly Vector4 RulerColor = new(0.086f, 0.086f, 0.118f, 1f); // #16161e
+    private static readonly Vector4 LabelColor = new(0.66f, 0.7f, 0.86f, 1f);
 
     private static readonly Vector4 PlayheadColor = new(0.75f, 0.79f, 0.96f, 1f); // #c0caf5
 
     private readonly List<ClipBlock> _blocks = [];
-    private readonly List<Panel> _barLines = [];
-    private readonly List<Panel> _laneLines = [];
+    private readonly List<Label> _barLabels = [];
+    private readonly LineBatch _lineBatch = new();
+    private readonly Panel _rulerBackground;
     private readonly Panel _playhead;
     private readonly EditorState _state;
 
@@ -50,12 +54,20 @@ public class ArrangementView : Panel
         Background = new ColoredPlane { Color = new Vector4(0.067f, 0.07f, 0.1f, 1f) };
         OnClick = _ => PlaceAtPointer();
 
-        // Grid lines live at the front of Children so clips (added later) render above
-        // them and win hit-test ties.
-        for (var i = 0; i < LaneLinePool; i++) _laneLines.Add(NewLine(context));
-        for (var i = 0; i < BarLinePool; i++) _barLines.Add(NewLine(context));
-        foreach (var line in _laneLines) AddChild(line);
-        foreach (var line in _barLines) AddChild(line);
+        // Grid lines render as one instanced draw call (see LineBatch) queued in
+        // DrawSelf, below Children in the same depth layer, so clips still paint above.
+        _lineBatch.Count = LaneLinePool + BarLinePool;
+
+        // The beat ruler — same idea as the note editor's: a strip along the top
+        // labeling every bar, highlighting whichever bar the playhead is in.
+        _rulerBackground = new GhostPanel(context) { Background = new ColoredPlane { Color = RulerColor } };
+        AddChild(_rulerBackground);
+        for (var i = 0; i < BarLinePool; i++)
+        {
+            var label = new Label(context, "1") { FontSizePx = 11f, Color = LabelColor };
+            _barLabels.Add(label);
+            AddChild(label);
+        }
 
         _playhead = new GhostPanel(context)
         {
@@ -148,27 +160,43 @@ public class ArrangementView : Panel
     {
         var lanes = ChannelCount;
         var width = Computed.Width;
+        var gridHeight = Math.Max(0, Computed.Height - RulerHeight);
         var lanesBottom = lanes * LaneHeight;
 
-        for (var i = 0; i < _laneLines.Count; i++)
+        var absX = Computed.AbsoluteX;
+        var absY = Computed.AbsoluteY;
+
+        for (var i = 0; i < LaneLinePool; i++)
         {
-            var visible = i < lanes && (i + 1) * LaneHeight <= Computed.Height;
-            _laneLines[i].Width = visible ? width : 0;
-            _laneLines[i].Height = 1;
-            _laneLines[i].X = 0;
-            _laneLines[i].Y = (i + 1) * LaneHeight;
+            var visible = i < lanes && (i + 1) * LaneHeight <= gridHeight;
+            var y = RulerHeight + (i + 1) * LaneHeight;
+            _lineBatch.Set(i, absX, absY + y, visible ? width : 0, 1, LineColor);
         }
+
+        var playheadX = (float)(PlayheadQuarters * PixelsPerQuarter) - _scrollX;
+        var playheadVisible = PlayheadQuarters >= 0 && playheadX >= 0 && playheadX < width;
 
         var barWidth = 4 * PixelsPerQuarter;
         var firstBar = (int)Math.Floor(_scrollX / barWidth);
-        for (var i = 0; i < _barLines.Count; i++)
+        for (var i = 0; i < BarLinePool; i++)
         {
             var x = (firstBar + i) * barWidth - _scrollX;
             var visible = x >= 0 && x < width;
-            _barLines[i].Width = visible ? 1 : 0;
-            _barLines[i].Height = Math.Min(lanesBottom, Computed.Height);
-            _barLines[i].X = x;
-            _barLines[i].Y = 0;
+            _lineBatch.Set(LaneLinePool + i, absX + x, absY + RulerHeight, visible ? 1 : 0,
+                Math.Min(lanesBottom, gridHeight), LineColor);
+
+            var label = _barLabels[i];
+            if (!visible)
+            {
+                label.X = -1000f;
+                continue;
+            }
+
+            var isCurrentBar = playheadVisible && playheadX >= x && playheadX < x + barWidth;
+            label.Color = isCurrentBar ? PlayheadColor : LabelColor;
+            label.SetTextContents($"{firstBar + i + 1}");
+            label.X = x + 3;
+            label.Y = (RulerHeight - 11f) / 2;
         }
 
         foreach (var block in _blocks)
@@ -176,17 +204,20 @@ public class ArrangementView : Panel
             var placement = block.Placement;
             var quarters = placement.Track.DurationMinutes() * _state.Project.RootTiming.BPM;
             block.X = (float)(placement.StartQuarterNotes * PixelsPerQuarter) - _scrollX;
-            block.Y = placement.Channel * LaneHeight + 2;
+            block.Y = RulerHeight + placement.Channel * LaneHeight + 2;
             block.Width = Math.Max(8, (float)(quarters * PixelsPerQuarter));
             block.Height = LaneHeight - 4;
         }
 
-        var playheadX = (float)(PlayheadQuarters * PixelsPerQuarter) - _scrollX;
-        var playheadVisible = PlayheadQuarters >= 0 && playheadX >= 0 && playheadX < width;
         _playhead.Width = playheadVisible ? 2 : 0;
-        _playhead.Height = Math.Min(lanesBottom, Computed.Height);
+        _playhead.Height = Math.Min(lanesBottom, gridHeight);
         _playhead.X = playheadX;
-        _playhead.Y = 0;
+        _playhead.Y = RulerHeight;
+
+        _rulerBackground.X = 0;
+        _rulerBackground.Y = 0;
+        _rulerBackground.Width = width;
+        _rulerBackground.Height = RulerHeight;
 
         base.DoLayout();
         ApplyClip(_inheritedClip);
@@ -235,6 +266,19 @@ public class ArrangementView : Panel
 
         foreach (var child in Children) child.ApplyClip(own);
         Background?.ClipRect = clip;
+        _lineBatch.ClipRect = own;
+    }
+
+    protected override void DrawSelf(UIContext ctx)
+    {
+        base.DrawSelf(ctx);
+        ctx.QueueRender(_lineBatch, Index);
+    }
+
+    public override void StopRendering()
+    {
+        base.StopRendering();
+        Context.DequeueRender(_lineBatch, Index);
     }
 
     public override void Update(UIContext uiContext)
@@ -268,7 +312,7 @@ public class ArrangementView : Panel
     {
         var quarters = (x - Computed.AbsoluteX + _scrollX) / PixelsPerQuarter - grabOffsetQuarters;
         var snapped = Math.Max(0, Math.Round(quarters / SnapQuarterNotes) * SnapQuarterNotes);
-        var channel = (int)Math.Floor((y - Computed.AbsoluteY) / LaneHeight);
+        var channel = (int)Math.Floor((y - Computed.AbsoluteY - RulerHeight) / LaneHeight);
         return (Math.Clamp(channel, 0, ChannelCount - 1), snapped);
     }
 
@@ -279,16 +323,6 @@ public class ArrangementView : Panel
         {
             return null;
         }
-    }
-
-    private static Panel NewLine(UIContext context)
-    {
-        return new Panel(context)
-        {
-            Width = 0,
-            Height = 1,
-            Background = new ColoredPlane { Color = LineColor }
-        };
     }
 
     private class ClipBlock : Panel

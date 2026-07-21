@@ -43,6 +43,18 @@ public static class BmsToProject
         var max_measure = chart.Measures.Keys.DefaultIfEmpty(0).Max();
         var bpm = chart.Bpm;
 
+        // Dedup by sound name so repeated hits of one sample share one instrument.
+        var instruments = new Dictionary<string, Instrument>();
+
+        Instrument InstrumentFor(string sound)
+        {
+            if (instruments.TryGetValue(sound, out var instrument)) return instrument;
+            instrument = project.NewInstrument(sound);
+            instrument.Sounds.Add(sound);
+            instruments[sound] = instrument;
+            return instrument;
+        }
+
         // The last tempo-span segment per track, for notes sitting exactly on a STOP:
         // they must sound before the pause, as an overhang on the span that just ended.
         var last_spans = channels.ToDictionary(channel => channel, _ => (TrackSegment?)null);
@@ -108,13 +120,13 @@ public static class BmsToProject
                 {
                     // Note exactly on a STOP: overhang on the span that just ended,
                     // so it sounds at the boundary, before the pause.
-                    previous.Notes.Add(new Note { Step = previous.Numerator, Sound = sound });
+                    previous.Notes.Add(new Note { Step = previous.Numerator, Instrument = InstrumentFor(sound) });
                     continue;
                 }
 
                 var span = FindSpan(spans, unit);
                 span.ByTrack[track_channel].Notes
-                    .Add(new Note { Step = (int)(unit - span.StartU), Sound = sound });
+                    .Add(new Note { Step = (int)(unit - span.StartU), Instrument = InstrumentFor(sound) });
             }
 
             foreach (var channel in channels)

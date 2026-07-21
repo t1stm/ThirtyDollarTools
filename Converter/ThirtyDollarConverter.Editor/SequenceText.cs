@@ -19,6 +19,10 @@ public static class SequenceText
 
     private static string Stringify(BaseEvent e)
     {
+        // A bare SoundEvent ("!cut") would be a global cut; an individual cut must
+        // stay per-sound ("!cut@a|!cut@b").
+        if (e is IndividualCutEvent cut) return cut.Stringify();
+
         var text = e.SoundEvent!;
         if (e.Value != 0) text += $"@{Exact(e.Value)}";
         if (e.Volume is { } volume) text += $"%{Exact(volume)}";

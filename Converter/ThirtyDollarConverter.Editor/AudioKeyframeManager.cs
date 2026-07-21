@@ -1,3 +1,6 @@
+using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
+
 namespace ThirtyDollarConverter.Editor;
 
 public enum KeyframeTiming
@@ -29,10 +32,37 @@ public class AudioKeyframeManager
     public List<AudioKeyframe> Keyframes { get; } = [];
 
     /// <summary>
-    ///     Generates the automation events for one note placed at <paramref name="noteMinutes" />.
-    ///     Public so views can plot the generated path (pass 0 for note-relative minutes).
+    ///     Generates the automation events for one note placed at <paramref name="noteMinutes" />,
+    ///     flattened to the sound events each generated step actually plays (one per instrument
+    ///     sound). A cut keyframe emits an individual cut immediately before its note, at the
+    ///     same position, so the retrigger never overlaps the sound it's replacing. This is
+    ///     what feeds the export/playback pipeline.
     /// </summary>
-    public IEnumerable<(double Minutes, Note Note)> Expand(Note note, double noteMinutes, double stepMinutes)
+    public IEnumerable<(double Minutes, BaseEvent Event)> Expand(Note note, double noteMinutes, double stepMinutes)
+    {
+        foreach (var (minutes, generated, cut) in ExpandCore(note, noteMinutes, stepMinutes))
+        {
+            if (cut)
+                yield return (minutes, new IndividualCutEvent(note.Instrument.Sounds.ToHashSet()));
+
+            foreach (var ev in generated.ToEvents())
+                yield return (minutes, ev);
+        }
+    }
+
+    /// <summary>
+    ///     Same generation, kept at the note level (not flattened to sound events) so views
+    ///     can plot the generated value/time path. Public so views can plot the generated path
+    ///     (pass 0 for note-relative minutes).
+    /// </summary>
+    public IEnumerable<(double Minutes, Note Note)> ExpandNotes(Note note, double noteMinutes, double stepMinutes)
+    {
+        foreach (var (minutes, generated, _) in ExpandCore(note, noteMinutes, stepMinutes))
+            yield return (minutes, generated);
+    }
+
+    private IEnumerable<(double Minutes, Note Note, bool Cut)> ExpandCore(Note note, double noteMinutes,
+        double stepMinutes)
     {
         var minutes = noteMinutes;
         var value = note.Value;
@@ -55,12 +85,12 @@ public class AudioKeyframeManager
             yield return (minutes, new Note
             {
                 Step = note.Step,
-                Sound = note.Sound,
+                Instrument = note.Instrument,
                 Value = value,
                 Volume = volume,
                 Pan = pan,
                 Offset = offset
-            });
+            }, keyframe.Cut);
         }
     }
 }

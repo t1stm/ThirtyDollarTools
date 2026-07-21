@@ -4,6 +4,13 @@ namespace EditorScene.Tests;
 
 public class EditorStateTests
 {
+    private static Instrument MakeInstrument(EditorState state, string sound)
+    {
+        var instrument = state.AddInstrument(sound);
+        state.SetInstrumentSounds(instrument, [sound]);
+        return instrument;
+    }
+
     [Fact]
     public void AddTrack_MutatesProject_SetsDirty_AndNotifies()
     {
@@ -219,11 +226,12 @@ public class EditorStateTests
     }
 
     [Fact]
-    public void OpenTrack_SelectsItsFirstSegment_AndSeedsTheActiveSound()
+    public void OpenTrack_SelectsItsFirstSegment_AndSeedsTheActiveInstrument()
     {
         var state = new EditorState();
         var track = state.AddTrack();
-        state.AddNote(track.Segments[0], 3, "boom", 5);
+        var boom = MakeInstrument(state, "boom");
+        state.AddNote(track.Segments[0], 3, boom, 5);
 
         ProjectTrack? opened = null;
         state.OnOpenedTrackChanged = t => opened = t;
@@ -232,7 +240,7 @@ public class EditorStateTests
         Assert.Same(track, state.OpenedTrack);
         Assert.Same(track, opened);
         Assert.Same(track.Segments[0], state.SelectedSegment);
-        Assert.Equal("boom", state.ActiveSound);
+        Assert.Same(boom, state.ActiveInstrument);
 
         state.CloseTrack();
         Assert.Null(state.OpenedTrack);
@@ -246,12 +254,13 @@ public class EditorStateTests
         var state = new EditorState();
         var track = state.AddTrack();
         var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
         state.SaveProject(); // clears dirty
 
         var changed = 0;
         state.OnProjectChanged = () => changed++;
 
-        var note = state.AddNote(segment, 4, "boom", -3);
+        var note = state.AddNote(segment, 4, boom, -3);
         Assert.Equal([note], segment.Notes);
         Assert.Equal(4, note.Step);
         Assert.Equal(-3, note.Value);
@@ -279,7 +288,7 @@ public class EditorStateTests
         var state = new EditorState();
         var track = state.AddTrack();
         var second = state.AddSegment(track);
-        var note = state.AddNote(second, 0, "boom", 0);
+        var note = state.AddNote(second, 0, MakeInstrument(state, "boom"), 0);
         state.OpenTrack(track);
         state.SelectSegment(second);
         state.SelectNote(note);
@@ -304,11 +313,11 @@ public class EditorStateTests
     }
 
     [Fact]
-    public void LoadingAProject_ClosesTheNoteEditor_AndClearsTheActiveSound()
+    public void LoadingAProject_ClosesTheNoteEditor_AndClearsTheActiveInstrument()
     {
         var state = new EditorState();
         var track = state.AddTrack();
-        state.ActiveSound = "boom";
+        state.ActiveInstrument = MakeInstrument(state, "boom");
         state.OpenTrack(track);
 
         state.LoadProject(state.SaveProject());
@@ -316,7 +325,51 @@ public class EditorStateTests
         Assert.Null(state.OpenedTrack);
         Assert.Null(state.SelectedSegment);
         Assert.Null(state.SelectedNote);
-        Assert.Null(state.ActiveSound);
+        Assert.Null(state.ActiveInstrument);
+    }
+
+    [Fact]
+    public void InstrumentLifecycle_MutatesDirtiesAndNotifies()
+    {
+        var state = new EditorState();
+        state.SaveProject(); // clears dirty
+
+        var changed = 0;
+        state.OnInstrumentsChanged = () => changed++;
+
+        var instrument = state.AddInstrument("Layer");
+        Assert.Equal([instrument], state.Project.Instruments);
+        Assert.True(state.Dirty);
+        Assert.Equal(1, changed);
+
+        state.RenameInstrument(instrument, "Layer"); // same name: a no-op, like RenameTrack
+        Assert.Equal(1, changed);
+        state.RenameInstrument(instrument, "Drums");
+        Assert.Equal("Drums", instrument.Name);
+        Assert.Equal(2, changed);
+
+        state.SetInstrumentSounds(instrument, ["kick", "snare"]);
+        Assert.Equal(["kick", "snare"], instrument.Sounds);
+
+        var track = state.AddTrack();
+        var note = state.AddNote(track.Segments[0], 0, instrument, 0);
+        Assert.False(state.RemoveInstrument(instrument)); // refused: still referenced
+
+        state.RemoveNote(track.Segments[0], note);
+        Assert.True(state.RemoveInstrument(instrument));
+        Assert.Empty(state.Project.Instruments);
+    }
+
+    [Fact]
+    public void RemoveInstrument_FallsBackTheActiveInstrument_WhenItWasTheOneRemoved()
+    {
+        var state = new EditorState();
+        var instrument = state.AddInstrument("Layer");
+        var other = state.AddInstrument("Other");
+        state.ActiveInstrument = instrument;
+
+        Assert.True(state.RemoveInstrument(instrument));
+        Assert.Same(other, state.ActiveInstrument);
     }
 
     [Fact]

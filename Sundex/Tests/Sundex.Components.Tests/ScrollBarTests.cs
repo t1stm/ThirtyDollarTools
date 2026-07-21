@@ -21,9 +21,9 @@ public class ScrollBarTests
         parent.Layout();
 
         Assert.Equal(parent, scrollBar.Parent);
-        Assert.Equal(20, scrollBar.Width.Value);
+        Assert.Equal(8, scrollBar.Width.Value);
         Assert.Equal(500, scrollBar.Computed.Height);
-        Assert.Equal(80, scrollBar.Computed.AbsoluteX - parent.Computed.AbsoluteX);
+        Assert.Equal(92, scrollBar.Computed.AbsoluteX - parent.Computed.AbsoluteX);
     }
 
     [Fact]
@@ -37,6 +37,6 @@ public class ScrollBarTests
 
         Assert.Equal(0, scrollBar.ScrollBlock.X);
         Assert.Equal(0, scrollBar.ScrollBlock.Y);
-        Assert.Equal(20, scrollBar.ScrollBlock.Width);
+        Assert.Equal(8, scrollBar.ScrollBlock.Width);
     }
 }

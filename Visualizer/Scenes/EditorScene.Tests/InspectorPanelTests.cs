@@ -10,6 +10,13 @@ namespace EditorScene.Tests;
 // and keyboard paths do.
 public class InspectorPanelTests
 {
+    private static Instrument MakeInstrument(EditorState state, string sound)
+    {
+        var instrument = state.AddInstrument(sound);
+        state.SetInstrumentSounds(instrument, [sound]);
+        return instrument;
+    }
+
     private static (EditorTestContext ctx, EditorState state, InspectorPanel inspector) NewInspector()
     {
         var ctx = new EditorTestContext();
@@ -79,7 +86,7 @@ public class InspectorPanelTests
         var track = state.AddTrack();
         state.OpenTrack(track);
         var segment = track.Segments[0];
-        var note = state.AddNote(segment, 2, "boom", 0);
+        var note = state.AddNote(segment, 2, MakeInstrument(state, "boom"), 0);
         state.SelectNote(note);
 
         ((NumericInput)inspector.Field("Segment.Bars")!).Value = 2;
@@ -102,13 +109,31 @@ public class InspectorPanelTests
     }
 
     [Fact]
+    public void NoteEditorMode_ShowsTheInstrumentName_AndTheChangeActionFiresTheSeam()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(track.Segments[0], 0, boom, 0);
+        state.SelectNote(note);
+
+        Assert.Equal("boom", ((Label)inspector.Field("Note.Instrument")!).Value.ToString());
+
+        Note? seen = null;
+        inspector.OnReassignInstrument = n => seen = n;
+        ((Button)inspector.Field("Note.Change")!).OnClick!.Invoke(null!);
+        Assert.Same(note, seen);
+    }
+
+    [Fact]
     public void NullableFields_CommitEmptyAsInherit()
     {
         var (_, state, inspector) = NewInspector();
         var track = state.AddTrack();
         state.OpenTrack(track);
         var segment = track.Segments[0];
-        var note = state.AddNote(segment, 0, "boom", 0);
+        var note = state.AddNote(segment, 0, MakeInstrument(state, "boom"), 0);
         state.SelectNote(note);
 
         var segmentBpm = (NumericInput)inspector.Field("Segment.BPM")!;
@@ -130,7 +155,7 @@ public class InspectorPanelTests
         var (ctx, state, inspector) = NewInspector();
         var track = state.AddTrack();
         state.OpenTrack(track);
-        var note = state.AddNote(track.Segments[0], 0, "boom", 0);
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
         state.SelectNote(note);
 
         // A drag in the note editor moves the note; the inspector follows.
@@ -154,7 +179,7 @@ public class InspectorPanelTests
         var (_, state, inspector) = NewInspector();
         var track = state.AddTrack();
         state.OpenTrack(track);
-        var note = state.AddNote(track.Segments[0], 0, "boom", 0);
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
         state.SelectNote(note);
 
         // No automation yet: only the add button exists.
@@ -200,7 +225,7 @@ public class InspectorPanelTests
         var (_, state, inspector) = NewInspector();
         var track = state.AddTrack();
         state.OpenTrack(track);
-        var note = state.AddNote(track.Segments[0], 0, "boom", 0);
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
         note.Automation = new AudioKeyframeManager
         {
             Timing = KeyframeTiming.Time,

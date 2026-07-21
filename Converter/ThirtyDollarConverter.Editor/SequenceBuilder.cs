@@ -31,7 +31,7 @@ internal static class SequenceBuilder
         return Math.Abs(a - b) <= 1e-9 * Math.Max(Math.Abs(a), Math.Abs(b));
     }
 
-    public static Sequence Build(IReadOnlyList<TempoRegion> regions, (double Minutes, Note Note)[] notes,
+    public static Sequence Build(IReadOnlyList<TempoRegion> regions, (double Minutes, BaseEvent Event)[] timedEvents,
         SequenceStyle? style = null, IReadOnlyList<double>? barTimes = null)
     {
         var divider_every_bars = style?.DividerEveryBars ?? 0;
@@ -43,18 +43,18 @@ internal static class SequenceBuilder
         var bar_index = 0;
         var bars_pending = 0; // bars completed since the last divider or tempo change
 
-        // Assign each note to the region containing it and quantize the step to 6 decimals
-        // (the serialized precision) so float noise can't split simultaneous notes.
-        var groups = notes
+        // Assign each event to the region containing it and quantize the step to 6 decimals
+        // (the serialized precision) so float noise can't split simultaneous events.
+        var groups = timedEvents
             .Select(n =>
             {
                 var region = RegionIndex(regions, n.Minutes);
                 var step = Math.Round((n.Minutes - regions[region].StartMinutes) * regions[region].Speed, 6);
-                return (Region: region, Step: step, n.Note);
+                return (Region: region, Step: step, n.Event);
             })
             .GroupBy(n => (n.Region, n.Step))
             .OrderBy(g => g.Key.Region).ThenBy(g => g.Key.Step)
-            .Select(g => (g.Key.Region, g.Key.Step, Notes: g.Select(n => n.Note).ToArray()))
+            .Select(g => (g.Key.Region, g.Key.Step, Events: g.Select(n => n.Event).ToArray()))
             .ToArray();
 
         if (groups.Length == 0)
@@ -76,7 +76,7 @@ internal static class SequenceBuilder
 
             while (gi < groups.Length && groups[gi].Region == ri)
             {
-                var (_, step, group_notes) = groups[gi];
+                var (_, step, group_events) = groups[gi];
                 var time = region.StartMinutes + step / region.Speed;
 
                 EmitGap((time - clock) * region.Speed);
@@ -86,10 +86,10 @@ internal static class SequenceBuilder
                 EmitDividersUpTo(time);
 
                 var first = true;
-                foreach (var note in group_notes)
+                foreach (var ev in group_events)
                 {
                     if (!first) events.Add(Action("!combine", 0));
-                    events.Add(note.ToEvent());
+                    events.Add(ev);
                     first = false;
                 }
 
