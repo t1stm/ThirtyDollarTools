@@ -5,6 +5,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Engine.Asset_Management.Types.Asset;
@@ -18,9 +19,7 @@ namespace SettingsScene.Scenes;
 public class SettingsInterface
 {
     private static readonly Vector4 ColorText = new(0.84f, 0.85f, 0.86f, 1f);
-    private static readonly Vector4 ColorMuted = new(0.54f, 0.59f, 0.69f, 1f);
-    private static readonly Vector4 ColorToggleOn = new(0.48f, 0.64f, 0.97f, 1f);
-    private static readonly Vector4 ColorToggleOff = new(0.25f, 0.28f, 0.41f, 1f);
+    private static readonly Vector4 ColorInputBackground = new(0.15f, 0.16f, 0.21f, 1f);
 
     public SettingsInterface(UIContext context, VisualizerSettings settings, Action back)
     {
@@ -88,49 +87,73 @@ public class SettingsInterface
         };
 
         UIElement valueWidget = property.PropertyType == typeof(bool)
-            ? CreateToggleButton(context, settings, property)
-            : CreateValueLabel(context, settings, property);
+            ? CreateCheckbox(context, settings, property)
+            : property.PropertyType == typeof(int) || property.PropertyType == typeof(float)
+                ? CreateNumericInput(context, settings, property)
+                : CreateTextInput(context, settings, property);
 
         row.Children = [nameLabel, valueWidget];
         return row;
     }
 
-    private static Button CreateToggleButton(UIContext context, VisualizerSettings settings, PropertyInfo property)
+    private static Checkbox CreateCheckbox(UIContext context, VisualizerSettings settings, PropertyInfo property)
     {
         var isOn = (bool)(property.GetValue(settings) ?? false);
-
-        var button = new Button(context, isOn ? "ON" : "OFF")
-        {
-            Width = 80f,
-            Height = 36f,
-            BorderRadius = 8f,
-            Background = new ColoredPlane { Color = isOn ? ColorToggleOn : ColorToggleOff },
-            FontSizePx = 16f,
-            Label =
-            {
-                Color = Vector4.One
-            }
-        };
-
-        button.OnClick = _ =>
-        {
-            var current = (bool)(property.GetValue(settings) ?? false);
-            var next = !current;
-            property.SetValue(settings, next);
-            button.Label.Value = next ? "ON" : "OFF";
-            button.Background = new ColoredPlane { Color = next ? ColorToggleOn : ColorToggleOff };
-        };
-
-        return button;
+        var checkbox = new Checkbox(context, "", isOn);
+        checkbox.OnCheckedChanged = box => property.SetValue(settings, box.Checked);
+        return checkbox;
     }
 
-    private static Label CreateValueLabel(UIContext context, VisualizerSettings settings, PropertyInfo property)
+    private static NumericInput CreateNumericInput(UIContext context, VisualizerSettings settings, PropertyInfo property)
     {
-        return new Label(context, property.GetValue(settings)?.ToString() ?? "(none)")
+        var isInt = property.PropertyType == typeof(int);
+        var current = Convert.ToDouble(property.GetValue(settings));
+        var (min, max, step) = NumericRangeFor(property.Name);
+
+        var input = new NumericInput(context, current)
         {
-            FontSizePx = 16f,
-            Color = ColorMuted
+            Width = 140f,
+            Height = 32f,
+            FontSizePx = 14f,
+            Min = min,
+            Max = max,
+            Step = step,
+            Filter = isInt ? TextInputFilter.Integer : TextInputFilter.Decimal,
+            BorderRadius = 6f,
+            Background = new ColoredPlane { Color = ColorInputBackground }
         };
+
+        input.OnValueChanged = _ =>
+        {
+            if (input.Value is not { } value) return;
+            property.SetValue(settings, isInt ? (int)Math.Round(value) : (float)value);
+        };
+
+        return input;
+    }
+
+    private static (double Min, double Max, double Step) NumericRangeFor(string propertyName) => propertyName switch
+    {
+        nameof(VisualizerSettings.EventSize) => (16, 256, 1),
+        nameof(VisualizerSettings.EventMargin) => (0, 128, 1),
+        nameof(VisualizerSettings.LineAmount) => (1, 64, 1),
+        nameof(VisualizerSettings.ScrollSpeed) => (0.1, 100, 0.5),
+        _ => (double.MinValue, double.MaxValue, 1)
+    };
+
+    private static TextInput CreateTextInput(UIContext context, VisualizerSettings settings, PropertyInfo property)
+    {
+        var current = property.GetValue(settings) as string ?? "";
+        var input = new TextInput(context, current)
+        {
+            Width = 220f,
+            FontSizePx = 14f,
+            BorderRadius = 6f,
+            Background = new ColoredPlane { Color = ColorInputBackground }
+        };
+
+        input.OnValueChanged = i => property.SetValue(settings, i.Value);
+        return input;
     }
 
     private static string FormatPropertyName(string name)

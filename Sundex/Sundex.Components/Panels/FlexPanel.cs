@@ -62,19 +62,24 @@ public class FlexPanel(UIContext context) : Panel(context)
             child.ParentAssignedHeight = null;
         }
 
-        base.DoLayout();
-
         var count = Children.Count;
 
         var inner_width = Computed.Width - 2 * Padding;
         var inner_height = Computed.Height - 2 * Padding;
 
-        if (count < 1) return;
+        // Placement runs before base.DoLayout()'s own child.Layout() pass: that pass would
+        // otherwise be the first layout a percent-sized child sees, with ParentAssignedHeight
+        // still null — a stateful child (e.g. ScrollView clamping its scroll offset against
+        // its own Computed.Height) would corrupt itself against that wrong, too-large size.
+        if (count >= 1)
+        {
+            if (Direction == LayoutDirection.Horizontal)
+                Layout_Horizontal(count, inner_width, inner_height);
+            else
+                Layout_Vertical(count, inner_height, inner_width);
+        }
 
-        if (Direction == LayoutDirection.Horizontal)
-            Layout_Horizontal(count, inner_width, inner_height);
-        else
-            Layout_Vertical(count, inner_height, inner_width);
+        base.DoLayout();
     }
 
     public override (float width, float height) Measure(float parentWidth, float parentHeight)

@@ -30,6 +30,8 @@
     <EmbeddedResource Include="UI\Select Sounds\SelectSounds.snx.xml"/>
     <None Remove="UI\WaitingForSequence.snx.xml"/>
     <EmbeddedResource Include="UI\WaitingForSequence.snx.xml"/>
+    <None Remove="UI\WaitingForSequence.snx.csx"/>
+    <EmbeddedResource Include="UI\WaitingForSequence.snx.csx"/>
   </ItemGroup>
 
 </Project>

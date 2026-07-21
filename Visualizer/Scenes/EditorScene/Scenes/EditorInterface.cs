@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using EditorScene.Scenes.Components;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
@@ -23,6 +24,8 @@ public class EditorInterface
 {
     private const float HeaderHeight = 32;
     private const float TrackColumnWidth = 260;
+    private const long BackupIntervalMs = 5 * 60_000;
+    private static readonly string BackupDirectory = Path.Combine(AppContext.BaseDirectory, "Editor Backups");
 
     // Subtle-filled look for code-built buttons (the "+ Add track" row and the track
     // column's transport controls). Code-built children never receive the stylesheet
@@ -65,6 +68,7 @@ public class EditorInterface
     private readonly ThirtyDollarWorkflow _workflow;
 
     private readonly string _defaultTitle;
+    private readonly Stopwatch _sinceBackup = Stopwatch.StartNew();
 
     private bool _editorOpen;
 
@@ -593,6 +597,23 @@ public class EditorInterface
         }
     }
 
+    /// <summary>Timestamped snapshot next to the executable — doesn't touch ProjectPath/Dirty,
+    /// so it's invisible to the normal save flow (only Update's timer drives it).</summary>
+    private void WriteBackup()
+    {
+        try
+        {
+            Directory.CreateDirectory(BackupDirectory);
+            var name = string.Concat(State.Project.Info.Name.Split(Path.GetInvalidFileNameChars()));
+            var fileName = $"{name}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.tdwproj";
+            File.WriteAllText(Path.Combine(BackupDirectory, fileName), ProjectFile.Save(State.Project));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to write backup: {e.Message}");
+        }
+    }
+
     /// <summary>Back button / Escape: leaves directly when clean, otherwise asks first.</summary>
     public void RequestBack()
     {
@@ -768,6 +789,12 @@ public class EditorInterface
     {
         Playback.Update();
         _workflow.AtlasStore.Update(); // animated sound icons advance their frames here
+
+        if (State.Dirty && _sinceBackup.ElapsedMilliseconds >= BackupIntervalMs)
+        {
+            WriteBackup();
+            _sinceBackup.Restart();
+        }
 
         if (Playback.HasSession)
         {

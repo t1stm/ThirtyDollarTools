@@ -1,3 +1,4 @@
+using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
@@ -17,7 +18,12 @@ namespace Sundex.Components.File_Selector;
 /// </summary>
 public sealed class FileSelection : Panel
 {
+    private static readonly Vector4 InputColor = new(0.15f, 0.16f, 0.21f, 1f);
+    private static readonly Vector4 ConfirmColor = new(0.30f, 0.42f, 0.80f, 1f);
+    private static readonly Vector4 CancelColor = new(0.2f, 0.204f, 0.29f, 1f);
+
     private readonly Label _currentPathLabel;
+    private readonly FlexPanel _topSection;
     private readonly FlexPanel _filesSection;
     private readonly TextInput? _nameInput;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -33,7 +39,7 @@ public sealed class FileSelection : Panel
     {
         ExtensionFilter = extensionFilter;
 
-        var top_section = new FlexPanel(context)
+        _topSection = new FlexPanel(context)
         {
             Direction = LayoutDirection.Horizontal,
             Width = LiteralOrComputable.Percent(100),
@@ -83,7 +89,9 @@ public sealed class FileSelection : Panel
             _nameInput = new TextInput(context, saveFileName)
             {
                 Width = 220,
-                FontSizePx = 14
+                FontSizePx = 14,
+                BorderRadius = 4,
+                Background = new ColoredPlane { Color = InputColor }
             };
 
         var bottom_section = new FlexPanel(context)
@@ -92,7 +100,6 @@ public sealed class FileSelection : Panel
             Height = 44,
             Direction = LayoutDirection.Horizontal,
             VerticalAlign = Align.Center,
-            HorizontalAlign = Align.End,
             Padding = 5,
             Spacing = 10,
             Background = new ColoredPlane
@@ -101,17 +108,20 @@ public sealed class FileSelection : Panel
             }
         };
         if (_nameInput != null) bottom_section.AddChild(_nameInput);
-        bottom_section.AddChild(new Button(Context, "Select")
+        // Percent-width spacer soaks up the free space so the name input sits flush left
+        // and the actions flush right — this framework has no space-between align.
+        bottom_section.AddChild(new Panel(context) { Width = LiteralOrComputable.Percent(100) });
+        bottom_section.AddChild(new Button(Context, "Cancel", new ColoredPlane { Color = CancelColor })
         {
             FontSizePx = 14,
-            UpdateCursorOnHover = true,
-            OnClick = _ => OnSelect?.Invoke(this)
-        });
-        bottom_section.AddChild(new Button(Context, "Cancel")
-        {
-            FontSizePx = 14,
-            UpdateCursorOnHover = true,
+            BorderRadius = 6,
             OnClick = _ => OnCancel?.Invoke(this)
+        });
+        bottom_section.AddChild(new Button(Context, "Select", new ColoredPlane { Color = ConfirmColor })
+        {
+            FontSizePx = 14,
+            BorderRadius = 6,
+            OnClick = _ => OnSelect?.Invoke(this)
         });
 
         var main_layout = new FlexPanel(context)
@@ -125,7 +135,7 @@ public sealed class FileSelection : Panel
             {
                 Color = (0.2f, 0.2f, 0.2f, 1.0f)
             },
-            Children = [top_section, files_scroll, bottom_section]
+            Children = [_topSection, files_scroll, bottom_section]
         };
 
         AddChild(main_layout);
@@ -245,5 +255,16 @@ public sealed class FileSelection : Panel
         _semaphore.Wait();
         _semaphore.Release();
         // renders children only
+    }
+
+    protected override void DoLayout()
+    {
+        base.DoLayout();
+
+        // A long CurrentPath auto-sizes past the header's bounds otherwise (Labels don't
+        // wrap/truncate) — clip it to the header like ScrollView/TextInput self-clip.
+        var x = (int)_topSection.Computed.AbsoluteX;
+        var y = (int)_topSection.Computed.AbsoluteY;
+        _topSection.ApplyClip(new Vector4i(x, y, x + (int)_topSection.Computed.Width, y + (int)_topSection.Computed.Height));
     }
 }

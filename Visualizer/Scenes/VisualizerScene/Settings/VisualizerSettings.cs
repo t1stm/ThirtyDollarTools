@@ -50,12 +50,6 @@ public class VisualizerSettings(Action modifiedCallback)
         set => SetAndCallModified(out field, value);
     } = 7.5f;
 
-    public string Mode
-    {
-        get;
-        set => SetAndCallModified(out field, value);
-    } = "Visualizer";
-
     public bool UseVsync
     {
         get;

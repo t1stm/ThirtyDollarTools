@@ -1,19 +1,41 @@
 <sundex version="1.0">
+  <logic language="csharp" src="UI/WaitingForSequence.snx.csx" imports="[DrumMasterScene]"/>
+
   <layout>
-    <flex id="message-container">
-      <label id="message" value="Drag and drop sequences to start!"/>
-    </flex>
+    <panel id="message-container">
+      <button id="back-button">
+        <label value="Back"/>
+      </button>
+      <label id="message" value="Drag and drop a Thirty Dollar Website sequence to start!"/>
+    </panel>
   </layout>
   <style language="sundex">
     id message-container {
     width = 100%;
-    height = auto;
-    horizontal-align = "center";
-    vertical-align = "center";
+    height = 100%;
+    }
+
+    id back-button {
+    x = 24;
+    y = 24;
+    width = 100;
+    height = 40;
+    background = "#6b82c4";
+    border-radius = 8;
+
+    state[hovered] = {
+        background = "#8599d4";
+    }
+
+    state[pressed] = {
+        background = "#4c78a8";
+    }
     }
 
     id message {
-    top = 50%;
+    x = 50%;
+    y = 50%;
+    anchor-x = "center";
     anchor-y = "center";
     font-size = 24;
     font-color = "#ffffff";
