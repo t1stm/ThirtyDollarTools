@@ -76,6 +76,15 @@ public class EditorState
         return track;
     }
 
+    /// <summary>Duplicates a track under the given name, deep-copied so editing the copy never reaches the source.</summary>
+    public ProjectTrack DuplicateTrack(ProjectTrack track, string name)
+    {
+        var copy = Project.DuplicateTrack(track, name);
+        SelectTrack(copy);
+        Touch();
+        return copy;
+    }
+
     public bool RemoveTrack(ProjectTrack track)
     {
         if (!Project.RemoveTrack(track)) return false;

@@ -46,6 +46,24 @@ public class Note
     /// </summary>
     public AudioKeyframeManager? Automation { get; set; }
 
+    /// <summary>
+    ///     Deep copy: Automation is cloned so editing one note's keyframes can't reach the
+    ///     other. Instrument stays referenced (shared project resource, not owned by the note).
+    /// </summary>
+    public Note Duplicate()
+    {
+        return new Note
+        {
+            Step = Step,
+            Instrument = Instrument,
+            Value = Value,
+            Volume = Volume,
+            Pan = Pan,
+            Offset = Offset,
+            Automation = Automation?.Clone()
+        };
+    }
+
     /// <summary>One event per instrument sound, layered on this note's step. Empty instrument -> none.</summary>
     internal IEnumerable<BaseEvent> ToEvents()
     {

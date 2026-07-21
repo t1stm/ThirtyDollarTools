@@ -1,5 +1,6 @@
 using EditorScene.Scenes.Components;
 using OpenTK.Mathematics;
+using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Tests;
 
@@ -23,5 +24,20 @@ public class EditorTrackTests
 
         Assert.Same(track, state.OpenedTrack);
         Assert.Equal([track], state.Project.Tracks); // the × button was not hit
+    }
+
+    [Fact]
+    public void RightClickOnARow_FiresOnContextMenu_WithThatTrack()
+    {
+        var ctx = new EditorTestContext();
+        var state = new EditorState();
+        var track = state.AddTrack();
+        ProjectTrack? seen = null;
+        var row = new EditorTrack(ctx, track, state) { Width = 200, OnContextMenu = t => seen = t };
+        row.Layout();
+
+        ctx.UpdatePointer(row, 195, 30, true, false, false, Vector2.Zero, true);
+
+        Assert.Same(track, seen);
     }
 }

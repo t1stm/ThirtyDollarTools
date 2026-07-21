@@ -50,4 +50,20 @@ public class TrackSegment
     {
         return Bars * Numerator * StepsPerBeat * StepMinutes(trackBpm);
     }
+
+    /// <summary>Deep copy: notes are duplicated too, so editing one segment can't reach the other.</summary>
+    public TrackSegment Duplicate()
+    {
+        var copy = new TrackSegment
+        {
+            Numerator = Numerator,
+            Denominator = Denominator,
+            BPM = BPM,
+            Bars = Bars,
+            StepsPerBeat = StepsPerBeat
+        };
+        foreach (var note in Notes)
+            copy.Notes.Add(note.Duplicate());
+        return copy;
+    }
 }

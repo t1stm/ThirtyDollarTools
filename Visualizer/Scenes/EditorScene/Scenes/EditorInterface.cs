@@ -690,6 +690,32 @@ public class EditorInterface
         return modal;
     }
 
+    /// <summary>
+    ///     Guards <see cref="ShowTrackContextMenu" /> against reopening on every held frame —
+    ///     right-press is level-triggered, so a stationary right-click keeps firing.
+    /// </summary>
+    private ModalLayer? _trackContextMenuModal;
+
+    private void ShowTrackContextMenu(ProjectTrack track)
+    {
+        if (_trackContextMenuModal != null) return;
+
+        var menu = new TrackContextMenu(_context, $"{track.Name} copy");
+        var modal = ShowModal(menu);
+        _trackContextMenuModal = modal;
+        modal.OnDismissRequested = m =>
+        {
+            RootPanel.RemoveChild(m);
+            _trackContextMenuModal = null;
+        };
+        menu.CancelButton.OnClick = _ => modal.OnDismissRequested!(modal);
+        menu.DuplicateButton.OnClick = _ =>
+        {
+            State.DuplicateTrack(track, menu.NameInput.Value);
+            modal.OnDismissRequested!(modal);
+        };
+    }
+
     /// <summary>Open (null name) or save-as (suggested name) dialog for one extension.</summary>
     private void ShowFileDialog(string? saveFileName, string extension, Action<string> onPicked)
     {
@@ -750,7 +776,7 @@ public class EditorInterface
         foreach (var row in _trackList.Children.OfType<EditorTrack>().ToArray())
             _trackList.RemoveChild(row);
         foreach (var track in State.Project.Tracks)
-            _trackList.AddChild(new EditorTrack(_context, track, State));
+            _trackList.AddChild(new EditorTrack(_context, track, State) { OnContextMenu = ShowTrackContextMenu });
         _trackList.AddChild(_addTrackRow);
 
         _arrangement.Refresh();

@@ -37,6 +37,26 @@ public class ProjectTrack(TimingInfo timing, int id)
         return _segments.Count > 1 && _segments.Remove(segment);
     }
 
+    /// <summary>
+    ///     Deep copy for track duplication: fresh segments/notes/automations, so editing the
+    ///     copy can never reach the source. Placements aren't copied — a duplicated pattern
+    ///     starts unplaced, like any newly added track.
+    /// </summary>
+    internal ProjectTrack Duplicate(int id, string name)
+    {
+        var copy = new ProjectTrack(Timing, id) { Name = name };
+        copy._segments.Clear();
+        foreach (var segment in _segments)
+            copy._segments.Add(segment.Duplicate());
+        foreach (var automation in _trackAutomations)
+            copy._trackAutomations.Add(new TrackAutomation
+            {
+                Keyframes = automation.Keyframes.Clone(),
+                Sounds = automation.Sounds?.ToList()
+            });
+        return copy;
+    }
+
     public TrackAutomation AddTrackAutomation(AudioKeyframeManager keyframes, List<string>? sounds = null)
     {
         var automation = new TrackAutomation { Keyframes = keyframes, Sounds = sounds };

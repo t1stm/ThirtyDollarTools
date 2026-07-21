@@ -44,6 +44,14 @@ public class ThirtyDollarProject
         return track;
     }
 
+    /// <summary>Duplicates a track under a fresh id, with all its segments/notes/automations deep-copied.</summary>
+    public ProjectTrack DuplicateTrack(ProjectTrack track, string name)
+    {
+        var copy = track.Duplicate(++_tracks, name);
+        _projectTracks.Add(copy);
+        return copy;
+    }
+
     public bool RemoveTrack(ProjectTrack track)
     {
         if (!_projectTracks.Remove(track)) return false;

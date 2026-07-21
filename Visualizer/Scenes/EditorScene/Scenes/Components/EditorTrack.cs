@@ -60,10 +60,24 @@ public sealed class EditorTrack : FlexPanel
 
     public ProjectTrack Track { get; }
 
+    /// <summary>Fired on right-click; EditorInterface shows the track's context menu.</summary>
+    public Action<ProjectTrack>? OnContextMenu { get; set; }
+
     /// <summary>Double-clicking a row opens the pattern, same as double-clicking a clip.</summary>
     public override bool HandleDoublePress(float x, float y)
     {
         _state.OpenTrack(Track);
+        return true;
+    }
+
+    /// <summary>
+    ///     Right-click opens the context menu (duplicate, for now). Right-press is
+    ///     level-triggered (fires every held frame) — EditorInterface guards against
+    ///     reopening while one is already up.
+    /// </summary>
+    public override bool HandleRightPress(float x, float y)
+    {
+        OnContextMenu?.Invoke(Track);
         return true;
     }
 
