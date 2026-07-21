@@ -155,6 +155,22 @@ public class EditorState
         return true;
     }
 
+    /// <summary>
+    ///     Deletes the instrument outright: every note using it, in every track, is removed
+    ///     first so <see cref="RemoveInstrument" />'s reference guard never refuses. Used by
+    ///     the explicit "delete instrument" action (after user confirmation), as opposed to
+    ///     <see cref="RemoveInstrument" />'s safe default.
+    /// </summary>
+    public void DeleteInstrumentEverywhere(Instrument instrument)
+    {
+        foreach (var segment in Project.Tracks.SelectMany(track => track.Segments))
+            segment.Notes.RemoveAll(note => note.Instrument == instrument);
+
+        if (SelectedNote?.Instrument == instrument) SelectNote(null);
+
+        RemoveInstrument(instrument);
+    }
+
     public void MoveNote(TrackSegment from, TrackSegment to, Note note, int step, double value)
     {
         if (from == to && note.Step == step && note.Value == value) return;

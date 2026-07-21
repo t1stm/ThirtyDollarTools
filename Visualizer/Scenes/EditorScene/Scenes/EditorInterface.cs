@@ -241,6 +241,28 @@ public class EditorInterface
             RootPanel.RemoveChild(_instrumentSelectorModal);
             OpenInstrumentEditor();
         };
+        _instrumentSelector.OnDelete = instrument =>
+        {
+            // Both are ModalLayers pinned to the same top z-index, so they'd collide -
+            // close the selector while the confirm dialog is up, reopening it after.
+            RootPanel.RemoveChild(_instrumentSelectorModal);
+
+            var dialog = new ConfirmDialog(context, $"Delete \"{instrument.Name}\"?\n" +
+                                                     "This removes it from every note that uses it.");
+            var modal = ShowModal(dialog);
+            dialog.CancelButton.OnClick = _ =>
+            {
+                RootPanel.RemoveChild(modal);
+                RootPanel.AddChild(_instrumentSelectorModal);
+            };
+            dialog.ConfirmButton.OnClick = _ =>
+            {
+                State.DeleteInstrumentEverywhere(instrument);
+                RootPanel.RemoveChild(modal);
+                _instrumentSelector.Fill(State.Project.Instruments);
+                RootPanel.AddChild(_instrumentSelectorModal);
+            };
+        };
 
         _instrumentEditor = new InstrumentEditor(context, workflow.AtlasStore);
         _instrumentEditorModal = new ModalLayer(context);

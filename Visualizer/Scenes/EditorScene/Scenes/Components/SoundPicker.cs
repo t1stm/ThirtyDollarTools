@@ -97,6 +97,11 @@ public sealed class SoundPicker : FlexPanel
 
     public HashSet<string> Selected { get; } = [];
 
+    /// <summary>Fired whenever <see cref="Selected" /> changes — from <see cref="SetSelected" />
+    /// or from toggling an icon. Multi-select consumers use this to react to the current
+    /// selection (e.g. showing a hint only while something is selected).</summary>
+    public Action? OnSelectionChanged { get; set; }
+
     public bool HasSounds => _selectedGrid.Children.Count > 0 || _availableGrid.Children.Count > 0;
 
     /// <summary>
@@ -129,6 +134,7 @@ public sealed class SoundPicker : FlexPanel
         }
 
         RefreshSections();
+        OnSelectionChanged?.Invoke();
     }
 
     /// <summary>Reseeds <see cref="Adjustments" /> and refreshes every icon's readout — call
@@ -310,6 +316,7 @@ public sealed class SoundPicker : FlexPanel
                 }
 
                 picker.RefreshSections();
+                picker.OnSelectionChanged?.Invoke();
             };
         }
 

@@ -62,6 +62,9 @@ public sealed class InstrumentSelector : FlexPanel
     /// <summary>Fired when a row's "Edit" button is used.</summary>
     public Action<Instrument>? OnEdit { get; set; }
 
+    /// <summary>Fired when a row's "Delete" button is used.</summary>
+    public Action<Instrument>? OnDelete { get; set; }
+
     /// <summary>Fired when "+ New instrument" is clicked.</summary>
     public Action? OnNew { get; set; }
 
@@ -71,7 +74,7 @@ public sealed class InstrumentSelector : FlexPanel
         foreach (var child in _list.Children.ToArray()) _list.RemoveChild(child);
         foreach (var instrument in instruments)
             _list.AddChild(new InstrumentRow(Context, instrument,
-                i => OnPick?.Invoke(i), i => OnEdit?.Invoke(i)));
+                i => OnPick?.Invoke(i), i => OnEdit?.Invoke(i), i => OnDelete?.Invoke(i)));
         _list.AddChild(_newRow);
     }
 }

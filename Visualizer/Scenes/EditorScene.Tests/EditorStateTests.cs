@@ -373,6 +373,37 @@ public class EditorStateTests
     }
 
     [Fact]
+    public void DeleteInstrumentEverywhere_RemovesReferencingNotesThenTheInstrument()
+    {
+        var state = new EditorState();
+        var instrument = state.AddInstrument("Layer");
+        var other = state.AddInstrument("Other");
+        var track = state.AddTrack();
+        var note = state.AddNote(track.Segments[0], 0, instrument, 0);
+        var otherNote = state.AddNote(track.Segments[0], 1, other, 0);
+
+        state.DeleteInstrumentEverywhere(instrument);
+
+        Assert.DoesNotContain(instrument, state.Project.Instruments);
+        Assert.DoesNotContain(note, track.Segments[0].Notes);
+        Assert.Contains(otherNote, track.Segments[0].Notes);
+    }
+
+    [Fact]
+    public void DeleteInstrumentEverywhere_ClearsSelectedNote_WhenItUsedTheDeletedInstrument()
+    {
+        var state = new EditorState();
+        var instrument = state.AddInstrument("Layer");
+        var track = state.AddTrack();
+        var note = state.AddNote(track.Segments[0], 0, instrument, 0);
+        state.SelectNote(note);
+
+        state.DeleteInstrumentEverywhere(instrument);
+
+        Assert.Null(state.SelectedNote);
+    }
+
+    [Fact]
     public void NewProject_ReplacesEverything()
     {
         var state = new EditorState();
