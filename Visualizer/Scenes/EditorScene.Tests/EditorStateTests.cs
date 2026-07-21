@@ -462,4 +462,250 @@ public class EditorStateTests
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public void Undo_AddNote_RemovesIt_AndRedo_RestoresIt()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+
+        var note = state.AddNote(segment, 4, boom, -3);
+        Assert.True(state.CanUndo);
+
+        state.Undo();
+        Assert.Empty(segment.Notes);
+        Assert.False(state.CanUndo);
+        Assert.True(state.CanRedo);
+
+        state.Redo();
+        Assert.Equal([note], segment.Notes);
+        Assert.True(state.CanUndo);
+        Assert.False(state.CanRedo);
+    }
+
+    [Fact]
+    public void Undo_RemoveNote_RestoresTheSameInstance_WithItsFieldsIntact()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(segment, 4, boom, -3);
+        note.Volume = 42;
+        note.Pan = 10;
+
+        Assert.True(state.RemoveNote(segment, note));
+        Assert.Empty(segment.Notes);
+
+        state.Undo();
+        var restored = Assert.Single(segment.Notes);
+        Assert.Same(note, restored);
+        Assert.Equal(42, restored.Volume);
+        Assert.Equal(10, restored.Pan);
+    }
+
+    [Fact]
+    public void Undo_MoveNoteDrag_CollapsesTheWholeGesture_IntoOneStep()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(segment, 0, boom, 0);
+
+        state.BeginGesture();
+        state.MoveNote(segment, segment, note, 1, 0);
+        state.MoveNote(segment, segment, note, 2, 0);
+        state.MoveNote(segment, segment, note, 3, 0);
+
+        state.Undo(); // undoes the whole drag, not just the last frame
+        Assert.Equal(0, note.Step);
+
+        state.Redo();
+        Assert.Equal(3, note.Step); // jumps straight to the final dragged position
+    }
+
+    [Fact]
+    public void MoveNote_ANewGesture_DoesNotMergeWithThePriorDrag()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(segment, 0, boom, 0);
+
+        state.BeginGesture();
+        state.MoveNote(segment, segment, note, 1, 0);
+
+        state.BeginGesture(); // a second, separate drag on the same note
+        state.MoveNote(segment, segment, note, 2, 0);
+
+        state.Undo();
+        Assert.Equal(1, note.Step); // only the second drag undone
+        state.Undo();
+        Assert.Equal(0, note.Step); // then the first
+    }
+
+    [Fact]
+    public void Undo_MovePlacementDrag_CollapsesTheWholeGesture_IntoOneStep()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 0, 0);
+
+        state.BeginGesture();
+        state.MovePlacement(placement, 1, 4);
+        state.MovePlacement(placement, 2, 8);
+
+        state.Undo();
+        Assert.Equal(0, placement.Channel);
+        Assert.Equal(0, placement.StartQuarterNotes);
+
+        state.Redo();
+        Assert.Equal(2, placement.Channel);
+        Assert.Equal(8, placement.StartQuarterNotes);
+    }
+
+    [Fact]
+    public void Undo_RemovePlacement_RestoresTheSameInstance()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 2, 8);
+
+        Assert.True(state.RemovePlacement(placement));
+        Assert.Empty(state.Project.Placements);
+
+        state.Undo();
+        Assert.Same(placement, Assert.Single(state.Project.Placements));
+    }
+
+    [Fact]
+    public void Undo_PlaceTrack_RemovesIt_AndRedoRestoresTheSameInstance()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 2, 8);
+
+        state.Undo();
+        Assert.Empty(state.Project.Placements);
+
+        state.Redo();
+        Assert.Same(placement, Assert.Single(state.Project.Placements));
+    }
+
+    [Fact]
+    public void NewAction_AfterUndo_ClearsTheRedoStack()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+
+        state.AddNote(segment, 0, boom, 0);
+        state.Undo();
+        Assert.True(state.CanRedo);
+
+        state.AddNote(segment, 1, boom, 0);
+        Assert.False(state.CanRedo);
+    }
+
+    [Fact]
+    public void NewProject_ClearsUndoHistory()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 0, 0);
+        Assert.True(state.CanUndo);
+
+        state.NewProject();
+        Assert.False(state.CanUndo);
+        Assert.False(state.CanRedo);
+    }
+
+    [Fact]
+    public void LoadProject_ClearsUndoHistory()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 0, 0);
+        var json = state.SaveProject();
+        Assert.True(state.CanUndo);
+
+        state.LoadProject(json);
+        Assert.False(state.CanUndo);
+        Assert.False(state.CanRedo);
+    }
+
+    [Fact]
+    public void Undo_WithEmptyStack_DoesNothing()
+    {
+        var state = new EditorState();
+        state.Undo();
+        state.Redo();
+        Assert.False(state.CanUndo);
+        Assert.False(state.CanRedo);
+    }
+
+    [Fact]
+    public void SelectingANote_CopiesItsModifiers_AndTheNextPlacementInheritsThem()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var source = state.AddNote(segment, 0, boom, 5);
+        source.Volume = 42;
+        source.Pan = -10;
+        source.Offset = 0.5;
+        var automation = new AudioKeyframeManager();
+        source.Automation = automation;
+
+        state.SelectNote(source);
+
+        var placed = state.AddNote(segment, 4, boom, 99); // a different pitch value
+        Assert.Equal(99, placed.Value); // value is never copied
+        Assert.Equal(42, placed.Volume);
+        Assert.Equal(-10, placed.Pan);
+        Assert.Equal(0.5, placed.Offset);
+        Assert.Same(automation, placed.Automation);
+    }
+
+    [Fact]
+    public void ClosingTheNoteEditor_ClearsTheCopiedModifiers()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var source = state.AddNote(segment, 0, boom, 0);
+        source.Volume = 42;
+
+        state.OpenTrack(track);
+        state.SelectNote(source);
+        Assert.Same(source, state.CopiedModifiers);
+
+        state.CloseTrack();
+        Assert.Null(state.CopiedModifiers);
+
+        var placed = state.AddNote(segment, 1, boom, 0);
+        Assert.Null(placed.Volume);
+    }
+
+    [Fact]
+    public void WithoutASelectedNote_NewNotesGetNoModifiers()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+
+        var note = state.AddNote(segment, 0, boom, 0);
+        Assert.Null(note.Volume);
+        Assert.Equal(0, note.Pan);
+        Assert.Equal(0, note.Offset);
+        Assert.Null(note.Automation);
+    }
 }

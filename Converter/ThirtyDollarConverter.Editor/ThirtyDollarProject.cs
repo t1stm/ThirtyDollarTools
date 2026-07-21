@@ -110,6 +110,12 @@ public class ThirtyDollarProject
         return _placements.Remove(placement);
     }
 
+    /// <summary>Re-adds a placement removed earlier (e.g. by undo), preserving its identity.</summary>
+    public void AddPlacement(TrackPlacement placement)
+    {
+        _placements.Add(placement);
+    }
+
     /// <summary>Where a clip starts in absolute time: quarter notes at the root BPM.</summary>
     internal double StartMinutes(TrackPlacement placement)
     {

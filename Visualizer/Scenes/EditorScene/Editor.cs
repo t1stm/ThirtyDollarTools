@@ -137,6 +137,17 @@ public class Editor : Scene
             else _editorInterface.RequestBack();
             return;
         }
+        if (e.Key == Keys.Z && e.Modifiers.HasFlag(KeyModifiers.Control))
+        {
+            if (e.Modifiers.HasFlag(KeyModifiers.Shift)) _editorInterface.State.Redo();
+            else _editorInterface.State.Undo();
+            return;
+        }
+        if (e.Key == Keys.Y && e.Modifiers.HasFlag(KeyModifiers.Control))
+        {
+            _editorInterface.State.Redo();
+            return;
+        }
         if (e.Key != Keys.Space) return;
         
         if (e.Modifiers.HasFlag(KeyModifiers.Shift)) _editorInterface.Playback.Restart();

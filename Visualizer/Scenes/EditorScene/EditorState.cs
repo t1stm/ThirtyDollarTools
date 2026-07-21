@@ -35,6 +35,12 @@ public class EditorState
     private readonly HashSet<int> _muted = [];
     private readonly HashSet<int> _soloed = [];
 
+    private readonly List<EditorCommand> _undoStack = [];
+    private readonly List<EditorCommand> _redoStack = [];
+    private int _gestureId;
+
+    private record EditorCommand(Action Undo, Action Redo, int GestureId, object? Subject);
+
     public ThirtyDollarProject Project { get; private set; } = new();
     public ProjectTrack? SelectedTrack { get; private set; }
     public TrackPlacement? SelectedPlacement { get; private set; }
@@ -48,8 +54,17 @@ public class EditorState
     /// <summary>The instrument a click in the note editor places. Session-only, never saved.</summary>
     public Instrument? ActiveInstrument { get; set; }
 
+    /// <summary>
+    ///     Modifiers (volume/pan/offset/automation, never value) copied from the last-clicked
+    ///     note; new notes placed afterwards inherit them. Cleared when the note editor closes.
+    /// </summary>
+    public Note? CopiedModifiers { get; private set; }
+
     public bool Dirty { get; private set; }
     public bool IsCurrentlyPlayingAudio { get; set; }
+
+    public bool CanUndo => _undoStack.Count > 0;
+    public bool CanRedo => _redoStack.Count > 0;
 
     /// <summary>Where the project lives on disk; null until first saved or loaded from a file.</summary>
     public string? ProjectPath { get; private set; }
@@ -88,6 +103,7 @@ public class EditorState
         OpenedTrack = null;
         SelectSegment(null);
         SelectNote(null);
+        CopiedModifiers = null;
         OnOpenedTrackChanged?.Invoke(null);
     }
 
@@ -102,13 +118,26 @@ public class EditorState
     {
         if (SelectedNote == note) return;
         SelectedNote = note;
+        if (note != null) CopiedModifiers = note;
         OnNoteSelectionChanged?.Invoke(note);
     }
 
     public Note AddNote(TrackSegment segment, int step, Instrument instrument, double value)
     {
-        var note = new Note { Step = step, Instrument = instrument, Value = value };
+        var note = new Note
+        {
+            Step = step,
+            Instrument = instrument,
+            Value = value,
+            Volume = CopiedModifiers?.Volume,
+            Pan = CopiedModifiers?.Pan ?? 0,
+            Offset = CopiedModifiers?.Offset ?? 0,
+            Automation = CopiedModifiers?.Automation
+        };
         segment.Notes.Add(note);
+        Push(
+            undo: () => segment.Notes.Remove(note),
+            redo: () => segment.Notes.Add(note));
         Touch();
         return note;
     }
@@ -174,6 +203,8 @@ public class EditorState
     public void MoveNote(TrackSegment from, TrackSegment to, Note note, int step, double value)
     {
         if (from == to && note.Step == step && note.Value == value) return;
+        var (prevSegment, prevStep, prevValue) = (from, note.Step, note.Value);
+
         if (from != to)
         {
             from.Notes.Remove(note);
@@ -182,6 +213,30 @@ public class EditorState
 
         note.Step = step;
         note.Value = value;
+
+        PushOrMergeMove(note,
+            undo: () =>
+            {
+                if (to != prevSegment)
+                {
+                    to.Notes.Remove(note);
+                    prevSegment.Notes.Add(note);
+                }
+
+                note.Step = prevStep;
+                note.Value = prevValue;
+            },
+            redo: () =>
+            {
+                if (prevSegment != to)
+                {
+                    prevSegment.Notes.Remove(note);
+                    to.Notes.Add(note);
+                }
+
+                note.Step = step;
+                note.Value = value;
+            });
         Touch();
     }
 
@@ -189,6 +244,9 @@ public class EditorState
     {
         if (!segment.Notes.Remove(note)) return false;
         if (SelectedNote == note) SelectNote(null);
+        Push(
+            undo: () => segment.Notes.Add(note),
+            redo: () => segment.Notes.Remove(note));
         Touch();
         return true;
     }
@@ -213,6 +271,9 @@ public class EditorState
     public TrackPlacement PlaceTrack(ProjectTrack track, int channel, double startQuarterNotes)
     {
         var placement = Project.Place(track, channel, startQuarterNotes);
+        Push(
+            undo: () => Project.RemovePlacement(placement),
+            redo: () => Project.AddPlacement(placement));
         Touch();
         return placement;
     }
@@ -220,8 +281,22 @@ public class EditorState
     public void MovePlacement(TrackPlacement placement, int channel, double startQuarterNotes)
     {
         if (placement.Channel == channel && placement.StartQuarterNotes == startQuarterNotes) return;
+        var (prevChannel, prevStart) = (placement.Channel, placement.StartQuarterNotes);
+
         placement.Channel = channel;
         placement.StartQuarterNotes = startQuarterNotes;
+
+        PushOrMergeMove(placement,
+            undo: () =>
+            {
+                placement.Channel = prevChannel;
+                placement.StartQuarterNotes = prevStart;
+            },
+            redo: () =>
+            {
+                placement.Channel = channel;
+                placement.StartQuarterNotes = startQuarterNotes;
+            });
         Touch();
     }
 
@@ -229,6 +304,9 @@ public class EditorState
     {
         if (!Project.RemovePlacement(placement)) return false;
         if (SelectedPlacement == placement) SelectPlacement(null);
+        Push(
+            undo: () => Project.AddPlacement(placement),
+            redo: () => Project.RemovePlacement(placement));
         Touch();
         return true;
     }
@@ -343,6 +421,56 @@ public class EditorState
         ProjectPath = path;
     }
 
+    /// <summary>Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement
+    /// calls on the same object (one drag, many frames) collapses into a single undo step.</summary>
+    public void BeginGesture()
+    {
+        _gestureId++;
+    }
+
+    public void Undo()
+    {
+        if (_undoStack.Count == 0) return;
+        var command = _undoStack[^1];
+        _undoStack.RemoveAt(_undoStack.Count - 1);
+        command.Undo();
+        _redoStack.Add(command);
+        SelectNote(null);
+        SelectPlacement(null);
+        Touch();
+    }
+
+    public void Redo()
+    {
+        if (_redoStack.Count == 0) return;
+        var command = _redoStack[^1];
+        _redoStack.RemoveAt(_redoStack.Count - 1);
+        command.Redo();
+        _undoStack.Add(command);
+        SelectNote(null);
+        SelectPlacement(null);
+        Touch();
+    }
+
+    private void Push(Action undo, Action redo)
+    {
+        _undoStack.Add(new EditorCommand(undo, redo, -1, null));
+        _redoStack.Clear();
+    }
+
+    /// <summary>Appends a new undo entry, or merges into the previous one if it's the same
+    /// gesture (see <see cref="BeginGesture" />) moving the same object.</summary>
+    private void PushOrMergeMove(object subject, Action undo, Action redo)
+    {
+        if (_undoStack.Count > 0 && _undoStack[^1].GestureId == _gestureId &&
+            ReferenceEquals(_undoStack[^1].Subject, subject))
+            _undoStack[^1] = _undoStack[^1] with { Redo = redo };
+        else
+            _undoStack.Add(new EditorCommand(undo, redo, _gestureId, subject));
+
+        _redoStack.Clear();
+    }
+
     private void Replace(ThirtyDollarProject project)
     {
         Project = project;
@@ -350,6 +478,8 @@ public class EditorState
         ProjectPath = null;
         _muted.Clear();
         _soloed.Clear();
+        _undoStack.Clear();
+        _redoStack.Clear();
         ActiveInstrument = null;
         CloseTrack();
         SelectTrack(null);

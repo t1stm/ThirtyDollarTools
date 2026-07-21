@@ -860,6 +860,7 @@ public sealed class TrackEditorView : Panel
         {
             if (Note == null || Segment == null) return false;
             _view._dragging = this;
+            _view._state.BeginGesture();
             _view._state.SelectSegment(Segment);
             _view._state.SelectNote(Note);
             return true;

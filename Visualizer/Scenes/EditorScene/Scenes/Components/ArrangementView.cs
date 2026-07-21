@@ -360,6 +360,7 @@ public sealed class ArrangementView : Panel
         public override bool HandlePress(float x, float y)
         {
             _view._dragging = this;
+            _view._state.BeginGesture();
             _grabOffsetQuarters = (x - Computed.AbsoluteX) / _view.PixelsPerQuarter;
             _view._state.SelectPlacement(Placement);
             _view._state.SelectTrack(Placement.Track);
