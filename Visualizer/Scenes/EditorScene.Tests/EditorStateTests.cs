@@ -670,7 +670,8 @@ public class EditorStateTests
         Assert.Equal(42, placed.Volume);
         Assert.Equal(-10, placed.Pan);
         Assert.Equal(0.5, placed.Offset);
-        Assert.Same(automation, placed.Automation);
+        Assert.NotSame(automation, placed.Automation); // cloned: editing one note's automation must not affect the other
+        Assert.NotNull(placed.Automation);
     }
 
     [Fact]

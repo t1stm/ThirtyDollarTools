@@ -32,6 +32,27 @@ public class AudioKeyframeManager
     public List<AudioKeyframe> Keyframes { get; } = [];
 
     /// <summary>
+    ///     Deep copy: keyframes are mutable and edited in place by the inspector, so sharing
+    ///     the list (or its entries) between notes would let editing one note's automation
+    ///     change another's.
+    /// </summary>
+    public AudioKeyframeManager Clone()
+    {
+        var clone = new AudioKeyframeManager { Timing = Timing, Repeats = Repeats };
+        foreach (var keyframe in Keyframes)
+            clone.Keyframes.Add(new AudioKeyframe
+            {
+                Gap = keyframe.Gap,
+                Cut = keyframe.Cut,
+                Value = keyframe.Value,
+                Volume = keyframe.Volume,
+                Pan = keyframe.Pan,
+                Offset = keyframe.Offset
+            });
+        return clone;
+    }
+
+    /// <summary>
     ///     Generates the automation events for one note placed at <paramref name="noteMinutes" />,
     ///     flattened to the sound events each generated step actually plays (one per instrument
     ///     sound). A cut keyframe emits an individual cut immediately before its note, at the

@@ -132,7 +132,7 @@ public class EditorState
             Volume = CopiedModifiers?.Volume,
             Pan = CopiedModifiers?.Pan ?? 0,
             Offset = CopiedModifiers?.Offset ?? 0,
-            Automation = CopiedModifiers?.Automation
+            Automation = CopiedModifiers?.Automation?.Clone()
         };
         segment.Notes.Add(note);
         Push(

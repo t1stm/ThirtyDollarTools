@@ -237,4 +237,20 @@ public class AudioKeyframeTests
         Assert.Equal([0, 12, 7, 19],
             events.Where(e => e.SoundEvent == "harp").Select(e => e.Value));
     }
+
+    [Fact]
+    public void Clone_IsIndependentOfTheOriginal()
+    {
+        var original = new AudioKeyframeManager { Timing = KeyframeTiming.Time, Repeats = 2 };
+        original.Keyframes.Add(new AudioKeyframe { Gap = 1, Value = new Modifier(12) });
+
+        var clone = original.Clone();
+        clone.Repeats = 5;
+        clone.Keyframes[0].Gap = 99;
+        clone.Keyframes.Add(new AudioKeyframe { Gap = 2 });
+
+        Assert.Equal(2, original.Repeats);
+        Assert.Single(original.Keyframes);
+        Assert.Equal(1, original.Keyframes[0].Gap);
+    }
 }
