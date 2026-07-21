@@ -33,6 +33,13 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
             _children = value;
             SetChildrenParent();
             InvalidateLayout();
+
+            // Mirrors AddChild: replacing the list on an already-live panel must queue
+            // the new children's renderables too, or they're hit-testable but invisible
+            // until something else happens to re-run DrawTo on the tree.
+            if (Drawn)
+                foreach (var child in _children)
+                    child.DrawTo(Context);
         }
     }
 
