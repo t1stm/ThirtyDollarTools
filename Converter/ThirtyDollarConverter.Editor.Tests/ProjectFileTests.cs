@@ -15,6 +15,7 @@ public class ProjectFileTests
         project.Info.Name = "Test Song";
         project.Info.Author = "Kris";
         project.RootTiming.BPM = 140;
+        project.Transpose = 1.5f;
 
         var drums = project.NewTrack(); // shares RootTiming
         drums.Name = "Drums";
@@ -28,6 +29,8 @@ public class ProjectFileTests
         var slow = drums.NewSegment();
         slow.BPM = 60;
         slow.Bars = 2;
+
+        drums.Transpose = -0.4f;
 
         var kickEcho = new AudioKeyframeManager();
         kickEcho.Keyframes.Add(new AudioKeyframe { Gap = 2, Value = new Modifier(3) });
@@ -60,9 +63,11 @@ public class ProjectFileTests
 
         Assert.Equal("Test Song", loaded.Info.Name);
         Assert.Equal(140, loaded.RootTiming.BPM);
+        Assert.Equal(1.5f, loaded.Transpose);
 
         var drums = loaded.Tracks[0];
         Assert.Equal("Drums", drums.Name);
+        Assert.Equal(-0.4f, drums.Transpose);
         Assert.Equal(7, drums.Segments[0].Numerator);
         Assert.Equal(60, drums.Segments[1].BPM);
         Assert.Equal(2, drums.Segments[1].Bars);
@@ -198,5 +203,39 @@ public class ProjectFileTests
         var loaded = ProjectFile.Load(legacy);
 
         Assert.Empty(loaded.Tracks[0].TrackAutomations);
+    }
+
+    [Fact]
+    public void LegacyFile_WithoutTranspose_LoadsAsProjectDefaultAndInheritingTrack()
+    {
+        // Files from before this feature have no "transpose" key at either level.
+        const string legacy = """
+                              {
+                                "info": { "name": "Old" },
+                                "rootTiming": { "bpm": 120, "numerator": 4, "denominator": 4 },
+                                "tracks": [
+                                  { "id": 1, "name": "A", "segments": [] }
+                                ]
+                              }
+                              """;
+
+        var loaded = ProjectFile.Load(legacy);
+
+        Assert.Equal(0, loaded.Transpose);
+        Assert.Null(loaded.Tracks[0].Transpose);
+    }
+
+    [Fact]
+    public void TrackTranspose_NullVsExplicitZero_RoundTripDifferently()
+    {
+        var project = new ThirtyDollarProject { Transpose = 3 };
+        project.NewTrack(); // Transpose left null -> inherits
+        var overridden = project.NewTrack();
+        overridden.Transpose = 0; // explicit "no shift"
+
+        var loaded = ProjectFile.Load(ProjectFile.Save(project));
+
+        Assert.Null(loaded.Tracks[0].Transpose);
+        Assert.Equal(0f, loaded.Tracks[1].Transpose);
     }
 }

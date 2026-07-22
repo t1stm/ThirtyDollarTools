@@ -49,7 +49,8 @@ public static class ProjectFile
                     ? null
                     : track.TrackAutomations.Select(automation => new TrackAutomationDto(
                         SaveAutomation(automation.Keyframes)!,
-                        automation.Sounds)).ToList()
+                        automation.Sounds)).ToList(),
+                track.Transpose
             )).ToList(),
             project.Instruments.Select(instrument => new InstrumentDto(
                 instrument.Id,
@@ -62,7 +63,8 @@ public static class ProjectFile
             project.Placements.Select(placement => new PlacementDto(
                 placement.Track.Id,
                 placement.Channel,
-                placement.StartQuarterNotes)).ToList());
+                placement.StartQuarterNotes)).ToList(),
+            project.Transpose == 0 ? null : project.Transpose);
 
         return JsonSerializer.Serialize(dto, Options);
     }
@@ -75,7 +77,8 @@ public static class ProjectFile
         var project = new ThirtyDollarProject
         {
             Info = dto.Info,
-            RootTiming = dto.RootTiming
+            RootTiming = dto.RootTiming,
+            Transpose = dto.Transpose ?? 0
         };
 
         var instruments_by_id = new Dictionary<int, Instrument>();
@@ -97,6 +100,7 @@ public static class ProjectFile
         {
             var track = project.AddTrack(track_dto.Id, track_dto.Timing);
             track.Name = track_dto.Name;
+            track.Transpose = track_dto.Transpose;
 
             var segments = track_dto.Segments ?? [];
             for (var i = 0; i < segments.Count; i++)
@@ -200,7 +204,9 @@ public static class ProjectFile
         // instead of an InstrumentId, and Load migrates them (see Load).
         List<InstrumentDto>? Instruments = null,
         // Null (missing key) marks a pre-arrangement file — see Load.
-        List<PlacementDto>? Placements = null);
+        List<PlacementDto>? Placements = null,
+        // Null (missing key) = 0 — files from before the feature stay valid.
+        float? Transpose = null);
 
     private record InstrumentDto(int Id, string Name, List<string> Sounds,
         // Null (missing key) = no sound has a value/volume/pan adjustment.
@@ -216,7 +222,9 @@ public static class ProjectFile
         TimingInfo? Timing,
         List<SegmentDto> Segments,
         // Null (missing key) = no track-wide automation.
-        List<TrackAutomationDto>? TrackAutomations = null);
+        List<TrackAutomationDto>? TrackAutomations = null,
+        // Null (missing key or explicit) = inherits the project-wide transpose.
+        float? Transpose = null);
 
     private record TrackAutomationDto(AutomationDto Automation, List<string>? Sounds);
 

@@ -11,6 +11,14 @@ public class ProjectTrack(TimingInfo timing, int id)
     public TimingInfo Timing { get; set; } = timing;
 
     /// <summary>
+    ///     Track-wide pitch shift in semitones, applied to every note (and its generated
+    ///     automation) at playback/export time without mutating the notes themselves.
+    ///     Null (the default) inherits <see cref="ThirtyDollarProject.Transpose" /> instead
+    ///     of overriding it.
+    /// </summary>
+    public float? Transpose { get; set; }
+
+    /// <summary>
     ///     The consecutive timing regions of this track, laid out back to back.
     ///     A track always holds at least one segment.
     /// </summary>
@@ -44,7 +52,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     /// </summary>
     internal ProjectTrack Duplicate(int id, string name)
     {
-        var copy = new ProjectTrack(Timing, id) { Name = name };
+        var copy = new ProjectTrack(Timing, id) { Name = name, Transpose = Transpose };
         copy._segments.Clear();
         foreach (var segment in _segments)
             copy._segments.Add(segment.Duplicate());
@@ -161,8 +169,10 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     to instrument sounds) with its absolute time. Segments inherit the track's BPM;
     ///     their own time signature and resolution set the local step length.
     /// </summary>
-    internal IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0)
+    internal IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0,
+        float projectTranspose = 0)
     {
+        var transpose = Transpose ?? projectTranspose;
         var offset = startMinutes;
         foreach (var segment in _segments)
         {
@@ -170,17 +180,30 @@ public class ProjectTrack(TimingInfo timing, int id)
             foreach (var note in segment.Notes)
             {
                 var minutes = offset + note.Step * step_minutes;
-                foreach (var ev in note.ToEvents())
+                var transposed = transpose == 0
+                    ? note
+                    : new Note
+                    {
+                        Step = note.Step,
+                        Instrument = note.Instrument,
+                        Value = note.Value + transpose,
+                        Volume = note.Volume,
+                        Pan = note.Pan,
+                        Offset = note.Offset,
+                        Automation = note.Automation
+                    };
+
+                foreach (var ev in transposed.ToEvents())
                     yield return (minutes, ev);
 
-                if (note.Automation is not null)
-                    foreach (var generated in note.Automation.Expand(note, minutes, step_minutes))
+                if (transposed.Automation is not null)
+                    foreach (var generated in transposed.Automation.Expand(transposed, minutes, step_minutes))
                         yield return generated;
 
                 foreach (var automation in _trackAutomations)
                 {
                     if (automation.Sounds is { } sounds && !note.Instrument.Sounds.Any(sounds.Contains)) continue;
-                    foreach (var generated in automation.Keyframes.Expand(note, minutes, step_minutes))
+                    foreach (var generated in automation.Keyframes.Expand(transposed, minutes, step_minutes))
                         yield return generated;
                 }
             }

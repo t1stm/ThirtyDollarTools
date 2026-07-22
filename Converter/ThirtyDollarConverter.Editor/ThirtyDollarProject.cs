@@ -16,6 +16,12 @@ public class ThirtyDollarProject
     };
 
     public TimingInfo RootTiming { get; set; } = new();
+
+    /// <summary>
+    ///     Project-wide pitch shift in semitones. Falls back for any track whose own
+    ///     <see cref="ProjectTrack.Transpose" /> is null.
+    /// </summary>
+    public float Transpose { get; set; }
     public IReadOnlyList<ProjectTrack> Tracks => _projectTracks;
     public IReadOnlyList<Instrument> Instruments => _instruments;
 
@@ -156,7 +162,7 @@ public class ThirtyDollarProject
     private Sequence BuildSequence(List<TrackPlacement> placements, SequenceStyle? style)
     {
         var timed = placements
-            .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement)))
+            .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement), Transpose))
             .ToArray();
         var bar_times = placements.Count > 0
             ? placements[0].Track.BarTimes(style, StartMinutes(placements[0]))

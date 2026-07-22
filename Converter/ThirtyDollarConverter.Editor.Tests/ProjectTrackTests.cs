@@ -185,4 +185,21 @@ public class ProjectTrackTests
         // Both automations fire independently from the same base note.
         Assert.Equal(["!speed", "boom", "!stop", "boom", "!stop", "boom"], events.Select(e => e.SoundEvent));
     }
+
+    [Fact]
+    public void Transpose_ShiftsEveryGeneratedEventsValue_WithoutMutatingTheNote()
+    {
+        var track = MakeTrack();
+        var note = new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5 };
+        note.Automation = new AudioKeyframeManager();
+        note.Automation.Keyframes.Add(new AudioKeyframe { Gap = 2 }); // echo at step 2, same pitch
+        track.Segments[0].Notes.Add(note);
+        track.Transpose = -0.4f;
+
+        var events = track.ToSequence().Events;
+
+        Assert.Equal(4.6, events[1].Value, 5); // base note
+        Assert.Equal(4.6, events[3].Value, 5); // its echo, also shifted
+        Assert.Equal(5, note.Value); // the stored note is untouched
+    }
 }

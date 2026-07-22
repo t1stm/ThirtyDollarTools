@@ -116,6 +116,9 @@ public sealed class InspectorPanel : Panel
                 v => _state.Edit(() => _state.Project.Info.Description = NullIfEmpty(v)));
             NumberRow("BPM", () => _state.Project.RootTiming.BPM,
                 v => _state.Project.RootTiming.BPM = (float)v!.Value, 1, 9999);
+            NumberRow("Transpose", () => (double?)_state.Project.Transpose,
+                v => _state.Project.Transpose = (float)v!.Value,
+                -TrackEditorView.MaxValue, TrackEditorView.MaxValue, 0.1);
 
             if (_state.SelectedTrack is { } track)
             {
@@ -165,6 +168,9 @@ public sealed class InspectorPanel : Panel
     private void TrackAutomationSection(ProjectTrack track)
     {
         Header("Track Automation");
+
+        NumberRow("Transpose", () => (double?)track.Transpose, v => track.Transpose = (float?)v,
+            -TrackEditorView.MaxValue, TrackEditorView.MaxValue, 0.1, allowNull: true);
 
         for (var i = 0; i < track.TrackAutomations.Count; i++)
         {

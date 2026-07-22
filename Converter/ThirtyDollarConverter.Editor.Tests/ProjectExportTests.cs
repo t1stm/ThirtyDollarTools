@@ -256,4 +256,31 @@ public class ProjectExportTests
 
         Assert.Contains("boom", project.ToSequence().UsedSounds);
     }
+
+    [Fact]
+    public void TrackWithNullTranspose_InheritsTheProjectWideTranspose()
+    {
+        var project = new ThirtyDollarProject { Transpose = 2 };
+        var track = project.NewTrack();
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5 });
+        project.Place(track, 0, 0);
+
+        var ev = project.ToSequence().Events[1];
+
+        Assert.Equal(7, ev.Value);
+    }
+
+    [Fact]
+    public void TrackWithOwnTranspose_OverridesTheProjectWideTranspose_EvenWhenZero()
+    {
+        var project = new ThirtyDollarProject { Transpose = 2 };
+        var track = project.NewTrack();
+        track.Transpose = 0; // explicit "no shift", not "unset"
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5 });
+        project.Place(track, 0, 0);
+
+        var ev = project.ToSequence().Events[1];
+
+        Assert.Equal(5, ev.Value);
+    }
 }
