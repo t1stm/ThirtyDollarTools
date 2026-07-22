@@ -605,6 +605,13 @@ public class PcmEncoder
 
         var volume = event_volume;
 
+        if (pan != 0 && _settings.PanScale == PercentageScale.EqualPower)
+        {
+            RenderEqualPowerPan(processed_event, channel, pan, volume, current_channel, mix_slice,
+                delta_start, delta_end, offset, invert);
+            return;
+        }
+
         // when panning is used, subtracts the channel opposite to what the value represents
         // if it's -1 (left channel only), subtracts the right channel and vice versa
         switch (pan)
@@ -638,6 +645,55 @@ public class PcmEncoder
 
         RenderSample(current_channel, mix_slice, delta_start,
             volume, _settings.VolumeScale, delta_end, offset, invert);
+    }
+
+    /// <summary>
+    ///     Applies panning using the same equal-power curve as the Web Audio API's StereoPannerNode,
+    ///     which the Thirty Dollar Website relies on. Mono and stereo sources use different formulas:
+    ///     a mono source is split into L/R, while a stereo source gets the opposite channel downmixed
+    ///     into the panned-to side instead of just attenuated (a well-known StereoPannerNode quirk).
+    /// </summary>
+    private void RenderEqualPowerPan(ProcessedEvent processed_event, int channel, float pan, double volume,
+        Span<float> own_channel, Span<float> mix_slice, int delta_start, int delta_end, int offset, bool invert)
+    {
+        var x = pan / 100f;
+        var stereo_source = processed_event.AudioData.SourceChannels >= 2 && _settings.Channels >= 2;
+
+        if (!stereo_source)
+        {
+            var angle = (x + 1f) * MathF.PI / 4f;
+            var gain = channel == 0 ? MathF.Cos(angle) : MathF.Sin(angle);
+            RenderSample(own_channel, mix_slice, delta_start, volume * gain, _settings.VolumeScale, delta_end,
+                offset, invert);
+            return;
+        }
+
+        var half_angle = (x <= 0 ? x + 1f : x) * MathF.PI / 2f;
+        var cos = MathF.Cos(half_angle);
+        var sin = MathF.Sin(half_angle);
+
+        if (x <= 0)
+        {
+            var own_gain = channel == 0 ? 1f : sin;
+            RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
+                offset, invert);
+
+            if (channel != 0) return;
+            var right_channel = processed_event.AudioData.GetChannel(1);
+            RenderSample(right_channel, mix_slice, delta_start, volume * cos, _settings.VolumeScale, delta_end,
+                offset, invert);
+        }
+        else
+        {
+            var own_gain = channel == 1 ? 1f : cos;
+            RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
+                offset, invert);
+
+            if (channel != 1) return;
+            var left_channel = processed_event.AudioData.GetChannel(0);
+            RenderSample(left_channel, mix_slice, delta_start, volume * sin, _settings.VolumeScale, delta_end,
+                offset, invert);
+        }
     }
 
     private void HandleCut(int start, int end, int currentStart, Span<float> mixSlice)

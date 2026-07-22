@@ -42,7 +42,7 @@ public class EncoderSettings
     ///     Determines how the percentage-based pan adjustments are calculated,
     ///     affecting the balance between the left and right audio channels.
     /// </summary>
-    public PercentageScale PanScale = PercentageScale.Linear;
+    public PercentageScale PanScale = PercentageScale.EqualPower;
 
     /// <summary>
     ///     Select the resampler you want to use.

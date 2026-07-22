@@ -50,7 +50,10 @@ public class SampleProcessor
                 throw new NullReferenceException(
                     $"Sample data is null for event: \"{ev}\", Samples Count is: {_samples.Count}");
 
-            var audioData = new AudioData<float>(_settings.Channels);
+            var audioData = new AudioData<float>(_settings.Channels)
+            {
+                SourceChannels = value.Channels
+            };
 
             for (var i = 0; i < _settings.Channels; i++)
                 audioData.Samples[i] = Resampler.Resample(sampleData.GetChannel(i), value.SampleRate,

@@ -12,9 +12,17 @@ public class AudioData<T> : IDisposable
     public readonly uint ChannelCount;
     public T[][] Samples;
 
+    /// <summary>
+    ///     The channel count of the original, undecoded source (e.g. a mono .wav upmixed to
+    ///     <see cref="ChannelCount" /> channels still reports 1 here). Defaults to
+    ///     <see cref="ChannelCount" /> for buffers that aren't decoded from a source file.
+    /// </summary>
+    public uint SourceChannels;
+
     public AudioData(uint channelCount)
     {
         ChannelCount = channelCount;
+        SourceChannels = channelCount;
         Samples = new T[ChannelCount][];
     }
 
