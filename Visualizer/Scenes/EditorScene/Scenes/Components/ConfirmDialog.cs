@@ -19,14 +19,14 @@ public sealed class ConfirmDialog : FlexPanel
         Width = 360;
         Padding = 14;
         Spacing = 14;
-        Background = new ColoredPlane { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) };
+        Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         ConfirmButton = new Button(context, "Delete",
-            new ColoredPlane { Color = new Vector4(0.969f, 0.463f, 0.557f, 1f) })
+            new ColoredPlane { Color = EditorPalette.DangerAccent })
         {
             FontSizePx = 14,
             BorderRadius = 6,
-            Label = { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) }
+            Label = { Color = EditorPalette.Panel }
         };
         CancelButton = new Button(context, "Cancel") { FontSizePx = 14 };
 

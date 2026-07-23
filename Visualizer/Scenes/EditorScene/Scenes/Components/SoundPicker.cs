@@ -26,9 +26,9 @@ public sealed class SoundPicker : FlexPanel
     private const string AnimatedShaderLocation = "Assets/Shaders/Playfield/Chunk/Animated";
     private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
     private const float SoundElementSize = 40f;
-    private static readonly Vector4 HeaderColor = new(0.478f, 0.635f, 0.968f, 1f); // #7aa2f7
-    private static readonly Vector4 DividerColor = new(0.2f, 0.204f, 0.29f, 1f); // #33344a
-    private static readonly Vector4 BlandColor = new(0.337f, 0.373f, 0.537f, 1f); // #565f89
+    private static readonly Vector4 HeaderColor = EditorPalette.Header;
+    private static readonly Vector4 DividerColor = EditorPalette.Divider;
+    private static readonly Vector4 BlandColor = EditorPalette.TextMuted;
 
     private readonly AtlasStore _store;
     private readonly Label _selectedHeader;

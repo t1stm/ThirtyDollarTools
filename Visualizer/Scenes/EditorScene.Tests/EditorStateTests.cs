@@ -16,7 +16,7 @@ public class EditorStateTests
     {
         var state = new EditorState();
         var changed = 0;
-        state.OnProjectChanged = () => changed++;
+        state.OnProjectChanged += () => changed++;
 
         var track = state.AddTrack();
 
@@ -33,7 +33,7 @@ public class EditorStateTests
         state.SelectTrack(track);
 
         ProjectTrack? selected = track;
-        state.OnSelectionChanged = t => selected = t;
+        state.OnSelectionChanged += t => selected = t;
 
         Assert.True(state.RemoveTrack(track));
         Assert.Null(state.SelectedTrack);
@@ -63,7 +63,7 @@ public class EditorStateTests
         var track = state.AddTrack();
         state.SaveProject(); // clears dirty
         var fired = 0;
-        state.OnProjectChanged = () => fired++;
+        state.OnProjectChanged += () => fired++;
 
         state.Edit(() => track.Segments[0].Bars = 3);
 
@@ -82,7 +82,7 @@ public class EditorStateTests
         // Same value: no dirty, no event.
         state.SaveProject();
         var fired = 0;
-        state.OnProjectChanged = () => fired++;
+        state.OnProjectChanged += () => fired++;
         state.SetTrackFollowsRootTiming(track, true);
         Assert.False(state.Dirty);
         Assert.Equal(0, fired);
@@ -112,7 +112,7 @@ public class EditorStateTests
         var state = new EditorState();
         var track = state.AddTrack();
         var fired = 0;
-        state.OnSelectionChanged = _ => fired++;
+        state.OnSelectionChanged += _ => fired++;
 
         state.SelectTrack(track);
         state.SelectTrack(track);
@@ -149,7 +149,7 @@ public class EditorStateTests
         state.SaveProject(); // clears dirty
 
         var changed = 0;
-        state.OnProjectChanged = () => changed++;
+        state.OnProjectChanged += () => changed++;
 
         var placement = state.PlaceTrack(track, 2, 8);
         Assert.Equal([placement], state.Project.Placements);
@@ -189,7 +189,7 @@ public class EditorStateTests
     {
         var state = new EditorState();
         var fired = 0;
-        state.OnChannelsChanged = () => fired++;
+        state.OnChannelsChanged += () => fired++;
 
         Assert.True(state.IsChannelAudible(0));
 
@@ -234,7 +234,7 @@ public class EditorStateTests
         state.AddNote(track.Segments[0], 3, boom, 5);
 
         ProjectTrack? opened = null;
-        state.OnOpenedTrackChanged = t => opened = t;
+        state.OnOpenedTrackChanged += t => opened = t;
 
         state.OpenTrack(track);
         Assert.Same(track, state.OpenedTrack);
@@ -258,7 +258,7 @@ public class EditorStateTests
         state.SaveProject(); // clears dirty
 
         var changed = 0;
-        state.OnProjectChanged = () => changed++;
+        state.OnProjectChanged += () => changed++;
 
         var note = state.AddNote(segment, 4, boom, -3);
         Assert.Equal([note], segment.Notes);
@@ -335,7 +335,7 @@ public class EditorStateTests
         state.SaveProject(); // clears dirty
 
         var changed = 0;
-        state.OnInstrumentsChanged = () => changed++;
+        state.OnInstrumentsChanged += () => changed++;
 
         var instrument = state.AddInstrument("Layer");
         Assert.Equal([instrument], state.Project.Instruments);
@@ -409,7 +409,7 @@ public class EditorStateTests
         var state = new EditorState();
         state.SelectTrack(state.AddTrack());
         var changed = 0;
-        state.OnProjectChanged = () => changed++;
+        state.OnProjectChanged += () => changed++;
 
         state.NewProject();
 
@@ -580,6 +580,81 @@ public class EditorStateTests
 
         state.Undo();
         Assert.Same(placement, Assert.Single(state.Project.Placements));
+    }
+
+    [Fact]
+    public void Undo_RemoveTrack_RestoresTheSameInstance_AtItsOriginalIndex()
+    {
+        var state = new EditorState();
+        var first = state.AddTrack();
+        var track = state.AddTrack();
+        var third = state.AddTrack();
+
+        Assert.True(state.RemoveTrack(track));
+        Assert.Equal([first, third], state.Project.Tracks);
+
+        state.Undo();
+        Assert.Equal([first, track, third], state.Project.Tracks);
+
+        state.Redo();
+        Assert.Equal([first, third], state.Project.Tracks);
+    }
+
+    [Fact]
+    public void Undo_RemoveTrack_RestoresItsCascadedPlacements()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 0, 0);
+
+        Assert.True(state.RemoveTrack(track));
+        Assert.Empty(state.Project.Placements);
+
+        state.Undo();
+        Assert.Same(placement, Assert.Single(state.Project.Placements));
+    }
+
+    [Fact]
+    public void Undo_RemoveSegment_RestoresTheSameInstance_AtItsOriginalIndex()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var first = track.Segments[0];
+        var segment = state.AddSegment(track);
+        var third = state.AddSegment(track);
+
+        Assert.True(state.RemoveSegment(track, segment));
+        Assert.Equal([first, third], track.Segments);
+
+        state.Undo();
+        Assert.Equal([first, segment, third], track.Segments);
+
+        state.Redo();
+        Assert.Equal([first, third], track.Segments);
+    }
+
+    [Fact]
+    public void Undo_DeleteInstrumentEverywhere_RestoresTheInstrumentAndEveryRemovedNote()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var kept = MakeInstrument(state, "kept");
+        var note = state.AddNote(segment, 0, boom, 0);
+        var other = state.AddNote(segment, 1, kept, 0);
+
+        state.DeleteInstrumentEverywhere(boom);
+        Assert.DoesNotContain(boom, state.Project.Instruments);
+        Assert.Equal([other], segment.Notes);
+
+        state.Undo();
+        Assert.Contains(boom, state.Project.Instruments);
+        Assert.Equal([note, other], segment.Notes);
+
+        state.Redo();
+        Assert.DoesNotContain(boom, state.Project.Instruments);
+        Assert.Equal([other], segment.Notes);
     }
 
     [Fact]

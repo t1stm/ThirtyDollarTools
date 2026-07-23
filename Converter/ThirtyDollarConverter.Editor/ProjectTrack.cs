@@ -45,6 +45,12 @@ public class ProjectTrack(TimingInfo timing, int id)
         return _segments.Count > 1 && _segments.Remove(segment);
     }
 
+    /// <summary>Re-inserts a segment removed earlier (e.g. by undo), preserving its identity and position.</summary>
+    public void AddSegment(TrackSegment segment, int index)
+    {
+        _segments.Insert(Math.Clamp(index, 0, _segments.Count), segment);
+    }
+
     /// <summary>
     ///     Deep copy for track duplication: fresh segments/notes/automations, so editing the
     ///     copy can never reach the source. Placements aren't copied — a duplicated pattern

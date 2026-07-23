@@ -15,9 +15,9 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class InstrumentRow : FlexPanel
 {
-    private static readonly Vector4 RowColor = new(0.086f, 0.086f, 0.118f, 1f); // #16161e
-    private static readonly Vector4 LightColor = new(0.478f, 0.635f, 0.968f, 1f); // #7aa2f7, the app's light accent
-    private static readonly Vector4 DeleteColor = new(0.969f, 0.463f, 0.557f, 1f); // #f7768e, same red as LaneHeader's mute indicator
+    private static readonly Vector4 RowColor = EditorPalette.Panel;
+    private static readonly Vector4 LightColor = EditorPalette.Header; // the app's light accent
+    private static readonly Vector4 DeleteColor = EditorPalette.DangerAccent; // same red as LaneHeader's mute indicator
 
     public InstrumentRow(UIContext context, Instrument instrument, Action<Instrument> onPick,
         Action<Instrument> onEdit, Action<Instrument> onDelete) : base(context)

@@ -25,12 +25,12 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class TrackEditorView : Panel
 {
-    public const int MaxValue = 60; // the TDW default value range
-    public const int Rows = MaxValue * 2 + 1;
-    public const float GutterWidth = 44f;
-    public const float StripHeight = 22f;
-    public const float RulerHeight = 18f;
-    public const float GridTop = StripHeight + RulerHeight;
+    public const int MaxValue = TrackEditorGeometry.MaxValue;
+    public const int Rows = TrackEditorGeometry.Rows;
+    public const float GutterWidth = TrackEditorGeometry.GutterWidth;
+    public const float StripHeight = TrackEditorGeometry.StripHeight;
+    public const float RulerHeight = TrackEditorGeometry.RulerHeight;
+    public const float GridTop = TrackEditorGeometry.GridTop;
 
     // ponytail: fixed pools sized for a ~3k px window at minimum zoom (4 px/step) and
     // BMS-dense charts (~10 notes per visible step at default zoom). If a chart still
@@ -55,23 +55,23 @@ public sealed class TrackEditorView : Panel
     private const float MinBeatLabelSpacingPx = 28f;
 
     private static readonly Vector4 BackgroundColor = new(0.067f, 0.07f, 0.1f, 1f); // #11121a
-    private static readonly Vector4 GutterColor = new(0.086f, 0.086f, 0.118f, 1f); // #16161e
-    private static readonly Vector4 StripColor = new(0.086f, 0.086f, 0.118f, 1f);
-    private static readonly Vector4 StripSegmentA = new(0.16f, 0.18f, 0.26f, 1f); // #292e42
-    private static readonly Vector4 StripSegmentB = new(0.21f, 0.23f, 0.33f, 1f);
-    private static readonly Vector4 StripSelected = new(0.30f, 0.42f, 0.80f, 1f); // #4c6bcc
+    private static readonly Vector4 GutterColor = EditorPalette.Panel;
+    private static readonly Vector4 StripColor = EditorPalette.Panel;
+    internal static readonly Vector4 StripSegmentA = EditorPalette.Surface;
+    private static readonly Vector4 StripSegmentB = EditorPalette.SurfaceRaised;
+    private static readonly Vector4 StripSelected = EditorPalette.Accent;
     private static readonly Vector4 StepLineColor = new(0.11f, 0.12f, 0.17f, 1f);
-    private static readonly Vector4 BeatLineColor = new(0.16f, 0.18f, 0.26f, 1f);
+    private static readonly Vector4 BeatLineColor = EditorPalette.Surface;
     private static readonly Vector4 RowLineColor = new(0.10f, 0.11f, 0.15f, 1f);
     private static readonly Vector4 OctaveLineColor = new(0.20f, 0.22f, 0.31f, 1f);
-    private static readonly Vector4 BoundaryColor = new(0.34f, 0.37f, 0.54f, 1f); // #565f89
+    private static readonly Vector4 BoundaryColor = EditorPalette.TextMuted;
     private static readonly Vector4 ZeroRowColor = new(0.10f, 0.11f, 0.16f, 1f);
-    private static readonly Vector4 SelectedNoteColor = new(0.61f, 0.75f, 1f, 1f); // #9bc0ff
-    private static readonly Vector4 LabelColor = new(0.66f, 0.7f, 0.86f, 1f);
-    private static readonly Vector4 PlayheadColor = new(0.75f, 0.79f, 0.96f, 1f); // #c0caf5
+    private static readonly Vector4 SelectedNoteColor = EditorPalette.SelectionHighlight;
+    private static readonly Vector4 LabelColor = EditorPalette.TextDim;
+    private static readonly Vector4 PlayheadColor = EditorPalette.Playhead;
 
     // Stable per-sound colors (string.GetHashCode is randomized per process).
-    private static readonly Vector4[] SoundPalette =
+    internal static readonly Vector4[] SoundPalette =
     [
         new(0.30f, 0.42f, 0.80f, 1f), // blue
         new(0.62f, 0.36f, 0.71f, 1f), // purple
@@ -83,12 +83,14 @@ public sealed class TrackEditorView : Panel
         new(0.48f, 0.44f, 0.78f, 1f) // violet
     ];
 
-    internal readonly List<Panel> AutomationMarks = [];
+    private readonly AutomationPath _automationPath;
     private readonly List<NoteBlock> _noteBlocks = [];
     private readonly LineBatch _lineBatch = new();
-    private readonly EditorState _state;
+    internal readonly EditorState _state;
+    private readonly TrackEditorGeometry _geometry = new();
     private readonly List<StripBlock> _stripBlocks = [];
     internal readonly List<Label> BeatLabels = [];
+    internal IReadOnlyList<Panel> AutomationMarks => _automationPath.Marks;
     private readonly List<Label> _gutterLabels = [];
     private readonly List<Panel> _playheads = [];
     private readonly List<float> _playheadXs = [];
@@ -97,13 +99,9 @@ public sealed class TrackEditorView : Panel
     private readonly Panel _stripBackground;
     private readonly Panel _rulerBackground;
 
-    private NoteBlock? _dragging;
+    internal NoteBlock? _dragging;
     private (TrackSegment segment, Note note)? _placing;
     private Vector4i? _inheritedClip;
-    private float _rowHeight = 8f;
-    private float _scrollX;
-    private float _scrollY;
-    private bool _centerPending = true; // a fresh view (and every OpenTrack) starts centered on value 0
     private Vector2? _panPointer;
 
     public TrackEditorView(UIContext context, EditorState state) : base(context)
@@ -121,12 +119,7 @@ public sealed class TrackEditorView : Panel
         AddChild(_zeroRow);
 
         // Automation paths render under the note blocks and never take input.
-        for (var i = 0; i < AutomationMarkPool; i++)
-        {
-            var mark = NewGhost(context, StepLineColor);
-            AutomationMarks.Add(mark);
-            AddChild(mark);
-        }
+        _automationPath = new AutomationPath(context, this, AutomationMarkPool, StepLineColor);
 
         for (var i = 0; i < NoteBlockPool; i++)
         {
@@ -180,7 +173,11 @@ public sealed class TrackEditorView : Panel
     }
 
     /// <summary>Horizontal zoom: pixels per grid step. Ctrl+wheel adjusts it (4–128).</summary>
-    public float PixelsPerStep { get; set; } = 64f;
+    public float PixelsPerStep
+    {
+        get => _geometry.PixelsPerStep;
+        set => _geometry.PixelsPerStep = value;
+    }
 
     /// <summary>
     ///     Minimum height of one value row. Small viewports scroll vertically instead of
@@ -228,33 +225,33 @@ public sealed class TrackEditorView : Panel
         var track = _state.OpenedTrack;
         var width = Computed.Width;
         var height = Computed.Height;
-        _rowHeight = Math.Max(RowHeight, (height - GridTop) / Rows);
-        // Stays pending until the user scrolls: flex parents lay this view out more
-        // than once per frame with different heights, and only the last one counts.
-        if (_centerPending) _scrollY = (Rows * _rowHeight - (height - GridTop)) / 2;
+        _geometry.SetViewport(width, height, RowHeight);
+        _geometry.ClampScroll();
 
-        ClampScroll();
         var pps = PixelsPerStep;
-        var visibleStart = _scrollX;
-        var visibleEnd = _scrollX + Math.Max(0, width - GutterWidth);
+        var scrollX = _geometry.ScrollX;
+        var scrollY = _geometry.ScrollY;
+        var rowHeight = _geometry.RowHeight;
+        var visibleStart = scrollX;
+        var visibleEnd = scrollX + Math.Max(0, width - GutterWidth);
         CollectPlayheadXs(track, width, pps);
 
         // The grid only spans the track's segments — everything past the last one is
         // dead space where clicks can't place, so it must not look placeable.
         var contentPx = (track?.Segments.Sum(s => s.StepCount) ?? 0) * pps;
-        var gridWidth = Math.Clamp(contentPx - _scrollX, 0, Math.Max(0, width - GutterWidth));
+        var gridWidth = Math.Clamp(contentPx - scrollX, 0, Math.Max(0, width - GutterWidth));
 
         _zeroRow.X = GutterWidth;
-        _zeroRow.Y = ValueTop(0);
+        _zeroRow.Y = _geometry.ValueTop(0);
         _zeroRow.Width = gridWidth;
-        _zeroRow.Height = _rowHeight;
+        _zeroRow.Height = rowHeight;
 
         var absX = Computed.AbsoluteX;
         var absY = Computed.AbsoluteY;
 
         for (var r = 0; r < Rows + 1; r++)
         {
-            var y = GridTop + r * _rowHeight - _scrollY;
+            var y = GridTop + r * rowHeight - scrollY;
             var visibleWidth = y >= 0 && y <= height ? gridWidth : 0;
             var color = (MaxValue - r) % 12 == 0 ? OctaveLineColor : RowLineColor;
             _lineBatch.Set(RowLineSlot + r, absX + GutterWidth, absY + y, visibleWidth, 1, color);
@@ -275,7 +272,7 @@ public sealed class TrackEditorView : Panel
             if (_dragging is { Note: not null, Segment: not null } dragged)
                 // The dragged note is pinned to its block so pool reassignment (and
                 // scrolling) can never steal the captured element mid-drag.
-                PlaceNote(dragged, dragged.Segment, dragged.Note, SegmentStartPx(track, dragged.Segment));
+                PlaceNote(dragged, dragged.Segment, dragged.Note, _geometry.SegmentStartPx(track, dragged.Segment));
 
             float offset = 0;
             var beatAccum = 0;
@@ -293,7 +290,7 @@ public sealed class TrackEditorView : Panel
                 {
                     var block = _stripBlocks[stripBlock++];
                     block.Segment = segment;
-                    block.X = GutterWidth + segStart - _scrollX;
+                    block.X = GutterWidth + segStart - scrollX;
                     block.Y = 2;
                     block.Width = segWidth - 1;
                     block.Height = StripHeight - 4;
@@ -306,7 +303,7 @@ public sealed class TrackEditorView : Panel
 
                 if (boundary < BoundaryLinePool && segStart >= visibleStart)
                 {
-                    var x = GutterWidth + segStart - _scrollX;
+                    var x = GutterWidth + segStart - scrollX;
                     _lineBatch.Set(BoundaryLineSlot + boundary++, absX + x, absY + GridTop, 1, height - GridTop,
                         BoundaryColor);
                 }
@@ -316,7 +313,7 @@ public sealed class TrackEditorView : Panel
                 for (var s = firstLocal; s <= lastLocal && stepLine < StepLinePool; s++)
                 {
                     if (s == 0) continue; // the boundary line already marks the segment start
-                    var x = GutterWidth + segStart + s * pps - _scrollX;
+                    var x = GutterWidth + segStart + s * pps - scrollX;
                     var color = s % segment.StepsPerBeat == 0 ? BeatLineColor : StepLineColor;
                     _lineBatch.Set(StepLineSlot + stepLine++, absX + x, absY + GridTop, 1, height - GridTop, color);
                 }
@@ -326,7 +323,7 @@ public sealed class TrackEditorView : Panel
                 var firstBeatLocal = firstLocal - firstLocal % segment.StepsPerBeat;
                 for (var s = firstBeatLocal; s <= lastLocal && beatLabel < BeatLabels.Count; s += segment.StepsPerBeat)
                 {
-                    var bx = GutterWidth + segStart + s * pps - _scrollX;
+                    var bx = GutterWidth + segStart + s * pps - scrollX;
                     if (bx - lastLabelX < MinBeatLabelSpacingPx) continue;
                     lastLabelX = bx;
 
@@ -342,7 +339,8 @@ public sealed class TrackEditorView : Panel
                 foreach (var note in segment.Notes)
                 {
                     if (note.Automation != null && segStart + note.Step * pps <= visibleEnd)
-                        DrawAutomation(track, segment, note, segStart, ref autoMark);
+                        _automationPath.Draw(_geometry, track, segment, note, segStart,
+                            InstrumentColor(note.Instrument), ref autoMark);
                     if (_dragging?.Note == note) continue;
                     var x = segStart + note.Step * pps;
                     if (x + pps < visibleStart || x > visibleEnd) continue;
@@ -356,7 +354,7 @@ public sealed class TrackEditorView : Panel
         for (var i = noteBlock; i < _noteBlocks.Count; i++)
             if (_noteBlocks[i] != _dragging)
                 Hide(_noteBlocks[i]);
-        for (var i = autoMark; i < AutomationMarks.Count; i++) Hide(AutomationMarks[i]);
+        _automationPath.HideUnused(autoMark);
         for (var i = stepLine; i < StepLinePool; i++)
             _lineBatch.Set(StepLineSlot + i, 0, 0, 0, 0, StepLineColor);
         for (var i = stripBlock; i < _stripBlocks.Count; i++) Hide(_stripBlocks[i]);
@@ -384,7 +382,7 @@ public sealed class TrackEditorView : Panel
         for (var i = 0; i < _gutterLabels.Count; i++)
         {
             var value = MaxValue - i;
-            var y = ValueTop(value) + (_rowHeight - 11f) / 2;
+            var y = _geometry.ValueTop(value) + (rowHeight - 11f) / 2;
             // Labels render above the strip background, so scrolled-out ones must be
             // parked outside the view's clip instead of relying on paint order.
             _gutterLabels[i].X = y < GridTop || y + 11f > height ? -1000f : 8;
@@ -420,7 +418,7 @@ public sealed class TrackEditorView : Panel
             if (_state.IsCurrentlyPlayingAudio && FollowPlayhead)
                 HandlePlayheadScrollUpdate(track, width, pps, localMinutes);
 
-            var x = GutterWidth + (float)(track.StepPositionAt(localMinutes) * pps) - _scrollX;
+            var x = GutterWidth + (float)(track.StepPositionAt(localMinutes) * pps) - _geometry.ScrollX;
             if (x < GutterWidth || x >= width) continue;
 
             _playheadXs.Add(x);
@@ -457,81 +455,31 @@ public sealed class TrackEditorView : Panel
         var viewportWidth = Math.Max(0, width - GutterWidth);
 
         var margin = viewportWidth / 2;
-        var left = _scrollX + margin;
-        var right = _scrollX + viewportWidth - margin;
+        var left = _geometry.ScrollX + margin;
+        var right = _geometry.ScrollX + viewportWidth - margin;
 
         if (playheadPx < left)
         {
-            _scrollX = Math.Max(0, playheadPx - margin);
+            _geometry.ScrollX = Math.Max(0, playheadPx - margin);
             InvalidateLayout();
         }
         else if (playheadPx > right)
         {
-            _scrollX = playheadPx - viewportWidth + margin;
+            _geometry.ScrollX = playheadPx - viewportWidth + margin;
             InvalidateLayout();
         }
     }
 
-    /// <summary>
-    ///     Plots a note's generated automation events as a step path in the note's sound
-    ///     color: a horizontal run at the current value, a vertical jump where a keyframe
-    ///     changes it, and a short tick at every generated event (so pure repeats stay
-    ///     visible as "a horizontal line with small vertical lines"). Time-mode gaps are
-    ///     mapped through the note's own segment step rate — display-only approximation
-    ///     when the path crosses into a segment with another tempo.
-    /// </summary>
-    private void DrawAutomation(ProjectTrack track, TrackSegment segment, Note note, float segStartPx, ref int used)
-    {
-        var stepMinutes = segment.StepMinutes(track.Timing.BPM);
-        if (stepMinutes <= 0) return;
-
-        var color = InstrumentColor(note.Instrument);
-        var prevX = GutterWidth + segStartPx + (note.Step + 0.5f) * PixelsPerStep - _scrollX;
-        var prevY = ValueTop(Math.Clamp(note.Value, -MaxValue, MaxValue)) + _rowHeight / 2;
-
-        foreach (var (minutes, generated) in note.Automation!.ExpandNotes(note, 0, stepMinutes))
-        {
-            var x = GutterWidth + segStartPx +
-                    (note.Step + 0.5f + (float)(minutes / stepMinutes)) * PixelsPerStep - _scrollX;
-            var y = ValueTop(Math.Clamp(generated.Value, -MaxValue, MaxValue)) + _rowHeight / 2;
-
-            // The horizontal run, the value jump (only when the value moved), the tick.
-            if (!Mark(ref used, Math.Min(prevX, x), prevY - 0.5f, Math.Abs(x - prevX), 1f, color)) return;
-            if (Math.Abs(y - prevY) >= 1f &&
-                !Mark(ref used, x - 0.5f, Math.Min(prevY, y), 1f, Math.Abs(y - prevY), color)) return;
-            if (!Mark(ref used, x - 1f, y - _rowHeight * 0.3f, 2f, _rowHeight * 0.6f, color)) return;
-
-            prevX = x;
-            prevY = y;
-        }
-    }
-
-    private bool Mark(ref int used, float x, float y, float width, float height, Vector4 color)
-    {
-        if (used >= AutomationMarks.Count) return false; // pool cap: the path just ends early
-        var mark = AutomationMarks[used++];
-        mark.X = x;
-        mark.Y = y;
-        mark.Width = width;
-        mark.Height = height;
-        ((ColoredPlane)mark.Background!).Color = color;
-        return true;
-    }
 
     private void PlaceNote(NoteBlock block, TrackSegment segment, Note note, float segStartPx)
     {
         block.Assign(segment, note);
-        block.X = GutterWidth + segStartPx + note.Step * PixelsPerStep - _scrollX;
-        block.Y = ValueTop(note.Value) + 0.5f;
+        block.X = GutterWidth + segStartPx + note.Step * PixelsPerStep - _geometry.ScrollX;
+        block.Y = _geometry.ValueTop(note.Value) + 0.5f;
         block.Width = Math.Max(3, PixelsPerStep - 1);
-        block.Height = Math.Max(3, _rowHeight - 1);
+        block.Height = Math.Max(3, _geometry.RowHeight - 1);
         ((ColoredPlane)block.Background!).Color =
             note == _state.SelectedNote ? SelectedNoteColor : InstrumentColor(note.Instrument);
-    }
-
-    private float ValueTop(double value)
-    {
-        return GridTop + (float)((MaxValue - value) * _rowHeight) - _scrollY;
     }
 
     private static void Hide(UIElement element)
@@ -542,28 +490,26 @@ public sealed class TrackEditorView : Panel
 
     public override bool HandleScroll(Vector2 scrollDelta)
     {
-        _centerPending = false;
+        _geometry.CenterPending = false;
         if (WheelZooms)
         {
             // Zoom anchored at the pointer: the step under the cursor stays put.
             var pointerPx = Context.PointerX - Computed.AbsoluteX - GutterWidth;
-            var anchorSteps = (pointerPx + _scrollX) / PixelsPerStep;
-            PixelsPerStep = Math.Clamp(PixelsPerStep * MathF.Pow(1.15f, scrollDelta.Y), 4f, 128f);
-            _scrollX = anchorSteps * PixelsPerStep - pointerPx;
+            _geometry.ZoomAt(pointerPx, scrollDelta.Y);
         }
         else if (FineSnap)
         {
             // FL bindings: Shift+wheel pans time.
-            _scrollX -= scrollDelta.Y * 48f;
+            _geometry.ScrollX -= scrollDelta.Y * 48f;
         }
         else
         {
             // Plain wheel scrolls the value rows; a tilt wheel / touchpad X pans time.
-            _scrollY -= scrollDelta.Y * 48f;
-            _scrollX -= scrollDelta.X * 48f;
+            _geometry.ScrollY -= scrollDelta.Y * 48f;
+            _geometry.ScrollX -= scrollDelta.X * 48f;
         }
 
-        ClampScroll();
+        _geometry.ClampScroll();
         InvalidateLayout();
         return true;
     }
@@ -583,11 +529,11 @@ public sealed class TrackEditorView : Panel
 
         if (_panPointer is { } last)
         {
-            _centerPending = false;
-            _scrollX += last.X - x;
-            _scrollY += last.Y - y;
+            _geometry.CenterPending = false;
+            _geometry.ScrollX += last.X - x;
+            _geometry.ScrollY += last.Y - y;
             _panPointer = new Vector2(x, y);
-            ClampScroll();
+            _geometry.ClampScroll();
             InvalidateLayout();
         }
         else if (ContainsPoint(x, y))
@@ -599,16 +545,8 @@ public sealed class TrackEditorView : Panel
     /// <summary>Scrolls so value 0 sits mid-viewport on the next layout.</summary>
     public void CenterOnZero()
     {
-        _centerPending = true;
+        _geometry.CenterPending = true;
         InvalidateLayout();
-    }
-
-    private void ClampScroll()
-    {
-        var track = _state.OpenedTrack;
-        var total = track?.Segments.Sum(s => s.StepCount) * PixelsPerStep ?? 0;
-        _scrollX = Math.Clamp(_scrollX, 0, Math.Max(0, total - (Computed.Width - GutterWidth)));
-        _scrollY = Math.Clamp(_scrollY, 0, Math.Max(0, Rows * _rowHeight - (Computed.Height - GridTop)));
     }
 
     public override bool HandleKeyDown(KeyboardKeyEventArgs e)
@@ -730,7 +668,7 @@ public sealed class TrackEditorView : Panel
     {
         if (_state.OpenedTrack is not { } track || OnSeekQuarters == null) return;
 
-        var steps = Math.Max(0, (absX - Computed.AbsoluteX - GutterWidth + _scrollX) / PixelsPerStep);
+        var steps = Math.Max(0, (absX - Computed.AbsoluteX - GutterWidth + _geometry.ScrollX) / PixelsPerStep);
         var localMinutes = track.MinutesAtStepPosition(steps);
 
         var placements = _state.Project.Placements.Where(p => p.Track == track).ToArray();
@@ -743,51 +681,14 @@ public sealed class TrackEditorView : Panel
     }
 
     /// <summary>Maps an absolute x to (segment, local step); null outside the track's grid.</summary>
-    private (TrackSegment? segment, int step) StepAt(float absX, bool clamp)
+    internal (TrackSegment? segment, int step) StepAt(float absX, bool clamp)
     {
-        var track = _state.OpenedTrack;
-        if (track == null) return (null, 0);
-
-        var step = (int)Math.Floor((absX - Computed.AbsoluteX - GutterWidth + _scrollX) / PixelsPerStep);
-        if (step < 0)
-        {
-            if (!clamp) return (null, 0);
-            step = 0;
-        }
-
-        TrackSegment? last = null;
-        var lastStep = 0;
-        foreach (var segment in track.Segments)
-        {
-            if (segment.StepCount <= 0) continue;
-            if (step < segment.StepCount) return (segment, step);
-            step -= segment.StepCount;
-            last = segment;
-            lastStep = segment.StepCount - 1;
-        }
-
-        return clamp && last != null ? (last, lastStep) : (null, 0);
+        return _geometry.StepAt(_state.OpenedTrack, absX - Computed.AbsoluteX, clamp);
     }
 
-    private double ValueAt(float absY)
+    internal double ValueAt(float absY)
     {
-        var r = (absY - Computed.AbsoluteY - GridTop + _scrollY) / _rowHeight;
-        var value = FineSnap
-            ? Math.Round((MaxValue - (r - 0.5)) * 5) / 5
-            : MaxValue - Math.Floor(r);
-        return Math.Clamp(value, -MaxValue, MaxValue);
-    }
-
-    private float SegmentStartPx(ProjectTrack track, TrackSegment target)
-    {
-        float offset = 0;
-        foreach (var segment in track.Segments)
-        {
-            if (segment == target) break;
-            offset += segment.StepCount * PixelsPerStep;
-        }
-
-        return offset;
+        return _geometry.ValueAt(absY - Computed.AbsoluteY, FineSnap);
     }
 
     private static Vector4 InstrumentColor(Instrument instrument)
@@ -807,88 +708,4 @@ public sealed class TrackEditorView : Panel
         };
     }
 
-    /// <summary>A purely visual overlay: never takes pointer input.</summary>
-    private class GhostPanel(UIContext context) : Panel(context)
-    {
-        public override UIElement? HitTest(float x, float y)
-        {
-            return null;
-        }
-    }
-
-    private class StripBlock : Panel
-    {
-        public StripBlock(UIContext context, TrackEditorView view) : base(context)
-        {
-            Width = 0;
-            Height = 0;
-            Background = new ColoredPlane { Color = StripSegmentA };
-            OnClick = _ =>
-            {
-                if (Segment != null) view._state.SelectSegment(Segment);
-            };
-        }
-
-        public TrackSegment? Segment { get; set; }
-    }
-
-    private class NoteBlock : Panel
-    {
-        private readonly TrackEditorView _view;
-
-        public NoteBlock(UIContext context, TrackEditorView view) : base(context)
-        {
-            _view = view;
-            Width = 0;
-            Height = 0;
-            Background = new ColoredPlane { Color = SoundPalette[0] };
-            // Swallow the click so a release on a note never bubbles into the view's
-            // place-at-pointer handler; selection already happened on press.
-            OnClick = _ => { };
-        }
-
-        public TrackSegment? Segment { get; private set; }
-        public Note? Note { get; private set; }
-
-        public void Assign(TrackSegment segment, Note note)
-        {
-            Segment = segment;
-            Note = note;
-        }
-
-        public override bool HandlePress(float x, float y)
-        {
-            if (Note == null || Segment == null) return false;
-            _view._dragging = this;
-            _view._state.BeginGesture();
-            _view._state.SelectSegment(Segment);
-            _view._state.SelectNote(Note);
-            return true;
-        }
-
-        /// <summary>Right-click removes the note, same as selecting it and pressing Delete.</summary>
-        public override bool HandleRightPress(float x, float y)
-        {
-            // Ignored mid-drag: deleting the note under the left-button capture would
-            // leave the drag mutating a note that is no longer in any segment.
-            if (Note == null || Segment == null || _view._dragging == this) return false;
-            _view._state.RemoveNote(Segment, Note);
-            return true;
-        }
-
-        public override void HandlePointerDrag(float x, float y)
-        {
-            if (Note == null || Segment == null) return;
-            var (segment, step) = _view.StepAt(x, true);
-            if (segment == null) return;
-
-            var value = _view.ValueAt(y);
-            var moved = segment != Segment || step != Note.Step || value != Note.Value;
-            _view._state.MoveNote(Segment, segment, Note, step, value);
-            Segment = segment;
-            _view.InvalidateLayout();
-            // Re-preview only on an actual cell change, replacing the old preview.
-            if (moved) _view.OnPreviewNote?.Invoke(Note.Instrument, Note.Value);
-        }
-    }
 }

@@ -65,6 +65,12 @@ public class ThirtyDollarProject
         return true;
     }
 
+    /// <summary>Re-inserts a track removed earlier (e.g. by undo), preserving its identity and position.</summary>
+    public void AddTrack(ProjectTrack track, int index)
+    {
+        _projectTracks.Insert(Math.Clamp(index, 0, _projectTracks.Count), track);
+    }
+
     public Instrument NewInstrument(string name)
     {
         var instrument = new Instrument { Id = ++_instrumentIds, Name = name };
@@ -92,6 +98,12 @@ public class ThirtyDollarProject
             .SelectMany(segment => segment.Notes)
             .Any(note => note.Instrument == instrument);
         return !referenced && _instruments.Remove(instrument);
+    }
+
+    /// <summary>Re-inserts an instrument removed earlier (e.g. by undo), preserving its identity and position.</summary>
+    public void AddInstrument(Instrument instrument, int index)
+    {
+        _instruments.Insert(Math.Clamp(index, 0, _instruments.Count), instrument);
     }
 
     /// <summary>

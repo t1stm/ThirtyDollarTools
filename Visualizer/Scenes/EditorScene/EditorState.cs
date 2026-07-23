@@ -9,37 +9,31 @@ namespace EditorScene;
 public class EditorState
 {
     /// <summary>Fired after any project mutation (add/remove/rename/new/load).</summary>
-    public Action? OnProjectChanged;
+    public event Action? OnProjectChanged;
 
     /// <summary>Fired when the selected track changes.</summary>
-    public Action<ProjectTrack?>? OnSelectionChanged;
+    public event Action<ProjectTrack?>? OnSelectionChanged;
 
     /// <summary>Fired when the selected clip on the arrangement grid changes.</summary>
-    public Action<TrackPlacement?>? OnPlacementSelectionChanged;
+    public event Action<TrackPlacement?>? OnPlacementSelectionChanged;
 
     /// <summary>Fired when a channel's mute/solo state changes. Session-only, never saved.</summary>
-    public Action? OnChannelsChanged;
+    public event Action? OnChannelsChanged;
 
     /// <summary>Fired when a track is opened in (or closed from) the note editor.</summary>
-    public Action<ProjectTrack?>? OnOpenedTrackChanged;
+    public event Action<ProjectTrack?>? OnOpenedTrackChanged;
 
     /// <summary>Fired when the selected note in the note editor changes.</summary>
-    public Action<Note?>? OnNoteSelectionChanged;
+    public event Action<Note?>? OnNoteSelectionChanged;
 
     /// <summary>Fired when the selected segment in the note editor changes.</summary>
-    public Action<TrackSegment?>? OnSegmentSelectionChanged;
+    public event Action<TrackSegment?>? OnSegmentSelectionChanged;
 
     /// <summary>Fired after an instrument is added/renamed/edited/removed.</summary>
-    public Action? OnInstrumentsChanged;
+    public event Action? OnInstrumentsChanged;
 
-    private readonly HashSet<int> _muted = [];
-    private readonly HashSet<int> _soloed = [];
-
-    private readonly List<EditorCommand> _undoStack = [];
-    private readonly List<EditorCommand> _redoStack = [];
-    private int _gestureId;
-
-    private record EditorCommand(Action Undo, Action Redo, int GestureId, object? Subject);
+    private readonly MuteSolo _muteSolo = new();
+    private readonly UndoHistory _undoHistory = new();
 
     public ThirtyDollarProject Project { get; private set; } = new();
     public ProjectTrack? SelectedTrack { get; private set; }
@@ -55,6 +49,17 @@ public class EditorState
     public Instrument? ActiveInstrument { get; set; }
 
     /// <summary>
+    ///     Raises <see cref="OnInstrumentsChanged" /> for callers outside this class — a
+    ///     plain <see cref="ActiveInstrument" /> set fires no event of its own, but the
+    ///     active-instrument button still needs to refresh (see
+    ///     <see cref="Scenes.Components.InstrumentWorkflow" />'s pick flow).
+    /// </summary>
+    public void NotifyInstrumentsChanged()
+    {
+        OnInstrumentsChanged?.Invoke();
+    }
+
+    /// <summary>
     ///     Modifiers (volume/pan/offset/automation, never value) copied from the last-clicked
     ///     note; new notes placed afterwards inherit them. Cleared when the note editor closes.
     /// </summary>
@@ -63,8 +68,8 @@ public class EditorState
     public bool Dirty { get; private set; }
     public bool IsCurrentlyPlayingAudio { get; set; }
 
-    public bool CanUndo => _undoStack.Count > 0;
-    public bool CanRedo => _redoStack.Count > 0;
+    public bool CanUndo => _undoHistory.CanUndo;
+    public bool CanRedo => _undoHistory.CanRedo;
 
     /// <summary>Where the project lives on disk; null until first saved or loaded from a file.</summary>
     public string? ProjectPath { get; private set; }
@@ -87,10 +92,20 @@ public class EditorState
 
     public bool RemoveTrack(ProjectTrack track)
     {
+        var index = IndexOf(Project.Tracks, track);
+        var cascadedPlacements = Project.Placements.Where(p => p.Track == track).ToArray();
         if (!Project.RemoveTrack(track)) return false;
         if (SelectedTrack == track) SelectTrack(null);
         if (SelectedPlacement?.Track == track) SelectPlacement(null); // cascaded away
         if (OpenedTrack == track) CloseTrack();
+
+        _undoHistory.Push(
+            undo: () =>
+            {
+                Project.AddTrack(track, index);
+                foreach (var placement in cascadedPlacements) Project.AddPlacement(placement);
+            },
+            redo: () => Project.RemoveTrack(track));
         Touch();
         return true;
     }
@@ -144,7 +159,7 @@ public class EditorState
             Automation = CopiedModifiers?.Automation?.Clone()
         };
         segment.Notes.Add(note);
-        Push(
+        _undoHistory.Push(
             undo: () => segment.Notes.Remove(note),
             redo: () => segment.Notes.Add(note));
         Touch();
@@ -201,10 +216,31 @@ public class EditorState
     /// </summary>
     public void DeleteInstrumentEverywhere(Instrument instrument)
     {
+        var removedNotes = new List<(TrackSegment Segment, Note Note, int Index)>();
         foreach (var segment in Project.Tracks.SelectMany(track => track.Segments))
-            segment.Notes.RemoveAll(note => note.Instrument == instrument);
+            for (var i = segment.Notes.Count - 1; i >= 0; i--)
+            {
+                if (segment.Notes[i].Instrument != instrument) continue;
+                removedNotes.Add((segment, segment.Notes[i], i));
+                segment.Notes.RemoveAt(i);
+            }
+        removedNotes.Reverse(); // restore left-to-right
 
         if (SelectedNote?.Instrument == instrument) SelectNote(null);
+
+        var instrumentIndex = IndexOf(Project.Instruments, instrument);
+        _undoHistory.Push(
+            undo: () =>
+            {
+                Project.AddInstrument(instrument, instrumentIndex);
+                foreach (var (segment, note, index) in removedNotes)
+                    segment.Notes.Insert(Math.Clamp(index, 0, segment.Notes.Count), note);
+            },
+            redo: () =>
+            {
+                foreach (var (segment, note, _) in removedNotes) segment.Notes.Remove(note);
+                RemoveInstrument(instrument);
+            });
 
         RemoveInstrument(instrument);
     }
@@ -223,7 +259,7 @@ public class EditorState
         note.Step = step;
         note.Value = value;
 
-        PushOrMergeMove(note,
+        _undoHistory.PushOrMergeMove(note,
             undo: () =>
             {
                 if (to != prevSegment)
@@ -253,7 +289,7 @@ public class EditorState
     {
         if (!segment.Notes.Remove(note)) return false;
         if (SelectedNote == note) SelectNote(null);
-        Push(
+        _undoHistory.Push(
             undo: () => segment.Notes.Add(note),
             redo: () => segment.Notes.Remove(note));
         Touch();
@@ -270,9 +306,14 @@ public class EditorState
     /// <summary>Removes a segment; refuses on the track's last one (library invariant).</summary>
     public bool RemoveSegment(ProjectTrack track, TrackSegment segment)
     {
+        var index = IndexOf(track.Segments, segment);
         if (!track.RemoveSegment(segment)) return false;
         if (SelectedNote != null && segment.Notes.Contains(SelectedNote)) SelectNote(null);
         if (SelectedSegment == segment) SelectSegment(track.Segments[0]);
+
+        _undoHistory.Push(
+            undo: () => track.AddSegment(segment, index),
+            redo: () => track.RemoveSegment(segment));
         Touch();
         return true;
     }
@@ -280,7 +321,7 @@ public class EditorState
     public TrackPlacement PlaceTrack(ProjectTrack track, int channel, double startQuarterNotes)
     {
         var placement = Project.Place(track, channel, startQuarterNotes);
-        Push(
+        _undoHistory.Push(
             undo: () => Project.RemovePlacement(placement),
             redo: () => Project.AddPlacement(placement));
         Touch();
@@ -295,7 +336,7 @@ public class EditorState
         placement.Channel = channel;
         placement.StartQuarterNotes = startQuarterNotes;
 
-        PushOrMergeMove(placement,
+        _undoHistory.PushOrMergeMove(placement,
             undo: () =>
             {
                 placement.Channel = prevChannel;
@@ -313,7 +354,7 @@ public class EditorState
     {
         if (!Project.RemovePlacement(placement)) return false;
         if (SelectedPlacement == placement) SelectPlacement(null);
-        Push(
+        _undoHistory.Push(
             undo: () => Project.AddPlacement(placement),
             redo: () => Project.RemovePlacement(placement));
         Touch();
@@ -375,30 +416,30 @@ public class EditorState
 
     public void ToggleMute(int channel)
     {
-        if (!_muted.Add(channel)) _muted.Remove(channel);
+        _muteSolo.ToggleMute(channel);
         OnChannelsChanged?.Invoke();
     }
 
     public void ToggleSolo(int channel)
     {
-        if (!_soloed.Add(channel)) _soloed.Remove(channel);
+        _muteSolo.ToggleSolo(channel);
         OnChannelsChanged?.Invoke();
     }
 
     public bool IsMuted(int channel)
     {
-        return _muted.Contains(channel);
+        return _muteSolo.IsMuted(channel);
     }
 
     public bool IsSoloed(int channel)
     {
-        return _soloed.Contains(channel);
+        return _muteSolo.IsSoloed(channel);
     }
 
     /// <summary>FL semantics: any solo wins; otherwise everything not muted sounds.</summary>
     public bool IsChannelAudible(int channel)
     {
-        return _soloed.Count > 0 ? _soloed.Contains(channel) : !_muted.Contains(channel);
+        return _muteSolo.IsChannelAudible(channel);
     }
 
     public void NewProject()
@@ -434,16 +475,12 @@ public class EditorState
     /// calls on the same object (one drag, many frames) collapses into a single undo step.</summary>
     public void BeginGesture()
     {
-        _gestureId++;
+        _undoHistory.BeginGesture();
     }
 
     public void Undo()
     {
-        if (_undoStack.Count == 0) return;
-        var command = _undoStack[^1];
-        _undoStack.RemoveAt(_undoStack.Count - 1);
-        command.Undo();
-        _redoStack.Add(command);
+        if (!_undoHistory.Undo()) return;
         SelectNote(null);
         SelectPlacement(null);
         Touch();
@@ -451,33 +488,10 @@ public class EditorState
 
     public void Redo()
     {
-        if (_redoStack.Count == 0) return;
-        var command = _redoStack[^1];
-        _redoStack.RemoveAt(_redoStack.Count - 1);
-        command.Redo();
-        _undoStack.Add(command);
+        if (!_undoHistory.Redo()) return;
         SelectNote(null);
         SelectPlacement(null);
         Touch();
-    }
-
-    private void Push(Action undo, Action redo)
-    {
-        _undoStack.Add(new EditorCommand(undo, redo, -1, null));
-        _redoStack.Clear();
-    }
-
-    /// <summary>Appends a new undo entry, or merges into the previous one if it's the same
-    /// gesture (see <see cref="BeginGesture" />) moving the same object.</summary>
-    private void PushOrMergeMove(object subject, Action undo, Action redo)
-    {
-        if (_undoStack.Count > 0 && _undoStack[^1].GestureId == _gestureId &&
-            ReferenceEquals(_undoStack[^1].Subject, subject))
-            _undoStack[^1] = _undoStack[^1] with { Redo = redo };
-        else
-            _undoStack.Add(new EditorCommand(undo, redo, _gestureId, subject));
-
-        _redoStack.Clear();
     }
 
     private void Replace(ThirtyDollarProject project)
@@ -485,10 +499,8 @@ public class EditorState
         Project = project;
         Dirty = false;
         ProjectPath = null;
-        _muted.Clear();
-        _soloed.Clear();
-        _undoStack.Clear();
-        _redoStack.Clear();
+        _muteSolo.Clear();
+        _undoHistory.Clear();
         ActiveInstrument = null;
         CloseTrack();
         SelectTrack(null);
@@ -501,5 +513,13 @@ public class EditorState
     {
         Dirty = true;
         OnProjectChanged?.Invoke();
+    }
+
+    private static int IndexOf<T>(IReadOnlyList<T> list, T item)
+    {
+        for (var i = 0; i < list.Count; i++)
+            if (Equals(list[i], item))
+                return i;
+        return -1;
     }
 }

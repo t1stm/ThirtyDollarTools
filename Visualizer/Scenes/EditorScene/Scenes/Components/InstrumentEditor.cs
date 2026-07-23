@@ -30,7 +30,7 @@ public sealed class InstrumentEditor : FlexPanel
         Width = 640;
         Padding = 10;
         Spacing = 8;
-        Background = new ColoredPlane { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) };
+        Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         PreviewButton = new Button(context, "Preview", new ColoredPlane { Color = ButtonColor })
         {
@@ -42,7 +42,7 @@ public sealed class InstrumentEditor : FlexPanel
             Width = 300,
             FontSizePx = 15f,
             BorderRadius = 6,
-            Background = new ColoredPlane { Color = new Vector4(0.15f, 0.16f, 0.21f, 1f) }
+            Background = new ColoredPlane { Color = EditorPalette.InputBackground }
         };
         // Percent-width spacer soaks up the free space so Preview lands flush against
         // the right edge — this framework has no space-between align.

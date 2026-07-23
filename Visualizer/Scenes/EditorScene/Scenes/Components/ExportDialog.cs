@@ -17,8 +17,8 @@ namespace EditorScene.Scenes.Components;
 public sealed class ExportDialog : FlexPanel
 {
     private const float LabelWidth = 190f;
-    private static readonly Vector4 ButtonBlandColor = new(0.2f, 0.204f, 0.29f, 1f);
-    private static readonly Vector4 ButtonMainColor =  new(0.30f, 0.42f, 0.80f, 1f);
+    private static readonly Vector4 ButtonBlandColor = EditorPalette.Divider;
+    private static readonly Vector4 ButtonMainColor = EditorPalette.Accent;
 
     public ExportDialog(UIContext context) : base(context)
     {
@@ -26,7 +26,7 @@ public sealed class ExportDialog : FlexPanel
         Width = 420;
         Padding = 14;
         Spacing = 10;
-        Background = new ColoredPlane { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) };
+        Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         var defaults = new SequenceStyle();
         DividerEveryBars = new NumericInput(context, 2)
@@ -52,7 +52,7 @@ public sealed class ExportDialog : FlexPanel
         CancelButton = new Button(context, "Cancel")
             { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
 
-        AddChild(new Label(context, "Export") { FontSizePx = 18f, Color = new Vector4(0.478f, 0.635f, 0.968f, 1f) });
+        AddChild(new Label(context, "Export") { FontSizePx = 18f, Color = EditorPalette.Header });
         Row("Divider every N bars (0 = off)", DividerEveryBars);
         Row("!stop after N pauses (0 = never)", MigrateToStop);
         AddChild(DividerOnSpeedChanges);
@@ -95,7 +95,7 @@ public sealed class ExportDialog : FlexPanel
         };
         row.AddChild(new Label(Context, label)
         {
-            FontSizePx = 13f, Y = 9, Color = new Vector4(0.337f, 0.373f, 0.537f, 1f)
+            FontSizePx = 13f, Y = 9, Color = EditorPalette.TextMuted
         });
         row.AddChild(input);
         AddChild(row);

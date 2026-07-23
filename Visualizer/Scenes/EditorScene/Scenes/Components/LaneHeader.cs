@@ -16,8 +16,8 @@ public sealed class LaneHeader : Panel
 {
     public const float GutterWidth = 60f;
 
-    private static readonly Vector4 Inactive = new(0.337f, 0.373f, 0.537f, 1f); // #565f89
-    private static readonly Vector4 MuteOn = new(0.969f, 0.463f, 0.557f, 1f); // #f7768e
+    private static readonly Vector4 Inactive = EditorPalette.TextMuted;
+    private static readonly Vector4 MuteOn = EditorPalette.DangerAccent;
     private static readonly Vector4 SoloOn = new(0.878f, 0.686f, 0.408f, 1f); // #e0af68
 
     private readonly ArrangementView _arrangement;
@@ -28,7 +28,7 @@ public sealed class LaneHeader : Panel
     {
         _state = state;
         _arrangement = arrangement;
-        Background = new ColoredPlane { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) }; // #16161e
+        Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         for (var lane = 0; lane < ArrangementView.LaneLinePool; lane++)
         {

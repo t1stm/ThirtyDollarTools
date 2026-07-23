@@ -27,13 +27,13 @@ public sealed class ArrangementView : Panel
     private const int BarLinePool = 128;
     public const int LaneLinePool = 24;
 
-    private static readonly Vector4 ClipColor = new(0.30f, 0.42f, 0.80f, 1f); // #4c6bcc
-    private static readonly Vector4 SelectedClipColor = new(0.61f, 0.75f, 1f, 1f); // #9bc0ff
-    private static readonly Vector4 LineColor = new(0.16f, 0.18f, 0.26f, 1f); // #292e42
-    private static readonly Vector4 RulerColor = new(0.086f, 0.086f, 0.118f, 1f); // #16161e
-    private static readonly Vector4 LabelColor = new(0.66f, 0.7f, 0.86f, 1f);
+    private static readonly Vector4 ClipColor = EditorPalette.Accent;
+    private static readonly Vector4 SelectedClipColor = EditorPalette.SelectionHighlight;
+    private static readonly Vector4 LineColor = EditorPalette.Surface;
+    private static readonly Vector4 RulerColor = EditorPalette.Panel;
+    private static readonly Vector4 LabelColor = EditorPalette.TextDim;
 
-    private static readonly Vector4 PlayheadColor = new(0.75f, 0.79f, 0.96f, 1f); // #c0caf5
+    private static readonly Vector4 PlayheadColor = EditorPalette.Playhead;
 
     private readonly List<ClipBlock> _blocks = [];
     private readonly List<Label> _barLabels = [];
@@ -329,14 +329,6 @@ public sealed class ArrangementView : Panel
     }
 
     /// <summary>A purely visual overlay: never takes pointer input.</summary>
-    private class GhostPanel(UIContext context) : Panel(context)
-    {
-        public override UIElement? HitTest(float x, float y)
-        {
-            return null;
-        }
-    }
-
     private class ClipBlock : Panel
     {
         private readonly ColoredPlane _background;

@@ -21,22 +21,22 @@ public sealed class TrackContextMenu : FlexPanel
         Width = 280;
         Padding = 14;
         Spacing = 12;
-        Background = new ColoredPlane { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) };
+        Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         NameInput = new TextInput(context, suggestedName)
         {
             FontSizePx = 14f,
             Width = LiteralOrComputable.Percent(100),
             BorderRadius = 4,
-            Background = new ColoredPlane { Color = new Vector4(0.15f, 0.16f, 0.21f, 1f) }
+            Background = new ColoredPlane { Color = EditorPalette.InputBackground }
         };
         CancelButton = new Button(context, "Cancel") { FontSizePx = 14 };
         DuplicateButton = new Button(context, "Duplicate",
-            new ColoredPlane { Color = new Vector4(0.478f, 0.635f, 0.968f, 1f) })
+            new ColoredPlane { Color = EditorPalette.Header })
         {
             FontSizePx = 14,
             BorderRadius = 6,
-            Label = { Color = new Vector4(0.086f, 0.086f, 0.118f, 1f) }
+            Label = { Color = EditorPalette.Panel }
         };
         NameInput.OnCommit = _ => DuplicateButton.OnClick?.Invoke(DuplicateButton);
 

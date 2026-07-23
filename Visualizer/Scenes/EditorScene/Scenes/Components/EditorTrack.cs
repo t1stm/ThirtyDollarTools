@@ -16,7 +16,7 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class EditorTrack : FlexPanel
 {
-    private static readonly Vector4 RowColor = new(0.086f, 0.086f, 0.118f, 1f); // #16161e
+    private static readonly Vector4 RowColor = EditorPalette.Panel;
     private static readonly Vector4 SelectedColor = new(0.255f, 0.282f, 0.408f, 1f); // #414868
 
     private readonly ColoredPlane _background;

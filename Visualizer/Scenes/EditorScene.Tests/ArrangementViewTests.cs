@@ -30,8 +30,8 @@ public class ArrangementViewTests
         var ctx = new EditorTestContext();
         var state = new EditorState();
         var view = new ArrangementView(ctx, state) { Width = 800, Height = 400 };
-        state.OnProjectChanged = view.Refresh; // the EditorInterface wiring
-        state.OnPlacementSelectionChanged = _ => view.RefreshSelection();
+        state.OnProjectChanged += view.Refresh; // the EditorInterface wiring
+        state.OnPlacementSelectionChanged += _ => view.RefreshSelection();
         view.Layout();
         return (ctx, state, view);
     }
@@ -185,7 +185,7 @@ public class ArrangementViewTests
         var view = new ArrangementView(ctx, state) { Width = 800, Height = 400 };
         var editor = new TrackEditorView(ctx, state) { Width = 800, Height = 400 };
         gridArea.AddChild(view);
-        state.OnProjectChanged = view.Refresh;
+        state.OnProjectChanged += view.Refresh;
         view.OnOpenTrack = t =>
         {
             state.OpenTrack(t);

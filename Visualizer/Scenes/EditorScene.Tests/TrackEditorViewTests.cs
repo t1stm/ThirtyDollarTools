@@ -53,7 +53,7 @@ public class TrackEditorViewTests
         // these tests keep the original 16 px / stretch-to-fit (8 px rows) geometry.
         var view = new TrackEditorView(ctx, state)
             { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f };
-        state.OnProjectChanged = view.InvalidateLayout; // the EditorInterface wiring
+        state.OnProjectChanged += view.InvalidateLayout; // the EditorInterface wiring
         view.Layout();
         return (ctx, state, view, track);
     }
@@ -382,7 +382,7 @@ public class TrackEditorViewTests
         state.OpenTrack(track);
         state.ActiveInstrument = MakeInstrument(state, "boom");
         var view = new TrackEditorView(ctx, state) { Width = 800, Height = 414, PixelsPerStep = 16f };
-        state.OnProjectChanged = view.InvalidateLayout;
+        state.OnProjectChanged += view.InvalidateLayout;
         view.Layout();
 
         // Mid-viewport row: with GridTop=40 the centered scrollY is 1023 (not 294 —
@@ -410,7 +410,7 @@ public class TrackEditorViewTests
         state.AddSegment(track); // 48 steps = 768 px, so there is room to pan into
         state.ActiveInstrument = MakeInstrument(state, "boom");
         var view = new TrackEditorView(ctx, state) { Width = 400, Height = 414, PixelsPerStep = 16f };
-        state.OnProjectChanged = view.InvalidateLayout;
+        state.OnProjectChanged += view.InvalidateLayout;
         view.Layout(); // centers: scrollY = (2420 - 374) / 2 = 1023 (GridTop = 40)
 
         // Hold middle inside the view and drag up-left by (48, 40):

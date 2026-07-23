@@ -17,9 +17,9 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class InstrumentSelector : FlexPanel
 {
-    private static readonly Vector4 BackgroundColor = new(0.086f, 0.086f, 0.118f, 1f); // #16161e
-    private static readonly Vector4 MenuFillColor = new(0.2f, 0.204f, 0.29f, 1f); // #33344a
-    private static readonly Vector4 MenuFillHoverColor = new(0.247f, 0.255f, 0.376f, 1f); // #3f4160
+    private static readonly Vector4 BackgroundColor = EditorPalette.Panel;
+    private static readonly Vector4 MenuFillColor = EditorPalette.Divider;
+    private static readonly Vector4 MenuFillHoverColor = EditorPalette.DividerHover;
 
     private readonly ScrollView _list;
     private readonly Button _newRow;

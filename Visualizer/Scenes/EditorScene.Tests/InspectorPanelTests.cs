@@ -24,11 +24,11 @@ public class InspectorPanelTests
         var inspector = new InspectorPanel(ctx, state) { Width = 260, Height = 600 };
 
         // The EditorInterface wiring.
-        state.OnProjectChanged = inspector.Sync;
-        state.OnSelectionChanged = _ => inspector.Rebuild();
-        state.OnOpenedTrackChanged = _ => inspector.Rebuild();
-        state.OnSegmentSelectionChanged = _ => inspector.Rebuild();
-        state.OnNoteSelectionChanged = _ => inspector.Rebuild();
+        state.OnProjectChanged += inspector.Sync;
+        state.OnSelectionChanged += _ => inspector.Rebuild();
+        state.OnOpenedTrackChanged += _ => inspector.Rebuild();
+        state.OnSegmentSelectionChanged += _ => inspector.Rebuild();
+        state.OnNoteSelectionChanged += _ => inspector.Rebuild();
 
         inspector.Layout();
         return (ctx, state, inspector);
