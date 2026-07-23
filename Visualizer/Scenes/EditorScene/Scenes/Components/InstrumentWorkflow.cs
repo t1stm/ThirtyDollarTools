@@ -20,7 +20,7 @@ public sealed class InstrumentWorkflow
     private readonly InstrumentEditor _instrumentEditor;
     private readonly ModalLayer _instrumentEditorModal;
     private Instrument? _editingInstrument;
-    private Note? _reassignTarget;
+    private IReadOnlyList<Note>? _reassignTargets;
 
     public InstrumentWorkflow(UIContext context, EditorState state, EditorPlayback playback,
         DialogHost dialogHost, AtlasStore atlasStore, Func<IEnumerable<string>> allSounds)
@@ -38,7 +38,7 @@ public sealed class InstrumentWorkflow
         _instrumentSelectorModal.OnDismissRequested = modal =>
         {
             dialogHost.Root.RemoveChild(modal);
-            _reassignTarget = null;
+            _reassignTargets = null;
         };
         _instrumentSelector.OnPick = instrument =>
         {
@@ -89,10 +89,11 @@ public sealed class InstrumentWorkflow
     }
 
     /// <summary>Opens the picker; null means picking sets ActiveInstrument, non-null
-    /// means picking reassigns that note's instrument instead.</summary>
-    public void OpenSelector(Note? reassignTarget = null)
+    /// means picking reassigns every note in the list instead (one for the inspector's
+    /// single-note "Change", several for a multi-note selection's).</summary>
+    public void OpenSelector(IReadOnlyList<Note>? reassignTargets = null)
     {
-        _reassignTarget = reassignTarget;
+        _reassignTargets = reassignTargets;
         _instrumentSelector.Fill(_state.Project.Instruments);
         _dialogHost.Root.AddChild(_instrumentSelectorModal);
     }
@@ -136,14 +137,17 @@ public sealed class InstrumentWorkflow
 
     /// <summary>
     ///     "Picking" an instrument means setting it active, unless the selector was
-    ///     opened from the inspector's "Change" action targeting one note — then it
-    ///     reassigns that note instead.
+    ///     opened from the inspector's "Change" action targeting one or more notes —
+    ///     then it reassigns every one of them instead.
     /// </summary>
     private void ApplyInstrumentPick(Instrument instrument)
     {
-        if (_reassignTarget is { } note)
+        if (_reassignTargets is { } notes)
         {
-            _state.Edit(() => note.Instrument = instrument);
+            _state.Edit(() =>
+            {
+                foreach (var note in notes) note.Instrument = instrument;
+            });
         }
         else
         {
@@ -154,6 +158,6 @@ public sealed class InstrumentWorkflow
             _state.NotifyInstrumentsChanged();
         }
 
-        _reassignTarget = null;
+        _reassignTargets = null;
     }
 }

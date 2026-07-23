@@ -538,4 +538,389 @@ public class TrackEditorViewTests
         for (var i = 1; i < xs.Count; i++)
             Assert.True(xs[i] - xs[i - 1] >= 28f, $"labels at {xs[i - 1]} and {xs[i]} overlap");
     }
+
+    [Fact]
+    public void SelectTool_MarqueeDrag_SelectsNotesInsideTheBox_AndNeverPaints()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var inside = state.AddNote(track.Segments[0], 3, boom, 0);
+        var outside = state.AddNote(track.Segments[0], 10, boom, 0);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+
+        // Box from (step 2.25, value 0.375) to (step 4.75, value -1.5): contains step 3.
+        Press(ctx, view, 80, 220);
+        Drag(ctx, view, 120, 235);
+        Release(ctx, view, 120, 235);
+        view.Update(ctx); // marquee commit runs on capture loss
+
+        Assert.Equal([inside], state.SelectedNotes);
+        Assert.DoesNotContain(outside, state.SelectedNotes);
+        Assert.Equal(2, track.Segments[0].Notes.Count); // the Select tool never paints
+    }
+
+    [Fact]
+    public void SelectTool_Marquee_SelectsANote_EvenWhenTheBoxNeverReachesItsLeadingEdge()
+    {
+        // Regression: a note isn't a point, it's a whole rendered cell (one step wide,
+        // one row tall). A box whose numeric range never reaches the cell's leading
+        // edge (left for steps, top for values, since rows are drawn top-anchored)
+        // must still select it as long as it overlaps the cell at all.
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(track.Segments[0], 3, boom, 0); // cell: step [3,4), value (-1,0]
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+
+        // Anchor at (step 5, value -2) — off the note's own block entirely, so the
+        // press starts a marquee instead of grabbing the note directly. Cursor at
+        // (step 3.5, value -0.5) — inside the cell, short of both its left and top
+        // edges (minStep=3.5 > 3, maxValue=-0.5 < 0).
+        Press(ctx, view, 124, 239);
+        Drag(ctx, view, 100, 227);
+        Release(ctx, view, 100, 227);
+        view.Update(ctx);
+
+        Assert.Equal([note], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void SelectTool_CtrlMarquee_AppendsWithoutTouchingTheExistingSelection()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var already = state.AddNote(track.Segments[0], 0, boom, 0);
+        var toAdd = state.AddNote(track.Segments[0], 3, boom, 0);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetNoteSelection([already]);
+        view.WheelZooms = true; // Ctrl held
+
+        Press(ctx, view, 80, 220);
+        Drag(ctx, view, 120, 235);
+        Release(ctx, view, 120, 235);
+        view.Update(ctx); // marquee commit runs on capture loss
+
+        Assert.Equal([already, toAdd], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void SelectTool_ShiftMarquee_RemovesContainedNotes()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 3, boom, 0);
+        var b = state.AddNote(track.Segments[0], 10, boom, 0);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetNoteSelection([a, b]);
+        view.FineSnap = true; // Shift held
+
+        Press(ctx, view, 80, 220);
+        Drag(ctx, view, 120, 235);
+        Release(ctx, view, 120, 235);
+        view.Update(ctx); // marquee commit runs on capture loss
+
+        Assert.Equal([b], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void SelectTool_EmptyMarquee_ClearsTheSelection()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(track.Segments[0], 3, boom, 0);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetNoteSelection([note]);
+
+        // A box far from any note.
+        Press(ctx, view, 500, 100);
+        Drag(ctx, view, 550, 120);
+        Release(ctx, view, 550, 120);
+        view.Update(ctx); // marquee commit runs on capture loss
+
+        Assert.Empty(state.SelectedNotes);
+    }
+
+    [Fact]
+    public void SelectTool_Marquee_AccountsForScroll_ModelCoordinatesNotScreenPixels()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(track.Segments[0], 5, boom, 0);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+
+        // One wheel notch (Shift+wheel pans time): ScrollX 0 -> 48 (3 steps at 16 px/step).
+        view.FineSnap = true;
+        ctx.UpdatePointer(view, 400, 300, false, false, false, new Vector2(0, -1));
+        view.FineSnap = false; // restore: the Select tool reads FineSnap as "Shift = remove"
+        view.Layout();
+
+        // Step 5 now renders at x = 44 + 5*16 - 48 = 76 (was 124 before scrolling) — the
+        // marquee must read this post-scroll position, not the pre-scroll pixel.
+        Press(ctx, view, 60, 220);
+        Drag(ctx, view, 100, 235);
+        Release(ctx, view, 100, 235);
+        view.Update(ctx);
+
+        Assert.Equal([note], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void SelectTool_ClickOnANote_ReplacesSelection_AndDraggingMovesIt()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(track.Segments[0], 3, boom, 0);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+
+        Press(ctx, view, 100, 227); // the note's cell
+        Drag(ctx, view, 200, 227); // one step 6.25 steps right, same row
+        Release(ctx, view, 200, 227);
+
+        Assert.Equal([note], state.SelectedNotes);
+        Assert.Equal(9, note.Step); // the Select tool moves notes too, same as Draw
+    }
+
+    [Fact]
+    public void SelectTool_CtrlClickOnANote_AppendsWithoutToggling()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 3, boom, 0);
+        var b = state.AddNote(track.Segments[0], 10, boom, 0);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetNoteSelection([a]);
+        view.WheelZooms = true; // Ctrl held
+
+        Click(ctx, view, 100, 227); // `a` again: already selected, append is a no-op, not a toggle
+        Assert.Equal([a], state.SelectedNotes);
+
+        Click(ctx, view, 44 + 10 * 16 + 8, 227); // `b`'s cell
+        Assert.Equal([a, b], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void SelectTool_ShiftClickOnANote_RemovesIt()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 3, boom, 0);
+        var b = state.AddNote(track.Segments[0], 10, boom, 0);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetNoteSelection([a, b]);
+        view.FineSnap = true; // Shift held
+
+        Click(ctx, view, 100, 227); // `a`'s cell
+
+        Assert.Equal([b], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void GroupDrag_DraggingASelectedNote_UnderSelectTool_MovesTheWholeGroup()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 3, boom, 0);
+        var b = state.AddNote(track.Segments[0], 10, boom, 5);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetNoteSelection([a, b]);
+
+        // Press `a` (step 3, value 0) and drag one step right, one value up.
+        Press(ctx, view, 100, 227);
+        Drag(ctx, view, 116, 219);
+        Release(ctx, view, 116, 219);
+
+        Assert.Equal(4, a.Step);
+        Assert.Equal(1, a.Value);
+        Assert.Equal(11, b.Step); // moved by the same delta
+        Assert.Equal(6, b.Value);
+        Assert.Equal([a, b], state.SelectedNotes); // the group selection survives the drag
+    }
+
+    [Fact]
+    public void GroupDrag_DraggingASelectedNote_UnderDrawTool_MovesTheWholeGroupToo()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 3, boom, 0);
+        var b = state.AddNote(track.Segments[0], 10, boom, 5);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetNoteSelection([a, b]); // multi-select via the Select tool…
+        state.ActiveTool = EditorTool.Draw; // …then switch: selection survives (§3.6)
+
+        Press(ctx, view, 100, 227);
+        Drag(ctx, view, 116, 219);
+        Release(ctx, view, 116, 219);
+
+        Assert.Equal(4, a.Step);
+        Assert.Equal(1, a.Value);
+        Assert.Equal(11, b.Step);
+        Assert.Equal(6, b.Value);
+    }
+
+    [Fact]
+    public void GroupDrag_PressingAnUnselectedNote_ReplacesTheSelection_AndMovesOnlyIt()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 3, boom, 0);
+        var b = state.AddNote(track.Segments[0], 10, boom, 0);
+        view.Layout();
+        state.SetNoteSelection([a]); // `b` is not part of the selection
+
+        Press(ctx, view, 212, 227); // `b`'s cell (step 10)
+        Drag(ctx, view, 228, 227); // one step right
+        Release(ctx, view, 228, 227);
+
+        Assert.Equal(3, a.Step); // untouched: no longer part of the (replaced) selection
+        Assert.Equal(11, b.Step);
+        Assert.Equal([b], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void GroupDrag_CollapsesTheWholeMultiFrameDrag_IntoOneUndoEntry()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 3, boom, 0);
+        var b = state.AddNote(track.Segments[0], 10, boom, 0);
+        view.Layout();
+        state.SetNoteSelection([a, b]);
+
+        Press(ctx, view, 100, 227); // `a`'s cell
+        Drag(ctx, view, 116, 227); // step 4
+        Drag(ctx, view, 132, 227); // step 5
+        Drag(ctx, view, 148, 227); // step 6
+        Release(ctx, view, 148, 227);
+
+        Assert.Equal(6, a.Step);
+        Assert.Equal(13, b.Step);
+
+        // One Ctrl+Z restores BOTH notes all the way to their pre-drag positions — if the
+        // three drag frames hadn't collapsed into one entry, this would only undo the
+        // last frame's delta (step 6 -> 5), not the whole gesture back to step 3.
+        state.Undo();
+        Assert.Equal(3, a.Step);
+        Assert.Equal(10, b.Step);
+
+        state.Redo();
+        Assert.Equal(6, a.Step);
+        Assert.Equal(13, b.Step);
+    }
+
+    [Fact]
+    public void GroupDrag_ClampsIndividualNotes_WithoutClampingTheWholeGroupsDelta()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var anchor = state.AddNote(track.Segments[0], 10, boom, 0); // plenty of room to move left
+        var nearStart = state.AddNote(track.Segments[0], 2, boom, 0); // would underflow first
+        view.Layout();
+        state.SetNoteSelection([anchor, nearStart]);
+
+        // Press the anchor (step 10) and drag left by 8 steps: the anchor itself stays
+        // in range, but `nearStart` (step 2 - 8 = -6) must clamp to step 0 instead of
+        // vanishing or capping the whole group's delta down to fit it.
+        Press(ctx, view, 44 + 10 * 16 + 8, 227);
+        Drag(ctx, view, 44 + 2 * 16 + 8, 227);
+        Release(ctx, view, 44 + 2 * 16 + 8, 227);
+
+        Assert.Equal(2, anchor.Step); // the full -8 delta applied
+        Assert.Equal(0, nearStart.Step); // clamped, not dropped
+    }
+
+    [Fact]
+    public void DeleteKey_RemovesTheWholeMultiSelection_AsOneUndoEntry()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 3, boom, 0);
+        var b = state.AddNote(track.Segments[0], 10, boom, 0);
+        view.Layout();
+        Click(ctx, view, 500, 300); // focuses the view without hitting either note
+        state.SetNoteSelection([a, b]);
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Delete, 0, 0, false));
+
+        Assert.Empty(track.Segments[0].Notes);
+        state.Undo();
+        Assert.Equal([a, b], track.Segments[0].Notes);
+    }
+
+    [Fact]
+    public void EscapeKey_ClearsTheSelection_BeforeClosingTheTrack()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
+        view.Layout();
+        Click(ctx, view, 500, 300); // focuses the view
+        state.SetNoteSelection([note]);
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Escape, 0, 0, false));
+        Assert.Empty(state.SelectedNotes);
+        Assert.NotNull(state.OpenedTrack); // first Escape only cleared the selection
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Escape, 0, 0, false));
+        Assert.Null(state.OpenedTrack); // nothing selected: falls through to closing the track
+    }
+
+    [Fact]
+    public void CtrlA_SelectsEveryNoteOfTheOpenedTrack()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(track.Segments[0], 1, boom, 0);
+        view.Layout();
+        Click(ctx, view, 500, 300); // focuses the view
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.A, 0, KeyModifiers.Control, false));
+
+        Assert.Equal([a, b], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void CtrlCV_CopiesAndPastesTheSelection_ThroughTheFocusedView()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(track.Segments[0], 3, boom, 5);
+        view.Layout();
+        Click(ctx, view, 500, 300); // focuses the view
+        state.SetNoteSelection([note]);
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.C, 0, KeyModifiers.Control, false));
+        state.RemoveNote(track.Segments[0], note); // clear the cell so paste-in-place doesn't collide
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.V, 0, KeyModifiers.Control, false));
+
+        var pasted = Assert.Single(track.Segments[0].Notes);
+        Assert.Equal(3, pasted.Step);
+        Assert.Equal(5, pasted.Value);
+    }
+
+    [Fact]
+    public void CtrlX_CutsTheSelection()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(track.Segments[0], 3, boom, 0);
+        view.Layout();
+        Click(ctx, view, 500, 300); // focuses the view
+        state.SetNoteSelection([note]);
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.X, 0, KeyModifiers.Control, false));
+
+        Assert.Empty(track.Segments[0].Notes);
+        state.Paste();
+        Assert.Single(track.Segments[0].Notes);
+    }
 }

@@ -29,6 +29,7 @@ public class InspectorPanelTests
         state.OnOpenedTrackChanged += _ => inspector.Rebuild();
         state.OnSegmentSelectionChanged += _ => inspector.Rebuild();
         state.OnNoteSelectionChanged += _ => inspector.Rebuild();
+        state.OnPlacementSelectionChanged += _ => inspector.Rebuild();
 
         inspector.Layout();
         return (ctx, state, inspector);
@@ -120,10 +121,10 @@ public class InspectorPanelTests
 
         Assert.Equal("boom", ((Label)inspector.Field("Note.Instrument")!).Value.ToString());
 
-        Note? seen = null;
+        IReadOnlyList<Note>? seen = null;
         inspector.OnReassignInstrument = n => seen = n;
         ((Button)inspector.Field("Note.Change")!).OnClick!.Invoke(null!);
-        Assert.Same(note, seen);
+        Assert.Equal([note], seen);
     }
 
     [Fact]
@@ -362,5 +363,152 @@ public class InspectorPanelTests
         inspector.Sync();
 
         Assert.Equal("Aleph-0", ((TextInput)inspector.Field("Project.Name")!).Value);
+    }
+
+    [Fact]
+    public void MultiNoteSelection_ShowsTheCountHeader_AndUniformFieldsEditable()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 5);
+        var b = state.AddNote(track.Segments[0], 1, boom, 5);
+        state.SetNoteSelection([a, b]);
+
+        // Same instrument and value on both: shown, not blank.
+        Assert.Equal("boom", ((Label)inspector.Field("Note (× 2).Instrument")!).Value.ToString());
+        Assert.Equal(5, ((NumericInput)inspector.Field("Note (× 2).Value")!).Value);
+
+        // Committing applies to every selected note (absolute, not relative).
+        ((NumericInput)inspector.Field("Note (× 2).Value")!).Value = 20;
+        Assert.Equal(20, a.Value);
+        Assert.Equal(20, b.Value);
+
+        // Single-selection field keys don't exist in multi-select mode.
+        Assert.Null(inspector.Field("Note.Value"));
+    }
+
+    [Fact]
+    public void MultiNoteSelection_DifferingFields_RenderEmpty_AndCommitToAllOnType()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 5);
+        var b = state.AddNote(track.Segments[0], 1, boom, 9);
+        state.SetNoteSelection([a, b]);
+
+        var value = (NumericInput)inspector.Field("Note (× 2).Value")!;
+        Assert.Null(value.Value); // differing values: renders empty, not an arbitrary pick
+
+        value.Value = 12;
+        Assert.Equal(12, a.Value);
+        Assert.Equal(12, b.Value);
+    }
+
+    [Fact]
+    public void MultiNoteSelection_DifferingInstruments_ShowMixed_AndChangeReassignsAll()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var other = MakeInstrument(state, "other");
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(track.Segments[0], 1, other, 0);
+        state.SetNoteSelection([a, b]);
+
+        Assert.Equal("mixed", ((Label)inspector.Field("Note (× 2).Instrument")!).Value.ToString());
+
+        IReadOnlyList<Note>? seen = null;
+        inspector.OnReassignInstrument = n => seen = n;
+        ((Button)inspector.Field("Note (× 2).Change")!).OnClick!.Invoke(null!);
+        Assert.Equal([a, b], seen);
+    }
+
+    [Fact]
+    public void MultiNoteSelection_AllNullAutomation_OffersAddButton_WithSeparateManagers()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(track.Segments[0], 1, boom, 0);
+        state.SetNoteSelection([a, b]);
+
+        Assert.NotNull(inspector.Field("Automation.+ Add automation"));
+
+        ((Button)inspector.Field("Automation.+ Add automation")!).OnClick!.Invoke(null!);
+
+        Assert.NotNull(a.Automation);
+        Assert.NotNull(b.Automation);
+        Assert.NotSame(a.Automation, b.Automation); // never a shared instance
+    }
+
+    [Fact]
+    public void MultiNoteSelection_MismatchedAutomation_ShowsDisabledMixedRow()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(track.Segments[0], 1, boom, 0);
+        a.Automation = new AudioKeyframeManager();
+        state.SetNoteSelection([a, b]);
+
+        Assert.Null(inspector.Field("Automation.+ Add automation"));
+        Assert.Null(inspector.Field("Automation.Repeats")); // no editable form while mixed
+        Assert.NotNull(inspector.Field("Automation.Automation"));
+    }
+
+    [Fact]
+    public void MultiNoteSelection_UniformAutomation_EditsThePrimary_AndCloneFansOutToTheRest()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(track.Segments[0], 1, boom, 0); // primary: last in selection order
+        a.Automation = new AudioKeyframeManager();
+        b.Automation = new AudioKeyframeManager();
+        state.SetNoteSelection([a, b]);
+
+        ((NumericInput)inspector.Field("Automation.Repeats")!).Value = 4;
+
+        Assert.Equal(4, b.Automation.Repeats); // primary edited directly
+        Assert.Equal(4, a.Automation!.Repeats); // fanned out via clone
+        Assert.NotSame(a.Automation, b.Automation); // still independent instances
+    }
+
+    [Fact]
+    public void MultiPlacementSelection_SameTrack_ShowsClipsHeader_AndTheNormalTrackForm()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        var a = state.PlaceTrack(track, 0, 0);
+        var b = state.PlaceTrack(track, 1, 4);
+        state.SetPlacementSelection([a, b]);
+
+        ((TextInput)inspector.Field("Track.Name")!).Value = "Drums";
+        Assert.Equal("Drums", track.Name);
+    }
+
+    [Fact]
+    public void MultiPlacementSelection_DifferentTracks_ShowsMixed_NoTrackForm()
+    {
+        var (_, state, inspector) = NewInspector();
+        var trackA = state.AddTrack();
+        var trackB = state.AddTrack();
+        var a = state.PlaceTrack(trackA, 0, 0);
+        var b = state.PlaceTrack(trackB, 1, 4);
+        state.SetPlacementSelection([a, b]);
+
+        Assert.Equal("mixed", ((Label)inspector.Field("Track.Track")!).Value.ToString());
+        Assert.Null(inspector.Field("Track.Name"));
     }
 }

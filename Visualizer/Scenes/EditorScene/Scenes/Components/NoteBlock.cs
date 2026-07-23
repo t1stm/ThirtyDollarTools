@@ -20,7 +20,7 @@ internal class NoteBlock : Panel
         OnClick = _ => { };
     }
 
-    public TrackSegment? Segment { get; private set; }
+    public TrackSegment? Segment { get; internal set; }
     public Note? Note { get; private set; }
 
     public void Assign(TrackSegment segment, Note note)
@@ -29,13 +29,36 @@ internal class NoteBlock : Panel
         Note = note;
     }
 
+    /// <summary>
+    ///     Press-time selection (both tools, per §2/§3.4), then always starts a group
+    ///     drag over whatever ended up selected: pressing an unselected note replaces the
+    ///     selection with just it (a group of one — the plain single-note drag); pressing
+    ///     a note that's already part of a (possibly multi-note) selection leaves the
+    ///     group intact, so the drag moves the whole group together. Ctrl/Shift presses
+    ///     under the Select tool only ever append/remove — no drag starts from those.
+    /// </summary>
     public override bool HandlePress(float x, float y)
     {
         if (Note == null || Segment == null) return false;
-        _view._dragging = this;
-        _view._state.BeginGesture();
         _view._state.SelectSegment(Segment);
-        _view._state.SelectNote(Note);
+
+        if (_view._state.ActiveTool == EditorTool.Select)
+        {
+            if (_view.FineSnap)
+            {
+                _view._state.RemoveFromNoteSelection([Note]); // Shift: remove (no-op if absent), no drag
+                return true;
+            }
+
+            if (_view.WheelZooms)
+            {
+                _view._state.AddToNoteSelection([Note]); // Ctrl: append (no-op if present), no drag
+                return true;
+            }
+        }
+
+        if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note); // replace
+        _view.BeginNoteDrag(this);
         return true;
     }
 
@@ -52,15 +75,6 @@ internal class NoteBlock : Panel
     public override void HandlePointerDrag(float x, float y)
     {
         if (Note == null || Segment == null) return;
-        var (segment, step) = _view.StepAt(x, true);
-        if (segment == null) return;
-
-        var value = _view.ValueAt(y);
-        var moved = segment != Segment || step != Note.Step || value != Note.Value;
-        _view._state.MoveNote(Segment, segment, Note, step, value);
-        Segment = segment;
-        _view.InvalidateLayout();
-        // Re-preview only on an actual cell change, replacing the old preview.
-        if (moved) _view.OnPreviewNote?.Invoke(Note.Instrument, Note.Value);
+        _view.UpdateGroupDrag(x, y);
     }
 }

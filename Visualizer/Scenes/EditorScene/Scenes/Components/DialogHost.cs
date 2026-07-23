@@ -20,8 +20,10 @@ public sealed class DialogHost(UIContext context, Panel root)
     /// <summary>Adds a modal wrapping the given content; the backdrop dismiss removes it by default.</summary>
     public ModalLayer Show(UIElement content)
     {
-        var modal = new ModalLayer(context);
-        modal.OnDismissRequested = Close;
+        var modal = new ModalLayer(context)
+        {
+            OnDismissRequested = Close
+        };
         modal.AddChild(content);
         root.AddChild(modal);
         return modal;

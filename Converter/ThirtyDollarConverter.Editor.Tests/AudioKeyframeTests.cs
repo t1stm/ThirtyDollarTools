@@ -253,4 +253,25 @@ public class AudioKeyframeTests
         Assert.Single(original.Keyframes);
         Assert.Equal(1, original.Keyframes[0].Gap);
     }
+
+    [Fact]
+    public void ValueEquals_ComparesStructureNotReference()
+    {
+        var a = new AudioKeyframeManager { Timing = KeyframeTiming.Time, Repeats = 2 };
+        a.Keyframes.Add(new AudioKeyframe { Gap = 1, Value = new Modifier(12) });
+        var clone = a.Clone();
+
+        Assert.NotSame(a, clone);
+        Assert.True(a.ValueEquals(clone));
+
+        clone.Repeats = 3;
+        Assert.False(a.ValueEquals(clone));
+
+        clone.Repeats = 2;
+        clone.Keyframes[0].Cut = true;
+        Assert.False(a.ValueEquals(clone));
+
+        var shorter = new AudioKeyframeManager { Timing = KeyframeTiming.Time, Repeats = 2 };
+        Assert.False(a.ValueEquals(shorter));
+    }
 }

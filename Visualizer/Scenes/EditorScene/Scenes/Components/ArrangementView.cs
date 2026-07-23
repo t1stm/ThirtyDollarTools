@@ -40,12 +40,21 @@ public sealed class ArrangementView : Panel
     private readonly LineBatch _lineBatch = new();
     private readonly Panel _rulerBackground;
     private readonly Panel _playhead;
+    private readonly Panel _marqueeRect;
     private readonly EditorState _state;
 
     private ClipBlock? _dragging;
     private bool _refreshDeferred;
     private Vector4i? _inheritedClip;
     private float _scrollX;
+
+    // Marquee (Select tool): model-space anchor/cursor (continuous quarters, channel),
+    // so mid-drag panning can't corrupt it. Mode is sampled from the modifier bools at
+    // press, applied at release. See TrackEditorView for the identical note-editor version.
+    private enum MarqueeMode { Replace, Append, Remove }
+    private (double Quarters, double Channel)? _marqueeAnchor;
+    private (double Quarters, double Channel)? _marqueeCursor;
+    private MarqueeMode _marqueeMode;
 
     public ArrangementView(UIContext context, EditorState state) : base(context)
     {
@@ -60,6 +69,9 @@ public sealed class ArrangementView : Panel
                 OnSeekQuarters?.Invoke(Math.Max(0, (context.PointerX - Computed.AbsoluteX + _scrollX) / PixelsPerQuarter));
                 return;
             }
+            // The Select tool never creates anything; its empty-lane press already
+            // applied the marquee selection (see HandlePress/Update).
+            if (_state.ActiveTool == EditorTool.Select) return;
             PlaceAtPointer();
         };
 
@@ -85,6 +97,16 @@ public sealed class ArrangementView : Panel
             Background = new ColoredPlane { Color = PlayheadColor }
         };
         AddChild(_playhead);
+
+        // Never takes input (GhostPanel), fill only, no border; re-added last on every
+        // Refresh (with the playhead) so it renders above the clip blocks.
+        _marqueeRect = new GhostPanel(context)
+        {
+            Width = 0,
+            Height = 0,
+            Background = new ColoredPlane { Color = new Vector4(EditorPalette.Accent.X, EditorPalette.Accent.Y, EditorPalette.Accent.Z, 0.25f) }
+        };
+        AddChild(_marqueeRect);
 
         Refresh();
     }
@@ -115,6 +137,10 @@ public sealed class ArrangementView : Panel
 
     /// <summary>While true (Ctrl held), the wheel zooms horizontally instead of panning.</summary>
     public bool WheelZooms { get; set; }
+
+    /// <summary>While true (Shift held), a marquee drag removes contained clips from the
+    /// selection instead of replacing it. Mirrors <see cref="TrackEditorView.FineSnap" />.</summary>
+    public bool FineSnap { get; set; }
 
     /// <summary>Fired when a clip is double-clicked — the seam for the per-track editor.</summary>
     public Action<ProjectTrack>? OnOpenTrack { get; set; }
@@ -154,9 +180,11 @@ public sealed class ArrangementView : Panel
             AddChild(block);
         }
 
-        // Keep the playhead last so it renders above the clips.
+        // Keep the playhead and marquee rect last so they render above the clips.
         RemoveChild(_playhead);
         AddChild(_playhead);
+        RemoveChild(_marqueeRect);
+        AddChild(_marqueeRect);
 
         RefreshSelection();
         InvalidateLayout();
@@ -165,7 +193,7 @@ public sealed class ArrangementView : Panel
     public void RefreshSelection()
     {
         foreach (var block in _blocks)
-            block.SetSelected(block.Placement == _state.SelectedPlacement);
+            block.SetSelected(_state.SelectedPlacements.Contains(block.Placement));
     }
 
     protected override void DoLayout()
@@ -226,6 +254,8 @@ public sealed class ArrangementView : Panel
         _playhead.X = playheadX;
         _playhead.Y = RulerHeight;
 
+        LayoutMarquee();
+
         _rulerBackground.X = 0;
         _rulerBackground.Y = 0;
         _rulerBackground.Width = width;
@@ -233,6 +263,111 @@ public sealed class ArrangementView : Panel
 
         base.DoLayout();
         ApplyClip(_inheritedClip);
+    }
+
+    /// <summary>Positions the marquee rectangle from its model-space anchor/cursor every
+    /// frame, so it scroll-corrects; zero size (hidden) while no marquee is active.</summary>
+    private void LayoutMarquee()
+    {
+        if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor)
+        {
+            _marqueeRect.Width = 0;
+            _marqueeRect.Height = 0;
+            return;
+        }
+
+        var x1 = (float)(anchor.Quarters * PixelsPerQuarter) - _scrollX;
+        var x2 = (float)(cursor.Quarters * PixelsPerQuarter) - _scrollX;
+        var y1 = RulerHeight + (float)(anchor.Channel * LaneHeight);
+        var y2 = RulerHeight + (float)(cursor.Channel * LaneHeight);
+
+        _marqueeRect.X = Math.Min(x1, x2);
+        _marqueeRect.Y = Math.Min(y1, y2);
+        _marqueeRect.Width = Math.Abs(x2 - x1);
+        _marqueeRect.Height = Math.Abs(y2 - y1);
+    }
+
+    /// <summary>Continuous, unsnapped quarter-note position — the marquee's counterpart to <see cref="GridPosition" />.</summary>
+    private double UnsnappedQuartersAt(float localX)
+    {
+        return (localX + _scrollX) / PixelsPerQuarter;
+    }
+
+    /// <summary>Continuous, unsnapped channel — the marquee's counterpart to <see cref="GridPosition" />.</summary>
+    private double UnsnappedChannelAt(float localY)
+    {
+        return (localY - RulerHeight) / LaneHeight;
+    }
+
+    /// <summary>
+    ///     Select tool only: starts a marquee on an empty-lane press (below the ruler).
+    ///     Empty-lane presses otherwise reach only <c>OnClick</c> on release, but the
+    ///     marquee needs the press to capture the pointer for the drag.
+    /// </summary>
+    public override bool HandlePress(float x, float y)
+    {
+        var localY = y - Computed.AbsoluteY;
+        if (localY < RulerHeight) return false; // ruler seek still runs on release via OnClick
+        if (_state.ActiveTool != EditorTool.Select) return false; // Draw tool: PlaceAtPointer on release, unchanged
+
+        var localX = x - Computed.AbsoluteX;
+        _marqueeAnchor = _marqueeCursor = (UnsnappedQuartersAt(localX), UnsnappedChannelAt(localY));
+        _marqueeMode = FineSnap ? MarqueeMode.Remove : WheelZooms ? MarqueeMode.Append : MarqueeMode.Replace;
+        InvalidateLayout();
+        return true; // capture: the drag updates the marquee rect
+    }
+
+    public override void HandlePointerDrag(float x, float y)
+    {
+        if (_marqueeAnchor == null) return;
+        _marqueeCursor = (UnsnappedQuartersAt(x - Computed.AbsoluteX), UnsnappedChannelAt(y - Computed.AbsoluteY));
+        InvalidateLayout();
+    }
+
+    /// <summary>
+    ///     Applies the marquee's Replace/Append/Remove modifier semantics against every
+    ///     placement whose time span intersects the marquee's quarter range and whose
+    ///     channel is within its row range — span-intersection (not containment), since
+    ///     clips are wide objects and a marquee merely touching one should select it.
+    /// </summary>
+    private void CommitMarquee()
+    {
+        if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor) return;
+
+        var minQ = Math.Min(anchor.Quarters, cursor.Quarters);
+        var maxQ = Math.Max(anchor.Quarters, cursor.Quarters);
+        var minChannel = Math.Min(anchor.Channel, cursor.Channel);
+        var maxChannel = Math.Max(anchor.Channel, cursor.Channel);
+
+        var contained = new List<TrackPlacement>();
+        foreach (var placement in _state.Project.Placements)
+        {
+            var quarters = placement.Track.DurationMinutes() * _state.Project.RootTiming.BPM;
+            var end = placement.StartQuarterNotes + quarters;
+            if (end <= minQ || placement.StartQuarterNotes >= maxQ) continue;
+
+            // The lane is a whole rendered row (Channel .. Channel+1), not a point —
+            // comparing the marquee's box against the bare Channel int only ever
+            // matched when the box touched the lane's top edge, missing anything
+            // dragged entirely inside the row (same bug class as the note editor's
+            // marquee, just on this axis instead of the time axis above).
+            if (placement.Channel >= maxChannel || placement.Channel + 1 <= minChannel) continue;
+
+            contained.Add(placement);
+        }
+
+        switch (_marqueeMode)
+        {
+            case MarqueeMode.Append:
+                _state.AddToPlacementSelection(contained);
+                break;
+            case MarqueeMode.Remove:
+                _state.RemoveFromPlacementSelection(contained);
+                break;
+            default:
+                _state.SetPlacementSelection(contained); // empty marquee clears the selection
+                break;
+        }
     }
 
     public override bool HandleScroll(Vector2 scrollDelta)
@@ -256,11 +391,29 @@ public sealed class ArrangementView : Panel
 
     public override bool HandleKeyDown(KeyboardKeyEventArgs e)
     {
-        if (e.Key is not (Keys.Delete or Keys.Backspace) || _state.SelectedPlacement is not { } selected)
-            return base.HandleKeyDown(e);
-
-        _state.RemovePlacement(selected);
-        return true;
+        switch (e.Key)
+        {
+            case Keys.Delete or Keys.Backspace when _state.SelectedPlacements.Count > 0:
+                _state.DeleteSelection();
+                return true;
+            case Keys.C when e.Control:
+                _state.CopySelection();
+                return true;
+            case Keys.V when e.Control:
+                _state.Paste();
+                return true;
+            case Keys.X when e.Control:
+                _state.CutSelection();
+                return true;
+            case Keys.A when e.Control:
+                _state.SelectAll();
+                return true;
+            case Keys.Escape when _state.SelectedPlacements.Count > 0:
+                _state.ClearSelection();
+                return true;
+            default:
+                return base.HandleKeyDown(e);
+        }
     }
 
     public override UIElement? HitTest(float x, float y)
@@ -296,6 +449,14 @@ public sealed class ArrangementView : Panel
     public override void Update(UIContext uiContext)
     {
         base.Update(uiContext);
+
+        if (_marqueeAnchor != null && uiContext.CapturedElement != this)
+        {
+            CommitMarquee();
+            _marqueeAnchor = _marqueeCursor = null;
+            InvalidateLayout();
+        }
+
         if (_dragging == null || uiContext.CapturedElement == _dragging) return;
 
         // The drag ended (release or capture theft): run the rebuild Refresh skipped.
@@ -351,16 +512,29 @@ public sealed class ArrangementView : Panel
 
         public override bool HandlePress(float x, float y)
         {
+            _view._state.SelectTrack(Placement.Track);
+
+            if (_view._state.ActiveTool == EditorTool.Select)
+            {
+                // Select tool: press-time selection only, matching the Draw tool's press
+                // feel — no move drag, no BeginGesture (dragging a multi-selection is a
+                // listed future extension).
+                if (_view.FineSnap) _view._state.RemoveFromPlacementSelection([Placement]); // Shift: remove (no-op if absent)
+                else if (_view.WheelZooms) _view._state.AddToPlacementSelection([Placement]); // Ctrl: append (no-op if present)
+                else _view._state.SelectPlacement(Placement); // no modifier: replace
+                return true;
+            }
+
             _view._dragging = this;
             _view._state.BeginGesture();
             _grabOffsetQuarters = (x - Computed.AbsoluteX) / _view.PixelsPerQuarter;
             _view._state.SelectPlacement(Placement);
-            _view._state.SelectTrack(Placement.Track);
             return true;
         }
 
         public override void HandlePointerDrag(float x, float y)
         {
+            if (_view._state.ActiveTool == EditorTool.Select) return; // no-op: press already applied selection
             var (channel, start) = _view.GridPosition(x, y, _grabOffsetQuarters);
             _view._state.MovePlacement(Placement, channel, start);
             _view.InvalidateLayout();

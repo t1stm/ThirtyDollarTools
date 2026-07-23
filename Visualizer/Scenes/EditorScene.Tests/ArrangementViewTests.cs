@@ -25,6 +25,12 @@ public class ArrangementViewTests
         ctx.UpdatePointer(root, x, y, false, false, true, Vector2.Zero);
     }
 
+    private static void Click(UIContext ctx, UIElement root, float x, float y)
+    {
+        Press(ctx, root, x, y);
+        Release(ctx, root, x, y);
+    }
+
     private static (EditorTestContext ctx, EditorState state, ArrangementView view) NewView()
     {
         var ctx = new EditorTestContext();
@@ -234,5 +240,203 @@ public class ArrangementViewTests
         Release(ctx, view, 10, 28);
 
         Assert.Same(track, opened);
+    }
+
+    [Fact]
+    public void SelectTool_MarqueeDrag_SelectsIntersectingClips_AndNeverPlaces()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack(); // default pattern: one 4/4 bar = 4 quarter notes
+        var inside = state.PlaceTrack(track, 1, 4); // spans quarters 4..8, lane 1 (y 62..106)
+        var outside = state.PlaceTrack(track, 5, 40);
+        state.SelectTrack(track);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+
+        // Box from (quarter 3, lane 0.5) to (quarter 9, lane 2): intersects `inside`'s span/lane.
+        Press(ctx, view, 3 * 24, 18 + 22);
+        Drag(ctx, view, 9 * 24, 18 + 88);
+        Release(ctx, view, 9 * 24, 18 + 88);
+        view.Update(ctx); // marquee commit runs on capture loss
+
+        Assert.Equal([inside], state.SelectedPlacements);
+        Assert.DoesNotContain(outside, state.SelectedPlacements);
+        Assert.Equal(2, state.Project.Placements.Count); // the Select tool never places
+    }
+
+    [Fact]
+    public void SelectTool_Marquee_SelectsAClip_EvenWhenTheBoxNeverReachesItsTopEdge()
+    {
+        // Regression: a lane is a whole rendered row (Channel .. Channel+1), not a
+        // point. A box whose channel range never reaches the row's top edge must
+        // still select an intersecting clip (the time axis already used proper span
+        // intersection; the channel axis didn't).
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 1, 4); // spans quarters 4..8, lane 1 (y 62..106)
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+
+        // Anchor at (quarter 6, lane 3) — an empty lane, off the clip's own block
+        // entirely, so the press starts a marquee instead of grabbing the clip
+        // directly. Cursor at (quarter 6, lane 1.5) — inside the clip's row, short of
+        // its top edge (minChannel=1.5 > 1).
+        Press(ctx, view, 6 * 24, 18 + 3 * 44);
+        Drag(ctx, view, 6 * 24, 18 + 1.5f * 44);
+        Release(ctx, view, 6 * 24, 18 + 1.5f * 44);
+        view.Update(ctx);
+
+        Assert.Equal([placement], state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void SelectTool_CtrlMarquee_AppendsWithoutTouchingTheExistingSelection()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var already = state.PlaceTrack(track, 0, 0);
+        var toAdd = state.PlaceTrack(track, 1, 4);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetPlacementSelection([already]);
+        view.WheelZooms = true; // Ctrl held
+
+        // Anchor past `already`'s own clip (quarters 0..4) on its row, so the press
+        // lands on empty canvas instead of hitting that ClipBlock directly.
+        Press(ctx, view, 100, 18 + 22);
+        Drag(ctx, view, 9 * 24, 18 + 88);
+        Release(ctx, view, 9 * 24, 18 + 88);
+        view.Update(ctx);
+
+        Assert.Equal([already, toAdd], state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void SelectTool_ShiftMarquee_RemovesIntersectingClips()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var a = state.PlaceTrack(track, 1, 4);
+        var b = state.PlaceTrack(track, 5, 40);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetPlacementSelection([a, b]);
+        view.FineSnap = true; // Shift held
+
+        Press(ctx, view, 3 * 24, 18 + 22);
+        Drag(ctx, view, 9 * 24, 18 + 88);
+        Release(ctx, view, 9 * 24, 18 + 88);
+        view.Update(ctx);
+
+        Assert.Equal([b], state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void SelectTool_EmptyMarquee_ClearsTheSelection()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 1, 4);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetPlacementSelection([placement]);
+
+        // A box far from any clip.
+        Press(ctx, view, 700, 300);
+        Drag(ctx, view, 750, 320);
+        Release(ctx, view, 750, 320);
+        view.Update(ctx);
+
+        Assert.Empty(state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void SelectTool_ClickOnAClip_ReplacesSelection_WithoutStartingADrag()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 1, 4);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+
+        Press(ctx, view, 100, 78); // the clip's cell (see PressOnAClip_..)
+        Drag(ctx, view, 124, 122); // would move it under the Draw tool
+        Release(ctx, view, 124, 122);
+
+        Assert.Equal([placement], state.SelectedPlacements);
+        Assert.Equal(4, placement.StartQuarterNotes); // never moved
+        Assert.Equal(1, placement.Channel);
+    }
+
+    [Fact]
+    public void SelectTool_CtrlClickOnAClip_AppendsWithoutToggling()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var a = state.PlaceTrack(track, 1, 4);
+        var b = state.PlaceTrack(track, 2, 20);
+        view.Layout();
+        state.ActiveTool = EditorTool.Select;
+        state.SetPlacementSelection([a]);
+        view.WheelZooms = true; // Ctrl held
+
+        Click(ctx, view, 100, 78); // `a` again: already selected, append is a no-op, not a toggle
+        Assert.Equal([a], state.SelectedPlacements);
+
+        Click(ctx, view, (float)(20 * 24) + 4, 18 + 2 * 44 + 5); // `b`'s cell
+        Assert.Equal([a, b], state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void DeleteKey_RemovesTheWholeMultiSelection_AsOneUndoEntry()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var a = state.PlaceTrack(track, 1, 4);
+        var b = state.PlaceTrack(track, 2, 20);
+        view.Layout();
+        Press(ctx, view, 700, 300); // focuses the view without hitting either clip
+        Release(ctx, view, 700, 300);
+        state.SetPlacementSelection([a, b]);
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Delete, 0, 0, false));
+
+        Assert.Empty(state.Project.Placements);
+        state.Undo(); // one Ctrl+Z restores both
+        Assert.Equal([a, b], state.Project.Placements);
+    }
+
+    [Fact]
+    public void CtrlA_SelectsEveryPlacement()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var a = state.PlaceTrack(track, 0, 0);
+        var b = state.PlaceTrack(track, 1, 4);
+        view.Layout();
+        Press(ctx, view, 700, 300); // focuses the view
+        Release(ctx, view, 700, 300);
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.A, 0, KeyModifiers.Control, false));
+
+        Assert.Equal([a, b], state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void CtrlCV_CopiesAndPastesTheSelection_ThroughTheFocusedView()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 1, 4);
+        view.Layout();
+        Press(ctx, view, 700, 300); // focuses the view
+        Release(ctx, view, 700, 300);
+        state.SetPlacementSelection([placement]);
+
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.C, 0, KeyModifiers.Control, false));
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.V, 0, KeyModifiers.Control, false));
+
+        Assert.Equal(2, state.Project.Placements.Count);
+        Assert.Equal([placement, state.SelectedPlacement!], state.Project.Placements);
     }
 }

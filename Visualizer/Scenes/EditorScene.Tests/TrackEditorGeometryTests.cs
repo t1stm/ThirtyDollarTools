@@ -112,4 +112,24 @@ public class TrackEditorGeometryTests
 
         Assert.Equal(0f, geometry.ScrollX);
     }
+
+    [Fact]
+    public void UnsnappedStepAt_IsContinuous_UnlikeStepAt()
+    {
+        var geometry = MakeGeometry(); // 16 px/step
+
+        // Mid-cell 5, a quarter of the way into the next step: StepAt floors to 5,
+        // the marquee's unsnapped version keeps the fraction.
+        var localX = TrackEditorGeometry.GutterWidth + 5 * geometry.PixelsPerStep + 4;
+        Assert.Equal(5.25, geometry.UnsnappedStepAt(localX), 3);
+    }
+
+    [Fact]
+    public void UnsnappedValueAt_IsTheContinuousInverseOfValueTop()
+    {
+        var geometry = MakeGeometry();
+
+        var top = geometry.ValueTop(12.5);
+        Assert.Equal(12.5, geometry.UnsnappedValueAt(top), 3);
+    }
 }

@@ -53,6 +53,27 @@ public class AudioKeyframeManager
     }
 
     /// <summary>
+    ///     Structural equality (Timing, Repeats, and every keyframe's fields) — used by the
+    ///     multi-select inspector to decide whether several notes' automations are uniform
+    ///     enough to edit as one. Reference equality doesn't apply: every note holds its own
+    ///     cloned manager instance.
+    /// </summary>
+    public bool ValueEquals(AudioKeyframeManager other)
+    {
+        if (Timing != other.Timing || Repeats != other.Repeats) return false;
+        if (Keyframes.Count != other.Keyframes.Count) return false;
+
+        for (var i = 0; i < Keyframes.Count; i++)
+        {
+            var (a, b) = (Keyframes[i], other.Keyframes[i]);
+            if (a.Gap != b.Gap || a.Cut != b.Cut) return false;
+            if (a.Value != b.Value || a.Volume != b.Volume || a.Pan != b.Pan || a.Offset != b.Offset) return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     ///     Generates the automation events for one note placed at <paramref name="noteMinutes" />,
     ///     flattened to the sound events each generated step actually plays (one per instrument
     ///     sound). A cut keyframe emits an individual cut immediately before its note, at the

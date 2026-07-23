@@ -33,6 +33,8 @@ public class EditorInterface
     private readonly TextInput _openedTrackName;
     private readonly Label _projectBpm;
     private readonly Label _projectName;
+    private readonly Button _drawToolButton;
+    private readonly Button _selectToolButton;
     private readonly Button _instrumentButton;
     private readonly InstrumentWorkflow _instrumentWorkflow;
     private readonly ModalLayer _soundFilterModal;
@@ -84,6 +86,27 @@ public class EditorInterface
         ((Button)ids["load-button"]).OnClick = _ => _dialogHost.ShowFileDialog(null, ".tdwproj", LoadProjectFile);
         ((Button)ids["save-button"]).OnClick = _ => _projectIo.Save();
         ((Button)ids["export-button"]).OnClick = _ => ShowExportDialog();
+
+        // Tool toggle buttons: highlighted background follows State.ActiveTool (code-owned
+        // ColoredPlane, not a stylesheet class — the active highlight is a runtime toggle,
+        // not a hover/press state). Draw is the default active tool.
+        _drawToolButton = new Button(context, "Draw")
+        {
+            Background = new ColoredPlane { Color = EditorPalette.Accent },
+            OnClick = _ => State.ActiveTool = EditorTool.Draw
+        };
+        _selectToolButton = new Button(context, "Select")
+        {
+            Background = new ColoredPlane { Color = EditorPalette.Surface },
+            OnClick = _ => State.ActiveTool = EditorTool.Select
+        };
+        ((FlexPanel)ids["editor-header"]).AddChild(_drawToolButton);
+        ((FlexPanel)ids["editor-header"]).AddChild(_selectToolButton);
+        State.OnToolChanged += tool =>
+        {
+            ((ColoredPlane)_drawToolButton.Background!).Color = tool == EditorTool.Draw ? EditorPalette.Accent : EditorPalette.Surface;
+            ((ColoredPlane)_selectToolButton.Background!).Color = tool == EditorTool.Select ? EditorPalette.Accent : EditorPalette.Surface;
+        };
 
         // The column body stacks the scrollable track list above the transport
         // controls: the list is percent-height, so it yields whatever room the
@@ -217,7 +240,7 @@ public class EditorInterface
             _soundFilterPicker.SetSelected(automation.Sounds ?? []);
             RootPanel.AddChild(_soundFilterModal);
         };
-        _inspector.OnReassignInstrument = note => _instrumentWorkflow.OpenSelector(note);
+        _inspector.OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes);
 
         State.OnProjectChanged += () =>
         {
@@ -230,7 +253,11 @@ public class EditorInterface
             RefreshSelection();
             _inspector.Rebuild();
         };
-        State.OnPlacementSelectionChanged += _ => _arrangement.RefreshSelection();
+        State.OnPlacementSelectionChanged += _ =>
+        {
+            _arrangement.RefreshSelection();
+            _inspector.Rebuild();
+        };
         State.OnChannelsChanged += () =>
         {
             _laneHeader.RefreshChannels();
@@ -266,6 +293,7 @@ public class EditorInterface
     {
         _trackEditor.FineSnap = shift;
         _trackEditor.WheelZooms = ctrl;
+        _arrangement.FineSnap = shift;
         _arrangement.WheelZooms = ctrl;
         _instrumentWorkflow.SetModifiers(shift, ctrl);
     }

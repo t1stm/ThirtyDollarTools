@@ -147,6 +147,43 @@ public class ProjectTrack(TimingInfo timing, int id)
     }
 
     /// <summary>
+    ///     Maps a track-absolute step (summed across preceding segments' <see cref="TrackSegment.StepCount" />)
+    ///     back to (segment, local step); null past the track's total step count. Used by
+    ///     clipboard paste to remap notes copied from a track with a different segment layout.
+    /// </summary>
+    public (TrackSegment Segment, int LocalStep)? SegmentAtGlobalStep(int globalStep)
+    {
+        var offset = 0;
+        foreach (var segment in _segments)
+        {
+            if (globalStep < offset + segment.StepCount) return (segment, globalStep - offset);
+            offset += segment.StepCount;
+        }
+
+        return null;
+    }
+
+    /// <summary>Inverse of <see cref="SegmentAtGlobalStep" />: the track-absolute step of a
+    /// local step in a known segment of this track.</summary>
+    public int GlobalStepOf(TrackSegment segment, int localStep)
+    {
+        var offset = 0;
+        foreach (var s in _segments)
+        {
+            if (s == segment) return offset + localStep;
+            offset += s.StepCount;
+        }
+
+        return localStep;
+    }
+
+    /// <summary>Convenience overload: the track-absolute step of a note in a known segment.</summary>
+    public int GlobalStepOf(TrackSegment segment, Note note)
+    {
+        return GlobalStepOf(segment, note.Step);
+    }
+
+    /// <summary>
     ///     The absolute time of every bar line of this track, counted across segments.
     ///     Null when the style doesn't ask for bar dividers.
     /// </summary>

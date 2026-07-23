@@ -202,4 +202,29 @@ public class ProjectTrackTests
         Assert.Equal(4.6, events[3].Value, 5); // its echo, also shifted
         Assert.Equal(5, note.Value); // the stored note is untouched
     }
+
+    [Fact]
+    public void SegmentAtGlobalStep_MapsAcrossSegmentBoundaries()
+    {
+        var track = MakeTrack(); // segment 0: 16 steps (4 bars * 4 steps/beat)
+        var second = track.NewSegment();
+
+        Assert.Equal((track.Segments[0], 0), track.SegmentAtGlobalStep(0));
+        Assert.Equal((track.Segments[0], 15), track.SegmentAtGlobalStep(15));
+        Assert.Equal((second, 0), track.SegmentAtGlobalStep(16));
+        Assert.Equal((second, 5), track.SegmentAtGlobalStep(21));
+        Assert.Null(track.SegmentAtGlobalStep(16 + second.StepCount));
+    }
+
+    [Fact]
+    public void GlobalStepOf_IsTheInverseOfSegmentAtGlobalStep()
+    {
+        var track = MakeTrack();
+        var second = track.NewSegment();
+        var note = new Note { Step = 5, Instrument = Instrument.Single("boom") };
+        second.Notes.Add(note);
+
+        Assert.Equal(21, track.GlobalStepOf(second, note));
+        Assert.Equal((second, 5), track.SegmentAtGlobalStep(21));
+    }
 }

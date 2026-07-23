@@ -104,6 +104,26 @@ public sealed class TrackEditorView : Panel
     private Vector4i? _inheritedClip;
     private Vector2? _panPointer;
 
+    // Marquee (Select tool): model-space anchor/cursor (continuous step, value), so
+    // mid-drag scrolling can't corrupt it and off-screen notes inside the box still
+    // count. Mode is sampled from the modifier bools at press, applied at release.
+    private enum MarqueeMode { Replace, Append, Remove }
+    private (double Step, double Value)? _marqueeAnchor;
+    private (double Step, double Value)? _marqueeCursor;
+    private MarqueeMode _marqueeMode;
+    private readonly Panel _marqueeRect;
+
+    // Group note drag: every selected note's starting (global step, value), captured
+    // once at press. Each drag frame re-derives the anchor's (pressed note's) delta
+    // from its own start and applies that same delta to every entry — this is what
+    // makes dragging one note of a multi-selection move the whole group together.
+    private readonly record struct GroupDragEntry(Note Note, int StartGlobalStep, double StartValue);
+    private List<GroupDragEntry>? _groupDrag;
+    private int _groupDragAnchorStartStep;
+    private double _groupDragAnchorStartValue;
+    private int _groupDragLastStep;
+    private double _groupDragLastValue;
+
     public TrackEditorView(UIContext context, EditorState state) : base(context)
     {
         _state = state;
@@ -170,6 +190,16 @@ public sealed class TrackEditorView : Panel
             _gutterLabels.Add(label);
             AddChild(label);
         }
+
+        // Added last so it renders above every note block (same trick ArrangementView
+        // uses for its playhead); never takes input (GhostPanel), fill only, no border.
+        _marqueeRect = new GhostPanel(context)
+        {
+            Width = 0,
+            Height = 0,
+            Background = new ColoredPlane { Color = new Vector4(EditorPalette.Accent.X, EditorPalette.Accent.Y, EditorPalette.Accent.Z, 0.25f) }
+        };
+        AddChild(_marqueeRect);
     }
 
     /// <summary>Horizontal zoom: pixels per grid step. Ctrl+wheel adjusts it (4–128).</summary>
@@ -390,9 +420,32 @@ public sealed class TrackEditorView : Panel
         }
 
         LayoutPlayheads(height);
+        LayoutMarquee(pps, scrollX);
 
         base.DoLayout();
         ApplyClip(_inheritedClip);
+    }
+
+    /// <summary>Positions the marquee rectangle from its model-space anchor/cursor every
+    /// frame, so it scroll-corrects; zero size (hidden) while no marquee is active.</summary>
+    private void LayoutMarquee(float pps, float scrollX)
+    {
+        if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor)
+        {
+            _marqueeRect.Width = 0;
+            _marqueeRect.Height = 0;
+            return;
+        }
+
+        var x1 = GutterWidth + (float)(anchor.Step * pps) - scrollX;
+        var x2 = GutterWidth + (float)(cursor.Step * pps) - scrollX;
+        var y1 = _geometry.ValueTop(anchor.Value);
+        var y2 = _geometry.ValueTop(cursor.Value);
+
+        _marqueeRect.X = Math.Min(x1, x2);
+        _marqueeRect.Y = Math.Min(y1, y2);
+        _marqueeRect.Width = Math.Abs(x2 - x1);
+        _marqueeRect.Height = Math.Abs(y2 - y1);
     }
 
     /// <summary>
@@ -479,7 +532,7 @@ public sealed class TrackEditorView : Panel
         block.Width = Math.Max(3, PixelsPerStep - 1);
         block.Height = Math.Max(3, _geometry.RowHeight - 1);
         ((ColoredPlane)block.Background!).Color =
-            note == _state.SelectedNote ? SelectedNoteColor : InstrumentColor(note.Instrument);
+            _state.SelectedNotes.Contains(note) ? SelectedNoteColor : InstrumentColor(note.Instrument);
     }
 
     private static void Hide(UIElement element)
@@ -553,12 +606,29 @@ public sealed class TrackEditorView : Panel
     {
         switch (e.Key)
         {
+            // Escape clears the selection first; only once nothing is selected does it
+            // fall through to closing the track (see Editor.KeyDown for the same chain
+            // when this view isn't the focused element).
+            case Keys.Escape when _state.SelectedNotes.Count > 0:
+                _state.ClearSelection();
+                return true;
             case Keys.Escape:
                 _state.CloseTrack();
                 return true;
-            case Keys.Delete or Keys.Backspace when _state is { SelectedNote: { } note, OpenedTrack: { } track }:
-                var segment = track.Segments.FirstOrDefault(s => s.Notes.Contains(note));
-                if (segment != null) _state.RemoveNote(segment, note);
+            case Keys.Delete or Keys.Backspace when _state.SelectedNotes.Count > 0:
+                _state.DeleteSelection();
+                return true;
+            case Keys.C when e.Control:
+                _state.CopySelection();
+                return true;
+            case Keys.V when e.Control:
+                _state.Paste();
+                return true;
+            case Keys.X when e.Control:
+                _state.CutSelection();
+                return true;
+            case Keys.A when e.Control:
+                _state.SelectAll();
                 return true;
             default:
                 return base.HandleKeyDown(e);
@@ -599,9 +669,18 @@ public sealed class TrackEditorView : Panel
     {
         base.Update(uiContext);
         if (_placing != null && uiContext.CapturedElement != this) _placing = null;
+
+        if (_marqueeAnchor != null && uiContext.CapturedElement != this)
+        {
+            CommitMarquee();
+            _marqueeAnchor = _marqueeCursor = null;
+            InvalidateLayout();
+        }
+
         if (_dragging == null || uiContext.CapturedElement == _dragging) return;
 
         _dragging = null; // drag ended: let the pool reassign freely again
+        _groupDrag = null;
         InvalidateLayout();
     }
 
@@ -622,6 +701,14 @@ public sealed class TrackEditorView : Panel
         }
         if (localY < GridTop || localX < GutterWidth) return false;
 
+        if (_state.ActiveTool == EditorTool.Select)
+        {
+            _marqueeAnchor = _marqueeCursor = (UnsnappedStepAt(x), UnsnappedValueAt(y));
+            _marqueeMode = FineSnap ? MarqueeMode.Remove : WheelZooms ? MarqueeMode.Append : MarqueeMode.Replace;
+            InvalidateLayout();
+            return true; // capture: the drag updates the marquee rect
+        }
+
         var (segment, step) = StepAt(x, false);
         if (_state.ActiveInstrument is not { } instrument || segment == null)
         {
@@ -636,6 +723,13 @@ public sealed class TrackEditorView : Panel
 
     public override void HandlePointerDrag(float x, float y)
     {
+        if (_marqueeAnchor != null)
+        {
+            _marqueeCursor = (UnsnappedStepAt(x), UnsnappedValueAt(y));
+            InvalidateLayout();
+            return;
+        }
+
         if (_placing is not ({ } lastSegment, { } lastNote)) return;
         var (segment, step) = StepAt(x, true);
         if (segment == null) return;
@@ -644,6 +738,132 @@ public sealed class TrackEditorView : Panel
         if (segment == lastSegment && step == lastNote.Step && value == lastNote.Value) return; // same cell
 
         if (Paint(segment, step, lastNote.Instrument, value) is { } painted) _placing = painted;
+    }
+
+    /// <summary>
+    ///     Applies the marquee's Replace/Append/Remove modifier semantics against every note
+    ///     whose (global step, value) falls inside the box — the note itself, not its
+    ///     rendered block, so pooled-out notes at chart-dense zoom are never missed.
+    /// </summary>
+    private void CommitMarquee()
+    {
+        if (_state.OpenedTrack is not { } track) return;
+        if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor) return;
+
+        var minStep = Math.Min(anchor.Step, cursor.Step);
+        var maxStep = Math.Max(anchor.Step, cursor.Step);
+        var minValue = Math.Min(anchor.Value, cursor.Value);
+        var maxValue = Math.Max(anchor.Value, cursor.Value);
+
+        var contained = new List<Note>();
+        var offset = 0;
+        foreach (var segment in track.Segments)
+        {
+            foreach (var note in segment.Notes)
+            {
+                // A note isn't a point — it's a whole rendered cell, one step wide
+                // (globalStep .. globalStep+1) and one row tall. The row is drawn
+                // top-anchored (ValueTop), so its cell spans (Value-1 .. Value], the
+                // opposite orientation from the step axis. Comparing the marquee's
+                // box against the note's exact (step, value) point (rather than this
+                // cell) only ever matched when the box touched the cell's leading
+                // edge — top-only, for the value axis — missing anything dragged
+                // entirely inside the cell.
+                var globalStep = offset + note.Step;
+                var stepOverlaps = globalStep < maxStep && globalStep + 1 > minStep;
+                var valueOverlaps = note.Value - 1 < maxValue && note.Value > minValue;
+                if (stepOverlaps && valueOverlaps) contained.Add(note);
+            }
+
+            offset += segment.StepCount;
+        }
+
+        switch (_marqueeMode)
+        {
+            case MarqueeMode.Append:
+                _state.AddToNoteSelection(contained);
+                break;
+            case MarqueeMode.Remove:
+                _state.RemoveFromNoteSelection(contained);
+                break;
+            default:
+                _state.SetNoteSelection(contained); // empty marquee clears the selection
+                break;
+        }
+    }
+
+    /// <summary>
+    ///     Starts a group drag on the given note block: captures every currently
+    ///     selected note's starting (global step, value) — the block's own note is one
+    ///     of them (a fresh press onto an unselected note already replaced the selection
+    ///     with just it, so this naturally degrades to a plain single-note drag).
+    /// </summary>
+    internal void BeginNoteDrag(NoteBlock block)
+    {
+        if (_state.OpenedTrack is not { } track || block.Note == null || block.Segment == null) return;
+
+        _dragging = block;
+        _state.BeginGesture();
+
+        var anchorGlobalStep = track.GlobalStepOf(block.Segment, block.Note.Step);
+        _groupDragAnchorStartStep = anchorGlobalStep;
+        _groupDragAnchorStartValue = block.Note.Value;
+        _groupDragLastStep = anchorGlobalStep;
+        _groupDragLastValue = block.Note.Value;
+
+        _groupDrag = _state.SelectedNotes.Select(note =>
+        {
+            var segment = track.Segments.FirstOrDefault(s => s.Notes.Contains(note));
+            var globalStep = segment != null ? track.GlobalStepOf(segment, note.Step) : note.Step;
+            return new GroupDragEntry(note, globalStep, note.Value);
+        }).ToList();
+    }
+
+    /// <summary>
+    ///     Applies the anchor's per-frame delta (from its own drag start) to every
+    ///     selected note's own start, so the whole group moves together — a group of one
+    ///     reduces to exactly the old single-note drag. Steps/values are clamped into the
+    ///     track's valid range per note (matching FL: notes at the edge just stop there,
+    ///     which can compress the group's relative spacing at the boundary — acceptable).
+    /// </summary>
+    internal void UpdateGroupDrag(float x, float y)
+    {
+        if (_groupDrag is not { Count: > 0 } entries || _state.OpenedTrack is not { } track) return;
+
+        var (segment, step) = StepAt(x, true);
+        if (segment == null) return;
+        var value = ValueAt(y);
+
+        var newAnchorGlobalStep = track.GlobalStepOf(segment, step);
+        var stepDelta = newAnchorGlobalStep - _groupDragAnchorStartStep;
+        var valueDelta = value - _groupDragAnchorStartValue;
+
+        var maxGlobalStep = Math.Max(0, track.Segments.Sum(s => s.StepCount) - 1);
+        var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value)>(entries.Count);
+        foreach (var entry in entries)
+        {
+            var targetGlobalStep = Math.Clamp(entry.StartGlobalStep + stepDelta, 0, maxGlobalStep);
+            var targetValue = Math.Clamp(entry.StartValue + valueDelta, -MaxValue, MaxValue);
+            if (track.SegmentAtGlobalStep(targetGlobalStep) is not { } mapped) continue;
+
+            targets.Add((entry.Note, mapped.Segment, mapped.LocalStep, targetValue));
+        }
+
+        _state.MoveSelectedNotes(track, targets);
+
+        // The pinned block's own Segment must track its note across a boundary crossing.
+        foreach (var target in targets)
+            if (target.Note == _dragging?.Note)
+            {
+                _dragging!.Segment = target.Segment;
+                break;
+            }
+
+        var moved = newAnchorGlobalStep != _groupDragLastStep || value != _groupDragLastValue;
+        _groupDragLastStep = newAnchorGlobalStep;
+        _groupDragLastValue = value;
+        InvalidateLayout();
+        if (moved) OnPreviewNote?.Invoke(_dragging!.Note!.Instrument, value);
     }
 
     /// <summary>Places one painted note, unless the cell already holds an identical one.</summary>
@@ -689,6 +909,18 @@ public sealed class TrackEditorView : Panel
     internal double ValueAt(float absY)
     {
         return _geometry.ValueAt(absY - Computed.AbsoluteY, FineSnap);
+    }
+
+    /// <summary>Continuous, unsnapped step — the marquee's counterpart to <see cref="StepAt" />.</summary>
+    private double UnsnappedStepAt(float absX)
+    {
+        return _geometry.UnsnappedStepAt(absX - Computed.AbsoluteX);
+    }
+
+    /// <summary>Continuous, unsnapped value — the marquee's counterpart to <see cref="ValueAt(float)" />.</summary>
+    private double UnsnappedValueAt(float absY)
+    {
+        return _geometry.UnsnappedValueAt(absY - Computed.AbsoluteY);
     }
 
     private static Vector4 InstrumentColor(Instrument instrument)

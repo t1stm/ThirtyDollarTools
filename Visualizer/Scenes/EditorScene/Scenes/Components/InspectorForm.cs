@@ -132,10 +132,18 @@ public sealed class InspectorForm
     ///     fields ignore the transient null while the text is mid-edit ("", "-");
     ///     nullable ones commit it (empty = inherit).
     /// </summary>
+    /// <param name="mixed">
+    ///     For multi-selection rows: when it returns true, the field renders empty
+    ///     instead of an arbitrary single value — same as an unset nullable field.
+    ///     // ponytail: no literal "mixed" placeholder word (that needs a Placeholder
+    ///     feature on TextInput/NumericInput, unused anywhere else); empty reads the
+    ///     same as every other "no single value" field. Add a Placeholder property if
+    ///     the empty box alone proves ambiguous to users.
+    /// </param>
     public void NumberRow(string label, Func<double?> get, Action<double?> set,
-        double min, double max, double step = 1, bool allowNull = false)
+        double min, double max, double step = 1, bool allowNull = false, Func<bool>? mixed = null)
     {
-        var input = new NumericInput(_context, get())
+        var input = new NumericInput(_context, mixed?.Invoke() == true ? null : get())
         {
             Width = FieldWidth,
             Height = 32,
@@ -143,7 +151,7 @@ public sealed class InspectorForm
             Min = min,
             Max = max,
             Step = step,
-            AllowNull = allowNull,
+            AllowNull = allowNull || mixed != null,
             BorderRadius = 4,
             Background = new ColoredPlane { Color = InputColor }
         };
@@ -155,7 +163,8 @@ public sealed class InspectorForm
         Row(label, input);
         _syncs.Add(() =>
         {
-            if (!input.IsFocused) input.Value = get();
+            if (input.IsFocused) return;
+            input.Value = mixed?.Invoke() == true ? null : get();
         });
     }
 

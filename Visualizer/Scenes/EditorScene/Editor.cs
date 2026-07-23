@@ -130,26 +130,69 @@ public class Editor : Scene
     public override void KeyDown(KeyboardKeyEventArgs e)
     {
         if (_context.DispatchKeyDown(e)) return;
+        var state = _editorInterface.State;
         if (e.Key == Keys.Escape)
         {
+            // Escape clears the selection first; only once nothing is selected does it
+            // fall through to the existing chain (close modal → close track → back).
+            if (state.SelectedNotes.Count > 0 || state.SelectedPlacements.Count > 0)
+            {
+                state.ClearSelection();
+                return;
+            }
             if (_editorInterface.TryCloseTopModal()) return;
-            if (_editorInterface.State.OpenedTrack != null) _editorInterface.State.CloseTrack();
+            if (state.OpenedTrack != null) state.CloseTrack();
             else _editorInterface.RequestBack();
             return;
         }
         if (e.Key == Keys.Z && e.Modifiers.HasFlag(KeyModifiers.Control))
         {
-            if (e.Modifiers.HasFlag(KeyModifiers.Shift)) _editorInterface.State.Redo();
-            else _editorInterface.State.Undo();
+            if (e.Modifiers.HasFlag(KeyModifiers.Shift)) state.Redo();
+            else state.Undo();
             return;
         }
         if (e.Key == Keys.Y && e.Modifiers.HasFlag(KeyModifiers.Control))
         {
-            _editorInterface.State.Redo();
+            state.Redo();
             return;
         }
+
+        // Plain letters only: Ctrl+D is reserved for the future "duplicate selection".
+        if (e.Key == Keys.D && !e.Modifiers.HasFlag(KeyModifiers.Control))
+        {
+            state.ActiveTool = EditorTool.Draw;
+            return;
+        }
+        if (e.Key == Keys.E && !e.Modifiers.HasFlag(KeyModifiers.Control))
+        {
+            state.ActiveTool = EditorTool.Select;
+            return;
+        }
+
+        // A focused TextInput deliberately lets Ctrl-combos fall through (see
+        // TextInput.HandleKeyDown) — a future TextInput copy/paste must not fight the
+        // editor clipboard, so the fallback below skips while one is focused.
+        if (_context.FocusedElement is not Sundex.Components.Inputs.TextInput && e.Modifiers.HasFlag(KeyModifiers.Control))
+        {
+            switch (e.Key)
+            {
+                case Keys.C:
+                    state.CopySelection();
+                    return;
+                case Keys.V:
+                    state.Paste();
+                    return;
+                case Keys.X:
+                    state.CutSelection();
+                    return;
+                case Keys.A:
+                    state.SelectAll();
+                    return;
+            }
+        }
+
         if (e.Key != Keys.Space) return;
-        
+
         if (e.Modifiers.HasFlag(KeyModifiers.Shift)) _editorInterface.Playback.Restart();
         else _editorInterface.Playback.PlayPause();
     }

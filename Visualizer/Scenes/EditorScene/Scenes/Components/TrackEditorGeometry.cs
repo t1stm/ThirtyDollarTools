@@ -71,6 +71,24 @@ public sealed class TrackEditorGeometry
         return clamp && last != null ? (last, lastStep) : (null, 0);
     }
 
+    /// <summary>
+    ///     Continuous, unsnapped step position — the same value for every segment since
+    ///     they all share this view's pixels-per-step, so it doubles as the track-absolute
+    ///     "global step" (see <see cref="ProjectTrack.GlobalStepOf" />) without walking
+    ///     segments. Used by the marquee selection, which must not snap to the grid.
+    /// </summary>
+    public double UnsnappedStepAt(float localX)
+    {
+        return (localX - GutterWidth + ScrollX) / PixelsPerStep;
+    }
+
+    /// <summary>Continuous, unsnapped value position — the marquee's counterpart to <see cref="ValueAt" />.</summary>
+    public double UnsnappedValueAt(float localY)
+    {
+        var r = (localY - GridTop + ScrollY) / RowHeight;
+        return MaxValue - r;
+    }
+
     public double ValueAt(float localY, bool fineSnap)
     {
         var r = (localY - GridTop + ScrollY) / RowHeight;

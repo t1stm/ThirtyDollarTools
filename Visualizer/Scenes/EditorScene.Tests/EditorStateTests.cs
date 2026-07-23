@@ -549,6 +549,92 @@ public class EditorStateTests
     }
 
     [Fact]
+    public void MoveSelectedNotes_MovesEveryNoteTogether_AsOneUndoEntry()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(segment, 0, boom, 0);
+        var b = state.AddNote(segment, 5, boom, 3);
+
+        state.BeginGesture();
+        state.MoveSelectedNotes(track, [(a, segment, 1, 1), (b, segment, 6, 4)]);
+        state.MoveSelectedNotes(track, [(a, segment, 2, 2), (b, segment, 7, 5)]);
+
+        Assert.Equal(2, a.Step);
+        Assert.Equal(2, a.Value);
+        Assert.Equal(7, b.Step);
+        Assert.Equal(5, b.Value);
+
+        state.Undo(); // one entry reverts BOTH notes to their pre-drag state
+        Assert.Equal(0, a.Step);
+        Assert.Equal(0, a.Value);
+        Assert.Equal(5, b.Step);
+        Assert.Equal(3, b.Value);
+
+        state.Redo();
+        Assert.Equal(2, a.Step);
+        Assert.Equal(7, b.Step);
+    }
+
+    [Fact]
+    public void MoveSelectedNotes_ANewGesture_DoesNotMergeWithThePriorDrag()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(segment, 0, boom, 0);
+
+        state.BeginGesture();
+        state.MoveSelectedNotes(track, [(note, segment, 1, 0)]);
+
+        state.BeginGesture(); // a second, separate drag
+        state.MoveSelectedNotes(track, [(note, segment, 2, 0)]);
+
+        state.Undo();
+        Assert.Equal(1, note.Step); // only the second drag undone
+        state.Undo();
+        Assert.Equal(0, note.Step); // then the first
+    }
+
+    [Fact]
+    public void MoveSelectedNotes_MovesNotesAcrossSegments()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var first = track.Segments[0];
+        var second = state.AddSegment(track);
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(first, 3, boom, 0);
+
+        state.MoveSelectedNotes(track, [(note, second, 0, 0)]);
+
+        Assert.Empty(first.Notes);
+        Assert.Equal([note], second.Notes);
+
+        state.Undo();
+        Assert.Equal([note], first.Notes);
+        Assert.Empty(second.Notes);
+    }
+
+    [Fact]
+    public void MoveSelectedNotes_NoActualChange_DoesNotDirtyOrPushUndo()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(segment, 3, boom, 0);
+        state.SaveProject(); // clears dirty
+
+        state.MoveSelectedNotes(track, [(note, segment, 3, 0)]); // identical position
+
+        Assert.False(state.Dirty); // Touch() never ran: proves the no-op guard short-circuited
+    }
+
+    [Fact]
     public void Undo_MovePlacementDrag_CollapsesTheWholeGesture_IntoOneStep()
     {
         var state = new EditorState();
@@ -783,5 +869,379 @@ public class EditorStateTests
         Assert.Equal(0, note.Pan);
         Assert.Equal(0, note.Offset);
         Assert.Null(note.Automation);
+    }
+
+    [Fact]
+    public void ActiveTool_DefaultsToDraw_AndFiresOnlyOnChange()
+    {
+        var state = new EditorState();
+        Assert.Equal(EditorTool.Draw, state.ActiveTool);
+
+        var fired = 0;
+        state.OnToolChanged += _ => fired++;
+
+        state.ActiveTool = EditorTool.Select;
+        state.ActiveTool = EditorTool.Select; // no-op: same value
+        Assert.Equal(1, fired);
+
+        state.ActiveTool = EditorTool.Draw;
+        Assert.Equal(2, fired);
+    }
+
+    [Fact]
+    public void SetNoteSelection_ReplacesTheList_AndFiresOncePerBatch()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(segment, 0, boom, 0);
+        var b = state.AddNote(segment, 1, boom, 0);
+        var c = state.AddNote(segment, 2, boom, 0);
+
+        var fired = 0;
+        state.OnNoteSelectionChanged += _ => fired++;
+
+        state.SetNoteSelection([a, b]);
+        Assert.Equal([a, b], state.SelectedNotes);
+        Assert.Null(state.SelectedNote); // derived view: only non-null for exactly one
+        Assert.Equal(1, fired);
+
+        state.SetNoteSelection([a, b]); // same content: no-op, no event
+        Assert.Equal(1, fired);
+
+        state.SetNoteSelection([c]);
+        Assert.Equal(c, state.SelectedNote);
+        Assert.Equal(2, fired);
+    }
+
+    [Fact]
+    public void AddAndRemoveFromNoteSelection_AreAppendAndRemoveSemantics()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(segment, 0, boom, 0);
+        var b = state.AddNote(segment, 1, boom, 0);
+
+        state.SetNoteSelection([a]);
+        var fired = 0;
+        state.OnNoteSelectionChanged += _ => fired++;
+
+        state.AddToNoteSelection([a]); // already present: no-op
+        Assert.Equal(0, fired);
+
+        state.AddToNoteSelection([b]);
+        Assert.Equal([a, b], state.SelectedNotes);
+        Assert.Equal(1, fired);
+
+        state.RemoveFromNoteSelection([a]);
+        Assert.Equal([b], state.SelectedNotes);
+        Assert.Equal(2, fired);
+
+        state.RemoveFromNoteSelection([a]); // no longer present: no-op
+        Assert.Equal(2, fired);
+    }
+
+    [Fact]
+    public void SelectAll_SelectsEveryNoteOfTheOpenedTrack_OrElseEveryPlacement()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var second = state.AddSegment(track);
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(second, 0, boom, 0);
+
+        state.OpenTrack(track);
+        state.SelectAll();
+        Assert.Equal([a, b], state.SelectedNotes);
+
+        state.CloseTrack();
+        var p1 = state.PlaceTrack(track, 0, 0);
+        var p2 = state.PlaceTrack(track, 1, 4);
+        state.SelectAll();
+        Assert.Equal([p1, p2], state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void ClearSelection_ClearsBothLists()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
+        state.OpenTrack(track);
+        state.SetNoteSelection([note]);
+
+        state.ClearSelection();
+        Assert.Empty(state.SelectedNotes);
+        Assert.Empty(state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void RemoveSegment_PrunesEveryNoteOfThatSegment_FromAMultiSelection()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var doomed = state.AddSegment(track);
+        var kept = state.AddNote(track.Segments[0], 0, boom, 0);
+        var removed = state.AddNote(doomed, 0, boom, 0);
+        state.SetNoteSelection([kept, removed]);
+
+        Assert.True(state.RemoveSegment(track, doomed));
+
+        Assert.Equal([kept], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void RemoveTrack_PrunesItsCascadedPlacements_FromAMultiSelection()
+    {
+        var state = new EditorState();
+        var doomed = state.AddTrack();
+        var kept = state.AddTrack();
+        var p1 = state.PlaceTrack(doomed, 0, 0);
+        var p2 = state.PlaceTrack(kept, 1, 0);
+        state.SetPlacementSelection([p1, p2]);
+
+        Assert.True(state.RemoveTrack(doomed));
+
+        Assert.Equal([p2], state.SelectedPlacements);
+    }
+
+    [Fact]
+    public void DeleteInstrumentEverywhere_PrunesEveryAffectedNote_FromAMultiSelection()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var doomed = MakeInstrument(state, "boom");
+        var kept = MakeInstrument(state, "kept");
+        var a = state.AddNote(track.Segments[0], 0, doomed, 0);
+        var b = state.AddNote(track.Segments[0], 1, kept, 0);
+        state.SetNoteSelection([a, b]);
+
+        state.DeleteInstrumentEverywhere(doomed);
+
+        Assert.Equal([b], state.SelectedNotes);
+    }
+
+    [Fact]
+    public void DeleteSelection_RemovesEveryNote_AsOneUndoEntry()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var segment = track.Segments[0];
+        var a = state.AddNote(segment, 0, boom, 0);
+        var b = state.AddNote(segment, 1, boom, 0);
+        var c = state.AddNote(segment, 2, boom, 0);
+        state.OpenTrack(track);
+        state.SetNoteSelection([a, b]);
+
+        state.DeleteSelection();
+
+        Assert.Equal([c], segment.Notes);
+        Assert.Empty(state.SelectedNotes);
+
+        state.Undo(); // one Ctrl+Z restores both
+        Assert.Equal([c, a, b], segment.Notes);
+
+        state.Redo();
+        Assert.Equal([c], segment.Notes);
+    }
+
+    [Fact]
+    public void DeleteSelection_RemovesEveryPlacement_AsOneUndoEntry()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var p1 = state.PlaceTrack(track, 0, 0);
+        var p2 = state.PlaceTrack(track, 1, 4);
+        var p3 = state.PlaceTrack(track, 2, 8);
+        state.SetPlacementSelection([p1, p2]);
+
+        state.DeleteSelection();
+
+        Assert.Equal([p3], state.Project.Placements);
+
+        state.Undo();
+        Assert.Equal([p3, p1, p2], state.Project.Placements);
+    }
+
+    [Fact]
+    public void CopyAndPasteNotes_IntoADifferentTrack_PastesInPlace_AndBecomesTheSelection()
+    {
+        var state = new EditorState();
+        var source = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(source.Segments[0], 3, boom, 5);
+        note.Volume = 42;
+        state.OpenTrack(source);
+        state.SetNoteSelection([note]);
+        state.CopySelection();
+        state.CloseTrack();
+
+        var target = state.AddTrack();
+        state.OpenTrack(target);
+        state.Paste();
+
+        var pasted = Assert.Single(target.Segments[0].Notes);
+        Assert.Equal(3, pasted.Step);
+        Assert.Equal(5, pasted.Value);
+        Assert.Equal(42, pasted.Volume);
+        Assert.NotSame(note, pasted);
+        Assert.Equal([pasted], state.SelectedNotes); // the paste becomes the new selection
+    }
+
+    [Fact]
+    public void PasteInPlace_OntoTheSameTrack_SkipsNotesCollidingWithTheOriginals()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var segment = track.Segments[0];
+        var note = state.AddNote(segment, 0, boom, 0);
+        state.OpenTrack(track);
+        state.SetNoteSelection([note]);
+        state.CopySelection();
+
+        state.Paste(); // same (Step, Value) as the still-present original: skipped
+        Assert.Single(segment.Notes);
+
+        // Once the original is gone, pasting in place succeeds.
+        state.RemoveNote(segment, note);
+        state.Paste();
+        Assert.Single(segment.Notes);
+    }
+
+    [Fact]
+    public void PasteNotes_DropsThoseBeyondTheTargetTracksEnd()
+    {
+        var state = new EditorState();
+        var source = state.AddTrack(); // default: one 16-step segment
+        var boom = MakeInstrument(state, "boom");
+        var fits = state.AddNote(source.Segments[0], 0, boom, 0);
+        var beyond = state.AddNote(source.Segments[0], 15, boom, 0);
+        state.OpenTrack(source);
+        state.SetNoteSelection([fits, beyond]);
+        state.CopySelection();
+        state.CloseTrack();
+
+        var target = state.AddTrack();
+        target.Segments[0].Bars = 1;
+        target.Segments[0].Numerator = 1;
+        target.Segments[0].StepsPerBeat = 4; // 4 steps total: global step 15 falls off the end
+        state.OpenTrack(target);
+
+        state.Paste();
+
+        var pasted = Assert.Single(target.Segments[0].Notes);
+        Assert.Equal(0, pasted.Step); // only the in-range note survived, not truncated to step 3
+    }
+
+    [Fact]
+    public void CopyPasteNotes_TwiceInDifferentTracks_ProduceIndependentClones()
+    {
+        var state = new EditorState();
+        var source = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(source.Segments[0], 0, boom, 3);
+        note.Automation = new AudioKeyframeManager();
+        state.OpenTrack(source);
+        state.SetNoteSelection([note]);
+        state.CopySelection();
+        state.CloseTrack();
+
+        var trackA = state.AddTrack();
+        var trackB = state.AddTrack();
+        state.OpenTrack(trackA);
+        state.Paste();
+        var pastedA = Assert.Single(trackA.Segments[0].Notes);
+        state.CloseTrack();
+
+        state.OpenTrack(trackB);
+        state.Paste();
+        var pastedB = Assert.Single(trackB.Segments[0].Notes);
+
+        Assert.NotSame(pastedA, pastedB);
+        Assert.NotSame(pastedA.Automation, pastedB.Automation);
+
+        // Editing one clone's automation must not reach the other.
+        pastedA.Automation!.Repeats = 5;
+        Assert.Equal(1, pastedB.Automation!.Repeats);
+    }
+
+    [Fact]
+    public void Paste_CrossEditorMismatch_IsANoOp()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 0, 0);
+        state.SetPlacementSelection([placement]);
+        state.CopySelection(); // clipboard now holds a placement payload
+
+        state.OpenTrack(track); // arrangement no longer shown
+        state.Paste();
+
+        Assert.Empty(track.Segments[0].Notes); // placements payload while a track is open: no-op
+    }
+
+    [Fact]
+    public void CutSelection_CopiesThenDeletes_AsOneUndoEntry()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var segment = track.Segments[0];
+        var note = state.AddNote(segment, 0, boom, 0);
+        state.OpenTrack(track);
+        state.SetNoteSelection([note]);
+
+        state.CutSelection();
+        Assert.Empty(segment.Notes);
+
+        state.Paste();
+        Assert.Single(segment.Notes); // the cut note round-trips through the clipboard
+
+        state.Undo(); // undoes the paste, not the cut (cut = copy + one delete undo entry)
+        Assert.Empty(segment.Notes);
+    }
+
+    [Fact]
+    public void Replace_ClearsTheClipboard()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
+        state.OpenTrack(track);
+        state.SetNoteSelection([note]);
+        state.CopySelection();
+
+        state.NewProject();
+
+        var freshTrack = state.AddTrack();
+        state.OpenTrack(freshTrack);
+        state.Paste(); // stale clipboard referencing the dead project must not resurrect anything
+        Assert.Empty(freshTrack.Segments[0].Notes);
+    }
+
+    [Fact]
+    public void RemoveTrack_DropsClipboardEntries_ForTheRemovedTrackOnly()
+    {
+        var state = new EditorState();
+        var doomed = state.AddTrack();
+        var kept = state.AddTrack();
+        var p1 = state.PlaceTrack(doomed, 0, 0);
+        var p2 = state.PlaceTrack(kept, 1, 0);
+        state.SetPlacementSelection([p1, p2]);
+        state.CopySelection();
+
+        state.RemoveTrack(doomed); // cascades p1 away; clipboard entry for `doomed` must drop too
+        state.Paste();
+
+        // Only kept's surviving clipboard entry pastes back — one new clone, not two.
+        Assert.Equal([p2, state.SelectedPlacement!], state.Project.Placements);
+        Assert.Equal(kept, state.SelectedPlacement!.Track);
     }
 }
