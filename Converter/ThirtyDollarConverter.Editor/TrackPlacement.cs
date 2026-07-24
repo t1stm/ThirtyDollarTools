@@ -10,11 +10,11 @@ public class TrackPlacement(ProjectTrack track, int channel, double startQuarter
 {
     public ProjectTrack Track { get; } = track;
 
-    /// <summary>The arrangement lane. Purely visual — channels carry no audio meaning.</summary>
+    /// <summary>The arrangement lane. Purely visual - channels carry no audio meaning.</summary>
     public int Channel { get; set; } = channel;
 
     /// <summary>
-    ///     Position on the project timeline in quarter notes at the root BPM — the
+    ///     Position on the project timeline in quarter notes at the root BPM - the
     ///     library's tempo anchor unit, so the value is exact for grid-snapped drags.
     /// </summary>
     public double StartQuarterNotes { get; set; } = startQuarterNotes;

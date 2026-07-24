@@ -7,7 +7,7 @@ public enum ModifierKind
 }
 
 /// <summary>
-///     A relative change to one field of a generated event. The default is Add 0 — a no-op.
+///     A relative change to one field of a generated event. The default is Add 0 - a no-op.
 /// </summary>
 public readonly record struct Modifier(double Amount, ModifierKind Kind = ModifierKind.Add)
 {
@@ -31,7 +31,7 @@ public class AudioKeyframe
 
     /// <summary>
     ///     When true, this keyframe cuts the note's instrument sounds immediately before
-    ///     placing its note (both at the same position) — restarting a sustained/looped
+    ///     placing its note (both at the same position) - restarting a sustained/looped
     ///     sound cleanly instead of overlapping the new instance onto the old one.
     /// </summary>
     public bool Cut { get; set; }

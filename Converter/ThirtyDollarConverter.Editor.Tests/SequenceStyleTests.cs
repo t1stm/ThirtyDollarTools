@@ -82,7 +82,7 @@ public class SequenceStyleTests
         fine.Notes.Add(new Note { Step = 64, Instrument = Instrument.Single("hat") }); // bar 4 after the change
 
         var style = new SequenceStyle
-            { DividerEveryBars = 4, DividerOnSpeedChanges = true, MigrateToStop = 1 };
+        { DividerEveryBars = 4, DividerOnSpeedChanges = true, MigrateToStop = 1 };
         var events = track.ToSequence(style).Events;
 
         // Without the reset, the two leftover bars would push the bar divider onto the

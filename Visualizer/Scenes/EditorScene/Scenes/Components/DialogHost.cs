@@ -10,11 +10,11 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     Wraps the root panel's modal add/remove pattern (ModalLayer only, never
-///     DropDownLabel — the standing rule for popups in this editor).
+///     DropDownLabel - the standing rule for popups in this editor).
 /// </summary>
 public sealed class DialogHost(UIContext context, Panel root)
 {
-    /// <summary>The panel modals mount on — for components that manage their own
+    /// <summary>The panel modals mount on - for components that manage their own
     /// hand-built ModalLayer (toggled open/closed, not wrapped fresh per <see cref="Show" />).</summary>
     public Panel Root => root;
 
@@ -80,7 +80,7 @@ public sealed class DialogHost(UIContext context, Panel root)
         };
     }
 
-    /// <summary>One-button informational dialog — for surfacing failures that would
+    /// <summary>One-button informational dialog - for surfacing failures that would
     /// otherwise be silent (e.g. a failed save), not for anything the user confirms.</summary>
     public void Alert(string message)
     {

@@ -127,76 +127,97 @@ public class PlacementCalculator
             switch (ev.SoundEvent)
             {
                 case "!speed":
-                {
-                    switch (ev.ValueScale)
                     {
-                        case ValueScale.Divide:
-                            bpm /= ev.Value;
-                            break;
-                        case ValueScale.Times:
-                            bpm *= ev.Value;
-                            break;
-                        case ValueScale.Add:
-                            bpm += ev.Value;
-                            break;
-                        case ValueScale.None:
-                            bpm = ev.Value;
-                            break;
-                    }
+                        switch (ev.ValueScale)
+                        {
+                            case ValueScale.Divide:
+                                bpm /= ev.Value;
+                                break;
+                            case ValueScale.Times:
+                                bpm *= ev.Value;
+                                break;
+                            case ValueScale.Add:
+                                bpm += ev.Value;
+                                break;
+                            case ValueScale.None:
+                                bpm = ev.Value;
+                                break;
+                        }
 
-                    Log($"BPM is now: {bpm}");
-                    break;
-                }
+                        Log($"BPM is now: {bpm}");
+                        break;
+                    }
 
                 case "!volume":
-                {
-                    switch (ev.ValueScale)
                     {
-                        case ValueScale.Divide:
-                            global_volume /= ev.Value;
-                            break;
-                        case ValueScale.Times:
-                            global_volume *= ev.Value;
-                            break;
-                        case ValueScale.Add:
-                            global_volume += ev.Value;
-                            break;
-                        case ValueScale.None:
-                            global_volume = ev.Value;
-                            break;
+                        switch (ev.ValueScale)
+                        {
+                            case ValueScale.Divide:
+                                global_volume /= ev.Value;
+                                break;
+                            case ValueScale.Times:
+                                global_volume *= ev.Value;
+                                break;
+                            case ValueScale.Add:
+                                global_volume += ev.Value;
+                                break;
+                            case ValueScale.None:
+                                global_volume = ev.Value;
+                                break;
+                        }
+
+                        if (global_volume < 0) global_volume = 0;
+                        default_return = false;
+
+                        var copy = ev.Copy();
+                        copy.WorkingVolume = global_volume;
+
+                        yield return new Placement
+                        {
+                            Index = position,
+                            SequenceIndex = index,
+                            Event = copy,
+                            Audible = false
+                        };
+                        break;
                     }
 
-                    if (global_volume < 0) global_volume = 0;
-                    default_return = false;
-
-                    var copy = ev.Copy();
-                    copy.WorkingVolume = global_volume;
-
-                    yield return new Placement
-                    {
-                        Index = position,
-                        SequenceIndex = index,
-                        Event = copy,
-                        Audible = false
-                    };
-                    break;
-                }
-
                 case "!stop":
-                {
-                    var working_value = ev.Value;
-                    while (ev.WorkingValue > 0)
                     {
-                        var multiplier = Math.Min(working_value, 1);
-                        position += (ulong)(multiplier * SampleRate / (bpm / 60));
+                        var working_value = ev.Value;
+                        while (ev.WorkingValue > 0)
+                        {
+                            var multiplier = Math.Min(working_value, 1);
+                            position += (ulong)(multiplier * SampleRate / (bpm / 60));
 
-                        ev.WorkingValue -= 1;
-                        working_value -= 1;
+                            ev.WorkingValue -= 1;
+                            working_value -= 1;
 
-                        if (ev.WorkingValue < 0)
-                            ev.WorkingValue = 0;
+                            if (ev.WorkingValue < 0)
+                                ev.WorkingValue = 0;
 
-                        if (AddVisualTimings)
+                            if (AddVisualTimings)
+                                yield return new Placement
+                                {
+                                    Index = position,
+                                    SequenceIndex = index,
+                                    Event = ev.Copy(),
+                                    Audible = false
+                                };
+                        }
+
+                        break;
+                    }
+
+                case "!loopmany":
+                    {
+                        if (ev.WorkingValue > 0)
+                        {
+                            default_return = false;
+                            ev.WorkingValue--;
+
+                            modify_index = false;
+
                             yield return new Placement
                             {
                                 Index = position,
@@ -204,134 +225,113 @@ public class PlacementCalculator
                                 Event = ev.Copy(),
                                 Audible = false
                             };
+
+                            index = loop_target;
+
+                            Untrigger(ref sequence, index, LoopmanyUntriggers);
+                            Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
+                        }
+
+                        break;
                     }
 
-                    break;
-                }
-
-                case "!loopmany":
-                {
-                    if (ev.WorkingValue > 0)
+                case "!loop":
                     {
+                        if (ev.Triggered) break;
+                        ev.Triggered = true;
                         default_return = false;
-                        ev.WorkingValue--;
-
-                        modify_index = false;
-
                         yield return new Placement
                         {
                             Index = position,
                             SequenceIndex = index,
-                            Event = ev.Copy(),
+                            Event = ev,
                             Audible = false
                         };
 
+                        modify_index = false;
                         index = loop_target;
 
-                        Untrigger(ref sequence, index, LoopmanyUntriggers);
+                        Untrigger(ref sequence, index, LoopUntriggers);
                         Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
+
+                        break;
                     }
-
-                    break;
-                }
-
-                case "!loop":
-                {
-                    if (ev.Triggered) break;
-                    ev.Triggered = true;
-                    default_return = false;
-                    yield return new Placement
-                    {
-                        Index = position,
-                        SequenceIndex = index,
-                        Event = ev,
-                        Audible = false
-                    };
-
-                    modify_index = false;
-                    index = loop_target;
-
-                    Untrigger(ref sequence, index, LoopUntriggers);
-                    Log($"Going to element: ({index}) - \"{sequence.Events[index]}\"");
-
-                    break;
-                }
 
                 case "!jump":
-                {
-                    if (ev.Triggered) break;
-                    ev.Triggered = true;
-
-                    var item = sequence.Events.FirstOrDefault(r =>
-                        r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && !r.Triggered);
-                    if (item == null)
                     {
-                        Log($"Unable to jump to target with id: {ev.Value}");
+                        if (ev.Triggered) break;
+                        ev.Triggered = true;
+
+                        var item = sequence.Events.FirstOrDefault(r =>
+                            r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && !r.Triggered);
+                        if (item == null)
+                        {
+                            Log($"Unable to jump to target with id: {ev.Value}");
+                            break;
+                        }
+
+                        var search = Array.IndexOf(sequence.Events, item);
+                        if (search == -1)
+                        {
+                            Untrigger(ref sequence, 0, JumpUntriggers);
+                            break;
+                        }
+
+                        default_return = false;
+                        yield return new Placement
+                        {
+                            Index = position,
+                            SequenceIndex = index,
+                            Event = ev,
+                            Audible = false
+                        };
+
+                        modify_index = false;
+                        index = (ulong)search;
+                        var found_event = sequence.Events[index];
+
+                        Untrigger(ref sequence, index, JumpUntriggers);
+                        Log($"Jumping to element: ({index}) - {found_event}");
                         break;
                     }
-
-                    var search = Array.IndexOf(sequence.Events, item);
-                    if (search == -1)
-                    {
-                        Untrigger(ref sequence, 0, JumpUntriggers);
-                        break;
-                    }
-
-                    default_return = false;
-                    yield return new Placement
-                    {
-                        Index = position,
-                        SequenceIndex = index,
-                        Event = ev,
-                        Audible = false
-                    };
-
-                    modify_index = false;
-                    index = (ulong)search;
-                    var found_event = sequence.Events[index];
-
-                    Untrigger(ref sequence, index, JumpUntriggers);
-                    Log($"Jumping to element: ({index}) - {found_event}");
-                    break;
-                }
 
                 case "!cut":
-                {
-                    audible = true;
-                    Log($"Cutting audio at: \'{position + SampleRate / (bpm / 60)}\'");
-                    break;
-                }
+                    {
+                        audible = true;
+                        Log($"Cutting audio at: \'{position + SampleRate / (bpm / 60)}\'");
+                        break;
+                    }
 
                 case "!looptarget":
-                {
-                    loop_target = index;
-                    break;
-                }
+                    {
+                        loop_target = index;
+                        break;
+                    }
 
                 case "" or "!flash" or "!bg" or "!combine" or "!startpos" or "!pulse" or "!target":
                     break;
 
                 case "!transpose":
-                {
-                    switch (ev.ValueScale)
                     {
-                        case ValueScale.Divide:
-                            transpose /= ev.Value;
-                            break;
-                        case ValueScale.Times:
-                            transpose *= ev.Value;
-                            break;
-                        case ValueScale.Add:
-                            transpose += ev.Value;
-                            break;
-                        case ValueScale.None:
-                            transpose = ev.Value;
-                            break;
-                    }
+                        switch (ev.ValueScale)
+                        {
+                            case ValueScale.Divide:
+                                transpose /= ev.Value;
+                                break;
+                            case ValueScale.Times:
+                                transpose *= ev.Value;
+                                break;
+                            case ValueScale.Add:
+                                transpose += ev.Value;
+                                break;
+                            case ValueScale.None:
+                                transpose = ev.Value;
+                                break;
+                        }
 
-                    Log($"Transposing samples by: \'{transpose}\'");
-                    break;
-                }
+                        Log($"Transposing samples by: \'{transpose}\'");
+                        break;
+                    }
             }
 
             if (!scrubbing && default_return)

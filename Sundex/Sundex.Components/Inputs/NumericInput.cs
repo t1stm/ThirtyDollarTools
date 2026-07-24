@@ -26,7 +26,7 @@ public class NumericInput : TextInput
         Filter = TextInputFilter.Decimal;
         _minus = new SpinnerButton(context, "-") { OnClick = _ => StepBy(-1) };
         _plus = new SpinnerButton(context, "+") { OnClick = _ => StepBy(1) };
-        Children = [..Children, _minus, _plus];
+        Children = [.. Children, _minus, _plus];
         Value = value;
     }
 

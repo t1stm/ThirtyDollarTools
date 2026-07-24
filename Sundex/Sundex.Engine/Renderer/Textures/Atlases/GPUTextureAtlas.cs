@@ -61,18 +61,18 @@ public class GPUTextureAtlas(
         switch (internalFormat)
         {
             case InternalFormat.Rgba8:
-            {
-                var texture = Image.Load<Rgba32>(atlasTexture!.AssetStream.Stream);
-                Texture.QueueUploadToGPU(texture.Frames.RootFrame);
-                break;
-            }
+                {
+                    var texture = Image.Load<Rgba32>(atlasTexture!.AssetStream.Stream);
+                    Texture.QueueUploadToGPU(texture.Frames.RootFrame);
+                    break;
+                }
 
             case InternalFormat.Rgba32f:
-            {
-                var texture = Image.Load<RgbaVector>(atlasTexture!.AssetStream.Stream);
-                Texture.QueueUploadToGPU(texture.Frames.RootFrame);
-                break;
-            }
+                {
+                    var texture = Image.Load<RgbaVector>(atlasTexture!.AssetStream.Stream);
+                    Texture.QueueUploadToGPU(texture.Frames.RootFrame);
+                    break;
+                }
         }
 
         var overrideAtlas =

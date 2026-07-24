@@ -5,16 +5,20 @@ namespace Sundex.Engine.Renderer.Textures.Atlases;
 
 public sealed class GuillotineAtlas : IAtlas
 {
-    [JsonInclude] [JsonPropertyName("rotatable")]
+    [JsonInclude]
+    [JsonPropertyName("rotatable")]
     private readonly bool _allowRotation;
 
-    [JsonInclude] [JsonPropertyName("freeRects")]
+    [JsonInclude]
+    [JsonPropertyName("freeRects")]
     private readonly List<Rectangle> _freeRects = [];
 
-    [JsonInclude] [JsonPropertyName("imageCoordsDictionary")]
+    [JsonInclude]
+    [JsonPropertyName("imageCoordsDictionary")]
     private readonly Dictionary<string, Rectangle> _usedByImageID;
 
-    [JsonInclude] [JsonPropertyName("usedArea")]
+    [JsonInclude]
+    [JsonPropertyName("usedArea")]
     private int _usedArea;
 
     public GuillotineAtlas(int width, int height, bool allowRotation = false)
@@ -303,48 +307,48 @@ public sealed class GuillotineAtlas : IAtlas
     private bool TryMergeOnce()
     {
         for (var i = 0; i < _freeRects.Count; i++)
-        for (var j = i + 1; j < _freeRects.Count; j++)
-        {
-            var a = _freeRects[i];
-            var b = _freeRects[j];
-
-            // Horizontal merge (same Y and Height, touching in X)
-            Rectangle merged;
-            if (a.Y == b.Y && a.Height == b.Height)
+            for (var j = i + 1; j < _freeRects.Count; j++)
             {
-                if (a.X + a.Width == b.X)
+                var a = _freeRects[i];
+                var b = _freeRects[j];
+
+                // Horizontal merge (same Y and Height, touching in X)
+                Rectangle merged;
+                if (a.Y == b.Y && a.Height == b.Height)
                 {
-                    merged = new Rectangle(a.X, a.Y, a.Width + b.Width, a.Height);
+                    if (a.X + a.Width == b.X)
+                    {
+                        merged = new Rectangle(a.X, a.Y, a.Width + b.Width, a.Height);
+                        _freeRects[i] = merged;
+                        _freeRects.RemoveAt(j);
+                        return true;
+                    }
+
+                    if (b.X + b.Width == a.X)
+                    {
+                        merged = new Rectangle(b.X, b.Y, b.Width + a.Width, b.Height);
+                        _freeRects[i] = merged;
+                        _freeRects.RemoveAt(j);
+                        return true;
+                    }
+                }
+
+                // Vertical merge (same X and Width, touching in Y)
+                if (a.X != b.X || a.Width != b.Width) continue;
+                if (a.Y + a.Height == b.Y)
+                {
+                    merged = new Rectangle(a.X, a.Y, a.Width, a.Height + b.Height);
                     _freeRects[i] = merged;
                     _freeRects.RemoveAt(j);
                     return true;
                 }
 
-                if (b.X + b.Width == a.X)
-                {
-                    merged = new Rectangle(b.X, b.Y, b.Width + a.Width, b.Height);
-                    _freeRects[i] = merged;
-                    _freeRects.RemoveAt(j);
-                    return true;
-                }
-            }
-
-            // Vertical merge (same X and Width, touching in Y)
-            if (a.X != b.X || a.Width != b.Width) continue;
-            if (a.Y + a.Height == b.Y)
-            {
-                merged = new Rectangle(a.X, a.Y, a.Width, a.Height + b.Height);
+                if (b.Y + b.Height != a.Y) continue;
+                merged = new Rectangle(b.X, b.Y, b.Width, b.Height + a.Height);
                 _freeRects[i] = merged;
                 _freeRects.RemoveAt(j);
                 return true;
             }
-
-            if (b.Y + b.Height != a.Y) continue;
-            merged = new Rectangle(b.X, b.Y, b.Width, b.Height + a.Height);
-            _freeRects[i] = merged;
-            _freeRects.RemoveAt(j);
-            return true;
-        }
 
         return false;
     }

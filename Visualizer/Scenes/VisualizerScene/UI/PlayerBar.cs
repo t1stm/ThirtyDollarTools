@@ -19,7 +19,7 @@ public class PlayerBar
     private const float ZoneLow = 0.75f;
     private const float ZoneHigh = 0.85f;
 
-    // Hover feedback colors (RGB only — W is owned by PropagateAlpha).
+    // Hover feedback colors (RGB only - W is owned by PropagateAlpha).
     // Keeping these here rather than in state[hovered] stylesheet blocks prevents
     // InvalidateStyle from restoring alpha=1 from _baseSnapshot on every state transition.
     private static readonly Vector3 ButtonBaseRgb = new(0x7a / 255f, 0xa2 / 255f, 0xf7 / 255f);

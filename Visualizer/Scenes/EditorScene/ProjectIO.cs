@@ -53,7 +53,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     /// <see cref="ImportMode" />). All-or-nothing: a parse/import failure leaves the
     /// project untouched, matching <see cref="Load" />'s try/catch shape. On success,
     /// any non-fatal issues (ignored events, quantized notes, unknown sounds) surface
-    /// as one summary alert — never one dialog per issue.</summary>
+    /// as one summary alert - never one dialog per issue.</summary>
     public void ImportTdw(string path, ImportMode mode, IReadOnlySet<string>? knownSounds)
     {
         var name = Path.GetFileNameWithoutExtension(path);
@@ -123,9 +123,9 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         }
     }
 
-    /// <summary>Timestamped snapshot next to the executable — doesn't touch ProjectPath/Dirty,
+    /// <summary>Timestamped snapshot next to the executable - doesn't touch ProjectPath/Dirty,
     /// so it's invisible to the normal save flow (only <see cref="TickBackup" /> drives it).
-    /// Logged, not surfaced — a failed background backup isn't the data-loss path a failed
+    /// Logged, not surfaced - a failed background backup isn't the data-loss path a failed
     /// explicit save is, and popping a dialog on a timer would be its own annoyance.</summary>
     private void WriteBackup()
     {
@@ -143,7 +143,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         }
     }
 
-    /// <summary>Keeps only the newest <see cref="MaxBackups" /> files — a long session
+    /// <summary>Keeps only the newest <see cref="MaxBackups" /> files - a long session
     /// backs up every 5 dirty minutes and never stopped growing otherwise.</summary>
     private void PruneBackups()
     {

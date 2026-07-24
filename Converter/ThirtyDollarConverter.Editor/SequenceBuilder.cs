@@ -196,7 +196,7 @@ internal static class SequenceBuilder
     }
 
     /// <summary>
-    ///     The last region starting at or before the given time — a note exactly on a
+    ///     The last region starting at or before the given time - a note exactly on a
     ///     boundary belongs to the region that starts there (its downbeat).
     /// </summary>
     private static int RegionIndex(IReadOnlyList<TempoRegion> regions, double minutes)

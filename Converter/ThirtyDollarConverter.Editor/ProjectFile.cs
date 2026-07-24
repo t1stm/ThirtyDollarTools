@@ -5,7 +5,7 @@ namespace ThirtyDollarConverter.Editor;
 
 /// <summary>
 ///     Saves and loads projects. The DTO records below define the file layout,
-///     independent of the domain classes — swap the serializer here when the
+///     independent of the domain classes - swap the serializer here when the
 ///     hand-editable custom format replaces JSON.
 /// </summary>
 public static class ProjectFile
@@ -200,12 +200,12 @@ public static class ProjectFile
         ProjectInfo Info,
         TimingInfo RootTiming,
         List<TrackDto> Tracks,
-        // Null (missing key) marks a pre-instrument file — its notes carry a bare Sound
+        // Null (missing key) marks a pre-instrument file - its notes carry a bare Sound
         // instead of an InstrumentId, and Load migrates them (see Load).
         List<InstrumentDto>? Instruments = null,
-        // Null (missing key) marks a pre-arrangement file — see Load.
+        // Null (missing key) marks a pre-arrangement file - see Load.
         List<PlacementDto>? Placements = null,
-        // Null (missing key) = 0 — files from before the feature stay valid.
+        // Null (missing key) = 0 - files from before the feature stay valid.
         float? Transpose = null);
 
     private record InstrumentDto(int Id, string Name, List<string> Sounds,
@@ -238,7 +238,7 @@ public static class ProjectFile
 
     private record NoteDto(
         int Step,
-        // Null (missing key) marks a pre-instrument note — Load resolves via Sound instead.
+        // Null (missing key) marks a pre-instrument note - Load resolves via Sound instead.
         int? InstrumentId,
         double Value,
         double? Volume,
@@ -249,10 +249,10 @@ public static class ProjectFile
         // Pre-instrument sound name, kept only for reading old files; never written.
         string? Sound = null);
 
-    // Null Repeats (missing key) = 1 — files from before the feature stay valid.
+    // Null Repeats (missing key) = 1 - files from before the feature stay valid.
     private record AutomationDto(KeyframeTiming Timing, List<KeyframeDto> Keyframes, int? Repeats = null);
 
     private record KeyframeDto(float Gap, Modifier? Value, Modifier? Volume, Modifier? Pan,
-        // Null (missing key) = false — files from before the feature stay valid.
+        // Null (missing key) = false - files from before the feature stay valid.
         Modifier? Offset = null, bool? Cut = null);
 }

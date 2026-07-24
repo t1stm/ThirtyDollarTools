@@ -41,7 +41,7 @@ public class Note
 
     /// <summary>
     ///     Optional automation that generates follow-up events (echo, sustain, fades)
-    ///     from this note. Managers are stateless — one instance can be shared by all
+    ///     from this note. Managers are stateless - one instance can be shared by all
     ///     notes of a segment.
     /// </summary>
     public AudioKeyframeManager? Automation { get; set; }
@@ -49,7 +49,7 @@ public class Note
     /// <summary>
     ///     True when this note is a cut (retrigger) instead of a play: it silences every
     ///     one of <see cref="Instrument" />'s sounds instead of playing them, and carries
-    ///     no meaningful Value/Volume/Pan/Offset/Automation of its own — those fields are
+    ///     no meaningful Value/Volume/Pan/Offset/Automation of its own - those fields are
     ///     enforced at default at creation (not by a separate type), same reserved-instrument
     ///     mechanism the sound-picker can never reach on its own.
     /// </summary>
@@ -75,7 +75,7 @@ public class Note
     }
 
     /// <summary>
-    ///     One event per instrument sound, layered on this note's step — unless this is a
+    ///     One event per instrument sound, layered on this note's step - unless this is a
     ///     cut, which instead yields one <see cref="IndividualCutEvent" /> silencing every
     ///     one of the instrument's sounds at once (the same mechanism
     ///     <see cref="AudioKeyframeManager" />'s "Cut" keyframe already uses). Empty

@@ -74,60 +74,60 @@ public class StyleSheet(StyleSheetHolder holder)
         switch (property)
         {
             case "timing-function" when value is StringValue steppingFunctionString:
-            {
-                keyframe.SteppingFunction =
-                    SteppingFunctions.ParseSteppingFunction(steppingFunctionString.Value);
-                break;
-            }
+                {
+                    keyframe.SteppingFunction =
+                        SteppingFunctions.ParseSteppingFunction(steppingFunctionString.Value);
+                    break;
+                }
 
             case "transform" when value is VectorValue vectorValue:
-            {
-                keyframe.Position = vectorValue.Count switch
                 {
-                    2 => new Vector3((float)vectorValue.X, (float)vectorValue.Y, 0),
-                    3 => new Vector3((float)vectorValue.X, (float)vectorValue.Y,
-                        (float)(vectorValue.Z ?? 0)),
-                    _ => throw new ArgumentException("Invalid vector count for transform property")
-                };
-                break;
-            }
+                    keyframe.Position = vectorValue.Count switch
+                    {
+                        2 => new Vector3((float)vectorValue.X, (float)vectorValue.Y, 0),
+                        3 => new Vector3((float)vectorValue.X, (float)vectorValue.Y,
+                            (float)(vectorValue.Z ?? 0)),
+                        _ => throw new ArgumentException("Invalid vector count for transform property")
+                    };
+                    break;
+                }
 
             case "opacity" when value is NumberValue numberValue:
-            {
-                keyframe.Opacity = numberValue.Unit is "%" ? numberValue.Value / 100f : numberValue.Value;
-                break;
-            }
+                {
+                    keyframe.Opacity = numberValue.Unit is "%" ? numberValue.Value / 100f : numberValue.Value;
+                    break;
+                }
 
             case "color" when value is ColorValue colorValue:
-            {
-                keyframe.Color = colorValue.Vector;
-                break;
-            }
+                {
+                    keyframe.Color = colorValue.Vector;
+                    break;
+                }
 
             case "loop" when value is StringValue loopString:
-            {
-                keyframe.LoopingMode = loopString.Value switch
                 {
-                    "none" => AnimationLoopingMode.None,
-                    "invert" => AnimationLoopingMode.Invert,
-                    "loop-start" => AnimationLoopingMode.LoopStart,
-                    "reset" => AnimationLoopingMode.ResetToStart,
-                    _ => throw new ArgumentException("Invalid loop mode")
-                };
-                break;
-            }
+                    keyframe.LoopingMode = loopString.Value switch
+                    {
+                        "none" => AnimationLoopingMode.None,
+                        "invert" => AnimationLoopingMode.Invert,
+                        "loop-start" => AnimationLoopingMode.LoopStart,
+                        "reset" => AnimationLoopingMode.ResetToStart,
+                        _ => throw new ArgumentException("Invalid loop mode")
+                    };
+                    break;
+                }
 
             case "scale" when value is VectorValue vectorValue:
-            {
-                keyframe.Scale = vectorValue.Count switch
                 {
-                    2 => new Vector3((float)vectorValue.X, (float)vectorValue.Y, 1),
-                    3 => new Vector3((float)vectorValue.X, (float)vectorValue.Y,
-                        (float)(vectorValue.Z ?? 1)),
-                    _ => throw new ArgumentException("Invalid scale vector length")
-                };
-                break;
-            }
+                    keyframe.Scale = vectorValue.Count switch
+                    {
+                        2 => new Vector3((float)vectorValue.X, (float)vectorValue.Y, 1),
+                        3 => new Vector3((float)vectorValue.X, (float)vectorValue.Y,
+                            (float)(vectorValue.Z ?? 1)),
+                        _ => throw new ArgumentException("Invalid scale vector length")
+                    };
+                    break;
+                }
         }
     }
 

@@ -9,7 +9,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     The save/discard/cancel choice (ModalLayer content) shown when leaving the editor
-///     with unsaved changes. Pure form — the owner decides what each button does and
+///     with unsaved changes. Pure form - the owner decides what each button does and
 ///     closes the modal itself, mirroring <see cref="ConfirmDialog" />/<see cref="ImportDialog" />.
 /// </summary>
 public sealed class UnsavedChangesDialog : FlexPanel
@@ -26,7 +26,7 @@ public sealed class UnsavedChangesDialog : FlexPanel
         Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         SaveButton = new Button(context, "Save")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         DiscardButton = new Button(context, "Discard", new ColoredPlane { Color = EditorPalette.DangerAccent })
         {
             FontSizePx = 14,
@@ -34,19 +34,24 @@ public sealed class UnsavedChangesDialog : FlexPanel
             Label = { Color = EditorPalette.Panel }
         };
         CancelButton = new Button(context, "Cancel")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
 
         Children =
         [
-            new Label(context, "Unsaved changes — save before leaving?") { FontSizePx = 14f },
+            new Label(context, "Unsaved changes - save before leaving?") { FontSizePx = 14f },
             new FlexPanel(context)
             {
                 Width = LiteralOrComputable.Percent(100),
                 Height = 40,
                 Spacing = 10,
-                HorizontalAlign = Align.End,
                 VerticalAlign = Align.Center,
-                Children = [CancelButton, DiscardButton, SaveButton]
+                // Percent-width spacer pushes Discard/Save to the right edge while Cancel
+                // stays on the left - this framework has no space-between align.
+                Children =
+                [
+                    CancelButton, new Panel(context) { Width = LiteralOrComputable.Percent(100) },
+                    DiscardButton, SaveButton
+                ]
             }
         ];
     }

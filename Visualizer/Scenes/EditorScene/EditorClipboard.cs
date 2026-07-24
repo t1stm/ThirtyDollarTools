@@ -3,7 +3,7 @@ using ThirtyDollarConverter.Editor;
 namespace EditorScene;
 
 /// <summary>
-///     Session-only internal clipboard for the editor's Copy/Paste/Cut — plain data,
+///     Session-only internal clipboard for the editor's Copy/Paste/Cut - plain data,
 ///     one typed slot (copying notes overwrites a placement payload and vice versa).
 ///     Not the OS clipboard: nothing text-serializable exists yet for a selection.
 /// </summary>

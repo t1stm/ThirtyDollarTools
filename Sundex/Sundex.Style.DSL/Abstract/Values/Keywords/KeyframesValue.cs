@@ -17,30 +17,30 @@ public record KeyframesValue(IStyleValue Value) : IStyleValue
         switch (value)
         {
             case MapValue map:
-            {
-                foreach (var kvp in map.Values)
                 {
-                    var pct = ExtractPercentage(kvp.Key);
-                    if (kvp.Value is not BlockValue block)
-                        throw new ArgumentException("Keyframe value must be a block of properties");
-                    list.Add(new KeyframeStep(pct, new Dictionary<string, IStyleValue>(block.Properties)));
-                }
+                    foreach (var kvp in map.Values)
+                    {
+                        var pct = ExtractPercentage(kvp.Key);
+                        if (kvp.Value is not BlockValue block)
+                            throw new ArgumentException("Keyframe value must be a block of properties");
+                        list.Add(new KeyframeStep(pct, new Dictionary<string, IStyleValue>(block.Properties)));
+                    }
 
-                break;
-            }
+                    break;
+                }
             case ArrayValue arr:
-            {
-                var n = arr.Values.Count;
-                for (var i = 0; i < n; i++)
                 {
-                    var v = arr.Values[i];
-                    if (v is not BlockValue block)
-                        throw new ArgumentException("Keyframe array items must be blocks");
-                    list.Add(new KeyframeStep(0, new Dictionary<string, IStyleValue>(block.Properties)));
-                }
+                    var n = arr.Values.Count;
+                    for (var i = 0; i < n; i++)
+                    {
+                        var v = arr.Values[i];
+                        if (v is not BlockValue block)
+                            throw new ArgumentException("Keyframe array items must be blocks");
+                        list.Add(new KeyframeStep(0, new Dictionary<string, IStyleValue>(block.Properties)));
+                    }
 
-                break;
-            }
+                    break;
+                }
         }
 
         if (value is not ArrayValue || list.Count <= 0) return list;

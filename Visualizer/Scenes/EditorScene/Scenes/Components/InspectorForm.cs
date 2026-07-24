@@ -67,10 +67,25 @@ public sealed class InspectorForm
         foreach (var sync in _syncs.ToArray()) sync();
     }
 
-    public void Header(string text)
+    /// <summary>Section header; <paramref name="trailing" /> elements (e.g. action buttons)
+    /// sit in a horizontal row right after the label.</summary>
+    public void Header(string text, params UIElement[] trailing)
     {
         Section = text;
-        _container.AddChild(new Label(_context, text) { FontSizePx = 15f, Color = HeaderColor });
+        var label = new Label(_context, text) { FontSizePx = 15f, Color = HeaderColor };
+        if (trailing.Length == 0)
+        {
+            _container.AddChild(label);
+            return;
+        }
+
+        _container.AddChild(new FlexPanel(_context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Spacing = 8,
+            VerticalAlign = Align.Center,
+            Children = [label, .. trailing]
+        });
     }
 
     /// <summary>
@@ -212,13 +227,18 @@ public sealed class InspectorForm
         var initial = get();
         var amount = new NumericInput(_context, initial.Amount)
         {
-            Width = 100, Height = 32, FontSizePx = 14, Min = -10000, Max = 10000,
+            Width = 100,
+            Height = 32,
+            FontSizePx = 14,
+            Min = -10000,
+            Max = 10000,
             BorderRadius = 4,
             Background = new ColoredPlane { Color = InputColor }
         };
         var multiply = new Checkbox(_context, "×", initial.Kind == ModifierKind.Multiply)
         {
-            X = LabelWidth + 108, Y = 6
+            X = LabelWidth + 108,
+            Y = 6
         };
         multiply.Label.FontSizePx = 13f;
 

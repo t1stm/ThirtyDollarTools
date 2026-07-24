@@ -54,7 +54,7 @@ public class TrackEditorViewTests
         // The default zoom is 64 px/step and rows default to a fixed 20 px minimum;
         // these tests keep the original 16 px / stretch-to-fit (8 px rows) geometry.
         var view = new TrackEditorView(ctx, state)
-            { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f };
+        { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f };
         state.OnProjectChanged += view.InvalidateLayout; // the EditorInterface wiring
         view.Layout();
         return (ctx, state, view, track);
@@ -302,7 +302,7 @@ public class TrackEditorViewTests
     {
         // BMS-dense Aleph-0 case: enough visible notes to stress the block pool. A
         // freshly placed note is appended to its segment's list, so pool exhaustion
-        // drops exactly the newest note — it lands in the model but never renders,
+        // drops exactly the newest note - it lands in the model but never renders,
         // and the next click on its cell places a duplicate instead of hitting it.
         var (ctx, state, view, track) = NewView();
         var boom = MakeInstrument(state, "boom");
@@ -316,13 +316,13 @@ public class TrackEditorViewTests
         view.Layout();
         var before = track.Segments.Sum(s => s.Notes.Count);
 
-        // An empty zero-row cell in the LAST segment (step 40) — appended there, the
+        // An empty zero-row cell in the LAST segment (step 40) - appended there, the
         // new note is the very last one the pool scan reaches.
         Click(ctx, view, 692, 214.5f);
         view.Layout(); // the app lays out every frame
 
         // The second click must land on the new note's block (which swallows it),
-        // not on empty grid — that would place a duplicate.
+        // not on empty grid - that would place a duplicate.
         Click(ctx, view, 692, 214.5f);
 
         Assert.Equal(before + 1, track.Segments.Sum(s => s.Notes.Count));
@@ -355,7 +355,7 @@ public class TrackEditorViewTests
     public void ClickOnTheZeroRow_PlacesThroughTheFullAppTree()
     {
         // Reproduces the app's exact nesting (root -> grid area -> vertical flex of
-        // toolbar + editor) instead of using the view as the pointer root — an
+        // toolbar + editor) instead of using the view as the pointer root - an
         // occluder anywhere in that tree would break placement only in the app.
         var ctx = new EditorTestContext();
         var state = new EditorState();
@@ -384,7 +384,7 @@ public class TrackEditorViewTests
             [
                 new Sundex.Components.Labels.Button(ctx, "← Arrangement"),
                 new Sundex.Components.Labels.Label(ctx, "Track 1"),
-                new Sundex.Components.Labels.Button(ctx, "Instrument: —")
+                new Sundex.Components.Labels.Button(ctx, "Instrument: -")
             ]
         };
         var editorPanel = new Sundex.Components.Panels.FlexPanel(ctx)
@@ -540,7 +540,7 @@ public class TrackEditorViewTests
         view.Layout();
 
         // One segment, 4 beats of 4 steps each at 16 px/step: labels every 64 px,
-        // not every 16 px step — proves beat-stride, not step-stride.
+        // not every 16 px step - proves beat-stride, not step-stride.
         var visible = view.BeatLabels.Where(l => l.X.Value > -1000f)
             .OrderBy(l => l.X.Value).ToList();
         Assert.Equal(["1", "2", "3", "4"], visible.Select(l => l.Value.ToString()).ToList());
@@ -610,9 +610,9 @@ public class TrackEditorViewTests
         view.Layout();
         state.ActiveTool = EditorTool.Select;
 
-        // Anchor at (step 5, value -2) — off the note's own block entirely, so the
+        // Anchor at (step 5, value -2) - off the note's own block entirely, so the
         // press starts a marquee instead of grabbing the note directly. Cursor at
-        // (step 3.5, value -0.5) — inside the cell, short of both its left and top
+        // (step 3.5, value -0.5) - inside the cell, short of both its left and top
         // edges (minStep=3.5 > 3, maxValue=-0.5 < 0).
         Press(ctx, view, 124, 214.5f);
         Drag(ctx, view, 100, 206.5f);
@@ -696,7 +696,7 @@ public class TrackEditorViewTests
         view.FineSnap = false; // restore: the Select tool reads FineSnap as "Shift = remove"
         view.Layout();
 
-        // Step 5 now renders at x = 44 + 5*16 - 48 = 76 (was 124 before scrolling) — the
+        // Step 5 now renders at x = 44 + 5*16 - 48 = 76 (was 124 before scrolling) - the
         // marquee must read this post-scroll position, not the pre-scroll pixel.
         Press(ctx, view, 60, 195.5f);
         Drag(ctx, view, 100, 214.5f);
@@ -772,7 +772,7 @@ public class TrackEditorViewTests
         state.SetNoteSelection([a, b]);
 
         // Press `a` (step 3, value 0) and drag one step right, one value up: under the
-        // Select tool this only keeps the group selected — it's the Draw tool's job to move.
+        // Select tool this only keeps the group selected - it's the Draw tool's job to move.
         Press(ctx, view, 100, 214.5f);
         Drag(ctx, view, 116, 206.5f);
         Release(ctx, view, 116, 206.5f);
@@ -844,7 +844,7 @@ public class TrackEditorViewTests
         Assert.Equal(6, a.Step);
         Assert.Equal(13, b.Step);
 
-        // One Ctrl+Z restores BOTH notes all the way to their pre-drag positions — if the
+        // One Ctrl+Z restores BOTH notes all the way to their pre-drag positions - if the
         // three drag frames hadn't collapsed into one entry, this would only undo the
         // last frame's delta (step 6 -> 5), not the whole gesture back to step 3.
         state.Undo();

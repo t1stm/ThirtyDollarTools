@@ -8,10 +8,10 @@ namespace Sundex.Components.Panels;
 /// <summary>
 ///     Full-viewport top z-layer: wins every hit-test, so clicks, hover, and wheel never
 ///     reach the UI beneath. Content children are centered (FlexPanel). Clicking the
-///     backdrop (outside all children) fires <see cref="OnDismissRequested" /> — the owner
+///     backdrop (outside all children) fires <see cref="OnDismissRequested" /> - the owner
 ///     decides whether to close. Open/close by adding/removing it on the scene root
 ///     (RemoveChild fully un-renders the subtree via the StopRendering cascade).
-///     <see cref="UIElement.OnClick" /> is used internally — don't overwrite it.
+///     <see cref="UIElement.OnClick" /> is used internally - don't overwrite it.
 /// </summary>
 public class ModalLayer : FlexPanel
 {

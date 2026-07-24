@@ -8,7 +8,7 @@ namespace Sundex.Components.Scroll;
 
 /// <summary>
 ///     Vertical scroll bar: a draggable thumb on a track, self-positioned at the right
-///     edge of its parent. Only reports <see cref="Percentage" /> (0..1) — the consumer
+///     edge of its parent. Only reports <see cref="Percentage" /> (0..1) - the consumer
 ///     moves its own content (<see cref="ScrollView" /> does this). Dragging uses the
 ///     capture hooks; clicking the track jumps the thumb.
 /// </summary>

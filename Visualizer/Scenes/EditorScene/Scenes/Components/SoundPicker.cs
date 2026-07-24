@@ -18,8 +18,8 @@ namespace EditorScene.Scenes.Components;
 ///     The note editor's sound picker: a wrapping grid of TDW sound icons, ported from
 ///     DrumMaster's SoundList. Same atlas/render-stack drawing, but click-to-select
 ///     through the UI input routing instead of DrumMaster's drag-and-drop.
-///     In multi-select mode, icons live in one of two sub-grids — "Selected" and
-///     "Available" — and hop between them as they're toggled.
+///     In multi-select mode, icons live in one of two sub-grids - "Selected" and
+///     "Available" - and hop between them as they're toggled.
 /// </summary>
 public sealed class SoundPicker : FlexPanel
 {
@@ -53,7 +53,7 @@ public sealed class SoundPicker : FlexPanel
         _availableGrid = NewGrid(context);
 
         // Scroll-adjust hint: pinned to the right of a non-wrapping outer row, with the
-        // actual (wrapping) icon grid as its only other child — so icons wrap around
+        // actual (wrapping) icon grid as its only other child - so icons wrap around
         // within the narrower space the hint leaves, instead of just trailing the last
         // icon inline. Only relevant with ShowAdjustments on (the instrument editor) and
         // at least one icon selected (nothing to scroll-adjust otherwise);
@@ -105,8 +105,8 @@ public sealed class SoundPicker : FlexPanel
 
     /// <summary>
     ///     When true, every selected icon (Available icons stay plain) shows a value/volume/pan
-    ///     readout — formatted exactly like the playfield's sound badges, see
-    ///     <see cref="RenderableFactory.FormatValueText" /> and friends — backed by
+    ///     readout - formatted exactly like the playfield's sound badges, see
+    ///     <see cref="RenderableFactory.FormatValueText" /> and friends - backed by
     ///     <see cref="Adjustments" />, and scroll-adjustable: plain scroll changes value,
     ///     Ctrl+scroll volume, Shift+scroll pan. Set once by the instrument editor; other
     ///     <see cref="SoundPicker" /> consumers (the active-sound picker, the track-automation
@@ -114,18 +114,18 @@ public sealed class SoundPicker : FlexPanel
     /// </summary>
     public bool ShowAdjustments { get; set; }
 
-    /// <summary>Per-sound value/volume/pan tuning, keyed by sound name — only meaningful
+    /// <summary>Per-sound value/volume/pan tuning, keyed by sound name - only meaningful
     /// (and only editable via scroll) when <see cref="ShowAdjustments" /> is set.</summary>
     public Dictionary<string, SoundAdjustment> Adjustments { get; } = new();
 
     /// <summary>Same modifier state as the track editor's scroll-zoom (see
-    /// EditorInterface.SetModifiers) — Ctrl adjusts volume, Shift adjusts pan.</summary>
+    /// EditorInterface.SetModifiers) - Ctrl adjusts volume, Shift adjusts pan.</summary>
     public bool CtrlHeld { get; set; }
 
     public bool ShiftHeld { get; set; }
 
     /// <summary>Fired with a sound's name and its current adjustment whenever scrolling an
-    /// icon changes it. The picker has no playback of its own — the owner wires this the
+    /// icon changes it. The picker has no playback of its own - the owner wires this the
     /// same way it wires TrackEditorView.OnPreviewNote.</summary>
     public Action<string, SoundAdjustment>? OnPreviewSound { get; set; }
 
@@ -134,7 +134,7 @@ public sealed class SoundPicker : FlexPanel
     public bool HasSounds => _selectedGrid.Children.Count > 0 || _availableGrid.Children.Count > 0;
 
     /// <summary>
-    ///     Fills the grid from the atlas store. Call lazily — the atlases may still be
+    ///     Fills the grid from the atlas store. Call lazily - the atlases may still be
     ///     loading while the scene is constructed; sounds without an image are skipped.
     /// </summary>
     public void Fill(IEnumerable<string> soundNames)
@@ -143,7 +143,7 @@ public sealed class SoundPicker : FlexPanel
         RefreshSections();
     }
 
-    /// <summary>Reseeds <see cref="Selected" /> and moves icons to match — call each
+    /// <summary>Reseeds <see cref="Selected" /> and moves icons to match - call each
     /// time a multi-select picker is reopened, since it may edit a different filter.</summary>
     public void SetSelected(IEnumerable<string> sounds)
     {
@@ -166,7 +166,7 @@ public sealed class SoundPicker : FlexPanel
         RefreshSections();
     }
 
-    /// <summary>Reseeds <see cref="Adjustments" /> and refreshes every icon's readout — call
+    /// <summary>Reseeds <see cref="Adjustments" /> and refreshes every icon's readout - call
     /// alongside <see cref="SetSelected" /> when the instrument editor reopens on a different
     /// instrument. No-op for pickers that don't set <see cref="ShowAdjustments" />.</summary>
     public void SetAdjustments(IReadOnlyDictionary<string, SoundAdjustment> adjustments)
@@ -201,7 +201,7 @@ public sealed class SoundPicker : FlexPanel
     }
 
     /// <summary>Shows/hides the divider + hint in the selected row, to the right of the
-    /// (fixed, always-present) icon grid — entering/leaving the tree via AddChild/RemoveChild
+    /// (fixed, always-present) icon grid - entering/leaving the tree via AddChild/RemoveChild
     /// is what actually queues/dequeues a renderable, same as <see cref="RefreshSections" />.</summary>
     private void RefreshKeybindNote()
     {
@@ -241,7 +241,7 @@ public sealed class SoundPicker : FlexPanel
 
         if (Children.SequenceEqual(desired)) return;
 
-        // Entering/leaving the tree must go through AddChild/RemoveChild — they're the
+        // Entering/leaving the tree must go through AddChild/RemoveChild - they're the
         // ones that queue/dequeue renderables. A bulk Children= only reorders already-live
         // elements; it never queues one that's appearing for the first time.
         foreach (var stale in Children.Where(c => !desired.Contains(c)).ToList())
@@ -326,7 +326,7 @@ public sealed class SoundPicker : FlexPanel
 
     /// <summary>One icon; its screen rectangle is pushed into the instanced render stack.
     /// With <see cref="ShowAdjustments" /> on, it also carries a value/volume/pan label and
-    /// answers scroll — see <see cref="EnableAdjustmentText" />.</summary>
+    /// answers scroll - see <see cref="EnableAdjustmentText" />.</summary>
     private sealed class SoundIcon : Panel
     {
         private const float AdjustableCellWidth = 60f;
@@ -376,7 +376,7 @@ public sealed class SoundPicker : FlexPanel
 
         public sealed override ComputedRectangle Computed { get; protected set; }
 
-        /// <summary>Reserves room below the icon for the value/volume/pan label and adds it —
+        /// <summary>Reserves room below the icon for the value/volume/pan label and adds it -
         /// only selected sounds carry one, so the Available grid stays plain icons. Idempotent;
         /// the first call captures the aspect-scaled icon size from <see cref="Width" />/
         /// <see cref="Height" /> before widening them (an object initializer sets those, so
@@ -396,7 +396,7 @@ public sealed class SoundPicker : FlexPanel
             RefreshAdjustmentText();
         }
 
-        /// <summary>Undoes <see cref="EnableAdjustmentText" /> — removes the label and shrinks
+        /// <summary>Undoes <see cref="EnableAdjustmentText" /> - removes the label and shrinks
         /// back to the plain icon size. No-op if it was never enabled.</summary>
         public void DisableAdjustmentText()
         {

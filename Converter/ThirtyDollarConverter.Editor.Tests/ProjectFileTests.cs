@@ -24,7 +24,7 @@ public class ProjectFileTests
         odd.Denominator = 8;
         odd.StepsPerBeat = 2;
         odd.Notes.Add(new Note
-            { Step = 3, Instrument = MakeInstrument(project, "kick"), Value = -5, Volume = 80, Pan = -25 });
+        { Step = 3, Instrument = MakeInstrument(project, "kick"), Value = -5, Volume = 80, Pan = -25 });
 
         var slow = drums.NewSegment();
         slow.BPM = 60;
@@ -138,7 +138,7 @@ public class ProjectFileTests
         Assert.Equal(3, loaded.Placements.Count);
         Assert.Equal(3, loaded.Placements[1].Channel);
         Assert.Equal(16.5, loaded.Placements[1].StartQuarterNotes);
-        // Two clips of the same pattern reference the same loaded track instance —
+        // Two clips of the same pattern reference the same loaded track instance -
         // editing the pattern must update every clip.
         Assert.Same(loaded.Placements[0].Track, loaded.Placements[1].Track);
         Assert.Same(loaded.Tracks[0], loaded.Placements[0].Track);
@@ -167,7 +167,7 @@ public class ProjectFileTests
         Assert.Equal([0, 1], loaded.Placements.Select(p => p.Channel));
         Assert.Same(loaded.Tracks[0], loaded.Placements[0].Track);
 
-        // An explicitly empty arrangement stays empty — only a missing key is legacy.
+        // An explicitly empty arrangement stays empty - only a missing key is legacy.
         var project = new ThirtyDollarProject();
         project.NewTrack();
         Assert.Empty(ProjectFile.Load(ProjectFile.Save(project)).Placements);

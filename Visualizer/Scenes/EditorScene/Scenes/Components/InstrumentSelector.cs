@@ -12,7 +12,7 @@ namespace EditorScene.Scenes.Components;
 /// <summary>
 ///     Picks the note editor's active instrument: a list of the project's instruments
 ///     (<see cref="InstrumentRow" />, each with its own edit affordance) plus a
-///     "+ New instrument" row. Pure view — the owner (<see cref="EditorInterface" />)
+///     "+ New instrument" row. Pure view - the owner (<see cref="EditorInterface" />)
 ///     decides what "pick" means (set the active instrument, or reassign one note's).
 /// </summary>
 public sealed class InstrumentSelector : FlexPanel
@@ -68,7 +68,7 @@ public sealed class InstrumentSelector : FlexPanel
     /// <summary>Fired when "+ New instrument" is clicked.</summary>
     public Action? OnNew { get; set; }
 
-    /// <summary>Full row rebuild — the instrument list is small by design.</summary>
+    /// <summary>Full row rebuild - the instrument list is small by design.</summary>
     public void Fill(IEnumerable<Instrument> instruments)
     {
         foreach (var child in _list.Children.ToArray()) _list.RemoveChild(child);

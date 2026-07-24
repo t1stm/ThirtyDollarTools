@@ -107,7 +107,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
     /// <summary>
     ///     True while this panel's renderables are queued (DrawTo ran and StopRendering
     ///     hasn't). AddChild consults it, so composing a subtree while detached never
-    ///     queues renders — the whole subtree queues when it is drawn into a live tree.
+    ///     queues renders - the whole subtree queues when it is drawn into a live tree.
     /// </summary>
     protected internal bool Drawn { get; private set; }
 
@@ -192,7 +192,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         child.Parent = this;
         // DrawTo queues the child's renderables but lays it out against this panel's
         // possibly-stale Computed; re-invalidate so the next Layout pass repositions it.
-        // A panel that isn't drawn itself must not queue its children either — they
+        // A panel that isn't drawn itself must not queue its children either - they
         // queue with the whole subtree once this panel gets its DrawTo.
         if (Drawn) child.DrawTo(Context);
         child.InvalidateCoordinates();
@@ -221,7 +221,7 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
     protected override void DrawSelf(UIContext ctx)
     {
         // Append: within a depth layer, render order follows draw order, so a later
-        // sibling stacks above an earlier one — matching hit-test priority. (Insert
+        // sibling stacks above an earlier one - matching hit-test priority. (Insert
         // at the front would reverse sibling stacking: the first-drawn child would
         // paint on top of everything drawn after it.)
         if (Background != null)
@@ -237,31 +237,31 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         switch (styleValue)
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Renderable):
-            {
-                var gradient = gv.GenerateGradientPlane();
-                gradient.BorderRadius = BorderRadius.Resolve(Computed.Height);
+                {
+                    var gradient = gv.GenerateGradientPlane();
+                    gradient.BorderRadius = BorderRadius.Resolve(Computed.Height);
 
-                propertyInfo.SetValue(this, plane = gradient);
-                break;
-            }
+                    propertyInfo.SetValue(this, plane = gradient);
+                    break;
+                }
 
             case ColorValue cv when propertyInfo.PropertyType == typeof(Renderable):
-            {
-                var colored = new ColoredPlane
                 {
-                    Color = cv.Vector,
-                    BorderRadius = BorderRadius.Resolve(Computed.Height)
-                };
+                    var colored = new ColoredPlane
+                    {
+                        Color = cv.Vector,
+                        BorderRadius = BorderRadius.Resolve(Computed.Height)
+                    };
 
-                propertyInfo.SetValue(this, plane = colored);
-                break;
-            }
+                    propertyInfo.SetValue(this, plane = colored);
+                    break;
+                }
 
             default:
-            {
-                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
-                return;
-            }
+                {
+                    base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
+                    return;
+                }
         }
 
         HandleRenderableSwap(oldValue, plane, propertyInfo.Name);

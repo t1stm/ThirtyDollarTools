@@ -22,7 +22,7 @@ public sealed class ArrangementView : Panel
     public const float RulerHeight = 18f;
     public const int MinChannels = 8;
 
-    // ponytail: fixed pools — 128 bar lines cover a 3k px window at minimum zoom (6 ppq).
+    // ponytail: fixed pools - 128 bar lines cover a 3k px window at minimum zoom (6 ppq).
     // LaneLinePool is also the LaneHeader's toggle pool, so the two stay in step. It used
     // to be 24: past that many channels, ChannelCount's clamp (below) silently capped the
     // lane count these two pools iterate, so new channels still got a clip block (laid
@@ -83,7 +83,7 @@ public sealed class ArrangementView : Panel
         // DrawSelf, below Children in the same depth layer, so clips still paint above.
         _lineBatch.Count = LaneLinePool + BarLinePool;
 
-        // The beat ruler — same idea as the note editor's: a strip along the top
+        // The beat ruler - same idea as the note editor's: a strip along the top
         // labeling every bar, highlighting whichever bar the playhead is in.
         _rulerBackground = new GhostPanel(context) { Background = new ColoredPlane { Color = RulerColor } };
         AddChild(_rulerBackground);
@@ -133,6 +133,9 @@ public sealed class ArrangementView : Panel
     /// <summary>Lane count, shared with the lane header so the M/S gutter stays aligned.</summary>
     public int Channels => ChannelCount;
 
+    // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
+    internal IReadOnlyList<ClipBlock> Blocks => _blocks;
+
     /// <summary>Vertical lane scroll, shared with the lane header so its M/S toggles track
     /// the lanes they belong to.</summary>
     public float ScrollY => _nav.ScrollY;
@@ -150,7 +153,7 @@ public sealed class ArrangementView : Panel
     /// selection instead of replacing it. Mirrors <see cref="TrackEditorView.FineSnap" />.</summary>
     public bool FineSnap { get; set; }
 
-    /// <summary>Fired when a clip is double-clicked — the seam for the per-track editor.</summary>
+    /// <summary>Fired when a clip is double-clicked - the seam for the per-track editor.</summary>
     public Action<ProjectTrack>? OnOpenTrack { get; set; }
 
     /// <summary>Fired with the clicked quarter-note position when the bar ruler is clicked.</summary>
@@ -188,6 +191,18 @@ public sealed class ArrangementView : Panel
             AddChild(block);
         }
 
+        // Keep the ruler (background, then its bar labels on top of that) above the
+        // clips: a clip scrolled up past the top must be masked by the ruler, not paint
+        // over it. Same "rely on paint order, not a clip rect" trick TrackEditorView uses
+        // for its strip/ruler over notes bleeding past the grid's top edge.
+        RemoveChild(_rulerBackground);
+        AddChild(_rulerBackground);
+        foreach (var label in _barLabels)
+        {
+            RemoveChild(label);
+            AddChild(label);
+        }
+
         // Keep the playhead and marquee rect last so they render above the clips.
         RemoveChild(_playhead);
         AddChild(_playhead);
@@ -211,12 +226,14 @@ public sealed class ArrangementView : Panel
         var gridHeight = Math.Max(0, Computed.Height - RulerHeight);
         var lanesBottom = lanes * LaneHeight;
 
-        // Recomputed every layout (channel count and viewport height both change the
-        // scrollable range) and re-clamped immediately, or a track removal / resize that
-        // shrinks MaxScrollY below the current ScrollY would strand the view scrolled past
-        // its own content until the next wheel/pan event.
+        // Recomputed every layout so the next wheel/pan clamps against the current bound,
+        // but ScrollY itself is deliberately NOT re-clamped here (matching ScrollX, which
+        // is never bounded on the right either - content can scroll past a shorter one).
+        // Removing a track shrinks the lane count on every layout pass; eagerly pulling
+        // ScrollY back down to fit auto-scrolled the view under a still-held pointer,
+        // sliding whatever was next under a level-triggered right-press (or a delete-drag)
+        // and cascading into deleting every track that had been off-screen below it.
         _nav.MaxScrollY = Math.Max(0, lanesBottom - gridHeight);
-        _nav.Clamp();
         var scrollY = _nav.ScrollY;
         var visibleLanesBottom = Math.Max(0, Math.Min(lanesBottom - scrollY, gridHeight));
 
@@ -261,14 +278,13 @@ public sealed class ArrangementView : Panel
             var placement = block.Placement;
             var quarters = placement.Track.DurationMinutes() * _state.Project.RootTiming.BPM;
             block.X = (float)(placement.StartQuarterNotes * PixelsPerQuarter) - _nav.ScrollX;
-            // The bottom edge relies on ApplyClip (outside the view's own bounds entirely);
-            // the top doesn't, since a lane scrolled up still sits inside those bounds, just
-            // under the ruler - clamp it the same way TrackEditorView clamps a note's bottom.
-            var rawY = RulerHeight + placement.Channel * LaneHeight + 2 - scrollY;
-            var clampedY = Math.Max(rawY, RulerHeight);
-            block.Y = clampedY;
+            // No top clamp: a clip scrolled up past the ruler bleeds to a negative Y same
+            // as a note bleeds past TrackEditorView's grid top, masked by the ruler's paint
+            // order (see Refresh) rather than clamped - clamping it here pinned every clip
+            // passing through the ruler band to the same Y, stacking their labels together.
+            block.Y = RulerHeight + placement.Channel * LaneHeight + 2 - scrollY;
             block.Width = Math.Max(8, (float)(quarters * PixelsPerQuarter));
-            block.Height = Math.Max(0, rawY + (LaneHeight - 4) - clampedY);
+            block.Height = LaneHeight - 4;
         }
 
         _playhead.Width = playheadVisible ? 2 : 0;
@@ -309,13 +325,13 @@ public sealed class ArrangementView : Panel
         _marqueeRect.Height = Math.Abs(y2 - y1);
     }
 
-    /// <summary>Continuous, unsnapped quarter-note position — the marquee's counterpart to <see cref="GridPosition" />.</summary>
+    /// <summary>Continuous, unsnapped quarter-note position - the marquee's counterpart to <see cref="GridPosition" />.</summary>
     private double UnsnappedQuartersAt(float localX)
     {
         return (localX + _nav.ScrollX) / PixelsPerQuarter;
     }
 
-    /// <summary>Continuous, unsnapped channel — the marquee's counterpart to <see cref="GridPosition" />.</summary>
+    /// <summary>Continuous, unsnapped channel - the marquee's counterpart to <see cref="GridPosition" />.</summary>
     private double UnsnappedChannelAt(float localY)
     {
         return (localY - RulerHeight + _nav.ScrollY) / LaneHeight;
@@ -349,7 +365,7 @@ public sealed class ArrangementView : Panel
     /// <summary>
     ///     Applies the marquee's Replace/Append/Remove modifier semantics against every
     ///     placement whose time span intersects the marquee's quarter range and whose
-    ///     channel is within its row range — span-intersection (not containment), since
+    ///     channel is within its row range - span-intersection (not containment), since
     ///     clips are wide objects and a marquee merely touching one should select it.
     /// </summary>
     private void CommitMarquee()
@@ -368,7 +384,7 @@ public sealed class ArrangementView : Panel
             var end = placement.StartQuarterNotes + quarters;
             if (end <= minQ || placement.StartQuarterNotes >= maxQ) continue;
 
-            // The lane is a whole rendered row (Channel .. Channel+1), not a point —
+            // The lane is a whole rendered row (Channel .. Channel+1), not a point -
             // comparing the marquee's box against the bare Channel int only ever
             // matched when the box touched the lane's top edge, missing anything
             // dragged entirely inside the row (same bug class as the note editor's
@@ -392,11 +408,11 @@ public sealed class ArrangementView : Panel
         }
     }
 
-    /// <summary>Fired after any scroll/pan changes the viewport — the lane header listens
+    /// <summary>Fired after any scroll/pan changes the viewport - the lane header listens
     /// to keep its M/S toggles aligned with the lanes they belong to.</summary>
     public Action? OnScrolled { get; set; }
 
-    /// <summary>Plain wheel scrolls lanes vertically; Shift+wheel pans time instead —
+    /// <summary>Plain wheel scrolls lanes vertically; Shift+wheel pans time instead -
     /// same binding as <see cref="TrackEditorView.HandleScroll" />'s FineSnap/panXWithY.</summary>
     public override bool HandleScroll(Vector2 scrollDelta)
     {
@@ -490,7 +506,7 @@ public sealed class ArrangementView : Panel
         if (_dragging == null || uiContext.CapturedElement == _dragging) return;
 
         // The drag ended (release or capture theft): run the rebuild Refresh skipped.
-        // A plain click (press with no model change) skipped nothing — and must not
+        // A plain click (press with no model change) skipped nothing - and must not
         // rebuild, or the second press of a double-click lands on a fresh ClipBlock
         // and UIContext's same-element check can never see a double-press.
         _dragging = null;
@@ -520,7 +536,7 @@ public sealed class ArrangementView : Panel
     }
 
     /// <summary>A purely visual overlay: never takes pointer input.</summary>
-    private class ClipBlock : Panel
+    internal class ClipBlock : Panel
     {
         private readonly ColoredPlane _background;
         private readonly ArrangementView _view;
@@ -547,7 +563,7 @@ public sealed class ArrangementView : Panel
             if (_view._state.ActiveTool == EditorTool.Select)
             {
                 // Select tool: press-time selection only, matching the Draw tool's press
-                // feel — no move drag, no BeginGesture (dragging a multi-selection is a
+                // feel - no move drag, no BeginGesture (dragging a multi-selection is a
                 // listed future extension).
                 if (_view.FineSnap) _view._state.RemoveFromPlacementSelection([Placement]); // Shift: remove (no-op if absent)
                 else if (_view.WheelZooms) _view._state.AddToPlacementSelection([Placement]); // Ctrl: append (no-op if present)

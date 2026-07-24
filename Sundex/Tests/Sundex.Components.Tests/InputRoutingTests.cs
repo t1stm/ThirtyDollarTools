@@ -88,7 +88,10 @@ public class InputRoutingTests
         var exits = 0;
         var child = new Panel(ctx)
         {
-            X = 10, Y = 10, Width = 100, Height = 100,
+            X = 10,
+            Y = 10,
+            Width = 100,
+            Height = 100,
             OnHoverEnter = _ => enters++,
             OnHoverExit = _ => exits++
         };
@@ -133,7 +136,10 @@ public class InputRoutingTests
         var clicks = 0;
         var child = new Panel(ctx)
         {
-            X = 10, Y = 10, Width = 100, Height = 100,
+            X = 10,
+            Y = 10,
+            Width = 100,
+            Height = 100,
             OnClick = _ => clicks++
         };
         root.Children = [child];
@@ -156,7 +162,10 @@ public class InputRoutingTests
         var clicks = 0;
         var button = new Panel(ctx)
         {
-            X = 10, Y = 10, Width = 100, Height = 100,
+            X = 10,
+            Y = 10,
+            Width = 100,
+            Height = 100,
             OnClick = _ => clicks++
         };
         var label = new Panel(ctx) { X = 10, Y = 10, Width = 50, Height = 50 };
@@ -202,7 +211,10 @@ public class InputRoutingTests
         var blurs = 0;
         var input = new Panel(ctx)
         {
-            X = 10, Y = 10, Width = 100, Height = 30,
+            X = 10,
+            Y = 10,
+            Width = 100,
+            Height = 30,
             Focusable = true,
             OnFocus = _ => focuses++,
             OnBlur = _ => blurs++

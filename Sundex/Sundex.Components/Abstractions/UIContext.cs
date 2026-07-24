@@ -392,21 +392,21 @@ public class UIContext : IGamePreloadable
         var layerIndex = 0;
         foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
         {
-            // Position in LayeredRenderQueue is the UIElement.Index depth layer — an
+            // Position in LayeredRenderQueue is the UIElement.Index depth layer - an
             // outsized count here pinpoints which nesting depth a draw-call spike lives
             // at (e.g. a still-unbatched fixed pool queued at that layer).
             if (queue.Count > 0)
                 RenderMarker.Debug("UI render layer ", $"{layerIndex} ({queue.Count} renderables)",
                     MarkerType.Hidden);
             layerIndex++;
-            
+
             if (queue.Count == 0) continue;
             var count = 0;
-            
+
             foreach (var renderable in queue)
             {
                 // Pooled elements are "hidden" by zeroing scale rather than dequeuing (see
-                // Panel-pool patterns like TrackEditorView's NoteBlockPool) — cull those and
+                // Panel-pool patterns like TrackEditorView's NoteBlockPool) - cull those and
                 // anything fully clipped away before it costs a bind/upload/draw.
                 if (renderable is Renderable { Scale: var scale } && (scale.X <= 0 || scale.Y <= 0))
                     continue;

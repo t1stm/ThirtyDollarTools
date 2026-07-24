@@ -50,11 +50,11 @@ for (var i = 0; i < events.Length; i++)
             minutes += events[i].Value / speed;
             break;
         default:
-        {
-            if (!name.StartsWith('!') && (i + 1 >= events.Length || events[i + 1].SoundEvent != "!combine"))
-                minutes += 1 / speed;
-            break;
-        }
+            {
+                if (!name.StartsWith('!') && (i + 1 >= events.Length || events[i + 1].SoundEvent != "!combine"))
+                    minutes += 1 / speed;
+                break;
+            }
     }
 }
 

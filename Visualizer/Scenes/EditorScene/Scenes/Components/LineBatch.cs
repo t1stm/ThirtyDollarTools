@@ -16,10 +16,10 @@ namespace EditorScene.Scenes.Components;
 /// <summary>
 ///     A fixed-size pool of flat-colored rects (grid/bar lines, markers) drawn as one
 ///     instanced draw call instead of one <see cref="Shared.Renderer.Planes.ColoredPlane" />
-///     (and one uniform-buffer upload) per rect — cheaper on the GPU/driver and, at a locked
+///     (and one uniform-buffer upload) per rect - cheaper on the GPU/driver and, at a locked
 ///     frame rate, on power draw. Reuses the visualizer's flat-color instanced quad plumbing
 ///     (<see cref="RenderStack{TDataType}" /> + <see cref="BackgroundBlip" />, Model+Color only).
-///     Set <see cref="Count" /> once for the pool's lifetime — it fixes the GPU buffer's
+///     Set <see cref="Count" /> once for the pool's lifetime - it fixes the GPU buffer's
 ///     capacity, so growing it later would write past the allocated buffer.
 /// </summary>
 [PreloadGraphicsContext]

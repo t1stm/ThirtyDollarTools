@@ -144,7 +144,7 @@ public class ScrollViewTests
     [Fact]
     public void TextInput_ClipsItsContentToItsBox()
     {
-        // The self-clip lands on all content children — observable via a spinner button.
+        // The self-clip lands on all content children - observable via a spinner button.
         var ctx = new TestUIContext();
         var root = new Panel(ctx) { Width = 800, Height = 600 };
         var input = new NumericInput(ctx) { X = 10, Y = 10, Width = 200 };

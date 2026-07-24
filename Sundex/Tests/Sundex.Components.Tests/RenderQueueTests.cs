@@ -57,7 +57,7 @@ public class RenderQueueTests
     public void SiblingPanels_RenderInDrawOrder_LaterOnTop()
     {
         // Siblings share a depth layer; within it, render order must follow draw
-        // (child) order so the later sibling stacks above the earlier one — the same
+        // (child) order so the later sibling stacks above the earlier one - the same
         // priority hit-testing uses. Regression: Panel.DrawSelf used to insert its
         // background at the layer front, so the FIRST child painted on top of
         // everything drawn after it (the note editor's zero-row band hid the notes).

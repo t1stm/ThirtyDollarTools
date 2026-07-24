@@ -14,7 +14,7 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class TransportSection : FlexPanel
 {
-    // Subtle-filled look for code-built buttons — code-built children never receive
+    // Subtle-filled look for code-built buttons - code-built children never receive
     // the stylesheet (ApplyStyleSheet runs on the XML tree only), so the fill/hover
     // is set inline here rather than via the .ss class.
     private static readonly Vector4 MenuFillColor = EditorPalette.Divider;
@@ -91,7 +91,7 @@ public sealed class TransportSection : FlexPanel
         return $"{ms / 60000}:{ms / 1000 % 60:00}";
     }
 
-    /// <summary>Subtle-filled button matching the menu bar/"+ Add track" look — code-built
+    /// <summary>Subtle-filled button matching the menu bar/"+ Add track" look - code-built
     /// children get no stylesheet, so the fill/hover swap is wired here instead of via the
     /// .ss <c>menu-button</c> class.</summary>
     private static Button TransportButton(UIContext context, string label, Action onClick)

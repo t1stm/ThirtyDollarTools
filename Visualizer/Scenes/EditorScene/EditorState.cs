@@ -4,7 +4,7 @@ using ThirtyDollarParser;
 namespace EditorScene;
 
 /// <summary>The active editing tool, shared by both editors. Two tools with three
-/// branch points each do not justify an IEditorTool strategy interface — the views'
+/// branch points each do not justify an IEditorTool strategy interface - the views'
 /// input handlers branch on <see cref="EditorState.ActiveTool" /> directly.</summary>
 // ponytail: tool dispatch is an enum branch in the two views; extract an IEditorTool
 // (per-tool press/drag/release/key handlers) when a third tool with nontrivial
@@ -17,7 +17,7 @@ public enum EditorTool
 
 /// <summary>
 ///     Every editor mutation routes through this class, so the GUI stays a dumb view.
-///     Plain state, no GL — unit-tested headless in EditorScene.Tests.
+///     Plain state, no GL - unit-tested headless in EditorScene.Tests.
 /// </summary>
 public class EditorState
 {
@@ -108,7 +108,7 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Raises <see cref="OnInstrumentsChanged" /> for callers outside this class — a
+    ///     Raises <see cref="OnInstrumentsChanged" /> for callers outside this class - a
     ///     plain <see cref="ActiveInstrument" /> set fires no event of its own, but the
     ///     active-instrument button still needs to refresh (see
     ///     <see cref="Scenes.Components.InstrumentWorkflow" />'s pick flow).
@@ -179,7 +179,7 @@ public class EditorState
 
     /// <summary>Imports a TDW sequence as one new track (+ its instruments + one
     /// placement), as a single undo step. Throws whatever <see cref="SequenceImporter" />
-    /// throws on malformed/empty/runaway input — the caller is expected to alert and
+    /// throws on malformed/empty/runaway input - the caller is expected to alert and
     /// leave the project untouched, which holds for free here since nothing is added
     /// until the importer has already fully succeeded.</summary>
     public ImportResult ImportSequenceAsTrack(Sequence sequence, string name, IReadOnlySet<string>? knownSounds)
@@ -405,7 +405,7 @@ public class EditorState
         }
     }
 
-    /// <summary>Copies the selection, then deletes it — one undo entry (the delete's).</summary>
+    /// <summary>Copies the selection, then deletes it - one undo entry (the delete's).</summary>
     public void CutSelection()
     {
         CopySelection();
@@ -414,7 +414,7 @@ public class EditorState
 
     /// <summary>
     ///     Deletes the whole selection (whichever list is populated) as one composite
-    ///     undo entry — mirrors <see cref="DeleteInstrumentEverywhere" />'s snapshot-then-
+    ///     undo entry - mirrors <see cref="DeleteInstrumentEverywhere" />'s snapshot-then-
     ///     remove-then-push pattern.
     /// </summary>
     public void DeleteSelection()
@@ -613,7 +613,7 @@ public class EditorState
 
     /// <summary>
     ///     Moves every given note to its target (segment, step, value) together, as one
-    ///     shared drag gesture — dragging any note that's part of a (possibly multi-note)
+    ///     shared drag gesture - dragging any note that's part of a (possibly multi-note)
     ///     selection moves the whole group. Every drag frame calls this again with the
     ///     group's latest targets; <see cref="BeginGesture" /> + <see cref="UndoHistory.PushOrMergeMove" />
     ///     collapse the whole sequence into ONE undo entry, keyed on the first note in the
@@ -649,7 +649,7 @@ public class EditorState
     }
 
     /// <summary>Places every note at its target (segment, step, value), removing it from
-    /// whichever segment currently holds it first — robust regardless of which frame's
+    /// whichever segment currently holds it first - robust regardless of which frame's
     /// closure (undo/redo) runs, since it never assumes the note's current location.</summary>
     private static void Apply(ProjectTrack track, IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
     {
@@ -825,7 +825,7 @@ public class EditorState
     }
 
     /// <summary>Imports a TDW sequence as a whole new project, replacing the open one.
-    /// Not undoable (Replace clears undo history) — the caller confirms the discard
+    /// Not undoable (Replace clears undo history) - the caller confirms the discard
     /// first. Unlike a load, the result exists only in memory: stays dirty (so the
     /// unsaved-changes guard still fires on exit) and keeps <see cref="ProjectPath" />
     /// null (so Save asks for a location).</summary>

@@ -22,9 +22,9 @@ public class SequenceStyle
 
     /// <summary>
     ///     Whole-step gaps at or above this many steps render as "!stop@n"; shorter
-    ///     ones as repeated "_pause" (one step each — "_pause" == "!stop@1").
+    ///     ones as repeated "_pause" (one step each - "_pause" == "!stop@1").
     ///     Null = never use "!stop": every whole gap becomes "_pause"s.
-    ///     Fractional gaps always render as "!stop" — exact timing needs them.
+    ///     Fractional gaps always render as "!stop" - exact timing needs them.
     ///     The default of 8 means "!stop" after 8 beats of silence.
     /// </summary>
     public int? MigrateToStop { get; set; } = 8;

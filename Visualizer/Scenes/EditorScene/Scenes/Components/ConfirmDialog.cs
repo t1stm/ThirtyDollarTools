@@ -9,7 +9,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     A generic yes/no confirmation form (ModalLayer content) for destructive actions.
-///     Pure view — the owner decides what "confirm" does and closes the modal itself.
+///     Pure view - the owner decides what "confirm" does and closes the modal itself.
 /// </summary>
 public sealed class ConfirmDialog : FlexPanel
 {

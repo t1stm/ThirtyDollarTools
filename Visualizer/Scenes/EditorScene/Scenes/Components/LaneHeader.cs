@@ -8,7 +8,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     The M/S gutter to the left of the arrangement: one mute and one solo toggle per
-///     lane (channel semantics, FL-style — muting a lane silences whatever clips sit on
+///     lane (channel semantics, FL-style - muting a lane silences whatever clips sit on
 ///     it). Lives outside <see cref="ArrangementView" /> so clips can never cover or
 ///     out-hit the buttons.
 /// </summary>
@@ -24,7 +24,7 @@ public sealed class LaneHeader : Panel
     private readonly List<(Button Mute, Button Solo)> _rows = [];
     private readonly EditorState _state;
 
-    // Test seam (internal — see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
+    // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
     internal IReadOnlyList<(Button Mute, Button Solo)> Rows => _rows;
 
     public LaneHeader(UIContext context, EditorState state, ArrangementView arrangement) : base(context)

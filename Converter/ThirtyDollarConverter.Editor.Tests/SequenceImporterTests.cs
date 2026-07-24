@@ -14,7 +14,7 @@ public class SequenceImporterTests
         track.Timing.BPM = 120;
         track.Segments[0].StepsPerBeat = 1;
         track.Segments[0].Notes.Add(new Note
-            { Step = 0, Instrument = Instrument.Single("kick"), Volume = 80, Pan = -20, Offset = 0.1 });
+        { Step = 0, Instrument = Instrument.Single("kick"), Volume = 80, Pan = -20, Offset = 0.1 });
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("hat") }); // combines
         track.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("snare"), Value = 3 });
 

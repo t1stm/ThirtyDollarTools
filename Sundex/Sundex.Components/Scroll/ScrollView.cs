@@ -10,7 +10,7 @@ namespace Sundex.Components.Scroll;
 ///     <see cref="ScrollY" />, clips them to its bounds (scissor via <see cref="UIElement.ApplyClip" />),
 ///     handles wheel input, and hosts a draggable <see cref="ScrollBar" /> at its right edge.
 ///     The bar overlays the content's right edge and stays visible when content fits
-///     (full-height thumb) — hiding queued renderables isn't supported by the framework yet.
+///     (full-height thumb) - hiding queued renderables isn't supported by the framework yet.
 /// </summary>
 public class ScrollView : Panel
 {
@@ -69,7 +69,7 @@ public class ScrollView : Panel
         var innerHeight = Math.Max(0, Computed.Height - 2 * Padding);
 
         // Measure once, then stack with the scroll offset applied.
-        // Reused across layout passes — this runs every scroll frame.
+        // Reused across layout passes - this runs every scroll frame.
         if (_heightsCache.Length < Children.Count)
             _heightsCache = new float[Children.Count];
         var heights = _heightsCache;

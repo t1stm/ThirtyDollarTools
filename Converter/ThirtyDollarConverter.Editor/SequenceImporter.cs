@@ -33,19 +33,19 @@ public sealed record ImportResult(ProjectTrack? Track, IReadOnlyList<Instrument>
     TrackPlacement? Placement, ImportWarnings Warnings);
 
 /// <summary>
-///     Converts a parsed TDW <see cref="Sequence" /> into the editor's project model —
+///     Converts a parsed TDW <see cref="Sequence" /> into the editor's project model -
 ///     the inverse of <see cref="SequenceBuilder" />. Lives beside it so the two directions
 ///     of the mapping share one assembly and one test suite.
 ///     The conversion never mutates the input <see cref="Sequence" /> or (until it has fully
 ///     succeeded) the target project: the event walk and the region/segment math below are
 ///     pure, and only once they've completed does either public method touch a
-///     <see cref="ThirtyDollarProject" /> — a walk that throws (malformed input, a runaway
+///     <see cref="ThirtyDollarProject" /> - a walk that throws (malformed input, a runaway
 ///     loop/jump) can therefore never leave a half-imported track behind.
 /// </summary>
 public static class SequenceImporter
 {
     /// <summary>Hard ceiling on walked events, guarding against a hostile or malformed
-    /// loop/jump combination unrolling forever — a dropped file is a trust boundary.</summary>
+    /// loop/jump combination unrolling forever - a dropped file is a trust boundary.</summary>
     private const int MaxWalkedEvents = 1_000_000;
 
     private static readonly string[] JumpUntriggers = ["!loop", "!loopmany", "!jump", "!target"];
@@ -129,7 +129,7 @@ public static class SequenceImporter
         var names = existingNames.ToHashSet();
         if (!names.Contains(name)) return name;
 
-        for (var n = 2;; n++)
+        for (var n = 2; ; n++)
         {
             var candidate = $"{name} ({n})";
             if (!names.Contains(candidate)) return candidate;
@@ -204,63 +204,63 @@ public static class SequenceImporter
             switch (ev.SoundEvent)
             {
                 case "!speed":
-                {
-                    var newSpeed = Scale(speed, ev);
-                    if (!SequenceBuilder.SameSpeed(speed, newSpeed))
                     {
-                        if (position > 1e-9) regions.Add((speed, position));
-                        speed = newSpeed;
-                        position = 0;
-                        regionIndex = regions.Count;
-                    }
+                        var newSpeed = Scale(speed, ev);
+                        if (!SequenceBuilder.SameSpeed(speed, newSpeed))
+                        {
+                            if (position > 1e-9) regions.Add((speed, position));
+                            speed = newSpeed;
+                            position = 0;
+                            regionIndex = regions.Count;
+                        }
 
-                    break;
-                }
+                        break;
+                    }
                 case "!volume":
-                {
-                    globalVolume = Math.Max(0, Scale(globalVolume, ev));
-                    break;
-                }
+                    {
+                        globalVolume = Math.Max(0, Scale(globalVolume, ev));
+                        break;
+                    }
                 case "!transpose":
-                {
-                    transpose = Scale(transpose, ev);
-                    break;
-                }
+                    {
+                        transpose = Scale(transpose, ev);
+                        break;
+                    }
                 case "!stop":
                     position += ev.Value;
                     break;
                 case "!cut" when ev is IndividualCutEvent:
                 case "#icut":
-                {
-                    var individualCut = (IndividualCutEvent)ev;
-                    foreach (var sound in individualCut.CutSounds)
                     {
-                        if (knownSounds is not null && !knownSounds.Contains(sound))
+                        var individualCut = (IndividualCutEvent)ev;
+                        foreach (var sound in individualCut.CutSounds)
                         {
-                            unknownSounds.Add(sound);
-                            continue;
+                            if (knownSounds is not null && !knownSounds.Contains(sound))
+                            {
+                                unknownSounds.Add(sound);
+                                continue;
+                            }
+
+                            // Idempotent: repeating the same sound's cut at the same position
+                            // (nothing else advancing position between them) collapses to one.
+                            if (!seenCuts.Add((regionIndex, position, sound))) continue;
+
+                            if (seenSounds.Add(sound)) soundOrder.Add(sound);
+                            notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
                         }
 
-                        // Idempotent: repeating the same sound's cut at the same position
-                        // (nothing else advancing position between them) collapses to one.
-                        if (!seenCuts.Add((regionIndex, position, sound))) continue;
-
-                        if (seenSounds.Add(sound)) soundOrder.Add(sound);
-                        notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
+                        break;
                     }
-
-                    break;
-                }
                 case "!cut": // bare global cut - only sounds already introduced could be playing
-                {
-                    foreach (var sound in soundOrder)
                     {
-                        if (!seenCuts.Add((regionIndex, position, sound))) continue;
-                        notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
-                    }
+                        foreach (var sound in soundOrder)
+                        {
+                            if (!seenCuts.Add((regionIndex, position, sound))) continue;
+                            notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
+                        }
 
-                    break;
-                }
+                        break;
+                    }
                 case "!looptarget":
                     loopTarget = index;
                     break;
@@ -365,7 +365,7 @@ public static class SequenceImporter
             // an odd denominator) shouldn't force every OTHER already-whole note onto an
             // unnecessarily fine subdivision. A finer grid doesn't just fail to help those
             // outliers (64 is no likelier a multiple of their true denominator than 1 is)
-            // — it also makes real playback's own per-step integer sample truncation lose
+            // - it also makes real playback's own per-step integer sample truncation lose
             // more total precision across the whole region, compounding into audible drift
             // for every note, not just the outliers. A region-length mismatch is weighted
             // far above any single note's, since it drifts every later region too.
@@ -486,7 +486,7 @@ public static class SequenceImporter
     }
 
     // ponytail: pad weight chosen by feel, sized to match the other penalties (0-3ish) so
-    // padding only wins when the unpadded shape is genuinely bad — tune against the
+    // padding only wins when the unpadded shape is genuinely bad - tune against the
     // ~/tdw corpus if padding looks too eager/timid.
     private const double PadStepPenalty = 1.0;
 
@@ -515,7 +515,11 @@ public static class SequenceImporter
         {
             var segment = new TrackSegment
             {
-                Numerator = plan.Numerator, Denominator = 4, StepsPerBeat = plan.Spb, Bars = plan.Bars, BPM = plan.BPM
+                Numerator = plan.Numerator,
+                Denominator = 4,
+                StepsPerBeat = plan.Spb,
+                Bars = plan.Bars,
+                BPM = plan.BPM
             };
             foreach (var (step, note) in plan.Notes)
                 segment.Notes.Add(new Note

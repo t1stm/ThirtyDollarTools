@@ -12,6 +12,6 @@ public class ShaderInfo : ILoaderInfo
     public static ShaderInfo CreateFromUnknownStorage(ShaderType type, string location)
     {
         return new ShaderInfo
-            { Type = type, AssetInfo = new AssetInfo { Location = location, Storage = StorageLocation.Unknown } };
+        { Type = type, AssetInfo = new AssetInfo { Location = location, Storage = StorageLocation.Unknown } };
     }
 }

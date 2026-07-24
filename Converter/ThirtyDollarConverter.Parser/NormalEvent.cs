@@ -22,28 +22,28 @@ public class NormalEvent : BaseEvent
         switch (SoundEvent)
         {
             case "!bg":
-            {
-                var parsed_value = (long)Value;
+                {
+                    var parsed_value = (long)Value;
 
-                var r = (byte)parsed_value;
-                var g = (byte)(parsed_value >> 8);
-                var b = (byte)(parsed_value >> 16);
-                var a = (byte)(parsed_value >> 24);
+                    var r = (byte)parsed_value;
+                    var g = (byte)(parsed_value >> 8);
+                    var b = (byte)(parsed_value >> 16);
+                    var a = (byte)(parsed_value >> 24);
 
-                var hex_string = $"{r:X2}{g:X2}{b:X2}{a:X2}";
+                    var hex_string = $"{r:X2}{g:X2}{b:X2}{a:X2}";
 
-                var seconds = (parsed_value >> 32) / 1000f;
-                return $"!bg@#{hex_string},{seconds}";
-            }
+                    var seconds = (parsed_value >> 32) / 1000f;
+                    return $"!bg@#{hex_string},{seconds}";
+                }
             case "!pulse":
-            {
-                var parsed_value = (long)Value;
-                var repeats = (byte)parsed_value;
-                float frequency = (short)(parsed_value >> 8);
+                {
+                    var parsed_value = (long)Value;
+                    var repeats = (byte)parsed_value;
+                    float frequency = (short)(parsed_value >> 8);
 
-                var computed_frequency = frequency * 1000f / 5f;
-                return $"!pulse@{repeats},{computed_frequency}";
-            }
+                    var computed_frequency = frequency * 1000f / 5f;
+                    return $"!pulse@{repeats},{computed_frequency}";
+                }
             case "!divider":
                 return "!divider\n";
             default:

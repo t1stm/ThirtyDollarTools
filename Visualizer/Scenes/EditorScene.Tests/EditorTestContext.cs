@@ -30,7 +30,7 @@ public class EditorTestContext : UIContext
     }
 
     /// <summary>The render layer a renderable is actually queued at, or -1 if it isn't queued
-    /// anywhere — for asserting a hidden-then-shown element re-queued at its correct depth
+    /// anywhere - for asserting a hidden-then-shown element re-queued at its correct depth
     /// instead of staying stuck at its stale construction-time layer.</summary>
     public int LayerOf(IRenderable renderable)
     {

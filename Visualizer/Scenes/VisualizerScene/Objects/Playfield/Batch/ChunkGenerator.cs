@@ -34,7 +34,7 @@ public class ChunkGenerator(PlayfieldSettings settings)
                 chunksList[chunkIndex] = chunk;
             });
 
-        return [..chunksList];
+        return [.. chunksList];
     }
 
     public void PositionSounds(ReadOnlySpan<PlayfieldChunk> chunks)

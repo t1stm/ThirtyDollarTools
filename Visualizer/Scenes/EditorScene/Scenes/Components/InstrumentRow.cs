@@ -10,7 +10,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     One instrument-list row: clicking it picks the instrument; a separate "edit"
-///     button opens the name/sounds form instead. Pure view — <see cref="InstrumentSelector" />
+///     button opens the name/sounds form instead. Pure view - <see cref="InstrumentSelector" />
 ///     owns both callbacks.
 /// </summary>
 public sealed class InstrumentRow : FlexPanel
@@ -51,7 +51,7 @@ public sealed class InstrumentRow : FlexPanel
         };
 
         // Percent-width spacer soaks up the free space so Edit/Delete land flush against
-        // the row's right edge — this framework has no space-between align.
+        // the row's right edge - this framework has no space-between align.
         var spacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
 
         Children =

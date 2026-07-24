@@ -259,7 +259,7 @@ public class InspectorPanelTests
         ((Button)inspector.Field("Track Automation.+ Add automation")!).OnClick!.Invoke(null!);
         var automation = Assert.Single(track.TrackAutomations);
 
-        // Defaults to "all sounds" — no sound-count button yet.
+        // Defaults to "all sounds" - no sound-count button yet.
         Assert.True(((Checkbox)inspector.Field("Track Automation 1.All sounds")!).Checked);
         Assert.Null(inspector.Field("Track Automation 1.Sounds"));
 
@@ -606,21 +606,21 @@ public class InspectorPanelTests
         Assert.Equal("Rendering audio… (6 - 67)", inspector.StatusLabelElement.Value.ToString());
 
         // The placement/mixing stages and a fully-cached incremental render report nothing
-        // (total stays 0) — the label shows bare, with no stale counts from the last report.
+        // (total stays 0) - the label shows bare, with no stale counts from the last report.
         // Trim: shrinking a Label's text pads TextSlice's backing buffer with '\0' sentinels
         // (cleared glyph cells, see TextSlice.UpdateCharacters) that Value's getter still
-        // includes — the rendered text is correct, only the raw string needs trimming here.
+        // includes - the rendered text is correct, only the raw string needs trimming here.
         inspector.SetStatus("Rendering audio…", 0f);
         Assert.Equal("Rendering audio…", inspector.StatusLabelElement.Value.ToString().TrimEnd('\0'));
     }
 
     // Regression for a real bug: the progress bar's planes are queued for rendering the
     // instant Background is set on their backing Panels (see Panel's Background setter),
-    // regardless of Visible — at whatever Index the bar has at that construction moment.
+    // regardless of Visible - at whatever Index the bar has at that construction moment.
     // Being built hidden and later shown via SetStatus must not leave them stuck rendering
     // at that stale, wrong depth (see Sundex.Components.Tests.ProgressBarVisibilityToggleTests
     // for the underlying mechanics); this asserts the fix at the level the bug was reported at
-    // — the bar being invisible in the actual editor despite SetStatus marking it Visible.
+    // - the bar being invisible in the actual editor despite SetStatus marking it Visible.
     [Fact]
     public void SetStatus_Shown_QueuesTheBarPlanesAtTheirCurrentCorrectLayer()
     {

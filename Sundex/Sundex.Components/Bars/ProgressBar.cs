@@ -195,41 +195,41 @@ public class ProgressBar : UIElement
         switch (styleValue)
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Panel):
-            {
-                newPanel = new Panel(Context)
                 {
-                    Background = gv.GenerateGradientPlane(),
-                    BorderRadius = BorderRadius,
-                    Width = new LiteralOrComputable(100, true),
-                    Height = new LiteralOrComputable(100, true),
-                    Parent = this
-                };
+                    newPanel = new Panel(Context)
+                    {
+                        Background = gv.GenerateGradientPlane(),
+                        BorderRadius = BorderRadius,
+                        Width = new LiteralOrComputable(100, true),
+                        Height = new LiteralOrComputable(100, true),
+                        Parent = this
+                    };
 
-                break;
-            }
+                    break;
+                }
 
             case ColorValue cv when propertyInfo.PropertyType == typeof(Panel):
-            {
-                newPanel = new Panel(Context)
                 {
-                    Background = new ColoredPlane
+                    newPanel = new Panel(Context)
                     {
-                        Color = cv.Vector
-                    },
-                    BorderRadius = BorderRadius,
-                    Width = new LiteralOrComputable(100, true),
-                    Height = new LiteralOrComputable(100, true),
-                    Parent = this
-                };
+                        Background = new ColoredPlane
+                        {
+                            Color = cv.Vector
+                        },
+                        BorderRadius = BorderRadius,
+                        Width = new LiteralOrComputable(100, true),
+                        Height = new LiteralOrComputable(100, true),
+                        Parent = this
+                    };
 
-                break;
-            }
+                    break;
+                }
 
             default:
-            {
-                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
-                return;
-            }
+                {
+                    base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
+                    return;
+                }
         }
 
         HandleRenderableSwap(oldValue?.Background, newPanel.Background, propertyInfo.Name);

@@ -27,7 +27,7 @@ public class ThirtyDollarProject
     public IReadOnlyList<Instrument> Instruments => _instruments;
 
     /// <summary>
-    ///     The arrangement: clips of patterns on channels. Only placed patterns sound —
+    ///     The arrangement: clips of patterns on channels. Only placed patterns sound -
     ///     a track without placements is silent, FL-style.
     /// </summary>
     public IReadOnlyList<TrackPlacement> Placements => _placements;
@@ -162,7 +162,7 @@ public class ThirtyDollarProject
     }
 
     /// <summary>
-    ///     The merged sequence restricted to placements on audible channels — editor
+    ///     The merged sequence restricted to placements on audible channels - editor
     ///     playback's render unit. A muted channel's cuts still apply, via the same
     ///     cross-channel injection <see cref="BuildSequence" /> uses for
     ///     <see cref="ChannelSequence" />.
@@ -173,7 +173,7 @@ public class ThirtyDollarProject
     }
 
     /// <summary>
-    ///     The sequence of a single arrangement channel — the unit of editor playback,
+    ///     The sequence of a single arrangement channel - the unit of editor playback,
     ///     where every lane renders separately and the enabled lanes are mixed. Anchored
     ///     on the same timeline origin as <see cref="ToSequence" /> so the per-channel
     ///     renders stay sample-aligned with each other and with the merged export.

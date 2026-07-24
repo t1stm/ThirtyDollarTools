@@ -1267,7 +1267,7 @@ public class EditorStateTests
         state.RemoveTrack(doomed); // cascades p1 away; clipboard entry for `doomed` must drop too
         state.Paste();
 
-        // Only kept's surviving clipboard entry pastes back — one new clone, not two.
+        // Only kept's surviving clipboard entry pastes back - one new clone, not two.
         Assert.Equal([p2, state.SelectedPlacement!], state.Project.Placements);
         Assert.Equal(kept, state.SelectedPlacement!.Track);
     }

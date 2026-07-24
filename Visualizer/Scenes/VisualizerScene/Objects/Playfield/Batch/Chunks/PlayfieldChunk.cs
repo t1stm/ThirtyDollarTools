@@ -63,11 +63,11 @@ public class PlayfieldChunk : IDisposable
             switch (baseEvent)
             {
                 case IndividualCutEvent ice:
-                {
-                    iceFactory ??= new RenderableFactory(store);
-                    renderable.Value = new IndividualCutValue(ice, iceFactory);
-                    continue;
-                }
+                    {
+                        iceFactory ??= new RenderableFactory(store);
+                        renderable.Value = new IndividualCutValue(ice, iceFactory);
+                        continue;
+                    }
 
                 case NormalEvent { SoundEvent: "!bg" }:
                     renderable.Value = new BackgroundEventValue(baseEvent.Value, factory, chunk._textBuffer,

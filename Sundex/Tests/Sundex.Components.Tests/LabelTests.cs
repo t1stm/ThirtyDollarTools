@@ -40,7 +40,7 @@ public class LabelTests
         // replacement, whose constructor renders once at the default (0,0,0) position
         // before this label's actual on-screen position is ever applied to it. Without
         // carrying the position over and re-rendering, the text is written to the GPU
-        // buffer at the wrong spot — effectively invisible where the label actually sits.
+        // buffer at the wrong spot - effectively invisible where the label actually sits.
         var context = new TestUIContext();
         var root = new Panel(context) { Width = 800, Height = 600 };
         var label = new Label(context, "Hi") { X = 50, Y = 30 };
@@ -61,8 +61,8 @@ public class LabelTests
         // Regression: FontSizePx used to default to LiteralOrComputable's zero value, and
         // SetTextContents unconditionally resolves it into TextSlice.FontSize on every
         // call. A label that never explicitly sets FontSizePx (e.g. EditorInterface's
-        // instrument button) rendered fine at construction — that first render uses
-        // TextSlice's own hardcoded default of 16 — then went invisible (FontSize=0) the
+        // instrument button) rendered fine at construction - that first render uses
+        // TextSlice's own hardcoded default of 16 - then went invisible (FontSize=0) the
         // moment its text was ever updated, even though its Computed bounds (and thus
         // clicks) stayed correct.
         var context = new TestUIContext();

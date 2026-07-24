@@ -10,7 +10,7 @@ namespace EditorScene.Scenes.Components;
 /// <summary>
 ///     The import options form (ModalLayer content) shown after dropping a TDW sequence
 ///     file onto the editor: single track, whole project, or cancel. Mirrors
-///     <see cref="ExportDialog" />'s shape — pure form, the owner decides what each
+///     <see cref="ExportDialog" />'s shape - pure form, the owner decides what each
 ///     button does and closes the modal itself.
 /// </summary>
 public sealed class ImportDialog : FlexPanel
@@ -27,11 +27,11 @@ public sealed class ImportDialog : FlexPanel
         Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         SingleTrackButton = new Button(context, "Import as Single Track")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         ProjectButton = new Button(context, "Import as Project")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         CancelButton = new Button(context, "Cancel")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
 
         Children =
         [

@@ -236,7 +236,7 @@ public class TextInputTests
         Assert.False(input.HasSelection); // single click just places the caret
 
         ctx.UpdatePointer(root, x, 20, true, true, false, Vector2.Zero);
-        // The button stays down for a few frames — the drag updates delivered to the
+        // The button stays down for a few frames - the drag updates delivered to the
         // captured element must not collapse the word selection back to the pointer.
         ctx.UpdatePointer(root, x, 20, true, false, false, Vector2.Zero);
         ctx.UpdatePointer(root, x + 1, 20, true, false, false, Vector2.Zero);

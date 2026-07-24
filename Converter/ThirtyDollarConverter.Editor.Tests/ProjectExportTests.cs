@@ -293,8 +293,13 @@ public class ProjectExportTests
         var track = project.NewTrack();
         track.Segments[0].Notes.Add(new Note
         {
-            Step = 0, Instrument = Instrument.Single("kick"), IsCut = true,
-            Value = 61, Volume = 50, Pan = 30, Offset = 0.5
+            Step = 0,
+            Instrument = Instrument.Single("kick"),
+            IsCut = true,
+            Value = 61,
+            Volume = 50,
+            Pan = 30,
+            Offset = 0.5
         });
         project.Place(track, 0, 0);
 

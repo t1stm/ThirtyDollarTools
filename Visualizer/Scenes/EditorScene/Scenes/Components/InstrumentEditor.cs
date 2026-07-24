@@ -15,12 +15,12 @@ namespace EditorScene.Scenes.Components;
 ///     Create-or-edit form for one instrument: a name field and a multi-select sound picker
 ///     (the same picker construction as the track-automation sound filter), with per-sound
 ///     value/volume/pan adjustment turned on (see <see cref="SoundPicker.ShowAdjustments" />).
-///     Pure form — the owner loads/commits the name, <see cref="SoundPicker.Selected" /> and
+///     Pure form - the owner loads/commits the name, <see cref="SoundPicker.Selected" /> and
 ///     <see cref="SoundPicker.Adjustments" />, and shows/hides the modal.
 /// </summary>
 public sealed class InstrumentEditor : FlexPanel
 {
-    // The accent blue used for selection/clips elsewhere in EditorScene (#4c6bcc) —
+    // The accent blue used for selection/clips elsewhere in EditorScene (#4c6bcc) -
     // reused here so code-built buttons (which get no stylesheet) still read as buttons.
     private static readonly Vector4 ButtonColor = new(0.30f, 0.42f, 0.80f, 1f);
 
@@ -34,7 +34,8 @@ public sealed class InstrumentEditor : FlexPanel
 
         PreviewButton = new Button(context, "Preview", new ColoredPlane { Color = ButtonColor })
         {
-            FontSizePx = 14, BorderRadius = 8
+            FontSizePx = 14,
+            BorderRadius = 8
         };
 
         NameInput = new TextInput(context, "")
@@ -45,7 +46,7 @@ public sealed class InstrumentEditor : FlexPanel
             Background = new ColoredPlane { Color = EditorPalette.InputBackground }
         };
         // Percent-width spacer soaks up the free space so Preview lands flush against
-        // the right edge — this framework has no space-between align.
+        // the right edge - this framework has no space-between align.
         var nameRowSpacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
         var nameRow = new FlexPanel(context)
         {
@@ -57,14 +58,17 @@ public sealed class InstrumentEditor : FlexPanel
 
         SoundsPicker = new SoundPicker(context, store)
         {
-            Width = LiteralOrComputable.Percent(100), MultiSelect = true, ShowAdjustments = true
+            Width = LiteralOrComputable.Percent(100),
+            MultiSelect = true,
+            ShowAdjustments = true
         };
         var soundsList = new ScrollView(context) { Width = LiteralOrComputable.Percent(100), Height = 380 };
         soundsList.AddChild(SoundsPicker);
 
         DoneButton = new Button(context, "Done", new ColoredPlane { Color = ButtonColor })
         {
-            FontSizePx = 14, BorderRadius = 8
+            FontSizePx = 14,
+            BorderRadius = 8
         };
         var doneRow = new FlexPanel(context)
         {
@@ -83,7 +87,7 @@ public sealed class InstrumentEditor : FlexPanel
     public SoundPicker SoundsPicker { get; }
     public Button DoneButton { get; }
 
-    /// <summary>Fills the sound grid on first use — lazily, same guard as the other pickers.</summary>
+    /// <summary>Fills the sound grid on first use - lazily, same guard as the other pickers.</summary>
     public void EnsureSounds(IEnumerable<string> soundNames)
     {
         if (SoundsPicker.HasSounds) return;

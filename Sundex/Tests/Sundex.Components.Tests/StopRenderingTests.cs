@@ -67,7 +67,7 @@ public class StopRenderingTests
         var dialog = new Panel(context);
         var inner = new Panel(context) { Background = new MockRenderable() };
 
-        // Build the subtree detached, then parent it deeper — the modal-dialog
+        // Build the subtree detached, then parent it deeper - the modal-dialog
         // pattern. The renderable must appear exactly once, at the final depth.
         dialog.AddChild(inner);
         root.AddChild(dialog);
@@ -85,7 +85,7 @@ public class StopRenderingTests
     public void AddChild_OnANeverDrawnPanel_DoesNotDrawTheChild_UntilTheSubtreeIsDrawn()
     {
         // Renderables that queue through DrawSelf (e.g. a Label's text) must not
-        // appear while composing a subtree off-tree — they'd draw at 0,0 over
+        // appear while composing a subtree off-tree - they'd draw at 0,0 over
         // whatever scene is live. (Background renderables queue through their
         // property setter instead; that separate path is unchanged.)
         var context = new TestUIContext();

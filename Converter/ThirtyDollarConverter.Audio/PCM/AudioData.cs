@@ -64,9 +64,9 @@ public class AudioData<T> : IDisposable
             var maxSampleVolume = Samples[0][0];
 
             foreach (var channel in Samples)
-            foreach (var sample in channel)
-                if (maxSampleVolume < sample)
-                    maxSampleVolume = sample;
+                foreach (var sample in channel)
+                    if (maxSampleVolume < sample)
+                        maxSampleVolume = sample;
 
             foreach (var channel in Samples)
                 for (var index = 0; index < channel.Length; index++)

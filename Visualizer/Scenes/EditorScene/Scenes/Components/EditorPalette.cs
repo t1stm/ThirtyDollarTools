@@ -5,8 +5,8 @@ namespace EditorScene.Scenes.Components;
 /// <summary>
 ///     Shared Tokyo-Night-derived colors for the editor's code-built UI (code-built
 ///     children never receive the stylesheet, so these are set inline rather than via
-///     .ss classes). Consolidates values that were re-declared — and kept in sync only
-///     by comment — across many files. Not a full design system: shades unique to one
+///     .ss classes). Consolidates values that were re-declared - and kept in sync only
+///     by comment - across many files. Not a full design system: shades unique to one
 ///     view (grid lines, row highlights that nothing else reuses) stay local to it.
 /// </summary>
 internal static class EditorPalette

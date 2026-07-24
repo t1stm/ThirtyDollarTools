@@ -20,7 +20,7 @@ public class SequenceTextTests
     public void BuiltSequence_RoundTripsThroughFromString_WithFullPrecision()
     {
         // 120 + 121 BPM share no grid within the multiplier bound, so the export
-        // carries exact fractional stops — the values Stringify's 2-decimal
+        // carries exact fractional stops - the values Stringify's 2-decimal
         // rounding would corrupt.
         var project = new ThirtyDollarProject();
         var a = project.NewTrack();

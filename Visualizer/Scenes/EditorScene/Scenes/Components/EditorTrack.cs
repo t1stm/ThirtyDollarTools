@@ -9,7 +9,7 @@ using ThirtyDollarConverter.Editor;
 namespace EditorScene.Scenes.Components;
 
 /// <summary>
-///     One track-list row: selection highlight, name and a remove button. Pure view —
+///     One track-list row: selection highlight, name and a remove button. Pure view -
 ///     every mutation routes through <see cref="EditorState" />; EditorInterface
 ///     rebuilds the rows when the project changes. Mute/solo lives on the arrangement
 ///     lanes (<see cref="LaneHeader" />), not on patterns.
@@ -47,7 +47,7 @@ public sealed class EditorTrack : FlexPanel
         };
 
         // Percent-width spacer soaks up the free space so remove lands flush against
-        // the row's right edge — this framework has no space-between align.
+        // the row's right edge - this framework has no space-between align.
         var spacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
 
         Children =
@@ -72,7 +72,7 @@ public sealed class EditorTrack : FlexPanel
 
     /// <summary>
     ///     Right-click opens the context menu (duplicate, for now). Right-press is
-    ///     level-triggered (fires every held frame) — EditorInterface guards against
+    ///     level-triggered (fires every held frame) - EditorInterface guards against
     ///     reopening while one is already up.
     /// </summary>
     public override bool HandleRightPress(float x, float y)

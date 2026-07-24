@@ -4,7 +4,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     Shared scroll/zoom/middle-pan math for <see cref="TrackEditorGeometry" /> (via
-///     composition) and <see cref="ArrangementView" />. Plain state, no GL — unit-testable
+///     composition) and <see cref="ArrangementView" />. Plain state, no GL - unit-testable
 ///     headless, same philosophy as <see cref="TrackEditorGeometry" /> itself.
 ///     <see cref="MaxScrollY" /> is the knob that makes vertical scroll a feature or a
 ///     no-op: the note editor sets it from its viewport every layout, the arrangement
@@ -19,7 +19,7 @@ public sealed class ViewNavigation(float minZoom, float maxZoom)
 
     private Vector2? _panPointer;
 
-    /// <summary>Horizontally, only the left edge is bounded — content can scroll past the
+    /// <summary>Horizontally, only the left edge is bounded - content can scroll past the
     /// viewport on the right (lets playhead-follow keep centering to the very end of
     /// playback). Vertically, bounded to <see cref="MaxScrollY" />, which is 0 for views
     /// with no vertical scroll.</summary>

@@ -18,7 +18,7 @@ namespace EditorScene.Scenes.Components;
 ///     or to 0.2 while <see cref="FineSnap" /> (Shift) is held; existing fractional values
 ///     render at their exact y. A segment strip on top selects segments; the wheel pans.
 ///     Everything renders from fixed pools reassigned in DoLayout, so the Aleph-0 track
-///     sizes (thousands of segments/notes) only ever pay for the visible range — and a
+///     sizes (thousands of segments/notes) only ever pay for the visible range - and a
 ///     drag never loses its captured element to a rebuild. A beat ruler between the strip
 ///     and the grid labels the running beat number at every beat boundary, highlighting
 ///     whichever beat the playhead is currently in.
@@ -35,7 +35,7 @@ public sealed class TrackEditorView : Panel
 
     // ponytail: fixed pools sized for a ~3k px window at minimum zoom (4 px/step) and
     // BMS-dense charts (~10 notes per visible step at default zoom). If a chart still
-    // exhausts the note pool, newly appended notes are the first dropped — the upgrade
+    // exhausts the note pool, newly appended notes are the first dropped - the upgrade
     // path is a reserved block for the selected note, not a bigger pool.
     private const int StepLinePool = 768;
     private const int NoteBlockPool = 2048;
@@ -44,7 +44,7 @@ public sealed class TrackEditorView : Panel
     private const int AutomationMarkPool = 768; // ≤3 marks per generated automation event
 
     // Slot ranges within _lineBatch: the cut row's background first (so every later
-    // slot paints over it — see the pinned cut row's paint-order comment below), then
+    // slot paints over it - see the pinned cut row's paint-order comment below), then
     // row lines, step lines, then boundary lines.
     private const int CutRowBgSlot = 0;
     private const int RowLineSlot = CutRowBgSlot + 1;
@@ -122,7 +122,7 @@ public sealed class TrackEditorView : Panel
 
     // Group note drag: every selected note's starting (global step, value), captured
     // once at press. Each drag frame re-derives the anchor's (pressed note's) delta
-    // from its own start and applies that same delta to every entry — this is what
+    // from its own start and applies that same delta to every entry - this is what
     // makes dragging one note of a multi-selection move the whole group together.
     private readonly record struct GroupDragEntry(Note Note, int StartGlobalStep, double StartValue);
     private List<GroupDragEntry>? _groupDrag;
@@ -138,7 +138,7 @@ public sealed class TrackEditorView : Panel
         Background = new ColoredPlane { Color = BackgroundColor };
 
         // Row/step/boundary lines render as one instanced draw call (see LineBatch)
-        // queued in DrawSelf, below Children in the same depth layer — same spot in
+        // queued in DrawSelf, below Children in the same depth layer - same spot in
         // paint order "grid furniture first" put them in before.
         _lineBatch.Count = LineBatchTotal;
 
@@ -236,7 +236,7 @@ public sealed class TrackEditorView : Panel
     /// <summary>While true (Ctrl held), the wheel zooms horizontally instead of panning.</summary>
     public bool WheelZooms { get; set; }
 
-    /// <summary>Fired when a note is placed or moved, with its instrument and value — the preview seam.</summary>
+    /// <summary>Fired when a note is placed or moved, with its instrument and value - the preview seam.</summary>
     public Action<Instrument, double>? OnPreviewNote { get; set; }
 
     /// <summary>Fired with the clicked arrangement-timeline position (quarter notes) when the beat ruler is clicked.</summary>
@@ -246,7 +246,7 @@ public sealed class TrackEditorView : Panel
     ///     Playback position on the arrangement timeline, in quarter notes at the root BPM
     ///     (same value the arrangement view's playhead uses). The opened track can be
     ///     placed on the arrangement more than once, so this draws one playhead line per
-    ///     placement currently inside its window — none while nothing is playing.
+    ///     placement currently inside its window - none while nothing is playing.
     /// </summary>
     public double PlayheadQuarters
     {
@@ -287,7 +287,7 @@ public sealed class TrackEditorView : Panel
         var visibleStart = scrollX;
         var visibleEnd = scrollX + Math.Max(0, width - GutterWidth);
 
-        // The grid only spans the track's segments — everything past the last one is
+        // The grid only spans the track's segments - everything past the last one is
         // dead space where clicks can't place, so it must not look placeable.
         var contentPx = (track?.Segments.Sum(s => s.StepCount) ?? 0) * pps;
         var gridWidth = Math.Clamp(contentPx - scrollX, 0, Math.Max(0, width - GutterWidth));
@@ -373,7 +373,7 @@ public sealed class TrackEditorView : Panel
                 }
 
                 // The beat ruler labels every beat boundary the step-line loop above just
-                // colored — MinBeatLabelSpacingPx thins them at low zoom so they never overlap.
+                // colored - MinBeatLabelSpacingPx thins them at low zoom so they never overlap.
                 var firstBeatLocal = firstLocal - firstLocal % segment.StepsPerBeat;
                 for (var s = firstBeatLocal; s <= lastLocal && beatLabel < BeatLabels.Count; s += segment.StepsPerBeat)
                 {
@@ -507,7 +507,7 @@ public sealed class TrackEditorView : Panel
 
     /// <summary>
     ///     Computes the on-screen x of every visible playhead (a track placed more than once
-    ///     on the arrangement can have several — one per placement whose local playback
+    ///     on the arrangement can have several - one per placement whose local playback
     ///     window currently contains the playhead), auto-scrolling to follow it during
     ///     playback. Shared by the playhead lines and the beat ruler's current-beat highlight.
     /// </summary>
@@ -732,7 +732,7 @@ public sealed class TrackEditorView : Panel
     /// <summary>
     ///     Pressing an empty cell places the active sound immediately (FL paint style)
     ///     and captures the pointer: holding the button and sweeping paints a note into
-    ///     every new cell crossed. Presses on existing notes never reach here — their
+    ///     every new cell crossed. Presses on existing notes never reach here - their
     ///     blocks win the hit-test (and dragging those moves them instead).
     /// </summary>
     public override bool HandlePress(float x, float y)
@@ -770,7 +770,7 @@ public sealed class TrackEditorView : Panel
 
     /// <summary>
     ///     A press in the pinned cut row places/starts sweeping a cut targeting whichever
-    ///     instrument is active — any instrument can be cut, there's no reserved one.
+    ///     instrument is active - any instrument can be cut, there's no reserved one.
     /// </summary>
     private bool HandleCutRowPress(float x)
     {
@@ -810,7 +810,7 @@ public sealed class TrackEditorView : Panel
 
     /// <summary>
     ///     Applies the marquee's Replace/Append/Remove modifier semantics against every note
-    ///     whose (global step, value) falls inside the box — the note itself, not its
+    ///     whose (global step, value) falls inside the box - the note itself, not its
     ///     rendered block, so pooled-out notes at chart-dense zoom are never missed.
     /// </summary>
     private void CommitMarquee()
@@ -833,13 +833,13 @@ public sealed class TrackEditorView : Panel
                 // marquee draws in - never reachable by it, regardless of their (unused) Value.
                 if (note.IsCut) continue;
 
-                // A note isn't a point — it's a whole rendered cell, one step wide
+                // A note isn't a point - it's a whole rendered cell, one step wide
                 // (globalStep .. globalStep+1) and one row tall. The row is drawn
                 // top-anchored (ValueTop), so its cell spans (Value-1 .. Value], the
                 // opposite orientation from the step axis. Comparing the marquee's
                 // box against the note's exact (step, value) point (rather than this
                 // cell) only ever matched when the box touched the cell's leading
-                // edge — top-only, for the value axis — missing anything dragged
+                // edge - top-only, for the value axis - missing anything dragged
                 // entirely inside the cell.
                 var globalStep = offset + note.Step;
                 var stepOverlaps = globalStep < maxStep && globalStep + 1 > minStep;
@@ -866,7 +866,7 @@ public sealed class TrackEditorView : Panel
 
     /// <summary>
     ///     Starts a group drag on the given note block: captures every currently
-    ///     selected note's starting (global step, value) — the block's own note is one
+    ///     selected note's starting (global step, value) - the block's own note is one
     ///     of them (a fresh press onto an unselected note already replaced the selection
     ///     with just it, so this naturally degrades to a plain single-note drag).
     /// </summary>
@@ -902,10 +902,10 @@ public sealed class TrackEditorView : Panel
 
     /// <summary>
     ///     Applies the anchor's per-frame delta (from its own drag start) to every
-    ///     selected note's own start, so the whole group moves together — a group of one
+    ///     selected note's own start, so the whole group moves together - a group of one
     ///     reduces to exactly the old single-note drag. Steps/values are clamped into the
     ///     track's valid range per note (matching FL: notes at the edge just stop there,
-    ///     which can compress the group's relative spacing at the boundary — acceptable).
+    ///     which can compress the group's relative spacing at the boundary - acceptable).
     /// </summary>
     internal void UpdateGroupDrag(float x, float y)
     {
@@ -1002,13 +1002,13 @@ public sealed class TrackEditorView : Panel
         return _geometry.ValueAt(absY - Computed.AbsoluteY, FineSnap);
     }
 
-    /// <summary>Continuous, unsnapped step — the marquee's counterpart to <see cref="StepAt" />.</summary>
+    /// <summary>Continuous, unsnapped step - the marquee's counterpart to <see cref="StepAt" />.</summary>
     private double UnsnappedStepAt(float absX)
     {
         return _geometry.UnsnappedStepAt(absX - Computed.AbsoluteX);
     }
 
-    /// <summary>Continuous, unsnapped value — the marquee's counterpart to <see cref="ValueAt(float)" />.</summary>
+    /// <summary>Continuous, unsnapped value - the marquee's counterpart to <see cref="ValueAt(float)" />.</summary>
     private double UnsnappedValueAt(float absY)
     {
         return _geometry.UnsnappedValueAt(absY - Computed.AbsoluteY);

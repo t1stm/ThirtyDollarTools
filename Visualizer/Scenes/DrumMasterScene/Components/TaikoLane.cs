@@ -157,11 +157,11 @@ public class TaikoLane : IDisposable
             _lastActiveIndex = 0;
             // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
             foreach (var chunk in _chunks)
-            foreach (var sound in chunk.Sounds)
-            {
-                sound.IsHit = false;
-                sound.HitTime = null;
-            }
+                foreach (var sound in chunk.Sounds)
+                {
+                    sound.IsHit = false;
+                    sound.HitTime = null;
+                }
 
             AccuracyScores.Clear();
             MissCount = 0;

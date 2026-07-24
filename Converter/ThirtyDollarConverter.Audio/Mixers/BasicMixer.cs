@@ -13,46 +13,46 @@ public class BasicMixer : IMixingMethod
             switch (layout)
             {
                 case AudioLayout.AudioL:
-                {
-                    var left = audio_data.GetChannel(0);
-                    var left_export = export_track.GetChannel(0);
+                    {
+                        var left = audio_data.GetChannel(0);
+                        var left_export = export_track.GetChannel(0);
 
-                    BasicMix(left, left_export);
-                    break;
-                }
+                        BasicMix(left, left_export);
+                        break;
+                    }
 
                 case AudioLayout.AudioR:
-                {
-                    var right = audio_data.GetChannel(0);
-                    var right_export = export_track.GetChannel(0);
+                    {
+                        var right = audio_data.GetChannel(0);
+                        var right_export = export_track.GetChannel(0);
 
-                    BasicMix(right, right_export);
-                    break;
-                }
+                        BasicMix(right, right_export);
+                        break;
+                    }
 
                 case AudioLayout.AudioLr:
-                {
-                    var l = audio_data.GetChannel(0);
-                    var l_export = export_track.GetChannel(0);
+                    {
+                        var l = audio_data.GetChannel(0);
+                        var l_export = export_track.GetChannel(0);
 
-                    var r = audio_data.GetChannel(1);
-                    var r_export = export_track.GetChannel(1);
+                        var r = audio_data.GetChannel(1);
+                        var r_export = export_track.GetChannel(1);
 
-                    BasicMix(l, l_export);
-                    BasicMix(r, r_export);
-                    break;
-                }
+                        BasicMix(l, l_export);
+                        BasicMix(r, r_export);
+                        break;
+                    }
 
                 case AudioLayout.AudioMono:
-                {
-                    var mono = audio_data.GetChannel(0);
-                    var l_export = export_track.GetChannel(0);
-                    var r_export = export_track.GetChannel(1);
+                    {
+                        var mono = audio_data.GetChannel(0);
+                        var l_export = export_track.GetChannel(0);
+                        var r_export = export_track.GetChannel(1);
 
-                    BasicMix(mono, l_export);
-                    BasicMix(mono, r_export);
-                    break;
-                }
+                        BasicMix(mono, l_export);
+                        BasicMix(mono, r_export);
+                        break;
+                    }
             }
 
         return export_track;

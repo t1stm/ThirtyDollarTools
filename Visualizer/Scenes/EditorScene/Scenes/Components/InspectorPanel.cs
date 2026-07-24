@@ -13,7 +13,7 @@ namespace EditorScene.Scenes.Components;
 /// <summary>
 ///     Context-sensitive right-side inspector: project + selected-track properties on
 ///     the arrangement, selected segment + note properties in the note editor. Pure
-///     view — every edit routes through <see cref="EditorState" />. Structure rebuilds
+///     view - every edit routes through <see cref="EditorState" />. Structure rebuilds
 ///     on selection/mode changes (<see cref="Rebuild" />); values refresh in place on
 ///     model changes (<see cref="Sync" />), skipping the focused input so typing is
 ///     never interrupted by its own change events. Row building itself lives in
@@ -93,7 +93,7 @@ public sealed class InspectorPanel : Panel
         Rebuild();
     }
 
-    // Test seams (internal — see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
+    // Test seams (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
     internal ScrollView Rows => _rows;
     internal ProgressBar StatusBar => _statusBar;
     internal Label StatusLabelElement => _statusLabel;
@@ -101,9 +101,9 @@ public sealed class InspectorPanel : Panel
 
     /// <summary>Updates the status bar; null label shows "Idle" and hides the progress bar.
     /// <paramref name="total" /> greater than zero appends the encoder's "done - total" counts
-    /// in brackets (e.g. "Rendering audio… (6 - 67)"); zero — the placement/mixing stages and a
-    /// fully-cached incremental render report nothing — leaves the label bare.
-    /// Called every frame from <see cref="EditorInterface.Update" /> — only touches elements
+    /// in brackets (e.g. "Rendering audio… (6 - 67)"); zero - the placement/mixing stages and a
+    /// fully-cached incremental render report nothing - leaves the label bare.
+    /// Called every frame from <see cref="EditorInterface.Update" /> - only touches elements
     /// when the values actually changed, so it never dirties layout for nothing.</summary>
     public void SetStatus(string? label, float progress, ulong done = 0, ulong total = 0)
     {
@@ -119,7 +119,7 @@ public sealed class InspectorPanel : Panel
         {
             _statusBar.Visible = barVisible;
             // Visible alone doesn't touch the render queue (Update()'s per-frame Layout() never
-            // does either) — the bar was built hidden, so its background/foreground planes are
+            // does either) - the bar was built hidden, so its background/foreground planes are
             // still queued at their stale construction-time layer. Show: re-queue at the current,
             // correct layer via a fresh DrawTo. Hide: dequeue, or it stays rendered forever.
             // See Sundex.Components.Tests.ProgressBarVisibilityToggleTests for the full mechanics.
@@ -142,7 +142,7 @@ public sealed class InspectorPanel : Panel
 
     /// <summary>
     ///     Fired when the user wants to edit a <see cref="TrackAutomation" />'s sound
-    ///     filter. The inspector has no sound picker/modal of its own — EditorInterface
+    ///     filter. The inspector has no sound picker/modal of its own - EditorInterface
     ///     wires this the same way it wires <c>TrackEditorView.OnPreviewNote</c>.
     /// </summary>
     public Action<TrackAutomation>? OnEditTrackAutomationSounds { get; set; }
@@ -150,7 +150,7 @@ public sealed class InspectorPanel : Panel
     /// <summary>
     ///     Fired when the user wants to reassign the selected note(s)' instrument (one
     ///     for a single selection, several for a multi-selection). The inspector has no
-    ///     instrument selector of its own — EditorInterface wires this the same way it
+    ///     instrument selector of its own - EditorInterface wires this the same way it
     ///     wires <see cref="OnEditTrackAutomationSounds" />.
     /// </summary>
     public Action<IReadOnlyList<Note>>? OnReassignInstrument { get; set; }
@@ -165,7 +165,29 @@ public sealed class InspectorPanel : Panel
         {
             if (_state.SelectedSegment is { } segment)
             {
-                _form.Header("Segment");
+                var addSegment = new Button(Context, "+ Add")
+                {
+                    FontSizePx = 12f,
+                    BorderRadius = 4,
+                    Background = new ColoredPlane { Color = EditorPalette.Surface },
+                    OnClick = _ =>
+                    {
+                        if (_state.OpenedTrack is { } track) _state.SelectSegment(_state.AddSegment(track));
+                    }
+                };
+                var removeSegment = new Button(Context, "− Remove")
+                {
+                    FontSizePx = 12f,
+                    BorderRadius = 4,
+                    Background = new ColoredPlane { Color = EditorPalette.Surface },
+                    OnClick = _ =>
+                    {
+                        // RemoveSegment refuses on the last segment (library invariant) - just a no-op here.
+                        if (_state is { OpenedTrack: { } track, SelectedSegment: { } selected })
+                            _state.RemoveSegment(track, selected);
+                    }
+                };
+                _form.Header("Segment", addSegment, removeSegment);
                 _form.IntRow("Numerator", () => segment.Numerator, v => segment.Numerator = v, 1, 64);
                 _form.IntRow("Denominator", () => segment.Denominator, v => segment.Denominator = v, 1, 64);
                 _form.IntRow("Bars", () => segment.Bars, v => segment.Bars = v, 1, 1024);
@@ -241,7 +263,7 @@ public sealed class InspectorPanel : Panel
 
     /// <summary>
     ///     Multi-note selection: independent modifier properties (Value/Volume/Pan/
-    ///     Offset/Instrument) are always editable — uniform values show, differing ones
+    ///     Offset/Instrument) are always editable - uniform values show, differing ones
     ///     render empty and committing applies the absolute value to every selected
     ///     note. Automation is editable only when every note's is uniform (see
     ///     <see cref="MultiAutomationSection" />).
@@ -279,7 +301,7 @@ public sealed class InspectorPanel : Panel
     ///     automation" (a separate manager instance per note, matching
     ///     <see cref="Note.Duplicate" />'s never-shared semantics). Uniform renders the
     ///     full form bound to the primary note; every commit clone-fans-out to the rest
-    ///     (simpler and safer than mirroring individual field writes — the managers are
+    ///     (simpler and safer than mirroring individual field writes - the managers are
     ///     tiny). Mixed shows one disabled info row.
     /// </summary>
     private void MultiAutomationSection(IReadOnlyList<Note> notes, Note primary)
@@ -299,7 +321,7 @@ public sealed class InspectorPanel : Panel
         if (notes.Any(n => n.Automation == null) ||
             !notes.All(n => n.Automation!.ValueEquals(primary.Automation!)))
         {
-            _form.InfoRow("Automation", () => "mixed — select notes with matching automation to edit");
+            _form.InfoRow("Automation", () => "mixed - select notes with matching automation to edit");
             return;
         }
 
@@ -320,7 +342,7 @@ public sealed class InspectorPanel : Panel
 
     /// <summary>
     ///     Multi-placement selection: placements own only position, never inspector-
-    ///     edited — the Track section (name/tempo/BPM/track automation) shows only when
+    ///     edited - the Track section (name/tempo/BPM/track automation) shows only when
     ///     every selected placement references the same <see cref="ProjectTrack" />.
     /// </summary>
     private void MultiPlacementSection(IReadOnlyList<TrackPlacement> placements)
@@ -414,12 +436,12 @@ public sealed class InspectorPanel : Panel
     }
 
     /// <summary>
-    ///     Gaps-in-seconds checkbox, Repeats, and the per-keyframe rows — shared by note
+    ///     Gaps-in-seconds checkbox, Repeats, and the per-keyframe rows - shared by note
     ///     and track automation. <paramref name="keyframeHeaderPrefix" /> disambiguates
     ///     keyframe headers when several automations are on screen at once (empty for the
     ///     single per-note automation, so its field keys are unchanged: "Keyframe 1.Gap").
     ///     <paramref name="afterEdit" />, when given, runs after every commit (field or
-    ///     structural) — the multi-note form's clone-fan-out hook (see
+    ///     structural) - the multi-note form's clone-fan-out hook (see
     ///     <see cref="MultiAutomationSection" />); null for every other caller.
     /// </summary>
     private void KeyframeBlocks(string section, string keyframeHeaderPrefix, AudioKeyframeManager automation,

@@ -235,37 +235,37 @@ public class PlayfieldContainer(
         switch (CameraFollowMode)
         {
             case var follow_mode when follow_mode.HasFlag(CameraFollowMode.TDWLike):
-            {
-                float margin = settings.PlayfieldSizing.SoundSize;
-
-                if (!Camera.IsOutsideOfCameraView(position, scale, margin) &&
-                    placement.Event.SoundEvent is not "!divider") break;
-
-                var pos = new Vector3(0, position.Y - margin, 0f);
-
-                if (CameraFollowMode.HasFlag(CameraFollowMode.NoAnimation))
                 {
-                    Camera.SetPosition(pos);
+                    float margin = settings.PlayfieldSizing.SoundSize;
+
+                    if (!Camera.IsOutsideOfCameraView(position, scale, margin) &&
+                        placement.Event.SoundEvent is not "!divider") break;
+
+                    var pos = new Vector3(0, position.Y - margin, 0f);
+
+                    if (CameraFollowMode.HasFlag(CameraFollowMode.NoAnimation))
+                    {
+                        Camera.SetPosition(pos);
+                        return;
+                    }
+
+                    Camera.ScrollTo(pos);
                     return;
                 }
-
-                Camera.ScrollTo(pos);
-                return;
-            }
 
             case var follow_mode when follow_mode.HasFlag(CameraFollowMode.CurrentLine):
-            {
-                var pos = position * Vector3.UnitY - Vector3.UnitY * (Camera.Height / 2f);
-
-                if (CameraFollowMode.HasFlag(CameraFollowMode.NoAnimation))
                 {
-                    Camera.SetPosition(pos);
+                    var pos = position * Vector3.UnitY - Vector3.UnitY * (Camera.Height / 2f);
+
+                    if (CameraFollowMode.HasFlag(CameraFollowMode.NoAnimation))
+                    {
+                        Camera.SetPosition(pos);
+                        return;
+                    }
+
+                    Camera.ScrollTo(pos);
                     return;
                 }
-
-                Camera.ScrollTo(pos);
-                return;
-            }
         }
     }
 

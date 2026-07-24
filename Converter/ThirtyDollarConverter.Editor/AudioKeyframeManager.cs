@@ -113,26 +113,26 @@ public class AudioKeyframeManager
         var offset = note.Offset;
 
         for (var pass = 0; pass < Repeats; pass++)
-        foreach (var keyframe in Keyframes)
-        {
-            minutes += Timing == KeyframeTiming.Step
-                ? keyframe.Gap * stepMinutes
-                : keyframe.Gap / 60d;
-
-            value = keyframe.Value.Apply(value);
-            volume = Math.Max(keyframe.Volume.Apply(volume), 0);
-            pan = Math.Clamp((float)keyframe.Pan.Apply(pan), -100f, 100f);
-            offset = keyframe.Offset.Apply(offset);
-
-            yield return (minutes, new Note
+            foreach (var keyframe in Keyframes)
             {
-                Step = note.Step,
-                Instrument = note.Instrument,
-                Value = value,
-                Volume = volume,
-                Pan = pan,
-                Offset = offset
-            }, keyframe.Cut);
-        }
+                minutes += Timing == KeyframeTiming.Step
+                    ? keyframe.Gap * stepMinutes
+                    : keyframe.Gap / 60d;
+
+                value = keyframe.Value.Apply(value);
+                volume = Math.Max(keyframe.Volume.Apply(volume), 0);
+                pan = Math.Clamp((float)keyframe.Pan.Apply(pan), -100f, 100f);
+                offset = keyframe.Offset.Apply(offset);
+
+                yield return (minutes, new Note
+                {
+                    Step = note.Step,
+                    Instrument = note.Instrument,
+                    Value = value,
+                    Volume = volume,
+                    Pan = pan,
+                    Offset = offset
+                }, keyframe.Cut);
+            }
     }
 }

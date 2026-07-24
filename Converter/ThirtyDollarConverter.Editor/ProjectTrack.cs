@@ -53,7 +53,7 @@ public class ProjectTrack(TimingInfo timing, int id)
 
     /// <summary>
     ///     Deep copy for track duplication: fresh segments/notes/automations, so editing the
-    ///     copy can never reach the source. Placements aren't copied — a duplicated pattern
+    ///     copy can never reach the source. Placements aren't copied - a duplicated pattern
     ///     starts unplaced, like any newly added track.
     /// </summary>
     internal ProjectTrack Duplicate(int id, string name)
@@ -93,7 +93,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     }
 
     /// <summary>
-    ///     Total pattern length in minutes — the clip width on the arrangement grid.
+    ///     Total pattern length in minutes - the clip width on the arrangement grid.
     /// </summary>
     public double DurationMinutes()
     {

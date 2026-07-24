@@ -130,7 +130,7 @@ public class ArrangementViewTests
         view.Layout();
         view.WheelZooms = true;
 
-        // Wheel up at x=200 — beat 8.33 at the default 24 px per quarter.
+        // Wheel up at x=200 - beat 8.33 at the default 24 px per quarter.
         ctx.UpdatePointer(view, 200, 100, false, false, false, new Vector2(0, 1));
         Assert.True(view.PixelsPerQuarter > 24f);
 
@@ -192,6 +192,50 @@ public class ArrangementViewTests
             ctx.UpdatePointer(view, 400, 100, false, false, false, new Vector2(0, -1));
 
         Assert.Equal(146f, view.ScrollY, 3);
+    }
+
+    [Fact]
+    public void RemovingATrack_ThatShrinksTheLaneCount_DoesNotAutoScroll()
+    {
+        // Regression: eagerly re-clamping ScrollY to the new (shrunk) MaxScrollY on every
+        // layout auto-scrolled the view under a still-held pointer whenever a removal
+        // shrank the lane count - since right-press is level-triggered, whatever slid
+        // under the cursor next got deleted too, cascading through every track that had
+        // been off-screen below it.
+        var (ctx, state, view) = NewView(); // 800x400: gridHeight 382
+        var track = state.AddTrack();
+        var deep = state.PlaceTrack(track, 10, 0); // 12 lanes: max scroll = 12*44 - 382 = 146
+        view.Layout();
+
+        for (var i = 0; i < 8; i++)
+            ctx.UpdatePointer(view, 400, 100, false, false, false, new Vector2(0, -1));
+        Assert.Equal(146f, view.ScrollY, 3);
+
+        state.RemovePlacement(deep); // channel count shrinks back down to MinChannels (8)
+        view.Layout();
+
+        Assert.Equal(146f, view.ScrollY, 3); // stayed put - not auto-scrolled back up
+    }
+
+    [Fact]
+    public void ScrollingPastTheRuler_ClipsKeepMovingSmoothly_NeverPinnedAtTheTop()
+    {
+        // Regression: a clip's block.Y used to clamp to RulerHeight once scrolled above
+        // it, pinning every clip that scrolled past that band to the same Y - freezing
+        // its label there instead of sliding smoothly off past the ruler (now masked by
+        // the ruler's paint order instead of a geometric clamp, see Refresh).
+        var (ctx, state, view) = NewView(); // 800x400
+        var track = state.AddTrack();
+        var top = state.PlaceTrack(track, 0, 0); // the clip under test
+        state.PlaceTrack(track, 10, 0); // forces enough lanes to actually need scrolling
+        view.Layout();
+
+        for (var i = 0; i < 8; i++)
+            ctx.UpdatePointer(view, 400, 100, false, false, false, new Vector2(0, -1));
+        view.Layout();
+
+        var block = view.Blocks.Single(b => b.Placement == top);
+        Assert.True(block.Computed.Y < 0); // scrolled fully past the ruler, not pinned at 18 (or 0)
     }
 
     [Fact]
@@ -312,9 +356,9 @@ public class ArrangementViewTests
         view.Layout();
         state.ActiveTool = EditorTool.Select;
 
-        // Anchor at (quarter 6, lane 3) — an empty lane, off the clip's own block
+        // Anchor at (quarter 6, lane 3) - an empty lane, off the clip's own block
         // entirely, so the press starts a marquee instead of grabbing the clip
-        // directly. Cursor at (quarter 6, lane 1.5) — inside the clip's row, short of
+        // directly. Cursor at (quarter 6, lane 1.5) - inside the clip's row, short of
         // its top edge (minChannel=1.5 > 1).
         Press(ctx, view, 6 * 24, 18 + 3 * 44);
         Drag(ctx, view, 6 * 24, 18 + 1.5f * 44);

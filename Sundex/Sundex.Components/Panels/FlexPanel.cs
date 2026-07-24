@@ -101,119 +101,119 @@ public class FlexPanel(UIContext context) : Panel(context)
         switch (Direction)
         {
             case LayoutDirection.Horizontal:
-            {
-                if (Wrap)
                 {
-                    float currentLineWidth = 0;
-                    float currentLineHeight = 0;
-                    float totalWidth = 0;
-                    float totalHeight = 0;
-                    var firstInLine = true;
-
-                    foreach (var child in Children)
+                    if (Wrap)
                     {
-                        var (cw, ch) = child.Measure(innerW, innerH);
-                        var potentialWidth = firstInLine ? cw : currentLineWidth + Spacing + cw;
+                        float currentLineWidth = 0;
+                        float currentLineHeight = 0;
+                        float totalWidth = 0;
+                        float totalHeight = 0;
+                        var firstInLine = true;
 
-                        if (!firstInLine && potentialWidth > innerW && innerW > 0)
+                        foreach (var child in Children)
                         {
-                            // Wrap to next line
-                            totalWidth = Math.Max(totalWidth, currentLineWidth);
-                            totalHeight += currentLineHeight + Spacing;
-                            currentLineWidth = cw;
-                            currentLineHeight = ch;
-                            firstInLine = false;
+                            var (cw, ch) = child.Measure(innerW, innerH);
+                            var potentialWidth = firstInLine ? cw : currentLineWidth + Spacing + cw;
+
+                            if (!firstInLine && potentialWidth > innerW && innerW > 0)
+                            {
+                                // Wrap to next line
+                                totalWidth = Math.Max(totalWidth, currentLineWidth);
+                                totalHeight += currentLineHeight + Spacing;
+                                currentLineWidth = cw;
+                                currentLineHeight = ch;
+                                firstInLine = false;
+                            }
+                            else
+                            {
+                                currentLineWidth = potentialWidth;
+                                currentLineHeight = Math.Max(currentLineHeight, ch);
+                                firstInLine = false;
+                            }
                         }
-                        else
+
+                        totalWidth = Math.Max(totalWidth, currentLineWidth);
+                        totalHeight += currentLineHeight;
+
+                        contentW = totalWidth;
+                        contentH = totalHeight;
+                    }
+                    else
+                    {
+                        float sumW = 0;
+                        float maxH = 0;
+                        var i = 0;
+                        foreach (var child in Children)
                         {
-                            currentLineWidth = potentialWidth;
-                            currentLineHeight = Math.Max(currentLineHeight, ch);
-                            firstInLine = false;
+                            var (cw, ch) = child.Measure(innerW, innerH);
+                            sumW += cw;
+                            if (i++ > 0) sumW += Spacing;
+                            if (ch > maxH) maxH = ch;
                         }
+
+                        contentW = sumW;
+                        contentH = maxH;
                     }
 
-                    totalWidth = Math.Max(totalWidth, currentLineWidth);
-                    totalHeight += currentLineHeight;
-
-                    contentW = totalWidth;
-                    contentH = totalHeight;
+                    break;
                 }
-                else
-                {
-                    float sumW = 0;
-                    float maxH = 0;
-                    var i = 0;
-                    foreach (var child in Children)
-                    {
-                        var (cw, ch) = child.Measure(innerW, innerH);
-                        sumW += cw;
-                        if (i++ > 0) sumW += Spacing;
-                        if (ch > maxH) maxH = ch;
-                    }
-
-                    contentW = sumW;
-                    contentH = maxH;
-                }
-
-                break;
-            }
             case LayoutDirection.Vertical:
-            {
-                if (Wrap)
                 {
-                    float currentColumnHeight = 0;
-                    float currentColumnWidth = 0;
-                    float totalHeight = 0;
-                    float totalWidth = 0;
-                    var firstInColumn = true;
-
-                    foreach (var child in Children)
+                    if (Wrap)
                     {
-                        var (cw, ch) = child.Measure(innerW, innerH);
-                        var potentialHeight = firstInColumn ? ch : currentColumnHeight + Spacing + ch;
+                        float currentColumnHeight = 0;
+                        float currentColumnWidth = 0;
+                        float totalHeight = 0;
+                        float totalWidth = 0;
+                        var firstInColumn = true;
 
-                        if (!firstInColumn && potentialHeight > innerH && innerH > 0)
+                        foreach (var child in Children)
                         {
-                            // Wrap to next column
-                            totalHeight = Math.Max(totalHeight, currentColumnHeight);
-                            totalWidth += currentColumnWidth + Spacing;
-                            currentColumnHeight = ch;
-                            currentColumnWidth = cw;
-                            firstInColumn = false;
+                            var (cw, ch) = child.Measure(innerW, innerH);
+                            var potentialHeight = firstInColumn ? ch : currentColumnHeight + Spacing + ch;
+
+                            if (!firstInColumn && potentialHeight > innerH && innerH > 0)
+                            {
+                                // Wrap to next column
+                                totalHeight = Math.Max(totalHeight, currentColumnHeight);
+                                totalWidth += currentColumnWidth + Spacing;
+                                currentColumnHeight = ch;
+                                currentColumnWidth = cw;
+                                firstInColumn = false;
+                            }
+                            else
+                            {
+                                currentColumnHeight = potentialHeight;
+                                currentColumnWidth = Math.Max(currentColumnWidth, cw);
+                                firstInColumn = false;
+                            }
                         }
-                        else
+
+                        totalHeight = Math.Max(totalHeight, currentColumnHeight);
+                        totalWidth += currentColumnWidth;
+
+                        contentW = totalWidth;
+                        contentH = totalHeight;
+                    }
+                    else
+                    {
+                        float sumH = 0;
+                        float maxW = 0;
+                        var i = 0;
+                        foreach (var child in Children)
                         {
-                            currentColumnHeight = potentialHeight;
-                            currentColumnWidth = Math.Max(currentColumnWidth, cw);
-                            firstInColumn = false;
+                            var (cw, ch) = child.Measure(innerW, innerH);
+                            sumH += ch;
+                            if (i++ > 0) sumH += Spacing;
+                            if (cw > maxW) maxW = cw;
                         }
+
+                        contentW = maxW;
+                        contentH = sumH;
                     }
 
-                    totalHeight = Math.Max(totalHeight, currentColumnHeight);
-                    totalWidth += currentColumnWidth;
-
-                    contentW = totalWidth;
-                    contentH = totalHeight;
+                    break;
                 }
-                else
-                {
-                    float sumH = 0;
-                    float maxW = 0;
-                    var i = 0;
-                    foreach (var child in Children)
-                    {
-                        var (cw, ch) = child.Measure(innerW, innerH);
-                        sumH += ch;
-                        if (i++ > 0) sumH += Spacing;
-                        if (cw > maxW) maxW = cw;
-                    }
-
-                    contentW = maxW;
-                    contentH = sumH;
-                }
-
-                break;
-            }
             default:
                 throw new ArgumentOutOfRangeException(nameof(Direction), "Invalid layout direction value.");
         }
@@ -399,40 +399,40 @@ public class FlexPanel(UIContext context) : Panel(context)
         switch (styleValue)
         {
             case StringValue sv when propertyInfo.PropertyType == typeof(Align):
-            {
-                Align? align = sv.Value switch
                 {
-                    "center" => Align.Center,
-                    "end" => Align.End,
-                    "stretch" => Align.Stretch,
-                    "start" => Align.Start,
-                    _ => null
-                };
+                    Align? align = sv.Value switch
+                    {
+                        "center" => Align.Center,
+                        "end" => Align.End,
+                        "stretch" => Align.Stretch,
+                        "start" => Align.Start,
+                        _ => null
+                    };
 
-                if (align is not null)
-                    propertyInfo.SetValue(this, align.Value);
-                return;
-            }
+                    if (align is not null)
+                        propertyInfo.SetValue(this, align.Value);
+                    return;
+                }
 
             case StringValue sv when propertyInfo.PropertyType == typeof(LayoutDirection):
-            {
-                LayoutDirection? direction = sv.Value switch
                 {
-                    "horizontal" => LayoutDirection.Horizontal,
-                    "vertical" => LayoutDirection.Vertical,
-                    _ => null
-                };
+                    LayoutDirection? direction = sv.Value switch
+                    {
+                        "horizontal" => LayoutDirection.Horizontal,
+                        "vertical" => LayoutDirection.Vertical,
+                        _ => null
+                    };
 
-                if (direction is not null)
-                    propertyInfo.SetValue(this, direction.Value);
-                return;
-            }
+                    if (direction is not null)
+                        propertyInfo.SetValue(this, direction.Value);
+                    return;
+                }
 
             default:
-            {
-                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
-                return;
-            }
+                {
+                    base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
+                    return;
+                }
         }
     }
 }

@@ -33,7 +33,7 @@ public class Game : GameWindow
         _loggerGL = Logger.ForContext("SourceContext", "OpenGL");
 
         var callingAssembly = Assembly.GetExecutingAssembly();
-        AssetAssemblies = [callingAssembly, ..assemblies];
+        AssetAssemblies = [callingAssembly, .. assemblies];
 
         AssetProvider = new AssetProvider(Logger, AssetAssemblies, GLInfo);
         SceneManager = new SceneManager(Logger);

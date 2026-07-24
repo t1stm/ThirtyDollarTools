@@ -14,13 +14,13 @@ namespace EditorScene;
 
 /// <summary>
 ///     Playback keeps one persistent render of the mute-filtered project (<see cref="_rendered" />),
-///     updated incrementally through PCMEncoder's native path — the same one
-///     <see cref="ExportWav" /> uses — on every model edit and mute toggle. Soloing renders
+///     updated incrementally through PCMEncoder's native path - the same one
+///     <see cref="ExportWav" /> uses - on every model edit and mute toggle. Soloing renders
 ///     a second, independent buffer (<see cref="_soloRendered" />) for just the soloed
 ///     channels and plays that instead, while the full mix keeps getting updated underneath
 ///     it (so unsoloing is an instant swap back, never a re-render). Unsoloing discards the
 ///     solo buffer. Memory is bounded: one full buffer always, plus one solo buffer only
-///     while a channel is soloed — never O(track count).
+///     while a channel is soloed - never O(track count).
 /// </summary>
 public class EditorPlayback
 {
@@ -86,7 +86,7 @@ public class EditorPlayback
     private PcmEncoder Encoder { get; }
 
     /// <summary>What the encoder is currently doing, for the inspector's status bar; null = idle.
-    /// Written on background render/export threads, read once a frame on the update thread —
+    /// Written on background render/export threads, read once a frame on the update thread -
     /// plain field, no lock (see EditorPlayback's class doc for the polling rationale).
     /// // ponytail: single status slot; per-operation lanes if concurrent encodes (a re-render
     /// racing an export, both on the same Encoder) ever need to show independent progress.</summary>
@@ -95,7 +95,7 @@ public class EditorPlayback
     public float StatusProgress => _statusProgress;
 
     /// <summary>The encoder's last "done" / "total" counts from <see cref="StatusProgress" />'s
-    /// same report — the inspector's status label shows these in brackets. Both 0 when the
+    /// same report - the inspector's status label shows these in brackets. Both 0 when the
     /// current phase hasn't reported yet (placement/mixing report nothing) or nothing is running.</summary>
     public ulong StatusDone => _statusDone;
 
@@ -105,7 +105,7 @@ public class EditorPlayback
     /// one dialog per failure.</summary>
     public string? PendingError { get; private set; }
 
-    /// <summary>Returns the pending error, if any, and clears it — one failure shows one dialog.</summary>
+    /// <summary>Returns the pending error, if any, and clears it - one failure shows one dialog.</summary>
     public string? TakeError()
     {
         var error = PendingError;
@@ -129,7 +129,7 @@ public class EditorPlayback
     /// <summary>Playhead position on the arrangement timeline; negative during the lead-in.</summary>
     public double PlayheadQuarters => (ElapsedMs / 1000d - LeadInSeconds) / 60d * _state.Project.RootTiming.BPM;
 
-    /// <summary>True once a buffer was rendered and uploaded — the transport is live.</summary>
+    /// <summary>True once a buffer was rendered and uploaded - the transport is live.</summary>
     public bool HasSession => _timedEvents != null;
 
     /// <summary>Model changed: re-render (debounced) if a playback session exists.</summary>
@@ -195,7 +195,7 @@ public class EditorPlayback
 
     /// <summary>
     ///     Seeks to an arrangement-timeline position (quarter notes at the root BPM) without
-    ///     touching play/pause state — used by the ruler click-to-seek in both editor views.
+    ///     touching play/pause state - used by the ruler click-to-seek in both editor views.
     /// </summary>
     public void Seek(double quarters)
     {
@@ -224,7 +224,7 @@ public class EditorPlayback
     }
 
     /// <summary>Plays one sound with its adjustment applied on top of no base note (value 0,
-    /// default volume/pan) — the instrument editor's per-sound preview, fired as the user
+    /// default volume/pan) - the instrument editor's per-sound preview, fired as the user
     /// scrolls a sound's value/volume/pan or hits its row's preview button. Replaces any
     /// still-playing preview, same suppression as <see cref="PreviewNote" />.</summary>
     public void PreviewSound(string sound, SoundAdjustment adjustment)
@@ -236,7 +236,7 @@ public class EditorPlayback
     }
 
     /// <summary>Plays every given sound layered together, each with its own adjustment on
-    /// top of no base note — the instrument editor's "Preview" button, previewing the whole
+    /// top of no base note - the instrument editor's "Preview" button, previewing the whole
     /// instrument as it would sound on a note at value 0.</summary>
     public void PreviewInstrument(IEnumerable<(string Sound, SoundAdjustment Adjustment)> sounds)
     {
@@ -257,10 +257,10 @@ public class EditorPlayback
         if (audio.GetLength() == 0) return; // unknown sound or samples still downloading
 
         var buffer = _workflow.SequencePlayer.AudioContext.GetBufferObject(audio, (int)_previewSampleRate);
-        // SampleProcessor only resamples for pitch — volume/pan are normally baked into PCM
+        // SampleProcessor only resamples for pitch - volume/pan are normally baked into PCM
         // during PCMEncoder's mixdown, which a one-shot preview buffer never goes through.
         // AudibleBuffer's own volume/pan (latched by Play(), see BassBuffer/OpenALBuffer) are
-        // on 0-1/-1-1 scales, unlike the event's 0-100/-100-100 — convert both.
+        // on 0-1/-1-1 scales, unlike the event's 0-100/-100-100 - convert both.
         buffer.SetVolume((float)(volume ?? 100) / 100f);
         buffer.SetPan(pan / 100f);
         buffer.Play();
@@ -269,7 +269,7 @@ public class EditorPlayback
 
     /// <summary>
     ///     Renders the merged project fresh and writes it as a WAV. Independent of the
-    ///     playback session and of mute/solo — the export always contains every track.
+    ///     playback session and of mute/solo - the export always contains every track.
     /// </summary>
     public Task ExportWav(string path)
     {
@@ -326,7 +326,7 @@ public class EditorPlayback
     }
 
     /// <summary>
-    ///     Re-renders the mute-filtered full mix, and — while any channel is soloed — the
+    ///     Re-renders the mute-filtered full mix, and - while any channel is soloed - the
     ///     solo mix alongside it, then plays whichever is active. Model edits and mute
     ///     toggles keep the full mix's incremental diff cheap; a solo toggle's diff is
     ///     against the solo buffer, never the full one, and turning solo off entirely just
@@ -342,8 +342,8 @@ public class EditorPlayback
         _statusDone = 0;
         _statusTotal = 0;
 
-        // Snapshotted here, on the update thread — the only thread that mutates the
-        // model — so the background render works on a consistent state.
+        // Snapshotted here, on the update thread - the only thread that mutates the
+        // model - so the background render works on a consistent state.
         var project = _state.Project;
         var full = project.ToSequence(c => !_state.IsMuted(c));
         var solo = _state.AnySoloed ? project.ToSequence(_state.IsSoloed) : null;
@@ -388,7 +388,7 @@ public class EditorPlayback
     }
 
     /// <summary>Sets <see cref="PendingError" /> unless it's a repeat of the last alerted
-    /// message — an edit-storm where every debounced re-render fails would otherwise pop a
+    /// message - an edit-storm where every debounced re-render fails would otherwise pop a
     /// dialog per edit. A successful render/export clears the memory so a later failure
     /// (even with the same message) alerts again.</summary>
     private void SetError(string message)

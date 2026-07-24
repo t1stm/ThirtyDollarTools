@@ -10,7 +10,7 @@ namespace Sundex.Components.Inputs;
 
 /// <summary>
 ///     Checkbox with an optional label; clicking anywhere on it toggles.
-///     Consumers listen through <see cref="OnCheckedChanged" /> — <see cref="UIElement.OnClick" />
+///     Consumers listen through <see cref="OnCheckedChanged" /> - <see cref="UIElement.OnClick" />
 ///     is used internally for the toggle, don't overwrite it.
 /// </summary>
 public class Checkbox : StackPanel

@@ -33,8 +33,8 @@ public class EditorInterface
     private readonly TextInput _openedTrackName;
     private readonly Label _projectBpm;
     private readonly Label _projectName;
-    private readonly Button _drawToolButton;
-    private readonly Button _selectToolButton;
+    private readonly List<(Button Button, EditorTool Tool)> _toolButtons = [];
+    private readonly FlexPanel _arrangementPanel;
     private readonly Button _instrumentButton;
     private readonly InstrumentWorkflow _instrumentWorkflow;
     private readonly ModalLayer _soundFilterModal;
@@ -88,29 +88,19 @@ public class EditorInterface
         ((Button)ids["export-button"]).OnClick = _ => ShowExportDialog();
 
         // Tool toggle buttons: highlighted background follows State.ActiveTool (code-owned
-        // ColoredPlane, not a stylesheet class — the active highlight is a runtime toggle,
-        // not a hover/press state). Draw is the default active tool.
-        _drawToolButton = new Button(context, "Draw")
-        {
-            Background = new ColoredPlane { Color = EditorPalette.Accent },
-            OnClick = _ => State.ActiveTool = EditorTool.Draw
-        };
-        _selectToolButton = new Button(context, "Select")
-        {
-            Background = new ColoredPlane { Color = EditorPalette.Surface },
-            OnClick = _ => State.ActiveTool = EditorTool.Select
-        };
-        ((FlexPanel)ids["editor-header"]).AddChild(_drawToolButton);
-        ((FlexPanel)ids["editor-header"]).AddChild(_selectToolButton);
+        // ColoredPlane, not a stylesheet class - the active highlight is a runtime toggle,
+        // not a hover/press state). Draw is the default active tool. One pair per grid
+        // mode (see MakeToolButton) - the arrangement bar and the editor bar each own one.
         State.OnToolChanged += tool =>
         {
-            ((ColoredPlane)_drawToolButton.Background!).Color = tool == EditorTool.Draw ? EditorPalette.Accent : EditorPalette.Surface;
-            ((ColoredPlane)_selectToolButton.Background!).Color = tool == EditorTool.Select ? EditorPalette.Accent : EditorPalette.Surface;
+            foreach (var (button, buttonTool) in _toolButtons)
+                ((ColoredPlane)button.Background!).Color =
+                    buttonTool == tool ? EditorPalette.Accent : EditorPalette.Surface;
         };
 
         // The column body stacks the scrollable track list above the transport
         // controls: the list is percent-height, so it yields whatever room the
-        // auto-sized transport section (below) doesn't need — no separate full-width
+        // auto-sized transport section (below) doesn't need - no separate full-width
         // bottom bar, no magic footer-height constant to keep in sync.
         var trackColumnBody = new FlexPanel(context)
         {
@@ -136,8 +126,34 @@ public class EditorInterface
             Width = LaneHeader.GutterWidth,
             Height = LiteralOrComputable.Percent(100)
         };
-        _gridArea.AddChild(_laneHeader);
-        _gridArea.AddChild(_arrangement);
+        // The arrangement wraps in a vertical panel mirroring _trackEditorPanel below:
+        // a slim bar holding the tool buttons, then the lane header + grid row.
+        var arrangementBar = new FlexPanel(context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = 40,
+            Spacing = 12,
+            Padding = 6,
+            Children =
+            [
+                new Panel(context) { Width = LiteralOrComputable.Percent(100) },
+                MakeToolButton("Draw", EditorTool.Draw), MakeToolButton("Select", EditorTool.Select)
+            ]
+        };
+        var arrangementBody = new FlexPanel(context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100),
+            Children = [_laneHeader, _arrangement]
+        };
+        _arrangementPanel = new FlexPanel(context)
+        {
+            Direction = LayoutDirection.Vertical,
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100),
+            Children = [arrangementBar, arrangementBody]
+        };
+        _gridArea.AddChild(_arrangementPanel);
         _arrangement.OnOpenTrack = State.OpenTrack;
         _arrangement.OnSeekQuarters = Playback.Seek;
         _arrangement.OnScrolled = _laneHeader.InvalidateLayout;
@@ -162,7 +178,7 @@ public class EditorInterface
         _instrumentWorkflow = new InstrumentWorkflow(context, State, Playback, _dialogHost, workflow.AtlasStore,
             () => workflow.SampleHolder.StringToSoundReferences.Keys.Order());
 
-        _instrumentButton = new Button(context, "Instrument: —")
+        _instrumentButton = new Button(context, "Instrument: -")
         {
             OnClick = _ => _instrumentWorkflow.OpenSelector()
         };
@@ -186,28 +202,12 @@ public class EditorInterface
         _soundFilterModal = new ModalLayer(context);
         _soundFilterModal.AddChild(soundFilterFrame);
         doneButton.OnClick = _ => CommitAndCloseSoundFilter();
-        // Dismissing via the backdrop commits too — clicking outside shouldn't discard picks.
+        // Dismissing via the backdrop commits too - clicking outside shouldn't discard picks.
         _soundFilterModal.OnDismissRequested = _ => CommitAndCloseSoundFilter();
 
         var backToArrangement = new Button(context, "← Arrangement") { OnClick = _ => State.CloseTrack() };
-        var addSegment = new Button(context, "+ Segment")
-        {
-            OnClick = _ =>
-            {
-                if (State.OpenedTrack is { } track) State.SelectSegment(State.AddSegment(track));
-            }
-        };
-        var removeSegment = new Button(context, "− Segment")
-        {
-            OnClick = _ =>
-            {
-                // RemoveSegment refuses on the last segment (library invariant) — just a no-op here.
-                if (State is { OpenedTrack: { } track, SelectedSegment: { } segment })
-                    State.RemoveSegment(track, segment);
-            }
-        };
-        // Percent-width spacer soaks up the free space so the segment buttons land flush
-        // against the bar's right edge — this framework has no space-between align.
+        // Percent-width spacer soaks up the free space so the tool buttons land flush
+        // against the bar's right edge - this framework has no space-between align.
         var editorBarSpacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
         var editorBar = new FlexPanel(context)
         {
@@ -217,7 +217,8 @@ public class EditorInterface
             Padding = 6,
             Children =
             [
-                backToArrangement, _openedTrackName, _instrumentButton, editorBarSpacer, addSegment, removeSegment
+                backToArrangement, _openedTrackName, _instrumentButton, editorBarSpacer,
+                MakeToolButton("Draw", EditorTool.Draw), MakeToolButton("Select", EditorTool.Select)
             ]
         };
         _trackEditorPanel = new FlexPanel(context)
@@ -308,18 +309,29 @@ public class EditorInterface
 
         if (_editorOpen)
         {
-            _gridArea.RemoveChild(_laneHeader);
-            _gridArea.RemoveChild(_arrangement);
+            _gridArea.RemoveChild(_arrangementPanel);
             _gridArea.AddChild(_trackEditorPanel);
             _trackEditor.CenterOnZero();
         }
         else
         {
             _gridArea.RemoveChild(_trackEditorPanel);
-            _gridArea.AddChild(_laneHeader);
-            _gridArea.AddChild(_arrangement);
+            _gridArea.AddChild(_arrangementPanel);
             _arrangement.Refresh();
         }
+    }
+
+    /// <summary>One Draw/Select toggle; every made button follows State.OnToolChanged (see ctor).</summary>
+    private Button MakeToolButton(string text, EditorTool tool)
+    {
+        var button = new Button(_context, text)
+        {
+            Background = new ColoredPlane
+            { Color = State.ActiveTool == tool ? EditorPalette.Accent : EditorPalette.Surface },
+            OnClick = _ => State.ActiveTool = tool
+        };
+        _toolButtons.Add((button, tool));
+        return button;
     }
 
     /// <summary>Same lazy-fill guard as <see cref="InstrumentEditor.EnsureSounds" />, for the filter picker.</summary>
@@ -339,7 +351,7 @@ public class EditorInterface
 
     private void RefreshActiveInstrument()
     {
-        _instrumentButton.Label.SetTextContents($"Instrument: {State.ActiveInstrument?.Name ?? "—"}");
+        _instrumentButton.Label.SetTextContents($"Instrument: {State.ActiveInstrument?.Name ?? "-"}");
         _instrumentButton.InvalidateLayout();
     }
 
@@ -432,11 +444,11 @@ public class EditorInterface
     private void RefreshTitle()
     {
         if (!_titleActive) return;
-        _workflow.Game.Title = $"{State.Project.Info.Name}{(State.Dirty ? " •" : "")} — {_defaultTitle}";
+        _workflow.Game.Title = $"{State.Project.Info.Name}{(State.Dirty ? " •" : "")} - {_defaultTitle}";
     }
 
     /// <summary>
-    ///     Guards <see cref="ShowTrackContextMenu" /> against reopening on every held frame —
+    ///     Guards <see cref="ShowTrackContextMenu" /> against reopening on every held frame -
     ///     right-press is level-triggered, so a stationary right-click keeps firing.
     /// </summary>
     private ModalLayer? _trackContextMenuModal;

@@ -176,7 +176,7 @@ public class ThirtyDollarWorkflow
         {
             FileLocation = l!,
             FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo
-                    { Location = l!, Storage = StorageLocation.Disk })
+            { Location = l!, Storage = StorageLocation.Disk })
                 .ModifiedDate
         }).ToArray();
     }

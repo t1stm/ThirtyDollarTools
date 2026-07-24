@@ -11,7 +11,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     The export options form (ModalLayer content): the <see cref="SequenceStyle" />
-///     cosmetics plus the two export actions. Pure form — the owner handles file
+///     cosmetics plus the two export actions. Pure form - the owner handles file
 ///     dialogs and the actual writing.
 /// </summary>
 public sealed class ExportDialog : FlexPanel
@@ -31,7 +31,11 @@ public sealed class ExportDialog : FlexPanel
         var defaults = new SequenceStyle();
         DividerEveryBars = new NumericInput(context, 2)
         {
-            Width = 120, Height = 32, FontSizePx = 14, Min = 0, Max = 1024
+            Width = 120,
+            Height = 32,
+            FontSizePx = 14,
+            Min = 0,
+            Max = 1024
         };
         DividerOnSpeedChanges = new Checkbox(context, "Divider on !speed changes")
         {
@@ -42,15 +46,20 @@ public sealed class ExportDialog : FlexPanel
         };
         MigrateToStop = new NumericInput(context, defaults.MigrateToStop)
         {
-            Width = 120, Height = 32, FontSizePx = 14, Min = 1, Max = 4096, AllowNull = true
+            Width = 120,
+            Height = 32,
+            FontSizePx = 14,
+            Min = 1,
+            Max = 4096,
+            AllowNull = true
         };
 
         TdwButton = new Button(context, "Export .tdw")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         WavButton = new Button(context, "Export .wav")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         CancelButton = new Button(context, "Cancel")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
 
         AddChild(new Label(context, "Export") { FontSizePx = 18f, Color = EditorPalette.Header });
         Row("Divider every N bars (0 = off)", DividerEveryBars);
@@ -58,7 +67,7 @@ public sealed class ExportDialog : FlexPanel
         AddChild(DividerOnSpeedChanges);
 
         // Percent-width spacer soaks up the free space so Cancel sits flush left and the
-        // export actions flush right — this framework has no space-between align.
+        // export actions flush right - this framework has no space-between align.
         var buttonRowSpacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
         AddChild(new FlexPanel(context)
         {
@@ -95,7 +104,9 @@ public sealed class ExportDialog : FlexPanel
         };
         row.AddChild(new Label(Context, label)
         {
-            FontSizePx = 13f, Y = 9, Color = EditorPalette.TextMuted
+            FontSizePx = 13f,
+            Y = 9,
+            Color = EditorPalette.TextMuted
         });
         row.AddChild(input);
         AddChild(row);

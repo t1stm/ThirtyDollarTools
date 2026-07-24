@@ -42,7 +42,7 @@ public class Label : UIElement
 
     // Defaults to TextSlice's own hardcoded FontSize (16): SetTextContents resolves this
     // into TextSlice.FontSize on every call, so a label that never sets this explicitly
-    // must still default to a real size — otherwise its first text update zeroes it out.
+    // must still default to a real size - otherwise its first text update zeroes it out.
     [NamedSetting("font-size")]
     public LiteralOrComputable FontSizePx
     {
@@ -95,7 +95,7 @@ public class Label : UIElement
         if (text.Length > TextSlice.Length)
         {
             // The replacement slice's constructor already ran UpdateCharacters once, at the
-            // default (0,0,0) position — before Position/FontSize/Color below were applied.
+            // default (0,0,0) position - before Position/FontSize/Color below were applied.
             // Without an explicit final UpdateCharacters call, that stale, wrongly-positioned
             // (and wrongly-sized/colored) render is all that's ever written for this text,
             // since nothing else is guaranteed to touch Position again this frame.
@@ -108,7 +108,7 @@ public class Label : UIElement
             newSlice.Color = Color;
             newSlice.UpdateManually = false;
             newSlice.UpdateCharacters();
-            TextSlice = newSlice; // setter reads Scale — already correct from the update above
+            TextSlice = newSlice; // setter reads Scale - already correct from the update above
         }
         else
         {

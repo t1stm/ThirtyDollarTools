@@ -13,7 +13,7 @@ public class CSharp : SundexScript
         /* AddReferences doesn't work for some reason on SingleFilePublish when -p:IncludeAllContentForSelfExtract is not enabled.
          * See: https://github.com/dotnet/roslyn/issues/50719 */
         var options = ScriptOptions.Default
-            .AddReferences([typeof(CSharp).Assembly, ..context.UIContext.AssetProvider.AssetAssemblies])
+            .AddReferences([typeof(CSharp).Assembly, .. context.UIContext.AssetProvider.AssetAssemblies])
             .AddImports("System", "Sundex.Markup.Abstract", "Sundex.Markup.Logic.Languages.CSharp", "Sundex.Components",
                 "Sundex.Components.Abstractions")
             .AddImports(logicLanguageImports);

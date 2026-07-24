@@ -109,7 +109,7 @@ public sealed class FileSelection : Panel
         };
         if (_nameInput != null) bottom_section.AddChild(_nameInput);
         // Percent-width spacer soaks up the free space so the name input sits flush left
-        // and the actions flush right — this framework has no space-between align.
+        // and the actions flush right - this framework has no space-between align.
         bottom_section.AddChild(new Panel(context) { Width = LiteralOrComputable.Percent(100) });
         bottom_section.AddChild(new Button(Context, "Cancel", new ColoredPlane { Color = CancelColor })
         {
@@ -174,7 +174,7 @@ public sealed class FileSelection : Panel
     public Action<FileSelection>? OnCancel { get; set; }
     public Action<FileSelection>? OnSelect { get; set; }
 
-    /// <summary>Marks a file as chosen — what clicking a row does.</summary>
+    /// <summary>Marks a file as chosen - what clicking a row does.</summary>
     public void SelectFile(string path)
     {
         SelectedFile = path;
@@ -213,11 +213,11 @@ public sealed class FileSelection : Panel
         {
             var directories = Directory.GetDirectories(CurrentPath);
             list.AddRange(from directory in directories
-                let dirInfo = new DirectoryInfo(directory)
-                where (dirInfo.Attributes & FileAttributes.Hidden) == 0
-                orderby dirInfo.Name
-                select new Label(Context, $"{dirInfo.Name}/") // TODO emojis don't render with new label system
-                    { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
+                          let dirInfo = new DirectoryInfo(directory)
+                          where (dirInfo.Attributes & FileAttributes.Hidden) == 0
+                          orderby dirInfo.Name
+                          select new Label(Context, $"{dirInfo.Name}/") // TODO emojis don't render with new label system
+                          { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
 
             var files = Directory.GetFiles(CurrentPath)
                 .Where(file => ExtensionFilter == null ||
@@ -226,7 +226,9 @@ public sealed class FileSelection : Panel
             list.AddRange(files.Select(file => new FileInfo(file)).Select(fileInfo =>
                 new Label(Context, $"📄 {fileInfo.Name}")
                 {
-                    FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => SelectFile(fileInfo.FullName),
+                    FontSizePx = 14,
+                    UpdateCursorOnHover = true,
+                    OnClick = _ => SelectFile(fileInfo.FullName),
                 }));
         }
         catch (Exception ex)
@@ -262,7 +264,7 @@ public sealed class FileSelection : Panel
         base.DoLayout();
 
         // A long CurrentPath auto-sizes past the header's bounds otherwise (Labels don't
-        // wrap/truncate) — clip it to the header like ScrollView/TextInput self-clip.
+        // wrap/truncate) - clip it to the header like ScrollView/TextInput self-clip.
         var x = (int)_topSection.Computed.AbsoluteX;
         var y = (int)_topSection.Computed.AbsoluteY;
         _topSection.ApplyClip(new Vector4i(x, y, x + (int)_topSection.Computed.Width, y + (int)_topSection.Computed.Height));

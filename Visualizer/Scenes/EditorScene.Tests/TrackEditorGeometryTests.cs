@@ -95,7 +95,7 @@ public class TrackEditorGeometryTests
     {
         var geometry = MakeGeometry();
 
-        // Only the left edge is bounded — scrolling can push the grid's content
+        // Only the left edge is bounded - scrolling can push the grid's content
         // fully past the viewport (matching ArrangementView's unbounded-right pan),
         // so playhead-follow can keep centering the playhead near the end of a
         // track instead of freezing once the last segment fills the viewport.

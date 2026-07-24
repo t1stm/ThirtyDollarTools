@@ -61,7 +61,7 @@ public class SoundPickerTests
     [Fact]
     public void KeybindNote_LivesBesideTheIconGrid_NotInsideIt()
     {
-        // The icon grid must stay a plain wrap of icons — the hint sits in the outer,
+        // The icon grid must stay a plain wrap of icons - the hint sits in the outer,
         // non-wrapping row so icons wrap within the space it leaves, rather than just
         // trailing the last icon inline.
         var picker = NewPicker(new EditorTestContext());

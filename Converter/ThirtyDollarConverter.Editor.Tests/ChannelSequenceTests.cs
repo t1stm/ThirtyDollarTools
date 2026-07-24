@@ -6,7 +6,7 @@ namespace ThirtyDollarConverter.Editor.Tests;
 /// <summary>
 ///     Per-channel sequences for editor playback: each arrangement lane renders on its
 ///     own audio channel, so every lane's sequence must share the merged sequence's
-///     timeline origin — otherwise the mixed lanes drift apart.
+///     timeline origin - otherwise the mixed lanes drift apart.
 /// </summary>
 public class ChannelSequenceTests
 {

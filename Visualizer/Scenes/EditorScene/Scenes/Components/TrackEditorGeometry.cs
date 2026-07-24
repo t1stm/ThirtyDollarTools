@@ -4,7 +4,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     Owns the piano roll's scroll/zoom state and every pixel↔model conversion for
-///     <see cref="TrackEditorView" />. Plain state, no GL — the piece that makes the
+///     <see cref="TrackEditorView" />. Plain state, no GL - the piece that makes the
 ///     roll's math unit-testable headless. Every coordinate in and out is local to the
 ///     view (relative to its own top-left), never absolute screen space.
 /// </summary>
@@ -18,7 +18,7 @@ public sealed class TrackEditorGeometry
 
     /// <summary>
     ///     Fixed-height pinned row for cut notes, always visible at the bottom of the
-    ///     viewport — unlike every other row, it never scrolls, pans vertically, or zooms
+    ///     viewport - unlike every other row, it never scrolls, pans vertically, or zooms
     ///     with the grid.
     /// </summary>
     public const float CutRowHeight = 24f;
@@ -28,11 +28,11 @@ public sealed class TrackEditorGeometry
 
     public const float GridTop = StripHeight + RulerHeight;
 
-    /// <summary>Top of the pinned cut row — docked to the bottom of the viewport, clamped
+    /// <summary>Top of the pinned cut row - docked to the bottom of the viewport, clamped
     /// so it never rises above <see cref="GridTop" /> in a viewport too short to fit it.</summary>
     public float CutRowTop { get; private set; }
 
-    /// <summary>Bottom edge of the scrollable grid — the rule sits directly below it.</summary>
+    /// <summary>Bottom edge of the scrollable grid - the rule sits directly below it.</summary>
     public float GridBottom => CutRowTop - RuleHeight;
 
     public readonly ViewNavigation Nav = new(minZoom: 4f, maxZoom: 128f) { Zoom = 64f };
@@ -90,7 +90,7 @@ public sealed class TrackEditorGeometry
     }
 
     /// <summary>
-    ///     Continuous, unsnapped step position — the same value for every segment since
+    ///     Continuous, unsnapped step position - the same value for every segment since
     ///     they all share this view's pixels-per-step, so it doubles as the track-absolute
     ///     "global step" (see <see cref="ProjectTrack.GlobalStepOf" />) without walking
     ///     segments. Used by the marquee selection, which must not snap to the grid.
@@ -100,7 +100,7 @@ public sealed class TrackEditorGeometry
         return (localX - GutterWidth + ScrollX) / PixelsPerStep;
     }
 
-    /// <summary>Continuous, unsnapped value position — the marquee's counterpart to <see cref="ValueAt" />.</summary>
+    /// <summary>Continuous, unsnapped value position - the marquee's counterpart to <see cref="ValueAt" />.</summary>
     public double UnsnappedValueAt(float localY)
     {
         var r = (localY - GridTop + ScrollY) / RowHeight;
@@ -135,7 +135,7 @@ public sealed class TrackEditorGeometry
 
     /// <summary>
     ///     Horizontally, only the left edge is bounded (matching <see cref="ArrangementView" />'s
-    ///     unbounded-right pan) — the grid can scroll past the last segment into empty space,
+    ///     unbounded-right pan) - the grid can scroll past the last segment into empty space,
     ///     so playhead-follow can keep centering the playhead all the way to the end of
     ///     playback instead of freezing once the content itself fills the viewport.
     /// </summary>
