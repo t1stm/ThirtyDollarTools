@@ -555,4 +555,86 @@ public class InspectorPanelTests
         Assert.Equal("mixed", ((Label)inspector.Field("Track.Track")!).Value.ToString());
         Assert.Null(inspector.Field("Track.Name"));
     }
+
+    [Fact]
+    public void StatusBar_PinnedAtBottom_AndScrollViewSoaksTheFreeSpace()
+    {
+        var (_, _, inspector) = NewInspector();
+
+        var expectedRowsHeight = inspector.Computed.Height - InspectorPanel.RuleHeight - InspectorPanel.StatusBarHeight;
+        Assert.Equal(expectedRowsHeight, inspector.Rows.Computed.Height, 3);
+
+        var panelBottom = inspector.Computed.AbsoluteY + inspector.Computed.Height;
+        var statusBottom = inspector.StatusSection.Computed.AbsoluteY + inspector.StatusSection.Computed.Height;
+        Assert.Equal(panelBottom, statusBottom, 3);
+    }
+
+    [Fact]
+    public void Rebuild_TwiceKeepsTheStatusBarAlive()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.SelectTrack(track); // triggers a Rebuild through the wired-up event
+        inspector.Rebuild();
+
+        inspector.SetStatus("Rendering audio…", 0.4f);
+        Assert.Equal("Rendering audio…", inspector.StatusLabelElement.Value.ToString());
+        Assert.True(inspector.StatusBar.Visible);
+    }
+
+    [Fact]
+    public void SetStatus_NullHidesTheBar_NonNullShowsLabelAndProgress()
+    {
+        var (_, _, inspector) = NewInspector();
+
+        inspector.SetStatus(null, 0f);
+        Assert.Equal("Idle", inspector.StatusLabelElement.Value.ToString());
+        Assert.False(inspector.StatusBar.Visible);
+
+        inspector.SetStatus("Writing WAV…", 0.5f);
+        Assert.Equal("Writing WAV…", inspector.StatusLabelElement.Value.ToString());
+        Assert.True(inspector.StatusBar.Visible);
+        Assert.Equal(0.5f, inspector.StatusBar.Progress, 3);
+    }
+
+    [Fact]
+    public void SetStatus_WithTotal_AppendsDoneAndTotalInBrackets()
+    {
+        var (_, _, inspector) = NewInspector();
+
+        inspector.SetStatus("Rendering audio…", 6f / 67, 6, 67);
+        Assert.Equal("Rendering audio… (6 - 67)", inspector.StatusLabelElement.Value.ToString());
+
+        // The placement/mixing stages and a fully-cached incremental render report nothing
+        // (total stays 0) — the label shows bare, with no stale counts from the last report.
+        // Trim: shrinking a Label's text pads TextSlice's backing buffer with '\0' sentinels
+        // (cleared glyph cells, see TextSlice.UpdateCharacters) that Value's getter still
+        // includes — the rendered text is correct, only the raw string needs trimming here.
+        inspector.SetStatus("Rendering audio…", 0f);
+        Assert.Equal("Rendering audio…", inspector.StatusLabelElement.Value.ToString().TrimEnd('\0'));
+    }
+
+    // Regression for a real bug: the progress bar's planes are queued for rendering the
+    // instant Background is set on their backing Panels (see Panel's Background setter),
+    // regardless of Visible — at whatever Index the bar has at that construction moment.
+    // Being built hidden and later shown via SetStatus must not leave them stuck rendering
+    // at that stale, wrong depth (see Sundex.Components.Tests.ProgressBarVisibilityToggleTests
+    // for the underlying mechanics); this asserts the fix at the level the bug was reported at
+    // — the bar being invisible in the actual editor despite SetStatus marking it Visible.
+    [Fact]
+    public void SetStatus_Shown_QueuesTheBarPlanesAtTheirCurrentCorrectLayer()
+    {
+        var (ctx, _, inspector) = NewInspector();
+        var bg = inspector.StatusBar.BackgroundPanel.Background!;
+        var fg = inspector.StatusBar.ForegroundPanel.Background!;
+
+        inspector.SetStatus("Rendering audio…", 0.5f);
+
+        Assert.Equal(inspector.StatusBar.BackgroundPanel.Index, ctx.LayerOf(bg));
+        Assert.Equal(inspector.StatusBar.ForegroundPanel.Index, ctx.LayerOf(fg));
+
+        inspector.SetStatus(null, 0f);
+        Assert.Equal(-1, ctx.LayerOf(bg));
+        Assert.Equal(-1, ctx.LayerOf(fg));
+    }
 }

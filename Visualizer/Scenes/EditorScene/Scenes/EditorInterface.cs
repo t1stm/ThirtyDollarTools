@@ -140,6 +140,7 @@ public class EditorInterface
         _gridArea.AddChild(_arrangement);
         _arrangement.OnOpenTrack = State.OpenTrack;
         _arrangement.OnSeekQuarters = Playback.Seek;
+        _arrangement.OnScrolled = _laneHeader.InvalidateLayout;
 
         _trackEditor = new TrackEditorView(context, State)
         {
@@ -266,6 +267,7 @@ public class EditorInterface
         State.OnOpenedTrackChanged += track =>
         {
             SwapGridView(track);
+            RefreshActiveInstrument();
             _inspector.Rebuild();
         };
         State.OnNoteSelectionChanged += _ =>
@@ -310,7 +312,6 @@ public class EditorInterface
             _gridArea.RemoveChild(_arrangement);
             _gridArea.AddChild(_trackEditorPanel);
             _trackEditor.CenterOnZero();
-            RefreshActiveInstrument();
         }
         else
         {
@@ -399,42 +400,19 @@ public class EditorInterface
             return;
         }
 
-        var save = new Button(_context, "Save") { FontSizePx = 14 };
-        var discard = new Button(_context, "Discard") { FontSizePx = 14 };
-        var cancel = new Button(_context, "Cancel") { FontSizePx = 14 };
-        var content = new FlexPanel(_context)
-        {
-            Direction = LayoutDirection.Vertical,
-            Width = 400,
-            Padding = 14,
-            Spacing = 12,
-            Background = new ColoredPlane { Color = EditorPalette.Panel },
-            Children =
-            [
-                new Label(_context, "Unsaved changes — save before leaving?") { FontSizePx = 15f },
-                new FlexPanel(_context)
-                {
-                    Width = LiteralOrComputable.Percent(100),
-                    Height = 44,
-                    Spacing = 10,
-                    HorizontalAlign = Align.End,
-                    VerticalAlign = Align.Center,
-                    Children = [save, discard, cancel]
-                }
-            ]
-        };
-        var modal = _dialogHost.Show(content);
-        save.OnClick = _ =>
+        var dialog = new UnsavedChangesDialog(_context);
+        var modal = _dialogHost.Show(dialog);
+        dialog.SaveButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
             _projectIo.Save(PerformBack);
         };
-        discard.OnClick = _ =>
+        dialog.DiscardButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
             PerformBack();
         };
-        cancel.OnClick = _ => _dialogHost.Close(modal);
+        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
     }
 
     private void PerformBack()
@@ -542,6 +520,8 @@ public class EditorInterface
     public void Update(UIContext context)
     {
         Playback.Update();
+        _inspector.SetStatus(Playback.StatusLabel, Playback.StatusProgress, Playback.StatusDone, Playback.StatusTotal);
+        if (Playback.TakeError() is { } error) _dialogHost.Alert(error);
         _workflow.AtlasStore.Update(); // animated sound icons advance their frames here
         _projectIo.TickBackup();
 
@@ -550,6 +530,7 @@ public class EditorInterface
             _arrangement.PlayheadQuarters = Playback.PlayheadQuarters;
             _trackEditor.PlayheadQuarters = Playback.PlayheadQuarters;
             State.IsCurrentlyPlayingAudio = Playback.IsPlaying;
+            if (Playback.IsPlaying) FollowPlayheadSegment();
         }
 
         _transport.Refresh();
@@ -558,11 +539,33 @@ public class EditorInterface
         RootPanel.Layout();
     }
 
+    /// <summary>
+    ///     Keeps the inspector panel live during playback: selects whichever segment of the
+    ///     opened track the playhead currently sits inside, same placement lookup as
+    ///     <see cref="TrackEditorView" />'s playhead line.
+    /// </summary>
+    private void FollowPlayheadSegment()
+    {
+        if (State.OpenedTrack is not { } track) return;
+        var bpm = State.Project.RootTiming.BPM;
+        var duration = track.DurationMinutes();
+        foreach (var placement in State.Project.Placements)
+        {
+            if (placement.Track != track) continue;
+            var localMinutes = (Playback.PlayheadQuarters - placement.StartQuarterNotes) / bpm;
+            if (localMinutes < 0 || localMinutes >= duration) continue;
+            if (track.SegmentAtGlobalStep((int)track.StepPositionAt(localMinutes)) is { } found)
+                State.SelectSegment(found.Segment);
+            return;
+        }
+    }
+
     public void MouseEvent(MouseState mouseState, Vector2 scale)
     {
         RootPanel.Test(mouseState, scale);
         // The framework only routes left/right buttons; middle-drag panning is fed here.
-        _trackEditor.MiddlePan(_editorOpen && mouseState.IsButtonDown(MouseButton.Middle),
-            _context.PointerX, _context.PointerY);
+        var middle = mouseState.IsButtonDown(MouseButton.Middle);
+        if (_editorOpen) _trackEditor.MiddlePan(middle, _context.PointerX, _context.PointerY);
+        else _arrangement.MiddlePan(middle, _context.PointerX, _context.PointerY);
     }
 }

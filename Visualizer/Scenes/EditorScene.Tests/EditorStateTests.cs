@@ -250,6 +250,32 @@ public class EditorStateTests
     }
 
     [Fact]
+    public void OpenTrack_RemembersEachTracksLastActiveInstrument()
+    {
+        var state = new EditorState();
+        var trackA = state.AddTrack();
+        var trackB = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var click = MakeInstrument(state, "click");
+        state.AddNote(trackB.Segments[0], 0, click, 0);
+
+        // Track A starts empty: no notes to seed from, so it opens with null.
+        state.OpenTrack(trackA);
+        Assert.Null(state.ActiveInstrument);
+
+        // Picking an instrument while A is open is remembered for A specifically.
+        state.ActiveInstrument = boom;
+
+        // Track B has never been opened: seeds from its first note.
+        state.OpenTrack(trackB);
+        Assert.Same(click, state.ActiveInstrument);
+
+        // Switching back to A restores what was last active there, not B's instrument.
+        state.OpenTrack(trackA);
+        Assert.Same(boom, state.ActiveInstrument);
+    }
+
+    [Fact]
     public void NoteLifecycle_MutatesDirtiesAndNotifies()
     {
         var state = new EditorState();

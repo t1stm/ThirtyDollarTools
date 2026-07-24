@@ -143,20 +143,55 @@ public class ArrangementViewTests
     }
 
     [Fact]
-    public void PlainWheel_StillPans()
+    public void ShiftWheel_PansTimeInstead()
     {
+        // Same binding as the note editor: Shift+wheel pans time (FineSnap = Shift held).
         var (ctx, state, view) = NewView();
         state.SelectTrack(state.AddTrack());
         view.Layout();
+        view.FineSnap = true;
 
         // Wheel down pans right by 48 px = 2 beats; a click at x=0 now places at beat 2.
         ctx.UpdatePointer(view, 400, 100, false, false, false, new Vector2(0, -1));
         Assert.Equal(24f, view.PixelsPerQuarter);
+        Assert.Equal(0f, view.ScrollY); // time only - the lanes never moved
 
+        view.FineSnap = false;
         Press(ctx, view, 0, 100);
         Release(ctx, view, 0, 100);
         var placement = Assert.Single(state.Project.Placements);
         Assert.Equal(2, placement.StartQuarterNotes);
+    }
+
+    [Fact]
+    public void PlainWheel_ScrollsLanesVertically_NeverTime()
+    {
+        var (ctx, state, view) = NewView(); // 800x400: gridHeight 382, ~8 lanes fit
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 10, 0); // forces 12 lanes (10 + 2 spare) - taller than the grid
+        view.Layout();
+
+        ctx.UpdatePointer(view, 400, 100, false, false, false, new Vector2(0, -1));
+        Assert.True(view.ScrollY > 0);
+        Assert.Equal(24f, view.PixelsPerQuarter); // time untouched
+
+        Press(ctx, view, 0, 100);
+        Release(ctx, view, 0, 100);
+        Assert.Equal(0, state.Project.Placements[^1].StartQuarterNotes); // time untouched
+    }
+
+    [Fact]
+    public void VerticalScroll_ClampsToTheContentRange()
+    {
+        var (ctx, state, view) = NewView(); // 800x400: gridHeight 382
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 10, 0); // 12 lanes: max scroll = 12*44 - 382 = 146
+        view.Layout();
+
+        for (var i = 0; i < 8; i++)
+            ctx.UpdatePointer(view, 400, 100, false, false, false, new Vector2(0, -1));
+
+        Assert.Equal(146f, view.ScrollY, 3);
     }
 
     [Fact]

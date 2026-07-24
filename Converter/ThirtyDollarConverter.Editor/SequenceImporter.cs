@@ -58,12 +58,11 @@ public static class SequenceImporter
     {
         var (walk, plans, warnings) = Prepare(sequence, knownSounds);
 
-        var prefix = UniqueName(name, ExistingNames(project));
-        var instruments = BuildInstruments(project, prefix, walk.SoundOrder);
-        var segments = BuildTrackSegments(plans, instruments);
-
         var track = project.NewTrack();
-        track.Name = prefix;
+        track.Name = UniqueName($"{name} - imported", ExistingNames(project));
+
+        var instruments = BuildInstruments(project, walk.SoundOrder);
+        var segments = BuildTrackSegments(plans, instruments);
         PopulateTrack(track, segments);
 
         var channel = project.Placements.Count == 0 ? 0 : project.Placements.Max(p => p.Channel) + 1;
@@ -79,10 +78,9 @@ public static class SequenceImporter
         var (walk, plans, warnings) = Prepare(sequence, knownSounds);
 
         project = new ThirtyDollarProject { Info = { Name = name } };
-        project.RootTiming.BPM = (float)walk.Regions[0].Speed;
+        project.RootTiming.BPM = plans[0].BPM;
 
-        var prefix = UniqueName(name, ExistingNames(project));
-        var instruments = BuildInstruments(project, prefix, walk.SoundOrder);
+        var instruments = BuildInstruments(project, walk.SoundOrder);
         var masterSegments = BuildTrackSegments(plans, instruments);
 
         var channel = 0;
@@ -90,7 +88,7 @@ public static class SequenceImporter
         {
             var instrument = instruments[sound];
             var track = project.NewTrack();
-            track.Name = $"{prefix} - {DisplayName(sound)}";
+            track.Name = instrument.Name;
 
             var perSoundSegments = masterSegments.Select(segment =>
             {
@@ -124,22 +122,17 @@ public static class SequenceImporter
         return sound.Replace('_', ' ');
     }
 
-    /// <summary>First free "prefix", "prefix (2)", "prefix (3)", … whose name and
-    /// "prefix - " namespace don't collide with any existing track/instrument name.</summary>
-    private static string UniqueName(string prefix, IEnumerable<string> existingNames)
+    /// <summary>First free "name", "name (2)", "name (3)", … not already used by any
+    /// existing track or instrument.</summary>
+    private static string UniqueName(string name, IEnumerable<string> existingNames)
     {
-        var names = existingNames.ToArray();
-        if (!Collides(prefix)) return prefix;
+        var names = existingNames.ToHashSet();
+        if (!names.Contains(name)) return name;
 
         for (var n = 2;; n++)
         {
-            var candidate = $"{prefix} ({n})";
-            if (!Collides(candidate)) return candidate;
-        }
-
-        bool Collides(string candidate)
-        {
-            return names.Any(existing => existing == candidate || existing.StartsWith(candidate + " - "));
+            var candidate = $"{name} ({n})";
+            if (!names.Contains(candidate)) return candidate;
         }
     }
 
@@ -258,9 +251,16 @@ public static class SequenceImporter
 
                     break;
                 }
-                case "!cut": // bare global cut - the model has no way to represent it (see !cut@sound above)
-                    ignoredEvents["!cut"] = ignoredEvents.GetValueOrDefault("!cut") + 1;
+                case "!cut": // bare global cut - only sounds already introduced could be playing
+                {
+                    foreach (var sound in soundOrder)
+                    {
+                        if (!seenCuts.Add((regionIndex, position, sound))) continue;
+                        notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
+                    }
+
                     break;
+                }
                 case "!looptarget":
                     loopTarget = index;
                     break;
@@ -346,8 +346,8 @@ public static class SequenceImporter
 
     // ---- Phase B: regions -> segments (each speed change becomes its own segment) ----
 
-    private sealed record SegmentPlan(int Numerator, int Bars, float BPM, List<(int Step, WalkedNote Note)> Notes,
-        int QuantizedNotes);
+    private sealed record SegmentPlan(int Numerator, int Bars, int Spb, float BPM,
+        List<(int Step, WalkedNote Note)> Notes, int QuantizedNotes);
 
     private static List<SegmentPlan> BuildSegmentPlans(List<(double Speed, double Length)> regions,
         List<WalkedNote> notes)
@@ -392,22 +392,9 @@ public static class SequenceImporter
             }).ToList();
 
             var lengthSteps = (int)Math.Round(length * k);
-            int numerator, bars;
-            float bpm;
-            if (k == 1 && lengthSteps % 4 == 0)
-            {
-                numerator = 4;
-                bars = lengthSteps / 4;
-                bpm = (float)speed;
-            }
-            else
-            {
-                numerator = lengthSteps;
-                bars = 1;
-                bpm = (float)(speed * k);
-            }
+            var shape = ChooseShape(speed, k, lengthSteps, r == regions.Count - 1);
 
-            plans.Add(new SegmentPlan(numerator, bars, bpm, stepped, quantized));
+            plans.Add(new SegmentPlan(shape.Numerator, shape.Bars, shape.Spb, shape.Bpm, stepped, quantized));
         }
 
         return plans;
@@ -418,15 +405,101 @@ public static class SequenceImporter
         return Math.Abs(value - Math.Round(value)) < 1e-6;
     }
 
+    /// <summary>
+    ///     Chooses a musical (Numerator, Bars, StepsPerBeat, BPM) for a region of
+    ///     <paramref name="lengthSteps" /> k-grid steps at grid rate <c>speed * k</c> steps/minute.
+    ///     Any shape satisfying <c>BPM * Spb == speed * k</c> and <c>Bars * Numerator * Spb == PaddedL</c>
+    ///     is timing-identical; this picks the least surprising one by penalizing a giant
+    ///     numerator, a sub-16th grid, and an inhuman BPM. Only the final region
+    ///     (<paramref name="isFinal" />) may pad its length with trailing silence
+    ///     (never represented by <see cref="SequenceBuilder" />) to reach a clean bar.
+    /// </summary>
+    private static (int Numerator, int Bars, int Spb, float Bpm, int PaddedL) ChooseShape(double speed, int k,
+        int lengthSteps, bool isFinal)
+    {
+        if (lengthSteps <= 0) return (4, 0, 1, (float)(speed * k), 0);
+
+        var rate = speed * k;
+        var best = (Numerator: 4, Bars: 0, Spb: 1, Bpm: 0f, PaddedL: 0, Score: double.MaxValue);
+
+        void Consider(int n, int bars, int s, int paddedL)
+        {
+            var bpm = rate / s;
+            var score = NumeratorPenalty(n) + SpbPenalty(s) + BpmPenalty(bpm)
+                        + (paddedL - lengthSteps) * PadStepPenalty;
+            if (score < best.Score) best = (n, bars, s, (float)bpm, paddedL, score);
+        }
+
+        for (var s = 1; s <= SequenceBuilder.MaxSpeedMultiplier; s++)
+        {
+            if (lengthSteps % s != 0) continue;
+            var beats = lengthSteps / s;
+            foreach (var n in Divisors(beats))
+                Consider(n, beats / n, s, lengthSteps);
+        }
+
+        if (isFinal)
+            for (var s = 1; s <= SequenceBuilder.MaxSpeedMultiplier; s++)
+            {
+                var unit = 4 * s;
+                var bars = (lengthSteps + unit - 1) / unit;
+                var paddedL = bars * unit;
+                if (paddedL == lengthSteps) continue; // already an exact candidate above
+                Consider(4, bars, s, paddedL);
+            }
+
+        return (best.Numerator, best.Bars, best.Spb, best.Bpm, best.PaddedL);
+    }
+
+    /// <summary>Every divisor of <paramref name="n" />, O(sqrt(n)).</summary>
+    private static IEnumerable<int> Divisors(int n)
+    {
+        for (var d = 1; (long)d * d <= n; d++)
+        {
+            if (n % d != 0) continue;
+            yield return d;
+            if (d != n / d) yield return n / d;
+        }
+    }
+
+    private static double NumeratorPenalty(int n)
+    {
+        return n switch
+        {
+            4 => 0,
+            2 or 3 or 6 or 8 => 1,
+            <= 16 => 3,
+            _ => 50 + n
+        };
+    }
+
+    private static double SpbPenalty(int s)
+    {
+        return s >= 4 ? 0 : 4 - s;
+    }
+
+    private static double BpmPenalty(double bpm)
+    {
+        if (bpm is >= 60 and <= 300) return 0;
+        var bound = bpm < 60 ? 60 : 300;
+        return Math.Round(4 * Math.Abs(Math.Log2(bpm / bound)));
+    }
+
+    // ponytail: pad weight chosen by feel, sized to match the other penalties (0-3ish) so
+    // padding only wins when the unpadded shape is genuinely bad — tune against the
+    // ~/tdw corpus if padding looks too eager/timid.
+    private const double PadStepPenalty = 1.0;
+
     // ---- Phase C: instruments and notes ----
 
-    private static Dictionary<string, Instrument> BuildInstruments(ThirtyDollarProject project, string prefix,
+    private static Dictionary<string, Instrument> BuildInstruments(ThirtyDollarProject project,
         List<string> soundOrder)
     {
         var instruments = new Dictionary<string, Instrument>();
         foreach (var sound in soundOrder)
         {
-            var instrument = project.NewInstrument($"{prefix} - {DisplayName(sound)}");
+            var name = UniqueName($"{DisplayName(sound)} - imported", ExistingNames(project));
+            var instrument = project.NewInstrument(name);
             instrument.Sounds.Add(sound);
             instruments[sound] = instrument;
         }
@@ -442,7 +515,7 @@ public static class SequenceImporter
         {
             var segment = new TrackSegment
             {
-                Numerator = plan.Numerator, Denominator = 4, StepsPerBeat = 1, Bars = plan.Bars, BPM = plan.BPM
+                Numerator = plan.Numerator, Denominator = 4, StepsPerBeat = plan.Spb, Bars = plan.Bars, BPM = plan.BPM
             };
             foreach (var (step, note) in plan.Notes)
                 segment.Notes.Add(new Note

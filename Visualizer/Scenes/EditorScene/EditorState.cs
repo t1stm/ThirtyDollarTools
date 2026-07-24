@@ -55,7 +55,9 @@ public class EditorState
     private readonly EditorClipboard _clipboard = new();
     private readonly List<Note> _selectedNotes = [];
     private readonly List<TrackPlacement> _selectedPlacements = [];
+    private readonly Dictionary<ProjectTrack, Instrument?> _lastInstrumentByTrack = [];
     private EditorTool _activeTool = EditorTool.Draw;
+    private Instrument? _activeInstrument;
 
     public ThirtyDollarProject Project { get; private set; } = new();
     public ProjectTrack? SelectedTrack { get; private set; }
@@ -79,8 +81,18 @@ public class EditorState
     /// Existing single-selection consumers (inspector form, CopiedModifiers) read this.</summary>
     public Note? SelectedNote => _selectedNotes.Count == 1 ? _selectedNotes[0] : null;
 
-    /// <summary>The instrument a click in the note editor places. Session-only, never saved.</summary>
-    public Instrument? ActiveInstrument { get; set; }
+    /// <summary>The instrument a click in the note editor places. Session-only, never saved.
+    /// Remembered per track (see <see cref="OpenTrack" />), so switching back to a track
+    /// restores whichever instrument was last active in it.</summary>
+    public Instrument? ActiveInstrument
+    {
+        get => _activeInstrument;
+        set
+        {
+            _activeInstrument = value;
+            if (OpenedTrack is { } track) _lastInstrumentByTrack[track] = value;
+        }
+    }
 
     /// <summary>Draw (paint/place, single selection on click) or Select (marquee,
     /// multi-selection). Switching tools keeps the current selection.</summary>
@@ -203,8 +215,9 @@ public class EditorState
         OpenedTrack = track;
         SelectSegment(track.Segments[0]);
         SelectNote(null);
-        ActiveInstrument ??= track.Segments.SelectMany(s => s.Notes).FirstOrDefault()?.Instrument
-            ?? Project.Instruments.FirstOrDefault();
+        ActiveInstrument = _lastInstrumentByTrack.TryGetValue(track, out var last)
+            ? last
+            : track.Segments.SelectMany(s => s.Notes).FirstOrDefault()?.Instrument;
         OnOpenedTrackChanged?.Invoke(track);
     }
 
@@ -793,6 +806,8 @@ public class EditorState
         return _muteSolo.IsSoloed(channel);
     }
 
+    public bool AnySoloed => _muteSolo.AnySoloed;
+
     /// <summary>FL semantics: any solo wins; otherwise everything not muted sounds.</summary>
     public bool IsChannelAudible(int channel)
     {
@@ -870,8 +885,9 @@ public class EditorState
         _muteSolo.Clear();
         _undoHistory.Clear();
         _clipboard.Clear();
-        ActiveInstrument = null;
+        _lastInstrumentByTrack.Clear();
         CloseTrack();
+        ActiveInstrument = null;
         SelectTrack(null);
         ClearSelection();
         OnProjectChanged?.Invoke();

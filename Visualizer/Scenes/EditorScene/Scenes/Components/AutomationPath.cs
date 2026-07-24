@@ -54,6 +54,7 @@ internal sealed class AutomationPath
         var stepMinutes = segment.StepMinutes(track.Timing.BPM);
         if (stepMinutes <= 0) return;
 
+        var maxY = geometry.GridBottom;
         var pixelsPerStep = geometry.PixelsPerStep;
         var scrollX = geometry.ScrollX;
         var rowHeight = geometry.RowHeight;
@@ -69,19 +70,23 @@ internal sealed class AutomationPath
                     rowHeight / 2;
 
             // The horizontal run, the value jump (only when the value moved), the tick.
-            if (!Mark(ref used, Math.Min(prevX, x), prevY - 0.5f, Math.Abs(x - prevX), 1f, color)) return;
+            if (!Mark(ref used, Math.Min(prevX, x), prevY - 0.5f, Math.Abs(x - prevX), 1f, color, maxY)) return;
             if (Math.Abs(y - prevY) >= 1f &&
-                !Mark(ref used, x - 0.5f, Math.Min(prevY, y), 1f, Math.Abs(y - prevY), color)) return;
-            if (!Mark(ref used, x - 1f, y - rowHeight * 0.3f, 2f, rowHeight * 0.6f, color)) return;
+                !Mark(ref used, x - 0.5f, Math.Min(prevY, y), 1f, Math.Abs(y - prevY), color, maxY)) return;
+            if (!Mark(ref used, x - 1f, y - rowHeight * 0.3f, 2f, rowHeight * 0.6f, color, maxY)) return;
 
             prevX = x;
             prevY = y;
         }
     }
 
-    private bool Mark(ref int used, float x, float y, float width, float height, Vector4 color)
+    /// <summary>Trims a mark against the grid's bottom edge — the one shared point that
+    /// covers all three mark kinds (run, jump, tick) bleeding past a partially scrolled
+    /// grid into the pinned cut row below it.</summary>
+    private bool Mark(ref int used, float x, float y, float width, float height, Vector4 color, float maxY)
     {
         if (used >= _marks.Count) return false; // pool cap: the path just ends early
+        height = Math.Max(0, Math.Min(y + height, maxY) - y);
         var mark = _marks[used++];
         mark.X = x;
         mark.Y = y;

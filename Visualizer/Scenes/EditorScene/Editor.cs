@@ -143,42 +143,37 @@ public class Editor : Scene
     {
         if (_context.DispatchKeyDown(e)) return;
         var state = _editorInterface.State;
-        if (e.Key == Keys.Escape)
+        switch (e.Key)
         {
             // Escape clears the selection first; only once nothing is selected does it
             // fall through to the existing chain (close modal → close track → back).
-            if (state.SelectedNotes.Count > 0 || state.SelectedPlacements.Count > 0)
-            {
+            case Keys.Escape when state.SelectedNotes.Count > 0 || state.SelectedPlacements.Count > 0:
                 state.ClearSelection();
                 return;
+            case Keys.Escape when _editorInterface.TryCloseTopModal():
+                return;
+            case Keys.Escape:
+            {
+                if (state.OpenedTrack != null) state.CloseTrack();
+                else _editorInterface.RequestBack();
+                return;
             }
-            if (_editorInterface.TryCloseTopModal()) return;
-            if (state.OpenedTrack != null) state.CloseTrack();
-            else _editorInterface.RequestBack();
-            return;
-        }
-        if (e.Key == Keys.Z && e.Modifiers.HasFlag(KeyModifiers.Control))
-        {
-            if (e.Modifiers.HasFlag(KeyModifiers.Shift)) state.Redo();
-            else state.Undo();
-            return;
-        }
-        if (e.Key == Keys.Y && e.Modifiers.HasFlag(KeyModifiers.Control))
-        {
-            state.Redo();
-            return;
-        }
-
-        // Plain letters only: Ctrl+D is reserved for the future "duplicate selection".
-        if (e.Key == Keys.D && !e.Modifiers.HasFlag(KeyModifiers.Control))
-        {
-            state.ActiveTool = EditorTool.Draw;
-            return;
-        }
-        if (e.Key == Keys.E && !e.Modifiers.HasFlag(KeyModifiers.Control))
-        {
-            state.ActiveTool = EditorTool.Select;
-            return;
+            case Keys.Z when e.Modifiers.HasFlag(KeyModifiers.Control):
+            {
+                if (e.Modifiers.HasFlag(KeyModifiers.Shift)) state.Redo();
+                else state.Undo();
+                return;
+            }
+            case Keys.Y when e.Modifiers.HasFlag(KeyModifiers.Control):
+                state.Redo();
+                return;
+            // Plain letters only: Ctrl+D is reserved for the future "duplicate selection".
+            case Keys.D when !e.Modifiers.HasFlag(KeyModifiers.Control):
+                state.ActiveTool = EditorTool.Draw;
+                return;
+            case Keys.E when !e.Modifiers.HasFlag(KeyModifiers.Control):
+                state.ActiveTool = EditorTool.Select;
+                return;
         }
 
         // A focused TextInput deliberately lets Ctrl-combos fall through (see

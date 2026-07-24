@@ -30,7 +30,6 @@ public sealed class TrackEditorView : Panel
     public const float GutterWidth = TrackEditorGeometry.GutterWidth;
     public const float StripHeight = TrackEditorGeometry.StripHeight;
     public const float RulerHeight = TrackEditorGeometry.RulerHeight;
-    public const float CutRowTop = TrackEditorGeometry.CutRowTop;
     public const float CutRowHeight = TrackEditorGeometry.CutRowHeight;
     public const float GridTop = TrackEditorGeometry.GridTop;
 
@@ -44,8 +43,11 @@ public sealed class TrackEditorView : Panel
     private const int BoundaryLinePool = 512; // changed from 256 for Aleph-0 demo
     private const int AutomationMarkPool = 768; // ≤3 marks per generated automation event
 
-    // Slot ranges within _lineBatch: row lines, then step lines, then boundary lines.
-    private const int RowLineSlot = 0;
+    // Slot ranges within _lineBatch: the cut row's background first (so every later
+    // slot paints over it — see the pinned cut row's paint-order comment below), then
+    // row lines, step lines, then boundary lines.
+    private const int CutRowBgSlot = 0;
+    private const int RowLineSlot = CutRowBgSlot + 1;
     private const int StepLineSlot = RowLineSlot + Rows + 1;
     private const int BoundaryLineSlot = StepLineSlot + StepLinePool;
     private const int LineBatchTotal = BoundaryLineSlot + BoundaryLinePool;
@@ -103,12 +105,11 @@ public sealed class TrackEditorView : Panel
     private readonly Panel _gutterBackground;
     private readonly Panel _stripBackground;
     private readonly Panel _rulerBackground;
-    private readonly Panel _cutRowBackground;
+    private readonly Panel _cutRule;
 
     internal NoteBlock? _dragging;
     private (TrackSegment segment, Note note)? _placing;
     private Vector4i? _inheritedClip;
-    private Vector2? _panPointer;
 
     // Marquee (Select tool): model-space anchor/cursor (continuous step, value), so
     // mid-drag scrolling can't corrupt it and off-screen notes inside the box still
@@ -174,13 +175,6 @@ public sealed class TrackEditorView : Panel
             AddChild(label);
         }
 
-        // Pinned cut row: fixed position between the ruler and the scrollable grid,
-        // always visible regardless of vertical scroll (unlike every other row). Added
-        // before the gutter so the gutter's own corner still shows through, same as
-        // the strip/ruler above it.
-        _cutRowBackground = NewGhost(context, CutRowColor);
-        AddChild(_cutRowBackground);
-
         var gutter = new Panel(context)
         {
             Background = new ColoredPlane { Color = GutterColor },
@@ -206,6 +200,11 @@ public sealed class TrackEditorView : Panel
 
         _cutRowLabel = new Label(context, "!cut") { FontSizePx = 11f, Color = LabelColor };
         AddChild(_cutRowLabel);
+
+        // Added after the gutter and its label so the rule spans the full width,
+        // crossing the gutter column too, instead of being cut off by it.
+        _cutRule = NewGhost(context, BoundaryColor);
+        AddChild(_cutRule);
 
         // Added last so it renders above every note block (same trick ArrangementView
         // uses for its playhead); never takes input (GhostPanel), fill only, no border.
@@ -275,30 +274,39 @@ public sealed class TrackEditorView : Panel
         _geometry.ClampScroll();
 
         var pps = PixelsPerStep;
+        // Auto-scroll (following the playhead) mutates _geometry.ScrollX live - run it
+        // before scrollX is snapshotted below, so grid lines (using the snapshot) and
+        // PlaceNote (reading _geometry.ScrollX directly) never land a frame apart.
+        CollectPlayheadXs(track, width, pps);
+
+        var cutRowTop = _geometry.CutRowTop;
+        var gridBottom = _geometry.GridBottom;
         var scrollX = _geometry.ScrollX;
         var scrollY = _geometry.ScrollY;
         var rowHeight = _geometry.RowHeight;
         var visibleStart = scrollX;
         var visibleEnd = scrollX + Math.Max(0, width - GutterWidth);
-        CollectPlayheadXs(track, width, pps);
 
         // The grid only spans the track's segments — everything past the last one is
         // dead space where clicks can't place, so it must not look placeable.
         var contentPx = (track?.Segments.Sum(s => s.StepCount) ?? 0) * pps;
         var gridWidth = Math.Clamp(contentPx - scrollX, 0, Math.Max(0, width - GutterWidth));
 
+        var zeroRowY = _geometry.ValueTop(0);
         _zeroRow.X = GutterWidth;
-        _zeroRow.Y = _geometry.ValueTop(0);
+        _zeroRow.Y = zeroRowY;
         _zeroRow.Width = gridWidth;
-        _zeroRow.Height = rowHeight;
+        _zeroRow.Height = Math.Max(0, Math.Min(zeroRowY + rowHeight, gridBottom) - zeroRowY);
 
         var absX = Computed.AbsoluteX;
         var absY = Computed.AbsoluteY;
 
+        _lineBatch.Set(CutRowBgSlot, absX, absY + cutRowTop, width, CutRowHeight, CutRowColor);
+
         for (var r = 0; r < Rows + 1; r++)
         {
             var y = GridTop + r * rowHeight - scrollY;
-            var visibleWidth = y >= 0 && y <= height ? gridWidth : 0;
+            var visibleWidth = y >= GridTop && y + 1 <= gridBottom ? gridWidth : 0;
             var color = (MaxValue - r) % 12 == 0 ? OctaveLineColor : RowLineColor;
             _lineBatch.Set(RowLineSlot + r, absX + GutterWidth, absY + y, visibleWidth, 1, color);
         }
@@ -438,11 +446,6 @@ public sealed class TrackEditorView : Panel
         _rulerBackground.Width = width;
         _rulerBackground.Height = RulerHeight;
 
-        _cutRowBackground.X = 0;
-        _cutRowBackground.Y = CutRowTop;
-        _cutRowBackground.Width = width;
-        _cutRowBackground.Height = CutRowHeight;
-
         _gutterBackground.X = 0;
         _gutterBackground.Y = 0;
         _gutterBackground.Width = GutterWidth;
@@ -454,17 +457,24 @@ public sealed class TrackEditorView : Panel
             var y = _geometry.ValueTop(value) + (rowHeight - 11f) / 2;
             // Labels render above the strip background, so scrolled-out ones must be
             // parked outside the view's clip instead of relying on paint order.
-            _gutterLabels[i].X = y < GridTop || y + 11f > height ? -1000f : 8;
+            _gutterLabels[i].X = y < GridTop || y + 11f > gridBottom ? -1000f : 8;
             _gutterLabels[i].Y = y;
         }
 
         // Fixed position - always visible, never parked outside the clip like the
         // scrollable gutter labels above.
         _cutRowLabel.X = 8;
-        _cutRowLabel.Y = CutRowTop + (CutRowHeight - 11f) / 2;
+        _cutRowLabel.Y = cutRowTop + (CutRowHeight - 11f) / 2;
+
+        // Full-width rule separating the grid from the pinned cut row, crossing the
+        // gutter column too (added after it in the constructor so it paints on top).
+        _cutRule.X = 0;
+        _cutRule.Y = gridBottom;
+        _cutRule.Width = width;
+        _cutRule.Height = TrackEditorGeometry.RuleHeight;
 
         LayoutPlayheads(height);
-        LayoutMarquee(pps, scrollX);
+        LayoutMarquee(pps, scrollX, gridBottom);
 
         base.DoLayout();
         ApplyClip(_inheritedClip);
@@ -472,7 +482,7 @@ public sealed class TrackEditorView : Panel
 
     /// <summary>Positions the marquee rectangle from its model-space anchor/cursor every
     /// frame, so it scroll-corrects; zero size (hidden) while no marquee is active.</summary>
-    private void LayoutMarquee(float pps, float scrollX)
+    private void LayoutMarquee(float pps, float scrollX, float gridBottom)
     {
         if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor)
         {
@@ -486,10 +496,13 @@ public sealed class TrackEditorView : Panel
         var y1 = _geometry.ValueTop(anchor.Value);
         var y2 = _geometry.ValueTop(cursor.Value);
 
+        var top = Math.Min(y1, y2);
+        var bottom = Math.Min(Math.Max(y1, y2), gridBottom);
+
         _marqueeRect.X = Math.Min(x1, x2);
-        _marqueeRect.Y = Math.Min(y1, y2);
+        _marqueeRect.Y = top;
         _marqueeRect.Width = Math.Abs(x2 - x1);
-        _marqueeRect.Height = Math.Abs(y2 - y1);
+        _marqueeRect.Height = Math.Max(0, bottom - top);
     }
 
     /// <summary>
@@ -580,16 +593,20 @@ public sealed class TrackEditorView : Panel
             // stacking exactly on top of each other.
             var slotWidth = PixelsPerStep / cutSlotCount;
             block.X = stepX + cutSlot * slotWidth;
-            block.Y = CutRowTop + 0.5f;
+            block.Y = _geometry.CutRowTop + 0.5f;
             block.Width = Math.Max(3, slotWidth - 1);
             block.Height = Math.Max(3, CutRowHeight - 1);
         }
         else
         {
+            var y = _geometry.ValueTop(note.Value) + 0.5f;
             block.X = stepX;
-            block.Y = _geometry.ValueTop(note.Value) + 0.5f;
+            block.Y = y;
             block.Width = Math.Max(3, PixelsPerStep - 1);
-            block.Height = Math.Max(3, _geometry.RowHeight - 1);
+            // No overdraw covers a grid note bleeding past the grid's bottom edge
+            // (unlike the top, still covered by the strip/ruler children), so clamp it.
+            var naturalHeight = Math.Max(3, _geometry.RowHeight - 1);
+            block.Height = Math.Max(0, Math.Min(y + naturalHeight, _geometry.GridBottom) - y);
         }
 
         ((ColoredPlane)block.Background!).Color =
@@ -605,25 +622,8 @@ public sealed class TrackEditorView : Panel
     public override bool HandleScroll(Vector2 scrollDelta)
     {
         _geometry.CenterPending = false;
-        if (WheelZooms)
-        {
-            // Zoom anchored at the pointer: the step under the cursor stays put.
-            var pointerPx = Context.PointerX - Computed.AbsoluteX - GutterWidth;
-            _geometry.ZoomAt(pointerPx, scrollDelta.Y);
-        }
-        else if (FineSnap)
-        {
-            // FL bindings: Shift+wheel pans time.
-            _geometry.ScrollX -= scrollDelta.Y * 48f;
-        }
-        else
-        {
-            // Plain wheel scrolls the value rows; a tilt wheel / touchpad X pans time.
-            _geometry.ScrollY -= scrollDelta.Y * 48f;
-            _geometry.ScrollX -= scrollDelta.X * 48f;
-        }
-
-        _geometry.ClampScroll();
+        var pointerPx = Context.PointerX - Computed.AbsoluteX - GutterWidth;
+        _geometry.Nav.Wheel(scrollDelta, WheelZooms, FineSnap, pointerPx);
         InvalidateLayout();
         return true;
     }
@@ -635,25 +635,9 @@ public sealed class TrackEditorView : Panel
     /// </summary>
     public void MiddlePan(bool held, float x, float y)
     {
-        if (!held)
-        {
-            _panPointer = null;
-            return;
-        }
-
-        if (_panPointer is { } last)
-        {
-            _geometry.CenterPending = false;
-            _geometry.ScrollX += last.X - x;
-            _geometry.ScrollY += last.Y - y;
-            _panPointer = new Vector2(x, y);
-            _geometry.ClampScroll();
-            InvalidateLayout();
-        }
-        else if (ContainsPoint(x, y))
-        {
-            _panPointer = new Vector2(x, y);
-        }
+        if (!_geometry.Nav.MiddlePan(held, x, y, ContainsPoint(x, y))) return;
+        _geometry.CenterPending = false;
+        InvalidateLayout();
     }
 
     /// <summary>Scrolls so value 0 sits mid-viewport on the next layout.</summary>
@@ -755,13 +739,13 @@ public sealed class TrackEditorView : Panel
     {
         var localX = x - Computed.AbsoluteX;
         var localY = y - Computed.AbsoluteY;
-        if (localY is >= StripHeight and < CutRowTop)
+        if (localY is >= StripHeight and < GridTop)
         {
             SeekToPointer(x);
             return true;
         }
         if (localX < GutterWidth) return false;
-        if (localY is >= CutRowTop and < GridTop) return HandleCutRowPress(x);
+        if (localY >= _geometry.CutRowTop) return HandleCutRowPress(x);
         if (localY < GridTop) return false;
 
         if (_state.ActiveTool == EditorTool.Select)
@@ -886,7 +870,7 @@ public sealed class TrackEditorView : Panel
     ///     of them (a fresh press onto an unselected note already replaced the selection
     ///     with just it, so this naturally degrades to a plain single-note drag).
     /// </summary>
-    internal void BeginNoteDrag(NoteBlock block)
+    internal void BeginNoteDrag(NoteBlock block, float pressY)
     {
         if (_state.OpenedTrack is not { } track || block.Note == null || block.Segment == null) return;
 
@@ -895,9 +879,18 @@ public sealed class TrackEditorView : Panel
 
         var anchorGlobalStep = track.GlobalStepOf(block.Segment, block.Note.Step);
         _groupDragAnchorStartStep = anchorGlobalStep;
-        _groupDragAnchorStartValue = block.Note.Value;
+        // Snapped pointer value at press, not the note's own exact Value: a fractional value
+        // (e.g. 6.4) only snaps back to itself in FineSnap mode, so anchoring on the exact
+        // value would read every later frame's ValueAt(y) as a nonzero delta even at the same
+        // pointer position - including the same-position "drag" frame the input dispatcher
+        // fires for a plain held click (see UIContext.UpdatePointer) - silently rounding the
+        // note on a click, and losing the fraction on an intentional drag (delta = snapped -
+        // exact instead of snapped - snapped). Anchoring on the snap makes a same-position
+        // frame's delta exactly zero, and a one-row drag's delta a clean whole number that
+        // adds onto each note's own exact StartValue below - preserving the fraction.
+        _groupDragAnchorStartValue = ValueAt(pressY);
         _groupDragLastStep = anchorGlobalStep;
-        _groupDragLastValue = block.Note.Value;
+        _groupDragLastValue = _groupDragAnchorStartValue;
 
         _groupDrag = _state.SelectedNotes.Select(note =>
         {

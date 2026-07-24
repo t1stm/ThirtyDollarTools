@@ -162,6 +162,17 @@ public class ThirtyDollarProject
     }
 
     /// <summary>
+    ///     The merged sequence restricted to placements on audible channels — editor
+    ///     playback's render unit. A muted channel's cuts still apply, via the same
+    ///     cross-channel injection <see cref="BuildSequence" /> uses for
+    ///     <see cref="ChannelSequence" />.
+    /// </summary>
+    public Sequence ToSequence(Func<int, bool> isChannelAudible, SequenceStyle? style = null)
+    {
+        return BuildSequence(_placements.Where(p => isChannelAudible(p.Channel)).ToList(), style);
+    }
+
+    /// <summary>
     ///     The sequence of a single arrangement channel — the unit of editor playback,
     ///     where every lane renders separately and the enabled lanes are mixed. Anchored
     ///     on the same timeline origin as <see cref="ToSequence" /> so the per-channel

@@ -17,19 +17,29 @@ public sealed class TrackEditorGeometry
     public const float RulerHeight = 18f;
 
     /// <summary>
-    ///     Fixed-height pinned row for cut notes, always visible directly below the ruler —
-    ///     unlike every other row, it never scrolls, pans vertically, or zooms with the grid.
+    ///     Fixed-height pinned row for cut notes, always visible at the bottom of the
+    ///     viewport — unlike every other row, it never scrolls, pans vertically, or zooms
+    ///     with the grid.
     /// </summary>
     public const float CutRowHeight = 24f;
 
-    /// <summary>Top of the pinned cut row — a constant screen position (never <see cref="ScrollY" />-adjusted).</summary>
-    public const float CutRowTop = StripHeight + RulerHeight;
+    /// <summary>1px rule separating the scrollable grid from the pinned cut row.</summary>
+    public const float RuleHeight = 1f;
 
-    public const float GridTop = StripHeight + RulerHeight + CutRowHeight;
+    public const float GridTop = StripHeight + RulerHeight;
 
-    public float ScrollX { get; set; }
-    public float ScrollY { get; set; }
-    public float PixelsPerStep { get; set; } = 64f;
+    /// <summary>Top of the pinned cut row — docked to the bottom of the viewport, clamped
+    /// so it never rises above <see cref="GridTop" /> in a viewport too short to fit it.</summary>
+    public float CutRowTop { get; private set; }
+
+    /// <summary>Bottom edge of the scrollable grid — the rule sits directly below it.</summary>
+    public float GridBottom => CutRowTop - RuleHeight;
+
+    public readonly ViewNavigation Nav = new(minZoom: 4f, maxZoom: 128f) { Zoom = 64f };
+
+    public float ScrollX { get => Nav.ScrollX; set => Nav.ScrollX = value; }
+    public float ScrollY { get => Nav.ScrollY; set => Nav.ScrollY = value; }
+    public float PixelsPerStep { get => Nav.Zoom; set => Nav.Zoom = value; }
 
     /// <summary>Effective row height for the current viewport, recomputed by <see cref="SetViewport" />.</summary>
     public float RowHeight { get; private set; } = 8f;
@@ -37,9 +47,6 @@ public sealed class TrackEditorGeometry
     /// <summary>A fresh view (and every OpenTrack) starts centered on value 0; stays
     /// pending until the user scrolls.</summary>
     public bool CenterPending { get; set; } = true;
-
-    private float _viewportWidth;
-    private float _viewportHeight;
 
     /// <summary>
     ///     Recomputes the effective row height for the given viewport and, while
@@ -49,10 +56,11 @@ public sealed class TrackEditorGeometry
     /// </summary>
     public void SetViewport(float width, float height, float minRowHeight)
     {
-        _viewportWidth = width;
-        _viewportHeight = height;
-        RowHeight = Math.Max(minRowHeight, (height - GridTop) / Rows);
-        if (CenterPending) ScrollY = (Rows * RowHeight - (height - GridTop)) / 2;
+        CutRowTop = Math.Max(GridTop, height - CutRowHeight);
+        var gridHeight = Math.Max(0, GridBottom - GridTop);
+        RowHeight = Math.Max(minRowHeight, gridHeight / Rows);
+        Nav.MaxScrollY = Math.Max(0, Rows * RowHeight - gridHeight);
+        if (CenterPending) ScrollY = (Rows * RowHeight - gridHeight) / 2;
     }
 
     /// <summary>Maps a local x to (segment, local step); null outside the track's grid.</summary>
@@ -131,18 +139,9 @@ public sealed class TrackEditorGeometry
     ///     so playhead-follow can keep centering the playhead all the way to the end of
     ///     playback instead of freezing once the content itself fills the viewport.
     /// </summary>
-    public void ClampScroll()
-    {
-        ScrollX = Math.Max(0, ScrollX);
-        ScrollY = Math.Clamp(ScrollY, 0, Math.Max(0, Rows * RowHeight - (_viewportHeight - GridTop)));
-    }
+    public void ClampScroll() => Nav.Clamp();
 
     /// <summary>Pointer-anchored zoom (Ctrl+wheel): the step under the cursor stays put.
     /// <paramref name="pointerPx" /> is local x already offset past the gutter.</summary>
-    public void ZoomAt(float pointerPx, float wheelDeltaY)
-    {
-        var anchorSteps = (pointerPx + ScrollX) / PixelsPerStep;
-        PixelsPerStep = Math.Clamp(PixelsPerStep * MathF.Pow(1.15f, wheelDeltaY), 4f, 128f);
-        ScrollX = anchorSteps * PixelsPerStep - pointerPx;
-    }
+    public void ZoomAt(float pointerPx, float wheelDeltaY) => Nav.ZoomAt(pointerPx, wheelDeltaY);
 }

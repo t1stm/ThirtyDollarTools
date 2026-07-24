@@ -1,6 +1,9 @@
 using OpenTK.Mathematics;
+using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Bars;
+using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
@@ -20,12 +23,22 @@ public sealed class InspectorPanel : Panel
 {
     public const float PanelWidth = 300f; // must match inspector-column's width in EditorInterface.snx.ss
 
+    internal const float StatusBarHeight = 40f;
+    internal const float RuleHeight = 1f;
+    private const float StatusProgressHeight = 6f;
+
     private static readonly Vector4 EntryColor = EditorPalette.Surface; // one shade above the panel background
     private static readonly Vector4 KeyframeColor = EditorPalette.SurfaceRaised; // one more shade up, nested inside an entry
 
     private readonly ScrollView _rows;
     private readonly InspectorForm _form;
     private readonly EditorState _state;
+    private readonly Label _statusLabel;
+    private readonly ProgressBar _statusBar;
+    private readonly FlexPanel _statusSection;
+
+    private string? _syncedStatusLabel = "Idle"; // matches the constructed default below
+    private float _syncedStatusProgress = -1f; // never a valid Progress value, forces the first real SetStatus to apply
 
     public InspectorPanel(UIContext context, EditorState state) : base(context)
     {
@@ -38,8 +51,87 @@ public sealed class InspectorPanel : Panel
             Spacing = 8
         };
         _form = new InspectorForm(context, state, _rows);
-        AddChild(_rows);
+
+        var rule = new Panel(context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = RuleHeight,
+            Background = new ColoredPlane { Color = EditorPalette.Divider }
+        };
+
+        _statusLabel = new Label(context, "Idle")
+        {
+            FontSizePx = 12f,
+            Color = EditorPalette.TextMuted
+        };
+        _statusBar = new ProgressBar(context,
+            new ColoredPlane { Color = EditorPalette.Surface },
+            new ColoredPlane { Color = EditorPalette.Accent })
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = StatusProgressHeight,
+            Visible = false
+        };
+        _statusSection = new FlexPanel(context)
+        {
+            Direction = LayoutDirection.Vertical,
+            Width = LiteralOrComputable.Percent(100),
+            Height = StatusBarHeight,
+            Padding = 8,
+            Spacing = 4,
+            Children = [_statusLabel, _statusBar]
+        };
+
+        var body = new FlexPanel(context)
+        {
+            Direction = LayoutDirection.Vertical,
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100),
+            Children = [_rows, rule, _statusSection]
+        };
+        AddChild(body);
         Rebuild();
+    }
+
+    // Test seams (internal — see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
+    internal ScrollView Rows => _rows;
+    internal ProgressBar StatusBar => _statusBar;
+    internal Label StatusLabelElement => _statusLabel;
+    internal FlexPanel StatusSection => _statusSection;
+
+    /// <summary>Updates the status bar; null label shows "Idle" and hides the progress bar.
+    /// <paramref name="total" /> greater than zero appends the encoder's "done - total" counts
+    /// in brackets (e.g. "Rendering audio… (6 - 67)"); zero — the placement/mixing stages and a
+    /// fully-cached incremental render report nothing — leaves the label bare.
+    /// Called every frame from <see cref="EditorInterface.Update" /> — only touches elements
+    /// when the values actually changed, so it never dirties layout for nothing.</summary>
+    public void SetStatus(string? label, float progress, ulong done = 0, ulong total = 0)
+    {
+        var text = label == null ? "Idle" : total > 0 ? $"{label} ({done} - {total})" : label;
+        if (text != _syncedStatusLabel)
+        {
+            _syncedStatusLabel = text;
+            _statusLabel.SetTextContents(text);
+        }
+
+        var barVisible = label != null;
+        if (_statusBar.Visible != barVisible)
+        {
+            _statusBar.Visible = barVisible;
+            // Visible alone doesn't touch the render queue (Update()'s per-frame Layout() never
+            // does either) — the bar was built hidden, so its background/foreground planes are
+            // still queued at their stale construction-time layer. Show: re-queue at the current,
+            // correct layer via a fresh DrawTo. Hide: dequeue, or it stays rendered forever.
+            // See Sundex.Components.Tests.ProgressBarVisibilityToggleTests for the full mechanics.
+            if (barVisible) _statusBar.DrawTo(Context);
+            else _statusBar.StopRendering();
+        }
+
+        if (barVisible && !Equals(progress, _syncedStatusProgress))
+        {
+            _syncedStatusProgress = progress;
+            _statusBar.Progress = progress;
+        }
     }
 
     /// <summary>The input element showing a field, keyed "Section.Label" (e.g. "Track.Name").</summary>

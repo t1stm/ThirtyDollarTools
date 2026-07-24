@@ -23,9 +23,13 @@ public sealed class ArrangementView : Panel
     public const int MinChannels = 8;
 
     // ponytail: fixed pools — 128 bar lines cover a 3k px window at minimum zoom (6 ppq).
-    // LaneLinePool is also the LaneHeader's toggle pool, so the two stay in step.
+    // LaneLinePool is also the LaneHeader's toggle pool, so the two stay in step. It used
+    // to be 24: past that many channels, ChannelCount's clamp (below) silently capped the
+    // lane count these two pools iterate, so new channels still got a clip block (laid
+    // out straight from placement.Channel, uncapped) but no divider line or M/S toggles.
+    // 128 is generous headroom over any realistic track count.
     private const int BarLinePool = 128;
-    public const int LaneLinePool = 24;
+    public const int LaneLinePool = 128;
 
     private static readonly Vector4 ClipColor = EditorPalette.Accent;
     private static readonly Vector4 SelectedClipColor = EditorPalette.SelectionHighlight;
@@ -43,10 +47,10 @@ public sealed class ArrangementView : Panel
     private readonly Panel _marqueeRect;
     private readonly EditorState _state;
 
+    private readonly ViewNavigation _nav = new(minZoom: 6f, maxZoom: 96f) { Zoom = 24f };
     private ClipBlock? _dragging;
     private bool _refreshDeferred;
     private Vector4i? _inheritedClip;
-    private float _scrollX;
 
     // Marquee (Select tool): model-space anchor/cursor (continuous quarters, channel),
     // so mid-drag panning can't corrupt it. Mode is sampled from the modifier bools at
@@ -66,7 +70,7 @@ public sealed class ArrangementView : Panel
             var localY = context.PointerY - Computed.AbsoluteY;
             if (localY < RulerHeight)
             {
-                OnSeekQuarters?.Invoke(Math.Max(0, (context.PointerX - Computed.AbsoluteX + _scrollX) / PixelsPerQuarter));
+                OnSeekQuarters?.Invoke(Math.Max(0, (context.PointerX - Computed.AbsoluteX + _nav.ScrollX) / PixelsPerQuarter));
                 return;
             }
             // The Select tool never creates anything; its empty-lane press already
@@ -129,8 +133,12 @@ public sealed class ArrangementView : Panel
     /// <summary>Lane count, shared with the lane header so the M/S gutter stays aligned.</summary>
     public int Channels => ChannelCount;
 
+    /// <summary>Vertical lane scroll, shared with the lane header so its M/S toggles track
+    /// the lanes they belong to.</summary>
+    public float ScrollY => _nav.ScrollY;
+
     /// <summary>Horizontal zoom. Also the unit scale for hit-to-time math.</summary>
-    public float PixelsPerQuarter { get; set; } = 24f;
+    public float PixelsPerQuarter { get => _nav.Zoom; set => _nav.Zoom = value; }
 
     /// <summary>Drag/place snap, in quarter notes.</summary>
     public double SnapQuarterNotes { get; set; } = 1;
@@ -203,27 +211,36 @@ public sealed class ArrangementView : Panel
         var gridHeight = Math.Max(0, Computed.Height - RulerHeight);
         var lanesBottom = lanes * LaneHeight;
 
+        // Recomputed every layout (channel count and viewport height both change the
+        // scrollable range) and re-clamped immediately, or a track removal / resize that
+        // shrinks MaxScrollY below the current ScrollY would strand the view scrolled past
+        // its own content until the next wheel/pan event.
+        _nav.MaxScrollY = Math.Max(0, lanesBottom - gridHeight);
+        _nav.Clamp();
+        var scrollY = _nav.ScrollY;
+        var visibleLanesBottom = Math.Max(0, Math.Min(lanesBottom - scrollY, gridHeight));
+
         var absX = Computed.AbsoluteX;
         var absY = Computed.AbsoluteY;
 
         for (var i = 0; i < LaneLinePool; i++)
         {
-            var visible = i < lanes && (i + 1) * LaneHeight <= gridHeight;
-            var y = RulerHeight + (i + 1) * LaneHeight;
+            var y = RulerHeight + (i + 1) * LaneHeight - scrollY;
+            var visible = i < lanes && y >= RulerHeight && y <= Computed.Height;
             _lineBatch.Set(i, absX, absY + y, visible ? width : 0, 1, LineColor);
         }
 
-        var playheadX = (float)(PlayheadQuarters * PixelsPerQuarter) - _scrollX;
+        var playheadX = (float)(PlayheadQuarters * PixelsPerQuarter) - _nav.ScrollX;
         var playheadVisible = PlayheadQuarters >= 0 && playheadX >= 0 && playheadX < width;
 
         var barWidth = 4 * PixelsPerQuarter;
-        var firstBar = (int)Math.Floor(_scrollX / barWidth);
+        var firstBar = (int)Math.Floor(_nav.ScrollX / barWidth);
         for (var i = 0; i < BarLinePool; i++)
         {
-            var x = (firstBar + i) * barWidth - _scrollX;
+            var x = (firstBar + i) * barWidth - _nav.ScrollX;
             var visible = x >= 0 && x < width;
             _lineBatch.Set(LaneLinePool + i, absX + x, absY + RulerHeight, visible ? 1 : 0,
-                Math.Min(lanesBottom, gridHeight), LineColor);
+                visibleLanesBottom, LineColor);
 
             var label = _barLabels[i];
             if (!visible)
@@ -243,14 +260,19 @@ public sealed class ArrangementView : Panel
         {
             var placement = block.Placement;
             var quarters = placement.Track.DurationMinutes() * _state.Project.RootTiming.BPM;
-            block.X = (float)(placement.StartQuarterNotes * PixelsPerQuarter) - _scrollX;
-            block.Y = RulerHeight + placement.Channel * LaneHeight + 2;
+            block.X = (float)(placement.StartQuarterNotes * PixelsPerQuarter) - _nav.ScrollX;
+            // The bottom edge relies on ApplyClip (outside the view's own bounds entirely);
+            // the top doesn't, since a lane scrolled up still sits inside those bounds, just
+            // under the ruler - clamp it the same way TrackEditorView clamps a note's bottom.
+            var rawY = RulerHeight + placement.Channel * LaneHeight + 2 - scrollY;
+            var clampedY = Math.Max(rawY, RulerHeight);
+            block.Y = clampedY;
             block.Width = Math.Max(8, (float)(quarters * PixelsPerQuarter));
-            block.Height = LaneHeight - 4;
+            block.Height = Math.Max(0, rawY + (LaneHeight - 4) - clampedY);
         }
 
         _playhead.Width = playheadVisible ? 2 : 0;
-        _playhead.Height = Math.Min(lanesBottom, gridHeight);
+        _playhead.Height = visibleLanesBottom;
         _playhead.X = playheadX;
         _playhead.Y = RulerHeight;
 
@@ -276,10 +298,10 @@ public sealed class ArrangementView : Panel
             return;
         }
 
-        var x1 = (float)(anchor.Quarters * PixelsPerQuarter) - _scrollX;
-        var x2 = (float)(cursor.Quarters * PixelsPerQuarter) - _scrollX;
-        var y1 = RulerHeight + (float)(anchor.Channel * LaneHeight);
-        var y2 = RulerHeight + (float)(cursor.Channel * LaneHeight);
+        var x1 = (float)(anchor.Quarters * PixelsPerQuarter) - _nav.ScrollX;
+        var x2 = (float)(cursor.Quarters * PixelsPerQuarter) - _nav.ScrollX;
+        var y1 = RulerHeight + (float)(anchor.Channel * LaneHeight) - _nav.ScrollY;
+        var y2 = RulerHeight + (float)(cursor.Channel * LaneHeight) - _nav.ScrollY;
 
         _marqueeRect.X = Math.Min(x1, x2);
         _marqueeRect.Y = Math.Min(y1, y2);
@@ -290,13 +312,13 @@ public sealed class ArrangementView : Panel
     /// <summary>Continuous, unsnapped quarter-note position — the marquee's counterpart to <see cref="GridPosition" />.</summary>
     private double UnsnappedQuartersAt(float localX)
     {
-        return (localX + _scrollX) / PixelsPerQuarter;
+        return (localX + _nav.ScrollX) / PixelsPerQuarter;
     }
 
     /// <summary>Continuous, unsnapped channel — the marquee's counterpart to <see cref="GridPosition" />.</summary>
     private double UnsnappedChannelAt(float localY)
     {
-        return (localY - RulerHeight) / LaneHeight;
+        return (localY - RulerHeight + _nav.ScrollY) / LaneHeight;
     }
 
     /// <summary>
@@ -370,23 +392,31 @@ public sealed class ArrangementView : Panel
         }
     }
 
+    /// <summary>Fired after any scroll/pan changes the viewport — the lane header listens
+    /// to keep its M/S toggles aligned with the lanes they belong to.</summary>
+    public Action? OnScrolled { get; set; }
+
+    /// <summary>Plain wheel scrolls lanes vertically; Shift+wheel pans time instead —
+    /// same binding as <see cref="TrackEditorView.HandleScroll" />'s FineSnap/panXWithY.</summary>
     public override bool HandleScroll(Vector2 scrollDelta)
     {
-        if (WheelZooms)
-        {
-            // Zoom anchored at the pointer: the beat under the cursor stays put.
-            var pointerPx = Context.PointerX - Computed.AbsoluteX;
-            var anchorQuarters = (pointerPx + _scrollX) / PixelsPerQuarter;
-            PixelsPerQuarter = Math.Clamp(PixelsPerQuarter * MathF.Pow(1.15f, scrollDelta.Y), 6f, 96f);
-            _scrollX = Math.Max(0, anchorQuarters * PixelsPerQuarter - pointerPx);
-        }
-        else
-        {
-            _scrollX = Math.Max(0, _scrollX - scrollDelta.Y * 48f);
-        }
-
+        var pointerPx = Context.PointerX - Computed.AbsoluteX;
+        _nav.Wheel(scrollDelta, WheelZooms, panXWithY: FineSnap, pointerPx);
         InvalidateLayout();
+        OnScrolled?.Invoke();
         return true;
+    }
+
+    /// <summary>
+    ///     FL-style middle-mouse pan of both axes, fed per frame from the scene's mouse
+    ///     handler (the framework only routes left/right buttons). A hold that starts
+    ///     inside the view drags the viewport with the pointer until release.
+    /// </summary>
+    public void MiddlePan(bool held, float x, float y)
+    {
+        if (!_nav.MiddlePan(held, x, y, ContainsPoint(x, y))) return;
+        InvalidateLayout();
+        OnScrolled?.Invoke();
     }
 
     public override bool HandleKeyDown(KeyboardKeyEventArgs e)
@@ -483,9 +513,9 @@ public sealed class ArrangementView : Panel
 
     private (int channel, double start) GridPosition(float x, float y, double grabOffsetQuarters)
     {
-        var quarters = (x - Computed.AbsoluteX + _scrollX) / PixelsPerQuarter - grabOffsetQuarters;
+        var quarters = (x - Computed.AbsoluteX + _nav.ScrollX) / PixelsPerQuarter - grabOffsetQuarters;
         var snapped = Math.Max(0, Math.Round(quarters / SnapQuarterNotes) * SnapQuarterNotes);
-        var channel = (int)Math.Floor((y - Computed.AbsoluteY - RulerHeight) / LaneHeight);
+        var channel = (int)Math.Floor((y - Computed.AbsoluteY - RulerHeight + _nav.ScrollY) / LaneHeight);
         return (Math.Clamp(channel, 0, ChannelCount - 1), snapped);
     }
 

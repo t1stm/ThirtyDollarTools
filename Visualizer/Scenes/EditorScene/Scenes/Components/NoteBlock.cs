@@ -30,12 +30,14 @@ internal class NoteBlock : Panel
     }
 
     /// <summary>
-    ///     Press-time selection (both tools, per §2/§3.4), then always starts a group
-    ///     drag over whatever ended up selected: pressing an unselected note replaces the
-    ///     selection with just it (a group of one — the plain single-note drag); pressing
-    ///     a note that's already part of a (possibly multi-note) selection leaves the
-    ///     group intact, so the drag moves the whole group together. Ctrl/Shift presses
-    ///     under the Select tool only ever append/remove — no drag starts from those.
+    ///     Press-time selection (both tools, per §2/§3.4). The Select tool only ever
+    ///     selects — Ctrl/Shift append/remove, a plain press replaces the selection — and
+    ///     never starts a drag, so it never moves a note. The Draw tool's plain press
+    ///     replaces the selection the same way, then starts a group drag over whatever
+    ///     ended up selected: pressing an unselected note replaces the selection with just
+    ///     it (a group of one — the plain single-note drag); pressing a note that's already
+    ///     part of a (possibly multi-note) selection leaves the group intact, so the drag
+    ///     moves the whole group together.
     /// </summary>
     public override bool HandlePress(float x, float y)
     {
@@ -45,20 +47,17 @@ internal class NoteBlock : Panel
         if (_view._state.ActiveTool == EditorTool.Select)
         {
             if (_view.FineSnap)
-            {
-                _view._state.RemoveFromNoteSelection([Note]); // Shift: remove (no-op if absent), no drag
-                return true;
-            }
+                _view._state.RemoveFromNoteSelection([Note]); // Shift: remove (no-op if absent)
+            else if (_view.WheelZooms)
+                _view._state.AddToNoteSelection([Note]); // Ctrl: append (no-op if present)
+            else if (!_view._state.SelectedNotes.Contains(Note))
+                _view._state.SelectNote(Note); // replace
 
-            if (_view.WheelZooms)
-            {
-                _view._state.AddToNoteSelection([Note]); // Ctrl: append (no-op if present), no drag
-                return true;
-            }
+            return true;
         }
 
         if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note); // replace
-        _view.BeginNoteDrag(this);
+        _view.BeginNoteDrag(this, y);
         return true;
     }
 

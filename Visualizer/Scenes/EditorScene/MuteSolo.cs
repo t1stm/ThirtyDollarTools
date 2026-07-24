@@ -28,6 +28,8 @@ public sealed class MuteSolo
         return _soloed.Contains(channel);
     }
 
+    public bool AnySoloed => _soloed.Count > 0;
+
     /// <summary>FL semantics: any solo wins; otherwise everything not muted sounds.</summary>
     public bool IsChannelAudible(int channel)
     {

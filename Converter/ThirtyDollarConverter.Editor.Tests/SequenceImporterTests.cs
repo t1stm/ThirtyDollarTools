@@ -40,23 +40,30 @@ public class SequenceImporterTests
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
         Assert.Equal(2, result.Track!.Segments.Count);
-        Assert.Equal(1, result.Track.Segments[0].Numerator);
-        Assert.Equal(300, result.Track.Segments[0].BPM);
-        Assert.Equal(2, result.Track.Segments[1].Numerator);
-        Assert.Equal(150, result.Track.Segments[1].BPM);
+        var first = result.Track.Segments[0];
+        Assert.Equal(1, first.Numerator);
+        Assert.Equal(300, first.BPM * first.StepsPerBeat); // rate = speed * k = 300 * 1
+        var second = result.Track.Segments[1];
+        Assert.Equal(150, second.BPM * second.StepsPerBeat); // rate = speed * k = 150 * 1
+        Assert.Equal(2, second.Bars * second.Numerator * second.StepsPerBeat); // no padding needed
+        Assert.Equal(2, second.Numerator); // small numerator beats a giant one for a 2-step region
     }
 
     [Fact]
-    public void ExactFourBarFit_UsesThePrettifiedNumerator()
+    public void ExactFourBarFit_PrefersRealSubdivisionOverACoarseGrid()
     {
-        var sequence = Sequence.FromString("kick=8"); // 8 steps, no speed change: 2 bars of 4/4.
+        var sequence = Sequence.FromString("kick=8"); // 8 steps, no speed change.
         var project = new ThirtyDollarProject();
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
         var segment = result.Track!.Segments[0];
-        Assert.Equal(4, segment.Numerator);
-        Assert.Equal(2, segment.Bars);
-        Assert.Equal(300, segment.BPM);
+        // 2/4 time at 16th-note (SPB=4) resolution beats a quarter-note (SPB=1) grid.
+        Assert.Equal(2, segment.Numerator);
+        Assert.Equal(1, segment.Bars);
+        Assert.Equal(4, segment.StepsPerBeat);
+        Assert.Equal(75, segment.BPM);
+        Assert.Equal(300, segment.BPM * segment.StepsPerBeat); // rate = speed * k = 300 * 1
+        Assert.Equal(8, segment.Bars * segment.Numerator * segment.StepsPerBeat);
         Assert.Equal(8, segment.Notes.Count);
     }
 
@@ -72,8 +79,11 @@ public class SequenceImporterTests
         Assert.Equal(3, notes.Count); // "_pause" itself never becomes a note
         // Steps 0, 2, 4.5 need k=2 to land on an integer grid.
         Assert.Equal([0, 4, 9], notes.Select(n => n.Step));
-        Assert.Equal(11, segment.Numerator);
-        Assert.Equal(600, segment.BPM);
+        // 11 steps is prime - no clean bar fits, so the final region pads to 12
+        // (trailing silence, never emitted by SequenceBuilder) with a small numerator.
+        Assert.Equal(600, segment.BPM * segment.StepsPerBeat); // rate = speed * k = 300 * 2
+        Assert.Equal(12, segment.Bars * segment.Numerator * segment.StepsPerBeat);
+        Assert.True(segment.Numerator <= 16);
     }
 
     [Fact]
@@ -106,7 +116,25 @@ public class SequenceImporterTests
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
         Assert.Equal(1, result.Warnings.QuantizedNotes);
-        Assert.Equal(300, result.Track!.Segments[0].BPM); // stayed at native speed - k=1, not 64
+        var segment = result.Track!.Segments[0];
+        // stayed at native speed - k=1, not 64 (BPM alone may be scaled by StepsPerBeat now)
+        Assert.Equal(300, segment.BPM * segment.StepsPerBeat);
+    }
+
+    [Fact]
+    public void HighSpeedWithDenominator20Stops_PutsTheMultiplierInStepsPerBeat_NotBpm()
+    {
+        // a fast native speed plus fractional
+        // stops whose true denominator (20) needs a k-search - the multiplier belongs in
+        // StepsPerBeat, not baked into an absurd BPM.
+        var sequence = Sequence.FromString("!speed@640|kick|!stop@0.95|snare|!stop@0.05|hat");
+        var project = new ThirtyDollarProject();
+        var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
+
+        var segment = result.Track!.Segments[0];
+        Assert.True(segment.BPM <= 640);
+        Assert.True(segment.Numerator <= 16);
+        Assert.Equal(640 * 20, segment.BPM * segment.StepsPerBeat); // rate = speed * k
     }
 
     [Fact]
@@ -188,10 +216,10 @@ public class SequenceImporterTests
         var first = SequenceImporter.AddAsTrack(project, sequence, "epic-sequence", null);
         var second = SequenceImporter.AddAsTrack(project, sequence, "epic-sequence", null);
 
-        Assert.Equal("epic-sequence", first.Track!.Name);
-        Assert.Equal("epic-sequence (2)", second.Track!.Name);
-        Assert.Equal("epic-sequence - kick", first.Instruments[0].Name);
-        Assert.Equal("epic-sequence (2) - kick", second.Instruments[0].Name);
+        Assert.Equal("epic-sequence - imported", first.Track!.Name);
+        Assert.Equal("epic-sequence - imported (2)", second.Track!.Name);
+        Assert.Equal("kick - imported", first.Instruments[0].Name);
+        Assert.Equal("kick - imported (2)", second.Instruments[0].Name);
     }
 
     [Fact]
@@ -201,7 +229,7 @@ public class SequenceImporterTests
         var project = new ThirtyDollarProject();
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
-        Assert.Equal("test - noteblock harp", result.Instruments[0].Name);
+        Assert.Equal("noteblock harp - imported", result.Instruments[0].Name);
     }
 
     [Fact]
@@ -210,7 +238,7 @@ public class SequenceImporterTests
         var sequence = Sequence.FromString("kick|snare|kick");
         SequenceImporter.ToProject(sequence, "song", null, out var project);
 
-        Assert.Equal(["song - kick", "song - snare"], project.Tracks.Select(t => t.Name));
+        Assert.Equal(["kick - imported", "snare - imported"], project.Tracks.Select(t => t.Name));
         Assert.Equal([0, 1], project.Placements.Select(p => p.Channel).OrderBy(c => c));
 
         var kickSegment = project.Tracks[0].Segments[0];
@@ -303,15 +331,21 @@ public class SequenceImporterTests
     }
 
     [Fact]
-    public void BareGlobalCut_StaysIgnored_TheModelHasNoWayToRepresentIt()
+    public void BareGlobalCut_CutsEveryInstrumentIntroducedSoFar()
     {
-        var sequence = Sequence.FromString("kick|!cut|snare");
+        // A global cut can only be cutting sounds that were already triggered - "hat"
+        // hasn't started yet, so it gets no cut note of its own.
+        var sequence = Sequence.FromString("kick|snare|!cut|hat");
         var project = new ThirtyDollarProject();
 
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
-        Assert.Equal(2, result.Track!.Segments[0].Notes.Count); // the global cut isn't a note
-        Assert.Equal(1, result.Warnings.IgnoredEvents["!cut"]);
+        var notes = result.Track!.Segments[0].Notes.OrderBy(n => n.Step).ToList();
+        Assert.Equal(5, notes.Count); // kick, snare, cut(kick), cut(snare), hat
+        var cuts = notes.Where(n => n.IsCut).OrderBy(n => n.Instrument.Sounds[0]).ToList();
+        Assert.Equal(["kick", "snare"], cuts.Select(n => n.Instrument.Sounds[0]));
+        Assert.All(cuts, n => Assert.Equal(2, n.Step));
+        Assert.False(result.Warnings.IgnoredEvents.ContainsKey("!cut"));
     }
 
     [Fact]
@@ -344,7 +378,7 @@ public class SequenceImporterTests
         var sequence = Sequence.FromString("kick|!cut@kick|snare");
         SequenceImporter.ToProject(sequence, "song", null, out var project);
 
-        Assert.Equal(["song - kick", "song - snare"], project.Tracks.Select(t => t.Name));
+        Assert.Equal(["kick - imported", "snare - imported"], project.Tracks.Select(t => t.Name));
         var kickTrack = project.Tracks[0];
         Assert.Equal(2, kickTrack.Segments[0].Notes.Count); // the play at step 0 and the cut at step 1
         Assert.Contains(kickTrack.Segments[0].Notes, n => n.IsCut);

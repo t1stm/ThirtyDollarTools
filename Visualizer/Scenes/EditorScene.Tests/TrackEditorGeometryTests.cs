@@ -7,9 +7,12 @@ public class TrackEditorGeometryTests
     private static TrackEditorGeometry MakeGeometry(float pixelsPerStep = 16f)
     {
         var geometry = new TrackEditorGeometry { PixelsPerStep = pixelsPerStep };
-        // Rows=121; height chosen so (height - GridTop) / Rows == 20 exactly, and the
+        // Rows=121; height chosen so (GridBottom - GridTop) / Rows == 20 exactly (i.e.
+        // gridHeight == Rows * 20, past the pinned cut row and its rule), and the
         // initial CenterPending centers ScrollY to 0 for clean row math below.
-        geometry.SetViewport(800, TrackEditorGeometry.GridTop + TrackEditorGeometry.Rows * 20, 20);
+        geometry.SetViewport(800,
+            TrackEditorGeometry.GridTop + TrackEditorGeometry.Rows * 20 +
+            TrackEditorGeometry.CutRowHeight + TrackEditorGeometry.RuleHeight, 20);
         return geometry;
     }
 
@@ -131,5 +134,38 @@ public class TrackEditorGeometryTests
 
         var top = geometry.ValueTop(12.5);
         Assert.Equal(12.5, geometry.UnsnappedValueAt(top), 3);
+    }
+
+    [Fact]
+    public void SetViewport_DocksTheCutRowAtTheBottom_AboveA1pxRule()
+    {
+        var geometry = new TrackEditorGeometry { PixelsPerStep = 16f };
+
+        geometry.SetViewport(800, 414, 8);
+
+        Assert.Equal(414 - TrackEditorGeometry.CutRowHeight, geometry.CutRowTop);
+        Assert.Equal(geometry.CutRowTop - TrackEditorGeometry.RuleHeight, geometry.GridBottom);
+
+        // gridHeight = 349, Rows = 121: 349/121 < 8, so RowHeight clamps to the minimum
+        // and the grid scrolls instead of stretching.
+        Assert.Equal(8f, geometry.RowHeight);
+        Assert.Equal(TrackEditorGeometry.Rows * 8f - (geometry.GridBottom - TrackEditorGeometry.GridTop),
+            geometry.Nav.MaxScrollY);
+    }
+
+    [Fact]
+    public void SetViewport_ClampsTheCutRowAtGridTop_InATinyViewport()
+    {
+        var geometry = new TrackEditorGeometry { PixelsPerStep = 16f };
+
+        // Shorter than GridTop + CutRowHeight: the cut row would have to rise above
+        // the ruler, so it clamps to GridTop instead and the grid collapses to 0 height -
+        // RowHeight's own Math.Max(minRowHeight, ...) guards the division, so it still
+        // reports the minimum rather than dividing by (or producing) a negative height.
+        geometry.SetViewport(800, 50, 8);
+
+        Assert.Equal(TrackEditorGeometry.GridTop, geometry.CutRowTop);
+        Assert.True(geometry.GridBottom <= TrackEditorGeometry.GridTop); // no usable grid height left
+        Assert.Equal(8f, geometry.RowHeight); // clamped to the minimum, not a negative/NaN division
     }
 }

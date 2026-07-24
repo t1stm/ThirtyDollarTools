@@ -13,13 +13,14 @@ using ThirtyDollarParser.Custom_Events;
 namespace EditorScene;
 
 /// <summary>
-///     Phase-2 playback. Every arrangement channel renders as its own sequence — the
-///     library anchors them all on the project timeline origin, so the per-channel
-///     buffers are sample-aligned — and the audible channels are summed into the
-///     player buffer. Mute/solo is therefore a remix of cached renders, never a
-///     re-render. Model edits re-render the channels incrementally after a debounce,
-///     without restarting the player (the incremental path updates audio under the
-///     playhead).
+///     Playback keeps one persistent render of the mute-filtered project (<see cref="_rendered" />),
+///     updated incrementally through PCMEncoder's native path — the same one
+///     <see cref="ExportWav" /> uses — on every model edit and mute toggle. Soloing renders
+///     a second, independent buffer (<see cref="_soloRendered" />) for just the soloed
+///     channels and plays that instead, while the full mix keeps getting updated underneath
+///     it (so unsoloing is an instant swap back, never a re-render). Unsoloing discards the
+///     solo buffer. Memory is bounded: one full buffer always, plus one solo buffer only
+///     while a channel is soloed — never O(track count).
 /// </summary>
 public class EditorPlayback
 {
@@ -32,8 +33,6 @@ public class EditorPlayback
     /// </summary>
     public const double LeadInSeconds = 0.2;
 
-    private readonly PlacementCalculator _calculator;
-    private readonly Dictionary<int, RenderedSequence> _channelRenders = [];
     private readonly Stopwatch _sinceEdit = new();
     private readonly EditorState _state;
     private readonly ThirtyDollarWorkflow _workflow;
@@ -45,18 +44,27 @@ public class EditorPlayback
     private bool _modelDirty;
     private bool _remixPending;
     private bool _rendering;
+    private bool _playWhenReady;
     private TimedEvents? _timedEvents;
+    private RenderedSequence? _rendered;
+    private RenderedSequence? _soloRendered;
+
+    private float _statusProgress;
+    private ulong _statusDone;
+    private ulong _statusTotal;
+    private string? _lastAlertedError;
 
     public EditorPlayback(ThirtyDollarWorkflow workflow, EditorState state)
     {
         _workflow = workflow;
         _state = state;
-        _calculator = new PlacementCalculator(new EncoderSettings
-        {
-            SampleRate = workflow.EncoderSettings.SampleRate,
-            AddVisualEvents = true
-        });
-        Encoder = new PcmEncoder(workflow.SampleHolder, workflow.EncoderSettings);
+        Encoder = new PcmEncoder(workflow.SampleHolder, workflow.EncoderSettings,
+            indexReport: (done, total) =>
+            {
+                _statusDone = done;
+                _statusTotal = total;
+                _statusProgress = total == 0 ? 0f : (float)done / total;
+            });
 
         // Previews favor latency over quality: the cheapest resampler there is.
         var previewSettings = new EncoderSettings
@@ -76,6 +84,34 @@ public class EditorPlayback
     public bool PreviewDuringPlayback { get; set; }
 
     private PcmEncoder Encoder { get; }
+
+    /// <summary>What the encoder is currently doing, for the inspector's status bar; null = idle.
+    /// Written on background render/export threads, read once a frame on the update thread —
+    /// plain field, no lock (see EditorPlayback's class doc for the polling rationale).
+    /// // ponytail: single status slot; per-operation lanes if concurrent encodes (a re-render
+    /// racing an export, both on the same Encoder) ever need to show independent progress.</summary>
+    public string? StatusLabel { get; private set; }
+
+    public float StatusProgress => _statusProgress;
+
+    /// <summary>The encoder's last "done" / "total" counts from <see cref="StatusProgress" />'s
+    /// same report — the inspector's status label shows these in brackets. Both 0 when the
+    /// current phase hasn't reported yet (placement/mixing report nothing) or nothing is running.</summary>
+    public ulong StatusDone => _statusDone;
+
+    public ulong StatusTotal => _statusTotal;
+
+    /// <summary>Set when a render or export fails; consume with <see cref="TakeError" /> to show
+    /// one dialog per failure.</summary>
+    public string? PendingError { get; private set; }
+
+    /// <summary>Returns the pending error, if any, and clears it — one failure shows one dialog.</summary>
+    public string? TakeError()
+    {
+        var error = PendingError;
+        PendingError = null;
+        return error;
+    }
 
     public bool IsPlaying => _workflow.SequencePlayer.GetTimingStopwatch().IsRunning;
     public long ElapsedMs => _workflow.SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
@@ -112,7 +148,12 @@ public class EditorPlayback
     public void PlayPause()
     {
         StopPreview();
-        if (_rendering) return;
+        if (_rendering)
+        {
+            _playWhenReady = true;
+            return;
+        }
+
         if (_timedEvents == null)
         {
             StartRender(true);
@@ -126,7 +167,12 @@ public class EditorPlayback
     public void Restart()
     {
         StopPreview();
-        if (_rendering) return;
+        if (_rendering)
+        {
+            _playWhenReady = true;
+            return;
+        }
+
         if (_timedEvents == null)
         {
             StartRender(true);
@@ -141,6 +187,7 @@ public class EditorPlayback
     public void Stop()
     {
         StopPreview();
+        _playWhenReady = false;
         var player = _workflow.SequencePlayer;
         if (player.GetTimingStopwatch().IsRunning) player.TogglePause();
         player.Seek(0);
@@ -232,12 +279,28 @@ public class EditorPlayback
         {
             try
             {
+                StatusLabel = "Rendering export…";
+                _statusProgress = 0f;
+                _statusDone = 0;
+                _statusTotal = 0;
                 var rendered = await Encoder.GetSequenceAudio(merged);
+
+                StatusLabel = "Writing WAV…";
+                _statusProgress = 0f;
+                _statusDone = 0;
+                _statusTotal = 0;
                 Encoder.WriteAsWavFile(path, rendered.Audio);
+
+                _lastAlertedError = null;
             }
             catch (Exception e)
             {
                 _workflow.Logger.Error("[Editor Playback] WAV export failed: {Exception}", e);
+                SetError($"WAV export failed:\n{e.Message}");
+            }
+            finally
+            {
+                StatusLabel = null;
             }
         });
     }
@@ -256,114 +319,94 @@ public class EditorPlayback
     /// <summary>Call once per frame on the update thread.</summary>
     public void Update()
     {
-        if (_rendering || _timedEvents == null) return;
+        if (_rendering) return;
 
         if (_modelDirty && _sinceEdit.ElapsedMilliseconds >= DebounceMs) StartRender(false);
-        else if (_remixPending) StartRemix();
+        else if (_remixPending) StartRender(false);
     }
 
+    /// <summary>
+    ///     Re-renders the mute-filtered full mix, and — while any channel is soloed — the
+    ///     solo mix alongside it, then plays whichever is active. Model edits and mute
+    ///     toggles keep the full mix's incremental diff cheap; a solo toggle's diff is
+    ///     against the solo buffer, never the full one, and turning solo off entirely just
+    ///     swaps playback back to the (already up to date) full buffer with no re-render.
+    /// </summary>
     private void StartRender(bool startPlayback)
     {
         _rendering = true;
         _modelDirty = false;
         _remixPending = false;
+        StatusLabel = "Rendering audio…";
+        _statusProgress = 0f;
+        _statusDone = 0;
+        _statusTotal = 0;
 
-        // Sequences are snapshotted here, on the update thread — the only thread that
-        // mutates the model — so the background render works on a consistent state.
+        // Snapshotted here, on the update thread — the only thread that mutates the
+        // model — so the background render works on a consistent state.
         var project = _state.Project;
-        var channels = project.Placements.Select(p => p.Channel).Distinct().ToArray();
-        var channel_sequences = channels.ToDictionary(c => c, c => project.ChannelSequence(c));
-        var merged = project.ToSequence();
-        var audible = channels.Where(_state.IsChannelAudible).ToArray();
+        var full = project.ToSequence(c => !_state.IsMuted(c));
+        var solo = _state.AnySoloed ? project.ToSequence(_state.IsSoloed) : null;
 
         Task.Run(async () =>
         {
             try
             {
-                foreach (var (channel, sequence) in channel_sequences)
-                    _channelRenders[channel] = _channelRenders.TryGetValue(channel, out var old)
-                        ? await Encoder.ComputeIncrementalAudio(old, [sequence])
-                        : await Encoder.GetSequenceAudio(sequence);
+                _rendered = _rendered != null
+                    ? await Encoder.ComputeIncrementalAudio(_rendered, [full])
+                    : await Encoder.GetSequenceAudio(full);
 
-                foreach (var gone in _channelRenders.Keys.Except(channels).ToArray())
-                    _channelRenders.Remove(gone);
-
-                var placement = _calculator.CalculateMany([merged]).ToArray();
-                var events = new TimedEvents
+                if (solo != null)
                 {
-                    Sequences = [merged],
-                    Placement = placement,
-                    TimingSampleRate = (int)_workflow.EncoderSettings.SampleRate
-                };
+                    _soloRendered = _soloRendered != null
+                        ? await Encoder.ComputeIncrementalAudio(_soloRendered, [solo])
+                        : await Encoder.GetSequenceAudio(solo);
 
-                Upload(events, Mix(audible), startPlayback);
+                    Upload(_soloRendered, startPlayback);
+                }
+                else
+                {
+                    _soloRendered?.Mixer?.Dispose();
+                    _soloRendered = null;
+
+                    Upload(_rendered, startPlayback);
+                }
+
+                _lastAlertedError = null;
             }
             catch (Exception e)
             {
                 _workflow.Logger.Error("[Editor Playback] Render failed: {Exception}", e);
+                SetError($"Render failed:\n{e.Message}");
             }
             finally
             {
                 _rendering = false;
+                StatusLabel = null;
             }
         });
     }
 
-    private void StartRemix()
+    /// <summary>Sets <see cref="PendingError" /> unless it's a repeat of the last alerted
+    /// message — an edit-storm where every debounced re-render fails would otherwise pop a
+    /// dialog per edit. A successful render/export clears the memory so a later failure
+    /// (even with the same message) alerts again.</summary>
+    private void SetError(string message)
     {
-        _rendering = true;
-        _remixPending = false;
-
-        var audible = _channelRenders.Keys.Where(_state.IsChannelAudible).ToArray();
-        var events = _timedEvents!;
-
-        Task.Run(() =>
-        {
-            try
-            {
-                Upload(events, Mix(audible), false);
-            }
-            catch (Exception e)
-            {
-                _workflow.Logger.Error("[Editor Playback] Remix failed: {Exception}", e);
-            }
-            finally
-            {
-                _rendering = false;
-            }
-        });
+        if (message == _lastAlertedError) return;
+        _lastAlertedError = message;
+        PendingError = message;
     }
 
-    /// <summary>
-    ///     Sums the audible channels' aligned buffers. The buffer always spans the
-    ///     longest render (even when muted) so the playhead position survives a remix.
-    /// </summary>
-    private AudioData<float> Mix(int[] audible)
+    private void Upload(RenderedSequence rendered, bool startPlayback)
     {
-        var channels = _workflow.EncoderSettings.Channels;
-        var length = _channelRenders.Count > 0
-            ? _channelRenders.Values.Max(r => r.Audio.GetLength())
-            : 1;
+        startPlayback = startPlayback || _playWhenReady;
+        _playWhenReady = false;
 
-        var mixer = new AudioMixer(AudioData<float>.WithLength(channels, length));
-        foreach (var channel in audible)
-            mixer.Sum(new AudioMixer(_channelRenders[channel].Audio));
-
-        return mixer.GetDefault();
-    }
-
-    private void Upload(TimedEvents events, AudioData<float> audio, bool startPlayback)
-    {
         var player = _workflow.SequencePlayer;
         if (startPlayback) player.Stop();
 
-        var rendered = new RenderedSequence
-        {
-            TimedEvents = events,
-            Audio = audio,
-            AudioSampleRate = _workflow.EncoderSettings.SampleRate
-        };
-
+        var events = rendered.TimedEvents;
         player.UpdateSequence(events, ThirtyDollarWorkflow.GenerateSequenceIndexes(events.Placement),
             rendered, startPlayback);
         _timedEvents = events;

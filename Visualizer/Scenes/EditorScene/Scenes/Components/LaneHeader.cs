@@ -24,6 +24,9 @@ public sealed class LaneHeader : Panel
     private readonly List<(Button Mute, Button Solo)> _rows = [];
     private readonly EditorState _state;
 
+    // Test seam (internal — see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
+    internal IReadOnlyList<(Button Mute, Button Solo)> Rows => _rows;
+
     public LaneHeader(UIContext context, EditorState state, ArrangementView arrangement) : base(context)
     {
         _state = state;
@@ -57,13 +60,16 @@ public sealed class LaneHeader : Panel
     protected override void DoLayout()
     {
         var lanes = _arrangement.Channels;
+        var scrollY = _arrangement.ScrollY;
         for (var lane = 0; lane < _rows.Count; lane++)
         {
             var (mute, solo) = _rows[lane];
-            var visible = lane < lanes &&
-                          ArrangementView.RulerHeight + (lane + 1) * ArrangementView.LaneHeight <= Computed.Height;
-            var y = ArrangementView.RulerHeight + lane * ArrangementView.LaneHeight +
-                    (ArrangementView.LaneHeight - 24) / 2;
+            var rowTop = ArrangementView.RulerHeight + lane * ArrangementView.LaneHeight - scrollY;
+            var rowBottom = rowTop + ArrangementView.LaneHeight;
+            // Scroll-aware: the row's own band must overlap the visible strip below the
+            // ruler, matching ArrangementView's divider-line visibility for the same lane.
+            var visible = lane < lanes && rowBottom > ArrangementView.RulerHeight && rowTop < Computed.Height;
+            var y = rowTop + (ArrangementView.LaneHeight - 24) / 2;
 
             mute.Visible = solo.Visible = visible;
             mute.X = 4;
