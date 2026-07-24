@@ -1,4 +1,5 @@
 ﻿using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor;
 
@@ -175,11 +176,21 @@ public class ThirtyDollarProject
     {
         var timed = placements
             .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement), Transpose))
-            .ToArray();
+            .ToList();
+
+        // Cross-channel cut parity: real (merged) playback has a cut silence everything
+        // currently playing project-wide, but editor playback renders each channel in
+        // isolation. Inject every OTHER placement's cuts (harmless no-op when building
+        // the full merged export, where there is no "outside") so an isolated channel's
+        // preview matches the export instead of missing cuts from other channels' tracks.
+        foreach (var placement in _placements.Except(placements))
+            timed.AddRange(placement.Track.TimedNotes(StartMinutes(placement), Transpose)
+                .Where(t => t.Event is IndividualCutEvent));
+
         var bar_times = placements.Count > 0
             ? placements[0].Track.BarTimes(style, StartMinutes(placements[0]))
             : null;
-        return SequenceBuilder.Build(MergedRegions(placements), timed, style, bar_times);
+        return SequenceBuilder.Build(MergedRegions(placements), timed.ToArray(), style, bar_times);
     }
 
     /// <summary>

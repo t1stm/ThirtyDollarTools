@@ -360,6 +360,36 @@ public class EditorInterface
         _projectIo.Load(location);
     }
 
+    /// <summary>Shows the single-track/project/cancel choice for a dropped TDW sequence
+    /// file. Import-as-project discards the open project, so it's guarded behind the
+    /// same dirty check as every other destructive action here.</summary>
+    public void ImportSequenceFile(string path)
+    {
+        var dialog = new ImportDialog(_context, Path.GetFileName(path));
+        var modal = _dialogHost.Show(dialog);
+        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+        dialog.SingleTrackButton.OnClick = _ =>
+        {
+            _dialogHost.Close(modal);
+            _projectIo.ImportTdw(path, ImportMode.Track, KnownSounds());
+        };
+        dialog.ProjectButton.OnClick = _ =>
+        {
+            _dialogHost.Close(modal);
+            if (State.Dirty)
+                _dialogHost.Confirm("Importing as a project discards unsaved changes. Continue?",
+                    onConfirm: () => _projectIo.ImportTdw(path, ImportMode.Project, KnownSounds()),
+                    confirmLabel: "Import", confirmColor: EditorPalette.Accent);
+            else
+                _projectIo.ImportTdw(path, ImportMode.Project, KnownSounds());
+        };
+    }
+
+    private HashSet<string> KnownSounds()
+    {
+        return _workflow.SampleHolder.StringToSoundReferences.Keys.ToHashSet();
+    }
+
     /// <summary>Back button / Escape: leaves directly when clean, otherwise asks first.</summary>
     public void RequestBack()
     {

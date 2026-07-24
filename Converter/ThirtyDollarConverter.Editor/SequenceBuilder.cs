@@ -1,4 +1,5 @@
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor;
 
@@ -85,27 +86,45 @@ internal static class SequenceBuilder
                 // the notes open the new one.
                 EmitDividersUpTo(time);
 
-                var first = true;
-                foreach (var ev in group_events)
-                {
-                    if (!first) events.Add(Action("!combine", 0));
+                // Actions (e.g. "!cut") never advance the clock in playback, unlike sounds -
+                // emit them first so they act on whatever's already playing before this
+                // step's own sounds start, and join only consecutive *sounds* with
+                // "!combine" (there is nothing to cancel around an action).
+                var has_sound = false;
+                var first_sound = true;
+                foreach (var ev in group_events.Where(IsAction))
                     events.Add(ev);
-                    first = false;
+                foreach (var ev in group_events.Where(ev => !IsAction(ev)))
+                {
+                    if (!first_sound) events.Add(Action("!combine", 0));
+                    events.Add(ev);
+                    first_sound = false;
+                    has_sound = true;
                 }
 
-                // A sound advances the clock a whole step. When the next group comes sooner
-                // (an off-grid note), cancel the advance with "!combine" and let the next
-                // "!stop" carry the exact fractional gap instead.
-                var advance = 1d / region.Speed;
                 gi++;
-                if (gi < groups.Length && GroupTime(gi) - time < advance * (1 - 1e-6))
+                if (!has_sound)
                 {
-                    events.Add(Action("!combine", 0));
+                    // An actions-only group never consumes a step - matches PlacementCalculator,
+                    // where actions never increment position. (Advancing here was the latent bug
+                    // that shifted everything after an on-grid automation cut one step early.)
                     clock = time;
                 }
                 else
                 {
-                    clock = time + advance;
+                    // A sound advances the clock a whole step. When the next group comes sooner
+                    // (an off-grid note), cancel the advance with "!combine" and let the next
+                    // "!stop" carry the exact fractional gap instead.
+                    var advance = 1d / region.Speed;
+                    if (gi < groups.Length && GroupTime(gi) - time < advance * (1 - 1e-6))
+                    {
+                        events.Add(Action("!combine", 0));
+                        clock = time;
+                    }
+                    else
+                    {
+                        clock = time + advance;
+                    }
                 }
             }
 
@@ -197,10 +216,28 @@ internal static class SequenceBuilder
     {
         var sequence = new Sequence { Events = events.ToArray() };
         foreach (var ev in sequence.Events)
+        {
             if (ev.SoundEvent is not null)
                 sequence.UsedSounds.Add(ev.SoundEvent);
 
+            // The encoder pre-allocates a mixer track per separated channel before
+            // rendering (see PCMEncoder.GenerateAudioAndMixer) so a cut's target track
+            // is guaranteed to exist - the text parser populates this as a side effect
+            // of parsing "!cut@sound"; building the event list directly (not from text)
+            // must populate it the same way, or cuts silently no-op against a track
+            // that was never created.
+            if (ev is IndividualCutEvent individualCut)
+                foreach (var sound in individualCut.CutSounds)
+                    sequence.SeparatedChannels.Add(sound);
+        }
+
         return sequence;
+    }
+
+    /// <summary>Exactly PlacementCalculator's classification: actions never advance the clock.</summary>
+    private static bool IsAction(BaseEvent ev)
+    {
+        return (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomActionEvent;
     }
 
     private static NormalEvent Action(string name, double value)

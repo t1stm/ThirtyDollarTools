@@ -105,7 +105,19 @@ public class Editor : Scene
     public override void FileDrop(string[] locations)
     {
         var project = locations.FirstOrDefault(l => l.EndsWith(".tdwproj", StringComparison.OrdinalIgnoreCase));
-        if (project != null) _editorInterface.LoadProjectFile(project);
+        if (project != null)
+        {
+            _editorInterface.LoadProjectFile(project);
+            return;
+        }
+
+        // Only the first sequence file of a multi-drop is handled, matching the
+        // FirstOrDefault behavior above. Batch import is out of scope.
+        var sequence = locations.FirstOrDefault(l =>
+            l.EndsWith(".tdw", StringComparison.OrdinalIgnoreCase) ||
+            l.EndsWith(".🗿", StringComparison.OrdinalIgnoreCase) ||
+            l.EndsWith(".moai", StringComparison.OrdinalIgnoreCase));
+        if (sequence != null) _editorInterface.ImportSequenceFile(sequence);
     }
 
     public override void Keyboard(KeyboardState state)

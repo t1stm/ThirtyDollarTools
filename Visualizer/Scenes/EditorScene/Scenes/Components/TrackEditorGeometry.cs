@@ -15,7 +15,17 @@ public sealed class TrackEditorGeometry
     public const float GutterWidth = 44f;
     public const float StripHeight = 22f;
     public const float RulerHeight = 18f;
-    public const float GridTop = StripHeight + RulerHeight;
+
+    /// <summary>
+    ///     Fixed-height pinned row for cut notes, always visible directly below the ruler —
+    ///     unlike every other row, it never scrolls, pans vertically, or zooms with the grid.
+    /// </summary>
+    public const float CutRowHeight = 24f;
+
+    /// <summary>Top of the pinned cut row — a constant screen position (never <see cref="ScrollY" />-adjusted).</summary>
+    public const float CutRowTop = StripHeight + RulerHeight;
+
+    public const float GridTop = StripHeight + RulerHeight + CutRowHeight;
 
     public float ScrollX { get; set; }
     public float ScrollY { get; set; }

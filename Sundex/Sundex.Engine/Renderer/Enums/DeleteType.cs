@@ -6,5 +6,7 @@ public enum DeleteType
     IBO,
     VAO,
     Texture,
-    Shader
+    Shader,
+    Framebuffer,
+    Renderbuffer
 }

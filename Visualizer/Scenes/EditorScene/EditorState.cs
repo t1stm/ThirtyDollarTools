@@ -1,4 +1,5 @@
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarParser;
 
 namespace EditorScene;
 
@@ -162,6 +163,38 @@ public class EditorState
             redo: () => Project.RemoveTrack(track));
         Touch();
         return true;
+    }
+
+    /// <summary>Imports a TDW sequence as one new track (+ its instruments + one
+    /// placement), as a single undo step. Throws whatever <see cref="SequenceImporter" />
+    /// throws on malformed/empty/runaway input — the caller is expected to alert and
+    /// leave the project untouched, which holds for free here since nothing is added
+    /// until the importer has already fully succeeded.</summary>
+    public ImportResult ImportSequenceAsTrack(Sequence sequence, string name, IReadOnlySet<string>? knownSounds)
+    {
+        var result = SequenceImporter.AddAsTrack(Project, sequence, name, knownSounds);
+        var track = result.Track!;
+        var placement = result.Placement!;
+        var instruments = result.Instruments;
+
+        var trackIndex = IndexOf(Project.Tracks, track);
+        var instrumentIndices = instruments.Select(instrument => IndexOf(Project.Instruments, instrument)).ToArray();
+
+        _undoHistory.Push(
+            undo: () =>
+            {
+                Project.RemovePlacement(placement);
+                Project.RemoveTrack(track);
+                foreach (var instrument in instruments) Project.RemoveInstrument(instrument);
+            },
+            redo: () =>
+            {
+                Project.AddTrack(track, trackIndex);
+                for (var i = 0; i < instruments.Count; i++) Project.AddInstrument(instruments[i], instrumentIndices[i]);
+                Project.AddPlacement(placement);
+            });
+        Touch();
+        return result;
     }
 
     public void OpenTrack(ProjectTrack track)
@@ -422,17 +455,21 @@ public class EditorState
         return true;
     }
 
-    public Note AddNote(TrackSegment segment, int step, Instrument instrument, double value)
+    public Note AddNote(TrackSegment segment, int step, Instrument instrument, double value, bool isCut = false)
     {
+        // A cut note always has default Volume/Pan/Offset/Automation (see Note.IsCut) -
+        // copied modifiers from a previous pick never apply to it.
+        var modifiers = isCut ? null : CopiedModifiers;
         var note = new Note
         {
             Step = step,
             Instrument = instrument,
             Value = value,
-            Volume = CopiedModifiers?.Volume,
-            Pan = CopiedModifiers?.Pan ?? 0,
-            Offset = CopiedModifiers?.Offset ?? 0,
-            Automation = CopiedModifiers?.Automation?.Clone()
+            Volume = modifiers?.Volume,
+            Pan = modifiers?.Pan ?? 0,
+            Offset = modifiers?.Offset ?? 0,
+            Automation = modifiers?.Automation?.Clone(),
+            IsCut = isCut
         };
         segment.Notes.Add(note);
         _undoHistory.Push(
@@ -770,6 +807,19 @@ public class EditorState
     public void LoadProject(string json)
     {
         Replace(ProjectFile.Load(json));
+    }
+
+    /// <summary>Imports a TDW sequence as a whole new project, replacing the open one.
+    /// Not undoable (Replace clears undo history) — the caller confirms the discard
+    /// first. Unlike a load, the result exists only in memory: stays dirty (so the
+    /// unsaved-changes guard still fires on exit) and keeps <see cref="ProjectPath" />
+    /// null (so Save asks for a location).</summary>
+    public ImportResult ReplaceWithImportedProject(Sequence sequence, string name, IReadOnlySet<string>? knownSounds)
+    {
+        var result = SequenceImporter.ToProject(sequence, name, knownSounds, out var project);
+        Replace(project);
+        Touch();
+        return result;
     }
 
     public string SaveProject()

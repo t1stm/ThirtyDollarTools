@@ -30,6 +30,8 @@ public sealed class TrackEditorView : Panel
     public const float GutterWidth = TrackEditorGeometry.GutterWidth;
     public const float StripHeight = TrackEditorGeometry.StripHeight;
     public const float RulerHeight = TrackEditorGeometry.RulerHeight;
+    public const float CutRowTop = TrackEditorGeometry.CutRowTop;
+    public const float CutRowHeight = TrackEditorGeometry.CutRowHeight;
     public const float GridTop = TrackEditorGeometry.GridTop;
 
     // ponytail: fixed pools sized for a ~3k px window at minimum zoom (4 px/step) and
@@ -57,6 +59,7 @@ public sealed class TrackEditorView : Panel
     private static readonly Vector4 BackgroundColor = new(0.067f, 0.07f, 0.1f, 1f); // #11121a
     private static readonly Vector4 GutterColor = EditorPalette.Panel;
     private static readonly Vector4 StripColor = EditorPalette.Panel;
+    private static readonly Vector4 CutRowColor = EditorPalette.SurfaceRaised;
     internal static readonly Vector4 StripSegmentA = EditorPalette.Surface;
     private static readonly Vector4 StripSegmentB = EditorPalette.SurfaceRaised;
     private static readonly Vector4 StripSelected = EditorPalette.Accent;
@@ -91,13 +94,16 @@ public sealed class TrackEditorView : Panel
     private readonly List<StripBlock> _stripBlocks = [];
     internal readonly List<Label> BeatLabels = [];
     internal IReadOnlyList<Panel> AutomationMarks => _automationPath.Marks;
+    internal IReadOnlyList<NoteBlock> NoteBlocks => _noteBlocks;
     private readonly List<Label> _gutterLabels = [];
+    private readonly Label _cutRowLabel;
     private readonly List<Panel> _playheads = [];
     private readonly List<float> _playheadXs = [];
     private readonly Panel _zeroRow;
     private readonly Panel _gutterBackground;
     private readonly Panel _stripBackground;
     private readonly Panel _rulerBackground;
+    private readonly Panel _cutRowBackground;
 
     internal NoteBlock? _dragging;
     private (TrackSegment segment, Note note)? _placing;
@@ -168,6 +174,13 @@ public sealed class TrackEditorView : Panel
             AddChild(label);
         }
 
+        // Pinned cut row: fixed position between the ruler and the scrollable grid,
+        // always visible regardless of vertical scroll (unlike every other row). Added
+        // before the gutter so the gutter's own corner still shows through, same as
+        // the strip/ruler above it.
+        _cutRowBackground = NewGhost(context, CutRowColor);
+        AddChild(_cutRowBackground);
+
         var gutter = new Panel(context)
         {
             Background = new ColoredPlane { Color = GutterColor },
@@ -190,6 +203,9 @@ public sealed class TrackEditorView : Panel
             _gutterLabels.Add(label);
             AddChild(label);
         }
+
+        _cutRowLabel = new Label(context, "!cut") { FontSizePx = 11f, Color = LabelColor };
+        AddChild(_cutRowLabel);
 
         // Added last so it renders above every note block (same trick ArrangementView
         // uses for its playhead); never takes input (GhostPanel), fill only, no border.
@@ -366,6 +382,20 @@ public sealed class TrackEditorView : Panel
                     label.Y = StripHeight + (RulerHeight - 11f) / 2;
                 }
 
+                // Individual cuts routinely fire several sounds at once ("!cut@a|!cut@b"),
+                // landing several cut notes (different instruments) on the same step - group
+                // them so the render loop below can split that step into equal slots instead
+                // of stacking every one of them at identical coordinates in the pinned row.
+                Dictionary<int, List<Note>>? cutsByStep = null;
+                foreach (var n in segment.Notes)
+                {
+                    if (!n.IsCut) continue;
+                    cutsByStep ??= new Dictionary<int, List<Note>>();
+                    if (!cutsByStep.TryGetValue(n.Step, out var list))
+                        cutsByStep[n.Step] = list = [];
+                    list.Add(n);
+                }
+
                 foreach (var note in segment.Notes)
                 {
                     if (note.Automation != null && segStart + note.Step * pps <= visibleEnd)
@@ -376,7 +406,11 @@ public sealed class TrackEditorView : Panel
                     if (x + pps < visibleStart || x > visibleEnd) continue;
                     while (noteBlock < _noteBlocks.Count && _noteBlocks[noteBlock] == _dragging) noteBlock++;
                     if (noteBlock >= _noteBlocks.Count) break;
-                    PlaceNote(_noteBlocks[noteBlock++], segment, note, segStart);
+
+                    if (note.IsCut && cutsByStep![note.Step] is { Count: > 1 } siblings)
+                        PlaceNote(_noteBlocks[noteBlock++], segment, note, segStart, siblings.IndexOf(note), siblings.Count);
+                    else
+                        PlaceNote(_noteBlocks[noteBlock++], segment, note, segStart);
                 }
             }
         }
@@ -404,6 +438,11 @@ public sealed class TrackEditorView : Panel
         _rulerBackground.Width = width;
         _rulerBackground.Height = RulerHeight;
 
+        _cutRowBackground.X = 0;
+        _cutRowBackground.Y = CutRowTop;
+        _cutRowBackground.Width = width;
+        _cutRowBackground.Height = CutRowHeight;
+
         _gutterBackground.X = 0;
         _gutterBackground.Y = 0;
         _gutterBackground.Width = GutterWidth;
@@ -418,6 +457,11 @@ public sealed class TrackEditorView : Panel
             _gutterLabels[i].X = y < GridTop || y + 11f > height ? -1000f : 8;
             _gutterLabels[i].Y = y;
         }
+
+        // Fixed position - always visible, never parked outside the clip like the
+        // scrollable gutter labels above.
+        _cutRowLabel.X = 8;
+        _cutRowLabel.Y = CutRowTop + (CutRowHeight - 11f) / 2;
 
         LayoutPlayheads(height);
         LayoutMarquee(pps, scrollX);
@@ -524,13 +568,30 @@ public sealed class TrackEditorView : Panel
     }
 
 
-    private void PlaceNote(NoteBlock block, TrackSegment segment, Note note, float segStartPx)
+    private void PlaceNote(NoteBlock block, TrackSegment segment, Note note, float segStartPx,
+        int cutSlot = 0, int cutSlotCount = 1)
     {
         block.Assign(segment, note);
-        block.X = GutterWidth + segStartPx + note.Step * PixelsPerStep - _geometry.ScrollX;
-        block.Y = _geometry.ValueTop(note.Value) + 0.5f;
-        block.Width = Math.Max(3, PixelsPerStep - 1);
-        block.Height = Math.Max(3, _geometry.RowHeight - 1);
+        var stepX = GutterWidth + segStartPx + note.Step * PixelsPerStep - _geometry.ScrollX;
+        if (note.IsCut)
+        {
+            // Fixed row - never scrolls, unlike every other row. Simultaneous cuts on
+            // different instruments (cutSlotCount > 1) split the step evenly instead of
+            // stacking exactly on top of each other.
+            var slotWidth = PixelsPerStep / cutSlotCount;
+            block.X = stepX + cutSlot * slotWidth;
+            block.Y = CutRowTop + 0.5f;
+            block.Width = Math.Max(3, slotWidth - 1);
+            block.Height = Math.Max(3, CutRowHeight - 1);
+        }
+        else
+        {
+            block.X = stepX;
+            block.Y = _geometry.ValueTop(note.Value) + 0.5f;
+            block.Width = Math.Max(3, PixelsPerStep - 1);
+            block.Height = Math.Max(3, _geometry.RowHeight - 1);
+        }
+
         ((ColoredPlane)block.Background!).Color =
             _state.SelectedNotes.Contains(note) ? SelectedNoteColor : InstrumentColor(note.Instrument);
     }
@@ -694,12 +755,14 @@ public sealed class TrackEditorView : Panel
     {
         var localX = x - Computed.AbsoluteX;
         var localY = y - Computed.AbsoluteY;
-        if (localY is >= StripHeight and < GridTop)
+        if (localY is >= StripHeight and < CutRowTop)
         {
             SeekToPointer(x);
             return true;
         }
-        if (localY < GridTop || localX < GutterWidth) return false;
+        if (localX < GutterWidth) return false;
+        if (localY is >= CutRowTop and < GridTop) return HandleCutRowPress(x);
+        if (localY < GridTop) return false;
 
         if (_state.ActiveTool == EditorTool.Select)
         {
@@ -721,6 +784,20 @@ public sealed class TrackEditorView : Panel
         return true; // capture: the sweep keeps painting
     }
 
+    /// <summary>
+    ///     A press in the pinned cut row places/starts sweeping a cut targeting whichever
+    ///     instrument is active — any instrument can be cut, there's no reserved one.
+    /// </summary>
+    private bool HandleCutRowPress(float x)
+    {
+        var (segment, step) = StepAt(x, false);
+        if (_state.ActiveInstrument is not { } instrument || segment == null) return false;
+
+        if (Paint(segment, step, instrument, 0, isCut: true) is not { } painted) return false;
+        _placing = painted;
+        return true; // capture: the sweep keeps painting
+    }
+
     public override void HandlePointerDrag(float x, float y)
     {
         if (_marqueeAnchor != null)
@@ -733,6 +810,13 @@ public sealed class TrackEditorView : Panel
         if (_placing is not ({ } lastSegment, { } lastNote)) return;
         var (segment, step) = StepAt(x, true);
         if (segment == null) return;
+
+        if (lastNote.IsCut)
+        {
+            if (segment == lastSegment && step == lastNote.Step) return; // same cell
+            if (Paint(segment, step, lastNote.Instrument, 0, isCut: true) is { } cutPainted) _placing = cutPainted;
+            return;
+        }
 
         var value = ValueAt(y);
         if (segment == lastSegment && step == lastNote.Step && value == lastNote.Value) return; // same cell
@@ -761,6 +845,10 @@ public sealed class TrackEditorView : Panel
         {
             foreach (var note in segment.Notes)
             {
+                // Cut notes render in the pinned row, outside the scrollable grid the
+                // marquee draws in - never reachable by it, regardless of their (unused) Value.
+                if (note.IsCut) continue;
+
                 // A note isn't a point — it's a whole rendered cell, one step wide
                 // (globalStep .. globalStep+1) and one row tall. The row is drawn
                 // top-anchored (ValueTop), so its cell spans (Value-1 .. Value], the
@@ -843,6 +931,8 @@ public sealed class TrackEditorView : Panel
         foreach (var entry in entries)
         {
             var targetGlobalStep = Math.Clamp(entry.StartGlobalStep + stepDelta, 0, maxGlobalStep);
+            // A cut note's Value is unused (it renders in the fixed pinned row regardless),
+            // so clamping it along with everything else is harmless - no special case needed.
             var targetValue = Math.Clamp(entry.StartValue + valueDelta, -MaxValue, MaxValue);
             if (track.SegmentAtGlobalStep(targetGlobalStep) is not { } mapped) continue;
 
@@ -866,12 +956,20 @@ public sealed class TrackEditorView : Panel
         if (moved) OnPreviewNote?.Invoke(_dragging!.Note!.Instrument, value);
     }
 
-    /// <summary>Places one painted note, unless the cell already holds an identical one.</summary>
-    private (TrackSegment segment, Note note)? Paint(TrackSegment segment, int step, Instrument instrument, double value)
+    /// <summary>
+    ///     Places one painted note, unless the cell already holds an identical one. A cut's
+    ///     dedup is per (step, instrument) - independent instruments' cuts may share a step,
+    ///     but re-pressing the same instrument's cut on the same step is a no-op, not a stack.
+    /// </summary>
+    private (TrackSegment segment, Note note)? Paint(TrackSegment segment, int step, Instrument instrument,
+        double value, bool isCut = false)
     {
-        if (segment.Notes.Any(n => n.Step == step && n.Value == value)) return null;
+        var duplicate = isCut
+            ? segment.Notes.Any(n => n.Step == step && n.IsCut && n.Instrument == instrument)
+            : segment.Notes.Any(n => n.Step == step && n.Value == value && !n.IsCut);
+        if (duplicate) return null;
 
-        var note = _state.AddNote(segment, step, instrument, value);
+        var note = _state.AddNote(segment, step, instrument, value, isCut);
         _state.SelectSegment(segment);
         _state.SelectNote(note);
         OnPreviewNote?.Invoke(instrument, note.Value);

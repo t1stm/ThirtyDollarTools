@@ -2,6 +2,7 @@ using System.Diagnostics;
 using EditorScene.Scenes.Components;
 using Serilog;
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarParser;
 
 namespace EditorScene;
 
@@ -46,6 +47,43 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         {
             if (Write(picked)) andThen?.Invoke();
         });
+    }
+
+    /// <summary>Imports a dropped TDW sequence file as a track or a whole project (see
+    /// <see cref="ImportMode" />). All-or-nothing: a parse/import failure leaves the
+    /// project untouched, matching <see cref="Load" />'s try/catch shape. On success,
+    /// any non-fatal issues (ignored events, quantized notes, unknown sounds) surface
+    /// as one summary alert — never one dialog per issue.</summary>
+    public void ImportTdw(string path, ImportMode mode, IReadOnlySet<string>? knownSounds)
+    {
+        var name = Path.GetFileNameWithoutExtension(path);
+        try
+        {
+            var sequence = Sequence.FromString(File.ReadAllText(path));
+            var result = mode == ImportMode.Track
+                ? state.ImportSequenceAsTrack(sequence, name, knownSounds)
+                : state.ReplaceWithImportedProject(sequence, name, knownSounds);
+
+            if (!result.Warnings.IsEmpty)
+                dialogHost.Alert($"Imported with warnings: {Summarize(result.Warnings)}");
+        }
+        catch (Exception e)
+        {
+            logger.Error("[Editor] Failed to import \"{Path}\": {Exception}", path, e);
+            dialogHost.Alert($"Couldn't import \"{Path.GetFileName(path)}\":\n{e.Message}");
+        }
+    }
+
+    private static string Summarize(ImportWarnings warnings)
+    {
+        var parts = new List<string>();
+        foreach (var (name, count) in warnings.IgnoredEvents)
+            parts.Add($"ignored {name} ×{count}");
+        if (warnings.QuantizedNotes > 0)
+            parts.Add($"{warnings.QuantizedNotes} note{(warnings.QuantizedNotes == 1 ? "" : "s")} quantized");
+        if (warnings.UnknownSounds.Count > 0)
+            parts.Add($"unknown sounds: {string.Join(", ", warnings.UnknownSounds)}");
+        return string.Join("; ", parts);
     }
 
     public void ExportTdw(string path, SequenceStyle style)

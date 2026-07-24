@@ -86,4 +86,40 @@ public class ChannelSequenceTests
 
         Assert.Empty(AudibleSeconds(project.ChannelSequence(3)));
     }
+
+    [Fact]
+    public void ChannelSequence_IncludesCutsFromOtherChannels_MatchingTheMergedExport()
+    {
+        // Real (merged) playback has a cut silence everything currently playing
+        // project-wide; an isolated channel render must carry every other channel's
+        // cuts too, or the editor preview would drift from the exported/site behavior.
+        var project = new ThirtyDollarProject();
+        var kickTrack = OneBarQuarterGrid(project);
+        kickTrack.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
+        var cutTrack = OneBarQuarterGrid(project);
+        cutTrack.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("kick"), IsCut = true });
+        project.Place(kickTrack, 0, 0);
+        project.Place(cutTrack, 1, 0); // a different channel
+
+        var channel0 = project.ChannelSequence(0);
+
+        Assert.Contains("!cut", channel0.Events.Select(e => e.SoundEvent));
+        Assert.Equal(SequenceText.Serialize(project.ToSequence()), SequenceText.Serialize(channel0));
+    }
+
+    [Fact]
+    public void ChannelSequence_NeverInjectsAnotherChannelsOrdinarySounds()
+    {
+        var project = new ThirtyDollarProject();
+        var kickTrack = OneBarQuarterGrid(project);
+        kickTrack.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
+        var snareTrack = OneBarQuarterGrid(project);
+        snareTrack.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("snare") });
+        project.Place(kickTrack, 0, 0);
+        project.Place(snareTrack, 1, 0);
+
+        var channel0 = project.ChannelSequence(0);
+
+        Assert.DoesNotContain("snare", channel0.Events.Select(e => e.SoundEvent));
+    }
 }

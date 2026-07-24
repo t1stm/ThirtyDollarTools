@@ -87,15 +87,27 @@ public sealed class InspectorPanel : Panel
             }
             else if (_state.SelectedNote is { } note)
             {
-                _form.Header("Note");
-                _form.InfoRow("Instrument", () => note.Instrument.Name);
-                _form.ActionRow("Change", () => OnReassignInstrument?.Invoke([note]));
-                _form.NumberRow("Value", () => note.Value, v => note.Value = v!.Value,
-                    -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
-                _form.NumberRow("Volume", () => note.Volume, v => note.Volume = v, 0, 500, 5, allowNull: true);
-                _form.NumberRow("Pan", () => note.Pan, v => note.Pan = (float)v!.Value, -100, 100, 10);
-                _form.NumberRow("Offset (s)", () => note.Offset, v => note.Offset = v!.Value, -60, 60, 0.05);
-                AutomationSection(note);
+                if (note.IsCut)
+                {
+                    // Value/volume/pan/offset/automation are meaningless (always default)
+                    // for a cut - Change stays, to retarget which instrument it cuts.
+                    _form.Header("!cut event");
+                    _form.InfoRow("Cuts", () => note.Instrument.Name);
+                    _form.ActionRow("Change", () => OnReassignInstrument?.Invoke([note]));
+                    _form.InfoRow("Step", () => note.Step.ToString());
+                }
+                else
+                {
+                    _form.Header("Note");
+                    _form.InfoRow("Instrument", () => note.Instrument.Name);
+                    _form.ActionRow("Change", () => OnReassignInstrument?.Invoke([note]));
+                    _form.NumberRow("Value", () => note.Value, v => note.Value = v!.Value,
+                        -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
+                    _form.NumberRow("Volume", () => note.Volume, v => note.Volume = v, 0, 500, 5, allowNull: true);
+                    _form.NumberRow("Pan", () => note.Pan, v => note.Pan = (float)v!.Value, -100, 100, 10);
+                    _form.NumberRow("Offset (s)", () => note.Offset, v => note.Offset = v!.Value, -60, 60, 0.05);
+                    AutomationSection(note);
+                }
             }
         }
         else
@@ -150,18 +162,20 @@ public sealed class InspectorPanel : Panel
         _form.InfoRow("Instrument", () => AllEqual(notes, n => n.Instrument) ? primary.Instrument.Name : "mixed");
         _form.ActionRow("Change", () => OnReassignInstrument?.Invoke(notes));
 
+        // A mixed cut/normal selection edits its non-cut notes only - a cut's value/
+        // volume/pan/offset are fixed invariants (see Note.IsCut).
         _form.NumberRow("Value", () => primary.Value,
-            v => { foreach (var n in notes) n.Value = v!.Value; },
+            v => { foreach (var n in notes) if (!n.IsCut) n.Value = v!.Value; },
             -TrackEditorView.MaxValue, TrackEditorView.MaxValue,
             mixed: () => !AllEqual(notes, n => n.Value));
         _form.NumberRow("Volume", () => primary.Volume,
-            v => { foreach (var n in notes) n.Volume = v; },
+            v => { foreach (var n in notes) if (!n.IsCut) n.Volume = v; },
             0, 500, 5, allowNull: true, mixed: () => !AllEqual(notes, n => n.Volume));
         _form.NumberRow("Pan", () => primary.Pan,
-            v => { foreach (var n in notes) n.Pan = (float)v!.Value; },
+            v => { foreach (var n in notes) if (!n.IsCut) n.Pan = (float)v!.Value; },
             -100, 100, 10, mixed: () => !AllEqual(notes, n => n.Pan));
         _form.NumberRow("Offset (s)", () => primary.Offset,
-            v => { foreach (var n in notes) n.Offset = v!.Value; },
+            v => { foreach (var n in notes) if (!n.IsCut) n.Offset = v!.Value; },
             -60, 60, 0.05, mixed: () => !AllEqual(notes, n => n.Offset));
 
         MultiAutomationSection(notes, primary);
@@ -184,7 +198,8 @@ public sealed class InspectorPanel : Panel
         {
             _form.ActionRow("+ Add automation", () => EditAndRebuild(() =>
             {
-                foreach (var note in notes) note.Automation = new AudioKeyframeManager();
+                foreach (var note in notes)
+                    if (!note.IsCut) note.Automation = new AudioKeyframeManager();
             }));
             return;
         }
@@ -207,7 +222,7 @@ public sealed class InspectorPanel : Panel
     private static void FanOutAutomation(IReadOnlyList<Note> notes, Note primary)
     {
         foreach (var note in notes)
-            if (note != primary)
+            if (note != primary && !note.IsCut)
                 note.Automation = primary.Automation!.Clone();
     }
 

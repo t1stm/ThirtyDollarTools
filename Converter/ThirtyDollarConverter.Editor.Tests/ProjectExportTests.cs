@@ -1,4 +1,6 @@
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor.Tests;
 
@@ -282,5 +284,97 @@ public class ProjectExportTests
         var ev = project.ToSequence().Events[1];
 
         Assert.Equal(5, ev.Value);
+    }
+
+    [Fact]
+    public void CutNote_ExportsIndividualCut_IgnoringValueVolumePanOffset()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        track.Segments[0].Notes.Add(new Note
+        {
+            Step = 0, Instrument = Instrument.Single("kick"), IsCut = true,
+            Value = 61, Volume = 50, Pan = 30, Offset = 0.5
+        });
+        project.Place(track, 0, 0);
+
+        var sequence = project.ToSequence();
+        var ev = Assert.IsType<IndividualCutEvent>(sequence.Events[1]);
+
+        Assert.Equal("!cut", ev.SoundEvent);
+        Assert.Equal(["kick"], ev.CutSounds);
+        Assert.Equal(0, ev.Value);
+
+        // PCMEncoder.GenerateAudioAndMixer pre-allocates a mixer track per separated
+        // channel before rendering, so a cut's target track is guaranteed to exist -
+        // the text parser (TryIndividualCutTDW) populates this as a parsing side effect;
+        // building the event list programmatically must populate it identically, or a
+        // cut silently no-ops against a track that was never created (the sequence would
+        // parse and even look correct, but render byte-identical to having no cut at all).
+        Assert.Contains("kick", sequence.SeparatedChannels);
+    }
+
+    [Fact]
+    public void CutNote_LayeredInstrument_CutsEveryOneOfItsSounds()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        var layer = project.NewInstrument("Layer");
+        layer.Sounds.Add("kick");
+        layer.Sounds.Add("clap");
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layer, IsCut = true });
+        project.Place(track, 0, 0);
+
+        var ev = Assert.IsType<IndividualCutEvent>(project.ToSequence().Events[1]);
+
+        Assert.Equal(["clap", "kick"], ev.CutSounds.OrderBy(s => s));
+    }
+
+    [Fact]
+    public void CutNote_TransposeDoesNotLeakIntoTheExportedValue()
+    {
+        var project = new ThirtyDollarProject { Transpose = 5 };
+        var track = project.NewTrack();
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick"), IsCut = true });
+        project.Place(track, 0, 0);
+
+        var ev = project.ToSequence().Events[1];
+
+        Assert.Equal(0, ev.Value);
+    }
+
+    [Fact]
+    public void CutNote_Alone_DoesNotShiftFollowingNotes()
+    {
+        // Regression for the SequenceBuilder latent bug: an action (here "!cut@sound", same
+        // as an automation-generated cut) never advances the clock in playback, unlike a
+        // sound. A cut group must not silently consume the step after it - one "!stop@1"
+        // must appear before the following on-grid note.
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("kick"), IsCut = true });
+        track.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("clap") });
+        project.Place(track, 0, 0);
+
+        var events = project.ToSequence().Events;
+
+        Assert.Equal(["!speed", "boom", "!cut", "!stop", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(1, events[3].Value);
+    }
+
+    [Fact]
+    public void CutNote_SharingAStepWithASound_IsEmittedFirstAndConsumesOneStep()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick"), IsCut = true });
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+        track.Segments[0].Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("clap") });
+        project.Place(track, 0, 0);
+
+        var events = project.ToSequence().Events;
+
+        Assert.Equal(["!speed", "!cut", "boom", "clap"], events.Select(e => e.SoundEvent));
     }
 }

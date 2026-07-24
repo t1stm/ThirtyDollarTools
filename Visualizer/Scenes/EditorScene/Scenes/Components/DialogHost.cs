@@ -1,3 +1,4 @@
+using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
@@ -62,9 +63,10 @@ public sealed class DialogHost(UIContext context, Panel root)
     }
 
     /// <summary>Generic yes/no confirmation; closes itself either way.</summary>
-    public void Confirm(string message, Action onConfirm, Action? onCancel = null)
+    public void Confirm(string message, Action onConfirm, Action? onCancel = null,
+        string confirmLabel = "Delete", Vector4? confirmColor = null)
     {
-        var dialog = new ConfirmDialog(context, message);
+        var dialog = new ConfirmDialog(context, message, confirmLabel, confirmColor);
         var modal = Show(dialog);
         dialog.CancelButton.OnClick = _ =>
         {

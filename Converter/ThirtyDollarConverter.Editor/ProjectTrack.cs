@@ -233,11 +233,14 @@ public class ProjectTrack(TimingInfo timing, int id)
                         Volume = note.Volume,
                         Pan = note.Pan,
                         Offset = note.Offset,
-                        Automation = note.Automation
+                        Automation = note.Automation,
+                        IsCut = note.IsCut
                     };
 
                 foreach (var ev in transposed.ToEvents())
                     yield return (minutes, ev);
+
+                if (note.IsCut) continue; // a cut has no value/sound for automation to expand against
 
                 if (transposed.Automation is not null)
                     foreach (var generated in transposed.Automation.Expand(transposed, minutes, step_minutes))

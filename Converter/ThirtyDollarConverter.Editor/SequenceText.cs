@@ -10,7 +10,7 @@ public static class SequenceText
     ///     Serializes a sequence to .tdw text with full value precision.
     ///     BaseEvent.Stringify rounds values to 2 decimals, which would corrupt the
     ///     builder's fractional stops. The builder emits sounds (with volume, pan and
-    ///     sound-start offset), !speed/!stop/!combine/!divider — nothing else.
+    ///     sound-start offset), !speed/!stop/!combine/!divider/!cut — nothing else.
     /// </summary>
     public static string Serialize(Sequence sequence)
     {

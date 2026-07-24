@@ -486,6 +486,50 @@ public class InspectorPanelTests
     }
 
     [Fact]
+    public void NoteEditorMode_SelectingACutNote_ShowsTheSlimCard_ButKeepsChange()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var kick = MakeInstrument(state, "kick");
+        var note = state.AddNote(track.Segments[0], 3, kick, 0, isCut: true);
+        state.SelectNote(note);
+
+        Assert.Equal("kick", ((Label)inspector.Field("!cut event.Cuts")!).Value.ToString());
+        Assert.Equal("3", ((Label)inspector.Field("!cut event.Step")!).Value.ToString());
+        Assert.Null(inspector.Field("Note.Value"));
+        Assert.Null(inspector.Field("Note.Volume"));
+        Assert.Null(inspector.Field("Note.Pan"));
+        Assert.Null(inspector.Field("Note.Offset (s)"));
+        Assert.Null(inspector.Field("Automation.+ Add automation"));
+
+        // Change stays available: retargeting which instrument a cut hits is valid,
+        // unlike a normal note's instrument reassignment concerns.
+        IReadOnlyList<Note>? seen = null;
+        inspector.OnReassignInstrument = n => seen = n;
+        ((Button)inspector.Field("!cut event.Change")!).OnClick!.Invoke(null!);
+        Assert.Equal([note], seen);
+    }
+
+    [Fact]
+    public void MultiNoteSelection_MixedWithACutNote_EditsOnlyTheNonCutNotes()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var kick = MakeInstrument(state, "kick");
+        var boomNote = state.AddNote(track.Segments[0], 0, boom, 5);
+        var cutNote = state.AddNote(track.Segments[0], 1, kick, 0, isCut: true);
+        state.SetNoteSelection([boomNote, cutNote]);
+
+        ((NumericInput)inspector.Field("Note (× 2).Value")!).Value = 20;
+
+        Assert.Equal(20, boomNote.Value);
+        Assert.Equal(0, cutNote.Value); // untouched: a cut's value is a fixed invariant
+    }
+
+    [Fact]
     public void MultiPlacementSelection_SameTrack_ShowsClipsHeader_AndTheNormalTrackForm()
     {
         var (_, state, inspector) = NewInspector();

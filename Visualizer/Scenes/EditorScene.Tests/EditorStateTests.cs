@@ -1,4 +1,5 @@
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarParser;
 
 namespace EditorScene.Tests;
 
@@ -1243,5 +1244,88 @@ public class EditorStateTests
         // Only kept's surviving clipboard entry pastes back — one new clone, not two.
         Assert.Equal([p2, state.SelectedPlacement!], state.Project.Placements);
         Assert.Equal(kept, state.SelectedPlacement!.Track);
+    }
+
+    [Fact]
+    public void ImportSequenceAsTrack_IsOneUndoStep_RemovingTrackInstrumentsAndPlacementTogether()
+    {
+        var state = new EditorState();
+        var sequence = Sequence.FromString("kick|snare");
+
+        var result = state.ImportSequenceAsTrack(sequence, "imported", null);
+
+        Assert.Single(state.Project.Tracks);
+        Assert.Equal(2, state.Project.Instruments.Count);
+        Assert.Single(state.Project.Placements);
+        Assert.True(state.Dirty);
+
+        state.Undo();
+        Assert.Empty(state.Project.Tracks);
+        Assert.Empty(state.Project.Instruments);
+        Assert.Empty(state.Project.Placements);
+
+        state.Redo();
+        Assert.Equal([result.Track!], state.Project.Tracks);
+        Assert.Equal([result.Placement!], state.Project.Placements);
+        Assert.Equal(2, state.Project.Instruments.Count);
+    }
+
+    [Fact]
+    public void ImportSequenceAsTrack_PlacesOnTheNextFreeChannel()
+    {
+        var state = new EditorState();
+        state.PlaceTrack(state.AddTrack(), 3, 0);
+
+        var result = state.ImportSequenceAsTrack(Sequence.FromString("kick"), "imported", null);
+
+        Assert.Equal(4, result.Placement!.Channel);
+    }
+
+    [Fact]
+    public void ReplaceWithImportedProject_ClearsUndo_SetsDirty_AndNullsProjectPath()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"editor-state-{Guid.NewGuid():N}.tdwproj");
+        try
+        {
+            var state = new EditorState();
+            state.AddTrack();
+            state.SaveProjectToFile(path);
+            Assert.False(state.Dirty);
+
+            state.ReplaceWithImportedProject(Sequence.FromString("kick|snare"), "song", null);
+
+            Assert.Equal(2, state.Project.Tracks.Count); // one per distinct sound
+            Assert.True(state.Dirty); // exists only in memory - the exit guard must still fire
+            Assert.Null(state.ProjectPath); // so Save asks for a location, not overwrite the old file
+            Assert.False(state.CanUndo); // import-as-project isn't undoable
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AddNote_AsACut_IgnoresCopiedModifiers()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var kick = MakeInstrument(state, "kick");
+        var source = state.AddNote(segment, 0, boom, 5);
+        source.Volume = 42;
+        source.Pan = -10;
+        source.Offset = 0.5;
+        source.Automation = new AudioKeyframeManager();
+        state.SelectNote(source); // seeds CopiedModifiers
+
+        var cutNote = state.AddNote(segment, 1, kick, 0, isCut: true);
+
+        Assert.True(cutNote.IsCut);
+        Assert.Null(cutNote.Volume);
+        Assert.Equal(0, cutNote.Pan);
+        Assert.Equal(0, cutNote.Offset);
+        Assert.Null(cutNote.Automation);
     }
 }

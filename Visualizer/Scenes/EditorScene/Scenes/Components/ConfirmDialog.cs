@@ -13,7 +13,8 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class ConfirmDialog : FlexPanel
 {
-    public ConfirmDialog(UIContext context, string message) : base(context)
+    public ConfirmDialog(UIContext context, string message, string confirmLabel = "Delete",
+        Vector4? confirmColor = null) : base(context)
     {
         Direction = LayoutDirection.Vertical;
         Width = 360;
@@ -21,8 +22,8 @@ public sealed class ConfirmDialog : FlexPanel
         Spacing = 14;
         Background = new ColoredPlane { Color = EditorPalette.Panel };
 
-        ConfirmButton = new Button(context, "Delete",
-            new ColoredPlane { Color = EditorPalette.DangerAccent })
+        ConfirmButton = new Button(context, confirmLabel,
+            new ColoredPlane { Color = confirmColor ?? EditorPalette.DangerAccent })
         {
             FontSizePx = 14,
             BorderRadius = 6,

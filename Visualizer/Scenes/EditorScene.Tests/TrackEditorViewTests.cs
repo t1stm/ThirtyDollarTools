@@ -13,6 +13,12 @@ namespace EditorScene.Tests;
 // The beat ruler adds RulerHeight (18px) above the old grid top; since the initial
 // layout also centers value 0 vertically, every row-targeting y below shifts by
 // exactly half that (+9), not the full 18 — the click coordinates already bake it in.
+// The reserved cut band (2 rows, TrackEditorGeometry.CutRows) sits above value +60 and
+// shifts every normal row further down; with CenterPending re-centering across the
+// band's extra height too, the net shift for a fixed-RowHeight (clamped, non-stretch)
+// viewport works out to exactly CutRows * RowHeight / 2 — +8 px at this file's default
+// 8 px rows, +20 px at the 20 px default used by a couple of larger-viewport tests.
+// The row-targeting y values below already bake that shift in.
 public class TrackEditorViewTests
 {
     private static Instrument MakeInstrument(EditorState state, string sound)
@@ -65,8 +71,8 @@ public class TrackEditorViewTests
         var boom = MakeInstrument(state, "boom");
         state.ActiveInstrument = boom;
 
-        // Step 3 (x = 44 + 3*16 + 8), value 0 (row center y = 22 + 24*8 + 4 + 9).
-        Click(ctx, view, 100, 227);
+        // Step 3 (x = 44 + 3*16 + 8), value 0 (row center y = 22 + 24*8 + 4 + 9 + 8 cut-band shift).
+        Click(ctx, view, 100, 239);
 
         var note = Assert.Single(track.Segments[0].Notes);
         Assert.Equal(3, note.Step);
@@ -83,14 +89,14 @@ public class TrackEditorViewTests
         state.ActiveInstrument = MakeInstrument(state, "boom");
 
         // The first note exists as soon as the button goes down (FL paint style)…
-        Press(ctx, view, 100, 227); // step 3, value 0
+        Press(ctx, view, 100, 239); // step 3, value 0
         Assert.Single(track.Segments[0].Notes);
 
         // …and sweeping while held paints every new cell crossed.
-        Drag(ctx, view, 116, 227); // step 4, same row
-        Drag(ctx, view, 132, 219); // step 5, value 1
-        Drag(ctx, view, 132, 219); // resting in place must not stack duplicates
-        Release(ctx, view, 132, 219);
+        Drag(ctx, view, 116, 239); // step 4, same row
+        Drag(ctx, view, 132, 231); // step 5, value 1
+        Drag(ctx, view, 132, 231); // resting in place must not stack duplicates
+        Release(ctx, view, 132, 231);
 
         Assert.Equal([(3, 0d), (4, 0d), (5, 1d)],
             track.Segments[0].Notes.Select(n => (n.Step, n.Value)).ToList());
@@ -109,7 +115,7 @@ public class TrackEditorViewTests
         // the app lays out (and resettles the pool) between frames.
         foreach (var x in (float[])[100, 116, 132])
         {
-            ctx.UpdatePointer(view, x, 227, false, false, false, Vector2.Zero, true);
+            ctx.UpdatePointer(view, x, 239, false, false, false, Vector2.Zero, true);
             view.Layout();
         }
 
@@ -151,25 +157,25 @@ public class TrackEditorViewTests
         view.Layout();
 
         // Press the note (step 3, value 0), then one step right and one value up.
-        Press(ctx, view, 100, 227);
+        Press(ctx, view, 100, 239);
         Assert.Same(note, state.SelectedNote);
 
-        Drag(ctx, view, 116, 219);
+        Drag(ctx, view, 116, 231);
         Assert.Equal(4, note.Step);
         Assert.Equal(1, note.Value);
 
         // Past the first segment's 256 px: lands on the second segment's step 0.
-        Drag(ctx, view, 308, 219);
+        Drag(ctx, view, 308, 231);
         Assert.Empty(track.Segments[0].Notes);
         Assert.Equal([note], second.Notes);
         Assert.Equal(0, note.Step);
 
-        Release(ctx, view, 308, 219);
+        Release(ctx, view, 308, 231);
         view.Update(ctx); // drag-end housekeeping
         view.Layout(); // the app lays out every frame; the pool resettles here
 
         // The note is still selectable after the pool resettles.
-        Press(ctx, view, 44 + 256 + 8, 219);
+        Press(ctx, view, 44 + 256 + 8, 231);
         Assert.Same(note, state.SelectedNote);
     }
 
@@ -181,7 +187,7 @@ public class TrackEditorViewTests
         view.FineSnap = true;
 
         // r = 24.1 rows -> value centered at 0.4.
-        Click(ctx, view, 100, 22 + 24.1f * 8 + 9);
+        Click(ctx, view, 100, 22 + 24.1f * 8 + 9 + 12);
 
         var note = Assert.Single(track.Segments[0].Notes);
         Assert.Equal(0.4, note.Value, 3);
@@ -197,20 +203,20 @@ public class TrackEditorViewTests
         view.OnPreviewNote = (i, v) => previews.Add((i, v));
 
         // Placing previews the new note.
-        Click(ctx, view, 100, 227); // step 3, value 0
+        Click(ctx, view, 100, 239); // step 3, value 0
         Assert.Equal([(boom, 0d)], previews);
         view.Layout(); // the app lays out every frame; the new note gets its block
 
         // Pressing the note does not re-preview; dragging within the same cell
         // neither; crossing to a new value previews once, at the new pitch.
-        Press(ctx, view, 100, 227);
-        Drag(ctx, view, 102, 228);
+        Press(ctx, view, 100, 239);
+        Drag(ctx, view, 102, 240);
         Assert.Single(previews);
 
-        Drag(ctx, view, 100, 219); // one value up
+        Drag(ctx, view, 100, 231); // one value up
         Assert.Equal((boom, 1d), previews[^1]);
         Assert.Equal(2, previews.Count);
-        Release(ctx, view, 100, 219);
+        Release(ctx, view, 100, 231);
     }
 
     [Fact]
@@ -222,13 +228,13 @@ public class TrackEditorViewTests
         view.Layout();
 
         // Right press on the note (step 3, value 0). No left press involved.
-        ctx.UpdatePointer(view, 100, 227, false, false, false, Vector2.Zero, true);
+        ctx.UpdatePointer(view, 100, 239, false, false, false, Vector2.Zero, true);
 
         Assert.Empty(track.Segments[0].Notes);
         Assert.Null(state.SelectedNote);
 
         // Right-clicking empty grid does nothing (no placement, no crash).
-        ctx.UpdatePointer(view, 100, 227, false, false, false, Vector2.Zero, true);
+        ctx.UpdatePointer(view, 100, 239, false, false, false, Vector2.Zero, true);
         Assert.Empty(track.Segments[0].Notes);
     }
 
@@ -239,7 +245,7 @@ public class TrackEditorViewTests
         var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
         view.Layout();
 
-        Click(ctx, view, 100, 227); // selects the note and focuses the view
+        Click(ctx, view, 100, 239); // selects the note and focuses the view
         Assert.Same(note, state.SelectedNote);
 
         ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.Delete, 0, 0, false));
@@ -280,12 +286,12 @@ public class TrackEditorViewTests
 
         // An empty zero-row cell in the LAST segment (step 40) — appended there, the
         // new note is the very last one the pool scan reaches.
-        Click(ctx, view, 692, 227);
+        Click(ctx, view, 692, 239);
         view.Layout(); // the app lays out every frame
 
         // The second click must land on the new note's block (which swallows it),
         // not on empty grid — that would place a duplicate.
-        Click(ctx, view, 692, 227);
+        Click(ctx, view, 692, 239);
 
         Assert.Equal(before + 1, track.Segments.Sum(s => s.Notes.Count));
         Assert.Equal(0, state.SelectedNote!.Value);
@@ -385,17 +391,18 @@ public class TrackEditorViewTests
         state.OnProjectChanged += view.InvalidateLayout;
         view.Layout();
 
-        // Mid-viewport row: with GridTop=40 the centered scrollY is 1023 (not 294 —
+        // Mid-viewport row: with GridTop=40 the centered scrollY is 1043 (not 294 —
         // that assumed the old 22px StripHeight and a stale Rows count); the ruler
-        // only shifts the click y by +9 (RulerHeight/2) vs. the pre-ruler geometry.
-        // r = (205 - 40 + 1023) / 20 = 59.4 → value 60 - 59 = 1.
-        Click(ctx, view, 100, 205);
+        // shifts the click y by +9 (RulerHeight/2) and the cut band by a further +20
+        // (CutRows * RowHeight / 2 at these 20px rows) vs. the pre-ruler geometry.
+        // r = (217 - 40 + 1043) / 20 = 61.4, minus CutRows(2) = 59.4 → value 60-59 = 1.
+        Click(ctx, view, 100, 217);
         Assert.Equal(1, Assert.Single(track.Segments[0].Notes).Value);
 
-        // Wheel down scrolls the rows: scrollY 1023 → 1071, the same +9-shifted y
-        // now maps to r = (205 - 40 + 1071) / 20 = 61.8 → value -1.
+        // Wheel down scrolls the rows: scrollY 1043 → 1091, the same shifted y
+        // now maps to r = (217 - 40 + 1091) / 20 = 63.8, minus 2 = 61.8 → value -1.
         ctx.UpdatePointer(view, 400, 200, false, false, false, new Vector2(0, -1));
-        Click(ctx, view, 116, 205);
+        Click(ctx, view, 116, 217);
         Assert.Contains(track.Segments[0].Notes, n => n.Value == -1);
     }
 
@@ -411,18 +418,19 @@ public class TrackEditorViewTests
         state.ActiveInstrument = MakeInstrument(state, "boom");
         var view = new TrackEditorView(ctx, state) { Width = 400, Height = 414, PixelsPerStep = 16f };
         state.OnProjectChanged += view.InvalidateLayout;
-        view.Layout(); // centers: scrollY = (2420 - 374) / 2 = 1023 (GridTop = 40)
+        view.Layout(); // centers: scrollY = (2460 - 374) / 2 = 1043 (GridTop = 40, cut band included)
 
         // Hold middle inside the view and drag up-left by (48, 40):
-        // scrollX 0 → 48 (3 steps), scrollY 1023 → 1063 (2 rows).
+        // scrollX 0 → 48 (3 steps), scrollY 1043 → 1083 (2 rows).
         view.MiddlePan(true, 200, 200);
         view.MiddlePan(true, 152, 160);
         view.MiddlePan(false, 152, 160);
         view.Layout();
 
         // Step at x=100: (100 - 44 + 48) / 16 = 6.5 → step 6.
-        // Value at the +9-shifted y=205: r = (205 - 40 + 1063) / 20 = 61.4 → value -1.
-        Click(ctx, view, 100, 205);
+        // Value at the shifted y=217: r = (217 - 40 + 1083) / 20 = 63.4, minus
+        // CutRows(2) = 61.4 → value -1.
+        Click(ctx, view, 100, 217);
         var note = Assert.Single(track.Segments[0].Notes);
         Assert.Equal(6, note.Step);
         Assert.Equal(-1, note.Value);
@@ -433,7 +441,7 @@ public class TrackEditorViewTests
         view.MiddlePan(true, 900, 900);
         view.MiddlePan(false, 900, 900);
         view.Layout();
-        Click(ctx, view, 100, 205);
+        Click(ctx, view, 100, 217);
         Assert.Single(track.Segments[0].Notes);
     }
 
@@ -551,8 +559,8 @@ public class TrackEditorViewTests
 
         // Box from (step 2.25, value 0.375) to (step 4.75, value -1.5): contains step 3.
         Press(ctx, view, 80, 220);
-        Drag(ctx, view, 120, 235);
-        Release(ctx, view, 120, 235);
+        Drag(ctx, view, 120, 239);
+        Release(ctx, view, 120, 239);
         view.Update(ctx); // marquee commit runs on capture loss
 
         Assert.Equal([inside], state.SelectedNotes);
@@ -578,8 +586,8 @@ public class TrackEditorViewTests
         // (step 3.5, value -0.5) — inside the cell, short of both its left and top
         // edges (minStep=3.5 > 3, maxValue=-0.5 < 0).
         Press(ctx, view, 124, 239);
-        Drag(ctx, view, 100, 227);
-        Release(ctx, view, 100, 227);
+        Drag(ctx, view, 100, 231);
+        Release(ctx, view, 100, 231);
         view.Update(ctx);
 
         Assert.Equal([note], state.SelectedNotes);
@@ -598,8 +606,8 @@ public class TrackEditorViewTests
         view.WheelZooms = true; // Ctrl held
 
         Press(ctx, view, 80, 220);
-        Drag(ctx, view, 120, 235);
-        Release(ctx, view, 120, 235);
+        Drag(ctx, view, 120, 239);
+        Release(ctx, view, 120, 239);
         view.Update(ctx); // marquee commit runs on capture loss
 
         Assert.Equal([already, toAdd], state.SelectedNotes);
@@ -618,8 +626,8 @@ public class TrackEditorViewTests
         view.FineSnap = true; // Shift held
 
         Press(ctx, view, 80, 220);
-        Drag(ctx, view, 120, 235);
-        Release(ctx, view, 120, 235);
+        Drag(ctx, view, 120, 239);
+        Release(ctx, view, 120, 239);
         view.Update(ctx); // marquee commit runs on capture loss
 
         Assert.Equal([b], state.SelectedNotes);
@@ -662,8 +670,8 @@ public class TrackEditorViewTests
         // Step 5 now renders at x = 44 + 5*16 - 48 = 76 (was 124 before scrolling) — the
         // marquee must read this post-scroll position, not the pre-scroll pixel.
         Press(ctx, view, 60, 220);
-        Drag(ctx, view, 100, 235);
-        Release(ctx, view, 100, 235);
+        Drag(ctx, view, 100, 239);
+        Release(ctx, view, 100, 239);
         view.Update(ctx);
 
         Assert.Equal([note], state.SelectedNotes);
@@ -678,9 +686,9 @@ public class TrackEditorViewTests
         view.Layout();
         state.ActiveTool = EditorTool.Select;
 
-        Press(ctx, view, 100, 227); // the note's cell
-        Drag(ctx, view, 200, 227); // one step 6.25 steps right, same row
-        Release(ctx, view, 200, 227);
+        Press(ctx, view, 100, 239); // the note's cell
+        Drag(ctx, view, 200, 239); // one step 6.25 steps right, same row
+        Release(ctx, view, 200, 239);
 
         Assert.Equal([note], state.SelectedNotes);
         Assert.Equal(9, note.Step); // the Select tool moves notes too, same as Draw
@@ -698,10 +706,10 @@ public class TrackEditorViewTests
         state.SetNoteSelection([a]);
         view.WheelZooms = true; // Ctrl held
 
-        Click(ctx, view, 100, 227); // `a` again: already selected, append is a no-op, not a toggle
+        Click(ctx, view, 100, 239); // `a` again: already selected, append is a no-op, not a toggle
         Assert.Equal([a], state.SelectedNotes);
 
-        Click(ctx, view, 44 + 10 * 16 + 8, 227); // `b`'s cell
+        Click(ctx, view, 44 + 10 * 16 + 8, 239); // `b`'s cell
         Assert.Equal([a, b], state.SelectedNotes);
     }
 
@@ -717,7 +725,7 @@ public class TrackEditorViewTests
         state.SetNoteSelection([a, b]);
         view.FineSnap = true; // Shift held
 
-        Click(ctx, view, 100, 227); // `a`'s cell
+        Click(ctx, view, 100, 239); // `a`'s cell
 
         Assert.Equal([b], state.SelectedNotes);
     }
@@ -734,9 +742,9 @@ public class TrackEditorViewTests
         state.SetNoteSelection([a, b]);
 
         // Press `a` (step 3, value 0) and drag one step right, one value up.
-        Press(ctx, view, 100, 227);
-        Drag(ctx, view, 116, 219);
-        Release(ctx, view, 116, 219);
+        Press(ctx, view, 100, 239);
+        Drag(ctx, view, 116, 231);
+        Release(ctx, view, 116, 231);
 
         Assert.Equal(4, a.Step);
         Assert.Equal(1, a.Value);
@@ -757,9 +765,9 @@ public class TrackEditorViewTests
         state.SetNoteSelection([a, b]); // multi-select via the Select tool…
         state.ActiveTool = EditorTool.Draw; // …then switch: selection survives (§3.6)
 
-        Press(ctx, view, 100, 227);
-        Drag(ctx, view, 116, 219);
-        Release(ctx, view, 116, 219);
+        Press(ctx, view, 100, 239);
+        Drag(ctx, view, 116, 231);
+        Release(ctx, view, 116, 231);
 
         Assert.Equal(4, a.Step);
         Assert.Equal(1, a.Value);
@@ -777,9 +785,9 @@ public class TrackEditorViewTests
         view.Layout();
         state.SetNoteSelection([a]); // `b` is not part of the selection
 
-        Press(ctx, view, 212, 227); // `b`'s cell (step 10)
-        Drag(ctx, view, 228, 227); // one step right
-        Release(ctx, view, 228, 227);
+        Press(ctx, view, 212, 239); // `b`'s cell (step 10)
+        Drag(ctx, view, 228, 239); // one step right
+        Release(ctx, view, 228, 239);
 
         Assert.Equal(3, a.Step); // untouched: no longer part of the (replaced) selection
         Assert.Equal(11, b.Step);
@@ -796,11 +804,11 @@ public class TrackEditorViewTests
         view.Layout();
         state.SetNoteSelection([a, b]);
 
-        Press(ctx, view, 100, 227); // `a`'s cell
-        Drag(ctx, view, 116, 227); // step 4
-        Drag(ctx, view, 132, 227); // step 5
-        Drag(ctx, view, 148, 227); // step 6
-        Release(ctx, view, 148, 227);
+        Press(ctx, view, 100, 239); // `a`'s cell
+        Drag(ctx, view, 116, 239); // step 4
+        Drag(ctx, view, 132, 239); // step 5
+        Drag(ctx, view, 148, 239); // step 6
+        Release(ctx, view, 148, 239);
 
         Assert.Equal(6, a.Step);
         Assert.Equal(13, b.Step);
@@ -830,9 +838,9 @@ public class TrackEditorViewTests
         // Press the anchor (step 10) and drag left by 8 steps: the anchor itself stays
         // in range, but `nearStart` (step 2 - 8 = -6) must clamp to step 0 instead of
         // vanishing or capping the whole group's delta down to fit it.
-        Press(ctx, view, 44 + 10 * 16 + 8, 227);
-        Drag(ctx, view, 44 + 2 * 16 + 8, 227);
-        Release(ctx, view, 44 + 2 * 16 + 8, 227);
+        Press(ctx, view, 44 + 10 * 16 + 8, 239);
+        Drag(ctx, view, 44 + 2 * 16 + 8, 239);
+        Release(ctx, view, 44 + 2 * 16 + 8, 239);
 
         Assert.Equal(2, anchor.Step); // the full -8 delta applied
         Assert.Equal(0, nearStart.Step); // clamped, not dropped
@@ -922,5 +930,77 @@ public class TrackEditorViewTests
         Assert.Empty(track.Segments[0].Notes);
         state.Paste();
         Assert.Single(track.Segments[0].Notes);
+    }
+
+    [Fact]
+    public void CutNotes_AlwaysRender_RegardlessOfTheActiveInstrument()
+    {
+        var (ctx, state, view, track) = NewView();
+        var kick = MakeInstrument(state, "kick");
+        var boom = MakeInstrument(state, "boom");
+        var cutNote = state.AddNote(track.Segments[0], 0, kick, 0, isCut: true);
+        state.ActiveInstrument = boom; // cutting kick, but boom is active - still shown
+        view.InvalidateLayout();
+        view.Layout();
+
+        Assert.Contains(view.NoteBlocks, b => b.Note == cutNote);
+    }
+
+    [Fact]
+    public void SimultaneousCutsOnDifferentInstruments_ShareTheStep_ButRenderInSeparateSlots()
+    {
+        // Regression: individual cuts routinely fire on several sounds at once
+        // ("!cut@a|!cut@b" in a real TDW file), landing two cut notes - different
+        // instruments - on the same step. Before slot-splitting, both rendered at
+        // identical coordinates in the pinned row, so only one was ever reachable.
+        var (ctx, state, view, track) = NewView();
+        var kick = MakeInstrument(state, "kick");
+        var snare = MakeInstrument(state, "snare");
+        var kickCut = state.AddNote(track.Segments[0], 3, kick, 0, isCut: true);
+        var snareCut = state.AddNote(track.Segments[0], 3, snare, 0, isCut: true);
+        view.Layout();
+
+        var kickBlock = view.NoteBlocks.Single(b => b.Note == kickCut);
+        var snareBlock = view.NoteBlocks.Single(b => b.Note == snareCut);
+
+        Assert.NotEqual(kickBlock.X.Value, snareBlock.X.Value);
+        Assert.True(kickBlock.Width.Value < view.PixelsPerStep);
+        Assert.True(snareBlock.Width.Value < view.PixelsPerStep);
+    }
+
+    [Fact]
+    public void CutRowPress_PlacesACutForTheActiveInstrument()
+    {
+        var (ctx, state, view, track) = NewView();
+        state.ActiveInstrument = MakeInstrument(state, "kick");
+
+        // The pinned row sits at a fixed y between the ruler and the grid - always
+        // reachable without scrolling, unlike a normal value row.
+        Click(ctx, view, 100, TrackEditorView.CutRowTop + TrackEditorView.CutRowHeight / 2);
+
+        var note = Assert.Single(track.Segments[0].Notes);
+        Assert.True(note.IsCut);
+        Assert.Equal("kick", note.Instrument.Sounds.Single());
+        Assert.Equal(3, note.Step);
+    }
+
+    [Fact]
+    public void GroupDrag_MixedSelection_MovesBothNotesStepsTogether()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var kick = MakeInstrument(state, "kick");
+        var cutNote = state.AddNote(track.Segments[0], 3, kick, 0, isCut: true);
+        var boomNote = state.AddNote(track.Segments[0], 3, boom, 0);
+        state.SetNoteSelection([boomNote, cutNote]);
+        view.Layout();
+
+        // Press the normal note (the drag anchor) and drag one step right.
+        Press(ctx, view, 100, 239);
+        Drag(ctx, view, 116, 239);
+        Release(ctx, view, 116, 239);
+
+        Assert.Equal(4, boomNote.Step);
+        Assert.Equal(4, cutNote.Step); // the horizontal delta still applies to both
     }
 }
