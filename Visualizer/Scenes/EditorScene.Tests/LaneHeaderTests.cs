@@ -65,4 +65,29 @@ public class LaneHeaderTests
         Assert.True(arrangement.ScrollY > 0);
         Assert.Equal(yBefore - arrangement.ScrollY, header.Rows[0].Mute.Computed.Y, 3);
     }
+
+    [Fact]
+    public void ImportingATrack_RecomputesAndQueuesTheNewLanesButtons()
+    {
+        // Mirrors EditorInterface.RefreshProject: a project change (import/load/undo/...)
+        // must both InvalidateLayout and DrawTo the header, or a lane that only exists
+        // because of the change never gets Visible recomputed/queued for render (the
+        // header otherwise only relayouts from ArrangementView.OnScrolled).
+        const int channel = 40;
+        var height = ArrangementView.RulerHeight + (channel + 2) * ArrangementView.LaneHeight;
+        var (state, arrangement, header) = NewHeader(height);
+        arrangement.Layout();
+        header.Layout();
+
+        var track = state.AddTrack();
+        state.PlaceTrack(track, channel, 0);
+        arrangement.Refresh(); // what RefreshProject actually calls
+
+        header.InvalidateLayout();
+        header.DrawTo(arrangement.Context);
+
+        var (mute, solo) = header.Rows[channel];
+        Assert.True(mute.Visible);
+        Assert.True(solo.Visible);
+    }
 }

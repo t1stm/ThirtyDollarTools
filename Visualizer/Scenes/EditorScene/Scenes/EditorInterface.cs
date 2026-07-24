@@ -94,8 +94,11 @@ public class EditorInterface
         State.OnToolChanged += tool =>
         {
             foreach (var (button, buttonTool) in _toolButtons)
-                ((ColoredPlane)button.Background!).Color =
-                    buttonTool == tool ? EditorPalette.Accent : EditorPalette.Surface;
+            {
+                var active = buttonTool == tool;
+                ((ColoredPlane)button.Background!).Color = active ? ToolAccent(buttonTool) : EditorPalette.Surface;
+                button.Label.Color = ToolTextColor(buttonTool, active);
+            }
         };
 
         // The column body stacks the scrollable track list above the transport
@@ -324,15 +327,29 @@ public class EditorInterface
     /// <summary>One Draw/Select toggle; every made button follows State.OnToolChanged (see ctor).</summary>
     private Button MakeToolButton(string text, EditorTool tool)
     {
+        var active = State.ActiveTool == tool;
         var button = new Button(_context, text)
         {
             Background = new ColoredPlane
-            { Color = State.ActiveTool == tool ? EditorPalette.Accent : EditorPalette.Surface },
+            {
+                Color = active ? ToolAccent(tool) : EditorPalette.Surface,
+            },
+            FontSizePx = 12,
+            BorderRadius = 6,
             OnClick = _ => State.ActiveTool = tool
         };
+        button.Label.Color = ToolTextColor(tool, active);
         _toolButtons.Add((button, tool));
         return button;
     }
+
+    /// <summary>Each tool's active-highlight color: Draw blue, Select yellow.</summary>
+    private static Vector4 ToolAccent(EditorTool tool) =>
+        tool == EditorTool.Select ? EditorPalette.AccentYellow : EditorPalette.Accent;
+
+    /// <summary>Select's yellow highlight is light, so its active label needs dark text for contrast.</summary>
+    private static Vector4 ToolTextColor(EditorTool tool, bool active) =>
+        active && tool == EditorTool.Select ? EditorPalette.Panel : Vector4.One;
 
     /// <summary>Same lazy-fill guard as <see cref="InstrumentEditor.EnsureSounds" />, for the filter picker.</summary>
     private void EnsureSoundFilterItems()
@@ -502,6 +519,13 @@ public class EditorInterface
         _trackEditor.InvalidateLayout();
         _inspector.Sync();
         RefreshSelection();
+
+        // Channel count may have just changed (import/load/undo/...), and the header
+        // otherwise only relayouts from ArrangementView.OnScrolled. DrawTo (not just
+        // Layout): a row whose Visible flips true here needs its DrawSelf to run at
+        // least once to ever get QueueRender'd - see Resize()'s identical comment.
+        _laneHeader.InvalidateLayout();
+        _laneHeader.DrawTo(_context);
     }
 
     private void RefreshSelection()

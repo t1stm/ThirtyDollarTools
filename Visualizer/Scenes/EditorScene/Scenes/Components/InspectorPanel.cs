@@ -167,8 +167,8 @@ public sealed class InspectorPanel : Panel
             {
                 var addSegment = new Button(Context, "+ Add")
                 {
-                    FontSizePx = 12f,
-                    BorderRadius = 4,
+                    FontSizePx = 11f,
+                    BorderRadius = 6,
                     Background = new ColoredPlane { Color = EditorPalette.Surface },
                     OnClick = _ =>
                     {
@@ -177,8 +177,8 @@ public sealed class InspectorPanel : Panel
                 };
                 var removeSegment = new Button(Context, "− Remove")
                 {
-                    FontSizePx = 12f,
-                    BorderRadius = 4,
+                    FontSizePx = 11f,
+                    BorderRadius = 6,
                     Background = new ColoredPlane { Color = EditorPalette.Surface },
                     OnClick = _ =>
                     {

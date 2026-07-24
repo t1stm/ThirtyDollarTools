@@ -18,6 +18,7 @@ internal static class EditorPalette
     public static readonly Vector4 Divider = new(0.2f, 0.204f, 0.29f, 1f); // #33344a
     public static readonly Vector4 DividerHover = new(0.247f, 0.255f, 0.376f, 1f); // #3f4160
     public static readonly Vector4 Accent = new(0.30f, 0.42f, 0.80f, 1f); // #4c6bcc
+    public static readonly Vector4 AccentYellow = new(0.878f, 0.686f, 0.406f, 1f); // #e0af68
     public static readonly Vector4 TextMuted = new(0.337f, 0.373f, 0.537f, 1f); // #565f89
     public static readonly Vector4 TextDim = new(0.66f, 0.7f, 0.86f, 1f);
     public static readonly Vector4 Header = new(0.478f, 0.635f, 0.968f, 1f); // #7aa2f7

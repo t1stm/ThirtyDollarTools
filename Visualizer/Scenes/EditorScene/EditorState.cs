@@ -360,20 +360,30 @@ public class EditorState
     /// <summary>
     ///     Pastes the clipboard payload in place: notes into the opened track (mapped
     ///     through <see cref="ProjectTrack.SegmentAtGlobalStep" />, dropping any past the
-    ///     track's end, skipping any landing on an identical existing note), placements
-    ///     as fresh clips on the arrangement. Cross-editor mismatches (notes payload while
-    ///     the arrangement is shown, or vice versa) are a silent no-op. The pasted clones
-    ///     become the new selection, and the whole paste is one undo entry.
+    ///     track's end). If every note would land on an identical existing note, the whole
+    ///     paste is shifted one step to the right instead (repeated pastes step further
+    ///     right each time); placements as fresh clips on the arrangement. Cross-editor
+    ///     mismatches (notes payload while the arrangement is shown, or vice versa) are a
+    ///     silent no-op. The pasted clones become the new selection, and the whole paste is
+    ///     one undo entry.
     /// </summary>
     public void Paste()
     {
         if (_clipboard.Notes is { } noteEntries)
         {
             if (OpenedTrack is not { } track) return; // cross-editor mismatch
+            var entries = noteEntries.ToList();
+
+            var offset = 0;
+            while (entries.All(entry =>
+                       track.SegmentAtGlobalStep(entry.GlobalStep + offset) is { } mapped &&
+                       mapped.Segment.Notes.Any(n => n.Step == mapped.LocalStep && n.Value == entry.Snapshot.Value)))
+                offset++;
+
             var pasted = new List<(TrackSegment Segment, Note Note)>();
-            foreach (var entry in noteEntries)
+            foreach (var entry in entries)
             {
-                if (track.SegmentAtGlobalStep(entry.GlobalStep) is not { } mapped) continue;
+                if (track.SegmentAtGlobalStep(entry.GlobalStep + offset) is not { } mapped) continue;
                 var (segment, localStep) = mapped;
                 var clone = entry.Snapshot.Duplicate();
                 clone.Step = localStep;

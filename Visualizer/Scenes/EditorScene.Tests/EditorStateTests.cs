@@ -1122,7 +1122,7 @@ public class EditorStateTests
     }
 
     [Fact]
-    public void PasteInPlace_OntoTheSameTrack_SkipsNotesCollidingWithTheOriginals()
+    public void PasteInPlace_OntoTheSameTrack_ShiftsOneStepRightOnCollision()
     {
         var state = new EditorState();
         var track = state.AddTrack();
@@ -1133,13 +1133,13 @@ public class EditorStateTests
         state.SetNoteSelection([note]);
         state.CopySelection();
 
-        state.Paste(); // same (Step, Value) as the still-present original: skipped
-        Assert.Single(segment.Notes);
+        state.Paste(); // same (Step, Value) as the still-present original: shifted right by one
+        Assert.Equal(2, segment.Notes.Count);
+        Assert.Contains(segment.Notes, n => n.Step == 1 && n.Value == 0);
 
-        // Once the original is gone, pasting in place succeeds.
-        state.RemoveNote(segment, note);
-        state.Paste();
-        Assert.Single(segment.Notes);
+        state.Paste(); // now collides at both step 0 and step 1: shifted right by two
+        Assert.Equal(3, segment.Notes.Count);
+        Assert.Contains(segment.Notes, n => n.Step == 2 && n.Value == 0);
     }
 
     [Fact]
