@@ -11,17 +11,14 @@ using Sundex.Engine.Renderer.Abstract;
 namespace Sundex.Components.Tests;
 
 /// <summary>
-///     Documents a real gotcha hit by the editor's status bar (a <see cref="ProgressBar" />
-///     constructed hidden, then shown later): a renderable set via a Panel's
-///     <c>Background</c> property queues immediately, at whatever <see cref="UIElement.Index" />
-///     the element has at that construction moment - regardless of <see cref="UIElement.Visible" />.
-///     Attaching the element into its real parent later updates <c>Index</c> but never re-queues
-///     the already-queued renderable, and flipping <c>Visible</c> back to true doesn't either
-///     (<c>Layout()</c>, run every frame, never touches the render queue). Only a fresh
-///     <see cref="UIElement.DrawTo" /> call re-queues at the current, correct layer. Any element
-///     built hidden and shown later needs an explicit <c>DrawTo</c> when it becomes visible, or it
-///     stays rendered at its stale construction-time depth - effectively invisible if anything
-///     else covers that layer.
+///     The render queue is retained, so <see cref="UIElement.Visible" /> has to maintain it:
+///     a renderable set via a Panel's <c>Background</c> queues at whatever
+///     <see cref="UIElement.Index" /> the element had at construction time, and attaching it
+///     into its real parent later updates <c>Index</c> without re-queueing (<c>Layout()</c>,
+///     run every frame, never touches the queue). The <c>Visible</c> setter therefore calls
+///     <see cref="UIElement.DrawTo" />/<c>StopRendering</c> itself - covering both the editor's
+///     status bar (built hidden, shown later) and rows whose visibility flips during layout,
+///     like the arrangement's M/S toggles when it scrolls.
 /// </summary>
 public class ProgressBarVisibilityToggleTests
 {
@@ -65,15 +62,14 @@ public class ProgressBarVisibilityToggleTests
         mid2.AddChild(bar);
 
         var expectedLayer = bar.BackgroundPanel.Index;
-        var actualLayerAfterAttach = context.LayerOf(plane);
-        Assert.NotEqual(expectedLayer, actualLayerAfterAttach); // bug: stuck at its construction-time layer
+        Assert.Equal(-1, context.LayerOf(plane)); // hidden: not queued at all
 
-        // Now show it the naive way (just flipping Visible, as SetStatus originally did).
+        // Showing it re-queues the subtree at the current (correct) Index.
         bar.Visible = true;
-        Assert.NotEqual(expectedLayer, context.LayerOf(plane)); // still stuck - Visible alone never re-queues
-
-        // The fix: an explicit DrawTo re-queues at the current (correct) Index.
-        bar.DrawTo(context);
         Assert.Equal(expectedLayer, context.LayerOf(plane));
+
+        // Hiding it dequeues again, instead of leaving it rendered forever.
+        bar.Visible = false;
+        Assert.Equal(-1, context.LayerOf(plane));
     }
 }

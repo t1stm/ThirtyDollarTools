@@ -67,6 +67,36 @@ public class LaneHeaderTests
     }
 
     [Fact]
+    public void ScrollingALaneIntoView_QueuesItsButtonsForRender()
+    {
+        // Regression: a row hidden at the initial draw (below the grid) never got its
+        // DrawSelf once scrolling flipped Visible back on, so its M/S toggles were
+        // hit-testable - clicking them muted the lane - but never painted.
+        const int channel = 15;
+        var (state, arrangement, header) = NewHeader(400);
+        arrangement.OnScrolled = header.InvalidateLayout;
+        var track = state.AddTrack();
+        state.PlaceTrack(track, channel, 0);
+        arrangement.Refresh();
+        header.RefreshChannels();
+        arrangement.Layout();
+        header.DrawTo(arrangement.Context);
+
+        var (mute, _) = header.Rows[channel];
+        Assert.False(mute.Visible); // starts below the 400px viewport
+
+        for (var i = 0; i < 100 && !mute.Visible; i++)
+        {
+            arrangement.HandleScroll(new Vector2(0, -1));
+            arrangement.Layout();
+            header.Layout();
+        }
+
+        Assert.True(mute.Visible);
+        Assert.True(mute.Drawn);
+    }
+
+    [Fact]
     public void ImportingATrack_RecomputesAndQueuesTheNewLanesButtons()
     {
         // Mirrors EditorInterface.RefreshProject: a project change (import/load/undo/...)

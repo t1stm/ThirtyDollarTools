@@ -109,6 +109,7 @@ public class ProgressBar : UIElement
 
     public override void StopRendering()
     {
+        base.StopRendering();
         BackgroundPanel.StopRendering();
         ForegroundPanel.StopRendering();
     }

@@ -47,16 +47,16 @@ internal class NoteBlock : Panel
         if (_view._state.ActiveTool == EditorTool.Select)
         {
             if (_view.FineSnap)
-                _view._state.RemoveFromNoteSelection([Note]); // Shift: remove (no-op if absent)
+                _view._state.RemoveFromNoteSelection([Note]);
             else if (_view.WheelZooms)
-                _view._state.AddToNoteSelection([Note]); // Ctrl: append (no-op if present)
+                _view._state.AddToNoteSelection([Note]);
             else if (!_view._state.SelectedNotes.Contains(Note))
-                _view._state.SelectNote(Note); // replace
+                _view._state.SelectNote(Note);
 
             return true;
         }
 
-        if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note); // replace
+        if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note);
         _view.BeginNoteDrag(this, y);
         return true;
     }

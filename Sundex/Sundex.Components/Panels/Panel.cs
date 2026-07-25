@@ -104,16 +104,9 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         set => UpdateSetDirty(ref field, value);
     } = 0;
 
-    /// <summary>
-    ///     True while this panel's renderables are queued (DrawTo ran and StopRendering
-    ///     hasn't). AddChild consults it, so composing a subtree while detached never
-    ///     queues renders - the whole subtree queues when it is drawn into a live tree.
-    /// </summary>
-    protected internal bool Drawn { get; private set; }
-
     public override void StopRendering()
     {
-        Drawn = false;
+        base.StopRendering();
         if (Background != null)
             Context.DequeueRender(Background, Index);
 
@@ -211,7 +204,6 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
     public override void DrawTo(UIContext ctx)
     {
         if (!Visible) return;
-        Drawn = true;
         base.DrawTo(ctx);
         Background?.Update();
         foreach (var child in _children)

@@ -119,6 +119,13 @@ public abstract class UIElement
             if (field == value) return;
             field = value;
             InvalidateLayout();
+
+            // The render queue is retained: only DrawTo queues and only StopRendering
+            // dequeues, so a bare flag flip left a shown element hit-testable but
+            // unpainted (and a hidden one painted forever). Re-show only inside a live
+            // tree - a detached subtree queues when its container gets its own DrawTo.
+            if (!value) StopRendering();
+            else if (Parent is { Drawn: true }) DrawTo(Context);
         }
     } = true;
 
@@ -139,6 +146,14 @@ public abstract class UIElement
     }
 
     public bool NeedsLayout { get; protected set; } = true;
+
+    /// <summary>
+    ///     True while this element's renderables are queued (DrawTo ran and StopRendering
+    ///     hasn't). Panel.AddChild and the <see cref="Visible" /> setter consult it, so
+    ///     composing a subtree while detached never queues renders - the whole subtree
+    ///     queues when it is drawn into a live tree.
+    /// </summary>
+    protected internal bool Drawn { get; private set; }
 
     protected StyleSheet? StoredStyleSheet { get; private set; }
 
@@ -269,6 +284,7 @@ public abstract class UIElement
 
     public virtual void StopRendering()
     {
+        Drawn = false;
     }
 
     /// <summary>
@@ -465,6 +481,7 @@ public abstract class UIElement
     public virtual void DrawTo(UIContext uiContext)
     {
         if (!Visible) return;
+        Drawn = true;
         Layout();
         DrawSelf(uiContext);
     }

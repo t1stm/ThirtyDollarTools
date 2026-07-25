@@ -155,7 +155,7 @@ public class EditorState
         var cascadedPlacements = Project.Placements.Where(p => p.Track == track).ToArray();
         if (!Project.RemoveTrack(track)) return false;
         if (SelectedTrack == track) SelectTrack(null);
-        RemoveFromPlacementSelection(cascadedPlacements); // cascaded away
+        RemoveFromPlacementSelection(cascadedPlacements);
         if (OpenedTrack == track) CloseTrack();
 
         // Clipboard placement entries referencing the removed track become dangling.
@@ -561,7 +561,7 @@ public class EditorState
                 removedNotes.Add((segment, segment.Notes[i], i));
                 segment.Notes.RemoveAt(i);
             }
-        removedNotes.Reverse(); // restore left-to-right
+        removedNotes.Reverse();
 
         RemoveFromNoteSelection(removedNotes.Select(r => r.Note));
 

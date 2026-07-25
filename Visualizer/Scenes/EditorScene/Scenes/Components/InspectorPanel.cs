@@ -114,24 +114,14 @@ public sealed class InspectorPanel : Panel
             _statusLabel.SetTextContents(text);
         }
 
+        // The bar is built hidden; the Visible setter re-queues/dequeues its planes at the
+        // current layer (Sundex.Components.Tests.ProgressBarVisibilityToggleTests).
         var barVisible = label != null;
-        if (_statusBar.Visible != barVisible)
-        {
-            _statusBar.Visible = barVisible;
-            // Visible alone doesn't touch the render queue (Update()'s per-frame Layout() never
-            // does either) - the bar was built hidden, so its background/foreground planes are
-            // still queued at their stale construction-time layer. Show: re-queue at the current,
-            // correct layer via a fresh DrawTo. Hide: dequeue, or it stays rendered forever.
-            // See Sundex.Components.Tests.ProgressBarVisibilityToggleTests for the full mechanics.
-            if (barVisible) _statusBar.DrawTo(Context);
-            else _statusBar.StopRendering();
-        }
+        _statusBar.Visible = barVisible;
 
-        if (barVisible && !Equals(progress, _syncedStatusProgress))
-        {
-            _syncedStatusProgress = progress;
-            _statusBar.Progress = progress;
-        }
+        if (!barVisible || Equals(progress, _syncedStatusProgress)) return;
+        _syncedStatusProgress = progress;
+        _statusBar.Progress = progress;
     }
 
     /// <summary>The input element showing a field, keyed "Section.Label" (e.g. "Track.Name").</summary>

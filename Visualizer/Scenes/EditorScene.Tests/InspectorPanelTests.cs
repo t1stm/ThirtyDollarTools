@@ -32,6 +32,7 @@ public class InspectorPanelTests
         state.OnPlacementSelectionChanged += _ => inspector.Rebuild();
 
         inspector.Layout();
+        inspector.DrawTo(ctx);
         return (ctx, state, inspector);
     }
 

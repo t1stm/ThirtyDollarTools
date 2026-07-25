@@ -75,6 +75,7 @@ public class Label : UIElement
 
     public override void StopRendering()
     {
+        base.StopRendering();
         if (TextBuffer != null)
             Context.DequeueRender(TextBuffer, Index);
     }
