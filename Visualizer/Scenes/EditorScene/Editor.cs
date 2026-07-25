@@ -117,7 +117,17 @@ public class Editor : Scene
             l.EndsWith(".tdw", StringComparison.OrdinalIgnoreCase) ||
             l.EndsWith(".🗿", StringComparison.OrdinalIgnoreCase) ||
             l.EndsWith(".moai", StringComparison.OrdinalIgnoreCase));
-        if (sequence != null) _editorInterface.ImportSequenceFile(sequence);
+        if (sequence != null)
+        {
+            _editorInterface.ImportSequenceFile(sequence);
+            return;
+        }
+
+        // Extension-less files are usually TDW sequences saved without one, but they could be
+        // anything - File.Exists keeps dropped folders out of the prompt.
+        var extensionless = locations.FirstOrDefault(l =>
+            string.IsNullOrEmpty(Path.GetExtension(l)) && File.Exists(l));
+        if (extensionless != null) _editorInterface.ConfirmImportSequenceFile(extensionless);
     }
 
     public override void Keyboard(KeyboardState state)

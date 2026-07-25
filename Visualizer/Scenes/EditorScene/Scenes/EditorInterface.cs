@@ -398,6 +398,16 @@ public class EditorInterface
         _projectIo.Load(location);
     }
 
+    /// <summary>Asks first, then falls into the normal <see cref="ImportSequenceFile" /> flow -
+    /// for drops with no extension, where the file being a sequence is a guess.</summary>
+    public void ConfirmImportSequenceFile(string path)
+    {
+        _dialogHost.Confirm($"\"{Path.GetFileName(path)}\" has no file extension.\n" +
+                            $"Import it as a TDW sequence?",
+            onConfirm: () => ImportSequenceFile(path),
+            confirmLabel: "Continue", confirmColor: EditorPalette.Accent);
+    }
+
     /// <summary>Shows the single-track/project/cancel choice for a dropped TDW sequence
     /// file. Import-as-project discards the open project, so it's guarded behind the
     /// same dirty check as every other destructive action here.</summary>
