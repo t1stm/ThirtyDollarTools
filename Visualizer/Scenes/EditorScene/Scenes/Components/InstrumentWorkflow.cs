@@ -2,6 +2,7 @@ using Shared.Atlases;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarParser;
 
 namespace EditorScene.Scenes.Components;
 
@@ -14,7 +15,7 @@ public sealed class InstrumentWorkflow
 {
     private readonly EditorState _state;
     private readonly DialogHost _dialogHost;
-    private readonly Func<IEnumerable<string>> _allSounds;
+    private readonly Func<IEnumerable<Sound>> _allSounds;
     private readonly InstrumentSelector _instrumentSelector;
     private readonly ModalLayer _instrumentSelectorModal;
     private readonly InstrumentEditor _instrumentEditor;
@@ -23,7 +24,7 @@ public sealed class InstrumentWorkflow
     private IReadOnlyList<Note>? _reassignTargets;
 
     public InstrumentWorkflow(UIContext context, EditorState state, EditorPlayback playback,
-        DialogHost dialogHost, AtlasStore atlasStore, Func<IEnumerable<string>> allSounds)
+        DialogHost dialogHost, AtlasStore atlasStore, Func<IEnumerable<Sound>> allSounds)
     {
         _state = state;
         _dialogHost = dialogHost;
@@ -48,16 +49,14 @@ public sealed class InstrumentWorkflow
         _instrumentSelector.OnNew = () =>
         {
             _editingInstrument = null;
-            _instrumentEditor!.Load("Instrument", []);
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
-            OpenEditor();
+            OpenEditor("Instrument", []);
         };
         _instrumentSelector.OnEdit = instrument =>
         {
             _editingInstrument = instrument;
-            _instrumentEditor!.Load(instrument.Name, instrument.Sounds, instrument.Adjustments);
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
-            OpenEditor();
+            OpenEditor(instrument.Name, instrument.Sounds, instrument.Adjustments);
         };
         _instrumentSelector.OnDelete = instrument =>
         {
@@ -105,9 +104,14 @@ public sealed class InstrumentWorkflow
         _instrumentEditor.SoundsPicker.CtrlHeld = ctrl;
     }
 
-    private void OpenEditor()
+    /// <summary>Fills the sound grid before seeding the selection, not after: an older
+    /// project may hold a sound under its emoji, and the picker can only map that to the
+    /// sound's ID once it has been filled.</summary>
+    private void OpenEditor(string name, IEnumerable<string> sounds,
+        IReadOnlyDictionary<string, SoundAdjustment>? adjustments = null)
     {
         _instrumentEditor.EnsureSounds(_allSounds());
+        _instrumentEditor.Load(name, sounds, adjustments);
         _dialogHost.Root.AddChild(_instrumentEditorModal);
     }
 

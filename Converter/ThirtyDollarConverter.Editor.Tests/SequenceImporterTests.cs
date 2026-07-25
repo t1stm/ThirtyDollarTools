@@ -4,6 +4,22 @@ namespace ThirtyDollarConverter.Editor.Tests;
 
 public class SequenceImporterTests
 {
+    /// <summary>A stand-in for SampleHolder's map: every given ID reachable by ID, plus
+    /// any "id:emoji" pair reachable by both.</summary>
+    private static Dictionary<string, Sound> SoundMap(params string[] ids)
+    {
+        var map = new Dictionary<string, Sound>();
+        foreach (var id in ids)
+        {
+            var parts = id.Split(':');
+            var sound = new Sound { Id = parts[0], Emoji = parts.Length > 1 ? parts[1] : null };
+            map[sound.Id] = sound;
+            if (sound.Emoji != null) map[sound.Emoji] = sound;
+        }
+
+        return map;
+    }
+
     [Fact]
     public void RoundTrip_ThroughAddAsTrack_ReproducesTheOriginalSequenceText()
     {
@@ -266,12 +282,29 @@ public class SequenceImporterTests
     {
         var sequence = Sequence.FromString("kick|mystery_sound|snare");
         var project = new ThirtyDollarProject();
-        var known = new HashSet<string> { "kick", "snare" };
+        var known = SoundMap("kick", "snare");
 
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", known);
 
         Assert.Equal(2, result.Track!.Segments[0].Notes.Count);
         Assert.Equal(["mystery_sound"], result.Warnings.UnknownSounds);
+    }
+
+    [Fact]
+    public void EmojiSoundNames_AreImportedUnderTheirSoundId()
+    {
+        // A saved sequence writes "🍕", but labels can't draw an emoji - the ID
+        // has to reach the instrument's name, its sounds and its cuts alike.
+        var sequence = Sequence.FromString("🍕|!cut@🍕|pizza");
+        var project = new ThirtyDollarProject();
+
+        var result = SequenceImporter.AddAsTrack(project, sequence, "test", SoundMap("pizza:🍕"));
+
+        var instrument = Assert.Single(result.Instruments);
+        Assert.Equal("pizza - imported", instrument.Name);
+        Assert.Equal(["pizza"], instrument.Sounds);
+        Assert.Empty(result.Warnings.UnknownSounds);
+        Assert.All(result.Track!.Segments[0].Notes, note => Assert.Same(instrument, note.Instrument));
     }
 
     [Fact]
@@ -353,7 +386,7 @@ public class SequenceImporterTests
     {
         var sequence = Sequence.FromString("kick|!cut@mystery|snare");
         var project = new ThirtyDollarProject();
-        var known = new HashSet<string> { "kick", "snare" };
+        var known = SoundMap("kick", "snare");
 
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", known);
 

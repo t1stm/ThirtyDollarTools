@@ -54,9 +54,9 @@ public static class SequenceImporter
 
     /// <summary>Adds the sequence as one new track (+ its instruments + one placement) to an existing project.</summary>
     public static ImportResult AddAsTrack(ThirtyDollarProject project, Sequence sequence, string name,
-        IReadOnlySet<string>? knownSounds)
+        IReadOnlyDictionary<string, Sound>? soundMap)
     {
-        var (walk, plans, warnings) = Prepare(sequence, knownSounds);
+        var (walk, plans, warnings) = Prepare(sequence, soundMap);
 
         var track = project.NewTrack();
         track.Name = UniqueName($"{name} - imported", ExistingNames(project));
@@ -72,10 +72,10 @@ public static class SequenceImporter
     }
 
     /// <summary>Builds a whole new project: one track per distinct sound, sharing the same segment layout.</summary>
-    public static ImportResult ToProject(Sequence sequence, string name, IReadOnlySet<string>? knownSounds,
+    public static ImportResult ToProject(Sequence sequence, string name, IReadOnlyDictionary<string, Sound>? soundMap,
         out ThirtyDollarProject project)
     {
-        var (walk, plans, warnings) = Prepare(sequence, knownSounds);
+        var (walk, plans, warnings) = Prepare(sequence, soundMap);
 
         project = new ThirtyDollarProject { Info = { Name = name } };
         project.RootTiming.BPM = plans[0].BPM;
@@ -104,9 +104,9 @@ public static class SequenceImporter
     }
 
     private static (WalkData Walk, List<SegmentPlan> Plans, ImportWarnings Warnings) Prepare(Sequence sequence,
-        IReadOnlySet<string>? knownSounds)
+        IReadOnlyDictionary<string, Sound>? soundMap)
     {
-        var walk = Walk(sequence, knownSounds);
+        var walk = Walk(sequence, soundMap);
         var plans = BuildSegmentPlans(walk.Regions, walk.Notes);
         var warnings = new ImportWarnings(walk.IgnoredEvents, plans.Sum(p => p.QuantizedNotes), walk.UnknownSounds);
         return (walk, plans, warnings);
@@ -144,7 +144,18 @@ public static class SequenceImporter
     private sealed record WalkData(List<(double Speed, double Length)> Regions, List<WalkedNote> Notes,
         List<string> SoundOrder, IReadOnlyDictionary<string, int> IgnoredEvents, IReadOnlyList<string> UnknownSounds);
 
-    private static WalkData Walk(Sequence sequence, IReadOnlySet<string>? knownSounds)
+    /// <summary>A sequence names a sound however it was saved - a TDW emoji ("🍕") just as
+    /// often as an ID ("pizza"). Everything downstream (instrument names, and the labels
+    /// drawing them) wants the ID, so names are canonicalised here, at the one point where
+    /// a sequence enters the project model. Null means the sample set doesn't know the
+    /// sound; a null map (no samples loaded) accepts every name as-is.</summary>
+    private static string? CanonicalId(string sound, IReadOnlyDictionary<string, Sound>? soundMap)
+    {
+        if (soundMap is null) return sound;
+        return soundMap.TryGetValue(sound, out var match) ? match.Id : null;
+    }
+
+    private static WalkData Walk(Sequence sequence, IReadOnlyDictionary<string, Sound>? soundMap)
     {
         var events = sequence.Copy().Events;
         var regions = new List<(double Speed, double Length)>();
@@ -180,8 +191,7 @@ public static class SequenceImporter
 
                 if (ev.SoundEvent is not "_pause")
                 {
-                    var sound = ev.SoundEvent!;
-                    if (knownSounds is null || knownSounds.Contains(sound))
+                    if (CanonicalId(ev.SoundEvent!, soundMap) is { } sound)
                     {
                         if (seenSounds.Add(sound)) soundOrder.Add(sound);
                         var pan = (ev as ExtendedEvent)?.Pan ?? 0f;
@@ -192,7 +202,7 @@ public static class SequenceImporter
                     }
                     else
                     {
-                        unknownSounds.Add(sound);
+                        unknownSounds.Add(ev.SoundEvent!);
                     }
                 }
 
@@ -233,11 +243,11 @@ public static class SequenceImporter
                 case "#icut":
                     {
                         var individualCut = (IndividualCutEvent)ev;
-                        foreach (var sound in individualCut.CutSounds)
+                        foreach (var cutSound in individualCut.CutSounds)
                         {
-                            if (knownSounds is not null && !knownSounds.Contains(sound))
+                            if (CanonicalId(cutSound, soundMap) is not { } sound)
                             {
-                                unknownSounds.Add(sound);
+                                unknownSounds.Add(cutSound);
                                 continue;
                             }
 

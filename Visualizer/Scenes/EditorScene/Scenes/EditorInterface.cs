@@ -14,6 +14,7 @@ using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarParser;
 
 namespace EditorScene.Scenes;
 
@@ -179,7 +180,7 @@ public class EditorInterface
         };
 
         _instrumentWorkflow = new InstrumentWorkflow(context, State, Playback, _dialogHost, workflow.AtlasStore,
-            () => workflow.SampleHolder.StringToSoundReferences.Keys.Order());
+            AllSounds);
 
         _instrumentButton = new Button(context, "Instrument: -")
         {
@@ -355,7 +356,14 @@ public class EditorInterface
     private void EnsureSoundFilterItems()
     {
         if (_soundFilterPicker.HasSounds) return;
-        _soundFilterPicker.Fill(_workflow.SampleHolder.StringToSoundReferences.Keys.Order());
+        _soundFilterPicker.Fill(AllSounds());
+    }
+
+    /// <summary>Every pickable sound, once - the sample holder's map holds each one
+    /// twice (ID and emoji) when it has an emoji.</summary>
+    private IEnumerable<Sound> AllSounds()
+    {
+        return _workflow.SampleHolder.StringToSoundReferences.Values.Distinct().OrderBy(sound => sound.Id);
     }
 
     private void CommitAndCloseSoundFilter()
@@ -401,23 +409,25 @@ public class EditorInterface
         dialog.SingleTrackButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
-            _projectIo.ImportTdw(path, ImportMode.Track, KnownSounds());
+            _projectIo.ImportTdw(path, ImportMode.Track, SoundMap());
         };
         dialog.ProjectButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
             if (State.Dirty)
                 _dialogHost.Confirm("Importing as a project discards unsaved changes. Continue?",
-                    onConfirm: () => _projectIo.ImportTdw(path, ImportMode.Project, KnownSounds()),
+                    onConfirm: () => _projectIo.ImportTdw(path, ImportMode.Project, SoundMap()),
                     confirmLabel: "Import", confirmColor: EditorPalette.Accent);
             else
-                _projectIo.ImportTdw(path, ImportMode.Project, KnownSounds());
+                _projectIo.ImportTdw(path, ImportMode.Project, SoundMap());
         };
     }
 
-    private HashSet<string> KnownSounds()
+    /// <summary>Every name a sequence may use (ID or emoji) mapped to its sound - the
+    /// importer both filters unknown sounds and canonicalises names through it.</summary>
+    private IReadOnlyDictionary<string, Sound> SoundMap()
     {
-        return _workflow.SampleHolder.StringToSoundReferences.Keys.ToHashSet();
+        return _workflow.SampleHolder.StringToSoundReferences;
     }
 
     /// <summary>Back button / Escape: leaves directly when clean, otherwise asks first.</summary>
@@ -439,9 +449,20 @@ public class EditorInterface
         dialog.DiscardButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
+            DiscardChanges();
             PerformBack();
         };
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+    }
+
+    /// <summary>Throws away the unsaved work: the editor scene outlives a trip to the
+    /// home screen, so without this the "discarded" project is still sitting there
+    /// (still dirty) on the way back in. Reverts to the file on disk when there is one,
+    /// otherwise to an empty project.</summary>
+    private void DiscardChanges()
+    {
+        if (State.ProjectPath is { } path) _projectIo.Load(path);
+        else State.NewProject();
     }
 
     private void PerformBack()
@@ -524,8 +545,16 @@ public class EditorInterface
         // otherwise only relayouts from ArrangementView.OnScrolled. DrawTo (not just
         // Layout): a row whose Visible flips true here needs its DrawSelf to run at
         // least once to ever get QueueRender'd - see Resize()'s identical comment.
-        _laneHeader.InvalidateLayout();
-        _laneHeader.DrawTo(_context);
+        // Only while the arrangement is actually attached to _gridArea, though - the
+        // note editor detaches it (SwapGridView), and DrawTo queues renders regardless
+        // of tree attachment, so calling this unconditionally painted orphaned M/S
+        // buttons over the note editor. Reopening the arrangement redraws it anyway,
+        // via AddChild's own Drawn-aware DrawTo.
+        if (!_editorOpen)
+        {
+            _laneHeader.InvalidateLayout();
+            _laneHeader.DrawTo(_context);
+        }
     }
 
     private void RefreshSelection()

@@ -1,3 +1,4 @@
+using System.Numerics;
 using ThirtyDollarEncoder.PCM;
 
 namespace ThirtyDollarEncoder.Mixers;
@@ -60,7 +61,22 @@ public class BasicMixer : IMixingMethod
 
     private static void BasicMix(Memory<float> source, Memory<float> export)
     {
-        var span = source.Span;
-        for (var i = 0; i < span.Length; i++) export.Span[i] += span[i];
+        // Hot path: a mixdown runs over the whole song on every incremental edit, so this
+        // is vectorised like PcmEncoder.RenderSample and AudioMixer.Sum. Resolving
+        // export.Span once instead of per iteration matters as much as the SIMD does.
+        var src = source.Span;
+        var dst = export.Span;
+
+        var length = Math.Min(src.Length, dst.Length);
+        var chunk_size = Vector<float>.Count;
+        var chunked = length - length % chunk_size;
+
+        for (var i = 0; i < chunked; i += chunk_size)
+        {
+            var slice = dst.Slice(i, chunk_size);
+            (new Vector<float>(src.Slice(i, chunk_size)) + new Vector<float>(slice)).CopyTo(slice);
+        }
+
+        for (var i = chunked; i < length; i++) dst[i] += src[i];
     }
 }

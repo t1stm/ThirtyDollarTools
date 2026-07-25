@@ -45,6 +45,19 @@ public class AudioMixer : IDisposable
         }
     }
 
+    /// <summary>
+    ///     The keys of every named (non-default) track - the separated per-sound channels a
+    ///     cut targets. Used to mirror a mixer's track set onto an incremental overlay, so
+    ///     sounds route to the same track in both and <see cref="Sum" /> merges them in place.
+    /// </summary>
+    public (string Name, AudioLayout Layout)[] GetNamedTrackKeys()
+    {
+        lock (_tracks)
+        {
+            return _tracks.Keys.Where(key => key.Item1.Length > 0).ToArray();
+        }
+    }
+
     public bool HasTrack(string sound, AudioLayout layout = AudioLayout.AudioLr)
     {
         lock (_tracks)

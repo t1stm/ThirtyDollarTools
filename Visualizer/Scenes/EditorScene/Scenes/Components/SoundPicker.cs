@@ -39,6 +39,7 @@ public sealed class SoundPicker : FlexPanel
     private readonly Panel _keybindDivider;
     private readonly Label _keybindNote;
     private readonly StackCollection _stacks = new();
+    private readonly Dictionary<string, string> _idByName = [];
 
     public SoundPicker(UIContext context, AtlasStore store) : base(context)
     {
@@ -137,10 +138,24 @@ public sealed class SoundPicker : FlexPanel
     ///     Fills the grid from the atlas store. Call lazily - the atlases may still be
     ///     loading while the scene is constructed; sounds without an image are skipped.
     /// </summary>
-    public void Fill(IEnumerable<string> soundNames)
+    public void Fill(IEnumerable<Sound> sounds)
     {
-        foreach (var name in soundNames) AddSound(name);
+        foreach (var sound in sounds)
+        {
+            _idByName[sound.Id] = sound.Id;
+            if (sound.Emoji != null) _idByName[sound.Emoji] = sound.Id;
+            AddSound(sound);
+        }
+
         RefreshSections();
+    }
+
+    /// <summary>A sound's ID, given either its ID or the emoji a sequence/older project
+    /// saved it as. Icons are keyed by ID (an emoji can't be drawn by a
+    /// <see cref="Label" />), so anything arriving from outside is mapped through here.</summary>
+    private string Canonical(string name)
+    {
+        return _idByName.GetValueOrDefault(name, name);
     }
 
     /// <summary>Reseeds <see cref="Selected" /> and moves icons to match - call each
@@ -148,7 +163,7 @@ public sealed class SoundPicker : FlexPanel
     public void SetSelected(IEnumerable<string> sounds)
     {
         Selected.Clear();
-        foreach (var name in sounds) Selected.Add(name);
+        foreach (var name in sounds) Selected.Add(Canonical(name));
         foreach (var icon in AllIcons())
         {
             var selected = Selected.Contains(icon.SoundName);
@@ -173,7 +188,7 @@ public sealed class SoundPicker : FlexPanel
     {
         Adjustments.Clear();
         foreach (var (sound, adjustment) in adjustments)
-            Adjustments[sound] = new SoundAdjustment
+            Adjustments[Canonical(sound)] = new SoundAdjustment
             {
                 Value = adjustment.Value,
                 Volume = adjustment.Volume,
@@ -253,9 +268,15 @@ public sealed class SoundPicker : FlexPanel
             Children = desired; // pure reorder of elements that are all already live
     }
 
-    private void AddSound(string soundName)
+    /// <summary>The atlas is keyed by <see cref="Sound.Filename" /> - how TDW writes the
+    /// sound, an emoji for the 44-odd sounds that have one - while the icon (and everything
+    /// the editor stores or labels) uses the ID.</summary>
+    private void AddSound(Sound sound)
     {
-        if (_store.AnimatedSounds.TryGetValue(soundName, out var framedAtlas))
+        var atlasKey = sound.Filename;
+        var soundName = sound.Id;
+
+        if (_store.AnimatedSounds.TryGetValue(atlasKey, out var framedAtlas))
         {
             if (!_stacks.AnimatedStacks.TryGetValue(framedAtlas, out var stack))
             {
@@ -277,9 +298,9 @@ public sealed class SoundPicker : FlexPanel
             if (ShowAdjustments && Selected.Contains(soundName)) icon.EnableAdjustmentText();
             (MultiSelect && Selected.Contains(soundName) ? _selectedGrid : _availableGrid).AddChild(icon);
         }
-        else if (_store.StaticSounds.TryGetValue(soundName, out var staticAtlas))
+        else if (_store.StaticSounds.TryGetValue(atlasKey, out var staticAtlas))
         {
-            if (!staticAtlas.TryGetSound(soundName, out var rect)) return;
+            if (!staticAtlas.TryGetSound(atlasKey, out var rect)) return;
 
             if (!_stacks.StaticStacks.TryGetValue(staticAtlas, out var stack))
             {

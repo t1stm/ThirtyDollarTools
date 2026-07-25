@@ -182,9 +182,10 @@ public class EditorState
     /// throws on malformed/empty/runaway input - the caller is expected to alert and
     /// leave the project untouched, which holds for free here since nothing is added
     /// until the importer has already fully succeeded.</summary>
-    public ImportResult ImportSequenceAsTrack(Sequence sequence, string name, IReadOnlySet<string>? knownSounds)
+    public ImportResult ImportSequenceAsTrack(Sequence sequence, string name,
+        IReadOnlyDictionary<string, Sound>? soundMap)
     {
-        var result = SequenceImporter.AddAsTrack(Project, sequence, name, knownSounds);
+        var result = SequenceImporter.AddAsTrack(Project, sequence, name, soundMap);
         var track = result.Track!;
         var placement = result.Placement!;
         var instruments = result.Instruments;
@@ -839,9 +840,10 @@ public class EditorState
     /// first. Unlike a load, the result exists only in memory: stays dirty (so the
     /// unsaved-changes guard still fires on exit) and keeps <see cref="ProjectPath" />
     /// null (so Save asks for a location).</summary>
-    public ImportResult ReplaceWithImportedProject(Sequence sequence, string name, IReadOnlySet<string>? knownSounds)
+    public ImportResult ReplaceWithImportedProject(Sequence sequence, string name,
+        IReadOnlyDictionary<string, Sound>? soundMap)
     {
-        var result = SequenceImporter.ToProject(sequence, name, knownSounds, out var project);
+        var result = SequenceImporter.ToProject(sequence, name, soundMap, out var project);
         Replace(project);
         Touch();
         return result;

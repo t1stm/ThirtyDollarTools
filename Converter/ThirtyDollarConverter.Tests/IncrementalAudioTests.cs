@@ -2,6 +2,7 @@ using Serilog.Core;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
 using ThirtyDollarParser;
+using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter.Tests;
 
@@ -67,6 +68,30 @@ public class IncrementalAudioTests
     private static NormalEvent Combine()
     {
         return Event("!combine");
+    }
+
+    private static IndividualCutEvent Icut(params string[] sounds)
+    {
+        return new IndividualCutEvent([..sounds]);
+    }
+
+    /// <summary>
+    ///     A sequence carrying the separated per-sound channels its individual cuts target -
+    ///     what the parser and SequenceBuilder both populate, and what the encoder needs to
+    ///     pre-allocate a cut's track.
+    /// </summary>
+    private static Sequence CutSequence(params BaseEvent[] events)
+    {
+        var sequence = new Sequence { Events = events };
+        foreach (var ev in events)
+        {
+            if (ev.SoundEvent is not null) sequence.UsedSounds.Add(ev.SoundEvent);
+            if (ev is IndividualCutEvent cut)
+                foreach (var sound in cut.CutSounds)
+                    sequence.SeparatedChannels.Add(sound);
+        }
+
+        return sequence;
     }
 
     private static NormalEvent VolumeEvent(float value)
@@ -147,6 +172,57 @@ public class IncrementalAudioTests
     {
         var sequence = Sequence(Event("test1"), Combine(), Event("test3"), Event("!cut"));
         var new_sequence = Sequence(Event("test1"), Combine(), Event("test2"), Event("!cut"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    /// <summary>
+    ///     An individual cut that merely exists must not force a full re-render: editing a
+    ///     sound on the cut's own target track has to route through the overlay's copy of
+    ///     that track, get cut there the same way, and land on the real track when summed.
+    /// </summary>
+    [Fact]
+    public async Task ShouldEditSoundOnCutTargetTrackIncrementally()
+    {
+        var sequence = CutSequence(Event("test1"), Icut("test1"), Event("test2"));
+        var new_sequence = CutSequence(Event("test1", 6), Icut("test1"), Event("test2"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    /// <summary>Same, for a sound the cut does not target - it stays on the default track.</summary>
+    [Fact]
+    public async Task ShouldEditSoundBesideIndividualCutIncrementally()
+    {
+        var sequence = CutSequence(Event("test1"), Icut("test1"), Event("test2"));
+        var new_sequence = CutSequence(Event("test1"), Icut("test1"), Event("test3"));
+
+        var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
+        var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);
+
+        var pure_rendered = await _encoder.GetMultipleSequencesAudio([new_sequence]);
+        CompareAudio(incremental_rendered.Audio, pure_rendered.Audio);
+    }
+
+    /// <summary>
+    ///     A cut that gains a target compares equal to the old one (Placement equality ignores
+    ///     CutSounds), so the diff can't catch it - but the new target's track doesn't exist on
+    ///     the old mixer yet. The encoder must notice and re-render, or the cut silently no-ops.
+    /// </summary>
+    [Fact]
+    public async Task ShouldRenderCutThatGainedATarget()
+    {
+        var sequence = CutSequence(Event("test1"), Combine(), Event("test2"), Icut("test1"), Event("test3"));
+        var new_sequence = CutSequence(Event("test1"), Combine(), Event("test2"), Icut("test1", "test2"),
+            Event("test3"));
 
         var initial_rendered = await _encoder.GetMultipleSequencesAudio([sequence]);
         var incremental_rendered = await _encoder.ComputeIncrementalAudio(initial_rendered, [new_sequence]);

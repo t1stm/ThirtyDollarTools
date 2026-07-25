@@ -154,8 +154,14 @@ public class SequencePlayer
     public void Restart()
     {
         UpdateLock.Wait();
-        AudioBuffer?.Restart();
-        UpdateLock.Release();
+        try
+        {
+            AudioBuffer?.Restart();
+        }
+        finally
+        {
+            UpdateLock.Release();
+        }
     }
 
     public void SetVolume(float volume)
@@ -167,20 +173,22 @@ public class SequencePlayer
     public void Seek(long milliseconds)
     {
         UpdateLock.Wait();
-        AudioBuffer?.SeekTime_Milliseconds(milliseconds);
+        try
+        {
+            AudioBuffer?.SeekTime_Milliseconds(milliseconds);
 
-        var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
-        if (!alternative_lookup.TryGetValue(string.Empty, out var event_action))
+            var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
+            if (!alternative_lookup.TryGetValue(string.Empty, out var event_action)) return;
+            if (Events.Placement.Length < 1) return;
+
+            var index = Math.Clamp(PlacementIndex, 0, Events.Placement.Length - 1);
+            var placement = Events.Placement[index];
+            event_action.Invoke(placement, CurrentSequence);
+        }
+        finally
         {
             UpdateLock.Release();
-            return;
         }
-
-        var index = Math.Clamp(PlacementIndex, 0, Events.Placement.Length - 1);
-        var placement = Events.Placement[index];
-        event_action.Invoke(placement, CurrentSequence);
-
-        UpdateLock.Release();
     }
 
     public void Start(ThreadRunner threadRunner)
@@ -192,8 +200,14 @@ public class SequencePlayer
     public void Stop()
     {
         UpdateLock.Wait();
-        AudioBuffer?.Stop();
-        UpdateLock.Release();
+        try
+        {
+            AudioBuffer?.Stop();
+        }
+        finally
+        {
+            UpdateLock.Release();
+        }
     }
 
     public void TogglePause()
@@ -205,20 +219,27 @@ public class SequencePlayer
         RenderedSequence fullSequenceData, bool restartPlayer = true)
     {
         UpdateLock.Wait();
-        Events = events;
-        SequenceIndices = sequenceIndices;
+        try
+        {
+            Events = events;
+            SequenceIndices = sequenceIndices;
 
-        var currentTime = AudioBuffer?.GetTime_Milliseconds() ?? 0;
+            var currentTime = AudioBuffer?.GetTime_Milliseconds() ?? 0;
 
-        if (AudioBuffer == null)
-            AudioBuffer = AudioContext.GetBufferObject(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
-        else AudioBuffer.UploadNewData(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
+            if (AudioBuffer == null)
+                AudioBuffer =
+                    AudioContext.GetBufferObject(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
+            else AudioBuffer.UploadNewData(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
 
-        if (!restartPlayer)
-            AudioBuffer.SeekTime_Milliseconds(currentTime);
+            if (!restartPlayer)
+                AudioBuffer.SeekTime_Milliseconds(currentTime);
 
-        AudioBuffer.SetVolume(Volume);
-        UpdateLock.Release();
+            AudioBuffer.SetVolume(Volume);
+        }
+        finally
+        {
+            UpdateLock.Release();
+        }
     }
 
     public void AlignToTime()
@@ -372,12 +393,16 @@ public class SequencePlayer
     public void Die()
     {
         UpdateLock.Wait();
-
-        ClearSubscriptions();
-        _updateRunning = false;
-        _dead = true;
-
-        UpdateLock.Release();
+        try
+        {
+            ClearSubscriptions();
+            _updateRunning = false;
+            _dead = true;
+        }
+        finally
+        {
+            UpdateLock.Release();
+        }
     }
 
 

@@ -54,15 +54,15 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     /// project untouched, matching <see cref="Load" />'s try/catch shape. On success,
     /// any non-fatal issues (ignored events, quantized notes, unknown sounds) surface
     /// as one summary alert - never one dialog per issue.</summary>
-    public void ImportTdw(string path, ImportMode mode, IReadOnlySet<string>? knownSounds)
+    public void ImportTdw(string path, ImportMode mode, IReadOnlyDictionary<string, Sound>? soundMap)
     {
         var name = Path.GetFileNameWithoutExtension(path);
         try
         {
             var sequence = Sequence.FromString(File.ReadAllText(path));
             var result = mode == ImportMode.Track
-                ? state.ImportSequenceAsTrack(sequence, name, knownSounds)
-                : state.ReplaceWithImportedProject(sequence, name, knownSounds);
+                ? state.ImportSequenceAsTrack(sequence, name, soundMap)
+                : state.ReplaceWithImportedProject(sequence, name, soundMap);
 
             if (!result.Warnings.IsEmpty)
                 dialogHost.Alert($"Imported with warnings: {Summarize(result.Warnings)}");

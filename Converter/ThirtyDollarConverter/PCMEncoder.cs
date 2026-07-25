@@ -62,8 +62,15 @@ public class PcmEncoder
     ///     This method starts the encoding process for multiple sequences to be combined.
     /// </summary>
     /// <param name="sequences">The sequences you want to encode.</param>
+    /// <param name="existingProcessedEvents">
+    ///     Already resampled sounds from a previous render to reuse. Resampling dominates a
+    ///     cold render when a project uses many distinct pitches, and a full re-render of an
+    ///     edited project reuses nearly all of them - only the edited sound is ever new.
+    ///     Unused entries are pruned so the cache can't grow without bound.
+    /// </param>
     /// <returns>A RenderedSequence object that stores the encoded audio and metadata.</returns>
-    public async Task<RenderedSequence> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences)
+    public async Task<RenderedSequence> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences,
+        Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents = null)
     {
         var array = sequences as Sequence[] ?? sequences.ToArray();
         var placement = PlacementCalculator.CalculateMany(array);
@@ -77,7 +84,8 @@ public class PcmEncoder
         };
 
         Log("Calculated placement. Starting sample processing.");
-        var processed_events = await GetAudioSamples(timed_events);
+        var processed_events = await GetAudioSamples(timed_events, existingProcessedEvents);
+        if (existingProcessedEvents != null) RemoveUnusedAudioSamples(processed_events, timed_events);
 
         Log("Finished processing all samples. Starting audio mixing.");
         var (audio, mixer) = await GenerateAudioAndMixer(timed_events, processed_events);
@@ -116,7 +124,7 @@ public class PcmEncoder
     {
         // without the old processed samples the remove stage can't subtract anything
         if (oldRendered.Mixer == null || oldRendered.ProcessedEvents == null)
-            return await GetMultipleSequencesAudio(newSequences);
+            return await GetMultipleSequencesAudio(newSequences, oldRendered.ProcessedEvents);
 
         var new_sequences = newSequences as Sequence[] ?? newSequences.ToArray();
         var new_placements = PlacementCalculator.CalculateMany(new_sequences).ToArray();
@@ -140,12 +148,26 @@ public class PcmEncoder
             return oldRendered;
         }
 
-        // !cut check: changed cuts can't be cleanly inverted, and #icut cuts per-sound
-        // tracks that the incremental overlay mixers don't have
-        if (to_remove.Concat(to_add).Any(pl => pl.Event.SoundEvent == "!cut" || pl.Event is IndividualCutEvent) ||
-            new_placements.Any(pl => pl.Event is IndividualCutEvent) ||
-            oldRendered.Sequences.Concat(new_sequences).Any(s => s.SeparatedChannels.Count > 0))
-            return await GetMultipleSequencesAudio(new_sequences);
+        // !cut check: a cut that itself changed can't be cleanly inverted - HandleCut zeroes
+        // samples destructively, so there is nothing to subtract back. Cuts that merely
+        // *exist* are fine: they get re-applied over both overlays below, and the overlay now
+        // carries the same per-sound tracks as the old mixer, so #icut lands where it should.
+        if (to_remove.Concat(to_add).Any(pl => pl.Event.SoundEvent == "!cut" || pl.Event is IndividualCutEvent))
+            return await GetMultipleSequencesAudio(new_sequences, oldRendered.ProcessedEvents);
+
+        // A cut targeting a track the old mixer never allocated has nothing to silence, and
+        // only GenerateAudioAndMixer creates tracks. The diff above won't always catch this:
+        // Placement equality ignores CutSounds, so a cut whose target set grew (its
+        // instrument gained a sound) compares equal to the old one. Re-render instead.
+        foreach (var sequence in new_sequences)
+            foreach (var channel in sequence.SeparatedChannels)
+            {
+                var channel_id = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
+                    ? sound.Id
+                    : channel;
+                if (!oldRendered.Mixer.HasTrack(channel_id))
+                    return await GetMultipleSequencesAudio(new_sequences, oldRendered.ProcessedEvents);
+            }
 
         // merges the new sounds into the old rendered ones; pruning happens after both stages,
         // so the remove stage still sees the old samples (and big_event_length covers them)
@@ -153,8 +175,10 @@ public class PcmEncoder
         var big_event = final_sounds.Values.MaxBy(e => e.AudioData.GetLength());
         var big_event_length = big_event?.AudioData.GetLength() ?? 0;
 
+        // IndividualCutEvent is named "!cut" only in the standard format; the legacy one is
+        // "#icut", so match the type too or old-format sequences lose their cuts on re-apply.
         var cuts = new_placements
-            .Where(pl => pl.Event.SoundEvent == "!cut")
+            .Where(pl => pl.Event.SoundEvent == "!cut" || pl.Event is IndividualCutEvent)
             .ToArray();
         var mixer = oldRendered.Mixer;
 

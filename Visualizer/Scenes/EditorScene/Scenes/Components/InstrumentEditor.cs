@@ -8,6 +8,7 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarParser;
 
 namespace EditorScene.Scenes.Components;
 
@@ -88,10 +89,10 @@ public sealed class InstrumentEditor : FlexPanel
     public Button DoneButton { get; }
 
     /// <summary>Fills the sound grid on first use - lazily, same guard as the other pickers.</summary>
-    public void EnsureSounds(IEnumerable<string> soundNames)
+    public void EnsureSounds(IEnumerable<Sound> sounds)
     {
         if (SoundsPicker.HasSounds) return;
-        SoundsPicker.Fill(soundNames);
+        SoundsPicker.Fill(sounds);
     }
 
     /// <summary>Pre-loads the form; call with an empty name/selection to start a fresh instrument.</summary>
