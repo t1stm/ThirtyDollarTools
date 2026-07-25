@@ -31,7 +31,7 @@ namespace VisualizerScene;
 [PreloadGraphicsContext]
 public class Visualizer : Scene, IGamePreloadable
 {
-    public const string Version = "2.0.0 (Insider Build)";
+    public const string Version = "2.0.0 Release Candidate 1";
     private readonly FpsCounter _fpsCounter = new();
 
     #region Stopwatches
