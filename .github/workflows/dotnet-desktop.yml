@@ -14,17 +14,18 @@ jobs:
     strategy:
       matrix:
         platform: [ linux-x64, win-x64, osx-x64, osx-arm64 ]
+        configuration: [ Debug, Release ]
         include:
-          - net_version: "net9.0"
+          - net_version: "net10.0"
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '9.x'
+          dotnet-version: '10.x'
 
       - name: Cache NuGet packages
         uses: actions/cache@v3
@@ -34,47 +35,58 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Create release directories
-        run: mkdir -p bin/${{ matrix.platform }}
+      - name: Create build directories
+        run: mkdir -p bin/${{ matrix.platform }}-${{ matrix.configuration }}
 
       - name: Publish ThirtyDollarConverter.GUI
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
         run: |
-          dotnet publish ./ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj \
-            -c Release \
+          dotnet publish ./Converter/ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj \
+            -c ${{ matrix.configuration }} \
             -f ${{ matrix.net_version }} \
             -r ${{ matrix.platform }} \
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./bin/${{ matrix.platform }}
+            -o ./bin/${{ matrix.platform }}-${{ matrix.configuration }}
 
       - name: Publish ThirtyDollarVisualizer
+        env:
+          SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
         run: |
-          dotnet publish ./ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj \
-            -c Release \
+          dotnet publish ./Visualizer/ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj \
+            -c ${{ matrix.configuration }} \
             -f ${{ matrix.net_version }} \
             -r ${{ matrix.platform }} \
             --self-contained true \
             -p:PublishSingleFile=true \
             -p:IncludeNativeLibrariesForSelfExtract=true \
-            -o ./bin/${{ matrix.platform }}
+            -p:IncludeAllContentForSelfExtract=true \
+            -o ./bin/${{ matrix.platform }}-${{ matrix.configuration }}
 
       - name: Clean up build artifacts
         run: |
-          cd "./bin/${{ matrix.platform }}"
-          rm -rf ./*.dll ./*.dylib ./*.so ./*.pdb ./runtimes
+          cd "./bin/${{ matrix.platform }}-${{ matrix.configuration }}"
+          rm -rf ./*.dll ./*.dylib ./*.so ./runtimes
+          if [ "${{ matrix.configuration }}" = "Release" ]; then
+            rm -rf ./*.pdb
+          fi
 
-      - name: Upload release artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.platform }}
-          path: bin/${{ matrix.platform }}
+          name: ${{ matrix.platform }}-${{ matrix.configuration }}
+          path: bin/${{ matrix.platform }}-${{ matrix.configuration }}
 
   release:
     runs-on: ubuntu-latest
     needs: build
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -91,8 +103,23 @@ jobs:
             (cd "$dir" && zip -r "${GITHUB_WORKSPACE}/dist/ThirtyDollarTools-${name}.zip" .)
           done
 
+      - name: Update tag ref
+        uses: EndBug/latest-tag@latest
+        with:
+          tag-name: nightly-${{ github.ref_name }}
+          
+      - name: Update CHANGELOG
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          mode: "HYBRID"
+          toTag: "nightly-${{ github.ref_name }}"
+          configuration: ".github/changelog-config.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create or update Nightly prerelease
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@v1.20.0
         with:
           tag: nightly-${{ github.ref_name }}
           name: "Nightly Build of [${{ github.ref_name }}]"
@@ -100,11 +127,13 @@ jobs:
             This is a nightly release for the branch "${{ github.ref_name }}". 
             This means that the changes in this release are probably not tested thoroughly, or not ready for general use. 
             Use this release on the side of caution.
-          
+            
+            ${{ steps.changelog.outputs.changelog }}
+            
           prerelease: true
           allowUpdates: true
           removeArtifacts: true
-          generateReleaseNotes: true
+          generateReleaseNotes: false
           artifacts: dist/*.zip
           token: ${{ secrets.GITHUB_TOKEN }}
     

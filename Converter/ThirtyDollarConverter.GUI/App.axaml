@@ -1,0 +1,109 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ThirtyDollarGUI.App"
+             xmlns:local="using:ThirtyDollarGUI"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Tokyo Night palette (from Visualizer .snx.ss files) -->
+            <SolidColorBrush x:Key="WinBg" Color="#1a1b26" />
+            <SolidColorBrush x:Key="WinSurface" Color="#16161e" />
+            <SolidColorBrush x:Key="WinBorder" Color="#2a2e3a" />
+            <SolidColorBrush x:Key="WinAccent" Color="#7aa2f7" />
+            <SolidColorBrush x:Key="WinAccentHover" Color="#9bc0ff" />
+            <SolidColorBrush x:Key="WinAccentPressed" Color="#4c78a8" />
+            <SolidColorBrush x:Key="WinText" Color="#d6dadc" />
+            <SolidColorBrush x:Key="WinMuted" Color="#a9b1d6" />
+            <SolidColorBrush x:Key="WinScreen" Color="#16161e" />
+
+            <!-- Button: filled accent -->
+            <SolidColorBrush x:Key="ButtonBackground" Color="#7aa2f7" />
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#9bc0ff" />
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#4c78a8" />
+            <SolidColorBrush x:Key="ButtonForeground" Color="#1a1b26" />
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="#1a1b26" />
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="#1a1b26" />
+            <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent" />
+            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent" />
+
+            <!-- TextBox -->
+            <SolidColorBrush x:Key="TextControlBackground" Color="#16161e" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1e2030" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#16161e" />
+            <SolidColorBrush x:Key="TextControlForeground" Color="#d6dadc" />
+            <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#d6dadc" />
+            <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#d6dadc" />
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="#2a2e3a" />
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#3a3f5a" />
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#7aa2f7" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#565f89" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#565f89" />
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#3a4060" />
+
+            <!-- ComboBox -->
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="#16161e" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#1e2030" />
+            <SolidColorBrush x:Key="ComboBoxForeground" Color="#d6dadc" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#2a2e3a" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#3a3f5a" />
+            <SolidColorBrush x:Key="ComboBoxBorderBrushFocused" Color="#7aa2f7" />
+            <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#1e2030" />
+            <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#2a2e3a" />
+
+            <!-- ListBox -->
+            <SolidColorBrush x:Key="ListBoxBackground" Color="#16161e" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="#1e2030" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="#2a3a6a" />
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="#344080" />
+
+            <!-- ProgressBar -->
+            <SolidColorBrush x:Key="ProgressBarBackground" Color="#16161e" />
+            <SolidColorBrush x:Key="ProgressBarForeground" Color="#7aa2f7" />
+
+            <!-- CheckBox -->
+            <SolidColorBrush x:Key="CheckBoxForeground" Color="#d6dadc" />
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#7aa2f7" />
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#7aa2f7" />
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#1a1b26" />
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillUnchecked" Color="#16161e" />
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="#2a2e3a" />
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="14,7" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style Selector="ProgressBar">
+            <Setter Property="CornerRadius" Value="3" />
+        </Style>
+        <Style Selector="ListBox">
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="FontFamily" Value="Monospace" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource WinMuted}" />
+        </Style>
+    </Application.Styles>
+</Application>

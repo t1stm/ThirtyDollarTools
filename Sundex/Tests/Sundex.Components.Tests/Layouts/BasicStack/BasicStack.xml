@@ -1,0 +1,9 @@
+<sundex version="1.0">
+  <layout>
+    <stack direction="vertical" spacing="10" padding="20" width="200" height="400">
+      <panel width="100" height="50"/>
+      <panel width="100" height="50"/>
+      <panel width="100" height="50"/>
+    </stack>
+  </layout>
+</sundex>

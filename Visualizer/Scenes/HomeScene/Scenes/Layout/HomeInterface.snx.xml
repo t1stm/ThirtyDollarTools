@@ -1,0 +1,37 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Layout/HomeInterface.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/HomeInterface.snx.csx" imports="[HomeScene.Scenes]"/>
+
+  <layout>
+    <panel id="main-holder">
+      <panel id="background-holder">
+        <panel class="background-gradients" id="grad-1"/>
+        <panel class="background-gradients" id="grad-2"/>
+        <panel class="background-gradients" id="grad-3"/>
+        <panel class="background-gradients" id="grad-4"/>
+        <panel class="background-gradients" id="grad-5"/>
+      </panel>
+
+      <flex id="home-view">
+        <label id="home-title" value="Thirty Dollar Visualizer"/>
+        <panel id="spacer"/>
+
+        <button id="visualizer-button" class="menu-button">
+          <label value="Visualizer"/>
+        </button>
+
+        <button id="drum-master-button" class="menu-button">
+          <label value="Drum Master"/>
+        </button>
+
+        <button id="editor-button" class="menu-button">
+          <label value="Editor"/>
+        </button>
+
+        <button id="settings-button" class="menu-button">
+          <label value="Settings"/>
+        </button>
+      </flex>
+    </panel>
+  </layout>
+</sundex>

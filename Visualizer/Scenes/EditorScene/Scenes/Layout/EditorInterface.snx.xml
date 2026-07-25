@@ -1,0 +1,25 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Layout/EditorInterface.snx.ss"/>
+
+  <layout>
+    <panel id="main-holder">
+      <flex id="editor-header">
+        <label id="editor-title" value="Editor"/>
+        <label id="project-name" value="Untitled Project"/>
+        <label id="project-bpm" value=""/>
+
+        <panel class="header-divider"/>
+
+        <button id="load-button" class="menu-button"><label class="menu-label" value="Load"/></button>
+        <button id="save-button" class="menu-button"><label class="menu-label" value="Save"/></button>
+        <button id="export-button" class="menu-button"><label class="menu-label" value="Export"/></button>
+      </flex>
+
+      <panel id="track-column"/>
+
+      <flex id="grid-area"/>
+
+      <panel id="inspector-column"/>
+    </panel>
+  </layout>
+</sundex>

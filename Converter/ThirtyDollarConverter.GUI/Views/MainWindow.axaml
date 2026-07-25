@@ -1,0 +1,126 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ThirtyDollarGUI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:services="clr-namespace:ThirtyDollarGUI.Services"
+        xmlns:behaviors="clr-namespace:ThirtyDollarGUI.Behaviors"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="520"
+        x:Class="ThirtyDollarGUI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/moai.png"
+        Title="Thirty Dollar Converter"
+        MinHeight="520"
+        MinWidth="480"
+        Width="480"
+        Height="520"
+        services:DialogService.Register="{Binding}"
+
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="#1a1b26"
+                    TintOpacity="1"
+                    MaterialOpacity="0.72" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+
+        <Grid RowDefinitions="38,Auto,Auto,Auto,Auto,*,Auto,Auto,56">
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="{StaticResource WinSurface}" Padding="14,0"
+                    PointerPressed="TitleBar_PointerPressed">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Image Source="avares://ThirtyDollarConverter.GUI/Assets/moai.png"
+                           Width="20" Height="20" VerticalAlignment="Center" />
+                    <TextBlock Text="Thirty Dollar Converter"
+                               Foreground="{StaticResource WinAccent}"
+                               FontWeight="SemiBold" FontSize="13"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <!-- Separator -->
+            <Border Grid.Row="1" Height="1" Background="{StaticResource WinBorder}" />
+
+            <!-- Sequence input -->
+            <Grid Grid.Row="2" ColumnDefinitions="82,*,76" Margin="12,10">
+                <TextBlock Grid.Column="0" Text="Sequence"
+                           Foreground="{StaticResource WinMuted}"
+                           FontSize="11" FontWeight="SemiBold"
+                           VerticalAlignment="Top" Margin="0,6,10,0" />
+                <TextBox Grid.Column="1" AcceptsReturn="True" TextWrapping="Wrap"
+                         Height="52" PlaceholderText="Choose sequence file/s..."
+                         Text="{Binding SequenceFileLocation}" />
+                <Button Grid.Column="2" Content="Select"
+                        Command="{Binding Select_SequenceFileLocation}"
+                        VerticalAlignment="Top" Margin="8,0,0,0" />
+            </Grid>
+
+            <!-- Export input -->
+            <Grid Grid.Row="3" ColumnDefinitions="82,*,76" Margin="12,0,12,10">
+                <TextBlock Grid.Column="0" Text="Output"
+                           Foreground="{StaticResource WinMuted}"
+                           FontSize="11" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBox Grid.Column="1" PlaceholderText="Choose export location..."
+                         Text="{Binding ExportFileLocation}" />
+                <Button Grid.Column="2" Content="Select"
+                        Command="{Binding Select_ExportFileLocation}"
+                        Margin="8,0,0,0" />
+            </Grid>
+
+            <!-- Separator -->
+            <Border Grid.Row="4" Height="1" Background="{StaticResource WinBorder}" />
+
+            <!-- Console -->
+            <Grid Grid.Row="5" RowDefinitions="24,*" Margin="12,8,12,4">
+                <TextBlock Grid.Row="0" Text="Console"
+                           Foreground="{StaticResource WinMuted}"
+                           FontSize="11" FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <ListBox Grid.Row="1" ItemsSource="{Binding Logs}">
+                    <Interaction.Behaviors>
+                        <behaviors:LogScrollBehavior />
+                    </Interaction.Behaviors>
+                </ListBox>
+            </Grid>
+
+            <!-- Progress bar -->
+            <ProgressBar Grid.Row="6" Value="{Binding ProgressBarValue}"
+                         Minimum="0" Maximum="100" Height="6"
+                         Margin="12,6" />
+
+            <!-- Separator -->
+            <Border Grid.Row="7" Height="1" Background="{StaticResource WinBorder}" />
+
+            <!-- Action buttons -->
+            <Grid Grid.Row="8" ColumnDefinitions="*,*,*" Margin="12,0">
+                <Button Grid.Column="0" Content="Encode"
+                        Command="{Binding StartEncoder}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Margin="0,10,4,10" />
+                <Button Grid.Column="1" Content="Preview"
+                        Command="{Binding PreviewSequence}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Margin="4,10" />
+                <Button Grid.Column="2" Content="Settings"
+                        Command="{Binding ExportSettings}"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Margin="4,10,0,10" />
+            </Grid>
+
+        </Grid>
+    </Panel>
+
+</Window>

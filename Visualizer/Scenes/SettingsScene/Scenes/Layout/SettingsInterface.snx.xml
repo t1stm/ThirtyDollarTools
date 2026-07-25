@@ -1,0 +1,28 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Layout/SettingsInterface.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/SettingsInterface.snx.csx" imports="[SettingsScene.Scenes]"/>
+
+  <layout>
+    <panel id="main-holder">
+      <panel id="background-holder">
+        <panel class="background-gradients" id="grad-1"/>
+        <panel class="background-gradients" id="grad-2"/>
+        <panel class="background-gradients" id="grad-3"/>
+        <panel class="background-gradients" id="grad-4"/>
+        <panel class="background-gradients" id="grad-5"/>
+      </panel>
+
+      <flex id="settings-view">
+        <flex id="settings-header">
+          <label id="settings-title" value="Settings"/>
+          <button id="back-button">
+            <label value="Back"/>
+          </button>
+        </flex>
+        <panel id="settings-divider"/>
+        <flex id="settings-list">
+        </flex>
+      </flex>
+    </panel>
+  </layout>
+</sundex>

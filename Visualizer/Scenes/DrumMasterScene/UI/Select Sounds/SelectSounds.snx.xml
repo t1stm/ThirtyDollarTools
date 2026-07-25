@@ -1,0 +1,49 @@
+<sundex version="1.0">
+  <style language="sundex" src="UI/Select Sounds/SelectSounds.snx.ss"/>
+  <logic language="csharp" src="UI/Select Sounds/SelectSounds.snx.csx" imports="[DrumMasterScene]"/>
+
+  <layout>
+    <panel id="main-holder">
+      <panel id="background-holder">
+        <panel class="background-gradients" id="grad-1"/>
+        <panel class="background-gradients" id="grad-2"/>
+        <panel class="background-gradients" id="grad-3"/>
+        <panel class="background-gradients" id="grad-4"/>
+        <panel class="background-gradients" id="grad-5"/>
+      </panel>
+
+      <flex id="main-view">
+        <flex id="top-bar">
+          <label id="title" value="Drum Master"/>
+          <panel class="spacer"/>
+          <button id="add-lane-button">
+            <label value="Add Lane"/>
+          </button>
+        </flex>
+
+        <flex id="content-area">
+          <flex id="taiko-lane-list">
+            <!-- Custom "TaikoLaneConfiguration" components will take place here that will be added by code. -->
+          </flex>
+
+          <sound-list id="available-sounds"/>
+        </flex>
+
+        <flex id="footer">
+          <button id="back-button">
+            <label value="Back"/>
+          </button>
+
+          <flex id="footer-buttons">
+            <button id="speed-influences">
+              <label value="!speed Influences Scroll Speed"/>
+            </button>
+            <button id="play-button">
+              <label value="Start Drumming!"/>
+            </button>
+          </flex>
+        </flex>
+      </flex>
+    </panel>
+  </layout>
+</sundex>

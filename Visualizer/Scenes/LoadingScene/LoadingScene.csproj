@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
+    <ProjectReference Include="..\..\..\Sundex\Sundex.Markup\Sundex.Markup.csproj"/>
+    <ProjectReference Include="..\..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
+    <ProjectReference Include="..\..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+    <ProjectReference Include="..\HomeScene\HomeScene.csproj"/>
+    <ProjectReference Include="..\..\Shared\Shared.csproj"/>
+    <ProjectReference Include="..\VisualizerScene\VisualizerScene.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Scenes\Layout\LoaderInterface.snx.sml"/>
+    <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.xml"/>
+    <None Remove="Scenes\Layout\LoaderGradients.snx.ss"/>
+    <EmbeddedResource Include="Scenes\Layout\LoaderGradients.snx.ss"/>
+    <None Remove="Scenes\Layout\LoaderInterface.snx.csx"/>
+    <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.csx"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Scenes\Layout\LoaderInterface.snx.ss"/>
+    <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.ss"/>
+  </ItemGroup>
+
+</Project>

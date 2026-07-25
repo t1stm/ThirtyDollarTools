@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="360"
+        x:Class="ThirtyDollarGUI.Views.Greeter"
+        Icon="/Assets/moai.png"
+        Title="Hello!"
+        MinWidth="300"
+        MinHeight="360"
+        Width="300"
+        Height="360"
+
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="#1a1b26"
+                    TintOpacity="1"
+                    MaterialOpacity="0.72" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+
+        <Border Background="Transparent" PointerPressed="TitleBar_PointerPressed" />
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24,0">
+            <Image Source="avares://ThirtyDollarConverter.GUI/Assets/moai.png"
+                   Width="96" Height="96"
+                   HorizontalAlignment="Center" Margin="0,0,0,16" />
+
+            <TextBlock Text="Thirty Dollar Converter"
+                       Foreground="{StaticResource WinAccent}"
+                       FontSize="16" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" Margin="0,0,0,12" />
+
+            <Border Height="1" Background="{StaticResource WinBorder}" Margin="0,0,0,14" />
+
+            <TextBlock
+                Text="Hello! This project is not finished. Although I am not actively developing this program, I will still respond to any problems that you might encounter. If you encounter a bug / problem, please report it in the GitHub project's issues."
+                HorizontalAlignment="Center"
+                Foreground="{StaticResource WinMuted}"
+                FontSize="11" TextWrapping="Wrap" />
+
+            <Button Content="Continue"
+                    Click="ContinueButton_Click"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Margin="0,20,0,0" />
+        </StackPanel>
+    </Panel>
+</Window>

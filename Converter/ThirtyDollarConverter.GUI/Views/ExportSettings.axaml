@@ -1,0 +1,151 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ThirtyDollarGUI.ViewModels"
+        xmlns:models="using:ThirtyDollarGUI.Models"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="480"
+        x:Class="ThirtyDollarGUI.Views.ExportSettings"
+        x:DataType="vm:ExportSettingsViewModel"
+        Title="Export Settings"
+        Icon="/Assets/moai.png"
+        MinHeight="480"
+        MinWidth="400"
+        Height="480"
+        Width="400"
+
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="#1a1b26"
+                    TintOpacity="1"
+                    MaterialOpacity="0.72" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+
+        <Grid RowDefinitions="38,Auto,*">
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="{StaticResource WinSurface}" Padding="14,0"
+                    PointerPressed="TitleBar_PointerPressed">
+                <TextBlock Text="Export Settings"
+                           Foreground="{StaticResource WinAccent}"
+                           FontWeight="SemiBold" FontSize="13"
+                           VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Separator -->
+            <Border Grid.Row="1" Height="1" Background="{StaticResource WinBorder}" />
+
+            <!-- Settings content -->
+            <ScrollViewer Grid.Row="2">
+                <StackPanel Margin="14,12">
+
+                    <!-- Format section -->
+                    <TextBlock Text="Format"
+                               Foreground="{StaticResource WinMuted}"
+                               FontSize="10" FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Sample rate"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding SampleRateText}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Channels"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center" />
+                        <ComboBox Grid.Column="1" SelectedIndex="{Binding ChannelsIndex}">
+                            <ComboBoxItem>Mono</ComboBoxItem>
+                            <ComboBoxItem>Stereo</ComboBoxItem>
+                        </ComboBox>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Resampler"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center" />
+                        <ComboBox Grid.Column="1"
+                                  SelectedItem="{Binding SelectedExportSettings}"
+                                  ItemsSource="{Binding ListItems}"
+                                  MaxDropDownHeight="200">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:ResamplerModel">
+                                    <TextBlock Text="{Binding ResamplerName}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="{StaticResource WinBorder}" Margin="0,4,0,12" />
+
+                    <!-- Dynamics section -->
+                    <TextBlock Text="Dynamics"
+                               Foreground="{StaticResource WinMuted}"
+                               FontSize="10" FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Normalization"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center" />
+                        <CheckBox Grid.Column="1" IsChecked="{Binding EnableNormalization}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Volume scale"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center" />
+                        <ComboBox Grid.Column="1"
+                                  SelectedItem="{Binding VolumeScale}"
+                                  ItemsSource="{Binding ScaleItems}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Pan scale"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center" />
+                        <ComboBox Grid.Column="1"
+                                  SelectedItem="{Binding PanScale}"
+                                  ItemsSource="{Binding ScaleItems}" />
+                    </Grid>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="{StaticResource WinBorder}" Margin="0,4,0,12" />
+
+                    <!-- Advanced section -->
+                    <TextBlock Text="Advanced"
+                               Foreground="{StaticResource WinMuted}"
+                               FontSize="10" FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Cut fade (ms)"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding CutDelayText}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Thread slices"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Text="{Binding EncodeSlicesCountText}" />
+                    </Grid>
+
+                </StackPanel>
+            </ScrollViewer>
+
+        </Grid>
+    </Panel>
+</Window>

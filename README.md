@@ -18,7 +18,7 @@ The **Thirty Dollar Visualizer** is a tool that replicates the **Thirty Dollar W
 It plays compositions using multiple CPU threads allowing it to
 achieve much higher note density and performance, than the website can achieve.
 
-[More info about the visualizer here.](ThirtyDollarVisualizer/README.md)
+[More info about the visualizer here.](Visualizer/ThirtyDollarVisualizer/README.md)
 
 ![Screenshot of the visualizer playing "Haunted House" covered by "mossan_"](Screenshots/visualizer-running.png)
 
@@ -35,9 +35,9 @@ audio engine of the Thirty Dollar Website uses.
 The only limitation is your system's RAM capacity and 
 the time you can leave your device powered on.
 
-[See more info about the converter here.](ThirtyDollarConverter.GUI/README.md)
+[See more info about the converter here.](Converter/ThirtyDollarConverter.GUI/README.md)
 
-[_Or if you're interested in the CLI program, here._](ThirtyDollarConverter.Debug/README.md)
+[_Or if you're interested in the CLI program, here._](Converter/ThirtyDollarConverter.CLI/README.md)
 
 ## Download
 

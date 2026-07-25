@@ -1,0 +1,132 @@
+using System.Diagnostics;
+using OpenTK.Mathematics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Formats.Webp;
+using Sundex.Engine.Asset_Management.Types.Texture;
+using Sundex.Engine.Renderer.Shaders;
+using Sundex.Engine.Renderer.Textures.Atlases;
+
+namespace Shared.Atlases;
+
+public class FramedAtlas(int width, int height) : GPUTextureAtlas(width, height)
+{
+    public Rectangle CurrentRectangle => FrameCoordinates[CurrentFrameIndex];
+
+    private Dictionary<int, Rectangle> FrameCoordinates { get; } = new();
+    private Dictionary<int, float> FrameDurationMap { get; } = new();
+    private float CurrentFrameStartTime { get; set; }
+    private int CurrentFrameIndex { get; set; }
+    private float TotalLength { get; set; }
+    private int FrameCount => FrameCoordinates.Count;
+
+    protected Stopwatch TimingStopwatch { get; set; } = new();
+
+    private static Vector2i GetAtlasSizeForTotalFrames(int frameCount, Vector2 imageSize)
+    {
+        // Add padding to the frame size to match GuillotineAtlas logic
+        const int padding = 2;
+        var paddedWidth = (int)imageSize.X + padding * 2;
+        var paddedHeight = (int)imageSize.Y + padding * 2;
+
+        var aspectRatio = (float)paddedWidth / paddedHeight;
+
+        // Start by guessing columns based on the frame count and aspect ratio to keep the atlas somewhat square
+        var columns = (int)Math.Ceiling(Math.Sqrt(frameCount * aspectRatio));
+        if (columns < 1) columns = 1;
+
+        var rows = (int)Math.Ceiling((double)frameCount / columns);
+
+        var optimalWidth = columns * paddedWidth;
+        var optimalHeight = rows * paddedHeight;
+
+        return new Vector2i(optimalWidth, optimalHeight);
+    }
+
+    public void Update()
+    {
+        if (!TimingStopwatch.IsRunning) TimingStopwatch.Restart();
+        var elapsed = TimingStopwatch.ElapsedMilliseconds % TotalLength;
+
+        if (elapsed < CurrentFrameStartTime)
+        {
+            CurrentFrameStartTime = 0;
+            CurrentFrameIndex = 0;
+        }
+
+        var currentLength = CurrentFrameStartTime;
+        for (var i = CurrentFrameIndex; i < FrameCount; i++)
+        {
+            var nextLength = currentLength + FrameDurationMap[i];
+            if (elapsed < nextLength)
+            {
+                CurrentFrameIndex = i;
+                CurrentFrameStartTime = currentLength;
+                break;
+            }
+
+            currentLength = nextLength;
+        }
+    }
+
+    public void Restart()
+    {
+        TimingStopwatch.Restart();
+    }
+
+    public static FramedAtlas FromAnimatedTexture(string textureID, TextureHolder texture)
+    {
+        var image = texture.Texture;
+        var frameCount = image.Frames.Count;
+
+        if (frameCount <= 1)
+            throw new Exception("Animated texture has less than 2 frames.");
+
+        Vector2 imageSize = new(image.Width, image.Height);
+        var atlasSize = GetAtlasSizeForTotalFrames(frameCount, imageSize);
+
+        var atlas = new FramedAtlas(atlasSize.X, atlasSize.Y)
+        {
+            AtlasID = "FramedAtlas_" + textureID
+        };
+
+        float length = 0;
+        for (var index = 0; index < image.Frames.Count; index++)
+        {
+            var frame = image.Frames[index];
+            var textureName = $"{textureID}-frame-{index}";
+            atlas.AddTexture(textureName, frame);
+
+            var rect = atlas.Atlas.GetImageRectangle(textureName);
+            if (rect.IsEmpty)
+                throw new Exception("Failed to get image data from texture.");
+
+            atlas.FrameCoordinates.Add(index, rect);
+            length += atlas.FrameDurationMap[index] = TryGetFrameDelay(frame) ?? 100f;
+        }
+
+        atlas.TotalLength = length;
+        return atlas;
+    }
+
+    public void SetUniforms(Shader shader)
+    {
+        var quad = QuadUV.FromRectangle(CurrentRectangle, Width, Height);
+        shader.SetUniform("u_UV", quad.UV);
+    }
+
+    private static float? TryGetFrameDelay(ImageFrame frame)
+    {
+        var format = frame.Metadata.DecodedImageFormat;
+        if (format == null) return null;
+
+        return format switch
+        {
+            GifFormat => frame.Metadata.GetGifMetadata().FrameDelay * 10f,
+            PngFormat => frame.Metadata.GetPngMetadata().FrameDelay.ToSingle() * 100f,
+            WebpFormat => frame.Metadata.GetWebpMetadata().FrameDelay,
+            _ => null
+        };
+    }
+}

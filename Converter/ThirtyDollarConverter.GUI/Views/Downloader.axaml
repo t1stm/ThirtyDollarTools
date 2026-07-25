@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ThirtyDollarGUI.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="250" d:DesignHeight="300"
+        x:Class="ThirtyDollarGUI.Views.Downloader"
+        x:DataType="vm:DownloaderViewModel"
+        Title="Before we continue..."
+        Icon="/Assets/moai.png"
+        MinWidth="250"
+        MinHeight="300"
+        Width="250"
+        Height="300"
+
+        TransparencyLevelHint="AcrylicBlur"
+        Background="Transparent"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    TintColor="#1a1b26"
+                    TintOpacity="1"
+                    MaterialOpacity="0.72" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+
+        <Grid RowDefinitions="38,Auto,Auto,*,Auto,Auto">
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="{StaticResource WinSurface}" Padding="14,0"
+                    PointerPressed="TitleBar_PointerPressed">
+                <TextBlock Text="Downloading"
+                           Foreground="{StaticResource WinAccent}"
+                           FontWeight="SemiBold" FontSize="13"
+                           VerticalAlignment="Center" />
+            </Border>
+
+            <!-- Separator -->
+            <Border Grid.Row="1" Height="1" Background="{StaticResource WinBorder}" />
+
+            <!-- Description -->
+            <TextBlock Grid.Row="2"
+                       Text="{Binding DownloadText}"
+                       Foreground="{StaticResource WinMuted}"
+                       FontSize="11" TextWrapping="Wrap"
+                       Margin="14,10,14,6" />
+
+            <!-- Log -->
+            <ScrollViewer Grid.Row="3" Margin="14,0">
+                <TextBlock Text="{Binding Log}"
+                           Foreground="{StaticResource WinMuted}"
+                           FontSize="10" FontFamily="Monospace" />
+            </ScrollViewer>
+
+            <!-- Progress bar -->
+            <ProgressBar Grid.Row="4"
+                         Value="{Binding ProgressBarValue}"
+                         Minimum="0" Maximum="100" Height="6"
+                         Margin="14,8" />
+
+            <!-- Download button -->
+            <Button Grid.Row="5"
+                    Content="Download Samples"
+                    Command="{Binding Download_Button_Handle}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Margin="14,0,14,14" />
+
+        </Grid>
+    </Panel>
+</Window>
