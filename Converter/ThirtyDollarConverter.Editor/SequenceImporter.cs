@@ -354,57 +354,78 @@ public static class SequenceImporter
         }
     }
 
-    // ---- Phase B: regions -> segments (each speed change becomes its own segment) ----
+    // ---- Phase B: regions -> segments ----
 
     private sealed record SegmentPlan(int Numerator, int Bars, int Spb, float BPM,
         List<(int Step, WalkedNote Note)> Notes, int QuantizedNotes);
+
+    /// <summary>How fine a merged segment's grid may get, relative to its slowest region,
+    /// before a speed change is treated as a real tempo change and split off instead.</summary>
+    private const int MaxMergedSubdivision = 4;
+
+    /// <summary>
+    ///     Total budget for how far a segment's grid may run above its slowest region's speed.
+    ///     Merging and off-grid note fitting both spend from it, and they have to share one
+    ///     budget because they multiply: a group merged 8x that then fits 1/10th-step swing
+    ///     lands on an 80x grid, and since StepsPerBeat can't exceed
+    ///     <see cref="SequenceBuilder.MaxSpeedMultiplier" />, the overflow has nowhere to go but
+    ///     the BPM - which is how a plain 145 BPM track came out as 181.25 BPM at 64 steps/beat.
+    ///     Spending the rest of the budget on rounding a few swung notes onto the grid (counted
+    ///     in <see cref="ImportWarnings.QuantizedNotes" />) beats keeping every note exact at the
+    ///     cost of a tempo nobody wrote.
+    /// </summary>
+    private const int MaxGridSubdivision = 32;
+
+    /// <summary>Time signature numerators worth using, best first. A note grid almost never
+    /// implies a numerator on its own, so an exotic one is nearly always the symptom of a
+    /// length that doesn't divide into bars - which a short trailing bar reports honestly
+    /// and 59 bars of 5/4 does not.</summary>
+    private static readonly int[] Numerators = [4, 3, 2, 6, 8, 5, 7, 9];
+
+    /// <summary>Sub-grid multipliers worth considering: halves, thirds and their products.
+    /// A "!stop@0.05" would land exactly on a 20x grid, but 20 steps to a beat is not a grid
+    /// anyone can edit against - rounding those few notes onto a musical grid (and reporting
+    /// it in <see cref="ImportWarnings.QuantizedNotes" />) is the better trade.</summary>
+    private static readonly int[] SubGrids = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
 
     private static List<SegmentPlan> BuildSegmentPlans(List<(double Speed, double Length)> regions,
         List<WalkedNote> notes)
     {
         var byRegion = notes.ToLookup(n => n.Region);
-        var plans = new List<SegmentPlan>(regions.Count);
 
+        // Absolute start of every region, in minutes: a merged segment has to place notes
+        // from several regions on one shared grid.
+        var starts = new double[regions.Count + 1];
         for (var r = 0; r < regions.Count; r++)
+            starts[r + 1] = starts[r] + regions[r].Length / regions[r].Speed;
+
+        var plans = new List<SegmentPlan>();
+        for (var first = 0; first < regions.Count;)
         {
-            var (speed, length) = regions[r];
-            var regionNotes = byRegion[r].ToArray();
+            var (last, rate, slowest) = GroupRegions(regions, first);
 
-            // The k that minimizes misalignment, not "first exact fit, else the 64 cap":
-            // a few unrepresentable fractional positions (swing/humanization stops with
-            // an odd denominator) shouldn't force every OTHER already-whole note onto an
-            // unnecessarily fine subdivision. A finer grid doesn't just fail to help those
-            // outliers (64 is no likelier a multiple of their true denominator than 1 is)
-            // - it also makes real playback's own per-step integer sample truncation lose
-            // more total precision across the whole region, compounding into audible drift
-            // for every note, not just the outliers. A region-length mismatch is weighted
-            // far above any single note's, since it drifts every later region too.
-            var k = 1;
-            var bestScore = int.MaxValue;
-            for (var candidate = 1; candidate <= SequenceBuilder.MaxSpeedMultiplier; candidate++)
-            {
-                var noteFailures = regionNotes.Count(n => !IsWholeStep(n.Step * candidate));
-                var lengthFailure = IsWholeStep(length * candidate) ? 0 : 1;
-                var score = lengthFailure * (regionNotes.Length + 1) + noteFailures;
-                if (score >= bestScore) continue;
+            var placed = new List<(double Step, WalkedNote Note)>();
+            for (var r = first; r <= last; r++)
+                foreach (var note in byRegion[r])
+                    placed.Add(((starts[r] - starts[first] + note.Step / regions[r].Speed) * rate, note));
 
-                bestScore = score;
-                k = candidate;
-                if (score == 0) break;
-            }
+            var length = (starts[last + 1] - starts[first]) * rate;
+            var k = BestSubGrid(placed, length, Math.Max(1, (int)(MaxGridSubdivision * slowest / rate)));
 
             var quantized = 0;
-            var stepped = regionNotes.Select(n =>
+            var stepped = placed.Select(p =>
             {
-                var raw = n.Step * k;
-                if (!IsWholeStep(raw)) quantized++;
-                return ((int)Math.Round(raw), n);
-            }).ToList();
+                var scaled = p.Step * k;
+                if (!IsWholeStep(scaled)) quantized++;
+                return ((int)Math.Round(scaled), p.Note);
+            }).OrderBy(p => p.Item1).ToList();
 
-            var lengthSteps = (int)Math.Round(length * k);
-            var shape = ChooseShape(speed, k, lengthSteps, r == regions.Count - 1);
+            // A group can round to zero steps only when it is a lone "!combine"d stack at
+            // step 0; give it one step so its notes still land inside the grid.
+            var lengthSteps = Math.Max((int)Math.Round(length * k), stepped.Count > 0 ? 1 : 0);
+            AddShape(plans, rate * k, lengthSteps, stepped, quantized, last == regions.Count - 1);
 
-            plans.Add(new SegmentPlan(shape.Numerator, shape.Bars, shape.Spb, shape.Bpm, stepped, quantized));
+            first = last + 1;
         }
 
         return plans;
@@ -416,89 +437,198 @@ public static class SequenceImporter
     }
 
     /// <summary>
-    ///     Chooses a musical (Numerator, Bars, StepsPerBeat, BPM) for a region of
-    ///     <paramref name="lengthSteps" /> k-grid steps at grid rate <c>speed * k</c> steps/minute.
-    ///     Any shape satisfying <c>BPM * Spb == speed * k</c> and <c>Bars * Numerator * Spb == PaddedL</c>
-    ///     is timing-identical; this picks the least surprising one by penalizing a giant
-    ///     numerator, a sub-16th grid, and an inhuman BPM. Only the final region
-    ///     (<paramref name="isFinal" />) may pad its length with trailing silence
-    ///     (never represented by <see cref="SequenceBuilder" />) to reach a clean bar.
+    ///     How far the segment starting at <paramref name="first" /> reaches, and the grid rate
+    ///     it runs at. Consecutive regions merge while one of the two speeds is a whole multiple
+    ///     of the other: "!speed@2@x" is a subdivision change, not a tempo change, and cutting a
+    ///     segment at every one of them is what turned a steady 177 BPM track into thirty
+    ///     segments of 19 steps per beat - a region left holding an awkward number of steps has
+    ///     no musical subdivision that divides it. A ratio that isn't whole (150 -> 90) is a real
+    ///     tempo change and still starts a new segment.
     /// </summary>
-    private static (int Numerator, int Bars, int Spb, float Bpm, int PaddedL) ChooseShape(double speed, int k,
-        int lengthSteps, bool isFinal)
+    private static (int Last, double Rate, double Slowest) GroupRegions(
+        List<(double Speed, double Length)> regions, int first)
     {
-        if (lengthSteps <= 0) return (4, 0, 1, (float)(speed * k), 0);
+        var rate = regions[first].Speed;
+        var slowest = rate;
+        var last = first;
 
-        var rate = speed * k;
-        var best = (Numerator: 4, Bars: 0, Spb: 1, Bpm: 0f, PaddedL: 0, Score: double.MaxValue);
-
-        void Consider(int n, int bars, int s, int paddedL)
+        while (last + 1 < regions.Count)
         {
-            var bpm = rate / s;
-            var score = NumeratorPenalty(n) + SpbPenalty(s) + BpmPenalty(bpm)
-                        + (paddedL - lengthSteps) * PadStepPenalty;
-            if (score < best.Score) best = (n, bars, s, (float)bpm, paddedL, score);
+            var speed = regions[last + 1].Speed;
+            var merged = Math.Max(rate, speed);
+            if (!IsWholeStep(merged / rate) || !IsWholeStep(merged / speed)) break;
+            if (merged / Math.Min(slowest, speed) > MaxMergedSubdivision) break;
+
+            rate = merged;
+            slowest = Math.Min(slowest, speed);
+            last++;
         }
 
-        for (var s = 1; s <= SequenceBuilder.MaxSpeedMultiplier; s++)
-        {
-            if (lengthSteps % s != 0) continue;
-            var beats = lengthSteps / s;
-            foreach (var n in Divisors(beats))
-                Consider(n, beats / n, s, lengthSteps);
-        }
-
-        if (isFinal)
-            for (var s = 1; s <= SequenceBuilder.MaxSpeedMultiplier; s++)
-            {
-                var unit = 4 * s;
-                var bars = (lengthSteps + unit - 1) / unit;
-                var paddedL = bars * unit;
-                if (paddedL == lengthSteps) continue; // already an exact candidate above
-                Consider(4, bars, s, paddedL);
-            }
-
-        return (best.Numerator, best.Bars, best.Spb, best.Bpm, best.PaddedL);
+        return (last, rate, slowest);
     }
 
-    /// <summary>Every divisor of <paramref name="n" />, O(sqrt(n)).</summary>
-    private static IEnumerable<int> Divisors(int n)
+    /// <summary>
+    ///     The subdivision of the group's grid that leaves the fewest positions off it. Not
+    ///     "first exact fit, else the 64 cap": a few unrepresentable fractional positions
+    ///     (swing/humanization stops with an odd denominator) shouldn't force every OTHER
+    ///     already-whole note onto an unnecessarily fine subdivision. A finer grid doesn't just
+    ///     fail to help those outliers (64 is no likelier a multiple of their true denominator
+    ///     than 1 is) - it also makes real playback's own per-step integer sample truncation lose
+    ///     more total precision across the whole group, compounding into audible drift for every
+    ///     note, not just the outliers. A length mismatch is weighted far above any single note's,
+    ///     since it drifts every later group too.
+    /// </summary>
+    private static int BestSubGrid(List<(double Step, WalkedNote Note)> notes, double length, int maxK)
     {
-        for (var d = 1; (long)d * d <= n; d++)
+        var best = 1;
+        var bestScore = int.MaxValue;
+
+        foreach (var k in SubGrids)
         {
-            if (n % d != 0) continue;
-            yield return d;
-            if (d != n / d) yield return n / d;
+            if (k > maxK) break;
+
+            var score = (IsWholeStep(length * k) ? 0 : notes.Count + 1)
+                        + notes.Count(n => !IsWholeStep(n.Step * k));
+            if (score >= bestScore) continue;
+
+            bestScore = score;
+            best = k;
+            if (score == 0) break;
         }
+
+        return best;
+    }
+
+    /// <summary>
+    ///     Appends the segment(s) covering one group: a run of whole bars in the best-scoring
+    ///     time signature, plus a short trailing bar holding whatever doesn't fill one. Every
+    ///     (Spb, Numerator) satisfying <c>BPM * Spb == rate</c> is timing-identical, so the choice
+    ///     is only about which one a human would have written: penalize an unmusical subdivision,
+    ///     an inhuman BPM and an odd time signature. Only the final group
+    ///     (<paramref name="isFinal" />) may instead round up with trailing silence (never emitted
+    ///     by <see cref="SequenceBuilder" />); padding a middle group would shift every later one.
+    ///     The trailing bar picks its own shape rather than inheriting the run's, so a group whose
+    ///     length is prime (31 steps) doesn't collapse the whole run onto the only subdivision
+    ///     that divides it - which is how a 192 BPM track produced 6144 BPM segments.
+    /// </summary>
+    private static void AddShape(List<SegmentPlan> plans, double rate, int lengthSteps,
+        List<(int Step, WalkedNote Note)> notes, int quantized, bool isFinal)
+    {
+        if (lengthSteps <= 0)
+        {
+            plans.Add(new SegmentPlan(4, 0, 1, (float)rate, notes, quantized));
+            return;
+        }
+
+        var best = (Spb: 1, Numerator: 4, Bars: 0, Score: double.MaxValue);
+        for (var spb = 1; spb <= SequenceBuilder.MaxSpeedMultiplier; spb++)
+        {
+            var grid = SpbPenalty(spb) + BpmPenalty(rate / spb);
+
+            foreach (var n in Numerators)
+            {
+                var bar = n * spb;
+                var bars = lengthSteps / bar;
+                if (bars == 0) continue;
+
+                // A tail that can keep the run's subdivision is just a short bar; one that
+                // can't has to state its own BPM too, which reads as a tempo change the
+                // sequence never made. Padding is often the lesser evil, so price it higher.
+                var shape = grid + NumeratorPenalty(n);
+                var score = shape + (lengthSteps % bar == 0 ? 0 :
+                    lengthSteps % spb == 0 ? RemainderBarPenalty : TempoBreakPenalty);
+                if (score < best.Score) best = (spb, n, bars, score);
+
+                if (!isFinal || lengthSteps % bar == 0) continue;
+                var padScore = shape + ((bars + 1) * bar - lengthSteps) * PadPenalty / lengthSteps;
+                if (padScore < best.Score) best = (spb, n, bars + 1, padScore);
+            }
+        }
+
+        // Padding (final group only) makes the run longer than the group; every note still
+        // falls inside it, and there is no leftover to place.
+        var mainSteps = best.Bars * best.Numerator * best.Spb;
+        if (best.Bars > 0)
+            plans.Add(new SegmentPlan(best.Numerator, best.Bars, best.Spb, (float)(rate / best.Spb),
+                notes.TakeWhile(p => p.Step < mainSteps).ToList(), quantized));
+
+        var leftover = lengthSteps - mainSteps;
+        if (leftover <= 0) return;
+
+        var tailNotes = notes.SkipWhile(p => p.Step < mainSteps).ToList();
+
+        // Trailing silence is never represented (SequenceBuilder drops it), so a final tail
+        // holding no notes is a segment with nothing in it - don't invent one.
+        if (isFinal && tailNotes.Count == 0) return;
+
+        // The tail keeps the run's tempo whenever its length allows: a segment that changes
+        // BPM purely because the bar before it ran out of steps is nonsense. It only picks its
+        // own shape when the run's subdivision doesn't divide it.
+        var (spb2, numerator) = leftover % best.Spb == 0
+            ? (best.Spb, leftover / best.Spb)
+            : BestBar(rate, leftover);
+
+        plans.Add(new SegmentPlan(numerator, 1, spb2, (float)(rate / spb2),
+            tailNotes.Select(p => (p.Step - mainSteps, p.Note)).ToList(),
+            best.Bars > 0 ? 0 : quantized));
+    }
+
+    /// <summary>The (StepsPerBeat, Numerator) for a single bar spanning exactly
+    /// <paramref name="steps" /> steps, scored the same way a full run is.</summary>
+    private static (int Spb, int Numerator) BestBar(double rate, int steps)
+    {
+        var best = (Spb: 1, Numerator: steps, Score: double.MaxValue);
+
+        for (var spb = 1; spb <= Math.Min(steps, SequenceBuilder.MaxSpeedMultiplier); spb++)
+        {
+            if (steps % spb != 0) continue;
+
+            var score = SpbPenalty(spb) + BpmPenalty(rate / spb) + NumeratorPenalty(steps / spb);
+            if (score < best.Score) best = (spb, steps / spb, score);
+        }
+
+        return (best.Spb, best.Numerator);
+    }
+
+    /// <summary>Musical subdivisions first - halves and quarters of a beat, then triplets,
+    /// then whatever's left. A 5- or 19-step beat is a symptom, not a style.</summary>
+    private static double SpbPenalty(int spb)
+    {
+        return spb switch
+        {
+            4 or 8 => 0,
+            2 or 16 => 0.5,
+            1 or 32 => 1.5,
+            3 or 6 or 12 or 24 or 48 => 2,
+            64 => 3,
+            _ => 20
+        };
     }
 
     private static double NumeratorPenalty(int n)
     {
-        return n switch
-        {
-            4 => 0,
-            2 or 3 or 6 or 8 => 1,
-            <= 16 => 3,
-            _ => 50 + n
-        };
+        var rank = Array.IndexOf(Numerators, n);
+        return rank < 0 ? 20 : rank * 0.75;
     }
 
-    private static double SpbPenalty(int s)
-    {
-        return s >= 4 ? 0 : 4 - s;
-    }
-
+    /// <summary>
+    ///     Distance outside the tempo band real music lives in, in halvings/doublings. The band
+    ///     has to be tight: every shape here is a doubling of some other shape, so a flat "60-300
+    ///     is fine" scores 177 and 354 identically and then lets a tiebreak pick the wrong one.
+    /// </summary>
     private static double BpmPenalty(double bpm)
     {
-        if (bpm is >= 60 and <= 300) return 0;
-        var bound = bpm < 60 ? 60 : 300;
-        return Math.Round(4 * Math.Abs(Math.Log2(bpm / bound)));
+        if (bpm is >= 70 and <= 190) return 0;
+        return 3 * Math.Abs(Math.Log2(bpm / (bpm < 70 ? 70 : 190)));
     }
 
-    // ponytail: pad weight chosen by feel, sized to match the other penalties (0-3ish) so
-    // padding only wins when the unpadded shape is genuinely bad - tune against the
-    // ~/tdw corpus if padding looks too eager/timid.
-    private const double PadStepPenalty = 1.0;
+    // ponytail: the two weights below are feel, sized against the penalties above - tune
+    // against the ~/tdw corpus if trailing bars / padding look too eager or too timid.
+    // Padding is scored as a fraction of the group's length, so a few steps of silence at
+    // the end of a long track is nearly free while inflating a two-note tail is not.
+    private const double RemainderBarPenalty = 1.5;
+    private const double TempoBreakPenalty = 4.0;
+    private const double PadPenalty = 8.0;
 
     // ---- Phase C: instruments and notes ----
 

@@ -49,35 +49,51 @@ public class SequenceImporterTests
     }
 
     [Fact]
-    public void SpeedChange_ProducesOneSegmentPerRegion_AndARedundantSpeedSplitsNothing()
+    public void SpeedChangeByAWholeMultiple_StaysOneSegment_AtTheFinerGrid()
     {
+        // 300 -> 150 is a subdivision change, not a tempo change: one segment on the 300
+        // grid describes both halves, where splitting would leave two segments whose
+        // awkward lengths force an unmusical StepsPerBeat.
         var sequence = Sequence.FromString("kick|!speed@150|snare|!speed@150|hat");
         var project = new ThirtyDollarProject();
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
-        Assert.Equal(2, result.Track!.Segments.Count);
-        var first = result.Track.Segments[0];
-        Assert.Equal(1, first.Numerator);
-        Assert.Equal(300, first.BPM * first.StepsPerBeat); // rate = speed * k = 300 * 1
-        var second = result.Track.Segments[1];
-        Assert.Equal(150, second.BPM * second.StepsPerBeat); // rate = speed * k = 150 * 1
-        Assert.Equal(2, second.Bars * second.Numerator * second.StepsPerBeat); // no padding needed
-        Assert.Equal(2, second.Numerator); // small numerator beats a giant one for a 2-step region
+        var segment = Assert.Single(result.Track!.Segments);
+        Assert.Equal(300, segment.BPM * segment.StepsPerBeat); // grid rate is unchanged
+        Assert.Equal(4, segment.Numerator);
+        Assert.Equal(3, segment.Notes.Count);
+        // "kick" at 300, then "snare"/"hat" a half-rate step apart: 0, 1, 3 on the 300 grid.
+        Assert.Equal([0, 1, 3], segment.Notes.OrderBy(n => n.Step).Select(n => n.Step));
     }
 
     [Fact]
-    public void ExactFourBarFit_PrefersRealSubdivisionOverACoarseGrid()
+    public void SpeedChangeByAFractionalRatio_StillSplitsIntoItsOwnSegment()
+    {
+        // 300 -> 200 is 3:2. Merging would have to relabel one half's tempo, so a real
+        // tempo change still earns its own segment - the counterpart to the test above.
+        var sequence = Sequence.FromString("kick|!speed@200|snare|!speed@200|hat");
+        var project = new ThirtyDollarProject();
+        var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
+
+        Assert.Equal(2, result.Track!.Segments.Count);
+        Assert.Equal(300, result.Track.Segments[0].BPM * result.Track.Segments[0].StepsPerBeat);
+        Assert.Equal(200, result.Track.Segments[1].BPM * result.Track.Segments[1].StepsPerBeat);
+    }
+
+    [Fact]
+    public void ExactFourBarFit_PrefersAMusicalSubdivisionAndAPlausibleTempo()
     {
         var sequence = Sequence.FromString("kick=8"); // 8 steps, no speed change.
         var project = new ThirtyDollarProject();
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
-        var segment = result.Track!.Segments[0];
-        // 2/4 time at 16th-note (SPB=4) resolution beats a quarter-note (SPB=1) grid.
-        Assert.Equal(2, segment.Numerator);
+        var segment = Assert.Single(result.Track!.Segments);
+        // One 4/4 bar of 8th notes at 150 BPM, not a 2/4 bar of 16ths at 75 - same timing,
+        // but 150 is a tempo somebody would write and 4/4 is the signature they'd reach for.
+        Assert.Equal(4, segment.Numerator);
         Assert.Equal(1, segment.Bars);
-        Assert.Equal(4, segment.StepsPerBeat);
-        Assert.Equal(75, segment.BPM);
+        Assert.Equal(2, segment.StepsPerBeat);
+        Assert.Equal(150, segment.BPM);
         Assert.Equal(300, segment.BPM * segment.StepsPerBeat); // rate = speed * k = 300 * 1
         Assert.Equal(8, segment.Bars * segment.Numerator * segment.StepsPerBeat);
         Assert.Equal(8, segment.Notes.Count);
@@ -90,13 +106,14 @@ public class SequenceImporterTests
         var project = new ThirtyDollarProject();
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
-        var segment = result.Track!.Segments[0];
+        var segment = Assert.Single(result.Track!.Segments);
         var notes = segment.Notes.OrderBy(n => n.Step).ToList();
         Assert.Equal(3, notes.Count); // "_pause" itself never becomes a note
         // Steps 0, 2, 4.5 need k=2 to land on an integer grid.
         Assert.Equal([0, 4, 9], notes.Select(n => n.Step));
         // 11 steps is prime - no clean bar fits, so the final region pads to 12
-        // (trailing silence, never emitted by SequenceBuilder) with a small numerator.
+        // (trailing silence, never emitted by SequenceBuilder) rather than trailing a
+        // short bar that would have to announce a tempo of its own.
         Assert.Equal(600, segment.BPM * segment.StepsPerBeat); // rate = speed * k = 300 * 2
         Assert.Equal(12, segment.Bars * segment.Numerator * segment.StepsPerBeat);
         Assert.True(segment.Numerator <= 16);
@@ -138,19 +155,43 @@ public class SequenceImporterTests
     }
 
     [Fact]
-    public void HighSpeedWithDenominator20Stops_PutsTheMultiplierInStepsPerBeat_NotBpm()
+    public void StopsWithANonMusicalDenominator_RoundOntoTheGrid_RatherThanWarpItToFitThem()
     {
-        // a fast native speed plus fractional
-        // stops whose true denominator (20) needs a k-search - the multiplier belongs in
-        // StepsPerBeat, not baked into an absurd BPM.
+        // Stops of 0.95/0.05 would sit exactly on a 20x grid - and 20 steps to a beat is a
+        // grid nobody can edit against, bought at the cost of every other note's timing
+        // (a finer grid multiplies PlacementCalculator's per-step sample truncation).
+        // Rounding the one offending note and saying so is the better trade.
         var sequence = Sequence.FromString("!speed@640|kick|!stop@0.95|snare|!stop@0.05|hat");
         var project = new ThirtyDollarProject();
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
-        var segment = result.Track!.Segments[0];
-        Assert.True(segment.BPM <= 640);
-        Assert.True(segment.Numerator <= 16);
-        Assert.Equal(640 * 20, segment.BPM * segment.StepsPerBeat); // rate = speed * k
+        var segment = Assert.Single(result.Track!.Segments);
+        Assert.Equal(640, segment.BPM * segment.StepsPerBeat); // grid stays at the native speed
+        Assert.Equal(2, segment.StepsPerBeat);
+        Assert.Equal(1, result.Warnings.QuantizedNotes); // the 0.95 note, reported not hidden
+        // 0, 1.95 and 3 steps: only the middle one moves, by 0.05 of a step (~4.7 ms here).
+        Assert.Equal([0, 2, 3], segment.Notes.OrderBy(n => n.Step).Select(n => n.Step));
+    }
+
+    [Fact]
+    public void AWholeMultipleChain_MergesToOneSegment_AtTheTempoTheFileNamed()
+    {
+        // The "!speed@2@x" flourish pattern that fragmented real sequences into dozens of
+        // segments: 160 doubling to 320 and back is 8th notes at 160, not three tempos.
+        var sequence = Sequence.FromString(
+            "!speed@160|kick=4|!speed@2@x|snare=8|!speed@0.5@x|kick=4");
+        var project = new ThirtyDollarProject();
+        var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
+
+        var segment = Assert.Single(result.Track!.Segments);
+        Assert.Equal(160, segment.BPM); // the tempo the file actually named
+        Assert.Equal(2, segment.StepsPerBeat); // the doubling lives here, not in the BPM
+        Assert.Equal(4, segment.Numerator);
+        Assert.Equal(3, segment.Bars);
+        Assert.Equal(16, segment.Notes.Count);
+        // Quarter notes at 160, then 8ths through the doubled section, then quarters again.
+        Assert.Equal([0, 2, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22],
+            segment.Notes.OrderBy(n => n.Step).Select(n => n.Step));
     }
 
     [Fact]
