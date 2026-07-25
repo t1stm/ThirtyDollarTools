@@ -1,4 +1,5 @@
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using SettingsScene.Scenes;
@@ -103,6 +104,16 @@ public class Settings : Scene
 
     public override void Keyboard(KeyboardState state)
     {
+    }
+
+    public override void TextInput(TextInputEventArgs e)
+    {
+        _context.DispatchTextInput(e);
+    }
+
+    public override void KeyDown(KeyboardKeyEventArgs e)
+    {
+        _context.DispatchKeyDown(e);
     }
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)

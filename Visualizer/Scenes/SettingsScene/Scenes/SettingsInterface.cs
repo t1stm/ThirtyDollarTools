@@ -126,7 +126,9 @@ public class SettingsInterface
         input.OnValueChanged = _ =>
         {
             if (input.Value is not { } value) return;
-            property.SetValue(settings, isInt ? (int)Math.Round(value) : (float)value);
+            // The (object) cast is load-bearing: without it the ternary unifies to float
+            // and SetValue throws on the int properties.
+            property.SetValue(settings, isInt ? (object)(int)Math.Round(value) : (float)value);
         };
 
         return input;
@@ -152,7 +154,10 @@ public class SettingsInterface
             Background = new ColoredPlane { Color = ColorInputBackground }
         };
 
-        input.OnValueChanged = i => property.SetValue(settings, i.Value);
+        // Clearing a nullable string setting means "unset", not "empty string" - AudioBackend
+        // picks its default from null, and "" would pin it to a backend that doesn't exist.
+        var nullable = new NullabilityInfoContext().Create(property).WriteState == NullabilityState.Nullable;
+        input.OnValueChanged = i => property.SetValue(settings, nullable && i.Value.Length == 0 ? null : i.Value);
         return input;
     }
 
