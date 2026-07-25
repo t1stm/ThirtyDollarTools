@@ -10,7 +10,7 @@ namespace EditorScene.Tests;
 // Drives UIContext.UpdatePointer directly with primitives, like ArrangementViewTests.
 // Geometry: view is 800x414, GridTop = StripHeight + RulerHeight = 40; the cut row is
 // pinned to the bottom instead, so it never affects GridTop or these row-targeting y
-// values. With RowHeight clamped to its 8px minimum (gridHeight/Rows is smaller), the
+// values. With RowHeight set to 8px, the
 // initial CenterPending centers scrollY at (Rows*8 - gridHeight)/2 = 309.5. Value v's
 // row top is ValueTop(v) = GridTop + (60-v)*8 - scrollY; the row-targeting y values
 // below sit mid-row (+4) inside that. The default segment is 16 steps of 16 px
@@ -51,8 +51,8 @@ public class TrackEditorViewTests
         var state = new EditorState();
         var track = state.AddTrack();
         state.OpenTrack(track);
-        // The default zoom is 64 px/step and rows default to a fixed 20 px minimum;
-        // these tests keep the original 16 px / stretch-to-fit (8 px rows) geometry.
+        // The default zoom is 64 px/step and rows default to 20 px; these tests keep
+        // the original 16 px / 8 px-row geometry.
         var view = new TrackEditorView(ctx, state)
         { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f };
         state.OnProjectChanged += view.InvalidateLayout; // the EditorInterface wiring
@@ -372,7 +372,7 @@ public class TrackEditorViewTests
             Width = Sundex.Components.Abstractions.Values.LiteralOrComputable.Percent(100),
             Height = Sundex.Components.Abstractions.Values.LiteralOrComputable.Percent(100),
             PixelsPerStep = 16f,
-            RowHeight = 8f // stretch-to-fit: the rowHeight formula below stays exact
+            RowHeight = 8f
         };
         var bar = new Sundex.Components.Panels.FlexPanel(ctx)
         {
@@ -475,6 +475,34 @@ public class TrackEditorViewTests
     }
 
     [Fact]
+    public void CtrlMiddleDrag_ScalesTheRowHeight_InsteadOfPanning()
+    {
+        var (_, _, view, _) = NewView();
+        view.WheelZooms = true; // Ctrl held
+
+        // Drag up by 50 px: rows grow, and the pan is suppressed.
+        view.MiddlePan(true, 200, 200);
+        view.MiddlePan(true, 200, 150);
+        view.MiddlePan(false, 200, 150);
+        Assert.True(view.RowHeight > 8f);
+
+        // A hold starting outside the view scales nothing.
+        var height = view.RowHeight;
+        view.MiddlePan(true, 1000, 1000);
+        view.MiddlePan(true, 1000, 900);
+        view.MiddlePan(false, 1000, 900);
+        Assert.Equal(height, view.RowHeight);
+
+        // Dragging far past either end pins at the 4 px / 300 px limits.
+        view.MiddlePan(true, 200, 200);
+        view.MiddlePan(true, 200, -2000);
+        Assert.Equal(TrackEditorGeometry.MaxRowHeight, view.RowHeight);
+        view.MiddlePan(true, 200, 2000);
+        view.MiddlePan(false, 200, 2000);
+        Assert.Equal(TrackEditorGeometry.MinRowHeight, view.RowHeight);
+    }
+
+    [Fact]
     public void AutomationDrawsAStepPath_RunJumpAndTickPerGeneratedEvent()
     {
         var (_, state, view, track) = NewView();
@@ -574,6 +602,28 @@ public class TrackEditorViewTests
         Assert.True(xs.Count > 1);
         for (var i = 1; i < xs.Count; i++)
             Assert.True(xs[i] - xs[i - 1] >= 28f, $"labels at {xs[i - 1]} and {xs[i]} overlap");
+    }
+
+    [Fact]
+    public void GutterLabels_SkipValuesBelowA10PxRow_KeepingZeroLabelled()
+    {
+        var (_, _, view, _) = NewView();
+
+        view.RowHeight = 10f; // at the threshold: every value still labelled
+        view.Layout();
+        var xs = view.GutterLabels.Where(l => l.X.Value > -1000f).Select(l => l.Y.Value).OrderBy(y => y).ToList();
+        Assert.True(xs.Count > 1);
+        Assert.All(Enumerable.Range(1, xs.Count - 1), i => Assert.Equal(10f, xs[i] - xs[i - 1], 3));
+
+        view.RowHeight = 4f; // below it: every 3rd value, ~12 px apart
+        view.Layout();
+        var ys = view.GutterLabels.Where(l => l.X.Value > -1000f).Select(l => l.Y.Value).OrderBy(y => y).ToList();
+        Assert.True(ys.Count > 1);
+        Assert.All(Enumerable.Range(1, ys.Count - 1), i => Assert.Equal(12f, ys[i] - ys[i - 1], 3));
+
+        // Value 0's label survives the thinning at every zoom.
+        var zero = view.GutterLabels[TrackEditorView.MaxValue];
+        Assert.True(zero.X.Value > -1000f);
     }
 
     [Fact]

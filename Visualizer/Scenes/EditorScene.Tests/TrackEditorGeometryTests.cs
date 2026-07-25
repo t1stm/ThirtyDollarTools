@@ -7,12 +7,12 @@ public class TrackEditorGeometryTests
     private static TrackEditorGeometry MakeGeometry(float pixelsPerStep = 16f)
     {
         var geometry = new TrackEditorGeometry { PixelsPerStep = pixelsPerStep };
-        // Rows=121; height chosen so (GridBottom - GridTop) / Rows == 20 exactly (i.e.
-        // gridHeight == Rows * 20, past the pinned cut row and its rule), and the
-        // initial CenterPending centers ScrollY to 0 for clean row math below.
+        // Rows=121; height chosen so gridHeight == Rows * the default 20px row (past the
+        // pinned cut row and its rule), so the initial CenterPending centers ScrollY to 0
+        // for clean row math below.
         geometry.SetViewport(800,
             TrackEditorGeometry.GridTop + TrackEditorGeometry.Rows * 20 +
-            TrackEditorGeometry.CutRowHeight + TrackEditorGeometry.RuleHeight, 20);
+            TrackEditorGeometry.CutRowHeight + TrackEditorGeometry.RuleHeight);
         return geometry;
     }
 
@@ -139,15 +139,15 @@ public class TrackEditorGeometryTests
     [Fact]
     public void SetViewport_DocksTheCutRowAtTheBottom_AboveA1pxRule()
     {
-        var geometry = new TrackEditorGeometry { PixelsPerStep = 16f };
+        var geometry = new TrackEditorGeometry { PixelsPerStep = 16f, RowHeight = 8f };
 
-        geometry.SetViewport(800, 414, 8);
+        geometry.SetViewport(800, 414);
 
         Assert.Equal(414 - TrackEditorGeometry.CutRowHeight, geometry.CutRowTop);
         Assert.Equal(geometry.CutRowTop - TrackEditorGeometry.RuleHeight, geometry.GridBottom);
 
-        // gridHeight = 349, Rows = 121: 349/121 < 8, so RowHeight clamps to the minimum
-        // and the grid scrolls instead of stretching.
+        // The rows keep their set height whatever the viewport is - the grid scrolls
+        // instead of stretching to fill.
         Assert.Equal(8f, geometry.RowHeight);
         Assert.Equal(TrackEditorGeometry.Rows * 8f - (geometry.GridBottom - TrackEditorGeometry.GridTop),
             geometry.Nav.MaxScrollY);
@@ -156,16 +156,40 @@ public class TrackEditorGeometryTests
     [Fact]
     public void SetViewport_ClampsTheCutRowAtGridTop_InATinyViewport()
     {
-        var geometry = new TrackEditorGeometry { PixelsPerStep = 16f };
+        var geometry = new TrackEditorGeometry { PixelsPerStep = 16f, RowHeight = 8f };
 
         // Shorter than GridTop + CutRowHeight: the cut row would have to rise above
-        // the ruler, so it clamps to GridTop instead and the grid collapses to 0 height -
-        // RowHeight's own Math.Max(minRowHeight, ...) guards the division, so it still
-        // reports the minimum rather than dividing by (or producing) a negative height.
-        geometry.SetViewport(800, 50, 8);
+        // the ruler, so it clamps to GridTop instead and the grid collapses to 0 height.
+        geometry.SetViewport(800, 50);
 
         Assert.Equal(TrackEditorGeometry.GridTop, geometry.CutRowTop);
         Assert.True(geometry.GridBottom <= TrackEditorGeometry.GridTop); // no usable grid height left
-        Assert.Equal(8f, geometry.RowHeight); // clamped to the minimum, not a negative/NaN division
+        Assert.Equal(8f, geometry.RowHeight);
+        Assert.Equal(TrackEditorGeometry.Rows * 8f, geometry.Nav.MaxScrollY); // never negative
+    }
+
+    [Fact]
+    public void ScaleRows_KeepsTheValueUnderThePointerPut()
+    {
+        var geometry = MakeGeometry();
+        var pointerY = TrackEditorGeometry.GridTop + 300f;
+        var before = geometry.UnsnappedValueAt(pointerY);
+
+        geometry.ScaleRows(pointerY, -40f); // drag up: rows grow
+
+        Assert.True(geometry.RowHeight > 20f);
+        Assert.Equal(before, geometry.UnsnappedValueAt(pointerY), 6);
+    }
+
+    [Fact]
+    public void ScaleRows_ClampsBetween4And300Px()
+    {
+        var geometry = MakeGeometry();
+
+        geometry.ScaleRows(TrackEditorGeometry.GridTop + 300f, -1000f); // far up
+        Assert.Equal(TrackEditorGeometry.MaxRowHeight, geometry.RowHeight);
+
+        geometry.ScaleRows(TrackEditorGeometry.GridTop + 300f, 1000f); // far down
+        Assert.Equal(TrackEditorGeometry.MinRowHeight, geometry.RowHeight);
     }
 }

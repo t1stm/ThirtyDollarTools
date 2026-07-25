@@ -65,12 +65,12 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
                 : state.ReplaceWithImportedProject(sequence, name, soundMap);
 
             if (!result.Warnings.IsEmpty)
-                dialogHost.Alert($"Imported with warnings: {Summarize(result.Warnings)}");
+                dialogHost.Alert($"Imported with warnings:\n\n{Summarize(result.Warnings)}");
         }
         catch (Exception e)
         {
             logger.Error("[Editor] Failed to import \"{Path}\": {Exception}", path, e);
-            dialogHost.Alert($"Couldn't import \"{Path.GetFileName(path)}\":\n{e.Message}");
+            dialogHost.Alert($"Couldn't import \"{Path.GetFileName(path)}\":\n\n{e.Message}");
         }
     }
 
@@ -81,9 +81,11 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
             parts.Add($"ignored {name} ×{count}");
         if (warnings.QuantizedNotes > 0)
             parts.Add($"{warnings.QuantizedNotes} note{(warnings.QuantizedNotes == 1 ? "" : "s")} quantized");
-        if (warnings.UnknownSounds.Count > 0)
-            parts.Add($"unknown sounds: {string.Join(", ", warnings.UnknownSounds)}");
-        return string.Join("; ", parts);
+        foreach (var sound in warnings.UnknownSounds)
+            parts.Add($"unknown sound: {sound}");
+        // One warning per line: the alert's label doesn't wrap, so a joined single line
+        // runs straight out of the modal once there's more than one or two warnings.
+        return string.Join("\n", parts);
     }
 
     public void ExportTdw(string path, SequenceStyle style)

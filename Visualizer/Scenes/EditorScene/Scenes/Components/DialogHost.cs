@@ -84,7 +84,8 @@ public sealed class DialogHost(UIContext context, Panel root)
     /// otherwise be silent (e.g. a failed save), not for anything the user confirms.</summary>
     public void Alert(string message)
     {
-        var ok = new Button(context, "OK") { FontSizePx = 14 };
+        var ok = new Button(context, "OK")
+        { FontSizePx = 14, Background = new ColoredPlane { Color = EditorPalette.Divider }, BorderRadius = 6 };
         var content = new FlexPanel(context)
         {
             Direction = LayoutDirection.Vertical,

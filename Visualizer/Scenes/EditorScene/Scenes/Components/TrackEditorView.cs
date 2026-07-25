@@ -97,7 +97,7 @@ public sealed class TrackEditorView : Panel
     internal readonly List<Label> BeatLabels = [];
     internal IReadOnlyList<Panel> AutomationMarks => _automationPath.Marks;
     internal IReadOnlyList<NoteBlock> NoteBlocks => _noteBlocks;
-    private readonly List<Label> _gutterLabels = [];
+    internal readonly List<Label> GutterLabels = [];
     private readonly Label _cutRowLabel;
     private readonly List<Panel> _playheads = [];
     private readonly List<float> _playheadXs = [];
@@ -110,6 +110,9 @@ public sealed class TrackEditorView : Panel
     internal NoteBlock? _dragging;
     private (TrackSegment segment, Note note)? _placing;
     private Vector4i? _inheritedClip;
+
+    /// <summary>Last pointer y of a Ctrl+middle row-scaling drag; null while none is running.</summary>
+    private float? _rowScaleY;
 
     // Marquee (Select tool): model-space anchor/cursor (continuous step, value), so
     // mid-drag scrolling can't corrupt it and off-screen notes inside the box still
@@ -194,7 +197,7 @@ public sealed class TrackEditorView : Panel
                 FontSizePx = 11f,
                 Color = LabelColor
             };
-            _gutterLabels.Add(label);
+            GutterLabels.Add(label);
             AddChild(label);
         }
 
@@ -225,10 +228,20 @@ public sealed class TrackEditorView : Panel
     }
 
     /// <summary>
-    ///     Minimum height of one value row. Small viewports scroll vertically instead of
-    ///     compressing the rows; viewports taller than 49 rows stretch them to fill.
+    ///     Height of one value row, scaled by a Ctrl+middle drag between
+    ///     <see cref="TrackEditorGeometry.MinRowHeight" /> and
+    ///     <see cref="TrackEditorGeometry.MaxRowHeight" />. The grid always scrolls
+    ///     vertically rather than stretching to fill the viewport.
     /// </summary>
-    public float RowHeight { get; set; } = 20f;
+    public float RowHeight
+    {
+        get => _geometry.RowHeight;
+        set
+        {
+            _geometry.RowHeight = value;
+            InvalidateLayout();
+        }
+    }
 
     /// <summary>While true (Shift held), value placement/drag snaps to 0.2 instead of 1.</summary>
     public bool FineSnap { get; set; }
@@ -270,7 +283,7 @@ public sealed class TrackEditorView : Panel
         var track = _state.OpenedTrack;
         var width = Computed.Width;
         var height = Computed.Height;
-        _geometry.SetViewport(width, height, RowHeight);
+        _geometry.SetViewport(width, height);
         _geometry.ClampScroll();
 
         var pps = PixelsPerStep;
@@ -451,14 +464,20 @@ public sealed class TrackEditorView : Panel
         _gutterBackground.Width = GutterWidth;
         _gutterBackground.Height = height;
 
-        for (var i = 0; i < _gutterLabels.Count; i++)
+        // The labels are 11px tall: below a 10px row they collide, so only every Nth
+        // value keeps its label, spaced ~12px apart (every 3rd at the 4px floor).
+        // Striding on the value, not the index, keeps 0 labelled at every zoom.
+        var labelStride = rowHeight >= 10f ? 1 : (int)MathF.Ceiling(12f / rowHeight);
+
+        for (var i = 0; i < GutterLabels.Count; i++)
         {
             var value = MaxValue - i;
             var y = _geometry.ValueTop(value) + (rowHeight - 11f) / 2;
-            // Labels render above the strip background, so scrolled-out ones must be
-            // parked outside the view's clip instead of relying on paint order.
-            _gutterLabels[i].X = y < GridTop || y + 11f > gridBottom ? -1000f : 8;
-            _gutterLabels[i].Y = y;
+            // Labels render above the strip background, so scrolled-out (and skipped)
+            // ones must be parked outside the view's clip instead of relying on paint order.
+            var skipped = value % labelStride != 0;
+            GutterLabels[i].X = skipped || y < GridTop || y + 11f > gridBottom ? -1000f : 8;
+            GutterLabels[i].Y = y;
         }
 
         // Fixed position - always visible, never parked outside the clip like the
@@ -631,10 +650,25 @@ public sealed class TrackEditorView : Panel
     /// <summary>
     ///     FL-style middle-mouse pan of both axes, fed per frame from the scene's mouse
     ///     handler (the framework only routes left/right buttons). A hold that starts
-    ///     inside the view drags the viewport with the pointer until release.
+    ///     inside the view drags the viewport with the pointer until release. With Ctrl
+    ///     held, the same drag scales the row height instead of panning.
     /// </summary>
     public void MiddlePan(bool held, float x, float y)
     {
+        // ponytail: WheelZooms is just "Ctrl is held" - rename it if it starts lying louder.
+        if (held && WheelZooms)
+        {
+            _geometry.Nav.MiddlePan(false, x, y, false); // cancel any pan already in progress
+            if (_rowScaleY is { } last) _geometry.ScaleRows(y - Computed.AbsoluteY, y - last);
+            else if (!ContainsPoint(x, y)) return;
+
+            _rowScaleY = y;
+            _geometry.CenterPending = false;
+            InvalidateLayout();
+            return;
+        }
+
+        _rowScaleY = null;
         if (!_geometry.Nav.MiddlePan(held, x, y, ContainsPoint(x, y))) return;
         _geometry.CenterPending = false;
         InvalidateLayout();

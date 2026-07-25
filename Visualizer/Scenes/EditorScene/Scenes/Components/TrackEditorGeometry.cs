@@ -41,26 +41,41 @@ public sealed class TrackEditorGeometry
     public float ScrollY { get => Nav.ScrollY; set => Nav.ScrollY = value; }
     public float PixelsPerStep { get => Nav.Zoom; set => Nav.Zoom = value; }
 
-    /// <summary>Effective row height for the current viewport, recomputed by <see cref="SetViewport" />.</summary>
-    public float RowHeight { get; private set; } = 8f;
+    public const float MinRowHeight = 4f;
+    public const float MaxRowHeight = 300f;
+
+    /// <summary>Height of one value row, scaled by the user with <see cref="ScaleRows" />.</summary>
+    public float RowHeight { get; set; } = 20f;
 
     /// <summary>A fresh view (and every OpenTrack) starts centered on value 0; stays
     /// pending until the user scrolls.</summary>
     public bool CenterPending { get; set; } = true;
 
     /// <summary>
-    ///     Recomputes the effective row height for the given viewport and, while
+    ///     Recomputes the vertical scroll bounds for the given viewport and, while
     ///     <see cref="CenterPending" />, centers scroll on value 0. Flex parents lay a
     ///     view out more than once per frame with different heights, so only the last
     ///     call before use counts.
     /// </summary>
-    public void SetViewport(float width, float height, float minRowHeight)
+    public void SetViewport(float width, float height)
     {
         CutRowTop = Math.Max(GridTop, height - CutRowHeight);
         var gridHeight = Math.Max(0, GridBottom - GridTop);
-        RowHeight = Math.Max(minRowHeight, gridHeight / Rows);
         Nav.MaxScrollY = Math.Max(0, Rows * RowHeight - gridHeight);
         if (CenterPending) ScrollY = (Rows * RowHeight - gridHeight) / 2;
+    }
+
+    /// <summary>
+    ///     Pointer-anchored vertical scaling (Ctrl+middle drag): the value under the
+    ///     cursor stays put while the rows grow or shrink. <paramref name="localY" /> is
+    ///     local to the view, <paramref name="dy" /> is the pointer's movement since the
+    ///     last call - negative (upwards) grows the rows.
+    /// </summary>
+    public void ScaleRows(float localY, float dy)
+    {
+        var anchorRows = (localY - GridTop + ScrollY) / RowHeight;
+        RowHeight = Math.Clamp(RowHeight * MathF.Pow(1.01f, -dy), MinRowHeight, MaxRowHeight);
+        ScrollY = anchorRows * RowHeight - (localY - GridTop);
     }
 
     /// <summary>Maps a local x to (segment, local step); null outside the track's grid.</summary>

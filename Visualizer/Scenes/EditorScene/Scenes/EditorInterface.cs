@@ -425,7 +425,9 @@ public class EditorInterface
         {
             _dialogHost.Close(modal);
             if (State.Dirty)
-                _dialogHost.Confirm("Importing as a project discards unsaved changes. Continue?",
+                _dialogHost.Confirm(
+                    "Importing as a project discards unsaved changes.\n" +
+                    "Continue?",
                     onConfirm: () => _projectIo.ImportTdw(path, ImportMode.Project, SoundMap()),
                     confirmLabel: "Import", confirmColor: EditorPalette.Accent);
             else
@@ -530,7 +532,8 @@ public class EditorInterface
         {
             var style = dialog.Style;
             _dialogHost.Close(modal);
-            _dialogHost.ShowFileDialog($"{State.Project.Info.Name}.tdw", ".tdw", path => _projectIo.ExportTdw(path, style));
+            _dialogHost.ShowFileDialog($"{State.Project.Info.Name}.tdw", ".tdw",
+                path => _projectIo.ExportTdw(path, style));
         };
         dialog.WavButton.OnClick = _ =>
         {

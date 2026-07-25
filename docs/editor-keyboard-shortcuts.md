@@ -51,6 +51,7 @@ Reference for all keyboard (and modifier+scroll/click) shortcuts in the Visualiz
 | `Shift+Scroll` (arrangement) | Pan horizontally (time) instead of scrolling lanes |
 | Scroll (no modifier, arrangement) | Scroll lanes vertically |
 | Middle-mouse drag | Pan both axes (FL Studio-style) |
+| `Ctrl+Middle-mouse drag` (note editor) | Scale the note/row height, 4-300 px, anchored to the pointer |
 
 ## Sound Picker (Instrument editor, adjustments mode)
 
