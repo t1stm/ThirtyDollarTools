@@ -36,6 +36,21 @@ public class AudioKeyframe
     /// </summary>
     public bool Cut { get; set; }
 
+    /// <summary>
+    ///     Only meaningful with <see cref="Cut" />: the keyframe emits its cut and stops
+    ///     there, placing no note of its own - the sound is silenced once the gap ends
+    ///     instead of retriggered. The running value/volume/pan/offset still advance, so
+    ///     later keyframes keep compounding as usual.
+    /// </summary>
+    public bool CutOnly { get; set; }
+
+    /// <summary>
+    ///     Only meaningful with <see cref="Cut" /> on the last keyframe: one extra cut is
+    ///     emitted one more <see cref="Gap" /> after the automation's final note, so the
+    ///     last beat is cut once it ends instead of ringing on past the automation.
+    /// </summary>
+    public bool CutLast { get; set; }
+
     /// <summary>Pitch change in semitones.</summary>
     public Modifier Value { get; set; }
 

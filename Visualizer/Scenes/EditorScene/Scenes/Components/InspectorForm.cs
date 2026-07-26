@@ -188,13 +188,35 @@ public sealed class InspectorForm
         NumberRow(label, () => get(), v => set((int)Math.Round(v!.Value)), min, max);
     }
 
-    public void CheckRow(string label, Func<bool> get, Action<bool> set)
+    /// <summary>A checkbox; <paramref name="extras" /> (e.g. flags that only apply while
+    /// it's on) sit right next to it on the same line, wrapping if the panel is too narrow.</summary>
+    public void CheckRow(string label, Func<bool> get, Action<bool> set,
+        params (string Label, Func<bool> Get, Action<bool> Set)[] extras)
+    {
+        var box = Check(label, get, set);
+        if (extras.Length == 0)
+        {
+            _container.AddChild(box);
+            return;
+        }
+
+        _container.AddChild(new FlexPanel(_context)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Spacing = 12,
+            Wrap = true,
+            VerticalAlign = Align.Center,
+            Children = [box, .. extras.Select(extra => (UIElement)Check(extra.Label, extra.Get, extra.Set))]
+        });
+    }
+
+    private Checkbox Check(string label, Func<bool> get, Action<bool> set)
     {
         var box = new Checkbox(_context, label, get()) { OnCheckedChanged = b => set(b.Checked) };
         box.Label.FontSizePx = 13f;
         _fields[$"{Section}.{label}"] = box;
-        _container.AddChild(box);
         _syncs.Add(() => box.Checked = get());
+        return box;
     }
 
     public void InfoRow(string label, Func<string> get)

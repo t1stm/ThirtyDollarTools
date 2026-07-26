@@ -168,7 +168,9 @@ public static class ProjectFile
                     NullIfNoOp(keyframe.Volume),
                     NullIfNoOp(keyframe.Pan),
                     NullIfNoOp(keyframe.Offset),
-                    keyframe.Cut ? true : null)).ToList(),
+                    keyframe.Cut ? true : null,
+                    keyframe.CutOnly ? true : null,
+                    keyframe.CutLast ? true : null)).ToList(),
                 manager.Repeats == 1 ? null : manager.Repeats);
     }
 
@@ -185,7 +187,9 @@ public static class ProjectFile
                 Volume = keyframe.Volume ?? default,
                 Pan = keyframe.Pan ?? default,
                 Offset = keyframe.Offset ?? default,
-                Cut = keyframe.Cut ?? false
+                Cut = keyframe.Cut ?? false,
+                CutOnly = keyframe.CutOnly ?? false,
+                CutLast = keyframe.CutLast ?? false
             });
 
         return manager;
@@ -254,5 +258,5 @@ public static class ProjectFile
 
     private record KeyframeDto(float Gap, Modifier? Value, Modifier? Volume, Modifier? Pan,
         // Null (missing key) = false - files from before the feature stay valid.
-        Modifier? Offset = null, bool? Cut = null);
+        Modifier? Offset = null, bool? Cut = null, bool? CutOnly = null, bool? CutLast = null);
 }

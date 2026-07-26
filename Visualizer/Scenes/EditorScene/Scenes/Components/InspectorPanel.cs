@@ -437,6 +437,12 @@ public sealed class InspectorPanel : Panel
     private void KeyframeBlocks(string section, string keyframeHeaderPrefix, AudioKeyframeManager automation,
         Action? afterEdit = null)
     {
+        void Commit(Action edit)
+        {
+            _state.Edit(edit);
+            afterEdit?.Invoke();
+        }
+
         _form.Section = section;
         _form.CheckRow("Gaps in seconds", () => automation.Timing == KeyframeTiming.Time,
             timeMode =>
@@ -461,31 +467,52 @@ public sealed class InspectorPanel : Panel
                     keyframe.Gap = (float)v!.Value;
                     afterEdit?.Invoke();
                 }, 0, 4096, 0.5);
-                _form.CheckRow("Cut", () => keyframe.Cut, cut =>
+                // Cut Only / Cut Last mean nothing without Cut, so they show up beside it
+                // only while it's on - toggling Cut rebuilds the panel to reveal/hide them.
+                (string, Func<bool>, Action<bool>)[] cutFlags = keyframe.Cut
+                    ?
+                    [
+                        ("Cut Only", () => keyframe.CutOnly, v => EditAndRebuild(() =>
+                        {
+                            keyframe.CutOnly = v;
+                            // No note is placed, so the modifiers have nothing to modify:
+                            // their rows go away and the values reset, instead of lying
+                            // dormant and reappearing the moment Cut Only is cleared.
+                            if (v) keyframe.Value = keyframe.Volume = keyframe.Pan = keyframe.Offset = default;
+                            afterEdit?.Invoke();
+                        })),
+                        ("Cut Last", () => keyframe.CutLast, v => Commit(() => keyframe.CutLast = v))
+                    ]
+                    : [];
+                _form.CheckRow("Cut", () => keyframe.Cut,
+                    cut => EditAndRebuild(() =>
+                    {
+                        keyframe.Cut = cut;
+                        afterEdit?.Invoke();
+                    }), cutFlags);
+                if (keyframe is not { Cut: true, CutOnly: true })
                 {
-                    _state.Edit(() => keyframe.Cut = cut);
-                    afterEdit?.Invoke();
-                });
-                _form.ModifierRow("Value", () => keyframe.Value, m =>
-                {
-                    keyframe.Value = m;
-                    afterEdit?.Invoke();
-                });
-                _form.ModifierRow("Volume", () => keyframe.Volume, m =>
-                {
-                    keyframe.Volume = m;
-                    afterEdit?.Invoke();
-                });
-                _form.ModifierRow("Pan", () => keyframe.Pan, m =>
-                {
-                    keyframe.Pan = m;
-                    afterEdit?.Invoke();
-                });
-                _form.ModifierRow("Offset", () => keyframe.Offset, m =>
-                {
-                    keyframe.Offset = m;
-                    afterEdit?.Invoke();
-                });
+                    _form.ModifierRow("Value", () => keyframe.Value, m =>
+                    {
+                        keyframe.Value = m;
+                        afterEdit?.Invoke();
+                    });
+                    _form.ModifierRow("Volume", () => keyframe.Volume, m =>
+                    {
+                        keyframe.Volume = m;
+                        afterEdit?.Invoke();
+                    });
+                    _form.ModifierRow("Pan", () => keyframe.Pan, m =>
+                    {
+                        keyframe.Pan = m;
+                        afterEdit?.Invoke();
+                    });
+                    _form.ModifierRow("Offset", () => keyframe.Offset, m =>
+                    {
+                        keyframe.Offset = m;
+                        afterEdit?.Invoke();
+                    });
+                }
                 _form.ActionRow("Remove", () => EditAndRebuild(() =>
                 {
                     automation.Keyframes.Remove(keyframe);

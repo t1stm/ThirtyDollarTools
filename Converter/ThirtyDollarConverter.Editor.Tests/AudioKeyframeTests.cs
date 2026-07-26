@@ -200,6 +200,41 @@ public class AudioKeyframeTests
     }
 
     [Fact]
+    public void CutOnlyAndCutLast_SilenceInsteadOfRetriggering_AndCutTheLastBeat()
+    {
+        var track = MakeTrack(); // 4/4 sixteenth grid at 480 steps/min
+        var automation = new AudioKeyframeManager { Repeats = 2 };
+        automation.Keyframes.Add(new AudioKeyframe { Gap = 4, Cut = true, CutOnly = true, CutLast = true });
+
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("loop"), Automation = automation });
+
+        // Cut-only keyframes place no note: the base note, then a cut per pass, then the
+        // trailing Cut Last one - and no retriggered "loop" after the first.
+        var events = track.ToSequence().Events;
+        Assert.Equal(1, events.Count(e => e.SoundEvent == "loop"));
+        Assert.Equal(3, events.OfType<IndividualCutEvent>().Count());
+
+        var placements = new PlacementCalculator(new EncoderSettings { SampleRate = 48000 })
+            .CalculateOne(track.ToSequence())
+            .Where(p => p.Audible)
+            .ToArray();
+
+        // Cuts land 4 steps apart (0.5 s = 24000 samples), the last one a gap past the final pass.
+        Assert.Equal(4, placements.Length);
+        Assert.InRange((double)placements[1].Index - placements[0].Index, 23999, 24001);
+        Assert.InRange((double)placements[2].Index - placements[1].Index, 23999, 24001);
+        Assert.InRange((double)placements[3].Index - placements[2].Index, 23999, 24001);
+
+        // Without Cut Last the trailing cut is gone.
+        automation.Keyframes[0].CutLast = false;
+        Assert.Equal(2, track.ToSequence().Events.OfType<IndividualCutEvent>().Count());
+
+        // Without Cut Only the notes come back, one per cut.
+        automation.Keyframes[0].CutOnly = false;
+        Assert.Equal(3, track.ToSequence().Events.Count(e => e.SoundEvent == "loop"));
+    }
+
+    [Fact]
     public void Keyframe_OldFileWithNoCutKey_LoadsAsNotCut()
     {
         var project = new ThirtyDollarProject();

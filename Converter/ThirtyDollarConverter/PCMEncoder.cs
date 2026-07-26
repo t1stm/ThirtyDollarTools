@@ -232,6 +232,14 @@ public class PcmEncoder
         var length = (int)last_placement.Index + bigEventLength;
         var overlay = new AudioMixer(AudioData<float>.WithLength(_channels, length));
 
+        // Mirror the old mixer's per-sound tracks onto the overlay. Without them every sound
+        // falls back to the overlay's default track (GetTrackOrDefault), so a sound that lives
+        // on a named track in the old mixer gets added to - or subtracted from - the wrong one,
+        // and the cuts re-applied here skip it entirely: editing a note whose instrument is a
+        // cut target left the old note ringing under the new one.
+        foreach (var (name, layout) in oldMixer.GetNamedTrackKeys())
+            overlay.AddTrack(name, AudioData<float>.WithLength(_channels, length), layout);
+
         await RenderTimedEvents(overlay, timed_events, allSounds, length, invert);
 
         AudioMixer holding_mixer;

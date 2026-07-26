@@ -44,6 +44,8 @@ public class AudioKeyframeManager
             {
                 Gap = keyframe.Gap,
                 Cut = keyframe.Cut,
+                CutOnly = keyframe.CutOnly,
+                CutLast = keyframe.CutLast,
                 Value = keyframe.Value,
                 Volume = keyframe.Volume,
                 Pan = keyframe.Pan,
@@ -66,7 +68,7 @@ public class AudioKeyframeManager
         for (var i = 0; i < Keyframes.Count; i++)
         {
             var (a, b) = (Keyframes[i], other.Keyframes[i]);
-            if (a.Gap != b.Gap || a.Cut != b.Cut) return false;
+            if (a.Gap != b.Gap || a.Cut != b.Cut || a.CutOnly != b.CutOnly || a.CutLast != b.CutLast) return false;
             if (a.Value != b.Value || a.Volume != b.Volume || a.Pan != b.Pan || a.Offset != b.Offset) return false;
         }
 
@@ -77,19 +79,32 @@ public class AudioKeyframeManager
     ///     Generates the automation events for one note placed at <paramref name="noteMinutes" />,
     ///     flattened to the sound events each generated step actually plays (one per instrument
     ///     sound). A cut keyframe emits an individual cut immediately before its note, at the
-    ///     same position, so the retrigger never overlaps the sound it's replacing. This is
+    ///     same position, so the retrigger never overlaps the sound it's replacing - unless it
+    ///     is <see cref="AudioKeyframe.CutOnly" />, which cuts and places nothing. This is
     ///     what feeds the export/playback pipeline.
     /// </summary>
     public IEnumerable<(double Minutes, BaseEvent Event)> Expand(Note note, double noteMinutes, double stepMinutes)
     {
-        foreach (var (minutes, generated, cut) in ExpandCore(note, noteMinutes, stepMinutes))
+        var lastMinutes = noteMinutes;
+        AudioKeyframe? last = null;
+
+        foreach (var (minutes, generated, keyframe) in ExpandCore(note, noteMinutes, stepMinutes))
         {
-            if (cut)
+            if (keyframe.Cut)
                 yield return (minutes, new IndividualCutEvent(note.Instrument.Sounds.ToHashSet()));
 
-            foreach (var ev in generated.ToEvents())
-                yield return (minutes, ev);
+            if (keyframe is not { Cut: true, CutOnly: true })
+                foreach (var ev in generated.ToEvents())
+                    yield return (minutes, ev);
+
+            (lastMinutes, last) = (minutes, keyframe);
         }
+
+        // Cut Last: the final note doesn't ring on past the automation - a trailing cut
+        // lands one more gap after it, where its next repeat would have cut it anyway.
+        if (last is { Cut: true, CutLast: true })
+            yield return (lastMinutes + GapMinutes(last, stepMinutes),
+                new IndividualCutEvent(note.Instrument.Sounds.ToHashSet()));
     }
 
     /// <summary>
@@ -99,11 +114,17 @@ public class AudioKeyframeManager
     /// </summary>
     public IEnumerable<(double Minutes, Note Note)> ExpandNotes(Note note, double noteMinutes, double stepMinutes)
     {
-        foreach (var (minutes, generated, _) in ExpandCore(note, noteMinutes, stepMinutes))
-            yield return (minutes, generated);
+        foreach (var (minutes, generated, keyframe) in ExpandCore(note, noteMinutes, stepMinutes))
+            if (keyframe is not { Cut: true, CutOnly: true }) // nothing is placed there
+                yield return (minutes, generated);
     }
 
-    private IEnumerable<(double Minutes, Note Note, bool Cut)> ExpandCore(Note note, double noteMinutes,
+    private double GapMinutes(AudioKeyframe keyframe, double stepMinutes)
+    {
+        return Timing == KeyframeTiming.Step ? keyframe.Gap * stepMinutes : keyframe.Gap / 60d;
+    }
+
+    private IEnumerable<(double Minutes, Note Note, AudioKeyframe Keyframe)> ExpandCore(Note note, double noteMinutes,
         double stepMinutes)
     {
         var minutes = noteMinutes;
@@ -115,9 +136,7 @@ public class AudioKeyframeManager
         for (var pass = 0; pass < Repeats; pass++)
             foreach (var keyframe in Keyframes)
             {
-                minutes += Timing == KeyframeTiming.Step
-                    ? keyframe.Gap * stepMinutes
-                    : keyframe.Gap / 60d;
+                minutes += GapMinutes(keyframe, stepMinutes);
 
                 value = keyframe.Value.Apply(value);
                 volume = Math.Max(keyframe.Volume.Apply(volume), 0);
@@ -132,7 +151,7 @@ public class AudioKeyframeManager
                     Volume = volume,
                     Pan = pan,
                     Offset = offset
-                }, keyframe.Cut);
+                }, keyframe);
             }
     }
 }
