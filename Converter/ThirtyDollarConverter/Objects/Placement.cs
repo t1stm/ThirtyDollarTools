@@ -37,7 +37,21 @@ public class Placement : IEquatable<Placement>
                !Different(Event.Volume ?? 100, other.Event.Volume ?? 100) &&
                !Different(Event.WorkingVolume, other.Event.WorkingVolume) &&
                !Different((Event as ExtendedEvent)?.Pan, (other.Event as ExtendedEvent)?.Pan) &&
-               !Different((Event as ExtendedEvent)?.OffsetInSeconds, (other.Event as ExtendedEvent)?.OffsetInSeconds);
+               !Different((Event as ExtendedEvent)?.OffsetInSeconds, (other.Event as ExtendedEvent)?.OffsetInSeconds) &&
+               SameCutSounds(Event, other.Event);
+    }
+
+    /// <summary>
+    ///     A cut is only the same cut when it silences the same sounds. Nothing else here
+    ///     distinguishes two <see cref="IndividualCutEvent" />s, so without this an
+    ///     instrument losing a sound leaves its cuts looking untouched - they stay out of
+    ///     the incremental diff, and the dropped sound gets subtracted uncut from a mix that
+    ///     had it cut, ringing on as if the cuts had been undone.
+    /// </summary>
+    private static bool SameCutSounds(BaseEvent a, BaseEvent b)
+    {
+        if (a is not IndividualCutEvent cut_a) return b is not IndividualCutEvent;
+        return b is IndividualCutEvent cut_b && cut_a.CutSounds.SetEquals(cut_b.CutSounds);
     }
 
     private static bool Different(double? a, double? b)

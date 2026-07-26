@@ -156,9 +156,9 @@ public class PcmEncoder
             return await GetMultipleSequencesAudio(new_sequences, oldRendered.ProcessedEvents);
 
         // A cut targeting a track the old mixer never allocated has nothing to silence, and
-        // only GenerateAudioAndMixer creates tracks. The diff above won't always catch this:
-        // Placement equality ignores CutSounds, so a cut whose target set grew (its
-        // instrument gained a sound) compares equal to the old one. Re-render instead.
+        // only GenerateAudioAndMixer creates tracks. A changed target set is caught by the
+        // diff above (Placement equality compares CutSounds); this stays as the invariant
+        // guard for a mixer that wasn't built from these sequences to begin with.
         foreach (var sequence in new_sequences)
             foreach (var channel in sequence.SeparatedChannels)
             {
@@ -497,7 +497,7 @@ public class PcmEncoder
             var end_idx = i * chunk_size;
 
             var start = (int)start_idx;
-            var end = Math.Min((int)end_idx, length);
+            var end = i == working_threads ? length : Math.Min((int)end_idx, length);
 
             if (start > length) return ValueTask.CompletedTask;
 
