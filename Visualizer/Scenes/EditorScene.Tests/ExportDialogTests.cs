@@ -5,12 +5,15 @@ namespace EditorScene.Tests;
 public class ExportDialogTests
 {
     [Fact]
-    public void Defaults_MatchTheLibraryDefaults()
+    public void Defaults_AreTheLibraryOnes_ExceptTheDividerSpacingTheFormPicks()
     {
         var dialog = new ExportDialog(new EditorTestContext());
 
         var style = dialog.Style;
-        Assert.Equal(0, style.DividerEveryBars); // 0 = off (SequenceStyle treats < 1 as off)
+        // The one deliberate divergence: SequenceStyle defaults dividers off (null), but a
+        // human reading an exported .tdw wants sections, so the form pre-fills 2 bars (same
+        // choice BMS2TDWex makes). The rest is seeded from `new SequenceStyle()`.
+        Assert.Equal(2, style.DividerEveryBars);
         Assert.False(style.DividerOnSpeedChanges);
         Assert.Equal(8, style.MigrateToStop);
     }

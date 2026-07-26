@@ -55,7 +55,7 @@ internal static class SequenceBuilder
             })
             .GroupBy(n => (n.Region, n.Step))
             .OrderBy(g => g.Key.Region).ThenBy(g => g.Key.Step)
-            .Select(g => (g.Key.Region, g.Key.Step, Events: g.Select(n => n.Event).ToArray()))
+            .Select(g => (g.Key.Region, g.Key.Step, Events: CollapseCuts(g.Select(n => n.Event).ToArray())))
             .ToArray();
 
         if (groups.Length == 0)
@@ -193,6 +193,43 @@ internal static class SequenceBuilder
             if (events.Count > 0 && events[^1].SoundEvent == "!divider") return;
             events.Add(Action("!divider", 0));
         }
+    }
+
+    /// <summary>
+    ///     All the cuts landing on one step collapse into a single one carrying the union of
+    ///     their sounds. Tracks sharing an instrument (and several cut notes on the same step)
+    ///     otherwise emit one cut per track per note, each re-silencing sounds the first cut
+    ///     already silenced: identical audio, one extra encoder pass over every cut track.
+    ///     Standard and legacy ("#icut") cuts stay separate - they serialize differently.
+    /// </summary>
+    private static BaseEvent[] CollapseCuts(BaseEvent[] events)
+    {
+        if (events.OfType<IndividualCutEvent>().Take(2).Count() < 2) return events;
+
+        var merged = new Dictionary<bool, IndividualCutEvent>();
+        var result = new List<BaseEvent>(events.Length);
+        foreach (var ev in events)
+        {
+            if (ev is not IndividualCutEvent cut)
+            {
+                result.Add(ev);
+                continue;
+            }
+
+            if (merged.TryGetValue(cut.IsStandardImplementation, out var existing))
+            {
+                existing.CutSounds.UnionWith(cut.CutSounds);
+                continue;
+            }
+
+            // A fresh set, never the source event's: Copy() shares CutSounds by reference,
+            // so unioning into an existing cut would edit whatever it was copied from.
+            var collapsed = new IndividualCutEvent([..cut.CutSounds], cut.IsStandardImplementation);
+            merged[cut.IsStandardImplementation] = collapsed;
+            result.Add(collapsed); // in place of the first cut: action order at a step is preserved
+        }
+
+        return result.ToArray();
     }
 
     /// <summary>

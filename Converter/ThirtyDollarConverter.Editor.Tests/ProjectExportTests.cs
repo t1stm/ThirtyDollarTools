@@ -382,4 +382,28 @@ public class ProjectExportTests
 
         Assert.Equal(["!speed", "!cut", "boom", "clap"], events.Select(e => e.SoundEvent));
     }
+
+    [Fact]
+    public void CutsOnTheSameStep_CollapseIntoOne_AcrossTracksAndNotes()
+    {
+        var project = new ThirtyDollarProject();
+        var shared = project.NewInstrument("Shared");
+        shared.Sounds.Add("kick");
+
+        var a = project.NewTrack();
+        a.Segments[0].Notes.Add(new Note { Step = 0, Instrument = shared, IsCut = true });
+        a.Segments[0].Notes.Add(new Note
+            { Step = 0, Instrument = Instrument.Single("clap"), IsCut = true }); // different sound, same step
+        var b = project.NewTrack();
+        b.Segments[0].Notes.Add(new Note { Step = 0, Instrument = shared, IsCut = true }); // duplicate of a's
+        project.Place(a, 0, 0);
+        project.Place(b, 1, 0);
+
+        var events = project.ToSequence().Events;
+        var cut = Assert.IsType<IndividualCutEvent>(Assert.Single(events, e => e is IndividualCutEvent));
+
+        Assert.Equal(["clap", "kick"], cut.CutSounds.OrderBy(s => s));
+        // the shared instrument's own set must survive the merge untouched
+        Assert.Equal(["kick"], shared.Sounds);
+    }
 }
