@@ -239,6 +239,7 @@ public class ThirtyDollarProject
         var merged = new List<TempoRegion>();
         var cursors = new int[tracks.Count];
         var rates = new List<double>();
+        var bpms = new List<double>();
         for (var i = 0; i + 1 < bounds.Length; i++)
         {
             var (start, end) = (bounds[i], bounds[i + 1]);
@@ -246,6 +247,7 @@ public class ThirtyDollarProject
 
             var mid = (start + end) / 2;
             rates.Clear();
+            bpms.Clear();
             for (var t = 0; t < tracks.Count; t++)
             {
                 var regions = tracks[t];
@@ -254,6 +256,9 @@ public class ThirtyDollarProject
 
                 var rate = regions[cursors[t]].Speed;
                 if (!rates.Any(r => SequenceBuilder.SameSpeed(r, rate))) rates.Add(rate);
+
+                var tempo = regions[cursors[t]].Bpm;
+                if (!bpms.Any(b => SequenceBuilder.SameSpeed(b, tempo))) bpms.Add(tempo);
             }
 
             if (rates.Count == 0)
@@ -267,16 +272,20 @@ public class ThirtyDollarProject
             }
 
             var speed = CommonSpeed(rates);
+            // The "!speed@bpm|!speed@n@x" split only means anything while the tracks playing
+            // together agree on a tempo; when they don't, the merged rate is stated outright.
+            var bpm = bpms.Count == 1 ? bpms[0] : 0;
             if (merged.Count > 0 && SequenceBuilder.SameSpeed(merged[^1].Speed, speed) &&
                 merged[^1].EndMinutes >= start - 1e-10)
                 merged[^1] = merged[^1] with { DurationMinutes = end - merged[^1].StartMinutes };
             else
-                merged.Add(new TempoRegion(start, end - start, speed));
+                merged.Add(new TempoRegion(start, end - start, speed, bpm));
         }
 
         if (merged.Count == 0)
-            merged.Add(new TempoRegion(0, 0,
-                tracks.Count > 0 ? tracks[0][0].Speed : RootTiming.BPM));
+            merged.Add(tracks.Count > 0
+                ? tracks[0][0] with { StartMinutes = 0, DurationMinutes = 0 }
+                : new TempoRegion(0, 0, RootTiming.BPM, RootTiming.BPM));
 
         return merged;
     }

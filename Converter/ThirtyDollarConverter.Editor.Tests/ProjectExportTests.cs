@@ -14,8 +14,7 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        var ev = Assert.Single(events);
-        Assert.Equal("!speed", ev.SoundEvent);
+        Assert.Equal(["!speed", "!speed", "!divider"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -33,7 +32,7 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "boom", "noteblock_harp", "clap"],
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "noteblock_harp", "clap"],
             events.Select(e => e.SoundEvent));
     }
 
@@ -51,7 +50,7 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "boom", "!combine", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!combine", "clap"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -67,7 +66,7 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "boom", "!combine", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!combine", "clap"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -91,7 +90,7 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "boom", "!combine", "kick", "!combine", "clap", "!combine", "snare"],
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!combine", "kick", "!combine", "clap", "!combine", "snare"],
             events.Select(e => e.SoundEvent));
     }
 
@@ -112,7 +111,7 @@ public class ProjectExportTests
         var events = project.ToSequence().Events;
 
         Assert.Equal(
-            ["!speed", "boom", "!combine", "clap", "!stop", "boom", "!combine", "clap"],
+            ["!speed", "!speed", "!divider", "boom", "!combine", "clap", "!stop", "boom", "!combine", "clap"],
             events.Select(e => e.SoundEvent));
     }
 
@@ -127,8 +126,7 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        var ev = Assert.Single(events);
-        Assert.Equal("!speed", ev.SoundEvent);
+        Assert.Equal(["!speed", "!speed", "!divider"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -149,10 +147,10 @@ public class ProjectExportTests
         var events = project.ToSequence().Events;
 
         // Merged grid runs at the finest track grid: 4 steps per beat at 120 BPM.
-        Assert.Equal(480, events[0].Value);
-        Assert.Equal(["!speed", "!stop", "boom", "!combine", "clap"],
+        Assert.Equal([120, 4], events.Take(2).Select(e => e.Value));
+        Assert.Equal(["!speed", "!speed", "!divider", "!stop", "boom", "!combine", "clap"],
             events.Select(e => e.SoundEvent));
-        Assert.Equal(2, events[1].Value);
+        Assert.Equal(2, events[3].Value);
     }
 
     [Fact]
@@ -176,9 +174,9 @@ public class ProjectExportTests
 
         // Smallest speed where both tempos land on whole steps: lcm(120, 90) = 360.
         Assert.Equal(360, events[0].Value);
-        Assert.Equal(["!speed", "boom", "!stop", "kick", "snare"],
+        Assert.Equal(["!speed", "!divider", "boom", "!stop", "kick", "snare"],
             events.Select(e => e.SoundEvent));
-        Assert.Equal(2, events[2].Value); // kick sits on step 3, one step after boom
+        Assert.Equal(2, events[3].Value); // kick sits on step 3, one step after boom
     }
 
     [Fact]
@@ -204,10 +202,10 @@ public class ProjectExportTests
         // grid (484) wins and the off-grid kick rides a "!combine|!stop@0.033"
         // cancel instead of being snapped.
         Assert.Equal(484, events[0].Value);
-        Assert.Equal(["!speed", "boom", "!stop", "snare", "!combine", "!stop", "kick"],
+        Assert.Equal(["!speed", "!divider", "boom", "!stop", "snare", "!combine", "!stop", "kick"],
             events.Select(e => e.SoundEvent));
-        Assert.Equal(3, events[2].Value);
-        Assert.Equal(484d / 120 - 4, events[5].Value, 1e-4);
+        Assert.Equal(3, events[3].Value);
+        Assert.Equal(484d / 120 - 4, events[6].Value, 1e-4);
 
         // Timing must be exact, not approximated.
         const uint sample_rate = 48000;
@@ -243,9 +241,9 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "boom", "!stop", "clap"], events.Select(e => e.SoundEvent));
-        Assert.Equal(4d * 9_990_400, events[0].Value); // sixteenth grid of the 4/4 default
-        Assert.Equal(3, events[2].Value);
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!stop", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal([9_990_400, 4], events.Take(2).Select(e => e.Value)); // sixteenth grid of the 4/4 default
+        Assert.Equal(3, events[4].Value);
     }
 
     [Fact]
@@ -267,7 +265,7 @@ public class ProjectExportTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5 });
         project.Place(track, 0, 0);
 
-        var ev = project.ToSequence().Events[1];
+        var ev = project.ToSequence().Events[3];
 
         Assert.Equal(7, ev.Value);
     }
@@ -281,7 +279,7 @@ public class ProjectExportTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5 });
         project.Place(track, 0, 0);
 
-        var ev = project.ToSequence().Events[1];
+        var ev = project.ToSequence().Events[3];
 
         Assert.Equal(5, ev.Value);
     }
@@ -304,7 +302,7 @@ public class ProjectExportTests
         project.Place(track, 0, 0);
 
         var sequence = project.ToSequence();
-        var ev = Assert.IsType<IndividualCutEvent>(sequence.Events[1]);
+        var ev = Assert.IsType<IndividualCutEvent>(sequence.Events[3]);
 
         Assert.Equal("!cut", ev.SoundEvent);
         Assert.Equal(["kick"], ev.CutSounds);
@@ -330,7 +328,7 @@ public class ProjectExportTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layer, IsCut = true });
         project.Place(track, 0, 0);
 
-        var ev = Assert.IsType<IndividualCutEvent>(project.ToSequence().Events[1]);
+        var ev = Assert.IsType<IndividualCutEvent>(project.ToSequence().Events[3]);
 
         Assert.Equal(["clap", "kick"], ev.CutSounds.OrderBy(s => s));
     }
@@ -343,7 +341,7 @@ public class ProjectExportTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick"), IsCut = true });
         project.Place(track, 0, 0);
 
-        var ev = project.ToSequence().Events[1];
+        var ev = project.ToSequence().Events[3];
 
         Assert.Equal(0, ev.Value);
     }
@@ -364,8 +362,8 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "boom", "!cut", "!stop", "clap"], events.Select(e => e.SoundEvent));
-        Assert.Equal(1, events[3].Value);
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!cut", "!stop", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(1, events[5].Value);
     }
 
     [Fact]
@@ -380,7 +378,7 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "!cut", "boom", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "!cut", "boom", "clap"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -429,9 +427,9 @@ public class ProjectExportTests
 
         var events = project.ToSequence(new SequenceStyle { DividerEveryBars = 2 }).Events;
 
-        // Bars 2 and 4 both pass in the silence before the loop and collapse to one divider,
-        // then bars 6..16 give one each: 6. Following the first placement's track alone the
+        // The header divider, then bars 2 and 4 collapsing to one inside the silence before
+        // the loop, then bars 6..16 giving one each: 7. Following the first placement's track alone the
         // bar lines ran out after bar 4 and the whole loop got none.
-        Assert.Equal(6, events.Count(e => e.SoundEvent == "!divider"));
+        Assert.Equal(7, events.Count(e => e.SoundEvent == "!divider"));
     }
 }

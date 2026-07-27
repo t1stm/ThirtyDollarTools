@@ -275,14 +275,15 @@ public class ProjectTrack(TimingInfo timing, int id)
                 if (regions.Count > 0 && SequenceBuilder.SameSpeed(regions[^1].Speed, rate))
                     regions[^1] = regions[^1] with { DurationMinutes = regions[^1].DurationMinutes + duration };
                 else
-                    regions.Add(new TempoRegion(offset, duration, rate));
+                    regions.Add(new TempoRegion(offset, duration, rate, segment.BPM ?? Timing.BPM));
             }
 
             offset += duration;
         }
 
         if (regions.Count == 0) // only zero-length segments: no timeline, just a grid rate
-            regions.Add(new TempoRegion(startMinutes, 0, 1d / _segments[0].StepMinutes(Timing.BPM)));
+            regions.Add(new TempoRegion(startMinutes, 0, 1d / _segments[0].StepMinutes(Timing.BPM),
+                _segments[0].BPM ?? Timing.BPM));
 
         return regions;
     }

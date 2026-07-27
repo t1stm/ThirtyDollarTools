@@ -30,7 +30,7 @@ public class TrackPlacementTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "kick", "!stop", "snare", "!stop", "kick", "!stop", "snare"],
+        Assert.Equal(["!speed", "!divider", "kick", "!stop", "snare", "!stop", "kick", "!stop", "snare"],
             events.Select(e => e.SoundEvent));
         Assert.Equal(120, events[0].Value); // quarter grid at 120 BPM
         Assert.All(events.Where(e => e.SoundEvent == "!stop"), e => Assert.Equal(1, e.Value));
@@ -49,9 +49,9 @@ public class TrackPlacementTests
         var sequence = project.ToSequence();
 
         // The silent bar must survive as time: kicks at steps 0 and 8.
-        Assert.Equal(["!speed", "kick", "!stop", "kick"],
+        Assert.Equal(["!speed", "!divider", "kick", "!stop", "kick"],
             sequence.Events.Select(e => e.SoundEvent));
-        Assert.Equal(7, sequence.Events[2].Value);
+        Assert.Equal(7, sequence.Events[3].Value);
 
         const uint sample_rate = 48000;
         var calculator = new PlacementCalculator(new EncoderSettings { SampleRate = sample_rate });

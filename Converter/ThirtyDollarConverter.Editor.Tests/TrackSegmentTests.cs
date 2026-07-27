@@ -47,10 +47,10 @@ public class TrackSegmentTests
 
         // The overridden bar is its own tempo region: 4 whole steps at !speed@60,
         // then the inherited 120 BPM quarter grid takes over with its own !speed.
-        Assert.Equal(["!speed", "!stop", "!speed", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!divider", "!stop", "!speed", "boom"], events.Select(e => e.SoundEvent));
         Assert.Equal(60, events[0].Value);
-        Assert.Equal(4, events[1].Value);
-        Assert.Equal(120, events[2].Value);
+        Assert.Equal(4, events[2].Value);
+        Assert.Equal(120, events[3].Value);
     }
 
     [Fact]
@@ -62,9 +62,9 @@ public class TrackSegmentTests
 
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "!stop", "boom"], events.Select(e => e.SoundEvent));
-        Assert.Equal(480, events[0].Value);
-        Assert.Equal(16, events[1].Value); // one 4/4 bar of sixteenth steps
+        Assert.Equal(["!speed", "!speed", "!divider", "!stop", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed@120", "!speed@4@x"], events.Take(2).Select(e => e.Stringify()));
+        Assert.Equal(16, events[3].Value); // one 4/4 bar of sixteenth steps
     }
 
     [Fact]
@@ -85,10 +85,11 @@ public class TrackSegmentTests
         // BPM stays anchored to the quarter note, so the eighth-note grid runs at
         // 240 steps/min at 120 BPM and the 7/8 bar takes exactly 7 of those steps;
         // the 4/4 quarter-grid segment after it becomes its own region.
-        Assert.Equal(["!speed", "!stop", "!speed", "boom"], events.Select(e => e.SoundEvent));
-        Assert.Equal(240, events[0].Value);
-        Assert.Equal(7, events[1].Value);
-        Assert.Equal(120, events[2].Value);
+        Assert.Equal(["!speed", "!speed", "!divider", "!stop", "!speed", "boom"], events.Select(e => e.SoundEvent));
+        // 240 as "120 BPM, two steps a beat", then back down to the quarter grid.
+        Assert.Equal(["!speed@120", "!speed@2@x"], events.Take(2).Select(e => e.Stringify()));
+        Assert.Equal(7, events[3].Value);
+        Assert.Equal("!speed@2@/", events[4].Stringify());
     }
 
     [Fact]
@@ -115,8 +116,8 @@ public class TrackSegmentTests
 
         // Every track switches grid at the same bar line, so the export is exactly
         // two tempo regions: sixteenths at 480, then 7/8 eighths at 240.
-        Assert.Equal([480, 240],
-            events.Where(e => e.SoundEvent == "!speed").Select(e => e.Value));
+        Assert.Equal(["!speed@120", "!speed@4@x", "!speed@2@/"],
+            events.Where(e => e.SoundEvent == "!speed").Select(e => e.Stringify()));
 
         // And no fractional-stop or cancel hacks anywhere - every gap is whole steps.
         Assert.All(events.Where(e => e.SoundEvent == "!stop"),
@@ -142,13 +143,13 @@ public class TrackSegmentTests
 
         // Each segment keeps its own grid: the kick counts quarters at 120/min, the
         // signature change flips the speed, and the snare counts eighths at 240/min.
-        Assert.Equal(["!speed", "!stop", "kick", "!stop", "!speed", "!stop", "snare"],
+        Assert.Equal(["!speed", "!divider", "!stop", "kick", "!stop", "!speed", "!stop", "snare"],
             events.Select(e => e.SoundEvent));
         Assert.Equal(120, events[0].Value);
-        Assert.Equal(2, events[1].Value);
-        Assert.Equal(1, events[3].Value); // kick advanced one step; one quarter remains
-        Assert.Equal(240, events[4].Value);
-        Assert.Equal(1, events[5].Value);
+        Assert.Equal(2, events[2].Value);
+        Assert.Equal(1, events[4].Value); // kick advanced one step; one quarter remains
+        Assert.Equal("!speed@2@x", events[5].Stringify()); // 240: the same 120 BPM, twice the grid
+        Assert.Equal(1, events[6].Value);
     }
 
     [Fact]
@@ -206,9 +207,9 @@ public class TrackSegmentTests
 
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "!stop", "!speed", "boom", "!stop", "kick"],
+        Assert.Equal(["!speed", "!speed", "!divider", "!stop", "!speed", "boom", "!stop", "kick"],
             events.Select(e => e.SoundEvent));
-        Assert.Equal([480d, 16, 120, 1],
-            events.Where(e => e.SoundEvent is "!speed" or "!stop").Select(e => e.Value));
+        Assert.Equal(["!speed@120", "!speed@4@x", "!stop@16", "!speed@4@/", "!stop@1"],
+            events.Where(e => e.SoundEvent is "!speed" or "!stop").Select(e => e.Stringify()));
     }
 }

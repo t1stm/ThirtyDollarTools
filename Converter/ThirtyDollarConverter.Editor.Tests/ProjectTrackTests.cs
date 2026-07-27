@@ -1,4 +1,5 @@
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor.Tests;
@@ -15,11 +16,13 @@ public class ProjectTrackTests
     [Fact]
     public void EmptyTrack_EmitsOnlySpeed()
     {
-        var sequence = MakeTrack(120, 4).ToSequence();
+        var events = MakeTrack(120, 4).ToSequence().Events;
 
-        var ev = Assert.Single(sequence.Events);
-        Assert.Equal("!speed", ev.SoundEvent);
-        Assert.Equal(480, ev.Value); // 120 BPM * 4 steps per beat
+        // 120 BPM, four steps a beat - the 480 step rate stated as its two factors.
+        Assert.Equal(["!speed", "!speed", "!divider"], events.Select(e => e.SoundEvent));
+        Assert.Equal(120, events[0].Value);
+        Assert.Equal(4, events[1].Value);
+        Assert.Equal(ValueScale.Times, events[1].ValueScale);
     }
 
     [Fact]
@@ -30,7 +33,7 @@ public class ProjectTrackTests
 
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -41,8 +44,8 @@ public class ProjectTrackTests
 
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "!stop", "boom"], events.Select(e => e.SoundEvent));
-        Assert.Equal(3, events[1].Value);
+        Assert.Equal(["!speed", "!speed", "!divider", "!stop", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(3, events[3].Value);
     }
 
     [Fact]
@@ -54,7 +57,7 @@ public class ProjectTrackTests
 
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "boom", "!combine", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!combine", "clap"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -66,8 +69,8 @@ public class ProjectTrackTests
 
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "early", "!stop", "late"], events.Select(e => e.SoundEvent));
-        Assert.Equal(1, events[2].Value); // step 0 consumed one step, gap is 2 - 1
+        Assert.Equal(["!speed", "!speed", "!divider", "early", "!stop", "late"], events.Select(e => e.SoundEvent));
+        Assert.Equal(1, events[4].Value); // step 0 consumed one step, gap is 2 - 1
     }
 
     [Fact]
@@ -81,7 +84,7 @@ public class ProjectTrackTests
         note.Step = 5;
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "!stop", "clap", "!stop", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "!stop", "clap", "!stop", "boom"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -90,7 +93,7 @@ public class ProjectTrackTests
         var track = MakeTrack();
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5, Volume = 60 });
 
-        var ev = track.ToSequence().Events[1];
+        var ev = track.ToSequence().Events[3];
 
         Assert.Equal(5, ev.Value);
         Assert.Equal(60, ev.Volume);
@@ -103,7 +106,7 @@ public class ProjectTrackTests
         var track = MakeTrack();
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Pan = -50 });
 
-        var ev = track.ToSequence().Events[1];
+        var ev = track.ToSequence().Events[3];
 
         var extended = Assert.IsType<ExtendedEvent>(ev);
         Assert.Equal(-50, extended.Pan);
@@ -146,7 +149,7 @@ public class ProjectTrackTests
         var events = track.ToSequence().Events;
 
         // boom (step 0) + its echo (step 2); clap (step 4) is untouched, no echo.
-        Assert.Equal(["!speed", "boom", "!stop", "boom", "!stop", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!stop", "boom", "!stop", "clap"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -163,7 +166,7 @@ public class ProjectTrackTests
         var events = track.ToSequence().Events;
 
         Assert.Equal(
-            ["!speed", "boom", "!stop", "boom", "!stop", "clap", "!stop", "clap"],
+            ["!speed", "!speed", "!divider", "boom", "!stop", "boom", "!stop", "clap", "!stop", "clap"],
             events.Select(e => e.SoundEvent));
     }
 
@@ -183,7 +186,7 @@ public class ProjectTrackTests
         var events = track.ToSequence().Events;
 
         // Both automations fire independently from the same base note.
-        Assert.Equal(["!speed", "boom", "!stop", "boom", "!stop", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!stop", "boom", "!stop", "boom"], events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -198,8 +201,8 @@ public class ProjectTrackTests
 
         var events = track.ToSequence().Events;
 
-        Assert.Equal(4.6, events[1].Value, 5); // base note
-        Assert.Equal(4.6, events[3].Value, 5); // its echo, also shifted
+        Assert.Equal(4.6, events[3].Value, 5); // base note
+        Assert.Equal(4.6, events[5].Value, 5); // its echo, also shifted
         Assert.Equal(5, note.Value); // the stored note is untouched
     }
 

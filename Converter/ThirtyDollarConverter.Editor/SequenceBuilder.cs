@@ -5,10 +5,17 @@ namespace ThirtyDollarConverter.Editor;
 
 /// <summary>
 ///     A maximal span of the timeline running at one grid rate ("!speed", in steps per minute).
+///     <paramref name="Bpm" /> is the quarter-note tempo that rate was built from, kept apart
+///     from the grid resolution so the export can say "120 BPM, four steps a beat" instead of
+///     the bare product. Zero means unknown (concurrent tracks at different tempi) - then the
+///     rate is stated outright.
 /// </summary>
-internal readonly record struct TempoRegion(double StartMinutes, double DurationMinutes, double Speed)
+internal readonly record struct TempoRegion(double StartMinutes, double DurationMinutes, double Speed, double Bpm = 0)
 {
     public double EndMinutes => StartMinutes + DurationMinutes;
+
+    /// <summary>How many grid steps fit in one beat: the "!speed@n@x" factor.</summary>
+    public double Multiplier => Bpm > 0 ? Speed / Bpm : 1;
 }
 
 /// <summary>
@@ -41,6 +48,8 @@ internal static class SequenceBuilder
 
         var events = new List<BaseEvent>();
         var current_speed = double.NaN;
+        var current_bpm = double.NaN;
+        var current_multiplier = 1d;
         var bar_index = 0;
         var bars_pending = 0; // bars completed since the last divider or tempo change
 
@@ -60,7 +69,7 @@ internal static class SequenceBuilder
 
         if (groups.Length == 0)
         {
-            EmitSpeed(regions[0].Speed);
+            EmitSpeed(regions[0]);
             return Finish(events);
         }
 
@@ -73,7 +82,7 @@ internal static class SequenceBuilder
             if (groups[gi].Region != ri && clock >= region.EndMinutes - 1e-12) continue;
 
             EmitDividersUpTo(region.StartMinutes);
-            EmitSpeed(region.Speed);
+            EmitSpeed(region);
 
             while (gi < groups.Length && groups[gi].Region == ri)
             {
@@ -169,17 +178,46 @@ internal static class SequenceBuilder
             if (due) EmitDivider();
         }
 
-        void EmitSpeed(double speed)
+        // The grid rate is the product of a tempo and a resolution, and the export says so:
+        // "!speed@120|!speed@4@x" reads as "120 BPM, four steps a beat", where a bare
+        // "!speed@480" reads as nothing at all. While the tempo holds, only what changed is
+        // emitted - the ratio between the two resolutions - and a ratio that isn't a whole
+        // factor either way (4 -> 6 steps) restates the pair instead, since the serialized
+        // 6 decimals can't hold 1.333... exactly and the drift would compound.
+        void EmitSpeed(TempoRegion region)
         {
-            if (!double.IsNaN(current_speed) && SameSpeed(current_speed, speed)) return;
-            if (!double.IsNaN(current_speed))
+            var first = double.IsNaN(current_speed);
+            if (!first && SameSpeed(current_speed, region.Speed)) return;
+            if (!first)
             {
                 if (speed_dividers) EmitDivider();
                 bars_pending = 0; // a tempo change opens a new section: fresh bar count
             }
 
-            events.Add(Action("!speed", speed));
-            current_speed = speed;
+            var bpm = region.Bpm > 0 ? region.Bpm : region.Speed;
+            var multiplier = region.Multiplier;
+
+            // Rounded, not raw: the factor the text carries and the one playback uses have
+            // to be the same number, and 4/2 can land on 1.9999999999999998.
+            var ratio = multiplier / current_multiplier;
+            if (SameSpeed(current_bpm, bpm) && IsWhole(ratio))
+                events.Add(Action("!speed", Math.Round(ratio), ValueScale.Times));
+            else if (SameSpeed(current_bpm, bpm) && IsWhole(1 / ratio))
+                events.Add(Action("!speed", Math.Round(1 / ratio), ValueScale.Divide));
+            else
+            {
+                events.Add(Action("!speed", bpm));
+                if (!SameSpeed(multiplier, 1)) events.Add(Action("!speed", multiplier, ValueScale.Times));
+            }
+
+            current_speed = region.Speed;
+            current_bpm = bpm;
+            current_multiplier = multiplier;
+
+            // The opening tempo is a header, not music: a divider closes it off so the
+            // first bar starts on a line of its own. Bar counting is untouched - this
+            // isn't a bar line.
+            if (first) EmitDivider();
         }
 
         double GroupTime(int index)
@@ -277,14 +315,19 @@ internal static class SequenceBuilder
         return (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomActionEvent;
     }
 
-    private static NormalEvent Action(string name, double value)
+    private static NormalEvent Action(string name, double value, ValueScale scale = ValueScale.None)
     {
         return new NormalEvent
         {
             SoundEvent = name,
             Value = value,
             WorkingValue = value,
-            ValueScale = ValueScale.None
+            ValueScale = scale
         };
+    }
+
+    private static bool IsWhole(double value)
+    {
+        return Math.Abs(value - Math.Round(value)) < 1e-9;
     }
 }

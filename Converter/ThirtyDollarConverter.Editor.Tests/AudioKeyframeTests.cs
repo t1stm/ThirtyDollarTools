@@ -24,11 +24,11 @@ public class AudioKeyframeTests
         var events = track.ToSequence().Events;
 
         // One note becomes three, one grid step apart, each keyframe halving the last.
-        Assert.Equal(["!speed", "boom", "boom", "boom"], events.Select(e => e.SoundEvent));
-        Assert.Equal(480, events[0].Value);
-        Assert.Null(events[1].Volume);
-        Assert.Equal(50, events[2].Volume);
-        Assert.Equal(25, events[3].Volume);
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "boom", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed@120", "!speed@4@x"], events.Take(2).Select(e => e.Stringify())); // 480 steps/min
+        Assert.Null(events[3].Volume);
+        Assert.Equal(50, events[4].Volume);
+        Assert.Equal(25, events[5].Volume);
     }
 
     [Fact]
@@ -95,11 +95,11 @@ public class AudioKeyframeTests
 
         var events = track.ToSequence().Events;
 
-        var first = Assert.IsType<ExtendedEvent>(events[2]);
+        var first = Assert.IsType<ExtendedEvent>(events[4]);
         Assert.Equal(80, first.Pan);
         Assert.Equal(0, first.Volume); // 100 - 200, floored at silence
 
-        var second = Assert.IsType<ExtendedEvent>(events[3]);
+        var second = Assert.IsType<ExtendedEvent>(events[5]);
         Assert.Equal(100, second.Pan); // 80 + 80, clamped to full right
         Assert.Equal(0, second.Volume);
     }
@@ -116,8 +116,8 @@ public class AudioKeyframeTests
         var events = track.ToSequence().Events;
 
         // One keyframe repeated 3 times = 3 echoes, each halving the previous pass.
-        Assert.Equal(["!speed", "boom", "boom", "boom", "boom"], events.Select(e => e.SoundEvent));
-        Assert.Equal([50d, 25d, 12.5], events.Skip(2).Select(e => e.Volume));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "boom", "boom", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal([50d, 25d, 12.5], events.Skip(4).Select(e => e.Volume));
     }
 
     [Fact]
@@ -266,7 +266,7 @@ public class AudioKeyframeTests
 
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "harp", "harp", "!stop", "harp", "harp"],
+        Assert.Equal(["!speed", "!speed", "!divider", "harp", "harp", "!stop", "harp", "harp"],
             events.Select(e => e.SoundEvent));
         // Each expansion starts from its own base note, not from shared state.
         Assert.Equal([0, 12, 7, 19],

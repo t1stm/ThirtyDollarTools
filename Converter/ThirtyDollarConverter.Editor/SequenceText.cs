@@ -25,6 +25,13 @@ public static class SequenceText
 
         var text = e.SoundEvent!;
         if (e.Value != 0) text += $"@{Exact(e.Value)}";
+        text += e.ValueScale switch
+        {
+            ValueScale.Times => "@x",
+            ValueScale.Divide => "@/",
+            ValueScale.Add => "@+",
+            _ => ""
+        };
         if (e.Volume is { } volume) text += $"%{Exact(volume)}";
         if (e is not ExtendedEvent extended) return text;
 

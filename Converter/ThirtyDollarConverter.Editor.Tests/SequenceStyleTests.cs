@@ -21,7 +21,7 @@ public class SequenceStyleTests
         var sequence = track.ToSequence(new SequenceStyle { DividerEveryBars = 4 });
 
         // The silence belongs to the old bar; the divider opens the new one.
-        Assert.Equal(["!speed", "boom", "!stop", "!divider", "kick"],
+        Assert.Equal(["!speed", "!divider", "boom", "!stop", "!divider", "kick"],
             sequence.Events.Select(e => e.SoundEvent));
 
         // Dividers take no time: the kick still lands 16 half-second steps in.
@@ -46,7 +46,7 @@ public class SequenceStyleTests
         var events = track.ToSequence(
             new SequenceStyle { DividerOnSpeedChanges = true, MigrateToStop = 1 }).Events;
 
-        Assert.Equal(["!speed", "!stop", "!divider", "!speed", "boom"],
+        Assert.Equal(["!speed", "!divider", "!stop", "!divider", "!speed", "boom"],
             events.Select(e => e.SoundEvent));
     }
 
@@ -63,7 +63,7 @@ public class SequenceStyleTests
         var style = new SequenceStyle { DividerEveryBars = 4, DividerOnSpeedChanges = true };
         var events = track.ToSequence(style).Events;
 
-        Assert.Equal(["!speed", "!stop", "!divider", "!speed", "boom"],
+        Assert.Equal(["!speed", "!divider", "!stop", "!divider", "!speed", "boom"],
             events.Select(e => e.SoundEvent));
     }
 
@@ -90,7 +90,7 @@ public class SequenceStyleTests
         // hat, four bars into the new section.
         Assert.Equal(
             [
-                "!speed", "boom", "!stop", "!divider", "!speed", "kick",
+                "!speed", "!divider", "boom", "!stop", "!divider", "!speed", "kick",
                 "!stop", "snare", "!stop", "!divider", "hat"
             ],
             events.Select(e => e.SoundEvent));
@@ -105,7 +105,7 @@ public class SequenceStyleTests
 
         var sequence = track.ToSequence(new SequenceStyle { MigrateToStop = null });
 
-        Assert.Equal(["!speed", "_pause", "_pause", "_pause", "boom"],
+        Assert.Equal(["!speed", "!divider", "_pause", "_pause", "_pause", "boom"],
             sequence.Events.Select(e => e.SoundEvent));
 
         // "_pause" == "!stop@1": the boom still lands three half-second steps in.
@@ -127,9 +127,9 @@ public class SequenceStyleTests
 
         var events = track.ToSequence(new SequenceStyle { MigrateToStop = 4 }).Events;
 
-        Assert.Equal(["!speed", "boom", "_pause", "_pause", "kick", "!stop", "snare"],
+        Assert.Equal(["!speed", "!divider", "boom", "_pause", "_pause", "kick", "!stop", "snare"],
             events.Select(e => e.SoundEvent));
-        Assert.Equal(5, events[5].Value);
+        Assert.Equal(5, events[6].Value);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class SequenceStyleTests
         var events = track.ToSequence(new SequenceStyle { DividerEveryBars = 2 }).Events;
 
         // Bars 2, 4 and 6 all pass inside one stretch of silence: one divider, not three.
-        Assert.Equal(["!speed", "boom", "!stop", "!divider", "kick"],
+        Assert.Equal(["!speed", "!divider", "boom", "!stop", "!divider", "kick"],
             events.Select(e => e.SoundEvent));
     }
 }
