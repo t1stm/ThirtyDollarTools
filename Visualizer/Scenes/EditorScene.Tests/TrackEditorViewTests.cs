@@ -732,6 +732,33 @@ public class TrackEditorViewTests
     }
 
     [Fact]
+    public void AutomationMarks_AreBudgetedForTheViewport_NotSpentOnScrolledOffNotes()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var segment = track.Segments[0];
+        segment.Bars = 8; // 8 bars of 4/4 at 4 steps per beat = 128 steps, like a real cover's track
+        // 12 marks per note (4 generated events, each a run + a value jump + a tick): the
+        // first ~60 notes alone are more than the whole mark pool.
+        for (var step = 0; step < 120; step++)
+            state.AddNote(segment, step, boom, 0).Automation = new AudioKeyframeManager
+            {
+                Repeats = 4,
+                Keyframes = { new AudioKeyframe { Gap = 1, Value = new Modifier(1) } }
+            };
+        view.Layout();
+
+        // Pan 20 notches right (960 px = 60 steps): everything before step 60 is off-screen.
+        ctx.UpdatePointer(view, 400, 300, false, false, false, new Vector2(-20, 0));
+        view.Layout();
+
+        // The notes now on screen still get their paths - the scrolled-off ones must not
+        // have eaten the pool on the way there.
+        Assert.Contains(view.AutomationMarks, m => m.Width.Value > 0 && m.X.Value > 700);
+        Assert.DoesNotContain(view.AutomationMarks, m => m.Width.Value > 0 && m.X.Value + m.Width.Value < 44);
+    }
+
+    [Fact]
     public void SelectTool_Marquee_AccountsForScroll_ModelCoordinatesNotScreenPixels()
     {
         var (ctx, state, view, track) = NewView();

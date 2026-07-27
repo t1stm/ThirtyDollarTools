@@ -198,10 +198,26 @@ public class ThirtyDollarProject
             timed.AddRange(placement.Track.TimedNotes(StartMinutes(placement), Transpose)
                 .Where(t => t.Event is IndividualCutEvent));
 
-        var bar_times = placements.Count > 0
-            ? placements[0].Track.BarTimes(style, StartMinutes(placements[0]))
-            : null;
-        return SequenceBuilder.Build(MergedRegions(placements), timed.ToArray(), style, bar_times);
+        return SequenceBuilder.Build(MergedRegions(placements), timed.ToArray(), style, BarTimes(placements, style));
+    }
+
+    /// <summary>
+    ///     Project-wide bar lines for the merged sequence: the arrangement grid runs on the
+    ///     root timing, so bars tile the whole exported timeline from its origin. (Following
+    ///     one track's own bars instead ran out of bar lines at the end of that single clip,
+    ///     and every divider after it was silently dropped.)
+    /// </summary>
+    private List<double>? BarTimes(List<TrackPlacement> placements, SequenceStyle? style)
+    {
+        if (style?.DividerEveryBars is not { } every || every < 1 || placements.Count == 0) return null;
+
+        var bar = RootTiming.Numerator * (4d / RootTiming.Denominator) / RootTiming.BPM;
+        if (bar <= 0 || double.IsNaN(bar)) return null;
+
+        var end = placements.Max(placement => StartMinutes(placement) + placement.Track.DurationMinutes());
+        var times = new List<double>();
+        for (var i = 1; i * bar <= end + 1e-12; i++) times.Add(i * bar);
+        return times;
     }
 
     /// <summary>

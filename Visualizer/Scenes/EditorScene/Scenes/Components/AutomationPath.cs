@@ -20,6 +20,7 @@ namespace EditorScene.Scenes.Components;
 internal sealed class AutomationPath
 {
     private readonly List<Panel> _marks = [];
+    private float _clipRight;
 
     public AutomationPath(UIContext context, Panel host, int poolSize, Vector4 initialColor)
     {
@@ -55,6 +56,7 @@ internal sealed class AutomationPath
         if (stepMinutes <= 0) return;
 
         var maxY = geometry.GridBottom;
+        _clipRight = geometry.ViewWidth;
         var pixelsPerStep = geometry.PixelsPerStep;
         var scrollX = geometry.ScrollX;
         var rowHeight = geometry.RowHeight;
@@ -82,9 +84,13 @@ internal sealed class AutomationPath
 
     /// <summary>Trims a mark against the grid's bottom edge — the one shared point that
     /// covers all three mark kinds (run, jump, tick) bleeding past a partially scrolled
-    /// grid into the pinned cut row below it.</summary>
+    /// grid into the pinned cut row below it. Marks fully left of the gutter or right of
+    /// the viewport are dropped without taking a pool slot: the pool is a budget for what
+    /// is on screen, and a long track's off-screen paths would otherwise spend all of it
+    /// before the layout ever reaches the notes being looked at.</summary>
     private bool Mark(ref int used, float x, float y, float width, float height, Vector4 color, float maxY)
     {
+        if (x + width < TrackEditorGeometry.GutterWidth || x > _clipRight) return true;
         if (used >= _marks.Count) return false; // pool cap: the path just ends early
         height = Math.Max(0, Math.Min(y + height, maxY) - y);
         var mark = _marks[used++];

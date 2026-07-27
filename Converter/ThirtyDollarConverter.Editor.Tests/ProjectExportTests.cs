@@ -406,4 +406,32 @@ public class ProjectExportTests
         // the shared instrument's own set must survive the merge untouched
         Assert.Equal(["kick"], shared.Sounds.Select(sound => sound.Sound));
     }
+
+    [Fact]
+    public void DividersKeepComing_PastTheFirstPlacementsTrack()
+    {
+        var project = new ThirtyDollarProject { RootTiming = { BPM = 120 } };
+
+        // One short clip placed at the very start (4 bars of 4/4), then a long one after it.
+        var stab = project.NewTrack();
+        stab.Segments[0].StepsPerBeat = 1;
+        stab.Segments[0].Bars = 4;
+        stab.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
+
+        var loop = project.NewTrack();
+        loop.Segments[0].StepsPerBeat = 1;
+        loop.Segments[0].Bars = 12;
+        for (var bar = 0; bar < 12; bar++)
+            loop.Segments[0].Notes.Add(new Note { Step = bar * 4, Instrument = Instrument.Single("kick") });
+
+        project.Place(stab, 0, 0); // first in the list: used to be the only source of bar lines
+        project.Place(loop, 1, 16);
+
+        var events = project.ToSequence(new SequenceStyle { DividerEveryBars = 2 }).Events;
+
+        // Bars 2 and 4 both pass in the silence before the loop and collapse to one divider,
+        // then bars 6..16 give one each: 6. Following the first placement's track alone the
+        // bar lines ran out after bar 4 and the whole loop got none.
+        Assert.Equal(6, events.Count(e => e.SoundEvent == "!divider"));
+    }
 }

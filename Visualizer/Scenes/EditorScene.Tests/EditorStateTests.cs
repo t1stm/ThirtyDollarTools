@@ -1123,7 +1123,7 @@ public class EditorStateTests
     }
 
     [Fact]
-    public void PasteInPlace_OntoTheSameTrack_ShiftsOneStepRightOnCollision()
+    public void PasteInPlace_OntoTheSameTrack_StacksOnTheOriginal()
     {
         var state = new EditorState();
         var track = state.AddTrack();
@@ -1134,13 +1134,41 @@ public class EditorStateTests
         state.SetNoteSelection([note]);
         state.CopySelection();
 
-        state.Paste(); // same (Step, Value) as the still-present original: shifted right by one
+        state.Paste(); // same (Step, Value) as the still-present original: stacked, not nudged right
         Assert.Equal(2, segment.Notes.Count);
-        Assert.Contains(segment.Notes, n => n.Step == 1 && n.Value == 0);
+        Assert.All(segment.Notes, n => Assert.Equal(0, n.Step));
 
-        state.Paste(); // now collides at both step 0 and step 1: shifted right by two
+        state.Paste();
         Assert.Equal(3, segment.Notes.Count);
-        Assert.Contains(segment.Notes, n => n.Step == 2 && n.Value == 0);
+        Assert.All(segment.Notes, n => Assert.Equal(0, n.Step));
+    }
+
+    [Fact]
+    public void PasteInPlace_OfAFullBar_ClonesEveryNoteOntoItsOwnStep()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var segment = track.Segments[0];
+        segment.StepsPerBeat = 1; // 4/4, one step per beat: steps 0-3 are the bar's four beats
+        var beats = Enumerable.Range(0, 4).Select(step => state.AddNote(segment, step, boom, 0)).ToArray();
+        state.OpenTrack(track);
+        state.SetNoteSelection(beats);
+        state.CopySelection();
+
+        state.Paste();
+
+        // One-to-one with the copy: four clones on the four occupied beats, nothing dropped
+        // and nothing shifted a beat right.
+        Assert.Equal(8, segment.Notes.Count);
+        Assert.Equal([0, 0, 1, 1, 2, 2, 3, 3], segment.Notes.Select(n => n.Step).Order());
+        Assert.Equal(4, state.SelectedNotes.Count);
+        Assert.Empty(state.SelectedNotes.Intersect(beats));
+
+        // The pasted block is the selection, so it can be dragged off the originals whole.
+        state.MoveSelectedNotes(track,
+            state.SelectedNotes.Select(n => (n, segment, n.Step + 4, n.Value)).ToArray());
+        Assert.Equal([0, 1, 2, 3, 4, 5, 6, 7], segment.Notes.Select(n => n.Step).Order());
     }
 
     [Fact]

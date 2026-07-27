@@ -187,12 +187,12 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     The absolute time of every bar line of this track, counted across segments.
     ///     Null when the style doesn't ask for bar dividers.
     /// </summary>
-    internal double[]? BarTimes(SequenceStyle? style, double startMinutes = 0)
+    internal double[]? BarTimes(SequenceStyle? style)
     {
         if (style?.DividerEveryBars is not { } every || every < 1) return null;
 
         var times = new List<double>();
-        var offset = startMinutes;
+        var offset = 0d;
         foreach (var segment in _segments)
         {
             var bar_minutes = segment.Numerator * segment.StepsPerBeat * segment.StepMinutes(Timing.BPM);

@@ -35,6 +35,10 @@ public sealed class TrackEditorGeometry
     /// <summary>Bottom edge of the scrollable grid - the rule sits directly below it.</summary>
     public float GridBottom => CutRowTop - RuleHeight;
 
+    /// <summary>Width of the viewport as of the last <see cref="SetViewport" /> - the right
+    /// edge everything horizontal is culled against.</summary>
+    public float ViewWidth { get; private set; }
+
     public readonly ViewNavigation Nav = new(minZoom: 4f, maxZoom: 128f) { Zoom = 64f };
 
     public float ScrollX { get => Nav.ScrollX; set => Nav.ScrollX = value; }
@@ -59,6 +63,7 @@ public sealed class TrackEditorGeometry
     /// </summary>
     public void SetViewport(float width, float height)
     {
+        ViewWidth = width;
         CutRowTop = Math.Max(GridTop, height - CutRowHeight);
         var gridHeight = Math.Max(0, GridBottom - GridTop);
         Nav.MaxScrollY = Math.Max(0, Rows * RowHeight - gridHeight);
