@@ -8,7 +8,7 @@ public class EditorStateTests
     private static Instrument MakeInstrument(EditorState state, string sound)
     {
         var instrument = state.AddInstrument(sound);
-        state.SetInstrumentSounds(instrument, [sound]);
+        state.SetInstrumentSounds(instrument, [new InstrumentSound { Sound = sound }]);
         return instrument;
     }
 
@@ -375,8 +375,9 @@ public class EditorStateTests
         Assert.Equal("Drums", instrument.Name);
         Assert.Equal(2, changed);
 
-        state.SetInstrumentSounds(instrument, ["kick", "snare"]);
-        Assert.Equal(["kick", "snare"], instrument.Sounds);
+        state.SetInstrumentSounds(instrument,
+            [new InstrumentSound { Sound = "kick" }, new InstrumentSound { Sound = "snare" }]);
+        Assert.Equal(["kick", "snare"], instrument.Sounds.Select(sound => sound.Sound));
 
         var track = state.AddTrack();
         var note = state.AddNote(track.Segments[0], 0, instrument, 0);

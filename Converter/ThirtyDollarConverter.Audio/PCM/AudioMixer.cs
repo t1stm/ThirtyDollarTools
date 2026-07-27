@@ -54,7 +54,7 @@ public class AudioMixer : IDisposable
     {
         lock (_tracks)
         {
-            return _tracks.Keys.Where(key => key.Item1.Length > 0).ToArray();
+            return [.. _tracks.Keys.Where(key => key.Item1.Length > 0)];
         }
     }
 

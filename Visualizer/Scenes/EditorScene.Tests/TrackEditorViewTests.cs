@@ -20,7 +20,7 @@ public class TrackEditorViewTests
     private static Instrument MakeInstrument(EditorState state, string sound)
     {
         var instrument = state.AddInstrument(sound);
-        state.SetInstrumentSounds(instrument, [sound]);
+        state.SetInstrumentSounds(instrument, [new InstrumentSound { Sound = sound }]);
         return instrument;
     }
 
@@ -1090,7 +1090,7 @@ public class TrackEditorViewTests
 
         var note = Assert.Single(track.Segments[0].Notes);
         Assert.True(note.IsCut);
-        Assert.Equal("kick", note.Instrument.Sounds.Single());
+        Assert.Equal("kick", note.Instrument.Sounds.Single().Sound);
         Assert.Equal(3, note.Step);
     }
 

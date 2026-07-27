@@ -13,3 +13,5 @@ sixlabors.lic
 Sounds/
 Sounds/*.json
 Sounds/Images/
+BenchmarkDotNet.Artifacts/
+

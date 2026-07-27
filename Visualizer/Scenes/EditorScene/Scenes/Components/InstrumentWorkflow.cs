@@ -56,7 +56,7 @@ public sealed class InstrumentWorkflow
         {
             _editingInstrument = instrument;
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
-            OpenEditor(instrument.Name, instrument.Sounds, instrument.Adjustments);
+            OpenEditor(instrument.Name, instrument.Sounds);
         };
         _instrumentSelector.OnDelete = instrument =>
         {
@@ -82,9 +82,7 @@ public sealed class InstrumentWorkflow
         _instrumentEditor.DoneButton.OnClick = _ => Commit();
         _instrumentEditor.SoundsPicker.OnPreviewSound = playback.PreviewSound;
         _instrumentEditor.PreviewButton.OnClick = _ =>
-            playback.PreviewInstrument(_instrumentEditor.SoundsPicker.Selected
-                .Select(sound => (sound, _instrumentEditor.SoundsPicker.Adjustments.GetValueOrDefault(sound)
-                                         ?? new SoundAdjustment())));
+            playback.PreviewInstrument(_instrumentEditor.SoundsPicker.Instances);
     }
 
     /// <summary>Opens the picker; null means picking sets ActiveInstrument, non-null
@@ -107,11 +105,10 @@ public sealed class InstrumentWorkflow
     /// <summary>Fills the sound grid before seeding the selection, not after: an older
     /// project may hold a sound under its emoji, and the picker can only map that to the
     /// sound's ID once it has been filled.</summary>
-    private void OpenEditor(string name, IEnumerable<string> sounds,
-        IReadOnlyDictionary<string, SoundAdjustment>? adjustments = null)
+    private void OpenEditor(string name, IEnumerable<InstrumentSound> sounds)
     {
         _instrumentEditor.EnsureSounds(_allSounds());
-        _instrumentEditor.Load(name, sounds, adjustments);
+        _instrumentEditor.Load(name, sounds);
         _dialogHost.Root.AddChild(_instrumentEditorModal);
     }
 
@@ -124,14 +121,12 @@ public sealed class InstrumentWorkflow
         if (_editingInstrument is { } existing)
         {
             _state.RenameInstrument(existing, name);
-            _state.SetInstrumentSounds(existing, _instrumentEditor.SoundsPicker.Selected,
-                _instrumentEditor.SoundsPicker.Adjustments);
+            _state.SetInstrumentSounds(existing, _instrumentEditor.SoundsPicker.Instances);
         }
         else
         {
             var created = _state.AddInstrument(name);
-            _state.SetInstrumentSounds(created, _instrumentEditor.SoundsPicker.Selected,
-                _instrumentEditor.SoundsPicker.Adjustments);
+            _state.SetInstrumentSounds(created, _instrumentEditor.SoundsPicker.Instances);
             ApplyInstrumentPick(created);
         }
 

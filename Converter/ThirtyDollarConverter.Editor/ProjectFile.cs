@@ -15,7 +15,7 @@ public static class ProjectFile
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase), new InstrumentSoundDtoConverter() }
     };
 
     public static string Save(ThirtyDollarProject project)
@@ -55,11 +55,8 @@ public static class ProjectFile
             project.Instruments.Select(instrument => new InstrumentDto(
                 instrument.Id,
                 instrument.Name,
-                instrument.Sounds,
-                instrument.Adjustments.Count == 0
-                    ? null
-                    : instrument.Adjustments.ToDictionary(pair => pair.Key,
-                        pair => new SoundAdjustmentDto(pair.Value.Value, pair.Value.Volume, pair.Value.Pan)))).ToList(),
+                instrument.Sounds.Select(sound => new InstrumentSoundDto(
+                    sound.Sound, sound.Value, sound.Volume, sound.Pan)).ToList())).ToList(),
             project.Placements.Select(placement => new PlacementDto(
                 placement.Track.Id,
                 placement.Channel,
@@ -85,14 +82,20 @@ public static class ProjectFile
         foreach (var instrument_dto in dto.Instruments ?? [])
         {
             var instrument = project.AddInstrument(instrument_dto.Id, instrument_dto.Name);
-            instrument.Sounds.AddRange(instrument_dto.Sounds);
-            foreach (var (sound, adjustment) in instrument_dto.Adjustments ?? [])
-                instrument.Adjustments[sound] = new SoundAdjustment
+            foreach (var sound_dto in instrument_dto.Sounds)
+            {
+                // Legacy files wrote sounds as bare names plus an adjustment map keyed by
+                // name (one adjustment per sound, no duplicates); merge that in here.
+                var legacy = instrument_dto.Adjustments?.GetValueOrDefault(sound_dto.Sound);
+                instrument.Sounds.Add(new InstrumentSound
                 {
-                    Value = adjustment.Value,
-                    Volume = adjustment.Volume,
-                    Pan = adjustment.Pan
-                };
+                    Sound = sound_dto.Sound,
+                    Value = legacy?.Value ?? sound_dto.Value,
+                    Volume = legacy?.Volume ?? sound_dto.Volume,
+                    Pan = legacy?.Pan ?? sound_dto.Pan
+                });
+            }
+
             instruments_by_id[instrument.Id] = instrument;
         }
 
@@ -212,11 +215,42 @@ public static class ProjectFile
         // Null (missing key) = 0 - files from before the feature stay valid.
         float? Transpose = null);
 
-    private record InstrumentDto(int Id, string Name, List<string> Sounds,
-        // Null (missing key) = no sound has a value/volume/pan adjustment.
+    private record InstrumentDto(int Id, string Name, List<InstrumentSoundDto> Sounds,
+        // Legacy (pre-duplicate-sounds) adjustment map keyed by sound name, kept only for
+        // reading old files; never written. See Load.
         Dictionary<string, SoundAdjustmentDto>? Adjustments = null);
 
+    /// <summary>One entry of an instrument's "sounds". Older files wrote a bare sound name
+    /// here instead of an object - <see cref="InstrumentSoundDtoConverter" /> reads both.</summary>
+    private record InstrumentSoundDto(string Sound, double Value = 0, double? Volume = null, float Pan = 0);
+
     private record SoundAdjustmentDto(double Value, double? Volume, float Pan);
+
+    /// <summary>Reads a bare JSON string as a plain, unadjusted sound, so instrument lists
+    /// written before sounds became objects still load. Always writes the object form.</summary>
+    private sealed class InstrumentSoundDtoConverter : JsonConverter<InstrumentSoundDto>
+    {
+        public override InstrumentSoundDto Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.String)
+                return new InstrumentSoundDto(reader.GetString()!);
+
+            // Without the converter stripped from the options, this recurses into itself.
+            var plain = new JsonSerializerOptions(options);
+            plain.Converters.Remove(plain.Converters.First(c => c is InstrumentSoundDtoConverter));
+            return JsonSerializer.Deserialize<InstrumentSoundDto>(ref reader, plain)!;
+        }
+
+        public override void Write(Utf8JsonWriter writer, InstrumentSoundDto value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("sound", value.Sound);
+            if (value.Value != 0) writer.WriteNumber("value", value.Value);
+            if (value.Volume is { } volume) writer.WriteNumber("volume", volume);
+            if (value.Pan != 0) writer.WriteNumber("pan", value.Pan);
+            writer.WriteEndObject();
+        }
+    }
 
     private record PlacementDto(int TrackId, int Channel, double Start);
 

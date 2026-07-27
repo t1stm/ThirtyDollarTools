@@ -148,7 +148,7 @@ public class AudioKeyframeTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var instrument = project.NewInstrument("boom");
-        instrument.Sounds.Add("boom");
+        instrument.AddSound("boom");
         var echo = new AudioKeyframeManager { Repeats = 4 };
         echo.Keyframes.Add(new AudioKeyframe { Gap = 1, Offset = new Modifier(0.5) });
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = instrument, Offset = 0.25, Automation = echo });
@@ -240,7 +240,7 @@ public class AudioKeyframeTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var instrument = project.NewInstrument("boom");
-        instrument.Sounds.Add("boom");
+        instrument.AddSound("boom");
         var automation = new AudioKeyframeManager();
         automation.Keyframes.Add(new AudioKeyframe { Gap = 1 });
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = instrument, Automation = automation });

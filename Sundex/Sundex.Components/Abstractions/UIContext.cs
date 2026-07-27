@@ -96,6 +96,16 @@ public class UIContext : IGamePreloadable
     public bool PointerDown { get; private set; }
 
     /// <summary>
+    ///     Bumped once per right-button press (on the up-to-down transition). Because
+    ///     <see cref="UIElement.HandleRightPress" /> is level-triggered, a handler whose
+    ///     action isn't idempotent (adding something, rather than deleting what's under the
+    ///     pointer) remembers this id and acts only when it changes.
+    /// </summary>
+    public int RightPressId { get; private set; }
+
+    private bool _rightDown;
+
+    /// <summary>
     ///     Routes a pointer update to the UI tree under <paramref name="root" />: resolves the
     ///     topmost hit (occlusion), maintains hover/pressed chains, capture, click
     ///     (press + release on the same element, bubbling to the first ancestor with a handler),
@@ -109,6 +119,8 @@ public class UIContext : IGamePreloadable
         PointerX = x;
         PointerY = y;
         PointerDown = isDown;
+        if (isRightDown && !_rightDown) RightPressId++;
+        _rightDown = isRightDown;
 
         // A capture owned by another UI tree makes this tree unreachable for the pointer.
         if (CapturedElement != null && !ReferenceEquals(RootOf(CapturedElement), root))

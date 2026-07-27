@@ -20,7 +20,7 @@ public partial class Sequence
     {
         return new Sequence
         {
-            Events = Events.Select(r => r.Copy()).ToArray(),
+            Events = [.. Events.Select(r => r.Copy())],
             Definitions = Definitions,
             SeparatedChannels = SeparatedChannels
         };
@@ -71,7 +71,7 @@ public partial class Sequence
             }
         }
 
-        sequence.Events = list.ToArray();
+        sequence.Events = [.. list];
         return sequence;
     }
 

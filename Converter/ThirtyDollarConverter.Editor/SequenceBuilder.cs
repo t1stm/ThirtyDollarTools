@@ -251,7 +251,7 @@ internal static class SequenceBuilder
 
     private static Sequence Finish(List<BaseEvent> events)
     {
-        var sequence = new Sequence { Events = events.ToArray() };
+        var sequence = new Sequence { Events = [.. events] };
         foreach (var ev in sequence.Events)
         {
             if (ev.SoundEvent is not null)

@@ -83,7 +83,7 @@ public class SlashCommands : ApplicationCommandModule
             .WithContent("```Fully read attached file. Starting conversion.```"));
 
         var calculator = new PlacementCalculator(Static.EncoderSettings);
-        var array = sequences as Sequence[] ?? sequences.ToArray();
+        var array = sequences as Sequence[] ?? [.. sequences];
         var placement = calculator.CalculateMany(array);
         var placement_array = placement.ToArray();
 

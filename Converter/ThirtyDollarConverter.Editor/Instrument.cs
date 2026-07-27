@@ -10,20 +10,28 @@ public class Instrument
     public string Name { get; set; } = "Instrument";
 
     /// <summary>
-    ///     Ordered; layered on one step (first plain, rest !combine-joined). May be empty
-    ///     transiently in the editor; an empty instrument yields no events.
+    ///     Ordered; layered on one step (first plain, rest !combine-joined). The same sound
+    ///     may appear several times with different tuning (see <see cref="InstrumentSound" />).
+    ///     May be empty transiently in the editor; an empty instrument yields no events.
     /// </summary>
-    public List<string> Sounds { get; } = [];
+    public List<InstrumentSound> Sounds { get; } = [];
 
-    /// <summary>
-    ///     Per-sound value/volume/pan tuning, keyed by sound name. A sound absent here plays
-    ///     with no adjustment (i.e. exactly what the note specifies).
-    /// </summary>
-    public Dictionary<string, SoundAdjustment> Adjustments { get; } = new();
+    /// <summary>Every distinct sound name this instrument plays, duplicates collapsed -
+    /// what a cut has to silence.</summary>
+    public HashSet<string> SoundNames => Sounds.Select(sound => sound.Sound).ToHashSet();
+
+    /// <summary>Appends one plain, untuned sound - the common case; tune the returned
+    /// instance (or add it twice) for anything else.</summary>
+    public InstrumentSound AddSound(string sound)
+    {
+        var instrument_sound = new InstrumentSound { Sound = sound };
+        Sounds.Add(instrument_sound);
+        return instrument_sound;
+    }
 
     /// <summary>A standalone single-sound instrument, named after the sound.</summary>
     public static Instrument Single(string sound)
     {
-        return new Instrument { Name = sound, Sounds = { sound } };
+        return new Instrument { Name = sound, Sounds = { new InstrumentSound { Sound = sound } } };
     }
 }

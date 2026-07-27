@@ -86,16 +86,16 @@ public class Note
         if (IsCut)
         {
             if (Instrument.Sounds.Count > 0)
-                yield return new IndividualCutEvent(Instrument.Sounds.ToHashSet());
+                yield return new IndividualCutEvent(Instrument.SoundNames);
             yield break;
         }
 
-        foreach (var sound in Instrument.Sounds)
+        foreach (var instrument_sound in Instrument.Sounds)
         {
-            var adjustment = Instrument.Adjustments.GetValueOrDefault(sound);
-            var value = adjustment?.CombineValue(Value) ?? Value;
-            var volume = adjustment?.CombineVolume(Volume) ?? Volume;
-            var pan = adjustment?.CombinePan(Pan) ?? Pan;
+            var sound = instrument_sound.Sound;
+            var value = instrument_sound.CombineValue(Value);
+            var volume = instrument_sound.CombineVolume(Volume);
+            var pan = instrument_sound.CombinePan(Pan);
 
             if (pan == 0 && Offset == 0)
                 yield return new NormalEvent

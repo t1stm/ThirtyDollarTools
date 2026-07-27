@@ -640,7 +640,7 @@ public static class SequenceImporter
         {
             var name = UniqueName($"{DisplayName(sound)} - imported", ExistingNames(project));
             var instrument = project.NewInstrument(name);
-            instrument.Sounds.Add(sound);
+            instrument.AddSound(sound);
             instruments[sound] = instrument;
         }
 

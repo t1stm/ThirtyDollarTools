@@ -519,17 +519,12 @@ public class EditorState
         OnInstrumentsChanged?.Invoke();
     }
 
-    public void SetInstrumentSounds(Instrument instrument, IEnumerable<string> sounds,
-        IReadOnlyDictionary<string, SoundAdjustment>? adjustments = null)
+    /// <summary>Replaces an instrument's sounds. The instances are cloned - the editor's
+    /// picker keeps mutating its own as the user scrolls them.</summary>
+    public void SetInstrumentSounds(Instrument instrument, IEnumerable<InstrumentSound> sounds)
     {
         instrument.Sounds.Clear();
-        instrument.Sounds.AddRange(sounds);
-
-        instrument.Adjustments.Clear();
-        if (adjustments != null)
-            foreach (var (sound, adjustment) in adjustments)
-                if (!adjustment.IsNoOp)
-                    instrument.Adjustments[sound] = adjustment;
+        instrument.Sounds.AddRange(sounds.Select(sound => sound.Clone()));
 
         Touch();
         OnInstrumentsChanged?.Invoke();

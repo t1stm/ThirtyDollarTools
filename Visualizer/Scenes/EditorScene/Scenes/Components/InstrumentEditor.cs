@@ -16,8 +16,8 @@ namespace EditorScene.Scenes.Components;
 ///     Create-or-edit form for one instrument: a name field and a multi-select sound picker
 ///     (the same picker construction as the track-automation sound filter), with per-sound
 ///     value/volume/pan adjustment turned on (see <see cref="SoundPicker.ShowAdjustments" />).
-///     Pure form - the owner loads/commits the name, <see cref="SoundPicker.Selected" /> and
-///     <see cref="SoundPicker.Adjustments" />, and shows/hides the modal.
+///     Pure form - the owner loads/commits the name and <see cref="SoundPicker.Instances" />,
+///     and shows/hides the modal.
 /// </summary>
 public sealed class InstrumentEditor : FlexPanel
 {
@@ -96,10 +96,9 @@ public sealed class InstrumentEditor : FlexPanel
     }
 
     /// <summary>Pre-loads the form; call with an empty name/selection to start a fresh instrument.</summary>
-    public void Load(string name, IEnumerable<string> sounds, IReadOnlyDictionary<string, SoundAdjustment>? adjustments = null)
+    public void Load(string name, IEnumerable<InstrumentSound> sounds)
     {
         NameInput.Value = name;
-        SoundsPicker.SetAdjustments(adjustments ?? new Dictionary<string, SoundAdjustment>());
-        SoundsPicker.SetSelected(sounds);
+        SoundsPicker.SetInstances(sounds);
     }
 }

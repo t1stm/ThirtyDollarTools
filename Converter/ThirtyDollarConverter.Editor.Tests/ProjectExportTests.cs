@@ -60,8 +60,8 @@ public class ProjectExportTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var layer = project.NewInstrument("Layer");
-        layer.Sounds.Add("boom");
-        layer.Sounds.Add("clap");
+        layer.AddSound("boom");
+        layer.AddSound("clap");
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layer });
         project.Place(track, 0, 0);
 
@@ -78,11 +78,11 @@ public class ProjectExportTests
         var b = project.NewTrack();
 
         var layerA = project.NewInstrument("A");
-        layerA.Sounds.Add("boom");
-        layerA.Sounds.Add("kick");
+        layerA.AddSound("boom");
+        layerA.AddSound("kick");
         var layerB = project.NewInstrument("B");
-        layerB.Sounds.Add("clap");
-        layerB.Sounds.Add("snare");
+        layerB.AddSound("clap");
+        layerB.AddSound("snare");
 
         a.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layerA });
         b.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layerB });
@@ -101,8 +101,8 @@ public class ProjectExportTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var layer = project.NewInstrument("Layer");
-        layer.Sounds.Add("boom");
-        layer.Sounds.Add("clap");
+        layer.AddSound("boom");
+        layer.AddSound("clap");
 
         var echo = new AudioKeyframeManager();
         echo.Keyframes.Add(new AudioKeyframe { Gap = 2 });
@@ -325,8 +325,8 @@ public class ProjectExportTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var layer = project.NewInstrument("Layer");
-        layer.Sounds.Add("kick");
-        layer.Sounds.Add("clap");
+        layer.AddSound("kick");
+        layer.AddSound("clap");
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layer, IsCut = true });
         project.Place(track, 0, 0);
 
@@ -388,7 +388,7 @@ public class ProjectExportTests
     {
         var project = new ThirtyDollarProject();
         var shared = project.NewInstrument("Shared");
-        shared.Sounds.Add("kick");
+        shared.AddSound("kick");
 
         var a = project.NewTrack();
         a.Segments[0].Notes.Add(new Note { Step = 0, Instrument = shared, IsCut = true });
@@ -404,6 +404,6 @@ public class ProjectExportTests
 
         Assert.Equal(["clap", "kick"], cut.CutSounds.OrderBy(s => s));
         // the shared instrument's own set must survive the merge untouched
-        Assert.Equal(["kick"], shared.Sounds);
+        Assert.Equal(["kick"], shared.Sounds.Select(sound => sound.Sound));
     }
 }

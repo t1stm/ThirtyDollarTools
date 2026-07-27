@@ -206,7 +206,7 @@ public class EditorPlayback
 
     /// <summary>
     ///     Plays every sound of an instrument (a note being placed or moved), each combined
-    ///     with its own <see cref="SoundAdjustment" /> if the instrument has one, replacing
+    ///     with its own <see cref="InstrumentSound" /> tuning applied, replacing
     ///     any still-playing preview. Suppressed during playback unless
     ///     <see cref="PreviewDuringPlayback" /> is set. Empty instrument -> no preview.
     /// </summary>
@@ -216,35 +216,31 @@ public class EditorPlayback
 
         StopPreview();
         foreach (var sound in instrument.Sounds)
-        {
-            var adjustment = instrument.Adjustments.GetValueOrDefault(sound);
-            PlayOne(sound, adjustment?.CombineValue(value) ?? value,
-                adjustment?.CombineVolume(null), adjustment?.CombinePan(0) ?? 0);
-        }
+            PlayOne(sound.Sound, sound.CombineValue(value), sound.CombineVolume(null), sound.CombinePan(0));
     }
 
     /// <summary>Plays one sound with its adjustment applied on top of no base note (value 0,
     /// default volume/pan) - the instrument editor's per-sound preview, fired as the user
     /// scrolls a sound's value/volume/pan or hits its row's preview button. Replaces any
     /// still-playing preview, same suppression as <see cref="PreviewNote" />.</summary>
-    public void PreviewSound(string sound, SoundAdjustment adjustment)
+    public void PreviewSound(InstrumentSound sound)
     {
         if (IsPlaying && !PreviewDuringPlayback) return;
 
         StopPreview();
-        PlayOne(sound, adjustment.CombineValue(0), adjustment.CombineVolume(null), adjustment.CombinePan(0));
+        PlayOne(sound.Sound, sound.CombineValue(0), sound.CombineVolume(null), sound.CombinePan(0));
     }
 
     /// <summary>Plays every given sound layered together, each with its own adjustment on
     /// top of no base note - the instrument editor's "Preview" button, previewing the whole
     /// instrument as it would sound on a note at value 0.</summary>
-    public void PreviewInstrument(IEnumerable<(string Sound, SoundAdjustment Adjustment)> sounds)
+    public void PreviewInstrument(IEnumerable<InstrumentSound> sounds)
     {
         if (IsPlaying && !PreviewDuringPlayback) return;
 
         StopPreview();
-        foreach (var (sound, adjustment) in sounds)
-            PlayOne(sound, adjustment.CombineValue(0), adjustment.CombineVolume(null), adjustment.CombinePan(0));
+        foreach (var sound in sounds)
+            PlayOne(sound.Sound, sound.CombineValue(0), sound.CombineVolume(null), sound.CombinePan(0));
     }
 
     private void PlayOne(string sound, double value, double? volume, float pan)

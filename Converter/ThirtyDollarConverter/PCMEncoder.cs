@@ -111,9 +111,21 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     Re-renders <paramref name="oldRendered" /> against a new set of sequences, re-using its mixer and processed samples
-    ///     when possible.
-    ///     Falls back to a full render when cut events appear in the diff (they can't be cleanly inverted).
+    ///     Re-renders <paramref name="oldRendered" /> against a new set of sequences, re-using its
+    ///     mixer and processed samples: it works out which sample range the edit can possibly be
+    ///     audible in, wipes that range in every track, and re-renders it from the full new
+    ///     placement list.
+    ///     <para>
+    ///         That range is <c>[first changed placement, last changed placement + biggestEventLength)</c>:
+    ///         a sound reaches at most <c>biggestEventLength</c> past where it starts, and a cut can
+    ///         only silence sounds that started before it - so no edit is audible more than one
+    ///         biggest-sample beyond the last placement it changed. <see cref="ProcessChunk" /> already
+    ///         looks that far back when picking the placements for a slice, so replaying the range
+    ///         reproduces exactly what a full render would put there, cuts included - which is why a
+    ///         cut in the diff is an ordinary edit here rather than a reason to re-render everything.
+    ///     </para>
+    ///     Falls back to a full render when the render's length changes, since that moves the chunk
+    ///     grid the untouched audio was rendered against (see <see cref="ChunkBoundaries" />).
     /// </summary>
     /// <fun-fact>
     ///     I burnt 7 dollars worth of AI credits to try to write this method and ended up writing it myself anyway.
@@ -122,17 +134,11 @@ public class PcmEncoder
     public async Task<RenderedSequence> ComputeIncrementalAudio(RenderedSequence oldRendered,
         IEnumerable<Sequence> newSequences)
     {
-        // without the old processed samples the remove stage can't subtract anything
         if (oldRendered.Mixer == null || oldRendered.ProcessedEvents == null)
             return await GetMultipleSequencesAudio(newSequences, oldRendered.ProcessedEvents);
 
-        var new_sequences = newSequences as Sequence[] ?? newSequences.ToArray();
+        var new_sequences = newSequences as Sequence[] ?? [.. newSequences];
         var new_placements = PlacementCalculator.CalculateMany(new_sequences).ToArray();
-        var old_placements = oldRendered.Placement;
-
-        // extract differences, counting duplicate placements separately
-        var to_remove = MultisetDifference(old_placements, new_placements);
-        var to_add = MultisetDifference(new_placements, old_placements);
 
         var final_timed_events = new TimedEvents
         {
@@ -141,6 +147,10 @@ public class PcmEncoder
             TimingSampleRate = (int)_sampleRate
         };
 
+        // extract differences, counting duplicate placements separately
+        var to_remove = MultisetDifference(oldRendered.Placement, new_placements);
+        var to_add = MultisetDifference(new_placements, oldRendered.Placement);
+
         // nothing audible changed, keep the old audio
         if (to_remove.Length == 0 && to_add.Length == 0)
         {
@@ -148,17 +158,9 @@ public class PcmEncoder
             return oldRendered;
         }
 
-        // !cut check: a cut that itself changed can't be cleanly inverted - HandleCut zeroes
-        // samples destructively, so there is nothing to subtract back. Cuts that merely
-        // *exist* are fine: they get re-applied over both overlays below, and the overlay now
-        // carries the same per-sound tracks as the old mixer, so #icut lands where it should.
-        if (to_remove.Concat(to_add).Any(pl => pl.Event.SoundEvent == "!cut" || pl.Event is IndividualCutEvent))
-            return await GetMultipleSequencesAudio(new_sequences, oldRendered.ProcessedEvents);
-
-        // A cut targeting a track the old mixer never allocated has nothing to silence, and
-        // only GenerateAudioAndMixer creates tracks. A changed target set is caught by the
-        // diff above (Placement equality compares CutSounds); this stays as the invariant
-        // guard for a mixer that wasn't built from these sequences to begin with.
+        // A sound that lives on a track the old mixer never allocated would be re-rendered onto
+        // the default track instead, and cuts targeting it would miss. Only a full render
+        // creates tracks.
         foreach (var sequence in new_sequences)
             foreach (var channel in sequence.SeparatedChannels)
             {
@@ -169,33 +171,42 @@ public class PcmEncoder
                     return await GetMultipleSequencesAudio(new_sequences, oldRendered.ProcessedEvents);
             }
 
-        // merges the new sounds into the old rendered ones; pruning happens after both stages,
-        // so the remove stage still sees the old samples (and big_event_length covers them)
         var final_sounds = await GetAudioSamples(final_timed_events, oldRendered.ProcessedEvents);
+
+        // Prune before measuring, not after: a full render sizes itself off the samples its own
+        // placements use, so an edit that drops the longest sound has to shorten the render with
+        // it - otherwise the length check below sees no change and keeps a buffer a full render
+        // would never have produced. Nothing here reads the old samples, so this is safe to do
+        // up front (the subtract-based renderer this replaced couldn't - it needed them to
+        // subtract with).
+        RemoveUnusedAudioSamples(final_sounds, final_timed_events);
+
         var big_event = final_sounds.Values.MaxBy(e => e.AudioData.GetLength());
         var big_event_length = big_event?.AudioData.GetLength() ?? 0;
 
-        // IndividualCutEvent is named "!cut" only in the standard format; the legacy one is
-        // "#icut", so match the type too or old-format sequences lose their cuts on re-apply.
-        var cuts = new_placements
-            .Where(pl => pl.Event.SoundEvent == "!cut" || pl.Event is IndividualCutEvent)
-            .ToArray();
         var mixer = oldRendered.Mixer;
+        var length = new_placements.Length > 0 ? (int)new_placements[^1].Index + big_event_length : 0;
+        if (length != mixer.GetLength())
+            return await GetMultipleSequencesAudio(new_sequences, oldRendered.ProcessedEvents);
 
-        // remove stage; ProcessChunk requires placements sorted by index, and cuts must keep
-        // their sequence order relative to sounds sharing the same index
-        if (to_remove.Length > 0)
-            mixer = await ProcessIncrementalPlacements(mixer,
-                to_remove.Concat(cuts).OrderBy(pl => pl.Index).ThenBy(pl => pl.SequenceIndex).ToArray(),
-                final_sounds, big_event_length, true);
+        var dirty_start = int.MaxValue;
+        var dirty_end = 0;
+        foreach (var placement in to_remove.Concat(to_add))
+        {
+            dirty_start = Math.Min(dirty_start, (int)placement.Index);
+            dirty_end = Math.Max(dirty_end, (int)placement.Index + big_event_length);
+        }
 
-        // add stage
-        if (to_add.Length > 0)
-            mixer = await ProcessIncrementalPlacements(mixer,
-                to_add.Concat(cuts).OrderBy(pl => pl.Index).ThenBy(pl => pl.SequenceIndex).ToArray(),
-                final_sounds, big_event_length);
+        var (start, end) = SnapToChunks(length, Math.Max(dirty_start, 0), Math.Min(dirty_end, length));
 
-        RemoveUnusedAudioSamples(final_sounds, final_timed_events);
+        if (end > start)
+        {
+            foreach (var (_, track) in mixer.GetTracks())
+                for (var channel = 0; channel < track.Samples.Length; channel++)
+                    track.GetChannel(channel).AsSpan()[start..end].Clear();
+
+            await RenderChunkRange(mixer, final_timed_events, final_sounds, big_event_length, start, end);
+        }
 
         oldRendered.ProcessedEvents = final_sounds;
         oldRendered.AudioSampleRate = _sampleRate;
@@ -204,62 +215,6 @@ public class PcmEncoder
         oldRendered.TimedEvents = final_timed_events;
         return oldRendered;
     }
-
-    /// <summary>
-    ///     Processes incremental placements by combining audio data based on the provided placements and settings.
-    /// </summary>
-    /// <param name="oldMixer">The existing audio mixer that holds current audio data.</param>
-    /// <param name="placements">An array of placement objects specifying the positions and details of new audio elements.</param>
-    /// <param name="allSounds">A dictionary containing preprocessed audio events mapped by a unique key.</param>
-    /// <param name="bigEventLength">The duration of the significant audio event to append.</param>
-    /// <param name="invert">A boolean indicating whether to invert the audio data while processing.</param>
-    /// <returns>
-    ///     A task representing the asynchronous operation, which returns a combined <see cref="AudioMixer" />
-    ///     containing the updated audio mix.
-    /// </returns>
-    /// <exception cref="ArgumentException">Thrown when the provided placements array is null or empty.</exception>
-    private async Task<AudioMixer> ProcessIncrementalPlacements(AudioMixer oldMixer, Placement[] placements,
-        Dictionary<(string, double), ProcessedEvent> allSounds, int bigEventLength, bool invert = false)
-    {
-        if (placements.Length == 0) return oldMixer;
-        var timed_events = new TimedEvents
-        {
-            Placement = placements,
-            TimingSampleRate = (int)_sampleRate
-        };
-
-        var last_placement = timed_events.Placement[^1];
-        var length = (int)last_placement.Index + bigEventLength;
-        var overlay = new AudioMixer(AudioData<float>.WithLength(_channels, length));
-
-        // Mirror the old mixer's per-sound tracks onto the overlay. Without them every sound
-        // falls back to the overlay's default track (GetTrackOrDefault), so a sound that lives
-        // on a named track in the old mixer gets added to - or subtracted from - the wrong one,
-        // and the cuts re-applied here skip it entirely: editing a note whose instrument is a
-        // cut target left the old note ringing under the new one.
-        foreach (var (name, layout) in oldMixer.GetNamedTrackKeys())
-            overlay.AddTrack(name, AudioData<float>.WithLength(_channels, length), layout);
-
-        await RenderTimedEvents(overlay, timed_events, allSounds, length, invert);
-
-        AudioMixer holding_mixer;
-        AudioMixer add_mixer;
-        if (oldMixer.GetLength() < overlay.GetLength())
-        {
-            holding_mixer = overlay;
-            add_mixer = oldMixer;
-        }
-        else
-        {
-            holding_mixer = oldMixer;
-            add_mixer = overlay;
-        }
-
-        holding_mixer.Sum(add_mixer);
-        add_mixer.Dispose();
-        return holding_mixer;
-    }
-
 
     public async Task<AudioData<float>> GetAudioFromTimedEvents(TimedEvents timedEvents,
         Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents = null)
@@ -416,7 +371,7 @@ public class PcmEncoder
             }
 
         // Map channel tasks.
-        await RenderTimedEvents(mixer, events, processedEvents, big_event_length, false, token);
+        await RenderTimedEvents(mixer, events, processedEvents, big_event_length, token);
 
         return (mixer.MixDown(), mixer);
     }
@@ -430,17 +385,16 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     Adds/Subtracts events from an existing AudioMixer.
+    ///     Adds events to an existing AudioMixer.
     /// </summary>
     /// <param name="mixer">The mixer to render into.</param>
     /// <param name="events">The events to render.</param>
     /// <param name="processedEvents">The processed audio samples.</param>
     /// <param name="biggestEventLength">The length of the biggest event in the sequence.</param>
-    /// <param name="invert">Whether to subtract the events from the mixer.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public async Task RenderTimedEvents(AudioMixer mixer, TimedEvents events,
         Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength,
-        bool invert = false, CancellationToken? cancellationToken = null)
+        CancellationToken? cancellationToken = null)
     {
         var token = cancellationToken ?? CancellationToken.None;
 
@@ -452,10 +406,7 @@ public class PcmEncoder
 
             channels[index] =
                 Task.Run(
-                    async () =>
-                    {
-                        await ProcessChannel(mixer, index, events, processedEvents, biggestEventLength, invert);
-                    },
+                    async () => { await ProcessChannel(mixer, index, events, processedEvents, biggestEventLength); },
                     token);
         }
 
@@ -464,18 +415,57 @@ public class PcmEncoder
     }
 
     /// <summary>
-    ///     Processes an export channel.
+    ///     Renders <paramref name="events" /> into the chunks of the grid that intersect
+    ///     <c>[<paramref name="rangeStart" />, <paramref name="rangeEnd" />)</c>, leaving the rest of the
+    ///     mixer untouched. Used by <see cref="ComputeIncrementalAudio" /> to replay only the range
+    ///     an edit can be heard in.
+    ///     <para>
+    ///         The wanted range is never handed to <see cref="ProcessChunk" /> as its slice, even though
+    ///         it takes a start and an end: those bounds are the chunk grid a full render uses, and they
+    ///         are audible. <see cref="HandleCut" />'s search for silence stops at the end of the slice it
+    ///         is given, so a cut rendered inside one wide slice - or inside a slice that starts partway
+    ///         through a chunk - zeroes a different number of samples than the same cut in a full render.
+    ///         Re-rendering whole chunks of the same grid instead keeps the output bit-identical, which is
+    ///         the property the incremental path is built on.
+    ///     </para>
     /// </summary>
-    /// <param name="mixer">The channel you want to work on.</param>
-    /// <param name="channel">The channel ID.</param>
-    /// <param name="events">The calculated events.</param>
-    /// <param name="processedEvents">The processed events for the sequence.</param>
-    /// <param name="biggestEventLength">The sequence's biggest event's length.</param>
-    /// <param name="invert">Whether to invert the sounds that are coming in the channel.</param>
-    private async Task ProcessChannel(AudioMixer mixer, int channel, TimedEvents events,
-        Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength, bool invert = false)
+    /// <param name="mixer">The mixer to render into. Its range must already be cleared.</param>
+    /// <param name="events">The full placement list, not just the changed placements.</param>
+    /// <param name="processedEvents">The processed audio samples.</param>
+    /// <param name="biggestEventLength">The length of the biggest event in the sequence.</param>
+    /// <param name="rangeStart">First sample to re-render, rounded down to a chunk boundary.</param>
+    /// <param name="rangeEnd">Sample to re-render up to, exclusive, rounded up to a chunk boundary.</param>
+    private async Task RenderChunkRange(AudioMixer mixer, TimedEvents events,
+        Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength,
+        int rangeStart, int rangeEnd)
     {
-        var length = mixer.GetLength();
+        var boundaries = ChunkBoundaries(mixer.GetLength());
+
+        // every (channel, chunk) pair writes to its own disjoint span, so they can all run at once
+        var work =
+            from channel in Enumerable.Range(0, (int)_channels)
+            from i in Enumerable.Range(1, boundaries.Length - 1)
+            where boundaries[i - 1] < rangeEnd && boundaries[i] > rangeStart && boundaries[i - 1] < boundaries[i]
+            select (channel, chunk: i);
+
+        await Parallel.ForEachAsync(work, (item, _) =>
+        {
+            ProcessChunk(boundaries[item.chunk - 1], boundaries[item.chunk], mixer, item.channel, events,
+                processedEvents, biggestEventLength);
+            return ValueTask.CompletedTask;
+        });
+    }
+
+    /// <summary>
+    ///     The sample offsets a render of <paramref name="length" /> samples is split into for
+    ///     multithreading: chunk <c>i</c> covers <c>[result[i], result[i + 1])</c>.
+    ///     <see cref="ComputeIncrementalAudio" /> re-renders whole chunks of this exact
+    ///     grid rather than an arbitrary sample range, because a chunk boundary is observable in
+    ///     the output: <see cref="HandleCut" />'s search for silence restarts at one, so a cut
+    ///     rendered against different boundaries can stop zeroing somewhere else.
+    /// </summary>
+    private int[] ChunkBoundaries(int length)
+    {
         var min_length_per_thread = Math.Min(1 << 15, length);
         var working_threads = _settings.MultithreadingSlices;
 
@@ -490,30 +480,73 @@ public class PcmEncoder
                                 $"MinLengthForThread: {min_length_per_thread}, Ratio: {ratio}");
 
         var chunk_size = length / (float)working_threads;
+        var boundaries = new int[working_threads + 1];
+        for (var i = 0; i < working_threads; i++) boundaries[i] = Math.Min((int)(i * chunk_size), length);
+        boundaries[working_threads] = length;
 
-        await Parallel.ForAsync(1, working_threads + 1, (i, _) =>
+        return boundaries;
+    }
+
+    /// <summary>The span the chunk grid actually covers for a wanted range - the wanted range
+    /// grown outwards to the nearest chunk boundaries. Empty (start == end) when nothing
+    /// intersects.</summary>
+    internal (int Start, int End) SnapToChunks(int length, int rangeStart, int rangeEnd)
+    {
+        if (length <= 0) return (0, 0);
+
+        var boundaries = ChunkBoundaries(length);
+        var start = length;
+        var end = 0;
+
+        for (var i = 1; i < boundaries.Length; i++)
         {
-            var start_idx = (i - 1) * chunk_size;
-            var end_idx = i * chunk_size;
+            if (boundaries[i - 1] >= rangeEnd || boundaries[i] <= rangeStart) continue;
+            start = Math.Min(start, boundaries[i - 1]);
+            end = Math.Max(end, boundaries[i]);
+        }
 
-            var start = (int)start_idx;
-            var end = i == working_threads ? length : Math.Min((int)end_idx, length);
+        return end <= start ? (0, 0) : (start, end);
+    }
 
-            if (start > length) return ValueTask.CompletedTask;
+    /// <summary>
+    ///     Processes an export channel.
+    /// </summary>
+    /// <param name="mixer">The channel you want to work on.</param>
+    /// <param name="channel">The channel ID.</param>
+    /// <param name="events">The calculated events.</param>
+    /// <param name="processedEvents">The processed events for the sequence.</param>
+    /// <param name="biggestEventLength">The sequence's biggest event's length.</param>
+    private async Task ProcessChannel(AudioMixer mixer, int channel, TimedEvents events,
+        Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength)
+    {
+        var length = mixer.GetLength();
+        var boundaries = ChunkBoundaries(length);
+
+        await Parallel.ForAsync(1, boundaries.Length, (i, _) =>
+        {
+            var start = boundaries[i - 1];
+            var end = boundaries[i];
+
+            if (start >= end) return ValueTask.CompletedTask;
 
             var start_time = Stopwatch.GetTimestamp();
-            ProcessChunk(start, end, mixer, channel, events, processedEvents, biggestEventLength, invert);
+            ProcessChunk(start, end, mixer, channel, events, processedEvents, biggestEventLength);
             var delta = Stopwatch.GetElapsedTime(start_time);
             Log(
-                $@"Processed chunk i: {i} in {delta:ss\.ffff} s. Start: {start}, End: {end}, ChunkSize: {chunk_size}, Length: {length}");
+                $@"Processed chunk i: {i} in {delta:ss\.ffff} s. Start: {start}, End: {end}, Length: {length}");
 
             return ValueTask.CompletedTask;
         });
     }
 
+    /// <summary>
+    ///     Renders every placement audible in <c>[<paramref name="start" />, <paramref name="end" />)</c>
+    ///     into that slice of the mixer. The bounds are a chunk of the grid
+    ///     <see cref="ChunkBoundaries" /> lays out, and are audible in their own right - see the note
+    ///     on <see cref="RenderChunkRange" /> before calling with anything else.
+    /// </summary>
     private void ProcessChunk(int start, int end, AudioMixer mixer, int channel,
-        TimedEvents events, Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength,
-        bool invert = false)
+        TimedEvents events, Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength)
     {
         var placement = events.Placement.AsSpan();
 
@@ -527,12 +560,12 @@ public class PcmEncoder
             if (current_start < start - biggestEventLength) continue;
             if (current_start >= end) break;
 
-            RenderEventToSlice(start, end, mixer, channel, current, processedEvents, invert);
+            RenderEventToSlice(start, end, mixer, channel, current, processedEvents);
         }
     }
 
     private void RenderEventToSlice(int start, int end, AudioMixer mixer, int channel,
-        Placement current, Dictionary<(string, double), ProcessedEvent> processedEvents, bool invert = false)
+        Placement current, Dictionary<(string, double), ProcessedEvent> processedEvents)
     {
         // extract event values
         var current_event = current.Event;
@@ -640,7 +673,7 @@ public class PcmEncoder
         if (pan != 0 && _settings.PanScale == PercentageScale.EqualPower)
         {
             RenderEqualPowerPan(processed_event, channel, pan, volume, current_channel, mix_slice,
-                delta_start, delta_end, offset, invert);
+                delta_start, delta_end, offset);
             return;
         }
 
@@ -676,7 +709,7 @@ public class PcmEncoder
         }
 
         RenderSample(current_channel, mix_slice, delta_start,
-            volume, _settings.VolumeScale, delta_end, offset, invert);
+            volume, _settings.VolumeScale, delta_end, offset);
     }
 
     /// <summary>
@@ -686,7 +719,7 @@ public class PcmEncoder
     ///     into the panned-to side instead of just attenuated (a well-known StereoPannerNode quirk).
     /// </summary>
     private void RenderEqualPowerPan(ProcessedEvent processed_event, int channel, float pan, double volume,
-        Span<float> own_channel, Span<float> mix_slice, int delta_start, int delta_end, int offset, bool invert)
+        Span<float> own_channel, Span<float> mix_slice, int delta_start, int delta_end, int offset)
     {
         var x = pan / 100f;
         var stereo_source = processed_event.AudioData.SourceChannels >= 2 && _settings.Channels >= 2;
@@ -696,7 +729,7 @@ public class PcmEncoder
             var angle = (x + 1f) * MathF.PI / 4f;
             var gain = channel == 0 ? MathF.Cos(angle) : MathF.Sin(angle);
             RenderSample(own_channel, mix_slice, delta_start, volume * gain, _settings.VolumeScale, delta_end,
-                offset, invert);
+                offset);
             return;
         }
 
@@ -708,23 +741,23 @@ public class PcmEncoder
         {
             var own_gain = channel == 0 ? 1f : sin;
             RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
-                offset, invert);
+                offset);
 
             if (channel != 0) return;
             var right_channel = processed_event.AudioData.GetChannel(1);
             RenderSample(right_channel, mix_slice, delta_start, volume * cos, _settings.VolumeScale, delta_end,
-                offset, invert);
+                offset);
         }
         else
         {
             var own_gain = channel == 1 ? 1f : cos;
             RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
-                offset, invert);
+                offset);
 
             if (channel != 1) return;
             var left_channel = processed_event.AudioData.GetChannel(0);
             RenderSample(left_channel, mix_slice, delta_start, volume * sin, _settings.VolumeScale, delta_end,
-                offset, invert);
+                offset);
         }
     }
 
@@ -857,9 +890,8 @@ public class PcmEncoder
     /// <param name="volumeScale"></param>
     /// <param name="length">The length of the export you want to do.</param>
     /// <param name="offset">The source sample offset. Used in multithreading.</param>
-    /// <param name="invert">Whether to invert the sample so that if exists in the audio already it gets removed.</param>
     public static void RenderSample(Span<float> source, Span<float> destination, int index,
-        double volume, PercentageScale volumeScale, int length = -1, int offset = -1, bool invert = false)
+        double volume, PercentageScale volumeScale, int length = -1, int offset = -1)
     {
         if (length == -1) length = source.Length;
 
@@ -892,30 +924,13 @@ public class PcmEncoder
             var d_vector = new Vector<float>(d);
             var s_vector = new Vector<float>(s);
 
-            var src = s_vector * final_volume;
-            var final = invert ? d_vector - src : d_vector + src;
+            var final = d_vector + s_vector * final_volume;
 
             final.CopyTo(d);
         }
 
         var min_final = Math.Min(d_slice.Length, s_slice.Length);
-        for (var i = min; i < min_final; i++)
-        {
-            var src = s_slice[i] * final_volume;
-            var d = d_slice[i];
-
-            switch (invert)
-            {
-                case true:
-                    d -= src;
-                    break;
-                default:
-                    d += src;
-                    break;
-            }
-
-            d_slice[i] = d;
-        }
+        for (var i = min; i < min_final; i++) d_slice[i] += s_slice[i] * final_volume;
     }
 
     #endregion

@@ -114,11 +114,11 @@ public class ThirtyDollarProject
     /// </summary>
     internal Instrument GetOrCreateInstrument(string sound)
     {
-        var existing = _instruments.FirstOrDefault(instrument => instrument.Sounds is [var only] && only == sound);
+        var existing = _instruments.FirstOrDefault(instrument => instrument.Sounds is [{ Sound: var only }] && only == sound);
         if (existing is not null) return existing;
 
         var instrument = NewInstrument(sound);
-        instrument.Sounds.Add(sound);
+        instrument.AddSound(sound);
         return instrument;
     }
 

@@ -340,6 +340,33 @@ public class InputRoutingTests
         Assert.Same(newView, ctx.CapturedElement);
     }
 
+    [Fact]
+    public void RightPressId_BumpsOncePerPress_NotPerFrameWhileHeld()
+    {
+        // Right presses are dispatched level-triggered (for sweep gestures), so handlers
+        // whose action isn't idempotent key off this id to act once per press.
+        var (ctx, root) = NewTree();
+        var target = new Panel(ctx) { X = 0, Y = 0, Width = 100, Height = 100 };
+        root.Children = [target];
+        root.Layout();
+
+        var idle = ctx.RightPressId;
+        ctx.UpdatePointer(root, 50, 50, false, false, false, Vector2.Zero, true);
+        var pressed = ctx.RightPressId;
+        Assert.NotEqual(idle, pressed);
+
+        // held down over two more frames - same press
+        ctx.UpdatePointer(root, 50, 50, false, false, false, Vector2.Zero, true);
+        ctx.UpdatePointer(root, 60, 50, false, false, false, Vector2.Zero, true);
+        Assert.Equal(pressed, ctx.RightPressId);
+
+        ctx.UpdatePointer(root, 60, 50, false, false, false, Vector2.Zero); // released
+        Assert.Equal(pressed, ctx.RightPressId);
+
+        ctx.UpdatePointer(root, 60, 50, false, false, false, Vector2.Zero, true); // pressed again
+        Assert.NotEqual(pressed, ctx.RightPressId);
+    }
+
     private sealed class CapturingSwapper(UIContext context) : Panel(context)
     {
         public Action OnDoublePress { get; set; } = () => { };

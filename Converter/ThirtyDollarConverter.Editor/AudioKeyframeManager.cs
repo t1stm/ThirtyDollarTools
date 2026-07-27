@@ -91,7 +91,7 @@ public class AudioKeyframeManager
         foreach (var (minutes, generated, keyframe) in ExpandCore(note, noteMinutes, stepMinutes))
         {
             if (keyframe.Cut)
-                yield return (minutes, new IndividualCutEvent(note.Instrument.Sounds.ToHashSet()));
+                yield return (minutes, new IndividualCutEvent(note.Instrument.SoundNames));
 
             if (keyframe is not { Cut: true, CutOnly: true })
                 foreach (var ev in generated.ToEvents())
@@ -104,7 +104,7 @@ public class AudioKeyframeManager
         // lands one more gap after it, where its next repeat would have cut it anyway.
         if (last is { Cut: true, CutLast: true })
             yield return (lastMinutes + GapMinutes(last, stepMinutes),
-                new IndividualCutEvent(note.Instrument.Sounds.ToHashSet()));
+                new IndividualCutEvent(note.Instrument.SoundNames));
     }
 
     /// <summary>

@@ -50,7 +50,7 @@ public static class BmsToProject
         {
             if (instruments.TryGetValue(sound, out var instrument)) return instrument;
             instrument = project.NewInstrument(sound);
-            instrument.Sounds.Add(sound);
+            instrument.AddSound(sound);
             instruments[sound] = instrument;
             return instrument;
         }

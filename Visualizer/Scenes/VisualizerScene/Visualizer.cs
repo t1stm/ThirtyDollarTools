@@ -76,10 +76,12 @@ public class Visualizer : Scene, IGamePreloadable
         _width = game.ClientSize.X;
         _height = game.ClientSize.Y;
         _settings = settings;
-        _startingSequences = sequenceLocations
-            .Where(location => location is not null)
-            .Cast<string>()
-            .ToArray();
+        _startingSequences =
+        [
+            .. sequenceLocations
+                .Where(location => location is not null)
+                .Cast<string>()
+        ];
 
         _tempCamera = new DollarStoreCamera((0, -300f, 0), new Vector2i(_width, _height), settings.ScrollSpeed);
         _textCamera = new DollarStoreCamera((0, 0, 0), new Vector2i(_width, _height), settings.ScrollSpeed);

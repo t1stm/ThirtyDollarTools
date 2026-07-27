@@ -248,7 +248,7 @@ public class ProjectTrack(TimingInfo timing, int id)
 
                 foreach (var automation in _trackAutomations)
                 {
-                    if (automation.Sounds is { } sounds && !note.Instrument.Sounds.Any(sounds.Contains)) continue;
+                    if (automation.Sounds is { } sounds && !note.Instrument.Sounds.Any(sound => sounds.Contains(sound.Sound))) continue;
                     foreach (var generated in automation.Keyframes.Expand(transposed, minutes, step_minutes))
                         yield return generated;
                 }

@@ -239,7 +239,7 @@ public class SequenceImporterTests
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
         var sounds = result.Track!.Segments[0].Notes.OrderBy(n => n.Step)
-            .Select(n => n.Instrument.Sounds[0]).ToArray();
+            .Select(n => n.Instrument.Sounds[0].Sound).ToArray();
         Assert.Equal(["snare", "kick", "snare", "kick"], sounds);
     }
 
@@ -251,7 +251,7 @@ public class SequenceImporterTests
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
         var sounds = result.Track!.Segments[0].Notes.OrderBy(n => n.Step)
-            .Select(n => n.Instrument.Sounds[0]).ToArray();
+            .Select(n => n.Instrument.Sounds[0].Sound).ToArray();
         Assert.Equal(["kick", "hat"], sounds);
     }
 
@@ -343,7 +343,7 @@ public class SequenceImporterTests
 
         var instrument = Assert.Single(result.Instruments);
         Assert.Equal("pizza - imported", instrument.Name);
-        Assert.Equal(["pizza"], instrument.Sounds);
+        Assert.Equal(["pizza"], instrument.Sounds.Select(sound => sound.Sound));
         Assert.Empty(result.Warnings.UnknownSounds);
         Assert.All(result.Track!.Segments[0].Notes, note => Assert.Same(instrument, note.Instrument));
     }
@@ -398,9 +398,9 @@ public class SequenceImporterTests
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
 
         var cuts = result.Track!.Segments[0].Notes.Where(n => n.IsCut)
-            .OrderBy(n => n.Instrument.Sounds[0]).ToList();
+            .OrderBy(n => n.Instrument.Sounds[0].Sound).ToList();
         Assert.Equal(2, cuts.Count);
-        Assert.Equal(["kick", "snare"], cuts.Select(n => n.Instrument.Sounds[0]));
+        Assert.Equal(["kick", "snare"], cuts.Select(n => n.Instrument.Sounds[0].Sound));
         Assert.All(cuts, n => Assert.Equal(1, n.Step)); // simultaneous: no advance between them
     }
 
@@ -416,8 +416,8 @@ public class SequenceImporterTests
 
         var notes = result.Track!.Segments[0].Notes.OrderBy(n => n.Step).ToList();
         Assert.Equal(5, notes.Count); // kick, snare, cut(kick), cut(snare), hat
-        var cuts = notes.Where(n => n.IsCut).OrderBy(n => n.Instrument.Sounds[0]).ToList();
-        Assert.Equal(["kick", "snare"], cuts.Select(n => n.Instrument.Sounds[0]));
+        var cuts = notes.Where(n => n.IsCut).OrderBy(n => n.Instrument.Sounds[0].Sound).ToList();
+        Assert.Equal(["kick", "snare"], cuts.Select(n => n.Instrument.Sounds[0].Sound));
         Assert.All(cuts, n => Assert.Equal(2, n.Step));
         Assert.False(result.Warnings.IgnoredEvents.ContainsKey("!cut"));
     }

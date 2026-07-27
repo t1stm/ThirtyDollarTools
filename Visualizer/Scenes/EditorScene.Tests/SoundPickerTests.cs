@@ -29,6 +29,38 @@ public class SoundPickerTests
     }
 
     [Fact]
+    public void AddInstance_Duplicating_CopiesTheTuningAndLandsRightAfterTheSource()
+    {
+        // Right-clicking a selected sound duplicates it, so one instrument can play it
+        // twice with different tuning (dual-octave playback).
+        var picker = NewPicker(new EditorTestContext());
+        picker.SetSelected(["kick", "clap"]);
+        picker.Instances[0].Value = -5;
+
+        var duplicate = picker.AddInstance("kick", picker.Instances[0]);
+
+        Assert.Equal(["kick", "kick", "clap"], picker.Instances.Select(instance => instance.Sound));
+        Assert.Equal(-5, duplicate.Value);
+        Assert.NotSame(picker.Instances[0], duplicate);
+        Assert.Equal(new HashSet<string> { "kick", "clap" }, picker.Selected); // names dedupe
+    }
+
+    [Fact]
+    public void RemoveInstance_DropsOnlyThatCopy()
+    {
+        var picker = NewPicker(new EditorTestContext());
+        picker.SetSelected(["kick"]);
+        var duplicate = picker.AddInstance("kick", picker.Instances[0]);
+        duplicate.Value = -12;
+
+        picker.RemoveInstance(duplicate);
+
+        var remaining = Assert.Single(picker.Instances);
+        Assert.Equal("kick", remaining.Sound);
+        Assert.Equal(0, remaining.Value);
+    }
+
+    [Fact]
     public void KeybindNote_OnlyShowsWithAdjustmentsAndANonEmptySelection()
     {
         var picker = NewPicker(new EditorTestContext());

@@ -5,7 +5,7 @@ public class ProjectFileTests
     private static Instrument MakeInstrument(ThirtyDollarProject project, string sound)
     {
         var instrument = project.NewInstrument(sound);
-        instrument.Sounds.Add(sound);
+        instrument.AddSound(sound);
         return instrument;
     }
 
@@ -77,7 +77,7 @@ public class ProjectFileTests
         Assert.Equal(80, kick.Volume);
         Assert.Equal(-25, kick.Pan);
         Assert.Equal("kick", kick.Instrument.Name);
-        Assert.Equal(["kick"], kick.Instrument.Sounds);
+        Assert.Equal(["kick"], kick.Instrument.Sounds.Select(sound => sound.Sound));
 
         var trackAutomation = Assert.Single(drums.TrackAutomations);
         Assert.Equal(["kick"], trackAutomation.Sounds);

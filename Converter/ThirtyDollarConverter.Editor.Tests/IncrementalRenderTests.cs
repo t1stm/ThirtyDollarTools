@@ -20,8 +20,8 @@ public class IncrementalRenderTests
         var holder = new SampleHolder(Logger.None);
         holder.SampleList.Add(new Sound { Id = "kick" }, Sine(440));
         holder.SampleList.Add(new Sound { Id = "snare" }, Sine(880));
-        // Longer than the rest on purpose: it sets biggestEventLength, which is what makes an
-        // overlay end well before the full render does (see the multi-sound instrument test).
+        // Longer than the rest on purpose: it sets biggestEventLength, which is both how far
+        // past an edit the re-rendered range has to reach and what sizes the render.
         holder.SampleList.Add(new Sound { Id = "pad" }, Sine(220, 1.5f));
         _encoder = new PcmEncoder(holder, new EncoderSettings { SampleRate = 44100, Channels = 2 });
     }
@@ -47,9 +47,9 @@ public class IncrementalRenderTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var kick = project.NewInstrument("kick");
-        kick.Sounds.Add("kick");
+        kick.AddSound("kick");
         var snare = project.NewInstrument("snare");
-        snare.Sounds.Add("snare");
+        snare.AddSound("snare");
 
         var note = new Note { Step = 0, Instrument = kick };
         track.Segments[0].Notes.Add(note);
@@ -78,8 +78,8 @@ public class IncrementalRenderTests
     }
 
     /// <summary>
-    ///     Retuning a note without moving it: the old pitch has to be subtracted, not left
-    ///     ringing under the new one.
+    ///     Retuning a note without moving it: the old pitch has to be gone, not left ringing
+    ///     under the new one.
     /// </summary>
     [Fact]
     public async Task ChangingANoteValue_LeavesNoTraceOfTheOldPitch()
@@ -130,7 +130,7 @@ public class IncrementalRenderTests
 
     /// <summary>
     ///     Setting a volume on a note that had none (null follows the sequence volume): the
-    ///     old loudness has to be subtracted, not left under the new one.
+    ///     old loudness has to be gone, not left under the new one.
     /// </summary>
     [Fact]
     public async Task ChangingANoteVolume_LeavesNoTraceOfTheOldVolume()
@@ -151,13 +151,13 @@ public class IncrementalRenderTests
         await AssertMatchesFullRender(project, [() => note.Volume = 50]);
     }
 
-    /// <summary>Instrument-level volume: a per-sound adjustment overriding the note's volume.</summary>
+    /// <summary>Instrument-level volume: a per-sound volume scaling the note's.</summary>
     [Fact]
     public async Task ChangingAnInstrumentSoundVolume_LeavesNoTraceOfTheOldVolume()
     {
         var (project, note) = Project();
         await AssertMatchesFullRender(project,
-            [() => note.Instrument.Adjustments["kick"] = new SoundAdjustment { Volume = 40 }]);
+            [() => note.Instrument.Sounds.Single(sound => sound.Sound == "kick").Volume = 40]);
     }
 
     /// <summary>The same instrument-level volume edit on notes that carry automation.</summary>
@@ -170,7 +170,7 @@ public class IncrementalRenderTests
             { Gap = 1, Volume = new Modifier(0.5, ModifierKind.Multiply) });
 
         await AssertMatchesFullRender(project,
-            [() => note.Instrument.Adjustments["kick"] = new SoundAdjustment { Volume = 40 }]);
+            [() => note.Instrument.Sounds.Single(sound => sound.Sound == "kick").Volume = 40]);
     }
 
     /// <summary>The same edit while the automation retriggers the note through cuts.</summary>
@@ -183,7 +183,7 @@ public class IncrementalRenderTests
             { Gap = 1, Cut = true, Volume = new Modifier(0.5, ModifierKind.Multiply) });
 
         await AssertMatchesFullRender(project,
-            [() => note.Instrument.Adjustments["kick"] = new SoundAdjustment { Volume = 40 }]);
+            [() => note.Instrument.Sounds.Single(sound => sound.Sound == "kick").Volume = 40]);
     }
 
     /// <summary>Volume edit on a note whose automation retriggers it through cuts.</summary>
@@ -201,10 +201,10 @@ public class IncrementalRenderTests
     /// <summary>
     ///     Four cut-automated notes on a two-sound instrument, then one sound gains a volume
     ///     (null -> 60) while the other keeps following the note. The diff holds only that
-    ///     sound, so the overlay ends at its last placement - well before the full render's
-    ///     end - which is exactly where the chunked renderer used to drop its final sample:
-    ///     one sample kept its pre-edit value while everything around it was subtracted and
-    ///     re-added. Sample-exact here, no tolerance.
+    ///     sound, so the range ends at its last placement - well before the render does - which
+    ///     is where the chunked renderer used to drop its final sample: one sample kept its
+    ///     pre-edit value while everything around it was rewritten. Sample-exact here, no
+    ///     tolerance.
     /// </summary>
     [Fact]
     public async Task ChangingOneSoundVolume_OnACutAutomatedMultiSoundInstrument()
@@ -212,8 +212,8 @@ public class IncrementalRenderTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var instrument = project.NewInstrument("both");
-        instrument.Sounds.Add("kick");
-        instrument.Sounds.Add("pad");
+        instrument.AddSound("kick");
+        instrument.AddSound("pad");
 
         for (var step = 0; step < 4; step++)
         {
@@ -229,7 +229,7 @@ public class IncrementalRenderTests
         var rendered = await _encoder.GetSequenceAudio(project.ToSequence());
         rendered = await _encoder.ComputeIncrementalAudio(rendered, [project.ToSequence()]);
 
-        instrument.Adjustments["pad"] = new SoundAdjustment { Volume = 60 };
+        instrument.Sounds.Single(sound => sound.Sound == "pad").Volume = 60;
         rendered = await _encoder.ComputeIncrementalAudio(rendered, [project.ToSequence()]);
 
         var full = await _encoder.GetSequenceAudio(project.ToSequence());
@@ -240,10 +240,9 @@ public class IncrementalRenderTests
     /// <summary>
     ///     A cut-automated instrument's sound list edited across four renders: two sounds
     ///     (one tuned -14, one plain), then a third is added, then tuned to -6 at 60% volume,
-    ///     then removed again. Removing it shrinks every automation cut's target set, which
-    ///     <see cref="Placement" /> equality ignores - so the cuts look unchanged, stay out of
-    ///     the diff, and the removal overlay subtracts an uncut copy of a sound the old mixer
-    ///     had cut: the dropped sound rings on as if its cuts had been undone.
+    ///     then removed again. The third sound is the longest one, so dropping it also shortens
+    ///     what a full render produces - the incremental path has to notice that and rebuild
+    ///     rather than hand back a buffer that still runs to the old length.
     /// </summary>
     [Fact]
     public async Task RemovingASoundFromACutAutomatedInstrument_LeavesNoUncutResidue()
@@ -251,9 +250,9 @@ public class IncrementalRenderTests
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var instrument = project.NewInstrument("layered");
-        instrument.Sounds.Add("kick");
-        instrument.Sounds.Add("snare");
-        instrument.Adjustments["kick"] = new SoundAdjustment { Value = -14 };
+        instrument.AddSound("kick");
+        instrument.AddSound("snare");
+        instrument.Sounds.Single(sound => sound.Sound == "kick").Value = -14;
 
         for (var step = 0; step < 4; step++)
         {
@@ -267,16 +266,16 @@ public class IncrementalRenderTests
         var rendered = await _encoder.GetSequenceAudio(project.ToSequence());
 
         // add a third sound, plain
-        instrument.Sounds.Add("pad");
+        instrument.AddSound("pad");
         rendered = await _encoder.ComputeIncrementalAudio(rendered, [project.ToSequence()]);
 
         // tune it: -6 semitones at 60%
-        instrument.Adjustments["pad"] = new SoundAdjustment { Value = -6, Volume = 60 };
+        var pad = instrument.Sounds.Single(sound => sound.Sound == "pad");
+        (pad.Value, pad.Volume) = (-6, 60);
         rendered = await _encoder.ComputeIncrementalAudio(rendered, [project.ToSequence()]);
 
         // and take it back out
-        instrument.Sounds.Remove("pad");
-        instrument.Adjustments.Remove("pad");
+        instrument.Sounds.Remove(pad);
         rendered = await _encoder.ComputeIncrementalAudio(rendered, [project.ToSequence()]);
 
         var full = await _encoder.GetSequenceAudio(project.ToSequence());

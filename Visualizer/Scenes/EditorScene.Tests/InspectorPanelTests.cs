@@ -13,7 +13,7 @@ public class InspectorPanelTests
     private static Instrument MakeInstrument(EditorState state, string sound)
     {
         var instrument = state.AddInstrument(sound);
-        state.SetInstrumentSounds(instrument, [sound]);
+        state.SetInstrumentSounds(instrument, [new InstrumentSound { Sound = sound }]);
         return instrument;
     }
 
