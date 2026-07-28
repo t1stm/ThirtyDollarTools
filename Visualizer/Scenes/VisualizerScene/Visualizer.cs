@@ -360,6 +360,17 @@ public class Visualizer : Scene, IGamePreloadable
                 break;
         }
 
+        // toggle the bottom player bar
+        if (state.IsKeyPressed(Keys.H) && _playerBar is not null)
+        {
+            _playerBar.Hidden = !_playerBar.Hidden;
+            SetStatusMessage(_playerBar.Hidden switch
+            {
+                true => "[Player Bar]: Hidden",
+                false => "[Player Bar]: Shown"
+            });
+        }
+
         // toggle camera modes
         var oldFollowMode = PlayfieldContainer.CameraFollowMode;
         PlayfieldContainer.CameraFollowMode = state.IsKeyPressed(Keys.C) switch

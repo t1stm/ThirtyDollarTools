@@ -61,6 +61,11 @@ public class PlayerBar
 
     public float CurrentAlpha { get; private set; }
 
+    /// <summary>
+    ///     When set, the bar fades out and stays hidden regardless of the mouse position.
+    /// </summary>
+    public bool Hidden { get; set; }
+
     public Action OnBack { get; }
     public Action OnPlayPause { get; }
     public Action OnRestart { get; }
@@ -91,7 +96,7 @@ public class PlayerBar
 
     public void UpdateAlpha(MouseState mouse, Vector2i windowSize, float deltaTime, bool forceVisible = false)
     {
-        if (forceVisible)
+        if (forceVisible && !Hidden)
         {
             _inactivityTimer = 0f;
             _lastMousePos = mouse.Position;
@@ -111,7 +116,7 @@ public class PlayerBar
 
         var normalizedY = windowSize.Y > 0 ? mousePos.Y / windowSize.Y : 0f;
         var inZone = inWindow && normalizedY > ZoneLow;
-        var isActive = inZone && _inactivityTimer < FadeDelay;
+        var isActive = !Hidden && inZone && _inactivityTimer < FadeDelay;
 
         var targetAlpha = isActive
             ? Math.Clamp((normalizedY - ZoneLow) / (ZoneHigh - ZoneLow), 0f, 1f)
