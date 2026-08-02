@@ -42,7 +42,8 @@ public static class ProjectFile
                         note.Volume,
                         note.Pan,
                         SaveAutomation(note.Automation),
-                        note.Offset == 0 ? null : note.Offset
+                        note.Offset == 0 ? null : note.Offset,
+                        IsCut: note.IsCut ? true : null
                     )).ToList()
                 )).ToList(),
                 track.TrackAutomations.Count == 0
@@ -132,7 +133,8 @@ public static class ProjectFile
                         Volume = note.Volume,
                         Pan = note.Pan,
                         Offset = note.Offset ?? 0,
-                        Automation = LoadAutomation(note.Automation)
+                        Automation = LoadAutomation(note.Automation),
+                        IsCut = note.IsCut ?? false
                     });
                 }
             }
@@ -285,7 +287,9 @@ public static class ProjectFile
         // Sound-start offset in seconds; null (missing key) = 0.
         double? Offset = null,
         // Pre-instrument sound name, kept only for reading old files; never written.
-        string? Sound = null);
+        string? Sound = null,
+        // Null (missing key) = false - files from before the feature stay valid.
+        bool? IsCut = null);
 
     // Null Repeats (missing key) = 1 - files from before the feature stay valid.
     private record AutomationDto(KeyframeTiming Timing, List<KeyframeDto> Keyframes, int? Repeats = null);

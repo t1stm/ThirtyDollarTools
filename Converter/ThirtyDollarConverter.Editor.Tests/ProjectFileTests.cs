@@ -226,6 +226,20 @@ public class ProjectFileTests
     }
 
     [Fact]
+    public void CutNote_RoundTripsAsACut_NotAValueZeroNote()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        track.Segments[0].Notes.Add(new Note
+        { Step = 2, Instrument = MakeInstrument(project, "kick"), IsCut = true });
+
+        var loaded = ProjectFile.Load(ProjectFile.Save(project));
+
+        var note = Assert.Single(loaded.Tracks[0].Segments[0].Notes);
+        Assert.True(note.IsCut);
+    }
+
+    [Fact]
     public void TrackTranspose_NullVsExplicitZero_RoundTripDifferently()
     {
         var project = new ThirtyDollarProject { Transpose = 3 };
