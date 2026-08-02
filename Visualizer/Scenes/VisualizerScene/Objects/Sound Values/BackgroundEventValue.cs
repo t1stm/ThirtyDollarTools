@@ -13,12 +13,16 @@ public class BackgroundEventValue : ISoundValue
 {
     private const float Gap = 5.0f;
     private readonly float _baseFontSize;
+    private readonly float _baseGap;
     private readonly TrackedBufferReference<BackgroundBlip> _blip;
     private readonly TextSlice _value;
 
-    public BackgroundEventValue(double value, RenderableFactory factory, TextBuffer buffer, float baseFontSize)
+    public BackgroundEventValue(double value, RenderableFactory factory, TextBuffer buffer, float baseFontSize,
+        float renderScale)
     {
-        _baseFontSize = baseFontSize;
+        // render scale is baked in, since ScaleMultiplier belongs to the expand animation and gets reset to 1
+        _baseFontSize = baseFontSize * renderScale;
+        _baseGap = Gap * renderScale;
 
         var (parsedColor, seconds) = BackgroundParser.ParseFromDouble(value);
         _blip = factory.NewBackgroundBlip(parsedColor);
@@ -50,7 +54,7 @@ public class BackgroundEventValue : ISoundValue
         const float blipScaleMultiplier = 0.9f;
         var realPosition = Position + Translation;
         var fontSize = _baseFontSize * ScaleMultiplier;
-        var gap = Gap * ScaleMultiplier;
+        var gap = _baseGap * ScaleMultiplier;
 
         _value.FontSize = fontSize;
         _value.UpdateCharacters();

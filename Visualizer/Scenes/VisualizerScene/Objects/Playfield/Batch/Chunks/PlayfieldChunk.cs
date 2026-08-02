@@ -65,16 +65,13 @@ public class PlayfieldChunk : IDisposable
                 case IndividualCutEvent ice:
                     {
                         iceFactory ??= new RenderableFactory(store);
-                        renderable.Value = new IndividualCutValue(ice, iceFactory);
+                        renderable.Value = new IndividualCutValue(ice, iceFactory, settings.RenderScale);
                         continue;
                     }
 
                 case NormalEvent { SoundEvent: "!bg" }:
                     renderable.Value = new BackgroundEventValue(baseEvent.Value, factory, chunk._textBuffer,
-                        sizing.ValueFontSize)
-                    {
-                        ScaleMultiplier = settings.RenderScale
-                    };
+                        sizing.ValueFontSize, settings.RenderScale);
                     continue;
             }
 

@@ -58,6 +58,17 @@ public class InstrumentRowTests
     }
 
     [Fact]
+    public void AVeryLongName_DoesNotPushTheButtonsOutOfTheRow()
+    {
+        var ctx = new EditorTestContext();
+        var instrument = new Instrument { Name = new string('W', 200) };
+        var (row, _, delete) = NewRow(ctx, instrument, _ => { }, _ => { }, _ => { });
+
+        var right = row.Computed.AbsoluteX + row.Computed.Width;
+        Assert.InRange(delete.Computed.AbsoluteX + delete.Computed.Width, 0, right);
+    }
+
+    [Fact]
     public void ClickingTheRowAwayFromTheButtons_FiresOnPick()
     {
         var ctx = new EditorTestContext();

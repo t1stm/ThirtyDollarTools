@@ -12,10 +12,13 @@ namespace VisualizerScene.Objects.Sound_Values;
 public class IndividualCutValue : ISoundValue
 {
     private const float RenderableSize = 24;
+    private readonly float _baseSize;
     private readonly SoundRenderable[] _renderables;
 
-    public IndividualCutValue(IndividualCutEvent ice, RenderableFactory factory)
+    public IndividualCutValue(IndividualCutEvent ice, RenderableFactory factory, float renderScale)
     {
+        // render scale is baked in, since ScaleMultiplier belongs to the expand animation and gets reset to 1
+        _baseSize = RenderableSize * renderScale;
         _renderables = ice.CutSounds
             .Select(s => factory.CookUp(new NormalEvent { SoundEvent = s }))
             .ToArray();
@@ -43,7 +46,7 @@ public class IndividualCutValue : ISoundValue
     public void UpdatePosition()
     {
         var realPosition = Position + Translation;
-        var fontSize = RenderableSize * ScaleMultiplier;
+        var fontSize = _baseSize * ScaleMultiplier;
         var positioningProvider = new FlexLinePositioningProvider<SoundRenderable>
         {
             BasePosition = realPosition,
