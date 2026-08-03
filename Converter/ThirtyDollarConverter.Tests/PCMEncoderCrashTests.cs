@@ -55,7 +55,7 @@ public class PcmEncoderCrashTests
         // Act & Assert
         var exception = Record.Exception(() =>
             encoder.GetType().GetMethod("RenderEventToSlice", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?.Invoke(encoder, new object[] { 0, 2000, mixer, 0, placement, processedEvents })
+                ?.Invoke(encoder, [0, 2000, mixer, 0, placement, processedEvents])
         );
 
         Assert.Null(exception);

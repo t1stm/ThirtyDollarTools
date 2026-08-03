@@ -42,7 +42,7 @@ public class SoundPickerTests
         Assert.Equal(["kick", "kick", "clap"], picker.Instances.Select(instance => instance.Sound));
         Assert.Equal(-5, duplicate.Value);
         Assert.NotSame(picker.Instances[0], duplicate);
-        Assert.Equal(new HashSet<string> { "kick", "clap" }, picker.Selected); // names dedupe
+        Assert.Equal(["kick", "clap"], picker.Selected); // names dedupe
     }
 
     [Fact]

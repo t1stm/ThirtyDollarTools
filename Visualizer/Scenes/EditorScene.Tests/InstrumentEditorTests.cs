@@ -27,7 +27,7 @@ public class InstrumentEditorTests
         editor.Load("Layer", [Sound("kick"), Sound("clap")]);
 
         Assert.Equal("Layer", editor.NameInput.Value);
-        Assert.Equal(new HashSet<string> { "kick", "clap" }, editor.SoundsPicker.Selected);
+        Assert.Equal(["kick", "clap"], editor.SoundsPicker.Selected);
     }
 
     [Fact]

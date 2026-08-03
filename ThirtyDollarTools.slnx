@@ -6,10 +6,7 @@
     <Project Path="Converter/ThirtyDollarConverter.DiscordBot/ThirtyDollarConverter.DiscordBot.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.Editor/ThirtyDollarConverter.Editor.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.Editor.Tests/ThirtyDollarConverter.Editor.Tests.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.EngineerSounds/ThirtyDollarConverter.EngineerSounds.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.Migrate/ThirtyDollarConverter.Migrate.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.Next/ThirtyDollarConverter.Next.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.Parser/ThirtyDollarConverter.Parser.csproj" />
     <Project Path="Converter/ThirtyDollarConverter.Tests/ThirtyDollarConverter.Tests.csproj" />
     <Project Path="Converter/ThirtyDollarConverter/ThirtyDollarConverter.csproj" />
