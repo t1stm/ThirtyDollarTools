@@ -2,7 +2,7 @@
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 NET_FOLDER="net10.0"
-platforms=("linux-x64" "win-x64" "osx-x64" "osx-arm64")
+platforms=(${PLATFORMS:-"linux-x64" "win-x64" "osx-x64" "osx-arm64"})
 
 publish() {
   for platform in "${platforms[@]}"; do
@@ -54,8 +54,8 @@ if [ "$#" -gt 0 ]; then
   done;
 fi
 
-rm -rf "${SCRIPT_DIR:?}/bin"
-mkdir "$SCRIPT_DIR/bin"
+for platform in "${platforms[@]}"; do rm -rf "${SCRIPT_DIR:?}/bin/$platform"; done
+mkdir -p "$SCRIPT_DIR/bin"
 
 cd "$SCRIPT_DIR/Converter/ThirtyDollarConverter.GUI/" || exit
 publish
