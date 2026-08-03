@@ -2,7 +2,7 @@ namespace ThirtyDollarConverter.Editor;
 
 /// <summary>
 ///     A consecutive region of a track with its own time signature and grid resolution.
-///     Inherits the track's BPM, anchored to the quarter note — so a 7/8 bar lasts
+///     Inherits the track's BPM, anchored to the quarter note - so a 7/8 bar lasts
 ///     3.5 quarter notes regardless of the signature.
 /// </summary>
 public class TrackSegment
@@ -31,7 +31,7 @@ public class TrackSegment
     public List<Note> Notes { get; } = [];
 
     /// <summary>
-    ///     Total grid steps this segment spans — the width of its editing grid.
+    ///     Total grid steps this segment spans - the width of its editing grid.
     /// </summary>
     public int StepCount => Bars * Numerator * StepsPerBeat;
 

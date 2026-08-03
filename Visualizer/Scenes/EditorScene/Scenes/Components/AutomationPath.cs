@@ -11,7 +11,7 @@ namespace EditorScene.Scenes.Components;
 ///     color: a horizontal run at the current value, a vertical jump where a keyframe
 ///     changes it, and a short tick at every generated event (so pure repeats stay
 ///     visible as "a horizontal line with small vertical lines"). Time-mode gaps are
-///     mapped through the note's own segment step rate — display-only approximation
+///     mapped through the note's own segment step rate - display-only approximation
 ///     when the path crosses into a segment with another tempo. Renders from a fixed
 ///     pool of ghost panels reassigned every layout, added as children of the host
 ///     panel at construction. Split out of <see cref="TrackEditorView" /> so automation
@@ -39,7 +39,7 @@ internal sealed class AutomationPath
 
     public IReadOnlyList<Panel> Marks => _marks;
 
-    /// <summary>Parks every mark from <paramref name="used" /> onward — the unused tail of the pool this layout.</summary>
+    /// <summary>Parks every mark from <paramref name="used" /> onward - the unused tail of the pool this layout.</summary>
     public void HideUnused(int used)
     {
         for (var i = used; i < _marks.Count; i++)
@@ -85,7 +85,7 @@ internal sealed class AutomationPath
     }
 
     /// <summary>
-    ///     Trims a mark against the grid's bottom edge — the one shared point that
+    ///     Trims a mark against the grid's bottom edge - the one shared point that
     ///     covers all three mark kinds (run, jump, tick) bleeding past a partially scrolled
     ///     grid into the pinned cut row below it. Marks fully left of the gutter or right of
     ///     the viewport are dropped without taking a pool slot: the pool is a budget for what

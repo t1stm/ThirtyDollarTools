@@ -13,7 +13,7 @@ namespace EditorScene.Scenes.Components;
 ///     Generic row builders shared by every <see cref="InspectorPanel" /> section:
 ///     labeled inputs keyed "Section.Label" for headless field lookup, sync callbacks
 ///     that refresh values in place without interrupting a focused input, and cards
-///     that box a group of rows. Pure builder — no domain knowledge of what a section
+///     that box a group of rows. Pure builder - no domain knowledge of what a section
 ///     contains, that's <see cref="InspectorPanel" />'s job.
 /// </summary>
 public sealed class InspectorForm
@@ -42,7 +42,7 @@ public sealed class InspectorForm
     }
 
     /// <summary>
-    ///     The field's key prefix ("Section" in "Section.Label") — the current
+    ///     The field's key prefix ("Section" in "Section.Label") - the current
     ///     section/card content methods are building rows for.
     /// </summary>
     public string Section { get; set; } = "";
@@ -153,7 +153,7 @@ public sealed class InspectorForm
     /// </summary>
     /// <param name="mixed">
     ///     For multi-selection rows: when it returns true, the field renders empty
-    ///     instead of an arbitrary single value — same as an unset nullable field.
+    ///     instead of an arbitrary single value - same as an unset nullable field.
     ///     // ponytail: no literal "mixed" placeholder word (that needs a Placeholder
     ///     feature on TextInput/NumericInput, unused anywhere else); empty reads the
     ///     same as every other "no single value" field. Add a Placeholder property if

@@ -31,7 +31,7 @@ public sealed class InstrumentWorkflow
         _allSounds = allSounds;
 
         // The instrument selector/editor open as modals (add/remove on the root, the
-        // tested show-hide pattern) instead of a DropDownLabel — hidden-panel toggling
+        // tested show-hide pattern) instead of a DropDownLabel - hidden-panel toggling
         // doesn't manage the render queue.
         _instrumentSelector = new InstrumentSelector(context);
         _instrumentSelectorModal = new ModalLayer(context);
@@ -140,7 +140,7 @@ public sealed class InstrumentWorkflow
 
     /// <summary>
     ///     "Picking" an instrument means setting it active, unless the selector was
-    ///     opened from the inspector's "Change" action targeting one or more notes —
+    ///     opened from the inspector's "Change" action targeting one or more notes -
     ///     then it reassigns every one of them instead.
     /// </summary>
     private void ApplyInstrumentPick(Instrument instrument)
@@ -155,7 +155,7 @@ public sealed class InstrumentWorkflow
         else
         {
             _state.ActiveInstrument = instrument;
-            // A plain ActiveInstrument set fires no State.On* event of its own — this is
+            // A plain ActiveInstrument set fires no State.On* event of its own - this is
             // the active-instrument button's refresh signal (EditorInterface subscribes
             // RefreshActiveInstrument to OnInstrumentsChanged).
             _state.NotifyInstrumentsChanged();

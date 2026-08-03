@@ -33,8 +33,8 @@ public sealed class LaneHeader : Panel
         for (var lane = 0; lane < ArrangementView.LaneLinePool; lane++)
         {
             var index = lane;
-            var mute = NewToggle(context, "M", () => _state.ToggleMute(index));
-            var solo = NewToggle(context, "S", () => _state.ToggleSolo(index));
+            var mute = NewToggle(context, "M", () => _state.ToggleMute(index), "Mute this track");
+            var solo = NewToggle(context, "S", () => _state.ToggleSolo(index), "Solo this track (mutes every other track)");
             _rows.Add((mute, solo));
             AddChild(mute);
             AddChild(solo);
@@ -45,6 +45,9 @@ public sealed class LaneHeader : Panel
 
     // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
     internal IReadOnlyList<(Button Mute, Button Solo)> Rows => _rows;
+
+    /// <summary>Hover hint text for the M/S toggles; null on hover exit. See EditorInterface.SetHint.</summary>
+    public Action<string?>? OnHint { get; set; }
 
     /// <summary>Re-colors the toggles from the state. Call when mute/solo changes.</summary>
     public void RefreshChannels()
@@ -80,7 +83,7 @@ public sealed class LaneHeader : Panel
         base.DoLayout();
     }
 
-    private static Button NewToggle(UIContext context, string text, Action toggle)
+    private Button NewToggle(UIContext context, string text, Action toggle, string hint)
     {
         var button = new Button(context, new Label(context, text)
         {
@@ -90,7 +93,9 @@ public sealed class LaneHeader : Panel
         {
             Width = 24,
             Height = 24,
-            OnClick = _ => toggle()
+            OnClick = _ => toggle(),
+            OnHoverEnter = _ => OnHint?.Invoke(hint),
+            OnHoverExit = _ => OnHint?.Invoke(null)
         };
         return button;
     }

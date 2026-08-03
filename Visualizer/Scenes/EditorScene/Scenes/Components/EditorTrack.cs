@@ -43,7 +43,9 @@ public sealed class EditorTrack : FlexPanel
             Label =
             {
                 Color = Vector4.One
-            }
+            },
+            OnHoverEnter = _ => OnHint?.Invoke("Remove this track"),
+            OnHoverExit = _ => OnHint?.Invoke(null)
         };
 
         // Percent-width spacer soaks up the free space so remove lands flush against
@@ -62,6 +64,9 @@ public sealed class EditorTrack : FlexPanel
 
     /// <summary>Fired on right-click; EditorInterface shows the track's context menu.</summary>
     public Action<ProjectTrack>? OnContextMenu { get; set; }
+
+    /// <summary>Hover hint text for the remove button; null on hover exit. See EditorInterface.SetHint.</summary>
+    public Action<string?>? OnHint { get; set; }
 
     /// <summary>Double-clicking a row opens the pattern, same as double-clicking a clip.</summary>
     public override bool HandleDoublePress(float x, float y)

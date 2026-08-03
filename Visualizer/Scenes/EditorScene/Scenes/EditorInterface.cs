@@ -22,6 +22,16 @@ public class EditorInterface
 {
     private const float HeaderHeight = 32;
     private const float TrackColumnWidth = 260;
+    private const float HintBarHeight = 26;
+
+    /// <summary>
+    ///     The hint bar's default text: gestures and shortcuts that have no on-screen
+    ///     control of their own, so nothing else in the UI hints they exist.
+    /// </summary>
+    private const string HintLegend =
+        "Double-click a track to open it, right-click for options  •  " +
+        "Ctrl+C/V/X copy/paste/cut, Ctrl+A select all  •  " +
+        "Middle-drag to pan, Ctrl+scroll to zoom, Shift+drag to fine-snap";
 
     private readonly ArrangementView _arrangement;
     private readonly FlexPanel _arrangementPanel;
@@ -30,6 +40,8 @@ public class EditorInterface
     private readonly string _defaultTitle;
     private readonly DialogHost _dialogHost;
     private readonly FlexPanel _gridArea;
+    private readonly FlexPanel _hintBar;
+    private readonly Label _hintLabel;
     private readonly InspectorPanel _inspector;
     private readonly Panel _inspectorColumn;
     private readonly Button _instrumentButton;
@@ -86,6 +98,9 @@ public class EditorInterface
         _trackColumn = (Panel)ids["track-column"];
         _gridArea = (FlexPanel)ids["grid-area"];
         _inspectorColumn = (Panel)ids["inspector-column"];
+        _hintBar = (FlexPanel)ids["hint-bar"];
+        _hintLabel = (Label)ids["hint-label"];
+        _hintLabel.SetTextContents(HintLegend);
 
         Playback = new EditorPlayback(workflow, State);
 
@@ -120,7 +135,7 @@ public class EditorInterface
         };
         _trackColumn.AddChild(trackColumnBody);
 
-        _trackList = new TrackListPanel(context, State) { OnContextMenu = ShowTrackContextMenu };
+        _trackList = new TrackListPanel(context, State) { OnContextMenu = ShowTrackContextMenu, OnHint = SetHint };
         trackColumnBody.AddChild(_trackList);
 
         _transport = new TransportSection(context, Playback, RequestBack);
@@ -134,7 +149,8 @@ public class EditorInterface
         _laneHeader = new LaneHeader(context, State, _arrangement)
         {
             Width = LaneHeader.GutterWidth,
-            Height = LiteralOrComputable.Percent(100)
+            Height = LiteralOrComputable.Percent(100),
+            OnHint = SetHint
         };
         // The arrangement wraps in a vertical panel mirroring _trackEditorPanel below:
         // a slim bar holding the tool buttons, then the lane header + grid row.
@@ -399,6 +415,16 @@ public class EditorInterface
         _instrumentButton.InvalidateLayout();
     }
 
+    /// <summary>
+    ///     Shows contextual text in the hint bar, or reverts to the static legend when
+    ///     <paramref name="text" /> is null (hover exit). Wired into every control whose
+    ///     purpose isn't obvious at a glance (see EditorTrack/LaneHeader's OnHint).
+    /// </summary>
+    private void SetHint(string? text)
+    {
+        _hintLabel.SetTextContents(text ?? HintLegend);
+    }
+
     /// <summary>Dismisses the topmost open modal, if any. Used so Escape closes a dialog instead of the editor.</summary>
     public bool TryCloseTopModal()
     {
@@ -595,11 +621,12 @@ public class EditorInterface
         // so the body regions are sized here. The transport controls dock inside the
         // track column now (see the constructor), so no separate footer band to
         // subtract from the grid/inspector columns.
-        _trackColumn.Height = height - HeaderHeight;
+        _trackColumn.Height = height - HeaderHeight - HintBarHeight;
         _gridArea.Width = width - TrackColumnWidth - InspectorPanel.PanelWidth;
-        _gridArea.Height = height - HeaderHeight;
+        _gridArea.Height = height - HeaderHeight - HintBarHeight;
         _inspectorColumn.X = width - InspectorPanel.PanelWidth;
-        _inspectorColumn.Height = height - HeaderHeight;
+        _inspectorColumn.Height = height - HeaderHeight - HintBarHeight;
+        _hintBar.Y = height - HintBarHeight;
 
         // DrawTo (not just Layout): a row whose Visible flips true here (e.g. LaneHeader's
         // M/S toggles, false on the very first pass while grid-area was still 0-height) needs

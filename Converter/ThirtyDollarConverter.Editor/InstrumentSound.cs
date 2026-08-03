@@ -2,7 +2,7 @@ namespace ThirtyDollarConverter.Editor;
 
 /// <summary>
 ///     One sound inside an instrument, with its own value/volume/pan tuning applied on top
-///     of whatever the playing note carries — a sound with its own value -3 plays at 0 on a
+///     of whatever the playing note carries - a sound with its own value -3 plays at 0 on a
 ///     note at +3. An instrument may hold the same sound several times with different
 ///     tuning (e.g. 0 and -12 for dual-octave playback), so this is an instance, not a
 ///     lookup keyed by sound name.

@@ -26,6 +26,10 @@
       <flex id="grid-area"/>
 
       <panel id="inspector-column"/>
+
+      <flex id="hint-bar">
+        <label id="hint-label" value=""/>
+      </flex>
     </panel>
   </layout>
 </sundex>

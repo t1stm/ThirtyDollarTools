@@ -31,11 +31,11 @@ internal class NoteBlock : Panel
 
     /// <summary>
     ///     Press-time selection (both tools, per §2/§3.4). The Select tool only ever
-    ///     selects — Ctrl/Shift append/remove, a plain press replaces the selection — and
+    ///     selects - Ctrl/Shift append/remove, a plain press replaces the selection - and
     ///     never starts a drag, so it never moves a note. The Draw tool's plain press
     ///     replaces the selection the same way, then starts a group drag over whatever
     ///     ended up selected: pressing an unselected note replaces the selection with just
-    ///     it (a group of one — the plain single-note drag); pressing a note that's already
+    ///     it (a group of one - the plain single-note drag); pressing a note that's already
     ///     part of a (possibly multi-note) selection leaves the group intact, so the drag
     ///     moves the whole group together.
     /// </summary>

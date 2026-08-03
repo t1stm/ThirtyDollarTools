@@ -5,7 +5,7 @@ id main-holder {
 }
 
 // A slim menu-bar strip: identity labels + Load/Save/Export as plain
-// clickable text (hover feedback is wired in EditorInterface.cs, not here —
+// clickable text (hover feedback is wired in EditorInterface.cs, not here -
 // PropagateAlpha-managed elements must not use state[hovered]).
 id editor-header {
     width = 100%;
@@ -32,7 +32,7 @@ id project-bpm {
     font-color = "#565f89";
 }
 
-// Subtle-filled menu-bar button (Load/Save/Export). state[] is safe here — real
+// Subtle-filled menu-bar button (Load/Save/Export). state[] is safe here - real
 // buttons aren't PropagateAlpha-managed the way the old loose labels were.
 // pressed is overridden so it doesn't fall through to `component button`'s blue.
 class menu-button {
@@ -61,7 +61,7 @@ class header-divider {
 }
 
 // Track column and grid area heights/widths are set from
-// EditorInterface.Resize — the window remainder isn't expressible here.
+// EditorInterface.Resize - the window remainder isn't expressible here.
 id track-column {
     y = 32;
     width = 260;
@@ -80,6 +80,23 @@ id inspector-column {
     y = 32;
     width = 300;
     background = "#16161e";
+}
+
+// A slim status/hint strip along the bottom: a static gesture/shortcut legend by
+// default, swapped for contextual text on hover (see EditorInterface.SetHint). Y is
+// set from EditorInterface.Resize, same reason as track-column/grid-area's height.
+id hint-bar {
+    width = 100%;
+    height = 26;
+    direction = "horizontal";
+    vertical-align = "center";
+    padding = 8;
+    background = "#16161e";
+}
+
+id hint-label {
+    font-size = 12;
+    font-color = "#565f89";
 }
 
 component label {

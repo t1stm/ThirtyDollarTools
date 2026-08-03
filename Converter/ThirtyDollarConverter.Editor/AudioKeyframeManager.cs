@@ -24,7 +24,7 @@ public class AudioKeyframeManager
 
     /// <summary>
     ///     How many times the keyframe list runs, back to back. Modifiers are relative,
-    ///     so every pass keeps compounding the previous result — a ×0.5 volume echo
+    ///     so every pass keeps compounding the previous result - a ×0.5 volume echo
     ///     repeated 3 times decays to 12.5%. Values below 1 behave as 1.
     /// </summary>
     public int Repeats { get; set; } = 1;
@@ -55,7 +55,7 @@ public class AudioKeyframeManager
     }
 
     /// <summary>
-    ///     Structural equality (Timing, Repeats, and every keyframe's fields) — used by the
+    ///     Structural equality (Timing, Repeats, and every keyframe's fields) - used by the
     ///     multi-select inspector to decide whether several notes' automations are uniform
     ///     enough to edit as one. Reference equality doesn't apply: every note holds its own
     ///     cloned manager instance.

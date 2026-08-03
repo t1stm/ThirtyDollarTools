@@ -162,7 +162,7 @@ public class AudioKeyframeTests
         Assert.Equal(0.25, loadedNote.Offset);
         Assert.Equal(new Modifier(0.5), loadedNote.Automation.Keyframes[0].Offset);
 
-        // Repeats of 1 is never written, so the file is identical to a pre-feature one —
+        // Repeats of 1 is never written, so the file is identical to a pre-feature one -
         // and a missing key loads back as 1.
         echo.Repeats = 1;
         var legacy = ProjectFile.Save(project);
@@ -194,7 +194,7 @@ public class AudioKeyframeTests
             .Where(p => p.Audible)
             .ToArray();
 
-        // The base note, the cut, and the retriggered note — cut and retrigger share a
+        // The base note, the cut, and the retriggered note - cut and retrigger share a
         // sample index (4 steps at 480 steps/min = 0.5 s = 24000 samples after the note).
         Assert.Equal(3, placements.Length);
         Assert.IsType<IndividualCutEvent>(placements[1].Event);

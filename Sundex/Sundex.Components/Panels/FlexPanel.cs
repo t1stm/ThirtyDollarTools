@@ -69,7 +69,7 @@ public class FlexPanel(UIContext context) : Panel(context)
 
         // Placement runs before base.DoLayout()'s own child.Layout() pass: that pass would
         // otherwise be the first layout a percent-sized child sees, with ParentAssignedHeight
-        // still null — a stateful child (e.g. ScrollView clamping its scroll offset against
+        // still null - a stateful child (e.g. ScrollView clamping its scroll offset against
         // its own Computed.Height) would corrupt itself against that wrong, too-large size.
         if (count >= 1)
         {
@@ -344,7 +344,7 @@ public class FlexPanel(UIContext context) : Panel(context)
             var (cw, _) = child.Measure(innerWidth, innerHeight);
 
             // currentX already includes the trailing spacing from the previous item, so
-            // it's the exact position this child would start at — no extra Spacing here.
+            // it's the exact position this child would start at - no extra Spacing here.
             if (!firstInLine && currentX + cw > innerWidth && innerWidth > 0)
             {
                 currentX = 0;
@@ -374,7 +374,7 @@ public class FlexPanel(UIContext context) : Panel(context)
             var (_, ch) = child.Measure(innerWidth, innerHeight);
 
             // currentY already includes the trailing spacing from the previous item, so
-            // it's the exact position this child would start at — no extra Spacing here.
+            // it's the exact position this child would start at - no extra Spacing here.
             if (!firstInColumn && currentY + ch > innerHeight && innerHeight > 0)
             {
                 currentY = 0;

@@ -10,7 +10,7 @@ namespace EditorScene.Scenes.Components;
 /// <summary>
 ///     Track row context menu (ModalLayer content), opened by right-clicking a track in
 ///     the track list. Just "duplicate" for now: a name field (prefilled "&lt;name&gt; copy")
-///     plus confirm/cancel. Pure view — the owner decides what "duplicate" does.
+///     plus confirm/cancel. Pure view - the owner decides what "duplicate" does.
 /// </summary>
 public sealed class TrackContextMenu : FlexPanel
 {

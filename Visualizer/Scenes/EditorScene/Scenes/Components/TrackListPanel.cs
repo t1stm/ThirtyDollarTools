@@ -14,7 +14,7 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class TrackListPanel : ScrollView
 {
-    // Subtle-filled look matching the menu bar/transport buttons — code-built children
+    // Subtle-filled look matching the menu bar/transport buttons - code-built children
     // never receive the stylesheet, so the fill/hover swap is set inline here.
     private static readonly Vector4 MenuFillColor = EditorPalette.Divider;
     private static readonly Vector4 MenuFillHoverColor = EditorPalette.DividerHover;
@@ -23,7 +23,7 @@ public sealed class TrackListPanel : ScrollView
     /// <summary>
     ///     Tracks + names as of the last actual rebuild, so a rebuild triggered by
     ///     an unrelated project change (e.g. a note dragged 60x/s) can be skipped when
-    ///     nothing about the row list itself would change — rows read their track by
+    ///     nothing about the row list itself would change - rows read their track by
     ///     reference, so in-place data needs no rebuild.
     /// </summary>
     private readonly List<(ProjectTrack Track, string Name)> _built = [];
@@ -56,10 +56,13 @@ public sealed class TrackListPanel : ScrollView
 
     public Action<ProjectTrack>? OnContextMenu { get; set; }
 
+    /// <summary>Relayed from each row's hover hint; see <see cref="EditorTrack.OnHint" />.</summary>
+    public Action<string?>? OnHint { get; set; }
+
     /// <summary>
     ///     Full row rebuild: the track list is small by design (the grid is what
     ///     scales). The add-track row is pulled out and re-appended last so it always trails.
-    ///     Skipped entirely when the track set and names match the last rebuild — called on
+    ///     Skipped entirely when the track set and names match the last rebuild - called on
     ///     every project change, including per-frame ones (a note drag fires Touch() ~60x/s)
     ///     that never touch the track list itself.
     /// </summary>
@@ -72,7 +75,11 @@ public sealed class TrackListPanel : ScrollView
         foreach (var row in Children.OfType<EditorTrack>().ToArray())
             RemoveChild(row);
         foreach (var track in tracks)
-            AddChild(new EditorTrack(_context, track, _state) { OnContextMenu = t => OnContextMenu?.Invoke(t) });
+            AddChild(new EditorTrack(_context, track, _state)
+            {
+                OnContextMenu = t => OnContextMenu?.Invoke(t),
+                OnHint = h => OnHint?.Invoke(h)
+            });
         AddChild(_addTrackRow);
 
         _built.Clear();

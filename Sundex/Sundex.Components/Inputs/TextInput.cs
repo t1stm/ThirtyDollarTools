@@ -168,7 +168,7 @@ public class TextInput : Panel
                 return true;
 
             default:
-                // A focused field owns plain keystrokes — otherwise Space/letters fall
+                // A focused field owns plain keystrokes - otherwise Space/letters fall
                 // through to scene hotkeys mid-typing. Modified combos and Escape
                 // (the blur path) stay app-level.
                 return e is { Control: false, Alt: false, Command: false } && e.Key != Keys.Escape;

@@ -277,7 +277,7 @@ public class FlexPanelTests
 
         // First pass: body takes all the free space below the header.
         Assert.Equal(944, body.Computed.Height);
-        // The declaration must survive the pass — resolving it may not overwrite it.
+        // The declaration must survive the pass - resolving it may not overwrite it.
         Assert.True(body.Height.IsPercentage);
 
         // The scene-resize path (Resize handlers do InvalidateCoordinates + Layout).
