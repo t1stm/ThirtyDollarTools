@@ -3,8 +3,8 @@ using Shared;
 using Shared.Audio;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Encoder.Resamplers;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 

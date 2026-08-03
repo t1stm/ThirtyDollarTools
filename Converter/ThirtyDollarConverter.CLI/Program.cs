@@ -2,8 +2,8 @@
 using Serilog;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.CLI;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Encoder.Resamplers;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 
 var serilogLogger = new LoggerConfiguration()

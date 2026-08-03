@@ -8,10 +8,9 @@ using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
 using ReactiveUI;
 using Serilog;
-using ThirtyDollarConverter;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.GUI.Helpers;
 using ThirtyDollarConverter.GUI.Views;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.GUI.ViewModels;

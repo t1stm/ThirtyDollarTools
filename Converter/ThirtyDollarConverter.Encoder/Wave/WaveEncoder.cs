@@ -71,7 +71,7 @@ public static class WaveEncoder
                 if (n > maxLength) maxLength = n;
             }
 
-            var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+            var writer = new BinaryWriter(stream, Encoding.UTF8, true);
             AddWavHeader<float>(writer, maxLength, channels, sampleRate);
             writer.Flush();
 
@@ -123,7 +123,7 @@ public static class WaveEncoder
     }
 
     /// <summary>
-    /// This method adds the RIFF WAVE header to an empty file.
+    ///     This method adds the RIFF WAVE header to an empty file.
     /// </summary>
     /// <param name="writer">An open BinaryWriter</param>
     /// <param name="dataLength">Length of the audio data.</param>

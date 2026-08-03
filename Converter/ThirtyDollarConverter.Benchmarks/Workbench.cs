@@ -1,7 +1,7 @@
 using Serilog.Core;
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Benchmarks;

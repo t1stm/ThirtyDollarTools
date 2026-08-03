@@ -3,10 +3,10 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using ReactiveUI;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Encoder.PCM;
 using ThirtyDollarConverter.GUI.Models;
 using ThirtyDollarConverter.GUI.Services;
+using ThirtyDollarConverter.Objects;
 
 namespace ThirtyDollarConverter.GUI.ViewModels;
 

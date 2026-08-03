@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Encoder.Mixers;
 using ThirtyDollarConverter.Encoder.PCM;
 using ThirtyDollarConverter.Encoder.Wave;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 
@@ -734,7 +732,8 @@ public class PcmEncoder
         {
             var angle = (x + 1f) * MathF.PI / 4f;
             var gain = channel == 0 ? MathF.Cos(angle) : MathF.Sin(angle);
-            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * gain, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * gain, _settings.VolumeScale,
+                delta_end,
                 offset);
             return;
         }
@@ -746,23 +745,27 @@ public class PcmEncoder
         if (x <= 0)
         {
             var own_gain = channel == 0 ? 1f : sin;
-            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale,
+                delta_end,
                 offset);
 
             if (channel != 0) return;
             var right_channel = processed_event.AudioData.GetChannel(1);
-            SampleMixer.RenderSample(right_channel, mix_slice, delta_start, volume * cos, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(right_channel, mix_slice, delta_start, volume * cos, _settings.VolumeScale,
+                delta_end,
                 offset);
         }
         else
         {
             var own_gain = channel == 1 ? 1f : cos;
-            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale,
+                delta_end,
                 offset);
 
             if (channel != 1) return;
             var left_channel = processed_event.AudioData.GetChannel(0);
-            SampleMixer.RenderSample(left_channel, mix_slice, delta_start, volume * sin, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(left_channel, mix_slice, delta_start, volume * sin, _settings.VolumeScale,
+                delta_end,
                 offset);
         }
     }

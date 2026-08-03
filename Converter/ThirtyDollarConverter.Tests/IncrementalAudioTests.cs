@@ -1,6 +1,6 @@
 using Serilog.Core;
-using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 

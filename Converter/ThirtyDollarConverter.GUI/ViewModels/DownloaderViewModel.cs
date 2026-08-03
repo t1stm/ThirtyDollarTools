@@ -3,7 +3,6 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using ReactiveUI;
-using ThirtyDollarConverter;
 using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.GUI.ViewModels;
