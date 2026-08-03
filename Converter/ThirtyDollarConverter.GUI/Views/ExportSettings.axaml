@@ -143,6 +143,46 @@
                         <TextBox Grid.Column="1" Text="{Binding EncodeSlicesCountText}" />
                     </Grid>
 
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Clamp BPM"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   ToolTip.Tip="Clamps BPM to [5, 20000] after every !speed event, matching the Thirty Dollar Website." />
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ClampBpm}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Clamp volume"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   ToolTip.Tip="Clamps the global volume to [0, 600] after every !volume event, matching the Thirty Dollar Website." />
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ClampVolume}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Clamp transpose"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   ToolTip.Tip="Clamps the running transpose value to [-60, 60] after every !transpose event, matching the Thirty Dollar Website." />
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ClampTranspose}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Clamp pitch"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   ToolTip.Tip="Clamps each note's final pitch (its own value plus the running transpose) to [-72, 72], matching the Thirty Dollar Website." />
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ClampPitch}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Clamp note volume"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   ToolTip.Tip="Clamps each note's own volume ratio to [0, 4] (0-400%) before it's multiplied by the global volume, matching the Thirty Dollar Website." />
+                        <CheckBox Grid.Column="1" IsChecked="{Binding ClampNoteVolume}" />
+                    </Grid>
+
                 </StackPanel>
             </ScrollViewer>
 

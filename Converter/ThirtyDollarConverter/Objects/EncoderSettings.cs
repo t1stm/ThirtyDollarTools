@@ -39,6 +39,36 @@ public class EncoderSettings
     public int MultithreadingSlices = Environment.ProcessorCount * 4;
 
     /// <summary>
+    ///     When enabled, clamps BPM to [5, 20000] after every "!speed" event, matching TDW.
+    ///     Off by default.
+    /// </summary>
+    public bool ClampBpm;
+
+    /// <summary>
+    ///     When enabled, clamps the global volume to [0, 600] after every "!volume" event,
+    ///     matching TDW. Off by default (the volume is still floored at 0 regardless).
+    /// </summary>
+    public bool ClampVolume;
+
+    /// <summary>
+    ///     When enabled, clamps the running transpose value to [-60, 60] after every
+    ///     "!transpose" event, matching TDW. Off by default.
+    /// </summary>
+    public bool ClampTranspose;
+
+    /// <summary>
+    ///     When enabled, clamps each note's final pitch (its own value plus the running
+    ///     transpose) to [-72, 72], matching TDW. Off by default.
+    /// </summary>
+    public bool ClampPitch;
+
+    /// <summary>
+    ///     When enabled, clamps each note's own volume ratio to [0, 4] (0-400%) before it's
+    ///     multiplied by the global volume, matching TDW. Off by default.
+    /// </summary>
+    public bool ClampNoteVolume;
+
+    /// <summary>
     ///     Represents the scaling method applied to adjust pan values during audio rendering.
     ///     Determines how the percentage-based pan adjustments are calculated,
     ///     affecting the balance between the left and right audio channels.

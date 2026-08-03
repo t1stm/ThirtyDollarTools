@@ -13,6 +13,8 @@ public class PlacementCalculator
     private static readonly string[] LoopUntriggers = ["!loopmany", "!loop"];
     private static readonly string[] LoopmanyUntriggers = ["!loopmany"];
 
+    private const double MaxBpm = 20_000;
+
     /// <summary>
     ///     Creates a calculator that gets the placement of a sequence.
     /// </summary>
@@ -26,12 +28,22 @@ public class PlacementCalculator
         IndexReport = indexReport ?? ((_, _) => { });
         SampleRate = encoderSettings.SampleRate;
         AddVisualTimings = encoderSettings.AddVisualEvents;
+        ClampBpm = encoderSettings.ClampBpm;
+        ClampVolume = encoderSettings.ClampVolume;
+        ClampTranspose = encoderSettings.ClampTranspose;
+        ClampPitch = encoderSettings.ClampPitch;
+        ClampNoteVolume = encoderSettings.ClampNoteVolume;
     }
 
     private uint SampleRate { get; }
     private Action<string> Log { get; }
     private Action<ulong, ulong> IndexReport { get; }
     private bool AddVisualTimings { get; }
+    private bool ClampBpm { get; }
+    private bool ClampVolume { get; }
+    private bool ClampTranspose { get; }
+    private bool ClampPitch { get; }
+    private bool ClampNoteVolume { get; }
 
     /// <summary>
     ///     Calculates the placement of multiple sequences.
@@ -104,9 +116,12 @@ public class PlacementCalculator
 
                 var copy = ev.Copy();
                 var event_volume = copy.Volume ??= 100;
-                copy.WorkingVolume = global_volume * event_volume / 100d;
+                var volume_ratio = event_volume / 100d;
+                if (ClampNoteVolume) volume_ratio = Math.Clamp(volume_ratio, 0, 4);
+                copy.WorkingVolume = global_volume * volume_ratio;
 
                 copy.Value += transpose;
+                if (ClampPitch) copy.Value = Math.Clamp(copy.Value, -72, 72);
                 var placement = new Placement
                 {
                     Index = position,
@@ -144,6 +159,8 @@ public class PlacementCalculator
                             break;
                     }
 
+                    if (ClampBpm) bpm = Math.Clamp(bpm, 5, MaxBpm);
+
                     Log($"BPM is now: {bpm}");
                     break;
                 }
@@ -166,7 +183,7 @@ public class PlacementCalculator
                             break;
                     }
 
-                    if (global_volume < 0) global_volume = 0;
+                    global_volume = ClampVolume ? Math.Clamp(global_volume, 0, 600) : Math.Max(global_volume, 0);
                     default_return = false;
 
                     var copy = ev.Copy();
@@ -329,6 +346,8 @@ public class PlacementCalculator
                             transpose = ev.Value;
                             break;
                     }
+
+                    if (ClampTranspose) transpose = Math.Clamp(transpose, -60, 60);
 
                     Log($"Transposing samples by: \'{transpose}\'");
                     break;

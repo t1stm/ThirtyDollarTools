@@ -57,6 +57,36 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         set => this.RaiseAndSetIfChanged(ref encoderSettings.PanScale, value);
     }
 
+    public bool ClampBpm
+    {
+        get => encoderSettings.ClampBpm;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.ClampBpm, value);
+    }
+
+    public bool ClampVolume
+    {
+        get => encoderSettings.ClampVolume;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.ClampVolume, value);
+    }
+
+    public bool ClampTranspose
+    {
+        get => encoderSettings.ClampTranspose;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.ClampTranspose, value);
+    }
+
+    public bool ClampPitch
+    {
+        get => encoderSettings.ClampPitch;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.ClampPitch, value);
+    }
+
+    public bool ClampNoteVolume
+    {
+        get => encoderSettings.ClampNoteVolume;
+        set => this.RaiseAndSetIfChanged(ref encoderSettings.ClampNoteVolume, value);
+    }
+
 
     public string SampleRateText
     {
