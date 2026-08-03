@@ -131,7 +131,7 @@ public class PlacementCalculator
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Divide:
-                            bpm /= ev.Value;
+                            if (ev.Value > 0) bpm /= ev.Value;
                             break;
                         case ValueScale.Times:
                             bpm *= ev.Value;
@@ -153,7 +153,7 @@ public class PlacementCalculator
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Divide:
-                            global_volume /= ev.Value;
+                            if (ev.Value > 0) global_volume /= ev.Value;
                             break;
                         case ValueScale.Times:
                             global_volume *= ev.Value;
@@ -260,13 +260,13 @@ public class PlacementCalculator
                 case "!jump":
                 {
                     if (ev.Triggered) break;
-                    ev.Triggered = true;
 
                     var item = sequence.Events.FirstOrDefault(r =>
                         r.SoundEvent == "!target" && Math.Abs(r.Value - ev.Value) < 0.001f && !r.Triggered);
                     if (item == null)
                     {
                         Log($"Unable to jump to target with id: {ev.Value}");
+                        Untrigger(ref sequence, index + 1, JumpUntriggers);
                         break;
                     }
 
@@ -277,6 +277,7 @@ public class PlacementCalculator
                         break;
                     }
 
+                    ev.Triggered = true;
                     default_return = false;
                     yield return new Placement
                     {
@@ -290,7 +291,7 @@ public class PlacementCalculator
                     index = (ulong)search;
                     var found_event = sequence.Events[index];
 
-                    Untrigger(ref sequence, index, JumpUntriggers);
+                    Untrigger(ref sequence, index + 1, JumpUntriggers);
                     Log($"Jumping to element: ({index}) - {found_event}");
                     break;
                 }
@@ -316,7 +317,7 @@ public class PlacementCalculator
                     switch (ev.ValueScale)
                     {
                         case ValueScale.Divide:
-                            transpose /= ev.Value;
+                            if (ev.Value > 0) transpose /= ev.Value;
                             break;
                         case ValueScale.Times:
                             transpose *= ev.Value;
@@ -359,12 +360,11 @@ public class PlacementCalculator
     ///     Method ported from GD Colon's site. Untriggers all samples from the starting index to the end.
     /// </summary>
     /// <param name="sequence">Reference to the sequence.</param>
-    /// <param name="index">The index to start from.</param>
+    /// <param name="index">The index to start from (inclusive).</param>
     /// <param name="except">An array of strings containing events to ignore.</param>
     private static void Untrigger(ref Sequence sequence, ulong index, string[] except)
     {
-        if (index == 0) index++;
-        for (var i = index - 1; i < (ulong)sequence.Events.LongLength; i++)
+        for (var i = index; i < (ulong)sequence.Events.LongLength; i++)
         {
             var current_event = sequence.Events[i];
             if (except.Any(r => r == current_event.SoundEvent)) continue;
