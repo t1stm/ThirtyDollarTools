@@ -774,14 +774,14 @@ public class PcmEncoder
     /// <param name="data">The AudioData object.</param>
     public void WriteAsWavFile(string location, AudioData<float> data)
     {
-        WaveEncoder.WriteAsWavFile(location, data, _channels, _sampleRate, _settings.EnableNormalization,
+        WaveEncoder.WriteAsWavFloat32File(location, data, _channels, _sampleRate, _settings.EnableNormalization,
             IndexReport);
         Log("Saved audio file.");
     }
 
     public void WriteAsWavFile(Stream stream, AudioData<float> data)
     {
-        WaveEncoder.WriteAsWavFile(stream, data, _channels, _sampleRate, _settings.EnableNormalization,
+        WaveEncoder.WriteAsWavFloat32File(stream, data, _channels, _sampleRate, _settings.EnableNormalization,
             IndexReport);
         Log("Saved audio file.");
     }

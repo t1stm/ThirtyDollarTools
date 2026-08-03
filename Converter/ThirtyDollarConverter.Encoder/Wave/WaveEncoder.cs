@@ -1,3 +1,6 @@
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using ThirtyDollarConverter.Encoder.PCM;
 using Encoding = System.Text.Encoding;
@@ -18,47 +21,109 @@ public static class WaveEncoder
     /// <param name="channels">The number of audio channels to write.</param>
     /// <param name="sampleRate">The sample rate to write into the header.</param>
     /// <param name="normalize">Whether to normalize the audio before writing.</param>
-    /// <param name="indexReport">Action that receives write progress.</param>
-    public static void WriteAsWavFile(string location, AudioData<float> data, uint channels, uint sampleRate,
+    /// <param name="indexReport">Action object that receives write progress.</param>
+    public static void WriteAsWavFloat32File(string location, AudioData<float> data, uint channels, uint sampleRate,
         bool normalize = false, Action<ulong, ulong>? indexReport = null)
     {
-        var stream = File.Open(location, FileMode.Create);
-        WriteAsWavFile(stream, data, channels, sampleRate, normalize, indexReport);
+        using var stream = File.Open(location, FileMode.Create);
+        WriteAsWavFloat32File(stream, data, channels, sampleRate, normalize, indexReport);
     }
 
-    public static void WriteAsWavFile(Stream stream, AudioData<float> data, uint channels, uint sampleRate,
-        bool normalize = false, Action<ulong, ulong>? indexReport = null)
+    private static int TrimmedLength<T>(T[] arr) where T : INumberBase<T>
     {
-        indexReport ??= (_, _) => { };
+        var n = arr.Length;
+        while (n > 0 && T.IsZero(arr[n - 1])) n--;
+        return n;
+    }
+
+    /// <summary>
+    ///     Exports an AudioData object as a WAVE stream.
+    /// </summary>
+    /// <param name="stream">The stream you want to export to.</param>
+    /// <param name="data">The AudioData object.</param>
+    /// <param name="channels">The number of audio channels to write.</param>
+    /// <param name="sampleRate">The sample rate to write into the header.</param>
+    /// <param name="normalize">Whether to normalize the audio before writing.</param>
+    /// <param name="indexReport">Action object that receives write progress.</param>
+    public static void WriteAsWavFloat32File<T>(Stream stream, AudioData<T> data, uint channels, uint sampleRate,
+        bool normalize = false, Action<ulong, ulong>? indexReport = null)
+        where T : INumber<T>
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentOutOfRangeException.ThrowIfZero(channels);
 
         if (normalize)
             data.Normalize();
 
-        var samples = data.Samples;
-        for (var i = 0; i < samples.Length; i++)
+        var source = data.Samples;
+        var ch = (int)channels;
+        var lengths = ArrayPool<int>.Shared.Rent(source.Length);
+        byte[]? buffer = null;
+
+        try
         {
-            var arr = samples[i];
-            samples[i] = arr.TrimEnd();
+            var maxLength = 0;
+            for (var i = 0; i < source.Length; i++) // source.Length, not lengths.Length
+            {
+                var n = TrimmedLength(source[i]);
+                lengths[i] = n;
+                if (n > maxLength) maxLength = n;
+            }
+
+            var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+            AddWavHeader<float>(writer, maxLength, channels, sampleRate);
+            writer.Flush();
+
+            var frameBytes = ch * sizeof(float);
+            var capacity = Math.Max(1, 64 * 1024 / frameBytes) * frameBytes;
+            buffer = ArrayPool<byte>.Shared.Rent(capacity);
+
+            var reportEvery = Math.Max(1, maxLength / 200);
+            var nextReport = 0;
+            var pos = 0;
+
+            for (var i = 0; i < maxLength; i++)
+            {
+                if (i == nextReport)
+                {
+                    indexReport?.Invoke((ulong)i, (ulong)maxLength);
+                    nextReport += reportEvery;
+                }
+
+                if (pos + frameBytes > capacity) // capacity, not buffer.Length
+                {
+                    stream.Write(buffer, 0, pos);
+                    pos = 0;
+                }
+
+                var dest = buffer.AsSpan(pos, frameBytes);
+                for (var j = 0; j < ch; j++)
+                {
+                    var v = 0f;
+                    if (j < source.Length && (uint)i < (uint)lengths[j])
+                        v = float.CreateSaturating(source[j][i]);
+                    BinaryPrimitives.WriteSingleLittleEndian(dest[(j * sizeof(float))..], v);
+                }
+
+                pos += frameBytes;
+            }
+
+            if (pos > 0)
+                stream.Write(buffer, 0, pos);
+            stream.Flush();
+            indexReport?.Invoke((ulong)maxLength, (ulong)maxLength); // guarantee a terminal 100%
         }
-
-        var writer = new BinaryWriter(stream);
-        var maxLength = samples.Max(r => r.Length);
-        AddWavHeader<float>(writer, maxLength, channels, sampleRate);
-
-        var every_n_report = maxLength / 200; // 200 calls.
-        for (var i = 0; i < maxLength; i++)
+        finally
         {
-            if (i % every_n_report == 0) indexReport((ulong)i, (ulong)maxLength);
-            for (var j = 0; j < channels; j++)
-                writer.Write(samples[j].Length > i ? samples[j][i] : 0f);
+            ArrayPool<int>.Shared.Return(lengths);
+            if (buffer is not null)
+                ArrayPool<byte>.Shared.Return(buffer);
         }
-
-        writer.Flush();
-        writer.Close();
     }
 
     /// <summary>
-    ///     This method adds the RIFF WAVE header to an empty file.
+    /// This method adds the RIFF WAVE header to an empty file.
     /// </summary>
     /// <param name="writer">An open BinaryWriter</param>
     /// <param name="dataLength">Length of the audio data.</param>
