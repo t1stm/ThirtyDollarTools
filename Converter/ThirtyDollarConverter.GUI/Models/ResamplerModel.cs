@@ -1,8 +1,8 @@
 using System;
 using System.Linq;
-using ThirtyDollarEncoder.Resamplers;
+using ThirtyDollarConverter.Encoder.Resamplers;
 
-namespace ThirtyDollarGUI.Models;
+namespace ThirtyDollarConverter.GUI.Models;
 
 public class ResamplerModel(IResampler resampler)
 {

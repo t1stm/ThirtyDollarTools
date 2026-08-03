@@ -1,5 +1,5 @@
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
 namespace EditorScene;
 

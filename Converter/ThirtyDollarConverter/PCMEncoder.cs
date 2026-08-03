@@ -8,9 +8,11 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.PCM;
-using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Encoder.Mixers;
+using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Encoder.Wave;
+using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace ThirtyDollarConverter;
 
@@ -422,7 +424,7 @@ public class PcmEncoder
     ///     <para>
     ///         The wanted range is never handed to <see cref="ProcessChunk" /> as its slice, even though
     ///         it takes a start and an end: those bounds are the chunk grid a full render uses, and they
-    ///         are audible. <see cref="HandleCut" />'s search for silence stops at the end of the slice it
+    ///         are audible. <see cref="SampleMixer.HandleCut" />'s search for silence stops at the end of the slice it
     ///         is given, so a cut rendered inside one wide slice - or inside a slice that starts partway
     ///         through a chunk - zeroes a different number of samples than the same cut in a full render.
     ///         Re-rendering whole chunks of the same grid instead keeps the output bit-identical, which is
@@ -461,7 +463,7 @@ public class PcmEncoder
     ///     multithreading: chunk <c>i</c> covers <c>[result[i], result[i + 1])</c>.
     ///     <see cref="ComputeIncrementalAudio" /> re-renders whole chunks of this exact
     ///     grid rather than an arbitrary sample range, because a chunk boundary is observable in
-    ///     the output: <see cref="HandleCut" />'s search for silence restarts at one, so a cut
+    ///     the output: <see cref="SampleMixer.HandleCut" />'s search for silence restarts at one, so a cut
     ///     rendered against different boundaries can stop zeroing somewhere else.
     /// </summary>
     private int[] ChunkBoundaries(int length)
@@ -604,7 +606,8 @@ public class PcmEncoder
                              .Select(sound => mixer.GetTrack(sound)))
                 {
                     var cut_slice = cut_track.GetChannel(channel).AsSpan()[start..end];
-                    HandleCut(start, end, current_start, cut_slice);
+                    SampleMixer.HandleCut(start, end, current_start, cut_slice, _sampleRate,
+                        _settings.CutFadeLengthMs);
                 }
 
                 return;
@@ -622,7 +625,8 @@ public class PcmEncoder
         if (event_name == "!cut")
         {
             foreach (var (_, data) in mixer.GetTracks())
-                HandleCut(start, end, current_start, data.GetChannel(channel).AsSpan()[start..end]);
+                SampleMixer.HandleCut(start, end, current_start, data.GetChannel(channel).AsSpan()[start..end],
+                    _sampleRate, _settings.CutFadeLengthMs);
 
             return;
         }
@@ -710,7 +714,7 @@ public class PcmEncoder
             }
         }
 
-        RenderSample(current_channel, mix_slice, delta_start,
+        SampleMixer.RenderSample(current_channel, mix_slice, delta_start,
             volume, _settings.VolumeScale, delta_end, offset);
     }
 
@@ -730,7 +734,7 @@ public class PcmEncoder
         {
             var angle = (x + 1f) * MathF.PI / 4f;
             var gain = channel == 0 ? MathF.Cos(angle) : MathF.Sin(angle);
-            RenderSample(own_channel, mix_slice, delta_start, volume * gain, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * gain, _settings.VolumeScale, delta_end,
                 offset);
             return;
         }
@@ -742,67 +746,24 @@ public class PcmEncoder
         if (x <= 0)
         {
             var own_gain = channel == 0 ? 1f : sin;
-            RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
                 offset);
 
             if (channel != 0) return;
             var right_channel = processed_event.AudioData.GetChannel(1);
-            RenderSample(right_channel, mix_slice, delta_start, volume * cos, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(right_channel, mix_slice, delta_start, volume * cos, _settings.VolumeScale, delta_end,
                 offset);
         }
         else
         {
             var own_gain = channel == 1 ? 1f : cos;
-            RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(own_channel, mix_slice, delta_start, volume * own_gain, _settings.VolumeScale, delta_end,
                 offset);
 
             if (channel != 1) return;
             var left_channel = processed_event.AudioData.GetChannel(0);
-            RenderSample(left_channel, mix_slice, delta_start, volume * sin, _settings.VolumeScale, delta_end,
+            SampleMixer.RenderSample(left_channel, mix_slice, delta_start, volume * sin, _settings.VolumeScale, delta_end,
                 offset);
-        }
-    }
-
-    private void HandleCut(int start, int end, int currentStart, Span<float> mixSlice)
-    {
-        var wanted_zero_samples = 4096 * _sampleRate / 48000;
-        var norm_start = currentStart - start;
-        var norm_end = end - start;
-
-        var zero_samples = 0;
-        var zero_index = norm_end;
-        for (var i = norm_start; i < norm_end; i++)
-        {
-            if (zero_samples >= wanted_zero_samples)
-            {
-                zero_index = i;
-                break;
-            }
-
-            zero_samples++;
-
-            if (i >= 0 && mixSlice[i] == 0f) continue;
-            zero_samples = 0;
-        }
-
-        var cut_fade_ms = (int)_settings.CutFadeLengthMs;
-        var cut_fade_length = (int)(_settings.SampleRate / 1000) * cut_fade_ms;
-        var cut_fade_end = norm_start + cut_fade_length;
-
-        int cut_i;
-        for (cut_i = norm_start; cut_i < cut_fade_end; cut_i++)
-        {
-            if (cut_i < 0 || cut_i >= zero_index) continue;
-            var norm_i = cut_fade_end - cut_i;
-
-            var delta = (float)norm_i / cut_fade_length;
-            mixSlice[cut_i] *= delta;
-        }
-
-        for (var i = cut_i; i < zero_index; i++)
-        {
-            if (i < 0) continue;
-            mixSlice[i] = 0f;
         }
     }
 
@@ -813,129 +774,17 @@ public class PcmEncoder
     /// <param name="data">The AudioData object.</param>
     public void WriteAsWavFile(string location, AudioData<float> data)
     {
-        var stream = File.Open(location, FileMode.Create);
-        WriteAsWavFile(stream, data);
+        WaveEncoder.WriteAsWavFile(location, data, _channels, _sampleRate, _settings.EnableNormalization,
+            IndexReport);
+        Log("Saved audio file.");
     }
 
     public void WriteAsWavFile(Stream stream, AudioData<float> data)
     {
-        if (_settings.EnableNormalization)
-            data.Normalize();
-
-        var samples = data.Samples;
-        for (var i = 0; i < samples.Length; i++)
-        {
-            var arr = samples[i];
-            samples[i] = arr.TrimEnd();
-        }
-
-        var writer = new BinaryWriter(stream);
-        var maxLength = samples.Max(r => r.Length);
-        AddWavHeader<float>(writer, maxLength);
-
-        var every_n_report = maxLength / 200; // 200 calls.
-        for (var i = 0; i < maxLength; i++)
-        {
-            if (i % every_n_report == 0) IndexReport((ulong)i, (ulong)maxLength);
-            for (var j = 0; j < _channels; j++)
-                writer.Write(samples[j].Length > i ? samples[j][i] : 0f);
-        }
-
-        writer.Flush();
-        writer.Close();
-
+        WaveEncoder.WriteAsWavFile(stream, data, _channels, _sampleRate, _settings.EnableNormalization,
+            IndexReport);
         Log("Saved audio file.");
     }
-
-    /// <summary>
-    ///     This method adds the RIFF WAVE header to an empty file.
-    /// </summary>
-    /// <param name="writer">An open BinaryWriter</param>
-    /// <param name="dataLength">Length of the audio data.</param>
-    private void AddWavHeader<T>(BinaryWriter writer, int dataLength) where T : struct
-    {
-        ReadOnlySpan<char> riff_header = ['R', 'I', 'F', 'F'];
-        ReadOnlySpan<char> wave_header = ['W', 'A', 'V', 'E'];
-        ReadOnlySpan<char> fmt_header = ['f', 'm', 't', ' '];
-        ReadOnlySpan<char> data_header = ['d', 'a', 't', 'a'];
-
-        var is_float = typeof(T) == typeof(float) || typeof(T) == typeof(double);
-        var byte_size = Marshal.SizeOf<T>();
-        var length = dataLength * (int)_channels;
-        writer.Write(riff_header); // RIFF Chunk Descriptor
-        writer.Write(4 + 8 + 16 + 8 + length * 2); // Sub Chunk 1 Size
-        //Chunk Size 4 bytes.
-        writer.Write(wave_header);
-        // fmt sub-chunk
-        writer.Write(fmt_header);
-        writer.Write(16); // Sub Chunk 1 Size
-        writer.Write((short)(is_float ? 3 : 1)); // Audio Format 1 = PCM / 3 = Float
-        writer.Write((short)_channels); // Audio Channels
-        writer.Write((int)_sampleRate); // Sample Rate
-        writer.Write((int)(_sampleRate * _channels * byte_size /* Bytes */)); // Byte Rate
-        writer.Write((short)(_channels * byte_size)); // Block Align
-        writer.Write((short)(byte_size * 8)); // Bits per Sample
-        // data sub-chunk
-        writer.Write(data_header);
-        writer.Write(length * byte_size); // Sub Chunk 2 Size.
-    }
-
-    #region Sample Processing Methods
-
-    /// <summary>
-    ///     Adds a source audio data array to a destination.
-    /// </summary>
-    /// <param name="source">The source audio data you want to add.</param>
-    /// <param name="destination">The destination you want to add to.</param>
-    /// <param name="index">The index of the destination you want to start on.</param>
-    /// <param name="volume">The volume of the source audio while being added.</param>
-    /// <param name="volumeScale"></param>
-    /// <param name="length">The length of the export you want to do.</param>
-    /// <param name="offset">The source sample offset. Used in multithreading.</param>
-    public static void RenderSample(Span<float> source, Span<float> destination, int index,
-        double volume, PercentageScale volumeScale, int length = -1, int offset = -1)
-    {
-        if (length == -1) length = source.Length;
-
-        if (offset < 0) offset = 0;
-
-        var s_slice = source.Slice(offset, length);
-        var d_slice = destination[index..];
-        var chunk_size = Vector<float>.Count;
-        var final_volume = (float)volume / 100f;
-        switch (volumeScale)
-        {
-            case PercentageScale.Logarithmic:
-            case PercentageScale.LinearOverflowLogarithmic when final_volume > 1f:
-                final_volume = MathF.Sqrt(final_volume);
-                break;
-        }
-
-        var s_chunked = s_slice.Length - s_slice.Length % chunk_size;
-        var d_chunked = d_slice.Length - d_slice.Length % chunk_size;
-
-        var min = Math.Min(s_chunked, d_chunked);
-
-        for (var i = 0; i < min; i += chunk_size)
-        {
-            var i_chunk = i + chunk_size;
-
-            var s = s_slice[i..i_chunk];
-            var d = d_slice[i..i_chunk];
-
-            var d_vector = new Vector<float>(d);
-            var s_vector = new Vector<float>(s);
-
-            var final = d_vector + s_vector * final_volume;
-
-            final.CopyTo(d);
-        }
-
-        var min_final = Math.Min(d_slice.Length, s_slice.Length);
-        for (var i = min; i < min_final; i++) d_slice[i] += s_slice[i] * final_volume;
-    }
-
-    #endregion
 
     /// <summary>
     ///     Returns the placements in <paramref name="from" /> that are not in <paramref name="subtract" />.

@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Numerics;
-using ThirtyDollarEncoder.Mixers;
+using ThirtyDollarConverter.Encoder.Mixers;
 
-namespace ThirtyDollarEncoder.PCM;
+namespace ThirtyDollarConverter.Encoder.PCM;
 
 public class AudioMixer : IDisposable
 {

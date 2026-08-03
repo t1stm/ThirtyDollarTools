@@ -4,7 +4,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using JetBrains.Annotations;
 
-namespace ThirtyDollarGUI.Views;
+namespace ThirtyDollarConverter.GUI.Views;
 
 public partial class Greeter : Window
 {

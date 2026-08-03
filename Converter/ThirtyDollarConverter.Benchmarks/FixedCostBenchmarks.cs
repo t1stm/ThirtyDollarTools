@@ -1,7 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Benchmarks;
 

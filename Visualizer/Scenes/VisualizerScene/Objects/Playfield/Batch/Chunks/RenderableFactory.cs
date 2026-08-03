@@ -14,8 +14,8 @@ using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Shaders;
 using Sundex.Engine.Text;
 using ThirtyDollarConverter;
-using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 using VisualizerScene.Objects.Sound_Values;
 

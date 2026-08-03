@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 
-namespace ThirtyDollarGUI.Services;
+namespace ThirtyDollarConverter.GUI.Services;
 
 public class DialogService : AvaloniaObject
 {

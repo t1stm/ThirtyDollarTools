@@ -7,8 +7,8 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Engine.Renderer.Data_Buffers;
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
 

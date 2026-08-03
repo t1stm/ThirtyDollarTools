@@ -1,5 +1,5 @@
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.Resamplers;
+using ThirtyDollarConverter.Encoder.Resamplers;
 
 namespace ThirtyDollarConverter.DiscordBot;
 

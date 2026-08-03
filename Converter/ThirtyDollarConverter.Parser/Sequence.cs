@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Parser.Custom_Events;
 
-namespace ThirtyDollarParser;
+namespace ThirtyDollarConverter.Parser;
 
 public partial class Sequence
 {

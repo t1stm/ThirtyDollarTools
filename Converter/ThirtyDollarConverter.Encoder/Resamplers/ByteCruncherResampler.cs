@@ -1,4 +1,4 @@
-namespace ThirtyDollarEncoder.Resamplers;
+namespace ThirtyDollarConverter.Encoder.Resamplers;
 
 public class ByteCruncherResampler(float bitsPerSample = 64f) : IResampler
 {

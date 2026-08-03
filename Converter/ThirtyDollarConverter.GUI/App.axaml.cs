@@ -1,10 +1,10 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using ThirtyDollarGUI.ViewModels;
-using ThirtyDollarGUI.Views;
+using ThirtyDollarConverter.GUI.ViewModels;
+using ThirtyDollarConverter.GUI.Views;
 
-namespace ThirtyDollarGUI;
+namespace ThirtyDollarConverter.GUI;
 
 public class App : Application
 {

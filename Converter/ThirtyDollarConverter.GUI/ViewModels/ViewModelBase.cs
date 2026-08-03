@@ -1,5 +1,5 @@
 ﻿using ReactiveUI;
 
-namespace ThirtyDollarGUI.ViewModels;
+namespace ThirtyDollarConverter.GUI.ViewModels;
 
 public class ViewModelBase : ReactiveObject;

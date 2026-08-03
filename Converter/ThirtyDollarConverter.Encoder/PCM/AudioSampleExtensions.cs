@@ -1,10 +1,8 @@
-using System;
-using System.Linq;
 using System.Numerics;
 
-namespace ThirtyDollarConverter.Objects;
+namespace ThirtyDollarConverter.Encoder.PCM;
 
-public static class ObjectExtensions
+public static class AudioSampleExtensions
 {
     /// <param name="arr">The target array.</param>
     extension(float[] arr)

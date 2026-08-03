@@ -4,7 +4,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.SlashCommands;
 using JetBrains.Annotations;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 using Encoding = System.Text.Encoding;
 
 namespace ThirtyDollarConverter.DiscordBot;

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace ThirtyDollarParser;
+namespace ThirtyDollarConverter.Parser;
 
 public class Sound
 {

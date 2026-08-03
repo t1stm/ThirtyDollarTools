@@ -1,4 +1,4 @@
-namespace ThirtyDollarGUI.ViewModels;
+namespace ThirtyDollarConverter.GUI.ViewModels;
 
 public enum DownloaderMode
 {

@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace ThirtyDollarEncoder.PCM;
+namespace ThirtyDollarConverter.Encoder.PCM;
 
 public static class DataHolderExtensions // i love duplicating code (false statement)
 {

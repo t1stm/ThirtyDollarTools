@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using ThirtyDollarEncoder.Resamplers;
-using ThirtyDollarGUI.Models;
+using ThirtyDollarConverter.Encoder.Resamplers;
+using ThirtyDollarConverter.GUI.Models;
 
-namespace ThirtyDollarGUI.Services;
+namespace ThirtyDollarConverter.GUI.Services;
 
 public static class ResamplerService
 {

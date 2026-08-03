@@ -2,7 +2,7 @@ using OpenTK.Mathematics;
 using Shared.Animations;
 using Sundex.Core;
 using Sundex.Core.Animations;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 using VisualizerScene.Objects.Sound_Values;
 
 namespace VisualizerScene.Objects;

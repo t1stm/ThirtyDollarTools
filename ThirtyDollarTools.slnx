@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/Converter/">
-    <Project Path="Converter/ThirtyDollarConverter.Audio/ThirtyDollarConverter.Audio.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.Encoder/ThirtyDollarConverter.Encoder.csproj"/>
     <Project Path="Converter/ThirtyDollarConverter.Benchmarks/ThirtyDollarConverter.Benchmarks.csproj"/>
     <Project Path="Converter/ThirtyDollarConverter.CLI/ThirtyDollarConverter.CLI.csproj"/>
     <Project Path="Converter/ThirtyDollarConverter.DiscordBot/ThirtyDollarConverter.DiscordBot.csproj"/>

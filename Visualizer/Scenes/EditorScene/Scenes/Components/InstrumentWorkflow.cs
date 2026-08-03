@@ -2,7 +2,7 @@ using Shared.Atlases;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
 namespace EditorScene.Scenes.Components;
 

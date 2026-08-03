@@ -1,6 +1,6 @@
-using ThirtyDollarEncoder.PCM;
+using ThirtyDollarConverter.Encoder.PCM;
 
-namespace ThirtyDollarEncoder.Mixers;
+namespace ThirtyDollarConverter.Encoder.Mixers;
 
 public interface IMixingMethod
 {

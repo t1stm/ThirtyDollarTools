@@ -1,8 +1,8 @@
 using Serilog.Core;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.PCM;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Benchmarks;
 

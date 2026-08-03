@@ -1,6 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.ReactiveUI;
-using ThirtyDollarGUI;
+using ThirtyDollarConverter.GUI;
 
 AppBuilder.Configure<App>()
     .UsePlatformDetect()

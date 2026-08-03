@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using ReactiveUI;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarGUI.Models;
-using ThirtyDollarGUI.Services;
+using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.GUI.Models;
+using ThirtyDollarConverter.GUI.Services;
 
-namespace ThirtyDollarGUI.ViewModels;
+namespace ThirtyDollarConverter.GUI.ViewModels;
 
 public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : ViewModelBase
 {

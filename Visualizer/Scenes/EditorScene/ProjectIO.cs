@@ -2,7 +2,7 @@ using System.Diagnostics;
 using EditorScene.Scenes.Components;
 using Serilog;
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
 namespace EditorScene;
 

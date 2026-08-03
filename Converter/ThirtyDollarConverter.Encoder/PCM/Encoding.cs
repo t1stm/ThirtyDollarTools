@@ -1,4 +1,4 @@
-namespace ThirtyDollarEncoder.PCM;
+namespace ThirtyDollarConverter.Encoder.PCM;
 
 public enum Encoding
 {

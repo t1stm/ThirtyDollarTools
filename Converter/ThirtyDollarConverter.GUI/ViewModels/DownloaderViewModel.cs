@@ -4,9 +4,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using ReactiveUI;
 using ThirtyDollarConverter;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
-namespace ThirtyDollarGUI.ViewModels;
+namespace ThirtyDollarConverter.GUI.ViewModels;
 
 public class DownloaderViewModel(SampleHolder sampleHolder, DownloaderMode downloadMode = DownloaderMode.Samples)
     : ViewModelBase

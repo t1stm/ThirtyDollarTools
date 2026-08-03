@@ -6,9 +6,9 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Serilog;
-using ThirtyDollarEncoder.PCM;
-using ThirtyDollarEncoder.Wave;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Encoder.Wave;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter;
 

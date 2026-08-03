@@ -2,7 +2,7 @@ using System.Collections.Specialized;
 using Avalonia.Controls;
 using Avalonia.Xaml.Interactivity;
 
-namespace ThirtyDollarGUI.Behaviors;
+namespace ThirtyDollarConverter.GUI.Behaviors;
 
 public class LogScrollBehavior : Behavior<ListBox>
 {

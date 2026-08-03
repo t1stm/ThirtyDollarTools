@@ -1,4 +1,4 @@
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Objects;
 

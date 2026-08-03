@@ -1,4 +1,4 @@
-namespace ThirtyDollarParser.Custom_Events;
+namespace ThirtyDollarConverter.Parser.Custom_Events;
 
 public class LegacySequenceEvent : BaseEvent, IHiddenEvent
 {

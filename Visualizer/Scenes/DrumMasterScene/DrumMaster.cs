@@ -13,7 +13,7 @@ using Sundex.Engine.Scenes.Arguments;
 using Sundex.Markup;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 using VisualizerScene;
 
 namespace DrumMasterScene;

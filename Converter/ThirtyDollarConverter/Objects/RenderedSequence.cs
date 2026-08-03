@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using ThirtyDollarEncoder.PCM;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Objects;
 

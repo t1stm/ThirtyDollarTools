@@ -1,5 +1,6 @@
 using System;
-using ThirtyDollarEncoder.Resamplers;
+using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Encoder.Resamplers;
 
 namespace ThirtyDollarConverter.Objects;
 

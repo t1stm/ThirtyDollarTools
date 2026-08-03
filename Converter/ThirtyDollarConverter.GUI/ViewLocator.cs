@@ -1,9 +1,9 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using ThirtyDollarGUI.ViewModels;
+using ThirtyDollarConverter.GUI.ViewModels;
 
-namespace ThirtyDollarGUI;
+namespace ThirtyDollarConverter.GUI;
 
 public class ViewLocator : IDataTemplate
 {

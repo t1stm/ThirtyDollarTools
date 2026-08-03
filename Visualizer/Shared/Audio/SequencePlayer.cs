@@ -6,7 +6,7 @@ using Shared.Objects;
 using Sundex.Core;
 using Sundex.Engine.Threading;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace Shared.Audio;
 

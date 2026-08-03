@@ -5,7 +5,7 @@ using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Threading;
 using ThirtyDollarConverter;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
 namespace LoadingScene;
 

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace ThirtyDollarConverter;
 

@@ -1,5 +1,5 @@
 using Shared.Audio.Features;
-using ThirtyDollarEncoder.PCM;
+using ThirtyDollarConverter.Encoder.PCM;
 
 namespace Shared.Audio;
 

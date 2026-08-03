@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 
-namespace ThirtyDollarGUI.Views;
+namespace ThirtyDollarConverter.GUI.Views;
 
 public partial class MainWindow : Window
 {

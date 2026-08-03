@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace ThirtyDollarEncoder.PCM;
+namespace ThirtyDollarConverter.Encoder.PCM;
 
 public class AudioData<T> : IDisposable
     where T : INumber<T>,

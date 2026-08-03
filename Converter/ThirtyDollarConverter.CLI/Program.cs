@@ -3,8 +3,8 @@ using Serilog;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.CLI;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.Resamplers;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Encoder.Resamplers;
+using ThirtyDollarConverter.Parser;
 
 var serilogLogger = new LoggerConfiguration()
     .WriteTo.Console(outputTemplate: "{Level:u3}: {Message:lj}{NewLine}{Exception}")

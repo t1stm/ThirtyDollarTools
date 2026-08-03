@@ -1,4 +1,4 @@
-namespace ThirtyDollarEncoder.Resamplers;
+namespace ThirtyDollarConverter.Encoder.Resamplers;
 
 public abstract class KaiserSincResampler : IResampler
 {

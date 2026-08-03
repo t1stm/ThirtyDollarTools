@@ -1,7 +1,7 @@
 using System.Numerics;
-using ThirtyDollarEncoder.PCM;
+using ThirtyDollarConverter.Encoder.PCM;
 
-namespace ThirtyDollarEncoder.Mixers;
+namespace ThirtyDollarConverter.Encoder.Mixers;
 
 public class BasicMixer : IMixingMethod
 {

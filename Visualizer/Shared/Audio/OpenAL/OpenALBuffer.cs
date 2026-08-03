@@ -1,6 +1,6 @@
 using OpenTK.Audio.OpenAL;
 using Serilog;
-using ThirtyDollarEncoder.PCM;
+using ThirtyDollarConverter.Encoder.PCM;
 
 namespace Shared.Audio.OpenAL;
 

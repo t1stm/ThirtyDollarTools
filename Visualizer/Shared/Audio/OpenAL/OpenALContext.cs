@@ -1,7 +1,7 @@
 using OpenTK.Audio.OpenAL;
 using OpenTK.Audio.OpenAL.ALC;
 using Serilog;
-using ThirtyDollarEncoder.PCM;
+using ThirtyDollarConverter.Encoder.PCM;
 using ErrorCodeAl = OpenTK.Audio.OpenAL.ErrorCode;
 using ErrorCodeAlc = OpenTK.Audio.OpenAL.ALC.ErrorCode;
 

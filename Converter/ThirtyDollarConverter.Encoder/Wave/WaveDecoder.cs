@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
-using ThirtyDollarEncoder.PCM;
+using ThirtyDollarConverter.Encoder.PCM;
 using Encoding = System.Text.Encoding;
 
-namespace ThirtyDollarEncoder.Wave;
+namespace ThirtyDollarConverter.Encoder.Wave;
 
 // TODO rewrite this.
 public class WaveDecoder

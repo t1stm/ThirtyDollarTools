@@ -1,4 +1,4 @@
-namespace ThirtyDollarParser;
+namespace ThirtyDollarConverter.Parser;
 
 public class NormalEvent : BaseEvent
 {

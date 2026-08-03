@@ -1,5 +1,5 @@
-using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace ThirtyDollarConverter.Tests;
 

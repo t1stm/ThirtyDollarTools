@@ -8,7 +8,7 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
 namespace EditorScene.Scenes.Components;
 

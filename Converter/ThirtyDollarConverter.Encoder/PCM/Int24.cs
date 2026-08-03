@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace ThirtyDollarEncoder.PCM;
+namespace ThirtyDollarConverter.Encoder.PCM;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct Int24

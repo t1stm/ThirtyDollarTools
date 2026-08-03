@@ -1,4 +1,4 @@
-namespace ThirtyDollarEncoder.Resamplers;
+namespace ThirtyDollarConverter.Encoder.Resamplers;
 
 public sealed class KaiserFastResampler() : KaiserSincResampler(
     9.90322,

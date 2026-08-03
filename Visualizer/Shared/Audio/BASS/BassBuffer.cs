@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 using ManagedBass;
 using Serilog;
-using ThirtyDollarEncoder.PCM;
+using ThirtyDollarConverter.Encoder.PCM;
 
 namespace Shared.Audio.BASS;
 

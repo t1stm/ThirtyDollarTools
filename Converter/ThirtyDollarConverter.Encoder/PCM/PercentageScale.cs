@@ -1,4 +1,4 @@
-namespace ThirtyDollarConverter.Objects;
+namespace ThirtyDollarConverter.Encoder.PCM;
 
 /// <summary>
 ///     Defines the scaling methods available for percentage-based operations.
@@ -12,7 +12,7 @@ public enum PercentageScale
     /// <summary>
     ///     Equal-power (constant-power) scaling, matching the Web Audio API's
     ///     StereoPannerNode curve used by the Thirty Dollar Website. Only meaningful for
-    ///     <see cref="EncoderSettings.PanScale" />.
+    ///     panning.
     /// </summary>
     EqualPower
 }

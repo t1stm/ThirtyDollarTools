@@ -4,9 +4,9 @@ using Shared.Audio;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.Resamplers;
-using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Encoder.Resamplers;
+using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace EditorScene;
 

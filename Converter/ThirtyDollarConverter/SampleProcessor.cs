@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.PCM;
-using ThirtyDollarEncoder.Resamplers;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Encoder.Resamplers;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter;
 

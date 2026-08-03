@@ -1,9 +1,9 @@
 using System.Reflection;
 using Serilog;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.PCM;
-using ThirtyDollarParser;
-using ThirtyDollarParser.Custom_Events;
+using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace ThirtyDollarConverter.Tests;
 

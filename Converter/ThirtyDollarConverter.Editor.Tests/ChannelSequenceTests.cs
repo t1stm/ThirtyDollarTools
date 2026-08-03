@@ -1,5 +1,5 @@
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Editor.Tests;
 

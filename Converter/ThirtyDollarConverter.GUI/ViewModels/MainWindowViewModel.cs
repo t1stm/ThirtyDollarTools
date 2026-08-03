@@ -10,11 +10,11 @@ using ReactiveUI;
 using Serilog;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarGUI.Helpers;
-using ThirtyDollarGUI.Views;
-using ThirtyDollarParser;
+using ThirtyDollarConverter.GUI.Helpers;
+using ThirtyDollarConverter.GUI.Views;
+using ThirtyDollarConverter.Parser;
 
-namespace ThirtyDollarGUI.ViewModels;
+namespace ThirtyDollarConverter.GUI.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {

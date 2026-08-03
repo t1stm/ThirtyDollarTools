@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
-using ThirtyDollarGUI.Services;
+using ThirtyDollarConverter.GUI.Services;
 
-namespace ThirtyDollarGUI.Helpers;
+namespace ThirtyDollarConverter.GUI.Helpers;
 
 public static class DialogHelper
 {

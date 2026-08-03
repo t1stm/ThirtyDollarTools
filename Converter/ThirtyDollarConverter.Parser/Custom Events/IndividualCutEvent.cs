@@ -1,4 +1,4 @@
-namespace ThirtyDollarParser.Custom_Events;
+namespace ThirtyDollarConverter.Parser.Custom_Events;
 
 public class IndividualCutEvent : BaseEvent, ICustomActionEvent, ICustomAudibleEvent
 {
