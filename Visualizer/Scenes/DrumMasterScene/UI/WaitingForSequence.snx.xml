@@ -24,11 +24,11 @@
     border-radius = 8;
 
     state[hovered] = {
-        background = "#8599d4";
+    background = "#8599d4";
     }
 
     state[pressed] = {
-        background = "#4c78a8";
+    background = "#4c78a8";
     }
     }
 

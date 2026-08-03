@@ -104,7 +104,8 @@ public class SettingsInterface
         return checkbox;
     }
 
-    private static NumericInput CreateNumericInput(UIContext context, VisualizerSettings settings, PropertyInfo property)
+    private static NumericInput CreateNumericInput(UIContext context, VisualizerSettings settings,
+        PropertyInfo property)
     {
         var isInt = property.PropertyType == typeof(int);
         var current = Convert.ToDouble(property.GetValue(settings));
@@ -134,14 +135,17 @@ public class SettingsInterface
         return input;
     }
 
-    private static (double Min, double Max, double Step) NumericRangeFor(string propertyName) => propertyName switch
+    private static (double Min, double Max, double Step) NumericRangeFor(string propertyName)
     {
-        nameof(VisualizerSettings.EventSize) => (16, 256, 1),
-        nameof(VisualizerSettings.EventMargin) => (0, 128, 1),
-        nameof(VisualizerSettings.LineAmount) => (1, 64, 1),
-        nameof(VisualizerSettings.ScrollSpeed) => (0.1, 100, 0.5),
-        _ => (double.MinValue, double.MaxValue, 1)
-    };
+        return propertyName switch
+        {
+            nameof(VisualizerSettings.EventSize) => (16, 256, 1),
+            nameof(VisualizerSettings.EventMargin) => (0, 128, 1),
+            nameof(VisualizerSettings.LineAmount) => (1, 64, 1),
+            nameof(VisualizerSettings.ScrollSpeed) => (0.1, 100, 0.5),
+            _ => (double.MinValue, double.MaxValue, 1)
+        };
+    }
 
     private static TextInput CreateTextInput(UIContext context, VisualizerSettings settings, PropertyInfo property)
     {

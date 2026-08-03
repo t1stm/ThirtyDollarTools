@@ -22,21 +22,6 @@ namespace Sundex.Components.Tests;
 /// </summary>
 public class ProgressBarVisibilityToggleTests
 {
-    private class TestContext : UIContext
-    {
-        [SetsRequiredMembers]
-        public TestContext() { Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080)); }
-        public List<List<IRenderable>> Q => LayeredRenderQueue;
-
-        public int LayerOf(IRenderable r)
-        {
-            for (var i = 0; i < Q.Count; i++)
-                if (Q[i].Any(x => ReferenceEquals(x, r)))
-                    return i;
-            return -1;
-        }
-    }
-
     [Fact]
     public void ProgressBar_ConstructedInvisible_ThenParented_ThenShown_EndsUpAtCorrectLayer()
     {
@@ -44,13 +29,16 @@ public class ProgressBarVisibilityToggleTests
 
         // Mimic a nested tree several levels deep, like InspectorPanel's real structure.
         var root = new Panel(context) { Width = 300, Height = 600 };
-        var mid1 = new Panel(context) { Width = LiteralOrComputable.Percent(100), Height = LiteralOrComputable.Percent(100) };
-        var mid2 = new FlexPanel(context) { Width = LiteralOrComputable.Percent(100), Height = LiteralOrComputable.Percent(100) };
+        var mid1 = new Panel(context)
+            { Width = LiteralOrComputable.Percent(100), Height = LiteralOrComputable.Percent(100) };
+        var mid2 = new FlexPanel(context)
+            { Width = LiteralOrComputable.Percent(100), Height = LiteralOrComputable.Percent(100) };
         root.AddChild(mid1);
         mid1.AddChild(mid2);
         root.DrawTo(context); // root is now "Drawn" - mirrors _inspectorColumn already being live
 
-        var bar = new ProgressBar(context, new ColoredPlane { Color = Vector4.One }, new ColoredPlane { Color = Vector4.UnitX })
+        var bar = new ProgressBar(context, new ColoredPlane { Color = Vector4.One },
+            new ColoredPlane { Color = Vector4.UnitX })
         {
             Width = LiteralOrComputable.Percent(100),
             Height = 6,
@@ -71,5 +59,24 @@ public class ProgressBarVisibilityToggleTests
         // Hiding it dequeues again, instead of leaving it rendered forever.
         bar.Visible = false;
         Assert.Equal(-1, context.LayerOf(plane));
+    }
+
+    private class TestContext : UIContext
+    {
+        [SetsRequiredMembers]
+        public TestContext()
+        {
+            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+        }
+
+        public List<List<IRenderable>> Q => LayeredRenderQueue;
+
+        public int LayerOf(IRenderable r)
+        {
+            for (var i = 0; i < Q.Count; i++)
+                if (Q[i].Any(x => ReferenceEquals(x, r)))
+                    return i;
+            return -1;
+        }
     }
 }

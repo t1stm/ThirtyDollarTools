@@ -14,8 +14,10 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class DialogHost(UIContext context, Panel root)
 {
-    /// <summary>The panel modals mount on - for components that manage their own
-    /// hand-built ModalLayer (toggled open/closed, not wrapped fresh per <see cref="Show" />).</summary>
+    /// <summary>
+    ///     The panel modals mount on - for components that manage their own
+    ///     hand-built ModalLayer (toggled open/closed, not wrapped fresh per <see cref="Show" />).
+    /// </summary>
     public Panel Root => root;
 
     /// <summary>Adds a modal wrapping the given content; the backdrop dismiss removes it by default.</summary>
@@ -80,12 +82,14 @@ public sealed class DialogHost(UIContext context, Panel root)
         };
     }
 
-    /// <summary>One-button informational dialog - for surfacing failures that would
-    /// otherwise be silent (e.g. a failed save), not for anything the user confirms.</summary>
+    /// <summary>
+    ///     One-button informational dialog - for surfacing failures that would
+    ///     otherwise be silent (e.g. a failed save), not for anything the user confirms.
+    /// </summary>
     public void Alert(string message)
     {
         var ok = new Button(context, "OK")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = EditorPalette.Divider }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = EditorPalette.Divider }, BorderRadius = 6 };
         var content = new FlexPanel(context)
         {
             Direction = LayoutDirection.Vertical,

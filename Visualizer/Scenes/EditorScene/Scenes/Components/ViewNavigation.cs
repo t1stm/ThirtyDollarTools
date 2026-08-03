@@ -12,25 +12,28 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class ViewNavigation(float minZoom, float maxZoom)
 {
+    private Vector2? _panPointer;
     public float ScrollX { get; set; }
     public float ScrollY { get; set; }
     public float Zoom { get; set; }
     public float MaxScrollY { get; set; }
 
-    private Vector2? _panPointer;
-
-    /// <summary>Horizontally, only the left edge is bounded - content can scroll past the
-    /// viewport on the right (lets playhead-follow keep centering to the very end of
-    /// playback). Vertically, bounded to <see cref="MaxScrollY" />, which is 0 for views
-    /// with no vertical scroll.</summary>
+    /// <summary>
+    ///     Horizontally, only the left edge is bounded - content can scroll past the
+    ///     viewport on the right (lets playhead-follow keep centering to the very end of
+    ///     playback). Vertically, bounded to <see cref="MaxScrollY" />, which is 0 for views
+    ///     with no vertical scroll.
+    /// </summary>
     public void Clamp()
     {
         ScrollX = Math.Max(0, ScrollX);
         ScrollY = Math.Clamp(ScrollY, 0, MaxScrollY);
     }
 
-    /// <summary>Pointer-anchored zoom (Ctrl+wheel): the unit under the cursor stays put.
-    /// <paramref name="pointerPx" /> is local, already offset past any gutter/header.</summary>
+    /// <summary>
+    ///     Pointer-anchored zoom (Ctrl+wheel): the unit under the cursor stays put.
+    ///     <paramref name="pointerPx" /> is local, already offset past any gutter/header.
+    /// </summary>
     public void ZoomAt(float pointerPx, float wheelDeltaY)
     {
         var anchorUnits = (pointerPx + ScrollX) / Zoom;
@@ -38,10 +41,12 @@ public sealed class ViewNavigation(float minZoom, float maxZoom)
         ScrollX = anchorUnits * Zoom - pointerPx;
     }
 
-    /// <summary>One wheel event. <paramref name="zoom" /> zooms at the pointer;
-    /// otherwise <paramref name="panXWithY" /> pans time with the wheel's plain axis
-    /// (the note editor's Shift/fine-snap binding, the arrangement's only mode), else the
-    /// plain wheel scrolls Y and a tilt wheel/touchpad X pans time.</summary>
+    /// <summary>
+    ///     One wheel event. <paramref name="zoom" /> zooms at the pointer;
+    ///     otherwise <paramref name="panXWithY" /> pans time with the wheel's plain axis
+    ///     (the note editor's Shift/fine-snap binding, the arrangement's only mode), else the
+    ///     plain wheel scrolls Y and a tilt wheel/touchpad X pans time.
+    /// </summary>
     public void Wheel(Vector2 delta, bool zoom, bool panXWithY, float pointerPx)
     {
         if (zoom)

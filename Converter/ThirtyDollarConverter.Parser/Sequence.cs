@@ -177,23 +177,23 @@ public partial class Sequence
                         return (BaseEvent)custom_action_event;
 
                     default:
+                    {
+                        var extended_event = new ExtendedEvent
                         {
-                            var extended_event = new ExtendedEvent
-                            {
-                                SoundEvent = e.SoundEvent,
-                                Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
-                                Volume = !(e.SoundEvent ?? "").StartsWith('!')
-                                    ? (e.Volume ?? 100) * ((parsed.Volume ?? 100) / 100)
-                                    : null,
-                                ValueScale = e.ValueScale
-                            };
+                            SoundEvent = e.SoundEvent,
+                            Value = !(e.SoundEvent ?? "").StartsWith('!') ? e.Value + parsed.Value : 0,
+                            Volume = !(e.SoundEvent ?? "").StartsWith('!')
+                                ? (e.Volume ?? 100) * ((parsed.Volume ?? 100) / 100)
+                                : null,
+                            ValueScale = e.ValueScale
+                        };
 
-                            if (e is not ExtendedEvent ex || (e.SoundEvent ?? "").StartsWith('!')) return extended_event;
+                        if (e is not ExtendedEvent ex || (e.SoundEvent ?? "").StartsWith('!')) return extended_event;
 
-                            extended_event.Pan = pan + ex.Pan;
-                            extended_event.OffsetInSeconds = offset + ex.OffsetInSeconds;
-                            return extended_event;
-                        }
+                        extended_event.Pan = pan + ex.Pan;
+                        extended_event.OffsetInSeconds = offset + ex.OffsetInSeconds;
+                        return extended_event;
+                    }
                 }
             }));
 

@@ -19,6 +19,7 @@ public class Checkbox : StackPanel
     private const float CheckInset = 4;
 
     private readonly Panel _box;
+
     // Off-tree plane like TextInput's caret: always queued, hidden via Scale = 0.
     private readonly ColoredPlane _check = new() { Color = new Vector4(0.9f, 0.9f, 0.9f, 1f) };
 

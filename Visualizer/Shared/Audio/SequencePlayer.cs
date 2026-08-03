@@ -17,15 +17,15 @@ public class SequencePlayer
     protected readonly Dictionary<string, Action<Placement, int>> EventActions = new();
     protected readonly ILogger Logger;
     protected readonly SemaphoreSlim UpdateLock = new(1);
-    private bool _dead;
-    private long _oldTime;
-    private bool _updateRunning;
 
     protected PlayerErrors Errors = PlayerErrors.None;
     protected TimedEvents Events;
 
     protected SequenceIndices SequenceIndices = new();
     protected Action<int>? SequenceUpdateAction;
+    private bool _dead;
+    private long _oldTime;
+    private bool _updateRunning;
 
     /// <summary>
     ///     Creates a player that plays Thirty Dollar sequences.

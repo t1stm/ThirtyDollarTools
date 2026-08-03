@@ -1,4 +1,5 @@
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using Sundex.Engine.Renderer;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Cameras;
@@ -9,15 +10,13 @@ namespace Sundex.Engine.Text;
 
 public class TextBuffer : IRenderable, IClippable, IDisposable
 {
-    /// <inheritdoc />
-    public OpenTK.Mathematics.Vector4i? ClipRect { get; set; }
+    public readonly GLBuffer<TextCharacter>.WithCPUCache Characters;
+    public readonly ITextProvider TextProvider;
 
     private readonly List<Range> _freeRanges = [];
     private readonly Dictionary<TextSlice, Range> _usedRanges = [];
 
     private readonly VertexArrayObject _vao = new();
-    public readonly GLBuffer<TextCharacter>.WithCPUCache Characters;
-    public readonly ITextProvider TextProvider;
 
     private int _currentOffset;
     private bool _disposing;
@@ -29,6 +28,9 @@ public class TextBuffer : IRenderable, IClippable, IDisposable
         TextProvider = provider;
         InitializeVAO(_vao, Characters);
     }
+
+    /// <inheritdoc />
+    public Vector4i? ClipRect { get; set; }
 
     public void Dispose()
     {

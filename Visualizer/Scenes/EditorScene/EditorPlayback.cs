@@ -1,11 +1,9 @@
 using System.Diagnostics;
 using Shared;
 using Shared.Audio;
-using Shared.Objects;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarEncoder.PCM;
 using ThirtyDollarEncoder.Resamplers;
 using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
@@ -33,26 +31,24 @@ public class EditorPlayback
     /// </summary>
     public const double LeadInSeconds = 0.2;
 
-    private readonly Stopwatch _sinceEdit = new();
-    private readonly EditorState _state;
-    private readonly ThirtyDollarWorkflow _workflow;
+    private readonly List<AudibleBuffer> _preview = [];
 
     private readonly SampleProcessor _previewProcessor;
     private readonly uint _previewSampleRate;
-    private readonly List<AudibleBuffer> _preview = [];
+
+    private readonly Stopwatch _sinceEdit = new();
+    private readonly EditorState _state;
+    private readonly ThirtyDollarWorkflow _workflow;
+    private string? _lastAlertedError;
 
     private bool _modelDirty;
-    private bool _remixPending;
-    private bool _rendering;
     private bool _playWhenReady;
-    private TimedEvents? _timedEvents;
+    private bool _remixPending;
     private RenderedSequence? _rendered;
+    private bool _rendering;
     private RenderedSequence? _soloRendered;
 
-    private float _statusProgress;
-    private ulong _statusDone;
-    private ulong _statusTotal;
-    private string? _lastAlertedError;
+    private TimedEvents? _timedEvents;
 
     public EditorPlayback(ThirtyDollarWorkflow workflow, EditorState state)
     {
@@ -61,9 +57,9 @@ public class EditorPlayback
         Encoder = new PcmEncoder(workflow.SampleHolder, workflow.EncoderSettings,
             indexReport: (done, total) =>
             {
-                _statusDone = done;
-                _statusTotal = total;
-                _statusProgress = total == 0 ? 0f : (float)done / total;
+                StatusDone = done;
+                StatusTotal = total;
+                StatusProgress = total == 0 ? 0f : (float)done / total;
             });
 
         // Previews favor latency over quality: the cheapest resampler there is.
@@ -85,33 +81,31 @@ public class EditorPlayback
 
     private PcmEncoder Encoder { get; }
 
-    /// <summary>What the encoder is currently doing, for the inspector's status bar; null = idle.
-    /// Written on background render/export threads, read once a frame on the update thread -
-    /// plain field, no lock (see EditorPlayback's class doc for the polling rationale).
-    /// // ponytail: single status slot; per-operation lanes if concurrent encodes (a re-render
-    /// racing an export, both on the same Encoder) ever need to show independent progress.</summary>
+    /// <summary>
+    ///     What the encoder is currently doing, for the inspector's status bar; null = idle.
+    ///     Written on background render/export threads, read once a frame on the update thread -
+    ///     plain field, no lock (see EditorPlayback's class doc for the polling rationale).
+    ///     // ponytail: single status slot; per-operation lanes if concurrent encodes (a re-render
+    ///     racing an export, both on the same Encoder) ever need to show independent progress.
+    /// </summary>
     public string? StatusLabel { get; private set; }
 
-    public float StatusProgress => _statusProgress;
+    public float StatusProgress { get; private set; }
 
-    /// <summary>The encoder's last "done" / "total" counts from <see cref="StatusProgress" />'s
-    /// same report - the inspector's status label shows these in brackets. Both 0 when the
-    /// current phase hasn't reported yet (placement/mixing report nothing) or nothing is running.</summary>
-    public ulong StatusDone => _statusDone;
+    /// <summary>
+    ///     The encoder's last "done" / "total" counts from <see cref="StatusProgress" />'s
+    ///     same report - the inspector's status label shows these in brackets. Both 0 when the
+    ///     current phase hasn't reported yet (placement/mixing report nothing) or nothing is running.
+    /// </summary>
+    public ulong StatusDone { get; private set; }
 
-    public ulong StatusTotal => _statusTotal;
+    public ulong StatusTotal { get; private set; }
 
-    /// <summary>Set when a render or export fails; consume with <see cref="TakeError" /> to show
-    /// one dialog per failure.</summary>
+    /// <summary>
+    ///     Set when a render or export fails; consume with <see cref="TakeError" /> to show
+    ///     one dialog per failure.
+    /// </summary>
     public string? PendingError { get; private set; }
-
-    /// <summary>Returns the pending error, if any, and clears it - one failure shows one dialog.</summary>
-    public string? TakeError()
-    {
-        var error = PendingError;
-        PendingError = null;
-        return error;
-    }
 
     public bool IsPlaying => _workflow.SequencePlayer.GetTimingStopwatch().IsRunning;
     public long ElapsedMs => _workflow.SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
@@ -131,6 +125,14 @@ public class EditorPlayback
 
     /// <summary>True once a buffer was rendered and uploaded - the transport is live.</summary>
     public bool HasSession => _timedEvents != null;
+
+    /// <summary>Returns the pending error, if any, and clears it - one failure shows one dialog.</summary>
+    public string? TakeError()
+    {
+        var error = PendingError;
+        PendingError = null;
+        return error;
+    }
 
     /// <summary>Model changed: re-render (debounced) if a playback session exists.</summary>
     public void NotifyModelChanged()
@@ -200,7 +202,7 @@ public class EditorPlayback
     public void Seek(double quarters)
     {
         if (!HasSession) return;
-        var ms = (long)(((quarters / _state.Project.RootTiming.BPM) * 60 + LeadInSeconds) * 1000);
+        var ms = (long)((quarters / _state.Project.RootTiming.BPM * 60 + LeadInSeconds) * 1000);
         _workflow.SequencePlayer.Seek(Math.Clamp(ms, 0, TotalMs));
     }
 
@@ -219,10 +221,12 @@ public class EditorPlayback
             PlayOne(sound.Sound, sound.CombineValue(value), sound.CombineVolume(null), sound.CombinePan(0));
     }
 
-    /// <summary>Plays one sound with its adjustment applied on top of no base note (value 0,
-    /// default volume/pan) - the instrument editor's per-sound preview, fired as the user
-    /// scrolls a sound's value/volume/pan or hits its row's preview button. Replaces any
-    /// still-playing preview, same suppression as <see cref="PreviewNote" />.</summary>
+    /// <summary>
+    ///     Plays one sound with its adjustment applied on top of no base note (value 0,
+    ///     default volume/pan) - the instrument editor's per-sound preview, fired as the user
+    ///     scrolls a sound's value/volume/pan or hits its row's preview button. Replaces any
+    ///     still-playing preview, same suppression as <see cref="PreviewNote" />.
+    /// </summary>
     public void PreviewSound(InstrumentSound sound)
     {
         if (IsPlaying && !PreviewDuringPlayback) return;
@@ -231,9 +235,11 @@ public class EditorPlayback
         PlayOne(sound.Sound, sound.CombineValue(0), sound.CombineVolume(null), sound.CombinePan(0));
     }
 
-    /// <summary>Plays every given sound layered together, each with its own adjustment on
-    /// top of no base note - the instrument editor's "Preview" button, previewing the whole
-    /// instrument as it would sound on a note at value 0.</summary>
+    /// <summary>
+    ///     Plays every given sound layered together, each with its own adjustment on
+    ///     top of no base note - the instrument editor's "Preview" button, previewing the whole
+    ///     instrument as it would sound on a note at value 0.
+    /// </summary>
     public void PreviewInstrument(IEnumerable<InstrumentSound> sounds)
     {
         if (IsPlaying && !PreviewDuringPlayback) return;
@@ -276,15 +282,15 @@ public class EditorPlayback
             try
             {
                 StatusLabel = "Rendering export…";
-                _statusProgress = 0f;
-                _statusDone = 0;
-                _statusTotal = 0;
+                StatusProgress = 0f;
+                StatusDone = 0;
+                StatusTotal = 0;
                 var rendered = await Encoder.GetSequenceAudio(merged);
 
                 StatusLabel = "Writing WAV…";
-                _statusProgress = 0f;
-                _statusDone = 0;
-                _statusTotal = 0;
+                StatusProgress = 0f;
+                StatusDone = 0;
+                StatusTotal = 0;
                 Encoder.WriteAsWavFile(path, rendered.Audio);
 
                 _lastAlertedError = null;
@@ -334,9 +340,9 @@ public class EditorPlayback
         _modelDirty = false;
         _remixPending = false;
         StatusLabel = "Rendering audio…";
-        _statusProgress = 0f;
-        _statusDone = 0;
-        _statusTotal = 0;
+        StatusProgress = 0f;
+        StatusDone = 0;
+        StatusTotal = 0;
 
         // Snapshotted here, on the update thread - the only thread that mutates the
         // model - so the background render works on a consistent state.
@@ -383,10 +389,12 @@ public class EditorPlayback
         });
     }
 
-    /// <summary>Sets <see cref="PendingError" /> unless it's a repeat of the last alerted
-    /// message - an edit-storm where every debounced re-render fails would otherwise pop a
-    /// dialog per edit. A successful render/export clears the memory so a later failure
-    /// (even with the same message) alerts again.</summary>
+    /// <summary>
+    ///     Sets <see cref="PendingError" /> unless it's a repeat of the last alerted
+    ///     message - an edit-storm where every debounced re-render fails would otherwise pop a
+    ///     dialog per edit. A successful render/export clears the memory so a later failure
+    ///     (even with the same message) alerts again.
+    /// </summary>
     private void SetError(string message)
     {
         if (message == _lastAlertedError) return;

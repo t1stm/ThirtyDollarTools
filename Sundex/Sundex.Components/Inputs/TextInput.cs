@@ -37,13 +37,10 @@ public class TextInput : Panel
     private readonly ColoredPlane _caretPlane = new() { Color = Vector4.One };
     private readonly Label _label;
     private readonly ColoredPlane _selectionPlane = new() { Color = new Vector4(0.3f, 0.5f, 0.9f, 0.45f) };
-    public override float Padding { get; set; } = 6;
-    public override LiteralOrComputable Height { get; set; } = 32;
 
     private int _anchor;
-    private int _caret;
     private Vector4i? _inheritedClip;
-    private float _scrollX;
+
     // The pointer keeps delivering drags while the button is held after a double-click;
     // don't let them collapse the word selection.
     private bool _suppressDragSelection;
@@ -61,8 +58,11 @@ public class TextInput : Panel
         Focusable = true;
         UpdateCursorOnHover = true;
         _text = SanitizeLine(value);
-        _caret = _anchor = _text.Length;
+        CaretIndex = _anchor = _text.Length;
     }
+
+    public override float Padding { get; set; } = 6;
+    public override LiteralOrComputable Height { get; set; } = 32;
 
     public override string Tag => "text-input";
 
@@ -74,13 +74,14 @@ public class TextInput : Panel
 
     public TextInputFilter Filter { get; set; } = TextInputFilter.None;
 
-    public int CaretIndex => _caret;
-    public int SelectionStart => Math.Min(_caret, _anchor);
-    public int SelectionEnd => Math.Max(_caret, _anchor);
-    public bool HasSelection => _caret != _anchor;
+    public int CaretIndex { get; private set; }
+
+    public int SelectionStart => Math.Min(CaretIndex, _anchor);
+    public int SelectionEnd => Math.Max(CaretIndex, _anchor);
+    public bool HasSelection => CaretIndex != _anchor;
 
     /// <summary>Horizontal scroll offset in pixels keeping the caret visible.</summary>
-    public float ScrollX => _scrollX;
+    public float ScrollX { get; private set; }
 
     [NamedSetting("font-size")]
     public LiteralOrComputable FontSizePx
@@ -130,12 +131,12 @@ public class TextInput : Panel
         {
             case Keys.Left:
                 if (!e.Shift && HasSelection) SetCaret(SelectionStart, false);
-                else SetCaret(_caret - 1, e.Shift);
+                else SetCaret(CaretIndex - 1, e.Shift);
                 return true;
 
             case Keys.Right:
                 if (!e.Shift && HasSelection) SetCaret(SelectionEnd, false);
-                else SetCaret(_caret + 1, e.Shift);
+                else SetCaret(CaretIndex + 1, e.Shift);
                 return true;
 
             case Keys.Home:
@@ -148,16 +149,13 @@ public class TextInput : Panel
 
             case Keys.Backspace:
                 if (HasSelection) RemoveSelection();
-                else if (_caret > 0)
-                {
-                    SetText(_text.Remove(_caret - 1, 1), _caret - 1);
-                }
+                else if (CaretIndex > 0) SetText(_text.Remove(CaretIndex - 1, 1), CaretIndex - 1);
 
                 return true;
 
             case Keys.Delete:
                 if (HasSelection) RemoveSelection();
-                else if (_caret < _text.Length) SetText(_text.Remove(_caret, 1), _caret);
+                else if (CaretIndex < _text.Length) SetText(_text.Remove(CaretIndex, 1), CaretIndex);
                 return true;
 
             case Keys.A when e.Control:
@@ -205,7 +203,7 @@ public class TextInput : Panel
         while (end < _text.Length && char.IsLetterOrDigit(_text[end])) end++;
 
         _anchor = start;
-        _caret = end;
+        CaretIndex = end;
         AfterCaretMove();
         return true;
     }
@@ -217,7 +215,7 @@ public class TextInput : Panel
     public void Insert(ReadOnlySpan<char> input)
     {
         var remaining = HasSelection ? _text.Remove(SelectionStart, SelectionEnd - SelectionStart) : _text;
-        var caret = HasSelection ? SelectionStart : _caret;
+        var caret = HasSelection ? SelectionStart : CaretIndex;
 
         // Keystrokes are 1-2 chars; only a large paste rents from the pool.
         var rented = input.Length > 256 ? ArrayPool<char>.Shared.Rent(input.Length) : null;
@@ -245,7 +243,7 @@ public class TextInput : Panel
     public void SelectAll()
     {
         _anchor = 0;
-        _caret = _text.Length;
+        CaretIndex = _text.Length;
         AfterCaretMove();
     }
 
@@ -275,8 +273,8 @@ public class TextInput : Panel
 
     private void SetCaret(int index, bool extendSelection)
     {
-        _caret = Math.Clamp(index, 0, _text.Length);
-        if (!extendSelection) _anchor = _caret;
+        CaretIndex = Math.Clamp(index, 0, _text.Length);
+        if (!extendSelection) _anchor = CaretIndex;
         AfterCaretMove();
     }
 
@@ -284,8 +282,8 @@ public class TextInput : Panel
     {
         var changed = text != _text;
         _text = text;
-        _caret = Math.Clamp(caret ?? _caret, 0, _text.Length);
-        _anchor = _caret;
+        CaretIndex = Math.Clamp(caret ?? CaretIndex, 0, _text.Length);
+        _anchor = CaretIndex;
         _label.Value = _text;
         AfterCaretMove();
         if (changed) OnValueChanged?.Invoke(this);
@@ -311,12 +309,12 @@ public class TextInput : Panel
         var innerWidth = Math.Max(0, Computed.Width - 2 * Padding - ReservedRightWidth);
         if (innerWidth <= 0) return;
 
-        var caretX = MeasurePrefix(_caret);
-        if (caretX - _scrollX > innerWidth) _scrollX = caretX - innerWidth;
-        if (caretX - _scrollX < 0) _scrollX = caretX;
+        var caretX = MeasurePrefix(CaretIndex);
+        if (caretX - ScrollX > innerWidth) ScrollX = caretX - innerWidth;
+        if (caretX - ScrollX < 0) ScrollX = caretX;
 
         var totalWidth = MeasurePrefix(_text.Length);
-        _scrollX = Math.Clamp(_scrollX, 0, Math.Max(0, totalWidth - innerWidth));
+        ScrollX = Math.Clamp(ScrollX, 0, Math.Max(0, totalWidth - innerWidth));
     }
 
     /// <summary>Pixel width of the first <paramref name="length" /> characters at the current font size.</summary>
@@ -354,7 +352,7 @@ public class TextInput : Panel
     /// <summary>Caret index closest to the given absolute X coordinate.</summary>
     public int CaretIndexFromX(float absoluteX)
     {
-        var local = absoluteX - (Computed.AbsoluteX + Padding - _scrollX);
+        var local = absoluteX - (Computed.AbsoluteX + Padding - ScrollX);
         if (local <= 0) return 0;
 
         var fontSize = FontSize;
@@ -383,13 +381,13 @@ public class TextInput : Panel
 
     protected override void DoLayout()
     {
-        _label.X = -_scrollX;
+        _label.X = -ScrollX;
         base.DoLayout();
 
-        var textX = Computed.AbsoluteX + Padding - _scrollX;
+        var textX = Computed.AbsoluteX + Padding - ScrollX;
         var textY = Computed.AbsoluteY + Padding;
 
-        var caretX = textX + MeasurePrefix(_caret);
+        var caretX = textX + MeasurePrefix(CaretIndex);
         _caretPlane.SetPosition((caretX, textY, 0));
         _caretPlane.Scale = IsFocused ? new Vector3(1.5f, LineHeight, 1) : Vector3.Zero;
 

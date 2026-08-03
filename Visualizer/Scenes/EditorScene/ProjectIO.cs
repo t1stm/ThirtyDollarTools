@@ -49,11 +49,13 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         });
     }
 
-    /// <summary>Imports a dropped TDW sequence file as a track or a whole project (see
-    /// <see cref="ImportMode" />). All-or-nothing: a parse/import failure leaves the
-    /// project untouched, matching <see cref="Load" />'s try/catch shape. On success,
-    /// any non-fatal issues (ignored events, quantized notes, unknown sounds) surface
-    /// as one summary alert - never one dialog per issue.</summary>
+    /// <summary>
+    ///     Imports a dropped TDW sequence file as a track or a whole project (see
+    ///     <see cref="ImportMode" />). All-or-nothing: a parse/import failure leaves the
+    ///     project untouched, matching <see cref="Load" />'s try/catch shape. On success,
+    ///     any non-fatal issues (ignored events, quantized notes, unknown sounds) surface
+    ///     as one summary alert - never one dialog per issue.
+    /// </summary>
     public void ImportTdw(string path, ImportMode mode, IReadOnlyDictionary<string, Sound>? soundMap)
     {
         var name = Path.GetFileNameWithoutExtension(path);
@@ -125,10 +127,12 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         }
     }
 
-    /// <summary>Timestamped snapshot next to the executable - doesn't touch ProjectPath/Dirty,
-    /// so it's invisible to the normal save flow (only <see cref="TickBackup" /> drives it).
-    /// Logged, not surfaced - a failed background backup isn't the data-loss path a failed
-    /// explicit save is, and popping a dialog on a timer would be its own annoyance.</summary>
+    /// <summary>
+    ///     Timestamped snapshot next to the executable - doesn't touch ProjectPath/Dirty,
+    ///     so it's invisible to the normal save flow (only <see cref="TickBackup" /> drives it).
+    ///     Logged, not surfaced - a failed background backup isn't the data-loss path a failed
+    ///     explicit save is, and popping a dialog on a timer would be its own annoyance.
+    /// </summary>
     private void WriteBackup()
     {
         try
@@ -145,8 +149,10 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         }
     }
 
-    /// <summary>Keeps only the newest <see cref="MaxBackups" /> files - a long session
-    /// backs up every 5 dirty minutes and never stopped growing otherwise.</summary>
+    /// <summary>
+    ///     Keeps only the newest <see cref="MaxBackups" /> files - a long session
+    ///     backs up every 5 dirty minutes and never stopped growing otherwise.
+    /// </summary>
     private void PruneBackups()
     {
         var files = new DirectoryInfo(BackupDirectory).GetFiles("*.tdwproj");

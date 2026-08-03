@@ -26,7 +26,7 @@ public sealed class UnsavedChangesDialog : FlexPanel
         Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         SaveButton = new Button(context, "Save")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         DiscardButton = new Button(context, "Discard", new ColoredPlane { Color = EditorPalette.DangerAccent })
         {
             FontSizePx = 14,
@@ -34,7 +34,7 @@ public sealed class UnsavedChangesDialog : FlexPanel
             Label = { Color = EditorPalette.Panel }
         };
         CancelButton = new Button(context, "Cancel")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
 
         Children =
         [

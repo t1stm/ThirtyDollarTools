@@ -29,8 +29,11 @@ public sealed record ImportWarnings(
 ///     stay null for <see cref="SequenceImporter.ToProject" />, which builds a whole project
 ///     instead (returned via its own out parameter).
 /// </summary>
-public sealed record ImportResult(ProjectTrack? Track, IReadOnlyList<Instrument> Instruments,
-    TrackPlacement? Placement, ImportWarnings Warnings);
+public sealed record ImportResult(
+    ProjectTrack? Track,
+    IReadOnlyList<Instrument> Instruments,
+    TrackPlacement? Placement,
+    ImportWarnings Warnings);
 
 /// <summary>
 ///     Converts a parsed TDW <see cref="Sequence" /> into the editor's project model -
@@ -44,13 +47,58 @@ public sealed record ImportResult(ProjectTrack? Track, IReadOnlyList<Instrument>
 /// </summary>
 public static class SequenceImporter
 {
-    /// <summary>Hard ceiling on walked events, guarding against a hostile or malformed
-    /// loop/jump combination unrolling forever - a dropped file is a trust boundary.</summary>
+    /// <summary>
+    ///     Hard ceiling on walked events, guarding against a hostile or malformed
+    ///     loop/jump combination unrolling forever - a dropped file is a trust boundary.
+    /// </summary>
     private const int MaxWalkedEvents = 1_000_000;
+
+    /// <summary>
+    ///     How fine a merged segment's grid may get, relative to its slowest region,
+    ///     before a speed change is treated as a real tempo change and split off instead.
+    /// </summary>
+    private const int MaxMergedSubdivision = 4;
+
+    /// <summary>
+    ///     Total budget for how far a segment's grid may run above its slowest region's speed.
+    ///     Merging and off-grid note fitting both spend from it, and they have to share one
+    ///     budget because they multiply: a group merged 8x that then fits 1/10th-step swing
+    ///     lands on an 80x grid, and since StepsPerBeat can't exceed
+    ///     <see cref="SequenceBuilder.MaxSpeedMultiplier" />, the overflow has nowhere to go but
+    ///     the BPM - which is how a plain 145 BPM track came out as 181.25 BPM at 64 steps/beat.
+    ///     Spending the rest of the budget on rounding a few swung notes onto the grid (counted
+    ///     in <see cref="ImportWarnings.QuantizedNotes" />) beats keeping every note exact at the
+    ///     cost of a tempo nobody wrote.
+    /// </summary>
+    private const int MaxGridSubdivision = 32;
+
+    // ponytail: the two weights below are feel, sized against the penalties above - tune
+    // against the ~/tdw corpus if trailing bars / padding look too eager or too timid.
+    // Padding is scored as a fraction of the group's length, so a few steps of silence at
+    // the end of a long track is nearly free while inflating a two-note tail is not.
+    private const double RemainderBarPenalty = 1.5;
+    private const double TempoBreakPenalty = 4.0;
+    private const double PadPenalty = 8.0;
 
     private static readonly string[] JumpUntriggers = ["!loop", "!loopmany", "!jump", "!target"];
     private static readonly string[] LoopUntriggers = ["!loopmany", "!loop"];
     private static readonly string[] LoopmanyUntriggers = ["!loopmany"];
+
+    /// <summary>
+    ///     Time signature numerators worth using, best first. A note grid almost never
+    ///     implies a numerator on its own, so an exotic one is nearly always the symptom of a
+    ///     length that doesn't divide into bars - which a short trailing bar reports honestly
+    ///     and 59 bars of 5/4 does not.
+    /// </summary>
+    private static readonly int[] Numerators = [4, 3, 2, 6, 8, 5, 7, 9];
+
+    /// <summary>
+    ///     Sub-grid multipliers worth considering: halves, thirds and their products.
+    ///     A "!stop@0.05" would land exactly on a 20x grid, but 20 steps to a beat is not a grid
+    ///     anyone can edit against - rounding those few notes onto a musical grid (and reporting
+    ///     it in <see cref="ImportWarnings.QuantizedNotes" />) is the better trade.
+    /// </summary>
+    private static readonly int[] SubGrids = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
 
     /// <summary>Adds the sequence as one new track (+ its instruments + one placement) to an existing project.</summary>
     public static ImportResult AddAsTrack(ThirtyDollarProject project, Sequence sequence, string name,
@@ -122,33 +170,29 @@ public static class SequenceImporter
         return sound.Replace('_', ' ');
     }
 
-    /// <summary>First free "name", "name (2)", "name (3)", … not already used by any
-    /// existing track or instrument.</summary>
+    /// <summary>
+    ///     First free "name", "name (2)", "name (3)", … not already used by any
+    ///     existing track or instrument.
+    /// </summary>
     private static string UniqueName(string name, IEnumerable<string> existingNames)
     {
         var names = existingNames.ToHashSet();
         if (!names.Contains(name)) return name;
 
-        for (var n = 2; ; n++)
+        for (var n = 2;; n++)
         {
             var candidate = $"{name} ({n})";
             if (!names.Contains(candidate)) return candidate;
         }
     }
 
-    // ---- Phase A: event walk (fractional step space, mirroring PlacementCalculator's control flow) ----
-
-    private readonly record struct WalkedNote(int Region, double Step, string Sound, double Value, double? Volume,
-        float Pan, double Offset, bool IsCut = false);
-
-    private sealed record WalkData(List<(double Speed, double Length)> Regions, List<WalkedNote> Notes,
-        List<string> SoundOrder, IReadOnlyDictionary<string, int> IgnoredEvents, IReadOnlyList<string> UnknownSounds);
-
-    /// <summary>A sequence names a sound however it was saved - a TDW emoji ("🍕") just as
-    /// often as an ID ("pizza"). Everything downstream (instrument names, and the labels
-    /// drawing them) wants the ID, so names are canonicalised here, at the one point where
-    /// a sequence enters the project model. Null means the sample set doesn't know the
-    /// sound; a null map (no samples loaded) accepts every name as-is.</summary>
+    /// <summary>
+    ///     A sequence names a sound however it was saved - a TDW emoji ("🍕") just as
+    ///     often as an ID ("pizza"). Everything downstream (instrument names, and the labels
+    ///     drawing them) wants the ID, so names are canonicalised here, at the one point where
+    ///     a sequence enters the project model. Null means the sample set doesn't know the
+    ///     sound; a null map (no samples loaded) accepts every name as-is.
+    /// </summary>
     private static string? CanonicalId(string sound, IReadOnlyDictionary<string, Sound>? soundMap)
     {
         if (soundMap is null) return sound;
@@ -214,63 +258,63 @@ public static class SequenceImporter
             switch (ev.SoundEvent)
             {
                 case "!speed":
+                {
+                    var newSpeed = Scale(speed, ev);
+                    if (!SequenceBuilder.SameSpeed(speed, newSpeed))
                     {
-                        var newSpeed = Scale(speed, ev);
-                        if (!SequenceBuilder.SameSpeed(speed, newSpeed))
-                        {
-                            if (position > 1e-9) regions.Add((speed, position));
-                            speed = newSpeed;
-                            position = 0;
-                            regionIndex = regions.Count;
-                        }
+                        if (position > 1e-9) regions.Add((speed, position));
+                        speed = newSpeed;
+                        position = 0;
+                        regionIndex = regions.Count;
+                    }
 
-                        break;
-                    }
+                    break;
+                }
                 case "!volume":
-                    {
-                        globalVolume = Math.Max(0, Scale(globalVolume, ev));
-                        break;
-                    }
+                {
+                    globalVolume = Math.Max(0, Scale(globalVolume, ev));
+                    break;
+                }
                 case "!transpose":
-                    {
-                        transpose = Scale(transpose, ev);
-                        break;
-                    }
+                {
+                    transpose = Scale(transpose, ev);
+                    break;
+                }
                 case "!stop":
                     position += ev.Value;
                     break;
                 case "!cut" when ev is IndividualCutEvent:
                 case "#icut":
+                {
+                    var individualCut = (IndividualCutEvent)ev;
+                    foreach (var cutSound in individualCut.CutSounds)
                     {
-                        var individualCut = (IndividualCutEvent)ev;
-                        foreach (var cutSound in individualCut.CutSounds)
+                        if (CanonicalId(cutSound, soundMap) is not { } sound)
                         {
-                            if (CanonicalId(cutSound, soundMap) is not { } sound)
-                            {
-                                unknownSounds.Add(cutSound);
-                                continue;
-                            }
-
-                            // Idempotent: repeating the same sound's cut at the same position
-                            // (nothing else advancing position between them) collapses to one.
-                            if (!seenCuts.Add((regionIndex, position, sound))) continue;
-
-                            if (seenSounds.Add(sound)) soundOrder.Add(sound);
-                            notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
+                            unknownSounds.Add(cutSound);
+                            continue;
                         }
 
-                        break;
+                        // Idempotent: repeating the same sound's cut at the same position
+                        // (nothing else advancing position between them) collapses to one.
+                        if (!seenCuts.Add((regionIndex, position, sound))) continue;
+
+                        if (seenSounds.Add(sound)) soundOrder.Add(sound);
+                        notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
                     }
+
+                    break;
+                }
                 case "!cut": // bare global cut - only sounds already introduced could be playing
+                {
+                    foreach (var sound in soundOrder)
                     {
-                        foreach (var sound in soundOrder)
-                        {
-                            if (!seenCuts.Add((regionIndex, position, sound))) continue;
-                            notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
-                        }
-
-                        break;
+                        if (!seenCuts.Add((regionIndex, position, sound))) continue;
+                        notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
                     }
+
+                    break;
+                }
                 case "!looptarget":
                     loopTarget = index;
                     break;
@@ -340,8 +384,10 @@ public static class SequenceImporter
         };
     }
 
-    /// <summary>Ported from PlacementCalculator.Untrigger: re-arms loop/jump triggers from
-    /// <paramref name="index" /> onward (except the given event names) so nested loops can fire again.</summary>
+    /// <summary>
+    ///     Ported from PlacementCalculator.Untrigger: re-arms loop/jump triggers from
+    ///     <paramref name="index" /> onward (except the given event names) so nested loops can fire again.
+    /// </summary>
     private static void Untrigger(BaseEvent[] events, int index, string[] except)
     {
         if (index == 0) index++;
@@ -353,40 +399,6 @@ public static class SequenceImporter
             current.WorkingValue = current.Value;
         }
     }
-
-    // ---- Phase B: regions -> segments ----
-
-    private sealed record SegmentPlan(int Numerator, int Bars, int Spb, float BPM,
-        List<(int Step, WalkedNote Note)> Notes, int QuantizedNotes);
-
-    /// <summary>How fine a merged segment's grid may get, relative to its slowest region,
-    /// before a speed change is treated as a real tempo change and split off instead.</summary>
-    private const int MaxMergedSubdivision = 4;
-
-    /// <summary>
-    ///     Total budget for how far a segment's grid may run above its slowest region's speed.
-    ///     Merging and off-grid note fitting both spend from it, and they have to share one
-    ///     budget because they multiply: a group merged 8x that then fits 1/10th-step swing
-    ///     lands on an 80x grid, and since StepsPerBeat can't exceed
-    ///     <see cref="SequenceBuilder.MaxSpeedMultiplier" />, the overflow has nowhere to go but
-    ///     the BPM - which is how a plain 145 BPM track came out as 181.25 BPM at 64 steps/beat.
-    ///     Spending the rest of the budget on rounding a few swung notes onto the grid (counted
-    ///     in <see cref="ImportWarnings.QuantizedNotes" />) beats keeping every note exact at the
-    ///     cost of a tempo nobody wrote.
-    /// </summary>
-    private const int MaxGridSubdivision = 32;
-
-    /// <summary>Time signature numerators worth using, best first. A note grid almost never
-    /// implies a numerator on its own, so an exotic one is nearly always the symptom of a
-    /// length that doesn't divide into bars - which a short trailing bar reports honestly
-    /// and 59 bars of 5/4 does not.</summary>
-    private static readonly int[] Numerators = [4, 3, 2, 6, 8, 5, 7, 9];
-
-    /// <summary>Sub-grid multipliers worth considering: halves, thirds and their products.
-    /// A "!stop@0.05" would land exactly on a 20x grid, but 20 steps to a beat is not a grid
-    /// anyone can edit against - rounding those few notes onto a musical grid (and reporting
-    /// it in <see cref="ImportWarnings.QuantizedNotes" />) is the better trade.</summary>
-    private static readonly int[] SubGrids = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
 
     private static List<SegmentPlan> BuildSegmentPlans(List<(double Speed, double Length)> regions,
         List<WalkedNote> notes)
@@ -573,8 +585,10 @@ public static class SequenceImporter
             best.Bars > 0 ? 0 : quantized));
     }
 
-    /// <summary>The (StepsPerBeat, Numerator) for a single bar spanning exactly
-    /// <paramref name="steps" /> steps, scored the same way a full run is.</summary>
+    /// <summary>
+    ///     The (StepsPerBeat, Numerator) for a single bar spanning exactly
+    ///     <paramref name="steps" /> steps, scored the same way a full run is.
+    /// </summary>
     private static (int Spb, int Numerator) BestBar(double rate, int steps)
     {
         var best = (Spb: 1, Numerator: steps, Score: double.MaxValue);
@@ -590,8 +604,10 @@ public static class SequenceImporter
         return (best.Spb, best.Numerator);
     }
 
-    /// <summary>Musical subdivisions first - halves and quarters of a beat, then triplets,
-    /// then whatever's left. A 5- or 19-step beat is a symptom, not a style.</summary>
+    /// <summary>
+    ///     Musical subdivisions first - halves and quarters of a beat, then triplets,
+    ///     then whatever's left. A 5- or 19-step beat is a symptom, not a style.
+    /// </summary>
     private static double SpbPenalty(int spb)
     {
         return spb switch
@@ -621,14 +637,6 @@ public static class SequenceImporter
         if (bpm is >= 70 and <= 190) return 0;
         return 3 * Math.Abs(Math.Log2(bpm / (bpm < 70 ? 70 : 190)));
     }
-
-    // ponytail: the two weights below are feel, sized against the penalties above - tune
-    // against the ~/tdw corpus if trailing bars / padding look too eager or too timid.
-    // Padding is scored as a fraction of the group's length, so a few steps of silence at
-    // the end of a long track is nearly free while inflating a two-note tail is not.
-    private const double RemainderBarPenalty = 1.5;
-    private const double TempoBreakPenalty = 4.0;
-    private const double PadPenalty = 8.0;
 
     // ---- Phase C: instruments and notes ----
 
@@ -680,8 +688,10 @@ public static class SequenceImporter
 
     // ---- Phase D: assembly ----
 
-    /// <summary>The first segment overwrites the track's default one (NewTrack starts with
-    /// one) instead of appending, or every import would gain a phantom 4/4 bar.</summary>
+    /// <summary>
+    ///     The first segment overwrites the track's default one (NewTrack starts with
+    ///     one) instead of appending, or every import would gain a phantom 4/4 bar.
+    /// </summary>
     private static void PopulateTrack(ProjectTrack track, IReadOnlyList<TrackSegment> segments)
     {
         for (var i = 0; i < segments.Count; i++)
@@ -696,4 +706,33 @@ public static class SequenceImporter
             target.Notes.AddRange(source.Notes);
         }
     }
+
+    // ---- Phase A: event walk (fractional step space, mirroring PlacementCalculator's control flow) ----
+
+    private readonly record struct WalkedNote(
+        int Region,
+        double Step,
+        string Sound,
+        double Value,
+        double? Volume,
+        float Pan,
+        double Offset,
+        bool IsCut = false);
+
+    private sealed record WalkData(
+        List<(double Speed, double Length)> Regions,
+        List<WalkedNote> Notes,
+        List<string> SoundOrder,
+        IReadOnlyDictionary<string, int> IgnoredEvents,
+        IReadOnlyList<string> UnknownSounds);
+
+    // ---- Phase B: regions -> segments ----
+
+    private sealed record SegmentPlan(
+        int Numerator,
+        int Bars,
+        int Spb,
+        float BPM,
+        List<(int Step, WalkedNote Note)> Notes,
+        int QuantizedNotes);
 }

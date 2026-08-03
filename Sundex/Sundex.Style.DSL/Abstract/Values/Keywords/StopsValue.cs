@@ -18,31 +18,31 @@ public record StopsValue(IStyleValue Value) : IStyleValue
         switch (value)
         {
             case MapValue map:
+            {
+                foreach (var kvp in map.Values)
                 {
-                    foreach (var kvp in map.Values)
-                    {
-                        var pct = ExtractPercentage(kvp.Key);
-                        if (kvp.Value is not ColorValue color)
-                            throw new ArgumentException("Gradient stop must be a color value");
-                        list.Add(new GradientStop(color, pct));
-                    }
-
-                    break;
+                    var pct = ExtractPercentage(kvp.Key);
+                    if (kvp.Value is not ColorValue color)
+                        throw new ArgumentException("Gradient stop must be a color value");
+                    list.Add(new GradientStop(color, pct));
                 }
+
+                break;
+            }
             case ArrayValue arr:
+            {
+                var n = arr.Values.Count;
+                for (var i = 0; i < n; i++)
                 {
-                    var n = arr.Values.Count;
-                    for (var i = 0; i < n; i++)
-                    {
-                        var v = arr.Values[i];
-                        if (v is not ColorValue color)
-                            throw new ArgumentException("Gradient stop array items must be colors");
-                        var pct = n <= 1 ? 0 : (float)i / (n - 1);
-                        list.Add(new GradientStop(color, pct));
-                    }
-
-                    break;
+                    var v = arr.Values[i];
+                    if (v is not ColorValue color)
+                        throw new ArgumentException("Gradient stop array items must be colors");
+                    var pct = n <= 1 ? 0 : (float)i / (n - 1);
+                    list.Add(new GradientStop(color, pct));
                 }
+
+                break;
+            }
         }
 
         list.Sort((a, b) => a.Percentage.CompareTo(b.Percentage));

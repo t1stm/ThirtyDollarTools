@@ -10,8 +10,8 @@ public class OpenALBuffer : AudibleBuffer
     private readonly AudioContext _context;
 
     private readonly ILogger _logger;
-    private float _pan;
     public float Volume = .5f;
+    private float _pan;
 
     public OpenALBuffer(AudioContext context, ILogger logger, AudioData<float> sampleData, int sampleRate)
     {
@@ -30,11 +30,11 @@ public class OpenALBuffer : AudibleBuffer
         var samples = new float[(int)length * channels];
         var samples_span = samples.AsSpan();
         for (var i = 0; i < length; i++)
-            for (var j = 0; j < channels; j++)
-            {
-                var idx = i * channels + j;
-                samples_span[idx] = sampleData.Samples[j][i];
-            }
+        for (var j = 0; j < channels; j++)
+        {
+            var idx = i * channels + j;
+            samples_span[idx] = sampleData.Samples[j][i];
+        }
 
         AudioBuffer = AL.GenBuffer();
         AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
@@ -58,11 +58,11 @@ public class OpenALBuffer : AudibleBuffer
 
         var samples = new float[length * channels];
         for (var i = 0; i < length; i++)
-            for (var j = 0; j < channels; j++)
-            {
-                var idx = i * channels + j;
-                samples[idx] = data.Samples[j][i];
-            }
+        for (var j = 0; j < channels; j++)
+        {
+            var idx = i * channels + j;
+            samples[idx] = data.Samples[j][i];
+        }
 
         if (AL.IsBuffer(AudioBuffer))
         {

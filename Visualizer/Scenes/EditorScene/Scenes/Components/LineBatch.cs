@@ -40,18 +40,6 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
 
     public Vector4i? ClipRect { get; set; }
 
-    public void Render(Camera camera)
-    {
-        if (_stack is not { List.Count: > 0 }) return;
-        _stack.Render(camera);
-    }
-
-    public void Set(int index, float x, float y, float width, float height, Vector4 color)
-    {
-        var model = Matrix4.CreateScale(width, height, 1f) * Matrix4.CreateTranslation(x, y, 0f);
-        _stack!.List[index] = new BackgroundBlip { Model = model, Color = color };
-    }
-
     [UsedImplicitly]
     public static void Preload(AssetProvider assetProvider)
     {
@@ -63,5 +51,17 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
                     "Assets/Shaders/Planes/Colored/instanced.frag")))
         );
+    }
+
+    public void Render(Camera camera)
+    {
+        if (_stack is not { List.Count: > 0 }) return;
+        _stack.Render(camera);
+    }
+
+    public void Set(int index, float x, float y, float width, float height, Vector4 color)
+    {
+        var model = Matrix4.CreateScale(width, height, 1f) * Matrix4.CreateTranslation(x, y, 0f);
+        _stack!.List[index] = new BackgroundBlip { Model = model, Color = color };
     }
 }

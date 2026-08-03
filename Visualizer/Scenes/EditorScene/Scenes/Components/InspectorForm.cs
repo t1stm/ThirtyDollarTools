@@ -27,9 +27,9 @@ public sealed class InspectorForm
     private static readonly Vector4 InputColor = EditorPalette.InputBackground;
 
     private readonly UIContext _context;
-    private readonly EditorState _state;
-    private readonly Panel _root;
     private readonly Dictionary<string, UIElement> _fields = [];
+    private readonly Panel _root;
+    private readonly EditorState _state;
     private readonly List<Action> _syncs = [];
     private Panel _container;
 
@@ -41,8 +41,10 @@ public sealed class InspectorForm
         _container = root;
     }
 
-    /// <summary>The field's key prefix ("Section" in "Section.Label") — the current
-    /// section/card content methods are building rows for.</summary>
+    /// <summary>
+    ///     The field's key prefix ("Section" in "Section.Label") — the current
+    ///     section/card content methods are building rows for.
+    /// </summary>
     public string Section { get; set; } = "";
 
     /// <summary>The input element showing a field, keyed "Section.Label" (e.g. "Track.Name").</summary>
@@ -67,8 +69,10 @@ public sealed class InspectorForm
         foreach (var sync in _syncs.ToArray()) sync();
     }
 
-    /// <summary>Section header; <paramref name="trailing" /> elements (e.g. action buttons)
-    /// sit in a horizontal row right after the label.</summary>
+    /// <summary>
+    ///     Section header; <paramref name="trailing" /> elements (e.g. action buttons)
+    ///     sit in a horizontal row right after the label.
+    /// </summary>
     public void Header(string text, params UIElement[] trailing)
     {
         Section = text;
@@ -188,8 +192,10 @@ public sealed class InspectorForm
         NumberRow(label, () => get(), v => set((int)Math.Round(v!.Value)), min, max);
     }
 
-    /// <summary>A checkbox; <paramref name="extras" /> (e.g. flags that only apply while
-    /// it's on) sit right next to it on the same line, wrapping if the panel is too narrow.</summary>
+    /// <summary>
+    ///     A checkbox; <paramref name="extras" /> (e.g. flags that only apply while
+    ///     it's on) sit right next to it on the same line, wrapping if the panel is too narrow.
+    /// </summary>
     public void CheckRow(string label, Func<bool> get, Action<bool> set,
         params (string Label, Func<bool> Get, Action<bool> Set)[] extras)
     {
@@ -231,8 +237,10 @@ public sealed class InspectorForm
         ActionRow(label, label, onClick);
     }
 
-    /// <summary>A key/label split for buttons whose display text is dynamic (e.g. a
-    /// selection count) but whose field key must stay stable.</summary>
+    /// <summary>
+    ///     A key/label split for buttons whose display text is dynamic (e.g. a
+    ///     selection count) but whose field key must stay stable.
+    /// </summary>
     public void ActionRow(string key, string label, Action onClick)
     {
         var button = new Button(_context, label) { FontSizePx = 13f, OnClick = _ => onClick() };

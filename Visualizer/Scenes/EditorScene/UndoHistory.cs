@@ -6,17 +6,17 @@ namespace EditorScene;
 /// </summary>
 public sealed class UndoHistory
 {
-    private readonly List<EditorCommand> _undoStack = [];
     private readonly List<EditorCommand> _redoStack = [];
+    private readonly List<EditorCommand> _undoStack = [];
     private int _gestureId;
-
-    private record EditorCommand(Action Undo, Action Redo, int GestureId, object? Subject);
 
     public bool CanUndo => _undoStack.Count > 0;
     public bool CanRedo => _redoStack.Count > 0;
 
-    /// <summary>Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement
-    /// calls on the same object (one drag, many frames) collapses into a single undo step.</summary>
+    /// <summary>
+    ///     Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement
+    ///     calls on the same object (one drag, many frames) collapses into a single undo step.
+    /// </summary>
     public void BeginGesture()
     {
         _gestureId++;
@@ -28,8 +28,10 @@ public sealed class UndoHistory
         _redoStack.Clear();
     }
 
-    /// <summary>Appends a new undo entry, or merges into the previous one if it's the same
-    /// gesture (see <see cref="BeginGesture" />) moving the same object.</summary>
+    /// <summary>
+    ///     Appends a new undo entry, or merges into the previous one if it's the same
+    ///     gesture (see <see cref="BeginGesture" />) moving the same object.
+    /// </summary>
     public void PushOrMergeMove(object subject, Action undo, Action redo)
     {
         if (_undoStack.Count > 0 && _undoStack[^1].GestureId == _gestureId &&
@@ -68,4 +70,6 @@ public sealed class UndoHistory
         _undoStack.Clear();
         _redoStack.Clear();
     }
+
+    private record EditorCommand(Action Undo, Action Redo, int GestureId, object? Subject);
 }

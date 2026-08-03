@@ -13,13 +13,13 @@ namespace EditorScene.Scenes.Components;
 /// </summary>
 public sealed class InstrumentWorkflow
 {
-    private readonly EditorState _state;
-    private readonly DialogHost _dialogHost;
     private readonly Func<IEnumerable<Sound>> _allSounds;
-    private readonly InstrumentSelector _instrumentSelector;
-    private readonly ModalLayer _instrumentSelectorModal;
+    private readonly DialogHost _dialogHost;
     private readonly InstrumentEditor _instrumentEditor;
     private readonly ModalLayer _instrumentEditorModal;
+    private readonly InstrumentSelector _instrumentSelector;
+    private readonly ModalLayer _instrumentSelectorModal;
+    private readonly EditorState _state;
     private Instrument? _editingInstrument;
     private IReadOnlyList<Note>? _reassignTargets;
 
@@ -65,14 +65,14 @@ public sealed class InstrumentWorkflow
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
 
             dialogHost.Confirm($"Delete \"{instrument.Name}\"?\n" +
-                                "This removes it from every note that uses it.",
-                onConfirm: () =>
+                               "This removes it from every note that uses it.",
+                () =>
                 {
                     state.DeleteInstrumentEverywhere(instrument);
                     _instrumentSelector.Fill(state.Project.Instruments);
                     dialogHost.Root.AddChild(_instrumentSelectorModal);
                 },
-                onCancel: () => dialogHost.Root.AddChild(_instrumentSelectorModal));
+                () => dialogHost.Root.AddChild(_instrumentSelectorModal));
         };
 
         _instrumentEditor = new InstrumentEditor(context, atlasStore);
@@ -85,9 +85,11 @@ public sealed class InstrumentWorkflow
             playback.PreviewInstrument(_instrumentEditor.SoundsPicker.Instances);
     }
 
-    /// <summary>Opens the picker; null means picking sets ActiveInstrument, non-null
-    /// means picking reassigns every note in the list instead (one for the inspector's
-    /// single-note "Change", several for a multi-note selection's).</summary>
+    /// <summary>
+    ///     Opens the picker; null means picking sets ActiveInstrument, non-null
+    ///     means picking reassigns every note in the list instead (one for the inspector's
+    ///     single-note "Change", several for a multi-note selection's).
+    /// </summary>
     public void OpenSelector(IReadOnlyList<Note>? reassignTargets = null)
     {
         _reassignTargets = reassignTargets;
@@ -102,9 +104,11 @@ public sealed class InstrumentWorkflow
         _instrumentEditor.SoundsPicker.CtrlHeld = ctrl;
     }
 
-    /// <summary>Fills the sound grid before seeding the selection, not after: an older
-    /// project may hold a sound under its emoji, and the picker can only map that to the
-    /// sound's ID once it has been filled.</summary>
+    /// <summary>
+    ///     Fills the sound grid before seeding the selection, not after: an older
+    ///     project may hold a sound under its emoji, and the picker can only map that to the
+    ///     sound's ID once it has been filled.
+    /// </summary>
     private void OpenEditor(string name, IEnumerable<InstrumentSound> sounds)
     {
         _instrumentEditor.EnsureSounds(_allSounds());

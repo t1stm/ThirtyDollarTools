@@ -1,5 +1,4 @@
 using Serilog.Core;
-using ThirtyDollarConverter;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarEncoder.PCM;
@@ -14,6 +13,8 @@ namespace ThirtyDollarConverter.Benchmarks;
 /// </summary>
 public static class Workbench
 {
+    private static SampleHolder? _holder;
+
     /// <summary>Where the covers live. Override with TDW_SEQUENCES.</summary>
     public static string SequenceRoot =>
         Environment.GetEnvironmentVariable("TDW_SEQUENCES")
@@ -36,10 +37,10 @@ public static class Workbench
         ?? Path.Combine(RepoRoot, "Visualizer", "ThirtyDollarVisualizer", "bin", "Release", "net10.0",
             "amalgamam.tdwproj");
 
-    private static SampleHolder? _holder;
-
-    /// <summary>Loads every TDW sample into memory once per process - a few seconds and a few
-    /// hundred MB, so it must never happen inside a measured region.</summary>
+    /// <summary>
+    ///     Loads every TDW sample into memory once per process - a few seconds and a few
+    ///     hundred MB, so it must never happen inside a measured region.
+    /// </summary>
     public static SampleHolder Samples()
     {
         if (_holder != null) return _holder;
@@ -72,8 +73,10 @@ public static class Workbench
         return ProjectFile.Load(File.ReadAllText(EditorProjectPath));
     }
 
-    /// <summary>Peak absolute difference between two renders, and whether they even agree on
-    /// length - what "are these two exports the same" comes down to.</summary>
+    /// <summary>
+    ///     Peak absolute difference between two renders, and whether they even agree on
+    ///     length - what "are these two exports the same" comes down to.
+    /// </summary>
     public static (int LengthA, int LengthB, float MaxDelta) Compare(AudioData<float> a, AudioData<float> b)
     {
         var max = 0f;

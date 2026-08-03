@@ -24,36 +24,42 @@ public class EditorInterface
     private const float TrackColumnWidth = 260;
 
     private readonly ArrangementView _arrangement;
+    private readonly FlexPanel _arrangementPanel;
     private readonly UIContext _context;
+
+    private readonly string _defaultTitle;
     private readonly DialogHost _dialogHost;
     private readonly FlexPanel _gridArea;
     private readonly InspectorPanel _inspector;
     private readonly Panel _inspectorColumn;
-    private readonly LaneHeader _laneHeader;
-    private readonly ProjectIO _projectIo;
-    private readonly TextInput _openedTrackName;
-    private readonly Label _projectBpm;
-    private readonly Label _projectName;
-    private readonly List<(Button Button, EditorTool Tool)> _toolButtons = [];
-    private readonly FlexPanel _arrangementPanel;
     private readonly Button _instrumentButton;
     private readonly InstrumentWorkflow _instrumentWorkflow;
+    private readonly LaneHeader _laneHeader;
+    private readonly TextInput _openedTrackName;
+    private readonly Label _projectBpm;
+    private readonly ProjectIO _projectIo;
+    private readonly Label _projectName;
     private readonly ModalLayer _soundFilterModal;
     private readonly SoundPicker _soundFilterPicker;
-    private TrackAutomation? _editingTrackAutomation;
+    private readonly List<(Button Button, EditorTool Tool)> _toolButtons = [];
     private readonly Panel _trackColumn;
     private readonly TrackEditorView _trackEditor;
     private readonly FlexPanel _trackEditorPanel;
     private readonly TrackListPanel _trackList;
     private readonly TransportSection _transport;
     private readonly ThirtyDollarWorkflow _workflow;
-
-    private readonly string _defaultTitle;
+    private TrackAutomation? _editingTrackAutomation;
 
     private bool _editorOpen;
 
     /// <summary>Scenes are constructed at startup; only the active editor owns the window title.</summary>
     private bool _titleActive;
+
+    /// <summary>
+    ///     Guards <see cref="ShowTrackContextMenu" /> against reopening on every held frame -
+    ///     right-press is level-triggered, so a stationary right-click keeps firing.
+    /// </summary>
+    private ModalLayer? _trackContextMenuModal;
 
     public EditorInterface(UIContext context, ThirtyDollarWorkflow workflow, Action back)
     {
@@ -167,7 +173,7 @@ public class EditorInterface
             Width = LiteralOrComputable.Percent(100),
             Height = LiteralOrComputable.Percent(100)
         };
-        _openedTrackName = new TextInput(context, "")
+        _openedTrackName = new TextInput(context)
         {
             FontSizePx = 15f,
             Width = 220,
@@ -290,6 +296,13 @@ public class EditorInterface
         RefreshProject();
     }
 
+    public EditorState State { get; } = new();
+    public EditorPlayback Playback { get; }
+
+    public Action OnBack { get; }
+    [UsedImplicitly] public SundexComponent Component { get; }
+    public Panel RootPanel { get; }
+
     /// <summary>
     ///     Shift: the note editor snaps values to 0.2 instead of 1, and scrolling a sound
     ///     row in the instrument editor adjusts pan instead of value.
@@ -308,7 +321,7 @@ public class EditorInterface
     private void SwapGridView(ProjectTrack? track)
     {
         if (track != null) _openedTrackName.Value = track.Name;
-        if ((track != null) == _editorOpen) return;
+        if (track != null == _editorOpen) return;
         _editorOpen = track != null;
 
         if (_editorOpen)
@@ -333,7 +346,7 @@ public class EditorInterface
         {
             Background = new ColoredPlane
             {
-                Color = active ? ToolAccent(tool) : EditorPalette.Surface,
+                Color = active ? ToolAccent(tool) : EditorPalette.Surface
             },
             FontSizePx = 12,
             BorderRadius = 6,
@@ -345,12 +358,16 @@ public class EditorInterface
     }
 
     /// <summary>Each tool's active-highlight color: Draw blue, Select yellow.</summary>
-    private static Vector4 ToolAccent(EditorTool tool) =>
-        tool == EditorTool.Select ? EditorPalette.AccentYellow : EditorPalette.Accent;
+    private static Vector4 ToolAccent(EditorTool tool)
+    {
+        return tool == EditorTool.Select ? EditorPalette.AccentYellow : EditorPalette.Accent;
+    }
 
     /// <summary>Select's yellow highlight is light, so its active label needs dark text for contrast.</summary>
-    private static Vector4 ToolTextColor(EditorTool tool, bool active) =>
-        active && tool == EditorTool.Select ? EditorPalette.Panel : Vector4.One;
+    private static Vector4 ToolTextColor(EditorTool tool, bool active)
+    {
+        return active && tool == EditorTool.Select ? EditorPalette.Panel : Vector4.One;
+    }
 
     /// <summary>Same lazy-fill guard as <see cref="InstrumentEditor.EnsureSounds" />, for the filter picker.</summary>
     private void EnsureSoundFilterItems()
@@ -359,8 +376,10 @@ public class EditorInterface
         _soundFilterPicker.Fill(AllSounds());
     }
 
-    /// <summary>Every pickable sound, once - the sample holder's map holds each one
-    /// twice (ID and emoji) when it has an emoji.</summary>
+    /// <summary>
+    ///     Every pickable sound, once - the sample holder's map holds each one
+    ///     twice (ID and emoji) when it has an emoji.
+    /// </summary>
     private IEnumerable<Sound> AllSounds()
     {
         return _workflow.SampleHolder.StringToSoundReferences.Values.Distinct().OrderBy(sound => sound.Id);
@@ -380,13 +399,6 @@ public class EditorInterface
         _instrumentButton.InvalidateLayout();
     }
 
-    public EditorState State { get; } = new();
-    public EditorPlayback Playback { get; }
-
-    public Action OnBack { get; }
-    [UsedImplicitly] public SundexComponent Component { get; }
-    public Panel RootPanel { get; }
-
     /// <summary>Dismisses the topmost open modal, if any. Used so Escape closes a dialog instead of the editor.</summary>
     public bool TryCloseTopModal()
     {
@@ -398,19 +410,23 @@ public class EditorInterface
         _projectIo.Load(location);
     }
 
-    /// <summary>Asks first, then falls into the normal <see cref="ImportSequenceFile" /> flow -
-    /// for drops with no extension, where the file being a sequence is a guess.</summary>
+    /// <summary>
+    ///     Asks first, then falls into the normal <see cref="ImportSequenceFile" /> flow -
+    ///     for drops with no extension, where the file being a sequence is a guess.
+    /// </summary>
     public void ConfirmImportSequenceFile(string path)
     {
         _dialogHost.Confirm($"\"{Path.GetFileName(path)}\" has no file extension.\n" +
                             $"Import it as a TDW sequence?",
-            onConfirm: () => ImportSequenceFile(path),
+            () => ImportSequenceFile(path),
             confirmLabel: "Continue", confirmColor: EditorPalette.Accent);
     }
 
-    /// <summary>Shows the single-track/project/cancel choice for a dropped TDW sequence
-    /// file. Import-as-project discards the open project, so it's guarded behind the
-    /// same dirty check as every other destructive action here.</summary>
+    /// <summary>
+    ///     Shows the single-track/project/cancel choice for a dropped TDW sequence
+    ///     file. Import-as-project discards the open project, so it's guarded behind the
+    ///     same dirty check as every other destructive action here.
+    /// </summary>
     public void ImportSequenceFile(string path)
     {
         var dialog = new ImportDialog(_context, Path.GetFileName(path));
@@ -428,15 +444,17 @@ public class EditorInterface
                 _dialogHost.Confirm(
                     "Importing as a project discards unsaved changes.\n" +
                     "Continue?",
-                    onConfirm: () => _projectIo.ImportTdw(path, ImportMode.Project, SoundMap()),
+                    () => _projectIo.ImportTdw(path, ImportMode.Project, SoundMap()),
                     confirmLabel: "Import", confirmColor: EditorPalette.Accent);
             else
                 _projectIo.ImportTdw(path, ImportMode.Project, SoundMap());
         };
     }
 
-    /// <summary>Every name a sequence may use (ID or emoji) mapped to its sound - the
-    /// importer both filters unknown sounds and canonicalises names through it.</summary>
+    /// <summary>
+    ///     Every name a sequence may use (ID or emoji) mapped to its sound - the
+    ///     importer both filters unknown sounds and canonicalises names through it.
+    /// </summary>
     private IReadOnlyDictionary<string, Sound> SoundMap()
     {
         return _workflow.SampleHolder.StringToSoundReferences;
@@ -467,10 +485,12 @@ public class EditorInterface
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
     }
 
-    /// <summary>Throws away the unsaved work: the editor scene outlives a trip to the
-    /// home screen, so without this the "discarded" project is still sitting there
-    /// (still dirty) on the way back in. Reverts to the file on disk when there is one,
-    /// otherwise to an empty project.</summary>
+    /// <summary>
+    ///     Throws away the unsaved work: the editor scene outlives a trip to the
+    ///     home screen, so without this the "discarded" project is still sitting there
+    ///     (still dirty) on the way back in. Reverts to the file on disk when there is one,
+    ///     otherwise to an empty project.
+    /// </summary>
     private void DiscardChanges()
     {
         if (State.ProjectPath is { } path) _projectIo.Load(path);
@@ -496,12 +516,6 @@ public class EditorInterface
         if (!_titleActive) return;
         _workflow.Game.Title = $"{State.Project.Info.Name}{(State.Dirty ? " •" : "")} - {_defaultTitle}";
     }
-
-    /// <summary>
-    ///     Guards <see cref="ShowTrackContextMenu" /> against reopening on every held frame -
-    ///     right-press is level-triggered, so a stationary right-click keeps firing.
-    /// </summary>
-    private ModalLayer? _trackContextMenuModal;
 
     private void ShowTrackContextMenu(ProjectTrack track)
     {

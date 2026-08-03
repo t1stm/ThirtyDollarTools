@@ -38,27 +38,22 @@ public sealed class ArrangementView : Panel
     private static readonly Vector4 LabelColor = EditorPalette.TextDim;
 
     private static readonly Vector4 PlayheadColor = EditorPalette.Playhead;
+    private readonly List<Label> _barLabels = [];
 
     private readonly List<ClipBlock> _blocks = [];
-    private readonly List<Label> _barLabels = [];
     private readonly LineBatch _lineBatch = new();
-    private readonly Panel _rulerBackground;
-    private readonly Panel _playhead;
     private readonly Panel _marqueeRect;
+
+    private readonly ViewNavigation _nav = new(6f, 96f) { Zoom = 24f };
+    private readonly Panel _playhead;
+    private readonly Panel _rulerBackground;
     private readonly EditorState _state;
-
-    private readonly ViewNavigation _nav = new(minZoom: 6f, maxZoom: 96f) { Zoom = 24f };
     private ClipBlock? _dragging;
-    private bool _refreshDeferred;
     private Vector4i? _inheritedClip;
-
-    // Marquee (Select tool): model-space anchor/cursor (continuous quarters, channel),
-    // so mid-drag panning can't corrupt it. Mode is sampled from the modifier bools at
-    // press, applied at release. See TrackEditorView for the identical note-editor version.
-    private enum MarqueeMode { Replace, Append, Remove }
     private (double Quarters, double Channel)? _marqueeAnchor;
     private (double Quarters, double Channel)? _marqueeCursor;
     private MarqueeMode _marqueeMode;
+    private bool _refreshDeferred;
 
     public ArrangementView(UIContext context, EditorState state) : base(context)
     {
@@ -70,9 +65,11 @@ public sealed class ArrangementView : Panel
             var localY = context.PointerY - Computed.AbsoluteY;
             if (localY < RulerHeight)
             {
-                OnSeekQuarters?.Invoke(Math.Max(0, (context.PointerX - Computed.AbsoluteX + _nav.ScrollX) / PixelsPerQuarter));
+                OnSeekQuarters?.Invoke(Math.Max(0,
+                    (context.PointerX - Computed.AbsoluteX + _nav.ScrollX) / PixelsPerQuarter));
                 return;
             }
+
             // The Select tool never creates anything; its empty-lane press already
             // applied the marquee selection (see HandlePress/Update).
             if (_state.ActiveTool == EditorTool.Select) return;
@@ -108,7 +105,8 @@ public sealed class ArrangementView : Panel
         {
             Width = 0,
             Height = 0,
-            Background = new ColoredPlane { Color = new Vector4(EditorPalette.Accent.X, EditorPalette.Accent.Y, EditorPalette.Accent.Z, 0.25f) }
+            Background = new ColoredPlane
+                { Color = new Vector4(EditorPalette.Accent.X, EditorPalette.Accent.Y, EditorPalette.Accent.Z, 0.25f) }
         };
         AddChild(_marqueeRect);
 
@@ -136,12 +134,18 @@ public sealed class ArrangementView : Panel
     // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
     internal IReadOnlyList<ClipBlock> Blocks => _blocks;
 
-    /// <summary>Vertical lane scroll, shared with the lane header so its M/S toggles track
-    /// the lanes they belong to.</summary>
+    /// <summary>
+    ///     Vertical lane scroll, shared with the lane header so its M/S toggles track
+    ///     the lanes they belong to.
+    /// </summary>
     public float ScrollY => _nav.ScrollY;
 
     /// <summary>Horizontal zoom. Also the unit scale for hit-to-time math.</summary>
-    public float PixelsPerQuarter { get => _nav.Zoom; set => _nav.Zoom = value; }
+    public float PixelsPerQuarter
+    {
+        get => _nav.Zoom;
+        set => _nav.Zoom = value;
+    }
 
     /// <summary>Drag/place snap, in quarter notes.</summary>
     public double SnapQuarterNotes { get; set; } = 1;
@@ -149,8 +153,10 @@ public sealed class ArrangementView : Panel
     /// <summary>While true (Ctrl held), the wheel zooms horizontally instead of panning.</summary>
     public bool WheelZooms { get; set; }
 
-    /// <summary>While true (Shift held), a marquee drag removes contained clips from the
-    /// selection instead of replacing it. Mirrors <see cref="TrackEditorView.FineSnap" />.</summary>
+    /// <summary>
+    ///     While true (Shift held), a marquee drag removes contained clips from the
+    ///     selection instead of replacing it. Mirrors <see cref="TrackEditorView.FineSnap" />.
+    /// </summary>
     public bool FineSnap { get; set; }
 
     /// <summary>Fired when a clip is double-clicked - the seam for the per-track editor.</summary>
@@ -169,6 +175,12 @@ public sealed class ArrangementView : Panel
             return Math.Clamp(Math.Max(MinChannels, deepest), 1, LaneLinePool);
         }
     }
+
+    /// <summary>
+    ///     Fired after any scroll/pan changes the viewport - the lane header listens
+    ///     to keep its M/S toggles aligned with the lanes they belong to.
+    /// </summary>
+    public Action? OnScrolled { get; set; }
 
     /// <summary>Rebuilds the clip blocks from the model. Cheap; the clip count is human-scale.</summary>
     public void Refresh()
@@ -303,8 +315,10 @@ public sealed class ArrangementView : Panel
         ApplyClip(_inheritedClip);
     }
 
-    /// <summary>Positions the marquee rectangle from its model-space anchor/cursor every
-    /// frame, so it scroll-corrects; zero size (hidden) while no marquee is active.</summary>
+    /// <summary>
+    ///     Positions the marquee rectangle from its model-space anchor/cursor every
+    ///     frame, so it scroll-corrects; zero size (hidden) while no marquee is active.
+    /// </summary>
     private void LayoutMarquee()
     {
         if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor)
@@ -408,16 +422,14 @@ public sealed class ArrangementView : Panel
         }
     }
 
-    /// <summary>Fired after any scroll/pan changes the viewport - the lane header listens
-    /// to keep its M/S toggles aligned with the lanes they belong to.</summary>
-    public Action? OnScrolled { get; set; }
-
-    /// <summary>Plain wheel scrolls lanes vertically; Shift+wheel pans time instead -
-    /// same binding as <see cref="TrackEditorView.HandleScroll" />'s FineSnap/panXWithY.</summary>
+    /// <summary>
+    ///     Plain wheel scrolls lanes vertically; Shift+wheel pans time instead -
+    ///     same binding as <see cref="TrackEditorView.HandleScroll" />'s FineSnap/panXWithY.
+    /// </summary>
     public override bool HandleScroll(Vector2 scrollDelta)
     {
         var pointerPx = Context.PointerX - Computed.AbsoluteX;
-        _nav.Wheel(scrollDelta, WheelZooms, panXWithY: FineSnap, pointerPx);
+        _nav.Wheel(scrollDelta, WheelZooms, FineSnap, pointerPx);
         InvalidateLayout();
         OnScrolled?.Invoke();
         return true;
@@ -535,6 +547,16 @@ public sealed class ArrangementView : Panel
         return (Math.Clamp(channel, 0, ChannelCount - 1), snapped);
     }
 
+    // Marquee (Select tool): model-space anchor/cursor (continuous quarters, channel),
+    // so mid-drag panning can't corrupt it. Mode is sampled from the modifier bools at
+    // press, applied at release. See TrackEditorView for the identical note-editor version.
+    private enum MarqueeMode
+    {
+        Replace,
+        Append,
+        Remove
+    }
+
     /// <summary>A purely visual overlay: never takes pointer input.</summary>
     internal class ClipBlock : Panel
     {
@@ -565,8 +587,10 @@ public sealed class ArrangementView : Panel
                 // Select tool: press-time selection only, matching the Draw tool's press
                 // feel - no move drag, no BeginGesture (dragging a multi-selection is a
                 // listed future extension).
-                if (_view.FineSnap) _view._state.RemoveFromPlacementSelection([Placement]); // Shift: remove (no-op if absent)
-                else if (_view.WheelZooms) _view._state.AddToPlacementSelection([Placement]); // Ctrl: append (no-op if present)
+                if (_view.FineSnap)
+                    _view._state.RemoveFromPlacementSelection([Placement]); // Shift: remove (no-op if absent)
+                else if (_view.WheelZooms)
+                    _view._state.AddToPlacementSelection([Placement]); // Ctrl: append (no-op if present)
                 else _view._state.SelectPlacement(Placement); // no modifier: replace
                 return true;
             }

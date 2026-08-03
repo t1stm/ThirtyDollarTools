@@ -8,6 +8,8 @@ public sealed class MuteSolo
     private readonly HashSet<int> _muted = [];
     private readonly HashSet<int> _soloed = [];
 
+    public bool AnySoloed => _soloed.Count > 0;
+
     public void ToggleMute(int channel)
     {
         if (!_muted.Add(channel)) _muted.Remove(channel);
@@ -27,8 +29,6 @@ public sealed class MuteSolo
     {
         return _soloed.Contains(channel);
     }
-
-    public bool AnySoloed => _soloed.Count > 0;
 
     /// <summary>FL semantics: any solo wins; otherwise everything not muted sounds.</summary>
     public bool IsChannelAudible(int channel)

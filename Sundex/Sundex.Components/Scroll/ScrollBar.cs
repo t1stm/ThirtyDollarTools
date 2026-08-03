@@ -75,6 +75,10 @@ public sealed class ScrollBar : Panel
         set => throw new NotSupportedException();
     }
 
+    private float ThumbHeight => ScrollBlock.Height.IsPercentage
+        ? Computed.Height * (ScrollBlock.Height.Value / 100f)
+        : ScrollBlock.Height.Value;
+
     /// <summary>Moves the thumb without firing <see cref="OnScrolled" />.</summary>
     public void SetPercentage(float percentage)
     {
@@ -94,10 +98,6 @@ public sealed class ScrollBar : Panel
     {
         MoveThumbTo(y);
     }
-
-    private float ThumbHeight => ScrollBlock.Height.IsPercentage
-        ? Computed.Height * (ScrollBlock.Height.Value / 100f)
-        : ScrollBlock.Height.Value;
 
     private void MoveThumbTo(float y)
     {

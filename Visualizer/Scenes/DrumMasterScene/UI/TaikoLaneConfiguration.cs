@@ -34,7 +34,7 @@ public class TaikoLaneConfiguration : FlexPanel
         };
 
         var buttonRow = new FlexPanel(context)
-        { Direction = LayoutDirection.Horizontal, Spacing = 5, Width = LiteralOrComputable.AutoSize };
+            { Direction = LayoutDirection.Horizontal, Spacing = 5, Width = LiteralOrComputable.AutoSize };
         buttonRow.AddChild(new Button(context, new Label(context, "Clear"),
             new ColoredPlane { Color = new Vector4(0.3f, 0.3f, 0.3f, 1f) })
         {

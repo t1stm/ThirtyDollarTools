@@ -33,7 +33,7 @@ public class EditorStateTests
         var track = state.AddTrack();
         state.SelectTrack(track);
 
-        ProjectTrack? selected = track;
+        var selected = track;
         state.OnSelectionChanged += t => selected = t;
 
         Assert.True(state.RemoveTrack(track));
@@ -859,7 +859,8 @@ public class EditorStateTests
         Assert.Equal(42, placed.Volume);
         Assert.Equal(-10, placed.Pan);
         Assert.Equal(0.5, placed.Offset);
-        Assert.NotSame(automation, placed.Automation); // cloned: editing one note's automation must not affect the other
+        Assert.NotSame(automation,
+            placed.Automation); // cloned: editing one note's automation must not affect the other
         Assert.NotNull(placed.Automation);
     }
 
@@ -1375,7 +1376,7 @@ public class EditorStateTests
         source.Automation = new AudioKeyframeManager();
         state.SelectNote(source); // seeds CopiedModifiers
 
-        var cutNote = state.AddNote(segment, 1, kick, 0, isCut: true);
+        var cutNote = state.AddNote(segment, 1, kick, 0, true);
 
         Assert.True(cutNote.IsCut);
         Assert.Null(cutNote.Volume);

@@ -1,5 +1,4 @@
 using ThirtyDollarConverter.Objects;
-using ThirtyDollarParser;
 using ThirtyDollarParser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor.Tests;
@@ -90,7 +89,8 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!combine", "kick", "!combine", "clap", "!combine", "snare"],
+        Assert.Equal(
+            ["!speed", "!speed", "!divider", "boom", "!combine", "kick", "!combine", "clap", "!combine", "snare"],
             events.Select(e => e.SoundEvent));
     }
 
@@ -189,8 +189,10 @@ public class ProjectExportTests
         b.Timing = new TimingInfo { BPM = 121 };
 
         a.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
-        a.Segments[0].Notes.Add(new Note { Step = 4, Instrument = Instrument.Single("kick") }); // beat 1 at 120 BPM, 0.5 s
-        b.Segments[0].Notes.Add(new Note { Step = 4, Instrument = Instrument.Single("snare") }); // beat 1 at 121 BPM, ~0.4959 s
+        a.Segments[0].Notes
+            .Add(new Note { Step = 4, Instrument = Instrument.Single("kick") }); // beat 1 at 120 BPM, 0.5 s
+        b.Segments[0].Notes
+            .Add(new Note { Step = 4, Instrument = Instrument.Single("snare") }); // beat 1 at 121 BPM, ~0.4959 s
         project.Place(a, 0, 0);
         project.Place(b, 1, 0);
 
@@ -362,7 +364,8 @@ public class ProjectExportTests
 
         var events = project.ToSequence().Events;
 
-        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!cut", "!stop", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!cut", "!stop", "clap"],
+            events.Select(e => e.SoundEvent));
         Assert.Equal(1, events[5].Value);
     }
 

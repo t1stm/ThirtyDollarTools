@@ -30,7 +30,7 @@ public sealed class ConfirmDialog : FlexPanel
             Label = { Color = EditorPalette.Panel }
         };
         CancelButton = new Button(context, "Cancel")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = EditorPalette.Divider }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = EditorPalette.Divider }, BorderRadius = 6 };
 
         Children =
         [

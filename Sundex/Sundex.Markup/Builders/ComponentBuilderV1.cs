@@ -123,102 +123,102 @@ public class ComponentBuilderV1 : IComponentBuilder
         switch (nodeTag)
         {
             case "stack":
+            {
+                element = new StackPanel(context.UIContext)
                 {
-                    element = new StackPanel(context.UIContext)
-                    {
-                        Children = node.Children
-                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                                registeredClasses))
-                            .ToList()
-                    };
-                    break;
-                }
+                    Children = node.Children
+                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                            registeredClasses))
+                        .ToList()
+                };
+                break;
+            }
 
             case "flex":
+            {
+                element = new FlexPanel(context.UIContext)
                 {
-                    element = new FlexPanel(context.UIContext)
-                    {
-                        Children = node.Children
-                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                                registeredClasses))
-                            .ToList()
-                    };
-                    break;
-                }
+                    Children = node.Children
+                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                            registeredClasses))
+                        .ToList()
+                };
+                break;
+            }
 
             case "panel":
+            {
+                element = new Panel(context.UIContext)
                 {
-                    element = new Panel(context.UIContext)
-                    {
-                        Children = node.Children
-                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                                registeredClasses))
-                            .ToList()
-                    };
-                    break;
-                }
+                    Children = node.Children
+                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                            registeredClasses))
+                        .ToList()
+                };
+                break;
+            }
 
             case "label":
-                {
-                    node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var text);
-                    element = new Label(context.UIContext, text ?? string.Empty);
-                    break;
-                }
+            {
+                node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var text);
+                element = new Label(context.UIContext, text ?? string.Empty);
+                break;
+            }
 
             case "progress":
-                {
-                    var background = ExtractBackgroundStyle(node, styleSheet);
-                    var foreground = ExtractBackgroundStyle(node, styleSheet, "foreground");
+            {
+                var background = ExtractBackgroundStyle(node, styleSheet);
+                var foreground = ExtractBackgroundStyle(node, styleSheet, "foreground");
 
-                    if (node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>()
-                            .TryGetValue("value", out var progressString) &&
-                        float.TryParse(progressString, out var progress))
-                        element = new ProgressBar(context.UIContext, background, foreground)
-                        {
-                            Progress = progress
-                        };
-                    else
-                        element = new ProgressBar(context.UIContext, background, foreground);
+                if (node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>()
+                        .TryGetValue("value", out var progressString) &&
+                    float.TryParse(progressString, out var progress))
+                    element = new ProgressBar(context.UIContext, background, foreground)
+                    {
+                        Progress = progress
+                    };
+                else
+                    element = new ProgressBar(context.UIContext, background, foreground);
 
-                    break;
-                }
+                break;
+            }
 
             case "button":
-                {
-                    var labelNode = node.Children.FirstOrDefault(child => child.TagName == "label");
-                    if (labelNode is null) throw new Exception("Button must have a label");
+            {
+                var labelNode = node.Children.FirstOrDefault(child => child.TagName == "label");
+                if (labelNode is null) throw new Exception("Button must have a label");
 
-                    var background = ExtractBackgroundStyle(node, styleSheet);
-                    element = BuildUIElement(labelNode, context, dependencies, styleSheet, registeredIds, registeredClasses)
-                        is Label label
-                        ? new Button(context.UIContext, label, background)
-                        : throw new Exception("Button label wasn't parsed as a label.");
-                    break;
-                }
+                var background = ExtractBackgroundStyle(node, styleSheet);
+                element = BuildUIElement(labelNode, context, dependencies, styleSheet, registeredIds, registeredClasses)
+                    is Label label
+                    ? new Button(context.UIContext, label, background)
+                    : throw new Exception("Button label wasn't parsed as a label.");
+                break;
+            }
             default:
+            {
+                // Check for custom element factories first
+                var customElement = context.CreateElement(nodeTag);
+
+                if (customElement != null)
                 {
-                    // Check for custom element factories first
-                    var customElement = context.CreateElement(nodeTag);
-
-                    if (customElement != null)
-                    {
-                        element = customElement;
-                        if (element is Panel panel && node.Children.Count > 0)
-                            panel.Children.AddRange(node.Children
-                                .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                                    registeredClasses)));
-                        break;
-                    }
-
-                    if (dependencies is null) throw new Exception($"Unknown tag: {nodeTag}");
-                    var dependency = dependencies
-                        .FirstOrDefault(dependency => dependency.Name == nodeTag);
-
-                    element = dependency is not null
-                        ? dependency.Element
-                        : throw new Exception($"Unknown node tag: {nodeTag}");
+                    element = customElement;
+                    if (element is Panel panel && node.Children.Count > 0)
+                        panel.Children.AddRange(node.Children
+                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                                registeredClasses)));
                     break;
                 }
+
+                if (dependencies is null) throw new Exception($"Unknown tag: {nodeTag}");
+                var dependency = dependencies
+                    .FirstOrDefault(dependency => dependency.Name == nodeTag);
+
+                element = dependency is not null
+                    ? dependency.Element
+                    : throw new Exception($"Unknown node tag: {nodeTag}");
+                break;
+            }
         }
 
         ApplyAttributes(element, node);

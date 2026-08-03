@@ -16,7 +16,8 @@ public class SequenceStyleTests
         track.Segments[0].StepsPerBeat = 1;
         track.Segments[0].Bars = 8;
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
-        track.Segments[0].Notes.Add(new Note { Step = 16, Instrument = Instrument.Single("kick") }); // downbeat of bar 5
+        track.Segments[0].Notes
+            .Add(new Note { Step = 16, Instrument = Instrument.Single("kick") }); // downbeat of bar 5
 
         var sequence = track.ToSequence(new SequenceStyle { DividerEveryBars = 4 });
 
@@ -82,7 +83,7 @@ public class SequenceStyleTests
         fine.Notes.Add(new Note { Step = 64, Instrument = Instrument.Single("hat") }); // bar 4 after the change
 
         var style = new SequenceStyle
-        { DividerEveryBars = 4, DividerOnSpeedChanges = true, MigrateToStop = 1 };
+            { DividerEveryBars = 4, DividerOnSpeedChanges = true, MigrateToStop = 1 };
         var events = track.ToSequence(style).Events;
 
         // Without the reset, the two leftover bars would push the bar divider onto the
@@ -123,7 +124,8 @@ public class SequenceStyleTests
         track.Segments[0].Bars = 4;
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
         track.Segments[0].Notes.Add(new Note { Step = 3, Instrument = Instrument.Single("kick") }); // gap 2, below 4
-        track.Segments[0].Notes.Add(new Note { Step = 9, Instrument = Instrument.Single("snare") }); // gap 5, at/above 4
+        track.Segments[0].Notes
+            .Add(new Note { Step = 9, Instrument = Instrument.Single("snare") }); // gap 5, at/above 4
 
         var events = track.ToSequence(new SequenceStyle { MigrateToStop = 4 }).Events;
 
@@ -140,7 +142,8 @@ public class SequenceStyleTests
         var track = MakeTrack();
         var slapback = new AudioKeyframeManager { Timing = KeyframeTiming.Time };
         slapback.Keyframes.Add(new AudioKeyframe { Gap = 0.007f });
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = slapback });
+        track.Segments[0].Notes
+            .Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = slapback });
 
         var events = track.ToSequence(new SequenceStyle { MigrateToStop = null }).Events;
 

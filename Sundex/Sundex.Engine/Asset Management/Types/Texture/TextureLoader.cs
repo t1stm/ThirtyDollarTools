@@ -35,30 +35,30 @@ public class TextureLoader : IAssetLoader<TextureHolder, TextureInfo>
         switch (createInfo.Width, createInfo.Height)
         {
             case (not 0, not 0):
+            {
+                image.Mutate(context => context.Resize(new ResizeOptions
                 {
-                    image.Mutate(context => context.Resize(new ResizeOptions
-                    {
-                        Mode = ResizeMode.Stretch,
-                        Size = new Size(createInfo.Width, createInfo.Height)
-                    }));
-                    break;
-                }
+                    Mode = ResizeMode.Stretch,
+                    Size = new Size(createInfo.Width, createInfo.Height)
+                }));
+                break;
+            }
 
             case (not 0, 0):
-                {
-                    var scale = createInfo.Width / (float)image.Width;
-                    image.Mutate(context => context.Resize(new ResizeOptions
+            {
+                var scale = createInfo.Width / (float)image.Width;
+                image.Mutate(context => context.Resize(new ResizeOptions
                     { Mode = ResizeMode.Max, Size = new Size(createInfo.Width, (int)(image.Height * scale)) }));
-                    break;
-                }
+                break;
+            }
 
             case (0, not 0):
-                {
-                    var scale = createInfo.Height / (float)image.Height;
-                    image.Mutate(context => context.Resize(new ResizeOptions
+            {
+                var scale = createInfo.Height / (float)image.Height;
+                image.Mutate(context => context.Resize(new ResizeOptions
                     { Mode = ResizeMode.Max, Size = new Size((int)(image.Width * scale), createInfo.Height) }));
-                    break;
-                }
+                break;
+            }
         }
 
         createInfo.Width = image.Width;

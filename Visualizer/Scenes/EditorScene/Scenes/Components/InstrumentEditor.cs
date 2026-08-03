@@ -39,7 +39,7 @@ public sealed class InstrumentEditor : FlexPanel
             BorderRadius = 8
         };
 
-        NameInput = new TextInput(context, "")
+        NameInput = new TextInput(context)
         {
             Width = 300,
             FontSizePx = 15f,

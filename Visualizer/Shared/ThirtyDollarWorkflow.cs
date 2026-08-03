@@ -27,10 +27,11 @@ public class ThirtyDollarWorkflow
 
     private readonly AssetProvider _assetProvider;
     private readonly Stopwatch _fileUpdateStopwatch;
-    private RenderedSequence? _renderedSequence;
 
     /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
     public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
+
+    private RenderedSequence? _renderedSequence;
 
     public ThirtyDollarWorkflow(Game game, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
         AudioContext? context = null)
@@ -176,7 +177,7 @@ public class ThirtyDollarWorkflow
         {
             FileLocation = l!,
             FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo
-            { Location = l!, Storage = StorageLocation.Disk })
+                    { Location = l!, Storage = StorageLocation.Disk })
                 .ModifiedDate
         }).ToArray();
     }

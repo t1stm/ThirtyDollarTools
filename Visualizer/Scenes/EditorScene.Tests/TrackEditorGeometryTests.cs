@@ -51,7 +51,8 @@ public class TrackEditorGeometryTests
         var geometry = MakeGeometry();
 
         Assert.Equal(TrackEditorGeometry.MaxValue, geometry.ValueAt(TrackEditorGeometry.GridTop + 5, false));
-        Assert.Equal(TrackEditorGeometry.MaxValue - 3, geometry.ValueAt(TrackEditorGeometry.GridTop + 20 * 3 + 5, false));
+        Assert.Equal(TrackEditorGeometry.MaxValue - 3,
+            geometry.ValueAt(TrackEditorGeometry.GridTop + 20 * 3 + 5, false));
     }
 
     [Fact]

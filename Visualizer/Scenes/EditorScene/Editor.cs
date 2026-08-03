@@ -163,17 +163,17 @@ public class Editor : Scene
             case Keys.Escape when _editorInterface.TryCloseTopModal():
                 return;
             case Keys.Escape:
-                {
-                    if (state.OpenedTrack != null) state.CloseTrack();
-                    else _editorInterface.RequestBack();
-                    return;
-                }
+            {
+                if (state.OpenedTrack != null) state.CloseTrack();
+                else _editorInterface.RequestBack();
+                return;
+            }
             case Keys.Z when e.Modifiers.HasFlag(KeyModifiers.Control):
-                {
-                    if (e.Modifiers.HasFlag(KeyModifiers.Shift)) state.Redo();
-                    else state.Undo();
-                    return;
-                }
+            {
+                if (e.Modifiers.HasFlag(KeyModifiers.Shift)) state.Redo();
+                else state.Undo();
+                return;
+            }
             case Keys.Y when e.Modifiers.HasFlag(KeyModifiers.Control):
                 state.Redo();
                 return;
@@ -189,8 +189,8 @@ public class Editor : Scene
         // A focused TextInput deliberately lets Ctrl-combos fall through (see
         // TextInput.HandleKeyDown) - a future TextInput copy/paste must not fight the
         // editor clipboard, so the fallback below skips while one is focused.
-        if (_context.FocusedElement is not Sundex.Components.Inputs.TextInput && e.Modifiers.HasFlag(KeyModifiers.Control))
-        {
+        if (_context.FocusedElement is not Sundex.Components.Inputs.TextInput &&
+            e.Modifiers.HasFlag(KeyModifiers.Control))
             switch (e.Key)
             {
                 case Keys.C:
@@ -206,7 +206,6 @@ public class Editor : Scene
                     state.SelectAll();
                     return;
             }
-        }
 
         if (e.Key != Keys.Space) return;
 

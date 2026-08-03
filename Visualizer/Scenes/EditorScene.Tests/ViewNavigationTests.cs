@@ -7,7 +7,7 @@ public class ViewNavigationTests
 {
     private static ViewNavigation MakeArrangementNav()
     {
-        return new ViewNavigation(minZoom: 6f, maxZoom: 96f) { Zoom = 24f };
+        return new ViewNavigation(6f, 96f) { Zoom = 24f };
     }
 
     [Fact]
@@ -15,7 +15,7 @@ public class ViewNavigationTests
     {
         var nav = MakeArrangementNav();
 
-        nav.Wheel(new Vector2(0, -5), zoom: false, panXWithY: true, pointerPx: 0);
+        nav.Wheel(new Vector2(0, -5), false, true, 0);
 
         Assert.Equal(0f, nav.ScrollY);
         Assert.Equal(240f, nav.ScrollX);
@@ -25,9 +25,9 @@ public class ViewNavigationTests
     public void MiddlePan_WithZeroMaxScrollY_PinsYDuringADiagonalDrag()
     {
         var nav = MakeArrangementNav();
-        nav.MiddlePan(true, 100f, 100f, startAllowed: true); // starts the pan
+        nav.MiddlePan(true, 100f, 100f, true); // starts the pan
 
-        var changed = nav.MiddlePan(true, 80f, 130f, startAllowed: true); // diagonal drag
+        var changed = nav.MiddlePan(true, 80f, 130f, true); // diagonal drag
 
         Assert.True(changed);
         Assert.Equal(20f, nav.ScrollX); // 100 - 80

@@ -229,31 +229,31 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         switch (styleValue)
         {
             case GradientValue gv when propertyInfo.PropertyType == typeof(Renderable):
-                {
-                    var gradient = gv.GenerateGradientPlane();
-                    gradient.BorderRadius = BorderRadius.Resolve(Computed.Height);
+            {
+                var gradient = gv.GenerateGradientPlane();
+                gradient.BorderRadius = BorderRadius.Resolve(Computed.Height);
 
-                    propertyInfo.SetValue(this, plane = gradient);
-                    break;
-                }
+                propertyInfo.SetValue(this, plane = gradient);
+                break;
+            }
 
             case ColorValue cv when propertyInfo.PropertyType == typeof(Renderable):
+            {
+                var colored = new ColoredPlane
                 {
-                    var colored = new ColoredPlane
-                    {
-                        Color = cv.Vector,
-                        BorderRadius = BorderRadius.Resolve(Computed.Height)
-                    };
+                    Color = cv.Vector,
+                    BorderRadius = BorderRadius.Resolve(Computed.Height)
+                };
 
-                    propertyInfo.SetValue(this, plane = colored);
-                    break;
-                }
+                propertyInfo.SetValue(this, plane = colored);
+                break;
+            }
 
             default:
-                {
-                    base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
-                    return;
-                }
+            {
+                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
+                return;
+            }
         }
 
         HandleRenderableSwap(oldValue, plane, propertyInfo.Name);

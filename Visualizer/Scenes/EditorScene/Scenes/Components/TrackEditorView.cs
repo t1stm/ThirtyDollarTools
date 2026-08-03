@@ -88,51 +88,39 @@ public sealed class TrackEditorView : Panel
         new(0.48f, 0.44f, 0.78f, 1f) // violet
     ];
 
-    private readonly AutomationPath _automationPath;
-    private readonly List<NoteBlock> _noteBlocks = [];
-    private readonly LineBatch _lineBatch = new();
-    internal readonly EditorState _state;
-    private readonly TrackEditorGeometry _geometry = new();
-    private readonly List<StripBlock> _stripBlocks = [];
     internal readonly List<Label> BeatLabels = [];
-    internal IReadOnlyList<Panel> AutomationMarks => _automationPath.Marks;
-    internal IReadOnlyList<NoteBlock> NoteBlocks => _noteBlocks;
     internal readonly List<Label> GutterLabels = [];
+
+    private readonly AutomationPath _automationPath;
     private readonly Label _cutRowLabel;
-    private readonly List<Panel> _playheads = [];
-    private readonly List<float> _playheadXs = [];
-    private readonly Panel _zeroRow;
-    private readonly Panel _gutterBackground;
-    private readonly Panel _stripBackground;
-    private readonly Panel _rulerBackground;
     private readonly Panel _cutRule;
+    private readonly TrackEditorGeometry _geometry = new();
+    private readonly Panel _gutterBackground;
+    private readonly LineBatch _lineBatch = new();
+    private readonly Panel _marqueeRect;
+    private readonly List<NoteBlock> _noteBlocks = [];
+    private readonly List<float> _playheadXs = [];
+    private readonly List<Panel> _playheads = [];
+    private readonly Panel _rulerBackground;
+    internal readonly EditorState _state;
+    private readonly Panel _stripBackground;
+    private readonly List<StripBlock> _stripBlocks = [];
+    private readonly Panel _zeroRow;
 
     internal NoteBlock? _dragging;
-    private (TrackSegment segment, Note note)? _placing;
-    private Vector4i? _inheritedClip;
-
-    /// <summary>Last pointer y of a Ctrl+middle row-scaling drag; null while none is running.</summary>
-    private float? _rowScaleY;
-
-    // Marquee (Select tool): model-space anchor/cursor (continuous step, value), so
-    // mid-drag scrolling can't corrupt it and off-screen notes inside the box still
-    // count. Mode is sampled from the modifier bools at press, applied at release.
-    private enum MarqueeMode { Replace, Append, Remove }
-    private (double Step, double Value)? _marqueeAnchor;
-    private (double Step, double Value)? _marqueeCursor;
-    private MarqueeMode _marqueeMode;
-    private readonly Panel _marqueeRect;
-
-    // Group note drag: every selected note's starting (global step, value), captured
-    // once at press. Each drag frame re-derives the anchor's (pressed note's) delta
-    // from its own start and applies that same delta to every entry - this is what
-    // makes dragging one note of a multi-selection move the whole group together.
-    private readonly record struct GroupDragEntry(Note Note, int StartGlobalStep, double StartValue);
     private List<GroupDragEntry>? _groupDrag;
     private int _groupDragAnchorStartStep;
     private double _groupDragAnchorStartValue;
     private int _groupDragLastStep;
     private double _groupDragLastValue;
+    private Vector4i? _inheritedClip;
+    private (double Step, double Value)? _marqueeAnchor;
+    private (double Step, double Value)? _marqueeCursor;
+    private MarqueeMode _marqueeMode;
+    private (TrackSegment segment, Note note)? _placing;
+
+    /// <summary>Last pointer y of a Ctrl+middle row-scaling drag; null while none is running.</summary>
+    private float? _rowScaleY;
 
     public TrackEditorView(UIContext context, EditorState state) : base(context)
     {
@@ -215,10 +203,14 @@ public sealed class TrackEditorView : Panel
         {
             Width = 0,
             Height = 0,
-            Background = new ColoredPlane { Color = new Vector4(EditorPalette.Accent.X, EditorPalette.Accent.Y, EditorPalette.Accent.Z, 0.25f) }
+            Background = new ColoredPlane
+                { Color = new Vector4(EditorPalette.Accent.X, EditorPalette.Accent.Y, EditorPalette.Accent.Z, 0.25f) }
         };
         AddChild(_marqueeRect);
     }
+
+    internal IReadOnlyList<Panel> AutomationMarks => _automationPath.Marks;
+    internal IReadOnlyList<NoteBlock> NoteBlocks => _noteBlocks;
 
     /// <summary>Horizontal zoom: pixels per grid step. Ctrl+wheel adjusts it (4–128).</summary>
     public float PixelsPerStep
@@ -273,8 +265,8 @@ public sealed class TrackEditorView : Panel
     } = double.NegativeInfinity;
 
     /// <summary>
-    /// When enabled, the editor automatically scrolls horizontally to keep the
-    /// playhead visible during playback.
+    ///     When enabled, the editor automatically scrolls horizontally to keep the
+    ///     playhead visible during playback.
     /// </summary>
     public bool FollowPlayhead { get; set; } = true;
 
@@ -429,7 +421,8 @@ public sealed class TrackEditorView : Panel
                     if (noteBlock >= _noteBlocks.Count) break;
 
                     if (note.IsCut && cutsByStep![note.Step] is { Count: > 1 } siblings)
-                        PlaceNote(_noteBlocks[noteBlock++], segment, note, segStart, siblings.IndexOf(note), siblings.Count);
+                        PlaceNote(_noteBlocks[noteBlock++], segment, note, segStart, siblings.IndexOf(note),
+                            siblings.Count);
                     else
                         PlaceNote(_noteBlocks[noteBlock++], segment, note, segStart);
                 }
@@ -499,8 +492,10 @@ public sealed class TrackEditorView : Panel
         ApplyClip(_inheritedClip);
     }
 
-    /// <summary>Positions the marquee rectangle from its model-space anchor/cursor every
-    /// frame, so it scroll-corrects; zero size (hidden) while no marquee is active.</summary>
+    /// <summary>
+    ///     Positions the marquee rectangle from its model-space anchor/cursor every
+    ///     frame, so it scroll-corrects; zero size (hidden) while no marquee is active.
+    /// </summary>
     private void LayoutMarquee(float pps, float scrollX, float gridBottom)
     {
         if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor)
@@ -778,6 +773,7 @@ public sealed class TrackEditorView : Panel
             SeekToPointer(x);
             return true;
         }
+
         if (localX < GutterWidth) return false;
         if (localY >= _geometry.CutRowTop) return HandleCutRowPress(x);
         if (localY < GridTop) return false;
@@ -811,7 +807,7 @@ public sealed class TrackEditorView : Panel
         var (segment, step) = StepAt(x, false);
         if (_state.ActiveInstrument is not { } instrument || segment == null) return false;
 
-        if (Paint(segment, step, instrument, 0, isCut: true) is not { } painted) return false;
+        if (Paint(segment, step, instrument, 0, true) is not { } painted) return false;
         _placing = painted;
         return true; // capture: the sweep keeps painting
     }
@@ -832,7 +828,7 @@ public sealed class TrackEditorView : Panel
         if (lastNote.IsCut)
         {
             if (segment == lastSegment && step == lastNote.Step) return; // same cell
-            if (Paint(segment, step, lastNote.Instrument, 0, isCut: true) is { } cutPainted) _placing = cutPainted;
+            if (Paint(segment, step, lastNote.Instrument, 0, true) is { } cutPainted) _placing = cutPainted;
             return;
         }
 
@@ -1065,4 +1061,19 @@ public sealed class TrackEditorView : Panel
         };
     }
 
+    // Marquee (Select tool): model-space anchor/cursor (continuous step, value), so
+    // mid-drag scrolling can't corrupt it and off-screen notes inside the box still
+    // count. Mode is sampled from the modifier bools at press, applied at release.
+    private enum MarqueeMode
+    {
+        Replace,
+        Append,
+        Remove
+    }
+
+    // Group note drag: every selected note's starting (global step, value), captured
+    // once at press. Each drag frame re-derives the anchor's (pressed note's) delta
+    // from its own start and applies that same delta to every entry - this is what
+    // makes dragging one note of a multi-selection move the whole group together.
+    private readonly record struct GroupDragEntry(Note Note, int StartGlobalStep, double StartValue);
 }

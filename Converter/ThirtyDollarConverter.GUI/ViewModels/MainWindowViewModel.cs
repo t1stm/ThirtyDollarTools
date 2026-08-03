@@ -25,16 +25,16 @@ public class MainWindowViewModel : ViewModelBase
     };
 
     private readonly SampleHolder _sampleHolder;
-    private PcmEncoder? _encoder;
+    public bool IsExportLocationGood = true;
+
+    public bool IsSequenceLocationGood = true;
 
     private bool _encodeRunning;
+    private PcmEncoder? _encoder;
 
     private string? _exportFileLocation = "";
     private string? _sequenceFileLocations = "";
     private Sequence[]? _sequences;
-    public bool IsExportLocationGood = true;
-
-    public bool IsSequenceLocationGood = true;
 
     public MainWindowViewModel()
     {

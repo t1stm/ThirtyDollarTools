@@ -6,8 +6,8 @@ An OpenGL program that visualizes Thirty Dollar Covers.
 
 ## Usage
 
-If you want to use this program without modifying any settings, just open the
-ThirtyDollarVisualizer executable for your current operating system, which you get at the
+If you want to use this program without modifying any settings, just open the ThirtyDollarVisualizer executable for your
+current operating system, which you get at the
 [releases tab](https://github.com/t1stm/ThirtyDollarTools/releases).
 
 If it's your first time opening the program, wait for all sounds to finish downloading and then use it.

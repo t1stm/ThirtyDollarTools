@@ -1,8 +1,8 @@
 # Sundex.Markup
 
-A UI markup language for the (future name: Sundex) project.
-(initially Sunder, decided on a whim, and means to break into multiple parts)
-(replaced er with ex because it looks like S &(und) EX in German, so haha funny name)
+A UI markup language for the (future name: Sundex) project. (initially Sunder, decided on a whim, and means to break
+into multiple parts)
+(replaced er with ex because it looks like S & (und) EX in German, so haha funny name)
 
 # Goals
 
@@ -58,8 +58,7 @@ Incredibly simple HTML-style markup language.
 # Components
 
 The base building components are defined as C# classes first but other components that import the base components can be
-defined in the markup.
-Here's an example of a component that is defined in markup:
+defined in the markup. Here's an example of a component that is defined in markup:
 
 ```xml
 <sundex version="1.0" component="custom-component" part-of="[custom-components, other-custom-stuff]" requires="[base]">
@@ -80,22 +79,19 @@ Here's an example of a component that is defined in markup:
 
 Used to define the style of the UI.
 
-The style language is defined by the `language` attribute.
-By default, the engine will use and only provide the `engine` style language,
-but other languages can be implemented for other use cases.
+The style language is defined by the `language` attribute. By default, the engine will use and only provide the `engine`
+style language, but other languages can be implemented for other use cases.
 
-Defined in the `<style>` tag.
-More info on the style language can be found in the [style language documentation](./docs/style.md).
+Defined in the `<style>` tag. More info on the style language can be found in
+the [style language documentation](./docs/style.md).
 
 # Logic
 
-Used to add reactivity to the UI.
-The logic language is defined by the `language` attribute.
-By default, the engine will use and only provide the `csharp` logic language,
-but other languages can be implemented for other use cases.
+Used to add reactivity to the UI. The logic language is defined by the `language` attribute. By default, the engine will
+use and only provide the `csharp` logic language, but other languages can be implemented for other use cases.
 
-Defined in the `<logic>` tag.
-More info on the logic language can be found in the [logic language documentation](./docs/logic.md).
+Defined in the `<logic>` tag. More info on the logic language can be found in
+the [logic language documentation](./docs/logic.md).
 
 # Connections
 

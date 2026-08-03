@@ -5,6 +5,7 @@ using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
+using Sundex.Components.Panels;
 using Sundex.Core;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
@@ -62,10 +63,10 @@ public class RenderQueueTests
         // background at the layer front, so the FIRST child painted on top of
         // everything drawn after it (the note editor's zero-row band hid the notes).
         var context = new TestUIContext();
-        var root = new Panels.Panel(context);
+        var root = new Panel(context);
         root.DrawTo(context);
-        var below = new Panels.Panel(context) { Background = new MockRenderable() };
-        var above = new Panels.Panel(context) { Background = new MockRenderable() };
+        var below = new Panel(context) { Background = new MockRenderable() };
+        var above = new Panel(context) { Background = new MockRenderable() };
         root.AddChild(below);
         root.AddChild(above);
 

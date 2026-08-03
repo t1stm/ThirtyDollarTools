@@ -56,39 +56,39 @@ public class StackPanel(UIContext context)
         switch (Direction)
         {
             case LayoutDirection.Horizontal:
+            {
+                float sumW = 0;
+                float maxH = 0;
+                var i = 0;
+                foreach (var child in Children)
                 {
-                    float sumW = 0;
-                    float maxH = 0;
-                    var i = 0;
-                    foreach (var child in Children)
-                    {
-                        var (cw, ch) = child.Measure(innerW, innerH);
-                        sumW += cw;
-                        if (i++ > 0) sumW += Spacing;
-                        if (ch > maxH) maxH = ch;
-                    }
-
-                    contentW = sumW;
-                    contentH = maxH;
-                    break;
+                    var (cw, ch) = child.Measure(innerW, innerH);
+                    sumW += cw;
+                    if (i++ > 0) sumW += Spacing;
+                    if (ch > maxH) maxH = ch;
                 }
+
+                contentW = sumW;
+                contentH = maxH;
+                break;
+            }
             case LayoutDirection.Vertical:
+            {
+                float sumH = 0;
+                float maxW = 0;
+                var i = 0;
+                foreach (var child in Children)
                 {
-                    float sumH = 0;
-                    float maxW = 0;
-                    var i = 0;
-                    foreach (var child in Children)
-                    {
-                        var (cw, ch) = child.Measure(innerW, innerH);
-                        sumH += ch;
-                        if (i++ > 0) sumH += Spacing;
-                        if (cw > maxW) maxW = cw;
-                    }
-
-                    contentW = maxW;
-                    contentH = sumH;
-                    break;
+                    var (cw, ch) = child.Measure(innerW, innerH);
+                    sumH += ch;
+                    if (i++ > 0) sumH += Spacing;
+                    if (cw > maxW) maxW = cw;
                 }
+
+                contentW = maxW;
+                contentH = sumH;
+                break;
+            }
             default:
                 throw new ArgumentOutOfRangeException(nameof(Direction), "Invalid layout direction value.");
         }
@@ -106,24 +106,24 @@ public class StackPanel(UIContext context)
         switch (styleValue)
         {
             case StringValue sv when propertyInfo.PropertyType == typeof(LayoutDirection):
+            {
+                LayoutDirection? direction = sv.Value switch
                 {
-                    LayoutDirection? direction = sv.Value switch
-                    {
-                        "horizontal" => LayoutDirection.Horizontal,
-                        "vertical" => LayoutDirection.Vertical,
-                        _ => null
-                    };
+                    "horizontal" => LayoutDirection.Horizontal,
+                    "vertical" => LayoutDirection.Vertical,
+                    _ => null
+                };
 
-                    if (direction is not null)
-                        propertyInfo.SetValue(this, direction.Value);
-                    return;
-                }
+                if (direction is not null)
+                    propertyInfo.SetValue(this, direction.Value);
+                return;
+            }
 
             default:
-                {
-                    base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
-                    return;
-                }
+            {
+                base.ApplyStyleValue(styleSheet, styleValue, propertyInfo);
+                return;
+            }
         }
     }
 }

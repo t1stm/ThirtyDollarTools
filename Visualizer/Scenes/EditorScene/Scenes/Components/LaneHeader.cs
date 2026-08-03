@@ -24,9 +24,6 @@ public sealed class LaneHeader : Panel
     private readonly List<(Button Mute, Button Solo)> _rows = [];
     private readonly EditorState _state;
 
-    // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
-    internal IReadOnlyList<(Button Mute, Button Solo)> Rows => _rows;
-
     public LaneHeader(UIContext context, EditorState state, ArrangementView arrangement) : base(context)
     {
         _state = state;
@@ -45,6 +42,9 @@ public sealed class LaneHeader : Panel
 
         RefreshChannels();
     }
+
+    // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
+    internal IReadOnlyList<(Button Mute, Button Solo)> Rows => _rows;
 
     /// <summary>Re-colors the toggles from the state. Call when mute/solo changes.</summary>
     public void RefreshChannels()
@@ -90,7 +90,7 @@ public sealed class LaneHeader : Panel
         {
             Width = 24,
             Height = 24,
-            OnClick = _ => toggle(),
+            OnClick = _ => toggle()
         };
         return button;
     }

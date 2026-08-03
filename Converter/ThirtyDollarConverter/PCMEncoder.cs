@@ -162,14 +162,14 @@ public class PcmEncoder
         // the default track instead, and cuts targeting it would miss. Only a full render
         // creates tracks.
         foreach (var sequence in new_sequences)
-            foreach (var channel in sequence.SeparatedChannels)
-            {
-                var channel_id = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
-                    ? sound.Id
-                    : channel;
-                if (!oldRendered.Mixer.HasTrack(channel_id))
-                    return await GetMultipleSequencesAudio(new_sequences, oldRendered.ProcessedEvents);
-            }
+        foreach (var channel in sequence.SeparatedChannels)
+        {
+            var channel_id = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
+                ? sound.Id
+                : channel;
+            if (!oldRendered.Mixer.HasTrack(channel_id))
+                return await GetMultipleSequencesAudio(new_sequences, oldRendered.ProcessedEvents);
+        }
 
         var final_sounds = await GetAudioSamples(final_timed_events, oldRendered.ProcessedEvents);
 
@@ -360,15 +360,15 @@ public class PcmEncoder
 
         var mixer = new AudioMixer(audio_data);
         foreach (var sequence in events.Sequences)
-            foreach (var channel in sequence.SeparatedChannels)
-            {
-                if (mixer.HasTrack(channel)) continue;
-                var channelID = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
-                    ? sound.Id
-                    : channel;
-                var new_track = AudioData<float>.WithLength(_channels, length);
-                mixer.AddTrack(channelID, new_track);
-            }
+        foreach (var channel in sequence.SeparatedChannels)
+        {
+            if (mixer.HasTrack(channel)) continue;
+            var channelID = Holder.StringToSoundReferences.TryGetValue(channel, out var sound)
+                ? sound.Id
+                : channel;
+            var new_track = AudioData<float>.WithLength(_channels, length);
+            mixer.AddTrack(channelID, new_track);
+        }
 
         // Map channel tasks.
         await RenderTimedEvents(mixer, events, processedEvents, big_event_length, token);
@@ -487,9 +487,11 @@ public class PcmEncoder
         return boundaries;
     }
 
-    /// <summary>The span the chunk grid actually covers for a wanted range - the wanted range
-    /// grown outwards to the nearest chunk boundaries. Empty (start == end) when nothing
-    /// intersects.</summary>
+    /// <summary>
+    ///     The span the chunk grid actually covers for a wanted range - the wanted range
+    ///     grown outwards to the nearest chunk boundaries. Empty (start == end) when nothing
+    ///     intersects.
+    /// </summary>
     internal (int Start, int End) SnapToChunks(int length, int rangeStart, int rangeEnd)
     {
         if (length <= 0) return (0, 0);
@@ -593,27 +595,27 @@ public class PcmEncoder
         {
             // handle #icut event
             case IndividualCutEvent individual_cut_event:
+            {
+                foreach (var cut_track in individual_cut_event.CutSounds
+                             .Select(sound => Holder.StringToSoundReferences.TryGetValue(sound, out var reference)
+                                 ? reference.Id
+                                 : sound)
+                             .Where(sound => mixer.HasTrack(sound))
+                             .Select(sound => mixer.GetTrack(sound)))
                 {
-                    foreach (var cut_track in individual_cut_event.CutSounds
-                                 .Select(sound => Holder.StringToSoundReferences.TryGetValue(sound, out var reference)
-                                     ? reference.Id
-                                     : sound)
-                                 .Where(sound => mixer.HasTrack(sound))
-                                 .Select(sound => mixer.GetTrack(sound)))
-                    {
-                        var cut_slice = cut_track.GetChannel(channel).AsSpan()[start..end];
-                        HandleCut(start, end, current_start, cut_slice);
-                    }
-
-                    return;
+                    var cut_slice = cut_track.GetChannel(channel).AsSpan()[start..end];
+                    HandleCut(start, end, current_start, cut_slice);
                 }
+
+                return;
+            }
 
             case ExtendedEvent extended_event:
-                {
-                    pan = Math.Clamp(extended_event.Pan, -100f, 100f);
-                    startOffset = Math.Max(extended_event.OffsetInSeconds, 0);
-                    break;
-                }
+            {
+                pan = Math.Clamp(extended_event.Pan, -100f, 100f);
+                startOffset = Math.Max(extended_event.OffsetInSeconds, 0);
+                break;
+            }
         }
 
         // handle !cut event
@@ -683,29 +685,29 @@ public class PcmEncoder
         {
             // Channel = Right
             case < 0 when channel == 1:
+            {
+                var percent_subtract = 1f + pan / 100f;
+                volume *= _settings.PanScale switch
                 {
-                    var percent_subtract = 1f + pan / 100f;
-                    volume *= _settings.PanScale switch
-                    {
-                        PercentageScale.Logarithmic => MathF.Sqrt(percent_subtract),
-                        PercentageScale.LinearOverflowLogarithmic or PercentageScale.Linear => percent_subtract,
-                        _ => 0
-                    };
-                    break;
-                }
+                    PercentageScale.Logarithmic => MathF.Sqrt(percent_subtract),
+                    PercentageScale.LinearOverflowLogarithmic or PercentageScale.Linear => percent_subtract,
+                    _ => 0
+                };
+                break;
+            }
 
             // Channel = Left
             case > 0 when channel == 0:
+            {
+                var percent_subtract = 1f - pan / 100f;
+                volume *= _settings.PanScale switch
                 {
-                    var percent_subtract = 1f - pan / 100f;
-                    volume *= _settings.PanScale switch
-                    {
-                        PercentageScale.Logarithmic => MathF.Sqrt(percent_subtract),
-                        PercentageScale.LinearOverflowLogarithmic or PercentageScale.Linear => percent_subtract,
-                        _ => 0
-                    };
-                    break;
-                }
+                    PercentageScale.Logarithmic => MathF.Sqrt(percent_subtract),
+                    PercentageScale.LinearOverflowLogarithmic or PercentageScale.Linear => percent_subtract,
+                    _ => 0
+                };
+                break;
+            }
         }
 
         RenderSample(current_channel, mix_slice, delta_start,

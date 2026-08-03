@@ -10,8 +10,10 @@ namespace ThirtyDollarConverter.Benchmarks;
 /// </summary>
 public enum EditKind
 {
-    /// <summary>Scroll a note's value. The note carries cut automation, which is what forces
-    /// the subtract-based renderer into a full re-render.</summary>
+    /// <summary>
+    ///     Scroll a note's value. The note carries cut automation, which is what forces
+    ///     the subtract-based renderer into a full re-render.
+    /// </summary>
     AutomatedNoteValue,
 
     /// <summary>Scroll a note's volume, same automated note.</summary>
@@ -33,11 +35,11 @@ public enum EditKind
 public sealed class EditorEdits
 {
     private readonly Note _automated;
-    private readonly Note _plain;
+    private readonly Instrument _instrument;
     private readonly Note _movable;
+    private readonly Note _plain;
     private readonly TrackSegment _segment;
     private readonly Note _spare;
-    private readonly Instrument _instrument;
 
     public EditorEdits(ThirtyDollarProject project)
     {

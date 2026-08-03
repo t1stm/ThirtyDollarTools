@@ -64,6 +64,11 @@ public class NumericInput : TextInput
         }
     }
 
+    private float ButtonSize => Math.Max(0, Computed.Height - 2 * Padding);
+
+    /// <summary>Keeps the text viewport clear of the two buttons at the right end.</summary>
+    protected override float ReservedRightWidth => 2 * ButtonSize;
+
     public void StepBy(int direction)
     {
         // ponytail: rounding kills accumulated binary noise from repeated fractional steps.
@@ -94,11 +99,6 @@ public class NumericInput : TextInput
         // value, or keep it empty (null) when AllowNull.
         Value = Value ?? (AllowNull ? null : _lastValid);
     }
-
-    private float ButtonSize => Math.Max(0, Computed.Height - 2 * Padding);
-
-    /// <summary>Keeps the text viewport clear of the two buttons at the right end.</summary>
-    protected override float ReservedRightWidth => 2 * ButtonSize;
 
     protected override void DoLayout()
     {

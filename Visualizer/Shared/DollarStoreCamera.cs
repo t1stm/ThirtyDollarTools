@@ -8,10 +8,10 @@ namespace Shared;
 public sealed class DollarStoreCamera : Camera
 {
     private readonly float _scrollSpeed;
+    public Action<float>? OnZoom = null;
     private Vector3 _offset = (0, 0, 0);
     private PulseAnimation? _pulseAnimation;
     private Vector3 _virtualPosition;
-    public Action<float>? OnZoom = null;
 
     public DollarStoreCamera(Vector3 virtualPosition, Vector2i viewport, float scrollSpeed = 7.5f) : base(
         virtualPosition, viewport)

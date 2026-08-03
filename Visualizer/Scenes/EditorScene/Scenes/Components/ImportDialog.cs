@@ -27,11 +27,11 @@ public sealed class ImportDialog : FlexPanel
         Background = new ColoredPlane { Color = EditorPalette.Panel };
 
         SingleTrackButton = new Button(context, "Import as Single Track")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         ProjectButton = new Button(context, "Import as Project")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         CancelButton = new Button(context, "Cancel")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
 
         Children =
         [

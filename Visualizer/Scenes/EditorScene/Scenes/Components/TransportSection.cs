@@ -22,11 +22,11 @@ public sealed class TransportSection : FlexPanel
     private static readonly Vector4 TimeColor = EditorPalette.TextMuted;
     private static readonly Vector4 ProgressBackColor = new(0.251f, 0.251f, 0.376f, 1f); // #404060
     private static readonly Vector4 ProgressForeColor = EditorPalette.Header;
+    private readonly Label _elapsedLabel;
+    private readonly Button _playButton;
 
     private readonly EditorPlayback _playback;
-    private readonly Button _playButton;
     private readonly ProgressBar _progress;
-    private readonly Label _elapsedLabel;
     private readonly Label _totalLabel;
 
     public TransportSection(UIContext context, EditorPlayback playback, Action onBack) : base(context)
@@ -91,9 +91,11 @@ public sealed class TransportSection : FlexPanel
         return $"{ms / 60000}:{ms / 1000 % 60:00}";
     }
 
-    /// <summary>Subtle-filled button matching the menu bar/"+ Add track" look - code-built
-    /// children get no stylesheet, so the fill/hover swap is wired here instead of via the
-    /// .ss <c>menu-button</c> class.</summary>
+    /// <summary>
+    ///     Subtle-filled button matching the menu bar/"+ Add track" look - code-built
+    ///     children get no stylesheet, so the fill/hover swap is wired here instead of via the
+    ///     .ss <c>menu-button</c> class.
+    /// </summary>
     private static Button TransportButton(UIContext context, string label, Action onClick)
     {
         var fill = new ColoredPlane { Color = MenuFillColor };

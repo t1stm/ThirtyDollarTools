@@ -8,16 +8,6 @@ namespace VisualizerScene.Objects.Playfield;
 public class LayoutHandler
 {
     /// <summary>
-    ///     Calculated positions.
-    /// </summary>
-    private readonly float[] _calculatedPositions;
-
-    /// <summary>
-    ///     Contains the inner gap for each side of the playfield.
-    /// </summary>
-    private readonly GapBox? _padding;
-
-    /// <summary>
     ///     The wanted box size that the layout is calculated in mind with.
     /// </summary>
     public readonly float Size;
@@ -33,14 +23,24 @@ public class LayoutHandler
     public readonly float Width;
 
     /// <summary>
-    ///     Contains the gap for each side of a box.
+    ///     Calculated positions.
     /// </summary>
-    private GapBox? _margin;
+    private readonly float[] _calculatedPositions;
+
+    /// <summary>
+    ///     Contains the inner gap for each side of the playfield.
+    /// </summary>
+    private readonly GapBox? _padding;
 
     /// <summary>
     ///     The current object for this line.
     /// </summary>
     public int CurrentSoundIndex;
+
+    /// <summary>
+    ///     Contains the gap for each side of a box.
+    /// </summary>
+    private GapBox? _margin;
 
     /// <summary>
     ///     Creates a LayoutHandler with the given parameters.

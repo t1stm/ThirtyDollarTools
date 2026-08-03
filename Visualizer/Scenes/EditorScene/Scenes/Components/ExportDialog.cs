@@ -55,11 +55,11 @@ public sealed class ExportDialog : FlexPanel
         };
 
         TdwButton = new Button(context, "Export .tdw")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         WavButton = new Button(context, "Export .wav")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
         CancelButton = new Button(context, "Cancel")
-        { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
 
         AddChild(new Label(context, "Export") { FontSizePx = 18f, Color = EditorPalette.Header });
         Row("Divider every N bars (0 = off)", DividerEveryBars);

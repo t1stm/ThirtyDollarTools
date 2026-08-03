@@ -72,7 +72,7 @@ public class IncrementalAudioTests
 
     private static IndividualCutEvent Icut(params string[] sounds)
     {
-        return new IndividualCutEvent([..sounds]);
+        return new IndividualCutEvent([.. sounds]);
     }
 
     /// <summary>

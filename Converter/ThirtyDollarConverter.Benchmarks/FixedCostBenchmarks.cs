@@ -50,8 +50,10 @@ public class FixedCostBenchmarks
         return _calculator.CalculateMany([_sequence]).Count();
     }
 
-    /// <summary>Summing every track into the final buffer. Runs over the whole song on every
-    /// edit, in both incremental implementations.</summary>
+    /// <summary>
+    ///     Summing every track into the final buffer. Runs over the whole song on every
+    ///     edit, in both incremental implementations.
+    /// </summary>
     [Benchmark]
     public int MixDown()
     {

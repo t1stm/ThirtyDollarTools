@@ -9,12 +9,6 @@ namespace EditorScene;
 /// </summary>
 public sealed class EditorClipboard
 {
-    /// <summary>A copied note with its track-absolute step (see <see cref="ProjectTrack.GlobalStepOf" />),
-    /// so paste can remap it onto a track with a different segment layout.</summary>
-    public sealed record NoteEntry(int GlobalStep, Note Snapshot);
-
-    public sealed record PlacementEntry(ProjectTrack Track, int Channel, double StartQuarterNotes);
-
     public IReadOnlyList<NoteEntry>? Notes { get; private set; }
     public IReadOnlyList<PlacementEntry>? Placements { get; private set; }
 
@@ -35,4 +29,12 @@ public sealed class EditorClipboard
         Notes = null;
         Placements = null;
     }
+
+    /// <summary>
+    ///     A copied note with its track-absolute step (see <see cref="ProjectTrack.GlobalStepOf" />),
+    ///     so paste can remap it onto a track with a different segment layout.
+    /// </summary>
+    public sealed record NoteEntry(int GlobalStep, Note Snapshot);
+
+    public sealed record PlacementEntry(ProjectTrack Track, int Channel, double StartQuarterNotes);
 }

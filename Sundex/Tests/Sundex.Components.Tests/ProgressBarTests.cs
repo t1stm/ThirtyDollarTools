@@ -64,18 +64,18 @@ public class ProgressBarTests
         var fgPos = -1;
 
         for (var i = 0; i < queue.Count; i++)
-            for (var j = 0; j < queue[i].Count; j++)
+        for (var j = 0; j < queue[i].Count; j++)
+        {
+            if (queue[i][j] == progressBar.BackgroundPanel.Background)
             {
-                if (queue[i][j] == progressBar.BackgroundPanel.Background)
-                {
-                    bgLayer = i;
-                    bgPos = j;
-                }
-
-                if (queue[i][j] != progressBar.ForegroundPanel.Background) continue;
-                fgLayer = i;
-                fgPos = j;
+                bgLayer = i;
+                bgPos = j;
             }
+
+            if (queue[i][j] != progressBar.ForegroundPanel.Background) continue;
+            fgLayer = i;
+            fgPos = j;
+        }
 
         Assert.True(bgLayer != -1, "Background should be re-queued after Clear()");
         Assert.True(fgLayer != -1, "Foreground should be re-queued after Clear()");

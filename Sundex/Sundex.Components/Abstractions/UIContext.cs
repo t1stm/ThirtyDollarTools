@@ -3,7 +3,6 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Sundex.Components.Labels;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
@@ -21,9 +20,9 @@ public class UIContext : IGamePreloadable
     private static IAssetProvider _assetProvider = null!;
     private static IFontProvider _fontProvider = null!;
     private static ITextProvider _textProvider = null!;
+    protected readonly List<List<IRenderable>> LayeredRenderQueue = [];
 
     private readonly HashSet<UIElement> _updatingElements = [];
-    protected readonly List<List<IRenderable>> LayeredRenderQueue = [];
     public required Camera Camera { get; set; }
     public float ViewportWidth => Camera.Width;
     public float ViewportHeight => Camera.Height;
@@ -65,6 +64,129 @@ public class UIContext : IGamePreloadable
     public void Clear()
     {
         foreach (var queue in LayeredRenderQueue) queue.Clear();
+    }
+
+    public void QueueRender(IRenderable renderable, int renderIndex, int queueIndex = -1)
+    {
+        while (LayeredRenderQueue.Count <= renderIndex)
+            LayeredRenderQueue.Add([]);
+
+        var queue = LayeredRenderQueue[renderIndex];
+
+        // Check for duplicates to prevent same renderable from being queued multiple times in the same layer
+        if (queue.Any(r => ReferenceEquals(r, renderable)))
+            return;
+
+        // Move semantics: a subtree re-parented to a new depth re-queues its renderables
+        // at the new layer; drop the stale entry from whichever layer still holds it, or
+        // the ghost keeps rendering after the element is removed (e.g. closing a modal).
+        RemoveFromAnyLayer(renderable);
+
+        if (queueIndex < 0 || queueIndex >= queue.Count)
+        {
+            queue.Add(renderable);
+            return;
+        }
+
+        queue.Insert(queueIndex, renderable);
+    }
+
+    public int DequeueRender(IRenderable renderable, int index)
+    {
+        if (index >= 0 && index < LayeredRenderQueue.Count)
+        {
+            var queue = LayeredRenderQueue[index];
+
+            for (var i = 0; i < queue.Count; i++)
+            {
+                if (!ReferenceEquals(queue[i], renderable)) continue;
+
+                queue.RemoveAt(i);
+                return i;
+            }
+        }
+
+        // Stale index hint (element re-parented since it was queued): scan everything.
+        RemoveFromAnyLayer(renderable);
+        return -1;
+    }
+
+    private void RemoveFromAnyLayer(IRenderable renderable)
+    {
+        foreach (var layer in LayeredRenderQueue)
+            for (var i = 0; i < layer.Count; i++)
+            {
+                if (!ReferenceEquals(layer[i], renderable)) continue;
+
+                layer.RemoveAt(i);
+                return;
+            }
+    }
+
+    public void RegisterUpdate(UIElement element)
+    {
+        _updatingElements.Add(element);
+    }
+
+    public void UnregisterUpdate(UIElement element)
+    {
+        _updatingElements.Remove(element);
+    }
+
+    public void Render()
+    {
+        foreach (var element in _updatingElements) element.Update(this);
+
+        var scissorOn = false;
+        var layerIndex = 0;
+        foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
+        {
+            // Position in LayeredRenderQueue is the UIElement.Index depth layer - an
+            // outsized count here pinpoints which nesting depth a draw-call spike lives
+            // at (e.g. a still-unbatched fixed pool queued at that layer).
+            if (queue.Count > 0)
+                RenderMarker.Debug("UI render layer ", $"{layerIndex} ({queue.Count} renderables)",
+                    MarkerType.Hidden);
+            layerIndex++;
+
+            if (queue.Count == 0) continue;
+            var count = 0;
+
+            foreach (var renderable in queue)
+            {
+                // Pooled elements are "hidden" by zeroing scale rather than dequeuing (see
+                // Panel-pool patterns like TrackEditorView's NoteBlockPool) - cull those and
+                // anything fully clipped away before it costs a bind/upload/draw.
+                if (renderable is Renderable { Scale: var scale } && (scale.X <= 0 || scale.Y <= 0))
+                    continue;
+
+                if ((renderable as IClippable)?.ClipRect is { } clip)
+                {
+                    if (clip.Z <= clip.X || clip.W <= clip.Y) continue;
+
+                    if (!scissorOn) GL.Enable(EnableCap.ScissorTest);
+                    scissorOn = true;
+                    // GL.Scissor takes physical framebuffer pixels; clip/Camera are logical UI units, so
+                    // scale by PixelScale. Origin is bottom-left; UI rects are top-left based.
+                    GL.Scissor((int)(clip.X * PixelScale.X), (int)((Camera.Height - clip.W) * PixelScale.Y),
+                        Math.Max(0, (int)((clip.Z - clip.X) * PixelScale.X)),
+                        Math.Max(0, (int)((clip.W - clip.Y) * PixelScale.Y)));
+                }
+                else if (scissorOn)
+                {
+                    GL.Disable(EnableCap.ScissorTest);
+                    scissorOn = false;
+                }
+
+                renderable.Render(Camera);
+                count++;
+            }
+
+            RenderMarker.Debug("UI layer ", $"{layerIndex - 1} rendered {count} renderables",
+                MarkerType.Hidden);
+        }
+
+        if (scissorOn) GL.Disable(EnableCap.ScissorTest);
     }
 
     #region Pointer routing / focus
@@ -328,126 +450,4 @@ public class UIContext : IGamePreloadable
     }
 
     #endregion
-
-    public void QueueRender(IRenderable renderable, int renderIndex, int queueIndex = -1)
-    {
-        while (LayeredRenderQueue.Count <= renderIndex)
-            LayeredRenderQueue.Add([]);
-
-        var queue = LayeredRenderQueue[renderIndex];
-
-        // Check for duplicates to prevent same renderable from being queued multiple times in the same layer
-        if (queue.Any(r => ReferenceEquals(r, renderable)))
-            return;
-
-        // Move semantics: a subtree re-parented to a new depth re-queues its renderables
-        // at the new layer; drop the stale entry from whichever layer still holds it, or
-        // the ghost keeps rendering after the element is removed (e.g. closing a modal).
-        RemoveFromAnyLayer(renderable);
-
-        if (queueIndex < 0 || queueIndex >= queue.Count)
-        {
-            queue.Add(renderable);
-            return;
-        }
-
-        queue.Insert(queueIndex, renderable);
-    }
-
-    public int DequeueRender(IRenderable renderable, int index)
-    {
-        if (index >= 0 && index < LayeredRenderQueue.Count)
-        {
-            var queue = LayeredRenderQueue[index];
-
-            for (var i = 0; i < queue.Count; i++)
-            {
-                if (!ReferenceEquals(queue[i], renderable)) continue;
-
-                queue.RemoveAt(i);
-                return i;
-            }
-        }
-
-        // Stale index hint (element re-parented since it was queued): scan everything.
-        RemoveFromAnyLayer(renderable);
-        return -1;
-    }
-
-    private void RemoveFromAnyLayer(IRenderable renderable)
-    {
-        foreach (var layer in LayeredRenderQueue)
-            for (var i = 0; i < layer.Count; i++)
-            {
-                if (!ReferenceEquals(layer[i], renderable)) continue;
-
-                layer.RemoveAt(i);
-                return;
-            }
-    }
-
-    public void RegisterUpdate(UIElement element)
-    {
-        _updatingElements.Add(element);
-    }
-
-    public void UnregisterUpdate(UIElement element)
-    {
-        _updatingElements.Remove(element);
-    }
-
-    public void Render()
-    {
-        foreach (var element in _updatingElements) element.Update(this);
-
-        var scissorOn = false;
-        var layerIndex = 0;
-        foreach (var queue in CollectionsMarshal.AsSpan(LayeredRenderQueue))
-        {
-            // Position in LayeredRenderQueue is the UIElement.Index depth layer - an
-            // outsized count here pinpoints which nesting depth a draw-call spike lives
-            // at (e.g. a still-unbatched fixed pool queued at that layer).
-            if (queue.Count > 0)
-                RenderMarker.Debug("UI render layer ", $"{layerIndex} ({queue.Count} renderables)",
-                    MarkerType.Hidden);
-            layerIndex++;
-
-            if (queue.Count == 0) continue;
-            var count = 0;
-
-            foreach (var renderable in queue)
-            {
-                // Pooled elements are "hidden" by zeroing scale rather than dequeuing (see
-                // Panel-pool patterns like TrackEditorView's NoteBlockPool) - cull those and
-                // anything fully clipped away before it costs a bind/upload/draw.
-                if (renderable is Renderable { Scale: var scale } && (scale.X <= 0 || scale.Y <= 0))
-                    continue;
-
-                if ((renderable as IClippable)?.ClipRect is { } clip)
-                {
-                    if (clip.Z <= clip.X || clip.W <= clip.Y) continue;
-
-                    if (!scissorOn) GL.Enable(EnableCap.ScissorTest);
-                    scissorOn = true;
-                    // GL.Scissor takes physical framebuffer pixels; clip/Camera are logical UI units, so
-                    // scale by PixelScale. Origin is bottom-left; UI rects are top-left based.
-                    GL.Scissor((int)(clip.X * PixelScale.X), (int)((Camera.Height - clip.W) * PixelScale.Y),
-                        Math.Max(0, (int)((clip.Z - clip.X) * PixelScale.X)),
-                        Math.Max(0, (int)((clip.W - clip.Y) * PixelScale.Y)));
-                }
-                else if (scissorOn)
-                {
-                    GL.Disable(EnableCap.ScissorTest);
-                    scissorOn = false;
-                }
-
-                renderable.Render(Camera);
-                count++;
-            }
-            RenderMarker.Debug("UI layer ", $"{layerIndex - 1} rendered {count} renderables",
-                MarkerType.Hidden);
-        }
-
-        if (scissorOn) GL.Disable(EnableCap.ScissorTest);
-    }
 }

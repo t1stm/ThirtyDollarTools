@@ -3,9 +3,11 @@ using ThirtyDollarParser;
 
 namespace EditorScene;
 
-/// <summary>The active editing tool, shared by both editors. Two tools with three
-/// branch points each do not justify an IEditorTool strategy interface - the views'
-/// input handlers branch on <see cref="EditorState.ActiveTool" /> directly.</summary>
+/// <summary>
+///     The active editing tool, shared by both editors. Two tools with three
+///     branch points each do not justify an IEditorTool strategy interface - the views'
+///     input handlers branch on <see cref="EditorState.ActiveTool" /> directly.
+/// </summary>
 // ponytail: tool dispatch is an enum branch in the two views; extract an IEditorTool
 // (per-tool press/drag/release/key handlers) when a third tool with nontrivial
 // behaviour lands (slice, zoom, mute-paint).
@@ -21,43 +23,15 @@ public enum EditorTool
 /// </summary>
 public class EditorState
 {
-    /// <summary>Fired after any project mutation (add/remove/rename/new/load).</summary>
-    public event Action? OnProjectChanged;
-
-    /// <summary>Fired when the selected track changes.</summary>
-    public event Action<ProjectTrack?>? OnSelectionChanged;
-
-    /// <summary>Fired when the placement selection changes, with the derived single
-    /// value (see <see cref="SelectedPlacement" />). Fired once per batch mutation.</summary>
-    public event Action<TrackPlacement?>? OnPlacementSelectionChanged;
-
-    /// <summary>Fired when a channel's mute/solo state changes. Session-only, never saved.</summary>
-    public event Action? OnChannelsChanged;
-
-    /// <summary>Fired when a track is opened in (or closed from) the note editor.</summary>
-    public event Action<ProjectTrack?>? OnOpenedTrackChanged;
-
-    /// <summary>Fired when the note selection changes, with the derived single value
-    /// (see <see cref="SelectedNote" />). Fired once per batch mutation.</summary>
-    public event Action<Note?>? OnNoteSelectionChanged;
-
-    /// <summary>Fired when the selected segment in the note editor changes.</summary>
-    public event Action<TrackSegment?>? OnSegmentSelectionChanged;
-
-    /// <summary>Fired after an instrument is added/renamed/edited/removed.</summary>
-    public event Action? OnInstrumentsChanged;
-
-    /// <summary>Fired when the active tool (Draw/Select) changes.</summary>
-    public event Action<EditorTool>? OnToolChanged;
+    private readonly EditorClipboard _clipboard = new();
+    private readonly Dictionary<ProjectTrack, Instrument?> _lastInstrumentByTrack = [];
 
     private readonly MuteSolo _muteSolo = new();
-    private readonly UndoHistory _undoHistory = new();
-    private readonly EditorClipboard _clipboard = new();
     private readonly List<Note> _selectedNotes = [];
     private readonly List<TrackPlacement> _selectedPlacements = [];
-    private readonly Dictionary<ProjectTrack, Instrument?> _lastInstrumentByTrack = [];
-    private EditorTool _activeTool = EditorTool.Draw;
+    private readonly UndoHistory _undoHistory = new();
     private Instrument? _activeInstrument;
+    private EditorTool _activeTool = EditorTool.Draw;
 
     public ThirtyDollarProject Project { get; private set; } = new();
     public ProjectTrack? SelectedTrack { get; private set; }
@@ -65,8 +39,10 @@ public class EditorState
     /// <summary>Every currently selected placement, in selection order (last = primary).</summary>
     public IReadOnlyList<TrackPlacement> SelectedPlacements => _selectedPlacements;
 
-    /// <summary>Derived view: non-null only when exactly one placement is selected.
-    /// Existing single-selection consumers (arrangement highlight, cascades) read this.</summary>
+    /// <summary>
+    ///     Derived view: non-null only when exactly one placement is selected.
+    ///     Existing single-selection consumers (arrangement highlight, cascades) read this.
+    /// </summary>
     public TrackPlacement? SelectedPlacement => _selectedPlacements.Count == 1 ? _selectedPlacements[0] : null;
 
     /// <summary>The track open in the note editor; null means the arrangement is shown.</summary>
@@ -77,13 +53,17 @@ public class EditorState
     /// <summary>Every currently selected note, in selection order (last = primary).</summary>
     public IReadOnlyList<Note> SelectedNotes => _selectedNotes;
 
-    /// <summary>Derived view: non-null only when exactly one note is selected.
-    /// Existing single-selection consumers (inspector form, CopiedModifiers) read this.</summary>
+    /// <summary>
+    ///     Derived view: non-null only when exactly one note is selected.
+    ///     Existing single-selection consumers (inspector form, CopiedModifiers) read this.
+    /// </summary>
     public Note? SelectedNote => _selectedNotes.Count == 1 ? _selectedNotes[0] : null;
 
-    /// <summary>The instrument a click in the note editor places. Session-only, never saved.
-    /// Remembered per track (see <see cref="OpenTrack" />), so switching back to a track
-    /// restores whichever instrument was last active in it.</summary>
+    /// <summary>
+    ///     The instrument a click in the note editor places. Session-only, never saved.
+    ///     Remembered per track (see <see cref="OpenTrack" />), so switching back to a track
+    ///     restores whichever instrument was last active in it.
+    /// </summary>
     public Instrument? ActiveInstrument
     {
         get => _activeInstrument;
@@ -94,8 +74,10 @@ public class EditorState
         }
     }
 
-    /// <summary>Draw (paint/place, single selection on click) or Select (marquee,
-    /// multi-selection). Switching tools keeps the current selection.</summary>
+    /// <summary>
+    ///     Draw (paint/place, single selection on click) or Select (marquee,
+    ///     multi-selection). Switching tools keeps the current selection.
+    /// </summary>
     public EditorTool ActiveTool
     {
         get => _activeTool;
@@ -105,17 +87,6 @@ public class EditorState
             _activeTool = value;
             OnToolChanged?.Invoke(value);
         }
-    }
-
-    /// <summary>
-    ///     Raises <see cref="OnInstrumentsChanged" /> for callers outside this class - a
-    ///     plain <see cref="ActiveInstrument" /> set fires no event of its own, but the
-    ///     active-instrument button still needs to refresh (see
-    ///     <see cref="Scenes.Components.InstrumentWorkflow" />'s pick flow).
-    /// </summary>
-    public void NotifyInstrumentsChanged()
-    {
-        OnInstrumentsChanged?.Invoke();
     }
 
     /// <summary>
@@ -132,6 +103,52 @@ public class EditorState
 
     /// <summary>Where the project lives on disk; null until first saved or loaded from a file.</summary>
     public string? ProjectPath { get; private set; }
+
+    public bool AnySoloed => _muteSolo.AnySoloed;
+
+    /// <summary>Fired after any project mutation (add/remove/rename/new/load).</summary>
+    public event Action? OnProjectChanged;
+
+    /// <summary>Fired when the selected track changes.</summary>
+    public event Action<ProjectTrack?>? OnSelectionChanged;
+
+    /// <summary>
+    ///     Fired when the placement selection changes, with the derived single
+    ///     value (see <see cref="SelectedPlacement" />). Fired once per batch mutation.
+    /// </summary>
+    public event Action<TrackPlacement?>? OnPlacementSelectionChanged;
+
+    /// <summary>Fired when a channel's mute/solo state changes. Session-only, never saved.</summary>
+    public event Action? OnChannelsChanged;
+
+    /// <summary>Fired when a track is opened in (or closed from) the note editor.</summary>
+    public event Action<ProjectTrack?>? OnOpenedTrackChanged;
+
+    /// <summary>
+    ///     Fired when the note selection changes, with the derived single value
+    ///     (see <see cref="SelectedNote" />). Fired once per batch mutation.
+    /// </summary>
+    public event Action<Note?>? OnNoteSelectionChanged;
+
+    /// <summary>Fired when the selected segment in the note editor changes.</summary>
+    public event Action<TrackSegment?>? OnSegmentSelectionChanged;
+
+    /// <summary>Fired after an instrument is added/renamed/edited/removed.</summary>
+    public event Action? OnInstrumentsChanged;
+
+    /// <summary>Fired when the active tool (Draw/Select) changes.</summary>
+    public event Action<EditorTool>? OnToolChanged;
+
+    /// <summary>
+    ///     Raises <see cref="OnInstrumentsChanged" /> for callers outside this class - a
+    ///     plain <see cref="ActiveInstrument" /> set fires no event of its own, but the
+    ///     active-instrument button still needs to refresh (see
+    ///     <see cref="Scenes.Components.InstrumentWorkflow" />'s pick flow).
+    /// </summary>
+    public void NotifyInstrumentsChanged()
+    {
+        OnInstrumentsChanged?.Invoke();
+    }
 
     public ProjectTrack AddTrack()
     {
@@ -167,21 +184,23 @@ public class EditorState
         }
 
         _undoHistory.Push(
-            undo: () =>
+            () =>
             {
                 Project.AddTrack(track, index);
                 foreach (var placement in cascadedPlacements) Project.AddPlacement(placement);
             },
-            redo: () => Project.RemoveTrack(track));
+            () => Project.RemoveTrack(track));
         Touch();
         return true;
     }
 
-    /// <summary>Imports a TDW sequence as one new track (+ its instruments + one
-    /// placement), as a single undo step. Throws whatever <see cref="SequenceImporter" />
-    /// throws on malformed/empty/runaway input - the caller is expected to alert and
-    /// leave the project untouched, which holds for free here since nothing is added
-    /// until the importer has already fully succeeded.</summary>
+    /// <summary>
+    ///     Imports a TDW sequence as one new track (+ its instruments + one
+    ///     placement), as a single undo step. Throws whatever <see cref="SequenceImporter" />
+    ///     throws on malformed/empty/runaway input - the caller is expected to alert and
+    ///     leave the project untouched, which holds for free here since nothing is added
+    ///     until the importer has already fully succeeded.
+    /// </summary>
     public ImportResult ImportSequenceAsTrack(Sequence sequence, string name,
         IReadOnlyDictionary<string, Sound>? soundMap)
     {
@@ -194,13 +213,13 @@ public class EditorState
         var instrumentIndices = instruments.Select(instrument => IndexOf(Project.Instruments, instrument)).ToArray();
 
         _undoHistory.Push(
-            undo: () =>
+            () =>
             {
                 Project.RemovePlacement(placement);
                 Project.RemoveTrack(track);
                 foreach (var instrument in instruments) Project.RemoveInstrument(instrument);
             },
-            redo: () =>
+            () =>
             {
                 Project.AddTrack(track, trackIndex);
                 for (var i = 0; i < instruments.Count; i++) Project.AddInstrument(instruments[i], instrumentIndices[i]);
@@ -239,16 +258,20 @@ public class EditorState
         OnSegmentSelectionChanged?.Invoke(segment);
     }
 
-    /// <summary>Replaces the note selection with a single note, or clears it when null.
-    /// Every existing call site (paint, drag-press, cascades) keeps working unchanged.</summary>
+    /// <summary>
+    ///     Replaces the note selection with a single note, or clears it when null.
+    ///     Every existing call site (paint, drag-press, cascades) keeps working unchanged.
+    /// </summary>
     public void SelectNote(Note? note)
     {
         SetNoteSelection(note != null ? [note] : []);
     }
 
-    /// <summary>Replaces the whole note selection. Fires <see cref="OnNoteSelectionChanged" />
-    /// once, even for multi-note selections (existing subscribers read the derived
-    /// <see cref="SelectedNote" />, which is non-null only for a single note).</summary>
+    /// <summary>
+    ///     Replaces the whole note selection. Fires <see cref="OnNoteSelectionChanged" />
+    ///     once, even for multi-note selections (existing subscribers read the derived
+    ///     <see cref="SelectedNote" />, which is non-null only for a single note).
+    /// </summary>
     public void SetNoteSelection(IEnumerable<Note> notes)
     {
         var next = notes as IReadOnlyList<Note> ?? notes.ToArray();
@@ -258,8 +281,10 @@ public class EditorState
         AfterNoteSelectionChanged();
     }
 
-    /// <summary>Appends notes not already selected. No-op for ones already present
-    /// (append semantics, not toggle).</summary>
+    /// <summary>
+    ///     Appends notes not already selected. No-op for ones already present
+    ///     (append semantics, not toggle).
+    /// </summary>
     public void AddToNoteSelection(IEnumerable<Note> notes)
     {
         var added = false;
@@ -283,15 +308,19 @@ public class EditorState
         if (removed) AfterNoteSelectionChanged();
     }
 
-    /// <summary>Replaces the placement selection with a single placement, or clears it
-    /// when null. Every existing call site keeps working unchanged.</summary>
+    /// <summary>
+    ///     Replaces the placement selection with a single placement, or clears it
+    ///     when null. Every existing call site keeps working unchanged.
+    /// </summary>
     public void SelectPlacement(TrackPlacement? placement)
     {
         SetPlacementSelection(placement != null ? [placement] : []);
     }
 
-    /// <summary>Replaces the whole placement selection. Fires <see cref="OnPlacementSelectionChanged" />
-    /// once, even for multi-placement selections.</summary>
+    /// <summary>
+    ///     Replaces the whole placement selection. Fires <see cref="OnPlacementSelectionChanged" />
+    ///     once, even for multi-placement selections.
+    /// </summary>
     public void SetPlacementSelection(IEnumerable<TrackPlacement> placements)
     {
         var next = placements as IReadOnlyList<TrackPlacement> ?? placements.ToArray();
@@ -325,8 +354,10 @@ public class EditorState
         if (removed) OnPlacementSelectionChanged?.Invoke(SelectedPlacement);
     }
 
-    /// <summary>Selects every note of the opened track (all segments) when a track is
-    /// open, otherwise every placement on the arrangement.</summary>
+    /// <summary>
+    ///     Selects every note of the opened track (all segments) when a track is
+    ///     open, otherwise every placement on the arrangement.
+    /// </summary>
     public void SelectAll()
     {
         if (OpenedTrack is { } track) SetNoteSelection(track.Segments.SelectMany(s => s.Notes));
@@ -340,8 +371,10 @@ public class EditorState
         SetPlacementSelection([]);
     }
 
-    /// <summary>Copies the current selection (notes when a track is open, otherwise
-    /// placements) into the internal clipboard. No-op on an empty selection.</summary>
+    /// <summary>
+    ///     Copies the current selection (notes when a track is open, otherwise
+    ///     placements) into the internal clipboard. No-op on an empty selection.
+    /// </summary>
     public void CopySelection()
     {
         if (OpenedTrack is { } track)
@@ -390,8 +423,14 @@ public class EditorState
             if (pasted.Count == 0) return;
             SetNoteSelection(pasted.Select(p => p.Note));
             _undoHistory.Push(
-                undo: () => { foreach (var (segment, note) in pasted) segment.Notes.Remove(note); },
-                redo: () => { foreach (var (segment, note) in pasted) segment.Notes.Add(note); });
+                () =>
+                {
+                    foreach (var (segment, note) in pasted) segment.Notes.Remove(note);
+                },
+                () =>
+                {
+                    foreach (var (segment, note) in pasted) segment.Notes.Add(note);
+                });
             Touch();
         }
         else if (_clipboard.Placements is { } placementEntries)
@@ -403,8 +442,14 @@ public class EditorState
 
             SetPlacementSelection(pasted);
             _undoHistory.Push(
-                undo: () => { foreach (var placement in pasted) Project.RemovePlacement(placement); },
-                redo: () => { foreach (var placement in pasted) Project.AddPlacement(placement); });
+                () =>
+                {
+                    foreach (var placement in pasted) Project.RemovePlacement(placement);
+                },
+                () =>
+                {
+                    foreach (var placement in pasted) Project.AddPlacement(placement);
+                });
             Touch();
         }
     }
@@ -434,8 +479,14 @@ public class EditorState
             ClearSelection();
 
             _undoHistory.Push(
-                undo: () => { foreach (var (segment, note) in snapshot) segment.Notes.Add(note); },
-                redo: () => { foreach (var (segment, note) in snapshot) segment.Notes.Remove(note); });
+                () =>
+                {
+                    foreach (var (segment, note) in snapshot) segment.Notes.Add(note);
+                },
+                () =>
+                {
+                    foreach (var (segment, note) in snapshot) segment.Notes.Remove(note);
+                });
             Touch();
         }
         else if (_selectedPlacements.Count > 0)
@@ -445,8 +496,14 @@ public class EditorState
             ClearSelection();
 
             _undoHistory.Push(
-                undo: () => { foreach (var placement in snapshot) Project.AddPlacement(placement); },
-                redo: () => { foreach (var placement in snapshot) Project.RemovePlacement(placement); });
+                () =>
+                {
+                    foreach (var placement in snapshot) Project.AddPlacement(placement);
+                },
+                () =>
+                {
+                    foreach (var placement in snapshot) Project.RemovePlacement(placement);
+                });
             Touch();
         }
     }
@@ -490,8 +547,8 @@ public class EditorState
         };
         segment.Notes.Add(note);
         _undoHistory.Push(
-            undo: () => segment.Notes.Remove(note),
-            redo: () => segment.Notes.Add(note));
+            () => segment.Notes.Remove(note),
+            () => segment.Notes.Add(note));
         Touch();
         return note;
     }
@@ -512,8 +569,10 @@ public class EditorState
         OnInstrumentsChanged?.Invoke();
     }
 
-    /// <summary>Replaces an instrument's sounds. The instances are cloned - the editor's
-    /// picker keeps mutating its own as the user scrolls them.</summary>
+    /// <summary>
+    ///     Replaces an instrument's sounds. The instances are cloned - the editor's
+    ///     picker keeps mutating its own as the user scrolls them.
+    /// </summary>
     public void SetInstrumentSounds(Instrument instrument, IEnumerable<InstrumentSound> sounds)
     {
         instrument.Sounds.Clear();
@@ -549,19 +608,20 @@ public class EditorState
                 removedNotes.Add((segment, segment.Notes[i], i));
                 segment.Notes.RemoveAt(i);
             }
+
         removedNotes.Reverse();
 
         RemoveFromNoteSelection(removedNotes.Select(r => r.Note));
 
         var instrumentIndex = IndexOf(Project.Instruments, instrument);
         _undoHistory.Push(
-            undo: () =>
+            () =>
             {
                 Project.AddInstrument(instrument, instrumentIndex);
                 foreach (var (segment, note, index) in removedNotes)
                     segment.Notes.Insert(Math.Clamp(index, 0, segment.Notes.Count), note);
             },
-            redo: () =>
+            () =>
             {
                 foreach (var (segment, note, _) in removedNotes) segment.Notes.Remove(note);
                 RemoveInstrument(instrument);
@@ -585,7 +645,7 @@ public class EditorState
         note.Value = value;
 
         _undoHistory.PushOrMergeMove(note,
-            undo: () =>
+            () =>
             {
                 if (to != prevSegment)
                 {
@@ -596,7 +656,7 @@ public class EditorState
                 note.Step = prevStep;
                 note.Value = prevValue;
             },
-            redo: () =>
+            () =>
             {
                 if (prevSegment != to)
                 {
@@ -619,7 +679,8 @@ public class EditorState
     ///     list so every frame's call is recognized as the same gesture (matching
     ///     <see cref="MoveNote" />'s single-note merge, generalized to a group).
     /// </summary>
-    public void MoveSelectedNotes(ProjectTrack track, IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
+    public void MoveSelectedNotes(ProjectTrack track,
+        IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
     {
         if (targets.Count == 0) return;
 
@@ -632,13 +693,14 @@ public class EditorState
             var (note, segment, step, value) = targets[i];
             if (before[i].Segment != segment || note.Step != step || note.Value != value) changed = true;
         }
+
         if (!changed) return;
 
         Apply(track, targets);
 
         _undoHistory.PushOrMergeMove(targets[0].Note,
-            undo: () => Apply(track, before),
-            redo: () => Apply(track, targets));
+            () => Apply(track, before),
+            () => Apply(track, targets));
         Touch();
     }
 
@@ -647,10 +709,13 @@ public class EditorState
         return track.Segments.First(s => s.Notes.Contains(note));
     }
 
-    /// <summary>Places every note at its target (segment, step, value), removing it from
-    /// whichever segment currently holds it first - robust regardless of which frame's
-    /// closure (undo/redo) runs, since it never assumes the note's current location.</summary>
-    private static void Apply(ProjectTrack track, IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
+    /// <summary>
+    ///     Places every note at its target (segment, step, value), removing it from
+    ///     whichever segment currently holds it first - robust regardless of which frame's
+    ///     closure (undo/redo) runs, since it never assumes the note's current location.
+    /// </summary>
+    private static void Apply(ProjectTrack track,
+        IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
     {
         foreach (var (note, segment, step, value) in targets)
         {
@@ -666,8 +731,8 @@ public class EditorState
         if (!segment.Notes.Remove(note)) return false;
         RemoveFromNoteSelection([note]);
         _undoHistory.Push(
-            undo: () => segment.Notes.Add(note),
-            redo: () => segment.Notes.Remove(note));
+            () => segment.Notes.Add(note),
+            () => segment.Notes.Remove(note));
         Touch();
         return true;
     }
@@ -688,8 +753,8 @@ public class EditorState
         if (SelectedSegment == segment) SelectSegment(track.Segments[0]);
 
         _undoHistory.Push(
-            undo: () => track.AddSegment(segment, index),
-            redo: () => track.RemoveSegment(segment));
+            () => track.AddSegment(segment, index),
+            () => track.RemoveSegment(segment));
         Touch();
         return true;
     }
@@ -698,8 +763,8 @@ public class EditorState
     {
         var placement = Project.Place(track, channel, startQuarterNotes);
         _undoHistory.Push(
-            undo: () => Project.RemovePlacement(placement),
-            redo: () => Project.AddPlacement(placement));
+            () => Project.RemovePlacement(placement),
+            () => Project.AddPlacement(placement));
         Touch();
         return placement;
     }
@@ -713,12 +778,12 @@ public class EditorState
         placement.StartQuarterNotes = startQuarterNotes;
 
         _undoHistory.PushOrMergeMove(placement,
-            undo: () =>
+            () =>
             {
                 placement.Channel = prevChannel;
                 placement.StartQuarterNotes = prevStart;
             },
-            redo: () =>
+            () =>
             {
                 placement.Channel = channel;
                 placement.StartQuarterNotes = startQuarterNotes;
@@ -731,8 +796,8 @@ public class EditorState
         if (!Project.RemovePlacement(placement)) return false;
         RemoveFromPlacementSelection([placement]);
         _undoHistory.Push(
-            undo: () => Project.AddPlacement(placement),
-            redo: () => Project.RemovePlacement(placement));
+            () => Project.AddPlacement(placement),
+            () => Project.RemovePlacement(placement));
         Touch();
         return true;
     }
@@ -805,8 +870,6 @@ public class EditorState
         return _muteSolo.IsSoloed(channel);
     }
 
-    public bool AnySoloed => _muteSolo.AnySoloed;
-
     /// <summary>FL semantics: any solo wins; otherwise everything not muted sounds.</summary>
     public bool IsChannelAudible(int channel)
     {
@@ -823,11 +886,13 @@ public class EditorState
         Replace(ProjectFile.Load(json));
     }
 
-    /// <summary>Imports a TDW sequence as a whole new project, replacing the open one.
-    /// Not undoable (Replace clears undo history) - the caller confirms the discard
-    /// first. Unlike a load, the result exists only in memory: stays dirty (so the
-    /// unsaved-changes guard still fires on exit) and keeps <see cref="ProjectPath" />
-    /// null (so Save asks for a location).</summary>
+    /// <summary>
+    ///     Imports a TDW sequence as a whole new project, replacing the open one.
+    ///     Not undoable (Replace clears undo history) - the caller confirms the discard
+    ///     first. Unlike a load, the result exists only in memory: stays dirty (so the
+    ///     unsaved-changes guard still fires on exit) and keeps <see cref="ProjectPath" />
+    ///     null (so Save asks for a location).
+    /// </summary>
     public ImportResult ReplaceWithImportedProject(Sequence sequence, string name,
         IReadOnlyDictionary<string, Sound>? soundMap)
     {
@@ -856,8 +921,10 @@ public class EditorState
         ProjectPath = path;
     }
 
-    /// <summary>Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement
-    /// calls on the same object (one drag, many frames) collapses into a single undo step.</summary>
+    /// <summary>
+    ///     Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement
+    ///     calls on the same object (one drag, many frames) collapses into a single undo step.
+    /// </summary>
     public void BeginGesture()
     {
         _undoHistory.BeginGesture();

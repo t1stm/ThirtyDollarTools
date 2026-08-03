@@ -388,65 +388,65 @@ public class Visualizer : Scene, IGamePreloadable
         switch (left_control)
         {
             case true when left_shift:
+            {
+                for (var i = 0; i < 10; i++)
                 {
-                    for (var i = 0; i < 10; i++)
-                    {
-                        var key = (Keys)((int)Keys.D0 + i);
-                        if (!state.IsKeyPressed(key)) continue;
-                        SequencePlayer.ClearBookmark(i);
-                        SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
-                    }
-
-                    break;
+                    var key = (Keys)((int)Keys.D0 + i);
+                    if (!state.IsKeyPressed(key)) continue;
+                    SequencePlayer.ClearBookmark(i);
+                    SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
                 }
+
+                break;
+            }
             case true:
+            {
+                for (var i = 0; i < 10; i++)
                 {
-                    for (var i = 0; i < 10; i++)
-                    {
-                        var key = (Keys)((int)Keys.D0 + i);
-                        if (!state.IsKeyPressed(key)) continue;
-                        var bookmark_time = SequencePlayer.SetBookmark(i);
-                        SetStatusMessage($"[Playback] Setting Bookmark {i} To: {TimeString(bookmark_time)}");
-                    }
-
-                    if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
-                    {
-                        RestartSeekTimer();
-                        PlayfieldContainer.Camera.ZoomStep(+1);
-                    }
-
-                    if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
-                    {
-                        RestartSeekTimer();
-                        PlayfieldContainer.Camera.ZoomStep(-1);
-                    }
-
-                    if (state.IsKeyPressed(Keys.D))
-                    {
-                        _workflow.ShowDebugInfo = !_workflow.ShowDebugInfo;
-                        TextContainer.ShowDebug = _workflow.ShowDebugInfo;
-                        SetStatusMessage(_workflow.ShowDebugInfo switch
-                        {
-                            true => "[Debug]: Enabled",
-                            false => "[Debug]: Disabled"
-                        });
-                    }
-
-                    break;
+                    var key = (Keys)((int)Keys.D0 + i);
+                    if (!state.IsKeyPressed(key)) continue;
+                    var bookmark_time = SequencePlayer.SetBookmark(i);
+                    SetStatusMessage($"[Playback] Setting Bookmark {i} To: {TimeString(bookmark_time)}");
                 }
+
+                if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
+                {
+                    RestartSeekTimer();
+                    PlayfieldContainer.Camera.ZoomStep(+1);
+                }
+
+                if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
+                {
+                    RestartSeekTimer();
+                    PlayfieldContainer.Camera.ZoomStep(-1);
+                }
+
+                if (state.IsKeyPressed(Keys.D))
+                {
+                    _workflow.ShowDebugInfo = !_workflow.ShowDebugInfo;
+                    TextContainer.ShowDebug = _workflow.ShowDebugInfo;
+                    SetStatusMessage(_workflow.ShowDebugInfo switch
+                    {
+                        true => "[Debug]: Enabled",
+                        false => "[Debug]: Disabled"
+                    });
+                }
+
+                break;
+            }
 
             default:
+            {
+                for (var i = 0; i < 10; i++)
                 {
-                    for (var i = 0; i < 10; i++)
-                    {
-                        var key = (Keys)((int)Keys.D0 + i);
-                        if (!state.IsKeyPressed(key)) continue;
-                        var time = SequencePlayer.SeekToBookmark(i);
-                        SetStatusMessage($"[Playback] Seeking To Bookmark {i}: {TimeString(time)}");
-                    }
-
-                    break;
+                    var key = (Keys)((int)Keys.D0 + i);
+                    if (!state.IsKeyPressed(key)) continue;
+                    var time = SequencePlayer.SeekToBookmark(i);
+                    SetStatusMessage($"[Playback] Seeking To Bookmark {i}: {TimeString(time)}");
                 }
+
+                break;
+            }
         }
 
         // set message if camera mode is updated

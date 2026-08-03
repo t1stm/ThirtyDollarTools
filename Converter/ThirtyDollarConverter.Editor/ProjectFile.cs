@@ -217,19 +217,26 @@ public static class ProjectFile
         // Null (missing key) = 0 - files from before the feature stay valid.
         float? Transpose = null);
 
-    private record InstrumentDto(int Id, string Name, List<InstrumentSoundDto> Sounds,
+    private record InstrumentDto(
+        int Id,
+        string Name,
+        List<InstrumentSoundDto> Sounds,
         // Legacy (pre-duplicate-sounds) adjustment map keyed by sound name, kept only for
         // reading old files; never written. See Load.
         Dictionary<string, SoundAdjustmentDto>? Adjustments = null);
 
-    /// <summary>One entry of an instrument's "sounds". Older files wrote a bare sound name
-    /// here instead of an object - <see cref="InstrumentSoundDtoConverter" /> reads both.</summary>
+    /// <summary>
+    ///     One entry of an instrument's "sounds". Older files wrote a bare sound name
+    ///     here instead of an object - <see cref="InstrumentSoundDtoConverter" /> reads both.
+    /// </summary>
     private record InstrumentSoundDto(string Sound, double Value = 0, double? Volume = null, float Pan = 0);
 
     private record SoundAdjustmentDto(double Value, double? Volume, float Pan);
 
-    /// <summary>Reads a bare JSON string as a plain, unadjusted sound, so instrument lists
-    /// written before sounds became objects still load. Always writes the object form.</summary>
+    /// <summary>
+    ///     Reads a bare JSON string as a plain, unadjusted sound, so instrument lists
+    ///     written before sounds became objects still load. Always writes the object form.
+    /// </summary>
     private sealed class InstrumentSoundDtoConverter : JsonConverter<InstrumentSoundDto>
     {
         public override InstrumentSoundDto Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
@@ -294,7 +301,14 @@ public static class ProjectFile
     // Null Repeats (missing key) = 1 - files from before the feature stay valid.
     private record AutomationDto(KeyframeTiming Timing, List<KeyframeDto> Keyframes, int? Repeats = null);
 
-    private record KeyframeDto(float Gap, Modifier? Value, Modifier? Volume, Modifier? Pan,
+    private record KeyframeDto(
+        float Gap,
+        Modifier? Value,
+        Modifier? Volume,
+        Modifier? Pan,
         // Null (missing key) = false - files from before the feature stay valid.
-        Modifier? Offset = null, bool? Cut = null, bool? CutOnly = null, bool? CutLast = null);
+        Modifier? Offset = null,
+        bool? Cut = null,
+        bool? CutOnly = null,
+        bool? CutLast = null);
 }

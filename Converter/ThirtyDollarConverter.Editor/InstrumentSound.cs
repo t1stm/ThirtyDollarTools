@@ -27,9 +27,11 @@ public class InstrumentSound
         return baseValue + Value;
     }
 
-    /// <summary>Percent times percent: 50 on a note at 50 gives 25. A note that carries no
-    /// volume of its own leaves this one as-is - the sequence volume it follows is applied
-    /// later, multiplicatively all the same (see PlacementCalculator).</summary>
+    /// <summary>
+    ///     Percent times percent: 50 on a note at 50 gives 25. A note that carries no
+    ///     volume of its own leaves this one as-is - the sequence volume it follows is applied
+    ///     later, multiplicatively all the same (see PlacementCalculator).
+    /// </summary>
     public double? CombineVolume(double? baseVolume)
     {
         if (Volume is null) return baseVolume;

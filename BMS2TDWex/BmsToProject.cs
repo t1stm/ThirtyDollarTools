@@ -72,20 +72,20 @@ public static class BmsToProject
             var bpm_changes = new Dictionary<long, double>();
             var stop_units = new Dictionary<long, double>(); // unit -> 1/192ths of a whole note
             foreach (var line in lines)
-                foreach (var (unit, value) in Objects(line, L))
-                    switch (line.Channel)
-                    {
-                        case 3:
-                            bpm_changes[unit] = value;
-                            break;
-                        case 8:
-                            if (chart.ExBpms.TryGetValue(value, out var ex)) bpm_changes[unit] = ex;
-                            break;
-                        case 9:
-                            if (chart.Stops.TryGetValue(value, out var stop))
-                                stop_units[unit] = stop_units.GetValueOrDefault(unit) + stop;
-                            break;
-                    }
+            foreach (var (unit, value) in Objects(line, L))
+                switch (line.Channel)
+                {
+                    case 3:
+                        bpm_changes[unit] = value;
+                        break;
+                    case 8:
+                        if (chart.ExBpms.TryGetValue(value, out var ex)) bpm_changes[unit] = ex;
+                        break;
+                    case 9:
+                        if (chart.Stops.TryGetValue(value, out var stop))
+                            stop_units[unit] = stop_units.GetValueOrDefault(unit) + stop;
+                        break;
+                }
 
             var boundaries = bpm_changes.Keys.Concat(stop_units.Keys)
                 .Concat([0L, L]).Distinct().Order().ToArray();
@@ -109,25 +109,25 @@ public static class BmsToProject
 
             // Place the sounds.
             foreach (var line in lines.Where(l => IsSoundChannel(l.Channel)))
-                foreach (var (unit, value) in Objects(line, L))
+            foreach (var (unit, value) in Objects(line, L))
+            {
+                if (!chart.Sounds.TryGetValue(value, out var sound)) continue;
+                var track_channel = line.Channel;
+
+                if (stop_units.ContainsKey(unit) &&
+                    (unit > 0 ? FindSpan(spans, unit - 1).ByTrack[track_channel] : last_spans[track_channel]) is
+                    { } previous)
                 {
-                    if (!chart.Sounds.TryGetValue(value, out var sound)) continue;
-                    var track_channel = line.Channel;
-
-                    if (stop_units.ContainsKey(unit) &&
-                        (unit > 0 ? FindSpan(spans, unit - 1).ByTrack[track_channel] : last_spans[track_channel]) is
-                        { } previous)
-                    {
-                        // Note exactly on a STOP: overhang on the span that just ended,
-                        // so it sounds at the boundary, before the pause.
-                        previous.Notes.Add(new Note { Step = previous.Numerator, Instrument = InstrumentFor(sound) });
-                        continue;
-                    }
-
-                    var span = FindSpan(spans, unit);
-                    span.ByTrack[track_channel].Notes
-                        .Add(new Note { Step = (int)(unit - span.StartU), Instrument = InstrumentFor(sound) });
+                    // Note exactly on a STOP: overhang on the span that just ended,
+                    // so it sounds at the boundary, before the pause.
+                    previous.Notes.Add(new Note { Step = previous.Numerator, Instrument = InstrumentFor(sound) });
+                    continue;
                 }
+
+                var span = FindSpan(spans, unit);
+                span.ByTrack[track_channel].Notes
+                    .Add(new Note { Step = (int)(unit - span.StartU), Instrument = InstrumentFor(sound) });
+            }
 
             foreach (var channel in channels)
                 last_spans[channel] = spans[^1].ByTrack[channel];

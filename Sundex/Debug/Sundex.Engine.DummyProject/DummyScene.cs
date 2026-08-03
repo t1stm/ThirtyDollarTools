@@ -6,7 +6,6 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 
@@ -48,14 +47,18 @@ public class DummyScene(Game game) : Scene(game)
         _root.DrawTo(_context);
     }
 
-    public override void Start() { }
+    public override void Start()
+    {
+    }
 
     public override void Render(RenderArguments renderArgs)
     {
         _context.Render();
     }
 
-    public override void TransitionedTo() { }
+    public override void TransitionedTo()
+    {
+    }
 
     public override void Update(UpdateArguments updateArgs)
     {
@@ -71,9 +74,13 @@ public class DummyScene(Game game) : Scene(game)
         _root.Layout();
     }
 
-    public override void Shutdown() { }
+    public override void Shutdown()
+    {
+    }
 
-    public override void FileDrop(string[] locations) { }
+    public override void FileDrop(string[] locations)
+    {
+    }
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
@@ -90,5 +97,7 @@ public class DummyScene(Game game) : Scene(game)
         _context.DispatchKeyDown(e);
     }
 
-    public override void Keyboard(KeyboardState state) { }
+    public override void Keyboard(KeyboardState state)
+    {
+    }
 }

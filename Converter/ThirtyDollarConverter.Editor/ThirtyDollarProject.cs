@@ -5,11 +5,11 @@ namespace ThirtyDollarConverter.Editor;
 
 public class ThirtyDollarProject
 {
+    private readonly List<Instrument> _instruments = [];
     private readonly List<TrackPlacement> _placements = [];
     private readonly List<ProjectTrack> _projectTracks = [];
-    private readonly List<Instrument> _instruments = [];
-    private int _tracks;
     private int _instrumentIds;
+    private int _tracks;
 
     public ProjectInfo Info { get; set; } = new()
     {
@@ -23,6 +23,7 @@ public class ThirtyDollarProject
     ///     <see cref="ProjectTrack.Transpose" /> is null.
     /// </summary>
     public float Transpose { get; set; }
+
     public IReadOnlyList<ProjectTrack> Tracks => _projectTracks;
     public IReadOnlyList<Instrument> Instruments => _instruments;
 
@@ -114,7 +115,8 @@ public class ThirtyDollarProject
     /// </summary>
     internal Instrument GetOrCreateInstrument(string sound)
     {
-        var existing = _instruments.FirstOrDefault(instrument => instrument.Sounds is [{ Sound: var only }] && only == sound);
+        var existing =
+            _instruments.FirstOrDefault(instrument => instrument.Sounds is [{ Sound: var only }] && only == sound);
         if (existing is not null) return existing;
 
         var instrument = NewInstrument(sound);

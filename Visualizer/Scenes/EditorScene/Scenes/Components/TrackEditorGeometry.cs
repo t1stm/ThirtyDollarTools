@@ -28,31 +28,51 @@ public sealed class TrackEditorGeometry
 
     public const float GridTop = StripHeight + RulerHeight;
 
-    /// <summary>Top of the pinned cut row - docked to the bottom of the viewport, clamped
-    /// so it never rises above <see cref="GridTop" /> in a viewport too short to fit it.</summary>
+    public const float MinRowHeight = 4f;
+    public const float MaxRowHeight = 300f;
+
+    public readonly ViewNavigation Nav = new(4f, 128f) { Zoom = 64f };
+
+    /// <summary>
+    ///     Top of the pinned cut row - docked to the bottom of the viewport, clamped
+    ///     so it never rises above <see cref="GridTop" /> in a viewport too short to fit it.
+    /// </summary>
     public float CutRowTop { get; private set; }
 
     /// <summary>Bottom edge of the scrollable grid - the rule sits directly below it.</summary>
     public float GridBottom => CutRowTop - RuleHeight;
 
-    /// <summary>Width of the viewport as of the last <see cref="SetViewport" /> - the right
-    /// edge everything horizontal is culled against.</summary>
+    /// <summary>
+    ///     Width of the viewport as of the last <see cref="SetViewport" /> - the right
+    ///     edge everything horizontal is culled against.
+    /// </summary>
     public float ViewWidth { get; private set; }
 
-    public readonly ViewNavigation Nav = new(minZoom: 4f, maxZoom: 128f) { Zoom = 64f };
+    public float ScrollX
+    {
+        get => Nav.ScrollX;
+        set => Nav.ScrollX = value;
+    }
 
-    public float ScrollX { get => Nav.ScrollX; set => Nav.ScrollX = value; }
-    public float ScrollY { get => Nav.ScrollY; set => Nav.ScrollY = value; }
-    public float PixelsPerStep { get => Nav.Zoom; set => Nav.Zoom = value; }
+    public float ScrollY
+    {
+        get => Nav.ScrollY;
+        set => Nav.ScrollY = value;
+    }
 
-    public const float MinRowHeight = 4f;
-    public const float MaxRowHeight = 300f;
+    public float PixelsPerStep
+    {
+        get => Nav.Zoom;
+        set => Nav.Zoom = value;
+    }
 
     /// <summary>Height of one value row, scaled by the user with <see cref="ScaleRows" />.</summary>
     public float RowHeight { get; set; } = 20f;
 
-    /// <summary>A fresh view (and every OpenTrack) starts centered on value 0; stays
-    /// pending until the user scrolls.</summary>
+    /// <summary>
+    ///     A fresh view (and every OpenTrack) starts centered on value 0; stays
+    ///     pending until the user scrolls.
+    /// </summary>
     public bool CenterPending { get; set; } = true;
 
     /// <summary>
@@ -159,9 +179,17 @@ public sealed class TrackEditorGeometry
     ///     so playhead-follow can keep centering the playhead all the way to the end of
     ///     playback instead of freezing once the content itself fills the viewport.
     /// </summary>
-    public void ClampScroll() => Nav.Clamp();
+    public void ClampScroll()
+    {
+        Nav.Clamp();
+    }
 
-    /// <summary>Pointer-anchored zoom (Ctrl+wheel): the step under the cursor stays put.
-    /// <paramref name="pointerPx" /> is local x already offset past the gutter.</summary>
-    public void ZoomAt(float pointerPx, float wheelDeltaY) => Nav.ZoomAt(pointerPx, wheelDeltaY);
+    /// <summary>
+    ///     Pointer-anchored zoom (Ctrl+wheel): the step under the cursor stays put.
+    ///     <paramref name="pointerPx" /> is local x already offset past the gutter.
+    /// </summary>
+    public void ZoomAt(float pointerPx, float wheelDeltaY)
+    {
+        Nav.ZoomAt(pointerPx, wheelDeltaY);
+    }
 }

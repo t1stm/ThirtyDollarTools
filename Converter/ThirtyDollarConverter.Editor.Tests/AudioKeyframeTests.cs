@@ -38,7 +38,8 @@ public class AudioKeyframeTests
         var slapback = new AudioKeyframeManager { Timing = KeyframeTiming.Time };
         slapback.Keyframes.Add(new AudioKeyframe { Gap = 0.007f }); // 7 ms, off any musical grid
 
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = slapback });
+        track.Segments[0].Notes
+            .Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = slapback });
 
         const uint sample_rate = 48000;
         var calculator = new PlacementCalculator(new EncoderSettings { SampleRate = sample_rate });
@@ -91,7 +92,8 @@ public class AudioKeyframeTests
         });
         automation.Keyframes.Add(new AudioKeyframe { Gap = 1, Pan = new Modifier(80) });
 
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = automation });
+        track.Segments[0].Notes.Add(new Note
+            { Step = 0, Instrument = Instrument.Single("boom"), Automation = automation });
 
         var events = track.ToSequence().Events;
 
@@ -116,7 +118,8 @@ public class AudioKeyframeTests
         var events = track.ToSequence().Events;
 
         // One keyframe repeated 3 times = 3 echoes, each halving the previous pass.
-        Assert.Equal(["!speed", "!speed", "!divider", "boom", "boom", "boom", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "boom", "boom", "boom"],
+            events.Select(e => e.SoundEvent));
         Assert.Equal([50d, 25d, 12.5], events.Skip(4).Select(e => e.Volume));
     }
 
@@ -128,7 +131,8 @@ public class AudioKeyframeTests
         // the grid AND another 0.5 s deeper into the sound (Kris's scrub use case).
         var scrub = new AudioKeyframeManager { Repeats = 2 };
         scrub.Keyframes.Add(new AudioKeyframe { Gap = 4, Offset = new Modifier(0.5) });
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Offset = 0.25, Automation = scrub });
+        track.Segments[0].Notes.Add(new Note
+            { Step = 0, Instrument = Instrument.Single("boom"), Offset = 0.25, Automation = scrub });
 
         var events = track.ToSequence().Events;
         Assert.Equal([0.25, 0.75, 1.25],
@@ -180,7 +184,7 @@ public class AudioKeyframeTests
         Assert.Equal(["loop"], cut_event.CutSounds);
 
         // The cut lands before the retriggered note in the same group.
-        var cut_index = Array.IndexOf(events, (BaseEvent)cut_event);
+        var cut_index = Array.IndexOf(events, cut_event);
         var retrigger_index = Array.IndexOf(events, events.Skip(cut_index + 1).First(e => e.SoundEvent == "loop"));
         Assert.True(cut_index < retrigger_index);
 
@@ -206,7 +210,8 @@ public class AudioKeyframeTests
         var automation = new AudioKeyframeManager { Repeats = 2 };
         automation.Keyframes.Add(new AudioKeyframe { Gap = 4, Cut = true, CutOnly = true, CutLast = true });
 
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("loop"), Automation = automation });
+        track.Segments[0].Notes.Add(new Note
+            { Step = 0, Instrument = Instrument.Single("loop"), Automation = automation });
 
         // Cut-only keyframes place no note: the base note, then a cut per pass, then the
         // trailing Cut Last one - and no retriggered "loop" after the first.

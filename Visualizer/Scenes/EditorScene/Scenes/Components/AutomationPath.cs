@@ -61,14 +61,16 @@ internal sealed class AutomationPath
         var scrollX = geometry.ScrollX;
         var rowHeight = geometry.RowHeight;
         var prevX = TrackEditorGeometry.GutterWidth + segStartPx + (note.Step + 0.5f) * pixelsPerStep - scrollX;
-        var prevY = geometry.ValueTop(Math.Clamp(note.Value, -TrackEditorGeometry.MaxValue, TrackEditorGeometry.MaxValue)) +
+        var prevY = geometry.ValueTop(Math.Clamp(note.Value, -TrackEditorGeometry.MaxValue,
+                        TrackEditorGeometry.MaxValue)) +
                     rowHeight / 2;
 
         foreach (var (minutes, generated) in note.Automation!.ExpandNotes(note, 0, stepMinutes))
         {
             var x = TrackEditorGeometry.GutterWidth + segStartPx +
-                    (note.Step + 0.5f + (float)(minutes / stepMinutes)) * pixelsPerStep - scrollX;
-            var y = geometry.ValueTop(Math.Clamp(generated.Value, -TrackEditorGeometry.MaxValue, TrackEditorGeometry.MaxValue)) +
+                (note.Step + 0.5f + (float)(minutes / stepMinutes)) * pixelsPerStep - scrollX;
+            var y = geometry.ValueTop(Math.Clamp(generated.Value, -TrackEditorGeometry.MaxValue,
+                        TrackEditorGeometry.MaxValue)) +
                     rowHeight / 2;
 
             // The horizontal run, the value jump (only when the value moved), the tick.
@@ -82,12 +84,14 @@ internal sealed class AutomationPath
         }
     }
 
-    /// <summary>Trims a mark against the grid's bottom edge — the one shared point that
-    /// covers all three mark kinds (run, jump, tick) bleeding past a partially scrolled
-    /// grid into the pinned cut row below it. Marks fully left of the gutter or right of
-    /// the viewport are dropped without taking a pool slot: the pool is a budget for what
-    /// is on screen, and a long track's off-screen paths would otherwise spend all of it
-    /// before the layout ever reaches the notes being looked at.</summary>
+    /// <summary>
+    ///     Trims a mark against the grid's bottom edge — the one shared point that
+    ///     covers all three mark kinds (run, jump, tick) bleeding past a partially scrolled
+    ///     grid into the pinned cut row below it. Marks fully left of the gutter or right of
+    ///     the viewport are dropped without taking a pool slot: the pool is a budget for what
+    ///     is on screen, and a long track's off-screen paths would otherwise spend all of it
+    ///     before the layout ever reaches the notes being looked at.
+    /// </summary>
     private bool Mark(ref int used, float x, float y, float width, float height, Vector4 color, float maxY)
     {
         if (x + width < TrackEditorGeometry.GutterWidth || x > _clipRight) return true;

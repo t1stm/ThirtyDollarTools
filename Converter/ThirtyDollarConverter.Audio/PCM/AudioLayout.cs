@@ -16,9 +16,10 @@ public enum AudioLayout
     ///     Uses only one channel of the <see cref="AudioData{T}" />. Outputs to both LR.
     /// </summary>
     AudioMono,
-
+    
     /// <summary>
     ///     Uses two channels of the <see cref="AudioData{T}" />. Outputs to both LR.
     /// </summary>
-    AudioLr
+    // ReSharper disable once InconsistentNaming
+    AudioStereoLR 
 }

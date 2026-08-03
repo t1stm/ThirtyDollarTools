@@ -29,14 +29,16 @@ var serilogLogger = new LoggerConfiguration()
     .CreateLogger()
     .ForContext<Game>();
 
-var game = new Game(serilogLogger, [Assembly.GetExecutingAssembly(), typeof(UIContext).Assembly, typeof(ColoredPlane).Assembly], new GameWindowSettings(), new NativeWindowSettings
-{
-    ClientSize = (1024, 600),
-    Vsync = VSyncMode.On,
-    APIVersion = new Version(3, 3),
-    Title = "Thirty Dollar Visualizer",
-    Flags = ContextFlags.ForwardCompatible
-}, "Dummy");
+var game = new Game(serilogLogger,
+    [Assembly.GetExecutingAssembly(), typeof(UIContext).Assembly, typeof(ColoredPlane).Assembly],
+    new GameWindowSettings(), new NativeWindowSettings
+    {
+        ClientSize = (1024, 600),
+        Vsync = VSyncMode.On,
+        APIVersion = new Version(3, 3),
+        Title = "Thirty Dollar Visualizer",
+        Flags = ContextFlags.ForwardCompatible
+    }, "Dummy");
 
 var scene = game.SceneManager.LoadScene<DummyScene>("dummy", _ => new DummyScene(game));
 game.SceneManager.TransitionTo(scene);

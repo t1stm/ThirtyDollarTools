@@ -1,46 +1,46 @@
 <Solution>
   <Folder Name="/Converter/">
-    <Project Path="Converter/ThirtyDollarConverter.Audio/ThirtyDollarConverter.Audio.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.Benchmarks/ThirtyDollarConverter.Benchmarks.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.CLI/ThirtyDollarConverter.CLI.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.DiscordBot/ThirtyDollarConverter.DiscordBot.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.Editor/ThirtyDollarConverter.Editor.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.Editor.Tests/ThirtyDollarConverter.Editor.Tests.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.Parser/ThirtyDollarConverter.Parser.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter.Tests/ThirtyDollarConverter.Tests.csproj" />
-    <Project Path="Converter/ThirtyDollarConverter/ThirtyDollarConverter.csproj" />
+    <Project Path="Converter/ThirtyDollarConverter.Audio/ThirtyDollarConverter.Audio.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.Benchmarks/ThirtyDollarConverter.Benchmarks.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.CLI/ThirtyDollarConverter.CLI.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.DiscordBot/ThirtyDollarConverter.DiscordBot.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.Editor/ThirtyDollarConverter.Editor.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.Editor.Tests/ThirtyDollarConverter.Editor.Tests.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.GUI/ThirtyDollarConverter.GUI.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.Parser/ThirtyDollarConverter.Parser.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter.Tests/ThirtyDollarConverter.Tests.csproj"/>
+    <Project Path="Converter/ThirtyDollarConverter/ThirtyDollarConverter.csproj"/>
   </Folder>
   <Folder Name="/Sundex/">
-    <File Path="Sundex/README.md" />
-    <Project Path="Sundex/Sundex.Components/Sundex.Components.csproj" />
-    <Project Path="Sundex/Sundex.Core/Sundex.Core.csproj" />
-    <Project Path="Sundex/Sundex.Engine/Sundex.Engine.csproj" />
-    <Project Path="Sundex/Sundex.Markup/Sundex.Markup.csproj" />
-    <Project Path="Sundex/Sundex.Style.DSL/Sundex.Style.DSL.csproj" />
+    <File Path="Sundex/README.md"/>
+    <Project Path="Sundex/Sundex.Components/Sundex.Components.csproj"/>
+    <Project Path="Sundex/Sundex.Core/Sundex.Core.csproj"/>
+    <Project Path="Sundex/Sundex.Engine/Sundex.Engine.csproj"/>
+    <Project Path="Sundex/Sundex.Markup/Sundex.Markup.csproj"/>
+    <Project Path="Sundex/Sundex.Style.DSL/Sundex.Style.DSL.csproj"/>
   </Folder>
   <Folder Name="/Sundex/Debug/">
-    <Project Path="Sundex/Debug/Sundex.Engine.DummyProject/Sundex.Engine.DummyProject.csproj" />
+    <Project Path="Sundex/Debug/Sundex.Engine.DummyProject/Sundex.Engine.DummyProject.csproj"/>
   </Folder>
   <Folder Name="/Sundex/Tests/">
-    <Project Path="Sundex/Tests/Sundex.Components.Tests/Sundex.Components.Tests.csproj" />
-    <Project Path="Sundex/Tests/Sundex.Markup.Tests/Sundex.Markup.Tests.csproj" />
-    <Project Path="Sundex/Tests/Sundex.Style.DSL.Tests/Sundex.Style.DSL.Tests.csproj" />
+    <Project Path="Sundex/Tests/Sundex.Components.Tests/Sundex.Components.Tests.csproj"/>
+    <Project Path="Sundex/Tests/Sundex.Markup.Tests/Sundex.Markup.Tests.csproj"/>
+    <Project Path="Sundex/Tests/Sundex.Style.DSL.Tests/Sundex.Style.DSL.Tests.csproj"/>
   </Folder>
   <Folder Name="/Visualizer/">
-    <Project Path="Visualizer/Playground/Playground.csproj" />
-    <Project Path="Visualizer/Shared/Shared.csproj" />
-    <Project Path="Visualizer/ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj" />
+    <Project Path="Visualizer/Playground/Playground.csproj"/>
+    <Project Path="Visualizer/Shared/Shared.csproj"/>
+    <Project Path="Visualizer/ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj"/>
   </Folder>
   <Folder Name="/Visualizer/Scenes/">
-    <Project Path="Visualizer/Scenes/DrumMasterScene/DrumMasterScene.csproj" />
-    <Project Path="Visualizer/Scenes/EditorScene/EditorScene.csproj" />
-    <Project Path="Visualizer/Scenes/EditorScene.Tests/EditorScene.Tests.csproj" />
-    <Project Path="Visualizer/Scenes/HomeScene/HomeScene.csproj" />
-    <Project Path="Visualizer/Scenes/LoadingScene/LoadingScene.csproj" />
-    <Project Path="Visualizer/Scenes/SettingsScene/SettingsScene.csproj" />
-    <Project Path="Visualizer/Scenes/VisualizerScene/VisualizerScene.csproj" />
+    <Project Path="Visualizer/Scenes/DrumMasterScene/DrumMasterScene.csproj"/>
+    <Project Path="Visualizer/Scenes/EditorScene/EditorScene.csproj"/>
+    <Project Path="Visualizer/Scenes/EditorScene.Tests/EditorScene.Tests.csproj"/>
+    <Project Path="Visualizer/Scenes/HomeScene/HomeScene.csproj"/>
+    <Project Path="Visualizer/Scenes/LoadingScene/LoadingScene.csproj"/>
+    <Project Path="Visualizer/Scenes/SettingsScene/SettingsScene.csproj"/>
+    <Project Path="Visualizer/Scenes/VisualizerScene/VisualizerScene.csproj"/>
   </Folder>
-  <Project Path="BASS.Redist/BASS.Redist.csproj" />
-  <Project Path="BMS2TDWex/BMS2TDWex.csproj" />
+  <Project Path="BASS.Redist/BASS.Redist.csproj"/>
+  <Project Path="BMS2TDWex/BMS2TDWex.csproj"/>
 </Solution>

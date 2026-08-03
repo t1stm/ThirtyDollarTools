@@ -39,8 +39,10 @@ public class EditorWorkflowBenchmarks
         return rendered.Audio.GetLength();
     }
 
-    /// <summary>Re-render from scratch but keep the resampled samples - what both incremental
-    /// methods fall back to internally, and the honest "just re-render it" baseline.</summary>
+    /// <summary>
+    ///     Re-render from scratch but keep the resampled samples - what both incremental
+    ///     methods fall back to internally, and the honest "just re-render it" baseline.
+    /// </summary>
     [Benchmark]
     public async Task<int> FullRenderWarm()
     {

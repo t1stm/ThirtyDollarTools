@@ -145,6 +145,6 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
         createInfo.Storage = StorageLocation.Network;
 
         return new AssetStream
-        { Stream = connection.Content.ReadAsStreamAsync().GetAwaiter().GetResult(), Info = createInfo };
+            { Stream = connection.Content.ReadAsStreamAsync().GetAwaiter().GetResult(), Info = createInfo };
     }
 }

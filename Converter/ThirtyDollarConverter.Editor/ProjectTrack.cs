@@ -163,8 +163,10 @@ public class ProjectTrack(TimingInfo timing, int id)
         return null;
     }
 
-    /// <summary>Inverse of <see cref="SegmentAtGlobalStep" />: the track-absolute step of a
-    /// local step in a known segment of this track.</summary>
+    /// <summary>
+    ///     Inverse of <see cref="SegmentAtGlobalStep" />: the track-absolute step of a
+    ///     local step in a known segment of this track.
+    /// </summary>
     public int GlobalStepOf(TrackSegment segment, int localStep)
     {
         var offset = 0;
@@ -248,7 +250,8 @@ public class ProjectTrack(TimingInfo timing, int id)
 
                 foreach (var automation in _trackAutomations)
                 {
-                    if (automation.Sounds is { } sounds && !note.Instrument.Sounds.Any(sound => sounds.Contains(sound.Sound))) continue;
+                    if (automation.Sounds is { } sounds &&
+                        !note.Instrument.Sounds.Any(sound => sounds.Contains(sound.Sound))) continue;
                     foreach (var generated in automation.Keyframes.Expand(transposed, minutes, step_minutes))
                         yield return generated;
                 }

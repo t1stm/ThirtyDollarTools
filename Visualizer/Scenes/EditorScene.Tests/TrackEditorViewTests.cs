@@ -3,6 +3,9 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Labels;
+using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Tests;
@@ -54,7 +57,7 @@ public class TrackEditorViewTests
         // The default zoom is 64 px/step and rows default to 20 px; these tests keep
         // the original 16 px / 8 px-row geometry.
         var view = new TrackEditorView(ctx, state)
-        { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f };
+            { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f };
         state.OnProjectChanged += view.InvalidateLayout; // the EditorInterface wiring
         view.Layout();
         return (ctx, state, view, track);
@@ -310,8 +313,8 @@ public class TrackEditorViewTests
         state.AddSegment(track); // 48 steps: the 800 px view shows ~47
         foreach (var segment in track.Segments)
             for (var step = 0; step < segment.StepCount; step++)
-                for (var i = 0; i < 6; i++)
-                    state.AddNote(segment, step, boom, 2 + i);
+            for (var i = 0; i < 6; i++)
+                state.AddNote(segment, step, boom, 2 + i);
         state.ActiveInstrument = boom;
         view.Layout();
         var before = track.Segments.Sum(s => s.Notes.Count);
@@ -363,35 +366,35 @@ public class TrackEditorViewTests
         state.OpenTrack(track);
         state.ActiveInstrument = MakeInstrument(state, "boom");
 
-        var root = new Sundex.Components.Panels.Panel(ctx) { Width = 1200, Height = 800 };
-        var gridArea = new Sundex.Components.Panels.FlexPanel(ctx) { X = 260, Y = 56, Width = 940, Height = 744 };
+        var root = new Panel(ctx) { Width = 1200, Height = 800 };
+        var gridArea = new FlexPanel(ctx) { X = 260, Y = 56, Width = 940, Height = 744 };
         root.AddChild(gridArea);
 
         var view = new TrackEditorView(ctx, state)
         {
-            Width = Sundex.Components.Abstractions.Values.LiteralOrComputable.Percent(100),
-            Height = Sundex.Components.Abstractions.Values.LiteralOrComputable.Percent(100),
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100),
             PixelsPerStep = 16f,
             RowHeight = 8f
         };
-        var bar = new Sundex.Components.Panels.FlexPanel(ctx)
+        var bar = new FlexPanel(ctx)
         {
-            Width = Sundex.Components.Abstractions.Values.LiteralOrComputable.Percent(100),
+            Width = LiteralOrComputable.Percent(100),
             Height = 40,
             Spacing = 12,
             Padding = 6,
             Children =
             [
-                new Sundex.Components.Labels.Button(ctx, "← Arrangement"),
-                new Sundex.Components.Labels.Label(ctx, "Track 1"),
-                new Sundex.Components.Labels.Button(ctx, "Instrument: -")
+                new Button(ctx, "← Arrangement"),
+                new Label(ctx, "Track 1"),
+                new Button(ctx, "Instrument: -")
             ]
         };
-        var editorPanel = new Sundex.Components.Panels.FlexPanel(ctx)
+        var editorPanel = new FlexPanel(ctx)
         {
-            Direction = Sundex.Components.Abstractions.LayoutDirection.Vertical,
-            Width = Sundex.Components.Abstractions.Values.LiteralOrComputable.Percent(100),
-            Height = Sundex.Components.Abstractions.Values.LiteralOrComputable.Percent(100),
+            Direction = LayoutDirection.Vertical,
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100),
             Children = [bar, view]
         };
         gridArea.AddChild(editorPanel);
@@ -1046,7 +1049,7 @@ public class TrackEditorViewTests
         var (ctx, state, view, track) = NewView();
         var kick = MakeInstrument(state, "kick");
         var boom = MakeInstrument(state, "boom");
-        var cutNote = state.AddNote(track.Segments[0], 0, kick, 0, isCut: true);
+        var cutNote = state.AddNote(track.Segments[0], 0, kick, 0, true);
         state.ActiveInstrument = boom; // cutting kick, but boom is active - still shown
         view.InvalidateLayout();
         view.Layout();
@@ -1064,8 +1067,8 @@ public class TrackEditorViewTests
         var (ctx, state, view, track) = NewView();
         var kick = MakeInstrument(state, "kick");
         var snare = MakeInstrument(state, "snare");
-        var kickCut = state.AddNote(track.Segments[0], 3, kick, 0, isCut: true);
-        var snareCut = state.AddNote(track.Segments[0], 3, snare, 0, isCut: true);
+        var kickCut = state.AddNote(track.Segments[0], 3, kick, 0, true);
+        var snareCut = state.AddNote(track.Segments[0], 3, snare, 0, true);
         view.Layout();
 
         var kickBlock = view.NoteBlocks.Single(b => b.Note == kickCut);
@@ -1081,7 +1084,7 @@ public class TrackEditorViewTests
     {
         var (ctx, state, view, track) = NewView();
         var kick = MakeInstrument(state, "kick");
-        var cutNote = state.AddNote(track.Segments[0], 0, kick, 0, isCut: true);
+        var cutNote = state.AddNote(track.Segments[0], 0, kick, 0, true);
         view.Layout();
 
         var block = view.NoteBlocks.Single(b => b.Note == cutNote);
@@ -1127,7 +1130,7 @@ public class TrackEditorViewTests
         var (ctx, state, view, track) = NewView();
         var boom = MakeInstrument(state, "boom");
         var kick = MakeInstrument(state, "kick");
-        var cutNote = state.AddNote(track.Segments[0], 3, kick, 0, isCut: true);
+        var cutNote = state.AddNote(track.Segments[0], 3, kick, 0, true);
         var boomNote = state.AddNote(track.Segments[0], 3, boom, 0);
         state.SetNoteSelection([boomNote, cutNote]);
         view.Layout();

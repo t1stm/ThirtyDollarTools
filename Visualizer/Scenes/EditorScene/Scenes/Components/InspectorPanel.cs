@@ -28,14 +28,13 @@ public sealed class InspectorPanel : Panel
     private const float StatusProgressHeight = 6f;
 
     private static readonly Vector4 EntryColor = EditorPalette.Surface; // one shade above the panel background
-    private static readonly Vector4 KeyframeColor = EditorPalette.SurfaceRaised; // one more shade up, nested inside an entry
 
-    private readonly ScrollView _rows;
+    private static readonly Vector4
+        KeyframeColor = EditorPalette.SurfaceRaised; // one more shade up, nested inside an entry
+
     private readonly InspectorForm _form;
+
     private readonly EditorState _state;
-    private readonly Label _statusLabel;
-    private readonly ProgressBar _statusBar;
-    private readonly FlexPanel _statusSection;
 
     private string? _syncedStatusLabel = "Idle"; // matches the constructed default below
     private float _syncedStatusProgress = -1f; // never a valid Progress value, forces the first real SetStatus to apply
@@ -43,14 +42,14 @@ public sealed class InspectorPanel : Panel
     public InspectorPanel(UIContext context, EditorState state) : base(context)
     {
         _state = state;
-        _rows = new ScrollView(context)
+        Rows = new ScrollView(context)
         {
             Width = LiteralOrComputable.Percent(100),
             Height = LiteralOrComputable.Percent(100),
             Padding = 10,
             Spacing = 8
         };
-        _form = new InspectorForm(context, state, _rows);
+        _form = new InspectorForm(context, state, Rows);
 
         var rule = new Panel(context)
         {
@@ -59,12 +58,12 @@ public sealed class InspectorPanel : Panel
             Background = new ColoredPlane { Color = EditorPalette.Divider }
         };
 
-        _statusLabel = new Label(context, "Idle")
+        StatusLabelElement = new Label(context, "Idle")
         {
             FontSizePx = 12f,
             Color = EditorPalette.TextMuted
         };
-        _statusBar = new ProgressBar(context,
+        StatusBar = new ProgressBar(context,
             new ColoredPlane { Color = EditorPalette.Surface },
             new ColoredPlane { Color = EditorPalette.Accent })
         {
@@ -72,14 +71,14 @@ public sealed class InspectorPanel : Panel
             Height = StatusProgressHeight,
             Visible = false
         };
-        _statusSection = new FlexPanel(context)
+        StatusSection = new FlexPanel(context)
         {
             Direction = LayoutDirection.Vertical,
             Width = LiteralOrComputable.Percent(100),
             Height = StatusBarHeight,
             Padding = 8,
             Spacing = 4,
-            Children = [_statusLabel, _statusBar]
+            Children = [StatusLabelElement, StatusBar]
         };
 
         var body = new FlexPanel(context)
@@ -87,48 +86,20 @@ public sealed class InspectorPanel : Panel
             Direction = LayoutDirection.Vertical,
             Width = LiteralOrComputable.Percent(100),
             Height = LiteralOrComputable.Percent(100),
-            Children = [_rows, rule, _statusSection]
+            Children = [Rows, rule, StatusSection]
         };
         AddChild(body);
         Rebuild();
     }
 
     // Test seams (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
-    internal ScrollView Rows => _rows;
-    internal ProgressBar StatusBar => _statusBar;
-    internal Label StatusLabelElement => _statusLabel;
-    internal FlexPanel StatusSection => _statusSection;
+    internal ScrollView Rows { get; }
 
-    /// <summary>Updates the status bar; null label shows "Idle" and hides the progress bar.
-    /// <paramref name="total" /> greater than zero appends the encoder's "done - total" counts
-    /// in brackets (e.g. "Rendering audio… (6 - 67)"); zero - the placement/mixing stages and a
-    /// fully-cached incremental render report nothing - leaves the label bare.
-    /// Called every frame from <see cref="EditorInterface.Update" /> - only touches elements
-    /// when the values actually changed, so it never dirties layout for nothing.</summary>
-    public void SetStatus(string? label, float progress, ulong done = 0, ulong total = 0)
-    {
-        var text = label == null ? "Idle" : total > 0 ? $"{label} ({done} - {total})" : label;
-        if (text != _syncedStatusLabel)
-        {
-            _syncedStatusLabel = text;
-            _statusLabel.SetTextContents(text);
-        }
+    internal ProgressBar StatusBar { get; }
 
-        // The bar is built hidden; the Visible setter re-queues/dequeues its planes at the
-        // current layer (Sundex.Components.Tests.ProgressBarVisibilityToggleTests).
-        var barVisible = label != null;
-        _statusBar.Visible = barVisible;
+    internal Label StatusLabelElement { get; }
 
-        if (!barVisible || Equals(progress, _syncedStatusProgress)) return;
-        _syncedStatusProgress = progress;
-        _statusBar.Progress = progress;
-    }
-
-    /// <summary>The input element showing a field, keyed "Section.Label" (e.g. "Track.Name").</summary>
-    public UIElement? Field(string key)
-    {
-        return _form.Field(key);
-    }
+    internal FlexPanel StatusSection { get; }
 
     /// <summary>
     ///     Fired when the user wants to edit a <see cref="TrackAutomation" />'s sound
@@ -145,10 +116,43 @@ public sealed class InspectorPanel : Panel
     /// </summary>
     public Action<IReadOnlyList<Note>>? OnReassignInstrument { get; set; }
 
+    /// <summary>
+    ///     Updates the status bar; null label shows "Idle" and hides the progress bar.
+    ///     <paramref name="total" /> greater than zero appends the encoder's "done - total" counts
+    ///     in brackets (e.g. "Rendering audio… (6 - 67)"); zero - the placement/mixing stages and a
+    ///     fully-cached incremental render report nothing - leaves the label bare.
+    ///     Called every frame from <see cref="EditorInterface.Update" /> - only touches elements
+    ///     when the values actually changed, so it never dirties layout for nothing.
+    /// </summary>
+    public void SetStatus(string? label, float progress, ulong done = 0, ulong total = 0)
+    {
+        var text = label == null ? "Idle" : total > 0 ? $"{label} ({done} - {total})" : label;
+        if (text != _syncedStatusLabel)
+        {
+            _syncedStatusLabel = text;
+            StatusLabelElement.SetTextContents(text);
+        }
+
+        // The bar is built hidden; the Visible setter re-queues/dequeues its planes at the
+        // current layer (Sundex.Components.Tests.ProgressBarVisibilityToggleTests).
+        var barVisible = label != null;
+        StatusBar.Visible = barVisible;
+
+        if (!barVisible || Equals(progress, _syncedStatusProgress)) return;
+        _syncedStatusProgress = progress;
+        StatusBar.Progress = progress;
+    }
+
+    /// <summary>The input element showing a field, keyed "Section.Label" (e.g. "Track.Name").</summary>
+    public UIElement? Field(string key)
+    {
+        return _form.Field(key);
+    }
+
     /// <summary>Rebuilds the rows for the current mode and selection.</summary>
     public void Rebuild()
     {
-        foreach (var child in _rows.Children.ToArray()) _rows.RemoveChild(child);
+        foreach (var child in Rows.Children.ToArray()) Rows.RemoveChild(child);
         _form.Reset();
 
         if (_state.OpenedTrack != null)
@@ -207,7 +211,7 @@ public sealed class InspectorPanel : Panel
                     _form.ActionRow("Change", () => OnReassignInstrument?.Invoke([note]));
                     _form.NumberRow("Value", () => note.Value, v => note.Value = v!.Value,
                         -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
-                    _form.NumberRow("Volume", () => note.Volume, v => note.Volume = v, 0, 500, 5, allowNull: true);
+                    _form.NumberRow("Volume", () => note.Volume, v => note.Volume = v, 0, 500, 5, true);
                     _form.NumberRow("Pan", () => note.Pan, v => note.Pan = (float)v!.Value, -100, 100, 10);
                     _form.NumberRow("Offset (s)", () => note.Offset, v => note.Offset = v!.Value, -60, 60, 0.05);
                     AutomationSection(note);
@@ -224,7 +228,7 @@ public sealed class InspectorPanel : Panel
                 v => _state.Edit(() => _state.Project.Info.Description = NullIfEmpty(v)));
             _form.NumberRow("BPM", () => _state.Project.RootTiming.BPM,
                 v => _state.Project.RootTiming.BPM = (float)v!.Value, 1, 9999);
-            _form.NumberRow("Transpose", () => (double?)_state.Project.Transpose,
+            _form.NumberRow("Transpose", () => _state.Project.Transpose,
                 v => _state.Project.Transpose = (float)v!.Value,
                 -TrackEditorView.MaxValue, TrackEditorView.MaxValue, 0.1);
 
@@ -269,17 +273,37 @@ public sealed class InspectorPanel : Panel
         // A mixed cut/normal selection edits its non-cut notes only - a cut's value/
         // volume/pan/offset are fixed invariants (see Note.IsCut).
         _form.NumberRow("Value", () => primary.Value,
-            v => { foreach (var n in notes) if (!n.IsCut) n.Value = v!.Value; },
+            v =>
+            {
+                foreach (var n in notes)
+                    if (!n.IsCut)
+                        n.Value = v!.Value;
+            },
             -TrackEditorView.MaxValue, TrackEditorView.MaxValue,
             mixed: () => !AllEqual(notes, n => n.Value));
         _form.NumberRow("Volume", () => primary.Volume,
-            v => { foreach (var n in notes) if (!n.IsCut) n.Volume = v; },
-            0, 500, 5, allowNull: true, mixed: () => !AllEqual(notes, n => n.Volume));
+            v =>
+            {
+                foreach (var n in notes)
+                    if (!n.IsCut)
+                        n.Volume = v;
+            },
+            0, 500, 5, true, () => !AllEqual(notes, n => n.Volume));
         _form.NumberRow("Pan", () => primary.Pan,
-            v => { foreach (var n in notes) if (!n.IsCut) n.Pan = (float)v!.Value; },
+            v =>
+            {
+                foreach (var n in notes)
+                    if (!n.IsCut)
+                        n.Pan = (float)v!.Value;
+            },
             -100, 100, 10, mixed: () => !AllEqual(notes, n => n.Pan));
         _form.NumberRow("Offset (s)", () => primary.Offset,
-            v => { foreach (var n in notes) if (!n.IsCut) n.Offset = v!.Value; },
+            v =>
+            {
+                foreach (var n in notes)
+                    if (!n.IsCut)
+                        n.Offset = v!.Value;
+            },
             -60, 60, 0.05, mixed: () => !AllEqual(notes, n => n.Offset));
 
         MultiAutomationSection(notes, primary);
@@ -303,7 +327,8 @@ public sealed class InspectorPanel : Panel
             _form.ActionRow("+ Add automation", () => EditAndRebuild(() =>
             {
                 foreach (var note in notes)
-                    if (!note.IsCut) note.Automation = new AudioKeyframeManager();
+                    if (!note.IsCut)
+                        note.Automation = new AudioKeyframeManager();
             }));
             return;
         }
@@ -376,7 +401,8 @@ public sealed class InspectorPanel : Panel
         _form.Header("Automation");
         if (note.Automation is not { } automation)
         {
-            _form.ActionRow("+ Add automation", () => EditAndRebuild(() => note.Automation = new AudioKeyframeManager()));
+            _form.ActionRow("+ Add automation",
+                () => EditAndRebuild(() => note.Automation = new AudioKeyframeManager()));
             return;
         }
 
@@ -395,8 +421,8 @@ public sealed class InspectorPanel : Panel
     {
         _form.Header("Track Automation");
 
-        _form.NumberRow("Transpose", () => (double?)track.Transpose, v => track.Transpose = (float?)v,
-            -TrackEditorView.MaxValue, TrackEditorView.MaxValue, 0.1, allowNull: true);
+        _form.NumberRow("Transpose", () => track.Transpose, v => track.Transpose = (float?)v,
+            -TrackEditorView.MaxValue, TrackEditorView.MaxValue, 0.1, true);
 
         for (var i = 0; i < track.TrackAutomations.Count; i++)
         {
@@ -513,6 +539,7 @@ public sealed class InspectorPanel : Panel
                         afterEdit?.Invoke();
                     });
                 }
+
                 _form.ActionRow("Remove", () => EditAndRebuild(() =>
                 {
                     automation.Keyframes.Remove(keyframe);

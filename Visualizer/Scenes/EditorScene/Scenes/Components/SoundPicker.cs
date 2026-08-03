@@ -30,20 +30,20 @@ public sealed class SoundPicker : FlexPanel
     private static readonly Vector4 HeaderColor = EditorPalette.Header;
     private static readonly Vector4 DividerColor = EditorPalette.Divider;
     private static readonly Vector4 BlandColor = EditorPalette.TextMuted;
-
-    private readonly AtlasStore _store;
-    private readonly Label _selectedHeader;
-    private readonly Label _availableHeader;
-    private readonly FlexPanel _selectedRow;
-    private readonly FlexPanel _selectedGrid;
     private readonly FlexPanel _availableGrid;
+    private readonly Label _availableHeader;
+    private readonly Dictionary<string, SoundIcon> _availableIcons = [];
+    private readonly Dictionary<string, string> _idByName = [];
     private readonly Panel _keybindDivider;
     private readonly Label _keybindNote;
-    private readonly StackCollection _stacks = new();
-    private readonly Dictionary<string, string> _idByName = [];
-    private readonly Dictionary<string, Sound> _soundsById = [];
     private readonly List<string> _order = [];
-    private readonly Dictionary<string, SoundIcon> _availableIcons = [];
+    private readonly FlexPanel _selectedGrid;
+    private readonly Label _selectedHeader;
+    private readonly FlexPanel _selectedRow;
+    private readonly Dictionary<string, Sound> _soundsById = [];
+    private readonly StackCollection _stacks = new();
+
+    private readonly AtlasStore _store;
     private int _handledRightPressId = -1;
 
     public SoundPicker(UIContext context, AtlasStore store) : base(context)
@@ -88,17 +88,6 @@ public sealed class SoundPicker : FlexPanel
         };
     }
 
-    private static FlexPanel NewGrid(UIContext context)
-    {
-        return new FlexPanel(context)
-        {
-            Direction = LayoutDirection.Horizontal,
-            Width = LiteralOrComputable.Percent(100),
-            Wrap = true,
-            Spacing = 6
-        };
-    }
-
     /// <summary>Fired with the sound's name when an icon is clicked (single-select mode).</summary>
     public Action<string>? OnPick { get; set; }
 
@@ -129,24 +118,43 @@ public sealed class SoundPicker : FlexPanel
     /// </summary>
     public List<InstrumentSound> Instances { get; } = [];
 
-    /// <summary>Same modifier state as the track editor's scroll-zoom (see
-    /// EditorInterface.SetModifiers) - Ctrl adjusts volume, Shift adjusts pan.</summary>
+    /// <summary>
+    ///     Same modifier state as the track editor's scroll-zoom (see
+    ///     EditorInterface.SetModifiers) - Ctrl adjusts volume, Shift adjusts pan.
+    /// </summary>
     public bool CtrlHeld { get; set; }
 
     public bool ShiftHeld { get; set; }
 
-    /// <summary>Fired with an instance whenever scrolling its icon changes it. The picker has
-    /// no playback of its own - the owner wires this the same way it wires
-    /// TrackEditorView.OnPreviewNote.</summary>
+    /// <summary>
+    ///     Fired with an instance whenever scrolling its icon changes it. The picker has
+    ///     no playback of its own - the owner wires this the same way it wires
+    ///     TrackEditorView.OnPreviewNote.
+    /// </summary>
     public Action<InstrumentSound>? OnPreviewSound { get; set; }
 
-    /// <summary>The distinct picked sound names - what consumers that don't care about
-    /// adjustments (the track-automation filter) read.</summary>
+    /// <summary>
+    ///     The distinct picked sound names - what consumers that don't care about
+    ///     adjustments (the track-automation filter) read.
+    /// </summary>
     public HashSet<string> Selected => Instances.Select(instance => instance.Sound).ToHashSet();
 
-    /// <summary>Counts icons, not known sounds: <see cref="Fill" /> may run while the atlases
-    /// are still loading and produce none, and the owner's lazy guard has to retry then.</summary>
+    /// <summary>
+    ///     Counts icons, not known sounds: <see cref="Fill" /> may run while the atlases
+    ///     are still loading and produce none, and the owner's lazy guard has to retry then.
+    /// </summary>
     public bool HasSounds => _availableIcons.Count > 0 || _selectedGrid.Children.Count > 0;
+
+    private static FlexPanel NewGrid(UIContext context)
+    {
+        return new FlexPanel(context)
+        {
+            Direction = LayoutDirection.Horizontal,
+            Width = LiteralOrComputable.Percent(100),
+            Wrap = true,
+            Spacing = 6
+        };
+    }
 
     /// <summary>
     ///     Fills the grid from the atlas store. Call lazily - the atlases may still be
@@ -164,24 +172,30 @@ public sealed class SoundPicker : FlexPanel
         Sync();
     }
 
-    /// <summary>A sound's ID, given either its ID or the emoji a sequence/older project
-    /// saved it as. Icons are keyed by ID (an emoji can't be drawn by a
-    /// <see cref="Label" />), so anything arriving from outside is mapped through here.</summary>
+    /// <summary>
+    ///     A sound's ID, given either its ID or the emoji a sequence/older project
+    ///     saved it as. Icons are keyed by ID (an emoji can't be drawn by a
+    ///     <see cref="Label" />), so anything arriving from outside is mapped through here.
+    /// </summary>
     private string Canonical(string name)
     {
         return _idByName.GetValueOrDefault(name, name);
     }
 
-    /// <summary>Reseeds <see cref="Instances" /> with plain, unadjusted sounds - call each
-    /// time a multi-select picker is reopened, since it may edit a different filter.</summary>
+    /// <summary>
+    ///     Reseeds <see cref="Instances" /> with plain, unadjusted sounds - call each
+    ///     time a multi-select picker is reopened, since it may edit a different filter.
+    /// </summary>
     public void SetSelected(IEnumerable<string> sounds)
     {
         SetInstances(sounds.Select(sound => new InstrumentSound { Sound = sound }));
     }
 
-    /// <summary>Reseeds <see cref="Instances" /> - call each time the instrument editor
-    /// reopens on a different instrument. The instances are cloned, so scrolling an icon
-    /// can't reach the instrument that was loaded.</summary>
+    /// <summary>
+    ///     Reseeds <see cref="Instances" /> - call each time the instrument editor
+    ///     reopens on a different instrument. The instances are cloned, so scrolling an icon
+    ///     can't reach the instrument that was loaded.
+    /// </summary>
     public void SetInstances(IEnumerable<InstrumentSound> instances)
     {
         Instances.Clear();
@@ -195,9 +209,11 @@ public sealed class SoundPicker : FlexPanel
         Sync();
     }
 
-    /// <summary>Adds one instance of a sound, right after <paramref name="copyOf" /> and
-    /// carrying its adjustments when duplicating one (right-click), otherwise plain and
-    /// appended at the end.</summary>
+    /// <summary>
+    ///     Adds one instance of a sound, right after <paramref name="copyOf" /> and
+    ///     carrying its adjustments when duplicating one (right-click), otherwise plain and
+    ///     appended at the end.
+    /// </summary>
     public InstrumentSound AddInstance(string sound, InstrumentSound? copyOf = null)
     {
         var instance = copyOf?.Clone() ?? new InstrumentSound { Sound = Canonical(sound) };
@@ -213,8 +229,10 @@ public sealed class SoundPicker : FlexPanel
         Sync();
     }
 
-    /// <summary>Rebuilds both grids from <see cref="Instances" />: one icon per instance in
-    /// the Selected grid, and an Available icon for every sound with no instance.</summary>
+    /// <summary>
+    ///     Rebuilds both grids from <see cref="Instances" />: one icon per instance in
+    ///     the Selected grid, and an Available icon for every sound with no instance.
+    /// </summary>
     private void Sync()
     {
         SyncSelected();
@@ -267,9 +285,11 @@ public sealed class SoundPicker : FlexPanel
         if (!_availableGrid.Children.SequenceEqual(ordered)) _availableGrid.Children = ordered;
     }
 
-    /// <summary>Shows/hides the divider + hint in the selected row, to the right of the
-    /// (fixed, always-present) icon grid - entering/leaving the tree via AddChild/RemoveChild
-    /// is what actually queues/dequeues a renderable, same as <see cref="RefreshSections" />.</summary>
+    /// <summary>
+    ///     Shows/hides the divider + hint in the selected row, to the right of the
+    ///     (fixed, always-present) icon grid - entering/leaving the tree via AddChild/RemoveChild
+    ///     is what actually queues/dequeues a renderable, same as <see cref="RefreshSections" />.
+    /// </summary>
     private void RefreshKeybindNote()
     {
         var shouldShow = ShowAdjustments && Instances.Count > 0;
@@ -288,8 +308,10 @@ public sealed class SoundPicker : FlexPanel
         }
     }
 
-    /// <summary>Shows/hides each section's header + grid depending on whether it has icons,
-    /// and keeps "Selected" above "Available" in the child order.</summary>
+    /// <summary>
+    ///     Shows/hides each section's header + grid depending on whether it has icons,
+    ///     and keeps "Selected" above "Available" in the child order.
+    /// </summary>
     private void RefreshSections()
     {
         var desired = new List<UIElement>();
@@ -390,9 +412,11 @@ public sealed class SoundPicker : FlexPanel
         return icon;
     }
 
-    /// <summary>Drops an icon out of the tree and out of the render stack. The stack is
-    /// queued as a whole by <see cref="DrawSelf" />, so an entry left behind would keep
-    /// painting at its last matrix even with the icon gone.</summary>
+    /// <summary>
+    ///     Drops an icon out of the tree and out of the render stack. The stack is
+    ///     queued as a whole by <see cref="DrawSelf" />, so an entry left behind would keep
+    ///     painting at its last matrix even with the icon gone.
+    /// </summary>
     private static void DestroyIcon(SoundIcon icon)
     {
         if (icon.Parent is Panel parent) parent.RemoveChild(icon);
@@ -416,10 +440,12 @@ public sealed class SoundPicker : FlexPanel
         base.ApplyClip(clip);
     }
 
-    /// <summary>One icon; its screen rectangle is pushed into the instanced render stack.
-    /// A Selected icon owns one <see cref="InstrumentSound" />; with
-    /// <see cref="ShowAdjustments" /> on it also carries a value/volume/pan label and answers
-    /// scroll - see <see cref="EnableAdjustmentText" />.</summary>
+    /// <summary>
+    ///     One icon; its screen rectangle is pushed into the instanced render stack.
+    ///     A Selected icon owns one <see cref="InstrumentSound" />; with
+    ///     <see cref="ShowAdjustments" /> on it also carries a value/volume/pan label and answers
+    ///     scroll - see <see cref="EnableAdjustmentText" />.
+    /// </summary>
     private sealed class SoundIcon : Panel
     {
         private const float AdjustableCellWidth = 60f;
@@ -429,9 +455,9 @@ public sealed class SoundPicker : FlexPanel
         private const float PanStep = 5;
 
         private readonly SoundPicker _picker;
-        private float _iconWidth;
-        private float _iconHeight;
         private Label? _adjustmentLabel;
+        private float _iconHeight;
+        private float _iconWidth;
 
         public SoundIcon(UIContext context, SoundPicker picker, string soundName, InstrumentSound? instance)
             : base(context)
@@ -456,8 +482,10 @@ public sealed class SoundPicker : FlexPanel
 
         public string SoundName { get; }
 
-        /// <summary>The instance this icon shows, or null for an Available icon (nothing
-        /// picked yet).</summary>
+        /// <summary>
+        ///     The instance this icon shows, or null for an Available icon (nothing
+        ///     picked yet).
+        /// </summary>
         public InstrumentSound? Instance { get; }
 
         public TrackedBufferReference<StaticSound>? StaticReference { get; init; }
@@ -466,13 +494,15 @@ public sealed class SoundPicker : FlexPanel
         /// <summary>Frees this icon's slot in the render stack; see <see cref="DestroyIcon" />.</summary>
         public Action? Release { get; init; }
 
-        public sealed override ComputedRectangle Computed { get; protected set; }
+        public override ComputedRectangle Computed { get; protected set; }
 
-        /// <summary>Reserves room below the icon for the value/volume/pan label and adds it -
-        /// only selected sounds carry one, so the Available grid stays plain icons. Idempotent;
-        /// the first call captures the aspect-scaled icon size from <see cref="Width" />/
-        /// <see cref="Height" /> before widening them (an object initializer sets those, so
-        /// this can't run from the ctor).</summary>
+        /// <summary>
+        ///     Reserves room below the icon for the value/volume/pan label and adds it -
+        ///     only selected sounds carry one, so the Available grid stays plain icons. Idempotent;
+        ///     the first call captures the aspect-scaled icon size from <see cref="Width" />/
+        ///     <see cref="Height" /> before widening them (an object initializer sets those, so
+        ///     this can't run from the ctor).
+        /// </summary>
         public void EnableAdjustmentText()
         {
             if (_adjustmentLabel != null) return;
@@ -488,9 +518,11 @@ public sealed class SoundPicker : FlexPanel
             RefreshAdjustmentText();
         }
 
-        /// <summary>Redraws the label from this icon's <see cref="Instance" />, reusing the
-        /// same value/volume/pan text conventions the playfield's sound badges use. No-op when
-        /// <see cref="EnableAdjustmentText" /> was never called.</summary>
+        /// <summary>
+        ///     Redraws the label from this icon's <see cref="Instance" />, reusing the
+        ///     same value/volume/pan text conventions the playfield's sound badges use. No-op when
+        ///     <see cref="EnableAdjustmentText" /> was never called.
+        /// </summary>
         public void RefreshAdjustmentText()
         {
             if (_adjustmentLabel is null) return;
@@ -511,9 +543,11 @@ public sealed class SoundPicker : FlexPanel
             _adjustmentLabel.Value = string.Join(" ", parts);
         }
 
-        /// <summary>Right click adds another copy of this sound, so one instrument can play
-        /// it twice with different tuning (0 and -12 for dual-octave playback). Duplicating
-        /// only makes sense where the copies can be told apart, i.e. with adjustments on.</summary>
+        /// <summary>
+        ///     Right click adds another copy of this sound, so one instrument can play
+        ///     it twice with different tuning (0 and -12 for dual-octave playback). Duplicating
+        ///     only makes sense where the copies can be told apart, i.e. with adjustments on.
+        /// </summary>
         public override bool HandleRightPress(float x, float y)
         {
             if (!_picker.MultiSelect || !_picker.ShowAdjustments) return false;

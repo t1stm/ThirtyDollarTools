@@ -182,7 +182,10 @@ public class RenderableFactory(AtlasStore store)
         return baseEvent.Volume is { } volume ? $"{volume:0.##}%" : null;
     }
 
-    /// <summary>The pan badge's text ("12&gt;" right, "&lt;12" left), or null when centered/not an <see cref="ExtendedEvent" />.</summary>
+    /// <summary>
+    ///     The pan badge's text ("12&gt;" right, "&lt;12" left), or null when centered/not an
+    ///     <see cref="ExtendedEvent" />.
+    /// </summary>
     public static string? FormatPanText(BaseEvent baseEvent)
     {
         if (baseEvent is not ExtendedEvent { Pan: not 0 } extendedEvent) return null;

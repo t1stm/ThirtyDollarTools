@@ -493,7 +493,7 @@ public class InspectorPanelTests
         var track = state.AddTrack();
         state.OpenTrack(track);
         var kick = MakeInstrument(state, "kick");
-        var note = state.AddNote(track.Segments[0], 3, kick, 0, isCut: true);
+        var note = state.AddNote(track.Segments[0], 3, kick, 0, true);
         state.SelectNote(note);
 
         Assert.Equal("kick", ((Label)inspector.Field("!cut event.Cuts")!).Value.ToString());
@@ -521,7 +521,7 @@ public class InspectorPanelTests
         var boom = MakeInstrument(state, "boom");
         var kick = MakeInstrument(state, "kick");
         var boomNote = state.AddNote(track.Segments[0], 0, boom, 5);
-        var cutNote = state.AddNote(track.Segments[0], 1, kick, 0, isCut: true);
+        var cutNote = state.AddNote(track.Segments[0], 1, kick, 0, true);
         state.SetNoteSelection([boomNote, cutNote]);
 
         ((NumericInput)inspector.Field("Note (× 2).Value")!).Value = 20;

@@ -9,9 +9,9 @@ Converts TDW sequences and TDWex sequences to audible file formats (currently on
 ### Downloading And Running
 
 You can get a _compiled_ copy of this application at
-the [releases tab](https://github.com/t1stm/ThirtyDollarTools/releases).
-Once you've downloaded it, you can open the ThirtyDollarGUI executable, and if it's your first time running it,
-make it to download all TDW samples, by pressing the download button.
+the [releases tab](https://github.com/t1stm/ThirtyDollarTools/releases). Once you've downloaded it, you can open the
+ThirtyDollarGUI executable, and if it's your first time running it, make it to download all TDW samples, by pressing the
+download button.
 
 ![Download Interface](../Screenshots/converter-download.png)
 
@@ -31,8 +31,8 @@ After that you should have the following message: `Preloaded sequence located in
 
 ### Export Settings
 
-Optionally you can change the "Export Settings", if you want to change some effects.
-I'll now explain the fields, and if you aren't interested skip over to the **Encoding Section**
+Optionally you can change the "Export Settings", if you want to change some effects. I'll now explain the fields, and if
+you aren't interested skip over to the **Encoding Section**
 
 ![Export Settings](../Screenshots/converter-extended-options.png)
 

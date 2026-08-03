@@ -10,9 +10,6 @@ public abstract class Renderable : IRenderable, IPositionable, IClippable
 {
     public readonly List<Renderable> Children = [];
 
-    /// <inheritdoc />
-    public Vector4i? ClipRect { get; set; }
-
     /// <summary>
     ///     A boolean made for external use.
     /// </summary>
@@ -51,6 +48,9 @@ public abstract class Renderable : IRenderable, IPositionable, IClippable
     ///     Represents the inverse alpha value used in renderable objects to influence transparency or animation.
     /// </summary>
     protected float InverseAlpha { get; set; }
+
+    /// <inheritdoc />
+    public Vector4i? ClipRect { get; set; }
 
     /// <summary>
     ///     The position of the current renderable.

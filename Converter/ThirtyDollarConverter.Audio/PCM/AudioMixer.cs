@@ -6,12 +6,12 @@ namespace ThirtyDollarEncoder.PCM;
 
 public class AudioMixer : IDisposable
 {
+    public readonly IMixingMethod MixingMethod = new BasicMixer();
     private readonly AudioLayout _defaultLayout;
     private readonly int _length;
     private readonly ConcurrentDictionary<(string, AudioLayout audio_layout), AudioData<float>> _tracks = new();
-    public readonly IMixingMethod MixingMethod = new BasicMixer();
 
-    public AudioMixer(AudioData<float> defaultChannel, AudioLayout defaultLayout = AudioLayout.AudioLr)
+    public AudioMixer(AudioData<float> defaultChannel, AudioLayout defaultLayout = AudioLayout.AudioStereoLR)
     {
         _tracks.TryAdd((string.Empty, defaultLayout), defaultChannel);
         _defaultLayout = defaultLayout;
@@ -58,7 +58,7 @@ public class AudioMixer : IDisposable
         }
     }
 
-    public bool HasTrack(string sound, AudioLayout layout = AudioLayout.AudioLr)
+    public bool HasTrack(string sound, AudioLayout layout = AudioLayout.AudioStereoLR)
     {
         lock (_tracks)
         {
@@ -66,7 +66,7 @@ public class AudioMixer : IDisposable
         }
     }
 
-    public AudioData<float> GetTrackOrDefault(string trackName, AudioLayout layout = AudioLayout.AudioLr)
+    public AudioData<float> GetTrackOrDefault(string trackName, AudioLayout layout = AudioLayout.AudioStereoLR)
     {
         lock (_tracks)
         {
@@ -76,7 +76,7 @@ public class AudioMixer : IDisposable
         }
     }
 
-    public AudioData<float> GetTrack(string trackName, AudioLayout layout = AudioLayout.AudioLr)
+    public AudioData<float> GetTrack(string trackName, AudioLayout layout = AudioLayout.AudioStereoLR)
     {
         lock (_tracks)
         {
@@ -88,7 +88,7 @@ public class AudioMixer : IDisposable
         }
     }
 
-    public bool AddTrack(string trackName, AudioData<float> audioData, AudioLayout layout = AudioLayout.AudioLr)
+    public bool AddTrack(string trackName, AudioData<float> audioData, AudioLayout layout = AudioLayout.AudioStereoLR)
     {
         if (audioData.GetLength() != _length)
             throw new Exception("Added track doesn't have the same length as the default track.");

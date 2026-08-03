@@ -2,8 +2,10 @@ using System.Diagnostics;
 
 namespace ThirtyDollarConverter.Benchmarks;
 
-/// <summary>Prints the shape and cold-render cost of every scenario - used to size the
-/// benchmark matrix, not part of it.</summary>
+/// <summary>
+///     Prints the shape and cold-render cost of every scenario - used to size the
+///     benchmark matrix, not part of it.
+/// </summary>
 public static class Probe
 {
     public static async Task Run()

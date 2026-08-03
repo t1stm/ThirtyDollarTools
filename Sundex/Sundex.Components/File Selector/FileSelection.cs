@@ -23,10 +23,10 @@ public sealed class FileSelection : Panel
     private static readonly Vector4 CancelColor = new(0.2f, 0.204f, 0.29f, 1f);
 
     private readonly Label _currentPathLabel;
-    private readonly FlexPanel _topSection;
     private readonly FlexPanel _filesSection;
     private readonly TextInput? _nameInput;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly FlexPanel _topSection;
 
     /// <param name="context">The current UI context.</param>
     /// <param name="saveFileName">Non-null switches to save mode and prefills the filename input.</param>
@@ -213,11 +213,11 @@ public sealed class FileSelection : Panel
         {
             var directories = Directory.GetDirectories(CurrentPath);
             list.AddRange(from directory in directories
-                          let dirInfo = new DirectoryInfo(directory)
-                          where (dirInfo.Attributes & FileAttributes.Hidden) == 0
-                          orderby dirInfo.Name
-                          select new Label(Context, $"{dirInfo.Name}/") // TODO emojis don't render with new label system
-                          { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
+                let dirInfo = new DirectoryInfo(directory)
+                where (dirInfo.Attributes & FileAttributes.Hidden) == 0
+                orderby dirInfo.Name
+                select new Label(Context, $"{dirInfo.Name}/") // TODO emojis don't render with new label system
+                    { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
 
             var files = Directory.GetFiles(CurrentPath)
                 .Where(file => ExtensionFilter == null ||
@@ -228,7 +228,7 @@ public sealed class FileSelection : Panel
                 {
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
-                    OnClick = _ => SelectFile(fileInfo.FullName),
+                    OnClick = _ => SelectFile(fileInfo.FullName)
                 }));
         }
         catch (Exception ex)
@@ -242,12 +242,9 @@ public sealed class FileSelection : Panel
 
         _semaphore.Wait();
         foreach (var child in _filesSection.Children)
-        {
             if (child is Label label)
-            {
                 label.StopRendering();
-            }
-        }
+
         _filesSection.Children = list;
         _semaphore.Release();
     }
@@ -267,6 +264,7 @@ public sealed class FileSelection : Panel
         // wrap/truncate) - clip it to the header like ScrollView/TextInput self-clip.
         var x = (int)_topSection.Computed.AbsoluteX;
         var y = (int)_topSection.Computed.AbsoluteY;
-        _topSection.ApplyClip(new Vector4i(x, y, x + (int)_topSection.Computed.Width, y + (int)_topSection.Computed.Height));
+        _topSection.ApplyClip(new Vector4i(x, y, x + (int)_topSection.Computed.Width,
+            y + (int)_topSection.Computed.Height));
     }
 }

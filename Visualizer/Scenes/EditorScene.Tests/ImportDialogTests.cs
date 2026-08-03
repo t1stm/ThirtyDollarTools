@@ -1,4 +1,5 @@
 using EditorScene.Scenes.Components;
+using Sundex.Components.Labels;
 
 namespace EditorScene.Tests;
 
@@ -9,7 +10,7 @@ public class ImportDialogTests
     {
         var dialog = new ImportDialog(new EditorTestContext(), "epic-sequence.tdw");
 
-        var title = Assert.IsType<Sundex.Components.Labels.Label>(dialog.Children[0]);
+        var title = Assert.IsType<Label>(dialog.Children[0]);
         Assert.Equal("Import \"epic-sequence.tdw\"", title.Value.ToString());
     }
 
@@ -18,7 +19,8 @@ public class ImportDialogTests
     {
         var dialog = new ImportDialog(new EditorTestContext(), "epic-sequence.tdw");
 
-        Assert.Equal(3, new[] { dialog.SingleTrackButton, dialog.ProjectButton, dialog.CancelButton }.Distinct().Count());
+        Assert.Equal(3,
+            new[] { dialog.SingleTrackButton, dialog.ProjectButton, dialog.CancelButton }.Distinct().Count());
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Tests;
@@ -266,7 +267,7 @@ public class ArrangementViewTests
         // update early-returns and the whole UI stops responding to the mouse.
         var ctx = new EditorTestContext();
         var state = new EditorState();
-        var gridArea = new Sundex.Components.Panels.Panel(ctx) { Width = 800, Height = 400 };
+        var gridArea = new Panel(ctx) { Width = 800, Height = 400 };
         var view = new ArrangementView(ctx, state) { Width = 800, Height = 400 };
         var editor = new TrackEditorView(ctx, state) { Width = 800, Height = 400 };
         gridArea.AddChild(view);

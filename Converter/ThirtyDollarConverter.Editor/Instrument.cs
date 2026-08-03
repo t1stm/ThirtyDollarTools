@@ -16,12 +16,16 @@ public class Instrument
     /// </summary>
     public List<InstrumentSound> Sounds { get; } = [];
 
-    /// <summary>Every distinct sound name this instrument plays, duplicates collapsed -
-    /// what a cut has to silence.</summary>
+    /// <summary>
+    ///     Every distinct sound name this instrument plays, duplicates collapsed -
+    ///     what a cut has to silence.
+    /// </summary>
     public HashSet<string> SoundNames => Sounds.Select(sound => sound.Sound).ToHashSet();
 
-    /// <summary>Appends one plain, untuned sound - the common case; tune the returned
-    /// instance (or add it twice) for anything else.</summary>
+    /// <summary>
+    ///     Appends one plain, untuned sound - the common case; tune the returned
+    ///     instance (or add it twice) for anything else.
+    /// </summary>
     public InstrumentSound AddSound(string sound)
     {
         var instrument_sound = new InstrumentSound { Sound = sound };

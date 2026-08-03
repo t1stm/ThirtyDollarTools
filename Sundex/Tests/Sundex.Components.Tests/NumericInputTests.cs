@@ -8,6 +8,12 @@ namespace Sundex.Components.Tests;
 
 public class NumericInputTests
 {
+    // Input at (10,10), 200x32, Padding 6 -> content spans x 16..204, buttons are two
+    // 20x20 squares flush right: minus 164..184, plus 184..204, y 16..36.
+    private const float MinusX = 174;
+    private const float PlusX = 194;
+    private const float ButtonY = 20;
+
     private static (TestUIContext ctx, Panel root, NumericInput input) NewInput(double? value = null,
         float width = 200)
     {
@@ -34,12 +40,6 @@ public class NumericInputTests
         ctx.UpdatePointer(root, x, y, true, true, false, Vector2.Zero);
         ctx.UpdatePointer(root, x, y, false, false, true, Vector2.Zero);
     }
-
-    // Input at (10,10), 200x32, Padding 6 -> content spans x 16..204, buttons are two
-    // 20x20 squares flush right: minus 164..184, plus 184..204, y 16..36.
-    private const float MinusX = 174;
-    private const float PlusX = 194;
-    private const float ButtonY = 20;
 
     [Fact]
     public void Value_ParsesTypedTextAndClamps()

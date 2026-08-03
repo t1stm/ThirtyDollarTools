@@ -602,82 +602,82 @@ public abstract class UIElement
         switch (styleValue)
         {
             case ArrayValue av when propertyInfo.PropertyType == typeof(List<Animation>):
-                {
-                    var animations = new List<Animation>();
-                    foreach (var value in av.Values)
-                        if (value is StringValue sv && styleSheet.ComputedAnimations.TryGetValue(sv.Value, out var anim))
-                            animations.Add(anim);
+            {
+                var animations = new List<Animation>();
+                foreach (var value in av.Values)
+                    if (value is StringValue sv && styleSheet.ComputedAnimations.TryGetValue(sv.Value, out var anim))
+                        animations.Add(anim);
 
-                    propertyInfo.SetValue(this, animations);
-                    break;
-                }
+                propertyInfo.SetValue(this, animations);
+                break;
+            }
 
             case NumberValue nv when propertyInfo.PropertyType == typeof(LiteralOrComputable):
-                {
-                    var newValue = new LiteralOrComputable(nv.Value, nv.Unit is "%");
-                    propertyInfo.SetValue(this, newValue);
-                    HandleRenderableSwap(oldValue, newValue, propertyInfo.Name);
-                    break;
-                }
+            {
+                var newValue = new LiteralOrComputable(nv.Value, nv.Unit is "%");
+                propertyInfo.SetValue(this, newValue);
+                HandleRenderableSwap(oldValue, newValue, propertyInfo.Name);
+                break;
+            }
 
             case NumberValue nv when propertyInfo.PropertyType == typeof(float):
-                {
-                    propertyInfo.SetValue(this, nv.Value);
-                    HandleRenderableSwap(oldValue, nv.Value, propertyInfo.Name);
-                    break;
-                }
+            {
+                propertyInfo.SetValue(this, nv.Value);
+                HandleRenderableSwap(oldValue, nv.Value, propertyInfo.Name);
+                break;
+            }
 
             case ColorValue cv when propertyInfo.PropertyType == typeof(Vector4):
-                {
-                    propertyInfo.SetValue(this, cv.Vector);
-                    HandleRenderableSwap(oldValue, cv.Vector, propertyInfo.Name);
-                    break;
-                }
+            {
+                propertyInfo.SetValue(this, cv.Vector);
+                HandleRenderableSwap(oldValue, cv.Vector, propertyInfo.Name);
+                break;
+            }
 
             case VectorValue vv when propertyInfo.PropertyType == typeof(Vector3):
-                {
-                    propertyInfo.SetValue(this, new Vector3((float)vv.X, (float)vv.Y, (float)(vv.Z ?? 0)));
-                    HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
-                    break;
-                }
+            {
+                propertyInfo.SetValue(this, new Vector3((float)vv.X, (float)vv.Y, (float)(vv.Z ?? 0)));
+                HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
+                break;
+            }
 
             case StringValue sv when propertyInfo.PropertyType == typeof(Anchor):
+            {
+                Anchor? anchor = sv.Value switch
                 {
-                    Anchor? anchor = sv.Value switch
-                    {
-                        "center" => Anchor.Center,
-                        "end" => Anchor.End,
-                        "start" => Anchor.Start,
-                        _ => null
-                    };
+                    "center" => Anchor.Center,
+                    "end" => Anchor.End,
+                    "start" => Anchor.Start,
+                    _ => null
+                };
 
-                    if (anchor is not null)
-                        propertyInfo.SetValue(this, anchor.Value);
-                    HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
-                    break;
-                }
+                if (anchor is not null)
+                    propertyInfo.SetValue(this, anchor.Value);
+                HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
+                break;
+            }
 
             case StringValue sv when propertyInfo.PropertyType == typeof(string) ||
                                      propertyInfo.PropertyType == typeof(ReadOnlySpan<char>):
-                {
-                    propertyInfo.SetValue(this, sv.Value);
-                    HandleRenderableSwap(oldValue, sv.Value, propertyInfo.Name);
-                    break;
-                }
+            {
+                propertyInfo.SetValue(this, sv.Value);
+                HandleRenderableSwap(oldValue, sv.Value, propertyInfo.Name);
+                break;
+            }
 
             case StringValue sv when propertyInfo.PropertyType == typeof(bool):
-                {
-                    propertyInfo.SetValue(this, sv.Value == "true");
-                    HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
-                    break;
-                }
+            {
+                propertyInfo.SetValue(this, sv.Value == "true");
+                HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
+                break;
+            }
 
             case StringValue sv when propertyInfo.PropertyType == typeof(CursorType):
-                {
-                    if (Enum.TryParse<CursorType>(sv.Value, true, out var cursor))
-                        propertyInfo.SetValue(this, cursor);
-                    break;
-                }
+            {
+                if (Enum.TryParse<CursorType>(sv.Value, true, out var cursor))
+                    propertyInfo.SetValue(this, cursor);
+                break;
+            }
         }
     }
 

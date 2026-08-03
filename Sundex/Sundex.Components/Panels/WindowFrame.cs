@@ -11,11 +11,11 @@ public class WindowFrame : Panel
 {
     protected readonly Panel Container;
     protected readonly FlexPanel Header;
+    protected CursorType RequestedCursor;
     private UIElement? _child;
 
     private byte _resizingXMode;
     private byte _resizingYMode;
-    protected CursorType RequestedCursor;
 
     public WindowFrame(UIContext context) : base(context)
     {

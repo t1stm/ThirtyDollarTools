@@ -55,11 +55,11 @@ public class BassBuffer : AudibleBuffer, IDisposable
         var samples = MemoryMarshal.Cast<byte, float>(pool.AsSpan());
 
         for (var i = 0; i < length; i++)
-            for (var j = 0; j < channels; j++)
-            {
-                var idx = i * channels + j;
-                samples[idx] = data.Samples[j][i];
-            }
+        for (var j = 0; j < channels; j++)
+        {
+            var idx = i * channels + j;
+            samples[idx] = data.Samples[j][i];
+        }
 
         if (SampleHandle != 0)
             Delete();
@@ -152,20 +152,20 @@ public class BassBuffer : AudibleBuffer, IDisposable
         switch (state)
         {
             case false:
-                {
-                    var channels = Bass.SampleGetChannels(SampleHandle);
-                    foreach (var channel in channels) Bass.ChannelPlay(channel);
-                    IsRunning = true;
-                    break;
-                }
+            {
+                var channels = Bass.SampleGetChannels(SampleHandle);
+                foreach (var channel in channels) Bass.ChannelPlay(channel);
+                IsRunning = true;
+                break;
+            }
 
             case true:
-                {
-                    var channels = Bass.SampleGetChannels(SampleHandle);
-                    foreach (var channel in channels) Bass.ChannelPause(channel);
-                    IsRunning = false;
-                    break;
-                }
+            {
+                var channels = Bass.SampleGetChannels(SampleHandle);
+                foreach (var channel in channels) Bass.ChannelPause(channel);
+                IsRunning = false;
+                break;
+            }
         }
     }
 

@@ -16,7 +16,7 @@ public class ProjectTrackTests
     [Fact]
     public void EmptyTrack_EmitsOnlySpeed()
     {
-        var events = MakeTrack(120, 4).ToSequence().Events;
+        var events = MakeTrack().ToSequence().Events;
 
         // 120 BPM, four steps a beat - the 480 step rate stated as its two factors.
         Assert.Equal(["!speed", "!speed", "!divider"], events.Select(e => e.SoundEvent));
@@ -84,14 +84,16 @@ public class ProjectTrackTests
         note.Step = 5;
         var events = track.ToSequence().Events;
 
-        Assert.Equal(["!speed", "!speed", "!divider", "!stop", "clap", "!stop", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "!stop", "clap", "!stop", "boom"],
+            events.Select(e => e.SoundEvent));
     }
 
     [Fact]
     public void NoteValues_CarryIntoTheSequence()
     {
         var track = MakeTrack();
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5, Volume = 60 });
+        track.Segments[0].Notes.Add(new Note
+            { Step = 0, Instrument = Instrument.Single("boom"), Value = 5, Volume = 60 });
 
         var ev = track.ToSequence().Events[3];
 
@@ -116,7 +118,7 @@ public class ProjectTrackTests
     public void Placements_LandOnTheGrid()
     {
         // 120 BPM, 4 steps per beat -> sequence runs at 480 "BPM", one step = 0.125 s.
-        var track = MakeTrack(120, 4);
+        var track = MakeTrack();
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("clap") });
         track.Segments[0].Notes.Add(new Note { Step = 6, Instrument = Instrument.Single("snare") });
@@ -149,7 +151,8 @@ public class ProjectTrackTests
         var events = track.ToSequence().Events;
 
         // boom (step 0) + its echo (step 2); clap (step 4) is untouched, no echo.
-        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!stop", "boom", "!stop", "clap"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!stop", "boom", "!stop", "clap"],
+            events.Select(e => e.SoundEvent));
     }
 
     [Fact]
@@ -186,7 +189,8 @@ public class ProjectTrackTests
         var events = track.ToSequence().Events;
 
         // Both automations fire independently from the same base note.
-        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!stop", "boom", "!stop", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(["!speed", "!speed", "!divider", "boom", "!stop", "boom", "!stop", "boom"],
+            events.Select(e => e.SoundEvent));
     }
 
     [Fact]

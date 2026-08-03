@@ -201,9 +201,13 @@ internal static class SequenceBuilder
             // to be the same number, and 4/2 can land on 1.9999999999999998.
             var ratio = multiplier / current_multiplier;
             if (SameSpeed(current_bpm, bpm) && IsWhole(ratio))
+            {
                 events.Add(Action("!speed", Math.Round(ratio), ValueScale.Times));
+            }
             else if (SameSpeed(current_bpm, bpm) && IsWhole(1 / ratio))
+            {
                 events.Add(Action("!speed", Math.Round(1 / ratio), ValueScale.Divide));
+            }
             else
             {
                 events.Add(Action("!speed", bpm));
@@ -262,7 +266,7 @@ internal static class SequenceBuilder
 
             // A fresh set, never the source event's: Copy() shares CutSounds by reference,
             // so unioning into an existing cut would edit whatever it was copied from.
-            var collapsed = new IndividualCutEvent([..cut.CutSounds], cut.IsStandardImplementation);
+            var collapsed = new IndividualCutEvent([.. cut.CutSounds], cut.IsStandardImplementation);
             merged[cut.IsStandardImplementation] = collapsed;
             result.Add(collapsed); // in place of the first cut: action order at a step is preserved
         }
