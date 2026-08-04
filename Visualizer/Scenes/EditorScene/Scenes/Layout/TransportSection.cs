@@ -5,8 +5,9 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Layout;
 
 /// <summary>
 ///     The code-built transport block docked in the track column: progress row,

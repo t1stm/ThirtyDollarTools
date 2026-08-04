@@ -1,10 +1,11 @@
-using EditorScene.Scenes.Components;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Views;
 
 namespace EditorScene.Tests;
 
@@ -518,5 +519,24 @@ public class ArrangementViewTests
 
         Assert.Equal(2, state.Project.Placements.Count);
         Assert.Equal([placement, state.SelectedPlacement!], state.Project.Placements);
+    }
+
+    [Fact]
+    public void AClipBlock_IsClippedToTheLanesBelowTheRuler()
+    {
+        // Regression: Refresh re-adds the ruler after the clip blocks so it paints over
+        // them, but that only orders siblings inside one Index layer. A ClipBlock's track
+        // name Label sits a layer deeper, and deeper layers render after shallower ones,
+        // so a clip scrolled up under the ruler had its name painted over the bar numbers.
+        var (_, state, view) = NewView();
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 0, 0);
+        view.Layout();
+
+        var block = view.Blocks[0];
+        var clip = ((ColoredPlane)block.Background!).ClipRect;
+        Assert.NotNull(clip);
+        Assert.Equal((int)ArrangementView.RulerHeight, clip.Value.Y); // ruler band excluded
+        Assert.Equal(400, clip.Value.W); // and never past the view's own bottom
     }
 }

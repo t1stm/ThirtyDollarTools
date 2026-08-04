@@ -1,10 +1,10 @@
 using System.Reflection;
-using EditorScene.Scenes.Components;
 using Serilog;
 using Shared.Atlases;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using Sundex.Engine.Asset_Management;
+using EditorScene.Scenes.Dialogs;
 
 namespace EditorScene.Tests;
 

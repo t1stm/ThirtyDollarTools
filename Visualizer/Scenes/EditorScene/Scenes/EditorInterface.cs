@@ -15,6 +15,9 @@ using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using EditorScene.Scenes.Dialogs;
+using EditorScene.Scenes.Layout;
+using EditorScene.Scenes.Views;
 
 namespace EditorScene.Scenes;
 

@@ -6,8 +6,9 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     The FL-style arrangement grid: channels are horizontal lanes, time runs right in
@@ -485,11 +486,23 @@ public sealed class ArrangementView : Panel
         _inheritedClip = clip;
         var x = (int)Computed.AbsoluteX;
         var y = (int)Computed.AbsoluteY;
-        var own = IntersectClip(new Vector4i(x, y, x + (int)Computed.Width, y + (int)Computed.Height), clip);
+        var right = x + (int)Computed.Width;
+        var bottom = y + (int)Computed.Height;
+        var own = IntersectClip(new Vector4i(x, y, right, bottom), clip);
 
-        foreach (var child in Children) child.ApplyClip(own);
+        // Everything that lives in the lane grid is confined below the ruler band, not
+        // just to the view: Refresh's re-add order only stacks siblings within one Index
+        // layer, and a ClipBlock's name Label sits a layer deeper (Panel.Index cascades
+        // +1 per level) - deeper layers render after shallower ones, so the track name
+        // painted straight over the ruler background and its bar numbers.
+        var lanes = IntersectClip(new Vector4i(x, y + (int)RulerHeight, right, bottom), clip);
+
+        foreach (var child in Children) child.ApplyClip(lanes);
+        _rulerBackground.ApplyClip(own);
+        foreach (var label in _barLabels) label.ApplyClip(own);
+
         Background?.ClipRect = clip;
-        _lineBatch.ClipRect = own;
+        _lineBatch.ClipRect = lanes;
     }
 
     protected override void DrawSelf(UIContext ctx)

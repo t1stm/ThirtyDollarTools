@@ -1,4 +1,3 @@
-using EditorScene.Scenes.Components;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -7,6 +6,7 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Views;
 
 namespace EditorScene.Tests;
 

@@ -5,8 +5,10 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
+using EditorScene.Scenes.Views;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     One instrument-list row: clicking it picks the instrument; a separate "edit"

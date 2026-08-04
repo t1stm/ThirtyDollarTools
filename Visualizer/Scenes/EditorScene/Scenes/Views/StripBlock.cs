@@ -3,7 +3,7 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Views;
 
 /// <summary>A purely visual overlay: never takes pointer input.</summary>
 internal class StripBlock : Panel

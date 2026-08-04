@@ -4,8 +4,9 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     The save/discard/cancel choice (ModalLayer content) shown when leaving the editor

@@ -5,8 +5,10 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
+using EditorScene.Scenes.Views;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Layout;
 
 /// <summary>
 ///     One track-list row: selection highlight, name and a remove button. Pure view -

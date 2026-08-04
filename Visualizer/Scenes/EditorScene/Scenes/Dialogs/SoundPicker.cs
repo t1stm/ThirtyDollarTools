@@ -11,8 +11,10 @@ using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
+using EditorScene.Scenes.Components;
+using EditorScene.Scenes.Views;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     The note editor's sound picker: a wrapping grid of TDW sound icons, ported from

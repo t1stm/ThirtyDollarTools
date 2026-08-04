@@ -20,4 +20,9 @@
     <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.ss"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Scenes\Dialogs\" />
+    <Folder Include="Scenes\Views\" />
+  </ItemGroup>
+
 </Project>

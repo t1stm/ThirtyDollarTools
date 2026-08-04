@@ -3,8 +3,9 @@ using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     Plots a note's generated automation events as a step path in the note's sound

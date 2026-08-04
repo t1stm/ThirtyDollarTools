@@ -1,5 +1,6 @@
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using EditorScene.Scenes.Dialogs;
 
 namespace EditorScene;
 

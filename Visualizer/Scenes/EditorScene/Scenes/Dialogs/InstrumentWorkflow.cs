@@ -4,7 +4,7 @@ using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     The instrument selector/editor/delete/reassign cluster: opening the picker,

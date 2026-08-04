@@ -5,8 +5,9 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Layout;
 
 /// <summary>
 ///     The scrollable track list docked in the track column, with its "+ Add track"

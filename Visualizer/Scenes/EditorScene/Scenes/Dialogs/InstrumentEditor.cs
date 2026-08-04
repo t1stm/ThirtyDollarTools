@@ -9,8 +9,9 @@ using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     Create-or-edit form for one instrument: a name field and a multi-select sound picker

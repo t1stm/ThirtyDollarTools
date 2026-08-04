@@ -1,5 +1,5 @@
-using EditorScene.Scenes.Components;
 using OpenTK.Mathematics;
+using EditorScene.Scenes.Views;
 
 namespace EditorScene.Tests;
 

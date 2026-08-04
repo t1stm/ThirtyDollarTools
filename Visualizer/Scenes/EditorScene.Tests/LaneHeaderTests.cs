@@ -1,5 +1,5 @@
-using EditorScene.Scenes.Components;
 using OpenTK.Mathematics;
+using EditorScene.Scenes.Views;
 
 namespace EditorScene.Tests;
 
@@ -94,6 +94,30 @@ public class LaneHeaderTests
 
         Assert.True(mute.Visible);
         Assert.True(mute.Drawn);
+    }
+
+    [Fact]
+    public void ARowStraddlingAnEdge_IsClippedToTheLaneStrip()
+    {
+        // Regression: the gutter spans the arrangement's full height and Visible only culls
+        // whole rows, so the last partly-visible row's M/S buttons hung past the panel's
+        // bottom edge, painting over the hint bar below the grid area. Nothing cut them:
+        // the header applied no clip rect at all.
+        var (state, arrangement, header) = NewHeader(400);
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 15, 0); // 17 lanes: taller than the 400px gutter
+        arrangement.Refresh();
+        arrangement.Layout();
+        header.Layout();
+
+        Assert.NotNull(header.RowClip);
+        var clip = header.RowClip.Value;
+        Assert.Equal((int)ArrangementView.RulerHeight, clip.Y); // starts below the ruler band
+        Assert.Equal(400, clip.W); // never past the gutter's own bottom
+
+        // The clip has to be doing the work: the bottom-most shown row really does overflow.
+        var straddling = header.Rows.Last(row => row.Mute.Visible).Mute;
+        Assert.True(straddling.Computed.AbsoluteY + straddling.Computed.Height > clip.W);
     }
 
     [Fact]

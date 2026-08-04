@@ -3,7 +3,7 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Views;
 
 internal class NoteBlock : Panel
 {

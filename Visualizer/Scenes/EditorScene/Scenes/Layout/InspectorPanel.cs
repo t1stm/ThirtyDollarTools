@@ -7,8 +7,10 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
+using EditorScene.Scenes.Views;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Layout;
 
 /// <summary>
 ///     Context-sensitive right-side inspector: project + selected-track properties on

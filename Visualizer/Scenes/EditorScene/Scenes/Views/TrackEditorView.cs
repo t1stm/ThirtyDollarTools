@@ -6,8 +6,9 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     The per-track note editor (FL piano-roll style, absolute values). Horizontal =

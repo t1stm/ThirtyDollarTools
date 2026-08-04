@@ -1,6 +1,6 @@
 using ThirtyDollarConverter.Editor;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     Owns the piano roll's scroll/zoom state and every pixel↔model conversion for

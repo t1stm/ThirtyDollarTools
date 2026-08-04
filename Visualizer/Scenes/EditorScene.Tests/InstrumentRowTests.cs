@@ -1,7 +1,7 @@
-using EditorScene.Scenes.Components;
 using OpenTK.Mathematics;
 using Sundex.Components.Labels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Dialogs;
 
 namespace EditorScene.Tests;
 

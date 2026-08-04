@@ -3,8 +3,9 @@ using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     The M/S gutter to the left of the arrangement: one mute and one solo toggle per
@@ -23,6 +24,7 @@ public sealed class LaneHeader : Panel
     private readonly ArrangementView _arrangement;
     private readonly List<(Button Mute, Button Solo)> _rows = [];
     private readonly EditorState _state;
+    private Vector4i? _inheritedClip;
 
     public LaneHeader(UIContext context, EditorState state, ArrangementView arrangement) : base(context)
     {
@@ -45,6 +47,9 @@ public sealed class LaneHeader : Panel
 
     // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
     internal IReadOnlyList<(Button Mute, Button Solo)> Rows => _rows;
+
+    /// <inheritdoc cref="ApplyClip" />
+    internal Vector4i? RowClip { get; private set; }
 
     /// <summary>Hover hint text for the M/S toggles; null on hover exit. See EditorInterface.SetHint.</summary>
     public Action<string?>? OnHint { get; set; }
@@ -81,6 +86,26 @@ public sealed class LaneHeader : Panel
         }
 
         base.DoLayout();
+        ApplyClip(_inheritedClip);
+    }
+
+    /// <summary>
+    ///     Confines the toggles to the lane strip. The gutter spans the arrangement's full
+    ///     height, but <c>Visible</c> above only culls whole rows: one straddling an edge
+    ///     stayed shown and its 24px buttons hung past the panel - over the hint bar below
+    ///     the grid, or up beside the ruler's bar numbers. Nothing cut them off, because
+    ///     this panel never applied a clip rect at all.
+    /// </summary>
+    public override void ApplyClip(Vector4i? clip)
+    {
+        _inheritedClip = clip;
+        var x = (int)Computed.AbsoluteX;
+        var y = (int)Computed.AbsoluteY;
+        RowClip = IntersectClip(new Vector4i(x, y + (int)ArrangementView.RulerHeight,
+            x + (int)Computed.Width, y + (int)Computed.Height), clip);
+
+        Background?.ClipRect = clip;
+        foreach (var child in Children) child.ApplyClip(RowClip);
     }
 
     private Button NewToggle(UIContext context, string text, Action toggle, string hint)

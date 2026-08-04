@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     Shared scroll/zoom/middle-pan math for <see cref="TrackEditorGeometry" /> (via

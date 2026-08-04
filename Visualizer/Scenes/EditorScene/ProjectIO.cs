@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using EditorScene.Scenes.Components;
 using Serilog;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using EditorScene.Scenes.Dialogs;
 
 namespace EditorScene;
 

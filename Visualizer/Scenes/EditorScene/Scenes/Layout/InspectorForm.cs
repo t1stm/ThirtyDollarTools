@@ -6,8 +6,9 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Layout;
 
 /// <summary>
 ///     Generic row builders shared by every <see cref="InspectorPanel" /> section:

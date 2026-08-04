@@ -1,5 +1,5 @@
-using EditorScene.Scenes.Components;
 using Sundex.Components.Labels;
+using EditorScene.Scenes.Dialogs;
 
 namespace EditorScene.Tests;
 

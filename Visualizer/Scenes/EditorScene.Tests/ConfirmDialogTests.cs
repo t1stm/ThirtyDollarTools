@@ -1,4 +1,4 @@
-using EditorScene.Scenes.Components;
+using EditorScene.Scenes.Dialogs;
 
 namespace EditorScene.Tests;
 

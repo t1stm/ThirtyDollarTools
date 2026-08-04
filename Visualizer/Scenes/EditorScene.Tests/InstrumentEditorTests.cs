@@ -1,8 +1,8 @@
-using EditorScene.Scenes.Components;
 using Serilog;
 using Shared.Atlases;
 using Sundex.Engine.Asset_Management;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Dialogs;
 
 namespace EditorScene.Tests;
 

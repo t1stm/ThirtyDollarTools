@@ -5,8 +5,9 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.File_Selector;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using EditorScene.Scenes.Components;
 
-namespace EditorScene.Scenes.Components;
+namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     Wraps the root panel's modal add/remove pattern (ModalLayer only, never
