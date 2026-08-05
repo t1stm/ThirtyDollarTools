@@ -11,6 +11,7 @@ using Shared.Renderer.Settings;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Attributes;
@@ -31,7 +32,6 @@ namespace VisualizerScene;
 [PreloadGraphicsContext]
 public class Visualizer : Scene, IGamePreloadable
 {
-    public const string Version = "2.0.0 Release Candidate 1";
     private readonly FpsCounter _fpsCounter = new();
 
     #region Stopwatches
@@ -58,6 +58,16 @@ public class Visualizer : Scene, IGamePreloadable
 
     private ulong _updateId;
     private int _width;
+
+    /// <summary>Reads the embedded "VERSION" assembly file, or "Developer Build" when it's absent.</summary>
+    public static string GetVersion(IAssetProvider assetProvider)
+    {
+        var info = new AssetInfo { Location = "VERSION", Storage = StorageLocation.Assembly };
+        if (!assetProvider.Query<AssetStream, AssetInfo>(info)) return "Developer Build";
+
+        using var reader = new StreamReader(assetProvider.Load<AssetStream, AssetInfo>(info).Stream);
+        return reader.ReadToEnd().Trim();
+    }
 
     /// <summary>
     ///     Creates a TDW sequence visualizer.

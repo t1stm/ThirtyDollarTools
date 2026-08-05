@@ -177,7 +177,7 @@ static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow,
     // preload all scenes in memory (inefficient i know, but leads to better UX)
     game.Enqueue(instance =>
     {
-        instance.SceneManager.LoadScene<Home>("home", _ => new Home(instance, Visualizer.Version));
+        instance.SceneManager.LoadScene<Home>("home", _ => new Home(instance, Visualizer.GetVersion(instance.AssetProvider)));
 
         instance.SceneManager.LoadScene<Visualizer>("visualizer", _ =>
             new Visualizer(instance, SettingsHandler.Settings, workflow, [sequence])

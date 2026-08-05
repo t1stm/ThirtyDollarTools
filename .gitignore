@@ -15,3 +15,5 @@ Sounds/*.json
 Sounds/Images/
 BenchmarkDotNet.Artifacts/
 
+# written by the release workflow
+Visualizer/ThirtyDollarVisualizer/VERSION

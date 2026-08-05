@@ -52,6 +52,18 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true \
             -o ./bin/${{ matrix.platform }}-Release
 
+      - name: Write VERSION file
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          TITLE: ${{ github.event.release.name }}
+        run: |
+          if [ -n "$TITLE" ]; then
+            printf '%s (%s)' "$TAG" "$TITLE" > ./Visualizer/ThirtyDollarVisualizer/VERSION
+          else
+            printf '%s' "$TAG" > ./Visualizer/ThirtyDollarVisualizer/VERSION
+          fi
+          cat ./Visualizer/ThirtyDollarVisualizer/VERSION
+
       - name: Publish ThirtyDollarVisualizer
         env:
           SIXLABORS_LICENSE_KEY: ${{ secrets.SIXLABORS_LICENSE_KEY }}
