@@ -19,6 +19,7 @@ public class ProgressBarTests
         var camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
         var context = new TestContext { Camera = camera };
         var progressBar = new ProgressBar(context);
+        progressBar.DrawTo(context); // only a rendering element queues a swapped-in renderable
         var backgroundProperty = typeof(ProgressBar).GetProperty(nameof(ProgressBar.BackgroundPanel))!;
 
         var colorValue = new ColorValue("#FF0000"); // Red

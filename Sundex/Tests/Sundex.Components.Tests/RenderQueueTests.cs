@@ -164,6 +164,7 @@ public class RenderQueueTests
     {
         var context = new TestUIContext();
         var element = new TestElement(context);
+        element.DrawTo(context); // only a rendering element queues a swapped-in renderable
 
         var r1 = new MockRenderable();
 
@@ -186,6 +187,7 @@ public class RenderQueueTests
 
         var button = new TestElement(context) { Index = 10 };
         var label = new TestElement(context) { Index = 11, Parent = button };
+        button.DrawTo(context); // only a rendering element queues a swapped-in renderable
 
         var textBuffer = new MockRenderable();
         context.QueueRender(textBuffer, label.GetIndex());
@@ -424,6 +426,7 @@ public class RenderQueueTests
     {
         var context = new TestUIContext();
         var element = new TestPanel(context) { Index = 5 };
+        element.DrawTo(context); // only a rendering element queues a swapped-in renderable
 
         var text = new MockRenderable();
         context.QueueRender(text, 5);
@@ -444,6 +447,7 @@ public class RenderQueueTests
     {
         var context = new TestUIContext();
         var element = new TestElement(context) { Index = 5 };
+        element.DrawTo(context); // only a rendering element queues a swapped-in renderable
 
         var existing = new MockRenderable();
         context.QueueRender(existing, 5);

@@ -693,6 +693,14 @@ public abstract class UIElement
 
         if (newValue is not IRenderable newRenderable) return;
 
+        // Only an element that is currently rendering may put a renderable into the queue.
+        // Without this, a swap on a detached or stopped element resurrects its plane and
+        // paints it forever: closing a dialog removes the modal (dequeuing everything) and
+        // only then un-hovers the button, whose state change swaps the hover fill back to
+        // the base one. queueIndex >= 0 means the old renderable really was queued, which
+        // covers elements kept live by something other than DrawTo.
+        if (queueIndex == -1 && !Drawn) return;
+
         if (queueIndex == -1 && !string.IsNullOrEmpty(propertyName))
         {
             var property = GetType().GetProperty(propertyName);

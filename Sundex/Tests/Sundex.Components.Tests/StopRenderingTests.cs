@@ -4,12 +4,16 @@ using OpenTK.Mathematics;
 using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Core;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Cameras;
+using Sundex.Style.DSL;
+using Sundex.Style.DSL.Abstract;
+using Sundex.Style.DSL.Abstract.Values;
 
 namespace Sundex.Components.Tests;
 
@@ -107,6 +111,48 @@ public class StopRenderingTests
         Assert.All(queue, layer => Assert.DoesNotContain(probe.Renderable, layer));
         root.AddChild(detached);
         Assert.Contains(probe.Renderable, queue[probe.Index]);
+    }
+
+    [Fact]
+    public void HoverExitAfterTheClickThatClosedTheDialog_DoesNotResurrectTheBackground()
+    {
+        // The reported bug: a dialog button's fill stayed on screen after "Done"/"Import"
+        // closed the dialog. Order of events inside one UpdatePointer call - the click
+        // handler removes the modal (StopRendering dequeues everything), and only then
+        // does ApplyPointerState un-hover the now-detached button, whose state change
+        // swaps the hover plane back to the base one. That swap must not re-queue.
+        var context = new TestUIContext();
+        var root = new Panel(context) { Width = 800, Height = 600 };
+        root.ApplyStyleSheet(HoveredButtonSheet());
+        root.DrawTo(context);
+
+        var modal = new ModalLayer(context);
+        var button = new Button(context, "Done") { Width = 100, Height = 30 };
+        modal.AddChild(button);
+        button.OnClick = _ => root.RemoveChild(modal);
+        root.AddChild(modal);
+        root.Layout();
+
+        var queue = context.GetRenderQueue();
+        context.UpdatePointer(root, 400, 300, true, true, false, Vector2.Zero);
+        context.UpdatePointer(root, 400, 300, false, false, true, Vector2.Zero);
+
+        Assert.Null(modal.Parent);
+        Assert.All(queue, layer => Assert.Empty(layer));
+    }
+
+    private static StyleSheet HoveredButtonSheet()
+    {
+        var holder = new StyleSheetHolder();
+        holder.Components["button"] = new Dictionary<string, IStyleValue>
+        {
+            { "background", new ColorValue("#4c6bcc") },
+            {
+                "state[hovered]",
+                new BlockValue(new Dictionary<string, IStyleValue> { { "background", new ColorValue("#6b82c4") } })
+            }
+        };
+        return new StyleSheet(holder);
     }
 
     private class DrawSelfProbe(UIContext context) : UIElement(context)
