@@ -15,6 +15,7 @@ internal class NoteBlock : Panel
         Width = 0;
         Height = 0;
         Background = new ColoredPlane { Color = TrackEditorView.SoundPalette[0] };
+        Cursor = CursorType.Pointer;
         // Swallow the click so a release on a note never bubbles into the view's
         // place-at-pointer handler; selection already happened on press.
         OnClick = _ => { };

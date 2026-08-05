@@ -28,6 +28,7 @@
       <panel id="inspector-column"/>
 
       <flex id="hint-bar">
+        <panel id="hint-gutter"/>
         <label id="hint-label" value=""/>
       </flex>
     </panel>

@@ -589,6 +589,7 @@ public sealed class ArrangementView : Panel
             Classes = ["clip-block"];
             // Code-owned fill: Refresh tints it per selection state on every layout.
             Background = _background = new ColoredPlane { Color = ClipColor };
+            Cursor = CursorType.Pointer;
             Children = [new Label(context, placement.Track.Name) { Classes = ["clip-label"] }];
             // Swallow the click so a release on a clip never bubbles into the view's
             // place-at-pointer handler; selection already happened on press.

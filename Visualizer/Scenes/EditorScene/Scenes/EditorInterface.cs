@@ -44,6 +44,7 @@ public class EditorInterface
     private readonly DialogHost _dialogHost;
     private readonly FlexPanel _gridArea;
     private readonly FlexPanel _hintBar;
+    private readonly Panel _hintGutter;
     private readonly Label _hintLabel;
     private readonly InspectorPanel _inspector;
     private readonly Panel _inspectorColumn;
@@ -106,8 +107,10 @@ public class EditorInterface
         _gridArea = (FlexPanel)ids["grid-area"];
         _inspectorColumn = (Panel)ids["inspector-column"];
         _hintBar = (FlexPanel)ids["hint-bar"];
+        _hintGutter = (Panel)ids["hint-gutter"];
         _hintLabel = (Label)ids["hint-label"];
         _hintLabel.SetTextContents(HintLegend);
+        AlignHintToGrid();
 
         Playback = new EditorPlayback(workflow, State);
 
@@ -330,6 +333,19 @@ public class EditorInterface
             _gridArea.AddChild(_arrangementPanel);
             _arrangement.Refresh();
         }
+
+        AlignHintToGrid();
+    }
+
+    /// <summary>
+    ///     Indents the hint text past the active view's gutter - the arrangement's M/S lane
+    ///     header, the note editor's narrower value ruler - so it starts at the first grid
+    ///     column. The bar's own padding already covers part of that offset.
+    /// </summary>
+    private void AlignHintToGrid()
+    {
+        var gutter = _editorOpen ? TrackEditorView.GutterWidth : LaneHeader.GutterWidth;
+        _hintGutter.Width = Math.Max(0, gutter - _hintBar.Padding);
     }
 
     /// <summary>One Draw/Select toggle; every made button follows State.OnToolChanged (see ctor).</summary>
@@ -600,11 +616,15 @@ public class EditorInterface
         // so the body regions are sized here. The transport controls dock inside the
         // track column now (see the constructor), so no separate footer band to
         // subtract from the grid/inspector columns.
-        _trackColumn.Height = height - HeaderHeight - HintBarHeight;
-        _gridArea.Width = width - TrackColumnWidth - InspectorPanel.PanelWidth;
+        // The hint bar only spans the grid area - the track column and inspector run
+        // full height beside it.
+        var gridWidth = width - TrackColumnWidth - InspectorPanel.PanelWidth;
+        _trackColumn.Height = height - HeaderHeight;
+        _gridArea.Width = gridWidth;
         _gridArea.Height = height - HeaderHeight - HintBarHeight;
         _inspectorColumn.X = width - InspectorPanel.PanelWidth;
-        _inspectorColumn.Height = height - HeaderHeight - HintBarHeight;
+        _inspectorColumn.Height = height - HeaderHeight;
+        _hintBar.Width = gridWidth;
         _hintBar.Y = height - HintBarHeight;
 
         // DrawTo (not just Layout): a row whose Visible flips true here (e.g. LaneHeader's

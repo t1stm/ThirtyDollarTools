@@ -13,6 +13,7 @@ internal class StripBlock : Panel
         Width = 0;
         Height = 0;
         Background = new ColoredPlane { Color = TrackEditorView.StripSegmentA };
+        Cursor = CursorType.Pointer;
         OnClick = _ =>
         {
             if (Segment != null) view._state.SelectSegment(Segment);

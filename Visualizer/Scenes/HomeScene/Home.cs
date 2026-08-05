@@ -90,6 +90,7 @@ public class Home : Scene
         {
             CursorType.Default => MouseCursor.Default,
             CursorType.Pointer => MouseCursor.PointingHand,
+            CursorType.Text => MouseCursor.IBeam,
             CursorType.ResizeX => MouseCursor.ResizeEW,
             CursorType.ResizeY => MouseCursor.ResizeNS,
             _ => MouseCursor.Default

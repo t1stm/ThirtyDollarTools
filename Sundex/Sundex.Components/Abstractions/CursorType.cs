@@ -4,6 +4,7 @@ public enum CursorType
 {
     Default,
     Pointer,
+    Text,
     ResizeX,
     ResizeY
 }

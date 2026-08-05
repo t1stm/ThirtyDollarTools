@@ -1,4 +1,5 @@
 using Sundex.Components.Abstractions;
+using Sundex.Components.Inputs;
 using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
@@ -72,6 +73,29 @@ public class CursorTests
         element.Update(context);
 
         Assert.Equal(CursorType.ResizeY, requestedCursor);
+    }
+
+    /// <summary>
+    ///     Hovering a spinner button hovers the field too (the hover chain includes
+    ///     ancestors), so the deeper element must be the one that wins the cursor.
+    /// </summary>
+    [Fact]
+    public void TestCursor_NumericInputButtonsWinOverTheField()
+    {
+        var requestedCursor = CursorType.Default;
+        var context = new TestUIContext
+        {
+            RequestCursor = c => requestedCursor = c
+        };
+
+        var input = new NumericInput(context, 1) { IsHovered = true };
+        input.Update(context);
+        Assert.Equal(CursorType.Text, requestedCursor);
+
+        // The two spinner buttons are the last children (see NumericInput's ctor).
+        input.Children[^1].IsHovered = true;
+        input.Update(context);
+        Assert.Equal(CursorType.Pointer, requestedCursor);
     }
 
     private class TestElement : UIElement

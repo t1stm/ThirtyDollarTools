@@ -56,7 +56,7 @@ public class TextInput : Panel
         Children = [_label];
 
         Focusable = true;
-        UpdateCursorOnHover = true;
+        Cursor = CursorType.Text;
         _text = SanitizeLine(value);
         CaretIndex = _anchor = _text.Length;
     }
