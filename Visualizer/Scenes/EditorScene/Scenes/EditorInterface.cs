@@ -91,6 +91,10 @@ public class EditorInterface
         Component = sundexContext.NewComponent(componentSource.Value);
         RootPanel = Component.Element as Panel ?? throw new Exception("Root panel not found");
 
+        // Before anything below is constructed: the views copy these into renderables at
+        // build time, so a palette loaded later would never reach them.
+        EditorPalette.Apply(Component.StyleSheet);
+
         RootPanel.DrawTo(context);
         _dialogHost = new DialogHost(context, RootPanel);
         _projectIo = new ProjectIO(State, _dialogHost, workflow.Logger) { OnSaved = RefreshTitle };
@@ -130,12 +134,7 @@ public class EditorInterface
         // controls: the list is percent-height, so it yields whatever room the
         // auto-sized transport section (below) doesn't need - no separate full-width
         // bottom bar, no magic footer-height constant to keep in sync.
-        var trackColumnBody = new FlexPanel(context)
-        {
-            Direction = LayoutDirection.Vertical,
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100)
-        };
+        var trackColumnBody = new FlexPanel(context) { ID = "track-column-body" };
         _trackColumn.AddChild(trackColumnBody);
 
         _trackList = new TrackListPanel(context, State) { OnContextMenu = ShowTrackContextMenu, OnHint = SetHint };
@@ -144,13 +143,11 @@ public class EditorInterface
         _transport = new TransportSection(context, Playback, RequestBack);
         trackColumnBody.AddChild(_transport);
 
-        _arrangement = new ArrangementView(context, State)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100)
-        };
+        _arrangement = new ArrangementView(context, State) { Classes = ["grid-view"] };
         _laneHeader = new LaneHeader(context, State, _arrangement)
         {
+            // Not styled: the gutter's width is a layout constant the lane math reads,
+            // not a look. Its fill is (see Panels.snx.ss's lane-header).
             Width = LaneHeader.GutterWidth,
             Height = LiteralOrComputable.Percent(100),
             OnHint = SetHint
@@ -159,27 +156,21 @@ public class EditorInterface
         // a slim bar holding the tool buttons, then the lane header + grid row.
         var arrangementBar = new FlexPanel(context)
         {
-            Width = LiteralOrComputable.Percent(100),
-            Height = 40,
-            Spacing = 12,
-            Padding = 6,
+            Classes = ["tool-bar"],
             Children =
             [
-                new Panel(context) { Width = LiteralOrComputable.Percent(100) },
+                new Panel(context) { Classes = ["spacer"] },
                 MakeToolButton("Draw", EditorTool.Draw), MakeToolButton("Select", EditorTool.Select)
             ]
         };
         var arrangementBody = new FlexPanel(context)
         {
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100),
+            Classes = ["grid-body"],
             Children = [_laneHeader, _arrangement]
         };
         _arrangementPanel = new FlexPanel(context)
         {
-            Direction = LayoutDirection.Vertical,
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100),
+            Classes = ["grid-panel"],
             Children = [arrangementBar, arrangementBody]
         };
         _gridArea.AddChild(_arrangementPanel);
@@ -187,17 +178,10 @@ public class EditorInterface
         _arrangement.OnSeekQuarters = Playback.Seek;
         _arrangement.OnScrolled = _laneHeader.InvalidateLayout;
 
-        _trackEditor = new TrackEditorView(context, State)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100)
-        };
+        _trackEditor = new TrackEditorView(context, State) { Classes = ["grid-view"] };
         _openedTrackName = new TextInput(context)
         {
-            FontSizePx = 15f,
-            Width = 220,
-            BorderRadius = 4,
-            Background = new ColoredPlane { Color = EditorPalette.InputBackground },
+            ID = "opened-track-name",
             OnValueChanged = input =>
             {
                 if (State.OpenedTrack is { } track) State.RenameTrack(track, input.Value);
@@ -215,17 +199,15 @@ public class EditorInterface
         // A second, independent sound picker in multi-select mode: the track-automation
         // sound filter. Mirrors _soundPicker/_soundModal above but commits a whole set
         // via a "Done" button instead of picking one sound and closing immediately.
-        _soundFilterPicker = new SoundPicker(context, workflow.AtlasStore) { Width = 640, MultiSelect = true };
-        var soundFilterList = new ScrollView(context) { Width = 640, Height = 440 };
+        _soundFilterPicker = new SoundPicker(context, workflow.AtlasStore)
+            { ID = "sound-filter-picker", MultiSelect = true };
+        var soundFilterList = new ScrollView(context) { ID = "sound-filter-list" };
         soundFilterList.AddChild(_soundFilterPicker);
         var doneButton = new Button(context, "Done");
         var soundFilterFrame = new FlexPanel(context)
         {
-            Direction = LayoutDirection.Vertical,
-            Width = 640,
-            Padding = 10,
-            Spacing = 8,
-            Background = new ColoredPlane { Color = EditorPalette.Panel },
+            ID = "sound-filter-frame",
+            Classes = ["dialog-frame"],
             Children = [soundFilterList, doneButton]
         };
         _soundFilterModal = new ModalLayer(context);
@@ -234,16 +216,15 @@ public class EditorInterface
         // Dismissing via the backdrop commits too - clicking outside shouldn't discard picks.
         _soundFilterModal.OnDismissRequested = _ => CommitAndCloseSoundFilter();
 
+        // No class: both this and _instrumentButton take the `component button` look
+        // that EditorInterface.snx.ss gives every unclassed button.
         var backToArrangement = new Button(context, "← Arrangement") { OnClick = _ => State.CloseTrack() };
         // Percent-width spacer soaks up the free space so the tool buttons land flush
         // against the bar's right edge - this framework has no space-between align.
-        var editorBarSpacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
+        var editorBarSpacer = new Panel(context) { Classes = ["spacer"] };
         var editorBar = new FlexPanel(context)
         {
-            Width = LiteralOrComputable.Percent(100),
-            Height = 40,
-            Spacing = 12,
-            Padding = 6,
+            Classes = ["tool-bar"],
             Children =
             [
                 backToArrangement, _openedTrackName, _instrumentButton, editorBarSpacer,
@@ -252,17 +233,11 @@ public class EditorInterface
         };
         _trackEditorPanel = new FlexPanel(context)
         {
-            Direction = LayoutDirection.Vertical,
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100),
+            Classes = ["grid-panel"],
             Children = [editorBar, _trackEditor]
         };
 
-        _inspector = new InspectorPanel(context, State)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100)
-        };
+        _inspector = new InspectorPanel(context, State);
         _inspectorColumn.AddChild(_inspector);
         _inspector.OnEditTrackAutomationSounds = automation =>
         {
@@ -363,12 +338,13 @@ public class EditorInterface
         var active = State.ActiveTool == tool;
         var button = new Button(_context, text)
         {
+            // Fill stays code-owned - it follows State.ActiveTool, and a stylesheet
+            // `background` would be swapped out from under it on the next hover.
             Background = new ColoredPlane
             {
                 Color = active ? ToolAccent(tool) : EditorPalette.Surface
             },
-            FontSizePx = 12,
-            BorderRadius = 6,
+            Classes = ["tool-button"],
             OnClick = _ => State.ActiveTool = tool
         };
         button.Label.Color = ToolTextColor(tool, active);

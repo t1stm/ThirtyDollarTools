@@ -83,7 +83,8 @@ public class ComponentBuilderV1 : IComponentBuilder
             Context = context,
             Element = uiElement,
             RegisteredIDs = registeredIds,
-            RegisteredClasses = registeredClasses
+            RegisteredClasses = registeredClasses,
+            StyleSheet = styleSheet
         };
 
         if (logic is not null)

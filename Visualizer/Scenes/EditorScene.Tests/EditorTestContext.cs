@@ -8,7 +8,9 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Tests;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Renderer.Abstract;
+using Sundex.Style.DSL;
 
 namespace EditorScene.Tests;
 
@@ -27,6 +29,36 @@ public class EditorTestContext : UIContext
             new MockFontProvider(),
             new MockTextProvider());
         Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+    }
+
+    /// <summary>
+    ///     The editor's real stylesheet, imports and all. Components under test are built
+    ///     the way <see cref="EditorInterface" /> builds them - detached, then styled - so
+    ///     anything asserting a size, a color or a corner has to apply this first, or it is
+    ///     measuring an unstyled element. <see cref="Styled{T}" /> does both.
+    /// </summary>
+    public static StyleSheet Styles { get; } = LoadStyles();
+
+    /// <summary>Applies <see cref="Styles" /> to a freshly built component and returns it.</summary>
+    public static T Styled<T>(T element) where T : UIElement
+    {
+        element.ApplyStyleSheet(Styles);
+        return element;
+    }
+
+    private static StyleSheet LoadStyles()
+    {
+        var provider = new AssetProvider(new LoggerConfiguration().CreateLogger(),
+            [typeof(EditorInterface).Assembly], new GLInfo());
+
+        string Read(string path)
+        {
+            using var stream = provider.Load<AssetStream, AssetInfo>(new AssetInfo { Location = path }).Stream;
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+
+        return new StyleSheet(StyleParser.Parse(Read("Scenes/Layout/EditorInterface.snx.ss"), Read));
     }
 
     /// <summary>

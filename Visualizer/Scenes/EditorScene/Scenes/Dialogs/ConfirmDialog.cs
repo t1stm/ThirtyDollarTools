@@ -1,7 +1,6 @@
 using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using EditorScene.Scenes.Components;
@@ -17,32 +16,26 @@ public sealed class ConfirmDialog : FlexPanel
     public ConfirmDialog(UIContext context, string message, string confirmLabel = "Delete",
         Vector4? confirmColor = null) : base(context)
     {
-        Direction = LayoutDirection.Vertical;
-        Width = 360;
-        Padding = 14;
-        Spacing = 14;
-        Background = new ColoredPlane { Color = EditorPalette.Panel };
+        ID = "confirm-dialog";
+        Classes = ["dialog-frame"];
 
+        // The confirm fill is a caller argument (delete red by default, but the import
+        // flow passes the accent), so it stays a code-built plane; the rest of the
+        // button - size, corner, dark label - comes from the sheet.
         ConfirmButton = new Button(context, confirmLabel,
             new ColoredPlane { Color = confirmColor ?? EditorPalette.DangerAccent })
         {
-            FontSizePx = 14,
-            BorderRadius = 6,
-            Label = { Color = EditorPalette.Panel }
+            Classes = ["dialog-button-shape"],
+            Label = { Classes = ["dark-label"] }
         };
-        CancelButton = new Button(context, "Cancel")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = EditorPalette.Divider }, BorderRadius = 6 };
+        CancelButton = new Button(context, "Cancel") { Classes = ["dialog-button"] };
 
         Children =
         [
-            new Label(context, message) { FontSizePx = 14f },
+            new Label(context, message) { Classes = ["body-label"] },
             new FlexPanel(context)
             {
-                Width = LiteralOrComputable.Percent(100),
-                Height = 40,
-                Spacing = 10,
-                HorizontalAlign = Align.End,
-                VerticalAlign = Align.Center,
+                Classes = ["dialog-actions"],
                 Children = [CancelButton, ConfirmButton]
             }
         ];

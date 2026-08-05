@@ -11,7 +11,8 @@ public class InstrumentRowTests
         EditorTestContext ctx, Instrument instrument,
         Action<Instrument> onPick, Action<Instrument> onEdit, Action<Instrument> onDelete)
     {
-        var row = new InstrumentRow(ctx, instrument, onPick, onEdit, onDelete) { Width = 300 };
+        var row = EditorTestContext.Styled(new InstrumentRow(ctx, instrument, onPick, onEdit, onDelete));
+        row.Width = 300;
         row.Layout();
         var buttons = row.Children.OfType<Button>().ToArray();
         return (row, buttons[0], buttons[1]);

@@ -17,12 +17,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.xml"/>
-    <EmbeddedResource Include="Scenes\Layout\EditorInterface.snx.ss"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Scenes\Dialogs\" />
-    <Folder Include="Scenes\Views\" />
+    <!-- Every sheet EditorInterface.snx.ss imports; the shared vocabulary lives in
+         Scenes\Styles, component-specific rules next to the .cs file they style. -->
+    <EmbeddedResource Include="Scenes\**\*.snx.ss"/>
   </ItemGroup>
 
 </Project>

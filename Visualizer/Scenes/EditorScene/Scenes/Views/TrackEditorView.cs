@@ -59,35 +59,29 @@ public sealed class TrackEditorView : Panel
     private const int BeatLabelPool = 128;
     private const float MinBeatLabelSpacingPx = 28f;
 
-    private static readonly Vector4 BackgroundColor = new(0.067f, 0.07f, 0.1f, 1f); // #11121a
-    private static readonly Vector4 GutterColor = EditorPalette.Panel;
-    private static readonly Vector4 StripColor = EditorPalette.Panel;
-    private static readonly Vector4 CutRowColor = EditorPalette.SurfaceRaised;
-    internal static readonly Vector4 StripSegmentA = EditorPalette.Surface;
-    private static readonly Vector4 StripSegmentB = EditorPalette.SurfaceRaised;
-    private static readonly Vector4 StripSelected = EditorPalette.Accent;
-    private static readonly Vector4 StepLineColor = new(0.11f, 0.12f, 0.17f, 1f);
-    private static readonly Vector4 BeatLineColor = EditorPalette.Surface;
-    private static readonly Vector4 RowLineColor = new(0.10f, 0.11f, 0.15f, 1f);
-    private static readonly Vector4 OctaveLineColor = new(0.20f, 0.22f, 0.31f, 1f);
-    private static readonly Vector4 BoundaryColor = EditorPalette.TextMuted;
-    private static readonly Vector4 ZeroRowColor = new(0.10f, 0.11f, 0.16f, 1f);
-    private static readonly Vector4 SelectedNoteColor = EditorPalette.SelectionHighlight;
-    private static readonly Vector4 LabelColor = EditorPalette.TextDim;
-    private static readonly Vector4 PlayheadColor = EditorPalette.Playhead;
+    // Every one of these is loaded from the stylesheet - see EditorPalette and
+    // Scenes/Views/GridViews.snx.ss. They stay as named locals because the draw code
+    // below reads them dozens of times and the names say what each shade is for.
+    private static Vector4 BackgroundColor => EditorPalette.GridBackground;
+    private static Vector4 GutterColor => EditorPalette.Panel;
+    private static Vector4 StripColor => EditorPalette.Panel;
+    private static Vector4 CutRowColor => EditorPalette.CutRow;
+    internal static Vector4 StripSegmentA => EditorPalette.StripSegmentA;
+    private static Vector4 StripSegmentB => EditorPalette.StripSegmentB;
+    private static Vector4 StripSelected => EditorPalette.Accent;
+    private static Vector4 StepLineColor => EditorPalette.StepLine;
+    private static Vector4 BeatLineColor => EditorPalette.Surface;
+    private static Vector4 RowLineColor => EditorPalette.RowLine;
+    private static Vector4 OctaveLineColor => EditorPalette.OctaveLine;
+    private static Vector4 BoundaryColor => EditorPalette.TextMuted;
+    private static Vector4 ZeroRowColor => EditorPalette.ZeroRow;
+    private static Vector4 SelectedNoteColor => EditorPalette.SelectionHighlight;
+    private static Vector4 LabelColor => EditorPalette.TextDim;
+    private static Vector4 PlayheadColor => EditorPalette.Playhead;
 
-    // Stable per-sound colors (string.GetHashCode is randomized per process).
-    internal static readonly Vector4[] SoundPalette =
-    [
-        new(0.30f, 0.42f, 0.80f, 1f), // blue
-        new(0.62f, 0.36f, 0.71f, 1f), // purple
-        new(0.24f, 0.60f, 0.46f, 1f), // green
-        new(0.78f, 0.47f, 0.25f, 1f), // orange
-        new(0.72f, 0.32f, 0.42f, 1f), // rose
-        new(0.28f, 0.56f, 0.67f, 1f), // teal
-        new(0.66f, 0.58f, 0.28f, 1f), // olive
-        new(0.48f, 0.44f, 0.78f, 1f) // violet
-    ];
+    // Stable per-sound colors (string.GetHashCode is randomized per process); the
+    // entries live in Scenes/Views/GridViews.snx.ss.
+    internal static Vector4[] SoundPalette => EditorPalette.SoundPalette;
 
     internal readonly List<Label> BeatLabels = [];
     internal readonly List<Label> GutterLabels = [];
@@ -162,7 +156,7 @@ public sealed class TrackEditorView : Panel
         _rulerBackground = ruler;
         for (var i = 0; i < BeatLabelPool; i++)
         {
-            var label = new Label(context, "1") { FontSizePx = 11f, Color = LabelColor };
+            var label = new Label(context, "1") { Classes = ["grid-label"] };
             BeatLabels.Add(label);
             AddChild(label);
         }
@@ -183,14 +177,13 @@ public sealed class TrackEditorView : Panel
                 _ => $" {value}"
             })
             {
-                FontSizePx = 11f,
-                Color = LabelColor
+                Classes = ["grid-label"]
             };
             GutterLabels.Add(label);
             AddChild(label);
         }
 
-        _cutRowLabel = new Label(context, "!cut") { FontSizePx = 11f, Color = LabelColor };
+        _cutRowLabel = new Label(context, "!cut") { Classes = ["grid-label"] };
         AddChild(_cutRowLabel);
 
         // Added after the gutter and its label so the rule spans the full width,
@@ -205,7 +198,7 @@ public sealed class TrackEditorView : Panel
             Width = 0,
             Height = 0,
             Background = new ColoredPlane
-                { Color = new Vector4(EditorPalette.Accent.X, EditorPalette.Accent.Y, EditorPalette.Accent.Z, 0.25f) }
+                { Color = EditorPalette.MarqueeFill }
         };
         AddChild(_marqueeRect);
     }

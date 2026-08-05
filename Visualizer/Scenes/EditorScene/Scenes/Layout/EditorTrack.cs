@@ -1,7 +1,5 @@
-using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
@@ -18,23 +16,16 @@ namespace EditorScene.Scenes.Layout;
 /// </summary>
 public sealed class EditorTrack : FlexPanel
 {
-    private static readonly Vector4 RowColor = EditorPalette.Panel;
-    private static readonly Vector4 SelectedColor = new(0.255f, 0.282f, 0.408f, 1f); // #414868
-
     private readonly ColoredPlane _background;
     private readonly EditorState _state;
 
     public EditorTrack(UIContext context, ProjectTrack track, EditorState state) : base(context)
     {
         Track = track;
-        Direction = LayoutDirection.Horizontal;
-        VerticalAlign = Align.Center;
-        Width = LiteralOrComputable.Percent(100);
-        Height = 36;
-        Padding = 6;
-        Spacing = 10;
-        BorderRadius = 6;
-        Background = _background = new ColoredPlane { Color = RowColor };
+        Classes = ["track-row"];
+        // The fill stays code-owned: SetSelected swaps its color, and a sheet
+        // `background` would be replaced by a fresh plane on the next style pass.
+        Background = _background = new ColoredPlane { Color = EditorPalette.Panel };
         UpdateCursorOnHover = true;
         OnClick = _ => state.SelectTrack(track);
         _state = state;
@@ -42,21 +33,17 @@ public sealed class EditorTrack : FlexPanel
         var remove = new Button(context, "×")
         {
             OnClick = _ => state.RemoveTrack(track),
-            Label =
-            {
-                Color = Vector4.One
-            },
             OnHoverEnter = _ => OnHint?.Invoke("Remove this track"),
             OnHoverExit = _ => OnHint?.Invoke(null)
         };
 
         // Percent-width spacer soaks up the free space so remove lands flush against
         // the row's right edge - this framework has no space-between align.
-        var spacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
+        var spacer = new Panel(context) { Classes = ["spacer"] };
 
         Children =
         [
-            new Label(context, track.Name) { FontSizePx = 14f },
+            new Label(context, track.Name) { Classes = ["body-label"] },
             spacer,
             remove
         ];
@@ -90,6 +77,6 @@ public sealed class EditorTrack : FlexPanel
 
     public void SetSelected(bool selected)
     {
-        _background.Color = selected ? SelectedColor : RowColor;
+        _background.Color = selected ? EditorPalette.RowSelected : EditorPalette.Panel;
     }
 }

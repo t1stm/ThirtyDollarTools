@@ -155,7 +155,7 @@ public abstract class UIElement
     /// </summary>
     protected internal bool Drawn { get; private set; }
 
-    protected StyleSheet? StoredStyleSheet { get; private set; }
+    protected internal StyleSheet? StoredStyleSheet { get; private set; }
 
     public UIState CurrentState
     {

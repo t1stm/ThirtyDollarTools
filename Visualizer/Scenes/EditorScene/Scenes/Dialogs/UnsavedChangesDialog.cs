@@ -1,10 +1,6 @@
-using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -15,42 +11,30 @@ namespace EditorScene.Scenes.Dialogs;
 /// </summary>
 public sealed class UnsavedChangesDialog : FlexPanel
 {
-    private static readonly Vector4 ButtonBlandColor = EditorPalette.Divider;
-    private static readonly Vector4 ButtonMainColor = EditorPalette.Accent;
-
     public UnsavedChangesDialog(UIContext context) : base(context)
     {
-        Direction = LayoutDirection.Vertical;
-        Width = 360;
-        Padding = 14;
-        Spacing = 14;
-        Background = new ColoredPlane { Color = EditorPalette.Panel };
+        ID = "unsaved-changes-dialog";
+        Classes = ["dialog-frame"];
 
-        SaveButton = new Button(context, "Save")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
-        DiscardButton = new Button(context, "Discard", new ColoredPlane { Color = EditorPalette.DangerAccent })
+        SaveButton = new Button(context, "Save") { Classes = ["dialog-button-primary"] };
+        DiscardButton = new Button(context, "Discard")
         {
-            FontSizePx = 14,
-            BorderRadius = 6,
-            Label = { Color = EditorPalette.Panel }
+            Classes = ["dialog-button-danger"],
+            Label = { Classes = ["dark-label"] }
         };
-        CancelButton = new Button(context, "Cancel")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+        CancelButton = new Button(context, "Cancel") { Classes = ["dialog-button"] };
 
         Children =
         [
-            new Label(context, "Unsaved changes - save before leaving?") { FontSizePx = 14f },
+            new Label(context, "Unsaved changes - save before leaving?") { Classes = ["body-label"] },
             new FlexPanel(context)
             {
-                Width = LiteralOrComputable.Percent(100),
-                Height = 40,
-                Spacing = 10,
-                VerticalAlign = Align.Center,
+                Classes = ["dialog-actions-split"],
                 // Percent-width spacer pushes Discard/Save to the right edge while Cancel
                 // stays on the left - this framework has no space-between align.
                 Children =
                 [
-                    CancelButton, new Panel(context) { Width = LiteralOrComputable.Percent(100) },
+                    CancelButton, new Panel(context) { Classes = ["spacer"] },
                     DiscardButton, SaveButton
                 ]
             }

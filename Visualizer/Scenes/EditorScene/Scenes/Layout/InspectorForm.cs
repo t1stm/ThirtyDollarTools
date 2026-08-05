@@ -1,12 +1,8 @@
-using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Layout;
 
@@ -19,13 +15,12 @@ namespace EditorScene.Scenes.Layout;
 /// </summary>
 public sealed class InspectorForm
 {
+    /// <summary>
+    ///     Where a row's input starts, and what the "×" in a modifier row is offset from.
+    ///     A layout offset inside an absolutely-positioned row rather than a look, so it
+    ///     stays here; the row's own height and the field widths are in the sheet.
+    /// </summary>
     private const float LabelWidth = 84f;
-    private const float FieldWidth = 140f;
-    private const float RowHeight = 34f;
-
-    private static readonly Vector4 HeaderColor = EditorPalette.Header;
-    private static readonly Vector4 NameColor = EditorPalette.TextMuted;
-    private static readonly Vector4 InputColor = EditorPalette.InputBackground;
 
     private readonly UIContext _context;
     private readonly Dictionary<string, UIElement> _fields = [];
@@ -77,7 +72,7 @@ public sealed class InspectorForm
     public void Header(string text, params UIElement[] trailing)
     {
         Section = text;
-        var label = new Label(_context, text) { FontSizePx = 15f, Color = HeaderColor };
+        var label = new Label(_context, text) { Classes = ["title-label"] };
         if (trailing.Length == 0)
         {
             _container.AddChild(label);
@@ -86,9 +81,7 @@ public sealed class InspectorForm
 
         _container.AddChild(new FlexPanel(_context)
         {
-            Width = LiteralOrComputable.Percent(100),
-            Spacing = 8,
-            VerticalAlign = Align.Center,
+            Classes = ["inspector-header-row"],
             Children = [label, .. trailing]
         });
     }
@@ -96,18 +89,12 @@ public sealed class InspectorForm
     /// <summary>
     ///     Boxes one automation/keyframe entry as its own background-filled card so
     ///     adjacent entries in the flat, uniformly-spaced row list read as distinct
-    ///     groups instead of one continuous run of rows.
+    ///     groups instead of one continuous run of rows. <paramref name="shadeClass" />
+    ///     picks how far the card sits above the panel - see the inspector-card-* classes.
     /// </summary>
-    public void Card(Vector4 color, Action build)
+    public void Card(string shadeClass, Action build)
     {
-        var card = new FlexPanel(_context)
-        {
-            Direction = LayoutDirection.Vertical,
-            Width = LiteralOrComputable.Percent(100),
-            Padding = 8,
-            Spacing = 8,
-            Background = new ColoredPlane { Color = color, BorderRadius = 4f }
-        };
+        var card = new FlexPanel(_context) { Classes = ["inspector-card", shadeClass] };
         var previous = _container;
         previous.AddChild(card);
         _container = card;
@@ -119,12 +106,9 @@ public sealed class InspectorForm
     {
         _fields[$"{Section}.{label}"] = input;
         input.X = LabelWidth;
-        var row = new Panel(_context)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = RowHeight
-        };
-        row.AddChild(new Label(_context, label) { FontSizePx = 13f, Color = NameColor, Y = 9 });
+        var row = new Panel(_context) { Classes = ["form-row"] };
+        // Y centers the text against form-row's height - a layout offset, not a look.
+        row.AddChild(new Label(_context, label) { Classes = ["muted-label"], Y = 9 });
         row.AddChild(input);
         if (extra != null) row.AddChild(extra);
         _container.AddChild(row);
@@ -134,10 +118,7 @@ public sealed class InspectorForm
     {
         var input = new TextInput(_context, get())
         {
-            Width = FieldWidth,
-            FontSizePx = 14f,
-            BorderRadius = 4,
-            Background = new ColoredPlane { Color = InputColor },
+            Classes = ["text-field", "inspector-field"],
             OnValueChanged = i => set(i.Value)
         };
         Row(label, input);
@@ -165,15 +146,11 @@ public sealed class InspectorForm
     {
         var input = new NumericInput(_context, mixed?.Invoke() == true ? null : get())
         {
-            Width = FieldWidth,
-            Height = 32,
-            FontSizePx = 14f,
+            Classes = ["text-field", "text-field-tall", "inspector-field"],
             Min = min,
             Max = max,
             Step = step,
-            AllowNull = allowNull || mixed != null,
-            BorderRadius = 4,
-            Background = new ColoredPlane { Color = InputColor }
+            AllowNull = allowNull || mixed != null
         };
         input.OnValueChanged = _ =>
         {
@@ -209,10 +186,7 @@ public sealed class InspectorForm
 
         _container.AddChild(new FlexPanel(_context)
         {
-            Width = LiteralOrComputable.Percent(100),
-            Spacing = 12,
-            Wrap = true,
-            VerticalAlign = Align.Center,
+            Classes = ["inspector-check-row"],
             Children = [box, .. extras.Select(extra => (UIElement)Check(extra.Label, extra.Get, extra.Set))]
         });
     }
@@ -220,7 +194,7 @@ public sealed class InspectorForm
     private Checkbox Check(string label, Func<bool> get, Action<bool> set)
     {
         var box = new Checkbox(_context, label, get()) { OnCheckedChanged = b => set(b.Checked) };
-        box.Label.FontSizePx = 13f;
+        box.Label.Classes = ["inspector-check-label"];
         _fields[$"{Section}.{label}"] = box;
         _syncs.Add(() => box.Checked = get());
         return box;
@@ -228,7 +202,7 @@ public sealed class InspectorForm
 
     public void InfoRow(string label, Func<string> get)
     {
-        var value = new Label(_context, get()) { FontSizePx = 13f, Y = 9 };
+        var value = new Label(_context, get()) { Classes = ["inspector-check-label"], Y = 9 };
         Row(label, value);
         _syncs.Add(() => value.SetTextContents(get()));
     }
@@ -244,7 +218,7 @@ public sealed class InspectorForm
     /// </summary>
     public void ActionRow(string key, string label, Action onClick)
     {
-        var button = new Button(_context, label) { FontSizePx = 13f, OnClick = _ => onClick() };
+        var button = new Button(_context, label) { Classes = ["inspector-check-label"], OnClick = _ => onClick() };
         _fields[$"{Section}.{key}"] = button;
         _container.AddChild(button);
     }
@@ -258,20 +232,16 @@ public sealed class InspectorForm
         var initial = get();
         var amount = new NumericInput(_context, initial.Amount)
         {
-            Width = 100,
-            Height = 32,
-            FontSizePx = 14,
+            Classes = ["text-field", "inspector-field-narrow"],
             Min = -10000,
-            Max = 10000,
-            BorderRadius = 4,
-            Background = new ColoredPlane { Color = InputColor }
+            Max = 10000
         };
         var multiply = new Checkbox(_context, "×", initial.Kind == ModifierKind.Multiply)
         {
             X = LabelWidth + 108,
             Y = 6
         };
-        multiply.Label.FontSizePx = 13f;
+        multiply.Label.Classes = ["inspector-check-label"];
 
         void Commit()
         {

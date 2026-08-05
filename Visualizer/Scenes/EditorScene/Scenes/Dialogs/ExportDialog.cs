@@ -1,12 +1,8 @@
-using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -17,65 +13,52 @@ namespace EditorScene.Scenes.Dialogs;
 /// </summary>
 public sealed class ExportDialog : FlexPanel
 {
+    /// <summary>
+    ///     Where a row's input starts. A layout offset rather than a look - the label sits
+    ///     left of it in the same absolutely-positioned row - so it stays in code.
+    /// </summary>
     private const float LabelWidth = 190f;
-    private static readonly Vector4 ButtonBlandColor = EditorPalette.Divider;
-    private static readonly Vector4 ButtonMainColor = EditorPalette.Accent;
 
     public ExportDialog(UIContext context) : base(context)
     {
-        Direction = LayoutDirection.Vertical;
-        Width = 420;
-        Padding = 14;
-        Spacing = 10;
-        Background = new ColoredPlane { Color = EditorPalette.Panel };
+        ID = "export-dialog";
+        Classes = ["dialog-frame"];
 
         var defaults = new SequenceStyle();
         DividerEveryBars = new NumericInput(context, 2)
         {
-            Width = 120,
-            Height = 32,
-            FontSizePx = 14,
+            Classes = ["export-field"],
             Min = 0,
             Max = 1024
         };
         DividerOnSpeedChanges = new Checkbox(context, "Divider on !speed changes")
         {
-            Label =
-            {
-                FontSizePx = 13f
-            }
+            Label = { Classes = ["muted-check-label"] }
         };
         MigrateToStop = new NumericInput(context, defaults.MigrateToStop)
         {
-            Width = 120,
-            Height = 32,
-            FontSizePx = 14,
+            Classes = ["export-field"],
             Min = 1,
             Max = 4096,
             AllowNull = true
         };
 
-        TdwButton = new Button(context, "Export .tdw")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
-        WavButton = new Button(context, "Export .wav")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonMainColor }, BorderRadius = 6 };
-        CancelButton = new Button(context, "Cancel")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+        TdwButton = new Button(context, "Export .tdw") { Classes = ["dialog-button-primary"] };
+        WavButton = new Button(context, "Export .wav") { Classes = ["dialog-button-primary"] };
+        CancelButton = new Button(context, "Cancel") { Classes = ["dialog-button"] };
 
-        AddChild(new Label(context, "Export") { FontSizePx = 18f, Color = EditorPalette.Header });
+        AddChild(new Label(context, "Export") { Classes = ["title-label-large"] });
         Row("Divider every N bars (0 = off)", DividerEveryBars);
         Row("!stop after N pauses (0 = never)", MigrateToStop);
         AddChild(DividerOnSpeedChanges);
 
         // Percent-width spacer soaks up the free space so Cancel sits flush left and the
         // export actions flush right - this framework has no space-between align.
-        var buttonRowSpacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
+        var buttonRowSpacer = new Panel(context) { Classes = ["spacer"] };
         AddChild(new FlexPanel(context)
         {
-            Width = LiteralOrComputable.Percent(100),
-            Height = 44,
-            Spacing = 10,
-            VerticalAlign = Align.Center,
+            ID = "export-actions",
+            Classes = ["dialog-actions-split"],
             Children = [CancelButton, buttonRowSpacer, TdwButton, WavButton]
         });
     }
@@ -98,17 +81,10 @@ public sealed class ExportDialog : FlexPanel
     private void Row(string label, UIElement input)
     {
         input.X = LabelWidth;
-        var row = new Panel(Context)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = 34
-        };
-        row.AddChild(new Label(Context, label)
-        {
-            FontSizePx = 13f,
-            Y = 9,
-            Color = EditorPalette.TextMuted
-        });
+        var row = new Panel(Context) { Classes = ["form-row"] };
+        // Y centers the text in the row - a layout offset that depends on form-row's
+        // height, not something to look up separately.
+        row.AddChild(new Label(Context, label) { Classes = ["muted-label"], Y = 9 });
         row.AddChild(input);
         AddChild(row);
     }

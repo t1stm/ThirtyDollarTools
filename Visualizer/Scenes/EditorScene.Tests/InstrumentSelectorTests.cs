@@ -12,7 +12,7 @@ public class InstrumentSelectorTests
     public void Fill_ThenClickingARowsDeleteButton_FiresOnDelete()
     {
         var ctx = new EditorTestContext();
-        var selector = new InstrumentSelector(ctx) { Width = 320, Height = 420 };
+        var selector = EditorTestContext.Styled(new InstrumentSelector(ctx));
         var a = new Instrument { Name = "A" };
         selector.Fill([a]);
         selector.Layout();
@@ -35,7 +35,7 @@ public class InstrumentSelectorTests
     public void Fill_ThenClickingARow_FiresOnPick()
     {
         var ctx = new EditorTestContext();
-        var selector = new InstrumentSelector(ctx) { Width = 320, Height = 420 };
+        var selector = EditorTestContext.Styled(new InstrumentSelector(ctx));
         var a = new Instrument { Name = "A" };
         selector.Fill([a]);
         selector.Layout();
@@ -57,7 +57,7 @@ public class InstrumentSelectorTests
     public void NewInstrumentRow_FiresOnNew()
     {
         var ctx = new EditorTestContext();
-        var selector = new InstrumentSelector(ctx) { Width = 320, Height = 420 };
+        var selector = EditorTestContext.Styled(new InstrumentSelector(ctx));
         selector.Fill([]);
         selector.Layout();
 

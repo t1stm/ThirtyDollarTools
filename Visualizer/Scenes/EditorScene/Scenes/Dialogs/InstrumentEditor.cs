@@ -1,15 +1,11 @@
-using OpenTK.Mathematics;
 using Shared.Atlases;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -22,62 +18,36 @@ namespace EditorScene.Scenes.Dialogs;
 /// </summary>
 public sealed class InstrumentEditor : FlexPanel
 {
-    // The accent blue used for selection/clips elsewhere in EditorScene (#4c6bcc) -
-    // reused here so code-built buttons (which get no stylesheet) still read as buttons.
-    private static readonly Vector4 ButtonColor = new(0.30f, 0.42f, 0.80f, 1f);
-
     public InstrumentEditor(UIContext context, AtlasStore store) : base(context)
     {
-        Direction = LayoutDirection.Vertical;
-        Width = 640;
-        Padding = 10;
-        Spacing = 8;
-        Background = new ColoredPlane { Color = EditorPalette.Panel };
+        ID = "instrument-editor";
+        Classes = ["dialog-frame"];
 
-        PreviewButton = new Button(context, "Preview", new ColoredPlane { Color = ButtonColor })
-        {
-            FontSizePx = 14,
-            BorderRadius = 8
-        };
+        PreviewButton = new Button(context, "Preview") { Classes = ["editor-action-button"] };
 
-        NameInput = new TextInput(context)
-        {
-            Width = 300,
-            FontSizePx = 15f,
-            BorderRadius = 6,
-            Background = new ColoredPlane { Color = EditorPalette.InputBackground }
-        };
+        NameInput = new TextInput(context) { ID = "instrument-name-input" };
         // Percent-width spacer soaks up the free space so Preview lands flush against
         // the right edge - this framework has no space-between align.
-        var nameRowSpacer = new Panel(context) { Width = LiteralOrComputable.Percent(100) };
+        var nameRowSpacer = new Panel(context) { Classes = ["spacer"] };
         var nameRow = new FlexPanel(context)
         {
-            Width = LiteralOrComputable.Percent(100),
-            Spacing = 8,
-            VerticalAlign = Align.Center,
-            Children = [new Label(context, "Name: ") { FontSizePx = 15f }, NameInput, nameRowSpacer, PreviewButton]
+            Classes = ["dialog-row"],
+            Children =
+                [new Label(context, "Name: ") { Classes = ["heading-label"] }, NameInput, nameRowSpacer, PreviewButton]
         };
 
         SoundsPicker = new SoundPicker(context, store)
         {
-            Width = LiteralOrComputable.Percent(100),
+            ID = "instrument-editor-picker",
             MultiSelect = true,
             ShowAdjustments = true
         };
-        var soundsList = new ScrollView(context) { Width = LiteralOrComputable.Percent(100), Height = 380 };
+        var soundsList = new ScrollView(context) { ID = "instrument-editor-sounds" };
         soundsList.AddChild(SoundsPicker);
 
-        DoneButton = new Button(context, "Done", new ColoredPlane { Color = ButtonColor })
-        {
-            FontSizePx = 14,
-            BorderRadius = 8
-        };
-        var doneRow = new FlexPanel(context)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            HorizontalAlign = Align.End,
-            Children = [DoneButton]
-        };
+        DoneButton = new Button(context, "Done") { Classes = ["editor-action-button"] };
+        var doneRow = new FlexPanel(context) { Classes = ["instrument-editor-done-row"] };
+        doneRow.AddChild(DoneButton);
 
         AddChild(nameRow);
         AddChild(soundsList);

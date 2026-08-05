@@ -21,7 +21,9 @@ public class InspectorPanelTests
     {
         var ctx = new EditorTestContext();
         var state = new EditorState();
-        var inspector = new InspectorPanel(ctx, state) { Width = 260, Height = 600 };
+        var inspector = EditorTestContext.Styled(new InspectorPanel(ctx, state));
+        inspector.Width = 260;
+        inspector.Height = 600;
 
         // The EditorInterface wiring.
         state.OnProjectChanged += inspector.Sync;

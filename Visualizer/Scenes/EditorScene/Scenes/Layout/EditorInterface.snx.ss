@@ -1,3 +1,19 @@
+// The editor's root sheet. It owns the window-level regions below and pulls in every
+// other sheet: the shared vocabulary from Scenes/Styles, plus the component-local ones
+// that sit next to the .cs file they belong to.
+//
+// Editing any of these changes the editor's look without a rebuild - the sheets are
+// loaded at startup, and code-built components take their styling from here too
+// (a panel hands its sheet to whatever is added to it), so nothing but genuinely
+// per-frame values is compiled in.
+import "Scenes/Styles/Palette.snx.ss";
+import "Scenes/Styles/Controls.snx.ss";
+import "Scenes/Styles/Dialogs.snx.ss";
+import "Scenes/Styles/Panels.snx.ss";
+import "Scenes/Layout/InspectorPanel.snx.ss";
+import "Scenes/Dialogs/SoundPicker.snx.ss";
+import "Scenes/Views/GridViews.snx.ss";
+
 id main-holder {
     width = 100%;
     height = 100%;
@@ -32,27 +48,8 @@ id project-bpm {
     font-color = "#565f89";
 }
 
-// Subtle-filled menu-bar button (Load/Save/Export). state[] is safe here - real
-// buttons aren't PropagateAlpha-managed the way the old loose labels were.
-// pressed is overridden so it doesn't fall through to `component button`'s blue.
-class menu-button {
-    background = "#33344a";
-    border-radius = 6;
-    height = 24;
-
-    state[hovered] = {
-        background = "#3f4160";
-    }
-
-    state[pressed] = {
-        background = "#2b2c3f";
-    }
-}
-
-// The label inside a menu-button: 14px, else `component label` makes it 16.
-class menu-label {
-    font-size = 14;
-}
+// menu-button / menu-label now live in Scenes/Styles/Controls.snx.ss - the menu bar
+// was never the only place that wanted a subtle-filled button.
 
 class header-divider {
     width = 1;
@@ -99,22 +96,15 @@ id hint-label {
     font-color = "#565f89";
 }
 
-component label {
-    font-size = 16;
-    font-color = "#d6dadc";
-}
-
-component button {
-    background = "#6b82c4";
-    border-radius = 8;
-    width = auto;
-    height = 40;
-
-    state[hovered] = {
-        background = "#8599d4";
-    }
-
-    state[pressed] = {
-        background = "#4c78a8";
-    }
-}
+// No `component label` / `component button` rules on purpose.
+//
+// A tag rule applies to EVERY element of that kind, and since code-built elements are
+// styled now too, that means the hundreds of labels the grid views pool and every
+// button whose fill is owned by code - the Draw/Select toggles tint themselves from
+// EditorState.ActiveTool, and a `background` here would be re-created underneath them
+// on the next hover, dropping the active tint. A `font-size` here would likewise
+// overrule every label that set its own.
+//
+// So every look is a class or an id. What used to live here - the blue button fill and
+// the 16px label default - was already dead: all three menu-bar buttons carry
+// menu-button, and every label in this file sets its own size.

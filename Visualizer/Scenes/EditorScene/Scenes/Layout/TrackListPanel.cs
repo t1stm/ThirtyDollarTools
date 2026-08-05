@@ -1,11 +1,8 @@
-using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Layout;
 
@@ -15,10 +12,6 @@ namespace EditorScene.Scenes.Layout;
 /// </summary>
 public sealed class TrackListPanel : ScrollView
 {
-    // Subtle-filled look matching the menu bar/transport buttons - code-built children
-    // never receive the stylesheet, so the fill/hover swap is set inline here.
-    private static readonly Vector4 MenuFillColor = EditorPalette.Divider;
-    private static readonly Vector4 MenuFillHoverColor = EditorPalette.DividerHover;
     private readonly Button _addTrackRow;
 
     /// <summary>
@@ -36,21 +29,14 @@ public sealed class TrackListPanel : ScrollView
     {
         _context = context;
         _state = state;
-        Width = LiteralOrComputable.Percent(100);
-        Height = LiteralOrComputable.Percent(100);
-        Spacing = 4;
+        ID = "track-list";
 
-        var addTrackFill = new ColoredPlane { Color = MenuFillColor };
+        // The fill and its hover state come from menu-row now that code-built elements
+        // are styled: no ColoredPlane to swap by hand.
         _addTrackRow = new Button(context, "+ Add track")
         {
-            Width = LiteralOrComputable.Percent(100),
-            Height = 36,
-            FontSizePx = 14f,
-            BorderRadius = 6,
-            Background = addTrackFill,
-            OnClick = _ => state.AddTrack(),
-            OnHoverEnter = _ => addTrackFill.Color = MenuFillHoverColor,
-            OnHoverExit = _ => addTrackFill.Color = MenuFillColor
+            Classes = ["menu-row"],
+            OnClick = _ => state.AddTrack()
         };
         AddChild(_addTrackRow);
     }

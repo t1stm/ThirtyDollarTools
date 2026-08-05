@@ -1,5 +1,4 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -17,10 +16,6 @@ public sealed class LaneHeader : Panel
 {
     public const float GutterWidth = 60f;
 
-    private static readonly Vector4 Inactive = EditorPalette.TextMuted;
-    private static readonly Vector4 MuteOn = EditorPalette.DangerAccent;
-    private static readonly Vector4 SoloOn = new(0.878f, 0.686f, 0.408f, 1f); // #e0af68
-
     private readonly ArrangementView _arrangement;
     private readonly List<(Button Mute, Button Solo)> _rows = [];
     private readonly EditorState _state;
@@ -30,7 +25,7 @@ public sealed class LaneHeader : Panel
     {
         _state = state;
         _arrangement = arrangement;
-        Background = new ColoredPlane { Color = EditorPalette.Panel };
+        ID = "lane-header";
 
         for (var lane = 0; lane < ArrangementView.LaneLinePool; lane++)
         {
@@ -60,8 +55,8 @@ public sealed class LaneHeader : Panel
         for (var lane = 0; lane < _rows.Count; lane++)
         {
             var (mute, solo) = _rows[lane];
-            mute.Label.Color = _state.IsMuted(lane) ? MuteOn : Inactive;
-            solo.Label.Color = _state.IsSoloed(lane) ? SoloOn : Inactive;
+            mute.Label.Color = _state.IsMuted(lane) ? EditorPalette.DangerAccent : EditorPalette.TextMuted;
+            solo.Label.Color = _state.IsSoloed(lane) ? EditorPalette.AccentYellow : EditorPalette.TextMuted;
         }
     }
 
@@ -110,14 +105,15 @@ public sealed class LaneHeader : Panel
 
     private Button NewToggle(UIContext context, string text, Action toggle, string hint)
     {
+        // The label's color is code-owned - RefreshChannels tints it from the mute/solo
+        // state - so the sheet gives it a size only.
         var button = new Button(context, new Label(context, text)
         {
-            FontSizePx = 12f,
-            Color = Inactive
+            Classes = ["lane-toggle-label"],
+            Color = EditorPalette.TextMuted
         })
         {
-            Width = 24,
-            Height = 24,
+            Classes = ["lane-toggle"],
             OnClick = _ => toggle(),
             OnHoverEnter = _ => OnHint?.Invoke(hint),
             OnHoverExit = _ => OnHint?.Invoke(null)

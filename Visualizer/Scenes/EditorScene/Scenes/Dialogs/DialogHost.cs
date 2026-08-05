@@ -1,11 +1,8 @@
 using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.File_Selector;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -50,11 +47,7 @@ public sealed class DialogHost(UIContext context, Panel root)
     /// <summary>Open (null name) or save-as (suggested name) dialog for one extension.</summary>
     public void ShowFileDialog(string? saveFileName, string extension, Action<string> onPicked)
     {
-        var selection = new FileSelection(context, saveFileName, extension)
-        {
-            Width = 560,
-            Height = 440
-        };
+        var selection = new FileSelection(context, saveFileName, extension) { ID = "file-dialog" };
         var modal = Show(selection);
         selection.OnSelect = _ =>
         {
@@ -89,24 +82,17 @@ public sealed class DialogHost(UIContext context, Panel root)
     /// </summary>
     public void Alert(string message)
     {
-        var ok = new Button(context, "OK")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = EditorPalette.Divider }, BorderRadius = 6 };
+        var ok = new Button(context, "OK") { Classes = ["dialog-button"] };
         var content = new FlexPanel(context)
         {
-            Direction = LayoutDirection.Vertical,
-            Width = 360,
-            Padding = 14,
-            Spacing = 14,
-            Background = new ColoredPlane { Color = EditorPalette.Panel },
+            ID = "alert-dialog",
+            Classes = ["dialog-frame"],
             Children =
             [
-                new Label(context, message) { FontSizePx = 14f },
+                new Label(context, message) { Classes = ["body-label"] },
                 new FlexPanel(context)
                 {
-                    Width = LiteralOrComputable.Percent(100),
-                    Height = 40,
-                    HorizontalAlign = Align.End,
-                    VerticalAlign = Align.Center,
+                    Classes = ["dialog-actions"],
                     Children = [ok]
                 }
             ]

@@ -1,10 +1,6 @@
-using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -16,56 +12,37 @@ namespace EditorScene.Scenes.Dialogs;
 /// </summary>
 public sealed class ImportDialog : FlexPanel
 {
-    private const float ColumnWidth = 240f;
-    private const float ColumnHeight = 84f; // button + spacing + 2-line description, tall enough for the divider to span
-
-    private static readonly Vector4 ButtonBlandColor = EditorPalette.Divider;
-
-    // The two options are color-coded with the same accents the Draw/Select tool
-    // toggles use elsewhere (see EditorInterface.ToolAccent) - not because import
-    // relates to either tool, but so the dialog reuses the app's two existing
-    // accent colors instead of introducing a third just to tell the options apart.
-    private static readonly Vector4 TrackColor = EditorPalette.Accent;
-    private static readonly Vector4 ProjectColor = EditorPalette.AccentYellow;
-
     public ImportDialog(UIContext context, string fileName) : base(context)
     {
-        Direction = LayoutDirection.Vertical;
-        Width = 560;
-        Padding = 16;
-        Spacing = 18;
-        Background = new ColoredPlane { Color = EditorPalette.Panel };
+        ID = "import-dialog";
+        Classes = ["dialog-frame"];
 
+        // The two options are color-coded with the same accents the Draw/Select tool
+        // toggles use elsewhere - not because import relates to either tool, but so the
+        // dialog reuses the app's two existing accent colors instead of introducing a
+        // third just to tell the options apart. See dialog-button-primary/-alt.
         SingleTrackButton = new Button(context, "Import as Single Track")
-            { FontSizePx = 14, Height = 40, Background = new ColoredPlane { Color = TrackColor }, BorderRadius = 6 };
+            { Classes = ["dialog-button-primary", "dialog-button-tall"] };
         ProjectButton = new Button(context, "Import as Project")
         {
-            FontSizePx = 14, Height = 40, Background = new ColoredPlane { Color = ProjectColor }, BorderRadius = 6,
+            Classes = ["dialog-button-alt", "dialog-button-tall"],
             // Same light-background-needs-dark-text contrast rule as the Select tool toggle.
-            Label = { Color = EditorPalette.Panel }
+            Label = { Classes = ["dark-label"] }
         };
-        CancelButton = new Button(context, "Cancel")
-            { FontSizePx = 14, Background = new ColoredPlane { Color = ButtonBlandColor }, BorderRadius = 6 };
+        CancelButton = new Button(context, "Cancel") { Classes = ["dialog-button"] };
 
-        var divider = new Panel(context)
-        {
-            Width = 1,
-            Height = ColumnHeight,
-            Background = new ColoredPlane { Color = EditorPalette.Divider }
-        };
+        var divider = new Panel(context) { Classes = ["import-divider"] };
 
         Children =
         [
-            new Label(context, $"Import \"{fileName}\"") { FontSizePx = 15f, Color = EditorPalette.Header },
+            new Label(context, $"Import \"{fileName}\"") { Classes = ["title-label"] },
             new FlexPanel(context)
             {
-                Width = LiteralOrComputable.Percent(100),
-                Spacing = 20,
-                HorizontalAlign = Align.Center,
+                Classes = ["import-options"],
                 Children =
                 [
                     // Label has no text-wrap support (Sundex.Components.Labels.Label), so each
-                    // description is pre-split into short lines that fit ColumnWidth.
+                    // description is pre-split into short lines that fit the column.
                     Category(context, SingleTrackButton,
                         "One new track for this file,", "one instrument per sound."),
                     divider,
@@ -75,10 +52,7 @@ public sealed class ImportDialog : FlexPanel
             },
             new FlexPanel(context)
             {
-                Width = LiteralOrComputable.Percent(100),
-                Height = 36,
-                HorizontalAlign = Align.End,
-                VerticalAlign = Align.Center,
+                Classes = ["dialog-actions-compact"],
                 Children = [CancelButton]
             }
         ];
@@ -87,20 +61,13 @@ public sealed class ImportDialog : FlexPanel
     /// <summary>One import option: its button, with a short explanation underneath.</summary>
     private static FlexPanel Category(UIContext context, Button button, params string[] descriptionLines)
     {
-        var description = new FlexPanel(context)
-        {
-            Direction = LayoutDirection.Vertical,
-            Width = LiteralOrComputable.Percent(100),
-            Spacing = 2
-        };
+        var description = new FlexPanel(context) { Classes = ["import-column-description"] };
         foreach (var line in descriptionLines)
-            description.AddChild(new Label(context, line) { FontSizePx = 12f, Color = EditorPalette.TextMuted });
+            description.AddChild(new Label(context, line) { Classes = ["caption-label"] });
 
         return new FlexPanel(context)
         {
-            Direction = LayoutDirection.Vertical,
-            Width = ColumnWidth,
-            Spacing = 6,
+            Classes = ["import-column"],
             Children = [button, description]
         };
     }

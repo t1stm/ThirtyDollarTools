@@ -1,12 +1,8 @@
-using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -18,42 +14,21 @@ namespace EditorScene.Scenes.Dialogs;
 /// </summary>
 public sealed class InstrumentSelector : FlexPanel
 {
-    private static readonly Vector4 BackgroundColor = EditorPalette.Panel;
-    private static readonly Vector4 MenuFillColor = EditorPalette.Divider;
-    private static readonly Vector4 MenuFillHoverColor = EditorPalette.DividerHover;
-
     private readonly ScrollView _list;
     private readonly Button _newRow;
 
     public InstrumentSelector(UIContext context) : base(context)
     {
-        Direction = LayoutDirection.Vertical;
-        Width = 320;
-        Height = 420;
-        Padding = 10;
-        Background = new ColoredPlane { Color = BackgroundColor };
+        ID = "instrument-selector";
 
-        _list = new ScrollView(context)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100),
-            Spacing = 4
-        };
+        _list = new ScrollView(context) { ID = "instrument-selector-list" };
         AddChild(_list);
 
-        // Subtle-filled button matching the menu bar; hover swaps background RGB only
-        // (code-built children get no stylesheet state[], per EditorInterface).
-        var newFill = new ColoredPlane { Color = MenuFillColor };
+        // Fill and hover both come from menu-row - see TrackListPanel's "+ Add track".
         _newRow = new Button(context, "+ New instrument")
         {
-            Width = LiteralOrComputable.Percent(100),
-            Height = 36,
-            FontSizePx = 14f,
-            BorderRadius = 6,
-            Background = newFill,
-            OnClick = _ => OnNew?.Invoke(),
-            OnHoverEnter = _ => newFill.Color = MenuFillHoverColor,
-            OnHoverExit = _ => newFill.Color = MenuFillColor
+            Classes = ["menu-row"],
+            OnClick = _ => OnNew?.Invoke()
         };
     }
 

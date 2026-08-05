@@ -34,6 +34,12 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
             SetChildrenParent();
             InvalidateLayout();
 
+            // Mirrors AddChild: a wholesale list swap must style the newcomers too.
+            if (StoredStyleSheet is { } sheet)
+                foreach (var child in _children)
+                    if (!ReferenceEquals(child.StoredStyleSheet, sheet))
+                        child.ApplyStyleSheet(sheet);
+
             // Mirrors AddChild: replacing the list on an already-live panel must queue
             // the new children's renderables too, or they're hit-testable but invisible
             // until something else happens to re-run DrawTo on the tree.
@@ -183,6 +189,14 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         child.ParentAssignedWidth = null;
         child.ParentAssignedHeight = null;
         child.Parent = this;
+        // Code-built subtrees are composed detached and only ever meet a stylesheet here:
+        // ApplyStyleSheet runs once over the markup tree, long before this child exists.
+        // Without this a code-built element could only be styled inline, which is the
+        // whole reason editor components used to hard-code their colors/sizes.
+        // Guarded on identity so re-parenting (view swaps, list rebuilds) doesn't
+        // re-run reflection over a large subtree that already carries this sheet.
+        if (StoredStyleSheet is { } sheet && !ReferenceEquals(child.StoredStyleSheet, sheet))
+            child.ApplyStyleSheet(sheet);
         // DrawTo queues the child's renderables but lays it out against this panel's
         // possibly-stale Computed; re-invalidate so the next Layout pass repositions it.
         // A panel that isn't drawn itself must not queue its children either - they

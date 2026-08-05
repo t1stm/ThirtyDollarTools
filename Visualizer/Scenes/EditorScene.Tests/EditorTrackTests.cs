@@ -12,7 +12,10 @@ public class EditorTrackTests
         var ctx = new EditorTestContext();
         var state = new EditorState();
         var track = state.AddTrack();
-        var row = new EditorTrack(ctx, track, state) { Width = 200 };
+        // Styled first, then sized - the sheet gives the row a percent width, and a test
+        // that needs a concrete one has to set it after, exactly as EditorInterface.Resize does.
+        var row = EditorTestContext.Styled(new EditorTrack(ctx, track, state));
+        row.Width = 200;
         row.Layout();
 
         // Two clicks on the row's empty right end (past the name and × button).
@@ -33,7 +36,9 @@ public class EditorTrackTests
         var state = new EditorState();
         var track = state.AddTrack();
         ProjectTrack? seen = null;
-        var row = new EditorTrack(ctx, track, state) { Width = 200, OnContextMenu = t => seen = t };
+        var row = EditorTestContext.Styled(new EditorTrack(ctx, track, state));
+        row.Width = 200;
+        row.OnContextMenu = t => seen = t;
         row.Layout();
 
         ctx.UpdatePointer(row, 195, 30, true, false, false, Vector2.Zero, true);

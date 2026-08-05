@@ -1,7 +1,5 @@
-using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -27,12 +25,6 @@ public sealed class InspectorPanel : Panel
 
     internal const float StatusBarHeight = 40f;
     internal const float RuleHeight = 1f;
-    private const float StatusProgressHeight = 6f;
-
-    private static readonly Vector4 EntryColor = EditorPalette.Surface; // one shade above the panel background
-
-    private static readonly Vector4
-        KeyframeColor = EditorPalette.SurfaceRaised; // one more shade up, nested inside an entry
 
     private readonly InspectorForm _form;
 
@@ -44,50 +36,30 @@ public sealed class InspectorPanel : Panel
     public InspectorPanel(UIContext context, EditorState state) : base(context)
     {
         _state = state;
-        Rows = new ScrollView(context)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100),
-            Padding = 10,
-            Spacing = 8
-        };
+        ID = "inspector-panel";
+        Rows = new ScrollView(context) { ID = "inspector-rows" };
         _form = new InspectorForm(context, state, Rows);
 
-        var rule = new Panel(context)
-        {
-            Width = LiteralOrComputable.Percent(100),
-            Height = RuleHeight,
-            Background = new ColoredPlane { Color = EditorPalette.Divider }
-        };
+        var rule = new Panel(context) { Classes = ["rule"] };
 
-        StatusLabelElement = new Label(context, "Idle")
-        {
-            FontSizePx = 12f,
-            Color = EditorPalette.TextMuted
-        };
+        StatusLabelElement = new Label(context, "Idle") { Classes = ["caption-label"] };
+        // The bar's planes stay code-built - see the note on inspector-status-bar.
         StatusBar = new ProgressBar(context,
             new ColoredPlane { Color = EditorPalette.Surface },
             new ColoredPlane { Color = EditorPalette.Accent })
         {
-            Width = LiteralOrComputable.Percent(100),
-            Height = StatusProgressHeight,
+            ID = "inspector-status-bar",
             Visible = false
         };
         StatusSection = new FlexPanel(context)
         {
-            Direction = LayoutDirection.Vertical,
-            Width = LiteralOrComputable.Percent(100),
-            Height = StatusBarHeight,
-            Padding = 8,
-            Spacing = 4,
+            ID = "inspector-status",
             Children = [StatusLabelElement, StatusBar]
         };
 
         var body = new FlexPanel(context)
         {
-            Direction = LayoutDirection.Vertical,
-            Width = LiteralOrComputable.Percent(100),
-            Height = LiteralOrComputable.Percent(100),
+            ID = "inspector-body",
             Children = [Rows, rule, StatusSection]
         };
         AddChild(body);
@@ -163,9 +135,7 @@ public sealed class InspectorPanel : Panel
             {
                 var addSegment = new Button(Context, "+ Add")
                 {
-                    FontSizePx = 11f,
-                    BorderRadius = 6,
-                    Background = new ColoredPlane { Color = EditorPalette.Surface },
+                    Classes = ["chip-button"],
                     OnClick = _ =>
                     {
                         if (_state.OpenedTrack is { } track) _state.SelectSegment(_state.AddSegment(track));
@@ -173,9 +143,7 @@ public sealed class InspectorPanel : Panel
                 };
                 var removeSegment = new Button(Context, "− Remove")
                 {
-                    FontSizePx = 11f,
-                    BorderRadius = 6,
-                    Background = new ColoredPlane { Color = EditorPalette.Surface },
+                    Classes = ["chip-button"],
                     OnClick = _ =>
                     {
                         // RemoveSegment refuses on the last segment (library invariant) - just a no-op here.
@@ -431,7 +399,7 @@ public sealed class InspectorPanel : Panel
             var entry = track.TrackAutomations[i];
             var section = $"Track Automation {i + 1}";
 
-            _form.Card(EntryColor, () =>
+            _form.Card("inspector-card-entry", () =>
             {
                 _form.Header(section);
 
@@ -487,7 +455,7 @@ public sealed class InspectorPanel : Panel
         for (var i = 0; i < automation.Keyframes.Count; i++)
         {
             var keyframe = automation.Keyframes[i];
-            _form.Card(KeyframeColor, () =>
+            _form.Card("inspector-card-keyframe", () =>
             {
                 _form.Header($"{keyframeHeaderPrefix}Keyframe {i + 1}");
                 _form.NumberRow("Gap", () => keyframe.Gap, v =>

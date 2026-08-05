@@ -11,7 +11,6 @@ using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
-using EditorScene.Scenes.Components;
 using EditorScene.Scenes.Views;
 
 namespace EditorScene.Scenes.Dialogs;
@@ -28,10 +27,13 @@ public sealed class SoundPicker : FlexPanel
 {
     private const string AnimatedShaderLocation = "Assets/Shaders/Playfield/Chunk/Animated";
     private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
+    /// <summary>
+    ///     One icon cell's box. Not in the sheet: every icon's actual width/height is
+    ///     derived from this and its atlas aspect ratio, so it is an input to a
+    ///     calculation rather than a value an element takes directly.
+    /// </summary>
     private const float SoundElementSize = 40f;
-    private static readonly Vector4 HeaderColor = EditorPalette.Header;
-    private static readonly Vector4 DividerColor = EditorPalette.Divider;
-    private static readonly Vector4 BlandColor = EditorPalette.TextMuted;
+
     private readonly FlexPanel _availableGrid;
     private readonly Label _availableHeader;
     private readonly Dictionary<string, SoundIcon> _availableIcons = [];
@@ -51,12 +53,10 @@ public sealed class SoundPicker : FlexPanel
     public SoundPicker(UIContext context, AtlasStore store) : base(context)
     {
         _store = store;
-        Direction = LayoutDirection.Vertical;
-        Spacing = 8;
-        Padding = 8;
+        Classes = ["sound-picker"];
 
-        _selectedHeader = new Label(context, "Selected") { FontSizePx = 13f, Color = HeaderColor };
-        _availableHeader = new Label(context, "Available") { FontSizePx = 13f, Color = HeaderColor };
+        _selectedHeader = new Label(context, "Selected") { Classes = ["sound-section-header"] };
+        _availableHeader = new Label(context, "Available") { Classes = ["sound-section-header"] };
         _selectedGrid = NewGrid(context);
         _availableGrid = NewGrid(context);
 
@@ -66,26 +66,18 @@ public sealed class SoundPicker : FlexPanel
         // icon inline. Only relevant with ShowAdjustments on (the instrument editor) and
         // at least one icon selected (nothing to scroll-adjust otherwise);
         // see RefreshKeybindNote.
-        _keybindDivider = new Panel(context)
-        {
-            Width = 1,
-            Height = SoundElementSize,
-            Background = new ColoredPlane { Color = DividerColor }
-        };
+        _keybindDivider = new Panel(context) { Classes = ["sound-keybind-divider"] };
         _keybindNote = new Label(context,
             "Scroll - change value\n" +
             "Ctrl+Scroll - change volume\n" +
             "Shift+Scroll change pan\n" +
             "Right click - add another copy")
         {
-            FontSizePx = 12f,
-            Color = BlandColor
+            Classes = ["sound-keybind-note"]
         };
         _selectedRow = new FlexPanel(context)
         {
-            Direction = LayoutDirection.Horizontal,
-            Width = LiteralOrComputable.Percent(100),
-            Spacing = 14,
+            Classes = ["sound-selected-row"],
             Children = [_selectedGrid]
         };
     }
@@ -149,13 +141,7 @@ public sealed class SoundPicker : FlexPanel
 
     private static FlexPanel NewGrid(UIContext context)
     {
-        return new FlexPanel(context)
-        {
-            Direction = LayoutDirection.Horizontal,
-            Width = LiteralOrComputable.Percent(100),
-            Wrap = true,
-            Spacing = 6
-        };
+        return new FlexPanel(context) { Classes = ["sound-grid"] };
     }
 
     /// <summary>
@@ -515,7 +501,7 @@ public sealed class SoundPicker : FlexPanel
             Width = Math.Max(_iconWidth, AdjustableCellWidth);
             Height = _iconHeight + AdjustmentLabelHeight;
 
-            _adjustmentLabel = new Label(Context, "") { FontSizePx = 10f, Y = _iconHeight };
+            _adjustmentLabel = new Label(Context, "") { Classes = ["sound-adjustment-label"], Y = _iconHeight };
             AddChild(_adjustmentLabel);
             RefreshAdjustmentText();
         }

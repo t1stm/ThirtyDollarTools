@@ -7,8 +7,8 @@ public class ConfirmDialogTests
     [Fact]
     public void MultilineMessage_FitsWithinTheDialogsInnerWidth()
     {
-        var dialog = new ConfirmDialog(new EditorTestContext(),
-            "Delete \"Layer\"?\nThis removes it from every note\nthat uses it.");
+        var dialog = EditorTestContext.Styled(new ConfirmDialog(new EditorTestContext(),
+            "Delete \"Layer\"?\nThis removes it from every note\nthat uses it."));
         dialog.Layout();
 
         var message = dialog.Children[0];
@@ -19,7 +19,7 @@ public class ConfirmDialogTests
     [Fact]
     public void ConfirmButton_HasARoundedCorner()
     {
-        var dialog = new ConfirmDialog(new EditorTestContext(), "Delete this?");
+        var dialog = EditorTestContext.Styled(new ConfirmDialog(new EditorTestContext(), "Delete this?"));
 
         Assert.True(dialog.ConfirmButton.BorderRadius.Value > 0);
     }

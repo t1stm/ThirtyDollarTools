@@ -32,13 +32,18 @@ public sealed class ArrangementView : Panel
     private const int BarLinePool = 128;
     public const int LaneLinePool = 128;
 
-    private static readonly Vector4 ClipColor = EditorPalette.Accent;
-    private static readonly Vector4 SelectedClipColor = EditorPalette.SelectionHighlight;
-    private static readonly Vector4 LineColor = EditorPalette.Surface;
-    private static readonly Vector4 RulerColor = EditorPalette.Panel;
-    private static readonly Vector4 LabelColor = EditorPalette.TextDim;
+    // Loaded from the stylesheet - see EditorPalette and Scenes/Views/GridViews.snx.ss.
+    private static Vector4 ClipColor => EditorPalette.Accent;
+    private static Vector4 SelectedClipColor => EditorPalette.SelectionHighlight;
+    private static Vector4 LineColor => EditorPalette.Surface;
+    private static Vector4 RulerColor => EditorPalette.Panel;
+    private static Vector4 LabelColor => EditorPalette.TextDim;
 
-    private static readonly Vector4 PlayheadColor = EditorPalette.Playhead;
+    // A property, not a static readonly field: a field would freeze whatever the palette
+    // held when this type was first touched, which is only safe as long as that happens
+    // after EditorPalette.Apply. Not worth the ordering trap.
+    private static Vector4 PlayheadColor => EditorPalette.Playhead;
+
     private readonly List<Label> _barLabels = [];
 
     private readonly List<ClipBlock> _blocks = [];
@@ -60,7 +65,7 @@ public sealed class ArrangementView : Panel
     {
         _state = state;
         Focusable = true;
-        Background = new ColoredPlane { Color = new Vector4(0.067f, 0.07f, 0.1f, 1f) };
+        Background = new ColoredPlane { Color = EditorPalette.GridBackground };
         OnClick = _ =>
         {
             var localY = context.PointerY - Computed.AbsoluteY;
@@ -87,7 +92,7 @@ public sealed class ArrangementView : Panel
         AddChild(_rulerBackground);
         for (var i = 0; i < BarLinePool; i++)
         {
-            var label = new Label(context, "1") { FontSizePx = 11f, Color = LabelColor };
+            var label = new Label(context, "1") { Classes = ["grid-label"] };
             _barLabels.Add(label);
             AddChild(label);
         }
@@ -107,7 +112,7 @@ public sealed class ArrangementView : Panel
             Width = 0,
             Height = 0,
             Background = new ColoredPlane
-                { Color = new Vector4(EditorPalette.Accent.X, EditorPalette.Accent.Y, EditorPalette.Accent.Z, 0.25f) }
+                { Color = EditorPalette.MarqueeFill }
         };
         AddChild(_marqueeRect);
 
@@ -581,9 +586,10 @@ public sealed class ArrangementView : Panel
         {
             _view = view;
             Placement = placement;
-            Padding = 6;
+            Classes = ["clip-block"];
+            // Code-owned fill: Refresh tints it per selection state on every layout.
             Background = _background = new ColoredPlane { Color = ClipColor };
-            Children = [new Label(context, placement.Track.Name) { FontSizePx = 13f }];
+            Children = [new Label(context, placement.Track.Name) { Classes = ["clip-label"] }];
             // Swallow the click so a release on a clip never bubbles into the view's
             // place-at-pointer handler; selection already happened on press.
             OnClick = _ => { };

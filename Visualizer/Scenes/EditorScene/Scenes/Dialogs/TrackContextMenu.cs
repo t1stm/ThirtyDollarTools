@@ -1,10 +1,7 @@
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -17,40 +14,28 @@ public sealed class TrackContextMenu : FlexPanel
 {
     public TrackContextMenu(UIContext context, string suggestedName) : base(context)
     {
-        Direction = LayoutDirection.Vertical;
-        Width = 280;
-        Padding = 14;
-        Spacing = 12;
-        Background = new ColoredPlane { Color = EditorPalette.Panel };
+        ID = "track-context-menu";
+        Classes = ["dialog-frame"];
 
         NameInput = new TextInput(context, suggestedName)
+            { ID = "duplicate-name-input", Classes = ["text-field"] };
+        // No fill class: Cancel here has always been a bare label, unlike the filled
+        // Cancel the other dialogs use.
+        CancelButton = new Button(context, "Cancel") { Classes = ["dialog-button-shape"] };
+        DuplicateButton = new Button(context, "Duplicate")
         {
-            FontSizePx = 14f,
-            Width = LiteralOrComputable.Percent(100),
-            BorderRadius = 4,
-            Background = new ColoredPlane { Color = EditorPalette.InputBackground }
-        };
-        CancelButton = new Button(context, "Cancel") { FontSizePx = 14 };
-        DuplicateButton = new Button(context, "Duplicate",
-            new ColoredPlane { Color = EditorPalette.Header })
-        {
-            FontSizePx = 14,
-            BorderRadius = 6,
-            Label = { Color = EditorPalette.Panel }
+            Classes = ["dialog-button-light"],
+            Label = { Classes = ["dark-label"] }
         };
         NameInput.OnCommit = _ => DuplicateButton.OnClick?.Invoke(DuplicateButton);
 
         Children =
         [
-            new Label(context, "Duplicate track") { FontSizePx = 15f },
+            new Label(context, "Duplicate track") { Classes = ["heading-label"] },
             NameInput,
             new FlexPanel(context)
             {
-                Width = LiteralOrComputable.Percent(100),
-                Height = 36,
-                Spacing = 10,
-                HorizontalAlign = Align.End,
-                VerticalAlign = Align.Center,
+                Classes = ["dialog-actions-compact"],
                 Children = [CancelButton, DuplicateButton]
             }
         ];
