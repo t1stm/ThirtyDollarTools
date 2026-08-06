@@ -68,10 +68,11 @@ public sealed class SoundPicker : FlexPanel
         // see RefreshKeybindNote.
         _keybindDivider = new Panel(context) { Classes = ["sound-keybind-divider"] };
         _keybindNote = new Label(context,
+            "Right click - add another copy\n" +
             "Scroll - change value\n" +
+            "Ctrl+Shift+Scroll - change value by 0.1\n" +
             "Ctrl+Scroll - change volume\n" +
-            "Shift+Scroll change pan\n" +
-            "Right click - add another copy")
+            "Shift+Scroll - change pan")
         {
             Classes = ["sound-keybind-note"]
         };
@@ -98,7 +99,8 @@ public sealed class SoundPicker : FlexPanel
     ///     readout - formatted exactly like the playfield's sound badges, see
     ///     <see cref="RenderableFactory.FormatValueText" /> and friends - backed by its own
     ///     <see cref="InstrumentSound" />, and scroll-adjustable: plain scroll changes value,
-    ///     Ctrl+scroll volume, Shift+scroll pan. Also enables right-click-to-duplicate, since
+    ///     Ctrl+scroll volume, Shift+scroll pan, Ctrl+Shift+scroll value in 0.1 steps. Also
+    ///     enables right-click-to-duplicate, since
     ///     several instances of one sound only differ by their adjustments. Set once by the
     ///     instrument editor; other <see cref="SoundPicker" /> consumers (the active-sound
     ///     picker, the track-automation filter) leave it off.
@@ -439,6 +441,7 @@ public sealed class SoundPicker : FlexPanel
         private const float AdjustableCellWidth = 60f;
         private const float AdjustmentLabelHeight = 14f;
         private const float ValueStep = 1;
+        private const double FineValueStep = 0.1;
         private const float VolumeStep = 5;
         private const float PanStep = 5;
 
@@ -556,17 +559,31 @@ public sealed class SoundPicker : FlexPanel
             var notches = MathF.Sign(scrollDelta.Y);
             if (notches == 0) return false;
 
-            if (_picker.CtrlHeld)
+            // Ctrl+Shift is the fine-value mode, so it has to be checked before the plain
+            // Ctrl (volume) and Shift (pan) modes.
+            if (_picker.CtrlHeld && _picker.ShiftHeld)
+                Instance.Value = AdjustValue(notches * FineValueStep);
+            else if (_picker.CtrlHeld)
                 Instance.Volume = Math.Clamp((Instance.Volume ?? 100) + notches * VolumeStep, 0, 500);
             else if (_picker.ShiftHeld)
                 Instance.Pan = Math.Clamp(Instance.Pan + notches * PanStep, -100, 100);
             else
-                Instance.Value = Math.Clamp(Instance.Value + notches * ValueStep,
-                    -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
+                Instance.Value = AdjustValue(notches * ValueStep);
 
             RefreshAdjustmentText();
             _picker.OnPreviewSound?.Invoke(Instance);
             return true;
+        }
+
+        /// <summary>
+        ///     Steps <see cref="Instance" />'s value, clamped to the track editor's range and
+        ///     rounded - repeated 0.1 steps otherwise drift into 1.0000000000000002 territory,
+        ///     which the label hides but an export would write out.
+        /// </summary>
+        private double AdjustValue(double delta)
+        {
+            var value = Math.Clamp(Instance!.Value + delta, -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
+            return Math.Round(value, 4);
         }
 
         private void UpdateMatrix()

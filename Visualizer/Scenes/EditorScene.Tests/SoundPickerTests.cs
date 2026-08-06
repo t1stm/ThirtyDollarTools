@@ -1,5 +1,7 @@
 using System.Reflection;
+using OpenTK.Mathematics;
 using Serilog;
+using ThirtyDollarConverter.Editor;
 using Shared.Atlases;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
@@ -26,6 +28,45 @@ public class SoundPickerTests
     {
         var field = typeof(SoundPicker).GetField("_keybindNote", BindingFlags.NonPublic | BindingFlags.Instance)!;
         return (UIElement)field.GetValue(picker)!;
+    }
+
+    /// <summary>
+    ///     Builds a Selected icon directly - the normal path goes through the atlas store,
+    ///     which has no images in tests - and scrolls it with the given modifiers held.
+    /// </summary>
+    private static void ScrollIcon(SoundPicker picker, InstrumentSound instance, float notches,
+        bool ctrl = false, bool shift = false)
+    {
+        picker.CtrlHeld = ctrl;
+        picker.ShiftHeld = shift;
+
+        var type = typeof(SoundPicker).GetNestedType("SoundIcon", BindingFlags.NonPublic)!;
+        var icon = Activator.CreateInstance(type,
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
+            [picker.Context, picker, instance.Sound, instance], null)!;
+        type.GetMethod("HandleScroll")!.Invoke(icon, [new Vector2(0, notches)]);
+    }
+
+    [Fact]
+    public void HandleScroll_CtrlShift_StepsTheValueByATenth()
+    {
+        var picker = NewPicker(new EditorTestContext());
+        picker.SetSelected(["kick"]);
+        var instance = picker.Instances[0];
+
+        for (var i = 0; i < 3; i++) ScrollIcon(picker, instance, 1, true, true);
+        Assert.Equal(0.3, instance.Value); // exact: repeated 0.1 steps are rounded back
+
+        ScrollIcon(picker, instance, -1, true, true);
+        Assert.Equal(0.2, instance.Value);
+
+        // The plain and single-modifier modes are unaffected by the new branch.
+        ScrollIcon(picker, instance, 1);
+        Assert.Equal(1.2, instance.Value);
+        ScrollIcon(picker, instance, 1, ctrl: true);
+        Assert.Equal(105, instance.Volume);
+        ScrollIcon(picker, instance, 1, shift: true);
+        Assert.Equal(5, instance.Pan);
     }
 
     [Fact]
