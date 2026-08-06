@@ -11,11 +11,19 @@ public class ProjectFileTests
 
     private static ThirtyDollarProject MakeProject()
     {
-        var project = new ThirtyDollarProject();
-        project.Info.Name = "Test Song";
-        project.Info.Author = "Kris";
-        project.RootTiming.BPM = 140;
-        project.Transpose = 1.5f;
+        var project = new ThirtyDollarProject
+        {
+            Info =
+            {
+                Name = "Test Song",
+                Author = "Kris"
+            },
+            RootTiming =
+            {
+                BPM = 140
+            },
+            Transpose = 1.5f
+        };
 
         var drums = project.NewTrack(); // shares RootTiming
         drums.Name = "Drums";

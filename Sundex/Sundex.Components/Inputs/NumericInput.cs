@@ -97,7 +97,7 @@ public class NumericInput : TextInput
         base.FocusLost();
         // Normalize: reformat a valid value, revert garbage/empty to the last committed
         // value, or keep it empty (null) when AllowNull.
-        Value = Value ?? (AllowNull ? null : _lastValid);
+        Value ??= AllowNull ? null : _lastValid;
     }
 
     protected override void DoLayout()

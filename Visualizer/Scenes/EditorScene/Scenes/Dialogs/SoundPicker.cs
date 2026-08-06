@@ -466,7 +466,7 @@ public sealed class SoundPicker : FlexPanel
                     return;
                 }
 
-                if (Instance is { } own) picker.RemoveInstance(own);
+                if (Instance != null) picker.RemoveInstance(Instance);
                 else picker.AddInstance(soundName);
             };
         }
@@ -559,16 +559,25 @@ public sealed class SoundPicker : FlexPanel
             var notches = MathF.Sign(scrollDelta.Y);
             if (notches == 0) return false;
 
-            // Ctrl+Shift is the fine-value mode, so it has to be checked before the plain
-            // Ctrl (volume) and Shift (pan) modes.
-            if (_picker.CtrlHeld && _picker.ShiftHeld)
-                Instance.Value = AdjustValue(notches * FineValueStep);
-            else if (_picker.CtrlHeld)
-                Instance.Volume = Math.Clamp((Instance.Volume ?? 100) + notches * VolumeStep, 0, 500);
-            else if (_picker.ShiftHeld)
-                Instance.Pan = Math.Clamp(Instance.Pan + notches * PanStep, -100, 100);
-            else
-                Instance.Value = AdjustValue(notches * ValueStep);
+            switch (_picker.CtrlHeld)
+            {
+                // Ctrl+Shift is the fine-value mode, so it has to be checked before the plain
+                // Ctrl (volume) and Shift (pan) modes.
+                case true when _picker.ShiftHeld:
+                    Instance.Value = AdjustValue(notches * FineValueStep);
+                    break;
+                case true:
+                    Instance.Volume = Math.Clamp((Instance.Volume ?? 100) + notches * VolumeStep, 0, 500);
+                    break;
+                default:
+                {
+                    if (_picker.ShiftHeld)
+                        Instance.Pan = Math.Clamp(Instance.Pan + notches * PanStep, -100, 100);
+                    else
+                        Instance.Value = AdjustValue(notches * ValueStep);
+                    break;
+                }
+            }
 
             RefreshAdjustmentText();
             _picker.OnPreviewSound?.Invoke(Instance);

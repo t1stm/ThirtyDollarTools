@@ -177,8 +177,11 @@ public class ProjectTrackTests
     public void NoteWithOwnAutomation_AlsoGetsMatchingTrackAutomation()
     {
         var track = MakeTrack();
-        var note = new Note { Step = 0, Instrument = Instrument.Single("boom") };
-        note.Automation = new AudioKeyframeManager();
+        var note = new Note
+        {
+            Step = 0, Instrument = Instrument.Single("boom"),
+            Automation = new AudioKeyframeManager()
+        };
         note.Automation.Keyframes.Add(new AudioKeyframe { Gap = 2 }); // note-level echo at step 2
         track.Segments[0].Notes.Add(note);
 
@@ -197,8 +200,11 @@ public class ProjectTrackTests
     public void Transpose_ShiftsEveryGeneratedEventsValue_WithoutMutatingTheNote()
     {
         var track = MakeTrack();
-        var note = new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5 };
-        note.Automation = new AudioKeyframeManager();
+        var note = new Note
+        {
+            Step = 0, Instrument = Instrument.Single("boom"), Value = 5,
+            Automation = new AudioKeyframeManager()
+        };
         note.Automation.Keyframes.Add(new AudioKeyframe { Gap = 2 }); // echo at step 2, same pitch
         track.Segments[0].Notes.Add(note);
         track.Transpose = -0.4f;

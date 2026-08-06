@@ -172,15 +172,17 @@ public class EditorInterface
 
         // The shell is already in the tree (root markup); this only drives it.
         _inspector = new InspectorPanel(context, State,
-            InspectorPanelElement, InspectorRows, InspectorStatusBar, InspectorStatusLabel);
-        _inspector.OnEditTrackAutomationSounds = automation =>
-        {
-            EnsureSoundFilterItems();
-            _editingTrackAutomation = automation;
-            _soundFilterPicker.SetSelected(automation.Sounds ?? []);
-            RootPanel.AddChild(SoundFilterModal);
-        };
-        _inspector.OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes);
+            InspectorPanelElement, InspectorRows, InspectorStatusBar, InspectorStatusLabel)
+            {
+                OnEditTrackAutomationSounds = automation =>
+                {
+                    EnsureSoundFilterItems();
+                    _editingTrackAutomation = automation;
+                    _soundFilterPicker.SetSelected(automation.Sounds ?? []);
+                    RootPanel.AddChild(SoundFilterModal);
+                },
+                OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes)
+            };
 
         State.OnProjectChanged += () =>
         {
@@ -362,6 +364,7 @@ public class EditorInterface
     }
 
     /// <summary>Public because SoundFilter.snx.csx wires both the Done button and the backdrop dismiss to it.</summary>
+    [UsedImplicitly]
     public void CommitAndCloseSoundFilter()
     {
         if (_editingTrackAutomation is { } automation)
@@ -377,6 +380,7 @@ public class EditorInterface
     }
 
     /// <summary>Wired from TrackEditorPanel.snx.csx - the workflow only exists once the root is drawn.</summary>
+    [UsedImplicitly]
     public void OpenInstrumentSelector()
     {
         _instrumentWorkflow.OpenSelector();
@@ -531,16 +535,19 @@ public class EditorInterface
     }
 
     /// <summary>Load/Save, wired from EditorHeader.snx.csx - a .csx only reaches the public surface.</summary>
+    [UsedImplicitly]
     public void ShowLoadDialog()
     {
         _dialogHost.ShowFileDialog(null, ".tdwproj", LoadProjectFile);
     }
 
+    [UsedImplicitly]
     public void SaveProject()
     {
         _projectIo.Save();
     }
 
+    [UsedImplicitly]
     public void ShowExportDialog()
     {
         var dialog = new ExportDialog(_context);

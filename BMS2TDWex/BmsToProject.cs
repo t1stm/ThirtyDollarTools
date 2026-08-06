@@ -16,11 +16,19 @@ public static class BmsToProject
 
     public static ThirtyDollarProject Convert(BmsChart chart)
     {
-        var project = new ThirtyDollarProject();
-        project.Info.Name = chart.Title;
-        project.Info.Author = chart.Artist;
-        project.Info.Description = chart.Genre;
-        project.RootTiming.BPM = (float)chart.Bpm;
+        var project = new ThirtyDollarProject
+        {
+            Info =
+            {
+                Name = chart.Title,
+                Author = chart.Artist,
+                Description = chart.Genre
+            },
+            RootTiming =
+            {
+                BPM = (float)chart.Bpm
+            }
+        };
 
         // All tracks need the full segment timeline from measure 0, so find the
         // used channels up front instead of creating tracks lazily.

@@ -99,8 +99,10 @@ public class SettingsInterface
     private static Checkbox CreateCheckbox(UIContext context, VisualizerSettings settings, PropertyInfo property)
     {
         var isOn = (bool)(property.GetValue(settings) ?? false);
-        var checkbox = new Checkbox(context, "", isOn);
-        checkbox.OnCheckedChanged = box => property.SetValue(settings, box.Checked);
+        var checkbox = new Checkbox(context, "", isOn)
+        {
+            OnCheckedChanged = box => property.SetValue(settings, box.Checked)
+        };
         return checkbox;
     }
 

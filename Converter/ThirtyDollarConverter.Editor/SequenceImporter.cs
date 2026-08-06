@@ -125,8 +125,14 @@ public static class SequenceImporter
     {
         var (walk, plans, warnings) = Prepare(sequence, soundMap);
 
-        project = new ThirtyDollarProject { Info = { Name = name } };
-        project.RootTiming.BPM = plans[0].BPM;
+        project = new ThirtyDollarProject
+        {
+            Info = { Name = name },
+            RootTiming =
+            {
+                BPM = plans[0].BPM
+            }
+        };
 
         var instruments = BuildInstruments(project, walk.SoundOrder);
         var masterSegments = BuildTrackSegments(plans, instruments);

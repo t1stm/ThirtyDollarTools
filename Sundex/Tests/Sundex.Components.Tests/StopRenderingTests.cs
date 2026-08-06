@@ -138,18 +138,23 @@ public class StopRenderingTests
         context.UpdatePointer(root, 400, 300, false, false, true, Vector2.Zero);
 
         Assert.Null(modal.Parent);
-        Assert.All(queue, layer => Assert.Empty(layer));
+        Assert.All(queue, Assert.Empty);
     }
 
     private static StyleSheet HoveredButtonSheet()
     {
-        var holder = new StyleSheetHolder();
-        holder.Components["button"] = new Dictionary<string, IStyleValue>
+        var holder = new StyleSheetHolder
         {
-            { "background", new ColorValue("#4c6bcc") },
+            Components =
             {
-                "state[hovered]",
-                new BlockValue(new Dictionary<string, IStyleValue> { { "background", new ColorValue("#6b82c4") } })
+                ["button"] = new Dictionary<string, IStyleValue>
+                {
+                    { "background", new ColorValue("#4c6bcc") },
+                    {
+                        "state[hovered]",
+                        new BlockValue(new Dictionary<string, IStyleValue> { { "background", new ColorValue("#6b82c4") } })
+                    }
+                }
             }
         };
         return new StyleSheet(holder);

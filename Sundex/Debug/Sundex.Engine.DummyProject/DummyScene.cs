@@ -25,16 +25,19 @@ public class DummyScene(Game game) : Scene(game)
 
         var valueLabel = new Label(_context, "Hello, Sundex!") { FontSizePx = 16f };
 
-        var input = new TextInput(_context, "Hello, Sundex!") { Width = 300 };
-        input.OnValueChanged = ti => valueLabel.Value = ti.Value;
+        var input = new TextInput(_context, "Hello, Sundex!")
+        {
+            Width = 300,
+            OnValueChanged = ti => valueLabel.Value = ti.Value
+        };
 
         var column = new FlexPanel(_context)
         {
             Direction = LayoutDirection.Vertical,
             HorizontalAlign = Align.Center,
-            Spacing = 12
+            Spacing = 12,
+            Children = [input, valueLabel]
         };
-        column.Children = [input, valueLabel];
 
         _root = new FlexPanel(_context)
         {

@@ -1,6 +1,7 @@
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Dialogs;
+using JetBrains.Annotations;
 
 namespace EditorScene;
 
@@ -31,8 +32,6 @@ public class EditorState
     private readonly List<Note> _selectedNotes = [];
     private readonly List<TrackPlacement> _selectedPlacements = [];
     private readonly UndoHistory _undoHistory = new();
-    private Instrument? _activeInstrument;
-    private EditorTool _activeTool = EditorTool.Draw;
 
     public ThirtyDollarProject Project { get; private set; } = new();
     public ProjectTrack? SelectedTrack { get; private set; }
@@ -67,10 +66,10 @@ public class EditorState
     /// </summary>
     public Instrument? ActiveInstrument
     {
-        get => _activeInstrument;
+        get;
         set
         {
-            _activeInstrument = value;
+            field = value;
             if (OpenedTrack is { } track) _lastInstrumentByTrack[track] = value;
         }
     }
@@ -81,14 +80,14 @@ public class EditorState
     /// </summary>
     public EditorTool ActiveTool
     {
-        get => _activeTool;
+        get;
         set
         {
-            if (_activeTool == value) return;
-            _activeTool = value;
+            if (field == value) return;
+            field = value;
             OnToolChanged?.Invoke(value);
         }
-    }
+    } = EditorTool.Draw;
 
     /// <summary>
     ///     Modifiers (volume/pan/offset/automation, never value) copied from the last-clicked
@@ -159,6 +158,7 @@ public class EditorState
     }
 
     /// <summary>Duplicates a track under the given name, deep-copied so editing the copy never reaches the source.</summary>
+    [UsedImplicitly]
     public ProjectTrack DuplicateTrack(ProjectTrack track, string name)
     {
         var copy = Project.DuplicateTrack(track, name);

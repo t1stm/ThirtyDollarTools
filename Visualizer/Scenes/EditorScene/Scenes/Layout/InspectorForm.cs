@@ -13,7 +13,7 @@ namespace EditorScene.Scenes.Layout;
 ///     that box a group of rows. Pure builder - no domain knowledge of what a section
 ///     contains, that's <see cref="InspectorPanel" />'s job.
 /// </summary>
-public sealed class InspectorForm
+public sealed class InspectorForm(UIContext context, EditorState state, Panel root)
 {
     /// <summary>
     ///     Where a row's input starts, and what the "×" in a modifier row is offset from.
@@ -22,20 +22,10 @@ public sealed class InspectorForm
     /// </summary>
     private const float LabelWidth = 84f;
 
-    private readonly UIContext _context;
     private readonly Dictionary<string, UIElement> _fields = [];
-    private readonly Panel _root;
-    private readonly EditorState _state;
+    private readonly Panel _root = root;
     private readonly List<Action> _syncs = [];
-    private Panel _container;
-
-    public InspectorForm(UIContext context, EditorState state, Panel root)
-    {
-        _context = context;
-        _state = state;
-        _root = root;
-        _container = root;
-    }
+    private Panel _container = root;
 
     /// <summary>
     ///     The field's key prefix ("Section" in "Section.Label") - the current
@@ -72,14 +62,14 @@ public sealed class InspectorForm
     public void Header(string text, params UIElement[] trailing)
     {
         Section = text;
-        var label = new Label(_context, text) { Classes = ["title-label"] };
+        var label = new Label(context, text) { Classes = ["title-label"] };
         if (trailing.Length == 0)
         {
             _container.AddChild(label);
             return;
         }
 
-        _container.AddChild(new FlexPanel(_context)
+        _container.AddChild(new FlexPanel(context)
         {
             Classes = ["inspector-header-row"],
             Children = [label, .. trailing]
@@ -94,7 +84,7 @@ public sealed class InspectorForm
     /// </summary>
     public void Card(string shadeClass, Action build)
     {
-        var card = new FlexPanel(_context) { Classes = ["inspector-card", shadeClass] };
+        var card = new FlexPanel(context) { Classes = ["inspector-card", shadeClass] };
         var previous = _container;
         previous.AddChild(card);
         _container = card;
@@ -106,9 +96,9 @@ public sealed class InspectorForm
     {
         _fields[$"{Section}.{label}"] = input;
         input.X = LabelWidth;
-        var row = new Panel(_context) { Classes = ["form-row"] };
+        var row = new Panel(context) { Classes = ["form-row"] };
         // Y centers the text against form-row's height - a layout offset, not a look.
-        row.AddChild(new Label(_context, label) { Classes = ["muted-label"], Y = 9 });
+        row.AddChild(new Label(context, label) { Classes = ["muted-label"], Y = 9 });
         row.AddChild(input);
         if (extra != null) row.AddChild(extra);
         _container.AddChild(row);
@@ -116,7 +106,7 @@ public sealed class InspectorForm
 
     public void TextRow(string label, Func<string> get, Action<string> set)
     {
-        var input = new TextInput(_context, get())
+        var input = new TextInput(context, get())
         {
             Classes = ["text-field", "inspector-field"],
             OnValueChanged = i => set(i.Value)
@@ -144,7 +134,7 @@ public sealed class InspectorForm
     public void NumberRow(string label, Func<double?> get, Action<double?> set,
         double min, double max, double step = 1, bool allowNull = false, Func<bool>? mixed = null)
     {
-        var input = new NumericInput(_context, mixed?.Invoke() == true ? null : get())
+        var input = new NumericInput(context, mixed?.Invoke() == true ? null : get())
         {
             Classes = ["text-field", "text-field-tall", "inspector-field"],
             Min = min,
@@ -155,7 +145,7 @@ public sealed class InspectorForm
         input.OnValueChanged = _ =>
         {
             var value = input.Value;
-            if (value != null || allowNull) _state.Edit(() => set(value));
+            if (value != null || allowNull) state.Edit(() => set(value));
         };
         Row(label, input);
         _syncs.Add(() =>
@@ -184,7 +174,7 @@ public sealed class InspectorForm
             return;
         }
 
-        _container.AddChild(new FlexPanel(_context)
+        _container.AddChild(new FlexPanel(context)
         {
             Classes = ["inspector-check-row"],
             Children = [box, .. extras.Select(extra => (UIElement)Check(extra.Label, extra.Get, extra.Set))]
@@ -193,8 +183,14 @@ public sealed class InspectorForm
 
     private Checkbox Check(string label, Func<bool> get, Action<bool> set)
     {
-        var box = new Checkbox(_context, label, get()) { OnCheckedChanged = b => set(b.Checked) };
-        box.Label.Classes = ["inspector-check-label"];
+        var box = new Checkbox(context, label, get())
+        {
+            OnCheckedChanged = b => set(b.Checked),
+            Label =
+            {
+                Classes = ["inspector-check-label"]
+            }
+        };
         _fields[$"{Section}.{label}"] = box;
         _syncs.Add(() => box.Checked = get());
         return box;
@@ -202,7 +198,7 @@ public sealed class InspectorForm
 
     public void InfoRow(string label, Func<string> get)
     {
-        var value = new Label(_context, get()) { Classes = ["inspector-check-label"], Y = 9 };
+        var value = new Label(context, get()) { Classes = ["inspector-check-label"], Y = 9 };
         Row(label, value);
         _syncs.Add(() => value.SetTextContents(get()));
     }
@@ -218,7 +214,7 @@ public sealed class InspectorForm
     /// </summary>
     public void ActionRow(string key, string label, Action onClick)
     {
-        var button = new Button(_context, label) { Classes = ["inspector-check-label"], OnClick = _ => onClick() };
+        var button = new Button(context, label) { Classes = ["inspector-check-label"], OnClick = _ => onClick() };
         _fields[$"{Section}.{key}"] = button;
         _container.AddChild(button);
     }
@@ -230,23 +226,26 @@ public sealed class InspectorForm
     public void ModifierRow(string label, Func<Modifier> get, Action<Modifier> set)
     {
         var initial = get();
-        var amount = new NumericInput(_context, initial.Amount)
+        var amount = new NumericInput(context, initial.Amount)
         {
             Classes = ["text-field", "inspector-field-narrow"],
             Min = -10000,
             Max = 10000
         };
-        var multiply = new Checkbox(_context, "×", initial.Kind == ModifierKind.Multiply)
+        var multiply = new Checkbox(context, "×", initial.Kind == ModifierKind.Multiply)
         {
             X = LabelWidth + 108,
-            Y = 6
+            Y = 6,
+            Label =
+            {
+                Classes = ["inspector-check-label"]
+            }
         };
-        multiply.Label.Classes = ["inspector-check-label"];
 
         void Commit()
         {
             if (amount.Value is not { } value) return; // mid-edit ("", "-")
-            _state.Edit(() =>
+            state.Edit(() =>
                 set(new Modifier(value, multiply.Checked ? ModifierKind.Multiply : ModifierKind.Add)));
         }
 

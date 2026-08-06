@@ -14,10 +14,15 @@ public class CursorTests
         var context = new TestUIContext();
         var element = new TestElement(context);
 
-        var holder = new StyleSheetHolder();
-        holder.Components[element.Tag] = new Dictionary<string, IStyleValue>
+        var holder = new StyleSheetHolder
         {
-            ["cursor"] = new StringValue("Pointer")
+            Components =
+            {
+                [element.Tag] = new Dictionary<string, IStyleValue>
+                {
+                    ["cursor"] = new StringValue("Pointer")
+                }
+            }
         };
         var styleSheet = new StyleSheet(holder);
 
@@ -66,9 +71,11 @@ public class CursorTests
             RequestCursor = c => requestedCursor = c
         };
 
-        var element = new TestElement(context);
-        element.Cursor = CursorType.ResizeY;
-        element.IsHovered = true;
+        var element = new TestElement(context)
+        {
+            Cursor = CursorType.ResizeY,
+            IsHovered = true
+        };
 
         element.Update(context);
 
