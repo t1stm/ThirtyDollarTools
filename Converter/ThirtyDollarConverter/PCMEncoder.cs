@@ -72,7 +72,7 @@ public class PcmEncoder
     public async Task<RenderedSequence> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences,
         Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents = null)
     {
-        var array = sequences as Sequence[] ?? sequences.ToArray();
+        var array = sequences as Sequence[] ?? [.. sequences];
         var placement = PlacementCalculator.CalculateMany(array);
         var placement_array = placement.ToArray();
 
@@ -805,7 +805,7 @@ public class PcmEncoder
             if (counts.TryGetValue(placement, out var count) && count > 0) counts[placement] = count - 1;
             else result.Add(placement);
 
-        return result.ToArray();
+        return [.. result];
     }
 
     private class PlacementEqualityComparer : IEqualityComparer<Placement>

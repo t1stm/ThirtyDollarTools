@@ -9,7 +9,7 @@ public class HermiteResampler : IResampler
         var span = samples.Span;
         if (sampleRate == targetSampleRate)
             // No resampling needed
-            return span.ToArray();
+            return [.. span];
 
         var new_length = (int)Math.Ceiling(span.Length * (double)targetSampleRate / sampleRate);
         var resampled = new float[new_length];
@@ -32,7 +32,7 @@ public class HermiteResampler : IResampler
         var span = samples.Span;
         if (sampleRate == targetSampleRate)
             // No resampling needed
-            return span.ToArray();
+            return [.. span];
 
         var new_length = (int)Math.Ceiling(span.Length * (double)targetSampleRate / sampleRate);
         var resampled = new double[new_length];

@@ -12,7 +12,7 @@ namespace ThirtyDollarConverter.GUI.ViewModels;
 
 public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : ViewModelBase
 {
-    public ObservableCollection<ResamplerModel> ListItems { get; } = new(ResamplerService.GetItems());
+    public ObservableCollection<ResamplerModel> ListItems { get; } = [.. ResamplerService.GetItems()];
     public PercentageScale[] ScaleItems { get; } = Enum.GetValues<PercentageScale>();
 
     public uint SampleRate

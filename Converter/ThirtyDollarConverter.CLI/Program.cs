@@ -25,7 +25,7 @@ if (inputs.Length < 1)
     return;
 }
 
-if (outputs.Length == 0) outputs = inputs.Select(s => $"{s}.wav").ToArray();
+if (outputs.Length == 0) outputs = [.. inputs.Select(s => $"{s}.wav")];
 
 if (inputs.Length != outputs.Length)
 {

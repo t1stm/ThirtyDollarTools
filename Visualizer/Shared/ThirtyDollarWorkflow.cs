@@ -173,20 +173,23 @@ public class ThirtyDollarWorkflow
 
     public SequenceInfo[] GetSequenceInfos(IEnumerable<string?> locations)
     {
-        return locations.Where(l => File.Exists(l) && !Directory.Exists(l)).Select(l => new SequenceInfo
-        {
-            FileLocation = l!,
-            FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo
-                    { Location = l!, Storage = StorageLocation.Disk })
-                .ModifiedDate
-        }).ToArray();
+        return
+        [
+            .. locations.Where(l => File.Exists(l) && !Directory.Exists(l)).Select(l => new SequenceInfo
+            {
+                FileLocation = l!,
+                FileModifiedTime = _assetProvider.Metadata<AssetMetadata, AssetInfo>(new AssetInfo
+                        { Location = l!, Storage = StorageLocation.Disk })
+                    .ModifiedDate
+            })
+        ];
     }
 
     public void UpdateExtractedSpeedEvents()
     {
         lock (ExtractedSpeedEvents)
         {
-            ExtractedSpeedEvents = TimedEvents.Placement.Where(p => p.Event.SoundEvent is "!speed").ToArray();
+            ExtractedSpeedEvents = [.. TimedEvents.Placement.Where(p => p.Event.SoundEvent is "!speed")];
         }
     }
 
@@ -230,7 +233,7 @@ public class ThirtyDollarWorkflow
 
         try
         {
-            UpdateSequences(SequenceInfos.Select(s => s.FileLocation).Where(File.Exists).ToArray(), false)
+            UpdateSequences([.. SequenceInfos.Select(s => s.FileLocation).Where(File.Exists)], false)
                 .GetAwaiter().GetResult();
         }
         catch (Exception e)

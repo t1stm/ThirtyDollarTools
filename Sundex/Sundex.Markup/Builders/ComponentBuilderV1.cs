@@ -153,10 +153,12 @@ public class ComponentBuilderV1 : IComponentBuilder
             {
                 element = new StackPanel(context.UIContext)
                 {
-                    Children = node.Children
-                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                            registeredClasses, children))
-                        .ToList()
+                    Children =
+                    [
+                        .. node.Children
+                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                                registeredClasses, children))
+                    ]
                 };
                 break;
             }
@@ -165,10 +167,12 @@ public class ComponentBuilderV1 : IComponentBuilder
             {
                 element = new FlexPanel(context.UIContext)
                 {
-                    Children = node.Children
-                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                            registeredClasses, children))
-                        .ToList()
+                    Children =
+                    [
+                        .. node.Children
+                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                                registeredClasses, children))
+                    ]
                 };
                 break;
             }
@@ -177,10 +181,12 @@ public class ComponentBuilderV1 : IComponentBuilder
             {
                 element = new Panel(context.UIContext)
                 {
-                    Children = node.Children
-                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                            registeredClasses, children))
-                        .ToList()
+                    Children =
+                    [
+                        .. node.Children
+                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                                registeredClasses, children))
+                    ]
                 };
                 break;
             }
@@ -214,10 +220,12 @@ public class ComponentBuilderV1 : IComponentBuilder
             {
                 element = new ScrollView(context.UIContext)
                 {
-                    Children = node.Children
-                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                            registeredClasses, children))
-                        .ToList()
+                    Children =
+                    [
+                        .. node.Children
+                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                                registeredClasses, children))
+                    ]
                 };
                 break;
             }
@@ -226,10 +234,12 @@ public class ComponentBuilderV1 : IComponentBuilder
             {
                 element = new ModalLayer(context.UIContext)
                 {
-                    Children = node.Children
-                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                            registeredClasses, children))
-                        .ToList()
+                    Children =
+                    [
+                        .. node.Children
+                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                                registeredClasses, children))
+                    ]
                 };
                 break;
             }
@@ -457,6 +467,6 @@ public class ComponentBuilderV1 : IComponentBuilder
 
     private static List<ISundexComponent> HandleDependencies(SundexDocument layout, ISundexContext context)
     {
-        return layout.Root.Imports.Select(import => context.ResolveComponent(import)).ToList();
+        return [.. layout.Root.Imports.Select(import => context.ResolveComponent(import))];
     }
 }

@@ -275,7 +275,7 @@ public class EditorState
     /// </summary>
     public void SetNoteSelection(IEnumerable<Note> notes)
     {
-        var next = notes as IReadOnlyList<Note> ?? notes.ToArray();
+        var next = notes as IReadOnlyList<Note> ?? [.. notes];
         if (SequenceRefEqual(_selectedNotes, next)) return;
         _selectedNotes.Clear();
         _selectedNotes.AddRange(next);
@@ -324,7 +324,7 @@ public class EditorState
     /// </summary>
     public void SetPlacementSelection(IEnumerable<TrackPlacement> placements)
     {
-        var next = placements as IReadOnlyList<TrackPlacement> ?? placements.ToArray();
+        var next = placements as IReadOnlyList<TrackPlacement> ?? [.. placements];
         if (SequenceRefEqual(_selectedPlacements, next)) return;
         _selectedPlacements.Clear();
         _selectedPlacements.AddRange(next);

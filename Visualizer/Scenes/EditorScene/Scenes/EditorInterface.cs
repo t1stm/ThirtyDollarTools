@@ -368,7 +368,7 @@ public class EditorInterface
     public void CommitAndCloseSoundFilter()
     {
         if (_editingTrackAutomation is { } automation)
-            State.Edit(() => automation.Sounds = _soundFilterPicker.Selected.ToList());
+            State.Edit(() => automation.Sounds = [.. _soundFilterPicker.Selected]);
         RootPanel.RemoveChild(SoundFilterModal);
         _inspector.Rebuild();
     }

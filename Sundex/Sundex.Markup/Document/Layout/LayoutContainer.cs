@@ -32,7 +32,7 @@ public class LayoutContainer(RootContainer root, XmlElement layoutElement)
         {
             classes = [];
             if (classString.StartsWith('[') && classString.EndsWith(']'))
-                classes = classString[1..^1].Split(',').ToHashSet();
+                classes = [.. classString[1..^1].Split(',')];
             else classes.Add(classString);
         }
 

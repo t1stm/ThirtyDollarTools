@@ -64,7 +64,7 @@ internal static class SequenceBuilder
             })
             .GroupBy(n => (n.Region, n.Step))
             .OrderBy(g => g.Key.Region).ThenBy(g => g.Key.Step)
-            .Select(g => (g.Key.Region, g.Key.Step, Events: CollapseCuts(g.Select(n => n.Event).ToArray())))
+            .Select(g => (g.Key.Region, g.Key.Step, Events: CollapseCuts([.. g.Select(n => n.Event)])))
             .ToArray();
 
         if (groups.Length == 0)
@@ -271,7 +271,7 @@ internal static class SequenceBuilder
             result.Add(collapsed); // in place of the first cut: action order at a step is preserved
         }
 
-        return result.ToArray();
+        return [.. result];
     }
 
     /// <summary>

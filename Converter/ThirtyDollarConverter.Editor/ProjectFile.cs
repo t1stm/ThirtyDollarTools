@@ -23,45 +23,60 @@ public static class ProjectFile
         var dto = new ProjectDto(
             project.Info,
             project.RootTiming,
-            project.Tracks.Select(track => new TrackDto(
-                track.Id,
-                track.Name,
-                // Shared root timing is omitted and rewired on load; JSON references would
-                // otherwise litter the file with $id/$ref noise.
-                ReferenceEquals(track.Timing, project.RootTiming) ? null : track.Timing,
-                track.Segments.Select(segment => new SegmentDto(
-                    segment.Numerator,
-                    segment.Denominator,
-                    segment.BPM,
-                    segment.Bars,
-                    segment.StepsPerBeat,
-                    segment.Notes.Select(note => new NoteDto(
-                        note.Step,
-                        note.Instrument.Id,
-                        note.Value,
-                        note.Volume,
-                        note.Pan,
-                        SaveAutomation(note.Automation),
-                        note.Offset == 0 ? null : note.Offset,
-                        IsCut: note.IsCut ? true : null
-                    )).ToList()
-                )).ToList(),
-                track.TrackAutomations.Count == 0
-                    ? null
-                    : track.TrackAutomations.Select(automation => new TrackAutomationDto(
-                        SaveAutomation(automation.Keyframes)!,
-                        automation.Sounds)).ToList(),
-                track.Transpose
-            )).ToList(),
-            project.Instruments.Select(instrument => new InstrumentDto(
-                instrument.Id,
-                instrument.Name,
-                instrument.Sounds.Select(sound => new InstrumentSoundDto(
-                    sound.Sound, sound.Value, sound.Volume, sound.Pan)).ToList())).ToList(),
-            project.Placements.Select(placement => new PlacementDto(
-                placement.Track.Id,
-                placement.Channel,
-                placement.StartQuarterNotes)).ToList(),
+            [
+                .. project.Tracks.Select(track => new TrackDto(
+                    track.Id,
+                    track.Name,
+                    // Shared root timing is omitted and rewired on load; JSON references would
+                    // otherwise litter the file with $id/$ref noise.
+                    ReferenceEquals(track.Timing, project.RootTiming) ? null : track.Timing,
+                    [
+                        .. track.Segments.Select(segment => new SegmentDto(
+                            segment.Numerator,
+                            segment.Denominator,
+                            segment.BPM,
+                            segment.Bars,
+                            segment.StepsPerBeat,
+                            [
+                                .. segment.Notes.Select(note => new NoteDto(
+                                    note.Step,
+                                    note.Instrument.Id,
+                                    note.Value,
+                                    note.Volume,
+                                    note.Pan,
+                                    SaveAutomation(note.Automation),
+                                    note.Offset == 0 ? null : note.Offset,
+                                    IsCut: note.IsCut ? true : null
+                                ))
+                            ]
+                        ))
+                    ],
+                    track.TrackAutomations.Count == 0
+                        ? null
+                        :
+                        [
+                            .. track.TrackAutomations.Select(automation => new TrackAutomationDto(
+                                SaveAutomation(automation.Keyframes)!,
+                                automation.Sounds))
+                        ],
+                    track.Transpose
+                ))
+            ],
+            [
+                .. project.Instruments.Select(instrument => new InstrumentDto(
+                    instrument.Id,
+                    instrument.Name,
+                    [
+                        .. instrument.Sounds.Select(sound => new InstrumentSoundDto(
+                            sound.Sound, sound.Value, sound.Volume, sound.Pan))
+                    ]))
+            ],
+            [
+                .. project.Placements.Select(placement => new PlacementDto(
+                    placement.Track.Id,
+                    placement.Channel,
+                    placement.StartQuarterNotes))
+            ],
             project.Transpose == 0 ? null : project.Transpose);
 
         return JsonSerializer.Serialize(dto, Options);
@@ -167,15 +182,17 @@ public static class ProjectFile
             ? null
             : new AutomationDto(
                 manager.Timing,
-                manager.Keyframes.Select(keyframe => new KeyframeDto(
-                    keyframe.Gap,
-                    NullIfNoOp(keyframe.Value),
-                    NullIfNoOp(keyframe.Volume),
-                    NullIfNoOp(keyframe.Pan),
-                    NullIfNoOp(keyframe.Offset),
-                    keyframe.Cut ? true : null,
-                    keyframe.CutOnly ? true : null,
-                    keyframe.CutLast ? true : null)).ToList(),
+                [
+                    .. manager.Keyframes.Select(keyframe => new KeyframeDto(
+                        keyframe.Gap,
+                        NullIfNoOp(keyframe.Value),
+                        NullIfNoOp(keyframe.Volume),
+                        NullIfNoOp(keyframe.Pan),
+                        NullIfNoOp(keyframe.Offset),
+                        keyframe.Cut ? true : null,
+                        keyframe.CutOnly ? true : null,
+                        keyframe.CutLast ? true : null))
+                ],
                 manager.Repeats == 1 ? null : manager.Repeats);
     }
 

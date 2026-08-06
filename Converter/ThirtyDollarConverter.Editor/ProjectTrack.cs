@@ -89,7 +89,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     /// </summary>
     public Sequence ToSequence(SequenceStyle? style = null)
     {
-        return SequenceBuilder.Build(TempoRegions(), TimedNotes().ToArray(), style, BarTimes(style));
+        return SequenceBuilder.Build(TempoRegions(), [.. TimedNotes()], style, BarTimes(style));
     }
 
     /// <summary>
@@ -206,7 +206,7 @@ public class ProjectTrack(TimingInfo timing, int id)
             }
         }
 
-        return times.ToArray();
+        return [.. times];
     }
 
     /// <summary>

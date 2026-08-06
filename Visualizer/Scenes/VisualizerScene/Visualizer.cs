@@ -555,7 +555,7 @@ public class Visualizer : Scene, IGamePreloadable
 
         if (control && shift)
         {
-            FileDrop(Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists).ToArray(), true);
+            FileDrop([.. Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists)], true);
             return;
         }
 
@@ -801,7 +801,7 @@ public class Visualizer : Scene, IGamePreloadable
             log.Value = "Loading...";
             try
             {
-                await _workflow.UpdateSequences(locations.ToArray(), resetTime);
+                await _workflow.UpdateSequences([.. locations], resetTime);
             }
             catch (Exception e)
             {

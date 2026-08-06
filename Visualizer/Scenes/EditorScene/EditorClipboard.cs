@@ -14,13 +14,13 @@ public sealed class EditorClipboard
 
     public void SetNotes(IEnumerable<NoteEntry> entries)
     {
-        Notes = entries.ToArray();
+        Notes = [.. entries];
         Placements = null;
     }
 
     public void SetPlacements(IEnumerable<PlacementEntry> entries)
     {
-        Placements = entries.ToArray();
+        Placements = [.. entries];
         Notes = null;
     }
 

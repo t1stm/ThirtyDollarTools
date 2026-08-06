@@ -217,7 +217,7 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
         public override void Dangerous_SetBufferData(ReadOnlySpan<TDataType> newData)
         {
             if (CPUBuffer.Length != newData.Length)
-                CPUBuffer = newData.ToArray();
+                CPUBuffer = [.. newData];
             else newData.CopyTo(CPUBuffer);
             base.Dangerous_SetBufferData(newData);
         }

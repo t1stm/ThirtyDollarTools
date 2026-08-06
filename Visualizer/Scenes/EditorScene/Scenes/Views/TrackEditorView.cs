@@ -915,12 +915,15 @@ public sealed class TrackEditorView : Panel
         _groupDragLastStep = anchorGlobalStep;
         _groupDragLastValue = _groupDragAnchorStartValue;
 
-        _groupDrag = _state.SelectedNotes.Select(note =>
-        {
-            var segment = track.Segments.FirstOrDefault(s => s.Notes.Contains(note));
-            var globalStep = segment != null ? track.GlobalStepOf(segment, note.Step) : note.Step;
-            return new GroupDragEntry(note, globalStep, note.Value);
-        }).ToList();
+        _groupDrag =
+        [
+            .. _state.SelectedNotes.Select(note =>
+            {
+                var segment = track.Segments.FirstOrDefault(s => s.Notes.Contains(note));
+                var globalStep = segment != null ? track.GlobalStepOf(segment, note.Step) : note.Step;
+                return new GroupDragEntry(note, globalStep, note.Value);
+            })
+        ];
     }
 
     /// <summary>

@@ -23,10 +23,12 @@ public class ChannelSequenceTests
     private static double[] AudibleSeconds(Sequence sequence)
     {
         var calculator = new PlacementCalculator(new EncoderSettings { SampleRate = SampleRate });
-        return calculator.CalculateOne(sequence)
-            .Where(p => p.Audible)
-            .Select(p => p.Index / (double)SampleRate)
-            .ToArray();
+        return
+        [
+            .. calculator.CalculateOne(sequence)
+                .Where(p => p.Audible)
+                .Select(p => p.Index / (double)SampleRate)
+        ];
     }
 
     [Fact]

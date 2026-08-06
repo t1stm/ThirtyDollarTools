@@ -133,7 +133,7 @@ public sealed class SoundPicker : FlexPanel
     ///     The distinct picked sound names - what consumers that don't care about
     ///     adjustments (the track-automation filter) read.
     /// </summary>
-    public HashSet<string> Selected => Instances.Select(instance => instance.Sound).ToHashSet();
+    public HashSet<string> Selected => [.. Instances.Select(instance => instance.Sound)];
 
     /// <summary>
     ///     Counts icons, not known sounds: <see cref="Fill" /> may run while the atlases

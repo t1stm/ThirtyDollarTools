@@ -25,10 +25,12 @@ public class SpeedEventTests
 
     private static string[] Speeds(ProjectTrack track)
     {
-        return track.ToSequence().Events
-            .Where(e => e.SoundEvent == "!speed")
-            .Select(e => e.Stringify())
-            .ToArray();
+        return
+        [
+            .. track.ToSequence().Events
+                .Where(e => e.SoundEvent == "!speed")
+                .Select(e => e.Stringify())
+        ];
     }
 
     [Fact]

@@ -116,7 +116,7 @@ public static class SequenceImporter
         var channel = project.Placements.Count == 0 ? 0 : project.Placements.Max(p => p.Channel) + 1;
         var placement = project.Place(track, channel, 0);
 
-        return new ImportResult(track, instruments.Values.ToArray(), placement, warnings);
+        return new ImportResult(track, [.. instruments.Values], placement, warnings);
     }
 
     /// <summary>Builds a whole new project: one track per distinct sound, sharing the same segment layout.</summary>
@@ -154,7 +154,7 @@ public static class SequenceImporter
             project.Place(track, channel++, 0);
         }
 
-        return new ImportResult(null, instruments.Values.ToArray(), null, warnings);
+        return new ImportResult(null, [.. instruments.Values], null, warnings);
     }
 
     private static (WalkData Walk, List<SegmentPlan> Plans, ImportWarnings Warnings) Prepare(Sequence sequence,
@@ -376,7 +376,7 @@ public static class SequenceImporter
         if (notes.Count == 0)
             throw new InvalidOperationException("No sounds found in this sequence.");
 
-        return new WalkData(regions, notes, soundOrder, ignoredEvents, unknownSounds.Order().ToArray());
+        return new WalkData(regions, notes, soundOrder, ignoredEvents, [.. unknownSounds.Order()]);
     }
 
     private static double Scale(double current, BaseEvent ev)
@@ -568,7 +568,7 @@ public static class SequenceImporter
         var mainSteps = best.Bars * best.Numerator * best.Spb;
         if (best.Bars > 0)
             plans.Add(new SegmentPlan(best.Numerator, best.Bars, best.Spb, (float)(rate / best.Spb),
-                notes.TakeWhile(p => p.Step < mainSteps).ToList(), quantized));
+                [.. notes.TakeWhile(p => p.Step < mainSteps)], quantized));
 
         var leftover = lengthSteps - mainSteps;
         if (leftover <= 0) return;
@@ -587,7 +587,7 @@ public static class SequenceImporter
             : BestBar(rate, leftover);
 
         plans.Add(new SegmentPlan(numerator, 1, spb2, (float)(rate / spb2),
-            tailNotes.Select(p => (p.Step - mainSteps, p.Note)).ToList(),
+            [.. tailNotes.Select(p => (p.Step - mainSteps, p.Note))],
             best.Bars > 0 ? 0 : quantized));
     }
 

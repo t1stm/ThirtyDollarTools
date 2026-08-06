@@ -1168,7 +1168,7 @@ public class EditorStateTests
 
         // The pasted block is the selection, so it can be dragged off the originals whole.
         state.MoveSelectedNotes(track,
-            state.SelectedNotes.Select(n => (n, segment, n.Step + 4, n.Value)).ToArray());
+            [.. state.SelectedNotes.Select(n => (n, segment, n.Step + 4, n.Value))]);
         Assert.Equal([0, 1, 2, 3, 4, 5, 6, 7], segment.Notes.Select(n => n.Step).Order());
     }
 

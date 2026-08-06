@@ -19,7 +19,7 @@ public class LogicContainer(RootContainer root, XmlElement logicElement)
         if (imports.Length == 0) return importsList;
 
         if (imports.StartsWith('[') && imports.EndsWith(']'))
-            importsList = imports[1..^1].Split(',').Select(r => r.Trim()).ToList();
+            importsList = [.. imports[1..^1].Split(',').Select(r => r.Trim())];
         else importsList.Add(imports);
         return importsList;
     }

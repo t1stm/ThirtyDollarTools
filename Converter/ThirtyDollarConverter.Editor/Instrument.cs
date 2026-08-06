@@ -20,7 +20,7 @@ public class Instrument
     ///     Every distinct sound name this instrument plays, duplicates collapsed -
     ///     what a cut has to silence.
     /// </summary>
-    public HashSet<string> SoundNames => Sounds.Select(sound => sound.Sound).ToHashSet();
+    public HashSet<string> SoundNames => [.. Sounds.Select(sound => sound.Sound)];
 
     /// <summary>
     ///     Appends one plain, untuned sound - the common case; tune the returned

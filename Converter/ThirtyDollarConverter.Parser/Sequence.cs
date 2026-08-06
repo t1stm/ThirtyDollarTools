@@ -200,7 +200,7 @@ public partial class Sequence
             if (!enumerator.MoveNext()) break;
         }
 
-        return events.ToArray();
+        return [.. events];
     }
 
     private static bool ProcessDefines(Sequence sequence, BaseEvent newEvent, List<BaseEvent> list)

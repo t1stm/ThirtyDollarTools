@@ -16,8 +16,8 @@ public static class GradientPlaneExtensions
                 "solid" => GradientType.Solid,
                 _ => GradientType.Linear // also matches linear
             },
-            GradientStops = gv.Stops.Select(stop => stop.Percentage).ToList(),
-            GradientColors = gv.Stops.Select(stop => stop.Color.Vector).ToList()
+            GradientStops = [.. gv.Stops.Select(stop => stop.Percentage)],
+            GradientColors = [.. gv.Stops.Select(stop => stop.Color.Vector)]
         };
     }
 }

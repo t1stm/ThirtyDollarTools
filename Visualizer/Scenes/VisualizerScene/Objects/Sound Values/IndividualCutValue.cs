@@ -19,9 +19,11 @@ public class IndividualCutValue : ISoundValue
     {
         // render scale is baked in, since ScaleMultiplier belongs to the expand animation and gets reset to 1
         _baseSize = RenderableSize * renderScale;
-        _renderables = ice.CutSounds
-            .Select(s => factory.CookUp(new NormalEvent { SoundEvent = s }))
-            .ToArray();
+        _renderables =
+        [
+            .. ice.CutSounds
+                .Select(s => factory.CookUp(new NormalEvent { SoundEvent = s }))
+        ];
 
         ScaleMultiplier = 1f;
         UpdatePosition();

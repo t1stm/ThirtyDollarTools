@@ -171,7 +171,7 @@ public class ThirtyDollarProject
     /// </summary>
     public Sequence ToSequence(Func<int, bool> isChannelAudible, SequenceStyle? style = null)
     {
-        return BuildSequence(_placements.Where(p => isChannelAudible(p.Channel)).ToList(), style);
+        return BuildSequence([.. _placements.Where(p => isChannelAudible(p.Channel))], style);
     }
 
     /// <summary>
@@ -182,7 +182,7 @@ public class ThirtyDollarProject
     /// </summary>
     public Sequence ChannelSequence(int channel, SequenceStyle? style = null)
     {
-        return BuildSequence(_placements.Where(p => p.Channel == channel).ToList(), style);
+        return BuildSequence([.. _placements.Where(p => p.Channel == channel)], style);
     }
 
     private Sequence BuildSequence(List<TrackPlacement> placements, SequenceStyle? style)
@@ -200,7 +200,7 @@ public class ThirtyDollarProject
             timed.AddRange(placement.Track.TimedNotes(StartMinutes(placement), Transpose)
                 .Where(t => t.Event is IndividualCutEvent));
 
-        return SequenceBuilder.Build(MergedRegions(placements), timed.ToArray(), style, BarTimes(placements, style));
+        return SequenceBuilder.Build(MergedRegions(placements), [.. timed], style, BarTimes(placements, style));
     }
 
     /// <summary>

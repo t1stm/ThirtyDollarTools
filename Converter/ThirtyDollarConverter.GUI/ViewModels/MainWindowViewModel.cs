@@ -178,7 +178,7 @@ public class MainWindowViewModel : ViewModelBase
                 CreateLog($"Preloaded sequence located in: \'{sequence_location}\'");
             }
 
-            _sequences = new_sequences.ToArray();
+            _sequences = [.. new_sequences];
         }
         catch (Exception e)
         {
