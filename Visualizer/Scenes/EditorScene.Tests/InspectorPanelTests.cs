@@ -21,9 +21,9 @@ public class InspectorPanelTests
     {
         var ctx = new EditorTestContext();
         var state = new EditorState();
-        var inspector = EditorTestContext.Styled(new InspectorPanel(ctx, state));
-        inspector.Width = 260;
-        inspector.Height = 600;
+        var inspector = ctx.NewInspector(state);
+        inspector.Element.Width = 260;
+        inspector.Element.Height = 600;
 
         // The EditorInterface wiring.
         state.OnProjectChanged += inspector.Sync;
@@ -33,8 +33,8 @@ public class InspectorPanelTests
         state.OnNoteSelectionChanged += _ => inspector.Rebuild();
         state.OnPlacementSelectionChanged += _ => inspector.Rebuild();
 
-        inspector.Layout();
-        inspector.DrawTo(ctx);
+        inspector.Element.Layout();
+        inspector.Element.DrawTo(ctx);
         return (ctx, state, inspector);
     }
 
@@ -564,11 +564,15 @@ public class InspectorPanelTests
     {
         var (_, _, inspector) = NewInspector();
 
-        var expectedRowsHeight = inspector.Computed.Height - InspectorPanel.RuleHeight - InspectorPanel.StatusBarHeight;
+        var expectedRowsHeight =
+            inspector.Element.Computed.Height - InspectorPanel.RuleHeight - InspectorPanel.StatusBarHeight;
         Assert.Equal(expectedRowsHeight, inspector.Rows.Computed.Height, 3);
 
-        var panelBottom = inspector.Computed.AbsoluteY + inspector.Computed.Height;
-        var statusBottom = inspector.StatusSection.Computed.AbsoluteY + inspector.StatusSection.Computed.Height;
+        // The strip is the bar's parent - the controller has no handle on it, only on the
+        // four elements it actually drives.
+        var statusSection = inspector.StatusBar.Parent!;
+        var panelBottom = inspector.Element.Computed.AbsoluteY + inspector.Element.Computed.Height;
+        var statusBottom = statusSection.Computed.AbsoluteY + statusSection.Computed.Height;
         Assert.Equal(panelBottom, statusBottom, 3);
     }
 

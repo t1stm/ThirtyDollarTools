@@ -98,7 +98,7 @@ public class RootContainer
 |---|---|---|
 | `version` | `string` | Builder version key. `"1.0"` → `ComponentBuilderV1`. |
 | `component` | `string?` | If set, this document defines a reusable component named `<component>`. Empty for top-level documents. |
-| `implements` | `string?` | Free-form interface marker. The builder calls `HandleImplements` which currently just registers the component for re-use — see [[Component Definition#registration|Component registration]]. |
+| `implements` | `string?` | Free-form interface marker, and the fallback source for `Name` when `component=` is absent. Either attribute registers the component for re-use — see [[Component Definition#registration|Component registration]]. |
 | `imports` | `["a", "b"]` | JSON-array string of component names to import. Resolved via `ISundexContext.ResolveComponent`. |
 | `part-of` | `["x"]` | JSON-array of collection names this component belongs to. Currently informational. |
 

@@ -149,9 +149,11 @@ default: {
     // 2. Imported component dependency
     if (dependencies is null) throw new Exception($"Unknown tag: {nodeTag}");
     var dependency = dependencies.FirstOrDefault(d => d.Name == nodeTag);
-    element = dependency is not null
-        ? dependency.Element
-        : throw new Exception($"Unknown node tag: {nodeTag}");
+    if (dependency is null) throw new Exception($"Unknown node tag: {nodeTag}");
+
+    var instance = CreateComponent(dependency.Document, context, false);
+    children.Add(instance);
+    element = instance.Element;
     break;
 }
 ```
@@ -159,7 +161,11 @@ default: {
 Lookup order:
 
 1. **Custom factory** registered via `SundexContext.RegisterElementFactory(tagName, factory)`. The factory returns a fresh element. If the result is a `Panel`, the markup's children are built and added. (Non-panel custom elements ignore children — there's nowhere to put them.)
-2. **Imported component**. The `imports="['name']"` attribute on `<sundex>` populated `dependencies`. If the unknown tag matches a dependency `Name`, the dependency's *already-built* `Element` is reused. Note this means **the imported component's element is shared** — every `<header/>` in your markup points to the same `Header.Element` instance. Re-rendering it under multiple parents will produce undefined visual results. This is a known constraint; treat imports as singletons.
+2. **Imported component**. The `imports='["name"]'` attribute on `<sundex>` populated `dependencies` (note: this attribute is parsed as JSON, so the inner names need double quotes — unlike `<logic imports=>`, which is a bare comma-separated list). If the unknown tag matches a dependency `Name`, the component is **rebuilt from its retained `Document`**, giving every usage site an independent element tree. `LayoutContainer.BuildTree` reparses from the held `XmlElement`, so building the same document twice shares nothing.
+
+   Each rebuilt instance is appended to the host's `Children`, and the host's `RunLogic` cascades into them depth-first before running its own — so a sub-component's `<logic>` block binds to *its own* `RegisteredIDs`. The registered component itself stays out of the tree and acts purely as a template.
+
+   Registration happens in `CreateComponent` whenever the root carries `component=` (or `implements=`), which sets `Name`. A rebuild passes `register: false` so it can't collide with, or replace, the template it came from.
 3. **Throw** with a clear "Unknown tag: ..." message.
 
 The recursion on step 1 only happens for `Panel` subclasses — which means custom non-Panel components can't have markup children. This is intentional: a `<waveform/>` with children doesn't have a clear meaning. If you need children, make your custom element a `Panel`.

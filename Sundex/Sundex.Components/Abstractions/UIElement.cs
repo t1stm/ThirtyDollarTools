@@ -15,7 +15,26 @@ namespace Sundex.Components.Abstractions;
 
 public abstract class UIElement
 {
+    /// <summary>
+    ///     Per-type list of the [NamedSetting] properties a stylesheet can address.
+    ///     Reflecting this out fresh was ~97% of the cost of building a component
+    ///     (3.2ms of 3.4ms for the editor's markup): GetProperties plus a
+    ///     GetCustomAttribute per property, run twice per element on every
+    ///     ApplyStyleSheet and again on every ApplyStateOverride - i.e. on every hover.
+    ///     The set is fixed per type, so it is computed once.
+    /// </summary>
+    private static readonly Dictionary<Type, (PropertyInfo Property, NamedSettingAttribute Setting)[]> NamedSettings =
+        new();
+
     private readonly Dictionary<string, (PropertyInfo prop, object? value)> _baseSnapshot = new();
+
+    /// <summary>
+    ///     Whether the start pass in <see cref="DrawTo" /> has run for the current
+    ///     <see cref="Animations" /> set. An animation's clock starts when the element is
+    ///     first drawn, not when the stylesheet assigns it - a tree is commonly styled long
+    ///     before it is shown, and starting at assignment would have it play out unseen.
+    /// </summary>
+    private bool _animationsStarted;
 
     protected UIElement(UIContext context)
     {
@@ -40,6 +59,8 @@ public abstract class UIElement
         set
         {
             field = value;
+            // A fresh set has its own stopped clocks; the next DrawTo starts them.
+            _animationsStarted = false;
             UpdateAnimationRegistrationState();
         }
     } = [];
@@ -310,6 +331,9 @@ public abstract class UIElement
     {
         Animations.Add(animation);
         UpdateAnimationRegistrationState();
+        // Appending bypasses the Animations setter, so this one missed the start pass the
+        // element already ran. Adding before the first draw needs nothing - DrawTo covers it.
+        if (_animationsStarted) animation.Start();
     }
 
     public void RemoveAnimation(Animation animation)
@@ -482,8 +506,26 @@ public abstract class UIElement
     {
         if (!Visible) return;
         Drawn = true;
+        StartAnimations();
         Layout();
         DrawSelf(uiContext);
+    }
+
+    /// <summary>
+    ///     Starts this element's animation clocks, once per <see cref="Animations" /> set.
+    ///     Nothing else does: a stylesheet animation's stopwatch is created stopped, so
+    ///     without this every sheet-declared animation sat frozen on its first keyframe.
+    ///     Guarded rather than calling Start() each pass, because a finished non-looping
+    ///     animation stops its own clock and would otherwise resume - refiring its
+    ///     completion callback on every draw.
+    /// </summary>
+    private void StartAnimations()
+    {
+        // Set even with no animations: AddAnimation on an already-drawn element starts its
+        // own, and must not then be restarted by a later DrawTo.
+        if (_animationsStarted) return;
+        _animationsStarted = true;
+        foreach (var animation in Animations) animation.Start();
     }
 
     /// <summary>
@@ -492,27 +534,38 @@ public abstract class UIElement
     /// <param name="context">The UI context to render into.</param>
     protected abstract void DrawSelf(UIContext context);
 
+    /// <summary>Returns the [NamedSetting] properties of an element type, computed once per type.</summary>
+    private static (PropertyInfo Property, NamedSettingAttribute Setting)[] GetNamedSettings(Type type)
+    {
+        // ponytail: plain lock, component building is single-threaded. Swap for
+        // ConcurrentDictionary if elements are ever built off the UI thread.
+        lock (NamedSettings)
+        {
+            if (NamedSettings.TryGetValue(type, out var cached)) return cached;
+
+            var settings = type.GetProperties()
+                .Select(property => (Property: property, Setting: property.GetCustomAttribute<NamedSettingAttribute>()))
+                .Where(pair => pair.Setting is not null)
+                .Select(pair => (pair.Property, Setting: pair.Setting!))
+                .ToArray();
+
+            NamedSettings[type] = settings;
+            return settings;
+        }
+    }
+
     public virtual void ApplyStyleSheet(StyleSheet styleSheet)
     {
         StoredStyleSheet = styleSheet;
-        var type = GetType();
-        var properties = type.GetProperties();
-        foreach (var propertyInfo in properties)
-        {
-            var attribute = propertyInfo.GetCustomAttribute<NamedSettingAttribute>();
-            if (attribute is null) continue;
-
+        var properties = GetNamedSettings(GetType());
+        foreach (var (propertyInfo, attribute) in properties)
             SetNamedSetting(styleSheet, propertyInfo, attribute);
-        }
 
         // Snapshot the post-base-style values for any property that has at least one state override,
         // so we can restore them without re-running ApplyStyleSheet (which would recreate renderables).
         _baseSnapshot.Clear();
-        foreach (var propertyInfo in properties)
+        foreach (var (propertyInfo, attribute) in properties)
         {
-            var attribute = propertyInfo.GetCustomAttribute<NamedSettingAttribute>();
-            if (attribute is null) continue;
-
             var hasOverride =
                 styleSheet.GetStateOverrideForTag(ID, "hovered")?.ContainsKey(attribute.Name) == true ||
                 styleSheet.GetStateOverrideForTag(ID, "pressed")?.ContainsKey(attribute.Name) == true ||
@@ -560,13 +613,8 @@ public abstract class UIElement
     /// </summary>
     public virtual void ApplyStateOverride(StyleSheet styleSheet, string state)
     {
-        var type = GetType();
-        var properties = type.GetProperties();
-        foreach (var propertyInfo in properties)
+        foreach (var (propertyInfo, attribute) in GetNamedSettings(GetType()))
         {
-            var attribute = propertyInfo.GetCustomAttribute<NamedSettingAttribute>();
-            if (attribute is null) continue;
-
             // Check ID, then classes, then tag - same priority as base styles
             var overrideValue = styleSheet.GetStateOverrideForTag(ID, state)
                                     ?.GetValueOrDefault(attribute.Name)
@@ -606,7 +654,10 @@ public abstract class UIElement
                 var animations = new List<Animation>();
                 foreach (var value in av.Values)
                     if (value is StringValue sv && styleSheet.ComputedAnimations.TryGetValue(sv.Value, out var anim))
-                        animations.Add(anim);
+                        // Per element, not the sheet's shared object: an animation owns a
+                        // mutable stopwatch, so sharing it syncs every element matching the
+                        // rule to one clock.
+                        animations.Add(anim.CreateInstance());
 
                 propertyInfo.SetValue(this, animations);
                 break;

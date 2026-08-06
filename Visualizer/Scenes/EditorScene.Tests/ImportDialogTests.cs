@@ -10,7 +10,7 @@ public class ImportDialogTests
     {
         var dialog = new ImportDialog(new EditorTestContext(), "epic-sequence.tdw");
 
-        var title = Assert.IsType<Label>(dialog.Children[0]);
+        var title = Assert.IsType<Label>(dialog.Element.Children[0]);
         Assert.Equal("Import \"epic-sequence.tdw\"", title.Value.ToString());
     }
 

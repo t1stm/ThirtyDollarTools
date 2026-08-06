@@ -59,9 +59,8 @@ public sealed class TrackEditorView : Panel
     private const int BeatLabelPool = 128;
     private const float MinBeatLabelSpacingPx = 28f;
 
-    // Every one of these is loaded from the stylesheet - see EditorPalette and
-    // Scenes/Views/GridViews.snx.ss. They stay as named locals because the draw code
-    // below reads them dozens of times and the names say what each shade is for.
+    // Every one of these comes from EditorPalette. They stay as named locals because the
+    // draw code below reads them dozens of times and the names say what each shade is for.
     private static Vector4 BackgroundColor => EditorPalette.GridBackground;
     private static Vector4 GutterColor => EditorPalette.Panel;
     private static Vector4 StripColor => EditorPalette.Panel;
@@ -80,7 +79,7 @@ public sealed class TrackEditorView : Panel
     private static Vector4 PlayheadColor => EditorPalette.Playhead;
 
     // Stable per-sound colors (string.GetHashCode is randomized per process); the
-    // entries live in Scenes/Views/GridViews.snx.ss.
+    // entries live in EditorPalette.
     internal static Vector4[] SoundPalette => EditorPalette.SoundPalette;
 
     internal readonly List<Label> BeatLabels = [];

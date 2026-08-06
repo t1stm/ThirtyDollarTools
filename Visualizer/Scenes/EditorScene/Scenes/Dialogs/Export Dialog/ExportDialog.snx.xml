@@ -1,0 +1,37 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Dialogs/Dialogs.snx.ss"/>
+
+  <layout>
+    <flex id="export-dialog" class="dialog-frame">
+      <label class="title-label-large" value="Export"/>
+
+      <panel class="form-row">
+        <label class="[muted-label,form-row-label]" value="Divider every N bars (0 = off)"/>
+        <numeric-input id="divider-every-bars" class="[export-field,form-row-input]" value="2"/>
+      </panel>
+
+      <panel class="form-row">
+        <!-- The default comes from SequenceStyle, so ExportDialog.cs sets it after build. -->
+        <label class="[muted-label,form-row-label]" value="!stop after N pauses (0 = never)"/>
+        <numeric-input id="migrate-to-stop" class="[export-field,form-row-input]"/>
+      </panel>
+
+      <checkbox id="divider-on-speed-changes" value="Divider on !speed changes"/>
+
+      <flex id="export-actions" class="dialog-actions-split">
+        <!-- Percent-width spacer soaks up the free space so Cancel sits flush left and
+             the export actions flush right - no space-between align in this framework. -->
+        <button id="cancel-button" class="dialog-button">
+          <label value="Cancel"/>
+        </button>
+        <panel class="spacer"/>
+        <button id="tdw-button" class="dialog-button-primary">
+          <label value="Export .tdw"/>
+        </button>
+        <button id="wav-button" class="dialog-button-primary">
+          <label value="Export .wav"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

@@ -3,65 +3,45 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     The export options form (ModalLayer content): the <see cref="SequenceStyle" />
 ///     cosmetics plus the two export actions. Pure form - the owner handles file
-///     dialogs and the actual writing.
+///     dialogs and the actual writing. The tree is ExportDialog.snx.xml; what stays here
+///     is the input bounds, which are not stylesheet settings.
 /// </summary>
-public sealed class ExportDialog : FlexPanel
+public sealed class ExportDialog
 {
-    /// <summary>
-    ///     Where a row's input starts. A layout offset rather than a look - the label sits
-    ///     left of it in the same absolutely-positioned row - so it stays in code.
-    /// </summary>
-    private const float LabelWidth = 190f;
-
-    public ExportDialog(UIContext context) : base(context)
+    public ExportDialog(UIContext context)
     {
-        ID = "export-dialog";
-        Classes = ["dialog-frame"];
+        var component = Markup.Build(context, "Scenes/Dialogs/Export Dialog/ExportDialog.snx.xml");
+        Element = component.GetID<FlexPanel>("export-dialog");
+        DividerEveryBars = component.GetID<NumericInput>("divider-every-bars");
+        MigrateToStop = component.GetID<NumericInput>("migrate-to-stop");
+        DividerOnSpeedChanges = component.GetID<Checkbox>("divider-on-speed-changes");
+        TdwButton = component.GetID<Button>("tdw-button");
+        WavButton = component.GetID<Button>("wav-button");
+        CancelButton = component.GetID<Button>("cancel-button");
 
-        var defaults = new SequenceStyle();
-        DividerEveryBars = new NumericInput(context, 2)
-        {
-            Classes = ["export-field"],
-            Min = 0,
-            Max = 1024
-        };
-        DividerOnSpeedChanges = new Checkbox(context, "Divider on !speed changes")
-        {
-            Label = { Classes = ["muted-check-label"] }
-        };
-        MigrateToStop = new NumericInput(context, defaults.MigrateToStop)
-        {
-            Classes = ["export-field"],
-            Min = 1,
-            Max = 4096,
-            AllowNull = true
-        };
+        DividerEveryBars.Min = 0;
+        DividerEveryBars.Max = 1024;
 
-        TdwButton = new Button(context, "Export .tdw") { Classes = ["dialog-button-primary"] };
-        WavButton = new Button(context, "Export .wav") { Classes = ["dialog-button-primary"] };
-        CancelButton = new Button(context, "Cancel") { Classes = ["dialog-button"] };
+        MigrateToStop.Value = new SequenceStyle().MigrateToStop;
+        MigrateToStop.Min = 1;
+        MigrateToStop.Max = 4096;
+        MigrateToStop.AllowNull = true;
 
-        AddChild(new Label(context, "Export") { Classes = ["title-label-large"] });
-        Row("Divider every N bars (0 = off)", DividerEveryBars);
-        Row("!stop after N pauses (0 = never)", MigrateToStop);
-        AddChild(DividerOnSpeedChanges);
-
-        // Percent-width spacer soaks up the free space so Cancel sits flush left and the
-        // export actions flush right - this framework has no space-between align.
-        var buttonRowSpacer = new Panel(context) { Classes = ["spacer"] };
-        AddChild(new FlexPanel(context)
-        {
-            ID = "export-actions",
-            Classes = ["dialog-actions-split"],
-            Children = [CancelButton, buttonRowSpacer, TdwButton, WavButton]
-        });
+        // A checkbox builds its own label, so markup cannot put a class on it. Restyle it
+        // by hand - the sheet was already applied while the tree was built.
+        DividerOnSpeedChanges.Label.Classes = ["muted-check-label"];
+        DividerOnSpeedChanges.Label.ApplyStyleSheet(component.StyleSheet!);
     }
+
+    /// <summary>The dialog's root - what the owner mounts into a ModalLayer.</summary>
+    public FlexPanel Element { get; }
 
     public NumericInput DividerEveryBars { get; }
     public Checkbox DividerOnSpeedChanges { get; }
@@ -77,15 +57,4 @@ public sealed class ExportDialog : FlexPanel
         DividerOnSpeedChanges = DividerOnSpeedChanges.Checked,
         MigrateToStop = (int?)MigrateToStop.Value
     };
-
-    private void Row(string label, UIElement input)
-    {
-        input.X = LabelWidth;
-        var row = new Panel(Context) { Classes = ["form-row"] };
-        // Y centers the text in the row - a layout offset that depends on form-row's
-        // height, not something to look up separately.
-        row.AddChild(new Label(Context, label) { Classes = ["muted-label"], Y = 9 });
-        row.AddChild(input);
-        AddChild(row);
-    }
 }

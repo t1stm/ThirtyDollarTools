@@ -1,0 +1,19 @@
+<sundex version="1.0" component="inspector-shell">
+  <style language="sundex" src="Scenes/Layout/Inspector Shell/InspectorShell.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/Inspector Shell/InspectorShell.snx.csx" imports="[EditorScene.Scenes]"/>
+
+  <layout>
+    <!-- Chrome only. The rows inside inspector-rows are built per selection by
+         InspectorForm, which is why this document stops at the empty scroll view. -->
+    <panel id="inspector-panel">
+      <flex id="inspector-body">
+        <scroll-view id="inspector-rows"/>
+        <panel class="rule"/>
+        <flex id="inspector-status">
+          <label id="inspector-status-label" class="caption-label" value="Idle"/>
+          <progress id="inspector-status-bar"/>
+        </flex>
+      </flex>
+    </panel>
+  </layout>
+</sundex>

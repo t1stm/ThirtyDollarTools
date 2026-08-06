@@ -63,7 +63,7 @@ public sealed class DialogHost(UIContext context, Panel root)
         string confirmLabel = "Delete", Vector4? confirmColor = null)
     {
         var dialog = new ConfirmDialog(context, message, confirmLabel, confirmColor);
-        var modal = Show(dialog);
+        var modal = Show(dialog.Element);
         dialog.CancelButton.OnClick = _ =>
         {
             Close(modal);

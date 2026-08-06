@@ -42,10 +42,14 @@ class transport-progress-row {
     vertical-align = "center";
 }
 
+// The unfilled track and the played fill. Sheet-owned since the bar became markup;
+// before that they were hand-built ColoredPlanes passed to the constructor.
 id transport-progress {
     width = 100%;
     height = 8;
     border-radius = 4;
+    background = "#404060";
+    foreground = "#7aa2f7";
 }
 
 class transport-buttons-row {

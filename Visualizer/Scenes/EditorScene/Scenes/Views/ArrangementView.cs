@@ -32,16 +32,12 @@ public sealed class ArrangementView : Panel
     private const int BarLinePool = 128;
     public const int LaneLinePool = 128;
 
-    // Loaded from the stylesheet - see EditorPalette and Scenes/Views/GridViews.snx.ss.
+    // Named aliases for the shared constants - see EditorPalette.
     private static Vector4 ClipColor => EditorPalette.Accent;
     private static Vector4 SelectedClipColor => EditorPalette.SelectionHighlight;
     private static Vector4 LineColor => EditorPalette.Surface;
     private static Vector4 RulerColor => EditorPalette.Panel;
     private static Vector4 LabelColor => EditorPalette.TextDim;
-
-    // A property, not a static readonly field: a field would freeze whatever the palette
-    // held when this type was first touched, which is only safe as long as that happens
-    // after EditorPalette.Apply. Not worth the ordering trap.
     private static Vector4 PlayheadColor => EditorPalette.Playhead;
 
     private readonly List<Label> _barLabels = [];

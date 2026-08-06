@@ -1,0 +1,23 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Dialogs/Dialogs.snx.ss"/>
+
+  <layout>
+    <flex id="unsaved-changes-dialog" class="dialog-frame">
+      <label class="body-label" value="Unsaved changes - save before leaving?"/>
+      <flex class="dialog-actions-split">
+        <!-- Percent-width spacer pushes Discard/Save to the right edge while Cancel
+             stays on the left - this framework has no space-between align. -->
+        <button id="cancel-button" class="dialog-button">
+          <label value="Cancel"/>
+        </button>
+        <panel class="spacer"/>
+        <button id="discard-button" class="dialog-button-danger">
+          <label class="dark-label" value="Discard"/>
+        </button>
+        <button id="save-button" class="dialog-button-primary">
+          <label value="Save"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

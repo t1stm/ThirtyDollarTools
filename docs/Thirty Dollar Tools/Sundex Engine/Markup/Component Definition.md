@@ -227,7 +227,9 @@ The `imports="['x']"` attribute on a `<sundex>` root resolves through `ResolveCo
 </sundex>
 ```
 
-The builder calls `HandleImplements` on a component whose `<sundex>` has both a `component="..."` name and an `implements="..."` value — that fires `RegisterComponent`, adding it to the registry under its name. From then on, other documents can import it.
+The builder sets `Name` from `component="..."`, falling back to `implements="..."`, and calls `RegisterComponent` whenever that yields a non-null name — adding it to the registry. From then on, other documents can import it, and each `<header/>` usage site gets its own tree rebuilt from the registered component's `Document`.
+
+Order matters: the component must be built (and so registered) **before** the document that imports it, or `ResolveComponent` throws.
 
 ### `RunLogicAndVerify` — defensive script execution
 

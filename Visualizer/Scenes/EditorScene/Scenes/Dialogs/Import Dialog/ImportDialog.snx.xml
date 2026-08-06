@@ -1,0 +1,47 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Dialogs/Dialogs.snx.ss"/>
+
+  <layout>
+    <flex id="import-dialog" class="dialog-frame">
+      <!-- Title text carries the dropped file's name, set by ImportDialog.cs. -->
+      <label id="title-label" class="title-label" value=""/>
+
+      <!-- The two options are color-coded with the same accents the Draw/Select tool
+           toggles use elsewhere - not because import relates to either tool, but so the
+           dialog reuses the app's two existing accent colors instead of introducing a
+           third just to tell the options apart. See dialog-button-primary/-alt. -->
+      <flex class="import-options">
+        <flex class="import-column">
+          <button id="single-track-button" class="[dialog-button-primary,dialog-button-tall]">
+            <label value="Import as Single Track"/>
+          </button>
+          <!-- Label has no text-wrap support, so each description is pre-split into
+               short lines that fit the column. -->
+          <flex class="import-column-description">
+            <label class="caption-label" value="One new track for this file,"/>
+            <label class="caption-label" value="one instrument per sound."/>
+          </flex>
+        </flex>
+
+        <panel class="import-divider"/>
+
+        <flex class="import-column">
+          <button id="project-button" class="[dialog-button-alt,dialog-button-tall]">
+            <!-- Same light-background-needs-dark-text contrast rule as the Select toggle. -->
+            <label class="dark-label" value="Import as Project"/>
+          </button>
+          <flex class="import-column-description">
+            <label class="caption-label" value="Replaces the current project -"/>
+            <label class="caption-label" value="instrument + track per sound."/>
+          </flex>
+        </flex>
+      </flex>
+
+      <flex class="dialog-actions-compact">
+        <button id="cancel-button" class="dialog-button">
+          <label value="Cancel"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

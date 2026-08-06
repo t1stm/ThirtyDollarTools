@@ -1,0 +1,8 @@
+<sundex version="1.0" imports='["header"]'>
+  <layout>
+    <stack direction="vertical" width="200" height="200">
+      <header id="first"/>
+      <header id="second"/>
+    </stack>
+  </layout>
+</sundex>

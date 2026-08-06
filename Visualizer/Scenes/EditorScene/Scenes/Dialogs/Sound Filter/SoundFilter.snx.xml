@@ -1,0 +1,21 @@
+<sundex version="1.0" component="sound-filter">
+  <style language="sundex" src="Scenes/Dialogs/Sound Filter/SoundFilter.snx.ss"/>
+  <logic language="csharp" src="Scenes/Dialogs/Sound Filter/SoundFilter.snx.csx" imports="[EditorScene.Scenes]"/>
+
+  <layout>
+    <!-- A second, independent sound picker in multi-select mode: the track-automation
+         sound filter. Unlike the instrument selector's picker it commits a whole set via
+         Done rather than picking one sound and closing immediately. Built with the root
+         and detached straight away; EditorInterface attaches it when a filter is edited. -->
+    <modal id="sound-filter-modal">
+      <flex id="sound-filter-frame" class="dialog-frame">
+        <scroll-view id="sound-filter-list">
+          <sound-picker/>
+        </scroll-view>
+        <button id="sound-filter-done">
+          <label value="Done"/>
+        </button>
+      </flex>
+    </modal>
+  </layout>
+</sundex>

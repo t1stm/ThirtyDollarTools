@@ -1,0 +1,31 @@
+<sundex version="1.0" component="transport-section">
+  <style language="sundex" src="Scenes/Layout/Transport Section/TransportSection.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/Transport Section/TransportSection.snx.csx" imports="[EditorScene.Scenes]"/>
+
+  <layout>
+    <flex id="transport">
+      <panel class="rule"/>
+
+      <flex class="transport-progress-row">
+        <label id="transport-elapsed" class="caption-label" value="0:00"/>
+        <progress id="transport-progress"/>
+        <label id="transport-total" class="caption-label" value="0:00"/>
+      </flex>
+
+      <flex class="transport-buttons-row">
+        <button id="transport-play" class="[transport-button,transport-half]">
+          <label value="Play"/>
+        </button>
+        <button id="transport-stop" class="[transport-button,transport-half]">
+          <label value="Stop"/>
+        </button>
+      </flex>
+
+      <panel class="rule"/>
+
+      <button id="transport-back" class="[transport-button,transport-full]">
+        <label value="Back"/>
+      </button>
+    </flex>
+  </layout>
+</sundex>

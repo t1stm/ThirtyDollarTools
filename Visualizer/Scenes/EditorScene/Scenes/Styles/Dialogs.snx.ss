@@ -56,6 +56,17 @@ class form-row {
     height = 34;
 }
 
+// A form row positions its two children absolutely rather than flowing them: the label
+// sits left, the input starts at a fixed column. Both were code-set offsets while the
+// export form was hand-built; they are rules now that its tree is markup.
+class form-row-label {
+    y = 9;
+}
+
+class form-row-input {
+    x = 190;
+}
+
 // ---------------------------------------------------------------- per dialog
 
 id confirm-dialog {

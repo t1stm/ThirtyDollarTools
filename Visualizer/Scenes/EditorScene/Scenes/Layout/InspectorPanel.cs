@@ -1,11 +1,9 @@
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
-using EditorScene.Scenes.Components;
 using EditorScene.Scenes.Views;
 
 namespace EditorScene.Scenes.Layout;
@@ -19,52 +17,42 @@ namespace EditorScene.Scenes.Layout;
 ///     never interrupted by its own change events. Row building itself lives in
 ///     <see cref="InspectorForm" />; this class only decides what each section contains.
 /// </summary>
-public sealed class InspectorPanel : Panel
+public sealed class InspectorPanel
 {
     public const float PanelWidth = 300f; // must match inspector-column's width in EditorInterface.snx.ss
 
     internal const float StatusBarHeight = 40f;
     internal const float RuleHeight = 1f;
 
+    private readonly UIContext _context;
+
     private readonly InspectorForm _form;
 
     private readonly EditorState _state;
 
-    private string? _syncedStatusLabel = "Idle"; // matches the constructed default below
+    private string? _syncedStatusLabel = "Idle"; // matches InspectorShell.snx.xml's constructed default
     private float _syncedStatusProgress = -1f; // never a valid Progress value, forces the first real SetStatus to apply
 
-    public InspectorPanel(UIContext context, EditorState state) : base(context)
+    /// <summary>
+    ///     Drives the chrome built by <c>InspectorShell.snx.xml</c> - this class owns no tree
+    ///     of its own, only the handles that document's logic resolved. Standalone callers
+    ///     (the test suite) build the shell themselves and hand the same four elements over.
+    /// </summary>
+    public InspectorPanel(UIContext context, EditorState state,
+        Panel element, ScrollView rows, ProgressBar statusBar, Label statusLabel)
     {
+        _context = context;
         _state = state;
-        ID = "inspector-panel";
-        Rows = new ScrollView(context) { ID = "inspector-rows" };
+        Element = element;
+        Rows = rows;
+        StatusBar = statusBar;
+        StatusLabelElement = statusLabel;
         _form = new InspectorForm(context, state, Rows);
-
-        var rule = new Panel(context) { Classes = ["rule"] };
-
-        StatusLabelElement = new Label(context, "Idle") { Classes = ["caption-label"] };
-        // The bar's planes stay code-built - see the note on inspector-status-bar.
-        StatusBar = new ProgressBar(context,
-            new ColoredPlane { Color = EditorPalette.Surface },
-            new ColoredPlane { Color = EditorPalette.Accent })
-        {
-            ID = "inspector-status-bar",
-            Visible = false
-        };
-        StatusSection = new FlexPanel(context)
-        {
-            ID = "inspector-status",
-            Children = [StatusLabelElement, StatusBar]
-        };
-
-        var body = new FlexPanel(context)
-        {
-            ID = "inspector-body",
-            Children = [Rows, rule, StatusSection]
-        };
-        AddChild(body);
         Rebuild();
     }
+
+    /// <summary>The shell's root panel - what a host attaches, sizes and lays out.</summary>
+    public Panel Element { get; }
 
     // Test seams (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
     internal ScrollView Rows { get; }
@@ -72,8 +60,6 @@ public sealed class InspectorPanel : Panel
     internal ProgressBar StatusBar { get; }
 
     internal Label StatusLabelElement { get; }
-
-    internal FlexPanel StatusSection { get; }
 
     /// <summary>
     ///     Fired when the user wants to edit a <see cref="TrackAutomation" />'s sound
@@ -133,7 +119,7 @@ public sealed class InspectorPanel : Panel
         {
             if (_state.SelectedSegment is { } segment)
             {
-                var addSegment = new Button(Context, "+ Add")
+                var addSegment = new Button(_context, "+ Add")
                 {
                     Classes = ["chip-button"],
                     OnClick = _ =>
@@ -141,7 +127,7 @@ public sealed class InspectorPanel : Panel
                         if (_state.OpenedTrack is { } track) _state.SelectSegment(_state.AddSegment(track));
                     }
                 };
-                var removeSegment = new Button(Context, "− Remove")
+                var removeSegment = new Button(_context, "− Remove")
                 {
                     Classes = ["chip-button"],
                     OnClick = _ =>
@@ -222,7 +208,7 @@ public sealed class InspectorPanel : Panel
             }
         }
 
-        InvalidateLayout();
+        Element.InvalidateLayout();
     }
 
     /// <summary>

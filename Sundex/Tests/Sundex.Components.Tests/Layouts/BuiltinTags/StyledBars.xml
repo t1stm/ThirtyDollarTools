@@ -1,0 +1,23 @@
+<sundex version="1.0">
+  <style language="sundex">
+    component progress {
+        background = "#110000";
+        foreground = "#220000";
+    }
+
+    class accent-bar {
+        foreground = "#330000";
+    }
+
+    id hero-bar {
+        background = "#440000";
+    }
+  </style>
+
+  <layout>
+    <panel>
+      <progress id="plain-bar"/>
+      <progress id="hero-bar" class="accent-bar"/>
+    </panel>
+  </layout>
+</sundex>

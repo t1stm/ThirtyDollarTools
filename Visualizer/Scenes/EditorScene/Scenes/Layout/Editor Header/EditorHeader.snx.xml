@@ -1,0 +1,24 @@
+<sundex version="1.0" component="editor-header">
+  <style language="sundex" src="Scenes/Layout/Editor Header/EditorHeader.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/Editor Header/EditorHeader.snx.csx" imports="[EditorScene.Scenes]"/>
+
+  <layout>
+    <flex id="editor-header">
+      <label id="editor-title" value="Editor"/>
+      <label id="project-name" value="Untitled Project"/>
+      <label id="project-bpm" value=""/>
+
+      <panel class="header-divider"/>
+
+      <button id="load-button" class="menu-button">
+        <label class="menu-label" value="Load"/>
+      </button>
+      <button id="save-button" class="menu-button">
+        <label class="menu-label" value="Save"/>
+      </button>
+      <button id="export-button" class="menu-button">
+        <label class="menu-label" value="Export"/>
+      </button>
+    </flex>
+  </layout>
+</sundex>

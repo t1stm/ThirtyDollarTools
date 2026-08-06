@@ -3,8 +3,8 @@
 // Shared vocabulary the inspector also uses - text-field, muted-label, chip-button -
 // comes from Scenes/Styles/Controls.snx.ss.
 
-// The panel itself. Its column width is EditorInterface.snx.ss's inspector-column;
-// this fills it.
+// The panel itself, built by InspectorShell.snx.xml. Its column width is
+// EditorInterface.snx.ss's inspector-column; this fills it.
 id inspector-panel {
     width = 100%;
     height = 100%;
@@ -35,12 +35,19 @@ id inspector-status {
     spacing = 4;
 }
 
-// Box only. A ProgressBar's `background`/`foreground` take whole Panels, and the
-// sheet's color path rebuilds both at 100% width - which is wrong for the fill, whose
-// width IS the progress. Its two planes stay code-built from the palette.
+// Sheet-owned since the strip became markup, same as transport-progress. The color path
+// does rebuild the fill panel at 100% width, but ProgressBar.DoLayout re-derives it from
+// Progress on every pass, so that width never survives to a frame.
+// Hidden here rather than from logic so a standalone build of the shell starts in the
+// same state the editor's does - the strip only appears while something is rendering,
+// and SetStatus flips it back. `visible` is a [NamedSetting]; a visible= attribute on
+// the node would have been dropped silently.
 id inspector-status-bar {
     width = 100%;
     height = 6;
+    visible = false;
+    background = "#292e42";
+    foreground = "#4c6bcc";
 }
 
 // ---------------------------------------------------------------- rows

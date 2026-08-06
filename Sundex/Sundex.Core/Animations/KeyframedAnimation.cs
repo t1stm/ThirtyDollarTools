@@ -14,6 +14,24 @@ public class KeyframedAnimation : Animation
 
     public IReadOnlyList<Keyframe> Keyframes { get; }
 
+    /// <summary>
+    ///     A copy of this animation carrying its own <see cref="Animation.TimingStopwatch" />.
+    ///     A stylesheet holds one animation object per rule, so every element matching that
+    ///     rule was handed the same instance - and with it the same clock, so they all played
+    ///     in lockstep off whichever element happened to advance it first. Elements take an
+    ///     instance of their own instead.
+    ///     <see cref="Keyframes" /> is a read-only list of structs and is shared as-is.
+    /// </summary>
+    public KeyframedAnimation CreateInstance()
+    {
+        return new KeyframedAnimation(Keyframes)
+        {
+            Features = Features,
+            AffectsChildren = AffectsChildren,
+            LoopingMode = LoopingMode
+        };
+    }
+
     private (Keyframe Current, Keyframe? Next, float Progress) GetCurrentState()
     {
         var elapsed = (float)TimingStopwatch.ElapsedMilliseconds;

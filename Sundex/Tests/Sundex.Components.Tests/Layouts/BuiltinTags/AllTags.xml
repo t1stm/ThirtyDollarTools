@@ -1,0 +1,18 @@
+<sundex version="1.0">
+  <layout>
+    <panel id="root">
+      <scroll-view id="scroller">
+        <label id="scrolled" value="inside"/>
+      </scroll-view>
+
+      <modal id="dialog">
+        <label id="modal-label" value="modal"/>
+      </modal>
+
+      <text-input id="text" value="hello"/>
+      <numeric-input id="number" value="42.5"/>
+      <checkbox id="check" value="Enabled" checked="true"/>
+      <slider id="volume" value="0.25"/>
+    </panel>
+  </layout>
+</sundex>

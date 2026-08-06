@@ -47,8 +47,8 @@ ComponentBuilderV1.CreateComponent(document, context)
     │       └── language.Compile(src, context, component, imports) → Action<object?>
     │       (assigned to component.RunLogic)
     │
-    └── 8. HandleImplements (if implements="...")
-            └── context.RegisterComponent(component)
+    └── 8. RegisterComponent (if component="..." or implements="...")
+            └── skipped when rebuilding an imported component at a usage site
 ```
 
 Two important non-obvious bits:

@@ -1,6 +1,7 @@
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -8,38 +9,21 @@ namespace EditorScene.Scenes.Dialogs;
 ///     The save/discard/cancel choice (ModalLayer content) shown when leaving the editor
 ///     with unsaved changes. Pure form - the owner decides what each button does and
 ///     closes the modal itself, mirroring <see cref="ConfirmDialog" />/<see cref="ImportDialog" />.
+///     The tree is UnsavedChangesDialog.snx.xml; this only resolves its handles.
 /// </summary>
-public sealed class UnsavedChangesDialog : FlexPanel
+public sealed class UnsavedChangesDialog
 {
-    public UnsavedChangesDialog(UIContext context) : base(context)
+    public UnsavedChangesDialog(UIContext context)
     {
-        ID = "unsaved-changes-dialog";
-        Classes = ["dialog-frame"];
-
-        SaveButton = new Button(context, "Save") { Classes = ["dialog-button-primary"] };
-        DiscardButton = new Button(context, "Discard")
-        {
-            Classes = ["dialog-button-danger"],
-            Label = { Classes = ["dark-label"] }
-        };
-        CancelButton = new Button(context, "Cancel") { Classes = ["dialog-button"] };
-
-        Children =
-        [
-            new Label(context, "Unsaved changes - save before leaving?") { Classes = ["body-label"] },
-            new FlexPanel(context)
-            {
-                Classes = ["dialog-actions-split"],
-                // Percent-width spacer pushes Discard/Save to the right edge while Cancel
-                // stays on the left - this framework has no space-between align.
-                Children =
-                [
-                    CancelButton, new Panel(context) { Classes = ["spacer"] },
-                    DiscardButton, SaveButton
-                ]
-            }
-        ];
+        var component = Markup.Build(context, "Scenes/Dialogs/Unsaved Changes Dialog/UnsavedChangesDialog.snx.xml");
+        Element = component.GetID<FlexPanel>("unsaved-changes-dialog");
+        SaveButton = component.GetID<Button>("save-button");
+        DiscardButton = component.GetID<Button>("discard-button");
+        CancelButton = component.GetID<Button>("cancel-button");
     }
+
+    /// <summary>The dialog's root - what the owner mounts into a ModalLayer.</summary>
+    public FlexPanel Element { get; }
 
     public Button SaveButton { get; }
     public Button DiscardButton { get; }

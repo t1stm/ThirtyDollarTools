@@ -11,22 +11,40 @@ namespace EditorScene.Tests;
 /// </summary>
 public class StyleSelectorTests
 {
-    /// <summary>Every component that styles itself through a class or an id.</summary>
-    private static IEnumerable<UIElement> Components()
+    /// <summary>
+    ///     Trees still assembled in C#, where an id names a rule the element needs. Both
+    ///     ids and classes are checked for these.
+    /// </summary>
+    private static IEnumerable<UIElement> CodeBuilt()
     {
         var ctx = new EditorTestContext();
         var state = new EditorState();
         var track = state.AddTrack();
 
-        yield return new ConfirmDialog(ctx, "Delete this?");
-        yield return new UnsavedChangesDialog(ctx);
-        yield return new TrackContextMenu(ctx, "Copy");
-        yield return new ImportDialog(ctx, "song.tdw");
-        yield return new ExportDialog(ctx);
         yield return new InstrumentSelector(ctx);
         yield return new EditorTrack(ctx, track, state);
         yield return new TrackListPanel(ctx, state);
-        yield return new InspectorPanel(ctx, state);
+        // The rows, not the whole panel: the shell around them is markup.
+        yield return ctx.NewInspector(state).Rows;
+    }
+
+    /// <summary>
+    ///     Trees built from a markup document. Only their classes are checked: in markup an
+    ///     id is a handle for whatever resolves the document (its logic, or the dialog's
+    ///     own constructor), not a promise that a sheet styles it - transport-elapsed,
+    ///     inspector-status-label and every dialog button have none. Classes still have to
+    ///     resolve, and these trees are worth walking because they also carry classes set
+    ///     from C# after the build, like a Checkbox's own label.
+    /// </summary>
+    private static IEnumerable<UIElement> MarkupBuilt()
+    {
+        var ctx = new EditorTestContext();
+
+        yield return new ConfirmDialog(ctx, "Delete this?").Element;
+        yield return new UnsavedChangesDialog(ctx).Element;
+        yield return new TrackContextMenu(ctx, "Copy").Element;
+        yield return new ImportDialog(ctx, "song.tdw").Element;
+        yield return new ExportDialog(ctx).Element;
     }
 
     [Fact]
@@ -35,15 +53,15 @@ public class StyleSelectorTests
         var sheet = EditorTestContext.Styles;
         var missing = new List<string>();
 
-        foreach (var root in Components())
+        foreach (var root in CodeBuilt())
             foreach (var element in Walk(root))
-            {
                 if (element.ID.Length > 0 && !sheet.IDTags.ContainsKey(element.ID))
                     missing.Add($"id {element.ID} ({element.GetType().Name})");
 
+        foreach (var root in CodeBuilt().Concat(MarkupBuilt()))
+            foreach (var element in Walk(root))
                 foreach (var cls in element.Classes.Where(c => !sheet.Classes.ContainsKey(c)))
                     missing.Add($"class {cls} ({element.GetType().Name})");
-            }
 
         Assert.Empty(missing.Distinct());
     }
@@ -57,7 +75,7 @@ public class StyleSelectorTests
     {
         var ctx = new EditorTestContext();
         var state = new EditorState();
-        var inspector = EditorTestContext.Styled(new InspectorPanel(ctx, state));
+        var inspector = ctx.NewInspector(state);
 
         // Opening a track swaps the inspector into segment/note mode, which is what
         // builds the field, checkbox, action and card rows.
@@ -66,7 +84,7 @@ public class StyleSelectorTests
         inspector.Rebuild();
 
         var sheet = EditorTestContext.Styles;
-        var missing = Walk(inspector)
+        var missing = Walk(inspector.Rows)
             .SelectMany(e => e.Classes.Where(c => !sheet.Classes.ContainsKey(c))
                 .Concat(e.ID.Length > 0 && !sheet.IDTags.ContainsKey(e.ID) ? [e.ID] : []))
             .Distinct()
@@ -86,7 +104,7 @@ public class StyleSelectorTests
         var sheet = EditorTestContext.Styles;
         var clashes = new List<string>();
 
-        foreach (var root in Components())
+        foreach (var root in CodeBuilt().Concat(MarkupBuilt()))
             foreach (var element in Walk(root).Where(e => e.Classes.Count > 1))
             {
                 var seen = new Dictionary<string, string>();

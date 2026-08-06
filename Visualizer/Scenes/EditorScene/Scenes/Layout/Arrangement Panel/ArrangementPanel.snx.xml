@@ -1,0 +1,24 @@
+<sundex version="1.0" component="arrangement-panel">
+  <style language="sundex" src="Scenes/Layout/Arrangement Panel/ArrangementPanel.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/Arrangement Panel/ArrangementPanel.snx.csx" imports="[EditorScene, EditorScene.Scenes]"/>
+
+  <layout>
+    <flex id="arrangement-panel" class="grid-panel">
+      <flex class="tool-bar">
+        <!-- Percent-width spacer soaks up the free space so the tool buttons land
+             flush against the bar's right edge - no space-between align here. -->
+        <panel class="spacer"/>
+        <button id="arrangement-tool-draw" class="tool-button">
+          <label value="Draw"/>
+        </button>
+        <button id="arrangement-tool-select" class="tool-button">
+          <label value="Select"/>
+        </button>
+      </flex>
+      <flex class="grid-body">
+        <lane-header/>
+        <arrangement-view class="grid-view"/>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

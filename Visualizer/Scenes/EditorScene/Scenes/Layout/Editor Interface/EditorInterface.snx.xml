@@ -1,0 +1,41 @@
+<sundex version="1.0" imports='["editor-header","transport-section","hint-bar",
+                                "arrangement-panel","track-editor-panel","inspector-shell",
+                                "sound-filter"]'>
+  <style language="sundex" src="Scenes/Layout/Editor Interface/EditorInterface.snx.ss"/>
+
+  <layout>
+    <panel id="main-holder">
+      <editor-header/>
+
+      <!-- The column body stacks the scrollable track list above the transport
+           controls: the list is percent-height, so it yields whatever room the
+           auto-sized transport section doesn't need - no separate full-width bottom
+           bar, no magic footer-height constant to keep in sync. -->
+      <panel id="track-column">
+        <flex id="track-column-body">
+          <track-list/>
+          <transport-section/>
+        </flex>
+      </panel>
+
+      <!-- Both grid panels are built up-front so a single pass resolves every handle in
+           here; EditorInterface detaches the note editor again straight away and
+           SwapGridView attaches whichever one is current. A detach rather than a Visible
+           flip because FlexPanel still gives a hidden child its share of the row. -->
+      <flex id="grid-area">
+        <arrangement-panel/>
+        <track-editor-panel/>
+      </flex>
+
+      <panel id="inspector-column">
+        <inspector-shell/>
+      </panel>
+
+      <hint-bar/>
+
+      <!-- Detached right after the build, like track-editor-panel: it is only in the
+           document so one pass resolves its handles. -->
+      <sound-filter/>
+    </panel>
+  </layout>
+</sundex>

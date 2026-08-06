@@ -4,14 +4,14 @@
 //
 // Editing any of these changes the editor's look without a rebuild - the sheets are
 // loaded at startup, and code-built components take their styling from here too
-// (a panel hands its sheet to whatever is added to it), so nothing but genuinely
-// per-frame values is compiled in.
-import "Scenes/Styles/Palette.snx.ss";
+// (a panel hands its sheet to whatever is added to it). The exception is the colors in
+// EditorPalette.cs: they paint raw renderables no selector can reach, so they are
+// compiled in and the control rules below quote the same hexes literally.
 import "Scenes/Styles/Controls.snx.ss";
 import "Scenes/Styles/Dialogs.snx.ss";
 import "Scenes/Styles/Panels.snx.ss";
-import "Scenes/Layout/InspectorPanel.snx.ss";
-import "Scenes/Dialogs/SoundPicker.snx.ss";
+import "Scenes/Layout/Inspector Panel/InspectorPanel.snx.ss";
+import "Scenes/Dialogs/Sound Picker/SoundPicker.snx.ss";
 import "Scenes/Views/GridViews.snx.ss";
 
 id main-holder {
@@ -20,42 +20,10 @@ id main-holder {
     background = "#1a1b26";
 }
 
-// A slim menu-bar strip: identity labels + Load/Save/Export as plain
-// clickable text (hover feedback is wired in EditorInterface.cs, not here -
-// PropagateAlpha-managed elements must not use state[hovered]).
-id editor-header {
-    width = 100%;
-    height = 32;
-    direction = "horizontal";
-    vertical-align = "center";
-    padding = 8;
-    spacing = 14;
-    background = "#16161e";
-}
-
-id editor-title {
-    font-size = 16;
-    font-color = "#7aa2f7";
-}
-
-id project-name {
-    font-size = 14;
-    font-color = "#d6dadc";
-}
-
-id project-bpm {
-    font-size = 14;
-    font-color = "#565f89";
-}
-
-// menu-button / menu-label now live in Scenes/Styles/Controls.snx.ss - the menu bar
-// was never the only place that wanted a subtle-filled button.
-
-class header-divider {
-    width = 1;
-    height = 24;
-    background = "#33344a";
-}
+// editor-header's and hint-bar's rules moved out with their markup, into
+// EditorHeader.snx.ss / HintBar.snx.ss. Nothing left here may name their ids: the root's
+// cascade runs over the imported subtrees and would overwrite whatever the component
+// sheet already set.
 
 // Track column and grid area heights/widths are set from
 // EditorInterface.Resize - the window remainder isn't expressible here.
@@ -77,31 +45,6 @@ id inspector-column {
     y = 32;
     width = 300;
     background = "#16161e";
-}
-
-// A slim status/hint strip under the grid area only - it sits between the track column
-// and the inspector, which both run full height. A static gesture/shortcut legend by
-// default, swapped for contextual text on hover (see EditorInterface.SetHint). Y and
-// width are set from EditorInterface.Resize, same reason as grid-area's.
-id hint-bar {
-    x = 260;
-    height = 26;
-    direction = "horizontal";
-    vertical-align = "center";
-    padding = 8;
-    background = "#16161e";
-}
-
-// Indents the hint text past the active grid's gutter so it starts at the first
-// column instead of under the lane header. Width is set from
-// EditorInterface.AlignHintToGrid - it differs per view.
-id hint-gutter {
-    height = 1;
-}
-
-id hint-label {
-    font-size = 12;
-    font-color = "#565f89";
 }
 
 // No `component label` / `component button` rules on purpose.

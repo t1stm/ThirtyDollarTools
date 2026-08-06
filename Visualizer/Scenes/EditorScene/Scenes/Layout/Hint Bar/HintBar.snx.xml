@@ -1,0 +1,11 @@
+<sundex version="1.0" component="hint-bar">
+  <style language="sundex" src="Scenes/Layout/Hint Bar/HintBar.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/Hint Bar/HintBar.snx.csx" imports="[EditorScene.Scenes]"/>
+
+  <layout>
+    <flex id="hint-bar">
+      <panel id="hint-gutter"/>
+      <label id="hint-label" value=""/>
+    </flex>
+  </layout>
+</sundex>

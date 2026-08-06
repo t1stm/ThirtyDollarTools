@@ -1,7 +1,14 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using EditorScene.Scenes;
+using EditorScene.Scenes.Layout;
 using OpenTK.Mathematics;
+using Sundex.Components.Bars;
+using Sundex.Components.Labels;
+using Sundex.Components.Panels;
+using Sundex.Components.Scroll;
+using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Markup;
 using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
@@ -46,6 +53,25 @@ public class EditorTestContext : UIContext
         return element;
     }
 
+    /// <summary>
+    ///     An <see cref="InspectorPanel" /> over a standalone InspectorShell build. The
+    ///     editor gets these four handles from the root document's logic, which needs a live
+    ///     <see cref="EditorInterface" />; this resolves them straight off the component
+    ///     instead. The shell's own &lt;style&gt; styles it as it is built, so no
+    ///     <see cref="Styled{T}" /> call is needed on top.
+    /// </summary>
+    public InspectorPanel NewInspector(EditorState state)
+    {
+        var markup = AssetProvider.Load<StringAsset, StringInfo>(
+            StringInfo.CreateFromUnknownStorage("Scenes/Layout/Inspector Shell/InspectorShell.snx.xml")).Value;
+        var component = new SundexContext(this).NewComponent(markup);
+        return new InspectorPanel(this, state,
+            component.GetID<Panel>("inspector-panel"),
+            component.GetID<ScrollView>("inspector-rows"),
+            component.GetID<ProgressBar>("inspector-status-bar"),
+            component.GetID<Label>("inspector-status-label"));
+    }
+
     private static StyleSheet LoadStyles()
     {
         var provider = new AssetProvider(new LoggerConfiguration().CreateLogger(),
@@ -58,7 +84,7 @@ public class EditorTestContext : UIContext
             return reader.ReadToEnd();
         }
 
-        return new StyleSheet(StyleParser.Parse(Read("Scenes/Layout/EditorInterface.snx.ss"), Read));
+        return new StyleSheet(StyleParser.Parse(Read("Scenes/Layout/Editor Interface/EditorInterface.snx.ss"), Read));
     }
 
     /// <summary>

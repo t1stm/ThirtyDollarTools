@@ -1,0 +1,9 @@
+<sundex version="1.0" component="header">
+  <logic language="csharp" imports="[Sundex.Components.Labels]">Component.GetID&lt;Label&gt;("header-title").Value = "wired";</logic>
+
+  <layout>
+    <flex width="100" height="20">
+      <label id="header-title" value="untouched"/>
+    </flex>
+  </layout>
+</sundex>

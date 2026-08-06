@@ -6,6 +6,7 @@ using Shared;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
+using Sundex.Components.Bars;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -13,6 +14,7 @@ using Sundex.Components.Scroll;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
+using Sundex.Markup.Attributes;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Dialogs;
@@ -37,32 +39,22 @@ public class EditorInterface
         "Middle-drag to pan, Ctrl+scroll to zoom, Shift+drag to fine-snap";
 
     private readonly ArrangementView _arrangement;
-    private readonly FlexPanel _arrangementPanel;
     private readonly UIContext _context;
 
     private readonly string _defaultTitle;
     private readonly DialogHost _dialogHost;
     private readonly FlexPanel _gridArea;
-    private readonly FlexPanel _hintBar;
-    private readonly Panel _hintGutter;
-    private readonly Label _hintLabel;
     private readonly InspectorPanel _inspector;
     private readonly Panel _inspectorColumn;
-    private readonly Button _instrumentButton;
     private readonly InstrumentWorkflow _instrumentWorkflow;
     private readonly LaneHeader _laneHeader;
-    private readonly TextInput _openedTrackName;
-    private readonly Label _projectBpm;
     private readonly ProjectIO _projectIo;
-    private readonly Label _projectName;
-    private readonly ModalLayer _soundFilterModal;
     private readonly SoundPicker _soundFilterPicker;
     private readonly List<(Button Button, EditorTool Tool)> _toolButtons = [];
     private readonly Panel _trackColumn;
     private readonly TrackEditorView _trackEditor;
-    private readonly FlexPanel _trackEditorPanel;
     private readonly TrackListPanel _trackList;
-    private readonly TransportSection _transport;
+    private readonly TransportController _transport;
     private readonly ThirtyDollarWorkflow _workflow;
     private TrackAutomation? _editingTrackAutomation;
 
@@ -84,45 +76,57 @@ public class EditorInterface
         OnBack = back;
 
         var sundexContext = new SundexContext(context);
-        var componentSource = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo { Location = "Scenes/Layout/EditorInterface.snx.xml" }
-        });
 
-        Component = sundexContext.NewComponent(componentSource.Value);
+        // Everything the root document resolves by name has to exist before it is built:
+        // a factory tag is looked up while the tree is constructed, and an imported
+        // component name that isn't registered yet throws.
+        Playback = new EditorPlayback(workflow, State);
+        _trackList = new TrackListPanel(context, State) { OnContextMenu = ShowTrackContextMenu, OnHint = SetHint };
+        _arrangement = new ArrangementView(context, State);
+        _laneHeader = new LaneHeader(context, State, _arrangement)
+        {
+            // Not styled: the gutter's width is a layout constant the lane math reads,
+            // not a look. Its fill is (see Panels.snx.ss's lane-header).
+            Width = LaneHeader.GutterWidth,
+            Height = LiteralOrComputable.Percent(100),
+            OnHint = SetHint
+        };
+        _trackEditor = new TrackEditorView(context, State);
+        _soundFilterPicker = new SoundPicker(context, workflow.AtlasStore)
+            { ID = "sound-filter-picker", MultiSelect = true };
+
+        // Built here rather than inside the factories because LaneHeader takes the
+        // ArrangementView and factories fire in document order, with <lane-header/> ahead
+        // of <arrangement-view/>.
+        // ponytail: pass-through, so the same tag used twice would reparent the one
+        // instance. Build inside the factory if a second usage site ever becomes real.
+        sundexContext.RegisterElementFactory("track-list", _ => _trackList);
+        sundexContext.RegisterElementFactory("arrangement-view", _ => _arrangement);
+        sundexContext.RegisterElementFactory("lane-header", _ => _laneHeader);
+        sundexContext.RegisterElementFactory("track-editor-view", _ => _trackEditor);
+        sundexContext.RegisterElementFactory("sound-picker", _ => _soundFilterPicker);
+        foreach (var name in new[]
+                 {
+                     "Layout/Editor Header/EditorHeader",
+                     "Layout/Transport Section/TransportSection",
+                     "Layout/Hint Bar/HintBar",
+                     "Layout/Arrangement Panel/ArrangementPanel",
+                     "Layout/Track Editor Panel/TrackEditorPanel",
+                     "Layout/Inspector Shell/InspectorShell",
+                     "Dialogs/Sound Filter/SoundFilter"
+                 })
+            sundexContext.NewComponent(LoadMarkup(context, $"Scenes/{name}.snx.xml"));
+
+        Component = sundexContext.NewComponent(LoadMarkup(context, "Scenes/Layout/Editor Interface/EditorInterface.snx.xml"));
         RootPanel = Component.Element as Panel ?? throw new Exception("Root panel not found");
 
-        // Before anything below is constructed: the views copy these into renderables at
-        // build time, so a palette loaded later would never reach them.
-        EditorPalette.Apply(Component.StyleSheet);
-
-        RootPanel.DrawTo(context);
-        _dialogHost = new DialogHost(context, RootPanel);
-        _projectIo = new ProjectIO(State, _dialogHost, workflow.Logger) { OnSaved = RefreshTitle };
-
         var ids = Component.RegisteredIDs;
-        _projectName = (Label)ids["project-name"];
-        _projectBpm = (Label)ids["project-bpm"];
         _trackColumn = (Panel)ids["track-column"];
         _gridArea = (FlexPanel)ids["grid-area"];
         _inspectorColumn = (Panel)ids["inspector-column"];
-        _hintBar = (FlexPanel)ids["hint-bar"];
-        _hintGutter = (Panel)ids["hint-gutter"];
-        _hintLabel = (Label)ids["hint-label"];
-        _hintLabel.SetTextContents(HintLegend);
-        AlignHintToGrid();
 
-        Playback = new EditorPlayback(workflow, State);
-
-        _defaultTitle = workflow.Game.Title;
-        ((Button)ids["load-button"]).OnClick = _ => _dialogHost.ShowFileDialog(null, ".tdwproj", LoadProjectFile);
-        ((Button)ids["save-button"]).OnClick = _ => _projectIo.Save();
-        ((Button)ids["export-button"]).OnClick = _ => ShowExportDialog();
-
-        // Tool toggle buttons: highlighted background follows State.ActiveTool (code-owned
-        // ColoredPlane, not a stylesheet class - the active highlight is a runtime toggle,
-        // not a hover/press state). Draw is the default active tool. One pair per grid
-        // mode (see MakeToolButton) - the arrangement bar and the editor bar each own one.
+        // Fired by AdoptToolButton's registrations, which the two grid panels' logic makes
+        // below - the handler reads _toolButtons per fire, so order does not matter.
         State.OnToolChanged += tool =>
         {
             foreach (var (button, buttonTool) in _toolButtons)
@@ -133,121 +137,48 @@ public class EditorInterface
             }
         };
 
-        // The column body stacks the scrollable track list above the transport
-        // controls: the list is percent-height, so it yields whatever room the
-        // auto-sized transport section (below) doesn't need - no separate full-width
-        // bottom bar, no magic footer-height constant to keep in sync.
-        var trackColumnBody = new FlexPanel(context) { ID = "track-column-body" };
-        _trackColumn.AddChild(trackColumnBody);
+        // Runs every component's logic depth-first, then verifies that no [SetFromLogic]
+        // property was left null. The getters catch one nulled back out during logic.
+        sundexContext.RunLogicAndVerify(Component,
+            () => ProjectName, () => ProjectBpm,
+            () => TransportProgress, () => TransportElapsed, () => TransportTotal, () => TransportPlay,
+            () => HintBar, () => HintGutter, () => HintLabel,
+            () => ArrangementPanel, () => TrackEditorPanel, () => OpenedTrackName, () => InstrumentButton,
+            () => InspectorPanelElement, () => InspectorRows, () => InspectorStatusBar, () => InspectorStatusLabel,
+            () => SoundFilterModal);
+        _transport = new TransportController(Playback,
+            TransportProgress, TransportElapsed, TransportTotal, TransportPlay);
+        HintLabel.SetTextContents(HintLegend);
+        AlignHintToGrid();
 
-        _trackList = new TrackListPanel(context, State) { OnContextMenu = ShowTrackContextMenu, OnHint = SetHint };
-        trackColumnBody.AddChild(_trackList);
+        // Both panels are in the markup so one pass resolves their handles; only the
+        // current one stays attached. Detached before the first DrawTo so the note editor
+        // is never drawn without an opened track, exactly as when it was code-built.
+        _gridArea.RemoveChild(TrackEditorPanel);
+        RootPanel.RemoveChild(SoundFilterModal);
 
-        _transport = new TransportSection(context, Playback, RequestBack);
-        trackColumnBody.AddChild(_transport);
+        RootPanel.DrawTo(context);
+        _dialogHost = new DialogHost(context, RootPanel);
+        _projectIo = new ProjectIO(State, _dialogHost, workflow.Logger) { OnSaved = RefreshTitle };
 
-        _arrangement = new ArrangementView(context, State) { Classes = ["grid-view"] };
-        _laneHeader = new LaneHeader(context, State, _arrangement)
-        {
-            // Not styled: the gutter's width is a layout constant the lane math reads,
-            // not a look. Its fill is (see Panels.snx.ss's lane-header).
-            Width = LaneHeader.GutterWidth,
-            Height = LiteralOrComputable.Percent(100),
-            OnHint = SetHint
-        };
-        // The arrangement wraps in a vertical panel mirroring _trackEditorPanel below:
-        // a slim bar holding the tool buttons, then the lane header + grid row.
-        var arrangementBar = new FlexPanel(context)
-        {
-            Classes = ["tool-bar"],
-            Children =
-            [
-                new Panel(context) { Classes = ["spacer"] },
-                MakeToolButton("Draw", EditorTool.Draw), MakeToolButton("Select", EditorTool.Select)
-            ]
-        };
-        var arrangementBody = new FlexPanel(context)
-        {
-            Classes = ["grid-body"],
-            Children = [_laneHeader, _arrangement]
-        };
-        _arrangementPanel = new FlexPanel(context)
-        {
-            Classes = ["grid-panel"],
-            Children = [arrangementBar, arrangementBody]
-        };
-        _gridArea.AddChild(_arrangementPanel);
+        _defaultTitle = workflow.Game.Title;
+
         _arrangement.OnOpenTrack = State.OpenTrack;
         _arrangement.OnSeekQuarters = Playback.Seek;
         _arrangement.OnScrolled = _laneHeader.InvalidateLayout;
 
-        _trackEditor = new TrackEditorView(context, State) { Classes = ["grid-view"] };
-        _openedTrackName = new TextInput(context)
-        {
-            ID = "opened-track-name",
-            OnValueChanged = input =>
-            {
-                if (State.OpenedTrack is { } track) State.RenameTrack(track, input.Value);
-            }
-        };
-
         _instrumentWorkflow = new InstrumentWorkflow(context, State, Playback, _dialogHost, workflow.AtlasStore,
             AllSounds);
 
-        _instrumentButton = new Button(context, "Instrument: -")
-        {
-            OnClick = _ => _instrumentWorkflow.OpenSelector()
-        };
-
-        // A second, independent sound picker in multi-select mode: the track-automation
-        // sound filter. Mirrors _soundPicker/_soundModal above but commits a whole set
-        // via a "Done" button instead of picking one sound and closing immediately.
-        _soundFilterPicker = new SoundPicker(context, workflow.AtlasStore)
-            { ID = "sound-filter-picker", MultiSelect = true };
-        var soundFilterList = new ScrollView(context) { ID = "sound-filter-list" };
-        soundFilterList.AddChild(_soundFilterPicker);
-        var doneButton = new Button(context, "Done");
-        var soundFilterFrame = new FlexPanel(context)
-        {
-            ID = "sound-filter-frame",
-            Classes = ["dialog-frame"],
-            Children = [soundFilterList, doneButton]
-        };
-        _soundFilterModal = new ModalLayer(context);
-        _soundFilterModal.AddChild(soundFilterFrame);
-        doneButton.OnClick = _ => CommitAndCloseSoundFilter();
-        // Dismissing via the backdrop commits too - clicking outside shouldn't discard picks.
-        _soundFilterModal.OnDismissRequested = _ => CommitAndCloseSoundFilter();
-
-        // No class: both this and _instrumentButton take the `component button` look
-        // that EditorInterface.snx.ss gives every unclassed button.
-        var backToArrangement = new Button(context, "← Arrangement") { OnClick = _ => State.CloseTrack() };
-        // Percent-width spacer soaks up the free space so the tool buttons land flush
-        // against the bar's right edge - this framework has no space-between align.
-        var editorBarSpacer = new Panel(context) { Classes = ["spacer"] };
-        var editorBar = new FlexPanel(context)
-        {
-            Classes = ["tool-bar"],
-            Children =
-            [
-                backToArrangement, _openedTrackName, _instrumentButton, editorBarSpacer,
-                MakeToolButton("Draw", EditorTool.Draw), MakeToolButton("Select", EditorTool.Select)
-            ]
-        };
-        _trackEditorPanel = new FlexPanel(context)
-        {
-            Classes = ["grid-panel"],
-            Children = [editorBar, _trackEditor]
-        };
-
-        _inspector = new InspectorPanel(context, State);
-        _inspectorColumn.AddChild(_inspector);
+        // The shell is already in the tree (root markup); this only drives it.
+        _inspector = new InspectorPanel(context, State,
+            InspectorPanelElement, InspectorRows, InspectorStatusBar, InspectorStatusLabel);
         _inspector.OnEditTrackAutomationSounds = automation =>
         {
             EnsureSoundFilterItems();
             _editingTrackAutomation = automation;
             _soundFilterPicker.SetSelected(automation.Sounds ?? []);
-            RootPanel.AddChild(_soundFilterModal);
+            RootPanel.AddChild(SoundFilterModal);
         };
         _inspector.OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes);
 
@@ -300,6 +231,42 @@ public class EditorInterface
     [UsedImplicitly] public SundexComponent Component { get; }
     public Panel RootPanel { get; }
 
+    // Assigned by each region's .snx.csx. They live flat on this class rather than on the
+    // controllers because RunLogicAndVerify only reflects over the one target type - a
+    // nested object's properties are never checked.
+    [SetFromLogic] public Label ProjectName { get; set; } = null!;
+    [SetFromLogic] public Label ProjectBpm { get; set; } = null!;
+
+    [SetFromLogic] public ProgressBar TransportProgress { get; set; } = null!;
+    [SetFromLogic] public Label TransportElapsed { get; set; } = null!;
+    [SetFromLogic] public Label TransportTotal { get; set; } = null!;
+    [SetFromLogic] public Button TransportPlay { get; set; } = null!;
+
+    [SetFromLogic] public FlexPanel HintBar { get; set; } = null!;
+    [SetFromLogic] public Panel HintGutter { get; set; } = null!;
+    [SetFromLogic] public Label HintLabel { get; set; } = null!;
+
+    [SetFromLogic] public ModalLayer SoundFilterModal { get; set; } = null!;
+
+    [SetFromLogic] public Panel InspectorPanelElement { get; set; } = null!;
+    [SetFromLogic] public ScrollView InspectorRows { get; set; } = null!;
+    [SetFromLogic] public ProgressBar InspectorStatusBar { get; set; } = null!;
+    [SetFromLogic] public Label InspectorStatusLabel { get; set; } = null!;
+
+    [SetFromLogic] public FlexPanel ArrangementPanel { get; set; } = null!;
+    [SetFromLogic] public FlexPanel TrackEditorPanel { get; set; } = null!;
+    [SetFromLogic] public TextInput OpenedTrackName { get; set; } = null!;
+    [SetFromLogic] public Button InstrumentButton { get; set; } = null!;
+
+    /// <summary>Loads an embedded markup/script asset by its project-relative path.</summary>
+    private static string LoadMarkup(UIContext context, string location)
+    {
+        return context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
+        {
+            AssetInfo = new AssetInfo { Location = location }
+        }).Value;
+    }
+
     /// <summary>
     ///     Shift: the note editor snaps values to 0.2 instead of 1, and scrolling a sound
     ///     row in the instrument editor adjusts pan instead of value.
@@ -317,20 +284,20 @@ public class EditorInterface
 
     private void SwapGridView(ProjectTrack? track)
     {
-        if (track != null) _openedTrackName.Value = track.Name;
+        if (track != null) OpenedTrackName.Value = track.Name;
         if (track != null == _editorOpen) return;
         _editorOpen = track != null;
 
         if (_editorOpen)
         {
-            _gridArea.RemoveChild(_arrangementPanel);
-            _gridArea.AddChild(_trackEditorPanel);
+            _gridArea.RemoveChild(ArrangementPanel);
+            _gridArea.AddChild(TrackEditorPanel);
             _trackEditor.CenterOnZero();
         }
         else
         {
-            _gridArea.RemoveChild(_trackEditorPanel);
-            _gridArea.AddChild(_arrangementPanel);
+            _gridArea.RemoveChild(TrackEditorPanel);
+            _gridArea.AddChild(ArrangementPanel);
             _arrangement.Refresh();
         }
 
@@ -345,27 +312,25 @@ public class EditorInterface
     private void AlignHintToGrid()
     {
         var gutter = _editorOpen ? TrackEditorView.GutterWidth : LaneHeader.GutterWidth;
-        _hintGutter.Width = Math.Max(0, gutter - _hintBar.Padding);
+        HintGutter.Width = Math.Max(0, gutter - HintBar.Padding);
     }
 
-    /// <summary>One Draw/Select toggle; every made button follows State.OnToolChanged (see ctor).</summary>
-    private Button MakeToolButton(string text, EditorTool tool)
+    /// <summary>
+    ///     Takes over a markup-built Draw/Select toggle; every adopted button then follows
+    ///     State.OnToolChanged (see ctor). The fill stays code-owned - it tracks
+    ///     State.ActiveTool, and a stylesheet `background` would be swapped out from under
+    ///     it on the next hover, which is why `class tool-button` sets no background.
+    ///     Public because the two grid panels' .snx.csx call it, and a script only reaches
+    ///     the public surface - EditorPalette is internal, so the tint cannot live there.
+    /// </summary>
+    [UsedImplicitly]
+    public void AdoptToolButton(Button button, EditorTool tool)
     {
         var active = State.ActiveTool == tool;
-        var button = new Button(_context, text)
-        {
-            // Fill stays code-owned - it follows State.ActiveTool, and a stylesheet
-            // `background` would be swapped out from under it on the next hover.
-            Background = new ColoredPlane
-            {
-                Color = active ? ToolAccent(tool) : EditorPalette.Surface
-            },
-            Classes = ["tool-button"],
-            OnClick = _ => State.ActiveTool = tool
-        };
+        button.Background = new ColoredPlane { Color = active ? ToolAccent(tool) : EditorPalette.Surface };
         button.Label.Color = ToolTextColor(tool, active);
+        button.OnClick = _ => State.ActiveTool = tool;
         _toolButtons.Add((button, tool));
-        return button;
     }
 
     /// <summary>Each tool's active-highlight color: Draw blue, Select yellow.</summary>
@@ -396,18 +361,25 @@ public class EditorInterface
         return _workflow.SampleHolder.StringToSoundReferences.Values.Distinct().OrderBy(sound => sound.Id);
     }
 
-    private void CommitAndCloseSoundFilter()
+    /// <summary>Public because SoundFilter.snx.csx wires both the Done button and the backdrop dismiss to it.</summary>
+    public void CommitAndCloseSoundFilter()
     {
         if (_editingTrackAutomation is { } automation)
             State.Edit(() => automation.Sounds = _soundFilterPicker.Selected.ToList());
-        RootPanel.RemoveChild(_soundFilterModal);
+        RootPanel.RemoveChild(SoundFilterModal);
         _inspector.Rebuild();
     }
 
     private void RefreshActiveInstrument()
     {
-        _instrumentButton.Label.SetTextContents($"Instrument: {State.ActiveInstrument?.Name ?? "-"}");
-        _instrumentButton.InvalidateLayout();
+        InstrumentButton.Label.SetTextContents($"Instrument: {State.ActiveInstrument?.Name ?? "-"}");
+        InstrumentButton.InvalidateLayout();
+    }
+
+    /// <summary>Wired from TrackEditorPanel.snx.csx - the workflow only exists once the root is drawn.</summary>
+    public void OpenInstrumentSelector()
+    {
+        _instrumentWorkflow.OpenSelector();
     }
 
     /// <summary>
@@ -417,7 +389,7 @@ public class EditorInterface
     /// </summary>
     private void SetHint(string? text)
     {
-        _hintLabel.SetTextContents(text ?? HintLegend);
+        HintLabel.SetTextContents(text ?? HintLegend);
     }
 
     /// <summary>Dismisses the topmost open modal, if any. Used so Escape closes a dialog instead of the editor.</summary>
@@ -451,7 +423,7 @@ public class EditorInterface
     public void ImportSequenceFile(string path)
     {
         var dialog = new ImportDialog(_context, Path.GetFileName(path));
-        var modal = _dialogHost.Show(dialog);
+        var modal = _dialogHost.Show(dialog.Element);
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
         dialog.SingleTrackButton.OnClick = _ =>
         {
@@ -491,7 +463,7 @@ public class EditorInterface
         }
 
         var dialog = new UnsavedChangesDialog(_context);
-        var modal = _dialogHost.Show(dialog);
+        var modal = _dialogHost.Show(dialog.Element);
         dialog.SaveButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
@@ -543,7 +515,7 @@ public class EditorInterface
         if (_trackContextMenuModal != null) return;
 
         var menu = new TrackContextMenu(_context, $"{track.Name} copy");
-        var modal = _dialogHost.Show(menu);
+        var modal = _dialogHost.Show(menu.Element);
         _trackContextMenuModal = modal;
         modal.OnDismissRequested = m =>
         {
@@ -558,10 +530,21 @@ public class EditorInterface
         };
     }
 
-    private void ShowExportDialog()
+    /// <summary>Load/Save, wired from EditorHeader.snx.csx - a .csx only reaches the public surface.</summary>
+    public void ShowLoadDialog()
+    {
+        _dialogHost.ShowFileDialog(null, ".tdwproj", LoadProjectFile);
+    }
+
+    public void SaveProject()
+    {
+        _projectIo.Save();
+    }
+
+    public void ShowExportDialog()
     {
         var dialog = new ExportDialog(_context);
-        var modal = _dialogHost.Show(dialog);
+        var modal = _dialogHost.Show(dialog.Element);
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
         dialog.TdwButton.OnClick = _ =>
         {
@@ -579,8 +562,8 @@ public class EditorInterface
 
     private void RefreshProject()
     {
-        _projectName.SetTextContents(State.Project.Info.Name);
-        _projectBpm.SetTextContents($"{State.Project.RootTiming.BPM:0.##} BPM");
+        ProjectName.SetTextContents(State.Project.Info.Name);
+        ProjectBpm.SetTextContents($"{State.Project.RootTiming.BPM:0.##} BPM");
         RefreshTitle();
 
         _trackList.Rebuild();
@@ -624,8 +607,8 @@ public class EditorInterface
         _gridArea.Height = height - HeaderHeight - HintBarHeight;
         _inspectorColumn.X = width - InspectorPanel.PanelWidth;
         _inspectorColumn.Height = height - HeaderHeight;
-        _hintBar.Width = gridWidth;
-        _hintBar.Y = height - HintBarHeight;
+        HintBar.Width = gridWidth;
+        HintBar.Y = height - HintBarHeight;
 
         // DrawTo (not just Layout): a row whose Visible flips true here (e.g. LaneHeader's
         // M/S toggles, false on the very first pass while grid-area was still 0-height) needs

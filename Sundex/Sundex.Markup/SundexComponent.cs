@@ -1,5 +1,6 @@
 using Sundex.Components.Abstractions;
 using Sundex.Markup.Abstract;
+using Sundex.Markup.Document;
 using Sundex.Style.DSL;
 
 namespace Sundex.Markup;
@@ -7,6 +8,11 @@ namespace Sundex.Markup;
 public class SundexComponent : ISundexComponent
 {
     public required string Version { get; set; }
+
+    /// <summary>
+    ///     Runs this component's logic block, then cascades into imported children so a
+    ///     document composed of sub-components wires all of them from one call.
+    /// </summary>
     public Action<object?>? RunLogic { get; set; }
 
     /// <summary>
@@ -21,6 +27,7 @@ public class SundexComponent : ISundexComponent
     public Dictionary<string, List<UIElement>> RegisteredClasses { get; init; } = [];
     public required ISundexContext Context { get; init; }
     public required UIElement Element { get; set; }
+    public required SundexDocument Document { get; init; }
 
     public HashSet<ISundexComponent> Dependencies { get; init; } = [];
     public List<ISundexComponent> Children { get; init; } = [];

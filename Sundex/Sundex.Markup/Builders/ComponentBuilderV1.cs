@@ -3,8 +3,10 @@ using Shared.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
+using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using Sundex.Components.Scroll;
 using Sundex.Core;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
@@ -25,6 +27,15 @@ public class ComponentBuilderV1 : IComponentBuilder
     public const string Version = "1.0";
 
     public SundexComponent CreateComponent(SundexDocument layout, ISundexContext context)
+    {
+        return CreateComponent(layout, context, true);
+    }
+
+    /// <param name="register">
+    ///     False when building a usage site of an already-registered component: the rebuild
+    ///     must not replace (or collide with) the registered template it was built from.
+    /// </param>
+    private SundexComponent CreateComponent(SundexDocument layout, ISundexContext context, bool register)
     {
         var root = layout.Root;
         List<ISundexComponent>? dependencies = null;
@@ -67,9 +78,10 @@ public class ComponentBuilderV1 : IComponentBuilder
         var rootNode = tree[0];
         var registeredIds = new Dictionary<string, UIElement>(StringComparer.Ordinal);
         var registeredClasses = new Dictionary<string, List<UIElement>>(StringComparer.Ordinal);
+        var children = new List<SundexComponent>();
 
         var uiElement = BuildUIElement(rootNode, context, dependencies, styleSheet,
-            registeredIds, registeredClasses);
+            registeredIds, registeredClasses, children);
 
         if (styleSheet is not null)
             uiElement.ApplyStyleSheet(styleSheet);
@@ -82,10 +94,15 @@ public class ComponentBuilderV1 : IComponentBuilder
             Version = Version,
             Context = context,
             Element = uiElement,
+            Document = layout,
+            Name = root.Component ?? root.Implements,
             RegisteredIDs = registeredIds,
             RegisteredClasses = registeredClasses,
-            StyleSheet = styleSheet
+            StyleSheet = styleSheet,
+            Dependencies = dependencies is null ? [] : [..dependencies]
         };
+
+        component.Children.AddRange(children);
 
         if (logic is not null)
         {
@@ -104,20 +121,29 @@ public class ComponentBuilderV1 : IComponentBuilder
             runLogic = language.Compile(logic.SourceCode, context, component, logic.LanguageImports);
         }
 
-        component.RunLogic = runLogic;
+        // Imported sub-components carry their own logic bound to their own id map. Cascade
+        // depth-first so a child is fully wired before the host's logic reaches for it.
+        component.RunLogic = children.Count == 0
+            ? runLogic
+            : obj =>
+            {
+                foreach (var child in children) child.RunLogic?.Invoke(obj);
+                runLogic?.Invoke(obj);
+            };
 
-        if (root.Implements?.Length > 0)
-            HandleImplements(component, context);
+        if (register && component.Name is not null)
+            context.RegisterComponent(component);
         return component;
     }
 
-    private static UIElement BuildUIElement(
+    private UIElement BuildUIElement(
         SundexNode node,
         ISundexContext context,
         List<ISundexComponent>? dependencies,
         StyleSheet? styleSheet,
         Dictionary<string, UIElement> registeredIds,
-        Dictionary<string, List<UIElement>> registeredClasses)
+        Dictionary<string, List<UIElement>> registeredClasses,
+        List<SundexComponent> children)
     {
         var nodeTag = node.TagName;
         UIElement element;
@@ -129,7 +155,7 @@ public class ComponentBuilderV1 : IComponentBuilder
                 {
                     Children = node.Children
                         .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                            registeredClasses))
+                            registeredClasses, children))
                         .ToList()
                 };
                 break;
@@ -141,7 +167,7 @@ public class ComponentBuilderV1 : IComponentBuilder
                 {
                     Children = node.Children
                         .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                            registeredClasses))
+                            registeredClasses, children))
                         .ToList()
                 };
                 break;
@@ -153,7 +179,7 @@ public class ComponentBuilderV1 : IComponentBuilder
                 {
                     Children = node.Children
                         .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                            registeredClasses))
+                            registeredClasses, children))
                         .ToList()
                 };
                 break;
@@ -184,13 +210,79 @@ public class ComponentBuilderV1 : IComponentBuilder
                 break;
             }
 
+            case "scroll-view":
+            {
+                element = new ScrollView(context.UIContext)
+                {
+                    Children = node.Children
+                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                            registeredClasses, children))
+                        .ToList()
+                };
+                break;
+            }
+
+            case "modal":
+            {
+                element = new ModalLayer(context.UIContext)
+                {
+                    Children = node.Children
+                        .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                            registeredClasses, children))
+                        .ToList()
+                };
+                break;
+            }
+
+            case "text-input":
+            {
+                node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var value);
+                element = new TextInput(context.UIContext, value ?? string.Empty);
+                break;
+            }
+
+            case "numeric-input":
+            {
+                node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var value);
+                element = new NumericInput(context.UIContext,
+                    double.TryParse(value, out var number) ? number : null);
+                break;
+            }
+
+            case "checkbox":
+            {
+                var attributes = node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>();
+                // `value` is the label text, matching <label value=>; `checked` is the state.
+                attributes.TryGetValue("value", out var label);
+                attributes.TryGetValue("checked", out var state);
+                element = new Checkbox(context.UIContext, label ?? string.Empty,
+                    bool.TryParse(state, out var isChecked) && isChecked);
+                break;
+            }
+
+            case "slider":
+            {
+                // Slider derives from ProgressBar and takes the same two planes.
+                var background = ExtractBackgroundStyle(node, styleSheet);
+                var foreground = ExtractBackgroundStyle(node, styleSheet, "foreground");
+
+                var slider = new Slider(context.UIContext, background, foreground);
+                if (node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var sliderValue)
+                    && double.TryParse(sliderValue, out var parsed))
+                    slider.Value = parsed;
+
+                element = slider;
+                break;
+            }
+
             case "button":
             {
                 var labelNode = node.Children.FirstOrDefault(child => child.TagName == "label");
                 if (labelNode is null) throw new Exception("Button must have a label");
 
                 var background = ExtractBackgroundStyle(node, styleSheet);
-                element = BuildUIElement(labelNode, context, dependencies, styleSheet, registeredIds, registeredClasses)
+                element = BuildUIElement(labelNode, context, dependencies, styleSheet, registeredIds, registeredClasses,
+                children)
                     is Label label
                     ? new Button(context.UIContext, label, background)
                     : throw new Exception("Button label wasn't parsed as a label.");
@@ -207,7 +299,7 @@ public class ComponentBuilderV1 : IComponentBuilder
                     if (element is Panel panel && node.Children.Count > 0)
                         panel.Children.AddRange(node.Children
                             .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
-                                registeredClasses)));
+                                registeredClasses, children)));
                     break;
                 }
 
@@ -215,9 +307,19 @@ public class ComponentBuilderV1 : IComponentBuilder
                 var dependency = dependencies
                     .FirstOrDefault(dependency => dependency.Name == nodeTag);
 
-                element = dependency is not null
-                    ? dependency.Element
-                    : throw new Exception($"Unknown node tag: {nodeTag}");
+                if (dependency is null) throw new Exception($"Unknown node tag: {nodeTag}");
+
+                // Rebuild rather than alias: handing out the registered component's own
+                // Element made every usage site the same instance, so a second <header/>
+                // reparented the first one out of the tree. Building the retained document
+                // again is independent - BuildTree reparses from the held XmlElement - and
+                // it binds the sub-component's logic to its own id map, which a shared
+                // instance could never do.
+                // ponytail: single builder version exists, so a dependency declaring a
+                // different version than its host would still be built by this one.
+                var instance = CreateComponent(dependency.Document, context, false);
+                children.Add(instance);
+                element = instance.Element;
                 break;
             }
         }
@@ -330,20 +432,31 @@ public class ComponentBuilderV1 : IComponentBuilder
         };
     }
 
+    /// <summary>
+    ///     Resolves a style property for a node the same way <c>UIElement.SetNamedSetting</c>
+    ///     does: tag, then classes, then id, last hit winning. This was tag-only, so a
+    ///     class- or id-scoped <c>background</c> silently never reached the elements that
+    ///     take their planes as constructor arguments (progress, slider, button) - the
+    ///     reason those bars were built in code with hand-made <c>ColoredPlane</c>s.
+    /// </summary>
     private static IStyleValue? GetStyleForNode(SundexNode node, string property, StyleSheet? styleSheet)
     {
         if (styleSheet is null) return null;
-        var tagName = node.TagName;
-        return styleSheet.GetStyleValueForTag(tagName, property);
+
+        var value = styleSheet.GetStyleValueForTag(node.TagName, property);
+
+        if (node.Classes is not null)
+            foreach (var @class in node.Classes)
+                value = styleSheet.GetStyleValueForTag(@class, property) ?? value;
+
+        if (node.Id is not null)
+            value = styleSheet.GetStyleValueForTag(node.Id, property) ?? value;
+
+        return value;
     }
 
     private static List<ISundexComponent> HandleDependencies(SundexDocument layout, ISundexContext context)
     {
         return layout.Root.Imports.Select(import => context.ResolveComponent(import)).ToList();
-    }
-
-    private static void HandleImplements(SundexComponent component, ISundexContext context)
-    {
-        context.RegisterComponent(component);
     }
 }

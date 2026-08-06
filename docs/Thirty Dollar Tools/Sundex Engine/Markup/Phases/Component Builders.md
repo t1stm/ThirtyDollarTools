@@ -78,11 +78,15 @@ public class ComponentBuilderV1 : IComponentBuilder
         if (logic is not null) {
             // ... look up language plugin, compile, store delegate ...
         }
-        component.RunLogic = runLogic;
+        // children = imported sub-components rebuilt at their usage sites
+        component.RunLogic = children.Count == 0 ? runLogic : obj => {
+            foreach (var child in children) child.RunLogic?.Invoke(obj);
+            runLogic?.Invoke(obj);
+        };
 
-        // 8. Register if this document declares "implements"
-        if (root.Implements?.Length > 0)
-            HandleImplements(component, context);
+        // 8. Register if this document names itself
+        if (register && component.Name is not null)
+            context.RegisterComponent(component);
 
         return component;
     }
@@ -185,12 +189,20 @@ var component = new SundexComponent {
     Version = Version,
     Context = context,
     Element = uiElement,
+    Document = layout,
+    Name = root.Component ?? root.Implements,
     RegisteredIDs = registeredIds,
-    RegisteredClasses = registeredClasses
+    RegisteredClasses = registeredClasses,
+    StyleSheet = styleSheet,
+    Dependencies = dependencies is null ? [] : [..dependencies]
 };
+
+component.Children.AddRange(children);
 ```
 
-A simple struct-init. `Dependencies` and `Children` are left at their default empty values; future versions might propagate them.
+A simple struct-init. `Dependencies` holds the components this document imported; `Children` holds the instances actually built into the tree — one per usage site, so importing `header` once and using `<header/>` twice gives one dependency and two children.
+
+`Document` is retained so usage sites elsewhere can rebuild this component instead of aliasing its `Element`.
 
 ### Step 7 — Logic compilation
 
@@ -221,20 +233,16 @@ The compiled delegate is **stored, not invoked**. The host calls `component.RunL
 
 The key subtlety: `language.Compile` receives the freshly-built `component` so the script can capture it via its `ScriptGlobals.Component` member. Scripts close over `component` and can call `component.GetID<T>("...")`.
 
-### Step 8 — `HandleImplements`
+### Step 8 — Registration
 
 ```csharp
-private static void HandleImplements(SundexComponent component, ISundexContext context)
-{
+if (register && component.Name is not null)
     context.RegisterComponent(component);
-}
-
-// in CreateComponent:
-if (root.Implements?.Length > 0)
-    HandleImplements(component, context);
 ```
 
-If the document has `<sundex implements="some_interface">`, register the component in the context's `LoadedComponents` dictionary under its `Name`. From then on, other documents importing this name (`imports="['name']"`) will resolve to this component.
+`Name` comes from `root.Component ?? root.Implements`. If the document names itself either way, register it in the context's `LoadedComponents` dictionary. From then on, other documents importing this name (`imports='["name"]'`) resolve to this component and rebuild from its `Document`.
+
+`register` is false on exactly one path: `CreateComponent` recursing to build a usage site of an already-registered component. Without it the rebuild would collide with the template in `LoadedComponents`.
 
 `Implements` is currently free-form — there's no actual interface conformance check. The string serves as documentation: "this component is meant to fulfil the role of `some_interface`." Future builder versions could add structural validation.
 
