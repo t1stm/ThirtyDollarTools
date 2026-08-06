@@ -8,10 +8,23 @@ namespace Sundex.Style.DSL;
 public class StyleParser(
     string dsl,
     Func<string, string>? fileLoader = null,
-    HashSet<string>? importedPaths = null)
+    Dictionary<string, StyleSheetHolder>? parsedImports = null)
 {
-    private readonly HashSet<string> _importedPaths = importedPaths ?? [];
+    /// <summary>Variables declared in this file, for duplicate detection. Imported ones aren't in here.</summary>
+    private readonly HashSet<string> _localVariables = [];
+
+    // Merge-once guards, per file: importing the same path twice into one sheet merges it once.
+    // Deliberately NOT shared with child parsers — recursion is broken by the parse cache instead.
+    private readonly HashSet<string> _mergedBlocks = [];
+    private readonly HashSet<string> _mergedVariables = [];
+
+    /// <summary>Every file parsed so far, keyed by import path. Shared with child parsers.</summary>
+    private readonly Dictionary<string, StyleSheetHolder> _parsedImports = parsedImports ?? new();
+
     private int _pos;
+
+    /// <summary>The sheet this parser writes into. One parser parses one file into one sheet.</summary>
+    private StyleSheetHolder _sheet = null!;
 
     public static StyleSheetHolder Parse(string dsl, Func<string, string>? fileLoader = null)
     {
@@ -19,9 +32,9 @@ public class StyleParser(
         return parser.ParseSheet();
     }
 
-    private StyleSheetHolder ParseSheet()
+    private StyleSheetHolder ParseSheet(StyleSheetHolder? target = null)
     {
-        var sheet = new StyleSheetHolder();
+        var sheet = _sheet = target ?? new StyleSheetHolder();
         while (!IsAtEnd())
         {
             SkipWhitespaceAndComments();
@@ -29,28 +42,32 @@ public class StyleParser(
 
             if (Match("animation"))
             {
-                ParseBlock(sheet.Animations, false, false, sheet);
+                ParseBlock(sheet.Animations);
             }
             else if (Match("component"))
             {
-                ParseBlock(sheet.Components, true, false, sheet);
+                ParseBlock(sheet.Components, true);
             }
             else if (Match("class"))
             {
-                ParseBlock(sheet.Classes, true, false, sheet);
+                ParseBlock(sheet.Classes, true);
             }
             else if (Match("id"))
             {
-                ParseBlock(sheet.IDTags, true, false, sheet);
+                ParseBlock(sheet.IDTags, true);
             }
             else if (Match("import"))
             {
-                ParseImport(sheet);
+                ParseImport();
+            }
+            else if (Match("var"))
+            {
+                ParseVariable();
             }
             else if (Peek() == '@')
             {
                 Advance();
-                if (Match("component")) ParseBlock(sheet.Components, true, true, sheet);
+                if (Match("component")) ParseBlock(sheet.Components, true, true);
                 else throw CreateException($"Unexpected token @ at {_pos}");
             }
             else
@@ -63,11 +80,11 @@ public class StyleParser(
     }
 
     private void ParseBlock(Dictionary<string, Dictionary<string, IStyleValue>> target, bool allowState = false,
-        bool isOverride = false, StyleSheetHolder? sheet = null)
+        bool isOverride = false)
     {
         SkipWhitespaceAndComments();
         var name = ReadIdentifier();
-        if (isOverride) sheet?.FullOverrides.Add(name);
+        if (isOverride) _sheet.FullOverrides.Add(name);
         SkipWhitespaceAndComments();
         Consume('{');
         var properties = new Dictionary<string, IStyleValue>();
@@ -122,6 +139,7 @@ public class StyleParser(
         }
 
         if (char.IsDigit(Peek()) || Peek() == '-') return ParseNumber();
+        if (Peek() == '$') return ParseVariableReference();
         if (Peek() == '#') return new ColorValue(ReadHexColor());
         if (Peek() == '!') return ParseKeyword();
         if (Check('{')) return ParseNestedBlock();
@@ -135,6 +153,46 @@ public class StyleParser(
             "vec4" => ParseVector(4),
             _ => new StringValue(identifier)
         };
+    }
+
+    private void ParseVariable()
+    {
+        SkipWhitespaceAndComments();
+        var name = ReadIdentifier();
+        SkipWhitespaceAndComments();
+        Consume('=');
+        var value = ParseValue();
+        SkipWhitespaceAndComments();
+        if (Check(';')) Advance();
+
+        if (!_localVariables.Add(name))
+            throw CreateException($"Variable '{name}' is already defined in this file");
+
+        // Plain assignment, so a local declaration may shadow one that came from an import.
+        _sheet.Variables[name] = value;
+    }
+
+    private IStyleValue ParseVariableReference()
+    {
+        Consume('$');
+        var name = ReadIdentifier();
+
+        if (Check('.'))
+        {
+            Advance();
+            var member = ReadIdentifier();
+            if (!_sheet.Namespaces.TryGetValue(name, out var imported))
+                throw CreateException($"Unknown import alias '{name}'");
+            if (!imported.TryGetValue(member, out var scoped))
+                throw CreateException($"Import '{name}' has no variable '{member}'");
+            return scoped;
+        }
+
+        if (!_sheet.Variables.TryGetValue(name, out var value))
+            throw CreateException($"Unknown variable '{name}'");
+
+        // ponytail: shared reference; values are treated as immutable post-parse.
+        return value;
     }
 
     private NumberValue ParseNumber()
@@ -260,27 +318,50 @@ public class StyleParser(
         return new VectorValue(span);
     }
 
-    private void ParseImport(StyleSheetHolder sheetHolder)
+    private void ParseImport()
     {
         SkipWhitespaceAndComments();
         var path = ReadString();
         SkipWhitespaceAndComments();
+
+        string? alias = null;
+        if (Match("as"))
+        {
+            SkipWhitespaceAndComments();
+            alias = ReadIdentifier();
+            SkipWhitespaceAndComments();
+        }
+
         if (Check(';')) Advance();
 
         if (fileLoader == null) return;
 
-        if (!_importedPaths.Add(path)) return;
-        var importedDsl = fileLoader(path);
+        if (!_parsedImports.TryGetValue(path, out var imported))
+        {
+            // Registered before recursing, so a cycle sees the partial holder instead of looping.
+            imported = new StyleSheetHolder();
+            _parsedImports[path] = imported;
 
-        var importedParser = new StyleParser(importedDsl, fileLoader, _importedPaths);
-        var importedSheet = importedParser.ParseSheet();
-        sheetHolder.Merge(importedSheet);
+            var importedParser = new StyleParser(fileLoader(path), fileLoader, _parsedImports);
+            importedParser.ParseSheet(imported);
+        }
+
+        // Blocks and variables are merged at most once per path, independently: an aliased import
+        // followed by a plain one still brings the file's variables into the global scope.
+        if (_mergedBlocks.Add(path))
+            _sheet.Merge(imported, false);
+
+        if (alias != null)
+            _sheet.Namespaces[alias] = imported.Variables;
+        else if (_mergedVariables.Add(path))
+            foreach (var (name, value) in imported.Variables)
+                _sheet.Variables[name] = value;
     }
 
     private string ReadIdentifier()
     {
         var start = _pos;
-        while (!IsAtEnd() && (char.IsLetterOrDigit(Peek()) || Peek() == '-')) Advance();
+        while (!IsAtEnd() && (char.IsLetterOrDigit(Peek()) || Peek() == '-' || Peek() == '_')) Advance();
         return dsl[start.._pos];
     }
 
@@ -312,7 +393,7 @@ public class StyleParser(
 
         // Ensure word boundary
         if (_pos + s.Length < dsl.Length &&
-            (char.IsLetterOrDigit(dsl[_pos + s.Length]) || dsl[_pos + s.Length] == '-')) return false;
+            (char.IsLetterOrDigit(dsl[_pos + s.Length]) || dsl[_pos + s.Length] is '-' or '_')) return false;
 
         _pos += s.Length;
         return true;
@@ -348,30 +429,18 @@ public class StyleParser(
         const int linesBefore = 5;
         const int linesAfter = 5;
 
-        var errorPosition = _pos;
+        var errorPosition = Math.Min(_pos, dsl.Length);
         var text = dsl.AsSpan();
 
-        int startI;
-        int endI;
-
-        var count = 0;
-        for (startI = errorPosition; startI >= 0; startI--)
-        {
-            if (text[startI] == '\n')
+        var startI = errorPosition;
+        for (var count = 0; startI > 0 && count < linesBefore; startI--)
+            if (text[startI - 1] == '\n')
                 count++;
 
-            if (count == linesBefore)
-                break;
-        }
-
-        for (endI = errorPosition; endI < dsl.Length; endI++)
-        {
+        var endI = errorPosition;
+        for (var count = 0; endI < dsl.Length && count < linesAfter; endI++)
             if (text[endI] == '\n')
                 count++;
-
-            if (count == linesAfter)
-                break;
-        }
 
         var slice = text[startI..endI];
         var normalizedPosition = errorPosition - startI;

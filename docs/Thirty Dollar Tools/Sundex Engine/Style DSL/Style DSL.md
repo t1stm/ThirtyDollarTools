@@ -10,7 +10,8 @@ Sundex's stylesheet language. Lives in `Sundex.Style.DSL`. Files end in `.snx.ss
 - **[[Blocks|Blocks]]** — the four top-level block types (`animation`, `component`, `class`, `id`), their semantics and the `@component` full-override form.
 - **[[Style Types|Style Types]]** — every `IStyleValue` implementation and what the parser produces for each kind of input.
 - **[[Animations|Animations]]** — `!keyframes`, `timing-function`, `duration`, `loop`, and the `KeyframedAnimation` it produces.
-- **[[Import|Import]]** — the `import "..."` directive, file-loader callback, and cycle protection.
+- **[[Variables|Variables]]** — `var` constants, `$` references, and how imports scope them.
+- **[[Import|Import]]** — the `import "..."` directive, the `as` alias form, file-loader callback, and cycle protection.
 
 ## Big picture
 
@@ -25,6 +26,8 @@ StyleSheetHolder            ← raw AST: dictionaries keyed by name
     │  Classes    (              "                          )
     │  IDTags     (              "                          )
     │  FullOverrides (HashSet<string>)
+    │  Variables  (Dictionary<string, IStyleValue>)          ← $name, resolved at parse time
+    │  Namespaces (Dictionary<string, Dictionary<string, IStyleValue>>)  ← $alias.name
     │
     │  new StyleSheet(holder)
     ▼

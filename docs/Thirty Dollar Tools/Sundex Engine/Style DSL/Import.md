@@ -24,34 +24,88 @@ component label {         // merged with imported label
 
 `import` statements can appear anywhere at the top level — start of file, between blocks, end of file. Order matters for override semantics (see below).
 
+## Named imports — `as`
+
+```css
+import "theme.snx.ss" as theme;
+```
+
+The alias scopes the imported file's **variables** and nothing else. `class`, `id`, `component`
+and `animation` blocks merge globally exactly as with a plain import; only `$theme.accent`-style
+access changes. See [[Variables|Variables]] for the full scoping rules.
+
 ## `ParseImport` — the recursion
 
 ```csharp
-private void ParseImport(StyleSheetHolder sheetHolder)
+private void ParseImport()
 {
     SkipWhitespaceAndComments();
     var path = ReadString();
     SkipWhitespaceAndComments();
+
+    string? alias = null;
+    if (Match("as"))
+    {
+        SkipWhitespaceAndComments();
+        alias = ReadIdentifier();
+        SkipWhitespaceAndComments();
+    }
+
     if (Check(';')) Advance();
 
     if (fileLoader == null) return;
 
-    if (!_importedPaths.Add(path)) return;
-    var importedDsl = fileLoader(path);
+    if (!_parsedImports.TryGetValue(path, out var imported))
+    {
+        // Registered before recursing, so a cycle sees the partial holder instead of looping.
+        imported = new StyleSheetHolder();
+        _parsedImports[path] = imported;
 
-    var importedParser = new StyleParser(importedDsl, fileLoader, _importedPaths);
-    var importedSheet = importedParser.ParseSheet();
-    sheetHolder.Merge(importedSheet);
+        var importedParser = new StyleParser(fileLoader(path), fileLoader, _parsedImports);
+        importedParser.ParseSheet(imported);
+    }
+
+    if (_mergedBlocks.Add(path))
+        _sheet.Merge(imported, false);
+
+    if (alias != null)
+        _sheet.Namespaces[alias] = imported.Variables;
+    else if (_mergedVariables.Add(path))
+        foreach (var (name, value) in imported.Variables)
+            _sheet.Variables[name] = value;
 }
 ```
 
-Five steps:
+Steps:
 
 1. **Read the path** — `ReadString` returns the inside of `"..."`. Trailing `;` is optional.
-2. **Bail if no `fileLoader`** — without a callback, imports become no-ops.
-3. **Cycle check** — `_importedPaths.Add(path)` returns `false` if the path has been seen.
-4. **Recursive parse** — new `StyleParser` over the imported source, **sharing** the `_importedPaths` set so transitive imports are also tracked.
-5. **Merge** the result into the current `sheetHolder`.
+2. **Read the optional alias** — `as name`, between the path and the `;`.
+3. **Bail if no `fileLoader`** — without a callback, imports become no-ops.
+4. **Parse once per path** — a cache miss registers an empty holder, *then* recurses into it.
+5. **Merge blocks at most once** into this sheet.
+6. **Bind variables** — into the namespace if aliased, otherwise into the global variable scope.
+
+## The parse cache
+
+```csharp
+private readonly Dictionary<string, StyleSheetHolder> _parsedImports;  // shared with children
+private readonly HashSet<string> _mergedBlocks = [];                   // per file
+private readonly HashSet<string> _mergedVariables = [];                // per file
+```
+
+This replaced the single shared `_importedPaths` set, which conflated two jobs — breaking cycles and merging each file once — and so couldn't express "I already merged this file, but this second directive still needs to bind an alias to it":
+
+```css
+import "theme.snx.ss";
+import "theme.snx.ss" as theme;   // used to bind an empty alias
+```
+
+Now the two jobs are separate:
+
+- **`_parsedImports`** is **shared** down the whole parse tree. It's what makes each file parse once and what breaks cycles. Keyed on the literal path string (see [Path identity](#path-identity)).
+- **`_mergedBlocks` / `_mergedVariables`** are **per parser**, i.e. per file. Importing a path twice into one sheet merges it once, which is what preserves the override ordering described below. They must *not* be shared — a nested re-entrant parse would otherwise consume the parent's guard and the parent would silently skip its own merge.
+
+Two separate guards, rather than one, so that an aliased import followed by a plain import of the same path still brings that file's variables into the global scope.
 
 ### `if (fileLoader == null) return;`
 
@@ -75,20 +129,16 @@ So in practice, imports work when the stylesheet is loaded via the markup pipeli
 ## Cycle protection
 
 ```csharp
-private readonly HashSet<string> _importedPaths = importedPaths ?? [];
-...
-if (!_importedPaths.Add(path)) return;
+imported = new StyleSheetHolder();
+_parsedImports[path] = imported;        // registered BEFORE the recursive parse
+new StyleParser(fileLoader(path), fileLoader, _parsedImports).ParseSheet(imported);
 ```
 
-The `_importedPaths` set is **shared across recursive parsers** via the constructor's third argument:
+The cache entry is inserted **before** recursing, so a file that imports its way back to itself finds an entry and never re-parses. `ParseSheet` takes an optional target holder precisely so the entry can be created up front.
 
-```csharp
-var importedParser = new StyleParser(importedDsl, fileLoader, _importedPaths);
-```
+So if `a.snx.ss` imports `b.snx.ss` which imports `a.snx.ss`, the inner `import "a.snx.ss"` finds `a`'s (still partially filled) holder and merges that instead of recursing. No infinite recursion.
 
-So if `a.snx.ss` imports `b.snx.ss` which imports `a.snx.ss`, the second `import "a.snx.ss"` returns immediately — no infinite recursion.
-
-The first parser starts with an empty set (defaulted via `importedPaths ?? []`). The set grows as each unique path is processed.
+The first parser starts with an empty cache (defaulted via `parsedImports ?? new()`), which grows as each unique path is parsed.
 
 ### Path identity
 
@@ -99,13 +149,16 @@ The `fileLoader` callback in [[../Markup/Phases/Parsing Style|Parsing Style]] re
 ## `StyleSheetHolder.Merge`
 
 ```csharp
-public void Merge(StyleSheetHolder other)
+public void Merge(StyleSheetHolder other, bool includeVariables = true)
 {
     MergeDictionary(Animations, other.Animations);
     MergeDictionary(Components, other.Components);
     MergeDictionary(Classes, other.Classes);
     MergeDictionary(IDTags, other.IDTags);
     foreach (var name in other.FullOverrides) FullOverrides.Add(name);
+    if (includeVariables)
+        foreach (var (name, value) in other.Variables)
+            Variables[name] = value;
 }
 
 private static void MergeDictionary(Dictionary<string, Dictionary<string, IStyleValue>> target,
@@ -124,6 +177,8 @@ Two-level merge:
 
 1. **Top-level entries** (animation/component/class/id names) are unioned.
 2. **Properties within an entry** are merged with **last-write-wins**.
+
+`Variables` merges flat, same last-write-wins rule, and is skipped when the import is aliased. `Namespaces` is **never** merged — an alias belongs to the file that declared it. See [[Variables|Variables]].
 
 So if `default.snx.ss` defines:
 
@@ -205,19 +260,17 @@ component bar { background = "#00ff00"; }
 ```
 
 Loading `a.snx.ss`:
-1. Parser starts, `_importedPaths = {}`.
-2. Sees `import "b.snx.ss"`. Adds `"b.snx.ss"` to `_importedPaths` → `{"b.snx.ss"}`.
-3. Recursively parses `b.snx.ss` with the **same** `_importedPaths`.
-4. In `b.snx.ss`, sees `import "a.snx.ss"`. Tries to add `"a.snx.ss"` → already... no wait, it's not there yet. So it **does** get added.
-5. Recursively parses `a.snx.ss` again.
-6. In second `a.snx.ss` parse, sees `import "b.snx.ss"`. Tries to add `"b.snx.ss"` → already in set, returns immediately.
-7. The second `a.snx.ss` parse continues from after the import → defines `foo`. Returns. Merged into the parent (which is `b.snx.ss`'s parse).
-8. `b.snx.ss` continues, defines `bar`. Returns. Merged into the original.
-9. Original `a.snx.ss` parse continues → defines `foo` **again**. Property-level merge over what was already there.
+1. Root parser starts on `a.snx.ss`'s text, `_parsedImports = {}`. Note the **root file has no import path**, so it isn't in the cache.
+2. Sees `import "b.snx.ss"`. Cache miss → registers an empty holder for `"b.snx.ss"`, then parses `b.snx.ss` into it.
+3. In `b.snx.ss`, sees `import "a.snx.ss"`. Cache miss (the root file was never registered under a path) → registers a holder for `"a.snx.ss"` and parses that text a second time.
+4. In this second `a.snx.ss` parse, `import "b.snx.ss"` **hits the cache** — it gets `b`'s holder, which is still empty at this point, and merges nothing. Recursion stops here.
+5. The second `a.snx.ss` parse continues → defines `foo` into `a`'s cached holder.
+6. Back in `b.snx.ss`: merges `a`'s holder (so `b` now has `foo`), then defines `bar`.
+7. Back in the root: merges `b`'s holder → gets both `foo` and `bar`. Then defines `foo` again, property-merged over what's there.
 
 End result: `Components` contains both `foo` and `bar`. `foo` is defined twice (once from the recursive re-parse, once from the original file), but property-level merge means it ends up the same.
 
-The cycle is broken — but the recursive re-entry isn't ideal. Best practice: don't write circular imports.
+The cycle is broken — but the recursive re-entry isn't ideal, and a file caught in a cycle can be merged while only partially parsed. Best practice: don't write circular imports.
 
 ## Threading
 
@@ -269,11 +322,13 @@ The loader is invoked synchronously per import — no async support. If the impo
 
 - No conditional imports (`@import "..." if condition;`). All imports are unconditional.
 - No relative-path resolution at the parser level — all paths are taken at face value and handed to the loader. The loader (or `AssetProvider`) handles relative resolution.
-- No partial imports (`import { button } from "..."`) — always whole-file.
+- No partial imports (`import { button } from "..."`) — always whole-file. `as` scopes variables; it doesn't select what gets imported.
 - No URL imports — paths must be loader-resolvable strings.
+- Aliases don't nest — `$outer.inner.value` isn't a thing, and an alias isn't re-exported to files that import the file declaring it.
 
 ## Related
 
+- [[Variables|Variables]] — what `as` actually scopes.
 - [[Blocks|Blocks]] — `@component` full-override interacts with imports.
 - [[Style DSL|Style DSL]] — the index.
 - [[../Markup/Phases/Parsing Style|Parsing Style]] — where the markup pipeline supplies the file loader.

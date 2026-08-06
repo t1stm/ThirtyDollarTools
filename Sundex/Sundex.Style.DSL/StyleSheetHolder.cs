@@ -10,13 +10,27 @@ public class StyleSheetHolder
     public Dictionary<string, Dictionary<string, IStyleValue>> IDTags { get; } = new();
     public HashSet<string> FullOverrides { get; } = [];
 
-    public void Merge(StyleSheetHolder other)
+    /// <summary>
+    ///     Constants declared with <c>var</c>, plus the ones merged in from unaliased imports.
+    /// </summary>
+    public Dictionary<string, IStyleValue> Variables { get; } = new();
+
+    /// <summary>
+    ///     Variables of aliased imports (<c>import "..." as name;</c>), keyed by alias.
+    ///     Aliases belong to the file that declared them and are never merged.
+    /// </summary>
+    public Dictionary<string, Dictionary<string, IStyleValue>> Namespaces { get; } = new();
+
+    public void Merge(StyleSheetHolder other, bool includeVariables = true)
     {
         MergeDictionary(Animations, other.Animations);
         MergeDictionary(Components, other.Components);
         MergeDictionary(Classes, other.Classes);
         MergeDictionary(IDTags, other.IDTags);
         foreach (var name in other.FullOverrides) FullOverrides.Add(name);
+        if (includeVariables)
+            foreach (var (name, value) in other.Variables)
+                Variables[name] = value;
     }
 
     private static void MergeDictionary(Dictionary<string, Dictionary<string, IStyleValue>> target,

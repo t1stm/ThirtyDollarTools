@@ -8,11 +8,12 @@ The lexical layer of the [[Style DSL|Style DSL]] — characters, identifiers, nu
 
 | Construct | Example | Notes |
 |---|---|---|
-| Identifier | `font-size`, `border-radius`, `button1` | Letters, digits, `-`. No leading digit. |
+| Identifier | `font-size`, `border-radius`, `text_color` | Letters, digits, `-`, `_`. No leading digit. |
 | Number | `14`, `14px`, `0.5`, `90deg`, `100%`, `-3` | Optional unit suffix. |
 | String | `"hello"`, `"#ff0000"` | Double-quoted only. Hex strings are special-cased. |
 | Hex color | `#ff0000`, `#ff0000aa` | 6 or 8 hex digits. |
 | Keyword | `!gradient`, `!override`, `!keyframes`, `!stops`, `!direction` | Prefixed with `!`. |
+| Variable reference | `$text_color`, `$theme.accent` | Prefixed with `$`. See [[Variables\|Variables]]. |
 | Vector | `vec2(10, 20)`, `vec3(1, 0, 0)`, `vec4(...)` | Parens and commas. |
 | Block | `{ key = value; }` | Properties separated by `;` or `,`. |
 | Array | `[ value1, value2 ]` | Comma-separated. |
@@ -52,12 +53,14 @@ A primary-constructor class with three parameters:
 ```csharp
 private string ReadIdentifier() {
     var start = _pos;
-    while (!IsAtEnd() && (char.IsLetterOrDigit(Peek()) || Peek() == '-')) Advance();
+    while (!IsAtEnd() && (char.IsLetterOrDigit(Peek()) || Peek() == '-' || Peek() == '_')) Advance();
     return dsl[start.._pos];
 }
 ```
 
-Letters, digits, and hyphens. **No leading character restriction enforced** — practically, identifiers start with a letter because the parser uses identifier-reading only after a known starting character. Hyphens are part of the identifier, which is why `font-size`, `border-radius`, `timing-function` work without quotes.
+Letters, digits, hyphens, and underscores. **No leading character restriction enforced** — practically, identifiers start with a letter because the parser uses identifier-reading only after a known starting character. Hyphens are part of the identifier, which is why `font-size`, `border-radius`, `timing-function` work without quotes.
+
+Underscores are legal **everywhere** an identifier is — property names, block names, variable names. The DSL's own convention is hyphens for properties (`font-size`); underscores exist mostly because they read better in variable names (`$text_color`).
 
 The trade-off: `font-size = 14 - 2;` would parse as identifier `font-size`, `=`, identifier `14` (number), identifier `-`... actually it wouldn't — numbers consume `-` as a sign prefix only at the start. There's no arithmetic in the DSL, so the ambiguity never arises.
 
@@ -230,16 +233,16 @@ private bool Match(ReadOnlySpan<char> s) {
 
     // Ensure word boundary
     if (_pos + s.Length < dsl.Length &&
-        (char.IsLetterOrDigit(dsl[_pos + s.Length]) || dsl[_pos + s.Length] == '-')) return false;
+        (char.IsLetterOrDigit(dsl[_pos + s.Length]) || dsl[_pos + s.Length] is '-' or '_')) return false;
 
     _pos += s.Length;
     return true;
 }
 ```
 
-Used for matching keyword tokens like `"animation"`, `"component"`, `"class"`, `"id"`, `"import"`, `"state"`. The word-boundary check prevents `"componentX"` from matching as `"component"` followed by a leftover `X`.
+Used for matching keyword tokens like `"animation"`, `"component"`, `"class"`, `"id"`, `"import"`, `"var"`, `"as"`, `"state"`. The word-boundary check prevents `"componentX"` from matching as `"component"` followed by a leftover `X`, and `var_thing` from lexing as `var` + `_thing`.
 
-The boundary character set is `letter | digit | -` — same as identifier characters.
+The boundary character set is `letter | digit | - | _` — same as identifier characters.
 
 ## Span-based reads
 
@@ -252,7 +255,7 @@ private Exception CreateException(string message) {
     const int linesBefore = 5;
     const int linesAfter = 5;
 
-    var errorPosition = _pos;
+    var errorPosition = Math.Min(_pos, dsl.Length);   // _pos may sit one past the end
     var text = dsl.AsSpan();
     ...
     var slice = text[startI..endI];
@@ -287,6 +290,8 @@ component button ;
 
 Far better than a bare "syntax error at column 17."
 
+The two context scans clamp at the ends of the source and count newlines independently. Earlier they shared one counter and could walk past index `0`, so a stylesheet shorter than five lines threw `IndexOutOfRangeException` **instead of** the real parse error, and trailing context was never shown.
+
 ## Position tracking
 
 `_pos` is a single int — character offset into the source. There's no line/column tracking. The error reporter computes context by counting newlines outward from `_pos`, which is fine for showing context but means the error message doesn't include "line 14, column 5"-style coordinates.
@@ -297,7 +302,7 @@ This is a deliberate simplification — line/column tracking would require eithe
 
 ```
 ParseSheet
-    ├── Match("animation"|"component"|"class"|"id"|"import")
+    ├── Match("animation"|"component"|"class"|"id"|"import"|"var")
     │   ├── ParseBlock                      ← for animation/component/class/id
     │   │   ├── ReadIdentifier              ← block name
     │   │   ├── Consume('{')
@@ -307,9 +312,14 @@ ParseSheet
     │   │   │   ├── ParseValue              ← see below
     │   │   │   └── (optional) ';' or ','
     │   │   └── Consume('}')
-    │   └── ParseImport                     ← for import
-    │       ├── ReadString                  ← path
-    │       └── (recursive new StyleParser if fileLoader provided)
+    │   ├── ParseImport                     ← for import
+    │   │   ├── ReadString                  ← path
+    │   │   ├── Match("as") → ReadIdentifier ← optional alias
+    │   │   └── (recursive new StyleParser if fileLoader provided)
+    │   └── ParseVariable                   ← for var
+    │       ├── ReadIdentifier              ← variable name
+    │       ├── Consume('=')
+    │       └── ParseValue
     └── '@' prefix → ParseBlock with isOverride=true
 ```
 
@@ -319,6 +329,7 @@ ParseSheet
 ParseValue
     ├── '"'         → ReadString → ColorValue if starts '#', else StringValue
     ├── digit | '-' → ParseNumber → NumberValue
+    ├── '$'         → ParseVariableReference → the variable's stored IStyleValue
     ├── '#'         → ReadHexColor → ColorValue
     ├── '!'         → ParseKeyword → OverrideValue|GradientValue|KeyframesValue|StopsValue|DirectionValue|KeywordValue
     ├── '{'         → ParseNestedBlock → BlockValue
@@ -332,6 +343,7 @@ The bare-identifier-as-string fallback is what makes `direction = horizontal;` w
 ## Related
 
 - [[Blocks|Blocks]] — what `ParseBlock` produces.
+- [[Variables|Variables]] — `var` declarations and `$` references.
 - [[Style Types|Style Types]] — what `ParseValue` produces.
 - [[Animations|Animations]] — the runtime side of `!keyframes`.
 - [[Import|Import]] — `ParseImport` and the recursion.
