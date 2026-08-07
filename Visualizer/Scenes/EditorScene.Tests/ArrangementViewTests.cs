@@ -1,7 +1,7 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
+using Sundex.Components.Labels;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
@@ -535,8 +535,10 @@ public class ArrangementViewTests
         state.PlaceTrack(track, 0, 0);
         view.Layout();
 
-        var block = view.Blocks[0];
-        var clip = ((ColoredPlane)block.Background!).ClipRect;
+        // The name is the piece that regressed (the clip's own fill is batched with the
+        // grid lines now, under the ruler by layer rather than by clip rect). The names
+        // are a batch of their own, queued past every child - hence still a clip rect.
+        var clip = view.ClipLabels.ClipRect;
         Assert.NotNull(clip);
         Assert.Equal((int)ArrangementView.RulerHeight, clip.Value.Y); // ruler band excluded
         Assert.Equal(400, clip.Value.W); // and never past the view's own bottom

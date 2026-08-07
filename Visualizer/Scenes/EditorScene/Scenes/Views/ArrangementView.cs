@@ -3,7 +3,6 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
-using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Components;
@@ -32,9 +31,24 @@ public sealed class ArrangementView : Panel
     private const int BarLinePool = 128;
     public const int LaneLinePool = 128;
 
-    private readonly List<Label> _barLabels = [];
+    // Slot ranges within _lineBatch: the lane dividers, the bar lines, then the clips
+    // over both of them. Ascending slot order is paint order. The clip range is last
+    // because it has no bound - a project can hold any number of placements - and only a
+    // batch's last range grows; the ranges before it are fixed pools.
+    private const int LaneLineSlot = 0;
+    private const int BarLineSlot = LaneLineSlot + LaneLinePool;
+    private const int ClipBlockSlot = BarLineSlot + BarLinePool;
+    private const int LineBatchReserve = ClipBlockSlot + 64;
+
+    // A clip's name, inset into its box. These were `class clip-block`'s padding and
+    // `class clip-label`'s font size, back when the name was a Label child of the block.
+    private const float ClipPadding = 6f;
+    private const float ClipFontSize = 13f;
+
+    private readonly LabelBatch _barLabels;
 
     private readonly List<ClipBlock> _blocks = [];
+    private readonly LabelBatch _clipLabels;
     private readonly LineBatch _lineBatch = new();
     private readonly Panel _marqueeRect;
 
@@ -42,6 +56,7 @@ public sealed class ArrangementView : Panel
     private readonly Panel _playhead;
     private readonly Panel _rulerBackground;
     private readonly EditorState _state;
+    private int _clipSlotsUsed;
     private ClipBlock? _dragging;
     private Vector4i? _inheritedClip;
     private (double Quarters, double Channel)? _marqueeAnchor;
@@ -71,20 +86,23 @@ public sealed class ArrangementView : Panel
             PlaceAtPointer();
         };
 
-        // Grid lines render as one instanced draw call (see LineBatch) queued in
-        // DrawSelf, below Children in the same depth layer, so clips still paint above.
-        _lineBatch.Count = LaneLinePool + BarLinePool;
+        // Grid lines and clip fills render as one instanced draw call (see LineBatch)
+        // queued in DrawSelf, below Children in the same depth layer - so the ruler, the
+        // playhead and the marquee, which are children, still paint above the clips.
+        _lineBatch.Count = LineBatchReserve;
 
         // The beat ruler - same idea as the note editor's: a strip along the top
         // labeling every bar, highlighting whichever bar the playhead is in.
         _rulerBackground = new GhostPanel(context) { Classes = ["grid-strip"] };
         AddChild(_rulerBackground);
-        for (var i = 0; i < BarLinePool; i++)
-        {
-            var label = new Label(context, "1") { Classes = ["grid-label"] };
-            _barLabels.Add(label);
-            AddChild(label);
-        }
+        // One text buffer and one draw call for the whole ruler (see LabelBatch), rather
+        // than a Label - and a draw call - per pool slot whether or not it showed a bar.
+        _barLabels = new LabelBatch(context, BarLinePool);
+
+        // The clips' track names, likewise: one call for the lot rather than one per clip.
+        // Their own batch because they are clipped to the lanes, not to the whole view -
+        // a name must never paint over the ruler.
+        _clipLabels = new LabelBatch(context, 64, ClipFontSize, 24);
 
         _playhead = new GhostPanel(context)
         {
@@ -94,8 +112,8 @@ public sealed class ArrangementView : Panel
         };
         AddChild(_playhead);
 
-        // Never takes input (GhostPanel), fill only, no border; re-added last on every
-        // Refresh (with the playhead) so it renders above the clip blocks.
+        // Never takes input (GhostPanel), fill only, no border; a child, so it renders
+        // above the batched clips by layer.
         _marqueeRect = new GhostPanel(context)
         {
             Width = 0,
@@ -123,6 +141,18 @@ public sealed class ArrangementView : Panel
     [NamedSetting("playhead-color")]
     public Vector4 PlayheadColor { get; set; }
 
+    /// <summary>A clip's fill, and the shade it takes while it is part of the selection.</summary>
+    [NamedSetting("clip-color")]
+    public Vector4 ClipColor { get; set; }
+
+    /// <inheritdoc cref="ClipColor" />
+    [NamedSetting("clip-selected-color")]
+    public Vector4 ClipSelectedColor { get; set; }
+
+    /// <summary>The track name written across a clip.</summary>
+    [NamedSetting("clip-label-color")]
+    public Vector4 ClipLabelColor { get; set; }
+
     /// <summary>
     ///     Playhead position on the arrangement timeline; anything negative hides it.
     ///     Driven every frame from playback, so it lays out its own line directly.
@@ -143,6 +173,18 @@ public sealed class ArrangementView : Panel
 
     // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
     internal IReadOnlyList<ClipBlock> Blocks => _blocks;
+    internal IReadOnlyList<LabelBatch.Slot> BarLabels => _barLabels.Slots;
+
+    /// <summary>The fill a clip currently paints with - it lives in the batch, not on the element.</summary>
+    internal Vector4 FillOf(ClipBlock block)
+    {
+        return _lineBatch.ColorOf(block.BatchSlot);
+    }
+
+    internal LabelBatch ClipLabels => _clipLabels;
+
+    /// <summary>Past every child, where this view's captions are queued.</summary>
+    private int LabelLayer => Index + 2;
 
     /// <summary>
     ///     Vertical lane scroll, shared with the lane header so its M/S toggles track
@@ -208,29 +250,18 @@ public sealed class ArrangementView : Panel
         _blocks.Clear();
         foreach (var placement in _state.Project.Placements)
         {
-            var block = new ClipBlock(Context, this, placement);
+            var block = new ClipBlock(Context, this, placement)
+            {
+                BatchSlot = ClipBlockSlot + _blocks.Count,
+                LabelSlot = _blocks.Count
+            };
             _blocks.Add(block);
             AddChild(block);
         }
 
-        // Keep the ruler (background, then its bar labels on top of that) above the
-        // clips: a clip scrolled up past the top must be masked by the ruler, not paint
-        // over it. Same "rely on paint order, not a clip rect" trick TrackEditorView uses
-        // for its strip/ruler over notes bleeding past the grid's top edge.
-        RemoveChild(_rulerBackground);
-        AddChild(_rulerBackground);
-        foreach (var label in _barLabels)
-        {
-            RemoveChild(label);
-            AddChild(label);
-        }
-
-        // Keep the playhead and marquee rect last so they render above the clips.
-        RemoveChild(_playhead);
-        AddChild(_playhead);
-        RemoveChild(_marqueeRect);
-        AddChild(_marqueeRect);
-
+        // No sibling re-ordering here any more: a clip paints from a batch slot below
+        // every child, so the ruler (which must mask a clip scrolled up into it), the
+        // playhead and the marquee are above it by layer, not by add order.
         RefreshSelection();
         InvalidateLayout();
     }
@@ -238,7 +269,9 @@ public sealed class ArrangementView : Panel
     public void RefreshSelection()
     {
         foreach (var block in _blocks)
-            block.SetSelected(_state.SelectedPlacements.Contains(block.Placement));
+            block.Selected = _state.SelectedPlacements.Contains(block.Placement);
+
+        InvalidateLayout(); // the selected shade is written with the fill, in DoLayout
     }
 
     protected override void DoLayout()
@@ -266,7 +299,7 @@ public sealed class ArrangementView : Panel
         {
             var y = RulerHeight + (i + 1) * LaneHeight - scrollY;
             var visible = i < lanes && y >= RulerHeight && y <= Computed.Height;
-            _lineBatch.Set(i, absX, absY + y, visible ? width : 0, 1, LineColor);
+            _lineBatch.Set(LaneLineSlot + i, absX, absY + y, visible ? width : 0, 1, LineColor);
         }
 
         var playheadX = (float)(PlayheadQuarters * PixelsPerQuarter) - _nav.ScrollX;
@@ -278,36 +311,55 @@ public sealed class ArrangementView : Panel
         {
             var x = (firstBar + i) * barWidth - _nav.ScrollX;
             var visible = x >= 0 && x < width;
-            _lineBatch.Set(LaneLinePool + i, absX + x, absY + RulerHeight, visible ? 1 : 0,
+            _lineBatch.Set(BarLineSlot + i, absX + x, absY + RulerHeight, visible ? 1 : 0,
                 visibleLanesBottom, LineColor);
 
-            var label = _barLabels[i];
             if (!visible)
             {
-                label.X = -1000f;
+                _barLabels.Hide(i);
                 continue;
             }
 
             var isCurrentBar = playheadVisible && playheadX >= x && playheadX < x + barWidth;
-            label.Color = isCurrentBar ? PlayheadColor : LabelColor;
-            label.SetTextContents($"{firstBar + i + 1}");
-            label.X = x + 3;
-            label.Y = (RulerHeight - 11f) / 2;
+            _barLabels.Set(i, $"{firstBar + i + 1}", absX + x + 3,
+                absY + (RulerHeight - LabelBatch.FontSize) / 2,
+                isCurrentBar ? PlayheadColor : LabelColor);
         }
 
         foreach (var block in _blocks)
         {
             var placement = block.Placement;
             var quarters = placement.Track.DurationMinutes() * _state.Project.RootTiming.BPM;
-            block.X = (float)(placement.StartQuarterNotes * PixelsPerQuarter) - _nav.ScrollX;
+            var x = (float)(placement.StartQuarterNotes * PixelsPerQuarter) - _nav.ScrollX;
             // No top clamp: a clip scrolled up past the ruler bleeds to a negative Y same
-            // as a note bleeds past TrackEditorView's grid top, masked by the ruler's paint
-            // order (see Refresh) rather than clamped - clamping it here pinned every clip
-            // passing through the ruler band to the same Y, stacking their labels together.
-            block.Y = RulerHeight + placement.Channel * LaneHeight + 2 - scrollY;
-            block.Width = Math.Max(8, (float)(quarters * PixelsPerQuarter));
+            // as a note bleeds past TrackEditorView's grid top, masked by the ruler (which
+            // renders a layer above this batch) rather than clamped - clamping it here
+            // pinned every clip passing through the ruler band to the same Y, stacking
+            // their labels together.
+            var y = RulerHeight + placement.Channel * LaneHeight + 2 - scrollY;
+            var blockWidth = Math.Max(8, (float)(quarters * PixelsPerQuarter));
+
+            // The element carries only the hit box; the batch slots carry the fill and
+            // the name (see TrackEditorView's note blocks for the same split).
+            block.X = x;
+            block.Y = y;
+            block.Width = blockWidth;
             block.Height = LaneHeight - 4;
+            _lineBatch.Set(block.BatchSlot, absX + x, absY + y, blockWidth, LaneHeight - 4,
+                block.Selected ? ClipSelectedColor : ClipColor);
+            _clipLabels.Set(block.LabelSlot, placement.Track.Name, absX + x + ClipPadding,
+                absY + y + ClipPadding, ClipLabelColor);
         }
+
+        // Slots left over from a longer clip list - both batches' tails grow with the
+        // project and are never shrunk, so releasing them is what clears removed clips.
+        for (var i = _blocks.Count; i < _clipSlotsUsed; i++)
+        {
+            _lineBatch.Hide(ClipBlockSlot + i);
+            _clipLabels.Hide(i);
+        }
+
+        _clipSlotsUsed = _blocks.Count;
 
         _playhead.Width = playheadVisible ? 2 : 0;
         _playhead.Height = visibleLanesBottom;
@@ -508,22 +560,32 @@ public sealed class ArrangementView : Panel
 
         foreach (var child in Children) child.ApplyClip(lanes);
         _rulerBackground.ApplyClip(own);
-        foreach (var label in _barLabels) label.ApplyClip(own);
 
         Background?.ClipRect = clip;
         _lineBatch.ClipRect = lanes;
+        _barLabels.ClipRect = own;
+        // A clip's name is confined to the lane grid, same as the clip itself: this is
+        // what keeps a clip scrolled up into the ruler band from painting its name over
+        // the bar numbers (it used to be a Label a layer deeper than the ruler).
+        _clipLabels.ClipRect = lanes;
     }
 
     protected override void DrawSelf(UIContext ctx)
     {
         base.DrawSelf(ctx);
         ctx.QueueRender(_lineBatch, Index);
+        // Past every child, so the captions paint over the ruler background and the clip
+        // fills the way they did as children re-added after them.
+        ctx.QueueRender(_barLabels, LabelLayer);
+        ctx.QueueRender(_clipLabels, LabelLayer);
     }
 
     public override void StopRendering()
     {
         base.StopRendering();
         Context.DequeueRender(_lineBatch, Index);
+        Context.DequeueRender(_barLabels, LabelLayer);
+        Context.DequeueRender(_clipLabels, LabelLayer);
     }
 
     public override void Update(UIContext uiContext)
@@ -579,7 +641,12 @@ public sealed class ArrangementView : Panel
         Remove
     }
 
-    /// <summary>A purely visual overlay: never takes pointer input.</summary>
+    /// <summary>
+    ///     One clip's hit box. Its fill and its track name are slots in the view's batches
+    ///     (see <see cref="DoLayout" />), so a project's clips cost no draw calls of their
+    ///     own - which is also why <see cref="Selected" /> is a flag the layout reads rather
+    ///     than a style class: there is no styled element left to swap a background on.
+    /// </summary>
     internal class ClipBlock : Panel
     {
         private readonly ArrangementView _view;
@@ -589,15 +656,22 @@ public sealed class ArrangementView : Panel
         {
             _view = view;
             Placement = placement;
-            Classes = ["clip-block"];
             Cursor = CursorType.Pointer;
-            Children = [new Label(context, placement.Track.Name) { Classes = ["clip-label"] }];
             // Swallow the click so a release on a clip never bubbles into the view's
             // place-at-pointer handler; selection already happened on press.
             OnClick = _ => { };
         }
 
         public TrackPlacement Placement { get; }
+
+        /// <summary>This clip's slot in the view's line batch - its position in the clip list.</summary>
+        public required int BatchSlot { get; init; }
+
+        /// <summary>Its slot in the clip-name batch, which has a range of its own.</summary>
+        public required int LabelSlot { get; init; }
+
+        /// <summary>Whether this clip is part of the selection - picks its fill in the layout.</summary>
+        public bool Selected { get; set; }
 
         public override bool HandlePress(float x, float y)
         {
@@ -643,11 +717,6 @@ public sealed class ArrangementView : Panel
             if (_view._dragging == this) return false;
             _view._state.RemovePlacement(Placement);
             return true;
-        }
-
-        public void SetSelected(bool selected)
-        {
-            SetClass("clip-block-selected", selected);
         }
     }
 }

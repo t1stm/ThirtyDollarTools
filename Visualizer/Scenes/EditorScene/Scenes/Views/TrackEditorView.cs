@@ -1,10 +1,8 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
-using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Components;
@@ -43,16 +41,34 @@ public sealed class TrackEditorView : Panel
     private const int NoteBlockPool = 2048;
     private const int StripBlockPool = 512; // changed from 256 for Aleph-0 demo
     private const int BoundaryLinePool = 512; // changed from 256 for Aleph-0 demo
-    private const int AutomationMarkPool = 768; // ≤3 marks per generated automation event
+    private const int AutomationMarkReserve = 768; // ≤3 marks per generated automation event
 
-    // Slot ranges within _lineBatch: the cut row's background first (so every later
-    // slot paints over it - see the pinned cut row's paint-order comment below), then
-    // row lines, step lines, then boundary lines.
+    // Everything flat-colored on this grid is batched - the line work, the bands, and the
+    // note/strip pools' fills - and ascending slot order IS paint order within a batch.
+    // That order is why there are two: the automation paths have no bound (a note can
+    // generate any number of events), and only a batch's LAST range can grow, but they
+    // must still paint under the notes. So the grid batch holds everything up to and
+    // including automation, and the block batch picks up from the notes.
+    //
+    // Grid batch: the cut row's band first (every later slot paints over it), the line
+    // work, the zero-value band over that, then the automation paths.
     private const int CutRowBgSlot = 0;
     private const int RowLineSlot = CutRowBgSlot + 1;
     private const int StepLineSlot = RowLineSlot + Rows + 1;
     private const int BoundaryLineSlot = StepLineSlot + StepLinePool;
-    private const int LineBatchTotal = BoundaryLineSlot + BoundaryLinePool;
+    private const int ZeroRowSlot = BoundaryLineSlot + BoundaryLinePool;
+    private const int AutomationMarkSlot = ZeroRowSlot + 1;
+    private const int GridBatchReserve = AutomationMarkSlot + AutomationMarkReserve;
+
+    // Block batch: the notes, then the strip/ruler bands over anything a note bleeds
+    // above the grid into, then the segment strips on top of those. The pieces that must
+    // paint over ALL of it - the gutter, the cut rule, the playheads, the marquee - stay
+    // ordinary children, which render a layer above both batches.
+    private const int NoteBlockSlot = 0;
+    private const int StripBgSlot = NoteBlockSlot + NoteBlockPool;
+    private const int RulerBgSlot = StripBgSlot + 1;
+    private const int StripBlockSlot = RulerBgSlot + 1;
+    private const int BlockBatchTotal = StripBlockSlot + StripBlockPool;
 
     // ponytail: worst case (StepsPerBeat=1 at 4px/step min zoom) would need ~750 like
     // StepLinePool, but MinBeatLabelSpacingPx bounds real usage to ~110 labels for a
@@ -60,12 +76,18 @@ public sealed class TrackEditorView : Panel
     private const int BeatLabelPool = 128;
     private const float MinBeatLabelSpacingPx = 28f;
 
-    internal readonly List<Label> BeatLabels = [];
-    internal readonly List<Label> GutterLabels = [];
+    // Slot ranges within _labelBatch, in the same spirit as the line batch's above:
+    // the beat ruler's numbers, the value gutter's, then the pinned cut row's caption.
+    private const int BeatLabelSlot = 0;
+    private const int GutterLabelSlot = BeatLabelSlot + BeatLabelPool;
+    private const int CutLabelSlot = GutterLabelSlot + Rows;
+    private const int LabelBatchTotal = CutLabelSlot + 1;
 
     private readonly AutomationPath _automationPath;
-    private readonly Label _cutRowLabel;
+    private readonly LineBatch _blockBatch = new();
     private readonly Panel _cutRule;
+    private readonly string[] _gutterText = new string[Rows];
+    private readonly LabelBatch _labelBatch;
     private readonly TrackEditorGeometry _geometry = new();
     private readonly Panel _gutterBackground;
     private readonly LineBatch _lineBatch = new();
@@ -73,11 +95,8 @@ public sealed class TrackEditorView : Panel
     private readonly List<NoteBlock> _noteBlocks = [];
     private readonly List<float> _playheadXs = [];
     private readonly List<Panel> _playheads = [];
-    private readonly Panel _rulerBackground;
     internal readonly EditorState _state;
-    private readonly Panel _stripBackground;
     private readonly List<StripBlock> _stripBlocks = [];
-    private readonly Panel _zeroRow;
 
     internal NoteBlock? _dragging;
     private List<GroupDragEntry>? _groupDrag;
@@ -102,42 +121,33 @@ public sealed class TrackEditorView : Panel
         // without this rule's colors, so it must not depend on a usage site listing it.
         Classes = ["note-canvas"];
 
-        // Row/step/boundary lines render as one instanced draw call (see LineBatch)
-        // queued in DrawSelf, below Children in the same depth layer - same spot in
-        // paint order "grid furniture first" put them in before.
-        _lineBatch.Count = LineBatchTotal;
+        // The whole canvas - lines, bands, note and strip fills - renders as two instanced
+        // draw calls (see LineBatch), queued in DrawSelf below Children in the same depth
+        // layer; the slot ranges above carry the paint order that adding these as siblings
+        // in the right sequence used to.
+        _lineBatch.Count = GridBatchReserve;
+        _blockBatch.Count = BlockBatchTotal;
 
-        _zeroRow = NewGhost(context, "grid-zero-row");
-        AddChild(_zeroRow);
+        // Automation paths paint under the note blocks and never take input, so they are
+        // batch slots only - no elements at all, and no cap: they are the grid batch's
+        // last range, which grows.
+        _automationPath = new AutomationPath(_lineBatch, AutomationMarkSlot);
 
-        // Automation paths render under the note blocks and never take input.
-        _automationPath = new AutomationPath(context, this, AutomationMarkPool);
-
+        // The note and strip blocks stay elements, but only to be hit: each owns the
+        // batch slot its fill is written into (pool position = slot), so nothing has to
+        // track which note ended up where.
         for (var i = 0; i < NoteBlockPool; i++)
         {
-            var block = new NoteBlock(context, this);
+            var block = new NoteBlock(context, this) { BatchSlot = NoteBlockSlot + i };
             _noteBlocks.Add(block);
             AddChild(block);
         }
 
-        var strip = NewGhost(context, "grid-strip");
-        AddChild(strip);
-        _stripBackground = strip;
         for (var i = 0; i < StripBlockPool; i++)
         {
-            var block = new StripBlock(context, this);
+            var block = new StripBlock(context, this) { BatchSlot = StripBlockSlot + i };
             _stripBlocks.Add(block);
             AddChild(block);
-        }
-
-        var ruler = NewGhost(context, "grid-strip");
-        AddChild(ruler);
-        _rulerBackground = ruler;
-        for (var i = 0; i < BeatLabelPool; i++)
-        {
-            var label = new Label(context, "1") { Classes = ["grid-label"] };
-            BeatLabels.Add(label);
-            AddChild(label);
         }
 
         var gutter = new Panel(context)
@@ -147,25 +157,23 @@ public sealed class TrackEditorView : Panel
         };
         _gutterBackground = gutter;
         AddChild(gutter);
-        for (var value = MaxValue; value >= -MaxValue; value--)
+
+        // Every caption on this grid - ruler beats, gutter values, the cut row's - shares
+        // one text buffer and one draw call (see LabelBatch), rather than one Label (and
+        // one draw call) each, live at every zoom whether or not it had anything to say.
+        _labelBatch = new LabelBatch(context, LabelBatchTotal);
+        for (var i = 0; i < Rows; i++)
         {
-            var label = new Label(context, value switch
+            var value = MaxValue - i;
+            _gutterText[i] = value switch
             {
                 > 0 => $"+{value}",
                 < 0 => $"{value}",
                 _ => $" {value}"
-            })
-            {
-                Classes = ["grid-label"]
             };
-            GutterLabels.Add(label);
-            AddChild(label);
         }
 
-        _cutRowLabel = new Label(context, "!cut") { Classes = ["grid-label"] };
-        AddChild(_cutRowLabel);
-
-        // Added after the gutter and its label so the rule spans the full width,
+        // Added after the gutter so the rule spans the full width,
         // crossing the gutter column too, instead of being cut off by it.
         _cutRule = NewGhost(context, "grid-cut-rule");
         AddChild(_cutRule);
@@ -218,6 +226,14 @@ public sealed class TrackEditorView : Panel
     [NamedSetting("cut-row-color")]
     public Vector4 CutRowColor { get; set; }
 
+    /// <summary>The band behind value 0.</summary>
+    [NamedSetting("zero-row-color")]
+    public Vector4 ZeroRowColor { get; set; }
+
+    /// <summary>The bands the segment strip and the beat ruler sit on.</summary>
+    [NamedSetting("strip-color")]
+    public Vector4 StripColor { get; set; }
+
     /// <summary>Segment strips alternate between these two, so a boundary needs no line.</summary>
     [NamedSetting("strip-segment-a")]
     public Vector4 StripSegmentA { get; set; }
@@ -241,8 +257,19 @@ public sealed class TrackEditorView : Panel
     [NamedSetting("sound-palette")]
     public Vector4[] SoundPalette { get; set; } = [];
 
-    internal IReadOnlyList<Panel> AutomationMarks => _automationPath.Marks;
+    internal IReadOnlyList<Vector4> AutomationMarks => _automationPath.Marks;
     internal IReadOnlyList<NoteBlock> NoteBlocks => _noteBlocks;
+    internal IReadOnlyList<LabelBatch.Slot> BeatLabels => _labelBatch.Range(BeatLabelSlot, BeatLabelPool);
+    internal IReadOnlyList<LabelBatch.Slot> GutterLabels => _labelBatch.Range(GutterLabelSlot, Rows);
+
+    /// <summary>One layer past the children, where this view's captions are queued.</summary>
+    private int LabelLayer => Index + 2;
+
+    /// <summary>The fill a pooled block currently paints with - it lives in the batch, not on the element.</summary>
+    internal Vector4 FillOf(NoteBlock block)
+    {
+        return _blockBatch.ColorOf(block.BatchSlot);
+    }
 
     /// <summary>Horizontal zoom: pixels per grid step. Ctrl+wheel adjusts it (4–128).</summary>
     public float PixelsPerStep
@@ -329,16 +356,14 @@ public sealed class TrackEditorView : Panel
         var contentPx = (track?.Segments.Sum(s => s.StepCount) ?? 0) * pps;
         var gridWidth = Math.Clamp(contentPx - scrollX, 0, Math.Max(0, width - GutterWidth));
 
-        var zeroRowY = _geometry.ValueTop(0);
-        _zeroRow.X = GutterWidth;
-        _zeroRow.Y = zeroRowY;
-        _zeroRow.Width = gridWidth;
-        _zeroRow.Height = Math.Max(0, Math.Min(zeroRowY + rowHeight, gridBottom) - zeroRowY);
-
         var absX = Computed.AbsoluteX;
         var absY = Computed.AbsoluteY;
 
         _lineBatch.Set(CutRowBgSlot, absX, absY + cutRowTop, width, CutRowHeight, CutRowColor);
+
+        var zeroRowY = _geometry.ValueTop(0);
+        _lineBatch.Set(ZeroRowSlot, absX + GutterWidth, absY + zeroRowY, gridWidth,
+            Math.Max(0, Math.Min(zeroRowY + rowHeight, gridBottom) - zeroRowY), ZeroRowColor);
 
         for (var r = 0; r < Rows + 1; r++)
         {
@@ -381,15 +406,17 @@ public sealed class TrackEditorView : Panel
                 {
                     var block = _stripBlocks[stripBlock++];
                     block.Segment = segment;
-                    block.X = GutterWidth + segStart - scrollX;
+                    var x = GutterWidth + segStart - scrollX;
+                    block.X = x;
                     block.Y = 2;
                     block.Width = segWidth - 1;
                     block.Height = StripHeight - 4;
-                    ((ColoredPlane)block.Background!).Color = segment == _state.SelectedSegment
-                        ? StripSelected
-                        : i % 2 == 0
-                            ? StripSegmentA
-                            : StripSegmentB;
+                    _blockBatch.Set(block.BatchSlot, absX + x, absY + 2, segWidth - 1, StripHeight - 4,
+                        segment == _state.SelectedSegment
+                            ? StripSelected
+                            : i % 2 == 0
+                                ? StripSegmentA
+                                : StripSegmentB);
                 }
 
                 if (boundary < BoundaryLinePool && segStart >= visibleStart)
@@ -412,7 +439,7 @@ public sealed class TrackEditorView : Panel
                 // The beat ruler labels every beat boundary the step-line loop above just
                 // colored - MinBeatLabelSpacingPx thins them at low zoom so they never overlap.
                 var firstBeatLocal = firstLocal - firstLocal % segment.StepsPerBeat;
-                for (var s = firstBeatLocal; s <= lastLocal && beatLabel < BeatLabels.Count; s += segment.StepsPerBeat)
+                for (var s = firstBeatLocal; s <= lastLocal && beatLabel < BeatLabelPool; s += segment.StepsPerBeat)
                 {
                     var bx = GutterWidth + segStart + s * pps - scrollX;
                     if (bx - lastLabelX < MinBeatLabelSpacingPx) continue;
@@ -420,11 +447,10 @@ public sealed class TrackEditorView : Panel
 
                     var beatWidthPx = segment.StepsPerBeat * pps;
                     var isCurrent = _playheadXs.Exists(px => px >= bx && px < bx + beatWidthPx);
-                    var label = BeatLabels[beatLabel++];
-                    label.Color = isCurrent ? PlayheadColor : LabelColor;
-                    label.SetTextContents($"{segBeatStart + s / segment.StepsPerBeat + 1}");
-                    label.X = bx + 2;
-                    label.Y = StripHeight + (RulerHeight - 11f) / 2;
+                    _labelBatch.Set(BeatLabelSlot + beatLabel++,
+                        $"{segBeatStart + s / segment.StepsPerBeat + 1}",
+                        absX + bx + 2, absY + StripHeight + (RulerHeight - LabelBatch.FontSize) / 2,
+                        isCurrent ? PlayheadColor : LabelColor);
                 }
 
                 // Individual cuts routinely fire several sounds at once ("!cut@a|!cut@b"),
@@ -444,7 +470,7 @@ public sealed class TrackEditorView : Panel
                 foreach (var note in segment.Notes)
                 {
                     if (note.Automation != null && segStart + note.Step * pps <= visibleEnd)
-                        _automationPath.Draw(_geometry, track, segment, note, segStart,
+                        _automationPath.Draw(_geometry, (absX, absY), track, segment, note, segStart,
                             InstrumentColor(note.Instrument), ref autoMark);
                     if (_dragging?.Note == note) continue;
                     var x = segStart + note.Step * pps;
@@ -461,28 +487,30 @@ public sealed class TrackEditorView : Panel
             }
         }
 
+        // A released block gives up both its hit box and its fill slot.
         for (var i = noteBlock; i < _noteBlocks.Count; i++)
-            if (_noteBlocks[i] != _dragging)
-                Hide(_noteBlocks[i]);
+        {
+            if (_noteBlocks[i] == _dragging) continue;
+            Hide(_noteBlocks[i]);
+            _blockBatch.Hide(NoteBlockSlot + i);
+        }
+
         _automationPath.HideUnused(autoMark);
-        for (var i = stepLine; i < StepLinePool; i++)
-            _lineBatch.Set(StepLineSlot + i, 0, 0, 0, 0, StepLineColor);
-        for (var i = stripBlock; i < _stripBlocks.Count; i++) Hide(_stripBlocks[i]);
-        for (var i = boundary; i < BoundaryLinePool; i++)
-            _lineBatch.Set(BoundaryLineSlot + i, 0, 0, 0, 0, BoundaryColor);
-        // Labels don't gate their own draw on Width/Height, so releasing a slot means
-        // parking it outside the view's clip instead of zeroing size like Hide() does.
-        for (var i = beatLabel; i < BeatLabels.Count; i++) BeatLabels[i].X = -1000f;
+        for (var i = stepLine; i < StepLinePool; i++) _lineBatch.Hide(StepLineSlot + i);
+        for (var i = stripBlock; i < _stripBlocks.Count; i++)
+        {
+            Hide(_stripBlocks[i]);
+            _blockBatch.Hide(StripBlockSlot + i);
+        }
 
-        _stripBackground.X = 0;
-        _stripBackground.Y = 0;
-        _stripBackground.Width = width;
-        _stripBackground.Height = StripHeight;
+        for (var i = boundary; i < BoundaryLinePool; i++) _lineBatch.Hide(BoundaryLineSlot + i);
+        for (var i = beatLabel; i < BeatLabelPool; i++) _labelBatch.Hide(BeatLabelSlot + i);
 
-        _rulerBackground.X = 0;
-        _rulerBackground.Y = StripHeight;
-        _rulerBackground.Width = width;
-        _rulerBackground.Height = RulerHeight;
+        // The bands the strip and ruler sit on: batch slots after every note's, so a note
+        // scrolled above the grid is masked by them exactly as it was when they were
+        // children added before the note pool.
+        _blockBatch.Set(StripBgSlot, absX, absY, width, StripHeight, StripColor);
+        _blockBatch.Set(RulerBgSlot, absX, absY + StripHeight, width, RulerHeight, StripColor);
 
         _gutterBackground.X = 0;
         _gutterBackground.Y = 0;
@@ -494,21 +522,22 @@ public sealed class TrackEditorView : Panel
         // Striding on the value, not the index, keeps 0 labelled at every zoom.
         var labelStride = rowHeight >= 10f ? 1 : (int)MathF.Ceiling(12f / rowHeight);
 
-        for (var i = 0; i < GutterLabels.Count; i++)
+        for (var i = 0; i < Rows; i++)
         {
             var value = MaxValue - i;
-            var y = _geometry.ValueTop(value) + (rowHeight - 11f) / 2;
-            // Labels render above the strip background, so scrolled-out (and skipped)
-            // ones must be parked outside the view's clip instead of relying on paint order.
-            var skipped = value % labelStride != 0;
-            GutterLabels[i].X = skipped || y < GridTop || y + 11f > gridBottom ? -1000f : 8;
-            GutterLabels[i].Y = y;
+            var y = _geometry.ValueTop(value) + (rowHeight - LabelBatch.FontSize) / 2;
+            // A scrolled-out (or skipped) value releases its slot rather than relying on
+            // paint order: the gutter labels render above the strip background.
+            if (value % labelStride != 0 || y < GridTop || y + LabelBatch.FontSize > gridBottom)
+                _labelBatch.Hide(GutterLabelSlot + i);
+            else
+                _labelBatch.Set(GutterLabelSlot + i, _gutterText[i], absX + 8, absY + y, LabelColor);
         }
 
-        // Fixed position - always visible, never parked outside the clip like the
-        // scrollable gutter labels above.
-        _cutRowLabel.X = 8;
-        _cutRowLabel.Y = cutRowTop + (CutRowHeight - 11f) / 2;
+        // Fixed position - always visible, never released like the scrollable gutter
+        // labels above.
+        _labelBatch.Set(CutLabelSlot, "!cut", absX + 8,
+            absY + cutRowTop + (CutRowHeight - LabelBatch.FontSize) / 2, LabelColor);
 
         // Full-width rule separating the grid from the pinned cut row, crossing the
         // gutter column too (added after it in the constructor so it paints on top).
@@ -632,31 +661,36 @@ public sealed class TrackEditorView : Panel
     {
         block.Assign(segment, note);
         var stepX = GutterWidth + segStartPx + note.Step * PixelsPerStep - _geometry.ScrollX;
+        float x, y, blockWidth, blockHeight;
         if (note.IsCut)
         {
             // Fixed row - never scrolls, unlike every other row. Simultaneous cuts on
             // different instruments (cutSlotCount > 1) split the step evenly instead of
             // stacking exactly on top of each other.
             var slotWidth = PixelsPerStep / cutSlotCount;
-            block.X = stepX + cutSlot * slotWidth;
-            block.Y = _geometry.CutRowTop + 0.5f;
-            block.Width = Math.Max(3, slotWidth - 1);
-            block.Height = Math.Max(3, CutRowHeight - 1);
+            x = stepX + cutSlot * slotWidth;
+            y = _geometry.CutRowTop + 0.5f;
+            blockWidth = Math.Max(3, slotWidth - 1);
+            blockHeight = Math.Max(3, CutRowHeight - 1);
         }
         else
         {
-            var y = _geometry.ValueTop(note.Value) + 0.5f;
-            block.X = stepX;
-            block.Y = y;
-            block.Width = Math.Max(3, PixelsPerStep - 1);
+            x = stepX;
+            y = _geometry.ValueTop(note.Value) + 0.5f;
+            blockWidth = Math.Max(3, PixelsPerStep - 1);
             // No overdraw covers a grid note bleeding past the grid's bottom edge
-            // (unlike the top, still covered by the strip/ruler children), so clamp it.
+            // (unlike the top, still covered by the strip/ruler bands), so clamp it.
             var naturalHeight = Math.Max(3, _geometry.RowHeight - 1);
-            block.Height = Math.Max(0, Math.Min(y + naturalHeight, _geometry.GridBottom) - y);
+            blockHeight = Math.Max(0, Math.Min(y + naturalHeight, _geometry.GridBottom) - y);
         }
 
-        ((ColoredPlane)block.Background!).Color =
-            _state.SelectedNotes.Contains(note) ? SelectedNoteColor : InstrumentColor(note.Instrument);
+        // The element carries the hit box; the batch slot carries the fill.
+        block.X = x;
+        block.Y = y;
+        block.Width = blockWidth;
+        block.Height = blockHeight;
+        _blockBatch.Set(block.BatchSlot, Computed.AbsoluteX + x, Computed.AbsoluteY + y, blockWidth, blockHeight,
+            _state.SelectedNotes.Contains(note) ? SelectedNoteColor : InstrumentColor(note.Instrument));
     }
 
     private static void Hide(UIElement element)
@@ -757,18 +791,29 @@ public sealed class TrackEditorView : Panel
         foreach (var child in Children) child.ApplyClip(own);
         if (Background != null) Background.ClipRect = clip;
         _lineBatch.ClipRect = own;
+        _blockBatch.ClipRect = own;
+        _labelBatch.ClipRect = own;
     }
 
     protected override void DrawSelf(UIContext ctx)
     {
         base.DrawSelf(ctx);
+        // Same layer, queued in paint order: the grid (up to the automation paths) first,
+        // then the notes and the bands over them.
         ctx.QueueRender(_lineBatch, Index);
+        ctx.QueueRender(_blockBatch, Index);
+        // One layer past the children: the gutter values and beat numbers are painted
+        // over the gutter/ruler backgrounds, which are children (Index + 1) - the paint
+        // order they had as children added after them.
+        ctx.QueueRender(_labelBatch, LabelLayer);
     }
 
     public override void StopRendering()
     {
         base.StopRendering();
         Context.DequeueRender(_lineBatch, Index);
+        Context.DequeueRender(_blockBatch, Index);
+        Context.DequeueRender(_labelBatch, LabelLayer);
     }
 
     public override void Update(UIContext uiContext)

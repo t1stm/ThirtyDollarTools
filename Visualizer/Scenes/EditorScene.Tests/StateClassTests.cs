@@ -29,11 +29,18 @@ public class StateClassTests
         var row = EditorTestContext.Styled(new EditorTrack(ctx, state.AddTrack(), state));
 
         var resting = FillOf(row);
+        // An unselected row has no fill of its own: transparent, and skipped by the render
+        // pass rather than drawn as an invisible quad.
+        Assert.Equal(0, resting.W);
+        Assert.False(row.Background!.IsVisible);
+
         row.SetSelected(true);
         Assert.NotEqual(resting, FillOf(row));
+        Assert.True(row.Background!.IsVisible);
 
         row.SetSelected(false);
         Assert.Equal(resting, FillOf(row));
+        Assert.False(row.Background!.IsVisible);
     }
 
     [Fact]
@@ -47,13 +54,17 @@ public class StateClassTests
         view.Refresh();
         view.Layout();
 
+        // A clip's fill is a batch slot, not a background on the element, so its selected
+        // shade is a setting the layout picks - read it back the same way.
         var block = view.Blocks[0];
-        var resting = FillOf(block);
+        var resting = view.FillOf(block);
         state.SetPlacementSelection([placement]);
-        Assert.NotEqual(resting, FillOf(block));
+        view.Layout();
+        Assert.NotEqual(resting, view.FillOf(block));
 
         state.SetPlacementSelection([]);
-        Assert.Equal(resting, FillOf(block));
+        view.Layout();
+        Assert.Equal(resting, view.FillOf(block));
     }
 
     [Fact]
@@ -104,7 +115,8 @@ public class StateClassTests
         view.InvalidateLayout();
         view.Layout();
 
+        // A note's fill lives in the view's batch slot, not on the (background-less) block.
         var painted = view.NoteBlocks.First(block => block.Note is not null);
-        Assert.Contains(FillOf(painted), view.SoundPalette);
+        Assert.Contains(view.FillOf(painted), view.SoundPalette);
     }
 }

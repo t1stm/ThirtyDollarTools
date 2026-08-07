@@ -320,6 +320,21 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue)
     }
 
     /// <summary>
+    ///     Grows the list to hold at least <paramref name="count" /> items, expanding
+    ///     capacity first so the new slots exist before <see cref="Count" /> promises them.
+    ///     Existing items keep their indices; the new tail reads as default until written.
+    ///     Shrinking is not this method's job - a smaller count is a no-op.
+    /// </summary>
+    /// <param name="count">The number of items the list must hold</param>
+    public void EnsureCount(int count)
+    {
+        if (count <= Count) return;
+
+        ExpandCapacityIfNeeded(count);
+        Count = count;
+    }
+
+    /// <summary>
     ///     Removes a tracked buffer reference from the list and adjusts the buffer accordingly.
     /// </summary>
     /// <param name="item">

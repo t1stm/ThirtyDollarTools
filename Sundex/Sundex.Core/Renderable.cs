@@ -18,7 +18,9 @@ public abstract class Renderable : IRenderable, IPositionable, IClippable
     public bool IsChild;
 
     /// <summary>
-    ///     Sets whether this renderable calls it's render method.
+    ///     Sets whether this renderable calls it's render method. Honored by the UI's
+    ///     render pass (<c>UIContext.Render</c>); a renderable that knows it would draw
+    ///     nothing (a fully transparent fill, say) clears this instead of being dequeued.
     /// </summary>
     public bool IsVisible = true;
 

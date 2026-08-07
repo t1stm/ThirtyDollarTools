@@ -20,6 +20,12 @@ class arrangement-canvas {
     // The bar ruler's numbers, and the brighter shade the bar under the playhead takes.
     label-color = $theme.text_dim;
     playhead-color = $theme.playhead;
+
+    // A clip's fill, batched with the lines, the shade it takes while selected, and the
+    // track name written across it.
+    clip-color = $theme.accent;
+    clip-selected-color = $theme.selection_highlight;
+    clip-label-color = $theme.text;
 }
 
 // The note editor's grid. Sits next to grid-view on <track-editor-view/>.
@@ -38,8 +44,11 @@ class note-canvas {
     beat-line-color = $theme.surface;
     boundary-color = $theme.text_muted;
 
-    // The !cut row pinned under the grid.
+    // The !cut row pinned under the grid, the band behind value 0, and the bands the
+    // segment strip and beat ruler sit on.
     cut-row-color = $theme.cut_row;
+    zero-row-color = $theme.zero_row;
+    strip-color = $theme.panel;
 
     // Segment strips alternate between the first two so boundaries are visible without
     // a separating line; the selected segment takes the accent.
@@ -58,19 +67,14 @@ class note-canvas {
 // The pooled ghost panels both views park and resize every layout. They are ordinary
 // children, so a class is all they need - the view no longer passes a color in.
 
-// The value gutter down the left of the note editor, and the segment strip / beat
-// ruler along the top of either view.
+// The value gutter down the left of the note editor. The note editor's own strip/ruler
+// bands are batch slots (see note-canvas above); this is the arrangement's ruler.
 class grid-gutter {
     background = $theme.panel;
 }
 
 class grid-strip {
     background = $theme.panel;
-}
-
-// The band behind value 0.
-class grid-zero-row {
-    background = $theme.zero_row;
 }
 
 // The rule separating the pinned !cut row from the grid.
@@ -91,18 +95,6 @@ class grid-marquee {
 
 // ---------------------------------------------------------------- clips
 
-// One track's clip on an arrangement lane.
-class clip-block {
-    padding = 6;
-    background = $theme.accent;
-}
-
-// Added by ArrangementView while the clip is part of the selection, removed when it
-// isn't - so it must override clip-block's fill, and be listed after it.
-class clip-block-selected {
-    background = $theme.selection_highlight;
-}
-
-class clip-label {
-    font-size = 13;
-}
+// A clip on an arrangement lane has no rule of its own any more: its fill, its selected
+// shade and its name all come from arrangement-canvas's settings above, written into the
+// batches. The name's inset and size live next to that code (ClipPadding, ClipFontSize).

@@ -195,11 +195,8 @@ class caption-label {
     font-color = $theme.text_muted;
 }
 
-// Text painted over a grid canvas (bar numbers, gutter values).
-class grid-label {
-    font-size = 11;
-    font-color = $theme.text_dim;
-}
+// Text painted over a grid canvas (bar numbers, gutter values) is not an element any
+// more - it is a LabelBatch slot, colored from the canvas's own `label-color` setting.
 
 // ---------------------------------------------------------------- structure
 

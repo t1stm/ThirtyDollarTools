@@ -1,10 +1,14 @@
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Scenes.Views;
 
+/// <summary>
+///     One note's hit box. It has no background of its own: the view writes the fill into
+///     <see cref="BatchSlot" /> of its line batch, so the whole pool costs no draw calls.
+///     The element remains because a note is clicked, right-clicked and dragged.
+/// </summary>
 internal class NoteBlock : Panel
 {
     private readonly TrackEditorView _view;
@@ -14,14 +18,14 @@ internal class NoteBlock : Panel
         _view = view;
         Width = 0;
         Height = 0;
-        // Colorless until the layout assigns this block a note - see TrackEditorView's
-        // sound-palette setting.
-        Background = new ColoredPlane();
         Cursor = CursorType.Pointer;
         // Swallow the click so a release on a note never bubbles into the view's
         // place-at-pointer handler; selection already happened on press.
         OnClick = _ => { };
     }
+
+    /// <summary>This block's fixed slot in the view's line batch - its pool position.</summary>
+    public required int BatchSlot { get; init; }
 
     public TrackSegment? Segment { get; internal set; }
     public Note? Note { get; private set; }

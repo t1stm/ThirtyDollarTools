@@ -54,6 +54,23 @@ public class ColoredPlane : Renderable, IGamePreloadable, IBorderRadius
         }
     }
 
+    /// <summary>
+    ///     A fill this plane paints is its color and nothing else, so a zero alpha blends
+    ///     to exactly the frame that is already there - <see cref="Renderable.IsVisible" />
+    ///     drops it before it costs a bind, a UBO upload and a draw. Batched renderables
+    ///     keep their colors per instance and leave this one at default, which is why the
+    ///     cull lives here rather than on every <see cref="Renderable" />.
+    /// </summary>
+    public override Vector4 Color
+    {
+        get => base.Color;
+        set
+        {
+            base.Color = value;
+            IsVisible = value.W > 0;
+        }
+    }
+
     public override Shader Shader
     {
         get => _shader;

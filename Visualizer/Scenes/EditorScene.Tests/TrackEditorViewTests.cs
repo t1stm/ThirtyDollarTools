@@ -521,23 +521,23 @@ public class TrackEditorViewTests
 
         // Two generated events (steps 5 and 7, values 12 and 24), each drawn as a
         // horizontal run + a vertical jump + a tick = 6 visible marks.
-        var visible = view.AutomationMarks.Where(m => m.Width.Value > 0).ToList();
+        var visible = view.AutomationMarks.Where(m => m.Z > 0).ToList();
         Assert.Equal(6, visible.Count);
 
         // The path starts at the note's center (x = 44 + 3.5*16 = 100) and runs the
         // 2-step gap (32 px) to the first event at x = 132.
-        Assert.Equal(100, visible[0].X.Value);
-        Assert.Equal(32, visible[0].Width.Value);
+        Assert.Equal(100, visible[0].X);
+        Assert.Equal(32, visible[0].Z);
         // The jump covers the 12-row value change (96 px at 8 px rows)…
-        Assert.Equal(96, visible[1].Height.Value);
+        Assert.Equal(96, visible[1].W);
         // …and the tick straddles the event column.
-        Assert.Equal(131, visible[2].X.Value);
+        Assert.Equal(131, visible[2].X);
 
         // Removing the automation hides the whole path on the next layout.
         note.Automation = null;
         view.InvalidateLayout();
         view.Layout();
-        Assert.DoesNotContain(view.AutomationMarks, m => m.Width.Value > 0);
+        Assert.DoesNotContain(view.AutomationMarks, m => m.Z > 0);
     }
 
     [Fact]
@@ -562,8 +562,8 @@ public class TrackEditorViewTests
 
         // Segment 1 contributes 4 beats, so segment 2's first beat is the 5th overall,
         // at the pixel where segment 2 starts (44 + 16*16 = 300).
-        var label = view.BeatLabels.Single(l => l.X.Value > -1000f && l.Value.ToString() == "5");
-        Assert.Equal(302, label.X.Value);
+        var label = view.BeatLabels.Single(l => l.Visible && l.Text == "5");
+        Assert.Equal(302, label.X);
     }
 
     [Fact]
@@ -574,10 +574,10 @@ public class TrackEditorViewTests
 
         // One segment, 4 beats of 4 steps each at 16 px/step: labels every 64 px,
         // not every 16 px step - proves beat-stride, not step-stride.
-        var visible = view.BeatLabels.Where(l => l.X.Value > -1000f)
-            .OrderBy(l => l.X.Value).ToList();
-        Assert.Equal(["1", "2", "3", "4"], visible.Select(l => l.Value.ToString()).ToList());
-        Assert.Equal([46f, 110f, 174f, 238f], visible.Select(l => l.X.Value).ToList());
+        var visible = view.BeatLabels.Where(l => l.Visible)
+            .OrderBy(l => l.X).ToList();
+        Assert.Equal(["1", "2", "3", "4"], visible.Select(l => l.Text).ToList());
+        Assert.Equal([46f, 110f, 174f, 238f], visible.Select(l => l.X).ToList());
     }
 
     [Fact]
@@ -589,8 +589,8 @@ public class TrackEditorViewTests
         view.PlayheadQuarters = 1.0;
         view.Layout();
 
-        var labels = view.BeatLabels.Where(l => l.X.Value > -1000f)
-            .ToDictionary(l => l.Value.ToString());
+        var labels = view.BeatLabels.Where(l => l.Visible)
+            .ToDictionary(l => l.Text);
         Assert.NotEqual(labels["1"].Color, labels["2"].Color);
     }
 
@@ -602,8 +602,8 @@ public class TrackEditorViewTests
         view.PixelsPerStep = 4f; // min zoom: 4 px/step * 4 steps/beat = 16 px/beat, under MinBeatLabelSpacingPx
         view.Layout();
 
-        var xs = view.BeatLabels.Where(l => l.X.Value > -1000f)
-            .Select(l => l.X.Value).OrderBy(x => x).ToList();
+        var xs = view.BeatLabels.Where(l => l.Visible)
+            .Select(l => l.X).OrderBy(x => x).ToList();
         Assert.True(xs.Count > 1);
         for (var i = 1; i < xs.Count; i++)
             Assert.True(xs[i] - xs[i - 1] >= 28f, $"labels at {xs[i - 1]} and {xs[i]} overlap");
@@ -616,19 +616,19 @@ public class TrackEditorViewTests
 
         view.RowHeight = 10f; // at the threshold: every value still labelled
         view.Layout();
-        var xs = view.GutterLabels.Where(l => l.X.Value > -1000f).Select(l => l.Y.Value).OrderBy(y => y).ToList();
+        var xs = view.GutterLabels.Where(l => l.Visible).Select(l => l.Y).OrderBy(y => y).ToList();
         Assert.True(xs.Count > 1);
         Assert.All(Enumerable.Range(1, xs.Count - 1), i => Assert.Equal(10f, xs[i] - xs[i - 1], 3));
 
         view.RowHeight = 4f; // below it: every 3rd value, ~12 px apart
         view.Layout();
-        var ys = view.GutterLabels.Where(l => l.X.Value > -1000f).Select(l => l.Y.Value).OrderBy(y => y).ToList();
+        var ys = view.GutterLabels.Where(l => l.Visible).Select(l => l.Y).OrderBy(y => y).ToList();
         Assert.True(ys.Count > 1);
         Assert.All(Enumerable.Range(1, ys.Count - 1), i => Assert.Equal(12f, ys[i] - ys[i - 1], 3));
 
         // Value 0's label survives the thinning at every zoom.
         var zero = view.GutterLabels[TrackEditorView.MaxValue];
-        Assert.True(zero.X.Value > -1000f);
+        Assert.True(zero.Visible);
     }
 
     [Fact]
@@ -759,8 +759,8 @@ public class TrackEditorViewTests
 
         // The notes now on screen still get their paths - the scrolled-off ones must not
         // have eaten the pool on the way there.
-        Assert.Contains(view.AutomationMarks, m => m.Width.Value > 0 && m.X.Value > 700);
-        Assert.DoesNotContain(view.AutomationMarks, m => m.Width.Value > 0 && m.X.Value + m.Width.Value < 44);
+        Assert.Contains(view.AutomationMarks, m => m.Z > 0 && m.X > 700);
+        Assert.DoesNotContain(view.AutomationMarks, m => m.Z > 0 && m.X + m.Z < 44);
     }
 
     [Fact]

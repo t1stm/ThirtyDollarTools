@@ -102,7 +102,6 @@ public class StyleSelectorTests
     /// </summary>
     [Theory]
     [InlineData("track-row-selected", "background")]
-    [InlineData("clip-block-selected", "background")]
     [InlineData("tool-button-draw-active", "background")]
     [InlineData("tool-button-select-active", "background")]
     [InlineData("lane-toggle-muted", "font-color")]

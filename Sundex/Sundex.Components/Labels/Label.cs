@@ -80,8 +80,12 @@ public class Label : UIElement
             Context.DequeueRender(TextBuffer, Index);
     }
 
+    /// <summary>The clip rect this label's glyphs currently render under; null while unclipped.</summary>
+    public Vector4i? ClipRect { get; private set; }
+
     public override void ApplyClip(Vector4i? clip)
     {
+        ClipRect = clip;
         TextBuffer?.ClipRect = clip;
     }
 

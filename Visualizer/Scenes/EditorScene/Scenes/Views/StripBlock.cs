@@ -1,26 +1,28 @@
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Scenes.Views;
 
-/// <summary>A purely visual overlay: never takes pointer input.</summary>
+/// <summary>
+///     One segment's strip: a hit box only, like <see cref="NoteBlock" /> - its fill is
+///     written into <see cref="BatchSlot" /> of the view's line batch.
+/// </summary>
 internal class StripBlock : Panel
 {
     public StripBlock(UIContext context, TrackEditorView view) : base(context)
     {
         Width = 0;
         Height = 0;
-        // Colorless until the layout assigns this block a segment - see TrackEditorView's
-        // strip-segment settings.
-        Background = new ColoredPlane();
         Cursor = CursorType.Pointer;
         OnClick = _ =>
         {
             if (Segment != null) view._state.SelectSegment(Segment);
         };
     }
+
+    /// <summary>This block's fixed slot in the view's line batch - its pool position.</summary>
+    public required int BatchSlot { get; init; }
 
     public TrackSegment? Segment { get; set; }
 }

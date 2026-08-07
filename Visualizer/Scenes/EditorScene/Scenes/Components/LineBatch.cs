@@ -14,13 +14,15 @@ using VisualizerScene.Objects.Playfield.Batch.Objects;
 namespace EditorScene.Scenes.Components;
 
 /// <summary>
-///     A fixed-size pool of flat-colored rects (grid/bar lines, markers) drawn as one
+///     A pool of flat-colored rects (grid/bar lines, markers, block fills) drawn as one
 ///     instanced draw call instead of one <see cref="Shared.Renderer.Planes.ColoredPlane" />
 ///     (and one uniform-buffer upload) per rect - cheaper on the GPU/driver and, at a locked
 ///     frame rate, on power draw. Reuses the visualizer's flat-color instanced quad plumbing
 ///     (<see cref="RenderStack{TDataType}" /> + <see cref="BackgroundBlip" />, Model+Color only).
-///     Set <see cref="Count" /> once for the pool's lifetime - it fixes the GPU buffer's
-///     capacity, so growing it later would write past the allocated buffer.
+///     <see cref="Count" /> is a reservation, not a cap: writing past it grows the buffer
+///     (doubling, contents preserved), so a range with no natural bound - a project's clips,
+///     a note's automation path - can sit last and simply keep going. Ranges before it are
+///     fixed, since growth only ever appends.
 /// </summary>
 [PreloadGraphicsContext]
 internal class LineBatch : IRenderable, IClippable, IGamePreloadable
@@ -29,12 +31,13 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
     private static Shader _shader = null!;
     private RenderStack<BackgroundBlip>? _stack;
 
+    /// <summary>Slots to reserve up front - enough for the fixed ranges, so only the last one grows.</summary>
     public int Count
     {
         set
         {
             _stack ??= new RenderStack<BackgroundBlip>(_deleteQueue, value) { Shader = _shader };
-            _stack.List.Count = value;
+            _stack.List.EnsureCount(value);
         }
     }
 
@@ -59,9 +62,37 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
         _stack.Render(camera);
     }
 
+    /// <summary>
+    ///     Assigns one rect, growing the pool if the slot is past its end. Unchanged slots
+    ///     are skipped: the buffer uploads per written index (see GLBuffer's update map),
+    ///     and the views re-assign - and re-release - every slot of a multi-thousand-slot
+    ///     pool on every layout pass, of which only a handful actually moved.
+    /// </summary>
     public void Set(int index, float x, float y, float width, float height, Vector4 color)
     {
+        var list = _stack!.List;
+        list.EnsureCount(index + 1);
+
         var model = Matrix4.CreateScale(width, height, 1f) * Matrix4.CreateTranslation(x, y, 0f);
-        _stack!.List[index] = new BackgroundBlip { Model = model, Color = color };
+        var current = list[index];
+        if (current.Model == model && current.Color == color) return;
+
+        list[index] = new BackgroundBlip { Model = model, Color = color };
+    }
+
+    /// <summary>
+    ///     Releases a slot - a zero-sized rect draws nothing. A slot past the pool's end
+    ///     holds nothing to release, so it is left alone rather than grown into existence.
+    /// </summary>
+    public void Hide(int index)
+    {
+        if (_stack is null || index >= _stack.List.Count) return;
+        Set(index, 0, 0, 0, 0, default);
+    }
+
+    /// <summary>The color a slot is currently painted with - a test seam.</summary>
+    public Vector4 ColorOf(int index)
+    {
+        return _stack!.List[index].Color;
     }
 }

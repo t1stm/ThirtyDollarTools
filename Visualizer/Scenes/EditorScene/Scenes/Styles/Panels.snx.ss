@@ -16,7 +16,10 @@ id track-list {
     spacing = 4;
 }
 
-// One track-list row.
+// One track-list row. Resting fill is transparent - a row only reads as a row when it is
+// the selected one. Declared rather than omitted because removing track-row-selected only
+// re-applies the sheet, so this is what a deselect restores; ColoredPlane skips a zero
+// alpha instead of drawing it.
 class track-row {
     direction = "horizontal";
     vertical-align = "center";
@@ -25,7 +28,7 @@ class track-row {
     padding = 6;
     spacing = 10;
     border-radius = 6;
-    background = $theme.panel;
+    background = "#00000000";
 }
 
 // Added by EditorTrack while the row is the selected track, removed when it isn't - so

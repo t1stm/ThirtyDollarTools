@@ -155,8 +155,10 @@ public class UIContext : IGamePreloadable
             foreach (var renderable in queue)
             {
                 // Pooled elements are "hidden" by zeroing scale rather than dequeuing (see
-                // Panel-pool patterns like TrackEditorView's NoteBlockPool) - cull those and
+                // Panel-pool patterns like TrackEditorView's NoteBlockPool) - cull those,
+                // anything that has flagged itself invisible (a fully transparent fill) and
                 // anything fully clipped away before it costs a bind/upload/draw.
+                if (renderable is Renderable { IsVisible: false }) continue;
                 if (renderable is Renderable { Scale: var scale } && (scale.X <= 0 || scale.Y <= 0))
                     continue;
 
