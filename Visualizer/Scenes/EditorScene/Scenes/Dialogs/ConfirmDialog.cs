@@ -1,5 +1,3 @@
-using OpenTK.Mathematics;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -14,8 +12,12 @@ namespace EditorScene.Scenes.Dialogs;
 /// </summary>
 public sealed class ConfirmDialog
 {
+    /// <param name="confirmClass">
+    ///     The confirm button's fill, as one of Controls.snx.ss's dialog-button classes -
+    ///     destructive red by default, but the import flows confirm with the accent.
+    /// </param>
     public ConfirmDialog(UIContext context, string message, string confirmLabel = "Delete",
-        Vector4? confirmColor = null)
+        string confirmClass = "dialog-button-danger")
     {
         var component = Markup.Build(context, "Scenes/Dialogs/Confirm Dialog/ConfirmDialog.snx.xml");
         Element = component.GetID<FlexPanel>("confirm-dialog");
@@ -24,10 +26,7 @@ public sealed class ConfirmDialog
 
         component.GetID<Label>("message-label").SetTextContents(message);
         ConfirmButton.Label.SetTextContents(confirmLabel);
-        // The confirm fill is a caller argument (delete red by default, but the import
-        // flow passes the accent), so it stays a code-built plane; the rest of the
-        // button - size, corner, dark label - comes from the sheet.
-        ConfirmButton.Background = new ColoredPlane { Color = confirmColor ?? EditorPalette.DangerAccent };
+        ConfirmButton.SetClass(confirmClass, true);
     }
 
     /// <summary>The dialog's root - what the owner mounts into a ModalLayer.</summary>

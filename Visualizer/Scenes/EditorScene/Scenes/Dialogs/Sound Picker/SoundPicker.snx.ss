@@ -4,6 +4,7 @@
 // Note what is NOT here: the icon cells themselves. Their size is computed per sound
 // from the atlas aspect ratio (a wide sound gets a wide cell), so it can't come from a
 // fixed value in a sheet - see SoundPicker.SoundIcon.
+import "Scenes/Styles/Theme.snx.ss" as theme;
 
 class sound-picker {
     direction = "vertical";
@@ -30,7 +31,7 @@ class sound-selected-row {
 // The "Selected" / "Available" section headings.
 class sound-section-header {
     font-size = 13;
-    font-color = "#7aa2f7";
+    font-color = $theme.header;
 }
 
 // The vertical hairline between the selected grid and the scroll-adjust hint. Height
@@ -38,13 +39,13 @@ class sound-section-header {
 class sound-keybind-divider {
     width = 1;
     height = 40;
-    background = "#33344a";
+    background = $theme.divider;
 }
 
 // The scroll-adjust hint text itself.
 class sound-keybind-note {
     font-size = 12;
-    font-color = "#565f89";
+    font-color = $theme.text_muted;
 }
 
 // The value/volume/pan readout under a selected icon.

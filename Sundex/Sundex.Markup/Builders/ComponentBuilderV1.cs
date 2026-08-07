@@ -338,7 +338,12 @@ public class ComponentBuilderV1 : IComponentBuilder
 
         if (node.Id is not null) element.ID = node.Id;
 
-        if (node.Classes is not null) element.Classes = node.Classes;
+        // Appended, not assigned: an element built by a factory can carry classes of its
+        // own (the grid views name their canvas rule, which their draw code needs), and
+        // assigning here dropped them. Markup's come last, so they still win.
+        if (node.Classes is not null)
+            foreach (var @class in node.Classes)
+                element.SetClass(@class, true);
 
         // Register ID
         if (!string.IsNullOrEmpty(node.Id)) registeredIds[node.Id] = element;

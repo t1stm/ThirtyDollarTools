@@ -14,7 +14,9 @@ internal class NoteBlock : Panel
         _view = view;
         Width = 0;
         Height = 0;
-        Background = new ColoredPlane { Color = TrackEditorView.SoundPalette[0] };
+        // Colorless until the layout assigns this block a note - see TrackEditorView's
+        // sound-palette setting.
+        Background = new ColoredPlane();
         Cursor = CursorType.Pointer;
         // Swallow the click so a release on a note never bubbles into the view's
         // place-at-pointer handler; selection already happened on press.

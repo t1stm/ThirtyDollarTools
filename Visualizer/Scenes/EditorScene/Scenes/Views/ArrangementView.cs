@@ -1,8 +1,8 @@
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Attributes;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
@@ -32,14 +32,6 @@ public sealed class ArrangementView : Panel
     private const int BarLinePool = 128;
     public const int LaneLinePool = 128;
 
-    // Named aliases for the shared constants - see EditorPalette.
-    private static Vector4 ClipColor => EditorPalette.Accent;
-    private static Vector4 SelectedClipColor => EditorPalette.SelectionHighlight;
-    private static Vector4 LineColor => EditorPalette.Surface;
-    private static Vector4 RulerColor => EditorPalette.Panel;
-    private static Vector4 LabelColor => EditorPalette.TextDim;
-    private static Vector4 PlayheadColor => EditorPalette.Playhead;
-
     private readonly List<Label> _barLabels = [];
 
     private readonly List<ClipBlock> _blocks = [];
@@ -61,7 +53,8 @@ public sealed class ArrangementView : Panel
     {
         _state = state;
         Focusable = true;
-        Background = new ColoredPlane { Color = EditorPalette.GridBackground };
+        // Set here rather than in the markup - see TrackEditorView's.
+        Classes = ["arrangement-canvas"];
         OnClick = _ =>
         {
             var localY = context.PointerY - Computed.AbsoluteY;
@@ -84,7 +77,7 @@ public sealed class ArrangementView : Panel
 
         // The beat ruler - same idea as the note editor's: a strip along the top
         // labeling every bar, highlighting whichever bar the playhead is in.
-        _rulerBackground = new GhostPanel(context) { Background = new ColoredPlane { Color = RulerColor } };
+        _rulerBackground = new GhostPanel(context) { Classes = ["grid-strip"] };
         AddChild(_rulerBackground);
         for (var i = 0; i < BarLinePool; i++)
         {
@@ -97,7 +90,7 @@ public sealed class ArrangementView : Panel
         {
             Width = 0,
             Height = 0,
-            Background = new ColoredPlane { Color = PlayheadColor }
+            Classes = ["grid-playhead"]
         };
         AddChild(_playhead);
 
@@ -107,13 +100,28 @@ public sealed class ArrangementView : Panel
         {
             Width = 0,
             Height = 0,
-            Background = new ColoredPlane
-                { Color = EditorPalette.MarqueeFill }
+            Classes = ["grid-marquee"]
         };
         AddChild(_marqueeRect);
 
         Refresh();
     }
+
+    // The grid's own colors, from `class arrangement-canvas` (Scenes/Views/GridViews.snx.ss).
+    // These paint a LineBatch and pooled label fills rather than styled elements, so no
+    // selector can reach them - they arrive as settings on the view itself instead.
+
+    /// <summary>Lane dividers and bar lines.</summary>
+    [NamedSetting("line-color")]
+    public Vector4 LineColor { get; set; }
+
+    /// <summary>The ruler's bar numbers.</summary>
+    [NamedSetting("label-color")]
+    public Vector4 LabelColor { get; set; }
+
+    /// <summary>The brighter shade the bar under the playhead takes.</summary>
+    [NamedSetting("playhead-color")]
+    public Vector4 PlayheadColor { get; set; }
 
     /// <summary>
     ///     Playhead position on the arrangement timeline; anything negative hides it.
@@ -574,7 +582,6 @@ public sealed class ArrangementView : Panel
     /// <summary>A purely visual overlay: never takes pointer input.</summary>
     internal class ClipBlock : Panel
     {
-        private readonly ColoredPlane _background;
         private readonly ArrangementView _view;
         private double _grabOffsetQuarters;
 
@@ -583,8 +590,6 @@ public sealed class ArrangementView : Panel
             _view = view;
             Placement = placement;
             Classes = ["clip-block"];
-            // Code-owned fill: Refresh tints it per selection state on every layout.
-            Background = _background = new ColoredPlane { Color = ClipColor };
             Cursor = CursorType.Pointer;
             Children = [new Label(context, placement.Track.Name) { Classes = ["clip-label"] }];
             // Swallow the click so a release on a clip never bubbles into the view's
@@ -642,7 +647,7 @@ public sealed class ArrangementView : Panel
 
         public void SetSelected(bool selected)
         {
-            _background.Color = selected ? SelectedClipColor : ClipColor;
+            SetClass("clip-block-selected", selected);
         }
     }
 }

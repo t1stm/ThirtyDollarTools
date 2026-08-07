@@ -1,6 +1,9 @@
 // The menu bar's own sheet. menu-button/menu-label come from the shared vocabulary -
-// the strip is not the only place that wants a subtle-filled button.
+// the strip is not the only place that wants a subtle-filled button. The alias is
+// declared here rather than inherited: aliases are file-local, so Controls.snx.ss's
+// import of the theme does not bring `$theme` into this file.
 import "Scenes/Styles/Controls.snx.ss";
+import "Scenes/Styles/Theme.snx.ss" as theme;
 
 // A slim menu-bar strip: identity labels + Load/Save/Export as plain
 // clickable text (hover feedback is wired in Controls.snx.ss's menu-button, not with a
@@ -12,26 +15,26 @@ id editor-header {
     vertical-align = "center";
     padding = 8;
     spacing = 14;
-    background = "#16161e";
+    background = $theme.panel;
 }
 
 id editor-title {
     font-size = 16;
-    font-color = "#7aa2f7";
+    font-color = $theme.header;
 }
 
 id project-name {
     font-size = 14;
-    font-color = "#d6dadc";
+    font-color = $theme.text;
 }
 
 id project-bpm {
     font-size = 14;
-    font-color = "#565f89";
+    font-color = $theme.text_muted;
 }
 
 class header-divider {
     width = 1;
     height = 24;
-    background = "#33344a";
+    background = $theme.divider;
 }

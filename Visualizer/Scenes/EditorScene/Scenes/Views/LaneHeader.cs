@@ -2,7 +2,6 @@ using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Views;
 
@@ -55,8 +54,8 @@ public sealed class LaneHeader : Panel
         for (var lane = 0; lane < _rows.Count; lane++)
         {
             var (mute, solo) = _rows[lane];
-            mute.Label.Color = _state.IsMuted(lane) ? EditorPalette.DangerAccent : EditorPalette.TextMuted;
-            solo.Label.Color = _state.IsSoloed(lane) ? EditorPalette.AccentYellow : EditorPalette.TextMuted;
+            mute.Label.SetClass("lane-toggle-muted", _state.IsMuted(lane));
+            solo.Label.SetClass("lane-toggle-soloed", _state.IsSoloed(lane));
         }
     }
 
@@ -105,12 +104,11 @@ public sealed class LaneHeader : Panel
 
     private Button NewToggle(UIContext context, string text, Action toggle, string hint)
     {
-        // The label's color is code-owned - RefreshChannels tints it from the mute/solo
-        // state - so the sheet gives it a size only.
+        // RefreshChannels adds the muted/soloed class over lane-toggle-label as the state
+        // changes; the resting color is that class's own.
         var button = new Button(context, new Label(context, text)
         {
-            Classes = ["lane-toggle-label"],
-            Color = EditorPalette.TextMuted
+            Classes = ["lane-toggle-label"]
         })
         {
             Classes = ["lane-toggle"],

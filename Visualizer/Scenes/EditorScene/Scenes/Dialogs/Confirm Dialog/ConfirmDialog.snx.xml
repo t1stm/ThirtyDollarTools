@@ -3,14 +3,14 @@
 
   <layout>
     <flex id="confirm-dialog" class="dialog-frame">
-      <!-- Message text and the confirm button's label and fill are all caller arguments,
-           applied by ConfirmDialog.cs after the build. -->
+      <!-- Message text and the confirm button's label and fill class are all caller
+           arguments, applied by ConfirmDialog.cs after the build. -->
       <label id="message-label" class="body-label" value=""/>
       <flex class="dialog-actions">
         <button id="cancel-button" class="dialog-button">
           <label value="Cancel"/>
         </button>
-        <button id="confirm-button" class="dialog-button-shape">
+        <button id="confirm-button">
           <label class="dark-label" value=""/>
         </button>
       </flex>

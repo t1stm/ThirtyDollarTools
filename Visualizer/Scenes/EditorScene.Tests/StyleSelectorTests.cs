@@ -94,30 +94,25 @@ public class StyleSelectorTests
     }
 
     /// <summary>
-    ///     Two classes on one element must not set the same property: Classes is a HashSet,
-    ///     so which one wins is undefined. Variants override on the id instead - see the
-    ///     rule at the top of Scenes/Styles/Controls.snx.ss.
+    ///     The state classes, which no walk can find: they are named only inside the
+    ///     SetClass call that adds them when the state turns on, so a typo in one is
+    ///     invisible until someone selects a row or picks a tool and nothing changes color.
+    ///     Each must both exist and override a property - a modifier that sets nothing new
+    ///     is a rule that was gutted, not a state.
     /// </summary>
-    [Fact]
-    public void NoElement_CombinesTwoClassesThatSetTheSameProperty()
+    [Theory]
+    [InlineData("track-row-selected", "background")]
+    [InlineData("clip-block-selected", "background")]
+    [InlineData("tool-button-draw-active", "background")]
+    [InlineData("tool-button-select-active", "background")]
+    [InlineData("lane-toggle-muted", "font-color")]
+    [InlineData("lane-toggle-soloed", "font-color")]
+    [InlineData("dark-label", "font-color")]
+    public void EveryClassAddedAtRuntime_IsDefinedByASheet(string cls, string property)
     {
-        var sheet = EditorTestContext.Styles;
-        var clashes = new List<string>();
-
-        foreach (var root in CodeBuilt().Concat(MarkupBuilt()))
-            foreach (var element in Walk(root).Where(e => e.Classes.Count > 1))
-            {
-                var seen = new Dictionary<string, string>();
-                foreach (var cls in element.Classes)
-                {
-                    if (!sheet.Classes.TryGetValue(cls, out var properties)) continue;
-                    foreach (var property in properties.Keys)
-                        if (!seen.TryAdd(property, cls))
-                            clashes.Add($"{seen[property]} and {cls} both set {property}");
-                }
-            }
-
-        Assert.Empty(clashes.Distinct());
+        Assert.True(EditorTestContext.Styles.Classes.TryGetValue(cls, out var properties),
+            $"no sheet defines class {cls}");
+        Assert.Contains(property, properties!.Keys);
     }
 
     private static IEnumerable<UIElement> Walk(UIElement element)

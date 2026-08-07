@@ -1,9 +1,7 @@
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
-using EditorScene.Scenes.Components;
 using EditorScene.Scenes.Views;
 
 namespace EditorScene.Scenes.Layout;
@@ -16,16 +14,12 @@ namespace EditorScene.Scenes.Layout;
 /// </summary>
 public sealed class EditorTrack : FlexPanel
 {
-    private readonly ColoredPlane _background;
     private readonly EditorState _state;
 
     public EditorTrack(UIContext context, ProjectTrack track, EditorState state) : base(context)
     {
         Track = track;
         Classes = ["track-row"];
-        // The fill stays code-owned: SetSelected swaps its color, and a sheet
-        // `background` would be replaced by a fresh plane on the next style pass.
-        Background = _background = new ColoredPlane { Color = EditorPalette.Panel };
         UpdateCursorOnHover = true;
         OnClick = _ => state.SelectTrack(track);
         _state = state;
@@ -77,6 +71,6 @@ public sealed class EditorTrack : FlexPanel
 
     public void SetSelected(bool selected)
     {
-        _background.Color = selected ? EditorPalette.RowSelected : EditorPalette.Panel;
+        SetClass("track-row-selected", selected);
     }
 }

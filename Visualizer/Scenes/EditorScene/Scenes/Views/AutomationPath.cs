@@ -23,7 +23,11 @@ internal sealed class AutomationPath
     private readonly List<Panel> _marks = [];
     private float _clipRight;
 
-    public AutomationPath(UIContext context, Panel host, int poolSize, Vector4 initialColor)
+    /// <summary>
+    ///     The marks are born colorless and parked: <see cref="Draw" /> tints each one it
+    ///     takes with the note's own sound color, and an untaken one has no size.
+    /// </summary>
+    public AutomationPath(UIContext context, Panel host, int poolSize)
     {
         for (var i = 0; i < poolSize; i++)
         {
@@ -31,7 +35,7 @@ internal sealed class AutomationPath
             {
                 Width = 0,
                 Height = 0,
-                Background = new ColoredPlane { Color = initialColor }
+                Background = new ColoredPlane()
             };
             _marks.Add(mark);
             host.AddChild(mark);

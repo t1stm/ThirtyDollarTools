@@ -6,11 +6,13 @@
 // sheet to whatever is added to it (Sundex.Components.Panels.Panel.AddChild), so
 // setting Classes on an element is all it takes.
 //
-// ONE RULE when combining classes on an element: they must not set the same property.
-// UIElement.Classes is a HashSet, so the order they are applied in is not defined, and
-// two classes both setting `height` would give whichever won last. Where a variant has
-// to override a shared value, put the override on the element's id instead - ids are
-// always applied after classes (see UIElement.SetNamedSetting).
+// Classes on one element are applied in the order they are listed - in markup's
+// `class="[a,b]"`, or in the C# list - and a later one overrides an earlier one's
+// properties; the id is applied after all of them (see UIElement.SetNamedSetting). That
+// is what makes a modifier class work: the base rule sets the property, the modifier
+// listed after it overrides, and removing the modifier restores the base value.
+// Two classes setting the same property by accident still just means the later wins.
+import "Scenes/Styles/Theme.snx.ss" as theme;
 
 // ---------------------------------------------------------------- buttons
 
@@ -18,10 +20,10 @@
 class dialog-button {
     font-size = 14;
     border-radius = 6;
-    background = "#33344a";
+    background = $theme.divider;
 
     state[hovered] = {
-        background = "#3f4160";
+        background = $theme.divider_hover;
     }
 }
 
@@ -29,10 +31,10 @@ class dialog-button {
 class dialog-button-primary {
     font-size = 14;
     border-radius = 6;
-    background = "#4c6bcc";
+    background = $theme.accent;
 
     state[hovered] = {
-        background = "#6b82c4";
+        background = $theme.accent_hover;
     }
 }
 
@@ -41,10 +43,10 @@ class dialog-button-primary {
 class dialog-button-danger {
     font-size = 14;
     border-radius = 6;
-    background = "#f7768e";
+    background = $theme.danger;
 
     state[hovered] = {
-        background = "#f78fa2";
+        background = $theme.danger_hover;
     }
 }
 
@@ -52,10 +54,10 @@ class dialog-button-danger {
 class dialog-button-light {
     font-size = 14;
     border-radius = 6;
-    background = "#7aa2f7";
+    background = $theme.header;
 
     state[hovered] = {
-        background = "#93b4f9";
+        background = $theme.header_hover;
     }
 }
 
@@ -63,10 +65,10 @@ class dialog-button-light {
 class dialog-button-alt {
     font-size = 14;
     border-radius = 6;
-    background = "#e0af68";
+    background = $theme.accent_yellow;
 
     state[hovered] = {
-        background = "#e8bf82";
+        background = $theme.accent_yellow_hover;
     }
 }
 
@@ -76,9 +78,8 @@ class dialog-button-tall {
     height = 40;
 }
 
-// Shape without a fill, for the one button whose color is a constructor argument
-// (ConfirmDialog's confirm action is red by default but the import flow tints it).
-// Setting `background` here would replace the caller's plane.
+// Shape without a fill, for a button that reads as a bare label - the track context
+// menu's Cancel, which has never been filled like the other dialogs' are.
 class dialog-button-shape {
     font-size = 14;
     border-radius = 6;
@@ -87,23 +88,23 @@ class dialog-button-shape {
 // Sits on any button whose fill is light enough that white text on it is unreadable.
 // Applied to the button's Label, not the button.
 class dark-label {
-    font-color = "#16161e";
+    font-color = $theme.text_dark;
 }
 
 // The subtle-filled button used for chrome that isn't a dialog action: the menu bar,
 // the transport controls. Reads as a surface you can click rather than as a call to
 // action.
 class menu-button {
-    background = "#33344a";
+    background = $theme.divider;
     border-radius = 6;
     height = 24;
 
     state[hovered] = {
-        background = "#3f4160";
+        background = $theme.divider_hover;
     }
 
     state[pressed] = {
-        background = "#2b2c3f";
+        background = $theme.divider_pressed;
     }
 }
 
@@ -115,14 +116,14 @@ class menu-row {
     height = 36;
     font-size = 14;
     border-radius = 6;
-    background = "#33344a";
+    background = $theme.divider;
 
     state[hovered] = {
-        background = "#3f4160";
+        background = $theme.divider_hover;
     }
 
     state[pressed] = {
-        background = "#2b2c3f";
+        background = $theme.divider_pressed;
     }
 }
 
@@ -130,10 +131,10 @@ class menu-row {
 class chip-button {
     font-size = 11;
     border-radius = 6;
-    background = "#292e42";
+    background = $theme.surface;
 
     state[hovered] = {
-        background = "#353a54";
+        background = $theme.surface_raised;
     }
 }
 
@@ -141,7 +142,7 @@ class chip-button {
 // rule to fall back on - see the note in EditorInterface.snx.ss.
 class menu-label {
     font-size = 14;
-    font-color = "#d6dadc";
+    font-color = $theme.text;
 }
 
 // ---------------------------------------------------------------- fields
@@ -150,7 +151,7 @@ class menu-label {
 class text-field {
     font-size = 14;
     border-radius = 4;
-    background = "#262936";
+    background = $theme.input_background;
 }
 
 // Height only - composes with text-field where a row has a fixed height to fill.
@@ -163,13 +164,13 @@ class text-field-tall {
 // A section/dialog title.
 class title-label {
     font-size = 15;
-    font-color = "#7aa2f7";
+    font-color = $theme.header;
 }
 
 // The larger title used by the export dialog's heading.
 class title-label-large {
     font-size = 18;
-    font-color = "#7aa2f7";
+    font-color = $theme.header;
 }
 
 // A dialog's own heading where it shouldn't be tinted (the plain "Duplicate track").
@@ -185,19 +186,19 @@ class body-label {
 // A field's name, or any explanatory text that shouldn't compete with the value.
 class muted-label {
     font-size = 13;
-    font-color = "#565f89";
+    font-color = $theme.text_muted;
 }
 
 // The smallest muted text: helper lines under a control, transport timecodes.
 class caption-label {
     font-size = 12;
-    font-color = "#565f89";
+    font-color = $theme.text_muted;
 }
 
 // Text painted over a grid canvas (bar numbers, gutter values).
 class grid-label {
     font-size = 11;
-    font-color = "#a8b3db";
+    font-color = $theme.text_dim;
 }
 
 // ---------------------------------------------------------------- structure
@@ -206,7 +207,7 @@ class grid-label {
 class rule {
     width = 100%;
     height = 1;
-    background = "#33344a";
+    background = $theme.divider;
 }
 
 // A percent-width spacer that soaks up free space so the elements after it land flush

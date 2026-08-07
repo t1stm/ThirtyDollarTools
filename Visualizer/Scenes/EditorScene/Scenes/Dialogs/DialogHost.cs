@@ -1,4 +1,3 @@
-using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
 using Sundex.Components.File_Selector;
 using Sundex.Components.Labels;
@@ -60,9 +59,9 @@ public sealed class DialogHost(UIContext context, Panel root)
 
     /// <summary>Generic yes/no confirmation; closes itself either way.</summary>
     public void Confirm(string message, Action onConfirm, Action? onCancel = null,
-        string confirmLabel = "Delete", Vector4? confirmColor = null)
+        string confirmLabel = "Delete", string confirmClass = "dialog-button-danger")
     {
-        var dialog = new ConfirmDialog(context, message, confirmLabel, confirmColor);
+        var dialog = new ConfirmDialog(context, message, confirmLabel, confirmClass);
         var modal = Show(dialog.Element);
         dialog.CancelButton.OnClick = _ =>
         {

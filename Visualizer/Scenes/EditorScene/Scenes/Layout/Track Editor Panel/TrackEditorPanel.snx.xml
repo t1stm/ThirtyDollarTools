@@ -16,10 +16,10 @@
              flush against the bar's right edge - no space-between align here. -->
         <panel class="spacer"/>
         <button id="editor-tool-draw" class="tool-button">
-          <label value="Draw"/>
+          <label class="tool-label" value="Draw"/>
         </button>
         <button id="editor-tool-select" class="tool-button">
-          <label value="Select"/>
+          <label class="tool-label" value="Select"/>
         </button>
       </flex>
       <track-editor-view class="grid-view"/>

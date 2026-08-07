@@ -4,6 +4,7 @@
 // Per the rule in Controls.snx.ss, a dialog that wants different padding/spacing than
 // `dialog-frame` puts it on its own id rather than adding a second class - ids are
 // applied after classes, so the override is deterministic.
+import "Scenes/Styles/Theme.snx.ss" as theme;
 
 // The panel a dialog's contents stack in. Width is per-dialog (below) because it is
 // driven by the content: a two-column import dialog needs far more room than a
@@ -12,7 +13,7 @@ class dialog-frame {
     direction = "vertical";
     padding = 14;
     spacing = 14;
-    background = "#16161e";
+    background = $theme.panel;
 }
 
 // The trailing row holding a dialog's action buttons, right-aligned.
@@ -138,7 +139,7 @@ class import-column-description {
 class import-divider {
     width = 1;
     height = 84;
-    background = "#33344a";
+    background = $theme.divider;
 }
 
 // The row the two import options sit in.
@@ -169,10 +170,10 @@ id instrument-editor-picker {
 class editor-action-button {
     font-size = 14;
     border-radius = 8;
-    background = "#4c6bcc";
+    background = $theme.accent;
 
     state[hovered] = {
-        background = "#6b82c4";
+        background = $theme.accent_hover;
     }
 }
 
@@ -185,7 +186,7 @@ id instrument-name-input {
     width = 300;
     font-size = 15;
     border-radius = 6;
-    background = "#262936";
+    background = $theme.input_background;
 }
 
 id instrument-selector {
@@ -193,7 +194,7 @@ id instrument-selector {
     width = 320;
     height = 420;
     padding = 10;
-    background = "#16161e";
+    background = $theme.panel;
 }
 
 id instrument-selector-list {
@@ -211,7 +212,7 @@ class instrument-row {
     padding = 6;
     spacing = 10;
     border-radius = 6;
-    background = "#16161e";
+    background = $theme.panel;
 }
 
 // The Edit/Delete buttons on an instrument row - smaller than a dialog action.
@@ -220,20 +221,20 @@ class instrument-row {
 class row-button-light {
     font-size = 12;
     border-radius = 6;
-    background = "#7aa2f7";
+    background = $theme.header;
 
     state[hovered] = {
-        background = "#93b4f9";
+        background = $theme.header_hover;
     }
 }
 
 class row-button-danger {
     font-size = 12;
     border-radius = 6;
-    background = "#f7768e";
+    background = $theme.danger;
 
     state[hovered] = {
-        background = "#f78fa2";
+        background = $theme.danger_hover;
     }
 }
 

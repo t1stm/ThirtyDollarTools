@@ -56,8 +56,10 @@ public class TrackEditorViewTests
         state.OpenTrack(track);
         // The default zoom is 64 px/step and rows default to 20 px; these tests keep
         // the original 16 px / 8 px-row geometry.
-        var view = new TrackEditorView(ctx, state)
-            { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f };
+        // Styled like the editor styles it: the grid's colors are settings on the view
+        // (class note-canvas), so an unstyled one paints everything transparent.
+        var view = EditorTestContext.Styled(new TrackEditorView(ctx, state)
+            { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f });
         state.OnProjectChanged += view.InvalidateLayout; // the EditorInterface wiring
         view.Layout();
         return (ctx, state, view, track);

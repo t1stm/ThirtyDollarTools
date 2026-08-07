@@ -2,13 +2,15 @@
 // and the inspector, which both run full height. A static gesture/shortcut legend by
 // default, swapped for contextual text on hover (see EditorInterface.SetHint). Y and
 // width are set from EditorInterface.Resize - the window remainder isn't expressible here.
+import "Scenes/Styles/Theme.snx.ss" as theme;
+
 id hint-bar {
-    x = 260;
+    x = $theme.track_column_width;
     height = 26;
     direction = "horizontal";
     vertical-align = "center";
     padding = 8;
-    background = "#16161e";
+    background = $theme.panel;
 }
 
 // Indents the hint text past the active grid's gutter so it starts at the first
@@ -20,5 +22,5 @@ id hint-gutter {
 
 id hint-label {
     font-size = 12;
-    font-color = "#565f89";
+    font-color = $theme.text_muted;
 }

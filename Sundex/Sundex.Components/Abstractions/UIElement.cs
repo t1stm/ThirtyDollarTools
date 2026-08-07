@@ -49,7 +49,14 @@ public abstract class UIElement
     public UIContext Context { get; }
 
     public string ID { get; set; } = "";
-    public HashSet<string> Classes { get; set; } = [];
+
+    /// <summary>
+    ///     The style classes on this element, in the order they are applied: a later class
+    ///     overrides an earlier one's properties, and the id overrides all of them (see
+    ///     <see cref="SetNamedSetting" />). Ordered, not a set, so a state class appended
+    ///     by <see cref="SetClass" /> reliably wins over the base class it modifies.
+    /// </summary>
+    public List<string> Classes { get; set; } = [];
     public virtual ComputedRectangle Computed { get; protected set; }
 
     [NamedSetting("animations")]
@@ -556,6 +563,47 @@ public abstract class UIElement
 
     public virtual void ApplyStyleSheet(StyleSheet styleSheet)
     {
+        ApplyOwnStyle(styleSheet);
+    }
+
+    /// <summary>
+    ///     Adds or removes a style class and re-styles this element from the sheet it was
+    ///     last given - how a runtime state (a selected row, the active tool) is expressed,
+    ///     instead of reaching into the element's renderables from code. Only this element
+    ///     is re-styled, not its subtree, so a container can carry a state class without
+    ///     re-running reflection over everything inside it.
+    ///     <para>
+    ///         A class only sets properties; removing one does not unset them. A modifier
+    ///         class must therefore override a property an earlier class (or the element's
+    ///         tag) also declares, so removing the modifier restores that base value -
+    ///         <c>class track-row { background = panel }</c> under
+    ///         <c>class track-row-selected { background = row_selected }</c>.
+    ///     </para>
+    /// </summary>
+    /// <returns>True when the class set actually changed.</returns>
+    public bool SetClass(string name, bool enabled)
+    {
+        if (enabled)
+        {
+            if (Classes.Contains(name)) return false;
+            Classes.Add(name);
+        }
+        else if (!Classes.Remove(name))
+        {
+            return false;
+        }
+
+        if (StoredStyleSheet is not { } sheet) return true;
+        ApplyOwnStyle(sheet);
+        // The base pass just overwrote whatever the current hover/press override had put
+        // on top - a row is commonly selected by a click, i.e. while hovered. This restores
+        // it from the snapshot ApplyOwnStyle has just retaken.
+        InvalidateStyle();
+        return true;
+    }
+
+    private void ApplyOwnStyle(StyleSheet styleSheet)
+    {
         StoredStyleSheet = styleSheet;
         var properties = GetNamedSettings(GetType());
         foreach (var (propertyInfo, attribute) in properties)
@@ -660,6 +708,12 @@ public abstract class UIElement
                         animations.Add(anim.CreateInstance());
 
                 propertyInfo.SetValue(this, animations);
+                break;
+            }
+
+            case ArrayValue av when propertyInfo.PropertyType == typeof(Vector4[]):
+            {
+                propertyInfo.SetValue(this, av.Values.OfType<ColorValue>().Select(color => color.Vector).ToArray());
                 break;
             }
 

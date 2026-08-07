@@ -2,6 +2,7 @@
 // InspectorForm), so they live next to those files rather than in Scenes/Styles.
 // Shared vocabulary the inspector also uses - text-field, muted-label, chip-button -
 // comes from Scenes/Styles/Controls.snx.ss.
+import "Scenes/Styles/Theme.snx.ss" as theme;
 
 // The panel itself, built by InspectorShell.snx.xml. Its column width is
 // EditorInterface.snx.ss's inspector-column; this fills it.
@@ -46,8 +47,8 @@ id inspector-status-bar {
     width = 100%;
     height = 6;
     visible = false;
-    background = "#292e42";
-    foreground = "#4c6bcc";
+    background = $theme.surface;
+    foreground = $theme.accent;
 }
 
 // ---------------------------------------------------------------- rows
@@ -72,12 +73,12 @@ class inspector-card {
 
 // One shade above the panel background.
 class inspector-card-entry {
-    background = "#292e42";
+    background = $theme.surface;
 }
 
 // One more shade up, for a keyframe nested inside an entry.
 class inspector-card-keyframe {
-    background = "#353a54";
+    background = $theme.surface_raised;
 }
 
 // A checkbox row whose extra flags wrap onto a second line when the panel is narrow.

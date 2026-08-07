@@ -4,6 +4,7 @@ using Sundex.Components.Scroll;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
+using EditorScene.Scenes.Views;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
 // so this suite must also run sequentially.
@@ -137,5 +138,27 @@ public class EditorInterfaceMarkupTests
         var markup = BuildableContext();
         markup.NewComponent(Load(_context, "Layout/Editor Interface/EditorInterface"));
         markup.NewComponent(Load(_context, "Layout/Editor Interface/EditorInterface"));
+    }
+
+    /// <summary>
+    ///     A factory-built view keeps the class it set on itself and is styled through it.
+    ///     Both halves are load-bearing and neither is visible from the markup: the grid's
+    ///     line and block colors are settings on the view (class note-canvas, set in its
+    ///     constructor), and the builder used to assign markup's class list over the
+    ///     element's own - which dropped it, leaving the whole grid painting transparent.
+    /// </summary>
+    [Fact]
+    public void AFactoryBuiltView_KeepsItsOwnClass_AndIsStyledThroughIt()
+    {
+        var state = new EditorState();
+        var view = new TrackEditorView(_context, state);
+        var markup = new SundexContext(_context);
+        markup.RegisterElementFactory("track-editor-view", _ => view);
+        markup.NewComponent(Load(_context, "Layout/Track Editor Panel/TrackEditorPanel"));
+
+        // grid-view from the markup, note-canvas from the constructor - in that order.
+        Assert.Equal(["note-canvas", "grid-view"], view.Classes);
+        Assert.NotEqual(default, view.StepLineColor);
+        Assert.NotEmpty(view.SoundPalette);
     }
 }

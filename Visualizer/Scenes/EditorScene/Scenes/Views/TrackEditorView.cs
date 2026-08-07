@@ -3,6 +3,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Attributes;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
@@ -59,29 +60,6 @@ public sealed class TrackEditorView : Panel
     private const int BeatLabelPool = 128;
     private const float MinBeatLabelSpacingPx = 28f;
 
-    // Every one of these comes from EditorPalette. They stay as named locals because the
-    // draw code below reads them dozens of times and the names say what each shade is for.
-    private static Vector4 BackgroundColor => EditorPalette.GridBackground;
-    private static Vector4 GutterColor => EditorPalette.Panel;
-    private static Vector4 StripColor => EditorPalette.Panel;
-    private static Vector4 CutRowColor => EditorPalette.CutRow;
-    internal static Vector4 StripSegmentA => EditorPalette.StripSegmentA;
-    private static Vector4 StripSegmentB => EditorPalette.StripSegmentB;
-    private static Vector4 StripSelected => EditorPalette.Accent;
-    private static Vector4 StepLineColor => EditorPalette.StepLine;
-    private static Vector4 BeatLineColor => EditorPalette.Surface;
-    private static Vector4 RowLineColor => EditorPalette.RowLine;
-    private static Vector4 OctaveLineColor => EditorPalette.OctaveLine;
-    private static Vector4 BoundaryColor => EditorPalette.TextMuted;
-    private static Vector4 ZeroRowColor => EditorPalette.ZeroRow;
-    private static Vector4 SelectedNoteColor => EditorPalette.SelectionHighlight;
-    private static Vector4 LabelColor => EditorPalette.TextDim;
-    private static Vector4 PlayheadColor => EditorPalette.Playhead;
-
-    // Stable per-sound colors (string.GetHashCode is randomized per process); the
-    // entries live in EditorPalette.
-    internal static Vector4[] SoundPalette => EditorPalette.SoundPalette;
-
     internal readonly List<Label> BeatLabels = [];
     internal readonly List<Label> GutterLabels = [];
 
@@ -120,18 +98,20 @@ public sealed class TrackEditorView : Panel
     {
         _state = state;
         Focusable = true;
-        Background = new ColoredPlane { Color = BackgroundColor };
+        // Set here rather than in the markup: the draw code below cannot paint anything
+        // without this rule's colors, so it must not depend on a usage site listing it.
+        Classes = ["note-canvas"];
 
         // Row/step/boundary lines render as one instanced draw call (see LineBatch)
         // queued in DrawSelf, below Children in the same depth layer - same spot in
         // paint order "grid furniture first" put them in before.
         _lineBatch.Count = LineBatchTotal;
 
-        _zeroRow = NewGhost(context, ZeroRowColor);
+        _zeroRow = NewGhost(context, "grid-zero-row");
         AddChild(_zeroRow);
 
         // Automation paths render under the note blocks and never take input.
-        _automationPath = new AutomationPath(context, this, AutomationMarkPool, StepLineColor);
+        _automationPath = new AutomationPath(context, this, AutomationMarkPool);
 
         for (var i = 0; i < NoteBlockPool; i++)
         {
@@ -140,7 +120,7 @@ public sealed class TrackEditorView : Panel
             AddChild(block);
         }
 
-        var strip = NewGhost(context, StripColor);
+        var strip = NewGhost(context, "grid-strip");
         AddChild(strip);
         _stripBackground = strip;
         for (var i = 0; i < StripBlockPool; i++)
@@ -150,7 +130,7 @@ public sealed class TrackEditorView : Panel
             AddChild(block);
         }
 
-        var ruler = NewGhost(context, StripColor);
+        var ruler = NewGhost(context, "grid-strip");
         AddChild(ruler);
         _rulerBackground = ruler;
         for (var i = 0; i < BeatLabelPool; i++)
@@ -162,7 +142,7 @@ public sealed class TrackEditorView : Panel
 
         var gutter = new Panel(context)
         {
-            Background = new ColoredPlane { Color = GutterColor },
+            Classes = ["grid-gutter"],
             OnClick = _ => { } // swallow: never place notes through the gutter
         };
         _gutterBackground = gutter;
@@ -187,7 +167,7 @@ public sealed class TrackEditorView : Panel
 
         // Added after the gutter and its label so the rule spans the full width,
         // crossing the gutter column too, instead of being cut off by it.
-        _cutRule = NewGhost(context, BoundaryColor);
+        _cutRule = NewGhost(context, "grid-cut-rule");
         AddChild(_cutRule);
 
         // Added last so it renders above every note block (same trick ArrangementView
@@ -196,11 +176,70 @@ public sealed class TrackEditorView : Panel
         {
             Width = 0,
             Height = 0,
-            Background = new ColoredPlane
-                { Color = EditorPalette.MarqueeFill }
+            Classes = ["grid-marquee"]
         };
         AddChild(_marqueeRect);
     }
+
+    // The grid's own colors, from `class note-canvas` (Scenes/Views/GridViews.snx.ss).
+    // These paint the LineBatch and the pooled note/strip/label fills rather than styled
+    // elements, so no selector can reach them - they arrive as settings on the view
+    // itself instead, and the draw code below reads them off `this`.
+
+    /// <summary>Beat numbers on the ruler, and the beat the playhead is currently in.</summary>
+    [NamedSetting("label-color")]
+    public Vector4 LabelColor { get; set; }
+
+    /// <inheritdoc cref="LabelColor" />
+    [NamedSetting("playhead-color")]
+    public Vector4 PlayheadColor { get; set; }
+
+    /// <summary>The line work, faintest first.</summary>
+    [NamedSetting("step-line-color")]
+    public Vector4 StepLineColor { get; set; }
+
+    /// <inheritdoc cref="StepLineColor" />
+    [NamedSetting("row-line-color")]
+    public Vector4 RowLineColor { get; set; }
+
+    /// <inheritdoc cref="StepLineColor" />
+    [NamedSetting("octave-line-color")]
+    public Vector4 OctaveLineColor { get; set; }
+
+    /// <inheritdoc cref="StepLineColor" />
+    [NamedSetting("beat-line-color")]
+    public Vector4 BeatLineColor { get; set; }
+
+    /// <summary>Segment boundaries, and the rule under the pinned !cut row.</summary>
+    [NamedSetting("boundary-color")]
+    public Vector4 BoundaryColor { get; set; }
+
+    /// <summary>The !cut row's own band.</summary>
+    [NamedSetting("cut-row-color")]
+    public Vector4 CutRowColor { get; set; }
+
+    /// <summary>Segment strips alternate between these two, so a boundary needs no line.</summary>
+    [NamedSetting("strip-segment-a")]
+    public Vector4 StripSegmentA { get; set; }
+
+    /// <inheritdoc cref="StripSegmentA" />
+    [NamedSetting("strip-segment-b")]
+    public Vector4 StripSegmentB { get; set; }
+
+    /// <summary>The selected segment's strip.</summary>
+    [NamedSetting("strip-selected-color")]
+    public Vector4 StripSelected { get; set; }
+
+    /// <summary>A note block's fill while it is part of the selection.</summary>
+    [NamedSetting("selected-note-color")]
+    public Vector4 SelectedNoteColor { get; set; }
+
+    /// <summary>
+    ///     Stable per-sound note colors: an instrument's name picks its index (hashed here
+    ///     rather than with string.GetHashCode, which is randomized per process).
+    /// </summary>
+    [NamedSetting("sound-palette")]
+    public Vector4[] SoundPalette { get; set; } = [];
 
     internal IReadOnlyList<Panel> AutomationMarks => _automationPath.Marks;
     internal IReadOnlyList<NoteBlock> NoteBlocks => _noteBlocks;
@@ -550,7 +589,7 @@ public sealed class TrackEditorView : Panel
         {
             if (shown >= _playheads.Count)
             {
-                var created = NewGhost(Context, PlayheadColor);
+                var created = NewGhost(Context, "grid-playhead");
                 _playheads.Add(created);
                 AddChild(created);
             }
@@ -1040,20 +1079,26 @@ public sealed class TrackEditorView : Panel
         return _geometry.UnsnappedValueAt(absY - Computed.AbsoluteY);
     }
 
-    private static Vector4 InstrumentColor(Instrument instrument)
+    private Vector4 InstrumentColor(Instrument instrument)
     {
+        if (SoundPalette.Length == 0) return default;
         var hash = 0;
         foreach (var c in instrument.Name) hash = hash * 31 + c;
         return SoundPalette[(hash & 0x7fffffff) % SoundPalette.Length];
     }
 
-    private static Panel NewGhost(UIContext context, Vector4 color)
+    /// <summary>
+    ///     A parked, input-transparent plane the layout resizes into some piece of grid
+    ///     furniture. Its fill comes from <paramref name="className" /> once this view is
+    ///     styled, which AddChild takes care of for a child added before that happens.
+    /// </summary>
+    private static Panel NewGhost(UIContext context, string className)
     {
         return new GhostPanel(context)
         {
             Width = 0,
             Height = 0,
-            Background = new ColoredPlane { Color = color }
+            Classes = [className]
         };
     }
 

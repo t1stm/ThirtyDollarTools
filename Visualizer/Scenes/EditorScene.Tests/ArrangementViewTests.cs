@@ -37,7 +37,9 @@ public class ArrangementViewTests
     {
         var ctx = new EditorTestContext();
         var state = new EditorState();
-        var view = new ArrangementView(ctx, state) { Width = 800, Height = 400 };
+        // Styled like the editor styles it: the grid's colors are settings on the view
+        // (class arrangement-canvas), so an unstyled one paints everything transparent.
+        var view = EditorTestContext.Styled(new ArrangementView(ctx, state) { Width = 800, Height = 400 });
         state.OnProjectChanged += view.Refresh; // the EditorInterface wiring
         state.OnPlacementSelectionChanged += _ => view.RefreshSelection();
         view.Layout();

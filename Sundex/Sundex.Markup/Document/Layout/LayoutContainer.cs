@@ -27,12 +27,14 @@ public class LayoutContainer(RootContainer root, XmlElement layoutElement)
         attributes.Remove("id", out var idString);
         attributes.Remove("class", out var classString);
 
-        HashSet<string>? classes = null;
+        List<string>? classes = null;
         if (classString is not null)
         {
             classes = [];
             if (classString.StartsWith('[') && classString.EndsWith(']'))
-                classes = [.. classString[1..^1].Split(',')];
+                // Trimmed: `class="[a, b]"` used to yield a class literally named " b",
+                // which matches no rule and fails silently.
+                classes = [.. classString[1..^1].Split(',', StringSplitOptions.TrimEntries)];
             else classes.Add(classString);
         }
 

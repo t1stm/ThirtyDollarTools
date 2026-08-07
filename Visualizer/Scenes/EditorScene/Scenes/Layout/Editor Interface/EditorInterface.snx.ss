@@ -3,10 +3,11 @@
 // that sit next to the .cs file they belong to.
 //
 // Editing any of these changes the editor's look without a rebuild - the sheets are
-// loaded at startup, and code-built components take their styling from here too
-// (a panel hands its sheet to whatever is added to it). The exception is the colors in
-// EditorPalette.cs: they paint raw renderables no selector can reach, so they are
-// compiled in and the control rules below quote the same hexes literally.
+// loaded at startup, and code-built components take their styling from here too (a
+// panel hands its sheet to whatever is added to it). Even the grid views' line and
+// block colors, which reach no element at all, are settings on the view itself now -
+// see the canvas rules in Scenes/Views/GridViews.snx.ss.
+import "Scenes/Styles/Theme.snx.ss" as theme;
 import "Scenes/Styles/Controls.snx.ss";
 import "Scenes/Styles/Dialogs.snx.ss";
 import "Scenes/Styles/Panels.snx.ss";
@@ -17,7 +18,7 @@ import "Scenes/Views/GridViews.snx.ss";
 id main-holder {
     width = 100%;
     height = 100%;
-    background = "#1a1b26";
+    background = $theme.background;
 }
 
 // editor-header's and hint-bar's rules moved out with their markup, into
@@ -29,12 +30,12 @@ id main-holder {
 // EditorInterface.Resize - the window remainder isn't expressible here.
 id track-column {
     y = 32;
-    width = 260;
-    background = "#16161e";
+    width = $theme.track_column_width;
+    background = $theme.panel;
 }
 
 id grid-area {
-    x = 260;
+    x = $theme.track_column_width;
     y = 32;
     direction = "horizontal";
 }
@@ -44,7 +45,7 @@ id grid-area {
 id inspector-column {
     y = 32;
     width = 300;
-    background = "#16161e";
+    background = $theme.panel;
 }
 
 // No `component label` / `component button` rules on purpose.

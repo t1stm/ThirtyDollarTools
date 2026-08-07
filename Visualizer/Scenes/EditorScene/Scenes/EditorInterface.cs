@@ -130,11 +130,7 @@ public class EditorInterface
         State.OnToolChanged += tool =>
         {
             foreach (var (button, buttonTool) in _toolButtons)
-            {
-                var active = buttonTool == tool;
-                ((ColoredPlane)button.Background!).Color = active ? ToolAccent(buttonTool) : EditorPalette.Surface;
-                button.Label.Color = ToolTextColor(buttonTool, active);
-            }
+                SetToolActive(button, buttonTool, buttonTool == tool);
         };
 
         // Runs every component's logic depth-first, then verifies that no [SetFromLogic]
@@ -319,32 +315,26 @@ public class EditorInterface
 
     /// <summary>
     ///     Takes over a markup-built Draw/Select toggle; every adopted button then follows
-    ///     State.OnToolChanged (see ctor). The fill stays code-owned - it tracks
-    ///     State.ActiveTool, and a stylesheet `background` would be swapped out from under
-    ///     it on the next hover, which is why `class tool-button` sets no background.
-    ///     Public because the two grid panels' .snx.csx call it, and a script only reaches
-    ///     the public surface - EditorPalette is internal, so the tint cannot live there.
+    ///     State.OnToolChanged (see ctor). Public because the two grid panels' .snx.csx
+    ///     call it, and a script only reaches the public surface.
     /// </summary>
     [UsedImplicitly]
     public void AdoptToolButton(Button button, EditorTool tool)
     {
-        var active = State.ActiveTool == tool;
-        button.Background = new ColoredPlane { Color = active ? ToolAccent(tool) : EditorPalette.Surface };
-        button.Label.Color = ToolTextColor(tool, active);
+        SetToolActive(button, tool, State.ActiveTool == tool);
         button.OnClick = _ => State.ActiveTool = tool;
         _toolButtons.Add((button, tool));
     }
 
-    /// <summary>Each tool's active-highlight color: Draw blue, Select yellow.</summary>
-    private static Vector4 ToolAccent(EditorTool tool)
+    /// <summary>
+    ///     Adds or removes a toggle's highlight class: Draw's is blue, Select's is a yellow
+    ///     light enough that its label needs darkening (dark-label) to stay readable.
+    /// </summary>
+    private static void SetToolActive(Button button, EditorTool tool, bool active)
     {
-        return tool == EditorTool.Select ? EditorPalette.AccentYellow : EditorPalette.Accent;
-    }
-
-    /// <summary>Select's yellow highlight is light, so its active label needs dark text for contrast.</summary>
-    private static Vector4 ToolTextColor(EditorTool tool, bool active)
-    {
-        return active && tool == EditorTool.Select ? EditorPalette.Panel : Vector4.One;
+        var select = tool == EditorTool.Select;
+        button.SetClass(select ? "tool-button-select-active" : "tool-button-draw-active", active);
+        button.Label.SetClass("dark-label", active && select);
     }
 
     /// <summary>Same lazy-fill guard as <see cref="InstrumentEditor.EnsureSounds" />, for the filter picker.</summary>
@@ -416,7 +406,7 @@ public class EditorInterface
         _dialogHost.Confirm($"\"{Path.GetFileName(path)}\" has no file extension.\n" +
                             $"Import it as a TDW sequence?",
             () => ImportSequenceFile(path),
-            confirmLabel: "Continue", confirmColor: EditorPalette.Accent);
+            confirmLabel: "Continue", confirmClass: "dialog-button-primary");
     }
 
     /// <summary>
@@ -442,7 +432,7 @@ public class EditorInterface
                     "Importing as a project discards unsaved changes.\n" +
                     "Continue?",
                     () => _projectIo.ImportTdw(path, ImportMode.Project, SoundMap()),
-                    confirmLabel: "Import", confirmColor: EditorPalette.Accent);
+                    confirmLabel: "Import", confirmClass: "dialog-button-primary");
             else
                 _projectIo.ImportTdw(path, ImportMode.Project, SoundMap());
         };
