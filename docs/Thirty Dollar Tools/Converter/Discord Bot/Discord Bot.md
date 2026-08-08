@@ -2,7 +2,7 @@
 
 > Owning project: `Converter/ThirtyDollarConverter.DiscordBot/`
 
-The same converter as the [[../Converter.GUI/Converter.GUI|GUI]] and the [[../Converter.CLI/Converter.CLI|CLI]], but exposed as a Discord bot. Users upload (or right-click) a sequence file, the bot encodes it through the same five phases ([[../Phases/1 - Getting All Samples|Getting All Samples]] → [[../Phases/2 - Loading Into Memory|Loading Into Memory]] → [[../Phases/3 - Parsing Sequences|Parsing Sequences]] → [[../Phases/4 - Calculating the Placement|Calculating the Placement]] → [[../Phases/5 - Encoding|Encoding]]), and replies with the audio attachment.
+The same converter as the [GUI](../Converter.GUI/Converter.GUI.md) and the [CLI](../Converter.CLI/Converter.CLI.md), but exposed as a Discord bot. Users upload (or right-click) a sequence file, the bot encodes it through the same five phases ([Getting All Samples](../Phases/1%20-%20Getting%20All%20Samples.md) → [Loading Into Memory](../Phases/2%20-%20Loading%20Into%20Memory.md) → [Parsing Sequences](../Phases/3%20-%20Parsing%20Sequences.md) → [Calculating the Placement](../Phases/4%20-%20Calculating%20the%20Placement.md) → [Encoding](../Phases/5%20-%20Encoding.md)), and replies with the audio attachment.
 
 ## Files
 
@@ -27,8 +27,8 @@ The same converter as the [[../Converter.GUI/Converter.GUI|GUI]] and the [[../Co
 
 ## Relationship to the rest of the converter
 
-Same engine as the [[../Converter.GUI/Converter.GUI|GUI]] and [[../Converter.CLI/Converter.CLI|CLI]]. The bot's only domain-specific code is Discord plumbing and the ffmpeg transcode — everything below `PcmEncoder` is identical. See [[../Converter|Converter]] for the engine itself.
+Same engine as the [GUI](../Converter.GUI/Converter.GUI.md) and [CLI](../Converter.CLI/Converter.CLI.md). The bot's only domain-specific code is Discord plumbing and the ffmpeg transcode — everything below `PcmEncoder` is identical. See [Converter](../Converter.md) for the engine itself.
 
 ---
 
-**Up:** [[../Converter|Converter]]
+**Up:** [Converter](../Converter.md)

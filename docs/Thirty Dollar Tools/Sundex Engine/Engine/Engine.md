@@ -6,12 +6,12 @@ If you only read one section in this vault, this is the one. The whole stack rea
 
 ## Pages
 
-- [[Entrypoint|Entrypoint]] — `Game.cs`, `GameGlobals`, `GLInfo`, the game loop, debug callbacks, lifecycle.
-- [[Asset Management|Asset Management]] — `AssetProvider`, `IAssetLoader<T>`, `CacheProvider`, `ShaderPool`, embedded vs. file vs. cache storage.
-- [[Renderer/Renderer|Renderer]] — VAOs, VBOs, shaders, textures, atlases, the deferred [[Renderer/Queues|delete queue]], cameras.
-- [[Scene Management|Scene Management]] — `Scene`, `SceneManager`, transitions, init/render/update/resize/keyboard/mouse pipelines.
-- [[Text Rendering/Text Rendering|Text Rendering]] — MSDF font rasterization (`GlyphProvider`), `TextProvider`, `TextBuffer`, `TextSlice`, `Batched.vert`/`.frag`.
-- [[Threading|Threading]] — `ThreadRunner`, marshalling exceptions back to the GL thread.
+- [Entrypoint](Entrypoint.md) — `Game.cs`, `GameGlobals`, `GLInfo`, the game loop, debug callbacks, lifecycle.
+- [Asset Management](Asset%20Management.md) — `AssetProvider`, `IAssetLoader<T>`, `CacheProvider`, `ShaderPool`, embedded vs. file vs. cache storage.
+- [Renderer](Renderer/Renderer.md) — VAOs, VBOs, shaders, textures, atlases, the deferred [delete queue](Renderer/Queues.md), cameras.
+- [Scene Management](Scene%20Management.md) — `Scene`, `SceneManager`, transitions, init/render/update/resize/keyboard/mouse pipelines.
+- [Text Rendering](Text%20Rendering/Text%20Rendering.md) — MSDF font rasterization (`GlyphProvider`), `TextProvider`, `TextBuffer`, `TextSlice`, `Batched.vert`/`.frag`.
+- [Threading](Threading.md) — `ThreadRunner`, marshalling exceptions back to the GL thread.
 
 ## Bird's-eye picture
 
@@ -39,7 +39,7 @@ A handful of types live in `Sundex.Core` and are consumed by the engine:
 
 - `Renderable` — the abstract base for anything drawable. Has `Position`, `Scale`, `Color`, an `Animations` list, and a `Render(camera)` method.
 - `ISeekableStopwatch` / `SeekableStopwatch` — pause-able, seek-able timer used by animations.
-- `Animations/` — keyframe animation runtime. See [[../Style DSL/Animations|Animations]] for how the style DSL feeds into this.
+- `Animations/` — keyframe animation runtime. See [Animations](../Style%20DSL/Animations.md) for how the style DSL feeds into this.
 
 ## NuGet / package surface
 

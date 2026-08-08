@@ -52,12 +52,12 @@ Six built-in tags + a fallthrough for custom factories and imported components. 
 
 | Tag | Maps to | Notes |
 |---|---|---|
-| `<stack>` | [[../../Components/Panels#StackPanel|`StackPanel`]] | Children built recursively. |
-| `<flex>` | [[../../Components/Panels#FlexPanel|`FlexPanel`]] | Children built recursively. |
-| `<panel>` | [[../../Components/Panels#Panel|`Panel`]] | Children built recursively. |
-| `<label>` | [[../../Components/Labels#Label|`Label`]] | Reads `value="..."` attribute for initial text. |
-| `<progress>` | [[../../Components/Bars#ProgressBar|`ProgressBar`]] | Reads `background`/`foreground` style values for plane defaults; `value="..."` for initial progress. |
-| `<button>` | [[../../Components/Labels#Button|`Button`]] | Requires exactly one `<label>` child. |
+| `<stack>` | [`StackPanel`](../../Components/Panels.md#stackpanel) | Children built recursively. |
+| `<flex>` | [`FlexPanel`](../../Components/Panels.md#flexpanel) | Children built recursively. |
+| `<panel>` | [`Panel`](../../Components/Panels.md#panel) | Children built recursively. |
+| `<label>` | [`Label`](../../Components/Labels.md#label) | Reads `value="..."` attribute for initial text. |
+| `<progress>` | [`ProgressBar`](../../Components/Bars.md#progressbar) | Reads `background`/`foreground` style values for plane defaults; `value="..."` for initial progress. |
+| `<button>` | [`Button`](../../Components/Labels.md#button) | Requires exactly one `<label>` child. |
 
 ### `<label>`
 
@@ -238,7 +238,7 @@ The `true` is `ignoreCase`. So `direction="Vertical"` and `direction="vertical"`
 
 The padding case checks `element is IPositioningElement pe` rather than concrete-typing. This is what lets future panel-like components opt in to padding without touching the parser — implement `IPositioningElement` and `ApplyAttributes` will set it.
 
-`spacing` and `direction` use concrete `StackPanel`/`FlexPanel` checks because they currently only apply to those two — `Panel` (the base) doesn't have `Spacing` ([[../../Components/Panels#Panel|it does, actually, but only as a stylesheet-driven property]]). The mismatch is a small wart: `IPositioningElement` defines `Spacing` and `Direction`, so this could be unified. Currently the typed switch is preserved to avoid behavioural changes.
+`spacing` and `direction` use concrete `StackPanel`/`FlexPanel` checks because they currently only apply to those two — `Panel` (the base) doesn't have `Spacing` ([it does, actually, but only as a stylesheet-driven property](../../Components/Panels.md#panel)). The mismatch is a small wart: `IPositioningElement` defines `Spacing` and `Direction`, so this could be unified. Currently the typed switch is preserved to avoid behavioural changes.
 
 ## `ParseLiteralOrComputable` — width/height value parser
 
@@ -302,7 +302,7 @@ Used only by `<progress>` and `<button>` to grab a `Renderable` for their constr
 
 Trade-off: `GetStyleValueForTag` only matches by *tag name*, not by ID or class. So a `<button id="primary">` whose CSS is `button#primary { background: ...; }` won't get its specific background piped through to the constructor — it'll fall back to the tag-level rule. The post-pass `ApplyStyleSheet` will eventually apply the more specific rule, swapping the background.
 
-This works correctly because `Button.ApplyStyleValue` (inherited from [[../../Components/Panels#Panel|`Panel`]]) handles background swaps via `HandleRenderableSwap`. The constructor-time background is essentially a placeholder for the moment between construction and `ApplyStyleSheet`.
+This works correctly because `Button.ApplyStyleValue` (inherited from [`Panel`](../../Components/Panels.md#panel)) handles background swaps via `HandleRenderableSwap`. The constructor-time background is essentially a placeholder for the moment between construction and `ApplyStyleSheet`.
 
 ## ID and class registration
 
@@ -333,11 +333,11 @@ For classes, the list is *additive* — duplicate class names within one element
 
 ## Threading
 
-`BuildUIElement` is GL-thread only — every constructor it calls (`new Label`, `new Panel`, `new Button`) allocates GPU resources. See [[Component Builders|Component Builders]] for the round-trip pattern.
+`BuildUIElement` is GL-thread only — every constructor it calls (`new Label`, `new Panel`, `new Button`) allocates GPU resources. See [Component Builders](Component%20Builders.md) for the round-trip pattern.
 
 ## Related
 
-- [[../../Components/Components|Components]] — the target classes.
-- [[Component Builders|Component Builders]] — the orchestrator that calls into `BuildUIElement`.
-- [[Parsing Style|Parsing Style]] — the next phase (post-pass `ApplyStyleSheet`).
-- [[../Component Definition#registration|Component registration]] — what the registry dictionaries feed into.
+- [Components](../../Components/Components.md) — the target classes.
+- [Component Builders](Component%20Builders.md) — the orchestrator that calls into `BuildUIElement`.
+- [Parsing Style](Parsing%20Style.md) — the next phase (post-pass `ApplyStyleSheet`).
+- [Component registration](../Component%20Definition.md#component-registration) — what the registry dictionaries feed into.

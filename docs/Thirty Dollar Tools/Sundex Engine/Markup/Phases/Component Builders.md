@@ -1,6 +1,6 @@
 # Component Builders
 
-`IComponentBuilder` is the interface; `ComponentBuilderV1` is the only implementation. The builder takes a [[../Markup Parser|`SundexDocument`]] and turns it into a [[../Component Definition|`SundexComponent`]] — the orchestrator of the pipeline phases.
+`IComponentBuilder` is the interface; `ComponentBuilderV1` is the only implementation. The builder takes a [`SundexDocument`](../Markup%20Parser.md) and turns it into a [`SundexComponent`](../Component%20Definition.md) — the orchestrator of the pipeline phases.
 
 > Source: `Sundex/Sundex.Markup/Abstract/IComponentBuilder.cs`, `Sundex/Sundex.Markup/Builders/ComponentBuilderV1.cs`.
 
@@ -106,7 +106,7 @@ private static List<ISundexComponent> HandleDependencies(SundexDocument layout, 
 }
 ```
 
-For every name in `imports="['x', 'y']"`, ask the context to find a registered component. Throws if any name is unknown. The list is passed to `BuildUIElement` and consulted when an unknown tag is encountered (see [[Parsing Markup#Tag dispatch|Tag dispatch]]).
+For every name in `imports="['x', 'y']"`, ask the context to find a registered component. Throws if any name is unknown. The list is passed to `BuildUIElement` and consulted when an unknown tag is encountered (see [Tag dispatch](Parsing%20Markup.md#tag-dispatch-the-built-ins)).
 
 ### Step 2 — Tree construction
 
@@ -147,11 +147,11 @@ if (layout.Style is not null) {
 
 Three things happen:
 
-1. If the style has `src="..."`, load the file via [[../../Engine/Asset Management|`AssetProvider.Load<StringAsset>`]] and overwrite `SourceCode`.
-2. Hand the source text to [[../../Style DSL/Style DSL|`StyleParser.Parse`]] with an *import resolver* — a callback `(string path) => string content` that the parser can call when it sees `@import "...";` directives. The resolver delegates to `AssetProvider`.
+1. If the style has `src="..."`, load the file via [`AssetProvider.Load<StringAsset>`](../../Engine/Asset%20Management.md) and overwrite `SourceCode`.
+2. Hand the source text to [`StyleParser.Parse`](../../Style%20DSL/Style%20DSL.md) with an *import resolver* — a callback `(string path) => string content` that the parser can call when it sees `@import "...";` directives. The resolver delegates to `AssetProvider`.
 3. Wrap the parsed result in a `StyleSheet` (the matching engine — selector → matched values).
 
-The import resolver is **closing over the context's `AssetProvider`**, so imported stylesheets resolve through the same asset paths as the source. This is what lets a stylesheet split across files (`@import "theme.smxs"; @import "buttons.smxs";`) without the parser needing to know about file I/O.
+The import resolver is **closing over the context's `AssetProvider`**, so imported stylesheets resolve through the same asset paths as the source. This is what lets a stylesheet split across files (`@import "theme.snx.ss"; @import "buttons.snx.ss";`) without the parser needing to know about file I/O.
 
 `StringInfo.CreateFromUnknownStorage(src)` is the asset-locator helper — tries embedded, on-disk, and cache locations in turn.
 
@@ -169,7 +169,7 @@ Two empty dictionaries get passed by reference into `BuildUIElement`, which popu
 
 `StringComparer.Ordinal` — case-sensitive, no culture rules. IDs and classes are identifiers, not natural-language text.
 
-The full `BuildUIElement` body is the subject of [[Parsing Markup|Parsing Markup]].
+The full `BuildUIElement` body is the subject of [Parsing Markup](Parsing%20Markup.md).
 
 ### Step 5 — Apply stylesheet
 
@@ -178,7 +178,7 @@ if (styleSheet is not null)
     uiElement.ApplyStyleSheet(styleSheet);
 ```
 
-`UIElement.ApplyStyleSheet` walks the realised tree, looking for selector matches and applying values via the `[NamedSetting]` reflection machinery (see [[../../Components/Abstractions#Style application — the [NamedSetting] flow|UIElement style application]]).
+`UIElement.ApplyStyleSheet` walks the realised tree, looking for selector matches and applying values via the `[NamedSetting]` reflection machinery (see [UIElement style application](../../Components/Abstractions.md#style-application-the-namedsetting-flow)).
 
 This **must** happen after the tree is built — `Panel.ApplyStyleSheet` calls `child.ApplyStyleSheet` recursively, so children must exist. It can't be folded into `BuildUIElement` because some style values (e.g. background swaps) need the parent's `Computed.Width`/`Height` to resolve `border-radius`, which hasn't run a layout yet — but at least the tree shape is stable.
 
@@ -229,7 +229,7 @@ component.RunLogic = runLogic;
 
 Symmetric with the style stage — same `src=` resolution, same `UpdateSourceCode`, then hand off to a language plugin (`LanguageProvider.Languages["csharp"]`) to compile.
 
-The compiled delegate is **stored, not invoked**. The host calls `component.RunLogic?.Invoke(target)` when ready (typically after wiring the component into the scene). See [[Parsing Logic|Parsing Logic]] for the C# specifics.
+The compiled delegate is **stored, not invoked**. The host calls `component.RunLogic?.Invoke(target)` when ready (typically after wiring the component into the scene). See [Parsing Logic](Parsing%20Logic.md) for the C# specifics.
 
 The key subtlety: `language.Compile` receives the freshly-built `component` so the script can capture it via its `ScriptGlobals.Component` member. Scripts close over `component` and can call `component.GetID<T>("...")`.
 
@@ -273,8 +273,8 @@ There's no good way to move `CreateComponent` itself off-thread — too many GL 
 
 ## Related
 
-- [[Parsing Markup|Parsing Markup]] — the `BuildUIElement` recursion this orchestrator drives.
-- [[Parsing Style|Parsing Style]] — what step 3 / step 5 actually do.
-- [[Parsing Logic|Parsing Logic]] — what step 7 does.
-- [[../Component Definition|Component Definition]] — the `SundexComponent` this produces.
-- [[../../Engine/Asset Management|Asset Management]] — the `src=` resolution backing.
+- [Parsing Markup](Parsing%20Markup.md) — the `BuildUIElement` recursion this orchestrator drives.
+- [Parsing Style](Parsing%20Style.md) — what step 3 / step 5 actually do.
+- [Parsing Logic](Parsing%20Logic.md) — what step 7 does.
+- [Component Definition](../Component%20Definition.md) — the `SundexComponent` this produces.
+- [Asset Management](../../Engine/Asset%20Management.md) — the `src=` resolution backing.

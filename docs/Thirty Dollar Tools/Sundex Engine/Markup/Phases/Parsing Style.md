@@ -1,10 +1,10 @@
 # Parsing Style
 
-The bridge between the markup pipeline and the [[../../Style DSL/Style DSL|Style DSL]]. The builder loads `<style>` content (inline or from `src=`), hands it to `StyleParser.Parse` with an import resolver, wraps the result in a `StyleSheet`, and later calls `uiElement.ApplyStyleSheet(...)` to fan styles out across the realised tree.
+The bridge between the markup pipeline and the [Style DSL](../../Style%20DSL/Style%20DSL.md). The builder loads `<style>` content (inline or from `src=`), hands it to `StyleParser.Parse` with an import resolver, wraps the result in a `StyleSheet`, and later calls `uiElement.ApplyStyleSheet(...)` to fan styles out across the realised tree.
 
 > Source: `Sundex/Sundex.Markup/Builders/ComponentBuilderV1.cs` (the style block in `CreateComponent`).
 >
-> Source for `StyleParser` itself: see [[../../Style DSL/Style DSL|Style DSL]].
+> Source for `StyleParser` itself: see [Style DSL](../../Style%20DSL/Style%20DSL.md).
 
 ## The two-step pattern
 
@@ -69,7 +69,7 @@ if (!string.IsNullOrEmpty(src)) {
 }
 ```
 
-If `<style src="theme.snx.ss"/>`, the builder loads `theme.snx.ss` via the [[../../Engine/Asset Management|`AssetProvider`]] and rewrites the container's `SourceCode`. From here on, the inline-vs-external distinction is invisible — both paths land in `layout.Style.SourceCode`.
+If `<style src="theme.snx.ss"/>`, the builder loads `theme.snx.ss` via the [`AssetProvider`](../../Engine/Asset%20Management.md) and rewrites the container's `SourceCode`. From here on, the inline-vs-external distinction is invisible — both paths land in `layout.Style.SourceCode`.
 
 `StringInfo.CreateFromUnknownStorage` is the asset-locator helper. It tries:
 1. The application's embedded resources (compiled into the assembly).
@@ -103,7 +103,7 @@ The closure captures `context.UIContext.AssetProvider`. This means **imported st
 styleSheet = new StyleSheet(styleSheetHolder);
 ```
 
-`StyleParser.Parse` returns a "holder" — a raw AST of selectors, rules, and values. `StyleSheet` wraps it with the matching engine: given a tag/ID/classes triple, return all matching values. See [[../../Style DSL/Style DSL|Style DSL]] for the internals.
+`StyleParser.Parse` returns a "holder" — a raw AST of selectors, rules, and values. `StyleSheet` wraps it with the matching engine: given a tag/ID/classes triple, return all matching values. See [Style DSL](../../Style%20DSL/Style%20DSL.md) for the internals.
 
 ## When `ApplyStyleSheet` runs
 
@@ -125,7 +125,7 @@ public override void ApplyStyleSheet(StyleSheet styleSheet)
 }
 ```
 
-So every element in the tree gets a chance to match against the stylesheet. The `base.ApplyStyleSheet` (in `UIElement`) is what does the reflection over `[NamedSetting]` properties — see [[../../Components/Abstractions#Style application — the [NamedSetting] flow|UIElement style application]] for the gory details.
+So every element in the tree gets a chance to match against the stylesheet. The `base.ApplyStyleSheet` (in `UIElement`) is what does the reflection over `[NamedSetting]` properties — see [UIElement style application](../../Components/Abstractions.md#style-application-the-namedsetting-flow) for the gory details.
 
 ### Why not during `BuildUIElement`?
 
@@ -133,7 +133,7 @@ You *could* apply the stylesheet to each element as it's constructed. The reason
 
 1. **Selectors with descendant combinators** (e.g. `panel label { ... }`) need the parent–child relationships to be in place. During `BuildUIElement`, the parent isn't fully assembled yet — its children list is still being populated.
 2. **Style state snapshots** (the `_baseSnapshot` for restoring `:hover` overrides) are taken in `ApplyStyleSheet`. Doing this once after the tree is stable is cleaner than redoing it as the tree grows.
-3. **Pre-emptive style peeks** for `<progress>` and `<button>` already grab the relevant background values during construction (see [[Parsing Markup#ExtractBackgroundStyle|Parsing Markup]]). Anything else is fine to defer.
+3. **Pre-emptive style peeks** for `<progress>` and `<button>` already grab the relevant background values during construction (see [Parsing Markup](Parsing%20Markup.md#extractbackgroundstyle-pre-emptive-style-peek)). Anything else is fine to defer.
 
 ## Relationship to the inline pattern
 
@@ -212,8 +212,8 @@ Here the markup pipeline doesn't apply the theme — the host does. The theme is
 
 ## Related
 
-- [[../../Style DSL/Style DSL|Style DSL]] — the language inside `<style>`, including `StyleParser.Parse` and `StyleSheet`.
-- [[Component Builders|Component Builders]] — the orchestrator that runs this phase.
-- [[Parsing Markup|Parsing Markup]] — the parallel phase for layout.
-- [[../../Components/Abstractions#Style application — the [NamedSetting] flow|UIElement.ApplyStyleSheet]] — what gets called at the end.
-- [[../../Engine/Asset Management|Asset Management]] — the `src=` resolution backing.
+- [Style DSL](../../Style%20DSL/Style%20DSL.md) — the language inside `<style>`, including `StyleParser.Parse` and `StyleSheet`.
+- [Component Builders](Component%20Builders.md) — the orchestrator that runs this phase.
+- [Parsing Markup](Parsing%20Markup.md) — the parallel phase for layout.
+- [UIElement.ApplyStyleSheet](../../Components/Abstractions.md#style-application-the-namedsetting-flow) — what gets called at the end.
+- [Asset Management](../../Engine/Asset%20Management.md) — the `src=` resolution backing.

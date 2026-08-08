@@ -20,7 +20,7 @@ public class Placement : IEquatable<Placement>
 - **`SequenceIndex`** points back to the source `BaseEvent` array — used by the Visualizer to highlight the playhead.
 - **`Audible`** distinguishes events that should be rendered (sounds, cuts, extended events) from events that are purely metadata (speed changes, bookmarks, jump landings).
 
-`Placement` implements `IEquatable<Placement>` with a fuzzy equality (sound name, value, volume, pan, offset, audible flag, index) that's used by the incremental render path in `PCMEncoder.ComputeIncrementalAudio` — see [[5 - Encoding|Encoding]].
+`Placement` implements `IEquatable<Placement>` with a fuzzy equality (sound name, value, volume, pan, offset, audible flag, index) that's used by the incremental render path in `PCMEncoder.ComputeIncrementalAudio` — see [Encoding](5%20-%20Encoding.md).
 
 ## What is a `TimedEvents`?
 
@@ -311,10 +311,10 @@ A `TimedEvents` containing:
 - The flat ordered `Placement[]`.
 - The `TimingSampleRate` (= encoder's output sample rate).
 
-The encoder then uses `Placement.Index` directly as the position into the output mix buffer. See [[5 - Encoding|Encoding]].
+The encoder then uses `Placement.Index` directly as the position into the output mix buffer. See [Encoding](5%20-%20Encoding.md).
 
 ---
 
-**Previous:** [[3 - Parsing Sequences|Parsing Sequences]]
-**Next:** [[5 - Encoding|Encoding]]
-**Up:** [[../Converter|Converter]]
+**Previous:** [Parsing Sequences](3%20-%20Parsing%20Sequences.md)
+**Next:** [Encoding](5%20-%20Encoding.md)
+**Up:** [Converter](../Converter.md)

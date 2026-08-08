@@ -123,14 +123,14 @@ public struct TextCharacter() : IGPUReflection, IPositionable
 }
 ```
 
-Each character on screen is one instance of a unit quad ([[Renderer/Buffers#GLQuad|GLQuad]]) with these per-instance attributes. `TextureUV` is normalised to atlas coordinates `(u0, v0, u1, v1)`. `Position` and `Scale` come from the layout pass.
+Each character on screen is one instance of a unit quad ([GLQuad](../Renderer/Buffers.md#glquad)) with these per-instance attributes. `TextureUV` is normalised to atlas coordinates `(u0, v0, u1, v1)`. `Position` and `Scale` come from the layout pass.
 
-`SelfReflectToGL` pushes its own attributes into the `VertexBufferLayout` — this is the [[Renderer/Abstractions#IGPUReflection|`IGPUReflection`]] pattern in action.
+`SelfReflectToGL` pushes its own attributes into the `VertexBufferLayout` — this is the [`IGPUReflection`](../Renderer/Abstractions.md#igpureflection) pattern in action.
 
 ## `TextBuffer`
 
 ```csharp
-public class TextBuffer : IRenderable, IDisposable
+public class TextBuffer : IRenderable, IClippable, IDisposable
 {
     public readonly GLBuffer<TextCharacter>.WithCPUCache Characters;
     public readonly ITextProvider TextProvider;
@@ -138,6 +138,8 @@ public class TextBuffer : IRenderable, IDisposable
     private readonly List<Range> _freeRanges = [];
     private readonly Dictionary<TextSlice, Range> _usedRanges = [];
     private int _currentOffset;
+
+    public Vector4i? ClipRect { get; set; }   // scissor-clip rect, UI/camera space; null = unclipped
 }
 ```
 
@@ -227,7 +229,7 @@ The `GetTextCharacterRect` overload takes a `ReadOnlySpan<char>` of length 1 or 
 
 ## The `Allocationless/` folder
 
-A handful of helpers for zero-allocation iteration over text — typically used by [[../../Components/Components|labels and buttons]] during input handling, where they need to walk character positions to find click targets without GC pressure.
+A handful of helpers for zero-allocation iteration over text — typically used by [labels and buttons](../../Components/Components.md) during input handling, where they need to walk character positions to find click targets without GC pressure.
 
 ## Threading
 
@@ -237,8 +239,8 @@ A handful of helpers for zero-allocation iteration over text — typically used 
 
 ## Related
 
-- [[Renderer/Textures#Atlases|GPUTextureAtlas]] is the storage substrate.
-- [[Renderer/Buffers#GLQuad|GLQuad]] supplies the geometry.
-- [[Renderer/Shaders|Batched shader]] decodes the MSDF in the fragment stage.
-- [[../Asset Management#The cache|CacheProvider]] is what makes the atlas survive across runs (see `GPUTextureAtlas.LoadFromCache`).
-- The [[../../Components/Labels|`Label`]] component is the most common consumer.
+- [GPUTextureAtlas](../Renderer/Textures.md#atlases) is the storage substrate.
+- [GLQuad](../Renderer/Buffers.md#glquad) supplies the geometry.
+- [Batched shader](../Renderer/Shaders.md) decodes the MSDF in the fragment stage.
+- [CacheProvider](../Asset%20Management.md#the-cache) is what makes the atlas survive across runs (see `GPUTextureAtlas.LoadFromCache`).
+- The [`Label`](../../Components/Labels.md) component is the most common consumer.

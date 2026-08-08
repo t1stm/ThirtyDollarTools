@@ -111,13 +111,13 @@ ThreadRunner.RunTask(() =>
 A worker exception could be logged, swallowed, and the app continues — but that's a deliberate bad-default. Any uncaught exception on a worker thread in this engine *will* eventually crash the GL thread, by design:
 
 - Crashes are loud. Silent worker failures lead to half-functional UIs and confused bug reports.
-- The `Update`-time re-throw goes through `AppDomain.UnhandledException` (hooked in [[Entrypoint#OnLoad|Game.OnLoad]]) which tags the log line with the game id, then the OS terminates the process.
+- The `Update`-time re-throw goes through `AppDomain.UnhandledException` (hooked in [Game.OnLoad](Entrypoint.md#onload)) which tags the log line with the game id, then the OS terminates the process.
 - Crash dumps capture the original off-thread stack via `ExceptionDispatchInfo`.
 
 If you genuinely want to swallow an exception, do it inside the worker `try`/`catch` — at which point you've taken responsibility for logging it.
 
 ## Related
 
-- [[Entrypoint|`Game.OnUpdateFrame`]] is what drains the exception queue.
-- [[./Asset Management|AssetProvider]]'s `_cachedAssets` queue is a typical consumer — files are decoded off-thread and the byte payload bounces back here for the GL-thread-only `File.WriteAllBytes` call.
-- [[../Markup/Phases/Parsing Logic|Roslyn script compilation]] in the markup pipeline is the largest in-tree consumer of `RunTask`.
+- [`Game.OnUpdateFrame`](Entrypoint.md) is what drains the exception queue.
+- [AssetProvider](Asset%20Management.md)'s `_cachedAssets` queue is a typical consumer — files are decoded off-thread and the byte payload bounces back here for the GL-thread-only `File.WriteAllBytes` call.
+- [Roslyn script compilation](../Markup/Phases/Parsing%20Logic.md) in the markup pipeline is the largest in-tree consumer of `RunTask`.

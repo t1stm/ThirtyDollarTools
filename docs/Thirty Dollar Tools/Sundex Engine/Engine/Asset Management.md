@@ -6,14 +6,14 @@ The asset pipeline is built around one central type — `AssetProvider` — and 
 
 ## The provider
 
-`AssetProvider` (`AssetProvider.cs`) is constructed once by [[Entrypoint|Game]] and exposes:
+`AssetProvider` (`AssetProvider.cs`) is constructed once by [Game](Entrypoint.md) and exposes:
 
 | Property | Type | Purpose |
 |---|---|---|
 | `Logger` | `ILogger` | `ForContext<AssetProvider>()` |
 | `AssetAssemblies` | `Assembly[]` | Assemblies scanned for embedded resources |
 | `ShaderPool` | `ShaderPool` | Named shader cache + preload queue |
-| `DeleteQueue` | [[Renderer/Queues|DeleteQueue]] | Deferred GPU-resource deletion |
+| `DeleteQueue` | [DeleteQueue](Renderer/Queues.md) | Deferred GPU-resource deletion |
 | `CacheProvider` | `CacheProvider` | Disk caching of decoded assets |
 | `GLInfo` | `GLInfo` | Read-only GL capabilities |
 
@@ -98,7 +98,7 @@ Each of these implements `ILoadableAsset<TReturn, TCreate>` and declares a stati
 | `AssetStream` | `Types/Asset/` | `AssetInfo` | A `Stream` + resolved `AssetInfo` |
 | `StringAsset` | `Types/String/` | `StringInfo` | UTF-8 decoded text |
 | `Shader` | `Renderer/Shaders/` (loader in `Types/Shader/`) | `ShaderInfo` × 2 (vert + frag) | Compiled GL shader program |
-| `TextureHolder` | `Types/Texture/` | `TextureInfo` | Decoded `Image<Rgba32>` (via [[#The cache]]) ready to upload |
+| `TextureHolder` | `Types/Texture/` | `TextureInfo` | Decoded `Image<Rgba32>` (via [The cache](#the-cache)) ready to upload |
 | `CachedAsset` | `Types/Cache/` | `CachedInfo` | Raw `byte[]` from `~/.cache/...` |
 
 Each `*Loader.cs` file follows the same shape: `Query` checks existence, `Create` reads the underlying stream (often by recursively `Load`ing an `AssetStream` first), and `Load` is `Load(info, provider, Create)`.
@@ -180,6 +180,6 @@ The `AssemblyExtensions.cs` extension methods (`GetManifestResourceInfo`, `GetMa
 
 ## Related
 
-- The reflection-based preload mechanism that drives this is set up in [[Entrypoint#OnLoad|Game.OnLoad]].
-- GPU resources surfaced by loaders (`Shader`, `GPUTexture`, `GLBuffer`) carry the `BufferState` lifecycle — see [[Renderer/Renderer]].
-- The [[Renderer/Queues|DeleteQueue]] is the dual of asset loading — it's how loaded GPU resources are torn down safely.
+- The reflection-based preload mechanism that drives this is set up in [Game.OnLoad](Entrypoint.md#onload).
+- GPU resources surfaced by loaders (`Shader`, `GPUTexture`, `GLBuffer`) carry the `BufferState` lifecycle — see [Renderer](Renderer/Renderer.md).
+- The [DeleteQueue](Renderer/Queues.md) is the dual of asset loading — it's how loaded GPU resources are torn down safely.

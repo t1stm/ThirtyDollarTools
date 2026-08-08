@@ -1,6 +1,6 @@
 # Shaders
 
-`Shader` is a thin OpenGL program wrapper: it owns the linked program handle, holds the original `ShaderSource[]` for hot-reload, and exposes a typed `SetUniform(name, value)` API. There is no shader graph, no preprocessor, no `#include` resolver — shaders are vanilla GLSL files loaded through [[../Asset Management|AssetProvider]].
+`Shader` is a thin OpenGL program wrapper: it owns the linked program handle, holds the original `ShaderSource[]` for hot-reload, and exposes a typed `SetUniform(name, value)` API. There is no shader graph, no preprocessor, no `#include` resolver — shaders are vanilla GLSL files loaded through [AssetProvider](../Asset%20Management.md).
 
 > Source: `Sundex/Sundex.Engine/Renderer/Shaders/Shader.cs`, `Sundex/Sundex.Engine/Asset Management/Types/Shader/`.
 
@@ -114,16 +114,16 @@ By inspection of the `.vert`/`.frag` files referenced from the engine:
 
 - **Vertex shaders** receive `vp_matrix` (uniform `Matrix4`) and per-instance attributes for offset, scale, colour.
 - **Fragment shaders** typically take a single 2D texture sampler and an alpha multiplier.
-- **The MSDF text shader pair** (`Assets/Shaders/Text/Batched.vert/.frag`) reads UV from `GLQuad.VBOWithUV`, instance data from a `GLBuffer<TextCharacter>`, and a 2048×2048 RGBA32F atlas — see [[../Text Rendering/Text Rendering]].
+- **The MSDF text shader pair** (`Assets/Shaders/Text/Batched.vert/.frag`) reads UV from `GLQuad.VBOWithUV`, instance data from a `GLBuffer<TextCharacter>`, and a 2048×2048 RGBA32F atlas — see [Text Rendering](../Text%20Rendering/Text%20Rendering.md).
 
 ## Lifetime and threading
 
 - **Construction** is cheap and thread-safe — it just stores the `ShaderSource[]` reference.
 - **`Use()` / `Load()` must be called on the GL thread.**
-- **`Dispose()`** calls `GL.DeleteProgram` directly. Note the asymmetry with `GLBuffer<T>` and `GPUTexture` (which use the [[Queues|DeleteQueue]]) — programs are owned by the [[../Asset Management#Shaders and the ShaderPool|ShaderPool]] which is itself drained on the GL thread, so direct deletion is safe.
+- **`Dispose()`** calls `GL.DeleteProgram` directly. Note the asymmetry with `GLBuffer<T>` and `GPUTexture` (which use the [DeleteQueue](Queues.md)) — programs are owned by the [ShaderPool](../Asset%20Management.md#shaders-and-the-shaderpool) which is itself drained on the GL thread, so direct deletion is safe.
 
 ## Related
 
-- [[../Asset Management#Shaders and the ShaderPool|ShaderPool]] caches `Shader` instances by name.
-- [[Buffers|GLBuffer]] feeds per-vertex / per-instance data; the shader's `vp_matrix` uniform comes from a [[Textures|Camera]].
-- The MSDF shader pair powers [[../Text Rendering/Text Rendering|TextProvider]].
+- [ShaderPool](../Asset%20Management.md#shaders-and-the-shaderpool) caches `Shader` instances by name.
+- [GLBuffer](Buffers.md) feeds per-vertex / per-instance data; the shader's `vp_matrix` uniform comes from a [Camera](Textures.md).
+- The MSDF shader pair powers [TextProvider](../Text%20Rendering/Text%20Rendering.md).

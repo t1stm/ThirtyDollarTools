@@ -81,7 +81,7 @@ public class WithCPUCache(DeleteQueue, BufferTarget) : GLBuffer<TDataType>(delet
 }
 ```
 
-Reads come straight off the CPU array (no `glMapBuffer` round-trip, no synchronisation point); writes go *both* into the array *and* into `base.Updates`. Used by [[../Text Rendering/Text Rendering|TextBuffer]] so the engine can introspect/iterate the live character list every frame without bouncing off the GPU.
+Reads come straight off the CPU array (no `glMapBuffer` round-trip, no synchronisation point); writes go *both* into the array *and* into `base.Updates`. Used by [TextBuffer](../Text%20Rendering/Text%20Rendering.md) so the engine can introspect/iterate the live character list every frame without bouncing off the GPU.
 
 `ResizeCPUBuffer(capacity)` queues a resize and copies the old contents into the new array, then bulk-uploads via `EnqueueNewData` (which is itself a loop of `this[i] = value` calls — i.e. it goes through `Updates`).
 
@@ -167,10 +167,10 @@ Each `Push*` records type + count + `Divisor` (0 for per-vertex, 1 for per-insta
 
 ## `GLBufferList` and `TrackedBufferReference`
 
-`GLBufferList<T>` is a lightweight wrapper that manages a logical *list* on top of a `GLBuffer`, supporting append/remove with free-range tracking. `TrackedBufferReference<T>` is a stable handle to a slice within such a list — used by [[../Text Rendering/Text Rendering|TextSlice]] so callers keep a reference to a logical region of a shared character buffer even as other text is added or removed elsewhere.
+`GLBufferList<T>` is a lightweight wrapper that manages a logical *list* on top of a `GLBuffer`, supporting append/remove with free-range tracking. `TrackedBufferReference<T>` is a stable handle to a slice within such a list — used by [TextSlice](../Text%20Rendering/Text%20Rendering.md) so callers keep a reference to a logical region of a shared character buffer even as other text is added or removed elsewhere.
 
 ## Related
 
-- [[Abstractions|`BufferState`]] is the lifecycle these buffers all share.
-- The [[Queues|DeleteQueue]] receives `Dispose()` calls.
-- [[../Text Rendering/Text Rendering|TextBuffer]] is the largest consumer — it uses `GLBuffer<TextCharacter>.WithCPUCache` plus a `VertexArrayObject` that mixes `GLQuad.VBOWithUV` (per-vertex) with the text-character VBO (per-instance).
+- [`BufferState`](Abstractions.md) is the lifecycle these buffers all share.
+- The [DeleteQueue](Queues.md) receives `Dispose()` calls.
+- [TextBuffer](../Text%20Rendering/Text%20Rendering.md) is the largest consumer — it uses `GLBuffer<TextCharacter>.WithCPUCache` plus a `VertexArrayObject` that mixes `GLQuad.VBOWithUV` (per-vertex) with the text-character VBO (per-instance).

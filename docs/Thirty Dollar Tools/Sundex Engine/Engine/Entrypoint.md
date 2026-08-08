@@ -21,9 +21,9 @@ The constructor immediately allocates:
 
 | Field | Type | Purpose |
 |---|---|---|
-| `AssetProvider` | `AssetProvider` | Loads/queries assets — see [[Asset Management]] |
-| `SceneManager` | `SceneManager` | Owns all scenes — see [[Scene Management]] |
-| `ThreadRunner` | `ThreadRunner` | Off-thread work + exception marshalling — see [[Threading]] |
+| `AssetProvider` | `AssetProvider` | Loads/queries assets — see [Asset Management](Asset%20Management.md) |
+| `SceneManager` | `SceneManager` | Owns all scenes — see [Scene Management](Scene%20Management.md) |
+| `ThreadRunner` | `ThreadRunner` | Off-thread work + exception marshalling — see [Threading](Threading.md) |
 | `Globals` | `GameGlobals` | Type-safe key/value bag for app-wide state |
 | `GLInfo` | `GLInfo` | Populated during `OnLoad` once the context exists |
 
@@ -41,9 +41,10 @@ Runs once after the GL context is current. Steps:
 
 1. **Populate `GLInfo`** via `GetGLInfo(GLInfo)` — reads vendor / renderer / version, scans extensions, detects `GL_KHR_debug` and `GL_ARB_direct_state_access`, captures `MaxTextureSize` / `MaxArrayTextureLayers`.
 2. **Set GL state** — `BlendFunc(SrcAlpha, OneMinusSrcAlpha)`, enable multisample, enable `DebugOutput` and `DebugOutputSynchronous`.
-3. **Wire the GL debug callback** — `_storedDebugCallback = DebugCallback;` (kept as a field to prevent GC of the delegate, per [the OpenTK appendix](https://opentk.net/learn/appendix_opengl/debug_callback.html)). If `GL_KHR_debug` is unsupported, [[Renderer/Renderer#RenderMarker|RenderMarker]] is disabled wholesale.
+3. **Wire the GL debug callback** — `_storedDebugCallback = DebugCallback;` (kept as a field to prevent GC of the delegate, per [the OpenTK appendix](https://opentk.net/learn/appendix_opengl/debug_callback.html)). If `GL_KHR_debug` is unsupported, [RenderMarker](Renderer/Queues.md) is disabled wholesale.
 4. **`ReflectionPreloadObjects(assembly)` for every asset assembly** — finds every type marked `[PreloadGraphicsContext]` that implements `IGamePreloadable`, looks for `static Preload(AssetProvider)` on it via reflection, and invokes it. This is how `TextProvider`, `Label`, `UIContext`, etc. get their shaders/atlases bound at startup without explicit registration.
 5. **Hook `AppDomain.UnhandledException`** to log fatal exceptions with the game id.
+6. **Apply the framebuffer size up front** — `ApplyFramebufferSize(FramebufferSize.X, FramebufferSize.Y)`. Some windowing backends don't reliably deliver a resize event on the very first frame, which otherwise left the GL viewport/scenes sized off whatever the driver defaulted to until the user resized the window by hand.
 
 ### `OnUpdateFrame(args)`
 
@@ -74,7 +75,7 @@ SceneManager.Update(new UpdateArguments { Delta = args.Time });
 if (Ctrl+Q) Close();
 ```
 
-The `_enqueuedEvents` queue exists so that other threads (e.g. the [[Threading|ThreadRunner]] worker) can ask the GL thread to do something next frame via `Game.Enqueue(action)`.
+The `_enqueuedEvents` queue exists so that other threads (e.g. the [ThreadRunner](Threading.md) worker) can ask the GL thread to do something next frame via `Game.Enqueue(action)`.
 
 ### `OnRenderFrame(args)`
 
@@ -92,6 +93,8 @@ Context.SwapBuffers();
 ### Other hooks
 
 - **`OnFramebufferResize`** — tells `SceneManager.Resize(w, h)` and updates the GL viewport.
+- **`OnTextInput`** — forwards to `SceneManager.TextInput(e)`.
+- **`OnKeyDown`** — forwards to `SceneManager.KeyDown(e)`.
 - **`OnFileDrop`** — forwards file paths to `SceneManager.FileDropped`.
 - **`OnClosing`** — calls `SceneManager.Shutdown()`.
 
@@ -108,7 +111,7 @@ public readonly HashSet<string> Extensions;
 
 Used by:
 
-- The renderer to decide whether to enable `GL_KHR_debug` markers (see [[Renderer/Renderer|RenderMarker]]).
+- The renderer to decide whether to enable `GL_KHR_debug` markers (see [RenderMarker](Renderer/Queues.md)).
 - Anything that needs the texture size limits when sizing atlases.
 
 ## `GameGlobals`
@@ -144,7 +147,7 @@ Returns the per-monitor DPI scale **except on Wayland**, where it always returns
 
 ## Related
 
-- The asset assemblies registered here are walked by [[Asset Management|AssetProvider]] when loading embedded resources.
-- The preload mechanism is consumed by [[Renderer/Renderer|the renderer]] (e.g. `GLQuad` is preloaded so VBO + EBO exist before any text or panel tries to draw) and by [[Text Rendering/Text Rendering|TextProvider]] (`Batched` shader).
+- The asset assemblies registered here are walked by [AssetProvider](Asset%20Management.md) when loading embedded resources.
+- The preload mechanism is consumed by [the renderer](Renderer/Renderer.md) (e.g. `GLQuad` is preloaded so VBO + EBO exist before any text or panel tries to draw) and by [TextProvider](Text%20Rendering/Text%20Rendering.md) (`Batched` shader).
 </content>
 </invoke>

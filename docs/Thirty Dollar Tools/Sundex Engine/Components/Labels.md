@@ -6,7 +6,7 @@
 
 ## `Label`
 
-The simplest text component. Wraps a [[../Engine/Text Rendering/Text Rendering#TextSlice|`TextSlice`]] from a [[../Engine/Text Rendering/Text Rendering#TextBuffer|`TextBuffer`]] and binds it to a UI position.
+The simplest text component. Wraps a [`TextSlice`](../Engine/Text%20Rendering/Text%20Rendering.md#textslice) from a [`TextBuffer`](../Engine/Text%20Rendering/Text%20Rendering.md#textbuffer) and binds it to a UI position.
 
 ```csharp
 [PreloadGraphicsContext]
@@ -15,23 +15,35 @@ public class Label : UIElement
     private const float ReferenceFontSize = 14;
 
     protected readonly TextBuffer? TextBuffer;
-    private string _textValue;
 
     public Label(UIContext context, ReadOnlySpan<char> text) : base(context) {
-        _textValue = text.ToString();
         TextBuffer = new TextBuffer(context.TextProvider, context.DeleteQueue);
         TextSlice  = TextBuffer.GetTextSlice(text);
     }
 
-    protected TextSlice? TextSlice { get; set; }
+    protected TextSlice? TextSlice {
+        get;
+        set {
+            field = value;
+            if (field == null) return;
+            Width  = field.Scale.X;
+            Height = field.Scale.Y;
+        }
+    }
 
-    [NamedSetting("text-value")] public ReadOnlySpan<char> Value { get; set; }
+    [NamedSetting("text-value")]
+    public ReadOnlySpan<char> Value {
+        get => TextSlice != null ? TextSlice.Value : "";
+        set => SetTextContents(value);
+    }
     [NamedSetting("font-size")]  public LiteralOrComputable FontSizePx { get; set; }
     [NamedSetting("font-color")] public Vector4 Color { get; set; } = Vector4.One;
 
     public override string Tag => "label";
 }
 ```
+
+There's no backing `_textValue` field — `Value`'s getter reads `TextSlice.Value` directly, and its setter is just a thin wrapper over `SetTextContents`. The `TextSlice` property setter is where auto-sizing actually happens: assigning a new slice immediately re-reads `Width`/`Height` from its `Scale`.
 
 ### One TextBuffer per Label
 
@@ -70,17 +82,23 @@ After updating the slice, `Width`/`Height` are set to the resolved text bounds �
 
 ```csharp
 public void SetTextContents(ReadOnlySpan<char> text) {
-    _textValue = text.ToString();
-    if (TextSlice == null || TextBuffer == null) return;
+    if (TextSlice == null) return;
+    if (TextBuffer == null) return;
+
+    if (text.Length == TextSlice.Value.Length && text.SequenceEqual(TextSlice.Value))
+        return;
 
     if (text.Length > TextSlice.Length) {
-        TextSlice.Dispose();                       // free old slot
+        var position = TextSlice.Position;         // preserve — see note below
+        TextSlice.Dispose();                        // free old slot
         var newSlice = TextBuffer.GetTextSlice(text);
-        newSlice.UpdateManually = true;            // batch the property writes
-        newSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
-        newSlice.Color    = Color;
+        newSlice.UpdateManually = true;             // batch the property writes
+        newSlice.Position  = position;
+        newSlice.FontSize  = FontSizePx.Resolve(ReferenceFontSize);
+        newSlice.Color     = Color;
         newSlice.UpdateManually = false;
-        TextSlice = newSlice;                      // setter reads Scale
+        newSlice.UpdateCharacters();
+        TextSlice = newSlice;                       // setter reads Scale — already correct
     } else {
         TextSlice.UpdateManually = true;
         TextSlice.FontSize = FontSizePx.Resolve(ReferenceFontSize);
@@ -89,16 +107,18 @@ public void SetTextContents(ReadOnlySpan<char> text) {
         TextSlice.UpdateManually = false;
         TextSlice.UpdateCharacters();
     }
-    Width  = TextSlice.Scale.X;
-    Height = TextSlice.Scale.Y;
+
+    var scale = TextSlice.Scale;
+    Width  = scale.X;
+    Height = scale.Y;
     Layout();
 }
 ```
 
-Two paths based on whether the new text fits:
+An early-return dedups no-op calls: same length and same content skips the rest entirely. Then two paths based on whether the new text fits:
 
 - **Same-length-or-shorter**: reuse the existing slice. Set `UpdateManually = true` to batch writes, set the properties, then re-trigger `UpdateCharacters` once. Avoids N redundant rebuilds during the batch.
-- **Longer**: `Dispose()` the old slice (returns its slots to `_freeRanges`), allocate a new one, batch-write properties.
+- **Longer**: `Dispose()` the old slice (returns its slots to `_freeRanges`), allocate a new one, batch-write properties — **and explicitly restore `Position` before the manual `UpdateCharacters()` call**. `GetTextSlice`'s constructor already ran an initial `UpdateCharacters` once, at the default `(0,0,0)` position, before `Position`/`FontSize`/`Color` are applied here — without the explicit re-position-then-update, that stale, wrongly-placed render would be all that's ever written, since nothing else is guaranteed to touch `Position` again this frame.
 
 The shorter path is the common case for UI labels — counters, progress text, status messages all rewrite to the same length or shorter. The dispose-and-replace path is the fallback for genuine growth.
 
@@ -155,7 +175,7 @@ public class Button : FlexPanel
 }
 ```
 
-A `Button` is a [[Panels#FlexPanel|`FlexPanel`]] with one `Label` child, both alignments centred, padding 5, vertical layout direction, cursor pointer on hover.
+A `Button` is a [`FlexPanel`](Panels.md#flexpanel) with one `Label` child, both alignments centred, padding 5, vertical layout direction, cursor pointer on hover.
 
 The `[NamedSetting]` properties on Button are **forwarders**: `button.Value = "Save"` writes through to `button.Label.Value`. This is what lets stylesheet selectors target buttons directly:
 
@@ -187,7 +207,7 @@ new Button(context, "Save") {
 }
 ```
 
-The release-inside semantics from [[Abstractions#Test|`UIElement.Test`]] applies: pressing-then-dragging-off cancels the click.
+The release-inside semantics from [`UIContext.UpdatePointer`](Abstractions.md#hit-testing-testmousestate-vector2-scale-and-uicontextupdatepointer) applies: pressing-then-dragging-off cancels the click.
 
 ## `DropDownLabel`
 
@@ -292,11 +312,11 @@ ThreadRunner.RunTask(() => {
 });
 ```
 
-See [[../Engine/Threading|Threading]] for the canonical pattern.
+See [Threading](../Engine/Threading.md) for the canonical pattern.
 
 ## Related
 
-- [[../Engine/Text Rendering/Text Rendering|Text Rendering]] — what `Label` is built on top of.
-- [[Panels#FlexPanel|FlexPanel]] — `Button`'s base class.
-- [[Abstractions|UIElement]] — `Label` extends this directly (not via `Panel`).
-- The Visualizer's [[../../Visualizer/Visualizer|markup files]] use `<button>`, `<label>`, and `<dropdown>` extensively.
+- [Text Rendering](../Engine/Text%20Rendering/Text%20Rendering.md) — what `Label` is built on top of.
+- [FlexPanel](Panels.md#flexpanel) — `Button`'s base class.
+- [UIElement](Abstractions.md) — `Label` extends this directly (not via `Panel`).
+- The Visualizer's markup files use `<button>`, `<label>`, and `<dropdown>` extensively.

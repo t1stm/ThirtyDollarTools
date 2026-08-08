@@ -6,12 +6,12 @@ Sundex's stylesheet language. Lives in `Sundex.Style.DSL`. Files end in `.snx.ss
 
 ## What lives here
 
-- **[[Syntax|Syntax]]** — characters, identifiers, numbers, strings, hex colors, comments. The lexical layer.
-- **[[Blocks|Blocks]]** — the four top-level block types (`animation`, `component`, `class`, `id`), their semantics and the `@component` full-override form.
-- **[[Style Types|Style Types]]** — every `IStyleValue` implementation and what the parser produces for each kind of input.
-- **[[Animations|Animations]]** — `!keyframes`, `timing-function`, `duration`, `loop`, and the `KeyframedAnimation` it produces.
-- **[[Variables|Variables]]** — `var` constants, `$` references, and how imports scope them.
-- **[[Import|Import]]** — the `import "..."` directive, the `as` alias form, file-loader callback, and cycle protection.
+- **[Syntax](Syntax.md)** — characters, identifiers, numbers, strings, hex colors, comments. The lexical layer.
+- **[Blocks](Blocks.md)** — the four top-level block types (`animation`, `component`, `class`, `id`), their semantics and the `@component` full-override form.
+- **[Style Types](Style%20Types.md)** — every `IStyleValue` implementation and what the parser produces for each kind of input.
+- **[Animations](Animations.md)** — `!keyframes`, `timing-function`, `duration`, `loop`, and the `KeyframedAnimation` it produces.
+- **[Variables](Variables.md)** — `var` constants, `$` references, and how imports scope them.
+- **[Import](Import.md)** — the `import "..."` directive, the `as` alias form, file-loader callback, and cycle protection.
 
 ## Big picture
 
@@ -51,7 +51,7 @@ The `StyleSheetHolder` is the parser output (raw AST). The `StyleSheet` adds:
 
 ## File extension
 
-`.snx.ss` — "Sundex Style Sheet." Two-segment extension to coexist with `.snx.smxl` (markup) without ambiguity.
+`.snx.ss` — "Sundex Style Sheet." Two-segment extension to coexist with `.snx.xml` (markup) without ambiguity.
 
 The convention is a project-level choice; `StyleParser.Parse` doesn't care about the extension. As long as the `string dsl` argument contains valid DSL, it parses.
 
@@ -71,18 +71,18 @@ id main-button { ... }               // — defaults for the element with id="ma
 
 Order is significant for **redefinitions within the same file** (later wins) but not for the difference between specificity tiers (id always beats class always beats component, regardless of file order).
 
-See [[Blocks|Blocks]] for what's legal inside each kind of block.
+See [Blocks](Blocks.md) for what's legal inside each kind of block.
 
 ## Where it plugs in
 
-The Style DSL is consumed by the [[../Markup/Phases/Parsing Style|Parsing Style]] phase of the markup pipeline. The pipeline:
+The Style DSL is consumed by the [Parsing Style](../Markup/Phases/Parsing%20Style.md) phase of the markup pipeline. The pipeline:
 
-1. Reads `<style src="...">` or `<style>...</style>` from the [[../Markup/Markup Parser|markup document]].
+1. Reads `<style src="...">` or `<style>...</style>` from the [markup document](../Markup/Markup%20Parser.md).
 2. Calls `StyleParser.Parse(source, importResolver)` to get a `StyleSheetHolder`.
 3. Wraps the holder in `new StyleSheet(holder)`.
-4. After [[../Markup/Phases/Parsing Markup|building the UI tree]], calls `uiElement.ApplyStyleSheet(styleSheet)`.
+4. After [building the UI tree](../Markup/Phases/Parsing%20Markup.md), calls `uiElement.ApplyStyleSheet(styleSheet)`.
 
-`ApplyStyleSheet` walks the realised tree and matches each element's `ID`, `Classes`, and `Tag` against the stylesheet via `GetStyleValueForTag`. Matched values are written into `[NamedSetting]`-tagged properties — see [[../Components/Abstractions#Style application — the [NamedSetting] flow|UIElement style application]].
+`ApplyStyleSheet` walks the realised tree and matches each element's `ID`, `Classes`, and `Tag` against the stylesheet via `GetStyleValueForTag`. Matched values are written into `[NamedSetting]`-tagged properties — see [UIElement style application](../Components/Abstractions.md#style-application-the-namedsetting-flow).
 
 ## Quick example
 
@@ -146,14 +146,14 @@ resolves the **background** as id (no override) → class (`!gradient ...`) → 
 
 Applying the stylesheet (`uiElement.ApplyStyleSheet`) **is** GL-only because creating gradient planes and color planes for backgrounds allocates GPU resources.
 
-See [[../Engine/Threading|Threading]] for the broader picture.
+See [Threading](../Engine/Threading.md) for the broader picture.
 
 ## Related
 
-- [[Syntax|Syntax]] — the lexical level.
-- [[Blocks|Blocks]] — the structural level.
-- [[Style Types|Style Types]] — every `IStyleValue` produced by the parser.
-- [[Animations|Animations]] — `!keyframes` and the runtime animation system.
-- [[Import|Import]] — `import "..."` directives.
-- [[../Markup/Phases/Parsing Style|Parsing Style]] — the markup phase that consumes a `.snx.ss` file.
-- [[../Components/Abstractions#Style application — the [NamedSetting] flow|UIElement.ApplyStyleSheet]] — what happens after a match.
+- [Syntax](Syntax.md) — the lexical level.
+- [Blocks](Blocks.md) — the structural level.
+- [Style Types](Style%20Types.md) — every `IStyleValue` produced by the parser.
+- [Animations](Animations.md) — `!keyframes` and the runtime animation system.
+- [Import](Import.md) — `import "..."` directives.
+- [Parsing Style](../Markup/Phases/Parsing%20Style.md) — the markup phase that consumes a `.snx.ss` file.
+- [UIElement.ApplyStyleSheet](../Components/Abstractions.md#style-application-the-namedsetting-flow) — what happens after a match.

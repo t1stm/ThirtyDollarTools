@@ -135,7 +135,7 @@ public record VectorValue(double X, double Y, double? Z = null, double? W = null
 
 A 2-, 3-, or 4-component vector. The `Count` property tells consumers how many dimensions are populated.
 
-Used for transforms (`vec2(10px, -10px)`), scales (`vec2(1.5, 1.5)`), arbitrary positional data. Animation properties consume it — see [[Animations#Property mapping|Animations]].
+Used for transforms (`vec2(10px, -10px)`), scales (`vec2(1.5, 1.5)`), arbitrary positional data. Animation properties consume it — see [Animations](Animations.md#property-mapping).
 
 The doubles vs. floats: `VectorValue` stores `double` internally for precision, but the source `NumberValue.Value` is `float`. The cast happens in the constructor.
 
@@ -361,7 +361,7 @@ The `Stops` extractor accepts three input shapes:
 
 The `MapValue`/`ArrayValue` cases are a fallback — `StopsValue.BuildStops` handles the same conversion as if they were prefixed with `!stops`. This means `!stops` is **optional** in practice for the `stops` property of a gradient.
 
-The `GenerateGradientPlane` method (defined on `GradientValue`, called from [[../Components/Panels#Panel|`Panel.ApplyStyleValue`]] and [[../Components/Bars#ProgressBar|`ProgressBar`]]) builds the actual `Renderable` from this metadata. Lives outside the parser — it's a runtime concern.
+The `GenerateGradientPlane` method (defined on `GradientValue`, called from [`Panel.ApplyStyleValue`](../Components/Panels.md#panel) and [`ProgressBar`](../Components/Bars.md#progressbar)) builds the actual `Renderable` from this metadata. Lives outside the parser — it's a runtime concern.
 
 ### `KeyframesValue`
 
@@ -382,7 +382,7 @@ Wraps an array or map of keyframe steps. The `BuildKeyframes` static converts bo
 | `ArrayValue` with explicit `%` properties | Steps with explicit percentages preserved. |
 | `ArrayValue` (just blocks, no percentages) | Steps with **interpolated** percentages: first = 0%, last = 100%, middle = linearly distributed. |
 
-The interpolation logic for arrays is non-trivial — see [[Animations#The interpolated-array form|Animations]] for the gory details.
+The interpolation logic for arrays is non-trivial — see [Animations](Animations.md#the-interpolated-array-form) for the gory details.
 
 ### `StopsValue`
 
@@ -434,8 +434,8 @@ Note: `BlockValue.Properties` and `ArrayValue.Values` and `MapValue.Values` are 
 
 ## Related
 
-- [[Syntax|Syntax]] — what input shapes produce each type.
-- [[Blocks|Blocks]] — top-level `animation` / `component` / `class` / `id` blocks (the dictionaries that contain these values).
-- [[Animations|Animations]] — `KeyframesValue` and how `KeyframedAnimation` is built from it.
-- [[../Components/Panels#Panel|Panel.ApplyStyleValue]] — where `ColorValue`/`GradientValue` actually become a background.
-- [[Style DSL|Style DSL]] — the index page.
+- [Syntax](Syntax.md) — what input shapes produce each type.
+- [Blocks](Blocks.md) — top-level `animation` / `component` / `class` / `id` blocks (the dictionaries that contain these values).
+- [Animations](Animations.md) — `KeyframesValue` and how `KeyframedAnimation` is built from it.
+- [Panel.ApplyStyleValue](../Components/Panels.md#panel) — where `ColorValue`/`GradientValue` actually become a background.
+- [Style DSL](Style%20DSL.md) — the index page.

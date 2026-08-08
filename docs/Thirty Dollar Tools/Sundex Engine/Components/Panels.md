@@ -30,7 +30,7 @@ A `Panel` has:
 - **Children** — laid out by overrides of `DoLayout` (the base `Panel.DoLayout` does *not* lay out children directly — it just positions itself; subclasses like `FlexPanel` do the per-child arithmetic).
 - **Style state** — `BorderRadius`, `Direction`, `Padding`, `Spacing`.
 
-It implements both [[Abstractions#IColoredBackground|`IColoredBackground`]] and [[Abstractions#IPositioningElement|`IPositioningElement`]].
+It implements both [`IColoredBackground`](Abstractions.md#icoloredbackground) and [`IPositioningElement`](Abstractions.md#ipositioningelement).
 
 ### `Children` and parent linking
 
@@ -393,7 +393,7 @@ var y_positive = my >= yh - rt && my < yh + rt;   // bottom edge
 ```csharp
 protected CursorType RequestedCursor;
 public override void Update(UIContext uiContext) {
-    if (RequestedCursor != CursorType.Normal)
+    if (RequestedCursor != CursorType.Default)
         uiContext.RequestCursor.Invoke(RequestedCursor);
 }
 ```
@@ -402,11 +402,11 @@ The base class doesn't currently set `RequestedCursor` on resize hover (see sour
 
 ## Threading
 
-All `Panel` subclasses are GL-thread only. `AddChild` / `RemoveChild` mutate the children list and the render queue, so they must run on the main loop. [[../Engine/Threading|`ThreadRunner`]] users round-trip back via `Game.Enqueue` to add children produced off-thread (see [[Labels#FileSelection|`FileSelection`]] for the canonical example, which uses a `SemaphoreSlim` to commit children-list assignments).
+All `Panel` subclasses are GL-thread only. `AddChild` / `RemoveChild` mutate the children list and the render queue, so they must run on the main loop. [`ThreadRunner`](../Engine/Threading.md) users round-trip back via `Game.Enqueue` to add children produced off-thread (see `FileSelection` in `Sundex.Components/File Selector/` for the canonical example, which uses a `SemaphoreSlim` to commit children-list assignments).
 
 ## Related
 
-- [[Abstractions|UIElement]] — the contract `Panel` implements.
-- [[Bars|ProgressBar]] — uses two child `Panel`s for fg/bg; reads BorderRadius into both.
-- [[Labels#Button|Button]] — derives from `FlexPanel` with `HorizontalAlign = Center`.
-- [[Labels#DropDownLabel|DropDownLabel]] — uses a `Panel` parent + a hidden `FlexPanel` child.
+- [UIElement](Abstractions.md) — the contract `Panel` implements.
+- [ProgressBar](Bars.md) — uses two child `Panel`s for fg/bg; reads BorderRadius into both.
+- [Button](Labels.md#button) — derives from `FlexPanel` with `HorizontalAlign = Center`.
+- [DropDownLabel](Labels.md#dropdownlabel) — uses a `Panel` parent + a hidden `FlexPanel` child.

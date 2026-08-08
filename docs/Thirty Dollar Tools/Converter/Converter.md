@@ -9,20 +9,20 @@ Conceptually it is one library (`ThirtyDollarConverter`) plus a few support libr
 ```
 .🗿 / TDW text
        │
-       │  Sequence.FromString()           [[Phases/3 - Parsing Sequences|Parsing Sequences]]
+       │  Sequence.FromString()           Parsing Sequences
        ▼
    Sequence (BaseEvent[])
        │
-       │  PlacementCalculator             [[Phases/4 - Calculating the Placement|Calculating the Placement]]
+       │  PlacementCalculator             Calculating the Placement
        ▼
    Placement[]   (sample-index timeline)
        │
-       │  SampleProcessor + IResampler    [[Phases/2 - Loading Into Memory|Loading Into Memory]]
+       │  SampleProcessor + IResampler    Loading Into Memory
        ▼              ↑
    ProcessedEvent[]   │ raw samples come from
-       │              │ SampleHolder       [[Phases/1 - Getting All Samples|Getting All Samples]]
+       │              │ SampleHolder       Getting All Samples
        │
-       │  PCMEncoder (channels × chunks)  [[Phases/5 - Encoding|Encoding]]
+       │  PCMEncoder (channels × chunks)  Encoding
        ▼
    AudioMixer → AudioData<float>
        │
@@ -37,19 +37,19 @@ Each block of the pipeline has its own page in **Phases/**, and they read in the
 
 The five phases of the encoder, in execution order:
 
-1. [[Phases/1 - Getting All Samples|Getting All Samples]] — Loading `sounds.json`, downloading every sound, and discovering custom user samples. Owned by `SampleHolder`.
-2. [[Phases/2 - Loading Into Memory|Loading Into Memory]] — Decoding every `.wav` from disk into `PcmDataHolder` / `AudioData<float>`. Covers `WaveDecoder`.
-3. [[Phases/3 - Parsing Sequences|Parsing Sequences]] — Turning the raw `|`-delimited text into a `Sequence` of `BaseEvent`s, including `#define` macros, `#icut`, `!bg`, `!pulse`, etc.
-4. [[Phases/4 - Calculating the Placement|Calculating the Placement]] — Walking the sequence as a tiny VM (BPM, transpose, volume, jumps, loops, cuts) to produce a flat `Placement[]` indexed in audio samples.
-5. [[Phases/5 - Encoding|Encoding]] — Resampling each unique sound, then mixing every placement into the final stereo buffer using SIMD-vectorized chunks across multiple worker threads. Covers `PCMEncoder`, `AudioMixer`, `ProcessedEvent`, `RenderedSequence`, `TimedEvent`.
+1. [Getting All Samples](Phases/1%20-%20Getting%20All%20Samples.md) — Loading `sounds.json`, downloading every sound, and discovering custom user samples. Owned by `SampleHolder`.
+2. [Loading Into Memory](Phases/2%20-%20Loading%20Into%20Memory.md) — Decoding every `.wav` from disk into `PcmDataHolder` / `AudioData<float>`. Covers `WaveDecoder`.
+3. [Parsing Sequences](Phases/3%20-%20Parsing%20Sequences.md) — Turning the raw `|`-delimited text into a `Sequence` of `BaseEvent`s, including `#define` macros, `#icut`, `!bg`, `!pulse`, etc.
+4. [Calculating the Placement](Phases/4%20-%20Calculating%20the%20Placement.md) — Walking the sequence as a tiny VM (BPM, transpose, volume, jumps, loops, cuts) to produce a flat `Placement[]` indexed in audio samples.
+5. [Encoding](Phases/5%20-%20Encoding.md) — Resampling each unique sound, then mixing every placement into the final stereo buffer using SIMD-vectorized chunks across multiple worker threads. Covers `PCMEncoder`, `AudioMixer`, `ProcessedEvent`, `RenderedSequence`, `TimedEvent`.
 
 ## Front-ends
 
 Each of these is a thin shell around the same `PcmEncoder` library:
 
-- [[Converter.CLI/Converter.CLI|Converter.CLI]] — `dotnet run`, `-i input.🗿 -o output.wav`. Runs encoder, writes file.
-- [[Converter.GUI/Converter.GUI|Converter.GUI]] — Avalonia + ReactiveUI desktop app. Provides a settings window, progress bar, log view.
-- [[Discord Bot/Discord Bot|Discord Bot]] — DSharpPlus slash bot. Right-click a TDW message attachment → "TDW to OGG/MP3", server pipes encoder output through `ffmpeg`.
+- [Converter.CLI](Converter.CLI/Converter.CLI.md) — `dotnet run`, `-i input.🗿 -o output.wav`. Runs encoder, writes file.
+- [Converter.GUI](Converter.GUI/Converter.GUI.md) — Avalonia + ReactiveUI desktop app. Provides a settings window, progress bar, log view.
+- [Discord Bot](Discord%20Bot/Discord%20Bot.md) — DSharpPlus slash bot. Right-click a TDW message attachment → "TDW to OGG/MP3", server pipes encoder output through `ffmpeg`.
 
 > `ThirtyDollarConverter.Next/` is an in-progress redesign of the encoder and is intentionally **not** documented here.
 
@@ -68,9 +68,7 @@ Converter/
 │       ├── EncoderSettings.cs
 │       ├── Placement.cs
 │       ├── RenderedSequence.cs
-│       ├── TimedEvents.cs
-│       ├── PercentageScale.cs
-│       └── ObjectExtensions.cs
+│       └── TimedEvents.cs
 │
 ├── ThirtyDollarConverter.Parser/           (sequence text → events)
 │   ├── Sequence.cs                         ← FromString() lives here
@@ -79,18 +77,20 @@ Converter/
 │   └── Custom Events/
 │       ├── ExtendedEvent.cs                (+ pan, + offset)
 │       ├── IndividualCutEvent.cs           (#icut)
-│       ├── BookmarkEvent.cs / EndEvent.cs
+│       ├── BookmarkEvent.cs / EndEvent.cs / LegacySequenceEvent.cs
 │       └── ICustomActionEvent / ICustomAudibleEvent / IHiddenEvent
 │
-├── ThirtyDollarConverter.Audio/            (PCM containers, mixers, resamplers)
+├── ThirtyDollarConverter.Encoder/          (PCM containers, mixers, resamplers)
 │   ├── PCM/
 │   │   ├── AudioData.cs                    ← per-channel float[][] container
 │   │   ├── AudioMixer.cs                   ← multi-track mixer
 │   │   ├── PcmDataHolder.cs                ← raw decoded WAV
+│   │   ├── PercentageScale.cs              ← Linear / LinearOverflowLogarithmic / Logarithmic / EqualPower
 │   │   ├── AudioLayout.cs / Encoding.cs / Int24.cs
 │   │   └── DataHolderExtensions.cs / Int24Extensions.cs
 │   ├── Mixers/
 │   │   ├── IMixingMethod.cs
+│   │   ├── SampleMixer.cs                  (static RenderSample / HandleCut helpers used by PCMEncoder)
 │   │   └── BasicMixer.cs                   (current default — straight sum)
 │   ├── Resamplers/
 │   │   ├── IResampler.cs
@@ -100,23 +100,27 @@ Converter/
 │   │   ├── LinearResampler.cs / NoInterpolationResampler.cs
 │   │   └── ByteCruncherResampler.cs
 │   └── Wave/
-│       └── WaveDecoder.cs                  (RIFF / RF64 reader)
+│       ├── WaveDecoder.cs                  (RIFF / RF64 reader)
+│       └── WaveEncoder.cs
 │
-├── ThirtyDollarConverter.CLI/              → [[Converter.CLI/Converter.CLI|Converter.CLI]]
-├── ThirtyDollarConverter.GUI/              → [[Converter.GUI/Converter.GUI|Converter.GUI]]
-├── ThirtyDollarConverter.DiscordBot/       → [[Discord Bot/Discord Bot|Discord Bot]]
+├── ThirtyDollarConverter.Editor/           (project-file model: Note, TrackAutomation, SequenceBuilder — undocumented)
+│
+├── ThirtyDollarConverter.CLI/              → Converter.CLI
+├── ThirtyDollarConverter.GUI/              → Converter.GUI
+├── ThirtyDollarConverter.DiscordBot/       → Discord Bot
 ├── ThirtyDollarConverter.Tests/            (xUnit)
-└── ThirtyDollarConverter.Next/             (experimental — undocumented)
+├── ThirtyDollarConverter.Editor.Tests/     (xUnit, for ThirtyDollarConverter.Editor)
+└── ThirtyDollarConverter.Benchmarks/       (BenchmarkDotNet — encoder + editor workflows)
 ```
 
 ## Recommended reading order
 
 If you are new to the project, read the phases linearly:
 
-1. [[Phases/1 - Getting All Samples|Getting All Samples]]
-2. [[Phases/2 - Loading Into Memory|Loading Into Memory]]
-3. [[Phases/3 - Parsing Sequences|Parsing Sequences]]
-4. [[Phases/4 - Calculating the Placement|Calculating the Placement]]
-5. [[Phases/5 - Encoding|Encoding]]
+1. [Getting All Samples](Phases/1%20-%20Getting%20All%20Samples.md)
+2. [Loading Into Memory](Phases/2%20-%20Loading%20Into%20Memory.md)
+3. [Parsing Sequences](Phases/3%20-%20Parsing%20Sequences.md)
+4. [Calculating the Placement](Phases/4%20-%20Calculating%20the%20Placement.md)
+5. [Encoding](Phases/5%20-%20Encoding.md)
 
-Then skim whichever front-end you actually plan to use ([[Converter.CLI/Converter.CLI|CLI]], [[Converter.GUI/Converter.GUI|GUI]] or [[Discord Bot/Discord Bot|Bot]]).
+Then skim whichever front-end you actually plan to use ([CLI](Converter.CLI/Converter.CLI.md), [GUI](Converter.GUI/Converter.GUI.md) or [Bot](Discord%20Bot/Discord%20Bot.md)).

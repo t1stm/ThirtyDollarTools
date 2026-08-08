@@ -23,7 +23,7 @@ public class MarkupParser
 
 Hands the XML to `System.Xml.XmlDocument`, hands the root `XmlElement` to `RootContainer`, hands that to `SundexDocument`. All the work happens in the constructors of those classes — `MarkupParser` is just the public surface.
 
-The `SundexDocument` returned is the in-memory representation; nothing has been "realised" yet (no `UIElement`s exist, no scripts compiled, no stylesheets parsed). That's what [[Phases/Component Builders|`ComponentBuilderV1`]] does later.
+The `SundexDocument` returned is the in-memory representation; nothing has been "realised" yet (no `UIElement`s exist, no scripts compiled, no stylesheets parsed). That's what [`ComponentBuilderV1`](Phases/Component%20Builders.md) does later.
 
 ## `SundexDocument`
 
@@ -90,7 +90,7 @@ public class RootContainer
 
 - **Required**: `<layout>` child, root tag must be `<sundex>`.
 - **Optional**: `<logic>`, `<style>`, all root attributes (`version`, `component`, `implements`, `imports`, `part-of`).
-- **Defaulted**: `Version` defaults to `"1.0"` if missing — that's what tells [[Phases/Component Builders|`ComponentBuilderV1`]] to take responsibility for the document. Future builder versions will add new keys to the `ComponentBuilderVersions` dictionary.
+- **Defaulted**: `Version` defaults to `"1.0"` if missing — that's what tells [`ComponentBuilderV1`](Phases/Component%20Builders.md) to take responsibility for the document. Future builder versions will add new keys to the `ComponentBuilderVersions` dictionary.
 
 ### Root attributes
 
@@ -98,7 +98,7 @@ public class RootContainer
 |---|---|---|
 | `version` | `string` | Builder version key. `"1.0"` → `ComponentBuilderV1`. |
 | `component` | `string?` | If set, this document defines a reusable component named `<component>`. Empty for top-level documents. |
-| `implements` | `string?` | Free-form interface marker, and the fallback source for `Name` when `component=` is absent. Either attribute registers the component for re-use — see [[Component Definition#registration|Component registration]]. |
+| `implements` | `string?` | Free-form interface marker, and the fallback source for `Name` when `component=` is absent. Either attribute registers the component for re-use — see [Component registration](Component%20Definition.md#component-registration). |
 | `imports` | `["a", "b"]` | JSON-array string of component names to import. Resolved via `ISundexContext.ResolveComponent`. |
 | `part-of` | `["x"]` | JSON-array of collection names this component belongs to. Currently informational. |
 
@@ -155,11 +155,13 @@ private static SundexNode ParseNode(XmlElement element)
     attributes.Remove("id", out var idString);
     attributes.Remove("class", out var classString);
 
-    HashSet<string>? classes = null;
+    List<string>? classes = null;
     if (classString is not null) {
         classes = [];
         if (classString.StartsWith('[') && classString.EndsWith(']'))
-            classes = classString[1..^1].Split(',').ToHashSet();
+            // Trimmed: `class="[a, b]"` used to yield a class literally named " b",
+            // which matched no rule and failed silently.
+            classes = [.. classString[1..^1].Split(',', StringSplitOptions.TrimEntries)];
         else
             classes.Add(classString);
     }
@@ -192,13 +194,13 @@ public class SundexNode
 {
     public required string TagName { get; init; }
     public string?         Id      { get; init; }
-    public HashSet<string>? Classes { get; init; }
+    public List<string>? Classes { get; init; }   // declaration order kept, later class wins
     public Dictionary<string, string> Attributes { get; init; } = [];
     public List<SundexNode> Children { get; init; } = [];
 }
 ```
 
-A node has a tag, optional id/classes, an attribute bag, and children. **No** typed values — `width="50%"` is `Attributes["width"] = "50%"`, the string. Type coercion happens later in [[Phases/Component Builders|`ComponentBuilderV1.ApplyAttributes`]].
+A node has a tag, optional id/classes, an attribute bag, and children. **No** typed values — `width="50%"` is `Attributes["width"] = "50%"`, the string. Type coercion happens later in [`ComponentBuilderV1.ApplyAttributes`](Phases/Component%20Builders.md).
 
 This is intentional — the parser stays format-only, doesn't know what tags exist or what their attributes mean. That keeps the parser stable across builder version bumps.
 
@@ -218,7 +220,7 @@ public class StyleContainer(RootContainer root, XmlElement styleElement)
 Two ways to specify a stylesheet:
 
 - **Inline**: `<style>...stylesheet text...</style>` — `SourceCode` populated from `InnerText`.
-- **External**: `<style src="settings.smxs"/>` — `SrcLocation` set; the builder loads the file and calls `UpdateSourceCode` later.
+- **External**: `<style src="settings.snx.ss"/>` — `SrcLocation` set; the builder loads the file and calls `UpdateSourceCode` later.
 
 `Language` is currently unused (only one stylesheet language exists), but reserved.
 
@@ -237,7 +239,7 @@ public class LogicContainer(RootContainer root, XmlElement logicElement)
 }
 ```
 
-Same shape as `StyleContainer` plus `LanguageImports`. The `language` attribute is **required** for the builder to find a compiler — currently `"csharp"` is the only registered value (see [[Phases/Parsing Logic|Parsing Logic]]).
+Same shape as `StyleContainer` plus `LanguageImports`. The `language` attribute is **required** for the builder to find a compiler — currently `"csharp"` is the only registered value (see [Parsing Logic](Phases/Parsing%20Logic.md)).
 
 `GetLanguageImports` accepts either a single import (`imports="MyApp.Settings"`) or a list (`imports="[MyApp.Settings, MyApp.UI]"`). The values are passed straight to Roslyn's `ScriptOptions.AddImports` as namespace imports.
 
@@ -274,7 +276,7 @@ The setter being `private set` means only `UpdateSourceCode` can mutate `SourceC
 
 `MarkupParser.Parse` is **pure** — no GL calls, no I/O, no shared state. Safe to call from any thread. Same for the `*Container` constructors — they walk the `XmlDocument` and copy attributes, that's it.
 
-The actual realisation happens in [[Phases/Component Builders|`ComponentBuilderV1.CreateComponent`]], which *does* touch GL state (creates `UIElement`s with GPU buffers). That step must run on the GL thread.
+The actual realisation happens in [`ComponentBuilderV1.CreateComponent`](Phases/Component%20Builders.md), which *does* touch GL state (creates `UIElement`s with GPU buffers). That step must run on the GL thread.
 
 Production code that loads markup from disk typically does:
 
@@ -291,7 +293,7 @@ ThreadRunner.RunTask(() => {
 
 ## Related
 
-- [[Component Definition|Component Definition]] — what `SundexComponent`s and `SundexContext` actually represent.
-- [[Phases/Component Builders|Component Builders]] — what consumes the `SundexDocument`.
-- [[Phases/Parsing Markup|Parsing Markup]] — how `SundexNode`s become `UIElement`s.
-- [[../Components/Components|Components]] — the target types.
+- [Component Definition](Component%20Definition.md) — what `SundexComponent`s and `SundexContext` actually represent.
+- [Component Builders](Phases/Component%20Builders.md) — what consumes the `SundexDocument`.
+- [Parsing Markup](Phases/Parsing%20Markup.md) — how `SundexNode`s become `UIElement`s.
+- [Components](../Components/Components.md) — the target types.

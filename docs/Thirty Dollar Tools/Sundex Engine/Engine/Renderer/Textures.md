@@ -39,7 +39,7 @@ public void Bind()
 }
 ```
 
-`Create` allocates a handle, uploads a blank `Width × Height` block to lock in the storage at `InternalFormat`, then sets the texture parameters appropriate to the [[#MipmapMode|mipmap mode]]. After this, the texture is *guaranteed* to have storage so `glTexSubImage2D` calls always have somewhere to land.
+`Create` allocates a handle, uploads a blank `Width × Height` block to lock in the storage at `InternalFormat`, then sets the texture parameters appropriate to the [mipmap mode](#mipmapmode). After this, the texture is *guaranteed* to have storage so `glTexSubImage2D` calls always have somewhere to land.
 
 ### Upload queue
 
@@ -141,7 +141,7 @@ Splitting picks orientation by the **shorter leftover axis heuristic**: split ve
 
 ID lookup uses a `Dictionary<string, Rectangle>` with `GetAlternateLookup<ReadOnlySpan<char>>` so callers can look up by stack-allocated keys.
 
-The whole structure is `[JsonInclude]`-annotated so it round-trips through `System.Text.Json` — that is what enables [[../Asset Management#The cache|atlas caching]] (see below).
+The whole structure is `[JsonInclude]`-annotated so it round-trips through `System.Text.Json` — that is what enables [atlas caching](../Asset%20Management.md#the-cache) (see below).
 
 ### `GPUTextureAtlas`
 
@@ -172,12 +172,12 @@ Add image → ask atlas for a rectangle → enqueue an upload to that rectangle.
 
 ### Atlas caching
 
-`LoadFromCache` queries the [[../Asset Management#The cache|`CacheProvider`]] for two artefacts keyed by `AtlasID`:
+`LoadFromCache` queries the [`CacheProvider`](../Asset%20Management.md#the-cache) for two artefacts keyed by `AtlasID`:
 
 - `Atlas_Texture<id>` — the rendered atlas image, decoded with `Image.Load<Rgba32>` or `Image.Load<RgbaVector>` depending on the `InternalFormat`.
 - `Atlas_Lookup<id>` — the `GuillotineAtlas` JSON, deserialised back into a fully-populated bin-pack state.
 
-If both exist the texture is uploaded directly and the atlas's used-rectangle dictionary is restored — bypassing per-glyph rasterisation. This is what lets [[../Text Rendering/Text Rendering|TextProvider]] start instantly on second launch even though MSDF generation is expensive.
+If both exist the texture is uploaded directly and the atlas's used-rectangle dictionary is restored — bypassing per-glyph rasterisation. This is what lets [TextProvider](../Text%20Rendering/Text%20Rendering.md) start instantly on second launch even though MSDF generation is expensive.
 
 Only `Rgba8` and `Rgba32f` formats can be cached — the other internal formats either don't have a portable on-disk representation or aren't used for atlases.
 
@@ -185,10 +185,10 @@ Only `Rgba8` and `Rgba32f` formats can be cached — the other internal formats 
 
 - **`AddTexture` / `AddImage`** can be called off-thread (the atlas takes a `lock (_usedByImageID)`), but the actual GL upload happens on the GL thread via `Bind()`.
 - **`Bind()` and `Create()` are GL-thread-only.**
-- **Disposal** of a `GPUTexture` should enqueue `DeleteType.Texture` on the [[Queues|DeleteQueue]] (the texture class itself doesn't currently expose `Dispose` directly, but the pattern matches `GLBuffer`).
+- **Disposal** of a `GPUTexture` should enqueue `DeleteType.Texture` on the [DeleteQueue](Queues.md) (the texture class itself doesn't currently expose `Dispose` directly, but the pattern matches `GLBuffer`).
 
 ## Related
 
-- [[../Text Rendering/Text Rendering|TextProvider]] uses a single `GPUTextureAtlas` (2048×2048, `Rgba32f`) for all glyph MSDFs.
-- [[../Asset Management#The cache|CacheProvider]] is what makes atlas caching possible.
-- [[Buffers|GLQuad]] supplies the geometry that gets textured at draw time.
+- [TextProvider](../Text%20Rendering/Text%20Rendering.md) uses a single `GPUTextureAtlas` (2048×2048, `Rgba32f`) for all glyph MSDFs.
+- [CacheProvider](../Asset%20Management.md#the-cache) is what makes atlas caching possible.
+- [GLQuad](Buffers.md) supplies the geometry that gets textured at draw time.

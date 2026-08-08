@@ -120,6 +120,6 @@ Producers can be anywhere; consumers are always the main render loop (`Game.OnUp
 
 ## Related
 
-- [[../Asset Management|AssetProvider.Update()]] is the global pump that drains `DeleteQueue`, `ShaderPool`, and `CacheProvider` queues.
-- [[Buffers#The Updates dictionary]] uses the same idiom for per-element writes.
-- [[Textures]] uses an upload queue per `GPUTexture`.
+- [AssetProvider.Update()](../Asset%20Management.md) is the global pump that drains `DeleteQueue`, `ShaderPool`, and `CacheProvider` queues.
+- [Buffers](Buffers.md#the-updates-dictionary) uses the same idiom for per-element writes.
+- [Textures](Textures.md) uses an upload queue per `GPUTexture`.

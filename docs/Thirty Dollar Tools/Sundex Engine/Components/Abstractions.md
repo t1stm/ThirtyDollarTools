@@ -1,6 +1,6 @@
 # Abstractions
 
-Every component in [[Components|Sundex.Components]] derives from `UIElement` and runs against a single `UIContext`. This page covers the abstract base class, the context, the value types (`LiteralOrComputable`, `ComputedRectangle`), and the small enums (`Align`, `Anchor`, `LayoutDirection`, `UIState`, `CursorType`).
+Every component in [Sundex.Components](Components.md) derives from `UIElement` and runs against a single `UIContext`. This page covers the abstract base class, the context, the value types (`LiteralOrComputable`, `ComputedRectangle`), and the small enums (`Align`, `Anchor`, `LayoutDirection`, `UIState`, `CursorType`).
 
 > Source: `Sundex/Sundex.Components/Abstractions/`.
 
@@ -14,7 +14,7 @@ public abstract class UIElement
     public abstract string Tag { get; }                // "panel", "label", "button"...
     public UIContext Context { get; }
     public string ID { get; set; } = "";
-    public HashSet<string> Classes { get; set; } = [];
+    public List<string> Classes { get; set; } = [];   // order matters — later class wins
     public virtual UIElement? Parent { get; set; }
 
     public virtual ComputedRectangle Computed { get; protected set; }
@@ -73,7 +73,7 @@ public abstract class UIElement
 
 `Measure` is **purely informational** — it never mutates the element. It's how a parent flex container can ask "if I gave you this much space, how big would you want to be?" before committing to a layout. `DoLayout` is where mutation happens.
 
-This is why `UIElement.Measure` has a default that returns `(Width.Resolve(parentW), Height.Resolve(parentH))` for non-Auto values, but [[Panels#FlexPanel|`FlexPanel.Measure`]] overrides it to actually walk children and sum/max their sizes.
+This is why `UIElement.Measure` has a default that returns `(Width.Resolve(parentW), Height.Resolve(parentH))` for non-Auto values, but [`FlexPanel.Measure`](Panels.md#flexpanel) overrides it to actually walk children and sum/max their sizes.
 
 ### `InvalidateLayout` vs `InvalidateCoordinates`
 
@@ -82,47 +82,42 @@ Two separate dirty flags:
 - **`InvalidateLayout`** sets `NeedsLayout = true`. The next `Layout()` call will run the full Measure → DoLayout cycle. This is what you call when *sizes* have changed.
 - **`InvalidateCoordinates`** is cheaper — it just calls `Computed.UpdateAbsoluteBasedOnParent`, recomputing absolute X/Y without re-running `DoLayout`. This is what you call when only the *parent* moved, since child relative positions haven't changed.
 
-`UpdateSetDirty(ref field, value)` is the standard property setter helper — assigns the new value and calls `InvalidateLayout()` only if the value actually changed. It's used pervasively: see [[Panels#Panel|`Panel.BorderRadius`]], `Panel.Padding`, etc.
+`UpdateSetDirty(ref field, value)` is the standard property setter helper — assigns the new value and calls `InvalidateLayout()` only if the value actually changed. It's used pervasively: see [`Panel.BorderRadius`](Panels.md#panel), `Panel.Padding`, etc.
 
-### Hit testing — `Test(MouseState, Vector2 scale)`
+### Hit testing — `Test(MouseState, Vector2 scale)` and `UIContext.UpdatePointer`
+
+As of the July 2026 input-routing rework, `Test` no longer resolves hover/press/click itself — it's a thin forward to the context, only acting on root elements (elements with no `Parent`):
 
 ```csharp
 public virtual void Test(MouseState mouse, Vector2 scale)
 {
     if (!Visible) return;
-    var x = Computed.AbsoluteX * scale.X;
-    var y = Computed.AbsoluteY * scale.Y;
-    var w = Computed.Width  * scale.X;
-    var h = Computed.Height * scale.Y;
 
-    var inside = mouse.X >= x && mouse.X < x + w && mouse.Y >= y && mouse.Y < y + h;
-
-    var wasHovered = IsHovered;
-    IsHovered = inside;
-    var wasPressed = IsPressed;
-    IsPressed = inside && mouse.IsButtonDown(MouseButton.Left);
-
-    if (IsHovered && UpdateCursorOnHover)
-        Context.RequestCursor(CursorType.Pointer);
-
-    // State transitions
-    UIState newState = IsPressed ? UIState.Pressed : IsHovered ? UIState.Hovered : UIState.None;
-    if (newState != CurrentState) {
-        CurrentState = newState;
-        InvalidateStyle();    // re-apply base, then state override
-    }
-
-    // Click detection
-    if (wasPressed && !IsPressed && IsHovered)
-        OnClick?.Invoke(this);
+    if (Parent == null)
+        Context.UpdatePointer(this,
+            mouse.X, mouse.Y,
+            mouse.IsButtonDown(MouseButton.Left),
+            mouse.IsButtonPressed(MouseButton.Left),
+            mouse.IsButtonReleased(MouseButton.Left),
+            mouse.ScrollDelta,
+            mouse.IsButtonDown(MouseButton.Right));
 }
 ```
 
+`UIContext.UpdatePointer` is the single place all pointer logic now lives — resolving the topmost hit (occlusion), maintaining hover/pressed chains, capture, clicks, wheel routing, and click-to-focus, across every root sharing the context:
+
+- **Hit resolution** — `CapturedElement ?? root.HitTest(x, y)`. `HitTest` is `virtual` on `UIElement` (default: `ContainsPoint(x, y) ? this : null`); **container** elements override it to test children and return the topmost by `Index`. Elements that sit outside the normal parent/child tree (e.g. popovers) need their own `HitTest` override to be reachable at all.
+- **Capture** — while `CapturedElement` is set (from a press), it wins hit resolution outright, and a capture owned by a different root tree makes that tree unreachable for the pointer.
+- **Press / focus** — on `wasPressed`, walks `winner` → `Parent` chain calling `HandlePress`; the first element that handles it (or the raw hit) becomes `CapturedElement`. Separately walks the same chain for the first `Focusable` element and calls `Focus`/`Blur`. Also detects double-clicks (`DoubleClickMs` + pixel slop) and dispatches `HandleDoublePress`.
+- **Right-press** — level-triggered (fires every update while held, not just on press), so drag-to-erase style gestures work; handlers must be idempotent.
+- **Click** — on `wasReleased`, if the captured element still contains the point, walks `captured` → `Parent` and invokes the first `OnClick` found (release-inside, bubbling to the first ancestor with a handler — not necessarily the element that was hit).
+- **`ApplyPointerState()`** — diffs the old vs. new hover/press chains (root → target, via `Parent`), sets `IsHovered`/`IsPressed` and calls `SyncPointerState()` (which recomputes `CurrentState` — whose setter calls `InvalidateStyle()` on change, so `:hover`/`:pressed` stylesheet rules still apply automatically), and fires `OnHoverEnter`/`OnHoverExit` on transition.
+
 Notes:
 
-- `scale` is the viewport-to-window scale (HiDPI). It scales the bounds, not the mouse position — the convention is "mouse coords are already in window pixels."
-- The `OnClick` semantics is **release-inside** — pressed last frame, released this frame, mouse still inside. This is the conventional desktop button click behaviour and matches what users expect (you can drag off a button to cancel).
-- `Test` is `virtual` because **container** elements override it to also test children: see [[Panels#Panel|`Panel.Test`]] which loops `child.Test(mouse, scale)`.
+- `scale` is currently unused by the new `Test`/`UpdatePointer` path — mouse coordinates are consumed as-is (window pixels).
+- `UpdatePointer` can be called directly with primitives (no `MouseState` needed) — useful for headless tests.
+- For elements whose visual "hover glow" is driven by `PropagateAlpha`, don't add `state[hovered]` stylesheet blocks — use the `OnHoverEnter`/`OnHoverExit` callbacks and touch RGB only, since `PropagateAlpha` already owns alpha.
 
 ### Style application — the `[NamedSetting]` flow
 
@@ -133,7 +128,7 @@ Notes:
 3. If the value's `IStyleValue` type matches the property's CLR type, calls `propertyInfo.SetValue(this, value)` — typically through `ApplyStyleValue` which is the per-element override hook.
 4. Snapshots the values into `_baseSnapshot` so state overrides can be reverted.
 
-The override hook is what lets [[Panels#Panel|`Panel`]] do special-case handling for `GradientValue` → `GradientPlane` and `ColorValue` → `ColoredPlane`:
+The override hook is what lets [`Panel`](Panels.md#panel) do special-case handling for `GradientValue` → `GradientPlane` and `ColorValue` → `ColoredPlane`:
 
 ```csharp
 protected override void ApplyStyleValue(...) {
@@ -153,7 +148,7 @@ protected override void ApplyStyleValue(...) {
 
 ### State overrides — `:hover`, `:pressed`
 
-When `IsHovered` flips true, `Test` calls `InvalidateStyle()`, which:
+When `IsHovered`/`IsPressed` flip (via `SyncPointerState()`, called from `UIContext.ApplyPointerState`), the `CurrentState` property setter detects the change and calls `InvalidateStyle()`, which:
 
 1. Restores all `[NamedSetting]` properties from `_baseSnapshot` (so prior `:hover` mutations are undone).
 2. Calls `ApplyStateOverride(stylesheet, "hover")` if hovered, or `"pressed"` if pressed.
@@ -165,7 +160,7 @@ This way you get CSS-style state styling without explicit transition machinery.
 
 `UIElement` manages its position in the layered render queue indirectly. The base class exposes:
 
-- `Index` — the element's z-order. Set via `Context.GetNextIndex()` or assigned by parent (see [[Bars#ProgressBar|`ProgressBar.UpdatePanelIndices`]] which assigns sub-indices).
+- `Index` — the element's z-order. Set through the `Parent` setter (`Index = Parent?.Index + 1 ?? 0`) and cascaded to children when a `Panel`'s own `Index` changes (see [`ProgressBar.UpdatePanelIndices`](Bars.md#progressbar) which assigns sub-indices).
 - `Viewport` — `(int x, int y, int xw, int yh)` set by `DoLayout`. The renderer uses this for `glScissor` if needed.
 - `DrawTo(context)` — pushes this element's renderables onto the queue and recurses to children.
 - `DrawSelf(context)` — abstract, the per-element "queue *my* renderables" hook.
@@ -236,7 +231,7 @@ Elements with active animations register themselves. `Render()` iterates `_updat
 
 ### `Preload` — default font
 
-`UIContext` is `[PreloadGraphicsContext]` and its `Preload` constructs a `FontProvider` and a `TextProvider` for the default font ("Lato Bold"). This is what makes `Label`s render without any setup — by the time a `Label` is constructed, the [[../Engine/Text Rendering/Text Rendering|`TextProvider`]] already exists.
+`UIContext` is `[PreloadGraphicsContext]` and its `Preload` constructs a `FontProvider` and a `TextProvider` for the default font ("Lato Bold"). This is what makes `Label`s render without any setup — by the time a `Label` is constructed, the [`TextProvider`](../Engine/Text%20Rendering/Text%20Rendering.md) already exists.
 
 If you want a different default font, you'd need to override `Preload` or subclass `UIContext`.
 
@@ -269,24 +264,27 @@ A tagged union of three states:
 
 Implicit conversion from `float` means most call sites can write `Width = 100` instead of `Width = new LiteralOrComputable(100)`. Percentages need the explicit `LiteralOrComputable.Percent(50)` or `new(50, true)`.
 
-`AutoSize` is a singleton readonly struct used as a default for [[Panels#FlexPanel|`FlexPanel.Width`/`Height`]] — flex panels shrink-wrap their children unless explicitly sized.
+`AutoSize` is a singleton readonly struct used as a default for [`FlexPanel.Width`/`Height`](Panels.md#flexpanel) — flex panels shrink-wrap their children unless explicitly sized.
 
 ### `ComputedRectangle`
 
 ```csharp
-public class ComputedRectangle(UIElement current)
+public class ComputedRectangle
 {
     public Action? OnUpdate { get; set; }
-    public float AbsoluteX, AbsoluteY;   // window-space
-    public float X, Y;                   // parent-relative (after padding)
-    public float Width, Height;
+    public float AbsoluteX { get; private set; }   // window-space
+    public float AbsoluteY { get; private set; }
+    public float X { get; private set; }           // parent-relative (after padding)
+    public float Y { get; private set; }
+    public float Width { get; private set; }
+    public float Height { get; private set; }
 
     public void UpdateAbsoluteBasedOnParent(UIElement current, UIElement? parent);
     public void OverrideAbsolutePositions(float x, float y);
 }
 ```
 
-The resolved geometry, recomputed every layout pass. Lives on `UIElement.Computed`.
+No constructor — it's created empty. Deliberately: it's instantiated from the `UIElement` constructor, before virtual `Width`/`Height` overrides (e.g. `WindowFrame` → `Container.Width`) have run, so measuring there would be premature. The element starts with `NeedsLayout = true`, so the first `Layout()` call fills it in via `UpdateAbsoluteBasedOnParent`. The resolved geometry is recomputed every layout pass and lives on `UIElement.Computed`.
 
 `UpdateAbsoluteBasedOnParent` does the actual resolution:
 
@@ -307,7 +305,7 @@ public enum Align        { Start, Center, End, Stretch }
 public enum Anchor       { Start, Center, End }
 public enum LayoutDirection { Horizontal, Vertical }
 public enum UIState      { None, Hovered, Pressed }
-public enum CursorType   { Normal, Pointer, ResizeX, ResizeY }
+public enum CursorType   { Default, Pointer, Text, ResizeX, ResizeY }
 ```
 
 ### `Align` vs `Anchor`
@@ -322,10 +320,10 @@ The distinction trips first-time readers up:
 ### `CursorType`
 
 ```csharp
-public enum CursorType { Normal, Pointer, ResizeX, ResizeY }
+public enum CursorType { Default, Pointer, Text, ResizeX, ResizeY }
 ```
 
-Requested via `UIContext.RequestCursor(CursorType)` — set by `UpdateCursorOnHover = true` elements when hovered. The host (`Game`) maps the request to GLFW cursor handles. Default is `Normal`; on no-hover the request reverts.
+Requested via `UIContext.RequestCursor(CursorType)` from `Update()` when `IsHovered && Cursor != CursorType.Default`. `UpdateCursorOnHover` is a compatibility property backed by the `[NamedSetting("cursor")]` `Cursor` property (`get => Cursor != CursorType.Default; set => Cursor = value ? CursorType.Pointer : CursorType.Default;`). The host (`Game`) maps the request to GLFW cursor handles. Default is `Default`; on no-hover the request reverts.
 
 ## Marker interfaces
 
@@ -349,7 +347,7 @@ public interface IPositioningElement {
 }
 ```
 
-Marker for "I lay out my children." [[Abstractions#ComputedRectangle|`ComputedRectangle.UpdateAbsoluteBasedOnParent`]] checks `parent is IPositioningElement pe` to decide whether to subtract `pe.Padding` from the inner area — non-positioning containers don't have "padding" in the layout sense.
+Marker for "I lay out my children." [`ComputedRectangle.UpdateAbsoluteBasedOnParent`](Abstractions.md#computedrectangle) checks `parent is IPositioningElement pe` to decide whether to subtract `pe.Padding` from the inner area — non-positioning containers don't have "padding" in the layout sense.
 
 ## Attributes
 
@@ -381,7 +379,7 @@ This is *not* z-order across elements — that's the element's `Index`. This is 
 
 ## Related
 
-- [[Panels|Panel]] is the simplest concrete subclass; reading `UIElement.cs` then `Panel.cs` gives you the full layout/style story.
-- [[../Engine/Text Rendering/Text Rendering|TextProvider]] is what `UIContext.Preload` instantiates.
-- [[../Style DSL/Style DSL|Style DSL]] is the source of `IStyleValue` / `StyleSheet` / `Animation`.
-- [[../Markup/Markup|Markup]] is what *constructs* trees of `UIElement` from disk.
+- [Panel](Panels.md) is the simplest concrete subclass; reading `UIElement.cs` then `Panel.cs` gives you the full layout/style story.
+- [TextProvider](../Engine/Text%20Rendering/Text%20Rendering.md) is what `UIContext.Preload` instantiates.
+- [Style DSL](../Style%20DSL/Style%20DSL.md) is the source of `IStyleValue` / `StyleSheet` / `Animation`.
+- [Markup](../Markup/Markup.md) is what *constructs* trees of `UIElement` from disk.

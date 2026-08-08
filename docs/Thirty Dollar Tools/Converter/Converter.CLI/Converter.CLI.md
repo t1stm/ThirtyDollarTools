@@ -2,7 +2,7 @@
 
 > Owning project: `Converter/ThirtyDollarConverter.CLI/`
 
-A small command-line front-end for the converter pipeline. Wraps the same five-phase pipeline ([[../Phases/1 - Getting All Samples|Getting All Samples]] → [[../Phases/2 - Loading Into Memory|Loading Into Memory]] → [[../Phases/3 - Parsing Sequences|Parsing Sequences]] → [[../Phases/4 - Calculating the Placement|Calculating the Placement]] → [[../Phases/5 - Encoding|Encoding]]) that the [[../Converter.GUI/Converter.GUI|GUI]] and [[../Discord Bot/Discord Bot|Discord Bot]] use, just driven by command-line flags instead of a UI.
+A small command-line front-end for the converter pipeline. Wraps the same five-phase pipeline ([Getting All Samples](../Phases/1%20-%20Getting%20All%20Samples.md) → [Loading Into Memory](../Phases/2%20-%20Loading%20Into%20Memory.md) → [Parsing Sequences](../Phases/3%20-%20Parsing%20Sequences.md) → [Calculating the Placement](../Phases/4%20-%20Calculating%20the%20Placement.md) → [Encoding](../Phases/5%20-%20Encoding.md)) that the [GUI](../Converter.GUI/Converter.GUI.md) and [Discord Bot](../Discord%20Bot/Discord%20Bot.md) use, just driven by command-line flags instead of a UI.
 
 ## Files
 
@@ -35,8 +35,8 @@ Logging is via Serilog to stdout. There is no incremental render path here — t
 
 ## Relationship to the rest of the converter
 
-The CLI is the thinnest possible wrapper around the [[../Converter|Converter]] core. If something works in the CLI but not in the GUI/Bot, the bug is almost always in a UI front-end and not in the encoder.
+The CLI is the thinnest possible wrapper around the [Converter](../Converter.md) core. If something works in the CLI but not in the GUI/Bot, the bug is almost always in a UI front-end and not in the encoder.
 
 ---
 
-**Up:** [[../Converter|Converter]]
+**Up:** [Converter](../Converter.md)

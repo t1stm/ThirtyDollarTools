@@ -70,7 +70,7 @@ public interface IGPUBuffer<TDataType> : IBuffer, IDisposable where TDataType : 
 public interface IRenderable { void Render(Camera camera); }
 ```
 
-Anything that draws. Implemented by every leaf-renderable (`Label`, `Panel`, `ProgressBar`, etc.) and by the `Renderable` base class in [[Sundex.Core]].
+Anything that draws. Implemented by every leaf-renderable (`Label`, `Panel`, `ProgressBar`, etc.) and by the `Renderable` base class in `Sundex.Core`.
 
 ## `IPositionable` and `IRectangle`
 
@@ -111,7 +111,7 @@ This is a clean use of C# 11 static abstract members — no reflection, no gener
 ## `IGamePreloadable` + `[PreloadGraphicsContext]`
 
 ```csharp
-[AttributeUsage(AttributeTargets.Class)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
 public class PreloadGraphicsContextAttribute : Attribute { }
 
 public interface IGamePreloadable
@@ -120,7 +120,7 @@ public interface IGamePreloadable
 }
 ```
 
-A class marked `[PreloadGraphicsContext]` and implementing `IGamePreloadable` is automatically discovered and run during [[../Entrypoint#OnLoad|Game.OnLoad]] (via reflection over registered asset assemblies). It is how `GLQuad`, `VertexArrayObject`, [[../Text Rendering/Text Rendering|TextProvider]], `Label`, etc. get their static-shared GPU resources uploaded before any scene needs them.
+A class marked `[PreloadGraphicsContext]` and implementing `IGamePreloadable` is automatically discovered and run during [Game.OnLoad](../Entrypoint.md#onload) (via reflection over registered asset assemblies). It is how `GLQuad`, `VertexArrayObject`, [TextProvider](../Text%20Rendering/Text%20Rendering.md), `Label`, etc. get their static-shared GPU resources uploaded before any scene needs them.
 
 The pattern looks like:
 
@@ -160,6 +160,6 @@ Used by `GLBuffer<T>` so callers can treat it like an array (`buffer[i] = value`
 
 ## Related
 
-- The lifecycle managed by these flags is what [[Buffers|GLBuffer]], [[Shaders|Shader]], and [[Textures|GPUTexture]] all share.
-- The [[Queues|DeleteQueue]] is the dual: every `IBindable.Dispose()` enqueues here.
-- The preload mechanism is invoked from [[../Entrypoint#OnLoad|Game.OnLoad]].
+- The lifecycle managed by these flags is what [GLBuffer](Buffers.md), [Shader](Shaders.md), and [GPUTexture](Textures.md) all share.
+- The [DeleteQueue](Queues.md) is the dual: every `IBindable.Dispose()` enqueues here.
+- The preload mechanism is invoked from [Game.OnLoad](../Entrypoint.md#onload).

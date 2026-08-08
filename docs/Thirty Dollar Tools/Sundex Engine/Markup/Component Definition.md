@@ -12,6 +12,7 @@ public interface ISundexComponent
     public string?  Name    { get; init; }
     public ISundexContext Context { get; }
     public UIElement Element { get; set; }
+    public SundexDocument Document { get; init; }
     public HashSet<ISundexComponent> Dependencies { get; init; }
     public List<ISundexComponent>    Children     { get; init; }
 }
@@ -22,6 +23,7 @@ A component is:
 - **Named** (optional) — if present, can be `import`ed from another component's markup.
 - **Bound to a context** — the `ISundexContext` it was built in.
 - **Rooted at a `UIElement`** — the realised UI tree.
+- **Backed by a retained `Document`** — the `SundexDocument` it was built from. Retained so a registered component used as a tag elsewhere can be rebuilt per usage site instead of aliasing its element tree — `LayoutContainer.BuildTree` reparses from the held `XmlElement`, so building the same document twice is independent (see [component reuse](#related)).
 - **A dependency graph** — `Dependencies` are components imported by this one; `Children` are components used by this one (currently mostly equivalent — the distinction is reserved for future composition patterns).
 
 ## `SundexComponent` — the concrete
@@ -31,11 +33,13 @@ public class SundexComponent : ISundexComponent
 {
     public required string Version { get; set; }
     public Action<object?>? RunLogic { get; set; }
+    public StyleSheet? StyleSheet { get; init; }
 
     public Dictionary<string, UIElement>       RegisteredIDs     { get; init; } = [];
     public Dictionary<string, List<UIElement>> RegisteredClasses { get; init; } = [];
     public required ISundexContext Context { get; init; }
     public required UIElement       Element { get; set; }
+    public required SundexDocument  Document { get; init; }
 
     public HashSet<ISundexComponent> Dependencies { get; init; } = [];
     public List<ISundexComponent>    Children     { get; init; } = [];
@@ -84,9 +88,28 @@ There's no equivalent `GetClass<T>` method — but `RegisteredClasses["primary"]
 public Action<object?>? RunLogic { get; set; }
 ```
 
-A nullable delegate. If the document had a `<logic>` section, [[Phases/Parsing Logic|`CSharp.Compile`]] returns a delegate that closes over the compiled Roslyn `Script<object>` and a freshly-constructed `ScriptGlobals`. That delegate is stored here.
+A nullable delegate. If the document had a `<logic>` section, [`CSharp.Compile`](Phases/Parsing%20Logic.md) returns a delegate that closes over the compiled Roslyn `Script<object>` and a freshly-constructed `ScriptGlobals`. That delegate is stored here.
 
 Calling `component.RunLogic?.Invoke(this)` is the standard "run the script with `this` as the script context" idiom. The `object?` parameter becomes `ScriptGlobals.Context` inside the script — typically the host class that owns the component.
+
+**It cascades.** When a component has imported children, `ComponentBuilderV1` wraps `RunLogic` so it invokes every child's `RunLogic` first, depth-first, before running its own — a component composed of sub-components wires all of them from one call, and a child is always fully wired before the host's logic reaches for it:
+
+```csharp
+component.RunLogic = children.Count == 0
+    ? runLogic
+    : obj => {
+        foreach (var child in children) child.RunLogic?.Invoke(obj);
+        runLogic?.Invoke(obj);
+    };
+```
+
+### `StyleSheet` — the sheet this component was built with
+
+```csharp
+public StyleSheet? StyleSheet { get; init; }
+```
+
+`null` when the document declared no `<style>`. Exposed so code-built UI can style itself from the same sheet, and so values that aren't element properties (e.g. colors used in raw draw calls) can be read out of it instead of being compiled in.
 
 `Version` is the builder version string ("1.0" today). Stored so that future hot-reload or migration code can route old documents through the right builder.
 
@@ -105,9 +128,9 @@ public interface ISundexContext
 
 Three responsibilities:
 
-1. **Hold the `UIContext`** — every component built from this context shares one [[../Components/Abstractions#UIContext|`UIContext`]], which means one render queue, one TextProvider, one cursor callback.
+1. **Hold the `UIContext`** — every component built from this context shares one [`UIContext`](../Components/Abstractions.md#uicontext), which means one render queue, one TextProvider, one cursor callback.
 2. **Component registry** — `RegisterComponent` / `ResolveComponent` for cross-component imports.
-3. **Custom tag factory** — `RegisterElementFactory(tagName, factory)` lets the host add new tags. The builder calls `CreateElement(tagName)` for any tag it doesn't recognise built-in (see [[Phases/Parsing Markup|Parsing Markup]]).
+3. **Custom tag factory** — `RegisterElementFactory(tagName, factory)` lets the host add new tags. The builder calls `CreateElement(tagName)` for any tag it doesn't recognise built-in (see [Parsing Markup](Phases/Parsing%20Markup.md)).
 
 ## `SundexContext` — the concrete
 
@@ -124,8 +147,11 @@ public class SundexContext(UIContext context) : ISundexContext
     public SundexComponent NewComponent(string smxlMarkup);
     public void            RegisterBuilder(string version, IComponentBuilder builder);
     public void            RunLogicAndVerify(SundexComponent component, params ReadOnlySpan<Func<object?>> objectGetters);
+    public void            UnregisterComponent(ISundexComponent component);
 }
 ```
+
+`UnregisterComponent` isn't part of the `ISundexContext` interface above — it's `SundexContext`-only, removing the component from `LoadedComponents` by `Name` (throws if `Name` is null, same as `RegisterComponent`).
 
 ### `NewComponent(markup)` — the user-facing entry point
 
@@ -147,7 +173,7 @@ Three steps:
 2. Look up the builder for `<sundex version="...">`.
 3. Hand over to `builder.CreateComponent(document, this)`.
 
-The `GetAlternateLookup<ReadOnlySpan<char>>()` is the [[../Engine/Asset Management|`Dictionary` span-key trick]] reused throughout the engine — saves an allocation when the version string is already a span.
+The `GetAlternateLookup<ReadOnlySpan<char>>()` is the [`Dictionary` span-key trick](../Engine/Asset%20Management.md) reused throughout the engine — saves an allocation when the version string is already a span.
 
 ### `RegisterBuilder` — versioning
 
@@ -188,7 +214,7 @@ sundexContext.RegisterElementFactory("waveform",
 
 Now `<waveform/>` in markup creates a `WaveformView`. The factory runs once per occurrence.
 
-The builder checks custom factories before falling back to "import a foreign component" or throwing — see [[Phases/Parsing Markup|Parsing Markup]] for the full lookup order.
+The builder checks custom factories before falling back to "import a foreign component" or throwing — see [Parsing Markup](Phases/Parsing%20Markup.md) for the full lookup order.
 
 ### Component registration
 
@@ -211,16 +237,16 @@ public void RegisterComponent(ISundexComponent component)
 The `imports="['x']"` attribute on a `<sundex>` root resolves through `ResolveComponent`. This is what lets one markup document re-use another:
 
 ```xml
-<!-- header.smxl: defines a "header" component -->
+<!-- header.snx.xml: defines a "header" component -->
 <sundex component="header" implements="header_interface">
     <layout>...</layout>
 </sundex>
 
-<!-- main.smxl: imports header -->
+<!-- main.snx.xml: imports header -->
 <sundex imports="['header']">
     <layout>
         <flex direction="vertical">
-            <header/>             <!-- expanded to header.smxl's tree -->
+            <header/>             <!-- expanded to header.snx.xml's tree -->
             <label value="Body"/>
         </flex>
     </layout>
@@ -357,7 +383,7 @@ This catches "I added a `[SetFromLogic]` field but forgot to wire it up in the s
 
 ## Related
 
-- [[Markup Parser|Markup Parser]] — what produces the `SundexDocument` that `NewComponent` builds.
-- [[Phases/Component Builders|Component Builders]] — how the document becomes a component.
-- [[Phases/Parsing Logic|Parsing Logic]] — what `RunLogic` actually invokes.
-- [[../Components/Abstractions#UIContext|UIContext]] — the rendering context every component shares.
+- [Markup Parser](Markup%20Parser.md) — what produces the `SundexDocument` that `NewComponent` builds.
+- [Component Builders](Phases/Component%20Builders.md) — how the document becomes a component.
+- [Parsing Logic](Phases/Parsing%20Logic.md) — what `RunLogic` actually invokes.
+- [UIContext](../Components/Abstractions.md#uicontext) — the rendering context every component shares.

@@ -210,7 +210,7 @@ public override void InvalidateLayout()     { if (NeedsLayout) return; base.Inva
 public override void InvalidateCoordinates() { base.InvalidateCoordinates(); BackgroundPanel.InvalidateCoordinates(); ForegroundPanel.InvalidateCoordinates(); }
 ```
 
-Pattern: every base hook that should recurse into children gets a one-liner override. `ProgressBar` doesn't put the children in a `List<UIElement>`, so it doesn't get the auto-recursion that [[Panels#Panel|`Panel`]] gets — hence the manual forwarding.
+Pattern: every base hook that should recurse into children gets a one-liner override. `ProgressBar` doesn't put the children in a `List<UIElement>`, so it doesn't get the auto-recursion that [`Panel`](Panels.md#panel) gets — hence the manual forwarding.
 
 The `if (NeedsLayout) return;` guard in `InvalidateLayout` is an early-out — already-dirty panels don't need to be marked dirty again or have their children re-marked.
 
@@ -219,13 +219,13 @@ The `if (NeedsLayout) return;` guard in `InvalidateLayout` is an early-out — a
 You could replicate `ProgressBar`'s structure with a `Panel` containing two child `Panel`s. The reason `ProgressBar` is its own class:
 
 1. **`Progress` is a single, animatable value** — typing `progressBar.Progress = 0.5` is the natural API; manually sizing a child panel to `width: 50%` is not.
-2. **The [[../Markup/Markup|markup parser]] needs a tag** — `<progress>` reads better than `<panel><panel/><panel/></panel>`.
+2. **The [markup parser](../Markup/Markup.md) needs a tag** — `<progress>` reads better than `<panel><panel/><panel/></panel>`.
 3. **Stylesheet semantics** — `progress { ... }` selectors target the bar uniformly; targeting "the second child of the panel that's a progress bar" would be brittle.
 4. **Hit-testing nuance** — the foreground-not-tested rule above — needs custom code.
 
 ## Related
 
-- [[Panels|Panel]] — the building block.
-- [[Abstractions#NamedSetting|NamedSetting]] — how `progress: 0.5;` becomes a property write.
-- [[../Style DSL/Style DSL|Style DSL]] — `GradientValue`, `ColorValue`, animation interpolation.
-- The [[../Markup/Markup|markup loader]] is what parses `<progress progress="0.5"/>` into one of these.
+- [Panel](Panels.md) — the building block.
+- [NamedSetting](Abstractions.md#style-application-the-namedsetting-flow) — how `progress: 0.5;` becomes a property write.
+- [Style DSL](../Style%20DSL/Style%20DSL.md) — `GradientValue`, `ColorValue`, animation interpolation.
+- The [markup loader](../Markup/Markup.md) is what parses `<progress progress="0.5"/>` into one of these.

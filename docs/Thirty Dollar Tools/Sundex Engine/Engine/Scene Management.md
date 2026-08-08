@@ -25,6 +25,10 @@ public abstract class Scene(Game game)
     public abstract void FileDrop(string[] locations);
     public abstract void Keyboard(KeyboardState state);
     public abstract void Mouse(MouseState mouseState, KeyboardState keyboardState);
+
+    // virtual, not abstract — default no-op, so scenes that don't need them can ignore them
+    public virtual void TextInput(TextInputEventArgs e) { }
+    public virtual void KeyDown(KeyboardKeyEventArgs e) { }
 }
 ```
 
@@ -42,6 +46,8 @@ The constructor takes `Game` and the convenience properties (`AssetProvider`, `S
 | `Resize(w, h)` | `Game.OnFramebufferResize` | Window resize |
 | `Keyboard(state)` | `Game.OnUpdateFrame` (only if any key down) | Per tick |
 | `Mouse(mouseState, keyState)` | `Game.OnUpdateFrame` | Every tick |
+| `TextInput(TextInputEventArgs)` | `Game.OnTextInput` → `SceneManager.TextInput` | Unicode text input (virtual, default no-op) |
+| `KeyDown(KeyboardKeyEventArgs)` | `Game.OnKeyDown` → `SceneManager.KeyDown` | Key press, including OS repeats (virtual, default no-op) |
 | `FileDrop(string[])` | `Game.OnFileDrop` | When OS drops files onto window |
 | `Shutdown()` | `Game.OnClosing` | App close |
 
@@ -89,7 +95,7 @@ A scene is *loaded* exactly once via `LoadScene("scene_name", mgr => new MyScene
 private Queue<Scene> ScenesToInitialize { get; } = [];
 ```
 
-`LoadScene` enqueues onto this queue and returns immediately. The actual `Initialize(initArguments)` call happens later, on the GL thread, when [[Entrypoint#OnUpdateFrame|`SceneManager.Initialize`]] drains the queue. This separation matters because `Initialize` typically calls `AssetProvider.Load<...>` to allocate GPU resources — which must be on the GL thread.
+`LoadScene` enqueues onto this queue and returns immediately. The actual `Initialize(initArguments)` call happens later, on the GL thread, when [`SceneManager.Initialize`](Entrypoint.md#onupdateframeargs) drains the queue. This separation matters because `Initialize` typically calls `AssetProvider.Load<...>` to allocate GPU resources — which must be on the GL thread.
 
 The drain happens twice per `OnUpdateFrame`:
 
@@ -138,10 +144,10 @@ There is no built-in "active vs paused" distinction — if a scene is in `Active
 
 - **Mutation** of scene registries can happen anywhere (locked).
 - **All lifecycle hooks** run on the GL thread.
-- **Off-thread work** should be marshalled through [[Threading|`ThreadRunner`]] (e.g. a background loader spawning Roslyn compilation), and any GPU-touching follow-up should round-trip through `Game.Enqueue(...)` to land back on the GL thread.
+- **Off-thread work** should be marshalled through [`ThreadRunner`](Threading.md) (e.g. a background loader spawning Roslyn compilation), and any GPU-touching follow-up should round-trip through `Game.Enqueue(...)` to land back on the GL thread.
 
 ## Related
 
-- [[Entrypoint|Game]] is what calls into `SceneManager` for lifecycle events.
-- [[Threading|ThreadRunner]] is exposed on every `Scene` for off-thread work.
-- [[../Components/Components|UIElement]] tree is what most scenes contain — see [[../Components/Components|Components]] for how a UI tree gets rendered inside a `Scene.Render` body.
+- [Game](Entrypoint.md) is what calls into `SceneManager` for lifecycle events.
+- [ThreadRunner](Threading.md) is exposed on every `Scene` for off-thread work.
+- [UIElement](../Components/Components.md) tree is what most scenes contain — see [Components](../Components/Components.md) for how a UI tree gets rendered inside a `Scene.Render` body.

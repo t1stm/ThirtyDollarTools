@@ -52,7 +52,7 @@ become a plain value.
 Two consequences:
 
 1. **Declare before use.** The parser is a single forward pass, so a `$x` that appears above
-   its `var x` throws `Unknown variable 'x'`. Same rule as [[Import|imports]] — order matters.
+   its `var x` throws `Unknown variable 'x'`. Same rule as [imports](Import.md) — order matters.
 2. **No mutation.** There is no way to reassign a variable. A future `var mut` could add it;
    nothing here is in the way.
 
@@ -83,7 +83,7 @@ file gets its own parser — so "same file" falls out of the structure for free.
 ## Scoping across imports
 
 Variables are the **only** thing in the DSL with any scoping. Classes, ids, components and
-animations are always global and merge exactly as [[Import|Import]] describes, aliased or not.
+animations are always global and merge exactly as [Import](Import.md) describes, aliased or not.
 
 ### Plain import — variables merge globally
 
@@ -144,7 +144,7 @@ class card {
 }
 ```
 
-Both work, in either order. See [[Import#The parse cache|Import]] for why this needed the parse
+Both work, in either order. See [Import](Import.md#the-parse-cache) for why this needed the parse
 cache — the older `_importedPaths` set would have skipped the second directive entirely and left
 the alias empty.
 
@@ -172,7 +172,7 @@ is done by the time it's constructed, so nothing downstream needs them.
 
 ## Related
 
-- [[Import|Import]] — the `as` form, the parse cache, and merge ordering.
-- [[Syntax|Syntax]] — identifier characters (`_` included) and the `ParseValue` dispatch.
-- [[Style Types|Style Types]] — what a variable can hold.
-- [[Style DSL|Style DSL]] — the index.
+- [Import](Import.md) — the `as` form, the parse cache, and merge ordering.
+- [Syntax](Syntax.md) — identifier characters (`_` included) and the `ParseValue` dispatch.
+- [Style Types](Style%20Types.md) — what a variable can hold.
+- [Style DSL](Style%20DSL.md) — the index.

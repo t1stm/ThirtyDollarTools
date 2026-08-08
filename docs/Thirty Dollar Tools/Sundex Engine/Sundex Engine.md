@@ -1,10 +1,10 @@
 # Sundex Engine
 
-**Sundex** (originally "Sunder", named on a whim — German pun on **S**(und)**EX**, also meaning "to break into multiple parts") is the in-house C# / .NET 10 game engine that powers the [[../Visualizer/Visualizer|Visualizer]]. It is built around three deliberate design pillars:
+**Sundex** (originally "Sunder", named on a whim — German pun on **S**(und)**EX**, also meaning "to break into multiple parts") is the in-house C# / .NET 10 game engine that powers the Visualizer. It is built around three deliberate design pillars:
 
 1. **Simplicity** — a small, readable codebase that one person can hold in their head.
 2. **Multithreading-friendly** — work that doesn't need the GL thread can be done off it (asset I/O, file enumeration, logic compilation), and GL state changes are funnelled back via deferred queues.
-3. **Declarative UI** — UIs are described in [[Markup/Markup|XML markup]] + a [[Style DSL/Style DSL|custom CSS-like DSL]] + embedded C# scripting, all parsed at runtime.
+3. **Declarative UI** — UIs are described in [XML markup](Markup/Markup.md) + a [custom CSS-like DSL](Style%20DSL/Style%20DSL.md) + embedded C# scripting, all parsed at runtime.
 
 Built on top of:
 
@@ -31,10 +31,10 @@ Sundex/
 
 The engine is split into four reading paths. Read them in this order if you are new to the codebase — each builds on the previous:
 
-1. [[Engine/Engine|Engine]] — the runtime: the `Game` window, asset pipeline, GPU resource management, the renderer, scenes, text, threading. **This is the foundation.**
-2. [[Components/Components|Components]] — the `UIElement` tree: panels, labels, buttons, layout, hit-testing, animation hooks. **This is what gets rendered.**
-3. [[Markup/Markup|Markup]] — the XML-style language that turns a `.snx.xml` document into a tree of components, with embedded C# logic. **This is what users write.**
-4. [[Style DSL/Style DSL|Style DSL]] — the CSS-like styling language that decorates components and drives animations. **This is what makes things look right.**
+1. [Engine](Engine/Engine.md) — the runtime: the `Game` window, asset pipeline, GPU resource management, the renderer, scenes, text, threading. **This is the foundation.**
+2. [Components](Components/Components.md) — the `UIElement` tree: panels, labels, buttons, layout, hit-testing, animation hooks. **This is what gets rendered.**
+3. [Markup](Markup/Markup.md) — the XML-style language that turns a `.snx.xml` document into a tree of components, with embedded C# logic. **This is what users write.**
+4. [Style DSL](Style%20DSL/Style%20DSL.md) — the CSS-like styling language that decorates components and drives animations. **This is what makes things look right.**
 
 ## How a frame happens (10-second tour)
 
@@ -43,14 +43,14 @@ The engine is split into four reading paths. Read them in this order if you are 
 .snx.xml file               │  Game (GameWindow)     │
        │                    │  ──────────────────    │
        ▼                    │  OnUpdateFrame ───────►│ SceneManager.Update / Mouse / Keyboard
-[[Markup/Markup Parser|MarkupParser]]                │                        │
+MarkupParser                │                        │
        │                    │  OnRenderFrame ───────►│ SceneManager.Render
        ▼                    │                        │   └──► Scene.Render
 SundexDocument              │                        │          └──► UIContext.Render
        │                    │                        │                 └──► Renderable.Render(camera)
        │ ComponentBuilderV1 │                        │
        ▼                    │                        │
-UIElement tree   ◄─── style sheet ◄── [[Style DSL/Style Parser|StyleParser]]
+UIElement tree   ◄─── style sheet ◄── StyleParser
        │
        │ runLogic(this)  (Roslyn-compiled C#)
        ▼
@@ -61,15 +61,15 @@ Bound, styled UI
 
 | Concern | Project | Read |
 |---|---|---|
-| Game loop, input, GL context | `Sundex.Engine` | [[Engine/Entrypoint|Entrypoint]] |
-| GPU buffers, shaders, textures | `Sundex.Engine` | [[Engine/Renderer/Renderer|Renderer]] |
-| Loading files / shaders / textures from disk + assemblies | `Sundex.Engine` | [[Engine/Asset Management|Asset Management]] |
-| MSDF text rendering | `Sundex.Engine` | [[Engine/Text Rendering/Text Rendering|Text Rendering]] |
-| Scenes (stacking, transitions) | `Sundex.Engine` | [[Engine/Scene Management|Scene Management]] |
-| Off-thread work + exception marshalling | `Sundex.Engine` | [[Engine/Threading|Threading]] |
-| `UIElement`, panels, labels, animations on UI | `Sundex.Components` | [[Components/Components|Components]] |
-| XML parse, C# scripting, building components | `Sundex.Markup` | [[Markup/Markup|Markup]] |
-| Style sheets, selectors, gradients, keyframes | `Sundex.Style.DSL` | [[Style DSL/Style DSL|Style DSL]] |
+| Game loop, input, GL context | `Sundex.Engine` | [Entrypoint](Engine/Entrypoint.md) |
+| GPU buffers, shaders, textures | `Sundex.Engine` | [Renderer](Engine/Renderer/Renderer.md) |
+| Loading files / shaders / textures from disk + assemblies | `Sundex.Engine` | [Asset Management](Engine/Asset%20Management.md) |
+| MSDF text rendering | `Sundex.Engine` | [Text Rendering](Engine/Text%20Rendering/Text%20Rendering.md) |
+| Scenes (stacking, transitions) | `Sundex.Engine` | [Scene Management](Engine/Scene%20Management.md) |
+| Off-thread work + exception marshalling | `Sundex.Engine` | [Threading](Engine/Threading.md) |
+| `UIElement`, panels, labels, animations on UI | `Sundex.Components` | [Components](Components/Components.md) |
+| XML parse, C# scripting, building components | `Sundex.Markup` | [Markup](Markup/Markup.md) |
+| Style sheets, selectors, gradients, keyframes | `Sundex.Style.DSL` | [Style DSL](Style%20DSL/Style%20DSL.md) |
 
 ## Testing the engine
 

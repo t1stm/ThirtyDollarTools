@@ -2,7 +2,7 @@
 
 > Owning code: `ThirtyDollarConverter.Parser/Sequence.cs`, `BaseEvent.cs`, `NormalEvent.cs`, `ValueScale.cs`, `Sound.cs`, and the `Custom Events/` folder.
 
-A TDW save file is just a UTF-8 text blob — a `|`-separated list of "event tokens" describing which sound to play, at what pitch, how loud, when to loop, etc. Phase 3 parses that text into a strongly-typed `Sequence` of `BaseEvent`s ready for [[4 - Calculating the Placement|Calculating the Placement]].
+A TDW save file is just a UTF-8 text blob — a `|`-separated list of "event tokens" describing which sound to play, at what pitch, how loud, when to loop, etc. Phase 3 parses that text into a strongly-typed `Sequence` of `BaseEvent`s ready for [Calculating the Placement](4%20-%20Calculating%20the%20Placement.md).
 
 The single entry point is `Sequence.FromString(string data)`.
 
@@ -79,13 +79,13 @@ Later, when the parser sees an event whose `SoundEvent` matches a defined name, 
 The merging rules in `ProcessDefines` are nuanced:
 
 - If the call is "vanilla" (`Value == 0`, default scale, default volume, no pan, no offset) → the definition's events are added verbatim.
-- Otherwise: each non-action event in the body has the call's `Value` applied (per `ValueScale`), `Volume` multiplied (`*= newVolume / 100`), and `Pan`/`OffsetInSeconds` summed (clamped to `[-1, 1]` and `>= 0` respectively). When a body event was a `NormalEvent`, it's promoted to an `ExtendedEvent` so it can carry pan/offset.
+- Otherwise: each non-action event in the body has the call's `Value` applied (per `ValueScale`), `Volume` multiplied (`*= newVolume / 100`), and `Pan`/`OffsetInSeconds` summed (clamped to `[-100, 100]` and `>= 0` respectively). When a body event was a `NormalEvent`, it's promoted to an `ExtendedEvent` so it can carry pan/offset.
 
 ### `#icut(a,b,c)` and `!cut@a,b,c`
 
 Both forms produce an `IndividualCutEvent` with a `HashSet<string>` of sound names to silence. The tokenizer goes through `TryIndividualCut` (regex `^#icut\((?<events>[^)]+)\)`) for the `#icut` syntax, and `TryIndividualCutTDW` for the legacy `!cut@…` syntax.
 
-A side-effect: every cut sound is added to `sequence.SeparatedChannels`, which tells the encoder to mix that sound into a *separate* track inside the `AudioMixer` so it can be silenced independently. (See [[5 - Encoding|Encoding]] for how that affects mixer track creation.)
+A side-effect: every cut sound is added to `sequence.SeparatedChannels`, which tells the encoder to mix that sound into a *separate* track inside the `AudioMixer` so it can be silenced independently. (See [Encoding](5%20-%20Encoding.md) for how that affects mixer track creation.)
 
 `#icut` additionally flips `sequence.IsNewFormat = false`.
 
@@ -107,7 +107,7 @@ For ordinary events the parser runs a series of `[GeneratedRegex]` matchers over
 | pan         | `\^[-0-9.]+` | `^-0.5`     | `Pan` (float)  → forces `ExtendedEvent` |
 | offset      | `>[-0-9.]+`  | `>0.25`     | `OffsetInSeconds` (double) → forces `ExtendedEvent` |
 
-If the token has neither `^` nor `>`, the result is a [[#NormalEvent|NormalEvent]]. If either is present, the parser instead constructs an [[#ExtendedEvent|ExtendedEvent]] so the extra fields can be carried through.
+If the token has neither `^` nor `>`, the result is a [NormalEvent](#normalevent). If either is present, the parser instead constructs an [ExtendedEvent](#extendedevent-normalevent-implements-icustomaudibleevent) so the extra fields can be carried through.
 
 Special routes inside `ParseEvent`:
 
@@ -117,10 +117,10 @@ Special routes inside `ParseEvent`:
 ### Pan normalization (new vs old format)
 
 ```csharp
-Pan = sequence.IsNewFormat ? pan / 100f : pan
+Pan = sequence.IsNewFormat ? pan : pan * 100
 ```
 
-The post-rewrite TDW website stores pan as a percentage (`^50` ≡ 50% right ≡ `0.5f` internally). The legacy format stored it as the raw `[-1, 1]` value already. `IsNewFormat` defaults to `true` and is flipped off when `#icut(...)` is encountered (which only ever appears in legacy saves).
+`Pan` is stored on a `[-100, 100]` scale (-100 left, 0 center, 100 right). The post-rewrite TDW website already writes the token in that percentage form (`^50` ≡ `Pan = 50`), so it passes through unchanged. The legacy format stored the raw `[-1, 1]` value, so it gets scaled by `100` to land on the same internal range. `IsNewFormat` defaults to `true` and is flipped off when `#icut(...)` or `#legacy` is encountered (both legacy-only markers).
 
 ### `!bg` and `!pulse` packing
 
@@ -140,6 +140,7 @@ BaseEvent (abstract)                    – Sequence.cs
 │
 ├── IndividualCutEvent                   – #icut / !cut@…  ; ICustomActionEvent + ICustomAudibleEvent
 ├── BookmarkEvent                        – #bookmark        ; ICustomActionEvent + IHiddenEvent
+├── LegacySequenceEvent                  – #legacy directive; forces IsNewFormat = false
 └── EndEvent                             – synthetic "end of sequence" marker
                                           ; ICustomActionEvent + IHiddenEvent
 ```
@@ -206,19 +207,13 @@ The default concrete event. Plain `Copy()` clones every field. Holds anything th
 ```csharp
 public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
 {
-    public bool   IsStandardImplementation { get; set; }
-    public float  Pan { get; set; }           // -1 left, 0 center, 1 right
-    public double OffsetInSeconds { get; set; } // start playback this many seconds in
-    public float  TDWPan => Pan * 10;          // for visualizer scaling
+    public float  Pan { get; set; }              // -100 left, 0 center, 100 right
+    public double OffsetInSeconds { get; set; }   // start playback this many seconds in
+    public float  TDWPan => Pan / 10;             // for visualizer scaling
 }
 ```
 
 `OffsetInSeconds` lets a sample start partway through. The encoder converts it to a sample offset using the *event-rate-adjusted* sample rate (i.e., factoring in semitone pitch shift): `offsetInSamples = startOffset * (sampleRate / 2^(value/12))`. See `PCMEncoder.RenderEventToSlice`.
-
-`IsStandardImplementation` differentiates between:
-
-- `true` — the event came from the post-rewrite format and pan is already pre-divided by 100.
-- `false` — the event came from the legacy format (or from `#icut` body) and pan was supplied raw.
 
 ### `IndividualCutEvent`
 
@@ -230,7 +225,7 @@ public class IndividualCutEvent : BaseEvent, ICustomActionEvent, ICustomAudibleE
 }
 ```
 
-Carries which sounds to silence. `SoundEvent` is set to `"!cut"` (new-format) or `"#icut"` (legacy). The encoder's `RenderEventToSlice` looks at this set and runs `HandleCut` against the matching tracks in the `AudioMixer`.
+Carries which sounds to silence. `IsStandardImplementation` differentiates the standard `"!cut"` form (`true`) from the legacy `"#icut"` form (`false`) — `SoundEvent` is set accordingly. The encoder's `PCMEncoder.RenderEventToSlice` looks at this set and calls the static `SampleMixer.HandleCut` against the matching tracks in the `AudioMixer`.
 
 ### `BookmarkEvent` and `EndEvent`
 
@@ -260,10 +255,10 @@ public class Sound
 
 ## What Phase 3 hands off
 
-A `Sequence` whose `Events` array is a flat, fully-expanded list of `BaseEvent`s — definitions inlined, repeats expanded, format quirks normalized. The next phase, [[4 - Calculating the Placement|Calculating the Placement]], walks that array as a tiny VM to produce a sample-accurate timeline.
+A `Sequence` whose `Events` array is a flat, fully-expanded list of `BaseEvent`s — definitions inlined, repeats expanded, format quirks normalized. The next phase, [Calculating the Placement](4%20-%20Calculating%20the%20Placement.md), walks that array as a tiny VM to produce a sample-accurate timeline.
 
 ---
 
-**Previous:** [[2 - Loading Into Memory|Loading Into Memory]]
-**Next:** [[4 - Calculating the Placement|Calculating the Placement]]
-**Up:** [[../Converter|Converter]]
+**Previous:** [Loading Into Memory](2%20-%20Loading%20Into%20Memory.md)
+**Next:** [Calculating the Placement](4%20-%20Calculating%20the%20Placement.md)
+**Up:** [Converter](../Converter.md)

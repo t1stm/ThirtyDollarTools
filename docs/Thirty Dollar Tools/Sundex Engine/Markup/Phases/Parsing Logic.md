@@ -34,7 +34,7 @@ public static class LanguageProvider
 
 A static dictionary keyed by the `language="..."` attribute value in `<logic>`. Single-instance plugins — the dictionary holds one `CSharp()` for the entire app lifetime; it's reused across all components.
 
-A future Lua or Python plugin would just add an entry. The dispatcher in [[Component Builders|`ComponentBuilderV1`]]:
+A future Lua or Python plugin would just add an entry. The dispatcher in [`ComponentBuilderV1`](Component%20Builders.md):
 
 ```csharp
 LanguageProvider.Languages.TryGetValue(logic.Language, out var language);
@@ -95,7 +95,7 @@ var options = ScriptOptions.Default
 **References** are which assemblies the script can resolve types from:
 
 - `typeof(CSharp).Assembly` — the `Sundex.Markup` assembly itself, so the script can use `SundexComponent`, `ISundexContext`, etc.
-- `context.UIContext.AssetProvider.AssetAssemblies` — all asset-loadable assemblies registered with the [[../../Engine/Asset Management|`AssetProvider`]]. This is what lets a script use host-app types (e.g. `MyApp.Settings` from the application's main assembly).
+- `context.UIContext.AssetProvider.AssetAssemblies` — all asset-loadable assemblies registered with the [`AssetProvider`](../../Engine/Asset%20Management.md). This is what lets a script use host-app types (e.g. `MyApp.Settings` from the application's main assembly).
 
 **Imports** are `using` directives prepended invisibly. The five hard-coded imports cover the typical script's needs (you can write `Component.GetID<Button>(...)` without `using Sundex.Components.Labels;`). `logicLanguageImports` is the list parsed from `<logic imports="...">` — host-app namespaces.
 
@@ -207,7 +207,7 @@ Pattern:
 2. **Resolve UI elements** by ID into the host's `[SetFromLogic]` fields.
 3. **Wire up event handlers** — `OnClick` callbacks delegate to host methods.
 
-This is the canonical "dumb script, smart host" division of responsibility. The script is just glue; logic lives in the host class. That's what the [[../Component Definition#SetFromLogic — declarative wiring contract|`[SetFromLogic]` mechanism]] is built around — it lets the host declare *what* must be wired, and `RunLogicAndVerify` checks the script did its job.
+This is the canonical "dumb script, smart host" division of responsibility. The script is just glue; logic lives in the host class. That's what the [`[SetFromLogic]` mechanism](../Component%20Definition.md#setfromlogic-declarative-wiring-contract) is built around — it lets the host declare *what* must be wired, and `RunLogicAndVerify` checks the script did its job.
 
 The XML entity escaping (`&lt;` for `<`, `&gt;` for `>`, `&amp;` for `&`) is required because the script lives inside an XML element. It's ugly. Ways to mitigate:
 
@@ -250,7 +250,7 @@ If the script does work that should be off-thread, it's the script's responsibil
 
 Source generators run at build time and produce real C# files. They're faster (no Roslyn at runtime), but require a build step — not viable for hot-loaded markup files.
 
-C# scripting is the runtime equivalent: parse and JIT the source on demand. Slow to compile, fast to run, hot-reloadable. The right trade-off for "designer changes a `.smxl` file and reloads."
+C# scripting is the runtime equivalent: parse and JIT the source on demand. Slow to compile, fast to run, hot-reloadable. The right trade-off for "designer changes a `.snx.xml` file and reloads."
 
 The `Microsoft.CodeAnalysis.CSharp.Scripting` package adds ~10MB to the binary. For Sundex's use case — a content-creation tool where iteration speed matters — that's worth it.
 
@@ -283,7 +283,7 @@ The plugin is responsible for converting the script's globals into whatever idio
 
 ## Related
 
-- [[Component Builders|Component Builders]] — the orchestrator that calls `Compile`.
-- [[../Component Definition#RunLogic|RunLogic]] — the storage point for the compiled delegate.
-- [[../Component Definition#RunLogicAndVerify|RunLogicAndVerify]] / [[../Component Definition#SetFromLogic|`[SetFromLogic]`]] — the verification pattern this plays into.
-- [[../../Engine/Threading|Threading]] — for off-thread script invocation.
+- [Component Builders](Component%20Builders.md) — the orchestrator that calls `Compile`.
+- [RunLogic](../Component%20Definition.md#runlogic-the-compiled-script) — the storage point for the compiled delegate.
+- [RunLogicAndVerify](../Component%20Definition.md#runlogicandverify-defensive-script-execution) / [`[SetFromLogic]`](../Component%20Definition.md#setfromlogic-declarative-wiring-contract) — the verification pattern this plays into.
+- [Threading](../../Engine/Threading.md) — for off-thread script invocation.

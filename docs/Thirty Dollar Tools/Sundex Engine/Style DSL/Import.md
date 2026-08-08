@@ -32,7 +32,7 @@ import "theme.snx.ss" as theme;
 
 The alias scopes the imported file's **variables** and nothing else. `class`, `id`, `component`
 and `animation` blocks merge globally exactly as with a plain import; only `$theme.accent`-style
-access changes. See [[Variables|Variables]] for the full scoping rules.
+access changes. See [Variables](Variables.md) for the full scoping rules.
 
 ## `ParseImport` — the recursion
 
@@ -111,7 +111,7 @@ Two separate guards, rather than one, so that an aliased import followed by a pl
 
 If the parser was constructed without a `fileLoader`, every import is silently ignored. The directive is parsed (the `;` is consumed), then dropped on the floor.
 
-This is the case for the static `StyleParser.Parse(dsl)` overload — no resolver, so imports don't work. The only place that **does** pass a `fileLoader` is the markup pipeline, in [[../Markup/Phases/Parsing Style|Parsing Style]]:
+This is the case for the static `StyleParser.Parse(dsl)` overload — no resolver, so imports don't work. The only place that **does** pass a `fileLoader` is the markup pipeline, in [Parsing Style](../Markup/Phases/Parsing%20Style.md):
 
 ```csharp
 var styleSheetHolder = StyleParser.Parse(layout.Style.SourceCode, path => {
@@ -144,7 +144,7 @@ The first parser starts with an empty cache (defaulted via `parsedImports ?? new
 
 The cycle check is on the **literal path string** — `import "a.snx.ss"` and `import "./a.snx.ss"` would be considered different paths even if they resolve to the same file. This is rarely a problem because production stylesheets typically use a consistent path convention.
 
-The `fileLoader` callback in [[../Markup/Phases/Parsing Style|Parsing Style]] resolves through `AssetProvider`, which itself does some path normalisation, but the cycle check happens **before** the loader is called — so the parser's view of "have I seen this path?" is purely string-based.
+The `fileLoader` callback in [Parsing Style](../Markup/Phases/Parsing%20Style.md) resolves through `AssetProvider`, which itself does some path normalisation, but the cycle check happens **before** the loader is called — so the parser's view of "have I seen this path?" is purely string-based.
 
 ## `StyleSheetHolder.Merge`
 
@@ -178,7 +178,7 @@ Two-level merge:
 1. **Top-level entries** (animation/component/class/id names) are unioned.
 2. **Properties within an entry** are merged with **last-write-wins**.
 
-`Variables` merges flat, same last-write-wins rule, and is skipped when the import is aliased. `Namespaces` is **never** merged — an alias belongs to the file that declared it. See [[Variables|Variables]].
+`Variables` merges flat, same last-write-wins rule, and is skipped when the import is aliased. `Namespaces` is **never** merged — an alias belongs to the file that declared it. See [Variables](Variables.md).
 
 So if `default.snx.ss` defines:
 
@@ -280,7 +280,7 @@ The whole parse — including imports — is safe to run off the GL thread. Only
 
 ## Default `fileLoader` — `AssetProvider`
 
-The standard import resolver from [[../Markup/Phases/Parsing Style|Parsing Style]]:
+The standard import resolver from [Parsing Style](../Markup/Phases/Parsing%20Style.md):
 
 ```csharp
 path => {
@@ -293,7 +293,7 @@ path => {
 }
 ```
 
-Resolves `path` through the [[../Engine/Asset Management|`AssetProvider`]], which tries:
+Resolves `path` through the [`AssetProvider`](../Engine/Asset%20Management.md), which tries:
 
 1. Embedded resources in the application assembly.
 2. On-disk asset folders.
@@ -328,8 +328,8 @@ The loader is invoked synchronously per import — no async support. If the impo
 
 ## Related
 
-- [[Variables|Variables]] — what `as` actually scopes.
-- [[Blocks|Blocks]] — `@component` full-override interacts with imports.
-- [[Style DSL|Style DSL]] — the index.
-- [[../Markup/Phases/Parsing Style|Parsing Style]] — where the markup pipeline supplies the file loader.
-- [[../Engine/Asset Management|Asset Management]] — what the standard file loader resolves through.
+- [Variables](Variables.md) — what `as` actually scopes.
+- [Blocks](Blocks.md) — `@component` full-override interacts with imports.
+- [Style DSL](Style%20DSL.md) — the index.
+- [Parsing Style](../Markup/Phases/Parsing%20Style.md) — where the markup pipeline supplies the file loader.
+- [Asset Management](../Engine/Asset%20Management.md) — what the standard file loader resolves through.

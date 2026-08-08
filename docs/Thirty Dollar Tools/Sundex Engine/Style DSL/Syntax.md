@@ -1,6 +1,6 @@
 # Syntax
 
-The lexical layer of the [[Style DSL|Style DSL]] — characters, identifiers, numbers, strings, hex colors, comments. Everything here is implemented in `StyleParser.cs` as a hand-rolled recursive-descent parser over a `string dsl`.
+The lexical layer of the [Style DSL](Style%20DSL.md) — characters, identifiers, numbers, strings, hex colors, comments. Everything here is implemented in `StyleParser.cs` as a hand-rolled recursive-descent parser over a `string dsl`.
 
 > Source: `Sundex/Sundex.Style.DSL/StyleParser.cs`.
 
@@ -13,7 +13,7 @@ The lexical layer of the [[Style DSL|Style DSL]] — characters, identifiers, nu
 | String | `"hello"`, `"#ff0000"` | Double-quoted only. Hex strings are special-cased. |
 | Hex color | `#ff0000`, `#ff0000aa` | 6 or 8 hex digits. |
 | Keyword | `!gradient`, `!override`, `!keyframes`, `!stops`, `!direction` | Prefixed with `!`. |
-| Variable reference | `$text_color`, `$theme.accent` | Prefixed with `$`. See [[Variables\|Variables]]. |
+| Variable reference | `$text_color`, `$theme.accent` | Prefixed with `$`. See [Variables](Variables.md). |
 | Vector | `vec2(10, 20)`, `vec3(1, 0, 0)`, `vec4(...)` | Parens and commas. |
 | Block | `{ key = value; }` | Properties separated by `;` or `,`. |
 | Array | `[ value1, value2 ]` | Comma-separated. |
@@ -27,10 +27,14 @@ The lexical layer of the [[Style DSL|Style DSL]] — characters, identifiers, nu
 public class StyleParser(
     string dsl,
     Func<string, string>? fileLoader = null,
-    HashSet<string>? importedPaths = null)
+    Dictionary<string, StyleSheetHolder>? parsedImports = null)
 {
-    private readonly HashSet<string> _importedPaths = importedPaths ?? [];
+    private readonly HashSet<string> _localVariables = [];        // this file's vars, dup detection
+    private readonly HashSet<string> _mergedBlocks = [];           // merge-once guard, per file
+    private readonly HashSet<string> _mergedVariables = [];        // merge-once guard, per file
+    private readonly Dictionary<string, StyleSheetHolder> _parsedImports = parsedImports ?? new();
     private int _pos;
+    private StyleSheetHolder _sheet = null!;                       // set at the start of ParseSheet
 
     public static StyleSheetHolder Parse(string dsl, Func<string, string>? fileLoader = null) {
         var parser = new StyleParser(dsl, fileLoader);
@@ -44,7 +48,9 @@ A primary-constructor class with three parameters:
 
 - `dsl` — the source text.
 - `fileLoader` — optional `(string path) => string content` callback for `import` directives. Null disables imports.
-- `importedPaths` — for cycle protection. Inner parsers (one per imported file) inherit this set so the same file can't be re-imported recursively.
+- `parsedImports` — every file parsed so far, keyed by import path, shared with child parsers. This is both the cycle guard and the parse cache — a file already in here is reused instead of re-parsed, which is what actually breaks import recursion (see [Import](Import.md)).
+
+`_mergedBlocks`/`_mergedVariables` are separate, **not** shared with child parsers: they guard against merging the same import twice *into one sheet*, per file. `_localVariables` is only for duplicate-declaration detection within the current file — imported variables aren't tracked in it.
 
 `_pos` is the cursor position — character index into `dsl`. Single-pass forward scan; no lookahead beyond `PeekNext()`.
 
@@ -99,7 +105,7 @@ Examples:
 | `-3` | `-3` | `""` |
 | `2m` | `2` | `"m"` |
 
-The unit is **arbitrary text** — the parser doesn't validate it. Validation happens later, in code that interprets the `NumberValue.Unit`. For example, [[Animations|Animations]] only accepts `ms`, `s`, `m` for `duration`; anything else throws.
+The unit is **arbitrary text** — the parser doesn't validate it. Validation happens later, in code that interprets the `NumberValue.Unit`. For example, [Animations](Animations.md) only accepts `ms`, `s`, `m` for `duration`; anything else throws.
 
 The dot is included via `Peek() == '.'` — so `0.5`, `.5` (technically), and `1.0` all work. `1.0.0` would parse as `1.0` followed by a parse error on the leftover `.0`.
 
@@ -139,7 +145,7 @@ A string that begins with `#` is reinterpreted as a `ColorValue`. So:
 background = "#ff0000ff";
 ```
 
-produces `ColorValue("#ff0000ff")`, **not** `StringValue("#ff0000ff")`. This matters for matching — the [[../Components/Panels#Panel|Panel]]'s `ApplyStyleValue` only treats a value as a background color when it's a `ColorValue` or `GradientValue`.
+produces `ColorValue("#ff0000ff")`, **not** `StringValue("#ff0000ff")`. This matters for matching — the [Panel](../Components/Panels.md#panel)'s `ApplyStyleValue` only treats a value as a background color when it's a `ColorValue` or `GradientValue`.
 
 You can also write:
 
@@ -182,7 +188,7 @@ internal static Vector4 ParseColorFromHex(ReadOnlySpan<char> hex) {
 
 The validation is strict — 3-digit shorthand (`#fff`) is **not supported**. The error message is helpful: "expected #RRGGBB(AA)".
 
-The result is a normalised `Vector4` (R, G, B, A) in `[0, 1]`. This is what [[../Components/Abstractions#UIElement|UIElement]] background-color setters expect.
+The result is a normalised `Vector4` (R, G, B, A) in `[0, 1]`. This is what [UIElement](../Components/Abstractions.md#uielement-abstract) background-color setters expect.
 
 ## Comments
 
@@ -342,9 +348,9 @@ The bare-identifier-as-string fallback is what makes `direction = horizontal;` w
 
 ## Related
 
-- [[Blocks|Blocks]] — what `ParseBlock` produces.
-- [[Variables|Variables]] — `var` declarations and `$` references.
-- [[Style Types|Style Types]] — what `ParseValue` produces.
-- [[Animations|Animations]] — the runtime side of `!keyframes`.
-- [[Import|Import]] — `ParseImport` and the recursion.
-- [[Style DSL|Style DSL]] — the index page.
+- [Blocks](Blocks.md) — what `ParseBlock` produces.
+- [Variables](Variables.md) — `var` declarations and `$` references.
+- [Style Types](Style%20Types.md) — what `ParseValue` produces.
+- [Animations](Animations.md) — the runtime side of `!keyframes`.
+- [Import](Import.md) — `ParseImport` and the recursion.
+- [Style DSL](Style%20DSL.md) — the index page.

@@ -1,6 +1,6 @@
 # Blocks
 
-The four top-level construct types: `animation`, `component`, `class`, `id`. These are what `ParseSheet` dispatches on, and what the [[Style DSL#Big picture|`StyleSheetHolder`]] stores.
+The four top-level construct types: `animation`, `component`, `class`, `id`. These are what `ParseSheet` dispatches on, and what the [`StyleSheetHolder`](Style%20DSL.md#big-picture) stores.
 
 > Source: `Sundex/Sundex.Style.DSL/StyleParser.cs` (`ParseBlock`), `Sundex/Sundex.Style.DSL/StyleSheetHolder.cs`, `Sundex/Sundex.Style.DSL/StyleSheet.cs`.
 
@@ -18,11 +18,11 @@ id       save-btn    { ... }      // → StyleSheetHolder.IDTags["save-btn"]
 
 ```csharp
 private void ParseBlock(Dictionary<string, Dictionary<string, IStyleValue>> target,
-    bool allowState = false, bool isOverride = false, StyleSheetHolder? sheet = null)
+    bool allowState = false, bool isOverride = false)
 {
     SkipWhitespaceAndComments();
     var name = ReadIdentifier();
-    if (isOverride) sheet?.FullOverrides.Add(name);
+    if (isOverride) _sheet.FullOverrides.Add(name);
     SkipWhitespaceAndComments();
     Consume('{');
     var properties = new Dictionary<string, IStyleValue>();
@@ -62,17 +62,19 @@ private void ParseBlock(Dictionary<string, Dictionary<string, IStyleValue>> targ
 }
 ```
 
-Three knobs:
+Three parameters:
 
 - `target` — which dictionary to populate (`Animations`, `Components`, `Classes`, or `IDTags`).
 - `allowState` — whether `state[name] = ...` syntax is allowed inside.
 - `isOverride` — whether to fully replace an existing entry.
 
+`_sheet` isn't a parameter — it's the instance field set once at the top of `ParseSheet` to the sheet this parser instance is building (see [Syntax](Syntax.md)), so every `ParseBlock` call during that parse writes overrides into the same sheet without needing to thread it through.
+
 ## `animation`
 
 ```csharp
 if (Match("animation"))
-    ParseBlock(sheet.Animations, false, false, sheet);
+    ParseBlock(sheet.Animations);
 ```
 
 `allowState = false` — animations don't have hover/pressed states. They have keyframes instead.
@@ -100,13 +102,13 @@ StyleSheetHolder.Animations["fade-in"] = {
 }
 ```
 
-The `KeyframedAnimation` runtime objects come from `StyleSheet`'s constructor parsing this dictionary. See [[Animations|Animations]].
+The `KeyframedAnimation` runtime objects come from `StyleSheet`'s constructor parsing this dictionary. See [Animations](Animations.md).
 
 ## `component`
 
 ```csharp
 else if (Match("component"))
-    ParseBlock(sheet.Components, true, false, sheet);
+    ParseBlock(sheet.Components, true);
 ```
 
 `allowState = true` — components support `state[hovered]` / `state[pressed]` blocks.
@@ -142,7 +144,7 @@ Note: the state key is `"state[hovered]"` as a string — the parser literally f
 
 ### Property naming convention
 
-Properties use **kebab-case** (`font-size`, `border-radius`, `font-color`). This matches the names registered via `[NamedSetting("font-size")]` on `UIElement` properties. See [[../Components/Abstractions#The [NamedSetting] attribute|the [NamedSetting] attribute]].
+Properties use **kebab-case** (`font-size`, `border-radius`, `font-color`). This matches the names registered via `[NamedSetting("font-size")]` on `UIElement` properties. See [the `[NamedSetting]` attribute](../Components/Abstractions.md#namedsettingname).
 
 If you misspell a property — `font_size` or `fontsize` — it will be silently ignored. The reflective application looks up properties by exact name match; unknown names are skipped.
 
@@ -166,7 +168,7 @@ There's nothing magical about which names are "real" — if a custom factory reg
 
 ```csharp
 else if (Match("class"))
-    ParseBlock(sheet.Classes, true, false, sheet);
+    ParseBlock(sheet.Classes, true);
 ```
 
 `allowState = true` — classes support state blocks too.
@@ -186,12 +188,12 @@ Multiple classes can match; the first-found-wins logic is in `GetStyleValueForTa
 
 ```csharp
 else if (Match("id"))
-    ParseBlock(sheet.IDTags, true, false, sheet);
+    ParseBlock(sheet.IDTags, true);
 ```
 
 `allowState = true`.
 
-Matched against `UIElement.ID` (set from `id="..."` in markup). Each ID should be unique within a markup document; no enforcement, but [[../Markup/Phases/Parsing Markup#ID and class registration|the markup phase]] uses last-write-wins.
+Matched against `UIElement.ID` (set from `id="..."` in markup). Each ID should be unique within a markup document; no enforcement, but [the markup phase](../Markup/Phases/Parsing%20Markup.md#id-and-class-registration) uses last-write-wins.
 
 ```css
 id save-btn {
@@ -205,7 +207,7 @@ id save-btn {
 ```csharp
 else if (Peek() == '@') {
     Advance();
-    if (Match("component")) ParseBlock(sheet.Components, true, true, sheet);
+    if (Match("component")) ParseBlock(sheet.Components, true, true);
     else throw CreateException($"Unexpected token @ at {_pos}");
 }
 ```
@@ -285,7 +287,7 @@ State names are free-form strings. The current renderer recognises:
 | `hovered` | Cursor inside element bounds | Cursor leaves |
 | `pressed` | Mouse button down on element | Button release or leave |
 
-See [[../Components/Abstractions#UIState|UIState]] for the enum. New states can be added without changes to the parser.
+See [UIState](../Components/Abstractions.md) for the enum. New states can be added without changes to the parser.
 
 ### How states are looked up
 
@@ -375,13 +377,13 @@ Use `@component button { ... }` to **fully replace** instead.
 
 `ParseBlock` and the dispatch in `ParseSheet` are pure CPU. The whole parser is safe to run off-thread.
 
-The `fileLoader` callback (used only by `ParseImport`) may interact with the filesystem or the asset cache — see [[Import|Import]] for that side.
+The `fileLoader` callback (used only by `ParseImport`) may interact with the filesystem or the asset cache — see [Import](Import.md) for that side.
 
 ## Related
 
-- [[Syntax|Syntax]] — the lexical level (identifiers, numbers, strings).
-- [[Style Types|Style Types]] — what `ParseValue` produces inside a property.
-- [[Animations|Animations]] — what `animation` blocks resolve to at runtime.
-- [[Import|Import]] — how `import "..."` interacts with `@component`.
-- [[Style DSL|Style DSL]] — the index page.
-- [[../Components/Abstractions#Style application — the [NamedSetting] flow|UIElement style application]] — how matched values get applied.
+- [Syntax](Syntax.md) — the lexical level (identifiers, numbers, strings).
+- [Style Types](Style%20Types.md) — what `ParseValue` produces inside a property.
+- [Animations](Animations.md) — what `animation` blocks resolve to at runtime.
+- [Import](Import.md) — how `import "..."` interacts with `@component`.
+- [Style DSL](Style%20DSL.md) — the index page.
+- [UIElement style application](../Components/Abstractions.md#style-application-the-namedsetting-flow) — how matched values get applied.

@@ -1,8 +1,8 @@
 # Phase 5 — Encoding
 
-> Owning code: `ThirtyDollarConverter/PCMEncoder.cs`, `SampleProcessor.cs`, `ProcessedEvent.cs`, `Objects/RenderedSequence.cs`, `Objects/EncoderSettings.cs`, `Objects/PercentageScale.cs`, plus `ThirtyDollarConverter.Audio/PCM/AudioMixer.cs` and the resampler library.
+> Owning code: `ThirtyDollarConverter/PCMEncoder.cs`, `SampleProcessor.cs`, `ProcessedEvent.cs`, `Objects/RenderedSequence.cs`, `Objects/EncoderSettings.cs`, plus `ThirtyDollarConverter.Encoder/PCM/AudioMixer.cs`, `ThirtyDollarConverter.Encoder/PCM/PercentageScale.cs`, `ThirtyDollarConverter.Encoder/Mixers/SampleMixer.cs`, and the resampler library.
 
-This is the heaviest phase. Given a `TimedEvents` (the output of [[4 - Calculating the Placement|Calculating the Placement]]) and the in-memory `SampleHolder` (from [[2 - Loading Into Memory|Loading Into Memory]]), the encoder produces a fully-mixed stereo `AudioData<float>` and optionally writes it as a `.wav` file.
+This is the heaviest phase. Given a `TimedEvents` (the output of [Calculating the Placement](4%20-%20Calculating%20the%20Placement.md)) and the in-memory `SampleHolder` (from [Loading Into Memory](2%20-%20Loading%20Into%20Memory.md)), the encoder produces a fully-mixed stereo `AudioData<float>` and optionally writes it as a `.wav` file.
 
 Conceptually it is a four-step pipeline:
 
@@ -41,9 +41,14 @@ public class EncoderSettings
     public uint    CombineDelayMs     = 0;        // currently unused
     public bool    EnableNormalization = true;    // normalize on WriteAsWavFile
     public int     MultithreadingSlices = Environment.ProcessorCount * 4;
+    public bool    ClampBpm;                      // clamp BPM to [5, 20000] after !speed, matching TDW (off by default)
+    public bool    ClampVolume;                   // clamp global volume to [0, 600] after !volume, matching TDW (off by default)
+    public bool    ClampTranspose;                // clamp running transpose to [-60, 60] after !transpose (off by default)
+    public bool    ClampPitch;                    // clamp each note's final pitch to [-72, 72] (off by default)
+    public bool    ClampNoteVolume;                // clamp each note's own volume ratio to [0, 4] (off by default)
     public IResampler Resampler        = new HannSincResampler();
     public PercentageScale VolumeScale = PercentageScale.LinearOverflowLogarithmic;
-    public PercentageScale PanScale    = PercentageScale.Linear;
+    public PercentageScale PanScale    = PercentageScale.EqualPower;
     public bool    AddVisualEvents;
     public string  DownloadLocation { get; set; } = "";
 }
@@ -54,7 +59,7 @@ The constructor of `PcmEncoder` rejects `Channels < 1` and `Channels > 2` (anyth
 `PercentageScale` controls how a percentage (volume / pan) is mapped to a multiplier:
 
 ```csharp
-public enum PercentageScale { Linear, LinearOverflowLogarithmic, Logarithmic }
+public enum PercentageScale { Linear, LinearOverflowLogarithmic, Logarithmic, EqualPower }
 ```
 
 | Value | Multiplier formula |
@@ -62,8 +67,9 @@ public enum PercentageScale { Linear, LinearOverflowLogarithmic, Logarithmic }
 | `Linear` | `multiplier = pct / 100` (1:1) |
 | `LinearOverflowLogarithmic` | linear up to 100%, `sqrt(pct/100)` past 100% |
 | `Logarithmic` | always `sqrt(pct/100)` |
+| `EqualPower` | pan only — constant-power cosine/sine curve, matching the Web Audio API's `StereoPannerNode` (the same curve the Thirty Dollar Website uses). Handled by a separate `RenderEqualPowerPan` path instead of the plain attenuation formula. |
 
-Used both in `RenderSample` (volume) and in pan attenuation.
+Used both in `SampleMixer.RenderSample` (volume) and in pan attenuation (`PanScale`).
 
 ## `PcmEncoder` — the orchestrator
 
@@ -95,7 +101,7 @@ public void WriteAsWavFile(Stream stream, AudioData<float> data);
 
 `GetSequenceAudio` is the everyday path. It calls `GetMultipleSequencesAudio([seq])`, which:
 
-1. Asks the `PlacementCalculator` for a sorted `Placement[]` (this is [[4 - Calculating the Placement|Calculating the Placement]]).
+1. Asks the `PlacementCalculator` for a sorted `Placement[]` (this is [Calculating the Placement](4%20-%20Calculating%20the%20Placement.md)).
 2. Wraps it in a `TimedEvents`.
 3. Calls `GetAudioSamples` (step A below) to resample each unique event.
 4. Calls `GenerateAudioAndMixer` (steps B+C below) to produce the final `AudioMixer` and a flat `AudioData<float>`.
@@ -115,7 +121,7 @@ public void WriteAsWavFile(Stream stream, AudioData<float> data);
    }
    ```
 
-   Both `Mixer` and `ProcessedEvents` are kept around so a subsequent edit can be incrementally re-rendered (see [[#Incremental rendering — `ComputeIncrementalAudio`|the incremental render section]]).
+   Both `Mixer` and `ProcessedEvents` are kept around so a subsequent edit can be incrementally re-rendered (see [the incremental render section](#incremental-rendering-computeincrementalaudio)).
 
 ## Step A — Resampling each unique event
 
@@ -267,7 +273,7 @@ var mixer            = new AudioMixer(audio_data);
 
 The output length is the index of the final placement plus the longest single sample (so the longest tail can ring out fully).
 
-Then it iterates `sequence.SeparatedChannels` (populated by [[3 - Parsing Sequences|Parsing Sequences]] from `#icut` and `!cut@…`) and adds one **track per separated sound** to the mixer:
+Then it iterates `sequence.SeparatedChannels` (populated by [Parsing Sequences](3%20-%20Parsing%20Sequences.md) from `#icut` and `!cut@…`) and adds one **track per separated sound** to the mixer:
 
 ```csharp
 foreach (var sequence in events.Sequences)
@@ -353,14 +359,14 @@ A straight per-channel addition. There is no compression, limiting, or panning a
 
 ```csharp
 public async Task RenderTimedEvents(AudioMixer mixer, TimedEvents events,
-    Dictionary<(string, double), ProcessedEvent> processedEvents,
-    int biggestEventLength, bool invert = false, ...)
+    Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength,
+    CancellationToken? cancellationToken = null)
 {
     var channels = new Task[_channels];
     for (var i = 0; i < _channels; i++) {
         var index = i;
         channels[index] = Task.Run(async () =>
-            await ProcessChannel(mixer, index, events, processedEvents, biggestEventLength, invert));
+            await ProcessChannel(mixer, index, events, processedEvents, biggestEventLength));
     }
     await Task.WhenAll(channels);
 }
@@ -369,39 +375,55 @@ public async Task RenderTimedEvents(AudioMixer mixer, TimedEvents events,
 There are **two layers of parallelism**:
 
 1. **One `Task.Run` per audio channel** (1–2 tasks). Channels never interact during this phase, so they're embarrassingly parallel.
-2. **Inside each channel**, the buffer is sliced into N chunks where N = `MultithreadingSlices` (default `ProcessorCount × 4`). Each chunk is processed independently via `Parallel.ForAsync`.
+2. **Inside each channel**, the buffer is sliced into N chunks per `ChunkBoundaries` (below). Each chunk is processed independently via `Parallel.ForAsync`.
 
-### `ProcessChannel`
+### `ChunkBoundaries` — the shared chunk grid
 
 ```csharp
-private async Task ProcessChannel(AudioMixer mixer, int channel, TimedEvents events,
-    Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength, bool invert = false)
+private int[] ChunkBoundaries(int length)
 {
-    var length                    = mixer.GetLength();
-    var min_length_per_thread     = Math.Min(1 << 15, length);   // 32768
-    var working_threads           = _settings.MultithreadingSlices;
+    var min_length_per_thread = Math.Min(1 << 15, length);        // 32768
+    var working_threads = _settings.MultithreadingSlices;         // default ProcessorCount × 4
+
     var min_length_for_working_threads = min_length_per_thread * working_threads;
     while (min_length_for_working_threads > length && working_threads > 1)
         min_length_for_working_threads = min_length_per_thread * --working_threads;
 
     var chunk_size = length / (float)working_threads;
+    var boundaries = new int[working_threads + 1];
+    for (var i = 0; i < working_threads; i++) boundaries[i] = Math.Min((int)(i * chunk_size), length);
+    boundaries[working_threads] = length;
 
-    await Parallel.ForAsync(1, working_threads + 1, (i, _) => {
-        var start = (int)((i - 1) * chunk_size);
-        var end   = Math.Min((int)(i * chunk_size), length);
-        if (start > length) return ValueTask.CompletedTask;
-        ProcessChunk(start, end, mixer, channel, events, processedEvents, biggestEventLength, invert);
+    return boundaries;
+}
+```
+
+Thread count is **degraded gracefully**: short outputs use fewer slices so each chunk is at least 32768 samples (≈680ms at 48 kHz), avoiding overhead-dominated tiny chunks. This same grid is reused by the incremental path — `SnapToChunks` (below) grows a dirty range outward to these exact boundaries, because a boundary is observable in the output (`SampleMixer.HandleCut`'s silence search restarts at each chunk edge).
+
+### `ProcessChannel`
+
+```csharp
+private async Task ProcessChannel(AudioMixer mixer, int channel, TimedEvents events,
+    Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength)
+{
+    var length = mixer.GetLength();
+    var boundaries = ChunkBoundaries(length);
+
+    await Parallel.ForAsync(1, boundaries.Length, (i, _) => {
+        var start = boundaries[i - 1];
+        var end   = boundaries[i];
+        if (start >= end) return ValueTask.CompletedTask;
+        ProcessChunk(start, end, mixer, channel, events, processedEvents, biggestEventLength);
         return ValueTask.CompletedTask;
     });
 }
 ```
 
-The thread count is **degraded gracefully**: short outputs use fewer slices so each chunk is at least 32768 samples (≈680ms at 48 kHz), avoiding overhead-dominated tiny chunks.
-
 ### `ProcessChunk` — placement filtering
 
 ```csharp
-private void ProcessChunk(int start, int end, AudioMixer mixer, int channel, ...)
+private void ProcessChunk(int start, int end, AudioMixer mixer, int channel,
+    TimedEvents events, Dictionary<(string, double), ProcessedEvent> processedEvents, int biggestEventLength)
 {
     var placement = events.Placement.AsSpan();
 
@@ -414,12 +436,14 @@ private void ProcessChunk(int start, int end, AudioMixer mixer, int channel, ...
         // Stop early once placements move past this chunk:
         if (current_start >= end) break;
 
-        RenderEventToSlice(start, end, mixer, channel, current, processedEvents, invert);
+        RenderEventToSlice(start, end, mixer, channel, current, processedEvents);
     }
 }
 ```
 
 The early-exit `break` works because `Placement[]` is sorted by `Index` (`CalculateMany` sorts each sequence's slice). The `start - biggestEventLength` lower bound accounts for events that started in a *previous* chunk but whose tail leaks into this chunk.
+
+Neither method takes an `invert` flag — the encoder no longer has a subtract-based render path (see "Incremental rendering" below); `ProcessChunk` is shared verbatim by both the full render and `RenderChunkRange`, the incremental path's partial re-render.
 
 ### `RenderEventToSlice` — the per-event renderer
 
@@ -445,7 +469,8 @@ case IndividualCutEvent individual_cut_event:
              .Where(s  => mixer.HasTrack(s))
              .Select(s => mixer.GetTrack(s)))
     {
-        HandleCut(start, end, current_start, cut_track.GetChannel(channel).AsSpan()[start..end]);
+        SampleMixer.HandleCut(start, end, current_start, cut_track.GetChannel(channel).AsSpan()[start..end],
+            _sampleRate, _settings.CutFadeLengthMs);
     }
     return;
 ```
@@ -456,7 +481,7 @@ Cuts only the listed tracks. Each track is faded then zeroed.
 
 ```csharp
 case ExtendedEvent extended_event:
-    pan         = Math.Clamp(extended_event.Pan, -1f, 1f);
+    pan         = Math.Clamp(extended_event.Pan, -100f, 100f);
     startOffset = Math.Max(extended_event.OffsetInSeconds, 0);
 ```
 
@@ -467,7 +492,8 @@ These values are applied later when computing volume and the source slice.
 ```csharp
 if (event_name == "!cut") {
     foreach (var (_, data) in mixer.GetTracks())
-        HandleCut(start, end, current_start, data.GetChannel(channel).AsSpan()[start..end]);
+        SampleMixer.HandleCut(start, end, current_start, data.GetChannel(channel).AsSpan()[start..end],
+            _sampleRate, _settings.CutFadeLengthMs);
     return;
 }
 ```
@@ -519,38 +545,50 @@ The offset is in seconds at the *event's* sample rate (i.e., the rate it was res
 ```csharp
 switch (pan) {
     case < 0 when channel == 1: {                     // pan left → attenuate right channel
-        var p_sub = 1f + pan;                         // pan = -1 → 0 ; pan = 0 → 1
+        var percent_subtract = 1f + pan / 100f;        // pan = -100 → 0 ; pan = 0 → 1
         volume *= _settings.PanScale switch {
-            PercentageScale.Logarithmic                  => MathF.Sqrt(p_sub),
+            PercentageScale.Logarithmic                  => MathF.Sqrt(percent_subtract),
             PercentageScale.LinearOverflowLogarithmic
-            or PercentageScale.Linear                    => p_sub,
+            or PercentageScale.Linear                    => percent_subtract,
             _                                            => 0
         };
         break;
     }
     case > 0 when channel == 0: {                     // pan right → attenuate left channel
-        var p_sub = 1f - pan;
+        var percent_subtract = 1f - pan / 100f;
         volume *= _settings.PanScale switch { ... };
         break;
     }
 }
 ```
 
-The encoder doesn't *boost* the toward-side; it *attenuates the opposite side*. So a pan of `-1` zeroes the right channel entirely. `PanScale` controls whether the curve is linear or square-root.
+The encoder doesn't *boost* the toward-side; it *attenuates the opposite side*. So a pan of `-100` zeroes the right channel entirely. `PanScale` controls whether the curve is linear or square-root — unless it's `EqualPower`, which is handled earlier by a separate `RenderEqualPowerPan` path (see below) instead of this switch.
 
-#### 9. Hand off to `RenderSample`
+#### `RenderEqualPowerPan` — the default pan mode
+
+`PanScale` defaults to `PercentageScale.EqualPower`, so most renders never reach the switch above. Before it, `RenderEventToSlice` checks `pan != 0 && _settings.PanScale == PercentageScale.EqualPower` and, if true, delegates to `RenderEqualPowerPan` and returns — applying the same constant-power cosine/sine curve as the Web Audio API's `StereoPannerNode`, which the Thirty Dollar Website itself uses for panning. Mono and stereo sources are handled differently:
+
+- **Mono source** — split into L/R using `gain = cos(angle)` (left) / `sin(angle)` (right), where `angle = (pan/100 + 1) * π/4`.
+- **Stereo source** — instead of just attenuating the opposite channel, the far channel is downmixed *into* the panned-to side (a well-known `StereoPannerNode` quirk): the near channel gets unity gain (or `cos`/`sin` of a half-angle past center), and the encoder renders an extra `SampleMixer.RenderSample` call to mix the opposite channel's samples onto the near channel.
+
+#### 9. Hand off to `SampleMixer.RenderSample`
 
 ```csharp
-RenderSample(current_channel, mix_slice, delta_start,
-             volume, _settings.VolumeScale, delta_end, offset, invert);
+SampleMixer.RenderSample(current_channel, mix_slice, delta_start,
+    volume, _settings.VolumeScale, delta_end, offset);
 ```
 
-### `RenderSample` — SIMD blend
+### `SampleMixer.RenderSample` — SIMD blend
+
+`RenderSample` is a `static` method on `ThirtyDollarConverter.Encoder.Mixers.SampleMixer`, shared by every render path (full and incremental):
 
 ```csharp
 public static void RenderSample(Span<float> source, Span<float> destination, int index,
-    double volume, PercentageScale volumeScale, int length = -1, int offset = -1, bool invert = false)
+    double volume, PercentageScale volumeScale, int length = -1, int offset = -1)
 {
+    if (length == -1) length = source.Length;
+    if (offset < 0) offset = 0;
+
     var s_slice    = source.Slice(offset, length);
     var d_slice    = destination[index..];
     var chunk_size = Vector<float>.Count;
@@ -569,8 +607,7 @@ public static void RenderSample(Span<float> source, Span<float> destination, int
     for (var i = 0; i < min; i += chunk_size) {
         var s_vector = new Vector<float>(s_slice[i..(i+chunk_size)]);
         var d_vector = new Vector<float>(d_slice[i..(i+chunk_size)]);
-        var src      = s_vector * final_volume;
-        var final    = invert ? d_vector - src : d_vector + src;
+        var final    = d_vector + s_vector * final_volume;
         final.CopyTo(d_slice[i..(i+chunk_size)]);
     }
 
@@ -578,9 +615,7 @@ public static void RenderSample(Span<float> source, Span<float> destination, int
 }
 ```
 
-The hot loop uses `System.Numerics.Vector<float>` so each iteration processes `Vector<float>.Count` floats (typically 4, 8, or 16 depending on the CPU's SIMD width). The remaining tail is handled by a scalar loop.
-
-`invert = true` is used by the incremental render path (next section) to *subtract* a previously-mixed event before adding the replacement.
+The hot loop uses `System.Numerics.Vector<float>` so each iteration processes `Vector<float>.Count` floats (typically 4, 8, or 16 depending on the CPU's SIMD width). The remaining tail is handled by a scalar loop. `RenderSample` always *adds* into the destination — there is no subtract/invert mode; the incremental render path (below) gets subtraction-free updates by clearing and re-rendering a dirty chunk range instead.
 
 `VolumeScale` here mirrors `PanScale` semantics:
 
@@ -588,12 +623,15 @@ The hot loop uses `System.Numerics.Vector<float>` so each iteration processes `V
 - `LinearOverflowLogarithmic` → linear up to 1.0, `sqrt` above
 - `Logarithmic` → always `sqrt(volume / 100)`
 
-### `HandleCut` — the cut fade
+### `SampleMixer.HandleCut` — the cut fade
+
+`HandleCut` is likewise `static` on `SampleMixer`, taking the sample rate and fade length explicitly instead of reading `_settings`:
 
 ```csharp
-private void HandleCut(int start, int end, int currentStart, Span<float> mixSlice)
+public static void HandleCut(int start, int end, int currentStart, Span<float> mixSlice,
+    uint sampleRate, uint cutFadeLengthMs)
 {
-    var wanted_zero_samples = 4096 * _sampleRate / 48000;        // ≈ 4096 @ 48k, scaled per rate
+    var wanted_zero_samples = 4096 * sampleRate / 48000;          // ≈ 4096 @ 48k, scaled per rate
     var norm_start = currentStart - start;
     var norm_end   = end - start;
 
@@ -607,9 +645,9 @@ private void HandleCut(int start, int end, int currentStart, Span<float> mixSlic
         zero_samples = 0;
     }
 
-    // 2. apply a linear fade from 1.0 → 0.0 over CutFadeLengthMs
-    var cut_fade_ms     = (int)_settings.CutFadeLengthMs;
-    var cut_fade_length = (int)(_settings.SampleRate / 1000) * cut_fade_ms;
+    // 2. apply a linear fade from 1.0 → 0.0 over cutFadeLengthMs
+    var cut_fade_ms     = (int)cutFadeLengthMs;
+    var cut_fade_length = (int)(sampleRate / 1000) * cut_fade_ms;
     var cut_fade_end    = norm_start + cut_fade_length;
     int cut_i;
     for (cut_i = norm_start; cut_i < cut_fade_end; cut_i++) {
@@ -639,36 +677,26 @@ return (mixer.MixDown(), mixer);
 
 ### `WriteAsWavFile`
 
+`PcmEncoder.WriteAsWavFile` (both the `string location` and `Stream` overloads) just delegates to `WaveEncoder.WriteAsWavFloat32File` in `ThirtyDollarConverter.Encoder/Wave/WaveEncoder.cs` — the actual write logic lives there, not on the encoder:
+
 ```csharp
 public void WriteAsWavFile(Stream stream, AudioData<float> data)
 {
-    if (_settings.EnableNormalization) data.Normalize();
-
-    var samples   = data.Samples;
-    for (int i = 0; i < samples.Length; i++)
-        samples[i] = samples[i].TrimEnd();   // trim silence padding
-
-    var writer    = new BinaryWriter(stream);
-    var maxLength = samples.Max(r => r.Length);
-    AddWavHeader<float>(writer, maxLength);
-
-    for (int i = 0; i < maxLength; i++) {
-        if (i % every_n_report == 0) IndexReport((ulong)i, (ulong)maxLength);
-        for (int j = 0; j < _channels; j++)
-            writer.Write(samples[j].Length > i ? samples[j][i] : 0f);
-    }
+    WaveEncoder.WriteAsWavFloat32File(stream, data, _channels, _sampleRate, _settings.EnableNormalization,
+        IndexReport);
+    Log("Saved audio file.");
 }
 ```
 
-The writer:
+`WaveEncoder.WriteAsWavFloat32File`:
 
-1. Optionally normalizes (divides every sample by the absolute maximum).
-2. Trims trailing silence per channel via `ObjectExtensions.TrimEnd`.
-3. Writes a RIFF WAVE header (always 32-bit float — `audioFormat = 3`) using `AddWavHeader<float>`.
-4. **Interleaves** the planar `T[channel][sample]` data back to LRLR…LR while writing.
-5. Reports progress 200 times across the whole write.
+1. Optionally normalizes (`data.Normalize()`, divides every sample by the absolute maximum).
+2. Computes each channel's trimmed length up front (`TrimmedLength` — the count of samples before trailing zeros), rather than mutating the arrays.
+3. Writes a RIFF WAVE header via `AddWavHeader<float>` (always 32-bit float — `audioFormat = 3`), sized to the *longest* trimmed channel.
+4. **Interleaves** the planar `T[channel][sample]` data back to LRLR…LR while writing, through a pooled (`ArrayPool<byte>`) ~64 KiB byte buffer flushed to the stream in frame-aligned chunks — samples past a channel's trimmed length are written as `0f`.
+5. Reports progress roughly 200 times across the whole write, plus a guaranteed terminal 100% call.
 
-The header reflects whatever `_settings.SampleRate` and `_channels` were configured with.
+The header reflects whatever `sampleRate` and `channels` were passed in — for `PcmEncoder.WriteAsWavFile` specifically, that's `_sampleRate`/`_channels` from `EncoderSettings`.
 
 ## Incremental rendering — `ComputeIncrementalAudio`
 
@@ -678,23 +706,18 @@ Editing a sequence and re-rendering from scratch wastes work. The encoder caches
 public async Task<RenderedSequence> ComputeIncrementalAudio(RenderedSequence old, IEnumerable<Sequence> new);
 ```
 
-The algorithm:
+This replaced an earlier "subtract-based" design that rendered removed placements into an overlay mixer with an `invert` flag and subtracted it from the base mix — that approach needed the *old* processed samples to subtract with, which conflicted with pruning them early. The current algorithm instead clears and fully re-renders only the chunk range an edit can be heard in:
 
 1. Recompute placements for the new sequence(s).
-2. Compute set difference using `PlacementEqualityComparer` (placement equality compares name + value + volume + pan + offset + index + audible — same thing the user-visible output depends on):
+2. Compute the multiset difference between old and new placements (`MultisetDifference`, backed by `Placement.Equals` — which compares sound name, value, volume, pan, offset, index, audible, and cut-sound set):
    - `to_remove` = old ∖ new
    - `to_add`    = new ∖ old
-3. **If any `!cut` is in either set, fall back to a full render.** Cuts can't be cleanly inverted because they zero data the encoder no longer has.
-4. Resample only the new keys (step A with the old dictionary as the cache).
-5. Render `to_remove ∪ cuts` into an overlay mixer with `invert = true` (so `RenderSample` *subtracts* them from the base mix).
-6. Render `to_add ∪ cuts` into another overlay with `invert = false`.
-7. Sum the larger mixer with the smaller via `AudioMixer.Sum` (SIMD).
-8. Re-mix down → `RenderedSequence.Audio`.
-9. Drop unused samples from the dictionary (`RemoveUnusedAudioSamples`).
-
-The "cuts in both sets" trick is needed because cut events affect their slice every render — they have to be re-applied even when otherwise unchanged.
-
-`PlacementEqualityComparer` is a private nested class in `PCMEncoder` that delegates to `Placement.Equals`.
+   - If neither changed, return the old `RenderedSequence` unchanged.
+3. **Fall back to a full render (`GetMultipleSequencesAudio`)** if the old mixer/processed-events are missing, if a new sequence references a track the old mixer never allocated, or if the total rendered length changed.
+4. Resample only the new/changed events (`GetAudioSamples`, reusing the old processed-event dictionary as a cache), then prune samples no longer referenced (`RemoveUnusedAudioSamples`) — done *before* measuring length, since the new algorithm doesn't need the old samples for a subtraction step.
+5. Compute the sample range spanning every changed placement (`to_remove.Concat(to_add)`), then snap it outward to whole chunk boundaries (`SnapToChunks`) — partial-chunk `HandleCut` calls would zero a different number of samples than a full render, so re-rendering has to stay chunk-aligned to keep output bit-identical to a from-scratch render.
+6. Clear that sample range on every track, then re-render only that range (`RenderChunkRange`) using the full new placement list — not just the changed ones, since untouched placements inside the dirty range still need to be redrawn into the now-empty slice.
+7. Re-mix down → `RenderedSequence.Audio`.
 
 ## Threading summary
 
@@ -719,5 +742,5 @@ So at peak the encoder uses up to `_channels × MultithreadingSlices` chunk-leve
 
 ---
 
-**Previous:** [[4 - Calculating the Placement|Calculating the Placement]]
-**Up:** [[../Converter|Converter]]
+**Previous:** [Calculating the Placement](4%20-%20Calculating%20the%20Placement.md)
+**Up:** [Converter](../Converter.md)

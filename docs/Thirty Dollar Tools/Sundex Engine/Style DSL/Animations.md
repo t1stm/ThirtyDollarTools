@@ -224,7 +224,7 @@ Set on the **last** keyframe — controls what happens when the animation comple
 
 ## Keyframe form variants
 
-`KeyframesValue.BuildKeyframes` accepts two forms — see [[Style Types#KeyframesValue|Style Types]] for the value-level breakdown. From the animation system's point of view, both produce the same `List<KeyframeStep>`.
+`KeyframesValue.BuildKeyframes` accepts two forms — see [Style Types](Style%20Types.md#keyframesvalue) for the value-level breakdown. From the animation system's point of view, both produce the same `List<KeyframeStep>`.
 
 ### Map form — explicit percentages
 
@@ -335,7 +335,7 @@ The animation **playback** is on the GL thread (it touches `Renderable.Position`
 
 ## Related
 
-- [[Style Types#KeyframesValue|KeyframesValue]] — the parser-side type.
-- [[Blocks#animation|`animation` block]] — the top-level form.
-- [[../Engine/Threading|Threading]] — when ticking happens.
-- [[Style DSL|Style DSL]] — the index.
+- [KeyframesValue](Style%20Types.md#keyframesvalue) — the parser-side type.
+- [`animation` block](Blocks.md#animation) — the top-level form.
+- [Threading](../Engine/Threading.md) — when ticking happens.
+- [Style DSL](Style%20DSL.md) — the index.

@@ -1,6 +1,6 @@
 # Markup
 
-Sundex's **markup language** (`.smxl`) is XML with three sections — `<layout>`, `<style>`, `<logic>` — under a `<sundex>` root. It's how UI trees, stylesheets, and logic scripts are described on disk and loaded into the app at runtime.
+Sundex's **markup language** (`.snx.xml`) is XML with three sections — `<layout>`, `<style>`, `<logic>` — under a `<sundex>` root. It's how UI trees, stylesheets, and logic scripts are described on disk and loaded into the app at runtime.
 
 > Source: `Sundex/Sundex.Markup/`.
 
@@ -18,7 +18,7 @@ Sundex's **markup language** (`.smxl`) is XML with three sections — `<layout>`
         </flex>
     </layout>
 
-    <style src="settings.smxs"/>
+    <style src="settings.snx.ss"/>
 
     <logic language="csharp" imports="MyApp.Settings">
         var saveBtn = Component.GetID&lt;Button&gt;("save_btn");
@@ -29,8 +29,8 @@ Sundex's **markup language** (`.smxl`) is XML with three sections — `<layout>`
 
 Three sections, three concerns:
 
-- **`<layout>`** — the UI tree. Tags map to [[../Components/Components|component classes]] (`<flex>` → `FlexPanel`, `<button>` → `Button`, etc.).
-- **`<style>`** — a [[../Style DSL/Style DSL|stylesheet]], either inline as element text or referenced via `src="..."`.
+- **`<layout>`** — the UI tree. Tags map to [component classes](../Components/Components.md) (`<flex>` → `FlexPanel`, `<button>` → `Button`, etc.).
+- **`<style>`** — a [stylesheet](../Style%20DSL/Style%20DSL.md), either inline as element text or referenced via `src="..."`.
 - **`<logic>`** — script source code (Roslyn-compiled C# right now), runs once after the tree is built. Used to wire up event handlers and apply runtime data.
 
 ## What's in this folder
@@ -83,36 +83,36 @@ Markup/
       └── Dependencies               ← imported components
 ```
 
-`SundexContext` is the runtime registry that sits over all of this — it holds builder versions, registered components, and custom element factories. One `SundexContext` per [[../Engine/Scene Management|scene]] (or per app, depending on usage).
+`SundexContext` is the runtime registry that sits over all of this — it holds builder versions, registered components, and custom element factories. One `SundexContext` per [scene](../Engine/Scene%20Management.md) (or per app, depending on usage).
 
 ## Where to read next
 
 This folder breaks down into four logical concerns; each has its own page:
 
-1. **[[Markup Parser|Markup Parser]]** — `MarkupParser`, `SundexDocument`, the `RootContainer`/`LayoutContainer`/`StyleContainer`/`LogicContainer` quartet, and `SundexNode`. The "XML → in-memory document" stage.
+1. **[Markup Parser](Markup%20Parser.md)** — `MarkupParser`, `SundexDocument`, the `RootContainer`/`LayoutContainer`/`StyleContainer`/`LogicContainer` quartet, and `SundexNode`. The "XML → in-memory document" stage.
 
-2. **[[Component Definition|Component Definition]]** — `ISundexComponent`, `ISundexContext`, `SundexComponent`, `SundexContext`, the `[SetFromLogic]` attribute. The "what is a component, how do they connect to each other" layer.
+2. **[Component Definition](Component%20Definition.md)** — `ISundexComponent`, `ISundexContext`, `SundexComponent`, `SundexContext`, the `[SetFromLogic]` attribute. The "what is a component, how do they connect to each other" layer.
 
-3. **[[Phases/Phases|Phases]]** — `IComponentBuilder` + `ComponentBuilderV1`, plus the per-section parsing logic (Component Builders, Parsing Markup, Parsing Style, Parsing Logic). The actual "document → realised UI tree" pipeline.
+3. **[Phases](Phases/Phases.md)** — `IComponentBuilder` + `ComponentBuilderV1`, plus the per-section parsing logic (Component Builders, Parsing Markup, Parsing Style, Parsing Logic). The actual "document → realised UI tree" pipeline.
 
 ## Relationship to other modules
 
-- **[[../Components/Components|Components]]** — the markup builder instantiates these.
-- **[[../Style DSL/Style DSL|Style DSL]]** — `StyleParser.Parse` is what `<style>` runs through.
-- **[[../Engine/Asset Management|Asset Management]]** — `src="..."` in `<style>` and `<logic>` resolve through `AssetProvider.Load<StringAsset, StringInfo>`.
-- **[[../Engine/Threading|Threading]]** — Roslyn compilation is heavy; production code runs `context.NewComponent(...)` via `ThreadRunner.RunTask` and rejoins the GL thread via `Game.Enqueue` to commit the realised tree.
+- **[Components](../Components/Components.md)** — the markup builder instantiates these.
+- **[Style DSL](../Style%20DSL/Style%20DSL.md)** — `StyleParser.Parse` is what `<style>` runs through.
+- **[Asset Management](../Engine/Asset%20Management.md)** — `src="..."` in `<style>` and `<logic>` resolve through `AssetProvider.Load<StringAsset, StringInfo>`.
+- **[Threading](../Engine/Threading.md)** — Roslyn compilation is heavy; production code runs `context.NewComponent(...)` via `ThreadRunner.RunTask` and rejoins the GL thread via `Game.Enqueue` to commit the realised tree.
 
 ## Why XML? Why not JSON / TOML / a custom format?
 
 - **`System.Xml`** ships in BCL — zero new dependencies.
 - **Three-section structure** is naturally tree-shaped, and XML's mixed content (text inside `<logic>`) handles the script case without weird escaping.
 - **Attributes vs children** — every UI tag has a clear set of attributes (`id`, `class`, `width`, `height`, ...) plus children. JSON or TOML would either bloat the syntax or require a custom flatten.
-- **Familiar** — anyone who's written HTML or WPF/XAML can read `.smxl` immediately.
+- **Familiar** — anyone who's written HTML or WPF/XAML can read `.snx.xml` immediately.
 
 The trade-offs (verbosity, no comments-with-attributes, no integers vs strings distinction) are all minor for the use case.
 
 ## Related
 
-- [[../Components/Components|Components]] — the layer this module instantiates.
-- [[../Style DSL/Style DSL|Style DSL]] — the language inside `<style>`.
-- The Visualizer's `*.smxl` files in `Visualizer.Game/Assets/Markup/` are the largest in-tree consumers.
+- [Components](../Components/Components.md) — the layer this module instantiates.
+- [Style DSL](../Style%20DSL/Style%20DSL.md) — the language inside `<style>`.
+- The Visualizer's `*.snx.xml` files under `Visualizer/Scenes/**` are the largest in-tree consumers.
