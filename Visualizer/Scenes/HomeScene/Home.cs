@@ -32,7 +32,11 @@ public class Home : Scene
     private Vector2 _lastScale = Vector2.One;
     private bool _updateNoteShown;
 
-    public Home(Game game, string version) : base(game)
+    /// <param name="checkingForUpdates">
+    ///     Whether the update check runs. When it does, the "check regularly" line is dropped -
+    ///     the program is doing the checking, and the note is replaced by what it finds.
+    /// </param>
+    public Home(Game game, string version, bool checkingForUpdates) : base(game)
     {
         var clientSize = game.ClientSize;
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
@@ -53,13 +57,14 @@ public class Home : Scene
             () => { Game.SceneManager.TransitionTo("settings"); });
 
         _height = clientSize.Y;
-        _versionText =
-            $"""
-             Check regularly for updates at:
-             https://github.com/t1stm/ThirtyDollarTools
+        _versionText = checkingForUpdates
+            ? $"Current Version: {version}"
+            : $"""
+               Check regularly for updates at:
+               https://github.com/t1stm/ThirtyDollarTools
 
-             Current Version: {version}
-             """;
+               Current Version: {version}
+               """;
 
         _versionBuffer = new TextBuffer(_context.TextProvider, _context.DeleteQueue);
         _versionNote = _versionBuffer.GetTextSlice(_versionText,
@@ -101,7 +106,7 @@ public class Home : Scene
         if (!_updateNoteShown && UpdateChecker.Available is { } release)
         {
             _updateNoteShown = true;
-            _versionNote.Value = $"{_versionText}\nNew Version Available: {release.TagName} {release.HtmlUrl}";
+            _versionNote.Value = $"New Version Available: {release.TagName} {release.HtmlUrl}\n\n{_versionText}";
             _versionNote.SetPosition((10, _height, 0), PositionAlign.Bottom | PositionAlign.Left);
         }
 

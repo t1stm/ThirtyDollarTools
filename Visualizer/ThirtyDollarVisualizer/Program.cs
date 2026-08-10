@@ -180,7 +180,8 @@ static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow, VersionInfo?
     game.Enqueue(instance =>
     {
         instance.SceneManager.LoadScene<Home>("home",
-            _ => new Home(instance, version?.Display ?? VersionInfo.DeveloperBuild));
+            _ => new Home(instance, version?.Display ?? VersionInfo.DeveloperBuild,
+                SettingsHandler.Settings.CheckForUpdates));
 
         instance.SceneManager.LoadScene<Visualizer>("visualizer", _ =>
             new Visualizer(instance, SettingsHandler.Settings, workflow, [sequence])
