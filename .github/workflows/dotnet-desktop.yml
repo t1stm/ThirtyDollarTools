@@ -1,9 +1,10 @@
 name: Cross-Platform Build and Release
 
-on: 
+on:
   push:
     branches: [ '*' ]
-        
+  workflow_dispatch:
+
 permissions:
   contents: write
 
