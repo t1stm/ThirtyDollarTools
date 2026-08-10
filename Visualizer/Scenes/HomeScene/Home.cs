@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
+using Shared.Updates;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.Renderer.Abstract.Extensions;
@@ -24,8 +25,12 @@ public class Home : Scene
     private readonly TextBuffer _versionBuffer;
     private readonly TextSlice _versionNote;
 
+    private readonly string _versionText;
+
     private CursorType _cursorType = CursorType.Default;
+    private float _height;
     private Vector2 _lastScale = Vector2.One;
+    private bool _updateNoteShown;
 
     public Home(Game game, string version) : base(game)
     {
@@ -47,20 +52,25 @@ public class Home : Scene
             () => { Game.SceneManager.TransitionTo("editor"); },
             () => { Game.SceneManager.TransitionTo("settings"); });
 
-        _versionBuffer = new TextBuffer(_context.TextProvider, _context.DeleteQueue);
-        _versionNote = _versionBuffer.GetTextSlice(
-                $"""
-                 Check regularly for updates at:
-                 https://github.com/t1stm/ThirtyDollarTools
+        _height = clientSize.Y;
+        _versionText =
+            $"""
+             Check regularly for updates at:
+             https://github.com/t1stm/ThirtyDollarTools
 
-                 Current Version: {version}
-                 """,
+             Current Version: {version}
+             """;
+
+        _versionBuffer = new TextBuffer(_context.TextProvider, _context.DeleteQueue);
+        _versionNote = _versionBuffer.GetTextSlice(_versionText,
                 (value, buffer, range) => new TextSlice(buffer, range)
                 {
                     Value = value,
                     FontSize = 14
-                })
-            .WithPosition((10, clientSize.Y, 0), PositionAlign.Bottom | PositionAlign.Left);
+                },
+                // Room for the update line, which arrives later - a slice can't grow.
+                _versionText.Length + 256)
+            .WithPosition((10, _height, 0), PositionAlign.Bottom | PositionAlign.Left);
     }
 
     public override void Initialize(InitArguments initArguments)
@@ -85,6 +95,15 @@ public class Home : Scene
     {
         _cursorType = CursorType.Default;
         _homeInterface.Update(_context);
+
+        // The check runs on the loading screen, but it's over the network - it can land
+        // after this scene is built, so the note is written when it does.
+        if (!_updateNoteShown && UpdateChecker.Available is { } release)
+        {
+            _updateNoteShown = true;
+            _versionNote.Value = $"{_versionText}\nNew Version Available: {release.TagName} {release.HtmlUrl}";
+            _versionNote.SetPosition((10, _height, 0), PositionAlign.Bottom | PositionAlign.Left);
+        }
 
         var cursor = _cursorType switch
         {
@@ -114,6 +133,7 @@ public class Home : Scene
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
         _context.PixelScale = _lastScale;
+        _height = height;
 
         _homeInterface.Resize();
         _versionNote.SetPosition((10, height, 0), PositionAlign.Bottom | PositionAlign.Left);

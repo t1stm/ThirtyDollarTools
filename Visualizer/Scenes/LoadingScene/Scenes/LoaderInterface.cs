@@ -4,6 +4,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Bars;
+using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Engine.Asset_Management.Types.Asset;
@@ -29,7 +30,9 @@ public class LoaderInterface
         });
 
         Component = sundexContext.NewComponent(componentSource.Value);
-        sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => ProgressBar, () => Label);
+        sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => ProgressBar, () => Label,
+            () => MainView, () => UpdatePrompt, () => IncludePrereleases, () => IncludeNightlies,
+            () => UpdateDecline, () => UpdateOptIn);
         RootPanel.DrawTo(context);
     }
 
@@ -42,6 +45,20 @@ public class LoaderInterface
     [SetFromLogic] public ProgressBar ProgressBar { get; set; } = null!;
 
     [SetFromLogic] public Label Label { get; set; } = null!;
+
+    /// <summary>The loading readout and its start button - hidden while the update prompt is up.</summary>
+    [SetFromLogic] public FlexPanel MainView { get; set; } = null!;
+
+    /// <summary>The first-run update opt-in; <see cref="LoadingScene.Loader" /> owns what its buttons do.</summary>
+    [SetFromLogic] public FlexPanel UpdatePrompt { get; set; } = null!;
+
+    [SetFromLogic] public Checkbox IncludePrereleases { get; set; } = null!;
+
+    [SetFromLogic] public Checkbox IncludeNightlies { get; set; } = null!;
+
+    [SetFromLogic] public Button UpdateDecline { get; set; } = null!;
+
+    [SetFromLogic] public Button UpdateOptIn { get; set; } = null!;
 
     public void Resize()
     {

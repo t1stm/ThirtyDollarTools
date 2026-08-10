@@ -56,6 +56,31 @@ public class VisualizerSettings(Action modifiedCallback)
         set => SetAndCallModified(out field, value);
     } = true;
 
+    /// <summary>Whether the loader has already asked about update checking. False means "first run".</summary>
+    public bool UpdateCheckAsked
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    }
+
+    public bool CheckForUpdates
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    }
+
+    public bool UpdateIncludePrereleases
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    }
+
+    public bool UpdateIncludeNightlies
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    }
+
 
     private void SetAndCallModified<T>(out T obj, T value)
     {
