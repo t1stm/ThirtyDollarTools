@@ -30,6 +30,7 @@
   <Folder Name="/Visualizer/">
     <Project Path="Visualizer/Playground/Playground.csproj"/>
     <Project Path="Visualizer/Shared/Shared.csproj"/>
+    <Project Path="Visualizer/Shared.Tests/Shared.Tests.csproj"/>
     <Project Path="Visualizer/ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj"/>
   </Folder>
   <Folder Name="/Visualizer/Scenes/">

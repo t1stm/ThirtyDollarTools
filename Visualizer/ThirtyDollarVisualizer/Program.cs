@@ -17,6 +17,7 @@ using Serilog.Templates.Themes;
 using SettingsScene;
 using Shared;
 using Shared.Audio;
+using Shared.Updates;
 using Shared.Audio.BASS;
 using Shared.Audio.Null;
 using Shared.Audio.OpenAL;
@@ -159,10 +160,11 @@ if (game.TryGetScreenScale(out var horizontal_scale, out var vertical_scale) &&
 
 game.Enqueue(instance =>
 {
+    var version = VersionInfo.Read(instance.AssetProvider);
     instance.SceneManager.LoadScene<Loader>("loader",
-        _ => new Loader(instance, audio_context)
+        _ => new Loader(instance, audio_context, settings, version)
         {
-            OnFinish = workflow => { OnLoadHandler(instance, workflow, sequence, greeting, scale); }
+            OnFinish = workflow => { OnLoadHandler(instance, workflow, version, sequence, greeting, scale); }
         });
 });
 
@@ -171,13 +173,14 @@ game.Run();
 
 return;
 
-static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow,
+static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow, VersionInfo? version,
     string? sequence, string? greeting, float? scale)
 {
     // preload all scenes in memory (inefficient i know, but leads to better UX)
     game.Enqueue(instance =>
     {
-        instance.SceneManager.LoadScene<Home>("home", _ => new Home(instance, Visualizer.GetVersion(instance.AssetProvider)));
+        instance.SceneManager.LoadScene<Home>("home",
+            _ => new Home(instance, version?.Display ?? VersionInfo.DeveloperBuild));
 
         instance.SceneManager.LoadScene<Visualizer>("visualizer", _ =>
             new Visualizer(instance, SettingsHandler.Settings, workflow, [sequence])

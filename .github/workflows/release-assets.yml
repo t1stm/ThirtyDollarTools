@@ -56,12 +56,14 @@ jobs:
         env:
           TAG: ${{ github.event.release.tag_name }}
           TITLE: ${{ github.event.release.name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          if [ -n "$TITLE" ]; then
-            printf '%s (%s)' "$TAG" "$TITLE" > ./Visualizer/ThirtyDollarVisualizer/VERSION
-          else
-            printf '%s' "$TAG" > ./Visualizer/ThirtyDollarVisualizer/VERSION
-          fi
+          # The date is what the in-app update check compares against - see the same step
+          # in dotnet-desktop.yml.
+          jq -n --arg tag "$TAG" --arg title "$TITLE" --argjson prerelease "$PRERELEASE" \
+            --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{tag: $tag, releaseTitle: $title, nightly: false, prerelease: $prerelease, date: $date}' \
+            > ./Visualizer/ThirtyDollarVisualizer/VERSION
           cat ./Visualizer/ThirtyDollarVisualizer/VERSION
 
       - name: Publish ThirtyDollarVisualizer

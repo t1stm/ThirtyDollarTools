@@ -12,6 +12,25 @@
         <panel class="background-gradients" id="grad-5"/>
       </panel>
 
+      <!-- Shown instead of main-view on the first run; Loader.cs swaps the two once the
+           question is answered. -->
+      <flex id="update-prompt">
+        <label id="update-title" value="Update Checker"/>
+        <label id="update-message" value="Do you want to check for updates at the GitHub repository?"/>
+
+        <checkbox id="include-prereleases" value="Include Prereleases"/>
+        <checkbox id="include-nightlies" value="Include Nightlies"/>
+
+        <flex id="update-actions">
+          <button id="update-decline" class="prompt-button">
+            <label value="Don't ask again"/>
+          </button>
+          <button id="update-opt-in" class="prompt-button-primary">
+            <label value="Opt-in"/>
+          </button>
+        </flex>
+      </flex>
+
       <flex id="main-view">
         <label id="loader-title" value="Thirty Dollar Visualizer"/>
         <label id="loader-label" value="Ready to load"/>
