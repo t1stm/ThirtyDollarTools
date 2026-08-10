@@ -102,11 +102,16 @@ public class Home : Scene
         _homeInterface.Update(_context);
 
         // The check runs on the loading screen, but it's over the network - it can land
-        // after this scene is built, so the note is written when it does.
-        if (!_updateNoteShown && UpdateChecker.Available is { } release)
+        // after this scene is built, so the note is written when it does. Nothing is
+        // written while it's still running, or when it found nothing newer.
+        if (!_updateNoteShown && (UpdateChecker.Available is not null || UpdateChecker.Failed))
         {
             _updateNoteShown = true;
-            _versionNote.Value = $"New Version Available: {release.TagName} {release.HtmlUrl}\n\n{_versionText}";
+            var notice = UpdateChecker.Available is { } release
+                ? $"New Version Available: {release.TagName} {release.HtmlUrl}"
+                : "Checking for updates failed. See the logs for more information";
+
+            _versionNote.Value = $"{notice}\n\n{_versionText}";
             _versionNote.SetPosition((10, _height, 0), PositionAlign.Bottom | PositionAlign.Left);
         }
 

@@ -36,6 +36,13 @@ public static class UpdateChecker
     public static GitHubRelease? Available { get; private set; }
 
     /// <summary>
+    ///     Set when the check couldn't be completed. The home screen says so, because with
+    ///     checking turned on it drops the "check regularly" line - a failed check would
+    ///     otherwise look exactly like an up-to-date one.
+    /// </summary>
+    public static bool Failed { get; private set; }
+
+    /// <summary>
     ///     Starts the check in the background. Releases are compared by date rather than by
     ///     version: a nightly's tag never changes, so its tag says nothing about which build
     ///     is newer, while the build date written into VERSION does.
@@ -61,6 +68,7 @@ public static class UpdateChecker
             }
             catch (Exception e)
             {
+                Failed = true;
                 logger.Warning(e, "Failed to check {Repository} for updates.", Repository);
             }
         });
