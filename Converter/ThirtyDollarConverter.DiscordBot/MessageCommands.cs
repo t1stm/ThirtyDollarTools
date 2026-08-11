@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Text;
+using DSharpPlus.Commands;
+using DSharpPlus.Commands.Processors.MessageCommands;
+using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
-using DSharpPlus.SlashCommands;
 using JetBrains.Annotations;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
@@ -9,41 +11,43 @@ using Encoding = System.Text.Encoding;
 
 namespace ThirtyDollarConverter.DiscordBot;
 
-public class SlashCommands : ApplicationCommandModule
+public class MessageCommands
 {
     private static readonly HttpClient HttpClient = new();
 
-    [ContextMenu(DiscordApplicationCommandType.MessageContextMenu, "TDW to OGG Opus")]
+    [Command("TDW to OGG Opus")]
+    [SlashCommandTypes(DiscordApplicationCommandType.MessageContextMenu)]
     [UsedImplicitly]
-    public async Task ConvertFileToOgg(ContextMenuContext ctx)
+    public async Task ConvertFileToOgg(MessageCommandContext ctx, DiscordMessage message)
     {
-        var file = ctx.TargetMessage.Attachments.Count > 0 ? ctx.TargetMessage.Attachments[0] : null;
+        var file = message.Attachments.Count > 0 ? message.Attachments[0] : null;
         if (file is null || string.IsNullOrWhiteSpace(file.Url))
         {
-            await ctx.CreateResponseAsync("```Message doesn't have any files attached.```");
+            await ctx.RespondAsync("```Message doesn't have any files attached.```");
             return;
         }
 
-        await ctx.CreateResponseAsync("```Converting TDW to OGG.```");
+        await ctx.RespondAsync("```Converting TDW to OGG.```");
         await ConvertTdwToAudio(ctx, file.Url);
     }
 
-    [ContextMenu(DiscordApplicationCommandType.MessageContextMenu, "TDW to MP3")]
+    [Command("TDW to MP3")]
+    [SlashCommandTypes(DiscordApplicationCommandType.MessageContextMenu)]
     [UsedImplicitly]
-    public async Task ConvertFileToMp3(ContextMenuContext ctx)
+    public async Task ConvertFileToMp3(MessageCommandContext ctx, DiscordMessage message)
     {
-        var file = ctx.TargetMessage.Attachments.Count > 0 ? ctx.TargetMessage.Attachments[0] : null;
+        var file = message.Attachments.Count > 0 ? message.Attachments[0] : null;
         if (file is null || string.IsNullOrWhiteSpace(file.Url))
         {
-            await ctx.CreateResponseAsync("```Message doesn't have any files attached.```");
+            await ctx.RespondAsync("```Message doesn't have any files attached.```");
             return;
         }
 
-        await ctx.CreateResponseAsync("```Converting TDW to MP3.```");
+        await ctx.RespondAsync("```Converting TDW to MP3.```");
         await ConvertTdwToAudio(ctx, file.Url, true);
     }
 
-    protected static async Task ConvertTdwToAudio(ContextMenuContext ctx, string url, bool mp3 = false)
+    protected static async Task ConvertTdwToAudio(MessageCommandContext ctx, string url, bool mp3 = false)
     {
         byte[] request;
         try
@@ -52,7 +56,7 @@ public class SlashCommands : ApplicationCommandModule
         }
         catch (Exception e)
         {
-            await ctx.FollowUpAsync(
+            await ctx.FollowupAsync(
                 new DiscordFollowupMessageBuilder()
                     .WithContent(
                         "```Unable to read message attachment. Please report this error to the developer.```\n" +
@@ -68,7 +72,7 @@ public class SlashCommands : ApplicationCommandModule
         }
         catch (Exception)
         {
-            await ctx.FollowUpAsync(
+            await ctx.FollowupAsync(
                 new DiscordFollowupMessageBuilder()
                     .WithContent("```Unable to read message attachment. Likely a non-text file was uploaded.```"));
             return;
@@ -78,9 +82,9 @@ public class SlashCommands : ApplicationCommandModule
         await EncoderTask(ctx, [sequence], mp3);
     }
 
-    protected static async Task EncoderTask(ContextMenuContext ctx, IList<Sequence> sequences, bool mp3 = false)
+    protected static async Task EncoderTask(MessageCommandContext ctx, IList<Sequence> sequences, bool mp3 = false)
     {
-        var message = await ctx.FollowUpAsync(new DiscordFollowupMessageBuilder()
+        var message = await ctx.FollowupAsync(new DiscordFollowupMessageBuilder()
             .WithContent("```Fully read attached file. Starting conversion.```"));
 
         var calculator = new PlacementCalculator(Static.EncoderSettings);

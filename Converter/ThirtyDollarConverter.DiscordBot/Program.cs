@@ -1,7 +1,7 @@
 ﻿using DSharpPlus;
+using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Commands.Processors.TextCommands;
-using DSharpPlus.SlashCommands;
 using Serilog;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.DiscordBot;
@@ -35,8 +35,7 @@ Static.SampleHolder.LoadSamplesIntoMemory();
 
 var builder = DiscordClientBuilder.CreateDefault(token,
     TextCommandProcessor.RequiredIntents | SlashCommandProcessor.RequiredIntents);
-// yes its deprecated. i know man
-builder.UseSlashCommands(setup => { setup.RegisterCommands<SlashCommands>(); });
+builder.UseCommands((_, extension) => extension.AddCommands<MessageCommands>());
 
 var client = builder.Build();
 
