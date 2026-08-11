@@ -18,6 +18,8 @@ if (string.IsNullOrEmpty(token))
     return;
 }
 
+Static.Logger = serilogLogger;
+
 var samples_location = Environment.GetEnvironmentVariable("SAMPLES_LOCATION");
 if (!string.IsNullOrEmpty(samples_location))
     Static.SampleHolder = new SampleHolder(serilogLogger)
@@ -26,8 +28,7 @@ if (!string.IsNullOrEmpty(samples_location))
     };
 else Static.SampleHolder = new SampleHolder(serilogLogger);
 
-Console.WriteLine("Starting Discord Bot...");
-Console.WriteLine($"Using token: {token}");
+serilogLogger.Information("Starting Discord Bot...");
 
 await Static.SampleHolder.LoadSampleList();
 await Static.SampleHolder.DownloadSamples();
@@ -35,9 +36,27 @@ Static.SampleHolder.LoadSamplesIntoMemory();
 
 var builder = DiscordClientBuilder.CreateDefault(token,
     TextCommandProcessor.RequiredIntents | SlashCommandProcessor.RequiredIntents);
-builder.UseCommands((_, extension) => extension.AddCommands<MessageCommands>());
+builder.UseCommands((_, extension) =>
+{
+    extension.AddCommands<MessageCommands>();
+
+    extension.CommandExecuted += (_, args) =>
+    {
+        serilogLogger.Information("Command {Command} invoked by {User} in {Channel}",
+            args.Context.Command.FullName, args.Context.User, args.Context.Channel);
+        return Task.CompletedTask;
+    };
+
+    extension.CommandErrored += (_, args) =>
+    {
+        serilogLogger.Error(args.Exception, "Command {Command} invoked by {User} in {Channel} threw an exception",
+            args.Context.Command.FullName, args.Context.User, args.Context.Channel);
+        return Task.CompletedTask;
+    };
+});
 
 var client = builder.Build();
 
 await client.ConnectAsync().ConfigureAwait(false);
+serilogLogger.Information("Discord Bot connected.");
 await Task.Delay(-1);

@@ -113,6 +113,7 @@ public static class WaveEncoder
                 stream.Write(buffer, 0, pos);
             stream.Flush();
             indexReport?.Invoke((ulong)maxLength, (ulong)maxLength); // guarantee a terminal 100%
+            stream.Close();
         }
         finally
         {

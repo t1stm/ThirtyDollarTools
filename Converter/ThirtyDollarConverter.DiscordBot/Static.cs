@@ -1,10 +1,12 @@
+using Serilog;
 using ThirtyDollarConverter.Encoder.Resamplers;
 using ThirtyDollarConverter.Objects;
 
 namespace ThirtyDollarConverter.DiscordBot;
 
-public class Static
+public static class Static
 {
+    public static ILogger Logger { get; set; } = null!;
     public static SampleHolder SampleHolder { get; set; } = null!;
 
     public static EncoderSettings EncoderSettings { get; set; } = new()

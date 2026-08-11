@@ -5,6 +5,7 @@ using DSharpPlus.Commands.Processors.MessageCommands;
 using DSharpPlus.Commands.Processors.SlashCommands;
 using DSharpPlus.Entities;
 using JetBrains.Annotations;
+using Serilog;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using Encoding = System.Text.Encoding;
@@ -14,6 +15,7 @@ namespace ThirtyDollarConverter.DiscordBot;
 public class MessageCommands
 {
     private static readonly HttpClient HttpClient = new();
+    private static readonly ILogger Logger = Static.Logger.ForContext<MessageCommands>();
 
     [Command("TDW to OGG Opus")]
     [SlashCommandTypes(DiscordApplicationCommandType.MessageContextMenu)]
@@ -23,10 +25,12 @@ public class MessageCommands
         var file = message.Attachments.Count > 0 ? message.Attachments[0] : null;
         if (file is null || string.IsNullOrWhiteSpace(file.Url))
         {
+            Logger.Warning("{User} ran TDW to OGG Opus on message {MessageId} with no attachment", ctx.User, message.Id);
             await ctx.RespondAsync("```Message doesn't have any files attached.```");
             return;
         }
 
+        Logger.Information("{User} converting attachment {Url} from message {MessageId} to OGG", ctx.User, file.Url, message.Id);
         await ctx.RespondAsync("```Converting TDW to OGG.```");
         await ConvertTdwToAudio(ctx, file.Url);
     }
@@ -39,10 +43,12 @@ public class MessageCommands
         var file = message.Attachments.Count > 0 ? message.Attachments[0] : null;
         if (file is null || string.IsNullOrWhiteSpace(file.Url))
         {
+            Logger.Warning("{User} ran TDW to MP3 on message {MessageId} with no attachment", ctx.User, message.Id);
             await ctx.RespondAsync("```Message doesn't have any files attached.```");
             return;
         }
 
+        Logger.Information("{User} converting attachment {Url} from message {MessageId} to MP3", ctx.User, file.Url, message.Id);
         await ctx.RespondAsync("```Converting TDW to MP3.```");
         await ConvertTdwToAudio(ctx, file.Url, true);
     }
@@ -56,6 +62,7 @@ public class MessageCommands
         }
         catch (Exception e)
         {
+            Logger.Error(e, "Failed to download attachment {Url}", url);
             await ctx.FollowupAsync(
                 new DiscordFollowupMessageBuilder()
                     .WithContent(
@@ -70,8 +77,9 @@ public class MessageCommands
             Encoding utf8 = new UTF8Encoding(false, true);
             sequence_text = utf8.GetString(request, 0, request.Length);
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            Logger.Warning(e, "Attachment {Url} is not valid UTF-8 text", url);
             await ctx.FollowupAsync(
                 new DiscordFollowupMessageBuilder()
                     .WithContent("```Unable to read message attachment. Likely a non-text file was uploaded.```"));
@@ -95,6 +103,7 @@ public class MessageCommands
         var length_seconds = (float)placement_array[^1].Index / Static.EncoderSettings.SampleRate;
         if (length_seconds > 900)
         {
+            Logger.Warning("{User} sequence is too long ({LengthSeconds}s), stopping", ctx.User, length_seconds);
             await message.ModifyAsync("```Passed Sequence is longer than 15 minutes. Stopping execution.```");
             return;
         }
@@ -144,18 +153,25 @@ public class MessageCommands
 
         if (ffmpeg_process == null)
         {
+            Logger.Error("Failed to start ffmpeg process for {User}", ctx.User);
             await message.ModifyAsync(
                 "```Failed to start conversion process. Please report this error to the developer.```");
             return;
         }
 
-        var thread = new Thread(() => { encoder.WriteAsWavFile(ffmpeg_process.StandardInput.BaseStream, audio_data); });
+        var thread = new Thread(() =>
+        {
+            encoder.WriteAsWavFile(ffmpeg_process.StandardInput.BaseStream, audio_data);
+            ffmpeg_process.StandardInput.BaseStream.Close();
+        });
         thread.Start();
 
         var memory_stream = new MemoryStream();
         await ffmpeg_process.StandardOutput.BaseStream.CopyToAsync(memory_stream);
 
         memory_stream.Seek(0, SeekOrigin.Begin);
+        Logger.Information("{User} successfully converted sequence to {Extension} ({LengthSeconds}s)",
+            ctx.User, extension, length_seconds);
         await message.ModifyAsync(new DiscordMessageBuilder()
             .WithContent("```Successfully converted file.```")
             .AddFile($"sequence.{extension}", memory_stream));
