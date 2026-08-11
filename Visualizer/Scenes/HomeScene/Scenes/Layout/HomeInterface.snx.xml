@@ -2,33 +2,55 @@
   <style language="sundex" src="Scenes/Layout/HomeInterface.snx.ss"/>
   <logic language="csharp" src="Scenes/Layout/HomeInterface.snx.csx" imports="[HomeScene.Scenes]"/>
 
+  <!-- The three tools are one continuous row split by hairlines, the way a Thirty Dollar
+       sequence is one row of steps - not three floating cards. `page` covers the whole
+       stage, so everything meant to sit on top of it (footer, settings) comes after it:
+       ties in hit-testing go to the later sibling. -->
   <layout>
-    <panel id="main-holder">
-      <panel id="background-holder">
-        <panel class="background-gradients" id="grad-1"/>
-        <panel class="background-gradients" id="grad-2"/>
-        <panel class="background-gradients" id="grad-3"/>
-        <panel class="background-gradients" id="grad-4"/>
-        <panel class="background-gradients" id="grad-5"/>
-      </panel>
+    <panel id="stage">
+      <flex id="page">
+        <flex id="masthead">
+          <label id="eyebrow" value="T H I R T Y   D O L L A R"/>
+          <label id="wordmark" value="VISUALIZER"/>
+        </flex>
 
-      <flex id="home-view">
-        <label id="home-title" value="Thirty Dollar Visualizer"/>
-        <panel id="spacer"/>
+        <panel id="band">
+          <panel id="cell-visualizer" class="cell">
+            <flex id="steps-visualizer" class="steps"/>
+            <label class="cell-title" value="Visualizer"/>
+            <label class="cell-desc" value="Play a cover back with no dropped notes."/>
+          </panel>
 
-        <button id="visualizer-button" class="menu-button">
-          <label value="Visualizer"/>
-        </button>
+          <panel id="cell-drum-master" class="cell">
+            <flex id="steps-drum-master" class="steps"/>
+            <label class="cell-title" value="Drum Master"/>
+            <label class="cell-desc" value="Play a loaded sequence live on taiko lanes."/>
+          </panel>
 
-        <button id="drum-master-button" class="menu-button">
-          <label value="Drum Master"/>
-        </button>
+          <panel id="cell-editor" class="cell">
+            <flex id="steps-editor" class="steps"/>
+            <label class="cell-title" value="Editor"/>
+            <label class="cell-desc" value="Build a cover track by track and export it."/>
+          </panel>
 
-        <button id="editor-button" class="menu-button">
-          <label value="Editor"/>
-        </button>
+          <panel class="divider" id="divider-left"/>
+          <panel class="divider" id="divider-right"/>
 
-        <button id="settings-button" class="menu-button">
+          <panel id="playhead">
+            <panel id="playhead-line"/>
+          </panel>
+        </panel>
+      </flex>
+
+      <!-- Both values are the defaults for a build that isn't checking for updates; Home
+           overwrites them once it knows the version and what the check found. -->
+      <flex id="footer">
+        <label id="version-label" value="Developer Build"/>
+        <label id="update-label" value="Check for updates at github.com/t1stm/ThirtyDollarTools"/>
+      </flex>
+
+      <flex id="topbar">
+        <button id="settings-button">
           <label value="Settings"/>
         </button>
       </flex>

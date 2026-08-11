@@ -20,47 +20,6 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
     public bool AssetsLoaded { get; private set; }
     public bool Loading { get; set; }
 
-    public async Task<bool> IsDownloadNecessary()
-    {
-        try
-        {
-            await SampleHolder.LoadSampleList();
-        }
-        catch (Exception e)
-        {
-            _logger.Error(e, "Failed to load sample list when checking for updates.");
-            return false;
-        }
-
-        foreach (var (sound, _) in SampleHolder.SampleList)
-        {
-            var soundPath = $"{SampleHolder.SamplesLocation}/{sound.Id}.wav";
-            if (!File.Exists(soundPath)) return true;
-
-            var imagePath = $"{SampleHolder.ImagesLocation}/{sound.Id}";
-            if (!ExistsWithAnyExtension(imagePath)) return true;
-        }
-
-        foreach (var action in SampleHolder.ActionsArray)
-        {
-            var actionPath = $"{SampleHolder.ImagesLocation}/{action}";
-            if (!ExistsWithAnyExtension(actionPath)) return true;
-        }
-
-        return false;
-    }
-
-    private bool ExistsWithAnyExtension(string pathWithoutExtension)
-    {
-        var directory = Path.GetDirectoryName(pathWithoutExtension);
-        if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
-
-        var fileName = Path.GetFileName(pathWithoutExtension);
-        if (!Directory.Exists(directory)) return false;
-
-        return Directory.GetFiles(directory, fileName + ".*").Length > 0;
-    }
-
     public void Load()
     {
         if (Loading) return;
@@ -97,7 +56,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
         var loadedSounds = new HashSet<Sound>();
         var sampleDownloadReport = new SampleDownloadReport
         {
-            Message = "Downloading Sample Images..."
+            Message = "Downloading icons"
         };
         SampleHolder.DownloadUpdate = (sound, current, total) =>
         {
@@ -123,7 +82,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
             _logger.Error(e, "Downloading images failed. Some images may be missing.");
         }
 
-        sampleDownloadReport.Message = "Downloading Sample Sounds...";
+        sampleDownloadReport.Message = "Downloading sounds";
         SampleHolder.DownloadUpdate = (sound, current, total) =>
         {
             sampleDownloadReport.Percentage = current / (float)total;
@@ -152,7 +111,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
     {
         var loadingEvent = new SampleLoadingReport
         {
-            Message = "Loading Images..."
+            Message = "Loading icons"
         };
 
         var index = 0;

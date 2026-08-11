@@ -1,3 +1,10 @@
+// Drifting background gradients. Named for the loader because it is where they started,
+// but the loader dropped them - the sound field is its background now, and the settings
+// screen dropped them after it too. The one sheet that still imports them is in another
+// assembly and reaches this file by path, so it stays here, at this path, and stays
+// embedded in LoadingScene:
+//   DrumMasterScene/UI/Select Sounds/SelectSounds.snx.ss
+
 animation float-slow {
     timing-function = "ease-in-out";
     duration = 18s;

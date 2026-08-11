@@ -2,26 +2,34 @@
   <style language="sundex" src="Scenes/Layout/SettingsInterface.snx.ss"/>
   <logic language="csharp" src="Scenes/Layout/SettingsInterface.snx.csx" imports="[SettingsScene.Scenes]"/>
 
+  <!-- The sections and their rows are built in SettingsInterface, not here: the list is a
+       table of settings, and thirteen near-identical row tags would say nothing the table
+       doesn't. `page` covers the whole stage, so the back button comes after it - ties in
+       hit-testing go to the later sibling. -->
   <layout>
-    <panel id="main-holder">
-      <panel id="background-holder">
-        <panel class="background-gradients" id="grad-1"/>
-        <panel class="background-gradients" id="grad-2"/>
-        <panel class="background-gradients" id="grad-3"/>
-        <panel class="background-gradients" id="grad-4"/>
-        <panel class="background-gradients" id="grad-5"/>
-      </panel>
+    <panel id="stage">
+      <flex id="page">
+        <flex id="masthead">
+          <label id="eyebrow" value="V I S U A L I Z E R"/>
+          <label id="wordmark" value="SETTINGS"/>
+        </flex>
 
-      <flex id="settings-view">
-        <flex id="settings-header">
-          <label id="settings-title" value="Settings"/>
-          <button id="back-button">
-            <label value="Back"/>
-          </button>
-        </flex>
-        <panel id="settings-divider"/>
-        <flex id="settings-list">
-        </flex>
+        <!-- The preview keeps its own scroll view so a wrapped line stays a band at the top
+             of the page instead of pushing the settings themselves off it: the bed grows
+             with the tiles up to a ceiling and scrolls past it. It sits inside the list so
+             the geometry sliders - the first rows under it - stay on screen while you drag
+             them. -->
+        <scroll-view id="settings-list">
+          <scroll-view id="strip-view">
+            <flex id="strip"/>
+          </scroll-view>
+        </scroll-view>
+      </flex>
+
+      <flex id="topbar">
+        <button id="back-button">
+          <label value="Back"/>
+        </button>
       </flex>
     </panel>
   </layout>

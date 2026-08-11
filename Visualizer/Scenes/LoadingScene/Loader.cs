@@ -28,6 +28,10 @@ public class Loader : Scene, IGamePreloadable
     private readonly UIContext _context;
 
     private readonly LoaderInterface _loaderInterface;
+
+    /// <summary>True on the first run: the setup is up, and it owns when loading starts.</summary>
+    private readonly bool _setupNeeded;
+
     private readonly ThirtyDollarDownloader _thirtyDollarDownloader;
     private readonly VisualizerSettings _settings;
     private readonly VersionInfo? _version;
@@ -35,9 +39,6 @@ public class Loader : Scene, IGamePreloadable
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
     private IProgressReport _progressReport = new NotStartedReport();
-
-    /// <summary>True once the update prompt is out of the way - nothing loads before then.</summary>
-    private bool _updatePromptAnswered;
 
     public Loader(Game game, AudioContext? audioContext, VisualizerSettings settings, VersionInfo? version) : base(game)
     {
@@ -68,36 +69,43 @@ public class Loader : Scene, IGamePreloadable
         };
         _thirtyDollarDownloader.OnLoadSound = sound => _background.AddSound(sound);
 
-        _loaderInterface = new LoaderInterface(_context, () => _thirtyDollarDownloader.Load());
-        SetUpUpdatePrompt();
-    }
-
-    /// <summary>
-    ///     Shows the opt-in question on the first run, and otherwise starts the check the user
-    ///     already agreed to. A build with no VERSION date (a developer build) is never asked:
-    ///     there is no build date to call a release newer than, so the answer couldn't be used.
-    /// </summary>
-    private void SetUpUpdatePrompt()
-    {
-        _updatePromptAnswered = _settings.UpdateCheckAsked || _version?.Date is null;
-        if (_updatePromptAnswered)
+        _loaderInterface = new LoaderInterface(_context)
         {
-            _loaderInterface.UpdatePrompt.Visible = false;
+            OnUpdateAnswer = AnswerUpdatePrompt,
+            OnStartLoading = StartLoading
+        };
+
+        _setupNeeded = !_settings.UpdateCheckAsked;
+        if (!_setupNeeded)
+        {
             if (_settings.CheckForUpdates)
                 UpdateChecker.Start(_version, _settings.UpdateIncludePrereleases,
                     _settings.UpdateIncludeNightlies, Logger);
+
+            _loaderInterface.BeginLoading();
             return;
         }
-
-        _loaderInterface.MainView.Visible = false;
 
         // Default to the channel this build came from: a prerelease ticks prereleases, and a
         // nightly ticks both (the nightly workflow marks its releases prerelease as well).
         _loaderInterface.IncludePrereleases.Checked = _version?.Prerelease ?? false;
         _loaderInterface.IncludeNightlies.Checked = _version?.Nightly ?? false;
 
-        _loaderInterface.UpdateDecline.OnClick = _ => AnswerUpdatePrompt(false);
-        _loaderInterface.UpdateOptIn.OnClick = _ => AnswerUpdatePrompt(true);
+        // A build with no VERSION date (a developer build, or anything not out of a release
+        // workflow) still gets the setup - it just isn't asked about updates, since there is
+        // no build date to call a release newer than and the answer couldn't be used.
+        _loaderInterface.BeginSetup(_version?.Date is not null);
+    }
+
+    /// <summary>
+    ///     Starts the download at the end of the setup. This is also where the setup is marked
+    ///     done: a build with no date never reaches the update question, so writing it with
+    ///     that answer would leave those runs asking again on every boot.
+    /// </summary>
+    private void StartLoading()
+    {
+        _settings.UpdateCheckAsked = true;
+        _thirtyDollarDownloader.Load();
     }
 
     private void AnswerUpdatePrompt(bool optIn)
@@ -105,13 +113,8 @@ public class Loader : Scene, IGamePreloadable
         _settings.UpdateIncludePrereleases = _loaderInterface.IncludePrereleases.Checked;
         _settings.UpdateIncludeNightlies = _loaderInterface.IncludeNightlies.Checked;
         _settings.CheckForUpdates = optIn;
-        // Last, because every setter writes the settings file: this one is what stops the
-        // question from being asked again.
-        _settings.UpdateCheckAsked = true;
-
-        _loaderInterface.UpdatePrompt.Visible = false;
-        _loaderInterface.MainView.Visible = true;
-        _updatePromptAnswered = true;
+        // UpdateCheckAsked is not written here - StartLoading owns it, so the setup only
+        // counts as done once it has actually been finished.
 
         if (optIn)
             UpdateChecker.Start(_version, _settings.UpdateIncludePrereleases,
@@ -158,20 +161,14 @@ public class Loader : Scene, IGamePreloadable
         _background.Update();
         _cursorType = CursorType.Default;
 
-        // Nothing loads while the update prompt is up - the sounds are usually already
-        // there, and the automatic load below would otherwise run straight past the question.
-        if (_updatePromptAnswered && !_autoLoadStarted)
+        // Every boot past the first starts loading on its own: the sounds were agreed to once,
+        // and the download skips whatever is already on disk. Only the first run waits, on
+        // the setup's own button. Started here rather than in the constructor so the first
+        // frame is on screen before the disk and the network get busy.
+        if (!_setupNeeded && !_autoLoadStarted)
         {
             _autoLoadStarted = true;
-            Task.Run(async () =>
-            {
-                StatusUpdate(new SampleLoadingReport
-                {
-                    Message = "Checking for new sounds...",
-                    Percentage = 0
-                });
-                if (!await _thirtyDollarDownloader.IsDownloadNecessary()) _thirtyDollarDownloader.Load();
-            });
+            _thirtyDollarDownloader.Load();
         }
 
         lock (_progressReport)
@@ -193,8 +190,10 @@ public class Loader : Scene, IGamePreloadable
         if (Game.Cursor != cursor)
             Game.Cursor = cursor;
 
-        if (!_thirtyDollarDownloader.AssetsLoaded && !Finished) return;
-        _loaderInterface.Label.SetTextContents("Loading interface...");
+        // Guarded on Finished: OnFinish loads and transitions to every other scene, and this
+        // ran on every frame between the assets landing and the transition taking effect.
+        if (!_thirtyDollarDownloader.AssetsLoaded || Finished) return;
+        _loaderInterface.StatusMessage.SetTextContents("Opening the Visualizer");
         Finished = true;
 
         var workflow = new ThirtyDollarWorkflow(Game, Logger, _thirtyDollarDownloader.SampleHolder,

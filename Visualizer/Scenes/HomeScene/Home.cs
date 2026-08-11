@@ -6,12 +6,10 @@ using Shared;
 using Shared.Updates;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
-using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Enums;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
-using Sundex.Engine.Text;
 
 namespace HomeScene;
 
@@ -22,13 +20,8 @@ public class Home : Scene
     private readonly UIContext _context;
 
     private readonly HomeInterface _homeInterface;
-    private readonly TextBuffer _versionBuffer;
-    private readonly TextSlice _versionNote;
-
-    private readonly string _versionText;
 
     private CursorType _cursorType = CursorType.Default;
-    private float _height;
     private Vector2 _lastScale = Vector2.One;
     private bool _updateNoteShown;
 
@@ -56,26 +49,11 @@ public class Home : Scene
             () => { Game.SceneManager.TransitionTo("editor"); },
             () => { Game.SceneManager.TransitionTo("settings"); });
 
-        _height = clientSize.Y;
-        _versionText = checkingForUpdates
-            ? $"Current Version: {version}"
-            : $"""
-               Check regularly for updates at:
-               https://github.com/t1stm/ThirtyDollarTools
+        _homeInterface.VersionLabel.SetTextContents(version);
 
-               Current Version: {version}
-               """;
-
-        _versionBuffer = new TextBuffer(_context.TextProvider, _context.DeleteQueue);
-        _versionNote = _versionBuffer.GetTextSlice(_versionText,
-                (value, buffer, range) => new TextSlice(buffer, range)
-                {
-                    Value = value,
-                    FontSize = 14
-                },
-                // Room for the update line, which arrives later - a slice can't grow.
-                _versionText.Length + 256)
-            .WithPosition((10, _height, 0), PositionAlign.Bottom | PositionAlign.Left);
+        // Nothing to say while the check is still out: the markup's line tells a build that
+        // isn't checking where to look, and would be wrong here.
+        if (checkingForUpdates) _homeInterface.UpdateLabel.Visible = false;
     }
 
     public override void Initialize(InitArguments initArguments)
@@ -89,11 +67,11 @@ public class Home : Scene
     public override void Render(RenderArguments renderArgs)
     {
         _context.Render();
-        _versionBuffer.RenderBuffer(_camera);
     }
 
     public override void TransitionedTo()
     {
+        _homeInterface.PlayIntro();
     }
 
     public override void Update(UpdateArguments updateArgs)
@@ -107,12 +85,13 @@ public class Home : Scene
         if (!_updateNoteShown && (UpdateChecker.Available is not null || UpdateChecker.Failed))
         {
             _updateNoteShown = true;
-            var notice = UpdateChecker.Available is { } release
-                ? $"New Version Available: {release.TagName} {release.HtmlUrl}"
-                : "Checking for updates failed. See the logs for more information";
+            var available = UpdateChecker.Available;
 
-            _versionNote.Value = $"{notice}\n\n{_versionText}";
-            _versionNote.SetPosition((10, _height, 0), PositionAlign.Bottom | PositionAlign.Left);
+            _homeInterface.UpdateLabel.SetTextContents(available is { } release
+                ? $"{release.TagName} is out - {release.HtmlUrl}"
+                : "Update check failed. See the log for details.");
+            _homeInterface.UpdateLabel.SetClass("note-attention", available is not null);
+            _homeInterface.UpdateLabel.Visible = true;
         }
 
         var cursor = _cursorType switch
@@ -143,10 +122,8 @@ public class Home : Scene
         _camera.Viewport = new Vector2i((int)width, (int)height);
         _camera.UpdateMatrix();
         _context.PixelScale = _lastScale;
-        _height = height;
 
         _homeInterface.Resize();
-        _versionNote.SetPosition((10, height, 0), PositionAlign.Bottom | PositionAlign.Left);
     }
 
     public override void Shutdown()

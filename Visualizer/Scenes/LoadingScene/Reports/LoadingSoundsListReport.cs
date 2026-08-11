@@ -2,6 +2,7 @@ namespace LoadingScene.Reports;
 
 public class LoadingSoundsListReport : IProgressReport
 {
-    public string Message => "Loading Sounds List from https://thirtydollar.website";
-    public double Percentage => 0.5;
+    public string Message => "Reading the sound list";
+    public double Percentage => 0.02;
+    public string Detail => "thirtydollar.website";
 }

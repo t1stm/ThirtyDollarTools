@@ -2,44 +2,101 @@
   <style language="sundex" src="Scenes/Layout/LoaderInterface.snx.ss"/>
   <logic language="csharp" src="Scenes/Layout/LoaderInterface.snx.csx" imports="[LoadingScene.Scenes]"/>
 
+  <!-- Nothing paints the stage: the sound field renders behind this tree, and over it sit
+       the atmosphere and then the strip. Everything else lives inside the strip, placed
+       from its top edge, because the strip's height is what animates. -->
   <layout>
-    <panel id="main-holder">
-      <panel id="background-holder">
-        <panel class="background-gradients" id="grad-1"/>
-        <panel class="background-gradients" id="grad-2"/>
-        <panel class="background-gradients" id="grad-3"/>
-        <panel class="background-gradients" id="grad-4"/>
-        <panel class="background-gradients" id="grad-5"/>
+    <panel id="stage">
+      <!-- First child, so the strip and every pane paint over it. The gradient ids come
+           from LoaderGradients.snx.ss; they carry no class because they need no rule of
+           this sheet's own. -->
+      <panel id="atmosphere">
+        <panel id="grad-1"/>
+        <panel id="grad-2"/>
+        <panel id="grad-3"/>
+        <panel id="grad-4"/>
+        <panel id="grad-5"/>
       </panel>
 
-      <!-- Shown instead of main-view on the first run; Loader.cs swaps the two once the
-           question is answered. -->
-      <flex id="update-prompt">
-        <label id="update-title" value="Update Checker"/>
-        <label id="update-message" value="Do you want to check for updates at the GitHub repository?"/>
+      <panel id="strip">
+        <panel id="strip-rule"/>
 
-        <checkbox id="include-prereleases" value="Include Prereleases"/>
-        <checkbox id="include-nightlies" value="Include Nightlies"/>
+        <!-- Segments are built by the logic block - three for the setup, thirty for the
+             download - so the count can change without the markup knowing about it. -->
+        <flex id="ticks"/>
 
-        <flex id="update-actions">
-          <button id="update-decline" class="prompt-button">
-            <label value="Don't ask again"/>
-          </button>
-          <button id="update-opt-in" class="prompt-button-primary">
-            <label value="Opt-in"/>
-          </button>
-        </flex>
-      </flex>
+        <panel id="status">
+          <flex id="status-left">
+            <label id="status-message" value="Starting"/>
+            <label id="status-detail" value=""/>
+          </flex>
+          <label id="status-percent" value="0%"/>
+        </panel>
 
-      <flex id="main-view">
-        <label id="loader-title" value="Thirty Dollar Visualizer"/>
-        <label id="loader-label" value="Ready to load"/>
-        <progress id="loader-progress" percentage="0"/>
+        <!-- The first-run setup: three panes stacked in one slot, one shown at a time.
+             LoaderInterface owns the order; Loader owns what the answers mean. -->
+        <panel id="pane-welcome" class="pane">
+          <flex class="pane-text">
+            <flex class="pane-head">
+              <label class="eyebrow" value="S E T U P"/>
+              <label class="pane-title" value="Welcome."/>
+            </flex>
+            <flex class="pane-body">
+              <label class="pane-line" value="This is the Thirty Dollar Visualizer. It plays, edits and exports"/>
+              <label class="pane-line" value="covers from thirtydollar.website."/>
+            </flex>
+          </flex>
+          <flex class="pane-actions">
+            <button id="welcome-next" class="button-primary">
+              <label value="Next"/>
+            </button>
+          </flex>
+        </panel>
 
-        <button id="start-button">
-          <label value="Start Loading"/>
-        </button>
-      </flex>
+        <panel id="pane-updates" class="pane">
+          <flex class="pane-text">
+            <flex class="pane-head">
+              <label class="eyebrow" value="U P D A T E S"/>
+              <label class="pane-title" value="Check for updates?"/>
+            </flex>
+            <flex class="pane-body">
+              <label class="pane-line" value="The Visualizer can ask GitHub for a newer release when it starts."/>
+              <label class="pane-line" value="It sends nothing about you and never installs anything on its own."/>
+            </flex>
+            <flex class="pane-options">
+              <checkbox id="include-prereleases" value="Include prereleases"/>
+              <checkbox id="include-nightlies" value="Include nightly builds"/>
+            </flex>
+          </flex>
+          <flex class="pane-actions">
+            <button id="updates-decline" class="button-quiet">
+              <label value="Don't check"/>
+            </button>
+            <button id="updates-accept" class="button-primary">
+              <label value="Check for updates"/>
+            </button>
+          </flex>
+        </panel>
+
+        <panel id="pane-sounds" class="pane">
+          <flex class="pane-text">
+            <flex class="pane-head">
+              <label class="eyebrow" value="S O U N D S"/>
+              <label class="pane-title" value="Get the sound library."/>
+            </flex>
+            <flex class="pane-body">
+              <label class="pane-line" value="Every sound and icon comes from thirtydollar.website, and the"/>
+              <label class="pane-line" value="Visualizer needs them all before it can play anything. They are"/>
+              <label class="pane-line" value="saved to disk, so later boots start loading straight away."/>
+            </flex>
+          </flex>
+          <flex class="pane-actions">
+            <button id="sounds-start" class="button-primary">
+              <label value="Start downloading"/>
+            </button>
+          </flex>
+        </panel>
+      </panel>
     </panel>
   </layout>
 </sundex>

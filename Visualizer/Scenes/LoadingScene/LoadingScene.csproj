@@ -19,10 +19,12 @@
   <ItemGroup>
     <None Remove="Scenes\Layout\LoaderInterface.snx.sml"/>
     <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.xml"/>
-    <None Remove="Scenes\Layout\LoaderGradients.snx.ss"/>
-    <EmbeddedResource Include="Scenes\Layout\LoaderGradients.snx.ss"/>
     <None Remove="Scenes\Layout\LoaderInterface.snx.csx"/>
     <EmbeddedResource Include="Scenes\Layout\LoaderInterface.snx.csx"/>
+    <!-- The loader itself no longer imports these; the settings and drum-master sheets do,
+         by path, so they have to keep being embedded here. -->
+    <None Remove="Scenes\Layout\LoaderGradients.snx.ss"/>
+    <EmbeddedResource Include="Scenes\Layout\LoaderGradients.snx.ss"/>
   </ItemGroup>
 
   <ItemGroup>
