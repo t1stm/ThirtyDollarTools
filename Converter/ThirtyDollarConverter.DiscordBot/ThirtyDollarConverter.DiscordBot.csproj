@@ -8,12 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02494"/>
-    <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02494"/>
-    <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02494"/>
-    <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02494"/>
-    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
-    <PackageReference Include="Serilog" Version="4.3.1"/>
+    <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02597" />
+    <PackageReference Include="DSharpPlus.Commands" Version="5.0.0-nightly-02597" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02597" />
+    <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02597" />
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
+    <PackageReference Include="Serilog" Version="4.4.1-dev-02443" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1"/>
   </ItemGroup>
 

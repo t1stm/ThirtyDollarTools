@@ -11,6 +11,8 @@ namespace ThirtyDollarConverter.DiscordBot;
 
 public class SlashCommands : ApplicationCommandModule
 {
+    private static readonly HttpClient HttpClient = new();
+
     [ContextMenu(DiscordApplicationCommandType.MessageContextMenu, "TDW to OGG Opus")]
     [UsedImplicitly]
     public async Task ConvertFileToOgg(ContextMenuContext ctx)
@@ -43,11 +45,10 @@ public class SlashCommands : ApplicationCommandModule
 
     protected static async Task ConvertTdwToAudio(ContextMenuContext ctx, string url, bool mp3 = false)
     {
-        var http_client = new HttpClient();
         byte[] request;
         try
         {
-            request = await http_client.GetByteArrayAsync(url);
+            request = await HttpClient.GetByteArrayAsync(url);
         }
         catch (Exception e)
         {
