@@ -3,6 +3,7 @@ using System.Text;
 using DSharpPlus.Commands;
 using DSharpPlus.Commands.Processors.MessageCommands;
 using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands.Metadata;
 using DSharpPlus.Entities;
 using JetBrains.Annotations;
 using Serilog;
@@ -19,6 +20,10 @@ public class MessageCommands
 
     [Command("TDW to OGG Opus")]
     [SlashCommandTypes(DiscordApplicationCommandType.MessageContextMenu)]
+    [InteractionAllowedContexts(DiscordInteractionContextType.Guild, DiscordInteractionContextType.BotDM,
+        DiscordInteractionContextType.PrivateChannel)]
+    [InteractionInstallType(DiscordApplicationIntegrationType.GuildInstall,
+        DiscordApplicationIntegrationType.UserInstall)]
     [UsedImplicitly]
     public async Task ConvertFileToOgg(MessageCommandContext ctx, DiscordMessage message)
     {
@@ -37,6 +42,10 @@ public class MessageCommands
 
     [Command("TDW to MP3")]
     [SlashCommandTypes(DiscordApplicationCommandType.MessageContextMenu)]
+    [InteractionAllowedContexts(DiscordInteractionContextType.Guild, DiscordInteractionContextType.BotDM,
+        DiscordInteractionContextType.PrivateChannel)]
+    [InteractionInstallType(DiscordApplicationIntegrationType.GuildInstall,
+        DiscordApplicationIntegrationType.UserInstall)]
     [UsedImplicitly]
     public async Task ConvertFileToMp3(MessageCommandContext ctx, DiscordMessage message)
     {
