@@ -1,4 +1,4 @@
-using Msdfgen.Extensions;
+using Sundex.MSDF;
 
 namespace Sundex.Engine.Text.Fonts;
 
@@ -7,6 +7,6 @@ namespace Sundex.Engine.Text.Fonts;
 /// </summary>
 public interface IFontProvider
 {
-    /// <summary>Returns a <see cref="FontHandle" /> for the named font.</summary>
-    FontHandle GetFont(ReadOnlySpan<char> fontName);
+    /// <summary>Returns the loaded <see cref="MsdfFont" /> for the named font.</summary>
+    MsdfFont GetFont(ReadOnlySpan<char> fontName);
 }

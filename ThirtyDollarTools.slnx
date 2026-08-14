@@ -17,6 +17,7 @@
     <Project Path="Sundex/Sundex.Core/Sundex.Core.csproj"/>
     <Project Path="Sundex/Sundex.Engine/Sundex.Engine.csproj"/>
     <Project Path="Sundex/Sundex.Markup/Sundex.Markup.csproj"/>
+    <Project Path="Sundex/Sundex.MSDF/Sundex.MSDF.csproj"/>
     <Project Path="Sundex/Sundex.Style.DSL/Sundex.Style.DSL.csproj"/>
   </Folder>
   <Folder Name="/Sundex/Debug/">
@@ -25,6 +26,7 @@
   <Folder Name="/Sundex/Tests/">
     <Project Path="Sundex/Tests/Sundex.Components.Tests/Sundex.Components.Tests.csproj"/>
     <Project Path="Sundex/Tests/Sundex.Markup.Tests/Sundex.Markup.Tests.csproj"/>
+    <Project Path="Sundex/Tests/Sundex.MSDF.Tests/Sundex.MSDF.Tests.csproj"/>
     <Project Path="Sundex/Tests/Sundex.Style.DSL.Tests/Sundex.Style.DSL.Tests.csproj"/>
   </Folder>
   <Folder Name="/Visualizer/">

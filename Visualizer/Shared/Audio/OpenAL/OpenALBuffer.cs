@@ -1,3 +1,4 @@
+using System.Buffers;
 using OpenTK.Audio.OpenAL;
 using Serilog;
 using ThirtyDollarConverter.Encoder.PCM;
@@ -27,17 +28,27 @@ public class OpenALBuffer : AudibleBuffer
             _ => throw new ArgumentOutOfRangeException(nameof(sampleData), "The given channels count is invalid.")
         };
 
-        var samples = new float[(int)length * channels];
-        var samples_span = samples.AsSpan();
-        for (var i = 0; i < length; i++)
-        for (var j = 0; j < channels; j++)
+        // Interleaved scratch: written in full, handed to OpenAL, which copies it into the buffer
+        // object, then dropped. AL.BufferData takes an explicit size, so a rented array being
+        // longer than asked for makes no difference to what gets uploaded.
+        var samples = ArrayPool<float>.Shared.Rent((int)length * channels);
+        try
         {
-            var idx = i * channels + j;
-            samples_span[idx] = sampleData.Samples[j][i];
-        }
+            var samples_span = samples.AsSpan();
+            for (var i = 0; i < length; i++)
+            for (var j = 0; j < channels; j++)
+            {
+                var idx = i * channels + j;
+                samples_span[idx] = sampleData.Samples[j][i];
+            }
 
-        AudioBuffer = AL.GenBuffer();
-        AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
+            AudioBuffer = AL.GenBuffer();
+            AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
+        }
+        finally
+        {
+            ArrayPool<float>.Shared.Return(samples);
+        }
     }
 
     public int AudioBuffer { get; set; }
@@ -56,24 +67,31 @@ public class OpenALBuffer : AudibleBuffer
             _ => throw new ArgumentOutOfRangeException(nameof(data), "The given channels count is invalid.")
         };
 
-        var samples = new float[length * channels];
-        for (var i = 0; i < length; i++)
-        for (var j = 0; j < channels; j++)
+        var samples = ArrayPool<float>.Shared.Rent((int)(length * channels));
+        try
         {
-            var idx = i * channels + j;
-            samples[idx] = data.Samples[j][i];
-        }
+            for (var i = 0; i < length; i++)
+            for (var j = 0; j < channels; j++)
+            {
+                var idx = i * channels + j;
+                samples[idx] = data.Samples[j][i];
+            }
 
-        if (AL.IsBuffer(AudioBuffer))
-        {
-            // We can't update buffer data while it's being used by sources in some OpenAL implementations.
-            // But usually AL.BufferData on an existing buffer is fine if we are careful.
-            AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
+            if (AL.IsBuffer(AudioBuffer))
+            {
+                // We can't update buffer data while it's being used by sources in some OpenAL implementations.
+                // But usually AL.BufferData on an existing buffer is fine if we are careful.
+                AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
+            }
+            else
+            {
+                AudioBuffer = AL.GenBuffer();
+                AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
+            }
         }
-        else
+        finally
         {
-            AudioBuffer = AL.GenBuffer();
-            AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
+            ArrayPool<float>.Shared.Return(samples);
         }
 
         _context.CheckErrors();

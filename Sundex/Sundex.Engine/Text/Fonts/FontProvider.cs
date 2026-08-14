@@ -1,18 +1,13 @@
-using Msdfgen.Extensions;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.MSDF;
 
 namespace Sundex.Engine.Text.Fonts;
 
 public class FontProvider : IFontProvider
 {
-    private readonly FreetypeHandle _freetypeHandle;
-
     public FontProvider(AssetProvider assetProvider)
     {
-        _freetypeHandle = FreetypeHandle.Initialize()
-                          ?? throw new Exception("Unable to initialize FreeType library.");
-
         AddFont("Lato Regular", assetProvider.Load<AssetStream, AssetInfo>(new AssetInfo
         {
             Location = "Assets/Fonts/Lato-Regular.ttf"
@@ -29,24 +24,21 @@ public class FontProvider : IFontProvider
         }));
     }
 
-    private Dictionary<string, byte[]> LoadedFontBytes { get; } = new();
+    /// <summary>Every bundled font, parsed at construction and kept for the process lifetime.</summary>
+    private Dictionary<string, MsdfFont> LoadedFonts { get; } = new();
 
-    public FontHandle GetFont(ReadOnlySpan<char> fontName)
+    public MsdfFont GetFont(ReadOnlySpan<char> fontName)
     {
-        var lookup = LoadedFontBytes.GetAlternateLookup<ReadOnlySpan<char>>();
+        var lookup = LoadedFonts.GetAlternateLookup<ReadOnlySpan<char>>();
 
         return lookup.TryGetValue(fontName, out var font)
-            ? FontHandle.LoadFontData(_freetypeHandle, font) ?? throw new Exception("Unable to load font data.")
-            : throw new Exception($"Unable to find font bytes for: {fontName}");
+            ? font
+            : throw new Exception($"Unable to find font: {fontName}");
     }
 
     private void AddFont(string fontName, AssetStream assetStream)
     {
-        var length = (int)assetStream.Stream.Length;
-        var array = new byte[length];
-        assetStream.Stream.ReadExactly(array);
-
-        var lookup = LoadedFontBytes.GetAlternateLookup<ReadOnlySpan<char>>();
-        lookup.TryAdd(fontName, array);
+        var lookup = LoadedFonts.GetAlternateLookup<ReadOnlySpan<char>>();
+        lookup.TryAdd(fontName, MsdfFont.Load(assetStream.Stream));
     }
 }

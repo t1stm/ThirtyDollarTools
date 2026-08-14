@@ -3,7 +3,7 @@ using OpenTK.Mathematics;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Text.Fonts;
-using FontMetrics = Msdfgen.Extensions.FontMetrics;
+using Sundex.MSDF.Fonts;
 
 namespace Sundex.Engine.Text;
 
@@ -60,7 +60,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         }
     } = Vector4.One;
 
-    private FontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.GetFontMetrics();
+    private MsdfFontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.GetFontMetrics();
 
     public void Dispose()
     {
@@ -161,8 +161,8 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             layoutsSpan[bufferIndex] = new FlexLineItemPlacementLayout
             {
                 Advance = textAlignmentData.AdvanceInUnitSpace,
-                Translate = new Vector2((float)textAlignmentData.Translate.X, (float)textAlignmentData.Translate.Y),
-                Scale = new Vector2((float)textAlignmentData.Scale.X, (float)textAlignmentData.Scale.Y),
+                Translate = new Vector2(textAlignmentData.Translate.X, textAlignmentData.Translate.Y),
+                Scale = new Vector2(textAlignmentData.Scale.X, textAlignmentData.Scale.Y),
                 NewLines = newLineCount
             };
 

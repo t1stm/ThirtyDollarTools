@@ -1,34 +1,29 @@
-using Msdfgen;
-using Msdfgen.Extensions;
+using System.Numerics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Sundex.Engine.Text.Fonts;
+using Sundex.MSDF.Fonts;
 
 namespace Sundex.Components.Tests;
 
 public class MockGlyphProvider : IGlyphProvider
 {
-    public FontHandle GetFont()
-    {
-        return null!;
-    }
-
     public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character)
     {
         return new Image<RgbaVector>(1, 1);
     }
 
-    public FontMetrics GetFontMetrics()
+    // Em-normalised rather than raw font units, so the numbers stay readable: TextInputTests
+    // depends on LineHeight/EmSize being 1.2 and on 0.6 advance × 16 px = 9.6 px per character.
+    public MsdfFontMetrics GetFontMetrics()
     {
-        return new FontMetrics
-        {
-            AscenderY = 1,
-            DescenderY = -0.2,
-            LineHeight = 1.2,
-            UnderlineY = -0.1,
-            UnderlineThickness = 0.05,
-            EmSize = 1
-        };
+        return new MsdfFontMetrics(
+            1,
+            1,
+            -0.2,
+            1.2,
+            -0.1,
+            0.05);
     }
 
     public TextAlignmentData GetSizingData(ReadOnlySpan<char> character)
