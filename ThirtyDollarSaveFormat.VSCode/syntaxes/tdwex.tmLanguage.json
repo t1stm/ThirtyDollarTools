@@ -34,10 +34,6 @@
       ]
     },
     {
-      "match": "(\\|?#icut\\([^)]*\\)\\|?)|(\\|?#bookmark\\([^)]*\\)\\|?)",
-      "name": "keyword.control.custom.tdwex"
-    },
-    {
       "include": "#main"
     }
   ],
@@ -49,38 +45,152 @@
           "name": "punctuation.separator.tdw"
         },
         {
-          "match": "(!(speed|volume|combine|stop|loopmany|loop|looptarget|jump|target|cut|transpose|startpos|flash|bg|pulse|divider))(@[\\-]?[0-9.]+(@[+x/])?)?",
+          "comment": "Legacy individual cut: #icut(sound, sound). Flips the file to the legacy format.",
+          "begin": "(#icut)(\\()",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.custom.tdwex" },
+            "2": { "name": "punctuation.section.arguments.begin.tdw" }
+          },
+          "end": "(\\))",
+          "endCaptures": {
+            "1": { "name": "punctuation.section.arguments.end.tdw" }
+          },
+          "patterns": [
+            {
+              "match": ",",
+              "name": "punctuation.separator.cut.tdw"
+            },
+            {
+              "match": "[^,)]+",
+              "name": "entity.name.function.sound.cut.tdw"
+            }
+          ]
+        },
+        {
+          "comment": "#bookmark(N) - jump label for the visualizer.",
+          "match": "(#bookmark)(\\()([^)]*)(\\))",
           "captures": {
-            "1": { "name": "keyword.control.tdw" },
-            "2": { "name": "support.function.tdw" },
-            "3": { "name": "constant.numeric.tdw" }
+            "1": { "name": "keyword.control.custom.tdwex" },
+            "2": { "name": "punctuation.section.arguments.begin.tdw" },
+            "3": { "name": "constant.numeric.bookmark.tdw" },
+            "4": { "name": "punctuation.section.arguments.end.tdw" }
           }
         },
-
         {
-          "match": "([\\p{Extended_Pictographic}\\p{Emoji}\\p{So}A-Za-z0-9_]+)(?:(@)([\\-]?[0-9.]+))?(?:(%)([0-9.]+))?(?:(\\^)([\\-]?[0-9.]+))?(?:(=)([0-9]+))?",
-          "captures": {
-            "1": { "name": "entity.name.function.sound.tdw" },
-            "2": { "name": "keyword.operator.pitch.tdw" },
-            "3": { "name": "constant.numeric.pitch.tdw" },
-            "4": { "name": "keyword.operator.volume.tdw" },
-            "5": { "name": "constant.numeric.volume.tdw" },
-            "6": { "name": "keyword.operator.pan.tdw" },
-            "7": { "name": "constant.numeric.pan.tdw" },
-            "8": { "name": "keyword.operator.repeat.tdw" },
-            "9": { "name": "constant.numeric.repeat.tdw" }
-          }
-        },
-        {
-          "match": "(\\_pause)(=[0-9]+)?",
-          "captures": {
-            "1": { "name": "variable.language.pause.tdw" },
-            "2": { "name": "variable.language.pause.repeat.tdw" }
-          }
+          "match": "#legacy|#enddefine",
+          "name": "keyword.control.custom.tdwex"
         },
         {
           "match": "#[^|]+",
           "name": "comment.line.tdw"
+        },
+        {
+          "comment": "Individual cut: !cut@sound or !cut@sound,sound. Bare !cut falls through to the action rule.",
+          "match": "(!cut)(@)([^|]+)",
+          "captures": {
+            "1": { "name": "keyword.control.tdw" },
+            "2": { "name": "keyword.operator.cut.tdw" },
+            "3": {
+              "patterns": [
+                {
+                  "match": ",",
+                  "name": "punctuation.separator.cut.tdw"
+                },
+                {
+                  "match": "[^,]+",
+                  "name": "entity.name.function.sound.cut.tdw"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "comment": "!bg@#RRGGBB[AA],fadeSeconds - packed colour event.",
+          "match": "(!bg)(@)(#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?)(,)([-0-9.]+)?",
+          "captures": {
+            "1": { "name": "keyword.control.tdw" },
+            "2": { "name": "keyword.operator.value.tdw" },
+            "3": { "name": "constant.other.color.rgb-value.tdw" },
+            "4": { "name": "punctuation.separator.tdw" },
+            "5": { "name": "constant.numeric.tdw" }
+          }
+        },
+        {
+          "comment": "!pulse@count,frequency",
+          "match": "(!pulse)(@)([-0-9.]+)(,)([-0-9.]+)?",
+          "captures": {
+            "1": { "name": "keyword.control.tdw" },
+            "2": { "name": "keyword.operator.value.tdw" },
+            "3": { "name": "constant.numeric.tdw" },
+            "4": { "name": "punctuation.separator.tdw" },
+            "5": { "name": "constant.numeric.tdw" }
+          }
+        },
+        {
+          "comment": "Action events. Modifiers (@value, =repeats, ...) are matched by #modifiers below.",
+          "match": "!(loopmany|looptarget|loop|startpos|stop|speed|highspeed|transpose|target|volume|combine|divider|flash|jump|cut|bg|pulse)\\b",
+          "name": "keyword.control.tdw"
+        },
+        {
+          "match": "!(?![a-z])|![a-z]+",
+          "name": "invalid.illegal.unknown-action.tdw"
+        },
+        {
+          "match": "_pause\\b",
+          "name": "variable.language.pause.tdw"
+        },
+        {
+          "include": "#modifiers"
+        },
+        {
+          "comment": "Sound name: everything from the start of a token up to the first modifier, mirroring the parser's ^[^@%^=>]* regex.",
+          "match": "(?:^|(?<=\\|))[ \\t]*([^|@%^=>!#\\s](?:[^|@%^=>\\n]*[^|@%^=>\\s])?)",
+          "captures": {
+            "1": { "name": "entity.name.function.sound.tdw" }
+          }
+        }
+      ]
+    },
+    "modifiers": {
+      "patterns": [
+        {
+          "comment": "@value with an optional @x / @+ / @/ scale suffix.",
+          "match": "(@)([-0-9.]+)(?:(@)([+x/]))?",
+          "captures": {
+            "1": { "name": "keyword.operator.pitch.tdw" },
+            "2": { "name": "constant.numeric.pitch.tdw" },
+            "3": { "name": "keyword.operator.scale.tdw" },
+            "4": { "name": "keyword.operator.scale.tdw" }
+          }
+        },
+        {
+          "match": "(%)([-0-9.]+)",
+          "captures": {
+            "1": { "name": "keyword.operator.volume.tdw" },
+            "2": { "name": "constant.numeric.volume.tdw" }
+          }
+        },
+        {
+          "match": "(\\^)([-0-9.]+)",
+          "captures": {
+            "1": { "name": "keyword.operator.pan.tdw" },
+            "2": { "name": "constant.numeric.pan.tdw" }
+          }
+        },
+        {
+          "comment": "Sound start offset in seconds, e.g. >0.25.",
+          "match": "(>)([-0-9.]+)",
+          "captures": {
+            "1": { "name": "keyword.operator.offset.tdw" },
+            "2": { "name": "constant.numeric.offset.tdw" }
+          }
+        },
+        {
+          "match": "(=)([0-9]+)",
+          "captures": {
+            "1": { "name": "keyword.operator.repeat.tdw" },
+            "2": { "name": "constant.numeric.repeat.tdw" }
+          }
         }
       ]
     }

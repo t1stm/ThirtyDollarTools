@@ -18,6 +18,13 @@
       ["(", ")"],
       ["{", "}"],
       ["\"", "\""]
-    ]
+    ],
+    "folding": {
+      "markers": {
+        "start": "#define\\(",
+        "end": "#enddefine"
+      }
+    },
+    "wordPattern": "[^|@%^=>\\s]+"
   }
   
