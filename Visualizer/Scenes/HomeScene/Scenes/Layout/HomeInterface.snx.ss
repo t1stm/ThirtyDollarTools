@@ -46,7 +46,7 @@ id moai-slot {
 // ever goes up, so all the slack in the slot belongs above.
 id moai {
     x = 0;
-    y = 24;
+    y = 8;
     width = 88;
     height = 88;
 }
@@ -134,7 +134,7 @@ class step-green { background = "#3d997566"; }
 // different volumes: `lit` is the arrival, `lit-idle` is the loop that never stops after
 // it, dim enough to be movement in the corner of the eye rather than something to watch.
 class lit { background = "#c0caf5"; }
-class lit-idle { background = "#c0caf559"; }
+class lit-idle { background = "#c0caf5cc"; }
 
 class cell-title {
     x = 32;
