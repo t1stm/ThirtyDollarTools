@@ -9,6 +9,7 @@ using Sundex.Engine;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
+using VisualizerScene.Settings;
 
 namespace EditorScene;
 
@@ -141,7 +142,7 @@ public class Editor : Scene
         // so modifier releases are seen too.
         _editorInterface.SetModifiers(
             keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift),
-            keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl));
+            Keybinds.PrimaryDown(keyboardState));
         _editorInterface.MouseEvent(mouseState, _lastScale);
     }
 
@@ -154,63 +155,60 @@ public class Editor : Scene
     {
         if (_context.DispatchKeyDown(e)) return;
         var state = _editorInterface.State;
-        switch (e.Key)
+
+        // Escape isn't a shortcut but a fallthrough chain - clear selection, close modal,
+        // close track, back - so it sits ahead of the bind table and isn't rebindable.
+        if (e.Key == Keys.Escape)
         {
-            // Escape clears the selection first; only once nothing is selected does it
-            // fall through to the existing chain (close modal → close track → back).
-            case Keys.Escape when state.SelectedNotes.Count > 0 || state.SelectedPlacements.Count > 0:
-                state.ClearSelection();
-                return;
-            case Keys.Escape when _editorInterface.TryCloseTopModal():
-                return;
-            case Keys.Escape:
+            if (state.SelectedNotes.Count > 0 || state.SelectedPlacements.Count > 0) state.ClearSelection();
+            else if (!_editorInterface.TryCloseTopModal())
             {
                 if (state.OpenedTrack != null) state.CloseTrack();
                 else _editorInterface.RequestBack();
-                return;
             }
-            case Keys.Z when e.Modifiers.HasFlag(KeyModifiers.Control):
-            {
-                if (e.Modifiers.HasFlag(KeyModifiers.Shift)) state.Redo();
-                else state.Undo();
-                return;
-            }
-            case Keys.Y when e.Modifiers.HasFlag(KeyModifiers.Control):
-                state.Redo();
-                return;
-            // Plain letters only: Ctrl+D is reserved for the future "duplicate selection".
-            case Keys.D when !e.Modifiers.HasFlag(KeyModifiers.Control):
-                state.ActiveTool = EditorTool.Draw;
-                return;
-            case Keys.E when !e.Modifiers.HasFlag(KeyModifiers.Control):
-                state.ActiveTool = EditorTool.Select;
-                return;
+
+            return;
         }
 
-        // A focused TextInput deliberately lets Ctrl-combos fall through (see
+        // A focused TextInput deliberately lets modified combos fall through (see
         // TextInput.HandleKeyDown) - a future TextInput copy/paste must not fight the
-        // editor clipboard, so the fallback below skips while one is focused.
-        if (_context.FocusedElement is not Sundex.Components.Inputs.TextInput &&
-            e.Modifiers.HasFlag(KeyModifiers.Control))
-            switch (e.Key)
-            {
-                case Keys.C:
-                    state.CopySelection();
-                    return;
-                case Keys.V:
-                    state.Paste();
-                    return;
-                case Keys.X:
-                    state.CutSelection();
-                    return;
-                case Keys.A:
-                    state.SelectAll();
-                    return;
-            }
+        // editor clipboard, so the clipboard binds skip while one is focused.
+        var textFocused = _context.FocusedElement is Sundex.Components.Inputs.TextInput;
 
-        if (e.Key != Keys.Space) return;
-
-        if (e.Modifiers.HasFlag(KeyModifiers.Shift)) _editorInterface.Playback.Restart();
-        else _editorInterface.Playback.PlayPause();
+        // Ctrl+D stays free for a future "duplicate selection": the Draw tool's plain D is
+        // an exact-modifier match, so it no longer needs a guard saying so.
+        switch (Keybinds.Match(e, BindScene.Editor))
+        {
+            case Bind.EditorUndo:
+                state.Undo();
+                return;
+            case Bind.EditorRedo or Bind.EditorRedoAlt:
+                state.Redo();
+                return;
+            case Bind.EditorDrawTool:
+                state.ActiveTool = EditorTool.Draw;
+                return;
+            case Bind.EditorSelectTool:
+                state.ActiveTool = EditorTool.Select;
+                return;
+            case Bind.EditorCopy when !textFocused:
+                state.CopySelection();
+                return;
+            case Bind.EditorPaste when !textFocused:
+                state.Paste();
+                return;
+            case Bind.EditorCut when !textFocused:
+                state.CutSelection();
+                return;
+            case Bind.EditorSelectAll when !textFocused:
+                state.SelectAll();
+                return;
+            case Bind.EditorPlayPause:
+                _editorInterface.Playback.PlayPause();
+                return;
+            case Bind.EditorRestart:
+                _editorInterface.Playback.Restart();
+                return;
+        }
     }
 }

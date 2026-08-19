@@ -8,6 +8,7 @@ using Sundex.Components.Panels;
 using Sundex.Engine.Renderer.Data_Buffers;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using VisualizerScene.Settings;
 using ThirtyDollarConverter.Parser.Custom_Events;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
@@ -67,11 +68,13 @@ public sealed class SoundPicker : FlexPanel
         // at least one icon selected (nothing to scroll-adjust otherwise);
         // see RefreshKeybindNote.
         _keybindDivider = new Panel(context) { Classes = ["sound-keybind-divider"] };
+        // Built once and never refreshed, which is fine: PrimaryName follows the platform,
+        // not a binding, and these scroll gestures aren't rebindable.
         _keybindNote = new Label(context,
             "Right click - add another copy\n" +
             "Scroll - change value\n" +
-            "Ctrl+Shift+Scroll - change value by 0.1\n" +
-            "Ctrl+Scroll - change volume\n" +
+            $"{Keybinds.PrimaryName}+Shift+Scroll - change value by 0.1\n" +
+            $"{Keybinds.PrimaryName}+Scroll - change volume\n" +
             "Shift+Scroll - change pan")
         {
             Classes = ["sound-keybind-note"]

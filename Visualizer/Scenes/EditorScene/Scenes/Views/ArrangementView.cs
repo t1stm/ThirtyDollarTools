@@ -6,6 +6,7 @@ using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Components;
+using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes.Views;
 
@@ -511,29 +512,30 @@ public sealed class ArrangementView : Panel
 
     public override bool HandleKeyDown(KeyboardKeyEventArgs e)
     {
-        switch (e.Key)
+        switch (Keybinds.Match(e, BindScene.Editor))
         {
-            case Keys.Delete or Keys.Backspace when _state.SelectedPlacements.Count > 0:
+            case Bind.EditorDelete or Bind.EditorDeleteAlt when _state.SelectedPlacements.Count > 0:
                 _state.DeleteSelection();
                 return true;
-            case Keys.C when e.Control:
+            case Bind.EditorCopy:
                 _state.CopySelection();
                 return true;
-            case Keys.V when e.Control:
+            case Bind.EditorPaste:
                 _state.Paste();
                 return true;
-            case Keys.X when e.Control:
+            case Bind.EditorCut:
                 _state.CutSelection();
                 return true;
-            case Keys.A when e.Control:
+            case Bind.EditorSelectAll:
                 _state.SelectAll();
                 return true;
-            case Keys.Escape when _state.SelectedPlacements.Count > 0:
-                _state.ClearSelection();
-                return true;
-            default:
-                return base.HandleKeyDown(e);
         }
+
+        // Escape is the fallthrough chain's first step, not a shortcut - see Editor.KeyDown.
+        if (e.Key != Keys.Escape || _state.SelectedPlacements.Count == 0) return base.HandleKeyDown(e);
+
+        _state.ClearSelection();
+        return true;
     }
 
     public override UIElement? HitTest(float x, float y)

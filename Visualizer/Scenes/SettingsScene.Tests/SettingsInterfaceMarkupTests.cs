@@ -1,11 +1,14 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
 using SettingsScene.Scenes;
 using Shared;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
+using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Tests;
 using Sundex.Engine;
@@ -92,6 +95,10 @@ public class SettingsInterfaceMarkupTests
     [InlineData("tile-blue")]
     [InlineData("tile-orange")]
     [InlineData("tile-green")]
+    [InlineData("keybind-button")]
+    [InlineData("keybind-button-capturing")]
+    [InlineData("keybind-button-conflict")]
+    [InlineData("reset-shortcuts")]
     public void StylesheetDefines_TheClassesSetFromCode(string cls)
     {
         var component = new SundexContext(_context).NewComponent(LoadMarkup());
@@ -118,6 +125,54 @@ public class SettingsInterfaceMarkupTests
             .ToList();
 
         Assert.Empty(missing);
+    }
+
+    /// <summary>
+    ///     Same reason as the settings above: the shortcut rows are walked off a hand-written
+    ///     table, so an action added to it would otherwise just never appear on the screen.
+    /// </summary>
+    [Fact]
+    public void EveryBind_HasARow()
+    {
+        var ui = NewInterface(new VisualizerSettings());
+        var shown = Descendants(ui.RootPanel).OfType<KeybindButton>().Select(button => button.Id).ToHashSet();
+
+        Assert.All(Enum.GetValues<Bind>(), bind => Assert.Contains(bind, shown));
+
+        // The rows are built in code and only meet the sheet when they are parented; the
+        // class has to beat the sheet's generic `component button` rule or every binding
+        // sits in a 104px box the combos don't fit.
+        Assert.All(Descendants(ui.RootPanel).OfType<KeybindButton>(),
+            button => Assert.Equal(240, button.Computed.Width, 0.5f));
+    }
+
+    /// <summary>
+    ///     A rebind made anywhere else - the other row on this screen, or the Reset shortcuts
+    ///     button - reaches every button rather than only the one that was clicked. Without
+    ///     the Keybinds.Changed subscription, Reset shortcuts visibly does nothing until the
+    ///     scene is rebuilt, and the screen is built once during the boot preload.
+    /// </summary>
+    [Fact]
+    public void RebindingElsewhere_UpdatesTheButtons()
+    {
+        Keybinds.Attach(new VisualizerSettings());
+        var ui = NewInterface(new VisualizerSettings());
+        var buttons = Descendants(ui.RootPanel).OfType<KeybindButton>().ToArray();
+        var undo = buttons.Single(button => button.Id == Bind.EditorUndo);
+
+        Keybinds.Rebind(Bind.EditorUndo, new Keybind(Keys.F1, 0));
+
+        ui.Update(_context);
+        ui.Update(_context);
+        // Label keeps a fixed-length buffer and pads a shorter replacement with NULs.
+        Assert.Equal("F1", Text(undo));
+
+        Keybinds.ResetToDefaults(BindScene.Editor);
+
+        ui.Update(_context);
+        ui.Update(_context);
+        Assert.All(buttons.Where(button => Keybinds.Info(button.Id).Scene == BindScene.Editor),
+            button => Assert.Equal(Keybinds.Info(button.Id).Default.ToString(), Text(button)));
     }
 
     /// <summary>
@@ -285,6 +340,78 @@ public class SettingsInterfaceMarkupTests
         // the setting it just came from is what a bounce between the two would look like.
         Assert.True(settings.CheckForUpdates);
         Assert.Equal(8, settings.LineAmount);
+    }
+
+    /// <summary>
+    ///     Descriptions fit the 280px text column they are written into. Labels don't wrap,
+    ///     so a line too long for the column keeps going and slides under the control on its
+    ///     right - invisible in code, obvious on screen. Counted in characters rather than
+    ///     measured, because the headless font provider is a mock and its advance widths are
+    ///     not the real font's. 49 is the longest line that renders correctly today (the
+    ///     scroll-speed row); break a longer one over two with \n, as the
+    ///     transparent-framebuffer row does.
+    /// </summary>
+    [Fact]
+    public void EveryDescription_FitsItsColumn()
+    {
+        var lines = SettingsInterface.Sections.SelectMany(section => section.Rows)
+            .Select(row => (Name: row.Property, row.Description))
+            .Concat(Keybinds.All.Select(info => (Name: info.Id.ToString(), info.Description)))
+            .SelectMany(entry => entry.Description.Split('\n').Select(line => (entry.Name, Line: line)))
+            .ToArray();
+
+        Assert.All(lines, entry =>
+            Assert.True(entry.Line.Length <= 49,
+                $"{entry.Name}'s \"{entry.Line}\" is {entry.Line.Length} characters, the column fits 49"));
+    }
+
+    /// <summary>
+    ///     The capture button's branches, driven headlessly: what commits, what is ignored,
+    ///     and the two ways out. A capture UI that can be talked into an unusable state is
+    ///     how someone loses their shortcuts for good.
+    /// </summary>
+    [Fact]
+    public void KeybindButton_CapturesRefusesAndResets()
+    {
+        Keybinds.Attach(new VisualizerSettings());
+        var ui = NewInterface(new VisualizerSettings());
+        var undo = Descendants(ui.RootPanel).OfType<KeybindButton>().Single(b => b.Id == Bind.EditorUndo);
+
+        _context.Focus(undo);
+        Assert.Equal("Press a key...", Text(undo));
+
+        // Holding Ctrl before the real key must not commit "Ctrl" on its own.
+        Assert.True(undo.HandleKeyDown(Key(Keys.LeftControl, KeyModifiers.Control)));
+        Assert.Equal(Keybinds.Info(Bind.EditorUndo).Default, Keybinds.Get(Bind.EditorUndo));
+
+        // Refuse, don't steal: Ctrl+C is Copy's, and Undo doesn't take it.
+        Assert.True(undo.HandleKeyDown(Key(Keys.C, Keybinds.Primary)));
+        Assert.Equal(Keybinds.Info(Bind.EditorUndo).Default, Keybinds.Get(Bind.EditorUndo));
+        Assert.Contains("Already used by", Text(undo));
+
+        Assert.True(undo.HandleKeyDown(Key(Keys.F1, 0)));
+        Assert.Equal(new Keybind(Keys.F1, 0), Keybinds.Get(Bind.EditorUndo));
+        Assert.Equal("F1", Text(undo));
+
+        // Delete is itself a bind, so it resets rather than being captured - otherwise a bad
+        // binding has no way out.
+        _context.Focus(undo);
+        Assert.True(undo.HandleKeyDown(Key(Keys.Delete, 0)));
+        Assert.Equal(Keybinds.Info(Bind.EditorUndo).Default, Keybinds.Get(Bind.EditorUndo));
+
+        // Escape is left unhandled, which is what UIContext blurs on.
+        _context.Focus(undo);
+        Assert.False(undo.HandleKeyDown(Key(Keys.Escape, 0)));
+    }
+
+    private static KeyboardKeyEventArgs Key(Keys key, KeyModifiers modifiers)
+    {
+        return new KeyboardKeyEventArgs(key, 0, modifiers, false);
+    }
+
+    private static string Text(KeybindButton button)
+    {
+        return button.Value.ToString().TrimEnd('\0');
     }
 
     /// <summary>Two passes: the first lays the tree out, the second places the tiles it built.</summary>

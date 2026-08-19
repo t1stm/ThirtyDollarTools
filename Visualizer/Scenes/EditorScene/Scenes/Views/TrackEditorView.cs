@@ -6,6 +6,7 @@ using Sundex.Components.Attributes;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Components;
+using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes.Views;
 
@@ -744,30 +745,32 @@ public sealed class TrackEditorView : Panel
 
     public override bool HandleKeyDown(KeyboardKeyEventArgs e)
     {
-        switch (e.Key)
+        // Escape clears the selection first; only once nothing is selected does it fall
+        // through to closing the track (see Editor.KeyDown for the same chain when this
+        // view isn't the focused element). A chain's head isn't a shortcut, so it stays
+        // out of the bind table and ahead of it.
+        if (e.Key == Keys.Escape)
         {
-            // Escape clears the selection first; only once nothing is selected does it
-            // fall through to closing the track (see Editor.KeyDown for the same chain
-            // when this view isn't the focused element).
-            case Keys.Escape when _state.SelectedNotes.Count > 0:
-                _state.ClearSelection();
-                return true;
-            case Keys.Escape:
-                _state.CloseTrack();
-                return true;
-            case Keys.Delete or Keys.Backspace when _state.SelectedNotes.Count > 0:
+            if (_state.SelectedNotes.Count > 0) _state.ClearSelection();
+            else _state.CloseTrack();
+            return true;
+        }
+
+        switch (Keybinds.Match(e, BindScene.Editor))
+        {
+            case Bind.EditorDelete or Bind.EditorDeleteAlt when _state.SelectedNotes.Count > 0:
                 _state.DeleteSelection();
                 return true;
-            case Keys.C when e.Control:
+            case Bind.EditorCopy:
                 _state.CopySelection();
                 return true;
-            case Keys.V when e.Control:
+            case Bind.EditorPaste:
                 _state.Paste();
                 return true;
-            case Keys.X when e.Control:
+            case Bind.EditorCut:
                 _state.CutSelection();
                 return true;
-            case Keys.A when e.Control:
+            case Bind.EditorSelectAll:
                 _state.SelectAll();
                 return true;
             default:

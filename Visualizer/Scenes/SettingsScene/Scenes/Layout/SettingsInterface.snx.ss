@@ -178,6 +178,54 @@ class setting-slider {
     foreground = "#c0caf5";
 }
 
+// ---------------------------------------------------------------- shortcuts
+//
+// A shortcut row is a settings row with a button where the control goes, so it reuses
+// everything above and only the button is new. Wider than the sliders because the label
+// is the binding itself - "Ctrl+Shift+Z" has to fit without the row reflowing when it
+// becomes "Already used by ..." mid-capture.
+
+class keybind-button {
+    width = 240;
+    height = 32;
+    background = "#21243a";
+    border-radius = 6;
+    font-size = 14;
+
+    state[hovered] = {
+        background = "#2b2f4a";
+    }
+
+    state[pressed] = {
+        background = "#171925";
+    }
+}
+
+// Waiting for a key. Home's playhead blue, the same colour the sliders fill with - it
+// means "this is the live one" on both.
+class keybind-button-capturing {
+    background = "#3a4270";
+}
+
+// Refused: the combo is already somebody else's on this screen.
+class keybind-button-conflict {
+    background = "#5c3140";
+}
+
+// Quieter than a keybind button and at the end of the section, so it reads as the way
+// out rather than another row to set.
+class reset-shortcuts {
+    width = 160;
+    height = 32;
+    background = "#1c1f2e";
+    border-radius = 6;
+    font-size = 13;
+
+    state[hovered] = {
+        background = "#262a3d";
+    }
+}
+
 // ---------------------------------------------------------------- back
 
 // Top right, where home puts the button that opens this screen - the same corner takes

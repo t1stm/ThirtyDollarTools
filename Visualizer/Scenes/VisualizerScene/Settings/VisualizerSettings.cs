@@ -91,6 +91,18 @@ public class VisualizerSettings
         set => SetAndCallModified(out field, value);
     }
 
+    /// <summary>
+    ///     Rebound shortcuts, as "Undo:Ctrl+Z;Redo:Ctrl+Shift+Z" - only what the user changed,
+    ///     so it stays empty (and unwritten) until they change something. Parsed by
+    ///     <see cref="Keybinds" />, which owns the defaults; see it for why the store is one
+    ///     opaque string rather than a property per shortcut.
+    /// </summary>
+    public string Keybinds
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = "";
+
 
     private void SetAndCallModified<T>(out T obj, T value, [CallerMemberName] string name = "")
     {

@@ -27,6 +27,7 @@ using Sundex.Engine;
 using ThirtyDollarVisualizer;
 using ThirtyDollarVisualizer.VisualizerSettings;
 using VisualizerScene;
+using VisualizerScene.Settings;
 
 #endregion
 
@@ -100,6 +101,9 @@ if (sequence != null && !File.Exists(sequence))
 
 SettingsHandler.Load(settings_location ?? "./Settings.30$");
 var settings = SettingsHandler.Settings;
+
+// The shortcut table follows the settings object from here; nothing else has to be told.
+Keybinds.Attach(settings);
 
 if (settings.TransparentFramebuffer != transparent_framebuffer && transparent_framebuffer.HasValue)
     settings.TransparentFramebuffer = transparent_framebuffer.Value;

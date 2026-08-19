@@ -158,7 +158,9 @@ public class TextInput : Panel
                 else if (CaretIndex < _text.Length) SetText(_text.Remove(CaretIndex, 1), CaretIndex);
                 return true;
 
-            case Keys.A when e.Control:
+            // ponytail: inline rather than a Sundex-wide modifier abstraction - select-all in
+            // a text field has to work with Cmd on a Mac, and it isn't a visualizer keybind.
+            case Keys.A when e.Control || e.Command:
                 SelectAll();
                 return true;
 

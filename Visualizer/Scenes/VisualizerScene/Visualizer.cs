@@ -344,8 +344,8 @@ public class Visualizer : Scene, IGamePreloadable
 
         var new_delta = Vector3.UnitY * (scroll.Y * 100f);
 
-        // if control is pressed handle zoom
-        if (keyboardState.IsKeyDown(Keys.LeftControl) || keyboardState.IsKeyDown(Keys.RightControl))
+        // if the primary modifier is pressed handle zoom
+        if (Keybinds.PrimaryDown(keyboardState))
             PlayfieldContainer.Camera.ZoomStep(scroll.Y);
         // otherwise scrolls the camera
         else
@@ -357,35 +357,29 @@ public class Visualizer : Scene, IGamePreloadable
         const int seekLength = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
 
-        // extract modifier buttons
-        var left_control = state.IsKeyDown(Keys.LeftControl);
-        var right_control = state.IsKeyDown(Keys.RightControl);
-        var left_shift = state.IsKeyDown(Keys.LeftShift);
-        var right_shift = state.IsKeyDown(Keys.RightShift);
+        // Kept as locals rather than folded into bindings: on the seek keys these two scale
+        // the step size, they aren't part of what is bound.
+        var primary = Keybinds.PrimaryDown(state);
+        var shift = state.IsKeyDown(Keys.LeftShift) || state.IsKeyDown(Keys.RightShift);
 
-        // generic modifier checks
-        var control = left_control || right_control;
-        var shift = left_shift || right_shift;
-
-        if (state.IsKeyPressed(Keys.Escape))
+        if (Keybinds.Get(Bind.VisualizerBack).IsPressed(state))
             SceneManager.TransitionTo("home");
 
-        // toggle play / pause
-        switch (state.IsKeyPressed(Keys.Space))
+        // toggle play / pause, loudly or quietly
+        var playPause = Keybinds.Get(Bind.VisualizerPlayPause).IsPressed(state);
+        if (playPause || Keybinds.Get(Bind.VisualizerPlayPauseSilent).IsPressed(state))
         {
-            case true:
-                SequencePlayer.TogglePause();
-                if (!shift)
-                    SetStatusMessage(stopwatch.IsRunning switch
-                    {
-                        true => "[Playback]: Resumed",
-                        false => "[Playback]: Paused"
-                    }, 500);
-                break;
+            SequencePlayer.TogglePause();
+            if (playPause)
+                SetStatusMessage(stopwatch.IsRunning switch
+                {
+                    true => "[Playback]: Resumed",
+                    false => "[Playback]: Paused"
+                }, 500);
         }
 
         // toggle the bottom player bar
-        if (state.IsKeyPressed(Keys.H) && _playerBar is not null)
+        if (Keybinds.Get(Bind.VisualizerTogglePlayerBar).IsPressed(state) && _playerBar is not null)
         {
             _playerBar.Hidden = !_playerBar.Hidden;
             SetStatusMessage(_playerBar.Hidden switch
@@ -397,7 +391,7 @@ public class Visualizer : Scene, IGamePreloadable
 
         // toggle camera modes
         var oldFollowMode = PlayfieldContainer.CameraFollowMode;
-        PlayfieldContainer.CameraFollowMode = state.IsKeyPressed(Keys.C) switch
+        PlayfieldContainer.CameraFollowMode = Keybinds.Get(Bind.VisualizerCycleCamera).IsPressed(state) switch
         {
             true when oldFollowMode is CameraFollowMode.None => CameraFollowMode.CurrentLine,
             true when oldFollowMode is CameraFollowMode.CurrentLine => CameraFollowMode.TDWLike,
@@ -408,85 +402,70 @@ public class Visualizer : Scene, IGamePreloadable
             _ => oldFollowMode
         };
 
-        // bookmark handlers
-        switch (left_control)
+        // Bookmarks aren't rebindable: thirty combos (set / clear / seek x ten digits) would
+        // triple the settings screen for a feature whose whole shape is "modifier + the digit
+        // you want". Only the modifier follows the platform, so a Mac gets Cmd+1.
+        for (var i = 0; i < 10; i++)
         {
-            case true when left_shift:
+            var key = (Keys)((int)Keys.D0 + i);
+            if (!state.IsKeyPressed(key)) continue;
+
+            switch (primary)
             {
-                for (var i = 0; i < 10; i++)
-                {
-                    var key = (Keys)((int)Keys.D0 + i);
-                    if (!state.IsKeyPressed(key)) continue;
+                case true when shift:
                     SequencePlayer.ClearBookmark(i);
                     SetStatusMessage($"[Playback] Cleared Bookmark: {i}");
-                }
-
-                break;
-            }
-            case true:
-            {
-                for (var i = 0; i < 10; i++)
-                {
-                    var key = (Keys)((int)Keys.D0 + i);
-                    if (!state.IsKeyPressed(key)) continue;
+                    break;
+                case true:
                     var bookmark_time = SequencePlayer.SetBookmark(i);
                     SetStatusMessage($"[Playback] Setting Bookmark {i} To: {TimeString(bookmark_time)}");
-                }
-
-                if (state.IsKeyDown(Keys.Equal) && IsSeekTimeoutPassed(5))
-                {
-                    RestartSeekTimer();
-                    PlayfieldContainer.Camera.ZoomStep(+1);
-                }
-
-                if (state.IsKeyDown(Keys.Minus) && IsSeekTimeoutPassed(5))
-                {
-                    RestartSeekTimer();
-                    PlayfieldContainer.Camera.ZoomStep(-1);
-                }
-
-                if (state.IsKeyPressed(Keys.D))
-                {
-                    _workflow.ShowDebugInfo = !_workflow.ShowDebugInfo;
-                    TextContainer.ShowDebug = _workflow.ShowDebugInfo;
-                    SetStatusMessage(_workflow.ShowDebugInfo switch
-                    {
-                        true => "[Debug]: Enabled",
-                        false => "[Debug]: Disabled"
-                    });
-                }
-
-                break;
-            }
-
-            default:
-            {
-                for (var i = 0; i < 10; i++)
-                {
-                    var key = (Keys)((int)Keys.D0 + i);
-                    if (!state.IsKeyPressed(key)) continue;
+                    break;
+                default:
                     var time = SequencePlayer.SeekToBookmark(i);
                     SetStatusMessage($"[Playback] Seeking To Bookmark {i}: {TimeString(time)}");
-                }
-
-                break;
+                    break;
             }
+        }
+
+        // zoom
+        if (Keybinds.Get(Bind.VisualizerZoomIn).IsDown(state) && IsSeekTimeoutPassed(5))
+        {
+            RestartSeekTimer();
+            PlayfieldContainer.Camera.ZoomStep(+1);
+        }
+
+        if (Keybinds.Get(Bind.VisualizerZoomOut).IsDown(state) && IsSeekTimeoutPassed(5))
+        {
+            RestartSeekTimer();
+            PlayfieldContainer.Camera.ZoomStep(-1);
+        }
+
+        if (Keybinds.Get(Bind.VisualizerToggleDebug).IsPressed(state))
+        {
+            _workflow.ShowDebugInfo = !_workflow.ShowDebugInfo;
+            TextContainer.ShowDebug = _workflow.ShowDebugInfo;
+            SetStatusMessage(_workflow.ShowDebugInfo switch
+            {
+                true => "[Debug]: Enabled",
+                false => "[Debug]: Disabled"
+            });
         }
 
         // set message if camera mode is updated
         if (oldFollowMode != PlayfieldContainer.CameraFollowMode)
             SetStatusMessage($"[Camera] Follow Mode is now: {PlayfieldContainer.CameraFollowMode}");
 
-        // check backwards seeking
+        // check backwards seeking. exact: false - Shift and Ctrl are step modifiers here, so
+        // holding them must not stop the binding from matching.
         var elapsed = stopwatch.ElapsedMilliseconds;
-        if (state.IsKeyDown(Keys.Left) && IsSeekTimeoutPassed())
+        if (Keybinds.Get(Bind.VisualizerSeekBack).IsDown(state, false) && IsSeekTimeoutPassed())
         {
             RestartSeekTimer();
             var seek = seekLength;
             if (shift)
             {
                 seek /= 10;
-                if (control) seek /= 10;
+                if (primary) seek /= 10;
             }
 
             var change = Math.Max(elapsed - seek, 0);
@@ -496,14 +475,14 @@ public class Visualizer : Scene, IGamePreloadable
         }
 
         // check forwards seeking
-        if (state.IsKeyDown(Keys.Right) && IsSeekTimeoutPassed())
+        if (Keybinds.Get(Bind.VisualizerSeekForward).IsDown(state, false) && IsSeekTimeoutPassed())
         {
             RestartSeekTimer();
             var seek = seekLength;
             if (shift)
             {
                 seek /= 10;
-                if (control) seek /= 10;
+                if (primary) seek /= 10;
             }
 
             var change = elapsed + seek;
@@ -513,7 +492,7 @@ public class Visualizer : Scene, IGamePreloadable
         }
 
         // check volume increase
-        if (state.IsKeyDown(Keys.Up) && IsSeekTimeoutPassed(7))
+        if (Keybinds.Get(Bind.VisualizerVolumeUp).IsDown(state) && IsSeekTimeoutPassed(7))
         {
             RestartSeekTimer();
             SequencePlayer.SetVolume(SequencePlayer.Volume + 0.01f);
@@ -521,7 +500,7 @@ public class Visualizer : Scene, IGamePreloadable
         }
 
         // check volume decrease
-        if (state.IsKeyDown(Keys.Down) && IsSeekTimeoutPassed(7))
+        if (Keybinds.Get(Bind.VisualizerVolumeDown).IsDown(state) && IsSeekTimeoutPassed(7))
         {
             RestartSeekTimer();
             SequencePlayer.SetVolume(Math.Max(0f, SequencePlayer.Volume - 0.01f));
@@ -529,7 +508,8 @@ public class Visualizer : Scene, IGamePreloadable
         }
 
         // check previous sequence seeking
-        if (state.IsKeyDown(Keys.PageUp) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
+        if (Keybinds.Get(Bind.VisualizerPreviousSequence).IsDown(state) && IsSeekTimeoutPassed() &&
+            SequenceIndices.Ends.Length > 0)
         {
             RestartSeekTimer();
             var requested_sequence =
@@ -549,7 +529,8 @@ public class Visualizer : Scene, IGamePreloadable
         }
 
         // check next sequence seeking
-        if (state.IsKeyDown(Keys.PageDown) && IsSeekTimeoutPassed() && SequenceIndices.Ends.Length > 0)
+        if (Keybinds.Get(Bind.VisualizerNextSequence).IsDown(state) && IsSeekTimeoutPassed() &&
+            SequenceIndices.Ends.Length > 0)
         {
             RestartSeekTimer();
             var requested_sequence =
@@ -562,21 +543,25 @@ public class Visualizer : Scene, IGamePreloadable
                 : "[Playback]: Seeking To The End");
         }
 
-        // check for restarting the current sequences
-        if (!state.IsKeyPressed(Keys.R)) return;
-        PlayfieldContainer.Reset();
-
-        if (control && shift)
+        // re-read the loaded files from disk
+        if (Keybinds.Get(Bind.VisualizerReloadSequences).IsPressed(state))
         {
+            PlayfieldContainer.Reset();
             FileDrop([.. Sequences.ToArray().Select(s => s.FileLocation).Where(File.Exists)], true);
             return;
         }
 
+        // check for restarting the current sequences
+        var restart = Keybinds.Get(Bind.VisualizerRestart).IsPressed(state);
+        var restartPaused = Keybinds.Get(Bind.VisualizerRestartPaused).IsPressed(state);
+        if (!restart && !restartPaused) return;
+
+        PlayfieldContainer.Reset();
         PlayfieldContainer.Camera.ScrollTo((0, -300, 0));
         PlayfieldContainer.BackgroundPlane.Reset(0.16f);
         SequencePlayer.Seek(0);
 
-        if (shift) stopwatch.Stop();
+        if (restartPaused) stopwatch.Stop();
         PlayfieldContainer.ResetAllAnimations();
     }
 

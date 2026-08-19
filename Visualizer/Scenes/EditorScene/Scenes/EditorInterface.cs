@@ -20,6 +20,7 @@ using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;
+using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes;
 
@@ -31,12 +32,15 @@ public class EditorInterface
 
     /// <summary>
     ///     The hint bar's default text: gestures and shortcuts that have no on-screen
-    ///     control of their own, so nothing else in the UI hints they exist.
+    ///     control of their own, so nothing else in the UI hints they exist. Built from the
+    ///     bind table rather than written out, so a rebound shortcut is named correctly and
+    ///     a Mac reads Cmd.
     /// </summary>
-    private const string HintLegend =
+    private static string HintLegend =>
         "Double-click a track to open it, right-click for options  •  " +
-        "Ctrl+C/V/X copy/paste/cut, Ctrl+A select all  •  " +
-        "Middle-drag to pan, Ctrl+scroll to zoom, Shift+drag to fine-snap";
+        $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)}/{Keybinds.Get(Bind.EditorCut)} " +
+        $"copy/paste/cut, {Keybinds.Get(Bind.EditorSelectAll)} select all  •  " +
+        $"Middle-drag to pan, {Keybinds.PrimaryName}+scroll to zoom, Shift+drag to fine-snap";
 
     private readonly ArrangementView _arrangement;
     private readonly UIContext _context;
@@ -146,6 +150,11 @@ public class EditorInterface
             TransportProgress, TransportElapsed, TransportTotal, TransportPlay);
         HintLabel.SetTextContents(HintLegend);
         AlignHintToGrid();
+
+        // The legend is written into a label once and then sits there, so a rebind has to
+        // push it back out. Never unsubscribed: this interface is built during the boot
+        // preload and lives as long as the process does.
+        Keybinds.Changed += () => SetHint(null);
 
         // Both panels are in the markup so one pass resolves their handles; only the
         // current one stays attached. Detached before the first DrawTo so the note editor

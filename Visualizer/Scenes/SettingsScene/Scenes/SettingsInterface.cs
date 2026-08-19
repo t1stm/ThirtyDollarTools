@@ -73,12 +73,21 @@ public class SettingsInterface
         ])
     ];
 
+    /// <summary>The two shortcut sections, in the order they appear under the settings above.</summary>
+    public static readonly (string Title, BindScene Scene)[] KeybindSections =
+    [
+        ("V I S U A L I Z E R   S H O R T C U T S", BindScene.Visualizer),
+        ("E D I T O R   S H O R T C U T S", BindScene.Editor)
+    ];
+
     /// <summary>
     ///     Properties of <see cref="VisualizerSettings" /> that are state rather than
     ///     settings, and so have no row: the loader flips UpdateCheckAsked itself once it
-    ///     has asked about update checking, and nobody would know what to do with it.
+    ///     has asked about update checking, and nobody would know what to do with it, and
+    ///     Keybinds is one opaque string that the shortcut sections below present properly.
     /// </summary>
-    public static readonly string[] HiddenProperties = [nameof(VisualizerSettings.UpdateCheckAsked)];
+    public static readonly string[] HiddenProperties =
+        [nameof(VisualizerSettings.UpdateCheckAsked), nameof(VisualizerSettings.Keybinds)];
 
     /// <summary>The tile hues of the preview line, cycled across it.</summary>
     private static readonly string[] TileHues = ["tile-blue", "tile-orange", "tile-green"];
@@ -104,6 +113,9 @@ public class SettingsInterface
 
         foreach (var (title, rows) in Sections)
             SettingsList.AddChild(BuildSection(title, rows));
+
+        foreach (var (title, scene) in KeybindSections)
+            SettingsList.AddChild(BuildKeybindSection(title, scene));
 
         // Nothing about the tiles depends on a measured width any more, so the preview is
         // right on the first frame rather than appearing after one.
@@ -191,6 +203,67 @@ public class SettingsInterface
         {
             Classes = ["section"],
             Children = [header, .. rows.Select(BuildRow)]
+        };
+    }
+
+    /// <summary>
+    ///     The shortcuts, which don't fit <see cref="SettingRow" />: their backing store is one
+    ///     opaque string, so the rows are walked off the bind table instead of reflected off a
+    ///     property. Everything but the button itself reuses the classes above, so the two
+    ///     kinds of section read as one page.
+    /// </summary>
+    private FlexPanel BuildKeybindSection(string title, BindScene scene)
+    {
+        var header = new FlexPanel(UI)
+        {
+            Classes = ["section-header"],
+            Children =
+            [
+                new Label(UI, title) { Classes = ["section-title"] },
+                new Panel(UI) { Classes = ["rule"] }
+            ]
+        };
+
+        // A capture UI without a way out can genuinely strand someone who binds Escape to
+        // something; this is that way out.
+        var reset = new Button(UI, "Reset shortcuts")
+        {
+            Classes = ["reset-shortcuts"],
+            OnClick = _ => Keybinds.ResetToDefaults(scene)
+        };
+
+        return new FlexPanel(UI)
+        {
+            Classes = ["section"],
+            Children =
+            [
+                header,
+                .. Keybinds.All.Where(info => info.Scene == scene).Select(BuildKeybindRow),
+                new FlexPanel(UI) { Classes = ["row"], Children = [reset] }
+            ]
+        };
+    }
+
+    private FlexPanel BuildKeybindRow(BindInfo info)
+    {
+        var text = new FlexPanel(UI)
+        {
+            Classes = ["row-text"],
+            Children =
+            [
+                new Label(UI, info.Name) { Classes = ["setting-name"] },
+                new Label(UI, info.Description) { Classes = ["setting-desc"] }
+            ]
+        };
+
+        return new FlexPanel(UI)
+        {
+            Classes = ["row"],
+            Children =
+            [
+                text,
+                new FlexPanel(UI) { Classes = ["control"], Children = [new KeybindButton(UI, info)] }
+            ]
         };
     }
 
