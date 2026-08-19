@@ -33,6 +33,11 @@ public class TexturedPlane : Renderable, IGamePreloadable, IBorderRadius
     {
         if (!_areVerticesGenerated) SetVertices();
         _uniform = new TexturedUniform();
+
+        // The shader multiplies the sampled texel by this, so the inherited default of
+        // zero would draw nothing. White is "the texture as it is"; a caller lowers the
+        // alpha to fade it (ElementAlpha does exactly that) or the RGB to tint it.
+        Color = Vector4.One;
     }
 
     public GPUTexture? Texture { get; set; }
@@ -106,6 +111,7 @@ public class TexturedPlane : Renderable, IGamePreloadable, IBorderRadius
     public override void SetShaderUniforms(Camera camera)
     {
         _uniform.ScaleAndBorderPx = new Vector4(Scale.X, Scale.Y, BorderRadius, 0);
+        _uniform.Color = Color;
 
         _uniform.Model = Model;
         _uniform.Projection = camera.GetVPMatrix();

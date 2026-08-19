@@ -23,4 +23,14 @@ public interface ITextProvider
     ///     Binds the text atlas to the OpenGL context and activates the shader program.
     /// </summary>
     void BindAndSetUniforms(Camera camera);
+
+    /// <summary>
+    ///     Generates the glyphs for every character in <paramref name="characters" /> ahead
+    ///     of the frame that first draws them, so <see cref="GetTextCharacterRect" /> is left
+    ///     with only the upload to do. Safe to call from any thread, and cheap to call again
+    ///     for characters already generated or already in the atlas.
+    /// </summary>
+    void Warm(string characters)
+    {
+    }
 }

@@ -7,6 +7,7 @@ var component = context.Component;
 context.RootPanel = component.Element as Panel ?? throw new Exception("Root panel not found");
 
 context.Band = component.GetID<Panel>("band");
+context.Moai = component.GetID<Image>("moai");
 context.Playhead = component.GetID<Panel>("playhead");
 context.VersionLabel = component.GetID<Label>("version-label");
 context.UpdateLabel = component.GetID<Label>("update-label");

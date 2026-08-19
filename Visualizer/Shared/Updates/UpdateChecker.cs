@@ -57,7 +57,8 @@ public static class UpdateChecker
         {
             try
             {
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(10);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("ThirtyDollarVisualizer");
 
                 var releases = await client.GetFromJsonAsync<GitHubRelease[]>(ReleasesUrl, Options) ?? [];

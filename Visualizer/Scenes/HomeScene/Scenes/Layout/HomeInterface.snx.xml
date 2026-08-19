@@ -9,9 +9,18 @@
   <layout>
     <panel id="stage">
       <flex id="page">
+        <!-- The head is the platform's own mark, and the only thing on this screen that
+             reacts: it nods and takes on a tool's colour as the playhead enters that
+             tool's cell, the way a moai does over a sound on the website. -->
         <flex id="masthead">
-          <label id="eyebrow" value="T H I R T Y   D O L L A R"/>
-          <label id="wordmark" value="VISUALIZER"/>
+          <panel id="moai-slot">
+            <image id="moai" src="Assets/Textures/moai.png" storage="assembly" texture-fit="fit"/>
+          </panel>
+
+          <flex id="masthead-text">
+            <label id="eyebrow" value="T H I R T Y   D O L L A R"/>
+            <label id="wordmark" value="VISUALIZER"/>
+          </flex>
         </flex>
 
         <panel id="band">

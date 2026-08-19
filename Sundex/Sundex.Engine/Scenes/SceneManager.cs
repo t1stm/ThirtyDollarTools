@@ -17,7 +17,13 @@ public class SceneManager(ILogger logger)
 
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
     {
+        // Timed because building a scene happens on the render thread and is the one thing
+        // in this program that reliably costs whole frames. The number is what tells you
+        // whether a hitch is worth chasing, and which scene to chase it in.
+        var stopwatch = Stopwatch.StartNew();
         var scene = factory(this);
+        logger.Debug("[Scene Manager] Built {Scene} in {Elapsed} ms",
+            scene.GetType().Name, stopwatch.ElapsedMilliseconds);
         lock (Scenes)
         {
             var alternativeLookup = Scenes.GetAlternateLookup<ReadOnlySpan<char>>();
@@ -47,7 +53,10 @@ public class SceneManager(ILogger logger)
         while (ScenesToInitialize.TryDequeue(out var scene))
         {
             DebugMarker("Initializing scene: ", scene.GetType().Name);
+            var stopwatch = Stopwatch.StartNew();
             scene.Initialize(initArguments);
+            logger.Debug("[Scene Manager] Initialized {Scene} in {Elapsed} ms",
+                scene.GetType().Name, stopwatch.ElapsedMilliseconds);
         }
     }
 

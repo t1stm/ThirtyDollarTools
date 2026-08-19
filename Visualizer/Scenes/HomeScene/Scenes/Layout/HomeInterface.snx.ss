@@ -28,6 +28,32 @@ id page {
 id masthead {
     width = 100%;
     height = auto;
+    direction = "horizontal";
+    vertical-align = "center";
+    spacing = 26;
+}
+
+// A fixed box the head bounces inside rather than a flex child: a flex parent rewrites
+// its children's y on every layout pass, which is every frame here. The extra height over
+// the image is the headroom the hop needs - the bounce travels height/4.27 upwards, so 88
+// of image wants 21 above it.
+id moai-slot {
+    width = 88;
+    height = 112;
+}
+
+// y is the rest line the bounce is measured from, and the head sits on it: the hop only
+// ever goes up, so all the slack in the slot belongs above.
+id moai {
+    x = 0;
+    y = 24;
+    width = 88;
+    height = 88;
+}
+
+id masthead-text {
+    width = auto;
+    height = auto;
     direction = "vertical";
     spacing = 10;
 }
@@ -103,9 +129,12 @@ class step-blue { background = "#4c6bcc66"; }
 class step-orange { background = "#c7784066"; }
 class step-green { background = "#3d997566"; }
 
-// Set on a step while the playhead is over it or just past it. Appended by SetClass, so
-// it wins over the resting colour above.
+// Set on a step while the head is over it or just past it. Appended by SetClass, so it
+// wins over the resting colour above. Two of them because the band is read twice at
+// different volumes: `lit` is the arrival, `lit-idle` is the loop that never stops after
+// it, dim enough to be movement in the corner of the eye rather than something to watch.
 class lit { background = "#c0caf5"; }
+class lit-idle { background = "#c0caf559"; }
 
 class cell-title {
     x = 32;

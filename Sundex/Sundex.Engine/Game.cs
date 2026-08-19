@@ -227,10 +227,14 @@ public class Game : GameWindow
 
         lock (_enqueuedEvents)
         {
-            while (_enqueuedEvents.TryDequeue(out var action))
+            // One per frame, not the whole queue: an enqueued event is typically a scene
+            // being built, and draining them all stacks every one of those costs into a
+            // single stalled frame. Spread out, each lands on a frame of its own and can
+            // be hidden under whatever is animating at the time.
+            if (_enqueuedEvents.TryDequeue(out var action))
             {
                 action(this);
-                // initialize scenes enqueued using game.Enqueue() and then continue with other enqueued events.
+                // initialize scenes enqueued using game.Enqueue() before anything else runs.
                 SceneManager.Initialize(initArguments);
             }
         }

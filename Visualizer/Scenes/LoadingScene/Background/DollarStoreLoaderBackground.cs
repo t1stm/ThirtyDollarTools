@@ -25,6 +25,13 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
     private readonly List<StaticTexture> _staticSoundData = [];
 
     private readonly Dictionary<StaticSoundAtlas, RenderStack<StaticSound>> _staticSounds = [];
+
+    /// <summary>How far into the exit the field is, 0-1. See <see cref="Drain" />.</summary>
+    private float _drain;
+
+    /// <summary>True once the sprites have been re-aimed - the bounce is off from then on.</summary>
+    private bool _draining;
+
     public static Shader AnimatedShader { get; private set; } = null!;
     public static Shader StaticShader { get; private set; } = null!;
 
@@ -113,6 +120,41 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
         });
     }
 
+    /// <summary>
+    ///     Drives the field's exit: the sprites stop bouncing off the edges, scatter upward
+    ///     and fade out as the home screen comes up underneath them. Progress runs 0 to 1;
+    ///     the first call above zero is what re-aims them, so the drift they were already
+    ///     carrying turns into the exit rather than being replaced by it.
+    /// </summary>
+    public void Drain(float progress)
+    {
+        _drain = progress;
+        if (_draining || progress <= 0f) return;
+        _draining = true;
+
+        _semaphore.Wait();
+        try
+        {
+            // Lateral drift is kept, damped, so the scatter reads as the same field
+            // leaving rather than a new one being thrown upward. Y is negative because
+            // the loader's camera has its origin at the top edge.
+            //
+            // Speed is per frame, like the drift this replaces, so it is paced against the
+            // exit's length rather than the clock: roughly half a screen of travel over the
+            // fade. Faster and the field is gone while the rest of the transition is still
+            // running, which leaves a static fade where the motion should be.
+            foreach (var sound in _animatedSoundData)
+                sound.Velocity = new Vector2(sound.Velocity.X * 0.4f, -RandomFloat(4, 7));
+
+            foreach (var sound in _staticSoundData)
+                sound.Velocity = new Vector2(sound.Velocity.X * 0.4f, -RandomFloat(4, 7));
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
     public void Resize(int x, int y)
     {
         _camera.Viewport = (x, y);
@@ -123,6 +165,8 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
         _semaphore.Wait();
         try
         {
+            var alpha = SoundColorMultiply.W * (1f - _drain);
+
             foreach (var sound in _animatedSoundData)
             {
                 var oldValue = sound.Reference.Value;
@@ -132,7 +176,9 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
                 var w = x + SoundSize;
                 var h = y + SoundSize;
 
-                sound.Velocity = GetNewVelocity(sound.Velocity, x, y, w, h, _camera.Viewport);
+                if (!_draining)
+                    sound.Velocity = GetNewVelocity(sound.Velocity, x, y, w, h, _camera.Viewport);
+                else oldValue.RGBA.W = alpha;
 
                 oldValue.Model *= Matrix4.CreateTranslation(sound.Velocity.X, sound.Velocity.Y, 0);
                 sound.Reference.Value = oldValue;
@@ -147,7 +193,9 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
                 var w = x + SoundSize;
                 var h = y + SoundSize;
 
-                sound.Velocity = GetNewVelocity(sound.Velocity, x, y, w, h, _camera.Viewport);
+                if (!_draining)
+                    sound.Velocity = GetNewVelocity(sound.Velocity, x, y, w, h, _camera.Viewport);
+                else oldValue.Data.RGBA.W = alpha;
 
                 oldValue.Data.Model *= Matrix4.CreateTranslation(sound.Velocity.X, sound.Velocity.Y, 0);
                 sound.Reference.Value = oldValue;

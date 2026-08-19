@@ -56,6 +56,16 @@ public class Home : Scene
         if (checkingForUpdates) _homeInterface.UpdateLabel.Visible = false;
     }
 
+    /// <summary>
+    ///     Scene-wide opacity, driven from 0 to 1 by the loading screen as it fades itself
+    ///     off over this one. 1 on every later entry.
+    /// </summary>
+    public float InterfaceAlpha
+    {
+        get => _homeInterface.Alpha;
+        set => _homeInterface.Alpha = value;
+    }
+
     public override void Initialize(InitArguments initArguments)
     {
     }
@@ -140,6 +150,10 @@ public class Home : Scene
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
+        // Nothing is clickable until the screen is fully up: this scene renders under the
+        // loading screen for the length of the entrance fade, and a button that can be hit
+        // before it can be read is a button that gets hit by accident.
+        if (_homeInterface.Alpha < 1f) return;
         _homeInterface.MouseEvent(mouseState, _lastScale);
     }
 }

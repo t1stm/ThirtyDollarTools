@@ -4,6 +4,9 @@ using Sundex.Components.Abstractions;
 using Sundex.Markup.Abstract;
 using Sundex.Markup.Attributes;
 using Sundex.Markup.Builders;
+using Sundex.Markup.Logic;
+using Sundex.Engine.Asset_Management.Types.String;
+using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace Sundex.Markup;
 
@@ -59,6 +62,81 @@ public class SundexContext(UIContext context) : ISundexContext
         return !lookup.TryGetValue(version, out var builder)
             ? throw new Exception("No builder found for the version specified in the document markup.")
             : builder.CreateComponent(layout, this);
+    }
+
+    /// <summary>
+    ///     Compiles the logic block of every markup document embedded in the asset
+    ///     assemblies, without building a single element.
+    ///     <para>
+    ///         Compiling a logic block is the one genuinely expensive step in building a
+    ///         component - two orders of magnitude above everything else - and it needs no
+    ///         graphics context, so it does not have to happen on the render thread on the
+    ///         frame a scene is opened. Called from a worker while the program has time to
+    ///         spare, it turns every later <see cref="NewComponent" /> into a cache hit.
+    ///     </para>
+    ///     <para>
+    ///         Documents are found rather than listed, so a new screen is covered by
+    ///         existing on the disk. Anything that fails to parse or compile is skipped:
+    ///         this is an optimisation, and the real build will raise the error properly
+    ///         with the component it belongs to.
+    ///     </para>
+    /// </summary>
+    /// <returns>How many logic blocks were compiled.</returns>
+    public int PrecompileLogic()
+    {
+        var documents =
+            from assembly in UIContext.AssetProvider.AssetAssemblies
+            from resource in assembly.GetManifestResourceNames()
+            where resource.EndsWith(".snx.xml", StringComparison.Ordinal)
+            select (assembly, resource);
+
+        var compiled = 0;
+
+        // Half the machine, not all of it. Compilations are independent and the asset
+        // loaders behind them hold no shared state, so this scales - but whatever called
+        // this is still drawing, and saturating every core would trade the hitch this
+        // exists to remove for a stuttering screen while it runs.
+        Parallel.ForEach(documents,
+            new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount / 2) },
+            document =>
+            {
+                using var stream = document.assembly.GetManifestResourceStream(document.resource);
+                if (stream is null) return;
+
+                using var reader = new StreamReader(stream);
+                if (PrecompileLogic(reader.ReadToEnd())) Interlocked.Increment(ref compiled);
+            });
+
+        return compiled;
+    }
+
+    /// <summary>
+    ///     Compiles one markup document's logic block. See <see cref="PrecompileLogic()" />.
+    /// </summary>
+    /// <returns>Whether there was a logic block, and it compiled.</returns>
+    public bool PrecompileLogic(string smxlMarkup)
+    {
+        try
+        {
+            var logic = MarkupParser.Parse(smxlMarkup).Logic;
+            if (logic is null) return false;
+            if (!LanguageProvider.Languages.TryGetValue(logic.Language, out var language)) return false;
+
+            // Same source resolution ComponentBuilderV1 does, and it has to happen here
+            // too: the compiled script is keyed on the source, and the markup carries a
+            // path rather than the code itself.
+            if (!string.IsNullOrEmpty(logic.SrcLocation))
+                logic.UpdateSourceCode(UIContext.AssetProvider
+                    .Load<StringAsset, StringInfo>(StringInfo.CreateFromUnknownStorage(logic.SrcLocation)).Value);
+
+            language.Precompile(logic.SourceCode, this, logic.LanguageImports);
+            return true;
+        }
+        catch
+        {
+            // Deliberately swallowed - see the remarks on PrecompileLogic().
+            return false;
+        }
     }
 
     public void RegisterBuilder(string version, IComponentBuilder builder)

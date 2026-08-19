@@ -219,6 +219,44 @@ public class LoaderInterfaceTests
     }
 
     /// <summary>
+    ///     The exit, once the home screen is up behind this one: the strip settles back to
+    ///     the zero height it rose from and everything on it fades with it. The fade has to
+    ///     be applied at the end of Update - PaintTicks' SetClass re-runs the stylesheet
+    ///     mid-frame and would otherwise put the styled alpha straight back.
+    /// </summary>
+    [Fact]
+    public void BeginExit_SettlesTheStripAndFadesTheScreenOff()
+    {
+        var loader = new LoaderInterface(_context);
+        loader.BeginLoading();
+
+        // Let the strip finish rising first: settling from a height it never reached would
+        // pass this whether or not the exit moves anything.
+        Thread.Sleep(600);
+        loader.Update(Report(1), _context);
+
+        var styled = loader.Strip.Background!.Color.W;
+        Assert.True(styled > 0f, "the strip resolved to a fully transparent background");
+        Assert.True(loader.Strip.Height.Value > 1f, "the strip never rose");
+
+        loader.BeginExit();
+        Thread.Sleep(150);
+        loader.Update(Report(1), _context);
+
+        var midway = loader.Strip.Background!.Color.W;
+        Assert.InRange(midway, 0.001f, styled - 0.001f);
+
+        // Well past the 1s exit: both the height and the fade have to have landed, not
+        // merely be on their way there.
+        Thread.Sleep(1100);
+        loader.Update(Report(1), _context);
+
+        Assert.Equal(0f, loader.Strip.Height.Value, 3);
+        Assert.Equal(0f, loader.Strip.Background!.Color.W, 3);
+        Assert.Equal(0f, loader.StatusMessage.Color.W, 3);
+    }
+
+    /// <summary>
     ///     The first run, click by click: greeting, update question, download. The answer
     ///     reaches the scene and the last button hands the strip over to loading.
     /// </summary>

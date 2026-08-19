@@ -16,9 +16,39 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
     public SampleHolder SampleHolder { get; set; } = new(threadRunner.Logger);
     public AtlasStore AtlasStore { get; set; } = new(assetProvider, threadRunner.Logger);
 
+    private Task? _sampleListTask;
+
     public Action<string>? OnLoadSound { get; set; }
     public bool AssetsLoaded { get; private set; }
     public bool Loading { get; set; }
+
+    /// <summary>True once sounds.json is in - see <see cref="LoadSampleList" />.</summary>
+    public bool SampleListLoaded => _sampleListTask is { IsCompleted: true };
+
+    /// <summary>
+    ///     Fetches sounds.json, and nothing else. Split out of <see cref="Load" /> because it
+    ///     is a single small request that depends on nothing the program is doing: the
+    ///     loading screen starts it while it is still building scenes, so the list is
+    ///     already in hand by the time the download it feeds is allowed to begin.
+    ///     <para>Calling it more than once returns the first call's task rather than refetching.</para>
+    /// </summary>
+    public Task LoadSampleList()
+    {
+        // No status of its own: this runs against the scene preloads, and those own the
+        // status line while they do. The loading screen says what it is waiting for only
+        // if this is still out once they have finished.
+        return _sampleListTask ??= threadRunner.RunTask(() =>
+        {
+            try
+            {
+                SampleHolder.LoadSampleList().GetAwaiter().GetResult();
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, "Loading sounds.json failed. Continuing with cached files if possible.");
+            }
+        });
+    }
 
     public void Load()
     {
@@ -35,22 +65,16 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
 
     private async Task LoadTask()
     {
-        var loadedImages = await LoadSampleListAndCheckFiles();
+        // Awaited rather than re-run: the loading screen starts this well before it starts
+        // the download, but nothing stops another caller going straight to Load().
+        await LoadSampleList();
+
+        var loadedImages = await CheckFilesAndDownload();
         LoadRemainingSoundsToAssetStore(loadedImages, SampleHolder);
     }
 
-    private async Task<HashSet<Sound>> LoadSampleListAndCheckFiles()
+    private async Task<HashSet<Sound>> CheckFilesAndDownload()
     {
-        StatusUpdate?.Invoke(new LoadingSoundsListReport());
-        try
-        {
-            await SampleHolder.LoadSampleList();
-        }
-        catch (Exception e)
-        {
-            _logger.Error(e, "Loading sounds.json failed. Continuing with cached files if possible.");
-        }
-
         SampleHolder.PrepareDirectory();
 
         var loadedSounds = new HashSet<Sound>();

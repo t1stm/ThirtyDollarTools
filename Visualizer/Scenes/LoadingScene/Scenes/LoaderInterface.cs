@@ -36,6 +36,13 @@ public class LoaderInterface
     private const float PaneSeconds = 0.26f;
     private const float SettleSeconds = 0.38f;
 
+    /// <summary>
+    ///     How long the whole screen takes to fade off once the home screen is up. Matches
+    ///     the window Loader gives it - its ExitSeconds less its ExitFadeStart - so the
+    ///     strip finishes settling exactly as the home screen finishes arriving.
+    /// </summary>
+    private const float ExitSeconds = 1.0f;
+
     /// <summary>How far a pane travels as it swaps out, in pixels. Small: a nudge, not a carousel.</summary>
     private const float SlidePx = 28f;
 
@@ -47,19 +54,15 @@ public class LoaderInterface
     private static readonly Vector3 QuietRgb = new(0x19 / 255f, 0x1c / 255f, 0x2a / 255f);
     private static readonly Vector3 QuietHoverRgb = new(0x23 / 255f, 0x27 / 255f, 0x3a / 255f);
 
-    /// <summary>
-    ///     The alpha each renderable and label was styled with, captured the first time this
-    ///     class fades it. Fades scale that value instead of overwriting it, so a surface
-    ///     that is meant to be translucent (the strip, a checkbox's box) still is once the
-    ///     fade lands on 1.
-    /// </summary>
-    private readonly Dictionary<object, float> _baseAlpha = [];
+    /// <summary>Owns every fade in this tree - the pane swaps, and the exit.</summary>
+    private readonly ElementAlpha _alpha = new();
 
     private readonly UIContext _context;
 
     /// <summary>The setup's panes in the order they are shown - see <see cref="BeginSetup" />.</summary>
     private readonly List<Panel> _panes = [];
 
+    private readonly Stopwatch _exitClock = new();
     private readonly Stopwatch _paneClock = new();
     private readonly Stopwatch _stripClock = new();
     private readonly List<Panel> _ticks = [];
@@ -221,6 +224,17 @@ public class LoaderInterface
         AnimateStrip(LoadHeight, SettleSeconds, PaneSeconds * 0.5f, Status);
     }
 
+    /// <summary>
+    ///     Runs the screen off: the strip settles back to the zero height it rose from on
+    ///     boot, and everything on it fades with it. Called by <see cref="LoadingScene.Loader" />
+    ///     once the home screen is up behind this one.
+    /// </summary>
+    public void BeginExit()
+    {
+        _exitClock.Restart();
+        AnimateStrip(0f, ExitSeconds, 0f, null);
+    }
+
     public void Resize()
     {
         RootPanel.InvalidateCoordinates();
@@ -248,6 +262,24 @@ public class LoaderInterface
         PaintTicks();
         RootPanel.Update(context);
         RootPanel.Layout();
+
+        // Last, and every frame: PaintTicks' SetClass and the hovered-state overrides both
+        // re-run the stylesheet, which puts the styled alpha straight back.
+        UpdateExit();
+    }
+
+    private void UpdateExit()
+    {
+        if (!_exitClock.IsRunning) return;
+
+        var progress = (float)_exitClock.Elapsed.TotalSeconds / ExitSeconds;
+        if (progress >= 1f)
+        {
+            progress = 1f;
+            _exitClock.Stop();
+        }
+
+        SetAlpha(RootPanel, 1f - EaseOut(progress));
     }
 
     private void AnswerUpdates(bool optIn)
@@ -407,41 +439,9 @@ public class LoaderInterface
 
     // ------------------------------------------------------------ alpha
 
-    /// <summary>
-    ///     Fades a subtree by scaling every colour's alpha against the value it was styled
-    ///     with. Labels and panel fills are the only things in this tree that carry colour;
-    ///     a checkbox also owns an off-tree tick plane, which is why it gets its own case.
-    /// </summary>
     private void SetAlpha(UIElement element, float alpha)
     {
-        switch (element)
-        {
-            case Label label:
-                label.Color = label.Color with { W = Base(label, label.Color.W) * alpha };
-                return;
-
-            case Checkbox checkbox:
-                checkbox.CheckColor = checkbox.CheckColor with
-                {
-                    W = Base(checkbox, checkbox.CheckColor.W) * alpha
-                };
-                break;
-        }
-
-        if (element is not Panel panel) return;
-
-        if (panel.Background is { } background)
-            background.Color = background.Color with { W = Base(background, background.Color.W) * alpha };
-
-        foreach (var child in panel.Children) SetAlpha(child, alpha);
-    }
-
-    /// <summary>The styled alpha of a colour source, remembered the first time it is faded.</summary>
-    private float Base(object key, float current)
-    {
-        if (_baseAlpha.TryGetValue(key, out var stored)) return stored;
-        _baseAlpha[key] = current;
-        return current;
+        _alpha.Apply(element, alpha);
     }
 
     private static void HookHover(Button button, Vector3 baseRgb, Vector3 hoverRgb)

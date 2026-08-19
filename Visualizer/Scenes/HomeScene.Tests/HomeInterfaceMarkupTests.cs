@@ -26,7 +26,10 @@ public class HomeTestContext : UIContext
     {
         InjectForTesting(
             new AssetProvider(new LoggerConfiguration().CreateLogger(),
-                [typeof(HomeInterface).Assembly, Assembly.GetExecutingAssembly()], new GLInfo()),
+                // Shared is in here for the same reason the app has it: the masthead's moai
+                // is an embedded resource of that assembly, not of HomeScene.
+                [typeof(HomeInterface).Assembly, SharedAssembly.Assembly, Assembly.GetExecutingAssembly()],
+                new GLInfo()),
             new MockFontProvider(),
             new MockTextProvider());
         Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1600, 900));
@@ -60,6 +63,7 @@ public class HomeInterfaceMarkupTests
     [InlineData("stage")]
     [InlineData("band")]
     [InlineData("playhead")]
+    [InlineData("moai")]
     [InlineData("version-label")]
     [InlineData("update-label")]
     [InlineData("cell-visualizer")]
@@ -102,6 +106,7 @@ public class HomeInterfaceMarkupTests
     [InlineData("step-orange")]
     [InlineData("step-green")]
     [InlineData("lit")]
+    [InlineData("lit-idle")]
     [InlineData("note-attention")]
     public void StylesheetDefines_TheClassesSetFromCode(string cls)
     {

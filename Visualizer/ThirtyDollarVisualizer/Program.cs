@@ -164,7 +164,7 @@ game.Enqueue(instance =>
     instance.SceneManager.LoadScene<Loader>("loader",
         _ => new Loader(instance, audio_context, settings, version)
         {
-            OnFinish = workflow => { OnLoadHandler(instance, workflow, version, sequence, greeting, scale); }
+            Preloads = BuildPreloads(version, sequence, greeting, scale)
         });
 });
 
@@ -173,28 +173,41 @@ game.Run();
 
 return;
 
-static void OnLoadHandler(Game game, ThirtyDollarWorkflow workflow, VersionInfo? version,
-    string? sequence, string? greeting, float? scale)
+/// <summary>
+///     Every scene the program has, and what the loading screen says while each is built.
+///     They go up before the sounds come down rather than after: built afterwards, all of
+///     this landed on the frames between the download finishing and the home screen
+///     appearing, which is where the boot used to visibly stall.
+/// </summary>
+static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, string? greeting, float? scale)
 {
-    // preload all scenes in memory (inefficient i know, but leads to better UX)
-    game.Enqueue(instance =>
-    {
-        instance.SceneManager.LoadScene<Home>("home",
-            _ => new Home(instance, version?.Display ?? VersionInfo.DeveloperBuild,
-                SettingsHandler.Settings.CheckForUpdates));
+    // Home first - the loading screen's exit fades into it, so it has to exist before the
+    // rest are worth building.
+    return
+    [
+        new ScenePreload("Preparing the home screen", (game, _) =>
+            game.SceneManager.LoadScene<Home>("home",
+                _ => new Home(game, version?.Display ?? VersionInfo.DeveloperBuild,
+                    SettingsHandler.Settings.CheckForUpdates))),
 
-        instance.SceneManager.LoadScene<Visualizer>("visualizer", _ =>
-            new Visualizer(instance, SettingsHandler.Settings, workflow, [sequence])
-            {
-                Greeting = greeting,
-                Scale = scale ?? 1f
-            }
-        );
+        new ScenePreload("Preparing the visualizer", (game, workflow) =>
+            game.SceneManager.LoadScene<Visualizer>("visualizer",
+                _ => new Visualizer(game, SettingsHandler.Settings, workflow, [sequence])
+                {
+                    Greeting = greeting,
+                    Scale = scale ?? 1f
+                })),
 
-        instance.SceneManager.LoadScene<DrumMaster>("drum-master", _ => new DrumMaster(instance, workflow));
-        instance.SceneManager.LoadScene<Editor>("editor", _ => new Editor(instance, workflow));
-        instance.SceneManager.LoadScene<Settings>("settings", _ => new Settings(instance, SettingsHandler.Settings));
-    });
+        new ScenePreload("Preparing Drum Master", (game, workflow) =>
+            game.SceneManager.LoadScene<DrumMaster>("drum-master",
+                _ => new DrumMaster(game, workflow))),
 
-    game.Enqueue(instance => instance.SceneManager.TransitionTo("home"));
+        new ScenePreload("Preparing the editor", (game, workflow) =>
+            game.SceneManager.LoadScene<Editor>("editor",
+                _ => new Editor(game, workflow))),
+
+        new ScenePreload("Preparing settings", (game, _) =>
+            game.SceneManager.LoadScene<Settings>("settings",
+                _ => new Settings(game, SettingsHandler.Settings)))
+    ];
 }

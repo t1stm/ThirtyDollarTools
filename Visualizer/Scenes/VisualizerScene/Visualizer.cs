@@ -55,6 +55,7 @@ public class Visualizer : Scene, IGamePreloadable
     private int _height;
     private PlayerBar? _playerBar;
 
+    private bool _startingSequencesLoaded;
     private ulong _updateId;
     private int _width;
 
@@ -179,16 +180,6 @@ public class Visualizer : Scene, IGamePreloadable
         );
 
         PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
-
-        try
-        {
-            if (_startingSequences.Length < 1) return;
-            _workflow.UpdateSequences(_startingSequences).GetAwaiter().GetResult();
-        }
-        catch (Exception e)
-        {
-            SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
-        }
     }
 
     public override void Resize(int w, int h)
@@ -241,6 +232,30 @@ public class Visualizer : Scene, IGamePreloadable
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
         Resize(Game.ClientSize.X, Game.ClientSize.Y);
+
+        LoadStartingSequences();
+    }
+
+    /// <summary>
+    ///     Loads whatever was passed on the command line, once, the first time this scene is
+    ///     opened. Not in <see cref="Initialize" />: this scene is now built while the
+    ///     loading screen is still up, and encoding a sequence needs samples that have not
+    ///     been downloaded yet at that point. It is also a synchronous encode, which is the
+    ///     last thing the boot needs on the render thread.
+    /// </summary>
+    private void LoadStartingSequences()
+    {
+        if (_startingSequencesLoaded || _startingSequences.Length < 1) return;
+        _startingSequencesLoaded = true;
+
+        try
+        {
+            _workflow.UpdateSequences(_startingSequences).GetAwaiter().GetResult();
+        }
+        catch (Exception e)
+        {
+            SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
+        }
     }
 
     public override void Update(UpdateArguments updateArgs)

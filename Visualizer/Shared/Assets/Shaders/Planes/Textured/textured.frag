@@ -11,6 +11,7 @@ layout (std140) uniform Data {
     mat4 u_Model;
     mat4 u_Projection;
     vec4 u_ScaleAndBorderPx;
+    vec4 u_Color;
 };
 
 float roundedBoxSDF(vec2 p, vec2 b, float r) {
@@ -19,7 +20,7 @@ float roundedBoxSDF(vec2 p, vec2 b, float r) {
 }
 
 void main() {
-    color = texture(uTexture, vUV);
+    color = texture(uTexture, vUV) * u_Color;
     float borderRadius = u_ScaleAndBorderPx.z;
 
     if (borderRadius > 0.0) {
