@@ -1,0 +1,15 @@
+<sundex version="1.0">
+  <style language="sundex">
+    component image {
+        src = "Assets/tall-2x6.png";
+        storage = "assembly";
+        texture-fit = "fit";
+    }
+  </style>
+
+  <layout>
+    <panel>
+      <image id="pic" src="Assets/wide-4x2.png"/>
+    </panel>
+  </layout>
+</sundex>

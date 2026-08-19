@@ -13,6 +13,7 @@
       <numeric-input id="number" value="42.5"/>
       <checkbox id="check" value="Enabled" checked="true"/>
       <slider id="volume" value="0.25"/>
+      <image id="picture" src="Assets/wide-4x2.png" storage="assembly" texture-fit="fit"/>
     </panel>
   </layout>
 </sundex>

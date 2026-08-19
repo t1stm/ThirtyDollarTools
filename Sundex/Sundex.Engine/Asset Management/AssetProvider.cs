@@ -4,6 +4,7 @@ using Sundex.Engine.Asset_Management.Abstract.Loading;
 using Sundex.Engine.Asset_Management.Abstract.Metadata;
 using Sundex.Engine.Asset_Management.Helpers;
 using Sundex.Engine.Renderer.Queues;
+using Sundex.Engine.Threading;
 
 namespace Sundex.Engine.Asset_Management;
 
@@ -16,6 +17,7 @@ public class AssetProvider : IAssetProvider
         GLInfo = glInfo;
         ShaderPool = new ShaderPool(logger, this);
         CacheProvider = new CacheProvider(this);
+        ThreadRunner = new ThreadRunner(logger);
     }
 
     public ILogger Logger { get; }
@@ -25,6 +27,14 @@ public class AssetProvider : IAssetProvider
     public DeleteQueue DeleteQueue { get; } = new();
     public CacheProvider CacheProvider { get; }
     public GLInfo GLInfo { get; }
+
+    /// <summary>
+    ///     Owned here rather than by <see cref="Game" /> so anything holding an asset provider
+    ///     can fetch off the render thread with its exceptions still surfaced (see
+    ///     <see cref="Sundex.Engine.Threading.ThreadRunner.Update" />). Game exposes this
+    ///     same instance.
+    /// </summary>
+    public ThreadRunner ThreadRunner { get; }
 
     /// <summary>
     ///     Checks if an asset can be loaded using the specified create info.

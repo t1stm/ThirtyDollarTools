@@ -3,6 +3,7 @@ using Sundex.Engine.Asset_Management.Abstract.Loading;
 using Sundex.Engine.Asset_Management.Abstract.Metadata;
 using Sundex.Engine.Asset_Management.Helpers;
 using Sundex.Engine.Renderer.Queues;
+using Sundex.Engine.Threading;
 
 namespace Sundex.Engine.Asset_Management;
 
@@ -16,6 +17,7 @@ public interface IAssetProvider
     DeleteQueue DeleteQueue { get; }
     CacheProvider CacheProvider { get; }
     GLInfo GLInfo { get; }
+    ThreadRunner ThreadRunner { get; }
 
     /// <summary>Checks if an asset can be loaded using the specified create info.</summary>
     bool Query<TReturn, TCreate>(TCreate createInfo)

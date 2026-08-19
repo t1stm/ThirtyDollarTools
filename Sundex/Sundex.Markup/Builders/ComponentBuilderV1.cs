@@ -191,6 +191,20 @@ public class ComponentBuilderV1 : IComponentBuilder
                 break;
             }
 
+            case "image":
+            {
+                element = new Image(context.UIContext)
+                {
+                    Children =
+                    [
+                        .. node.Children
+                            .Select(child => BuildUIElement(child, context, dependencies, styleSheet, registeredIds,
+                                registeredClasses, children))
+                    ]
+                };
+                break;
+            }
+
             case "label":
             {
                 node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var text);
@@ -393,6 +407,18 @@ public class ComponentBuilderV1 : IComponentBuilder
                                 break;
                         }
 
+                    break;
+                case "src":
+                    if (element is Image srcImage) srcImage.Src = value;
+                    break;
+                case "storage":
+                    if (element is Image storageImage &&
+                        Enum.TryParse<StorageLocation>(value, true, out var storage))
+                        storageImage.Storage = storage;
+                    break;
+                case "texture-fit":
+                    if (element is Image fitImage && Enum.TryParse<TextureFit>(value, true, out var fit))
+                        fitImage.TextureFit = fit;
                     break;
                 case "direction":
                     if (Enum.TryParse<LayoutDirection>(value, true, out var dir))

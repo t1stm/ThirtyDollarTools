@@ -349,7 +349,7 @@ public abstract class UIElement
         UpdateAnimationRegistrationState();
     }
 
-    public void UpdateAnimationRegistrationState()
+    public virtual void UpdateAnimationRegistrationState()
     {
         if (Animations.Count == 0) Context.UnregisterUpdate(this);
         else Context.RegisterUpdate(this);
@@ -746,22 +746,6 @@ public abstract class UIElement
                 break;
             }
 
-            case StringValue sv when propertyInfo.PropertyType == typeof(Anchor):
-            {
-                Anchor? anchor = sv.Value switch
-                {
-                    "center" => Anchor.Center,
-                    "end" => Anchor.End,
-                    "start" => Anchor.Start,
-                    _ => null
-                };
-
-                if (anchor is not null)
-                    propertyInfo.SetValue(this, anchor.Value);
-                HandleRenderableSwap(oldValue, propertyInfo.GetValue(this), propertyInfo.Name);
-                break;
-            }
-
             case StringValue sv when propertyInfo.PropertyType == typeof(string) ||
                                      propertyInfo.PropertyType == typeof(ReadOnlySpan<char>):
             {
@@ -777,10 +761,13 @@ public abstract class UIElement
                 break;
             }
 
-            case StringValue sv when propertyInfo.PropertyType == typeof(CursorType):
+            // One case for every enum-typed setting instead of one per enum: the hand-rolled
+            // Anchor and CursorType arms parsed exactly their own member names anyway, and
+            // enums without an arm (LayoutDirection) silently ignored the sheet.
+            case StringValue sv when propertyInfo.PropertyType.IsEnum:
             {
-                if (Enum.TryParse<CursorType>(sv.Value, true, out var cursor))
-                    propertyInfo.SetValue(this, cursor);
+                if (Enum.TryParse(propertyInfo.PropertyType, sv.Value, true, out var parsed))
+                    propertyInfo.SetValue(this, parsed);
                 break;
             }
         }

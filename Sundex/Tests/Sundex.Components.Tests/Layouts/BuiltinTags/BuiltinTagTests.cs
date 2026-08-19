@@ -50,6 +50,7 @@ public class BuiltinTagTests
         Assert.IsType<NumericInput>(component.GetID<UIElement>("number"));
         Assert.IsType<Checkbox>(component.GetID<UIElement>("check"));
         Assert.IsType<Slider>(component.GetID<UIElement>("volume"));
+        Assert.IsType<Image>(component.GetID<UIElement>("picture"));
     }
 
     [Fact]
@@ -78,6 +79,45 @@ public class BuiltinTagTests
         Assert.True(checkbox.Checked);
         // TextSlice keeps a fixed-size char[], so shortening the text leaves trailing NULs.
         Assert.Equal("Enabled", checkbox.Label.Value.TrimEnd('\0').ToString());
+    }
+
+    [Fact]
+    public async Task Image_TakesSrcStorageAndFitFromItsAttributes()
+    {
+        var component = Build();
+        var image = component.GetID<Image>("picture");
+
+        Assert.Equal("Assets/wide-4x2.png", image.Src);
+        Assert.Equal(StorageLocation.Assembly, image.Storage);
+        Assert.Equal(TextureFit.Fit, image.TextureFit);
+
+        await image.LoadTask!;
+        _context.AssetProvider.ThreadRunner.Update();
+        image.Update(_context);
+
+        Assert.Equal(4, image.Texture!.Width);
+    }
+
+    /// <summary>
+    ///     Attributes are applied at build time and the sheet runs over the finished tree, so
+    ///     a sheet rule wins - the same precedence every other setting has. It has to reach
+    ///     src too, or a themed image could only ever be pointed at from markup.
+    /// </summary>
+    [Fact]
+    public async Task Image_StyleSheetSrc_OverridesTheMarkupAttribute()
+    {
+        var component = Build("StyledImage.xml");
+        var image = component.GetID<Image>("pic");
+
+        Assert.Equal("Assets/tall-2x6.png", image.Src);
+        Assert.Equal(TextureFit.Fit, image.TextureFit);
+
+        await image.LoadTask!;
+        _context.AssetProvider.ThreadRunner.Update();
+        image.Update(_context);
+
+        Assert.Equal(2, image.Texture!.Width);
+        Assert.Equal(6, image.Texture.Height);
     }
 
     /// <summary>

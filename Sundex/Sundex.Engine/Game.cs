@@ -37,14 +37,13 @@ public class Game : GameWindow
 
         AssetProvider = new AssetProvider(Logger, AssetAssemblies, GLInfo);
         SceneManager = new SceneManager(Logger);
-        ThreadRunner = new ThreadRunner(Logger);
     }
 
     public ILogger Logger { get; }
     public Assembly[] AssetAssemblies { get; }
     public AssetProvider AssetProvider { get; }
     public SceneManager SceneManager { get; }
-    public ThreadRunner ThreadRunner { get; }
+    public ThreadRunner ThreadRunner => AssetProvider.ThreadRunner;
 
     public GameGlobals Globals { get; } = new();
     private GLInfo GLInfo { get; } = new();

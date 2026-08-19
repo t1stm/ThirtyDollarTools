@@ -13,7 +13,8 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
     {
         return createInfo.Storage switch
         {
-            StorageLocation.Unknown => ExistsOnDisk(createInfo.Location) ||
+            StorageLocation.Unknown => IsWebLocation(createInfo.Location) ||
+                                       ExistsOnDisk(createInfo.Location) ||
                                        assetProvider.AssetAssemblies.GetManifestResourceInfo(createInfo.Location) !=
                                        null,
             StorageLocation.Disk => ExistsOnDisk(createInfo.Location),
@@ -39,7 +40,9 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
     {
         return createInfo.Storage switch
         {
-            StorageLocation.Unknown => TryCreateFromDiskAndThenAssembly(createInfo, assetProvider.AssetAssemblies),
+            StorageLocation.Unknown => IsWebLocation(createInfo.Location)
+                ? CreateFromNetwork(createInfo)
+                : TryCreateFromDiskAndThenAssembly(createInfo, assetProvider.AssetAssemblies),
             StorageLocation.Disk => CreateFromDisk(createInfo),
             StorageLocation.Assembly => CreateFromAssemblies(createInfo, assetProvider.AssetAssemblies),
             StorageLocation.Network => CreateFromNetwork(createInfo),
@@ -65,6 +68,17 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
             _ => throw new ArgumentOutOfRangeException(nameof(createInfo), createInfo,
                 "Invalid AssetInfo.Storage value")
         };
+    }
+
+    /// <summary>
+    ///     Whether an <see cref="StorageLocation.Unknown" /> location is really a URL. Checked
+    ///     before disk and assembly: a "https://..." string can never name either of those,
+    ///     and without this an unqualified remote location fell through to a FileNotFound.
+    /// </summary>
+    public static bool IsWebLocation(string location)
+    {
+        return location.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+               location.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool ExistsOnDisk(string path)
