@@ -127,7 +127,7 @@ public class SettingsInterfaceMarkupTests
     [Fact]
     public void PreviewLine_DrawsTheDefaultsAtTheirRealSize()
     {
-        var settings = new VisualizerSettings(() => { });
+        var settings = new VisualizerSettings();
         var ui = NewInterface(settings);
 
         Assert.Equal(settings.LineAmount, ui.Strip.Children.Count);
@@ -144,7 +144,7 @@ public class SettingsInterfaceMarkupTests
     [Fact]
     public void PreviewLine_WrapsInsteadOfShrinkingWhenItDoesNotFit()
     {
-        var settings = new VisualizerSettings(() => { }) { LineAmount = 64, EventSize = 256 };
+        var settings = new VisualizerSettings() { LineAmount = 64, EventSize = 256 };
         var ui = NewInterface(settings);
 
         Assert.Equal(64, ui.Strip.Children.Count);
@@ -169,7 +169,7 @@ public class SettingsInterfaceMarkupTests
     [InlineData(256, 128, 1)]
     public void PreviewLine_DrawsEverySettingAtItsRealSize(int eventSize, int margin, int lineAmount)
     {
-        var settings = new VisualizerSettings(() => { })
+        var settings = new VisualizerSettings()
             { EventSize = eventSize, EventMargin = margin, LineAmount = lineAmount };
         var ui = NewInterface(settings);
 
@@ -187,8 +187,8 @@ public class SettingsInterfaceMarkupTests
     [Fact]
     public void PreviewBand_KeepsItsHeightWhateverTheSettingsAre()
     {
-        var smallest = NewInterface(new VisualizerSettings(() => { }) { LineAmount = 1, EventSize = 16 });
-        var largest = NewInterface(new VisualizerSettings(() => { }) { LineAmount = 64, EventSize = 256 });
+        var smallest = NewInterface(new VisualizerSettings() { LineAmount = 1, EventSize = 16 });
+        var largest = NewInterface(new VisualizerSettings() { LineAmount = 64, EventSize = 256 });
 
         Assert.Equal(300, smallest.StripView.Computed.Height, 0.5f);
         Assert.Equal(300, largest.StripView.Computed.Height, 0.5f);
@@ -206,7 +206,7 @@ public class SettingsInterfaceMarkupTests
     [Fact]
     public void MovingASlider_DoesNotShiftTheRowsBelowThePreview()
     {
-        var ui = NewInterface(new VisualizerSettings(() => { }));
+        var ui = NewInterface(new VisualizerSettings());
         var eventSize = Descendants(ui.RootPanel).OfType<Slider>().Single(slider => slider.Max == 256);
         var before = eventSize.Computed.AbsoluteY;
 
@@ -225,7 +225,7 @@ public class SettingsInterfaceMarkupTests
     [Fact]
     public void MovingASlider_WritesTheSettingAndReshapesThePreview()
     {
-        var settings = new VisualizerSettings(() => { });
+        var settings = new VisualizerSettings();
         var ui = NewInterface(settings);
 
         // Picked by range rather than position: LineAmount is the only setting that tops out at 64.
@@ -242,6 +242,49 @@ public class SettingsInterfaceMarkupTests
 
         Assert.Equal(8, settings.LineAmount);
         Assert.Equal(8, ui.Strip.Children.Count);
+    }
+
+    /// <summary>
+    ///     A setting written somewhere else - the first run's setup answers the update
+    ///     question after this screen has been built - shows up on the control rather than
+    ///     leaving it on the value it was built with.
+    /// </summary>
+    [Fact]
+    public void ChangingASettingElsewhere_UpdatesTheControls()
+    {
+        // Both defaulted-on bools off to start with, so every box starts unticked.
+        var settings = new VisualizerSettings { AutomaticScaling = false, UseVsync = false };
+        var ui = NewInterface(settings);
+
+        var checkboxes = Descendants(ui.RootPanel).OfType<Checkbox>().ToArray();
+        var lineAmount = Descendants(ui.RootPanel).OfType<Slider>().Single(slider => slider.Max == 64);
+        var greeting = Descendants(ui.RootPanel).OfType<TextInput>().First();
+
+        Assert.All(checkboxes, box => Assert.False(box.Checked));
+
+        // Every bool at once: which box belongs to which setting is the screen's own order,
+        // and this is about the values arriving at all.
+        settings.CheckForUpdates = true;
+        settings.UpdateIncludePrereleases = true;
+        settings.UpdateIncludeNightlies = true;
+        settings.AutomaticScaling = true;
+        settings.UseVsync = true;
+        settings.TransparentFramebuffer = true;
+        settings.LineAmount = 8;
+        settings.Greeting = "HELLO";
+
+        ui.Update(_context);
+        ui.Update(_context);
+
+        Assert.All(checkboxes, box => Assert.True(box.Checked));
+        Assert.Equal(8, lineAmount.Value);
+        Assert.Equal("HELLO", greeting.Value);
+        Assert.Equal(8, ui.Strip.Children.Count);
+
+        // The write-back doesn't undo the setting: the control writing its own value into
+        // the setting it just came from is what a bounce between the two would look like.
+        Assert.True(settings.CheckForUpdates);
+        Assert.Equal(8, settings.LineAmount);
     }
 
     /// <summary>Two passes: the first lays the tree out, the second places the tiles it built.</summary>

@@ -237,9 +237,28 @@ public class SettingsInterface
     {
         // No label on the box: the row's name column already names it, and a second copy
         // beside the tick would be the same word twice.
-        return new Checkbox(UI, "", (bool)(property.GetValue(_settings) ?? false))
+        var box = new Checkbox(UI, "", (bool)(property.GetValue(_settings) ?? false))
         {
-            OnCheckedChanged = box => property.SetValue(_settings, box.Checked)
+            OnCheckedChanged = b => property.SetValue(_settings, b.Checked)
+        };
+
+        Bind(property, () => box.Checked = (bool)(property.GetValue(_settings) ?? false));
+        return box;
+    }
+
+    /// <summary>
+    ///     Writes the setting back into its control whenever anything changes it, so a screen
+    ///     built before the value moved - this one is built during the boot, before the first
+    ///     run's setup has been answered - shows what the object actually holds rather than
+    ///     what it held at construction. Writing a control's own value back into it is a
+    ///     no-op: all three of them drop a set that doesn't change anything, so this can't
+    ///     bounce between the control and the setting.
+    /// </summary>
+    private void Bind(PropertyInfo property, Action refresh)
+    {
+        _settings.Changed += name =>
+        {
+            if (name == property.Name) refresh();
         };
     }
 
@@ -265,6 +284,13 @@ public class SettingsInterface
             }
         };
 
+        Bind(property, () =>
+        {
+            slider.Value = Convert.ToDouble(property.GetValue(_settings));
+            readout.SetTextContents(Format(slider.Value));
+            _stripDirty = true;
+        });
+
         return [slider, new FlexPanel(UI) { Classes = ["value"], Children = [readout] }];
 
         string Format(double value)
@@ -285,6 +311,8 @@ public class SettingsInterface
         // picks its default from null, and "" would pin it to a backend that doesn't exist.
         var nullable = new NullabilityInfoContext().Create(property).WriteState == NullabilityState.Nullable;
         input.OnValueChanged = i => property.SetValue(_settings, nullable && i.Value.Length == 0 ? null : i.Value);
+
+        Bind(property, () => input.Value = property.GetValue(_settings) as string ?? "");
         return input;
     }
 }

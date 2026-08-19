@@ -3,9 +3,20 @@ namespace VisualizerScene.Objects.Playfield;
 public class PlayfieldSizing(int renderableSize)
 {
     /// <summary>
-    ///     How big a sound is in pixels. Scaled by the render scale.
+    ///     How big a sound is in pixels. Scaled by the render scale. The three font sizes
+    ///     below are derived from it, so setting it recomputes them - a size changed at
+    ///     runtime otherwise leaves the value and volume text at the old size.
     /// </summary>
-    public int SoundSize { get; set; } = renderableSize;
+    public int SoundSize
+    {
+        get;
+        set
+        {
+            field = value;
+            ValueFontSize = value / 3.625f;
+            VolumeFontSize = PanFontSize = OffsetFontSize = value * 0.18f;
+        }
+    } = renderableSize;
 
     /// <summary>
     ///     How big in pixels the value font will be.

@@ -188,7 +188,7 @@ static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, stri
         new ScenePreload("Preparing the home screen", (game, _) =>
             game.SceneManager.LoadScene<Home>("home",
                 _ => new Home(game, version?.Display ?? VersionInfo.DeveloperBuild,
-                    SettingsHandler.Settings.CheckForUpdates))),
+                    () => SettingsHandler.Settings.CheckForUpdates))),
 
         new ScenePreload("Preparing the visualizer", (game, workflow) =>
             game.SceneManager.LoadScene<Visualizer>("visualizer",

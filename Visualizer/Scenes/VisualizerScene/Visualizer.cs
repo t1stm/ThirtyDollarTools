@@ -55,6 +55,7 @@ public class Visualizer : Scene, IGamePreloadable
     private int _height;
     private PlayerBar? _playerBar;
 
+    private bool _settingsDirty;
     private bool _startingSequencesLoaded;
     private ulong _updateId;
     private int _width;
@@ -95,6 +96,12 @@ public class Visualizer : Scene, IGamePreloadable
         };
 
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
+
+        // Flagged rather than applied on the spot: the settings screen writes these while
+        // this scene is not the active one, so nothing here is being updated or rendered,
+        // and a slider being dragged would ask for a playfield rebuild per frame. The flag
+        // is spent on this scene's next update, which is the frame it becomes visible on.
+        _settings.Changed += _ => _settingsDirty = true;
     }
 
     public static VisualizerFonts VisualizerFonts { get; private set; } = null!;
@@ -135,7 +142,7 @@ public class Visualizer : Scene, IGamePreloadable
         {
             Greeting =
             {
-                Value = Greeting ??= "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER",
+                Value = Greeting ?? _settings.Greeting,
                 FontSize = 36f * Scale
             }
         };
@@ -228,7 +235,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     public override void TransitionedTo()
     {
-        TextContainer.Greeting.Value = Greeting ??= "DON'T LECTURE ME WITH YOUR THIRTY DOLLAR VISUALIZER";
+        TextContainer.Greeting.Value = Greeting ?? _settings.Greeting;
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
         Resize(Game.ClientSize.X, Game.ClientSize.Y);
@@ -261,6 +268,8 @@ public class Visualizer : Scene, IGamePreloadable
     public override void Update(UpdateArguments updateArgs)
     {
         _cursorType = CursorType.Default;
+        if (_settingsDirty) ApplySettings();
+
         _workflow.Update();
         PlayfieldContainer.Update(updateArgs.Delta);
 
@@ -587,6 +596,36 @@ public class Visualizer : Scene, IGamePreloadable
         format += @"mm\:ss\.ff";
 
         return timespan.ToString(format);
+    }
+
+    /// <summary>
+    ///     Takes the settings as they now are. The three geometry values are baked into the
+    ///     playfield's chunks when they are built, so changing them means rebuilding what is
+    ///     loaded - skipped when nothing is, since there is nothing to lay out. The camera
+    ///     speeds only need writing over. Not the greeting: Drum Master borrows this scene's
+    ///     text container and puts its own greeting in it, and this runs while that is up.
+    ///     <see cref="TransitionedTo" /> takes the new one instead, which is the moment the
+    ///     greeting is next looked at anyway.
+    /// </summary>
+    private void ApplySettings()
+    {
+        _settingsDirty = false;
+
+        var geometryChanged = PlayfieldSizing.SoundSize != _settings.EventSize ||
+                              PlayfieldSizing.SoundMargin != _settings.EventMargin ||
+                              PlayfieldSizing.SoundsOnASingleLine != _settings.LineAmount;
+
+        PlayfieldSizing.SoundSize = _settings.EventSize;
+        PlayfieldSizing.SoundMargin = _settings.EventMargin;
+        PlayfieldSizing.SoundsOnASingleLine = _settings.LineAmount;
+
+        _tempCamera.ScrollSpeed = _settings.ScrollSpeed;
+        _textCamera.ScrollSpeed = _settings.ScrollSpeed;
+        PlayfieldContainer.Camera.ScrollSpeed = _settings.ScrollSpeed;
+        PlayfieldContainer.StaticCamera.ScrollSpeed = _settings.ScrollSpeed;
+
+        if (geometryChanged && TimedEvents.Placement.Length > 0)
+            PlayfieldContainer.ChangeFromTimedEvents(TimedEvents);
     }
 
     public Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer)

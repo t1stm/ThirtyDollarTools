@@ -7,7 +7,6 @@ namespace Shared;
 
 public sealed class DollarStoreCamera : Camera
 {
-    private readonly float _scrollSpeed;
     public Action<float>? OnZoom = null;
     private Vector3 _offset = (0, 0, 0);
     private PulseAnimation? _pulseAnimation;
@@ -17,9 +16,13 @@ public sealed class DollarStoreCamera : Camera
         virtualPosition, viewport)
     {
         _virtualPosition = virtualPosition;
-        _scrollSpeed = scrollSpeed;
+        ScrollSpeed = scrollSpeed;
         UpdateMatrix();
     }
+
+    /// <summary>How fast the camera closes on where it is scrolling to. Settable: it comes
+    /// from a setting, and that can move while the camera is alive.</summary>
+    public float ScrollSpeed { get; set; }
 
     public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float marginFromTopBottom = 0)
     {
@@ -88,7 +91,7 @@ public sealed class DollarStoreCamera : Camera
         var current = Position;
         var target = _virtualPosition;
 
-        Position = SteppingFunctions.Exponential(current, target, secondsLastFrame, 0.01f, _scrollSpeed);
+        Position = SteppingFunctions.Exponential(current, target, secondsLastFrame, 0.01f, ScrollSpeed);
     }
 
     public void Pulse(int times = 1, float frequency = 0)

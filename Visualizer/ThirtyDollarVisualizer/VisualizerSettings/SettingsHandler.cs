@@ -4,9 +4,14 @@ namespace ThirtyDollarVisualizer.VisualizerSettings;
 
 public static class SettingsHandler
 {
-    public static readonly VisualizerScene.Settings.VisualizerSettings Settings = new(ChangeHandler);
+    public static readonly VisualizerScene.Settings.VisualizerSettings Settings = new();
     public static bool Loaded;
     private static string? _fileLocation;
+
+    static SettingsHandler()
+    {
+        Settings.Changed += _ => ChangeHandler();
+    }
 
     /// <summary>
     ///     Loads the settings file.
@@ -113,7 +118,7 @@ public static class SettingsHandler
     /// <summary>
     ///     Handles changes in the VisualizerSettings object.
     /// </summary>
-    public static void ChangeHandler()
+    private static void ChangeHandler()
     {
         if (Loaded)
             Save();

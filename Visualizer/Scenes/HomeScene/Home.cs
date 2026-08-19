@@ -20,6 +20,7 @@ public class Home : Scene
     private readonly UIContext _context;
 
     private readonly HomeInterface _homeInterface;
+    private readonly Func<bool> _checkingForUpdates;
 
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
@@ -27,10 +28,14 @@ public class Home : Scene
 
     /// <param name="checkingForUpdates">
     ///     Whether the update check runs. When it does, the "check regularly" line is dropped -
-    ///     the program is doing the checking, and the note is replaced by what it finds.
+    ///     the program is doing the checking, and the note is replaced by what it finds. Read
+    ///     every frame rather than once: this scene is built during the boot, before the first
+    ///     run has been asked about update checking and before the settings screen can turn it
+    ///     off, so a copy taken here would be stale by the time anyone reads the line.
     /// </param>
-    public Home(Game game, string version, bool checkingForUpdates) : base(game)
+    public Home(Game game, string version, Func<bool> checkingForUpdates) : base(game)
     {
+        _checkingForUpdates = checkingForUpdates;
         var clientSize = game.ClientSize;
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
@@ -53,7 +58,7 @@ public class Home : Scene
 
         // Nothing to say while the check is still out: the markup's line tells a build that
         // isn't checking where to look, and would be wrong here.
-        if (checkingForUpdates) _homeInterface.UpdateLabel.Visible = false;
+        _homeInterface.UpdateLabel.Visible = !checkingForUpdates();
     }
 
     /// <summary>
@@ -92,13 +97,16 @@ public class Home : Scene
         // The check runs on the loading screen, but it's over the network - it can land
         // after this scene is built, so the note is written when it does. Nothing is
         // written while it's still running, or when it found nothing newer.
+        if (!_updateNoteShown)
+            _homeInterface.UpdateLabel.Visible = !_checkingForUpdates();
+
         if (!_updateNoteShown && (UpdateChecker.Available is not null || UpdateChecker.Failed))
         {
             _updateNoteShown = true;
             var available = UpdateChecker.Available;
 
-            _homeInterface.UpdateLabel.SetTextContents(available is { } release
-                ? $"{release.TagName} is out - {release.HtmlUrl}"
+            _homeInterface.UpdateLabel.SetTextContents(available != null
+                ? $"{available.TagName} is out - {available.HtmlUrl}"
                 : "Update check failed. See the log for details.");
             _homeInterface.UpdateLabel.SetClass("note-attention", available is not null);
             _homeInterface.UpdateLabel.Visible = true;

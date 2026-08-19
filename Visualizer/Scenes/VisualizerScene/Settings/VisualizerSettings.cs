@@ -1,7 +1,17 @@
+using System.Runtime.CompilerServices;
+
 namespace VisualizerScene.Settings;
 
-public class VisualizerSettings(Action modifiedCallback)
+public class VisualizerSettings
 {
+    /// <summary>
+    ///     Fires with the name of the property that just changed. Everything that reads a
+    ///     setting into something of its own - a widget's value, a camera, the playfield's
+    ///     geometry - listens here instead of taking a copy at construction, so a setting
+    ///     written on one screen is live on every other.
+    /// </summary>
+    public event Action<string>? Changed;
+
     public int EventSize
     {
         get;
@@ -82,9 +92,9 @@ public class VisualizerSettings(Action modifiedCallback)
     }
 
 
-    private void SetAndCallModified<T>(out T obj, T value)
+    private void SetAndCallModified<T>(out T obj, T value, [CallerMemberName] string name = "")
     {
         obj = value;
-        modifiedCallback.Invoke();
+        Changed?.Invoke(name);
     }
 }
