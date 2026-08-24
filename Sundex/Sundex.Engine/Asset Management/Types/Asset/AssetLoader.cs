@@ -14,6 +14,7 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
         return createInfo.Storage switch
         {
             StorageLocation.Unknown => IsWebLocation(createInfo.Location) ||
+                                       FindInSourceRoots(createInfo.Location, assetProvider.SourceRoots) != null ||
                                        ExistsOnDisk(createInfo.Location) ||
                                        assetProvider.AssetAssemblies.GetManifestResourceInfo(createInfo.Location) !=
                                        null,
@@ -42,7 +43,7 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
         {
             StorageLocation.Unknown => IsWebLocation(createInfo.Location)
                 ? CreateFromNetwork(createInfo)
-                : TryCreateFromDiskAndThenAssembly(createInfo, assetProvider.AssetAssemblies),
+                : TryCreateFromDiskAndThenAssembly(createInfo, assetProvider),
             StorageLocation.Disk => CreateFromDisk(createInfo),
             StorageLocation.Assembly => CreateFromAssemblies(createInfo, assetProvider.AssetAssemblies),
             StorageLocation.Network => CreateFromNetwork(createInfo),
@@ -97,11 +98,39 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
     }
 
     private static AssetStream TryCreateFromDiskAndThenAssembly(AssetInfo createInfo,
-        Assembly[] assetAssemblies)
+        AssetProvider assetProvider)
     {
+        // Source tree first: in Debug this is the file being edited, and resolving to it
+        // rather than to the build-time copy in the assembly is what makes reloading the
+        // UI without a rebuild possible. SourceRoots is empty in Release.
+        if (FindInSourceRoots(createInfo.Location, assetProvider.SourceRoots) is { } sourcePath)
+        {
+            createInfo.Location = sourcePath;
+            return CreateFromDisk(createInfo);
+        }
+
         return ExistsOnDisk(createInfo.Location)
             ? CreateFromDisk(createInfo)
-            : CreateFromAssemblies(createInfo, assetAssemblies);
+            : CreateFromAssemblies(createInfo, assetProvider.AssetAssemblies);
+    }
+
+    /// <summary>
+    ///     Resolves a project-relative asset location against the source directories of the
+    ///     asset assemblies, returning the first that exists. Asset locations are already
+    ///     written relative to their project ("Scenes/Layout/Home.snx.xml"), which is
+    ///     exactly what these roots are the base for.
+    /// </summary>
+    public static string? FindInSourceRoots(string location, string[] sourceRoots)
+    {
+        if (sourceRoots.Length == 0 || Path.IsPathRooted(location)) return null;
+
+        foreach (var root in sourceRoots)
+        {
+            var candidate = Path.Combine(root, location);
+            if (ExistsOnDisk(candidate)) return candidate;
+        }
+
+        return null;
     }
 
 

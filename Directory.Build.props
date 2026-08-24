@@ -1,0 +1,21 @@
+<Project>
+
+  <!--
+    Stamps every project with its own source directory so a Debug build can load markup,
+    stylesheets, scripts and shaders from the files you are editing rather than from the
+    copies baked into the assembly at build time. Read back by AssetProvider.SourceRoots
+    and probed first by AssetLoader; the attribute is absent in Release, the list is empty
+    there, and the probe costs nothing.
+
+    Replaces the CreateOutputSymlink target that used to link ThirtyDollarVisualizer's
+    Assets folder into its output directory: this covers every project, touches no
+    filesystem, and needs no per-platform command.
+  -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>SundexSourceRoot</_Parameter1>
+      <_Parameter2>$(MSBuildProjectDirectory)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

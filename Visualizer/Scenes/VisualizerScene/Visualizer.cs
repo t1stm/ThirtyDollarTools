@@ -189,6 +189,18 @@ public class Visualizer : Scene, IGamePreloadable
         PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
     }
 
+    /// <summary>
+    ///     Styles only. The playfield is mid-cover state rather than markup, and the player
+    ///     bar is the only tree here a stylesheet reaches; rebuilding it would drop the
+    ///     cover being played, which is never worth it for a look change.
+    /// </summary>
+    public override void ReloadStyles()
+    {
+        if (_playerBar is null) return;
+        _playerBar.Component.ReloadStyleSheet();
+        _playerBar.Resize();
+    }
+
     public override void Resize(int w, int h)
     {
         var resize = new Vector2i(w, h);

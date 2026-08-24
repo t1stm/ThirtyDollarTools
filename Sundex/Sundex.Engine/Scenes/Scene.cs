@@ -60,6 +60,30 @@ public abstract class Scene(Game game)
     public abstract void FileDrop(string[] locations);
 
     /// <summary>
+    ///     Rebuilds this scene's UI from its markup, for hot reload. Virtual and empty:
+    ///     a scene overrides it only if its interface can be thrown away and built again,
+    ///     which one holding live playback state cannot.
+    ///     <para>
+    ///         Build the new interface into a fresh <c>UIContext</c> and only then assign
+    ///         both fields. A markup or stylesheet saved mid-edit throws while it is being
+    ///         built, and doing it in that order leaves the running UI untouched when it
+    ///         does - see <see cref="SceneManager.Reload" />, which logs and moves on.
+    ///     </para>
+    /// </summary>
+    public virtual void ReloadUI()
+    {
+    }
+
+    /// <summary>
+    ///     Re-reads this scene's stylesheets and applies them to the tree already on screen.
+    ///     Far cheaper than <see cref="ReloadUI" /> and keeps everything the live UI is
+    ///     holding, so it is what a stylesheet-only edit takes.
+    /// </summary>
+    public virtual void ReloadStyles()
+    {
+    }
+
+    /// <summary>
     ///     Event triggered when a keyboard button is pressed.
     /// </summary>
     /// <param name="state">A copy of the KeyboardState.</param>

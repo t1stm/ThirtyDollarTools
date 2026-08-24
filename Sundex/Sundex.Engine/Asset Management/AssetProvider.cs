@@ -14,6 +14,7 @@ public class AssetProvider : IAssetProvider
     {
         Logger = logger.ForContext<AssetProvider>();
         AssetAssemblies = assetAssemblies;
+        SourceRoots = ReadSourceRoots(assetAssemblies);
         GLInfo = glInfo;
         ShaderPool = new ShaderPool(logger, this);
         CacheProvider = new CacheProvider(this);
@@ -23,6 +24,15 @@ public class AssetProvider : IAssetProvider
     public ILogger Logger { get; }
 
     public Assembly[] AssetAssemblies { get; }
+
+    /// <summary>
+    ///     Project directories of the asset assemblies, stamped in by Directory.Build.props
+    ///     under Debug only. <see cref="Types.Asset.AssetLoader" /> probes these before the
+    ///     output directory and the assembly manifest, so an asset load resolves to the file
+    ///     on disk that you are editing - which is what lets the UI be reloaded without a
+    ///     rebuild. Empty in Release, where the probe is skipped entirely.
+    /// </summary>
+    public string[] SourceRoots { get; }
     public ShaderPool ShaderPool { get; }
     public DeleteQueue DeleteQueue { get; } = new();
     public CacheProvider CacheProvider { get; }
@@ -144,6 +154,28 @@ public class AssetProvider : IAssetProvider
         where TMetadata : IAssetMetadata<TMetadata, TCreate>, allows ref struct
     {
         return TMetadata.MetadataProvider.Metadata(createInfo);
+    }
+
+    /// <summary>
+    ///     Reads the SundexSourceRoot metadata off each asset assembly. Assemblies without
+    ///     it (Release builds, and anything not built from this repo) contribute nothing.
+    ///     Directories that no longer exist are dropped here rather than stat-ed on every
+    ///     load - a Debug build copied to another machine keeps its stale attribute.
+    ///     ponytail: flat list, first hit wins, so two projects declaring the same
+    ///     project-relative asset path would shadow each other. None do today; key the
+    ///     probe by calling assembly if that changes.
+    /// </summary>
+    private static string[] ReadSourceRoots(Assembly[] assemblies)
+    {
+        return
+        [
+            ..assemblies
+                .SelectMany(assembly => assembly.GetCustomAttributes<AssemblyMetadataAttribute>())
+                .Where(attribute => attribute.Key == "SundexSourceRoot" && attribute.Value is not null)
+                .Select(attribute => attribute.Value!)
+                .Distinct(StringComparer.Ordinal)
+                .Where(Directory.Exists)
+        ];
     }
 
     /// <summary>

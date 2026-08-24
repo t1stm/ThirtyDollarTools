@@ -17,8 +17,10 @@ namespace EditorScene;
 public class Editor : Scene, IFadeInScene
 {
     private readonly DollarStoreCamera _camera;
-    private readonly UIContext _context;
-    private readonly EditorInterface _editorInterface;
+    private readonly ThirtyDollarWorkflow _workflow;
+
+    private UIContext _context;
+    private EditorInterface _editorInterface;
 
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
@@ -29,28 +31,69 @@ public class Editor : Scene, IFadeInScene
     /// </param>
     public Editor(Game game, ThirtyDollarWorkflow workflow, string? initialFile = null) : base(game)
     {
+        _workflow = workflow;
         var clientSize = game.ClientSize;
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
-        _context = new UIContext
-        {
-            Camera = _camera,
-            PixelScale = _lastScale,
-            RequestCursor = type => _cursorType = type
-        };
+        _context = NewContext();
 
-        _editorInterface = new EditorInterface(_context, workflow, () =>
-        {
-            _editorInterface?.Playback.Stop();
-            Game.SceneManager.TransitionTo("home");
-        });
+        _editorInterface = BuildInterface(_context);
         _editorInterface.Resize(clientSize.X, clientSize.Y);
 
         // Last: a sequence puts up the same import dialog a drop does, which needs the
         // interface laid out to have somewhere to go.
         if (initialFile != null) FileDrop([initialFile]);
+    }
+
+    private UIContext NewContext()
+    {
+        return new UIContext
+        {
+            Camera = _camera,
+            PixelScale = _lastScale,
+            RequestCursor = type => _cursorType = type
+        };
+    }
+
+    private EditorInterface BuildInterface(UIContext context)
+    {
+        return new EditorInterface(context, _workflow, () =>
+        {
+            _editorInterface?.Playback.Stop();
+            Game.SceneManager.TransitionTo("home");
+        });
+    }
+
+    /// <summary>
+    ///     Rebuilds the whole editor from its markup. This is the expensive reload - the
+    ///     editor's tree is the largest in the program and its logic blocks recompile when
+    ///     their scripts change - and it starts from a blank <c>EditorState</c>: whatever
+    ///     project was open is gone, because the state lives inside the interface being
+    ///     replaced. Editing a stylesheet takes <see cref="ReloadStyles" /> instead, which
+    ///     keeps all of it.
+    /// </summary>
+    public override void ReloadUI()
+    {
+        var context = NewContext();
+
+        // Stopped before the tree that owns it is dropped: playback holds audio channels
+        // that nothing would be left to stop afterwards.
+        _editorInterface.Playback.Stop();
+
+        var ui = BuildInterface(context);
+        ui.Alpha = _editorInterface.Alpha;
+
+        _context = context;
+        _editorInterface = ui;
+        Resize(Game.ClientSize.X, Game.ClientSize.Y);
+    }
+
+    public override void ReloadStyles()
+    {
+        _editorInterface.Component.ReloadStyleSheet();
+        _editorInterface.Resize(Game.ClientSize.X, Game.ClientSize.Y);
     }
 
     /// <summary>

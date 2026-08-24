@@ -278,4 +278,10 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         base.ApplyStyleSheet(styleSheet);
         foreach (var child in Children) child.ApplyStyleSheet(styleSheet);
     }
+
+    public override void ResetStyles()
+    {
+        base.ResetStyles();
+        foreach (var child in Children) child.ResetStyles();
+    }
 }

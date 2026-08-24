@@ -44,33 +44,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
         var tree = layout.Layout.BuildTree();
 
-        StyleSheet? styleSheet = null;
-        if (layout.Style is not null)
-        {
-            var src = layout.Style.SrcLocation;
-            if (!string.IsNullOrEmpty(src))
-            {
-                var newSource =
-                    context.UIContext.AssetProvider.Load<StringAsset, StringInfo>(
-                        StringInfo.CreateFromUnknownStorage(src));
-                layout.Style.UpdateSourceCode(newSource.Value);
-            }
-
-            var styleSheetHolder = StyleParser.Parse(layout.Style.SourceCode, path =>
-            {
-                var assetStream = context.UIContext.AssetProvider
-                    .Load<AssetStream, AssetInfo>(new AssetInfo
-                    {
-                        Location = path
-                    });
-
-                using var assetString = assetStream.Stream;
-                using var stringReader = new StreamReader(assetString);
-                return stringReader.ReadToEnd();
-            });
-
-            styleSheet = new StyleSheet(styleSheetHolder);
-        }
+        var styleSheet = BuildStyleSheet(layout, context);
 
         if (tree.Count != 1)
             throw new Exception("Only one root element is supported");
@@ -134,6 +108,42 @@ public class ComponentBuilderV1 : IComponentBuilder
         if (register && component.Name is not null)
             context.RegisterComponent(component);
         return component;
+    }
+
+    /// <summary>
+    ///     Loads and parses a document's stylesheet, re-reading it from its source location
+    ///     each time so an edited sheet is picked up. Separate from
+    ///     <see cref="CreateComponent(SundexDocument,ISundexContext,bool)" /> so a live
+    ///     component can rebuild its sheet without rebuilding its tree - see
+    ///     <see cref="SundexComponent.ReloadStyleSheet" />.
+    /// </summary>
+    public static StyleSheet? BuildStyleSheet(SundexDocument layout, ISundexContext context)
+    {
+        if (layout.Style is null) return null;
+
+        var src = layout.Style.SrcLocation;
+        if (!string.IsNullOrEmpty(src))
+        {
+            var newSource =
+                context.UIContext.AssetProvider.Load<StringAsset, StringInfo>(
+                    StringInfo.CreateFromUnknownStorage(src));
+            layout.Style.UpdateSourceCode(newSource.Value);
+        }
+
+        var styleSheetHolder = StyleParser.Parse(layout.Style.SourceCode, path =>
+        {
+            var assetStream = context.UIContext.AssetProvider
+                .Load<AssetStream, AssetInfo>(new AssetInfo
+                {
+                    Location = path
+                });
+
+            using var assetString = assetStream.Stream;
+            using var stringReader = new StreamReader(assetString);
+            return stringReader.ReadToEnd();
+        });
+
+        return new StyleSheet(styleSheetHolder);
     }
 
     private UIElement BuildUIElement(

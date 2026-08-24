@@ -109,6 +109,42 @@ public class SceneManager(ILogger logger)
         }
     }
 
+    /// <summary>
+    ///     Applies a hot reload to every loaded scene, not just the active ones: a scene
+    ///     reloaded only when it is next shown would come back stale, and the scenes that
+    ///     are not on screen are the cheap ones anyway.
+    ///     <para>
+    ///         Each scene is isolated. A markup file saved halfway through an edit throws
+    ///         while it is being parsed, and the scene that failed keeps the UI it already
+    ///         had - the error goes to the log and the other scenes still reload, so a typo
+    ///         costs a log line rather than the running program.
+    ///     </para>
+    /// </summary>
+    public void Reload(ReloadScope scope)
+    {
+        lock (Scenes)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var reloaded = 0;
+
+            foreach (var scene in Scenes.Values)
+                try
+                {
+                    if (scope == ReloadScope.Styles) scene.ReloadStyles();
+                    else scene.ReloadUI();
+                    reloaded++;
+                }
+                catch (Exception exception)
+                {
+                    logger.Error(exception, "[Hot Reload] {Scene} failed to reload; keeping the UI it had",
+                        scene.GetType().Name);
+                }
+
+            logger.Information("[Hot Reload] {Scope} reload of {Count} scene(s) in {Elapsed} ms",
+                scope, reloaded, stopwatch.ElapsedMilliseconds);
+        }
+    }
+
     public void Shutdown()
     {
         lock (Scenes)

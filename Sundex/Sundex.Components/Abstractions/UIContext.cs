@@ -42,6 +42,12 @@ public class UIContext : IGamePreloadable
 
     public static void Preload(AssetProvider assetProvider)
     {
+#if DEBUG
+        // Makes a re-applied stylesheet able to drop rules that were deleted from it, which
+        // hot reload needs and nothing else does. Set here rather than by the engine:
+        // Sundex.Engine does not reference this assembly.
+        UIElement.TrackPristineStyles = true;
+#endif
         _assetProvider = assetProvider;
         _fontProvider = new FontProvider(assetProvider);
         _textProvider = new TextProvider(_assetProvider, _fontProvider, "Lato Bold");

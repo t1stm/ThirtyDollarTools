@@ -29,6 +29,31 @@ public abstract class UIElement
     private readonly Dictionary<string, (PropertyInfo prop, object? value)> _baseSnapshot = new();
 
     /// <summary>
+    ///     What the styled properties held before any stylesheet touched them, keyed by
+    ///     property name. First write wins, so an element styled by several sheets in turn
+    ///     still remembers the value from before the first of them. Only populated while
+    ///     <see cref="TrackPristineStyles" /> is on; null everywhere else, which is one null
+    ///     field per element in a normal run.
+    /// </summary>
+    private Dictionary<string, (PropertyInfo prop, object? value)>? _pristine;
+
+    /// <summary>
+    ///     Records what each styled property held before styling, so <see cref="ResetStyles" />
+    ///     can put a tree back the way it was and the whole cascade can be re-run over it -
+    ///     which is how an edited stylesheet drops rules that were deleted from it rather
+    ///     than leaving their last value in place. Turned on by the hot-reload bootstrap in
+    ///     Debug builds and off otherwise: it costs a dictionary per styled element, and
+    ///     nothing but a stylesheet edited underneath a running program needs it.
+    ///     <para>
+    ///         Only properties a sheet actually wrote are recorded, so a value assigned from
+    ///         code after the style pass (a measured width, a pooled tile's size) is left
+    ///         alone unless a sheet was also setting it - in which case a rebuild would have
+    ///         lost it too.
+    ///     </para>
+    /// </summary>
+    public static bool TrackPristineStyles { get; set; }
+
+    /// <summary>
     ///     Whether the start pass in <see cref="DrawTo" /> has run for the current
     ///     <see cref="Animations" /> set. An animation's clock starts when the element is
     ///     first drawn, not when the stylesheet assigns it - a tree is commonly styled long
@@ -606,8 +631,34 @@ public abstract class UIElement
     {
         StoredStyleSheet = styleSheet;
         var properties = GetNamedSettings(GetType());
-        foreach (var (propertyInfo, attribute) in properties)
-            SetNamedSetting(styleSheet, propertyInfo, attribute);
+
+        if (!TrackPristineStyles)
+        {
+            foreach (var (propertyInfo, attribute) in properties)
+                SetNamedSetting(styleSheet, propertyInfo, attribute);
+        }
+        else
+        {
+            _pristine ??= [];
+
+            foreach (var (propertyInfo, attribute) in properties)
+            {
+                // A byref-like setting (Label's ReadOnlySpan<char> value) cannot be read
+                // back through reflection at all, so it is applied without being recorded -
+                // deleting a rule that sets one leaves it until a full rebuild.
+                var trackable = propertyInfo is { CanRead: true, CanWrite: true } &&
+                                !propertyInfo.PropertyType.IsByRefLike &&
+                                !_pristine.ContainsKey(propertyInfo.Name);
+
+                // Read before applying, and only the first time: an element inside an
+                // imported component is styled by that component's sheet and then again by
+                // its host's, and what has to be remembered is the value from before either
+                // of them ran.
+                var before = trackable ? propertyInfo.GetValue(this) : null;
+                if (SetNamedSetting(styleSheet, propertyInfo, attribute) && trackable)
+                    _pristine[propertyInfo.Name] = (propertyInfo, before);
+            }
+        }
 
         // Snapshot the post-base-style values for any property that has at least one state override,
         // so we can restore them without re-running ApplyStyleSheet (which would recreate renderables).
@@ -677,14 +728,55 @@ public abstract class UIElement
         }
     }
 
-    private void SetNamedSetting(StyleSheet styleSheet, PropertyInfo propertyInfo,
+    /// <returns>Whether any rule in the sheet addressed this property.</returns>
+    private bool SetNamedSetting(StyleSheet styleSheet, PropertyInfo propertyInfo,
         NamedSettingAttribute namedSettingAttribute)
     {
-        ApplyStyleValue(styleSheet, styleSheet.GetStyleValueForTag(Tag, namedSettingAttribute.Name), propertyInfo);
-        foreach (var cls in Classes)
-            ApplyStyleValue(styleSheet, styleSheet.GetStyleValueForTag(cls, namedSettingAttribute.Name), propertyInfo);
+        var matched = false;
 
-        ApplyStyleValue(styleSheet, styleSheet.GetStyleValueForTag(ID, namedSettingAttribute.Name), propertyInfo);
+        var tagValue = styleSheet.GetStyleValueForTag(Tag, namedSettingAttribute.Name);
+        matched |= tagValue is not null;
+        ApplyStyleValue(styleSheet, tagValue, propertyInfo);
+
+        foreach (var cls in Classes)
+        {
+            var classValue = styleSheet.GetStyleValueForTag(cls, namedSettingAttribute.Name);
+            matched |= classValue is not null;
+            ApplyStyleValue(styleSheet, classValue, propertyInfo);
+        }
+
+        var idValue = styleSheet.GetStyleValueForTag(ID, namedSettingAttribute.Name);
+        matched |= idValue is not null;
+        ApplyStyleValue(styleSheet, idValue, propertyInfo);
+
+        return matched;
+    }
+
+    /// <summary>
+    ///     Puts every property a stylesheet wrote back the way it was before any of them
+    ///     ran, so the whole cascade can be applied again from nothing. Needs
+    ///     <see cref="TrackPristineStyles" /> to have been on while the tree was styled;
+    ///     a no-op otherwise.
+    ///     <para>
+    ///         This is a whole-tree step and belongs before the sheets are re-applied, not
+    ///         inside a single apply. An element is commonly styled by an imported
+    ///         component's sheet and then by its host's, and reverting between those two
+    ///         passes would throw away everything the first one did.
+    ///     </para>
+    /// </summary>
+    public virtual void ResetStyles()
+    {
+        if (_pristine is null) return;
+
+        foreach (var (property, value) in _pristine.Values)
+        {
+            var oldValue = property.GetValue(this);
+            property.SetValue(this, value);
+            HandleRenderableSwap(oldValue, value, property.Name);
+        }
+
+        _pristine.Clear();
+        _baseSnapshot.Clear();
     }
 
     protected virtual void ApplyStyleValue(StyleSheet styleSheet, IStyleValue? styleValue, PropertyInfo propertyInfo)

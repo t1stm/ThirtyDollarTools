@@ -17,10 +17,11 @@ namespace HomeScene;
 public class Home : Scene, IFadeInScene
 {
     private readonly DollarStoreCamera _camera;
-    private readonly UIContext _context;
-
-    private readonly HomeInterface _homeInterface;
     private readonly Func<bool> _checkingForUpdates;
+    private readonly string _version;
+
+    private UIContext _context;
+    private HomeInterface _homeInterface;
 
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
@@ -36,29 +37,61 @@ public class Home : Scene, IFadeInScene
     public Home(Game game, string version, Func<bool> checkingForUpdates) : base(game)
     {
         _checkingForUpdates = checkingForUpdates;
+        _version = version;
         var clientSize = game.ClientSize;
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
-        _context = new UIContext
+        _context = NewContext();
+        _homeInterface = BuildInterface(_context);
+    }
+
+    private UIContext NewContext()
+    {
+        return new UIContext
         {
             Camera = _camera,
             PixelScale = _lastScale,
             RequestCursor = type => _cursorType = type
         };
+    }
 
-        _homeInterface = new HomeInterface(_context,
+    private HomeInterface BuildInterface(UIContext context)
+    {
+        var ui = new HomeInterface(context,
             () => { Game.SceneManager.TransitionTo("visualizer"); },
             () => { Game.SceneManager.TransitionTo("drum-master"); },
             () => { Game.SceneManager.TransitionTo("editor"); },
             () => { Game.SceneManager.TransitionTo("settings"); });
 
-        _homeInterface.VersionLabel.SetTextContents(version);
+        ui.VersionLabel.SetTextContents(_version);
 
         // Nothing to say while the check is still out: the markup's line tells a build that
         // isn't checking where to look, and would be wrong here.
-        _homeInterface.UpdateLabel.Visible = !checkingForUpdates();
+        ui.UpdateLabel.Visible = !_checkingForUpdates();
+        return ui;
+    }
+
+    public override void ReloadUI()
+    {
+        var context = NewContext();
+        var ui = BuildInterface(context);
+
+        // The update note is written into the label once and then left there, so a rebuilt
+        // tree has to be told again - Update() only writes it on the edge.
+        ui.Alpha = _homeInterface.Alpha;
+        _updateNoteShown = false;
+
+        _context = context;
+        _homeInterface = ui;
+        Resize(Game.ClientSize.X, Game.ClientSize.Y);
+    }
+
+    public override void ReloadStyles()
+    {
+        _homeInterface.Component.ReloadStyleSheet();
+        _homeInterface.Resize();
     }
 
     /// <summary>

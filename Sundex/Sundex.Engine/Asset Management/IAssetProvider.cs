@@ -13,6 +13,9 @@ namespace Sundex.Engine.Asset_Management;
 public interface IAssetProvider
 {
     Assembly[] AssetAssemblies { get; }
+
+    /// <summary>Project directories to resolve assets from before the assembly manifest; Debug only.</summary>
+    string[] SourceRoots { get; }
     ShaderPool ShaderPool { get; }
     DeleteQueue DeleteQueue { get; }
     CacheProvider CacheProvider { get; }

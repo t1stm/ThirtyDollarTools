@@ -17,28 +17,61 @@ namespace SettingsScene;
 public class Settings : Scene
 {
     private readonly DollarStoreCamera _camera;
-    private readonly UIContext _context;
-    private readonly SettingsInterface _settingsInterface;
+    private readonly VisualizerSettings _settings;
+
+    private UIContext _context;
+    private SettingsInterface _settingsInterface;
 
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
 
     public Settings(Game game, VisualizerSettings settings) : base(game)
     {
+        _settings = settings;
         var clientSize = game.ClientSize;
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
             _lastScale = new Vector2(scaleX, scaleY);
 
         _camera = new DollarStoreCamera(Vector3.Zero, clientSize);
-        _context = new UIContext
+        _context = NewContext();
+
+        _settingsInterface = BuildInterface(_context);
+    }
+
+    private UIContext NewContext()
+    {
+        return new UIContext
         {
             Camera = _camera,
             PixelScale = _lastScale,
             RequestCursor = type => _cursorType = type
         };
+    }
 
-        _settingsInterface = new SettingsInterface(_context, settings,
+    private SettingsInterface BuildInterface(UIContext context)
+    {
+        return new SettingsInterface(context, _settings,
             () => { Game.SceneManager.TransitionTo("home"); });
+    }
+
+    public override void ReloadUI()
+    {
+        // Built into a context of its own and assigned only once it stands: a markup file
+        // saved halfway through an edit throws in here, and this way the screen keeps the
+        // UI it already had instead of being left half-torn-down. The old context takes
+        // the old tree's render queue, hover chain and focus with it.
+        var context = NewContext();
+        var ui = BuildInterface(context);
+
+        _context = context;
+        _settingsInterface = ui;
+        Resize(Game.ClientSize.X, Game.ClientSize.Y);
+    }
+
+    public override void ReloadStyles()
+    {
+        _settingsInterface.Component.ReloadStyleSheet();
+        _settingsInterface.Resize();
     }
 
     public override void Initialize(InitArguments initArguments)

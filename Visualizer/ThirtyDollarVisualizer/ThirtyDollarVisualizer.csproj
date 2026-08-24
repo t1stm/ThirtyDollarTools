@@ -30,16 +30,6 @@
     <EmbeddedResource Include="Assets\Shaders\**\*"/>
   </ItemGroup>
 
-  <Target Name="CreateOutputSymlink" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
-    <PropertyGroup>
-      <LinkPath>$(ProjectDir)\Assets</LinkPath>
-      <TargetPath>$(OutputPath)</TargetPath>
-    </PropertyGroup>
-
-    <Exec Command="mklink /D &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' == 'Windows_NT'"/>
-    <Exec Command="ln -sf &quot;$(LinkPath)&quot; &quot;$(TargetPath)&quot;" Condition="'$(OS)' != 'Windows_NT'"/>
-  </Target>
-
   <ItemGroup>
     <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
     <ProjectReference Include="..\..\BASS.Redist\BASS.Redist.csproj"/>

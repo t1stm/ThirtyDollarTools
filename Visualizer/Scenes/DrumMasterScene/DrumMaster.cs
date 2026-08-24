@@ -184,6 +184,19 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
         _currentUI?.Element.Layout();
     }
 
+    /// <summary>
+    ///     Styles only: both trees here are built by <c>Initialize</c> against factories
+    ///     holding this scene's sound lists, which a rebuild outside that path would leave
+    ///     dangling.
+    /// </summary>
+    public override void ReloadStyles()
+    {
+        _configUI.ReloadStyleSheet();
+        _messageUI.ReloadStyleSheet();
+        _configUI.Element.InvalidateCoordinates();
+        _messageUI.Element.InvalidateCoordinates();
+    }
+
     public override void Resize(int w, int h)
     {
         _camera.Viewport = (w, h);

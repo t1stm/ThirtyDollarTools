@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Layouts/**/*.xml"/>
+    <EmbeddedResource Include="Layouts/**/*.txt"/>
     <EmbeddedResource Include="Assets/**/*.png"/>
   </ItemGroup>
 

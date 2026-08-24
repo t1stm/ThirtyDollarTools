@@ -23,6 +23,10 @@ public class Game : GameWindow
 
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
 
+#if DEBUG
+    private readonly SourceWatcher _sourceWatcher;
+#endif
+
     public Game(ILogger serilogLogger, Assembly[] assemblies, GameWindowSettings gameSettings,
         NativeWindowSettings nativeWindowSettings, string id) :
         base(gameSettings, nativeWindowSettings)
@@ -37,6 +41,14 @@ public class Game : GameWindow
 
         AssetProvider = new AssetProvider(Logger, AssetAssemblies, GLInfo);
         SceneManager = new SceneManager(Logger);
+
+#if DEBUG
+        // Reloads land on the frame queue rather than running where they were raised: both
+        // the IDE's hot-reload callback and the file watcher fire on their own threads, and
+        // rebuilding a UI touches GL objects that belong to the render thread.
+        HotReload.Requested = scope => Enqueue(game => game.SceneManager.Reload(scope));
+        _sourceWatcher = new SourceWatcher(Logger, AssetProvider.SourceRoots);
+#endif
     }
 
     public ILogger Logger { get; }
@@ -278,6 +290,10 @@ public class Game : GameWindow
     {
         base.OnClosing(e);
         SceneManager.Shutdown();
+#if DEBUG
+        HotReload.Requested = null;
+        _sourceWatcher.Dispose();
+#endif
     }
 
     public void Enqueue(Action<Game> action)

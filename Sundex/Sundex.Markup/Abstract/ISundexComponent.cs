@@ -19,4 +19,7 @@ public interface ISundexComponent
 
     public HashSet<ISundexComponent> Dependencies { get; init; }
     public List<ISundexComponent> Children { get; init; }
+
+    /// <summary>Re-reads this component's stylesheet and applies it to the live tree.</summary>
+    public void ReloadStyleSheet();
 }
