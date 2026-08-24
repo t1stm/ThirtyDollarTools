@@ -247,22 +247,16 @@ public class Visualizer : Scene, IGamePreloadable
     ///     Loads whatever was passed on the command line, once, the first time this scene is
     ///     opened. Not in <see cref="Initialize" />: this scene is now built while the
     ///     loading screen is still up, and encoding a sequence needs samples that have not
-    ///     been downloaded yet at that point. It is also a synchronous encode, which is the
-    ///     last thing the boot needs on the render thread.
+    ///     been downloaded yet at that point. Goes through the same off-thread path a
+    ///     dropped file does, so the scene appears first and the sequence fills in after,
+    ///     rather than the encode holding up the transition.
     /// </summary>
     private void LoadStartingSequences()
     {
         if (_startingSequencesLoaded || _startingSequences.Length < 1) return;
         _startingSequencesLoaded = true;
 
-        try
-        {
-            _workflow.UpdateSequences(_startingSequences).GetAwaiter().GetResult();
-        }
-        catch (Exception e)
-        {
-            SetStatusMessage($"[Sequence Loader] Failed to load sequence with error: \'{e}\'", 10000);
-        }
+        FileDrop(_startingSequences, true);
     }
 
     public override void Update(UpdateArguments updateArgs)

@@ -38,8 +38,19 @@ public class NullAudibleBuffer : AudibleBuffer
         return true;
     }
 
+    /// <summary>
+    ///     Starts playing from the beginning, which for a silent buffer means starting the
+    ///     clock from the beginning. <see cref="SequencePlayer.Start" /> calls this rather
+    ///     than <see cref="AudibleBuffer.Start" />, so a Play that only fired the callback
+    ///     left the visualizer holding a loaded sequence that never advanced under
+    ///     <c>--no-audio</c>. OpenAL plays a fresh source here, which starts at offset 0 -
+    ///     hence the seek.
+    /// </summary>
     public override void Play(Action? callbackWhenFinished = null, bool autoRemove = true)
     {
+        _clock.Seek(0);
+        _clock.Start();
+
         // ponytail: fires straight away rather than after the buffer's length - nothing
         // passes a callback here. Time it off the clock if something starts to.
         callbackWhenFinished?.Invoke();

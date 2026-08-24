@@ -58,4 +58,23 @@ public class NullAudibleBufferTests
         Assert.False(buffer.IsRunning);
         Assert.Equal(5_000, buffer.GetTime_Milliseconds());
     }
+
+    /// <summary>
+    ///     SequencePlayer.Start calls Play, not AudibleBuffer.Start - so Play is what has to
+    ///     get the clock going, from the beginning, the way a fresh OpenAL source does.
+    /// </summary>
+    [Fact]
+    public void PlayRunsTheClockFromTheBeginning()
+    {
+        var buffer = new NullAudibleBuffer();
+
+        buffer.SeekTime_Milliseconds(5_000);
+        buffer.Play();
+
+        Assert.True(buffer.IsRunning);
+        Assert.InRange(buffer.GetTime_Milliseconds(), 0, 300);
+
+        Thread.Sleep(300);
+        Assert.InRange(buffer.GetTime_Milliseconds(), 250, 800);
+    }
 }
