@@ -14,7 +14,7 @@ using Sundex.Engine.Scenes.Arguments;
 namespace HomeScene;
 
 [PreloadGraphicsContext]
-public class Home : Scene
+public class Home : Scene, IFadeInScene
 {
     private readonly DollarStoreCamera _camera;
     private readonly UIContext _context;

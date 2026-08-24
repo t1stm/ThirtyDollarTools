@@ -43,7 +43,16 @@ public enum Bind
     EditorDrawTool,
     EditorSelectTool,
     EditorPlayPause,
-    EditorRestart
+    EditorRestart,
+    EditorSave,
+    EditorOpen,
+    EditorNew,
+    EditorNudgeLeft,
+    EditorNudgeRight,
+    EditorNudgeUp,
+    EditorNudgeDown,
+    EditorToggleMute,
+    EditorToggleSolo
 }
 
 /// <summary>One row of the shortcuts table: what the action is, and what it is bound to out of the box.</summary>
@@ -144,7 +153,25 @@ public static class Keybinds
         new(Bind.EditorPlayPause, BindScene.Editor, "Play / pause",
             "Toggle playback.", new Keybind(Keys.Space, 0)),
         new(Bind.EditorRestart, BindScene.Editor, "Restart",
-            "Play again from the beginning.", new Keybind(Keys.Space, KeyModifiers.Shift))
+            "Play again from the beginning.", new Keybind(Keys.Space, KeyModifiers.Shift)),
+        new(Bind.EditorSave, BindScene.Editor, "Save project",
+            "Write the project to its file.", new Keybind(Keys.S, Primary)),
+        new(Bind.EditorOpen, BindScene.Editor, "Open project",
+            "Pick a project file to open.", new Keybind(Keys.O, Primary)),
+        new(Bind.EditorNew, BindScene.Editor, "New project",
+            "Start an empty project.", new Keybind(Keys.N, Primary)),
+        new(Bind.EditorNudgeLeft, BindScene.Editor, "Nudge left",
+            "Move the selection one step / grid left.", new Keybind(Keys.Left, 0)),
+        new(Bind.EditorNudgeRight, BindScene.Editor, "Nudge right",
+            "Move the selection one step / grid right.", new Keybind(Keys.Right, 0)),
+        new(Bind.EditorNudgeUp, BindScene.Editor, "Nudge up",
+            "Raise the selection a value / lane.", new Keybind(Keys.Up, 0)),
+        new(Bind.EditorNudgeDown, BindScene.Editor, "Nudge down",
+            "Lower the selection a value / lane.", new Keybind(Keys.Down, 0)),
+        new(Bind.EditorToggleMute, BindScene.Editor, "Mute channel",
+            "Mute the channels the selected clips use.", new Keybind(Keys.M, 0)),
+        new(Bind.EditorToggleSolo, BindScene.Editor, "Solo channel",
+            "Solo the channels the selected clips use.", new Keybind(Keys.S, 0))
     ];
 
     private static readonly Dictionary<Bind, BindInfo> Table = All.ToDictionary(info => info.Id);

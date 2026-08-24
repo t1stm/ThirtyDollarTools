@@ -648,6 +648,79 @@ public class EditorStateTests
     }
 
     [Fact]
+    public void NudgeNotes_MovesTheWholeSelection_AsOneUndoEntryPerPress()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(segment, 0, boom, 0);
+        var b = state.AddNote(segment, 5, boom, 3);
+        state.OpenTrack(track);
+        state.SetNoteSelection([a, b]);
+
+        state.NudgeNotes(1, 1, 60);
+        state.NudgeNotes(1, 1, 60);
+
+        Assert.Equal((2, 2d), (a.Step, a.Value));
+        Assert.Equal((7, 5d), (b.Step, b.Value));
+
+        state.Undo(); // one press, not one note
+        Assert.Equal((1, 1d), (a.Step, a.Value));
+        Assert.Equal((6, 4d), (b.Step, b.Value));
+    }
+
+    [Fact]
+    public void NudgeNotes_ClampsAtTheTrackAndValueEdges()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(segment, 0, boom, 60);
+        state.OpenTrack(track);
+        state.SetNoteSelection([note]);
+        state.SaveProject(); // clears dirty
+
+        state.NudgeNotes(-1, 1, 60); // already at step 0 and the top value
+
+        Assert.Equal((0, 60d), (note.Step, note.Value));
+        Assert.False(state.Dirty); // Touch() never ran: nothing moved, nothing was pushed
+    }
+
+    [Fact]
+    public void NudgePlacements_MovesEveryClip_AsOneUndoEntry()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var first = state.PlaceTrack(track, 0, 0);
+        var second = state.PlaceTrack(track, 3, 8);
+        state.SetPlacementSelection([first, second]);
+
+        state.NudgePlacements(1, 1, 7);
+
+        Assert.Equal((1, 1d), (first.Channel, first.StartQuarterNotes));
+        Assert.Equal((4, 9d), (second.Channel, second.StartQuarterNotes));
+
+        state.Undo();
+        Assert.Equal((0, 0d), (first.Channel, first.StartQuarterNotes));
+        Assert.Equal((3, 8d), (second.Channel, second.StartQuarterNotes));
+    }
+
+    [Fact]
+    public void NudgePlacements_ClampsToTheTimelineStartAndTheLastChannel()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var placement = state.PlaceTrack(track, 7, 0);
+        state.SetPlacementSelection([placement]);
+
+        state.NudgePlacements(-1, 1, 7);
+
+        Assert.Equal((7, 0d), (placement.Channel, placement.StartQuarterNotes));
+    }
+
+    [Fact]
     public void MoveSelectedNotes_NoActualChange_DoesNotDirtyOrPushUndo()
     {
         var state = new EditorState();

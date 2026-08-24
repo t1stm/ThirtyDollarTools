@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using HomeScene;
 using LoadingScene.Background;
 using LoadingScene.Reports;
 using LoadingScene.Scenes;
@@ -93,7 +92,7 @@ public class Loader : Scene, IGamePreloadable
     private bool _downloadStarted;
 
     private readonly Stopwatch _exitClock = new();
-    private Home? _home;
+    private Scene? _target;
     private bool _exitStarted;
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
@@ -279,6 +278,13 @@ public class Loader : Scene, IGamePreloadable
     /// </summary>
     public required IReadOnlyList<ScenePreload> Preloads { get; init; }
 
+    /// <summary>
+    ///     The scene the boot hands off to, from <c>--mode</c>. "home" unless told
+    ///     otherwise, and reset to it when the name names nothing - see
+    ///     <see cref="UpdateExit" />.
+    /// </summary>
+    public string ExitTo { get; set; } = "home";
+
     public bool Finished { get; private set; }
 
     public static void Preload(AssetProvider assetProvider)
@@ -459,23 +465,33 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     The hand-off to the home screen. Program loads the scenes a frame apart, so this
-    ///     holds on the loading screen until Home exists - the frames the other four cost
-    ///     land underneath the animation instead of stacking into one stalled frame.
+    ///     The hand-off to <see cref="ExitTo" /> - the home screen unless --mode named
+    ///     another. Program loads the scenes a frame apart, so this holds on the loading
+    ///     screen until that one exists - the frames the other four cost land underneath
+    ///     the animation instead of stacking into one stalled frame.
     ///     <br /><br />
     ///     The exit itself: the sound field stops bouncing and scatters off the top edge,
-    ///     then the strip settles back to the zero height it rose from while the home
-    ///     screen fades up through it. Home's playhead starts the moment it is transitioned
-    ///     to, which is the moment the meter finished - one left-to-right motion across
-    ///     the seam rather than two.
+    ///     then the strip settles back to the zero height it rose from while the scene
+    ///     underneath fades up through it. Home's playhead starts the moment it is
+    ///     transitioned to, which is the moment the meter finished - one left-to-right
+    ///     motion across the seam rather than two.
     /// </summary>
     private void UpdateExit()
     {
-        if (_home is null)
+        if (_target is null)
         {
-            if (!SceneManager.Scenes.TryGetValue("home", out var scene) || scene is not Home home) return;
-            _home = home;
-            _home.InterfaceAlpha = 0f;
+            // Every scene is built by the time the exit runs, so a miss here is a bad
+            // --mode rather than a build still in flight: falling back beats holding the
+            // loading screen up forever waiting for a scene nobody is going to add.
+            if (!SceneManager.Scenes.TryGetValue(ExitTo, out var scene))
+            {
+                Logger.Warning("[Boot] No scene named \"{Mode}\" - opening the home screen instead", ExitTo);
+                ExitTo = "home";
+                return;
+            }
+
+            _target = scene;
+            SetTargetAlpha(0f);
             _exitClock.Restart();
         }
 
@@ -487,17 +503,27 @@ public class Loader : Scene, IGamePreloadable
         {
             _exitStarted = true;
             _loaderInterface.BeginExit();
-            // Both scenes render for the rest of the exit, this one underneath: Home's
-            // stage is opaque, so it covers the loader on its own as it comes up.
-            SceneManager.TransitionTo([this, _home]);
+            // Both scenes render for the rest of the exit, this one underneath: the
+            // target's stage is opaque, so it covers the loader on its own as it comes up.
+            SceneManager.TransitionTo([this, _target]);
         }
 
         var fade = Math.Clamp((elapsed - ExitFadeStart) / (ExitSeconds - ExitFadeStart), 0f, 1f);
-        _home.InterfaceAlpha = fade * fade * (3f - 2f * fade);
+        SetTargetAlpha(fade * fade * (3f - 2f * fade));
 
         if (fade < 1f) return;
         _exitClock.Stop();
-        SceneManager.TransitionTo("home");
+        SceneManager.TransitionTo(ExitTo);
+    }
+
+    /// <summary>
+    ///     Fades the scene being handed off to, if it can be faded. A scene that can't
+    ///     still gets the rest of the exit - the sound field scattering off the top, the
+    ///     strip settling back down - it just arrives opaque underneath it.
+    /// </summary>
+    private void SetTargetAlpha(float alpha)
+    {
+        if (_target is IFadeInScene target) target.InterfaceAlpha = alpha;
     }
 
     public override void Resize(int w, int h)

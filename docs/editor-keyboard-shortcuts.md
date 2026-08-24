@@ -56,6 +56,14 @@ the platform (`Cmd+1` on a Mac).
 | `Ctrl+C` / `Ctrl+V` / `Ctrl+X` | Copy / paste / cut the selection |
 | `Ctrl+A` | Select all (in the focused view) |
 | `Delete` / `Backspace` | Delete the selected notes/placements (two separate actions) |
+| `Ctrl+S` | Save the project (asks for a location the first time) |
+| `Ctrl+O` | Open a project file |
+| `Ctrl+N` | New project (asks first when there are unsaved changes) |
+| `←` / `→` | Nudge the selection one step (note editor) or one grid unit (arrangement) |
+| `↑` / `↓` | Nudge the selection one value (note editor) or one lane (arrangement) |
+| `M` / `S` | Mute / solo the channels the selected clips sit on |
+
+Each nudge press is its own undo entry, and moves the whole selection together.
 
 ## Editor — tools
 
@@ -123,6 +131,4 @@ they don't fire on your typed text).
 
 ## Not implemented
 
-For reference, these are *not* currently bound to anything: Ctrl+S (save), Ctrl+O (open), Ctrl+N (new
-project), arrow-key nudging of selected notes/placements, Tab focus cycling, F-key shortcuts, mute/solo
-hotkeys.
+For reference, these are *not* currently bound to anything: Tab focus cycling, F-key shortcuts.

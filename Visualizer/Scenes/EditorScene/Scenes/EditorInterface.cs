@@ -238,6 +238,17 @@ public class EditorInterface
     [UsedImplicitly] public SundexComponent Component { get; }
     public Panel RootPanel { get; }
 
+    /// <summary>
+    ///     Scene-wide opacity, driven from 0 to 1 by the loading screen when the boot hands
+    ///     off here (<c>--mode editor</c>). 1 on every later entry. Same deal as
+    ///     HomeScene.Scenes.HomeInterface.Alpha, down to why it is re-applied every frame
+    ///     while it is under 1.
+    /// </summary>
+    public float Alpha { get; set; } = 1f;
+
+    private readonly ElementAlpha _alpha = new();
+    private float _appliedAlpha = 1f;
+
     // Assigned by each region's .snx.csx. They live flat on this class rather than on the
     // controllers because RunLogicAndVerify only reflects over the one target type - a
     // nested object's properties are never checked.
@@ -546,6 +557,31 @@ public class EditorInterface
         _projectIo.Save();
     }
 
+    /// <summary>Discards the open project, so it asks first when there is unsaved work.</summary>
+    [UsedImplicitly]
+    public void NewProject()
+    {
+        if (!State.Dirty)
+        {
+            State.NewProject();
+            return;
+        }
+
+        _dialogHost.Confirm("Starting a new project discards unsaved changes.\nContinue?",
+            State.NewProject, confirmLabel: "New project", confirmClass: "dialog-button-primary");
+    }
+
+    /// <summary>
+    ///     Arrow-key nudge, routed to whichever view is showing: whole steps and values in
+    ///     an opened track, the snap grid and whole channels in the arrangement. Up is a
+    ///     lower channel index - the arrangement draws channel 0 at the top.
+    /// </summary>
+    public void NudgeSelection(int dx, int dy)
+    {
+        if (State.OpenedTrack != null) State.NudgeNotes(dx, dy, TrackEditorGeometry.MaxValue);
+        else State.NudgePlacements(dx * _arrangement.SnapQuarterNotes, -dy, _arrangement.Channels - 1);
+    }
+
     [UsedImplicitly]
     public void ShowExportDialog()
     {
@@ -644,6 +680,12 @@ public class EditorInterface
 
         RootPanel.Update(context);
         RootPanel.Layout();
+
+        // Last, and every frame while fading: the stylesheet re-runs during the update pass
+        // and puts the styled alpha straight back.
+        if (Alpha >= 1f && _appliedAlpha >= 1f) return;
+        _alpha.Apply(RootPanel, Alpha);
+        _appliedAlpha = Alpha;
     }
 
     /// <summary>

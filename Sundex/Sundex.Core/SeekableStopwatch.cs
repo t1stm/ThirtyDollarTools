@@ -93,7 +93,11 @@ public class SeekableStopwatch : ISeekableStopwatch
         var delta_time = current - wanted_time.Ticks * Stopwatch.Frequency / 10000000;
         StartTime = delta_time;
 
-        if (StopTime != null) StopTime = current;
+        // Anchored whenever the clock is not accruing, so the wait between a seek and the
+        // start that follows it is not counted as elapsed time. A clock that has never run
+        // has no StopTime of its own, which is how a sought-then-started one used to come
+        // up reading however long it had been sitting there.
+        if (!Running || StopTime != null) StopTime = current;
 
         Lock.Release();
     }

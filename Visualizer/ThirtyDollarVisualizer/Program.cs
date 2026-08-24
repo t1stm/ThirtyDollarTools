@@ -32,6 +32,7 @@ using VisualizerScene.Settings;
 #endregion
 
 string? sequence = null;
+string? mode = null;
 bool no_audio;
 AudioContext? audio_context = null;
 var width = 1600;
@@ -68,6 +69,7 @@ Parser.Default.ParseArguments<Options>(args)
     .WithParsed(options =>
     {
         sequence = options.Input;
+        mode = options.Mode?.ToLowerInvariant();
         no_audio = options.NoAudio;
         width = options.Width ?? width;
         height = options.Height ?? height;
@@ -168,7 +170,11 @@ game.Enqueue(instance =>
     instance.SceneManager.LoadScene<Loader>("loader",
         _ => new Loader(instance, audio_context, settings, version)
         {
-            Preloads = BuildPreloads(version, sequence, greeting, scale)
+            Preloads = BuildPreloads(version, sequence, greeting, scale, mode),
+            // Scene names, as LoadScene registers them: "visualizer", "drum-master",
+            // "editor", "settings". An unknown one falls back to the home screen and says
+            // so in the log - see Loader.UpdateExit.
+            ExitTo = mode ?? "home"
         });
 });
 
@@ -183,7 +189,8 @@ return;
 ///     this landed on the frames between the download finishing and the home screen
 ///     appearing, which is where the boot used to visibly stall.
 /// </summary>
-static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, string? greeting, float? scale)
+static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, string? greeting, float? scale,
+    string? mode)
 {
     // Home first - the loading screen's exit fades into it, so it has to exist before the
     // rest are worth building.
@@ -206,9 +213,11 @@ static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, stri
             game.SceneManager.LoadScene<DrumMaster>("drum-master",
                 _ => new DrumMaster(game, workflow))),
 
+        // -i is the visualizer's sequence unless the editor is the one being opened, in
+        // which case that is what the editor opens.
         new ScenePreload("Preparing the editor", (game, workflow) =>
             game.SceneManager.LoadScene<Editor>("editor",
-                _ => new Editor(game, workflow))),
+                _ => new Editor(game, workflow, mode == "editor" ? sequence : null))),
 
         new ScenePreload("Preparing settings", (game, _) =>
             game.SceneManager.LoadScene<Settings>("settings",

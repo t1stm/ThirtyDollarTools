@@ -792,6 +792,85 @@ public class EditorState
         Touch();
     }
 
+    /// <summary>
+    ///     Arrow-key nudge of the selected notes: whole steps along the track and values
+    ///     up/down, clamped the same way a drag is (<paramref name="maxValue" /> is the
+    ///     view's value range). One <see cref="BeginGesture" /> per call, so a keystroke is
+    ///     its own undo entry rather than merging into the drag before it.
+    /// </summary>
+    public void NudgeNotes(int stepDelta, double valueDelta, double maxValue)
+    {
+        if (OpenedTrack is not { } track || _selectedNotes.Count == 0) return;
+
+        var maxGlobalStep = Math.Max(0, track.Segments.Sum(segment => segment.StepCount) - 1);
+        var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value)>(_selectedNotes.Count);
+        foreach (var note in _selectedNotes)
+        {
+            var globalStep = Math.Clamp(
+                track.GlobalStepOf(FindSegment(track, note), note.Step) + stepDelta, 0, maxGlobalStep);
+            if (track.SegmentAtGlobalStep(globalStep) is not { } mapped) continue;
+
+            targets.Add((note, mapped.Segment, mapped.LocalStep,
+                Math.Clamp(note.Value + valueDelta, -maxValue, maxValue)));
+        }
+
+        BeginGesture();
+        MoveSelectedNotes(track, targets);
+    }
+
+    /// <summary>
+    ///     The arrangement's counterpart to <see cref="NudgeNotes" />: the selected clips
+    ///     move by <paramref name="startDelta" /> quarter notes and whole channels, clamped
+    ///     to the start of the timeline and to <paramref name="maxChannel" />.
+    /// </summary>
+    public void NudgePlacements(double startDelta, int channelDelta, int maxChannel)
+    {
+        if (_selectedPlacements.Count == 0) return;
+
+        BeginGesture();
+        MoveSelectedPlacements(_selectedPlacements.Select(placement => (
+            placement,
+            Math.Clamp(placement.Channel + channelDelta, 0, maxChannel),
+            Math.Max(0, placement.StartQuarterNotes + startDelta))).ToArray());
+    }
+
+    /// <summary>
+    ///     Moves every given placement to its target (channel, start) together - the
+    ///     arrangement's counterpart to <see cref="MoveSelectedNotes" />, keyed on the first
+    ///     placement so a run of calls inside one gesture collapses into ONE undo entry
+    ///     instead of one per clip.
+    /// </summary>
+    private void MoveSelectedPlacements(IReadOnlyList<(TrackPlacement Placement, int Channel, double Start)> targets)
+    {
+        if (targets.Count == 0) return;
+
+        var before = targets
+            .Select(t => (t.Placement, t.Placement.Channel, Start: t.Placement.StartQuarterNotes))
+            .ToArray();
+        var changed = false;
+        for (var i = 0; i < targets.Count; i++)
+            if (before[i].Channel != targets[i].Channel || before[i].Start != targets[i].Start)
+                changed = true;
+
+        if (!changed) return;
+
+        ApplyPlacements(targets);
+
+        _undoHistory.PushOrMergeMove(targets[0].Placement,
+            () => ApplyPlacements(before),
+            () => ApplyPlacements(targets));
+        Touch();
+    }
+
+    private static void ApplyPlacements(IReadOnlyList<(TrackPlacement Placement, int Channel, double Start)> targets)
+    {
+        foreach (var (placement, channel, start) in targets)
+        {
+            placement.Channel = channel;
+            placement.StartQuarterNotes = start;
+        }
+    }
+
     public bool RemovePlacement(TrackPlacement placement)
     {
         if (!Project.RemovePlacement(placement)) return false;

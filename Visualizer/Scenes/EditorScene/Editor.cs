@@ -14,7 +14,7 @@ using VisualizerScene.Settings;
 namespace EditorScene;
 
 [PreloadGraphicsContext]
-public class Editor : Scene
+public class Editor : Scene, IFadeInScene
 {
     private readonly DollarStoreCamera _camera;
     private readonly UIContext _context;
@@ -23,7 +23,11 @@ public class Editor : Scene
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
 
-    public Editor(Game game, ThirtyDollarWorkflow workflow) : base(game)
+    /// <param name="initialFile">
+    ///     A project or sequence to open on boot, from <c>--mode editor -i</c>. Handled as
+    ///     if it had been dropped on the window - see <see cref="FileDrop" />.
+    /// </param>
+    public Editor(Game game, ThirtyDollarWorkflow workflow, string? initialFile = null) : base(game)
     {
         var clientSize = game.ClientSize;
         if (game.TryGetScreenScale(out var scaleX, out var scaleY))
@@ -43,6 +47,20 @@ public class Editor : Scene
             Game.SceneManager.TransitionTo("home");
         });
         _editorInterface.Resize(clientSize.X, clientSize.Y);
+
+        // Last: a sequence puts up the same import dialog a drop does, which needs the
+        // interface laid out to have somewhere to go.
+        if (initialFile != null) FileDrop([initialFile]);
+    }
+
+    /// <summary>
+    ///     Scene-wide opacity, driven by the loading screen when the boot hands off here.
+    ///     1 on every entry from the home screen.
+    /// </summary>
+    public float InterfaceAlpha
+    {
+        get => _editorInterface.Alpha;
+        set => _editorInterface.Alpha = value;
     }
 
     public override void Initialize(InitArguments initArguments)
@@ -209,6 +227,47 @@ public class Editor : Scene
             case Bind.EditorRestart:
                 _editorInterface.Playback.Restart();
                 return;
+            // Not guarded on textFocused: a focused field swallows plain keys itself and
+            // deliberately passes modified combos through, and none of these mean anything
+            // inside a text field.
+            case Bind.EditorSave:
+                _editorInterface.SaveProject();
+                return;
+            case Bind.EditorOpen:
+                _editorInterface.ShowLoadDialog();
+                return;
+            case Bind.EditorNew:
+                _editorInterface.NewProject();
+                return;
+            case Bind.EditorNudgeLeft:
+                _editorInterface.NudgeSelection(-1, 0);
+                return;
+            case Bind.EditorNudgeRight:
+                _editorInterface.NudgeSelection(1, 0);
+                return;
+            case Bind.EditorNudgeUp:
+                _editorInterface.NudgeSelection(0, 1);
+                return;
+            case Bind.EditorNudgeDown:
+                _editorInterface.NudgeSelection(0, -1);
+                return;
+            case Bind.EditorToggleMute:
+                ToggleChannels(state, state.ToggleMute);
+                return;
+            case Bind.EditorToggleSolo:
+                ToggleChannels(state, state.ToggleSolo);
+                return;
         }
+    }
+
+    /// <summary>
+    ///     The keyboard's equivalent of the lane header's M/S toggles: acts on every
+    ///     channel the selected clips sit on, once each (a multi-clip selection can share
+    ///     a lane, and toggling the same channel twice would cancel itself out).
+    /// </summary>
+    private static void ToggleChannels(EditorState state, Action<int> toggle)
+    {
+        foreach (var channel in state.SelectedPlacements.Select(p => p.Channel).Distinct().ToArray())
+            toggle(channel);
     }
 }
