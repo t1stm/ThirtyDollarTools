@@ -67,11 +67,21 @@ internal sealed class LabelBatch : IRenderable, IClippable
     ///     when one of them actually changed - the views re-assign every slot on every
     ///     layout pass, and a Label re-laid its glyphs on each of those assignments.
     /// </summary>
-    public void Set(int index, string text, float x, float y, Vector4 color)
+    /// <param name="clip">
+    ///     Box this caption's pixels are confined to, in the same absolute UI units as
+    ///     <paramref name="x" />/<paramref name="y" />: (left, top, right, bottom).
+    ///     Default (all-zero) leaves it unclipped. This is per slot, unlike
+    ///     <see cref="ClipRect" /> which scissors the whole batch in one go - a pool whose
+    ///     captions each belong to a different box (arrangement clip names) cannot use the
+    ///     scissor, because the pool is a single draw call. See
+    ///     <see cref="Sundex.Engine.Text.TextCharacter.ClipRect" />.
+    /// </param>
+    public void Set(int index, string text, float x, float y, Vector4 color, Vector4 clip = default)
     {
         EnsureCount(index + 1);
         var slot = _slots[index];
-        if (slot.Text == text && slot.X.Equals(x) && slot.Y.Equals(y) && slot.Color == color) return;
+        if (slot.Text == text && slot.X.Equals(x) && slot.Y.Equals(y) && slot.Color == color &&
+            slot.Clip == clip) return;
 
         if (text.Length > slot.Capacity)
         {
@@ -86,11 +96,13 @@ internal sealed class LabelBatch : IRenderable, IClippable
         slot.X = x;
         slot.Y = y;
         slot.Color = color;
+        slot.Clip = clip;
 
         var slice = slot.Slice;
         slice.UpdateManually = true;
         slice.Value = text;
         slice.Color = color;
+        slice.ClipRect = clip;
         slice.Position = (x, y, 0);
         slice.UpdateManually = false;
         slice.UpdateCharacters();
@@ -126,6 +138,10 @@ internal sealed class LabelBatch : IRenderable, IClippable
         public float X { get; internal set; }
         public float Y { get; internal set; }
         public Vector4 Color { get; internal set; }
+
+        /// <inheritdoc cref="Sundex.Engine.Text.TextCharacter.ClipRect" />
+        public Vector4 Clip { get; internal set; }
+
         public bool Visible => Text.Length > 0;
     }
 }

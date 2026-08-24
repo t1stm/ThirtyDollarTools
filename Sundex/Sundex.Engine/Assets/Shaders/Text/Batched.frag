@@ -5,6 +5,8 @@ uniform float uPxRange;
 
 in vec2 vFragTexCoord;
 in vec4 vColor;
+in vec2 vUIPosition;
+flat in vec4 vClipRect;
 
 out vec4 outColor;
 
@@ -22,6 +24,13 @@ float median(float r, float g, float b) {
 }
 
 void main() {
+    // An all-zero rect is "unclipped" - the default every glyph that never asked for a
+    // box carries. Otherwise (left, top, right, bottom) in UI units; a rect whose edges
+    // cross hides the glyph outright, which is what a box too narrow for text wants.
+    if (vClipRect != vec4(0.0) &&
+        (vUIPosition.x < vClipRect.x || vUIPosition.x > vClipRect.z ||
+         vUIPosition.y < vClipRect.y || vUIPosition.y > vClipRect.w)) discard;
+
     vec3 msd = textureLod(msdf, vFragTexCoord, 0.0).rgb;
     float sd = median(msd.r, msd.g, msd.b);
 

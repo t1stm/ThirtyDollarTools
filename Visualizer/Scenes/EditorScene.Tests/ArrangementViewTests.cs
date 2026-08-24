@@ -543,4 +543,35 @@ public class ArrangementViewTests
         Assert.Equal((int)ArrangementView.RulerHeight, clip.Value.Y); // ruler band excluded
         Assert.Equal(400, clip.Value.W); // and never past the view's own bottom
     }
+
+    [Fact]
+    public void AClipName_IsClippedToItsOwnClipsBox_AndReclipsAsTheZoomMovesIt()
+    {
+        // The batch's scissor bounds the whole pool at once, so it cannot stop one name
+        // running over the clip beside it - that needs the per-slot box, which has to
+        // follow its clip every time the zoom or the scroll moves one.
+        var (_, state, view) = NewView();
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 0, 0);
+        view.Layout();
+
+        AssertBoxedInItsClip();
+
+        view.PixelsPerQuarter *= 4;
+        view.Layout();
+
+        AssertBoxedInItsClip();
+        return;
+
+        void AssertBoxedInItsClip()
+        {
+            var slot = view.ClipLabels.Slots[0];
+            var box = view.Blocks[0].Computed;
+            var padding = slot.X - box.AbsoluteX; // ClipPadding, the view's own private business
+
+            Assert.NotEqual(Vector4.Zero, slot.Clip); // all-zero reads as "unclipped" in the shader
+            Assert.Equal(new Vector4(box.AbsoluteX + padding, box.AbsoluteY,
+                box.AbsoluteX + box.Width - padding, box.AbsoluteY + box.Height), slot.Clip);
+        }
+    }
 }

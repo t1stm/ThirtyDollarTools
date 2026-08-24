@@ -60,6 +60,18 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         }
     } = Vector4.One;
 
+    /// <inheritdoc cref="TextCharacter.ClipRect" />
+    public Vector4 ClipRect
+    {
+        get;
+        set
+        {
+            field = value;
+            if (UpdateManually) return;
+            UpdateCharacters();
+        }
+    }
+
     private MsdfFontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.GetFontMetrics();
 
     public void Dispose()
@@ -148,7 +160,8 @@ public class TextSlice(TextBuffer textBuffer, Range range)
 
             var textCharacter = new TextCharacter
             {
-                Color = Color
+                Color = Color,
+                ClipRect = ClipRect
             };
             var atlasSize = new Vector2(textProvider.TextureWidth, textProvider.TextureHeight);
 

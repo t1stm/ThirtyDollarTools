@@ -348,8 +348,14 @@ public sealed class ArrangementView : Panel
             block.Height = LaneHeight - 4;
             _lineBatch.Set(block.BatchSlot, absX + x, absY + y, blockWidth, LaneHeight - 4,
                 block.Selected ? ClipSelectedColor : ClipColor);
+            // Confine the name to its own clip's box. The batch's ClipRect is a scissor -
+            // one rect for the whole draw call - so it can only bound the pool as a group;
+            // zoomed in far enough, clips narrow past their names and each name ran over
+            // the clips beside it. This one is per slot (see LabelBatch.Set's clip).
             _clipLabels.Set(block.LabelSlot, placement.Track.Name, absX + x + ClipPadding,
-                absY + y + ClipPadding, ClipLabelColor);
+                absY + y + ClipPadding, ClipLabelColor,
+                new Vector4(absX + x + ClipPadding, absY + y,
+                    absX + x + blockWidth - ClipPadding, absY + y + LaneHeight - 4));
         }
 
         // Slots left over from a longer clip list - both batches' tails grow with the
