@@ -19,7 +19,8 @@ namespace SettingsScene.Scenes;
 /// <summary>
 ///     One row of the settings screen. The control is chosen from the property's type;
 ///     <see cref="Min" />, <see cref="Max" /> and <see cref="Step" /> are only read for the
-///     numeric ones.
+///     numeric ones, and <see cref="Choices" /> turns a string row into a button that cycles
+///     the listed values instead of a free text field.
 /// </summary>
 public sealed record SettingRow(
     string Property,
@@ -27,7 +28,8 @@ public sealed record SettingRow(
     string Description,
     double Min = 0,
     double Max = 1,
-    double Step = 1);
+    double Step = 1,
+    string[]? Choices = null);
 
 public class SettingsInterface
 {
@@ -62,6 +64,20 @@ public class SettingsInterface
                 "Let the desktop show through the window.\nTakes effect on the next launch."),
             new SettingRow(nameof(VisualizerSettings.AudioBackend), "Audio backend",
                 "Leave empty to pick one automatically.")
+        ]),
+        // The parameter rows are always here rather than appearing with the resampler that
+        // reads them: a hidden child still takes its space in the flex, so showing and
+        // hiding them would leave holes in the section. Each one says whose it is instead.
+        ("R E S A M P L E R", [
+            new SettingRow(nameof(VisualizerSettings.Resampler), "Resampler",
+                "Click to cycle. Changes how samples are pitched.",
+                Choices: Resamplers.Names),
+            new SettingRow(nameof(VisualizerSettings.SincFilterSize), "Sinc filter size",
+                "Taps per sample. Sinc (Hann) only.", 8, 192, 8),
+            new SettingRow(nameof(VisualizerSettings.SincPrecision), "Sinc precision",
+                "Filter table resolution. Sinc (Hann) only.", 64, 2048, 64),
+            new SettingRow(nameof(VisualizerSettings.CruncherBits), "Cruncher bits",
+                "Quantisation steps. Byte cruncher only.", 1, 255)
         ]),
         ("U P D A T E S", [
             new SettingRow(nameof(VisualizerSettings.CheckForUpdates), "Check for updates",
@@ -298,12 +314,38 @@ public class SettingsInterface
         return new FlexPanel(UI)
         {
             Classes = ["control"],
-            Children = isBool
-                ? [BuildCheckbox(property)]
-                : isInt || isFloat
-                    ? BuildSlider(row, property, isInt)
-                    : [BuildTextInput(property)]
+            Children = row.Choices is { Length: > 0 } choices
+                ? [BuildChoice(property, choices)]
+                : isBool
+                    ? [BuildCheckbox(property)]
+                    : isInt || isFloat
+                        ? BuildSlider(row, property, isInt)
+                        : [BuildTextInput(property)]
         };
+    }
+
+    /// <summary>
+    ///     A closed set of strings, as a button that steps to the next one. A drop-down would
+    ///     have to open over the scrolling list it lives in, which is the one thing a nested
+    ///     child can't paint over; seven values are two seconds of clicking.
+    /// </summary>
+    private Button BuildChoice(PropertyInfo property, string[] choices)
+    {
+        // A name the list doesn't have - a hand-edited settings file - reads as index -1, so
+        // the first click lands on the first choice rather than throwing.
+        var button = new Button(UI, Current())
+        {
+            Classes = ["choice-button"],
+            OnClick = _ => property.SetValue(_settings, choices[(Array.IndexOf(choices, Current()) + 1) % choices.Length])
+        };
+
+        Bind(property, () => button.Value = Current());
+        return button;
+
+        string Current()
+        {
+            return property.GetValue(_settings) as string ?? choices[0];
+        }
     }
 
     private Checkbox BuildCheckbox(PropertyInfo property)

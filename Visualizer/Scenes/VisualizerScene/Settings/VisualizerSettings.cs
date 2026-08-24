@@ -48,6 +48,38 @@ public class VisualizerSettings
         set => SetAndCallModified(out field, value);
     }
 
+    /// <summary>
+    ///     Which resampler pitches the samples, by name - see <see cref="Resamplers" />, which
+    ///     owns the list and builds the object. A name rather than the object because this is
+    ///     what the settings file can hold, and because the two below are its parameters.
+    /// </summary>
+    public string Resampler
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = Resamplers.Hermite;
+
+    /// <summary>Taps per output sample, for <see cref="Resamplers.SincHann" />.</summary>
+    public int SincFilterSize
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = 64;
+
+    /// <summary>Filter table resolution, for <see cref="Resamplers.SincHann" />.</summary>
+    public int SincPrecision
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = 512;
+
+    /// <summary>Quantisation steps, for <see cref="Resamplers.ByteCruncher" />.</summary>
+    public float CruncherBits
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = 64f;
+
     public bool AutomaticScaling
     {
         get;

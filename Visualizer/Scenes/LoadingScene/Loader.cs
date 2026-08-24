@@ -128,6 +128,17 @@ public class Loader : Scene, IGamePreloadable
         _workflow = new ThirtyDollarWorkflow(game, Logger, _thirtyDollarDownloader.SampleHolder,
             _thirtyDollarDownloader.AtlasStore, _audioContext);
 
+        // The resampler is stored as a name plus its parameters, so it is rebuilt whenever
+        // one of them moves rather than handed over once. Filtered by name because building
+        // one is real work - the Kaiser tables are a few hundred thousand doubles - and the
+        // greeting changing has nothing to do with it.
+        _workflow.EncoderSettings.Resampler = Resamplers.Create(settings);
+        settings.Changed += name =>
+        {
+            if (Resamplers.Properties.Contains(name))
+                _workflow.EncoderSettings.Resampler = Resamplers.Create(settings);
+        };
+
         _background = new DollarStoreLoaderBackground(game.AssetProvider.DeleteQueue)
         {
             AtlasStore = _thirtyDollarDownloader.AtlasStore

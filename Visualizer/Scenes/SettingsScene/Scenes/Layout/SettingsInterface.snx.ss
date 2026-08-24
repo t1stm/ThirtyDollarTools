@@ -178,6 +178,26 @@ class setting-slider {
     foreground = "#c0caf5";
 }
 
+// The resampler picker: a row control that steps through a closed list of names, so it
+// is sized like a keybind button rather than a slider - "Sinc (Kaiser best)" has to fit
+// without the row reflowing when it becomes "Hermite".
+
+class choice-button {
+    width = 240;
+    height = 32;
+    background = "#21243a";
+    border-radius = 6;
+    font-size = 14;
+
+    state[hovered] = {
+        background = "#2b2f4a";
+    }
+
+    state[pressed] = {
+        background = "#171925";
+    }
+}
+
 // ---------------------------------------------------------------- shortcuts
 //
 // A shortcut row is a settings row with a button where the control goes, so it reuses

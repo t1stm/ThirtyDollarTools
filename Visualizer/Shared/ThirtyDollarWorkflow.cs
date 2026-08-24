@@ -47,7 +47,7 @@ public class ThirtyDollarWorkflow
         {
             SampleRate = (uint)SequencePlayer.AudioContext.SampleRate,
             Channels = 2,
-            Resampler = new HannSincResampler(),
+            Resampler = new HermiteResampler(),
             EnableNormalization = false,
             CutFadeLengthMs = 4
         };

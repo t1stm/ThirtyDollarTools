@@ -91,6 +91,7 @@ public class SettingsInterfaceMarkupTests
     [InlineData("value")]
     [InlineData("value-label")]
     [InlineData("setting-slider")]
+    [InlineData("choice-button")]
     [InlineData("tile")]
     [InlineData("tile-blue")]
     [InlineData("tile-orange")]
@@ -402,6 +403,65 @@ public class SettingsInterfaceMarkupTests
         // Escape is left unhandled, which is what UIContext blurs on.
         _context.Focus(undo);
         Assert.False(undo.HandleKeyDown(Key(Keys.Escape, 0)));
+    }
+
+    /// <summary>
+    ///     Clicking the picker walks every resampler and comes back round, and each name the
+    ///     list offers builds a different resampler. A name that fell out of
+    ///     <see cref="Resamplers.Create" />'s switch would silently land on the default and
+    ///     the setting would look like it did nothing.
+    /// </summary>
+    [Fact]
+    public void ResamplerPicker_CyclesEveryNameAndEachOneBuilds()
+    {
+        var settings = new VisualizerSettings();
+        var ui = NewInterface(settings);
+        var picker = Descendants(ui.RootPanel).OfType<Button>()
+            .Single(button => button.Classes.Contains("choice-button"));
+
+        Assert.Equal(Resamplers.Hermite, settings.Resampler);
+
+        var built = new List<Type>();
+        foreach (var expected in Resamplers.Names.Skip(1).Append(Resamplers.Names[0]))
+        {
+            built.Add(Resamplers.Create(settings).GetType());
+            picker.OnClick?.Invoke(picker);
+            ui.Update(_context);
+
+            Assert.Equal(expected, settings.Resampler);
+            Assert.Equal(expected, picker.Value.ToString().TrimEnd('\0'));
+        }
+
+        // One click per name, and no two names share a resampler - the default fallback
+        // would show up here as a duplicate.
+        Assert.Equal(Resamplers.Names.Length, built.Distinct().Count());
+    }
+
+    /// <summary>The sinc parameters reach the resampler rather than only the settings file.</summary>
+    [Fact]
+    public void ResamplerParameters_ReachTheBuiltResampler()
+    {
+        var settings = new VisualizerSettings { Resampler = Resamplers.SincHann };
+        var ui = NewInterface(settings);
+
+        // Picked by range, as the sliders above are: nothing else tops out at 2048 or 192.
+        Descendants(ui.RootPanel).OfType<Slider>().Single(slider => slider.Max == 192).Value = 16;
+        Descendants(ui.RootPanel).OfType<Slider>().Single(slider => slider.Max == 2048).Value = 128;
+        ui.Update(_context);
+
+        Assert.Equal(16, settings.SincFilterSize);
+        Assert.Equal(128, settings.SincPrecision);
+
+        // The parameters are private to the resampler, so this asserts on what they change:
+        // a 16-tap filter and a 64-tap one don't resample the same ramp identically.
+        var ramp = Enumerable.Range(0, 512).Select(i => (float)Math.Sin(i * 0.1)).ToArray();
+        var narrow = Resamplers.Create(settings).Resample(ramp, 48000, 44100);
+
+        settings.SincFilterSize = 64;
+        settings.SincPrecision = 512;
+        var wide = Resamplers.Create(settings).Resample(ramp, 48000, 44100);
+
+        Assert.NotEqual(narrow, wide);
     }
 
     private static KeyboardKeyEventArgs Key(Keys key, KeyModifiers modifiers)
