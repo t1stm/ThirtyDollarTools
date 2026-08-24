@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-tdwproj">
+    <comment>Thirty Dollar Editor project</comment>
+    <!-- Projects are JSON, so without this the file lands on whatever handles
+         application/json and opens in a text editor. -->
+    <sub-class-of type="application/json"/>
+    <glob pattern="*.tdwproj" weight="80"/>
+    <icon name="thirty-dollar-visualizer"/>
+  </mime-type>
+  <mime-type type="application/x-tdw">
+    <comment>Thirty Dollar sequence</comment>
+    <!-- One line of pipe-separated events, so a text editor is a sane fallback. -->
+    <sub-class-of type="text/plain"/>
+    <glob pattern="*.tdw" weight="80"/>
+    <glob pattern="*.moai" weight="80"/>
+    <glob pattern="*.🗿" weight="80"/>
+    <icon name="thirty-dollar-visualizer"/>
+  </mime-type>
+</mime-info>

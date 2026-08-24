@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Thirty Dollar Visualizer
+Comment=Visualizer and editor for Thirty Dollar Website sequences
+Exec=@BIN@
+Path=@DIR@
+Icon=thirty-dollar-visualizer
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+StartupWMClass=ThirtyDollarVisualizer
+Actions=editor;
+
+[Desktop Action editor]
+Name=Open the editor
+Exec=@BIN@ --mode editor

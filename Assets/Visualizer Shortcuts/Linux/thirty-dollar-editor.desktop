@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Thirty Dollar Editor
+Comment=Open a Thirty Dollar Editor project
+Exec=@BIN@ --mode editor -i %f
+Path=@DIR@
+Icon=thirty-dollar-visualizer
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+StartupWMClass=ThirtyDollarVisualizer
+MimeType=application/x-tdwproj;
+# Hidden from the menu on purpose: -i has no value when there is no file to open,
+# and the parser rejects that. The main entry's "Open the editor" action starts an
+# empty editor.
+NoDisplay=true
