@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Thirty Dollar Visualizer
+Comment=Play a Thirty Dollar sequence
+Exec=@BIN@ --mode visualizer -i %f
+Path=@DIR@
+Icon=thirty-dollar-visualizer
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+MimeType=application/x-tdw;
+# Hidden from the menu on purpose: -i has no value when there is no file to play,
+# and the parser rejects that. The main entry starts the app normally.
+NoDisplay=true
+StartupWMClass=ThirtyDollarVisualizer
