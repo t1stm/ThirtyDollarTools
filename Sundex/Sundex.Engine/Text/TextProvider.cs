@@ -17,7 +17,7 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
 {
     private static Shader _shader = null!;
 
-    public readonly GPUTextureAtlas TextAtlas = new(2048, 2048, InternalFormat.Rgba32f, MipmapMode.Disabled)
+    public readonly GPUTextureAtlas TextAtlas = new(2048, 2048, InternalFormat.Rgb16, MipmapMode.Disabled)
     {
         AtlasID = "TextAtlas_" + fontName.Replace(' ', '_')
     };

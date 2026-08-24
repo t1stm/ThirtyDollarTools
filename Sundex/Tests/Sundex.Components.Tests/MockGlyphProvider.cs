@@ -8,9 +8,9 @@ namespace Sundex.Components.Tests;
 
 public class MockGlyphProvider : IGlyphProvider
 {
-    public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character)
+    public Image<Rgb48> GetGlyph(ReadOnlySpan<char> character)
     {
-        return new Image<RgbaVector>(1, 1);
+        return new Image<Rgb48>(1, 1);
     }
 
     // Em-normalised rather than raw font units, so the numbers stay readable: TextInputTests

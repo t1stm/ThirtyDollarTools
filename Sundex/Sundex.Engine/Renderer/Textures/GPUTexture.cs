@@ -67,6 +67,11 @@ public class GPUTexture : IBindable
                 var handle = pixelMemory.Pin();
                 var pixelInfo = UploadInfoProvider<TPixel>.UploadInfo;
 
+                // RGB bytes make 3-byte texels, so a row is only guaranteed to land on the
+                // default 4-byte unpack boundary by luck of the width. 1 is right for every
+                // format we upload.
+                GL.PixelStorei(PixelStoreParameter.UnpackAlignment, 1);
+
                 GL.TexSubImage2D(TextureTarget.Texture2d, 0, rect?.X ?? 0, rect?.Y ?? 0,
                     rect?.Width ?? Width, rect?.Height ?? Height, pixelInfo.Format, pixelInfo.Type, handle.Pointer);
                 RenderMarker.Debug(

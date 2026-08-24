@@ -91,4 +91,28 @@ public class GlyphWarmupTests
         foreach (var c in characters)
             Assert.True(provider.GetSizingData([c]).AdvanceInUnitSpace >= 0, $"'{c}' never generated");
     }
+
+    /// <summary>
+    ///     The generator works in floats and the atlas stores 16-bit channels, so the
+    ///     conversion has to clamp: a signed distance runs past both ends of the range, and a
+    ///     bare cast would wrap the far-outside pixels round to solid-inside white.
+    /// </summary>
+    [Fact]
+    public void GetGlyph_KeepsEveryChannelInsideTheStorableRange()
+    {
+        var provider = NewProvider();
+        using var glyph = provider.GetGlyph("A");
+
+        // The distances sit in a narrow band around the middle of the range - a wrapped cast
+        // would throw a far-outside pixel to one of the extremes, and this catches that.
+        // The band being this narrow is also why the atlas is 16-bit and not Rgb24.
+        for (var y = 0; y < glyph.Height; y++)
+        for (var x = 0; x < glyph.Width; x++)
+        {
+            var pixel = glyph[x, y];
+            Assert.InRange(pixel.R, ushort.MaxValue / 4, ushort.MaxValue / 4 * 3);
+            Assert.InRange(pixel.G, ushort.MaxValue / 4, ushort.MaxValue / 4 * 3);
+            Assert.InRange(pixel.B, ushort.MaxValue / 4, ushort.MaxValue / 4 * 3);
+        }
+    }
 }

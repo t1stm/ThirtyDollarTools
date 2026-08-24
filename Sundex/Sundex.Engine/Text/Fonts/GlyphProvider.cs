@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Sundex.MSDF.Fonts;
@@ -11,21 +10,21 @@ public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyph
     public const int GlyphSize = 48;
     public const float MsdfRange = 4.0f;
 
-    /// <summary>RGBA — the shader reads RGB, and the alpha channel is left at 1 for the atlas format.</summary>
-    private const int Channels = 4;
+    /// <summary>An MSDF is three channels; the alpha a glyph is drawn with comes from the vertex colour.</summary>
+    private const int Channels = 3;
 
     /// <summary>
     ///     Glyphs generated ahead of time by <see cref="Warm" />, waiting for the render
     ///     thread to come and upload them. Entries are taken out as they are consumed: an
     ///     uploaded glyph lives in the atlas from then on and this copy is dead weight.
     /// </summary>
-    private readonly ConcurrentDictionary<string, Image<RgbaVector>> _warmed = new();
+    private readonly ConcurrentDictionary<string, Image<Rgb48>> _warmed = new();
 
     private MsdfFontMetrics? _cachedMetrics;
 
     protected Dictionary<string, TextAlignmentData> SizingData { get; } = new();
 
-    public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character)
+    public Image<Rgb48> GetGlyph(ReadOnlySpan<char> character)
     {
         // Warmed ahead of this frame, off the render thread - all that is left here is
         // handing it to the caller to upload.
@@ -49,15 +48,22 @@ public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyph
         _warmed.TryAdd(key, Generate(character));
     }
 
-    private Image<RgbaVector> Generate(ReadOnlySpan<char> character)
+    private Image<Rgb48> Generate(ReadOnlySpan<char> character)
     {
-        var pixels = new RgbaVector[GlyphSize * GlyphSize];
-        var floats = MemoryMarshal.Cast<RgbaVector, float>(pixels.AsSpan());
-        floats.Fill(1f); // leaves alpha at 1 where TryGenerate only writes RGB
+        // The generator writes floats, the atlas stores 16-bit channels. The distances only
+        // ever occupy a narrow band around 0.5 (~0.42..0.59 for this font), which 8 bits would
+        // flatten to a handful of steps across an antialiased edge; 16 leaves thousands.
+        var distances = new float[GlyphSize * GlyphSize * Channels];
 
         var font = fontProvider.GetFont(fontName);
-        if (!font.TryGenerate(character, floats, GlyphSize, Channels, MsdfRange, out var glyph))
+        if (!font.TryGenerate(character, distances, GlyphSize, Channels, MsdfRange, out var glyph))
             throw new Exception($"No outline for character: {character}");
+
+        var pixels = new Rgb48[GlyphSize * GlyphSize];
+        for (var i = 0; i < pixels.Length; i++)
+            pixels[i] = new Rgb48(ToChannel(distances[i * Channels]),
+                ToChannel(distances[i * Channels + 1]),
+                ToChannel(distances[i * Channels + 2]));
 
         lock (SizingData)
         {
@@ -70,8 +76,16 @@ public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyph
             });
         }
 
-        return Image.WrapMemory<RgbaVector>(Configuration.Default, pixels, GlyphSize, GlyphSize);
+        return Image.WrapMemory<Rgb48>(Configuration.Default, pixels, GlyphSize, GlyphSize);
     }
+
+    /// <summary>
+    ///     A signed distance runs well past the shape on both sides, so it has to be clamped
+    ///     rather than cast: anything beyond the range is saturated solid inside or outside,
+    ///     which is exactly what a pixel that far from an edge means.
+    /// </summary>
+    private static ushort ToChannel(float distance) =>
+        (ushort)Math.Clamp(distance * ushort.MaxValue + 0.5f, 0f, ushort.MaxValue);
 
     public MsdfFontMetrics GetFontMetrics() =>
         _cachedMetrics ??= fontProvider.GetFont(fontName).Metrics;

@@ -7,7 +7,7 @@ namespace Sundex.Engine.Text.Fonts;
 public interface IGlyphProvider
 {
     /// <summary>Generates and returns an MSDF glyph image for the given character.</summary>
-    Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character);
+    Image<Rgb48> GetGlyph(ReadOnlySpan<char> character);
 
     /// <summary>
     ///     Generates a glyph ahead of the frame that first draws it and parks it for the
