@@ -406,13 +406,13 @@ public class SettingsInterfaceMarkupTests
     }
 
     /// <summary>
-    ///     Clicking the picker walks every resampler and comes back round, and each name the
+    ///     The picker's menu offers every resampler, picking one sticks, and each name the
     ///     list offers builds a different resampler. A name that fell out of
     ///     <see cref="Resamplers.Create" />'s switch would silently land on the default and
     ///     the setting would look like it did nothing.
     /// </summary>
     [Fact]
-    public void ResamplerPicker_CyclesEveryNameAndEachOneBuilds()
+    public void ResamplerPicker_OffersEveryNameAndEachOneBuilds()
     {
         var settings = new VisualizerSettings();
         var ui = NewInterface(settings);
@@ -422,18 +422,26 @@ public class SettingsInterfaceMarkupTests
         Assert.Equal(Resamplers.Hermite, settings.Resampler);
 
         var built = new List<Type>();
-        foreach (var expected in Resamplers.Names.Skip(1).Append(Resamplers.Names[0]))
+        foreach (var expected in Resamplers.Names)
         {
-            built.Add(Resamplers.Create(settings).GetType());
             picker.OnClick?.Invoke(picker);
+            var menu = ui.RootPanel.Children.OfType<DropdownMenu>().Single();
+            var item = menu.Menu.Children.OfType<DropdownItem>()
+                .Single(i => i.Value.ToString().TrimEnd('\0') == expected);
+
+            item.OnClick?.Invoke(item);
             ui.Update(_context);
 
             Assert.Equal(expected, settings.Resampler);
             Assert.Equal(expected, picker.Value.ToString().TrimEnd('\0'));
+            // Picking closes the menu, so the next click opens a fresh one rather than
+            // stacking a second layer on the root.
+            Assert.Empty(ui.RootPanel.Children.OfType<DropdownMenu>());
+
+            built.Add(Resamplers.Create(settings).GetType());
         }
 
-        // One click per name, and no two names share a resampler - the default fallback
-        // would show up here as a duplicate.
+        // No two names share a resampler - the default fallback would show up as a duplicate.
         Assert.Equal(Resamplers.Names.Length, built.Distinct().Count());
     }
 

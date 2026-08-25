@@ -45,8 +45,11 @@ public sealed class EditorTrack : FlexPanel
 
     public ProjectTrack Track { get; }
 
-    /// <summary>Fired on right-click; EditorInterface shows the track's context menu.</summary>
-    public Action<ProjectTrack>? OnContextMenu { get; set; }
+    /// <summary>
+    ///     Fired on right-click with the cursor position; EditorInterface hangs the track's
+    ///     context menu off that point.
+    /// </summary>
+    public Action<ProjectTrack, float, float>? OnContextMenu { get; set; }
 
     /// <summary>Hover hint text for the remove button; null on hover exit. See EditorInterface.SetHint.</summary>
     public Action<string?>? OnHint { get; set; }
@@ -59,13 +62,13 @@ public sealed class EditorTrack : FlexPanel
     }
 
     /// <summary>
-    ///     Right-click opens the context menu (duplicate, for now). Right-press is
+    ///     Right-click opens the track's context menu at the cursor. Right-press is
     ///     level-triggered (fires every held frame) - EditorInterface guards against
     ///     reopening while one is already up.
     /// </summary>
     public override bool HandleRightPress(float x, float y)
     {
-        OnContextMenu?.Invoke(Track);
+        OnContextMenu?.Invoke(Track, x, y);
         return true;
     }
 

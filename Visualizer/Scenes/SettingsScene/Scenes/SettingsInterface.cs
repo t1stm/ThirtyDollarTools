@@ -19,8 +19,8 @@ namespace SettingsScene.Scenes;
 /// <summary>
 ///     One row of the settings screen. The control is chosen from the property's type;
 ///     <see cref="Min" />, <see cref="Max" /> and <see cref="Step" /> are only read for the
-///     numeric ones, and <see cref="Choices" /> turns a string row into a button that cycles
-///     the listed values instead of a free text field.
+///     numeric ones, and <see cref="Choices" /> turns a string row into a button that drops
+///     the listed values down instead of a free text field.
 /// </summary>
 public sealed record SettingRow(
     string Property,
@@ -70,7 +70,7 @@ public class SettingsInterface
         // hiding them would leave holes in the section. Each one says whose it is instead.
         ("R E S A M P L E R", [
             new SettingRow(nameof(VisualizerSettings.Resampler), "Resampler",
-                "Click to cycle. Changes how samples are pitched.",
+                "Changes how samples are pitched.",
                 Choices: Resamplers.Names),
             new SettingRow(nameof(VisualizerSettings.SincFilterSize), "Sinc filter size",
                 "Taps per sample. Sinc (Hann) only.", 8, 192, 8),
@@ -325,18 +325,21 @@ public class SettingsInterface
     }
 
     /// <summary>
-    ///     A closed set of strings, as a button that steps to the next one. A drop-down would
-    ///     have to open over the scrolling list it lives in, which is the one thing a nested
-    ///     child can't paint over; seven values are two seconds of clicking.
+    ///     A closed set of strings, as a button that drops its values down. The menu mounts
+    ///     on <see cref="RootPanel" />, not on the button: it is a ModalLayer pinned above
+    ///     everything, so it paints over the scrolling list the row lives in - a nested child
+    ///     could not.
     /// </summary>
     private Button BuildChoice(PropertyInfo property, string[] choices)
     {
-        // A name the list doesn't have - a hand-edited settings file - reads as index -1, so
-        // the first click lands on the first choice rather than throwing.
-        var button = new Button(UI, Current())
+        // A name the list doesn't have - a hand-edited settings file - still labels the
+        // button with the first choice rather than blank.
+        var button = new Button(UI, Current()) { Classes = ["choice-button"] };
+        button.OnClick = _ =>
         {
-            Classes = ["choice-button"],
-            OnClick = _ => property.SetValue(_settings, choices[(Array.IndexOf(choices, Current()) + 1) % choices.Length])
+            var menu = DropdownMenu.Below(button);
+            foreach (var choice in choices) menu.AddItem(choice, () => property.SetValue(_settings, choice));
+            RootPanel.AddChild(menu);
         };
 
         Bind(property, () => button.Value = Current());

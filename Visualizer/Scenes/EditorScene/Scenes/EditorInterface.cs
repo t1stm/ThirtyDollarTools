@@ -71,7 +71,7 @@ public class EditorInterface
     ///     Guards <see cref="ShowTrackContextMenu" /> against reopening on every held frame -
     ///     right-press is level-triggered, so a stationary right-click keeps firing.
     /// </summary>
-    private ModalLayer? _trackContextMenuModal;
+    private DropdownMenu? _trackContextMenuModal;
 
     public EditorInterface(UIContext context, ThirtyDollarWorkflow workflow, Action back)
     {
@@ -524,23 +524,34 @@ public class EditorInterface
         _workflow.Game.Title = $"{State.Project.Info.Name}{(State.Dirty ? " •" : "")} - {_defaultTitle}";
     }
 
-    private void ShowTrackContextMenu(ProjectTrack track)
+    private void ShowTrackContextMenu(ProjectTrack track, float x, float y)
     {
         if (_trackContextMenuModal != null) return;
 
-        var menu = new TrackContextMenu(_context, $"{track.Name} copy");
-        var modal = _dialogHost.Show(menu.Element);
-        _trackContextMenuModal = modal;
-        modal.OnDismissRequested = m =>
+        var menu = new DropdownMenu(_context, x, y);
+        menu.AddItem("Open", () => State.OpenTrack(track));
+        menu.AddItem("Duplicate…", () => ShowDuplicateTrackDialog(track));
+        menu.AddItem("Remove", () => State.RemoveTrack(track));
+
+        _dialogHost.Root.AddChild(menu);
+        _trackContextMenuModal = menu;
+        menu.OnDismissRequested = m =>
         {
-            _dialogHost.Close(m);
+            _dialogHost.Root.RemoveChild(m);
             _trackContextMenuModal = null;
         };
-        menu.CancelButton.OnClick = _ => modal.OnDismissRequested!(modal);
-        menu.DuplicateButton.OnClick = _ =>
+    }
+
+    /// <summary>Duplicate's name prompt, reached from the track context menu.</summary>
+    private void ShowDuplicateTrackDialog(ProjectTrack track)
+    {
+        var dialog = new TrackContextMenu(_context, $"{track.Name} copy");
+        var modal = _dialogHost.Show(dialog.Element);
+        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+        dialog.DuplicateButton.OnClick = _ =>
         {
-            State.DuplicateTrack(track, menu.NameInput.Value);
-            modal.OnDismissRequested!(modal);
+            State.DuplicateTrack(track, dialog.NameInput.Value);
+            _dialogHost.Close(modal);
         };
     }
 

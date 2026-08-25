@@ -19,7 +19,7 @@ public static class Resamplers
     public const string SincKaiserFast = "Sinc (Kaiser fast)";
     public const string ByteCruncher = "Byte cruncher";
 
-    /// <summary>In the order the settings screen cycles through them: cheapest first.</summary>
+    /// <summary>In the order the settings screen lists them: cheapest first.</summary>
     public static readonly string[] Names =
         [Hermite, Linear, None, SincHann, SincKaiserBest, SincKaiserFast, ByteCruncher];
 

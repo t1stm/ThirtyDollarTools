@@ -41,7 +41,7 @@ public sealed class TrackListPanel : ScrollView
         AddChild(_addTrackRow);
     }
 
-    public Action<ProjectTrack>? OnContextMenu { get; set; }
+    public Action<ProjectTrack, float, float>? OnContextMenu { get; set; }
 
     /// <summary>Relayed from each row's hover hint; see <see cref="EditorTrack.OnHint" />.</summary>
     public Action<string?>? OnHint { get; set; }
@@ -64,7 +64,7 @@ public sealed class TrackListPanel : ScrollView
         foreach (var track in tracks)
             AddChild(new EditorTrack(_context, track, _state)
             {
-                OnContextMenu = t => OnContextMenu?.Invoke(t),
+                OnContextMenu = (t, x, y) => OnContextMenu?.Invoke(t, x, y),
                 OnHint = h => OnHint?.Invoke(h)
             });
         AddChild(_addTrackRow);

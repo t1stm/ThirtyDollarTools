@@ -212,3 +212,32 @@ class rule {
 class spacer {
     width = 100%;
 }
+
+// ---------------------------------------------------------------- popup menus
+
+// Sundex.Components.Panels.DropdownMenu's two pieces. Tag rules rather than classes
+// because a menu is opened from code at a cursor position - there is no markup to hang
+// a class on - and unlike `component button` these two tags belong to nothing else, so
+// they cannot reach the pooled labels or the code-tinted toolbar buttons.
+component dropdown {
+    background = $theme.surface;
+    border-radius = 6;
+    padding = 4;
+    spacing = 2;
+}
+
+component dropdown-item {
+    // The base fill has to exist for the hover override to have something to replace.
+    background = "#00000000";
+    border-radius = 4;
+    padding = 6;
+    font-size = 14;
+
+    state[hovered] = {
+        background = $theme.divider_hover;
+    }
+
+    state[pressed] = {
+        background = $theme.divider_pressed;
+    }
+}

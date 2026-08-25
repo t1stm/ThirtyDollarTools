@@ -94,3 +94,23 @@ class gradient-radial {
         ];
     };
 }
+component dropdown {
+    background = "#1f2229ff";
+    border-radius = 6px;
+    padding = 4px;
+    spacing = 2px;
+    // width = 180px; // omit to auto-size to the widest item
+}
+
+component dropdown-item {
+    background = "#00000000";
+    font-size = 14px;
+    padding = 6px;
+    border-radius = 4px;
+
+    // a state block can only override a property the base block declares - hence the
+    // transparent background above.
+    state[hovered] = !override {
+        background = "#2e3240ff"
+    };
+}

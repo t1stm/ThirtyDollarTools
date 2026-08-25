@@ -100,7 +100,7 @@ public class NumericInput : TextInput
         // the reformat half needs to happen for text that parsed fine too - ??= only ever
         // fired for garbage, so "150" typed against a Max of 100 kept its raw text while
         // Value already read 100.
-        Value ??= AllowNull ? null : _lastValid;
+        Value = Value ?? (AllowNull ? null : _lastValid);
     }
 
     protected override void DoLayout()

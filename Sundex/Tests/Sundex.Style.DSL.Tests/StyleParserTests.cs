@@ -104,7 +104,7 @@ public class StyleParserTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(sheet.Animations, Has.Count.EqualTo(3));
-            Assert.That(sheet.Components, Has.Count.EqualTo(2));
+            Assert.That(sheet.Components, Has.Count.EqualTo(4));
             Assert.That(sheet.Classes, Has.Count.EqualTo(3));
             Assert.That(sheet.IDTags, Has.Count.EqualTo(1));
         }
@@ -133,7 +133,7 @@ public class StyleParserTests
         var styleDslRoot = Path.Combine(projectRoot!, "Sundex");
         var sheet = StyleParser.Parse(dsl, p => File.ReadAllText(Path.Combine(styleDslRoot, p)));
 
-        Assert.That(sheet.Components, Has.Count.EqualTo(2));
+        Assert.That(sheet.Components, Has.Count.EqualTo(4));
         using (Assert.EnterMultipleScope())
         {
             Assert.That(sheet.Components.ContainsKey("button"), Is.True);

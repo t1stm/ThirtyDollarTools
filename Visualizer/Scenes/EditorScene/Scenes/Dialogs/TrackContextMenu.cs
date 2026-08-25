@@ -7,8 +7,8 @@ using EditorScene.Scenes.Components;
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     Track row context menu (ModalLayer content), opened by right-clicking a track in
-///     the track list. Just "duplicate" for now: a name field (prefilled "&lt;name&gt; copy")
+///     The duplicate-track prompt (ModalLayer content), reached from a track row's
+///     right-click menu: a name field (prefilled "&lt;name&gt; copy")
 ///     plus confirm/cancel. Pure view - the owner decides what "duplicate" does.
 ///     The tree is TrackContextMenu.snx.xml; this only resolves its handles.
 /// </summary>

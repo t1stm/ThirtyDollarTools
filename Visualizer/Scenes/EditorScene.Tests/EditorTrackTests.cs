@@ -30,19 +30,25 @@ public class EditorTrackTests
     }
 
     [Fact]
-    public void RightClickOnARow_FiresOnContextMenu_WithThatTrack()
+    public void RightClickOnARow_FiresOnContextMenu_WithThatTrackAndTheCursor()
     {
         var ctx = new EditorTestContext();
         var state = new EditorState();
         var track = state.AddTrack();
         ProjectTrack? seen = null;
+        (float x, float y) at = default;
         var row = EditorTestContext.Styled(new EditorTrack(ctx, track, state));
         row.Width = 200;
-        row.OnContextMenu = t => seen = t;
+        row.OnContextMenu = (t, x, y) =>
+        {
+            seen = t;
+            at = (x, y);
+        };
         row.Layout();
 
         ctx.UpdatePointer(row, 195, 30, true, false, false, Vector2.Zero, true);
 
         Assert.Same(track, seen);
+        Assert.Equal((195, 30), at); // the menu hangs off the cursor, not the row
     }
 }

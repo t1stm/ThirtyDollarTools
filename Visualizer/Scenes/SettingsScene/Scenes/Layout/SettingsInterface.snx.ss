@@ -284,3 +284,33 @@ component label {
     font-size = 15;
     font-color = "#d6dadc";
 }
+
+// Sundex.Components.Panels.DropdownMenu, opened by the choice-button rows. A tag rule
+// rather than a class: a menu is built in code at open time, with nothing to hang a
+// class on. It stays clear of `component button` above - a DropdownItem's tag is its
+// own, so the fixed 104x36 button box doesn't crop the menu's rows.
+component dropdown {
+    // Deliberately not the choice-button's own #21243a: sharing it made the open menu and
+    // the button it hangs from read as one tall box.
+    background = "#292e42";
+    border-radius = 6;
+    padding = 4;
+    spacing = 2;
+    width = 240;
+}
+
+component dropdown-item {
+    // The base fill has to exist for the hover override to have something to replace.
+    background = "#00000000";
+    border-radius = 4;
+    padding = 6;
+    font-size = 14;
+
+    state[hovered] = {
+        background = "#3f4160";
+    }
+
+    state[pressed] = {
+        background = "#21243a";
+    }
+}
