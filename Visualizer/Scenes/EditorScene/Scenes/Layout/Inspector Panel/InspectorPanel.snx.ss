@@ -105,3 +105,19 @@ class inspector-field-narrow {
 class inspector-check-label {
     font-size = 13;
 }
+
+// The track color row: the chip and its Change button, centered against each other and
+// filling the row's height so the pair centers against the row's label too.
+class inspector-color-row {
+    height = 34;
+    spacing = 10;
+    vertical-align = "center";
+}
+
+// The chip itself. Read-only - the swatch dialog does the picking - so it is a plain
+// filled box. Its fill is set in code: it is the track's palette entry, not a look.
+class inspector-color-chip {
+    width = 36;
+    height = 18;
+    border-radius = 4;
+}

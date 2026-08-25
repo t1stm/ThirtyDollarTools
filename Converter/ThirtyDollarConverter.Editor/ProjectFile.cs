@@ -59,7 +59,8 @@ public static class ProjectFile
                                 SaveAutomation(automation.Keyframes)!,
                                 automation.Sounds))
                         ],
-                    track.Transpose
+                    track.Transpose,
+                    track.ColorIndex
                 ))
             ],
             [
@@ -120,6 +121,7 @@ public static class ProjectFile
             var track = project.AddTrack(track_dto.Id, track_dto.Timing);
             track.Name = track_dto.Name;
             track.Transpose = track_dto.Transpose;
+            track.ColorIndex = track_dto.ColorIndex;
 
             var segments = track_dto.Segments ?? [];
             for (var i = 0; i < segments.Count; i++)
@@ -288,7 +290,9 @@ public static class ProjectFile
         // Null (missing key) = no track-wide automation.
         List<TrackAutomationDto>? TrackAutomations = null,
         // Null (missing key or explicit) = inherits the project-wide transpose.
-        float? Transpose = null);
+        float? Transpose = null,
+        // Null (missing key) = the arrangement's default clip color.
+        int? ColorIndex = null);
 
     private record TrackAutomationDto(AutomationDto Automation, List<string>? Sounds);
 

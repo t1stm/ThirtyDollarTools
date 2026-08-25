@@ -574,4 +574,109 @@ public class ArrangementViewTests
                 box.AbsoluteX + box.Width - padding, box.AbsoluteY + box.Height), slot.Clip);
         }
     }
+
+    [Fact]
+    public void RecoloringATrack_RepaintsItsClips_FromThePalette()
+    {
+        var (_, state, view) = NewView();
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 0, 0);
+        view.Layout();
+
+        Assert.Equal(view.ClipColor, view.FillOf(view.Blocks[0]));
+
+        // The state change refreshes the view through the wiring NewView set up.
+        state.SetTrackColor(track, 2);
+        view.Layout();
+
+        Assert.NotEmpty(view.ClipPalette);
+        Assert.Equal(view.ClipPalette[2], view.FillOf(view.Blocks[0]));
+
+        // Past the palette's end wraps rather than throwing - a retuned palette must not
+        // break a project colored against a longer one.
+        state.SetTrackColor(track, view.ClipPalette.Length + 1);
+        view.Layout();
+        Assert.Equal(view.ClipPalette[1], view.FillOf(view.Blocks[0]));
+
+        state.SetTrackColor(track, null);
+        view.Layout();
+        Assert.Equal(view.ClipColor, view.FillOf(view.Blocks[0]));
+    }
+
+    [Fact]
+    public void SelectingAClip_LiftsItsOwnColor_RatherThanReplacingIt()
+    {
+        var (ctx, state, view) = NewView();
+        var track = state.AddTrack();
+        state.SetTrackColor(track, 3);
+        state.PlaceTrack(track, 0, 0);
+        view.Layout();
+
+        var resting = view.FillOf(view.Blocks[0]);
+        Assert.Equal(view.ClipPalette[3], resting);
+
+        Press(ctx, view, 10, 30); // the clip starts at x 0 on lane 0
+        Release(ctx, view, 10, 30);
+        view.Layout();
+
+        var selected = view.FillOf(view.Blocks[0]);
+        Assert.True(state.SelectedPlacements.Count == 1, "the press did not select the clip");
+
+        // Brighter on every channel.
+        Assert.True(selected.X > resting.X && selected.Y > resting.Y && selected.Z > resting.Z,
+            $"{selected} is not brighter than {resting}");
+        Assert.Equal(resting.W, selected.W);
+
+        // Still recognizably the same color: the channels keep their order against each
+        // other, which a fixed selection shade would flatten away.
+        Assert.Equal(resting.X.CompareTo(resting.Y), selected.X.CompareTo(selected.Y));
+        Assert.Equal(resting.Y.CompareTo(resting.Z), selected.Y.CompareTo(selected.Z));
+
+        // A differently colored track lifts to a different shade - the whole point of
+        // deriving it instead of painting one fixed selection color.
+        var other = state.AddTrack();
+        state.SetTrackColor(other, 0);
+        state.PlaceTrack(other, 1, 0);
+        view.Layout();
+        Assert.NotEqual(selected, view.ColorOf(other, true));
+    }
+
+    [Fact]
+    public void EveryClipFill_CarriesItsLabel_AtRestAndSelected()
+    {
+        var (_, _, view) = NewView();
+
+        // 3:1 is WCAG AA for large text and UI components - the bar a 13px semibold name
+        // over a colored block has to clear. The guard on the sheet's one label color: if
+        // a palette entry is ever retuned dark enough to fail here, the arrangement needs
+        // the light shade back (per fill, or for the lot), not a quietly unreadable clip.
+        foreach (var fill in view.ClipPalette.Append(view.ClipColor))
+        foreach (var shade in new[] { fill, Lift(fill) })
+            Assert.True(Contrast(view.ClipLabelColor, shade) >= 3f,
+                $"{shade} carries its label at only {Contrast(view.ClipLabelColor, shade):0.00}:1");
+        return;
+
+        // Mirrors ArrangementView's own selected lift - deliberately a second
+        // implementation, so a change to either one has to be meant.
+        static Vector4 Lift(Vector4 color)
+        {
+            return new Vector4(Vector3.Lerp(color.Xyz, Vector3.One, 0.35f), color.W);
+        }
+
+        static float Contrast(Vector4 text, Vector4 background)
+        {
+            var (a, b) = (Luminance(text), Luminance(background));
+            return (Math.Max(a, b) + 0.05f) / (Math.Min(a, b) + 0.05f);
+        }
+
+        static float Luminance(Vector4 color)
+        {
+            static float Linear(float c)
+            {
+                return c <= 0.03928f ? c / 12.92f : MathF.Pow((c + 0.055f) / 1.055f, 2.4f);
+            }
+
+            return 0.2126f * Linear(color.X) + 0.7152f * Linear(color.Y) + 0.0722f * Linear(color.Z);
+        }
+    }
 }

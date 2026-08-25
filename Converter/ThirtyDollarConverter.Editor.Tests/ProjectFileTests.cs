@@ -261,4 +261,23 @@ public class ProjectFileTests
         Assert.Null(loaded.Tracks[0].Transpose);
         Assert.Equal(0f, loaded.Tracks[1].Transpose);
     }
+
+    [Fact]
+    public void TrackColor_RoundTrips_AndOldFilesHaveNone()
+    {
+        var project = new ThirtyDollarProject();
+        var colored = project.NewTrack();
+        colored.ColorIndex = 3;
+        project.NewTrack(); // left default
+
+        var loaded = ProjectFile.Load(ProjectFile.Save(project));
+
+        Assert.Equal(3, loaded.Tracks[0].ColorIndex);
+        Assert.Null(loaded.Tracks[1].ColorIndex);
+
+        // An uncolored track writes no key at all, so old files load as uncolored too.
+        var plain = new ThirtyDollarProject();
+        plain.NewTrack();
+        Assert.DoesNotContain("colorIndex", ProjectFile.Save(plain));
+    }
 }

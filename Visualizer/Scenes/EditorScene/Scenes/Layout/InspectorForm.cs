@@ -1,3 +1,5 @@
+using OpenTK.Mathematics;
+using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
@@ -201,6 +203,34 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
         var value = new Label(context, get()) { Classes = ["inspector-check-label"], Y = 9 };
         Row(label, value);
         _syncs.Add(() => value.SetTextContents(get()));
+    }
+
+    /// <summary>
+    ///     A read-only color chip with a button to change it. The fill comes from the
+    ///     caller (the arrangement owns the palette), so it refreshes on
+    ///     <see cref="Sync" /> like any other value rather than needing a rebuild.
+    /// </summary>
+    public void ColorRow(string label, Func<Vector4> get, Action onClick)
+    {
+        var plane = new ColoredPlane { Color = get() };
+        // A flex row rather than the two absolute offsets the other rows use: the chip and
+        // the button have different heights, and centering them against each other beats
+        // hand-tuning a y per font size.
+        var value = new FlexPanel(context)
+        {
+            Classes = ["inspector-color-row"],
+            Children =
+            [
+                new Panel(context) { Classes = ["inspector-color-chip"], Background = plane },
+                new Button(context, "Change…")
+                {
+                    Classes = ["inspector-check-label"],
+                    OnClick = _ => onClick()
+                }
+            ]
+        };
+        Row(label, value);
+        _syncs.Add(() => plane.Color = get());
     }
 
     public void ActionRow(string label, Action onClick)

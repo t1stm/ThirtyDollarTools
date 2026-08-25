@@ -186,7 +186,9 @@ public class EditorInterface
                     _soundFilterPicker.SetSelected(automation.Sounds ?? []);
                     RootPanel.AddChild(SoundFilterModal);
                 },
-                OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes)
+                OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes),
+                OnChangeTrackColor = ShowTrackColorDialog,
+                TrackColor = track => _arrangement.ColorOf(track) // the chip shows the resting fill, never the selected lift
             };
 
         State.OnProjectChanged += () =>
@@ -530,6 +532,7 @@ public class EditorInterface
 
         var menu = new DropdownMenu(_context, x, y);
         menu.AddItem("Open", () => State.OpenTrack(track));
+        menu.AddItem("Change color…", () => ShowTrackColorDialog(track));
         menu.AddItem("Duplicate…", () => ShowDuplicateTrackDialog(track));
         menu.AddItem("Remove", () => State.RemoveTrack(track));
 
@@ -539,6 +542,23 @@ public class EditorInterface
         {
             _dialogHost.Root.RemoveChild(m);
             _trackContextMenuModal = null;
+        };
+    }
+
+    /// <summary>
+    ///     The recolor swatch grid, reached from a track's context menu and from the
+    ///     inspector's Color row. The palette is the arrangement's, so the swatches are
+    ///     exactly the fills a clip can take.
+    /// </summary>
+    private void ShowTrackColorDialog(ProjectTrack track)
+    {
+        var dialog = new TrackColorDialog(_context, track.Name, _arrangement.ClipPalette,
+            _arrangement.ClipColor, track.ColorIndex);
+        var modal = _dialogHost.Show(dialog.Element);
+        dialog.OnPick = index =>
+        {
+            _dialogHost.Close(modal);
+            State.SetTrackColor(track, index);
         };
     }
 

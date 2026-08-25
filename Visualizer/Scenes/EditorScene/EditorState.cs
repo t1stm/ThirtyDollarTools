@@ -921,6 +921,19 @@ public class EditorState
         Touch();
     }
 
+    /// <summary>
+    ///     Recolors a track's clips on the arrangement. The index addresses the view's
+    ///     palette (<c>ArrangementView.ClipPalette</c>); null restores the default
+    ///     clip fill. Not undoable, like <see cref="RenameTrack" /> - it changes nothing
+    ///     the project sounds like.
+    /// </summary>
+    public void SetTrackColor(ProjectTrack track, int? colorIndex)
+    {
+        if (track.ColorIndex == colorIndex) return;
+        track.ColorIndex = colorIndex;
+        Touch();
+    }
+
     public void SelectTrack(ProjectTrack? track)
     {
         if (SelectedTrack == track) return;

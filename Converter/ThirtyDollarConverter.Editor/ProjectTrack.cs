@@ -19,6 +19,13 @@ public class ProjectTrack(TimingInfo timing, int id)
     public float? Transpose { get; set; }
 
     /// <summary>
+    ///     Index into the arrangement's clip palette (GridViews.snx.ss's <c>clip-palette</c>),
+    ///     wrapped modulo its length so a retuned palette can never leave a track unpaintable.
+    ///     Null (the default) paints the shared clip color instead.
+    /// </summary>
+    public int? ColorIndex { get; set; }
+
+    /// <summary>
     ///     The consecutive timing regions of this track, laid out back to back.
     ///     A track always holds at least one segment.
     /// </summary>
@@ -58,7 +65,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     /// </summary>
     internal ProjectTrack Duplicate(int id, string name)
     {
-        var copy = new ProjectTrack(Timing, id) { Name = name, Transpose = Transpose };
+        var copy = new ProjectTrack(Timing, id) { Name = name, Transpose = Transpose, ColorIndex = ColorIndex };
         copy._segments.Clear();
         foreach (var segment in _segments)
             copy._segments.Add(segment.Duplicate());

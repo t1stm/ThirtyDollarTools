@@ -82,6 +82,51 @@ id unsaved-changes-dialog {
     width = 360;
 }
 
+// The recolor grid. Three 88-wide options plus two 8 gaps fill the 292 inner width.
+id track-color-dialog {
+    width = 320;
+    spacing = 12;
+}
+
+class color-grid {
+    width = 100%;
+    spacing = 8;
+    wrap = true;
+}
+
+// One swatch: the chip with its name under it. The selected option takes a fill, which
+// its padding shows as a ring around the chip - there is no border property to use.
+class color-option {
+    direction = "vertical";
+    width = 88;
+    padding = 4;
+    spacing = 4;
+    horizontal-align = "center";
+    border-radius = 6;
+}
+
+class color-option-selected {
+    background = $theme.row_selected;
+}
+
+// A swatch's name. Its own role rather than muted-label: the selected option paints a
+// fill behind its name, and text_muted on that shade is barely there.
+class color-option-name {
+    font-size = 13;
+    font-color = $theme.text_dim;
+}
+
+class color-option-name-selected {
+    font-color = $theme.text;
+}
+
+// The color itself. Its fill is set in code - it is a palette entry, not a look.
+class color-chip {
+    width = 100%;
+    height = 34;
+    border-radius = 4;
+}
+
 id track-context-menu {
     width = 280;
     spacing = 12;

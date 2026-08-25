@@ -1,3 +1,4 @@
+using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
@@ -75,6 +76,19 @@ public sealed class InspectorPanel
     ///     wires <see cref="OnEditTrackAutomationSounds" />.
     /// </summary>
     public Action<IReadOnlyList<Note>>? OnReassignInstrument { get; set; }
+
+    /// <summary>
+    ///     Fired when the user wants to recolor the selected track. Same seam as the two
+    ///     above: EditorInterface owns the swatch dialog, this panel only offers the row.
+    /// </summary>
+    public Action<ProjectTrack>? OnChangeTrackColor { get; set; }
+
+    /// <summary>
+    ///     The clip color a track currently paints with, for the Color row's chip. Supplied
+    ///     by the host because the palette lives on the arrangement view (its stylesheet
+    ///     owns it); unset, the chip renders transparent.
+    /// </summary>
+    public Func<ProjectTrack, Vector4>? TrackColor { get; set; }
 
     /// <summary>
     ///     Updates the status bar; null label shows "Idle" and hides the progress bar.
@@ -196,6 +210,8 @@ public sealed class InspectorPanel
             {
                 _form.Header("Track");
                 _form.TextRow("Name", () => track.Name, v => _state.RenameTrack(track, v));
+                _form.ColorRow("Color", () => TrackColor?.Invoke(track) ?? default,
+                    () => OnChangeTrackColor?.Invoke(track));
                 _form.CheckRow("Project tempo", () => _state.TrackFollowsRootTiming(track), follows =>
                 {
                     _state.SetTrackFollowsRootTiming(track, follows);
@@ -329,6 +345,8 @@ public sealed class InspectorPanel
 
         var track = placements[0].Track;
         _form.TextRow("Name", () => track.Name, v => _state.RenameTrack(track, v));
+        _form.ColorRow("Color", () => TrackColor?.Invoke(track) ?? default,
+            () => OnChangeTrackColor?.Invoke(track));
         _form.CheckRow("Project tempo", () => _state.TrackFollowsRootTiming(track), follows =>
         {
             _state.SetTrackFollowsRootTiming(track, follows);

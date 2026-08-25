@@ -21,11 +21,21 @@ class arrangement-canvas {
     label-color = $theme.text_dim;
     playhead-color = $theme.playhead;
 
-    // A clip's fill, batched with the lines, the shade it takes while selected, and the
-    // track name written across it.
+    // A clip's fill, batched with the lines, and the track name written across it. There
+    // is no selected shade: a selected clip lifts its own color toward white (see
+    // ArrangementView.SelectedLift), so a track keeps its identity while it is picked.
     clip-color = $theme.accent;
-    clip-selected-color = $theme.selection_highlight;
-    clip-label-color = $theme.text;
+
+    // The track name across a clip. Dark, not `text`: every fill a clip can take is a
+    // mid-to-light palette entry - lighter still while selected - and `text` carries on
+    // none of them (1.4:1 on a selected olive). See ArrangementViewTests's contrast guard,
+    // which fails if a palette entry ever goes dark enough to want the light shade back.
+    clip-label-color = $theme.text_dark;
+
+    // The colors a track can be recolored to (ProjectTrack.ColorIndex indexes this).
+    // The note editor's per-instrument tints below are the same set plus blue, so a
+    // clip and the notes inside it come from one family of shades.
+    clip-palette = $theme.clip_palette;
 }
 
 // The note editor's grid. Sits next to grid-view on <track-editor-view/>.

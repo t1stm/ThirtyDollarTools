@@ -104,16 +104,42 @@ var cut_row = "#353a54";
 // and clips underneath stay readable while the marquee is over them.
 var marquee_fill = "#4c6bcc40";
 
+// The grids' color set, named once here and gathered into the two palettes below - a
+// reference inside an array resolves as it is parsed, so retuning a shade reaches both.
+var palette_blue = "#4c6bcc";
+var palette_purple = "#9e5cb5";
+var palette_green = "#3d9975";
+var palette_orange = "#c77840";
+var palette_rose = "#b8526b";
+var palette_teal = "#478fab";
+var palette_olive = "#a89447";
+var palette_violet = "#7a70c7";
+
 // Stable per-sound note colors; a sound's name picks its index, so reordering or
 // recoloring entries recolors existing projects' notes - that's the intent, it's a
-// palette, not an identity. Blue, purple, green, orange, rose, teal, olive, violet.
+// palette, not an identity.
 var sound_palette = [
-    "#4c6bcc",
-    "#9e5cb5",
-    "#3d9975",
-    "#c77840",
-    "#b8526b",
-    "#478fab",
-    "#a89447",
-    "#7a70c7"
+    $palette_blue,
+    $palette_purple,
+    $palette_green,
+    $palette_orange,
+    $palette_rose,
+    $palette_teal,
+    $palette_olive,
+    $palette_violet
+];
+
+// The shades a track can be recolored to on the arrangement (ProjectTrack.ColorIndex
+// indexes this). The same set minus blue: a track with no color of its own already
+// paints `accent`, which is that exact shade, so offering it would put two identical
+// swatches in the picker. The names are written out in TrackColorDialog's grid in this
+// order - reorder these and the names move with them.
+var clip_palette = [
+    $palette_purple,
+    $palette_green,
+    $palette_orange,
+    $palette_rose,
+    $palette_teal,
+    $palette_olive,
+    $palette_violet
 ];

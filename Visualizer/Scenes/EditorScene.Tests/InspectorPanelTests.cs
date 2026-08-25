@@ -1,4 +1,6 @@
+using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
+using Sundex.Components.Panels;
 using Sundex.Components.Labels;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Layout;
@@ -643,5 +645,33 @@ public class InspectorPanelTests
         inspector.SetStatus(null, 0f);
         Assert.Equal(-1, ctx.LayerOf(bg));
         Assert.Equal(-1, ctx.LayerOf(fg));
+    }
+
+    [Fact]
+    public void TheTrackColorRow_CentersItsChipAndButtonAgainstItsLabel()
+    {
+        var (ctx, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.SelectTrack(track);
+        inspector.Element.Layout();
+        inspector.Element.DrawTo(ctx);
+        inspector.Element.Layout();
+
+        var row = (Panel)inspector.Field("Track.Color")!;
+        var label = ((Panel)row.Parent!).Children[0];
+        var chip = row.Children[0];
+        var change = row.Children[1];
+
+        static float Center(UIElement element)
+        {
+            return element.Computed.AbsoluteY + element.Computed.Height / 2;
+        }
+
+        // Within a pixel: the two sit on one line, and on the label's line - the button is
+        // the taller of the pair, so a shared top edge would leave the chip riding high.
+        Assert.True(Math.Abs(Center(chip) - Center(change)) <= 1,
+            $"chip center {Center(chip)} vs button center {Center(change)}");
+        Assert.True(Math.Abs(Center(chip) - Center(label)) <= 1,
+            $"chip center {Center(chip)} vs label center {Center(label)}");
     }
 }

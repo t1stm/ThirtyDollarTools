@@ -46,6 +46,10 @@ public sealed class ArrangementView : Panel
     private const float ClipPadding = 6f;
     private const float ClipFontSize = 13f;
 
+    // How far toward white a selected clip's fill is lifted. Enough to read as picked at a
+    // glance across the whole palette, little enough that the track's color still shows.
+    private const float SelectedLift = 0.35f;
+
     private readonly LabelBatch _barLabels;
 
     private readonly List<ClipBlock> _blocks = [];
@@ -142,17 +146,20 @@ public sealed class ArrangementView : Panel
     [NamedSetting("playhead-color")]
     public Vector4 PlayheadColor { get; set; }
 
-    /// <summary>A clip's fill, and the shade it takes while it is part of the selection.</summary>
+    /// <summary>The fill of a clip whose track has no color of its own.</summary>
     [NamedSetting("clip-color")]
     public Vector4 ClipColor { get; set; }
-
-    /// <inheritdoc cref="ClipColor" />
-    [NamedSetting("clip-selected-color")]
-    public Vector4 ClipSelectedColor { get; set; }
 
     /// <summary>The track name written across a clip.</summary>
     [NamedSetting("clip-label-color")]
     public Vector4 ClipLabelColor { get; set; }
+
+    /// <summary>
+    ///     The colors a track's <see cref="ProjectTrack.ColorIndex" /> picks from - the same
+    ///     palette the note editor tints instruments with, so both grids read as one scheme.
+    /// </summary>
+    [NamedSetting("clip-palette")]
+    public Vector4[] ClipPalette { get; set; } = [];
 
     /// <summary>
     ///     Playhead position on the arrangement timeline; anything negative hides it.
@@ -175,6 +182,25 @@ public sealed class ArrangementView : Panel
     // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
     internal IReadOnlyList<ClipBlock> Blocks => _blocks;
     internal IReadOnlyList<LabelBatch.Slot> BarLabels => _barLabels.Slots;
+
+    /// <summary>
+    ///     A track's clip fill: its palette entry, or <see cref="ClipColor" /> when it has
+    ///     no color of its own. The index wraps, so retuning the palette to fewer entries
+    ///     recolors those tracks rather than throwing on an out-of-range one.
+    ///     <paramref name="selected" /> lifts that same color rather than replacing it -
+    ///     a fixed selection shade would hide exactly what the track was colored for.
+    /// </summary>
+    public Vector4 ColorOf(ProjectTrack track, bool selected = false)
+    {
+        var color = track.ColorIndex is { } index && ClipPalette.Length > 0
+            ? ClipPalette[((index % ClipPalette.Length) + ClipPalette.Length) % ClipPalette.Length]
+            : ClipColor;
+
+        // Toward white rather than scaled: a multiply barely moves a dark shade and clips
+        // a light one, so the lift would land differently on every palette entry. Alpha is
+        // carried through untouched - only the color brightens.
+        return selected ? new Vector4(Vector3.Lerp(color.Xyz, Vector3.One, SelectedLift), color.W) : color;
+    }
 
     /// <summary>The fill a clip currently paints with - it lives in the batch, not on the element.</summary>
     internal Vector4 FillOf(ClipBlock block)
@@ -346,8 +372,8 @@ public sealed class ArrangementView : Panel
             block.Y = y;
             block.Width = blockWidth;
             block.Height = LaneHeight - 4;
-            _lineBatch.Set(block.BatchSlot, absX + x, absY + y, blockWidth, LaneHeight - 4,
-                block.Selected ? ClipSelectedColor : ClipColor);
+            var fill = ColorOf(placement.Track, block.Selected);
+            _lineBatch.Set(block.BatchSlot, absX + x, absY + y, blockWidth, LaneHeight - 4, fill);
             // Confine the name to its own clip's box. The batch's ClipRect is a scissor -
             // one rect for the whole draw call - so it can only bound the pool as a group;
             // zoomed in far enough, clips narrow past their names and each name ran over
