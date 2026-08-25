@@ -1,3 +1,5 @@
+using OpenTK.Mathematics;
+using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -16,7 +18,13 @@ public sealed class EditorTrack : FlexPanel
 {
     private readonly EditorState _state;
 
-    public EditorTrack(UIContext context, ProjectTrack track, EditorState state) : base(context)
+    /// <param name="color">
+    ///     The track's clip fill, painted as the row's leading blip so the list reads in the
+    ///     same colors as the arrangement. Null leaves the blip off (tests build rows without
+    ///     an ArrangementView to resolve the palette).
+    /// </param>
+    public EditorTrack(UIContext context, ProjectTrack track, EditorState state, Vector4? color = null)
+        : base(context)
     {
         Track = track;
         Classes = ["track-row"];
@@ -35,12 +43,14 @@ public sealed class EditorTrack : FlexPanel
         // the row's right edge - this framework has no space-between align.
         var spacer = new Panel(context) { Classes = ["spacer"] };
 
-        Children =
-        [
-            new Label(context, track.Name) { Classes = ["body-label"] },
-            spacer,
-            remove
-        ];
+        var name = new Label(context, track.Name) { Classes = ["body-label"] };
+
+        // The fill is a palette entry, not a look, so it is set here rather than in the
+        // sheet - same split as the color dialog's chip. track-row centers and spaces it.
+        Children = color is { } fill
+            ? [new Panel(context) { Classes = ["track-color-blip"], Background = new ColoredPlane { Color = fill } },
+                name, spacer, remove]
+            : [name, spacer, remove];
     }
 
     public ProjectTrack Track { get; }

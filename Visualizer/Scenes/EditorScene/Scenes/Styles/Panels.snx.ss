@@ -31,6 +31,14 @@ class track-row {
     background = "#00000000";
 }
 
+// The track's color, as a dot ahead of its name. Fully rounded, and sized only here -
+// track-row's vertical-align centers it against the name and its spacing is the gap.
+class track-color-blip {
+    width = 10;
+    height = 10;
+    border-radius = 5;
+}
+
 // Added by EditorTrack while the row is the selected track, removed when it isn't - so
 // it must override track-row's fill, and be listed after it.
 class track-row-selected {

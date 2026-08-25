@@ -1,3 +1,4 @@
+using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
@@ -20,7 +21,7 @@ public sealed class TrackListPanel : ScrollView
     ///     nothing about the row list itself would change - rows read their track by
     ///     reference, so in-place data needs no rebuild.
     /// </summary>
-    private readonly List<(ProjectTrack Track, string Name)> _built = [];
+    private readonly List<(ProjectTrack Track, string Name, int? ColorIndex)> _built = [];
 
     private readonly UIContext _context;
     private readonly EditorState _state;
@@ -43,6 +44,13 @@ public sealed class TrackListPanel : ScrollView
 
     public Action<ProjectTrack, float, float>? OnContextMenu { get; set; }
 
+    /// <summary>
+    ///     Resolves a track's clip fill for its row blip - the arrangement's
+    ///     <c>ColorOf</c>, so the list and the clips can never disagree. Null leaves the
+    ///     blips off.
+    /// </summary>
+    public Func<ProjectTrack, Vector4>? TrackColor { get; set; }
+
     /// <summary>Relayed from each row's hover hint; see <see cref="EditorTrack.OnHint" />.</summary>
     public Action<string?>? OnHint { get; set; }
 
@@ -62,7 +70,7 @@ public sealed class TrackListPanel : ScrollView
         foreach (var row in Children.OfType<EditorTrack>().ToArray())
             RemoveChild(row);
         foreach (var track in tracks)
-            AddChild(new EditorTrack(_context, track, _state)
+            AddChild(new EditorTrack(_context, track, _state, TrackColor?.Invoke(track))
             {
                 OnContextMenu = (t, x, y) => OnContextMenu?.Invoke(t, x, y),
                 OnHint = h => OnHint?.Invoke(h)
@@ -70,14 +78,15 @@ public sealed class TrackListPanel : ScrollView
         AddChild(_addTrackRow);
 
         _built.Clear();
-        _built.AddRange(tracks.Select(t => (t, t.Name)));
+        _built.AddRange(tracks.Select(t => (t, t.Name, t.ColorIndex)));
     }
 
     private bool Unchanged(IReadOnlyList<ProjectTrack> tracks)
     {
         if (tracks.Count != _built.Count) return false;
         for (var i = 0; i < tracks.Count; i++)
-            if (tracks[i] != _built[i].Track || tracks[i].Name != _built[i].Name)
+            if (tracks[i] != _built[i].Track || tracks[i].Name != _built[i].Name ||
+                tracks[i].ColorIndex != _built[i].ColorIndex)
                 return false;
         return true;
     }

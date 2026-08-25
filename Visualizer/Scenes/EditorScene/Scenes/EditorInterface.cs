@@ -85,8 +85,13 @@ public class EditorInterface
         // a factory tag is looked up while the tree is constructed, and an imported
         // component name that isn't registered yet throws.
         Playback = new EditorPlayback(workflow, State);
-        _trackList = new TrackListPanel(context, State) { OnContextMenu = ShowTrackContextMenu, OnHint = SetHint };
+        // Ahead of the track list, which resolves its row blips through the arrangement's palette.
         _arrangement = new ArrangementView(context, State);
+        _trackList = new TrackListPanel(context, State)
+        {
+            OnContextMenu = ShowTrackContextMenu, OnHint = SetHint,
+            TrackColor = track => _arrangement.ColorOf(track) // the blip shows the resting fill, never the selected lift
+        };
         _laneHeader = new LaneHeader(context, State, _arrangement)
         {
             // Not styled: the gutter's width is a layout constant the lane math reads,
