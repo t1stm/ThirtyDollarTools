@@ -73,6 +73,18 @@ public class ThirtyDollarProject
         _projectTracks.Insert(Math.Clamp(index, 0, _projectTracks.Count), track);
     }
 
+    /// <summary>
+    ///     Reorders the track list. The list order is the saved order (see
+    ///     <see cref="ProjectFile" />), so a reorder survives save/load; placements are
+    ///     untouched. Ignores anything that isn't a permutation of the current tracks.
+    /// </summary>
+    public void SetTrackOrder(IReadOnlyList<ProjectTrack> order)
+    {
+        if (order.Count != _projectTracks.Count || !order.All(_projectTracks.Contains)) return;
+        _projectTracks.Clear();
+        _projectTracks.AddRange(order);
+    }
+
     public Instrument NewInstrument(string name)
     {
         var instrument = new Instrument { Id = ++_instrumentIds, Name = name };

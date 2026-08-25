@@ -26,6 +26,9 @@ public sealed class TrackListPanel : ScrollView
     private readonly UIContext _context;
     private readonly EditorState _state;
 
+    /// <summary>True while a blip drag is reordering the selected tracks.</summary>
+    private bool _dragging;
+
     public TrackListPanel(UIContext context, EditorState state) : base(context)
     {
         _context = context;
@@ -43,6 +46,13 @@ public sealed class TrackListPanel : ScrollView
     }
 
     public Action<ProjectTrack, float, float>? OnContextMenu { get; set; }
+
+    /// <summary>
+    ///     The primary modifier held - Ctrl, or Cmd on macOS (set from
+    ///     EditorInterface.SetModifiers, which reads Keybinds.PrimaryDown). Row clicks then
+    ///     toggle the selection instead of replacing it.
+    /// </summary>
+    public bool CtrlHeld { get; set; }
 
     /// <summary>
     ///     Resolves a track's clip fill for its row blip - the arrangement's
@@ -73,7 +83,8 @@ public sealed class TrackListPanel : ScrollView
             AddChild(new EditorTrack(_context, track, _state, TrackColor?.Invoke(track))
             {
                 OnContextMenu = (t, x, y) => OnContextMenu?.Invoke(t, x, y),
-                OnHint = h => OnHint?.Invoke(h)
+                OnHint = h => OnHint?.Invoke(h),
+                OnSelect = Select
             });
         AddChild(_addTrackRow);
 
@@ -91,9 +102,45 @@ public sealed class TrackListPanel : ScrollView
         return true;
     }
 
+    /// <summary>Row click: Ctrl/Cmd toggles the track in the selection, a plain click replaces it.</summary>
+    private void Select(ProjectTrack track)
+    {
+        if (CtrlHeld) _state.ToggleTrackSelection(track);
+        else _state.SelectTrack(track);
+    }
+
+    /// <summary>
+    ///     A press on a row's color blip starts a reorder drag of the whole track selection.
+    ///     Handled here rather than on the row so the capture survives the rebuilds each
+    ///     reorder triggers - the row that was pressed is detached by them, which would drop
+    ///     the capture mid-gesture.
+    /// </summary>
+    public override bool HandlePress(float x, float y)
+    {
+        var track = Children.OfType<EditorTrack>()
+            .FirstOrDefault(row => row.DragHandle?.ContainsPoint(x, y) == true)?.Track;
+        _dragging = track is not null;
+        if (track is null) return false;
+
+        // Grabbing a track that is already part of a multi-selection drags the lot; grabbing
+        // any other row selects it first (the row's own OnClick never fires while we hold
+        // the capture).
+        if (!_state.SelectedTracks.Contains(track)) Select(track);
+        _state.BeginGesture(); // whole drag = one undo entry
+        return true;
+    }
+
+    /// <summary>Drops the selection onto whichever row the pointer is over; outside the rows, nothing moves.</summary>
+    public override void HandlePointerDrag(float x, float y)
+    {
+        if (!_dragging) return;
+        var hovered = Children.OfType<EditorTrack>().FirstOrDefault(row => row.ContainsPoint(x, y));
+        if (hovered is not null) _state.MoveSelectedTracks(hovered.Track);
+    }
+
     public void RefreshSelection()
     {
         foreach (var row in Children.OfType<EditorTrack>())
-            row.SetSelected(row.Track == _state.SelectedTrack);
+            row.SetSelected(_state.SelectedTracks.Contains(row.Track));
     }
 }

@@ -300,6 +300,7 @@ public class EditorInterface
     /// </summary>
     public void SetModifiers(bool shift, bool ctrl)
     {
+        _trackList.CtrlHeld = ctrl;
         _trackEditor.FineSnap = shift;
         _trackEditor.WheelZooms = ctrl;
         _arrangement.FineSnap = shift;

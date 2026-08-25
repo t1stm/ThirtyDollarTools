@@ -29,7 +29,7 @@ public sealed class EditorTrack : FlexPanel
         Track = track;
         Classes = ["track-row"];
         UpdateCursorOnHover = true;
-        OnClick = _ => state.SelectTrack(track);
+        OnClick = _ => (OnSelect ?? state.SelectTrack)(track);
         _state = state;
 
         var remove = new Button(context, "×")
@@ -47,19 +47,35 @@ public sealed class EditorTrack : FlexPanel
 
         // The fill is a palette entry, not a look, so it is set here rather than in the
         // sheet - same split as the color dialog's chip. track-row centers and spaces it.
-        Children = color is { } fill
-            ? [new Panel(context) { Classes = ["track-color-blip"], Background = new ColoredPlane { Color = fill } },
-                name, spacer, remove]
-            : [name, spacer, remove];
+        if (color is { } fill)
+            DragHandle = new Panel(context)
+                { Classes = ["track-color-blip"], Background = new ColoredPlane { Color = fill } };
+
+        Children = DragHandle is null ? [name, spacer, remove] : [DragHandle, name, spacer, remove];
     }
 
     public ProjectTrack Track { get; }
+
+    /// <summary>
+    ///     The color blip, which doubles as the row's reorder handle - the press is caught
+    ///     by <see cref="TrackListPanel" /> (it owns the row order, and it survives the
+    ///     rebuilds a reorder triggers, which this row does not). Null when the row has no
+    ///     blip.
+    /// </summary>
+    public Panel? DragHandle { get; }
 
     /// <summary>
     ///     Fired on right-click with the cursor position; EditorInterface hangs the track's
     ///     context menu off that point.
     /// </summary>
     public Action<ProjectTrack, float, float>? OnContextMenu { get; set; }
+
+    /// <summary>
+    ///     Clicking the row selects its track. Set by <see cref="TrackListPanel" /> so a
+    ///     Ctrl-click (Cmd on macOS) toggles the multi-selection instead; unset, the row
+    ///     selects on its own.
+    /// </summary>
+    public Action<ProjectTrack>? OnSelect { get; set; }
 
     /// <summary>Hover hint text for the remove button; null on hover exit. See EditorInterface.SetHint.</summary>
     public Action<string?>? OnHint { get; set; }

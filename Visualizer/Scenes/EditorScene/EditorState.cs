@@ -31,10 +31,20 @@ public class EditorState
     private readonly MuteSolo _muteSolo = new();
     private readonly List<Note> _selectedNotes = [];
     private readonly List<TrackPlacement> _selectedPlacements = [];
+    private readonly List<ProjectTrack> _selectedTracks = [];
     private readonly UndoHistory _undoHistory = new();
 
     public ThirtyDollarProject Project { get; private set; } = new();
-    public ProjectTrack? SelectedTrack { get; private set; }
+
+    /// <summary>Every currently selected track, in selection order. Ctrl/Cmd-click adds/removes one.</summary>
+    public IReadOnlyList<ProjectTrack> SelectedTracks => _selectedTracks;
+
+    /// <summary>
+    ///     Derived view: non-null only when exactly one track is selected, same as
+    ///     <see cref="SelectedPlacement" />. The single-selection consumers (inspector form,
+    ///     clip placing, arrangement highlight) read this and go quiet on a multi-selection.
+    /// </summary>
+    public ProjectTrack? SelectedTrack => _selectedTracks.Count == 1 ? _selectedTracks[0] : null;
 
     /// <summary>Every currently selected placement, in selection order (last = primary).</summary>
     public IReadOnlyList<TrackPlacement> SelectedPlacements => _selectedPlacements;
@@ -167,12 +177,43 @@ public class EditorState
         return copy;
     }
 
+    /// <summary>
+    ///     Reorders the selected tracks as one block, dropping them onto
+    ///     <paramref name="hovered" /> - the row under the pointer during a drag of the
+    ///     handle in <see cref="Scenes.Layout.TrackListPanel" />. The block keeps the list's
+    ///     order, not the order the tracks were clicked in, and lands above the hovered row
+    ///     when dragged upwards, below it when dragged downwards. Merges into one undo
+    ///     entry per drag gesture, same as a placement drag.
+    /// </summary>
+    public void MoveSelectedTracks(ProjectTrack hovered)
+    {
+        if (_selectedTracks.Count == 0 || _selectedTracks.Contains(hovered)) return;
+
+        var before = Project.Tracks.ToArray();
+        var moving = before.Where(_selectedTracks.Contains).ToArray();
+        var rest = before.Where(track => !_selectedTracks.Contains(track)).ToArray();
+        if (moving.Length == 0) return;
+
+        // Dropping below the block inserts after the hovered row, above it inserts before -
+        // without that, a downward drag would put the block back where it started.
+        var insert = IndexOf(rest, hovered) +
+                     (IndexOf(before, hovered) > IndexOf(before, moving[0]) ? 1 : 0);
+        var after = rest.Take(insert).Concat(moving).Concat(rest.Skip(insert)).ToArray();
+        if (before.SequenceEqual(after)) return;
+
+        Project.SetTrackOrder(after);
+        _undoHistory.PushOrMergeMove(moving[0],
+            () => Project.SetTrackOrder(before),
+            () => Project.SetTrackOrder(after));
+        Touch();
+    }
+
     public bool RemoveTrack(ProjectTrack track)
     {
         var index = IndexOf(Project.Tracks, track);
         var cascadedPlacements = Project.Placements.Where(p => p.Track == track).ToArray();
         if (!Project.RemoveTrack(track)) return false;
-        if (SelectedTrack == track) SelectTrack(null);
+        if (_selectedTracks.Remove(track)) OnSelectionChanged?.Invoke(SelectedTrack);
         RemoveFromPlacementSelection(cascadedPlacements);
         if (OpenedTrack == track) CloseTrack();
 
@@ -934,11 +975,30 @@ public class EditorState
         Touch();
     }
 
+    /// <summary>Replaces the whole track selection with one track (or clears it).</summary>
     public void SelectTrack(ProjectTrack? track)
     {
-        if (SelectedTrack == track) return;
-        SelectedTrack = track;
-        OnSelectionChanged?.Invoke(track);
+        SetTrackSelection(track != null ? [track] : []);
+    }
+
+    /// <summary>
+    ///     Replaces the whole track selection. Fires <see cref="OnSelectionChanged" /> once,
+    ///     with the derived single value (see <see cref="SelectedTrack" />).
+    /// </summary>
+    public void SetTrackSelection(IEnumerable<ProjectTrack> tracks)
+    {
+        var next = tracks as IReadOnlyList<ProjectTrack> ?? [.. tracks];
+        if (SequenceRefEqual(_selectedTracks, next)) return;
+        _selectedTracks.Clear();
+        _selectedTracks.AddRange(next);
+        OnSelectionChanged?.Invoke(SelectedTrack);
+    }
+
+    /// <summary>Ctrl/Cmd-click: adds the track to the selection, or removes it if it is already in.</summary>
+    public void ToggleTrackSelection(ProjectTrack track)
+    {
+        if (!_selectedTracks.Remove(track)) _selectedTracks.Add(track);
+        OnSelectionChanged?.Invoke(SelectedTrack);
     }
 
     public void ToggleMute(int channel)

@@ -37,6 +37,8 @@ class track-color-blip {
     width = 10;
     height = 10;
     border-radius = 5;
+    // The blip doubles as the row's reorder handle; see TrackListPanel.HandlePress.
+    cursor = "ResizeY";
 }
 
 // Added by EditorTrack while the row is the selected track, removed when it isn't - so
