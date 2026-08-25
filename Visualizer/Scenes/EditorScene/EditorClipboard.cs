@@ -12,9 +12,20 @@ public sealed class EditorClipboard
     public IReadOnlyList<NoteEntry>? Notes { get; private set; }
     public IReadOnlyList<PlacementEntry>? Placements { get; private set; }
 
+    /// <summary>Copied faithful slots, in sequence order - no position to keep, the index is one.</summary>
+    public IReadOnlyList<FaithfulItem>? Items { get; private set; }
+
     public void SetNotes(IEnumerable<NoteEntry> entries)
     {
         Notes = [.. entries];
+        Placements = null;
+        Items = null;
+    }
+
+    public void SetItems(IEnumerable<FaithfulItem> items)
+    {
+        Items = [.. items];
+        Notes = null;
         Placements = null;
     }
 
@@ -22,12 +33,14 @@ public sealed class EditorClipboard
     {
         Placements = [.. entries];
         Notes = null;
+        Items = null;
     }
 
     public void Clear()
     {
         Notes = null;
         Placements = null;
+        Items = null;
     }
 
     /// <summary>

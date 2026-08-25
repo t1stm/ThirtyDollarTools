@@ -302,7 +302,7 @@ public sealed class TrackEditorView : Panel
     public bool WheelZooms { get; set; }
 
     /// <summary>Fired when a note is placed or moved, with its instrument and value - the preview seam.</summary>
-    public Action<Instrument, double>? OnPreviewNote { get; set; }
+    public Action<Note, double?>? OnPreviewNote { get; set; }
 
     /// <summary>Fired with the clicked arrangement-timeline position (quarter notes) when the beat ruler is clicked.</summary>
     public Action<double>? OnSeekQuarters { get; set; }
@@ -1059,7 +1059,7 @@ public sealed class TrackEditorView : Panel
         _groupDragLastStep = newAnchorGlobalStep;
         _groupDragLastValue = value;
         InvalidateLayout();
-        if (moved) OnPreviewNote?.Invoke(_dragging!.Note!.Instrument, value);
+        if (moved) OnPreviewNote?.Invoke(_dragging!.Note!, value);
     }
 
     /// <summary>
@@ -1078,7 +1078,7 @@ public sealed class TrackEditorView : Panel
         var note = _state.AddNote(segment, step, instrument, value, isCut);
         _state.SelectSegment(segment);
         _state.SelectNote(note);
-        OnPreviewNote?.Invoke(instrument, note.Value);
+        OnPreviewNote?.Invoke(note, null);
         InvalidateLayout();
         return (segment, note);
     }

@@ -236,8 +236,10 @@ public class TrackEditorViewTests
         var (ctx, state, view, _) = NewView();
         var boom = MakeInstrument(state, "boom");
         state.ActiveInstrument = boom;
+        // The seam hands over the note itself now, so a preview carries its volume and pan;
+        // a drag passes the value it is heading for, before the note lands there.
         var previews = new List<(Instrument instrument, double value)>();
-        view.OnPreviewNote = (i, v) => previews.Add((i, v));
+        view.OnPreviewNote = (note, value) => previews.Add((note.Instrument, value ?? note.Value));
 
         // Placing previews the new note.
         Click(ctx, view, 100, 214.5f); // step 3, value 0

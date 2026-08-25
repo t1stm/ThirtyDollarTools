@@ -10,27 +10,27 @@
            toggles use elsewhere - not because import relates to either tool, but so the
            dialog reuses the app's two existing accent colors instead of introducing a
            third just to tell the options apart. See dialog-button-primary/-alt. -->
-      <flex class="import-options">
-        <flex class="import-column">
+      <flex class="dialog-options">
+        <flex class="dialog-column">
           <button id="single-track-button" class="[dialog-button-primary,dialog-button-tall]">
             <label value="Import as Single Track"/>
           </button>
           <!-- Label has no text-wrap support, so each description is pre-split into
                short lines that fit the column. -->
-          <flex class="import-column-description">
+          <flex class="dialog-column-description">
             <label class="caption-label" value="One new track for this file,"/>
             <label class="caption-label" value="one instrument per sound."/>
           </flex>
         </flex>
 
-        <panel class="import-divider"/>
+        <panel class="dialog-divider"/>
 
-        <flex class="import-column">
+        <flex class="dialog-column">
           <button id="project-button" class="[dialog-button-alt,dialog-button-tall]">
             <!-- Same light-background-needs-dark-text contrast rule as the Select toggle. -->
             <label class="dark-label" value="Import as Project"/>
           </button>
-          <flex class="import-column-description">
+          <flex class="dialog-column-description">
             <label class="caption-label" value="Replaces the current project -"/>
             <label class="caption-label" value="instrument + track per sound."/>
           </flex>

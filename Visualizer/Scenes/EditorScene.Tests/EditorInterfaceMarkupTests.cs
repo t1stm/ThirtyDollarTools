@@ -44,7 +44,8 @@ public class EditorInterfaceMarkupTests
         // Stubs, not the real views: this suite is about the markup, and the views need
         // an EditorState and a GL context the headless harness has no business building.
         markup.RegisterElementFactory("track-list", ctx => new ScrollView(ctx));
-        foreach (var tag in new[] { "arrangement-view", "lane-header", "track-editor-view", "sound-picker" })
+        foreach (var tag in new[]
+                 { "arrangement-view", "lane-header", "track-editor-view", "sound-picker", "faithful-palette", "faithful-sequence" })
             markup.RegisterElementFactory(tag, ctx => new Panel(ctx));
         foreach (var name in new[]
                  {
@@ -53,6 +54,7 @@ public class EditorInterfaceMarkupTests
                      "Layout/Hint Bar/HintBar",
                      "Layout/Arrangement Panel/ArrangementPanel",
                      "Layout/Track Editor Panel/TrackEditorPanel",
+                     "Layout/Faithful Panel/FaithfulPanel",
                      "Layout/Inspector Shell/InspectorShell",
                      "Dialogs/Sound Filter/SoundFilter"
                  })
@@ -89,6 +91,8 @@ public class EditorInterfaceMarkupTests
     [InlineData("arrangement-panel", "arrangement-panel", "arrangement-tool-draw", "arrangement-tool-select")]
     [InlineData("track-editor-panel", "track-editor-panel", "opened-track-name", "instrument-button",
         "back-to-arrangement", "editor-tool-draw", "editor-tool-select")]
+    [InlineData("faithful-panel", "faithful-panel", "faithful-body", "opened-track-name",
+        "back-to-arrangement")]
     [InlineData("inspector-shell", "inspector-panel", "inspector-rows", "inspector-status-bar",
         "inspector-status-label")]
     [InlineData("sound-filter", "sound-filter-modal", "sound-filter-frame", "sound-filter-list",

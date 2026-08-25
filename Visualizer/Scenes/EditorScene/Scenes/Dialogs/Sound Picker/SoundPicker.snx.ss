@@ -28,12 +28,6 @@ class sound-selected-row {
     spacing = 14;
 }
 
-// The "Selected" / "Available" section headings.
-class sound-section-header {
-    font-size = 13;
-    font-color = $theme.header;
-}
-
 // The vertical hairline between the selected grid and the scroll-adjust hint. Height
 // matches one icon cell.
 class sound-keybind-divider {

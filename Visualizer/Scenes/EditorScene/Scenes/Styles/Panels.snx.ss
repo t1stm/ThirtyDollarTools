@@ -152,6 +152,110 @@ class grid-view {
     height = 100%;
 }
 
+// ---------------------------------------------------------------- faithful editor
+
+// The faithful editor's content area. Darker than any chrome panel (the same shade the
+// two grid canvases use) so the section boxes on top of it read as separate cards
+// instead of running into each other.
+class faithful-body {
+    direction = "vertical";
+    width = 100%;
+    height = 100%;
+    padding = 14;
+    spacing = 12;
+    background = $theme.grid_background;
+}
+
+// One titled box - Sounds, Actions, Sequence. Carries the fill; the scroller inside it
+// stays transparent so only the box's own corners are rounded.
+class faithful-section {
+    direction = "vertical";
+    width = 100%;
+    height = 100%;
+    padding = 14;
+    spacing = 10;
+    border-radius = 8;
+    background = $theme.background;
+}
+
+// The Actions box is as wide as its grid needs and no wider, so Sounds takes the rest.
+class faithful-section-actions {
+    width = 336;
+}
+
+// The sequence box takes what the palette band leaves. Stated rather than derived: the
+// DSL has no calc(), so this is 100% minus the band's 40% minus the body's own spacing.
+class faithful-section-sequence {
+    height = 58%;
+}
+
+// The palette band: the Sounds and Actions boxes side by side, above the sequence.
+class faithful-palette {
+    width = 100%;
+    height = 40%;
+    spacing = 12;
+}
+
+// The scrollers inside the boxes. No fill of their own - see faithful-section.
+class faithful-instruments {
+    direction = "vertical";
+    width = 100%;
+    height = 100%;
+    spacing = 6;
+}
+
+class faithful-actions {
+    width = 100%;
+    height = 100%;
+}
+
+class faithful-sequence {
+    width = 100%;
+    height = 100%;
+}
+
+// One instrument's row: its name, then its sounds. The resting fill is stated (rather
+// than left transparent) so the hover reads as the same surface getting brighter, which
+// is what tells you which row a click will hit.
+class faithful-palette-row {
+    direction = "horizontal";
+    vertical-align = "center";
+    width = 100%;
+    padding = 6;
+    spacing = 10;
+    border-radius = 6;
+    background = $theme.surface;
+
+    state[hovered] = {
+        background = $theme.surface_raised;
+    }
+}
+
+// The Sequence box's own header row: its title, then the follow/tool toggles pushed right.
+class faithful-sequence-bar {
+    direction = "horizontal";
+    vertical-align = "center";
+    width = 100%;
+    spacing = 8;
+}
+
+// "Follow scroll" - a label-only toggle, no fill of its own in either state; the color
+// is the whole signal (see EditorInterface.SetFollowActive).
+class faithful-follow-button {
+    font-size = 12;
+    padding = 4;
+}
+
+// Its label at rest, and once it is on: the color is the toggle's only state, so the
+// active class overrides nothing but that.
+class follow-label {
+    font-color = $theme.text_muted;
+}
+
+class follow-label-active {
+    font-color = $theme.header;
+}
+
 // The opened track's name field in the note editor's bar.
 id opened-track-name {
     width = 220;

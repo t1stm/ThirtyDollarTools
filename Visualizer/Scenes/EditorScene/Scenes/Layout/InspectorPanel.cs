@@ -35,6 +35,46 @@ public sealed class InspectorPanel
     private float _syncedStatusProgress = -1f; // never a valid Progress value, forces the first real SetStatus to apply
 
     /// <summary>
+    ///     The faithful editor's inspector: the selected slot's fields, or the track's own
+    ///     summary when nothing is selected. There are no segments here - position is the
+    ///     item's index, so the grid rows the piano roll shows would edit nothing.
+    /// </summary>
+    private void FaithfulSection(FaithfulTrack track)
+    {
+        if (_state.SelectedItem?.Note is { } note)
+        {
+            _form.Header("Sound");
+            _form.InfoRow("Instrument", () => note.Instrument.Name);
+            _form.ActionRow("Change", () => OnReassignInstrument?.Invoke([note]));
+            _form.NumberRow("Value", () => note.Value, v => note.Value = v!.Value,
+                -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
+            _form.NumberRow("Volume", () => note.Volume, v => note.Volume = v, 0, 500, 5, true);
+            _form.NumberRow("Pan", () => note.Pan, v => note.Pan = (float)v!.Value, -100, 100, 10);
+            _form.NumberRow("Offset (s)", () => note.Offset, v => note.Offset = v!.Value, -60, 60, 0.05);
+            return;
+        }
+
+        if (_state.SelectedItem?.Action is { } action)
+        {
+            _form.Header(action.SoundEvent ?? "Action");
+            _form.NumberRow("Value", () => action.Value, v =>
+            {
+                action.Value = v!.Value;
+                action.WorkingValue = action.Value; // loop counters read the working copy
+            }, -1e6, 1e6, 1);
+            // The event as it will be written out - the only readout that shows a value
+            // scale ("@x") or a packed "!pulse"/"!bg" payload for what it is.
+            _form.InfoRow("Event", action.Stringify);
+            return;
+        }
+
+        _form.Header("Faithful track");
+        _form.TextRow("Name", () => track.Name, v => _state.RenameTrack(track, v));
+        _form.InfoRow("Items", () => track.Items.Count.ToString());
+        _form.InfoRow("Length", () => $"{track.DurationMinutes() * 60:0.##} s");
+    }
+
+    /// <summary>
     ///     Drives the chrome built by <c>InspectorShell.snx.xml</c> - this class owns no tree
     ///     of its own, only the handles that document's logic resolved. Standalone callers
     ///     (the test suite) build the shell themselves and hand the same four elements over.
@@ -129,7 +169,11 @@ public sealed class InspectorPanel
         foreach (var child in Rows.Children.ToArray()) Rows.RemoveChild(child);
         _form.Reset();
 
-        if (_state.OpenedTrack != null)
+        if (_state.OpenedFaithfulTrack is { } faithful)
+        {
+            FaithfulSection(faithful);
+        }
+        else if (_state.OpenedTrack != null)
         {
             if (_state.SelectedSegment is { } segment)
             {

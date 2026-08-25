@@ -190,6 +190,14 @@ class muted-label {
 }
 
 // The smallest muted text: helper lines under a control, transport timecodes.
+// A small section heading inside a panel - the sound picker's "Selected"/"Available",
+// the faithful editor's "Sounds"/"Actions"/"Sequence". Smaller than title-label, which
+// heads a whole dialog.
+class sound-section-header {
+    font-size = 13;
+    font-color = $theme.header;
+}
+
 class caption-label {
     font-size = 12;
     font-color = $theme.text_muted;

@@ -48,9 +48,8 @@ public sealed class InstrumentWorkflow
         };
         _instrumentSelector.OnNew = () =>
         {
-            _editingInstrument = null;
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
-            OpenEditor("Instrument", []);
+            OpenNewInstrument();
         };
         _instrumentSelector.OnEdit = instrument =>
         {
@@ -95,6 +94,16 @@ public sealed class InstrumentWorkflow
         _reassignTargets = reassignTargets;
         _instrumentSelector.Fill(_state.Project.Instruments);
         _dialogHost.Root.AddChild(_instrumentSelectorModal);
+    }
+
+    /// <summary>
+    ///     Straight into the editor for a fresh instrument, skipping the selector - for the
+    ///     callers that already show the instrument list themselves.
+    /// </summary>
+    public void OpenNewInstrument()
+    {
+        _editingInstrument = null;
+        OpenEditor("Instrument", []);
     }
 
     /// <summary>Shift/Ctrl held: forwarded to the editor's sound picker (pan/volume scroll modes).</summary>

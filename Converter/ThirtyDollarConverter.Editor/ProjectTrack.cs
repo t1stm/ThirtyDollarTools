@@ -2,11 +2,25 @@ using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Editor;
 
+/// <summary>Which editing workflow a track offers. See <see cref="FaithfulTrack" />.</summary>
+public enum TrackKind
+{
+    /// <summary>The bar/beat grid: segments of <see cref="Note" />s. <see cref="ProjectTrack" />.</summary>
+    PianoRoll,
+
+    /// <summary>thirtydollar.website's linear list of sounds and actions. <see cref="FaithfulTrack" />.</summary>
+    Faithful
+}
+
 public class ProjectTrack(TimingInfo timing, int id)
 {
     private readonly List<TrackSegment> _segments = [new()];
     private readonly List<TrackAutomation> _trackAutomations = [];
     public int Id { get; set; } = id;
+
+    /// <summary>Which of the two editing workflows this track uses.</summary>
+    public virtual TrackKind Kind => TrackKind.PianoRoll;
+
     public string Name { get; set; } = $"Track {id}";
     public TimingInfo Timing { get; set; } = timing;
 
@@ -63,7 +77,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     copy can never reach the source. Placements aren't copied - a duplicated pattern
     ///     starts unplaced, like any newly added track.
     /// </summary>
-    internal ProjectTrack Duplicate(int id, string name)
+    internal virtual ProjectTrack Duplicate(int id, string name)
     {
         var copy = new ProjectTrack(Timing, id) { Name = name, Transpose = Transpose, ColorIndex = ColorIndex };
         copy._segments.Clear();
@@ -76,6 +90,16 @@ public class ProjectTrack(TimingInfo timing, int id)
                 Sounds = automation.Sounds?.ToList()
             });
         return copy;
+    }
+
+    /// <summary>
+    ///     Whether anything in this track still plays the instrument - what
+    ///     <see cref="ThirtyDollarProject.RemoveInstrument" /> refuses on. Virtual because a
+    ///     <see cref="FaithfulTrack" /> holds its notes in items, not segments.
+    /// </summary>
+    internal virtual bool ReferencesInstrument(Instrument instrument)
+    {
+        return _segments.Any(segment => segment.Notes.Any(note => note.Instrument == instrument));
     }
 
     public TrackAutomation AddTrackAutomation(AudioKeyframeManager keyframes, List<string>? sounds = null)
@@ -102,7 +126,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     /// <summary>
     ///     Total pattern length in minutes - the clip width on the arrangement grid.
     /// </summary>
-    public double DurationMinutes()
+    public virtual double DurationMinutes()
     {
         return _segments.Sum(segment => segment.DurationMinutes(Timing.BPM));
     }
@@ -196,7 +220,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     The absolute time of every bar line of this track, counted across segments.
     ///     Null when the style doesn't ask for bar dividers.
     /// </summary>
-    internal double[]? BarTimes(SequenceStyle? style)
+    internal virtual double[]? BarTimes(SequenceStyle? style)
     {
         if (style?.DividerEveryBars is not { } every || every < 1) return null;
 
@@ -221,7 +245,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     to instrument sounds) with its absolute time. Segments inherit the track's BPM;
     ///     their own time signature and resolution set the local step length.
     /// </summary>
-    internal IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0,
+    internal virtual IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0,
         float projectTranspose = 0)
     {
         var transpose = Transpose ?? projectTranspose;
@@ -272,7 +296,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     The track's timeline as tempo regions: consecutive segments with equal grid
     ///     rates merged into one. "!speed" changes exactly at region boundaries.
     /// </summary>
-    internal List<TempoRegion> TempoRegions(double startMinutes = 0)
+    internal virtual List<TempoRegion> TempoRegions(double startMinutes = 0)
     {
         var regions = new List<TempoRegion>();
         var offset = startMinutes;

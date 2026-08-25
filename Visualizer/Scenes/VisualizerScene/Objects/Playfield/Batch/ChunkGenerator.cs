@@ -5,11 +5,17 @@ using VisualizerScene.Objects.Playfield.Batch.Chunks;
 
 namespace VisualizerScene.Objects.Playfield.Batch;
 
-public class ChunkGenerator(PlayfieldSettings settings)
+/// <param name="layout">
+///     The layout the chunks are positioned with. Null builds the playfield's own, from
+///     <paramref name="settings" />; a caller drawing a sequence somewhere other than the
+///     playfield (EditorScene's faithful views) passes its own width/origin instead.
+/// </param>
+public class ChunkGenerator(PlayfieldSettings settings, LayoutHandler? layout = null)
 {
     public const int DefaultChunkSize = 512;
 
-    public readonly LayoutHandler LayoutHandler = new(settings.PlayfieldSizing.SoundSize * settings.RenderScale,
+    public LayoutHandler LayoutHandler { get; set; } = layout ?? new LayoutHandler(
+        settings.PlayfieldSizing.SoundSize * settings.RenderScale,
         settings.PlayfieldSizing.SoundsOnASingleLine,
         settings.PlayfieldSizing.SoundMargin * settings.RenderScale / 2,
         15f * settings.RenderScale);

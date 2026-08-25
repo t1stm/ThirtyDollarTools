@@ -40,12 +40,20 @@ public sealed class TrackListPanel : ScrollView
         _addTrackRow = new Button(context, "+ Add track")
         {
             Classes = ["menu-row"],
-            OnClick = _ => state.AddTrack()
+            OnClick = _ => (OnAddTrack ?? (() => state.AddTrack()))()
         };
         AddChild(_addTrackRow);
     }
 
     public Action<ProjectTrack, float, float>? OnContextMenu { get; set; }
+
+    /// <summary>
+    ///     What "+ Add track" does. Set by <see cref="Scenes.EditorInterface" /> to ask which
+    ///     kind first (<see cref="Scenes.Dialogs.TrackTypeDialog" />); unset, the row adds a
+    ///     piano-roll track outright - this panel has no <see cref="Scenes.Dialogs.DialogHost" />
+    ///     of its own.
+    /// </summary>
+    public Action? OnAddTrack { get; set; }
 
     /// <summary>
     ///     The primary modifier held - Ctrl, or Cmd on macOS (set from

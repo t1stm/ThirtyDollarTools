@@ -63,6 +63,9 @@ public sealed class SoundRenderable : Renderable
         }
     }
 
+    /// <summary>Whether the bounce is still playing - a slot mid-bounce is one being played.</summary>
+    public bool IsBouncing => _bounceAnimation?.IsRunning ?? false;
+
     public bool IsDivider { get; set; }
     public bool HasAnimatedTexture { get; set; }
 

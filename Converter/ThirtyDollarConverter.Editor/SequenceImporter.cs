@@ -48,12 +48,6 @@ public sealed record ImportResult(
 public static class SequenceImporter
 {
     /// <summary>
-    ///     Hard ceiling on walked events, guarding against a hostile or malformed
-    ///     loop/jump combination unrolling forever - a dropped file is a trust boundary.
-    /// </summary>
-    private const int MaxWalkedEvents = 1_000_000;
-
-    /// <summary>
     ///     How fine a merged segment's grid may get, relative to its slowest region,
     ///     before a speed change is treated as a real tempo change and split off instead.
     /// </summary>
@@ -79,10 +73,6 @@ public static class SequenceImporter
     private const double RemainderBarPenalty = 1.5;
     private const double TempoBreakPenalty = 4.0;
     private const double PadPenalty = 8.0;
-
-    private static readonly string[] JumpUntriggers = ["!loop", "!loopmany", "!jump", "!target"];
-    private static readonly string[] LoopUntriggers = ["!loopmany", "!loop"];
-    private static readonly string[] LoopmanyUntriggers = ["!loopmany"];
 
     /// <summary>
     ///     Time signature numerators worth using, best first. A note grid almost never
@@ -207,8 +197,11 @@ public static class SequenceImporter
 
     private static WalkData Walk(Sequence sequence, IReadOnlyDictionary<string, Sound>? soundMap)
     {
-        var events = sequence.Copy().Events;
-        var regions = new List<(double Speed, double Length)>();
+        var walk = SequenceWalker.Walk(sequence.Events);
+        if (walk.Truncated)
+            throw new InvalidOperationException(
+                "This sequence is too large or contains a runaway loop/jump to import safely.");
+
         var notes = new List<WalkedNote>();
         var soundOrder = new List<string>();
         var seenSounds = new HashSet<string>();
@@ -216,83 +209,30 @@ public static class SequenceImporter
         var unknownSounds = new HashSet<string>();
         var seenCuts = new HashSet<(int Region, double Step, string Sound)>();
 
-        var speed = 300d;
-        var position = 0d;
-        var globalVolume = 100d;
-        var transpose = 0d;
-        var loopTarget = 0;
-        var regionIndex = 0;
-
-        var index = 0;
-        var walked = 0;
-        while (index < events.Length)
+        foreach (var (region, step, ev, isSound, _) in walk.Events)
         {
-            if (++walked > MaxWalkedEvents)
-                throw new InvalidOperationException(
-                    "This sequence is too large or contains a runaway loop/jump to import safely.");
-
-            var ev = events[index];
-            var isAction = (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomActionEvent;
-
-            if (!isAction)
+            if (isSound)
             {
-                var nextName = index + 1 < events.Length ? events[index + 1].SoundEvent : null;
-                var advance = nextName is not "!combine";
-
-                if (ev.SoundEvent is not "_pause")
+                if (CanonicalId(ev.SoundEvent!, soundMap) is { } sound)
                 {
-                    if (CanonicalId(ev.SoundEvent!, soundMap) is { } sound)
-                    {
-                        if (seenSounds.Add(sound)) soundOrder.Add(sound);
-                        var pan = (ev as ExtendedEvent)?.Pan ?? 0f;
-                        var offset = (ev as ExtendedEvent)?.OffsetInSeconds ?? 0d;
-                        var baked = globalVolume == 100 ? ev.Volume : (ev.Volume ?? 100) * globalVolume / 100;
-                        notes.Add(new WalkedNote(regionIndex, position, sound, ev.Value + transpose, baked, pan,
-                            offset));
-                    }
-                    else
-                    {
-                        unknownSounds.Add(ev.SoundEvent!);
-                    }
+                    if (seenSounds.Add(sound)) soundOrder.Add(sound);
+                    var pan = (ev as ExtendedEvent)?.Pan ?? 0f;
+                    var offset = (ev as ExtendedEvent)?.OffsetInSeconds ?? 0d;
+                    notes.Add(new WalkedNote(region, step, sound, ev.Value, ev.Volume, pan, offset));
+                }
+                else
+                {
+                    unknownSounds.Add(ev.SoundEvent!);
                 }
 
-                if (advance) position += 1;
-                index++;
                 continue;
             }
 
-            switch (ev.SoundEvent)
+            switch (ev)
             {
-                case "!speed":
+                // "!cut@a,b" / "#icut(a,b)": silence the named sounds.
+                case IndividualCutEvent individualCut:
                 {
-                    var newSpeed = Scale(speed, ev);
-                    if (!SequenceBuilder.SameSpeed(speed, newSpeed))
-                    {
-                        if (position > 1e-9) regions.Add((speed, position));
-                        speed = newSpeed;
-                        position = 0;
-                        regionIndex = regions.Count;
-                    }
-
-                    break;
-                }
-                case "!volume":
-                {
-                    globalVolume = Math.Max(0, Scale(globalVolume, ev));
-                    break;
-                }
-                case "!transpose":
-                {
-                    transpose = Scale(transpose, ev);
-                    break;
-                }
-                case "!stop":
-                    position += ev.Value;
-                    break;
-                case "!cut" when ev is IndividualCutEvent:
-                case "#icut":
-                {
-                    var individualCut = (IndividualCutEvent)ev;
                     foreach (var cutSound in individualCut.CutSounds)
                     {
                         if (CanonicalId(cutSound, soundMap) is not { } sound)
@@ -303,107 +243,35 @@ public static class SequenceImporter
 
                         // Idempotent: repeating the same sound's cut at the same position
                         // (nothing else advancing position between them) collapses to one.
-                        if (!seenCuts.Add((regionIndex, position, sound))) continue;
+                        if (!seenCuts.Add((region, step, sound))) continue;
 
                         if (seenSounds.Add(sound)) soundOrder.Add(sound);
-                        notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
+                        notes.Add(new WalkedNote(region, step, sound, 0, null, 0, 0, true));
                     }
 
                     break;
                 }
-                case "!cut": // bare global cut - only sounds already introduced could be playing
+                // Bare global cut - only sounds already introduced could be playing.
+                case { SoundEvent: "!cut" }:
                 {
                     foreach (var sound in soundOrder)
                     {
-                        if (!seenCuts.Add((regionIndex, position, sound))) continue;
-                        notes.Add(new WalkedNote(regionIndex, position, sound, 0, null, 0, 0, true));
+                        if (!seenCuts.Add((region, step, sound))) continue;
+                        notes.Add(new WalkedNote(region, step, sound, 0, null, 0, 0, true));
                     }
 
                     break;
                 }
-                case "!looptarget":
-                    loopTarget = index;
-                    break;
-                case "!loopmany":
-                    if (ev.WorkingValue > 0)
-                    {
-                        ev.WorkingValue--;
-                        index = loopTarget;
-                        Untrigger(events, index, LoopmanyUntriggers);
-                        continue;
-                    }
-
-                    break;
-                case "!loop":
-                    if (!ev.Triggered)
-                    {
-                        ev.Triggered = true;
-                        index = loopTarget;
-                        Untrigger(events, index, LoopUntriggers);
-                        continue;
-                    }
-
-                    break;
-                case "!jump":
-                    if (!ev.Triggered)
-                    {
-                        ev.Triggered = true;
-                        var target = Array.Find(events, e =>
-                            e.SoundEvent == "!target" && Math.Abs(e.Value - ev.Value) < 0.001 && !e.Triggered);
-                        if (target != null)
-                        {
-                            index = Array.IndexOf(events, target);
-                            Untrigger(events, index, JumpUntriggers);
-                            continue;
-                        }
-                    }
-
-                    break;
-                case "!combine":
-                case "!target":
-                case null or "":
-                    break;
                 default:
                     ignoredEvents[ev.SoundEvent!] = ignoredEvents.GetValueOrDefault(ev.SoundEvent!) + 1;
                     break;
             }
-
-            index++;
         }
-
-        if (position > 1e-9 || regions.Count == 0) regions.Add((speed, position));
 
         if (notes.Count == 0)
             throw new InvalidOperationException("No sounds found in this sequence.");
 
-        return new WalkData(regions, notes, soundOrder, ignoredEvents, [.. unknownSounds.Order()]);
-    }
-
-    private static double Scale(double current, BaseEvent ev)
-    {
-        return ev.ValueScale switch
-        {
-            ValueScale.Divide => current / ev.Value,
-            ValueScale.Times => current * ev.Value,
-            ValueScale.Add => current + ev.Value,
-            _ => ev.Value
-        };
-    }
-
-    /// <summary>
-    ///     Ported from PlacementCalculator.Untrigger: re-arms loop/jump triggers from
-    ///     <paramref name="index" /> onward (except the given event names) so nested loops can fire again.
-    /// </summary>
-    private static void Untrigger(BaseEvent[] events, int index, string[] except)
-    {
-        if (index == 0) index++;
-        for (var i = index - 1; i < events.Length; i++)
-        {
-            var current = events[i];
-            if (except.Contains(current.SoundEvent)) continue;
-            current.Triggered = false;
-            current.WorkingValue = current.Value;
-        }
+        return new WalkData(walk.Regions, notes, soundOrder, ignoredEvents, [.. unknownSounds.Order()]);
     }
 
     private static List<SegmentPlan> BuildSegmentPlans(List<(double Speed, double Length)> regions,

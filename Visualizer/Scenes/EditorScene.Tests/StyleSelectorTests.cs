@@ -1,5 +1,6 @@
 using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Layout;
+using EditorScene.Scenes.Views;
 using Sundex.Components.Abstractions;
 
 namespace EditorScene.Tests;
@@ -44,6 +45,8 @@ public class StyleSelectorTests
         yield return new UnsavedChangesDialog(ctx).Element;
         yield return new TrackContextMenu(ctx, "Copy").Element;
         yield return new ImportDialog(ctx, "song.tdw").Element;
+        yield return new TrackTypeDialog(ctx).Element;
+        yield return new ActionValueDialog(ctx, FaithfulAction.All[0]).Element;
         yield return new ExportDialog(ctx).Element;
     }
 
@@ -64,6 +67,23 @@ public class StyleSelectorTests
                     missing.Add($"class {cls} ({element.GetType().Name})");
 
         Assert.Empty(missing.Distinct());
+    }
+
+    /// <summary>
+    ///     The faithful views are built in code, but they need an atlas store and a GL context
+    ///     the headless harness has no business building - so their selectors are checked by
+    ///     name instead of by walking them.
+    /// </summary>
+    [Theory]
+    [InlineData("faithful-body")]
+    [InlineData("faithful-palette")]
+    [InlineData("faithful-instruments")]
+    [InlineData("faithful-actions")]
+    [InlineData("faithful-palette-row")]
+    [InlineData("faithful-sequence")]
+    public void FaithfulViewClasses_AreDefinedByASheet(string name)
+    {
+        Assert.True(EditorTestContext.Styles.Classes.ContainsKey(name), $"sheet lost class \"{name}\"");
     }
 
     /// <summary>

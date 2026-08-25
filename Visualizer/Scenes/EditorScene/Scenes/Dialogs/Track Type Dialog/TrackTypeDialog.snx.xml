@@ -1,0 +1,44 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Dialogs/Dialogs.snx.ss"/>
+
+  <layout>
+    <flex id="track-type-dialog" class="dialog-frame">
+      <label class="title-label" value="Add a track"/>
+
+      <!-- Same two-column shape (and the same two accents) as the import dialog: two
+           options that differ in kind, not in weight, so neither reads as the default. -->
+      <flex class="dialog-options">
+        <flex class="dialog-column">
+          <button id="piano-roll-button" class="[dialog-button-primary,dialog-button-tall]">
+            <label value="Piano Roll"/>
+          </button>
+          <!-- Label has no text-wrap support, so each description is pre-split into
+               short lines that fit the column. -->
+          <flex class="dialog-column-description">
+            <label class="caption-label" value="Notes on a bar/beat grid,"/>
+            <label class="caption-label" value="segments and automation."/>
+          </flex>
+        </flex>
+
+        <panel class="dialog-divider"/>
+
+        <flex class="dialog-column">
+          <button id="faithful-button" class="[dialog-button-alt,dialog-button-tall]">
+            <!-- Same light-background-needs-dark-text contrast rule as the Select toggle. -->
+            <label class="dark-label" value="Faithful"/>
+          </button>
+          <flex class="dialog-column-description">
+            <label class="caption-label" value="A linear list of sounds and"/>
+            <label class="caption-label" value="actions, like the website."/>
+          </flex>
+        </flex>
+      </flex>
+
+      <flex class="dialog-actions-compact">
+        <button id="cancel-button" class="dialog-button">
+          <label value="Cancel"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

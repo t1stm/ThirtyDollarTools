@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Editor;
 
@@ -37,18 +38,7 @@ public static class ProjectFile
                             segment.BPM,
                             segment.Bars,
                             segment.StepsPerBeat,
-                            [
-                                .. segment.Notes.Select(note => new NoteDto(
-                                    note.Step,
-                                    note.Instrument.Id,
-                                    note.Value,
-                                    note.Volume,
-                                    note.Pan,
-                                    SaveAutomation(note.Automation),
-                                    note.Offset == 0 ? null : note.Offset,
-                                    IsCut: note.IsCut ? true : null
-                                ))
-                            ]
+                            [.. segment.Notes.Select(SaveNote)]
                         ))
                     ],
                     track.TrackAutomations.Count == 0
@@ -60,7 +50,10 @@ public static class ProjectFile
                                 automation.Sounds))
                         ],
                     track.Transpose,
-                    track.ColorIndex
+                    track.ColorIndex,
+                    // Omitted for the default kind so piano-roll files stay byte-identical.
+                    track.Kind == TrackKind.PianoRoll ? null : track.Kind,
+                    track is FaithfulTrack faithful ? [.. faithful.Items.Select(SaveItem)] : null
                 ))
             ],
             [
@@ -118,7 +111,7 @@ public static class ProjectFile
 
         foreach (var track_dto in dto.Tracks ?? [])
         {
-            var track = project.AddTrack(track_dto.Id, track_dto.Timing);
+            var track = project.AddTrack(track_dto.Id, track_dto.Timing, track_dto.Kind ?? TrackKind.PianoRoll);
             track.Name = track_dto.Name;
             track.Transpose = track_dto.Transpose;
             track.ColorIndex = track_dto.ColorIndex;
@@ -135,29 +128,16 @@ public static class ProjectFile
                 segment.StepsPerBeat = segment_dto.StepsPerBeat;
 
                 foreach (var note in segment_dto.Notes ?? [])
-                {
-                    // Migration: pre-instrument files carried a bare sound name per note;
-                    // dedup those into one instrument per sound (see GetOrCreateInstrument).
-                    var instrument = note.InstrumentId is { } instrument_id
-                        ? instruments_by_id[instrument_id]
-                        : project.GetOrCreateInstrument(note.Sound!);
-
-                    segment.Notes.Add(new Note
-                    {
-                        Step = note.Step,
-                        Instrument = instrument,
-                        Value = note.Value,
-                        Volume = note.Volume,
-                        Pan = note.Pan,
-                        Offset = note.Offset ?? 0,
-                        Automation = LoadAutomation(note.Automation),
-                        IsCut = note.IsCut ?? false
-                    });
-                }
+                    segment.Notes.Add(LoadNote(note, project, instruments_by_id));
             }
 
             foreach (var automation_dto in track_dto.TrackAutomations ?? [])
                 track.AddTrackAutomation(LoadAutomation(automation_dto.Automation)!, automation_dto.Sounds);
+
+            if (track is not FaithfulTrack faithful) continue;
+            foreach (var item_dto in track_dto.Items ?? [])
+                if (LoadItem(item_dto, project, instruments_by_id) is { } item)
+                    faithful.Items.Add(item);
         }
 
         if (dto.Placements is null)
@@ -176,6 +156,59 @@ public static class ProjectFile
         }
 
         return project;
+    }
+
+    private static NoteDto SaveNote(Note note)
+    {
+        return new NoteDto(
+            note.Step,
+            note.Instrument.Id,
+            note.Value,
+            note.Volume,
+            note.Pan,
+            SaveAutomation(note.Automation),
+            note.Offset == 0 ? null : note.Offset,
+            IsCut: note.IsCut ? true : null);
+    }
+
+    private static Note LoadNote(NoteDto note, ThirtyDollarProject project, Dictionary<int, Instrument> instruments)
+    {
+        // Migration: pre-instrument files carried a bare sound name per note;
+        // dedup those into one instrument per sound (see GetOrCreateInstrument).
+        var instrument = note.InstrumentId is { } instrument_id
+            ? instruments[instrument_id]
+            : project.GetOrCreateInstrument(note.Sound!);
+
+        return new Note
+        {
+            Step = note.Step,
+            Instrument = instrument,
+            Value = note.Value,
+            Volume = note.Volume,
+            Pan = note.Pan,
+            Offset = note.Offset ?? 0,
+            Automation = LoadAutomation(note.Automation),
+            IsCut = note.IsCut ?? false
+        };
+    }
+
+    /// <summary>
+    ///     An action is stored as the TDW text it stringifies to ("!speed@2@x", "!bg@#ff0000,0.5"),
+    ///     read back with the sequence parser - the pair is already a tested round trip, and the
+    ///     alternative is a second serialization of ValueScale and the packed color/pulse payloads.
+    /// </summary>
+    private static FaithfulItemDto SaveItem(FaithfulItem item)
+    {
+        return item.Action is { } action
+            ? new FaithfulItemDto(Action: action.Stringify())
+            : new FaithfulItemDto(SaveNote(item.Note!));
+    }
+
+    private static FaithfulItem? LoadItem(FaithfulItemDto dto, ThirtyDollarProject project,
+        Dictionary<int, Instrument> instruments)
+    {
+        if (dto.Note is { } note) return new FaithfulItem { Note = LoadNote(note, project, instruments) };
+        return dto.Action is null ? null : FaithfulItem.Parse(dto.Action);
     }
 
     private static AutomationDto? SaveAutomation(AudioKeyframeManager? manager)
@@ -292,7 +325,14 @@ public static class ProjectFile
         // Null (missing key or explicit) = inherits the project-wide transpose.
         float? Transpose = null,
         // Null (missing key) = the arrangement's default clip color.
-        int? ColorIndex = null);
+        int? ColorIndex = null,
+        // Null (missing key) = a piano-roll track - every file written before faithful tracks existed.
+        TrackKind? Kind = null,
+        // Only a faithful track has these; its Segments list is the unused default one.
+        List<FaithfulItemDto>? Items = null);
+
+    /// <summary>One faithful slot: exactly one of the two is set. See <see cref="FaithfulItem" />.</summary>
+    private record FaithfulItemDto(NoteDto? Note = null, string? Action = null);
 
     private record TrackAutomationDto(AutomationDto Automation, List<string>? Sounds);
 

@@ -270,39 +270,39 @@ public class GLBufferList<TDataType>(DeleteQueue deleteQueue)
 
     protected void AdjustTrackedReferencesAfterInsertion(int insertIndex)
     {
-        var referencesToUpdate = new List<KeyValuePair<int, TrackedBufferReference<TDataType>>>();
-
-        foreach (var kvp in TrackedBufferReferences)
-        {
-            if (kvp.Key < insertIndex) continue;
-            referencesToUpdate.Add(kvp);
-        }
-
-        foreach (var kvp in referencesToUpdate)
-        {
-            TrackedBufferReferences.Remove(kvp.Key);
-            kvp.Value.Index = kvp.Key + 1;
-            TrackedBufferReferences[kvp.Key + 1] = kvp.Value;
-        }
+        TrackedBufferReferences = Rekeyed(insertIndex, 1);
     }
 
     protected void AdjustTrackedReferencesAfterRemoval(int removeIndex)
     {
-        var referencesToUpdate = new List<KeyValuePair<int, TrackedBufferReference<TDataType>>>();
-
         TrackedBufferReferences.Remove(removeIndex);
-        foreach (var kvp in TrackedBufferReferences)
+        TrackedBufferReferences = Rekeyed(removeIndex, -1);
+    }
+
+    /// <summary>
+    ///     Every tracked reference at or past <paramref name="from" />, moved by
+    ///     <paramref name="delta" /> - up for an insertion, down for a removal - with its
+    ///     key and its <see cref="TrackedBufferReference{TDataType}.Index" /> in step.
+    ///     Built into a fresh map rather than moved key by key in the old one: the moves
+    ///     overlap, so writing one reference's new key lands on a neighbour that has not
+    ///     moved yet unless they are taken in exactly the right order - and a dictionary
+    ///     hands its entries over in whatever order earlier removals left behind, not in
+    ///     ascending key order. Getting that wrong drops a reference out of the map and
+    ///     leaves it pointing at someone else's slot, which surfaces much later as an
+    ///     out-of-range <see cref="RemoveAt" /> when that reference is finally released.
+    /// </summary>
+    private Dictionary<int, TrackedBufferReference<TDataType>> Rekeyed(int from, int delta)
+    {
+        var rekeyed = new Dictionary<int, TrackedBufferReference<TDataType>>(TrackedBufferReferences.Count);
+
+        foreach (var (key, reference) in TrackedBufferReferences)
         {
-            if (kvp.Key <= removeIndex) continue;
-            referencesToUpdate.Add(kvp);
+            var index = key >= from ? key + delta : key;
+            reference.Index = index;
+            rekeyed[index] = reference;
         }
 
-        foreach (var kvp in referencesToUpdate)
-        {
-            TrackedBufferReferences.Remove(kvp.Key);
-            kvp.Value.Index = kvp.Key - 1;
-            TrackedBufferReferences[kvp.Key - 1] = kvp.Value;
-        }
+        return rekeyed;
     }
 
     /// <summary>

@@ -11,14 +11,23 @@ namespace VisualizerScene.Objects.Sound_Values;
 
 public class IndividualCutValue : ISoundValue
 {
-    private const float RenderableSize = 24;
+    /// <summary>A cut icon's side, as a fraction of the event box it hangs off.</summary>
+    private const float SizeRatio = 0.3f;
+
+    /// <summary>Icons per line, as on the site.</summary>
+    private const int PerLine = 4;
+
+    /// <summary>Gap between two icons, as a fraction of one - the same air the boxes get.</summary>
+    private const float Advance = 1.2f;
+
     private readonly float _baseSize;
     private readonly SoundRenderable[] _renderables;
 
-    public IndividualCutValue(IndividualCutEvent ice, RenderableFactory factory, float renderScale)
+    /// <param name="boxSize">The event box these hang off; the icons are sized from it.</param>
+    public IndividualCutValue(IndividualCutEvent ice, RenderableFactory factory, float renderScale, float boxSize)
     {
         // render scale is baked in, since ScaleMultiplier belongs to the expand animation and gets reset to 1
-        _baseSize = RenderableSize * renderScale;
+        _baseSize = boxSize * SizeRatio * CountScale(ice.CutSounds.Count) * renderScale;
         _renderables =
         [
             .. ice.CutSounds
@@ -53,7 +62,7 @@ public class IndividualCutValue : ISoundValue
         {
             BasePosition = realPosition,
             FontSize = fontSize,
-            LineHeight = 1f,
+            LineHeight = Advance,
             RelativeSize = 1f
         };
 
@@ -63,10 +72,12 @@ public class IndividualCutValue : ISoundValue
             var renderable = _renderables[i];
             layouts[i] = new FlexLineItemPlacementLayout
             {
-                Advance = 1.0,
+                Advance = Advance,
                 Scale = new Vector2(1, renderable.Scale.X / renderable.Scale.Y),
                 Translate = Vector2.Zero,
-                NewLines = i % 4 == 3 ? 1 : 0
+                // Before this icon, not after it: the provider consumes NewLines as it places
+                // the item, so breaking on the last of a line would only fit PerLine - 1.
+                NewLines = i > 0 && i % PerLine == 0 ? 1 : 0
             };
         }
 
@@ -93,6 +104,20 @@ public class IndividualCutValue : ISoundValue
         foreach (var renderable in _renderables) renderable.UpdateModel(false);
 
         ArrayPool<FlexLineItemPlacementLayout>.Shared.Return(layouts);
+    }
+
+    /// <summary>
+    ///     A long cut list is drawn smaller so it still fits under its box: four icons lose a
+    ///     quarter of the size, seven lose half.
+    /// </summary>
+    private static float CountScale(int count)
+    {
+        return count switch
+        {
+            >= 7 => 0.5f,
+            >= 4 => 0.75f,
+            _ => 1f
+        };
     }
 
     public void Reset()

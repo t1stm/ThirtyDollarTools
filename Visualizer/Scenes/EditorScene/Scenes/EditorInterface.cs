@@ -20,6 +20,8 @@ using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;
+using VisualizerScene;
+using VisualizerScene.Objects.Playfield;
 using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes;
@@ -36,7 +38,20 @@ public class EditorInterface
     ///     bind table rather than written out, so a rebound shortcut is named correctly and
     ///     a Mac reads Cmd.
     /// </summary>
-    private static string HintLegend =>
+    private string HintLegend => _openPanel == FaithfulPanel ? FaithfulLegend : GridLegend;
+
+    /// <summary>
+    ///     The faithful editor's own gestures. Nothing here has an on-screen control, and
+    ///     none of it matches the grid views' bindings, so the bar says so outright.
+    /// </summary>
+    private static string FaithfulLegend =>
+        "Click the palette to add, right-click to preview  •  " +
+        "Draw: click a slot to remove it, drag it to reorder  •  " +
+        $"Select: click to select, {Keybinds.PrimaryName}+click to add, Left/Right walk it, " +
+        $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)} copy/paste  •  " +
+        $"Scroll a slot (Up/Down under Select) for value, {Keybinds.PrimaryName}+ volume, Shift+ pan";
+
+    private static string GridLegend =>
         "Double-click a track to open it, right-click for options  •  " +
         $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)}/{Keybinds.Get(Bind.EditorCut)} " +
         $"copy/paste/cut, {Keybinds.Get(Bind.EditorSelectAll)} select all  •  " +
@@ -58,11 +73,18 @@ public class EditorInterface
     private readonly Panel _trackColumn;
     private readonly TrackEditorView _trackEditor;
     private readonly TrackListPanel _trackList;
+    private readonly FaithfulPalette _faithfulPalette;
+    private readonly FaithfulSequence _faithfulSequence;
     private readonly TransportController _transport;
     private readonly ThirtyDollarWorkflow _workflow;
     private TrackAutomation? _editingTrackAutomation;
 
-    private bool _editorOpen;
+    /// <summary>
+    ///     Which panel is attached to the grid area: null is the arrangement, otherwise the
+    ///     opened track's editor - <see cref="TrackEditorPanel" /> or
+    ///     <see cref="FaithfulPanel" />, whichever the track's kind calls for.
+    /// </summary>
+    private FlexPanel? _openPanel;
 
     /// <summary>Scenes are constructed at startup; only the active editor owns the window title.</summary>
     private bool _titleActive;
@@ -101,6 +123,13 @@ public class EditorInterface
             OnHint = SetHint
         };
         _trackEditor = new TrackEditorView(context, State);
+        var playfieldLook = PlayfieldLook(workflow);
+        var faithfulScale = new FaithfulScale();
+        _faithfulPalette = new FaithfulPalette(context, State, playfieldLook, faithfulScale);
+        _faithfulSequence = new FaithfulSequence(context, State, playfieldLook, faithfulScale);
+        // The sequence works the size out from its own width; the palettes are told, since
+        // nothing about their rectangles changes when it does.
+        faithfulScale.Changed += _faithfulPalette.RefreshScale;
         _soundFilterPicker = new SoundPicker(context, workflow.AtlasStore)
             { ID = "sound-filter-picker", MultiSelect = true };
 
@@ -113,6 +142,8 @@ public class EditorInterface
         sundexContext.RegisterElementFactory("arrangement-view", _ => _arrangement);
         sundexContext.RegisterElementFactory("lane-header", _ => _laneHeader);
         sundexContext.RegisterElementFactory("track-editor-view", _ => _trackEditor);
+        sundexContext.RegisterElementFactory("faithful-palette", _ => _faithfulPalette);
+        sundexContext.RegisterElementFactory("faithful-sequence", _ => _faithfulSequence);
         sundexContext.RegisterElementFactory("sound-picker", _ => _soundFilterPicker);
         foreach (var name in new[]
                  {
@@ -121,6 +152,7 @@ public class EditorInterface
                      "Layout/Hint Bar/HintBar",
                      "Layout/Arrangement Panel/ArrangementPanel",
                      "Layout/Track Editor Panel/TrackEditorPanel",
+                     "Layout/Faithful Panel/FaithfulPanel",
                      "Layout/Inspector Shell/InspectorShell",
                      "Dialogs/Sound Filter/SoundFilter"
                  })
@@ -149,6 +181,7 @@ public class EditorInterface
             () => TransportProgress, () => TransportElapsed, () => TransportTotal, () => TransportPlay,
             () => HintBar, () => HintGutter, () => HintLabel,
             () => ArrangementPanel, () => TrackEditorPanel, () => OpenedTrackName, () => InstrumentButton,
+            () => FaithfulPanel, () => FaithfulBody, () => FaithfulTrackName,
             () => InspectorPanelElement, () => InspectorRows, () => InspectorStatusBar, () => InspectorStatusLabel,
             () => SoundFilterModal);
         _transport = new TransportController(Playback,
@@ -165,6 +198,7 @@ public class EditorInterface
         // current one stays attached. Detached before the first DrawTo so the note editor
         // is never drawn without an opened track, exactly as when it was code-built.
         _gridArea.RemoveChild(TrackEditorPanel);
+        _gridArea.RemoveChild(FaithfulPanel);
         RootPanel.RemoveChild(SoundFilterModal);
 
         RootPanel.DrawTo(context);
@@ -173,12 +207,25 @@ public class EditorInterface
 
         _defaultTitle = workflow.Game.Title;
 
+        _trackList.OnAddTrack = ShowTrackTypeDialog;
+        _faithfulPalette.OnHint = SetHint;
+        _faithfulPalette.OnPickInstrument = instrument =>
+        {
+            if (State.OpenedFaithfulTrack is { } track) State.AppendItem(track, FaithfulItem.Sound(instrument));
+        };
+        _faithfulPalette.OnPreviewInstrument = Playback.PreviewInstrument;
+        _faithfulPalette.OnPickAction = ShowActionValueDialog;
+        _faithfulSequence.OnHint = SetHint;
+        _faithfulSequence.OnPreviewNote = note => Playback.PreviewNote(note);
         _arrangement.OnOpenTrack = State.OpenTrack;
         _arrangement.OnSeekQuarters = Playback.Seek;
         _arrangement.OnScrolled = _laneHeader.InvalidateLayout;
 
         _instrumentWorkflow = new InstrumentWorkflow(context, State, Playback, _dialogHost, workflow.AtlasStore,
             AllSounds);
+        // Straight into the editor - the palette IS the instrument list, so routing through
+        // the selector would only ask the user to press "New instrument" a second time.
+        _faithfulPalette.OnNewInstrument = () => _instrumentWorkflow.OpenNewInstrument();
 
         // The shell is already in the tree (root markup); this only drives it.
         _inspector = new InspectorPanel(context, State,
@@ -223,6 +270,7 @@ public class EditorInterface
             RefreshActiveInstrument();
             _inspector.Rebuild();
         };
+        State.OnItemSelectionChanged += _ => _inspector.Rebuild();
         State.OnNoteSelectionChanged += _ =>
         {
             _trackEditor.InvalidateLayout();
@@ -283,6 +331,30 @@ public class EditorInterface
     [SetFromLogic] public TextInput OpenedTrackName { get; set; } = null!;
     [SetFromLogic] public Button InstrumentButton { get; set; } = null!;
 
+    [SetFromLogic] public FlexPanel FaithfulPanel { get; set; } = null!;
+
+    /// <summary>The faithful panel's content area - the palettes and sequence view mount here.</summary>
+    [SetFromLogic] public FlexPanel FaithfulBody { get; set; } = null!;
+
+    [SetFromLogic] public TextInput FaithfulTrackName { get; set; } = null!;
+
+    /// <summary>
+    ///     The playfield look the faithful views draw with: the same atlases, fonts and badge
+    ///     conventions the visualizer uses, at a size that suits a panel rather than a screen.
+    ///     Render scale stays 1 - these live in UI pixels, like every other element.
+    /// </summary>
+    private static PlayfieldSettings PlayfieldLook(ThirtyDollarWorkflow workflow)
+    {
+        return new PlayfieldSettings
+        {
+            SampleHolder = workflow.SampleHolder ?? throw new Exception("SampleHolder is null"),
+            AtlasStore = workflow.AtlasStore,
+            PlayfieldSizing = new PlayfieldSizing(40),
+            RenderScale = 1f,
+            Fonts = Visualizer.VisualizerFonts
+        };
+    }
+
     /// <summary>Loads an embedded markup/script asset by its project-relative path.</summary>
     private static string LoadMarkup(UIContext context, string location)
     {
@@ -301,6 +373,8 @@ public class EditorInterface
     public void SetModifiers(bool shift, bool ctrl)
     {
         _trackList.CtrlHeld = ctrl;
+        _faithfulSequence.CtrlHeld = ctrl;
+        _faithfulSequence.ShiftHeld = shift;
         _trackEditor.FineSnap = shift;
         _trackEditor.WheelZooms = ctrl;
         _arrangement.FineSnap = shift;
@@ -310,25 +384,34 @@ public class EditorInterface
 
     private void SwapGridView(ProjectTrack? track)
     {
-        if (track != null) OpenedTrackName.Value = track.Name;
-        if (track != null == _editorOpen) return;
-        _editorOpen = track != null;
+        var next = track switch
+        {
+            null => null,
+            FaithfulTrack => FaithfulPanel,
+            _ => TrackEditorPanel
+        };
 
-        if (_editorOpen)
+        if (track != null) (next == FaithfulPanel ? FaithfulTrackName : OpenedTrackName).Value = track.Name;
+        if (next == _openPanel) return;
+
+        _gridArea.RemoveChild(_openPanel ?? (UIElement)ArrangementPanel);
+        _gridArea.AddChild(next ?? (UIElement)ArrangementPanel);
+        _openPanel = next;
+
+        if (next == TrackEditorPanel) _trackEditor.CenterOnZero();
+        else if (next == FaithfulPanel)
         {
-            _gridArea.RemoveChild(ArrangementPanel);
-            _gridArea.AddChild(TrackEditorPanel);
-            _trackEditor.CenterOnZero();
+            _faithfulPalette.Rebuild(); // first chance the atlases are loaded
+            _faithfulSequence.Refresh();
         }
-        else
-        {
-            _gridArea.RemoveChild(TrackEditorPanel);
-            _gridArea.AddChild(ArrangementPanel);
-            _arrangement.Refresh();
-        }
+        else _arrangement.Refresh();
 
         AlignHintToGrid();
+        SetHint(null); // the legend differs per view
     }
+
+    /// <summary>The note editor specifically - the only view with a grid to pan and a value ruler.</summary>
+    private bool NoteEditorOpen => _openPanel == TrackEditorPanel;
 
     /// <summary>
     ///     Indents the hint text past the active view's gutter - the arrangement's M/S lane
@@ -337,7 +420,8 @@ public class EditorInterface
     /// </summary>
     private void AlignHintToGrid()
     {
-        var gutter = _editorOpen ? TrackEditorView.GutterWidth : LaneHeader.GutterWidth;
+        // The faithful panel has no gutter at all, so its hint starts at the panel's own padding.
+        var gutter = NoteEditorOpen ? TrackEditorView.GutterWidth : _openPanel != null ? 0 : LaneHeader.GutterWidth;
         HintGutter.Width = Math.Max(0, gutter - HintBar.Padding);
     }
 
@@ -352,6 +436,20 @@ public class EditorInterface
         SetToolActive(button, tool, State.ActiveTool == tool);
         button.OnClick = _ => State.ActiveTool = tool;
         _toolButtons.Add((button, tool));
+    }
+
+    /// <summary>
+    ///     Takes over the faithful sequence's "Follow scroll" toggle. No fill in either state -
+    ///     the label's color is the whole signal, muted off and the editor's blue on.
+    /// </summary>
+    [UsedImplicitly]
+    public void AdoptFollowButton(Button button)
+    {
+        button.OnClick = _ =>
+        {
+            _faithfulSequence.FollowScroll = !_faithfulSequence.FollowScroll;
+            button.Label.SetClass("follow-label-active", _faithfulSequence.FollowScroll);
+        };
     }
 
     /// <summary>
@@ -532,6 +630,58 @@ public class EditorInterface
         _workflow.Game.Title = $"{State.Project.Info.Name}{(State.Dirty ? " •" : "")} - {_defaultTitle}";
     }
 
+    /// <summary>
+    ///     "+ Add track" asks which kind first. The new track is selected and opened, so the
+    ///     kind that was picked is immediately visible instead of being a silent list entry.
+    /// </summary>
+    private void ShowTrackTypeDialog()
+    {
+        var dialog = new TrackTypeDialog(_context);
+        var modal = _dialogHost.Show(dialog.Element);
+
+        dialog.PianoRollButton.OnClick = _ => Add(TrackKind.PianoRoll);
+        dialog.FaithfulButton.OnClick = _ => Add(TrackKind.Faithful);
+        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+        return;
+
+        void Add(TrackKind kind)
+        {
+            _dialogHost.Close(modal);
+            State.OpenTrack(State.AddTrack(kind));
+        }
+    }
+
+    /// <summary>
+    ///     Inserts a palette action. One with an amount prompts for it first, exactly as the
+    ///     site does - as the whole TDW text, so "!speed@2@x" and the two-value "!pulse"/"!bg"
+    ///     payloads need no form of their own.
+    /// </summary>
+    private void ShowActionValueDialog(FaithfulAction action)
+    {
+        if (action.Template is null)
+        {
+            Append(action.Name);
+            return;
+        }
+
+        var dialog = new ActionValueDialog(_context, action);
+        var modal = _dialogHost.Show(dialog.Element);
+        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+        dialog.AddButton.OnClick = _ =>
+        {
+            _dialogHost.Close(modal);
+            Append(dialog.ValueInput.Value);
+        };
+        return;
+
+        void Append(string tdw)
+        {
+            if (State.OpenedFaithfulTrack is not { } track) return;
+            if (FaithfulItem.Parse(tdw) is { } item) State.AppendItem(track, item);
+            else _dialogHost.Alert($"\"{tdw}\" isn't an event this editor can read.");
+        }
+    }
+
     private void ShowTrackContextMenu(ProjectTrack track, float x, float y)
     {
         if (_trackContextMenuModal != null) return;
@@ -613,9 +763,15 @@ public class EditorInterface
     ///     an opened track, the snap grid and whole channels in the arrangement. Up is a
     ///     lower channel index - the arrangement draws channel 0 at the top.
     /// </summary>
+    /// <summary>
+    ///     The arrow keys, routed to whichever view is open. A faithful track has no grid to
+    ///     nudge a note across, so there the arrows walk and adjust the selection instead -
+    ///     see <see cref="FaithfulSequence.Nudge" />.
+    /// </summary>
     public void NudgeSelection(int dx, int dy)
     {
-        if (State.OpenedTrack != null) State.NudgeNotes(dx, dy, TrackEditorGeometry.MaxValue);
+        if (State.OpenedFaithfulTrack != null) _faithfulSequence.Nudge(dx, dy);
+        else if (State.OpenedTrack != null) State.NudgeNotes(dx, dy, TrackEditorGeometry.MaxValue);
         else State.NudgePlacements(dx * _arrangement.SnapQuarterNotes, -dy, _arrangement.Channels - 1);
     }
 
@@ -647,6 +803,8 @@ public class EditorInterface
         RefreshTitle();
 
         _trackList.Rebuild();
+        _faithfulPalette.Rebuild();
+        if (_openPanel == FaithfulPanel) _faithfulSequence.Refresh();
         _arrangement.Refresh();
         _trackEditor.InvalidateLayout();
         _inspector.Sync();
@@ -661,7 +819,7 @@ public class EditorInterface
         // of tree attachment, so calling this unconditionally painted orphaned M/S
         // buttons over the note editor. Reopening the arrangement redraws it anyway,
         // via AddChild's own Drawn-aware DrawTo.
-        if (!_editorOpen)
+        if (_openPanel is null)
         {
             _laneHeader.InvalidateLayout();
             _laneHeader.DrawTo(_context);
@@ -712,6 +870,7 @@ public class EditorInterface
             _trackEditor.PlayheadQuarters = Playback.PlayheadQuarters;
             State.IsCurrentlyPlayingAudio = Playback.IsPlaying;
             if (Playback.IsPlaying) FollowPlayheadSegment();
+            if (_openPanel == FaithfulPanel) _faithfulSequence.SetPlayhead(Playback.IsPlaying ? LocalPlayheadMinutes() : null);
         }
 
         _transport.Refresh();
@@ -731,9 +890,33 @@ public class EditorInterface
     ///     opened track the playhead currently sits inside, same placement lookup as
     ///     <see cref="TrackEditorView" />'s playhead line.
     /// </summary>
+    /// <summary>
+    ///     How far the playhead is into the opened track, in minutes, or null while it is
+    ///     outside every placement of it. Same placement lookup as
+    ///     <see cref="FollowPlayheadSegment" />, which a faithful track can't use - it has no
+    ///     segments, only a walked position.
+    /// </summary>
+    private double? LocalPlayheadMinutes()
+    {
+        if (State.OpenedTrack is not { } track) return null;
+        var bpm = State.Project.RootTiming.BPM;
+        var duration = track.DurationMinutes();
+
+        foreach (var placement in State.Project.Placements)
+        {
+            if (placement.Track != track) continue;
+            var localMinutes = (Playback.PlayheadQuarters - placement.StartQuarterNotes) / bpm;
+            if (localMinutes < 0 || localMinutes >= duration) continue;
+            return localMinutes;
+        }
+
+        return null;
+    }
+
     private void FollowPlayheadSegment()
     {
-        if (State.OpenedTrack is not { } track) return;
+        // A faithful track has no segments to follow - its position is an item index.
+        if (State.OpenedTrack is not { } track || track.Kind != TrackKind.PianoRoll) return;
         var bpm = State.Project.RootTiming.BPM;
         var duration = track.DurationMinutes();
         foreach (var placement in State.Project.Placements)
@@ -752,7 +935,7 @@ public class EditorInterface
         RootPanel.Test(mouseState, scale);
         // The framework only routes left/right buttons; middle-drag panning is fed here.
         var middle = mouseState.IsButtonDown(MouseButton.Middle);
-        if (_editorOpen) _trackEditor.MiddlePan(middle, _context.PointerX, _context.PointerY);
-        else _arrangement.MiddlePan(middle, _context.PointerX, _context.PointerY);
+        if (NoteEditorOpen) _trackEditor.MiddlePan(middle, _context.PointerX, _context.PointerY);
+        else if (_openPanel is null) _arrangement.MiddlePan(middle, _context.PointerX, _context.PointerY);
     }
 }

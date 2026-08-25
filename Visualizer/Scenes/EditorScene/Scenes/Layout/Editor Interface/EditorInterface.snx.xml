@@ -1,5 +1,5 @@
 <sundex version="1.0" imports='["editor-header","transport-section","hint-bar",
-                                "arrangement-panel","track-editor-panel","inspector-shell",
+                                "arrangement-panel","track-editor-panel","faithful-panel","inspector-shell",
                                 "sound-filter"]'>
   <style language="sundex" src="Scenes/Layout/Editor Interface/EditorInterface.snx.ss"/>
 
@@ -18,13 +18,15 @@
         </flex>
       </panel>
 
-      <!-- Both grid panels are built up-front so a single pass resolves every handle in
-           here; EditorInterface detaches the note editor again straight away and
-           SwapGridView attaches whichever one is current. A detach rather than a Visible
-           flip because FlexPanel still gives a hidden child its share of the row. -->
+      <!-- All three grid panels are built up-front so a single pass resolves every handle
+           in here; EditorInterface detaches the two track editors again straight away and
+           SwapGridView attaches whichever one the opened track's kind calls for. A detach
+           rather than a Visible flip because FlexPanel still gives a hidden child its
+           share of the row. -->
       <flex id="grid-area">
         <arrangement-panel/>
         <track-editor-panel/>
+        <faithful-panel/>
       </flex>
 
       <panel id="inspector-column">

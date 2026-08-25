@@ -236,6 +236,11 @@ public class Editor : Scene, IFadeInScene
         // editor clipboard, so the clipboard binds skip while one is focused.
         var textFocused = _context.FocusedElement is Sundex.Components.Inputs.TextInput;
 
+        // The event's own modifier set, not last frame's: Mouse() refreshes these once a
+        // frame, and a Ctrl+Arrow can arrive in the same frame the Ctrl went down - which
+        // would read as a plain arrow to whoever asks (the faithful sequence does).
+        _editorInterface.SetModifiers((e.Modifiers & KeyModifiers.Shift) != 0, Keybinds.PrimaryHeld(e));
+
         // Ctrl+D stays free for a future "duplicate selection": the Draw tool's plain D is
         // an exact-modifier match, so it no longer needs a guard saying so.
         switch (Keybinds.Match(e, BindScene.Editor))
@@ -301,6 +306,23 @@ public class Editor : Scene, IFadeInScene
                 ToggleChannels(state, state.ToggleSolo);
                 return;
         }
+
+        // A modified arrow matches no bind - the table compares modifier sets exactly, by
+        // design, which is what keeps Ctrl+Z and Ctrl+Shift+Z apart - while the faithful
+        // sequence reads Ctrl/Shift on an arrow as volume/pan. There, and only there, the
+        // nudge keys are resolved by key alone.
+        if (state.OpenedFaithfulTrack != null && NudgeDirection(e) is { } direction)
+            _editorInterface.NudgeSelection(direction.Dx, direction.Dy);
+    }
+
+    /// <summary>The nudge binds' directions, matched on the key with its modifiers ignored.</summary>
+    private static (int Dx, int Dy)? NudgeDirection(KeyboardKeyEventArgs e)
+    {
+        if (e.Key == Keybinds.Get(Bind.EditorNudgeLeft).Key) return (-1, 0);
+        if (e.Key == Keybinds.Get(Bind.EditorNudgeRight).Key) return (1, 0);
+        if (e.Key == Keybinds.Get(Bind.EditorNudgeUp).Key) return (0, 1);
+        if (e.Key == Keybinds.Get(Bind.EditorNudgeDown).Key) return (0, -1);
+        return null;
     }
 
     /// <summary>

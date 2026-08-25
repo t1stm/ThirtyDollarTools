@@ -78,6 +78,15 @@ id alert-dialog {
     width = 360;
 }
 
+id action-value-dialog {
+    width = 360;
+}
+
+// The whole event as text; text-field-tall in the markup gives it its height.
+id value-input {
+    width = 100%;
+}
+
 id unsaved-changes-dialog {
     width = 360;
 }
@@ -165,30 +174,38 @@ id import-dialog {
     spacing = 18;
 }
 
-// One import option: its button with a short explanation underneath.
-class import-column {
+// Same frame as the import dialog: two columns of the same width plus their divider.
+id track-type-dialog {
+    width = 560;
+    padding = 16;
+    spacing = 18;
+}
+
+// One option of a two-option dialog (import kind, track kind): its button with a
+// short explanation underneath.
+class dialog-column {
     direction = "vertical";
     width = 240;
     spacing = 6;
 }
 
-// The stack of description lines under an import option's button.
-class import-column-description {
+// The stack of description lines under an option's button.
+class dialog-column-description {
     direction = "vertical";
     width = 100%;
     spacing = 2;
 }
 
-// The vertical rule between the two import options. Tall enough to span a button plus
-// its two-line description, so it reads as separating the whole column.
-class import-divider {
+// The vertical rule between the two options. Tall enough to span a button plus its
+// two-line description, so it reads as separating the whole column.
+class dialog-divider {
     width = 1;
     height = 84;
     background = $theme.divider;
 }
 
-// The row the two import options sit in.
-class import-options {
+// The row the two options sit in.
+class dialog-options {
     width = 100%;
     spacing = 20;
     horizontal-align = "center";

@@ -1,0 +1,23 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Dialogs/Dialogs.snx.ss"/>
+
+  <layout>
+    <flex id="action-value-dialog" class="dialog-frame">
+      <!-- Heading, hint and the field's contents are all set by ActionValueDialog.cs. -->
+      <label id="title-label" class="heading-label" value=""/>
+      <label id="hint-label" class="caption-label" value=""/>
+      <!-- The whole event as TDW text, not a number field: it is the one input that can
+           express "!speed@2@x" and the packed "!pulse@4,100" / "!bg@#ff0000,0.5" payloads
+           without a form per action, and it is what the item is saved as anyway. -->
+      <text-input id="value-input" class="[text-field,text-field-tall]"/>
+      <flex class="dialog-actions-compact">
+        <button id="cancel-button" class="dialog-button-shape">
+          <label value="Cancel"/>
+        </button>
+        <button id="add-button" class="dialog-button-primary">
+          <label value="Add"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

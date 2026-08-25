@@ -45,13 +45,24 @@ public sealed class EditorTrack : FlexPanel
 
         var name = new Label(context, track.Name) { Classes = ["body-label"] };
 
+        // Only the non-default kind is named: labelling every row "piano roll" would be
+        // noise in a project that has no faithful tracks at all.
+        var kind = track.Kind == TrackKind.Faithful
+            ? new Label(context, "faithful") { Classes = ["caption-label"] }
+            : null;
+
         // The fill is a palette entry, not a look, so it is set here rather than in the
         // sheet - same split as the color dialog's chip. track-row centers and spaces it.
         if (color is { } fill)
             DragHandle = new Panel(context)
                 { Classes = ["track-color-blip"], Background = new ColoredPlane { Color = fill } };
 
-        Children = DragHandle is null ? [name, spacer, remove] : [DragHandle, name, spacer, remove];
+        var children = new List<UIElement>();
+        if (DragHandle is not null) children.Add(DragHandle);
+        children.Add(name);
+        if (kind is not null) children.Add(kind);
+        children.AddRange([spacer, remove]);
+        Children = children;
     }
 
     public ProjectTrack Track { get; }

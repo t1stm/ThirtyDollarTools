@@ -33,9 +33,9 @@ public class ThirtyDollarProject
     /// </summary>
     public IReadOnlyList<TrackPlacement> Placements => _placements;
 
-    public ProjectTrack NewTrack()
+    public ProjectTrack NewTrack(TrackKind kind = TrackKind.PianoRoll)
     {
-        var track = new ProjectTrack(RootTiming, ++_tracks);
+        var track = NewTrack(kind, RootTiming, ++_tracks);
         _projectTracks.Add(track);
         return track;
     }
@@ -44,12 +44,21 @@ public class ThirtyDollarProject
     ///     Reconstructs a track from a saved project, keeping the id counter ahead
     ///     of loaded ids. Null timing means the track follows the root timing.
     /// </summary>
-    internal ProjectTrack AddTrack(int id, TimingInfo? timing)
+    internal ProjectTrack AddTrack(int id, TimingInfo? timing, TrackKind kind = TrackKind.PianoRoll)
     {
-        var track = new ProjectTrack(timing ?? RootTiming, id);
+        var track = NewTrack(kind, timing ?? RootTiming, id);
         _projectTracks.Add(track);
         _tracks = Math.Max(_tracks, id);
         return track;
+    }
+
+    private static ProjectTrack NewTrack(TrackKind kind, TimingInfo timing, int id)
+    {
+        return kind switch
+        {
+            TrackKind.Faithful => new FaithfulTrack(timing, id),
+            _ => new ProjectTrack(timing, id)
+        };
     }
 
     /// <summary>Duplicates a track under a fresh id, with all its segments/notes/automations deep-copied.</summary>
@@ -107,10 +116,7 @@ public class ThirtyDollarProject
     /// <summary>Refuses while any note still references the instrument.</summary>
     public bool RemoveInstrument(Instrument instrument)
     {
-        var referenced = _projectTracks
-            .SelectMany(track => track.Segments)
-            .SelectMany(segment => segment.Notes)
-            .Any(note => note.Instrument == instrument);
+        var referenced = _projectTracks.Any(track => track.ReferencesInstrument(instrument));
         return !referenced && _instruments.Remove(instrument);
     }
 

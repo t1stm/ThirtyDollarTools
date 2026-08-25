@@ -207,18 +207,36 @@ public class EditorPlayback
     }
 
     /// <summary>
-    ///     Plays every sound of an instrument (a note being placed or moved), each combined
-    ///     with its own <see cref="InstrumentSound" /> tuning applied, replacing
-    ///     any still-playing preview. Suppressed during playback unless
-    ///     <see cref="PreviewDuringPlayback" /> is set. Empty instrument -> no preview.
+    ///     Plays a note as it will actually sound: every sound of its instrument, each
+    ///     combining the note's value, volume and pan with its own
+    ///     <see cref="InstrumentSound" /> tuning. Replaces any still-playing preview;
+    ///     suppressed during playback unless <see cref="PreviewDuringPlayback" /> is set.
+    ///     Empty instrument (or a cut, which has no sound of its own) -> no preview.
     /// </summary>
-    public void PreviewNote(Instrument instrument, double value)
+    /// <param name="valueOverride">
+    ///     Value to play at instead of the note's own - a drag previews where the note is
+    ///     heading, one frame before it lands there.
+    /// </param>
+    public void PreviewNote(Note note, double? valueOverride = null)
     {
         if (IsPlaying && !PreviewDuringPlayback) return;
 
         StopPreview();
-        foreach (var sound in instrument.Sounds)
-            PlayOne(sound.Sound, sound.CombineValue(value), sound.CombineVolume(null), sound.CombinePan(0));
+        if (note.IsCut) return;
+
+        var value = valueOverride ?? note.Value;
+        foreach (var sound in note.Instrument.Sounds)
+            PlayOne(sound.Sound, sound.CombineValue(value), sound.CombineVolume(note.Volume),
+                sound.CombinePan(note.Pan));
+    }
+
+    /// <summary>
+    ///     Every sound of an instrument at its own tuning, on no note - the palette's
+    ///     right-click preview, where there is no note to take a volume or pan from.
+    /// </summary>
+    public void PreviewInstrument(Instrument instrument)
+    {
+        PreviewInstrument(instrument.Sounds);
     }
 
     /// <summary>

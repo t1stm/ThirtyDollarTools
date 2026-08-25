@@ -1,0 +1,40 @@
+<sundex version="1.0" component="faithful-panel">
+  <style language="sundex" src="Scenes/Layout/Faithful Panel/FaithfulPanel.snx.ss"/>
+  <logic language="csharp" src="Scenes/Layout/Faithful Panel/FaithfulPanel.snx.csx" imports="[EditorScene, EditorScene.Scenes]"/>
+
+  <layout>
+    <flex id="faithful-panel" class="grid-panel">
+      <!-- Same bar as the note editor's, minus everything that only means something on a
+           grid: no instrument button (the palette is the instrument list) and no
+           Draw/Select tools (there is nothing to draw on). -->
+      <flex class="tool-bar">
+        <button id="back-to-arrangement">
+          <label value="← Arrangement"/>
+        </button>
+        <text-input id="opened-track-name"/>
+        <panel class="spacer"/>
+      </flex>
+      <flex id="faithful-body" class="faithful-body">
+        <faithful-palette/>
+        <!-- The palette builds its own two boxes; the sequence's is here because its
+             scroller is a registered element, not something the palette owns. -->
+        <flex class="[faithful-section,faithful-section-sequence]">
+          <flex class="faithful-sequence-bar">
+            <label class="sound-section-header" value="Sequence"/>
+            <panel class="spacer"/>
+            <button id="faithful-follow" class="faithful-follow-button">
+              <label class="follow-label" value="Follow scroll"/>
+            </button>
+            <button id="faithful-tool-draw" class="tool-button">
+              <label class="tool-label" value="Draw"/>
+            </button>
+            <button id="faithful-tool-select" class="tool-button">
+              <label class="tool-label" value="Select"/>
+            </button>
+          </flex>
+          <faithful-sequence/>
+        </flex>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

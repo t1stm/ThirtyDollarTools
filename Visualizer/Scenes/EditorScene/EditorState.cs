@@ -29,6 +29,7 @@ public class EditorState
     private readonly Dictionary<ProjectTrack, Instrument?> _lastInstrumentByTrack = [];
 
     private readonly MuteSolo _muteSolo = new();
+    private readonly List<FaithfulItem> _selectedItems = [];
     private readonly List<Note> _selectedNotes = [];
     private readonly List<TrackPlacement> _selectedPlacements = [];
     private readonly List<ProjectTrack> _selectedTracks = [];
@@ -160,9 +161,9 @@ public class EditorState
         OnInstrumentsChanged?.Invoke();
     }
 
-    public ProjectTrack AddTrack()
+    public ProjectTrack AddTrack(TrackKind kind = TrackKind.PianoRoll)
     {
-        var track = Project.NewTrack();
+        var track = Project.NewTrack(kind);
         Touch();
         return track;
     }
@@ -275,12 +276,153 @@ public class EditorState
     {
         if (OpenedTrack == track) return;
         OpenedTrack = track;
-        SelectSegment(track.Segments[0]);
+        // A faithful track has no editable segments - its one default segment is an
+        // artefact of the base class, and offering its bars/steps in the inspector would
+        // be a form that changes nothing.
+        SelectSegment(track is FaithfulTrack ? null : track.Segments[0]);
         SelectNote(null);
+        SelectItem(null);
         ActiveInstrument = _lastInstrumentByTrack.TryGetValue(track, out var last)
             ? last
-            : track.Segments.SelectMany(s => s.Notes).FirstOrDefault()?.Instrument;
+            : Instruments(track).FirstOrDefault();
         OnOpenedTrackChanged?.Invoke(track);
+    }
+
+    // ---------------------------------------------------------------- faithful items
+
+    /// <summary>The opened track when it is a faithful one, else null - the faithful views' subject.</summary>
+    public FaithfulTrack? OpenedFaithfulTrack => OpenedTrack as FaithfulTrack;
+
+    /// <summary>
+    ///     The selected slots of a faithful sequence - one under the Draw tool, any number
+    ///     under Select. The faithful counterpart of <see cref="SelectedNotes" />.
+    /// </summary>
+    public IReadOnlyList<FaithfulItem> SelectedItems => _selectedItems;
+
+    /// <summary>
+    ///     The one selected slot, the inspector's subject there - null while nothing or more
+    ///     than one is selected, exactly as <see cref="SelectedNote" />.
+    /// </summary>
+    public FaithfulItem? SelectedItem => _selectedItems.Count == 1 ? _selectedItems[0] : null;
+
+    public event Action<FaithfulItem?>? OnItemSelectionChanged;
+
+    public void SelectItem(FaithfulItem? item)
+    {
+        SetItemSelection(item is null ? [] : [item]);
+    }
+
+    public void SetItemSelection(IEnumerable<FaithfulItem> items)
+    {
+        var next = items.ToList();
+        if (next.SequenceEqual(_selectedItems)) return;
+
+        _selectedItems.Clear();
+        _selectedItems.AddRange(next);
+        OnItemSelectionChanged?.Invoke(SelectedItem);
+    }
+
+    /// <summary>Adds the item to the selection, or drops it when it is already in - Select's click.</summary>
+    public void ToggleItemSelection(FaithfulItem item)
+    {
+        var next = _selectedItems.ToList();
+        if (!next.Remove(item)) next.Add(item);
+        SetItemSelection(next);
+    }
+
+    /// <summary>
+    ///     Moves a slot to another index, one undo entry per landing spot. A drag fires this
+    ///     once per boundary it crosses, so the entries merge on the item like a note drag's.
+    /// </summary>
+    public void MoveItem(FaithfulTrack track, int from, int to)
+    {
+        if (from < 0 || from >= track.Items.Count) return;
+        to = Math.Clamp(to, 0, track.Items.Count - 1);
+        if (from == to) return;
+
+        var item = track.Items[from];
+        track.Items.RemoveAt(from);
+        track.Items.Insert(to, item);
+        _undoHistory.PushOrMergeMove(item,
+            () =>
+            {
+                track.Items.Remove(item);
+                track.Items.Insert(from, item);
+            },
+            () =>
+            {
+                track.Items.Remove(item);
+                track.Items.Insert(to, item);
+            });
+        Touch();
+    }
+
+    public void InsertItemAt(FaithfulTrack track, FaithfulItem item, int index)
+    {
+        index = Math.Clamp(index, 0, track.Items.Count);
+        track.Items.Insert(index, item);
+        _undoHistory.Push(
+            () => track.Items.Remove(item),
+            () => track.Items.Insert(index, item));
+        Touch();
+    }
+
+    public void AppendItem(FaithfulTrack track, FaithfulItem item)
+    {
+        InsertItemAt(track, item, track.Items.Count);
+    }
+
+    public void RemoveItemAt(FaithfulTrack track, int index)
+    {
+        if (index < 0 || index >= track.Items.Count) return;
+
+        var item = track.Items[index];
+        track.Items.RemoveAt(index);
+        if (_selectedItems.Contains(item)) SetItemSelection(_selectedItems.Where(selected => selected != item));
+        _undoHistory.Push(
+            () => track.Items.Insert(index, item),
+            () => track.Items.RemoveAt(index));
+        Touch();
+    }
+
+    /// <summary>
+    ///     Applies a scroll adjustment to one item. A run of scrolls on the same item inside
+    ///     one gesture merges into a single undo entry, same as a note drag - the item's
+    ///     identity survives, only its fields move, so undo restores those.
+    /// </summary>
+    public void AdjustItem(FaithfulItem item, Action adjust)
+    {
+        var before = item.Duplicate();
+        adjust();
+        var after = item.Duplicate();
+
+        _undoHistory.PushOrMergeMove(item, () => Restore(item, before), () => Restore(item, after));
+        Touch();
+    }
+
+    private static void Restore(FaithfulItem target, FaithfulItem snapshot)
+    {
+        if (target.Note is { } note && snapshot.Note is { } savedNote)
+        {
+            note.Instrument = savedNote.Instrument;
+            note.Value = savedNote.Value;
+            note.Volume = savedNote.Volume;
+            note.Pan = savedNote.Pan;
+            note.Offset = savedNote.Offset;
+        }
+
+        if (target.Action is not { } action || snapshot.Action is not { } savedAction) return;
+        action.Value = savedAction.Value;
+        action.WorkingValue = savedAction.WorkingValue;
+        action.ValueScale = savedAction.ValueScale;
+    }
+
+    /// <summary>The instruments a track plays, in track order - both kinds hold them differently.</summary>
+    private static IEnumerable<Instrument> Instruments(ProjectTrack track)
+    {
+        return track is FaithfulTrack faithful
+            ? faithful.Items.Select(item => item.Note?.Instrument).OfType<Instrument>()
+            : track.Segments.SelectMany(segment => segment.Notes).Select(note => note.Instrument);
     }
 
     public void CloseTrack()
@@ -289,6 +431,7 @@ public class EditorState
         OpenedTrack = null;
         SelectSegment(null);
         SelectNote(null);
+        SelectItem(null);
         CopiedModifiers = null;
         OnOpenedTrackChanged?.Invoke(null);
     }
@@ -402,15 +545,17 @@ public class EditorState
     /// </summary>
     public void SelectAll()
     {
-        if (OpenedTrack is { } track) SetNoteSelection(track.Segments.SelectMany(s => s.Notes));
+        if (OpenedFaithfulTrack is { } faithful) SetItemSelection(faithful.Items);
+        else if (OpenedTrack is { } track) SetNoteSelection(track.Segments.SelectMany(s => s.Notes));
         else SetPlacementSelection(Project.Placements);
     }
 
-    /// <summary>Clears both the note and placement selection.</summary>
+    /// <summary>Clears the note, placement and faithful-item selections.</summary>
     public void ClearSelection()
     {
         SetNoteSelection([]);
         SetPlacementSelection([]);
+        SetItemSelection([]);
     }
 
     /// <summary>
@@ -419,6 +564,14 @@ public class EditorState
     /// </summary>
     public void CopySelection()
     {
+        if (OpenedFaithfulTrack is { } faithful)
+        {
+            if (_selectedItems.Count == 0) return;
+            // In sequence order, not click order: a paste has to read like what was copied.
+            _clipboard.SetItems(faithful.Items.Where(_selectedItems.Contains).Select(item => item.Duplicate()));
+            return;
+        }
+
         if (OpenedTrack is { } track)
         {
             if (_selectedNotes.Count == 0) return;
@@ -446,6 +599,26 @@ public class EditorState
     /// </summary>
     public void Paste()
     {
+        if (_clipboard.Items is { } itemEntries)
+        {
+            if (OpenedFaithfulTrack is not { } faithful) return; // cross-editor mismatch
+
+            // After the last selected slot, or at the end when nothing is selected - the same
+            // "where you were working" spot the note paste lands on.
+            var at = _selectedItems.Count == 0
+                ? faithful.Items.Count
+                : _selectedItems.Max(faithful.Items.IndexOf) + 1;
+            var pasted = itemEntries.Select(item => item.Duplicate()).ToArray();
+            faithful.Items.InsertRange(at, pasted);
+
+            SetItemSelection(pasted);
+            _undoHistory.Push(
+                () => faithful.Items.RemoveRange(at, pasted.Length),
+                () => faithful.Items.InsertRange(at, pasted));
+            Touch();
+            return;
+        }
+
         if (_clipboard.Notes is { } noteEntries)
         {
             if (OpenedTrack is not { } track) return; // cross-editor mismatch
@@ -510,6 +683,29 @@ public class EditorState
     /// </summary>
     public void DeleteSelection()
     {
+        if (_selectedItems.Count > 0 && OpenedFaithfulTrack is { } faithful)
+        {
+            // Index-and-item pairs, so undo puts each slot back where it was.
+            var snapshot = faithful.Items
+                .Select((item, index) => (Index: index, Item: item))
+                .Where(pair => _selectedItems.Contains(pair.Item))
+                .ToArray();
+            foreach (var (_, item) in snapshot) faithful.Items.Remove(item);
+            ClearSelection();
+
+            _undoHistory.Push(
+                () =>
+                {
+                    foreach (var (index, item) in snapshot) faithful.Items.Insert(index, item);
+                },
+                () =>
+                {
+                    foreach (var (_, item) in snapshot) faithful.Items.Remove(item);
+                });
+            Touch();
+            return;
+        }
+
         if (_selectedNotes.Count > 0 && OpenedTrack is { } track)
         {
             var snapshot = _selectedNotes

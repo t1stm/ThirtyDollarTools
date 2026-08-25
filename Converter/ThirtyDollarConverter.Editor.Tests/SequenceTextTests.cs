@@ -16,6 +16,28 @@ public class SequenceTextTests
         Assert.True(text is "!cut@a|!cut@b" or "!cut@b|!cut@a", text);
     }
 
+    /// <summary>
+    ///     An event built without stating a ValueScale must serialize without one. This is what
+    ///     caught the enum ordering that made Divide its default member, and exported every gap
+    ///     as "_pause@/".
+    /// </summary>
+    [Fact]
+    public void ExportedPauses_CarryNoValueScale()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick") });
+        track.Segments[0].Notes.Add(new Note { Step = 2, Instrument = Instrument.Single("kick") });
+        project.Place(track, 0, 0);
+
+        // The default style, which is what the export dialog starts on: a short gap renders
+        // as "_pause"s rather than "!stop".
+        var text = SequenceText.Serialize(project.ToSequence(new SequenceStyle()));
+
+        Assert.Contains("_pause", text);
+        Assert.DoesNotContain("_pause@", text);
+    }
+
     [Fact]
     public void BuiltSequence_RoundTripsThroughFromString_WithFullPrecision()
     {
