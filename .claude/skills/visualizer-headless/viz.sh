@@ -37,6 +37,7 @@ ensure_display() {
 
 cmd_start() {
     ensure_display
+    cmd_vnc
     if [ -z "${VIZ_NO_BUILD:-}" ]; then
         dotnet build "$proj" -c Debug --nologo -v q >"$state/build.log" 2>&1 ||
             { echo "build failed:"; tail -20 "$state/build.log"; exit 1; }
@@ -126,8 +127,11 @@ cmd_scroll() {
 
 cmd_log() { tail -n "${1:-40}" "$log"; }
 
+vnc_alive() { [ -f "$state/vnc.pid" ] && kill -0 "$(cat "$state/vnc.pid")" 2>/dev/null; }
+
 cmd_vnc() {
     ensure_display
+    vnc_alive && { echo "vnc already running: vncviewer localhost:${VIZ_VNC_PORT:-5900}"; return 0; }
     # x11vnc refuses to start if it smells a Wayland session, hence the env scrub.
     env -u WAYLAND_DISPLAY XDG_SESSION_TYPE=x11 x11vnc -display "$disp" -localhost \
         -nopw -forever -shared -rfbport "${VIZ_VNC_PORT:-5900}" >"$state/vnc.log" 2>&1 </dev/null &

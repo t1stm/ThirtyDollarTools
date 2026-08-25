@@ -6,8 +6,9 @@ description: Run the Debug Visualizer on a private headless X11 display and driv
 # Visualizer, headless
 
 `viz.sh` (next to this file) runs the Debug build on its own Xvfb display and drives it
-with xdotool. Screenshots come back as PNGs you read with the Read tool; the user can
-attach a VNC viewer and watch the same display live whenever they ask.
+with xdotool. Screenshots come back as PNGs you read with the Read tool; `start` also
+brings up a VNC server on that display, so the user can attach a viewer and watch it
+live at any time without asking for it separately.
 
 **Never start this app any other way.** GLFW prefers Wayland whenever the compositor is
 reachable, so a plain `dotnet run` - even with `DISPLAY` set, even with `WAYLAND_DISPLAY`
@@ -35,8 +36,10 @@ works. The window is at 0,0, so screen coordinates are window coordinates: take 
 
 ## Letting the user watch
 
-`bash $S/viz.sh vnc` prints a `vncviewer localhost:5900` line - hand that to the user
-when they want to see it live or take the mouse themselves. Otherwise send screenshots.
+`start` already brings up VNC and prints a `vncviewer localhost:5900` line - hand that
+to the user when they want to see it live or take the mouse themselves. Otherwise send
+screenshots. `vnc` is only needed to reprint the line or to bring VNC back after killing
+it separately; it's a no-op if VNC is already running.
 
 ## Worth knowing
 
