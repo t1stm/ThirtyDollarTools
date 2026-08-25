@@ -44,9 +44,10 @@ public sealed class DialogHost(UIContext context, Panel root)
     }
 
     /// <summary>Open (null name) or save-as (suggested name) dialog for one extension.</summary>
-    public void ShowFileDialog(string? saveFileName, string extension, Action<string> onPicked)
+    public void ShowFileDialog(string? saveFileName, string extension, Action<string> onPicked,
+        string confirmLabel = "Select")
     {
-        var selection = new FileSelection(context, saveFileName, extension) { ID = "file-dialog" };
+        var selection = new FileSelection(context, saveFileName, extension, confirmLabel) { ID = "file-dialog" };
         var modal = Show(selection);
         selection.OnSelect = _ =>
         {

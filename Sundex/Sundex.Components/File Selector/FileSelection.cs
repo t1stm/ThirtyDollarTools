@@ -34,7 +34,9 @@ public sealed class FileSelection : Panel
     ///     Only files with this extension (e.g. ".tdwproj") are listed; in save mode a
     ///     typed name missing it gets it appended. Directories always show.
     /// </param>
-    public FileSelection(UIContext context, string? saveFileName = null, string? extensionFilter = null) :
+    /// <param name="confirmLabel">Text on the confirm button, e.g. "Save" or "Export".</param>
+    public FileSelection(UIContext context, string? saveFileName = null, string? extensionFilter = null,
+        string confirmLabel = "Select") :
         base(context)
     {
         ExtensionFilter = extensionFilter;
@@ -117,7 +119,7 @@ public sealed class FileSelection : Panel
             BorderRadius = 6,
             OnClick = _ => OnCancel?.Invoke(this)
         });
-        bottom_section.AddChild(new Button(Context, "Select", new ColoredPlane { Color = ConfirmColor })
+        bottom_section.AddChild(new Button(Context, confirmLabel, new ColoredPlane { Color = ConfirmColor })
         {
             FontSizePx = 14,
             BorderRadius = 6,

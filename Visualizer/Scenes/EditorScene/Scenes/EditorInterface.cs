@@ -624,12 +624,13 @@ public class EditorInterface
             var style = dialog.Style;
             _dialogHost.Close(modal);
             _dialogHost.ShowFileDialog($"{State.Project.Info.Name}.tdw", ".tdw",
-                path => _projectIo.ExportTdw(path, style));
+                path => _projectIo.ExportTdw(path, style), "Export");
         };
         dialog.WavButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
-            _dialogHost.ShowFileDialog($"{State.Project.Info.Name}.wav", ".wav", path => Playback.ExportWav(path));
+            _dialogHost.ShowFileDialog($"{State.Project.Info.Name}.wav", ".wav", path => Playback.ExportWav(path),
+                "Export");
         };
     }
 

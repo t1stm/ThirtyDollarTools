@@ -46,7 +46,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         dialogHost.ShowFileDialog($"{state.Project.Info.Name}.tdwproj", ".tdwproj", picked =>
         {
             if (Write(picked)) andThen?.Invoke();
-        });
+        }, "Save");
     }
 
     /// <summary>
