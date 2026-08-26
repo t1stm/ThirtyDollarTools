@@ -15,7 +15,7 @@
           <label value="Cancel"/>
         </button>
         <button id="add-button" class="dialog-button-primary">
-          <label value="Add"/>
+          <label id="add-label" value="Add"/>
         </button>
       </flex>
     </flex>

@@ -146,12 +146,17 @@ public sealed class SoundRenderable : Renderable
     ///     bounce (which rewrites <see cref="Scale" />, and with it the bounce's height)
     ///     doesn't flip the hop back to a full upward one.
     /// </param>
-    public void Bounce(float scale = 1f)
+    /// <param name="lengthMs">
+    ///     How long the hop takes. The default is what a played slot does; a shorter one reads
+    ///     as feedback on an edit rather than as "this played".
+    /// </param>
+    public void Bounce(float scale = 1f, int lengthMs = BounceAnimation.DefaultLengthMs)
     {
         _bounceScale = scale;
         if (_bounceAnimation is null) return;
 
         _bounceAnimation.FinalY = Scale.Y / 4.26666667f * scale;
+        _bounceAnimation.LengthMs = lengthMs;
         _bounceAnimation.Start();
     }
 

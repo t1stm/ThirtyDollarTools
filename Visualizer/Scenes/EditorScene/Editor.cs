@@ -232,6 +232,11 @@ public class Editor : Scene, IFadeInScene
             return;
         }
 
+        // A dialog is modal: its own focused inputs already ate what they wanted above, and
+        // everything else must not reach the editor behind it - typing a path into the file
+        // dialog was toggling Mute and resetting the transport. Escape stays ahead of this.
+        if (_editorInterface.HasOpenModal) return;
+
         // A focused TextInput deliberately lets modified combos fall through (see
         // TextInput.HandleKeyDown) - a future TextInput copy/paste must not fight the
         // editor clipboard, so the clipboard binds skip while one is focused.

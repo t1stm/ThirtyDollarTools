@@ -451,6 +451,26 @@ public class EditorState
         InsertItemAt(track, item, track.Items.Count);
     }
 
+    /// <summary>
+    ///     Swaps one slot for another, one undo entry. What the right-click value dialog
+    ///     commits: the text it hands back can be any event at all, not just a new value on
+    ///     the one that was there, so the item is replaced rather than adjusted in place.
+    /// </summary>
+    public void ReplaceItemAt(FaithfulTrack track, int index, FaithfulItem item)
+    {
+        if (index < 0 || index >= track.Items.Count) return;
+
+        var old = track.Items[index];
+        track.Items[index] = item;
+        if (_selectedItems.Contains(old))
+            SetItemSelection(_selectedItems.Select(selected => selected == old ? item : selected));
+
+        _undoHistory.Push(
+            () => track.Items[index] = old,
+            () => track.Items[index] = item);
+        Touch();
+    }
+
     public void RemoveItemAt(FaithfulTrack track, int index)
     {
         if (index < 0 || index >= track.Items.Count) return;
@@ -776,6 +796,7 @@ public class EditorState
                 () =>
                 {
                     foreach (var (index, item) in snapshot) faithful.Items.Insert(index, item);
+                    SetItemSelection(snapshot.Select(pair => pair.Item).ToArray());
                 },
                 () =>
                 {
@@ -799,6 +820,7 @@ public class EditorState
                 () =>
                 {
                     foreach (var (segment, note) in snapshot) segment.Notes.Add(note);
+                    SetNoteSelection(snapshot.Select(pair => pair.Note).ToArray());
                 },
                 () =>
                 {
@@ -816,6 +838,7 @@ public class EditorState
                 () =>
                 {
                     foreach (var placement in snapshot) Project.AddPlacement(placement);
+                    SetPlacementSelection(snapshot);
                 },
                 () =>
                 {
@@ -1361,15 +1384,54 @@ public class EditorState
     public void Undo()
     {
         if (!_undoHistory.Undo()) return;
-        ClearSelection();
+        PruneDroppedTracks();
+        PruneSelection();
         Touch();
     }
 
     public void Redo()
     {
         if (!_undoHistory.Redo()) return;
-        ClearSelection();
+        PruneDroppedTracks();
+        PruneSelection();
         Touch();
+    }
+
+    /// <summary>
+    ///     Drops what the last undo/redo removed from the selection, and keeps the rest.
+    ///     A blanket clear here meant undoing a Delete gave the slots back unselected, so
+    ///     the follow-up Enter ("place another") looked broken.
+    /// </summary>
+    private void PruneSelection()
+    {
+        if (OpenedFaithfulTrack is { } faithful)
+            SetItemSelection(_selectedItems.Where(faithful.Items.Contains).ToArray());
+        else if (OpenedTrack is { } track)
+            SetNoteSelection(_selectedNotes
+                .Where(note => track.Segments.Any(segment => segment.Notes.Contains(note))).ToArray());
+        else SetPlacementSelection(_selectedPlacements.Where(Project.Placements.Contains).ToArray());
+    }
+
+    /// <summary>
+    ///     Drops references to tracks the last undo/redo took out of the project. Those
+    ///     steps replay <see cref="ThirtyDollarProject" /> mutations directly, so unlike
+    ///     <see cref="RemoveTrack" /> they never run its cleanup - undoing an import while
+    ///     its track is selected and open left the list highlighting a track the project
+    ///     no longer has, and the next arrangement click handed it to Place, which rejects
+    ///     foreign tracks.
+    /// </summary>
+    private void PruneDroppedTracks()
+    {
+        if (OpenedTrack is { } opened && !Project.Tracks.Contains(opened)) CloseTrack();
+
+        if (_selectedTracks.RemoveAll(track => !Project.Tracks.Contains(track)) > 0)
+            OnSelectionChanged?.Invoke(SelectedTrack);
+
+        // Same dangling clipboard entries RemoveTrack prunes - a paste would hit Place too.
+        if (_clipboard.Placements is not { } entries) return;
+        var kept = entries.Where(entry => Project.Tracks.Contains(entry.Track)).ToArray();
+        if (kept.Length == 0) _clipboard.Clear();
+        else if (kept.Length != entries.Count) _clipboard.SetPlacements(kept);
     }
 
     private void Replace(ThirtyDollarProject project)

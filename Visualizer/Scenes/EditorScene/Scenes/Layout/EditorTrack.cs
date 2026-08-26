@@ -1,8 +1,10 @@
 using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using Sundex.Style.DSL;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Views;
 
@@ -16,6 +18,7 @@ namespace EditorScene.Scenes.Layout;
 /// </summary>
 public sealed class EditorTrack : FlexPanel
 {
+    private readonly Label _name;
     private readonly EditorState _state;
 
     /// <param name="color">
@@ -39,29 +42,32 @@ public sealed class EditorTrack : FlexPanel
             OnHoverExit = _ => OnHint?.Invoke(null)
         };
 
-        // Percent-width spacer soaks up the free space so remove lands flush against
-        // the row's right edge - this framework has no space-between align.
-        var spacer = new Panel(context) { Classes = ["spacer"] };
-
-        var name = new Label(context, track.Name) { Classes = ["body-label"] };
-
-        // Only the non-default kind is named: labelling every row "piano roll" would be
-        // noise in a project that has no faithful tracks at all.
-        var kind = track.Kind == TrackKind.Faithful
-            ? new Label(context, "faithful") { Classes = ["caption-label"] }
-            : null;
+        // The name soaks up the free space itself so remove lands flush against the row's
+        // right edge (no space-between align here) - and a long name can no longer push it
+        // out of the row, since a percent width ignores the text's own measured size.
+        // Overflowing text is clipped in ApplyClip below. Same shape as InstrumentRow.
+        _name = new Label(context, track.Name) { Classes = ["body-label"] };
 
         // The fill is a palette entry, not a look, so it is set here rather than in the
         // sheet - same split as the color dialog's chip. track-row centers and spaces it.
         if (color is { } fill)
-            DragHandle = new Panel(context)
-                { Classes = ["track-color-blip"], Background = new ColoredPlane { Color = fill } };
+        {
+            // Only the non-default kind is marked, and it is marked inside the blip: a
+            // "faithful" word next to every such row's name was more chrome than the
+            // distinction is worth. The blip grows a little to hold the letter.
+            var faithful = track.Kind == TrackKind.Faithful;
+            DragHandle = new FlexPanel(context)
+            {
+                Classes = faithful ? ["track-color-blip", "track-color-blip-faithful"] : ["track-color-blip"],
+                Background = new ColoredPlane { Color = fill }
+            };
+            if (faithful) DragHandle.AddChild(new BlipLetter(context) { Classes = ["track-blip-letter"] });
+        }
 
         var children = new List<UIElement>();
         if (DragHandle is not null) children.Add(DragHandle);
-        children.Add(name);
-        if (kind is not null) children.Add(kind);
-        children.AddRange([spacer, remove]);
+        children.Add(_name);
+        children.Add(remove);
         Children = children;
     }
 
@@ -109,8 +115,45 @@ public sealed class EditorTrack : FlexPanel
         return true;
     }
 
+    /// <summary>
+    ///     Re-claims the name's free-space width after styling. Applying <c>font-size</c>
+    ///     makes Label remeasure and overwrite its own Width, and the sheet sets properties
+    ///     in reflection order - so this can't just be a <c>width</c> on the label's class.
+    /// </summary>
+    public override void ApplyStyleSheet(StyleSheet styleSheet)
+    {
+        base.ApplyStyleSheet(styleSheet);
+        _name.Width = LiteralOrComputable.Percent(100);
+    }
+
+    /// <summary>Cuts the name off at its own box so a long one never paints over the remove button.</summary>
+    public override void ApplyClip(Vector4i? clip)
+    {
+        base.ApplyClip(clip);
+
+        var x = (int)Computed.AbsoluteX;
+        var y = (int)Computed.AbsoluteY;
+        var right = (int)(_name.Computed.AbsoluteX + _name.Computed.Width);
+        _name.ApplyClip(IntersectClip(new Vector4i(x, y, right, y + (int)Computed.Height), clip));
+    }
+
     public void SetSelected(bool selected)
     {
         SetClass("track-row-selected", selected);
+    }
+
+    /// <summary>
+    ///     The kind letter inside the blip. A Label measures to the font's em box, and that
+    ///     box carries descender space an "F" never fills - so centering it in a fixed box
+    ///     leaves the letter sitting low. This lifts it onto the dot's optical center.
+    ///     ponytail: one pixel for one dot, not a font metric - the box and the size are
+    ///     both fixed in Panels.snx.ss. Read the real descender if this ever gets reused.
+    /// </summary>
+    private sealed class BlipLetter(UIContext context) : Label(context, "F")
+    {
+        protected override void DoLayout()
+        {
+            TextSlice?.Position = new Vector3(Computed.AbsoluteX, Computed.AbsoluteY - 1, 0);
+        }
     }
 }

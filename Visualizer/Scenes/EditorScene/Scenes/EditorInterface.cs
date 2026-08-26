@@ -220,6 +220,7 @@ public class EditorInterface
         _faithfulPalette.OnPickAction = ShowActionValueDialog;
         _faithfulSequence.OnHint = SetHint;
         _faithfulSequence.OnPreviewNote = note => Playback.PreviewNote(note);
+        _faithfulSequence.OnEditAction = ShowActionEditDialog;
         _arrangement.OnOpenTrack = State.OpenTrack;
         _arrangement.OnSeekQuarters = Playback.Seek;
         _arrangement.OnScrolled = _laneHeader.InvalidateLayout;
@@ -461,7 +462,15 @@ public class EditorInterface
         };
 
         if (track != null) (next == FaithfulPanel ? FaithfulTrackName : OpenedTrackName).Value = track.Name;
-        if (next == _openPanel) return;
+        if (next == _openPanel)
+        {
+            // Same panel, another track: the note editor reads the opened track every layout,
+            // but the sequence caches its expanded stream, so switching faithful-to-faithful
+            // left the old track's slots on screen while everything else (playback, the
+            // inspector, the bounces) had already moved on.
+            if (next == FaithfulPanel) _faithfulSequence.Refresh();
+            return;
+        }
 
         _gridArea.RemoveChild(_openPanel ?? (UIElement)ArrangementPanel);
         _gridArea.AddChild(next ?? (UIElement)ArrangementPanel);
@@ -580,6 +589,9 @@ public class EditorInterface
     {
         HintLabel.SetTextContents(text ?? HintLegend);
     }
+
+    /// <summary>Whether a dialog is open over the editor.</summary>
+    public bool HasOpenModal => _dialogHost.HasOpenModal;
 
     /// <summary>Dismisses the topmost open modal, if any. Used so Escape closes a dialog instead of the editor.</summary>
     public bool TryCloseTopModal()
@@ -754,6 +766,32 @@ public class EditorInterface
             if (FaithfulItem.Parse(tdw) is { } item) State.AppendItem(track, item);
             else _dialogHost.Alert($"\"{tdw}\" isn't an event this editor can read.");
         }
+    }
+
+    /// <summary>
+    ///     Right-clicking an action that carries a value reopens its dialog on what the slot
+    ///     says now, which is the site's own right-click. The whole TDW text again, so the
+    ///     packed "!bg@#ff0000,0.5" and "!pulse@4,100" payloads are editable at all - the
+    ///     event's own <c>Stringify</c> writes those two back in their readable form.
+    /// </summary>
+    private void ShowActionEditDialog(FaithfulItem item)
+    {
+        if (State.OpenedFaithfulTrack is not { } track || item.Action is not { } action) return;
+        if (FaithfulAction.Find(action.SoundEvent) is not { } definition) return;
+
+        var index = track.Items.IndexOf(item);
+        if (index < 0) return;
+
+        var dialog = new ActionValueDialog(_context, definition, action.Stringify());
+        var modal = _dialogHost.Show(dialog.Element);
+        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+        dialog.AddButton.OnClick = _ =>
+        {
+            _dialogHost.Close(modal);
+            var tdw = dialog.ValueInput.Value;
+            if (FaithfulItem.Parse(tdw) is { } edited) State.ReplaceItemAt(track, index, edited);
+            else _dialogHost.Alert($"\"{tdw}\" isn't an event this editor can read.");
+        };
     }
 
     private void ShowTrackContextMenu(ProjectTrack track, float x, float y)

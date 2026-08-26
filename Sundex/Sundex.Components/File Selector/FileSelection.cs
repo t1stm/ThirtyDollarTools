@@ -219,7 +219,12 @@ public sealed class FileSelection : Panel
                 where (dirInfo.Attributes & FileAttributes.Hidden) == 0
                 orderby dirInfo.Name
                 select new Label(Context, $"{dirInfo.Name}/") // TODO emojis don't render with new label system
-                    { FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory) });
+                {
+                    FontSizePx = 14, UpdateCursorOnHover = true, OnClick = _ => NavigateTo(directory),
+                    // After FontSizePx, which remeasures the label to its own text: a row has
+                    // to be clickable across the list, not only on the glyphs of its name.
+                    Width = LiteralOrComputable.Percent(100)
+                });
 
             var files = Directory.GetFiles(CurrentPath)
                 .Where(file => ExtensionFilter == null ||
@@ -230,7 +235,8 @@ public sealed class FileSelection : Panel
                 {
                     FontSizePx = 14,
                     UpdateCursorOnHover = true,
-                    OnClick = _ => SelectFile(fileInfo.FullName)
+                    OnClick = _ => SelectFile(fileInfo.FullName),
+                    Width = LiteralOrComputable.Percent(100)
                 }));
         }
         catch (Exception ex)

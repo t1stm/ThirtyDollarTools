@@ -6,12 +6,24 @@ namespace Shared.Animations;
 
 public class BounceAnimation : Animation
 {
-    private const int AnimationLengthMs = 400;
+    /// <summary>How long a played bounce takes. Feedback hops run shorter; see <see cref="LengthMs" />.</summary>
+    public const int DefaultLengthMs = 400;
+
     public float FinalY;
 
-    public BounceAnimation() : base(AnimationLengthMs)
+    public BounceAnimation() : base(DefaultLengthMs)
     {
         Features = AnimationFeature.TransformAdd;
+    }
+
+    /// <summary>
+    ///     How long this hop takes. Set per <see cref="Animation.Start" />, not once: the same
+    ///     animation plays both a slot being played and the shorter nudge an edit gives it.
+    /// </summary>
+    public int LengthMs
+    {
+        get => (int)AnimationLength.TotalMilliseconds;
+        set => AnimationLength = TimeSpan.FromMilliseconds(value);
     }
 
     public BounceAnimation(Action finishCallback) : this()

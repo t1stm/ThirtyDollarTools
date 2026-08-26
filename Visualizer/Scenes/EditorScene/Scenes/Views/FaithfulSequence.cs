@@ -5,6 +5,7 @@ using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
+using Shared.Animations;
 using VisualizerScene.Objects;
 using VisualizerScene.Objects.Playfield;
 
@@ -28,6 +29,14 @@ public sealed class FaithfulSequence : ScrollView
     ///     nudges a sound when you audition it; a full bounce would read as "this played".
     /// </summary>
     private const float PreviewBounce = 0.35f;
+
+    /// <summary>
+    ///     The hop that says a scrolled value moved: half the height of a played bounce, and
+    ///     short enough to keep up with a fast scroll instead of trailing behind it.
+    /// </summary>
+    private const float AdjustBounce = 0.5f;
+
+    private const int AdjustBounceMs = 220;
 
     private const double ValueStep = 1;
     private const float VolumeStep = 5;
@@ -111,6 +120,12 @@ public sealed class FaithfulSequence : ScrollView
 
     /// <summary>Hover hint text, relayed to the hint bar. Null clears it.</summary>
     public Action<string?>? OnHint { get; set; }
+
+    /// <summary>
+    ///     Right-clicking an action that carries a value asks for it to be edited, the way the
+    ///     site reopens the action's form. <c>EditorInterface</c> owns the dialog.
+    /// </summary>
+    public Action<FaithfulItem>? OnEditAction { get; set; }
 
     /// <summary>
     ///     Redraws from the opened faithful track. Rebuilding regenerates the chunk's GL
@@ -274,10 +289,21 @@ public sealed class FaithfulSequence : ScrollView
         if (item?.Note is { } note) OnPreviewNote?.Invoke(note);
     }
 
-    /// <summary>The right-click preview: the slot hops as it is auditioned, as it does on the site.</summary>
+    /// <summary>
+    ///     The right-click gesture: a sound hops as it is auditioned, and an action carrying a
+    ///     value opens its dialog instead - both are what the site does with that button, and
+    ///     the dialog is the only way to reach a packed "!bg"/"!pulse" payload.
+    /// </summary>
     private void PreviewAt(int eventIndex)
     {
         if (ItemAt(eventIndex) is not { } item) return;
+
+        if (item.Action is { } action && FaithfulAction.TakesValue(action.SoundEvent))
+        {
+            OnEditAction?.Invoke(item);
+            return;
+        }
+
         BounceItem(item, PreviewBounce);
         Preview(item);
     }
@@ -286,11 +312,11 @@ public sealed class FaithfulSequence : ScrollView
     ///     Bounces every slot an item occupies - a layered instrument is several of them, and
     ///     they all move together because they are one thing to the user.
     /// </summary>
-    private void BounceItem(FaithfulItem item, float scale)
+    private void BounceItem(FaithfulItem item, float scale, int lengthMs = BounceAnimation.DefaultLengthMs)
     {
         for (var index = 0; index < _itemByEvent.Length; index++)
             if (_itemByEvent[index] == item)
-                _canvas.Bounce(index, scale);
+                _canvas.Bounce(index, scale, lengthMs);
     }
 
     /// <summary>Scrolls the item into view, wherever the sequence has drawn it.</summary>
@@ -304,13 +330,23 @@ public sealed class FaithfulSequence : ScrollView
     ///     Scrolling a slot adjusts it. Under Select it also selects it - you are editing it,
     ///     so the inspector should be showing it - but never under Draw, where a selection
     ///     would only leave a lit panel behind after the pointer has moved on.
+    ///     False when the slot has no value to turn ("!divider", "_pause", the packed
+    ///     "!bg"/"!pulse"): the wheel then belongs to the view, as it does on the site.
     /// </summary>
-    private void Adjust(int eventIndex, int notches)
+    private bool Adjust(int eventIndex, int notches)
     {
-        if (ItemAt(eventIndex) is not { } item) return;
+        if (ItemAt(eventIndex) is not { } item || !Adjustable(item)) return false;
 
         if (Selecting) _state.SelectItem(item);
         AdjustBy(item, notches);
+        return true;
+    }
+
+    /// <summary>Whether the scroll gesture (and the up/down keys) mean anything on this slot.</summary>
+    private static bool Adjustable(FaithfulItem item)
+    {
+        if (item.Note is not null) return true;
+        return item.Action is { } action && FaithfulAction.ScrollRangeFor(action) is not null;
     }
 
     /// <summary>
@@ -332,7 +368,7 @@ public sealed class FaithfulSequence : ScrollView
             return;
         }
 
-        if (dy != 0 && Current is { } selected) AdjustBy(selected, dy);
+        if (dy != 0 && Current is { } selected && Adjustable(selected)) AdjustBy(selected, dy);
     }
 
     /// <summary>Left/Right on their own move the selection one item along, clamping at either end.</summary>
@@ -443,14 +479,18 @@ public sealed class FaithfulSequence : ScrollView
             }
 
             if (item.Action is not { } action) return;
-            action.Value = Math.Round(action.Value + notches, 4);
+            if (FaithfulAction.ScrollRangeFor(action) is not { } range) return;
+
+            // The site's own bounds and notch size for this action - a "!loopmany" never goes
+            // below one pass, and a "!speed@2@x" moves in tenths because it is a factor.
+            action.Value = Math.Clamp(Math.Round(action.Value + notches * range.Step, 4), range.Min, range.Max);
             action.WorkingValue = action.Value;
         });
 
         Preview(item);
         // Up bounces up, down bounces down - the site's own feedback that the value moved.
         // After the edit: the adjustment rebuilds the block, which drops a running bounce.
-        BounceItem(item, Math.Sign(notches));
+        BounceItem(item, Math.Sign(notches) * AdjustBounce, AdjustBounceMs);
     }
 
     public override bool HandleScroll(Vector2 scrollDelta)

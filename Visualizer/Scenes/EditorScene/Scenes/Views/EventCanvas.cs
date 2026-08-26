@@ -1,4 +1,5 @@
 using OpenTK.Mathematics;
+using Shared.Animations;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
@@ -180,8 +181,12 @@ public sealed class EventCanvas : Panel
     /// <summary>Fired with the index of the right-clicked event - preview, everywhere it is wired.</summary>
     public Action<int>? OnPreview { get; set; }
 
-    /// <summary>Fired with the index of the scrolled event and the notch count (up is positive).</summary>
-    public Action<int, int>? OnAdjust { get; set; }
+    /// <summary>
+    ///     Fired with the index of the scrolled event and the notch count (up is positive).
+    ///     False means the slot took nothing from it, and the scroll goes on to the view - a
+    ///     slot with no value to turn must not swallow the wheel.
+    /// </summary>
+    public Func<int, int, bool>? OnAdjust { get; set; }
 
     /// <summary>
     ///     Fired while a slot is dragged onto another one, with the dragged and the hovered
@@ -723,9 +728,9 @@ public sealed class EventCanvas : Panel
     ///     <paramref name="scale" /> is its height against that: a fraction hops less far (a
     ///     previewed sound), a negative one dips (a value scrolled down).
     /// </summary>
-    public void Bounce(int index, float scale = 1f)
+    public void Bounce(int index, float scale = 1f, int lengthMs = BounceAnimation.DefaultLengthMs)
     {
-        RenderableAt(index)?.Bounce(scale);
+        RenderableAt(index)?.Bounce(scale, lengthMs);
     }
 
     /// <summary>
@@ -853,8 +858,7 @@ public sealed class EventCanvas : Panel
         if (notches == 0) return false;
         if (IndexAt(Context.PointerX, Context.PointerY) is not { } index) return false;
 
-        OnAdjust.Invoke(index, notches);
-        return true;
+        return OnAdjust.Invoke(index, notches);
     }
 
     /// <summary>
@@ -896,7 +900,8 @@ public sealed class EventCanvas : Panel
                 bottom = Math.Max(bottom, y + _boxSize + _margin / 2);
             }
 
-            chunk.EndY = layout.Height + layout.Size;
+            // See ChunkGenerator.PositionChunk: Height is only meaningful after a line break.
+            chunk.EndY = layout.Y + layout.Size;
         }
 
         _extent = (right, bottom);

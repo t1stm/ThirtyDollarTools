@@ -319,11 +319,10 @@ public class PlayfieldContainer(
     [UsedImplicitly]
     public void PulseEventHandler(Placement placement, int index)
     {
-        var parsed_value = (long)placement.Event.Value;
-        var repeats = (byte)parsed_value;
-        float frequency = (short)(parsed_value >> 8);
+        var (pulses, beats) = NormalEvent.UnpackPulse(placement.Event.Value);
+        var repeats = (byte)pulses;
 
-        var computed_frequency = frequency * 1000f / (LastBPM / 60);
+        var computed_frequency = beats * 1000f / (LastBPM / 60);
         Camera.Pulse(repeats, computed_frequency);
         StaticCamera.Pulse(repeats, computed_frequency);
     }

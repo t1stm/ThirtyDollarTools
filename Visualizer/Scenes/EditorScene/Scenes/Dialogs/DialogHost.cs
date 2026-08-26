@@ -34,6 +34,9 @@ public sealed class DialogHost(UIContext context, Panel root)
         root.RemoveChild(modal);
     }
 
+    /// <summary>Whether any modal is mounted - the editor's keybinds stay out while one is.</summary>
+    public bool HasOpenModal => root.Children.OfType<ModalLayer>().Any();
+
     /// <summary>Dismisses the topmost open modal, if any. Used so Escape closes a dialog instead of the editor.</summary>
     public bool TryCloseTop()
     {

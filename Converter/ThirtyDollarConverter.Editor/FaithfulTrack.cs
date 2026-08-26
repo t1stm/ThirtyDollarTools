@@ -25,12 +25,21 @@ public sealed class FaithfulItem
 
     /// <summary>
     ///     An action item from its TDW text ("!speed@2@x", "!bg@#ff0000,0.5"). Null when the
-    ///     text holds no event - the same parser the saved file is read back with.
+    ///     text holds no event - the same parser the saved file is read back with. The text is
+    ///     typed by hand in a dialog, so a malformed one (the colour events throw rather than
+    ///     return) is a null here, not an exception out of the click that caused it.
     /// </summary>
     public static FaithfulItem? Parse(string tdw)
     {
-        var events = Sequence.FromString(tdw).Events;
-        return events.Length == 0 ? null : new FaithfulItem { Action = events[0] };
+        try
+        {
+            var events = Sequence.FromString(tdw).Events;
+            return events.Length == 0 ? null : new FaithfulItem { Action = events[0] };
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     public FaithfulItem Duplicate()

@@ -1154,6 +1154,32 @@ public class EditorStateTests
     }
 
     [Fact]
+    public void Undo_RestoresTheDeletedSelection_AndKeepsSurvivingOnes()
+    {
+        var state = new EditorState();
+        var track = state.AddTrack();
+        var boom = MakeInstrument(state, "boom");
+        var segment = track.Segments[0];
+        var a = state.AddNote(segment, 0, boom, 0);
+        var b = state.AddNote(segment, 1, boom, 0);
+        state.OpenTrack(track);
+        state.SetNoteSelection([a]);
+
+        state.DeleteSelection();
+        state.Undo();
+        Assert.Equal([a], state.SelectedNotes); // Enter/Delete still have something to act on
+
+        state.Redo();
+        Assert.Empty(state.SelectedNotes); // the note is gone again, so it can't stay selected
+
+        var c = state.AddNote(segment, 2, boom, 0);
+        state.SetNoteSelection([b]);
+        state.Undo(); // an undo that doesn't touch b leaves it selected
+        Assert.DoesNotContain(c, segment.Notes);
+        Assert.Equal([b], state.SelectedNotes);
+    }
+
+    [Fact]
     public void DeleteSelection_RemovesEveryPlacement_AsOneUndoEntry()
     {
         var state = new EditorState();
@@ -1397,6 +1423,21 @@ public class EditorStateTests
         Assert.Equal([result.Track!], state.Project.Tracks);
         Assert.Equal([result.Placement!], state.Project.Placements);
         Assert.Equal(2, state.Project.Instruments.Count);
+    }
+
+    [Fact]
+    public void Undo_DroppingTheSelectedOpenTrack_ClearsBothSoPlacingAgainCannotThrow()
+    {
+        var state = new EditorState();
+        var track = state.ImportSequenceAsTrack(Sequence.FromString("kick"), "imported", null).Track!;
+        state.SelectTrack(track);
+        state.OpenTrack(track);
+
+        state.Undo();
+
+        Assert.Null(state.OpenedTrack);
+        Assert.Null(state.SelectedTrack);
+        Assert.Empty(state.SelectedTracks);
     }
 
     [Fact]

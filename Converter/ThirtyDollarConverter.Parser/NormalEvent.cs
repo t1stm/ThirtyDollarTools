@@ -17,6 +17,19 @@ public class NormalEvent : BaseEvent
             $"Event: \"{SoundEvent ?? "Null event."}\", Value: {Value}{(ValueScale == ValueScale.Times ? 'x' : (char)0)}, PlayTimes: {PlayTimes}";
     }
 
+    /// <summary>
+    ///     "!pulse"'s packed payload, read the way <see cref="Sequence" /> wrote it. The site's
+    ///     text is "!pulse@pulses,frequency" - how many times the screen pulses, then how many
+    ///     beats apart - packed as the pulse count in the high short and the frequency in the
+    ///     low byte. Everything that reads one goes through here; reading the two halves the
+    ///     other way round is how they drifted apart in the first place.
+    /// </summary>
+    public static (int Pulses, int Frequency) UnpackPulse(double value)
+    {
+        var packed = (long)value;
+        return ((short)(packed >> 8), (byte)packed);
+    }
+
     public override string Stringify()
     {
         switch (SoundEvent)
@@ -37,15 +50,9 @@ public class NormalEvent : BaseEvent
             }
             case "!pulse":
             {
-                var parsed_value = (long)Value;
-                var repeats = (byte)parsed_value;
-                float frequency = (short)(parsed_value >> 8);
-
-                var computed_frequency = frequency * 1000f / 5f;
-                return $"!pulse@{repeats},{computed_frequency}";
+                var (pulses, frequency) = UnpackPulse(Value);
+                return $"!pulse@{pulses},{frequency}";
             }
-            case "!divider":
-                return "!divider\n";
             default:
                 return base.Stringify();
         }

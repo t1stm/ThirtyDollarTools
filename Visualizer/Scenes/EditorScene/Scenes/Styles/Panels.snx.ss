@@ -34,11 +34,26 @@ class track-row {
 // The track's color, as a dot ahead of its name. Fully rounded, and sized only here -
 // track-row's vertical-align centers it against the name and its spacing is the gap.
 class track-color-blip {
-    width = 10;
-    height = 10;
-    border-radius = 5;
+    // One size for every row, letter or not, so the names all start at the same x - a
+    // faithful row's blip carries an "F" and needs the room for it.
+    width = 13;
+    height = 13;
+    border-radius = 7;
     // The blip doubles as the row's reorder handle; see TrackListPanel.HandlePress.
     cursor = "ResizeY";
+}
+
+// A faithful track says so in its blip - see EditorTrack.
+class track-color-blip-faithful {
+    horizontal-align = "center";
+    vertical-align = "center";
+}
+
+// Dark on purpose: the blip is a palette fill, every one of them light enough that the
+// chrome's own text color would vanish on it.
+class track-blip-letter {
+    font-size = 9;
+    font-color = $theme.text_dark;
 }
 
 // Added by EditorTrack while the row is the selected track, removed when it isn't - so

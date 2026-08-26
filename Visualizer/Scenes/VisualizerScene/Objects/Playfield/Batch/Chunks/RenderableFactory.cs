@@ -151,10 +151,9 @@ public class RenderableFactory(AtlasStore store)
 
         if (baseEvent.SoundEvent == "!pulse")
         {
-            var parsed_value = (long)baseEvent.Value;
-            var repeats = (byte)parsed_value;
-            float frequency = (short)(parsed_value >> 8);
-            return $"{repeats}, {frequency}";
+            // Same order the slot's text has: pulses first, then how many beats apart.
+            var (pulses, frequency) = NormalEvent.UnpackPulse(baseEvent.Value);
+            return $"{pulses}, {frequency}";
         }
 
         var valueText = $"{baseEvent.Value:0.##}";

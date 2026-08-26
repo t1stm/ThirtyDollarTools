@@ -81,7 +81,10 @@ public class ChunkGenerator(PlayfieldSettings settings, LayoutHandler? layout = 
 
         chunk.StartY = LayoutHandler.Y;
         foreach (var renderable in chunk.Renderables) PositionSound(renderable);
-        chunk.EndY = LayoutHandler.Height + LayoutHandler.Size;
+        // Y, not Height: Height only moves on a line break, so a chunk that never wraps
+        // (anything under one line's worth) would report a bottom of Size alone and be
+        // culled away everywhere it is drawn.
+        chunk.EndY = LayoutHandler.Y + LayoutHandler.Size;
 
         return (LayoutHandler.CurrentSoundIndex, LayoutHandler.Y, LayoutHandler.Height);
     }
