@@ -201,9 +201,19 @@ public sealed class FileSelection : Panel
         OnChangeDirectory?.Invoke(this);
     }
 
+    /// <summary>
+    ///     How much of <see cref="CurrentPath" /> the header shows. Labels don't ellipsise
+    ///     and <see cref="DoLayout" /> clips this one to the header, so a long path used to
+    ///     lose its tail at the dialog's edge - the half that says which directory you are
+    ///     actually in. Truncating from the left keeps that half and drops the root instead.
+    /// </summary>
+    private const int PathLabelLimit = 44;
+
     private void UpdateCurrentPathLabel()
     {
-        _currentPathLabel.SetTextContents(CurrentPath);
+        _currentPathLabel.SetTextContents(CurrentPath.Length <= PathLabelLimit
+            ? CurrentPath
+            : "…" + CurrentPath[^PathLabelLimit..]);
     }
 
     private void RefreshFiles()

@@ -7,4 +7,5 @@ var ctx = As<EditorInterface>(Context);
 
 ctx.HintBar = Component.GetID<FlexPanel>("hint-bar");
 ctx.HintGutter = Component.GetID<Panel>("hint-gutter");
+ctx.HintLines = Component.GetID<FlexPanel>("hint-lines");
 ctx.HintLabel = Component.GetID<Label>("hint-label");

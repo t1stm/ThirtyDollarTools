@@ -519,6 +519,13 @@ public sealed class EventCanvas : Panel
         if (Math.Abs(_boxSize - _generatedBoxSize) > 0.5f)
         {
             _positioning = false;
+            // Dropping the generator forces the full rebuild path: SetEvents is being handed
+            // the array it already holds, so TryPatch would find every slot drawing the same
+            // and return without regenerating anything - leaving _generatedBoxSize stale, so
+            // every later Reposition came straight back here and the block never moved again.
+            // That is what froze the action palette: its box size follows the sequence's
+            // shared scale, which moves off 64 on the first real layout.
+            _generator = null;
             SetEvents(_events);
             return;
         }

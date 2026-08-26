@@ -12,14 +12,13 @@
           <label value="← Arrangement"/>
         </button>
         <text-input id="opened-track-name"/>
-        <panel class="spacer"/>
       </flex>
       <flex id="faithful-body" class="faithful-body">
         <faithful-palette/>
         <!-- The palette builds its own two boxes; the sequence's is here because its
              scroller is a registered element, not something the palette owns. -->
         <flex class="[faithful-section,faithful-section-sequence]">
-          <flex class="faithful-sequence-bar">
+          <flex class="faithful-section-bar">
             <label class="sound-section-header" value="Sequence"/>
             <panel class="spacer"/>
             <button id="faithful-follow" class="faithful-follow-button">

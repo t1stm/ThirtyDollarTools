@@ -193,9 +193,15 @@ class faithful-section {
     background = $theme.background;
 }
 
-// The Actions box is as wide as its grid needs and no wider, so Sounds takes the rest.
+// The palette band splits its width between the two boxes. Both percentages: a fixed
+// Actions width takes the same pixels at every window size, so the Instruments box got
+// whatever was left - 144 px at 1080, narrower than one of its own rows.
+class faithful-section-instruments {
+    width = 52%;
+}
+
 class faithful-section-actions {
-    width = 336;
+    width = 48%;
 }
 
 // The sequence box takes what the palette band leaves. Stated rather than derived: the
@@ -229,15 +235,30 @@ class faithful-sequence {
     height = 100%;
 }
 
-// One instrument's row: its name, then its sounds. The resting fill is stated (rather
-// than left transparent) so the hover reads as the same surface getting brighter, which
-// is what tells you which row a click will hit.
-class faithful-palette-row {
+// The instruments grid: captioned tiles wrapping left to right, the same shape the
+// Actions box next to it already has. One `spacing` serves both axes here (see
+// FlexPanel.Layout_Horizontal_Wrap), so the gap that separates two rows is this plus the
+// cells' own padding - which is what keeps a caption reading as the label of the tile
+// below it rather than the one above.
+class faithful-palette-grid {
     direction = "horizontal";
-    vertical-align = "center";
+    wrap = true;
     width = 100%;
+    spacing = 8;
+}
+
+// One instrument's cell: its name over the sound it leads with. The resting fill is
+// stated (rather than left transparent) so the hover reads as the same surface getting
+// brighter, which is what tells you which cell a click will hit.
+// ponytail: fixed width, sized for a 64 px tile and a 12-character caption. The tile
+// follows FaithfulScale, so a window narrow enough to shrink it just leaves the cell
+// roomy; make this computable only if the sequence ever forces a tile wider than 64.
+class faithful-palette-cell {
+    direction = "vertical";
+    horizontal-align = "center";
+    width = 76;
     padding = 6;
-    spacing = 10;
+    spacing = 4;
     border-radius = 6;
     background = $theme.surface;
 
@@ -246,8 +267,28 @@ class faithful-palette-row {
     }
 }
 
-// The Sequence box's own header row: its title, then the follow/tool toggles pushed right.
-class faithful-sequence-bar {
+// The caption line: the name, and the sound count when there is more than one.
+class faithful-cell-caption {
+    direction = "horizontal";
+    vertical-align = "center";
+    spacing = 4;
+}
+
+class cell-name {
+    font-size = 11;
+    font-color = $theme.text;
+}
+
+// A layered instrument draws one tile, so this is the only thing saying it is more than
+// one sound - muted, but never hidden.
+class cell-count {
+    font-size = 11;
+    font-color = $theme.text_muted;
+}
+
+// A section box's header row: its title, then whatever tools the box hangs off it -
+// the sequence's follow/tool toggles, the instruments' "Modify".
+class faithful-section-bar {
     direction = "horizontal";
     vertical-align = "center";
     width = 100%;
@@ -271,9 +312,12 @@ class follow-label-active {
     font-color = $theme.header;
 }
 
-// The opened track's name field in the note editor's bar.
+// The opened track's name field in the note editor's bar. Percent, not a fixed 220: it
+// is the bar's only percent-width child, so it takes whatever the fixed ones leave and
+// shrinks instead of pushing the Draw/Select toggles over the inspector - which is what
+// a 220 px field did below ~1160 px of window.
 id opened-track-name {
-    width = 220;
+    width = 100%;
     font-size = 15;
     border-radius = 4;
     background = $theme.input_background;

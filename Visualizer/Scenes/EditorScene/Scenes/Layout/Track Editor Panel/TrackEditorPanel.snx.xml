@@ -12,9 +12,10 @@
         <button id="instrument-button">
           <label value="Instrument: -"/>
         </button>
-        <!-- Percent-width spacer soaks up the free space so the tool buttons land
-             flush against the bar's right edge - no space-between align here. -->
-        <panel class="spacer"/>
+        <!-- No spacer: the name field is the percent-width child, so it soaks up the
+             free space itself and the tool buttons still land flush right. A spacer
+             beside it would take a second 100% share of the same free space (FlexPanel
+             doesn't normalise percentages) and push the tools off the bar. -->
         <button id="editor-tool-draw" class="tool-button">
           <label class="tool-label" value="Draw"/>
         </button>

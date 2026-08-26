@@ -5,7 +5,11 @@
   <layout>
     <flex id="hint-bar">
       <panel id="hint-gutter"/>
-      <label id="hint-label" value=""/>
+      <!-- One label per line the hint needs; EditorInterface.LayoutHint adds the rest
+           and blanks the ones a shorter hint doesn't use. -->
+      <flex id="hint-lines">
+        <label id="hint-label" class="hint-line" value=""/>
+      </flex>
     </flex>
   </layout>
 </sundex>

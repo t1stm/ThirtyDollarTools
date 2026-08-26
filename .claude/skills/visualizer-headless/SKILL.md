@@ -10,6 +10,10 @@ with xdotool. Screenshots come back as PNGs you read with the Read tool; `start`
 brings up a VNC server on that display, so the user can attach a viewer and watch it
 live at any time without asking for it separately.
 
+For an e2e pass rather than a one-off look, read `UI-MAP.md` next to this file first: what
+each scene and panel holds, which surfaces are worth testing, where the model-side oracles
+are, and the driving traps (chiefly: `dblclick` below cannot actually double-click).
+
 **Never start this app any other way.** GLFW prefers Wayland whenever the compositor is
 reachable, so a plain `dotnet run` - even with `DISPLAY` set, even with `WAYLAND_DISPLAY`
 unset - opens a real window on the user's desktop. `XDG_SESSION_TYPE=x11` is what makes

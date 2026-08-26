@@ -79,7 +79,12 @@ public class StyleSelectorTests
     [InlineData("faithful-palette")]
     [InlineData("faithful-instruments")]
     [InlineData("faithful-actions")]
-    [InlineData("faithful-palette-row")]
+    [InlineData("faithful-palette-grid")]
+    [InlineData("faithful-palette-cell")]
+    [InlineData("faithful-section-bar")]
+    [InlineData("faithful-cell-caption")]
+    [InlineData("cell-name")]
+    [InlineData("cell-count")]
     [InlineData("faithful-sequence")]
     public void FaithfulViewClasses_AreDefinedByASheet(string name)
     {

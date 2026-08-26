@@ -31,7 +31,27 @@ public class EditorInterface
 {
     private const float HeaderHeight = 32;
     private const float TrackColumnWidth = 260;
+
+    /// <summary>The hint bar at one line - what it is whenever the hint fits the grid area's width.</summary>
     private const float HintBarHeight = 26;
+
+    /// <summary>What each further line of a wrapped hint adds to that (line box + HintLines' spacing).</summary>
+    private const float HintLineHeight = 15;
+
+    /// <summary>
+    ///     The most lines a hint may take. Five is what the faithful legend needs at the
+    ///     1080 px minimum, where the bar has only the grid area's width to write in.
+    /// </summary>
+    private const int HintMaxLines = 5;
+
+    /// <summary>How much of the measured width a line may use - slack for <see cref="SplitHint" />'s average.</summary>
+    private const float HintFitMargin = 0.94f;
+
+    /// <summary>The hint currently shown, or null for the static legend. Re-split on every resize.</summary>
+    private string? _hintText;
+
+    /// <summary>The last window height <see cref="Resize" /> saw; the hint bar's Y is derived from it.</summary>
+    private float _windowHeight;
 
     /// <summary>
     ///     The hint bar's default text: gestures and shortcuts that have no on-screen
@@ -182,15 +202,15 @@ public class EditorInterface
         sundexContext.RunLogicAndVerify(Component,
             () => ProjectName, () => ProjectBpm,
             () => TransportProgress, () => TransportElapsed, () => TransportTotal, () => TransportPlay,
-            () => HintBar, () => HintGutter, () => HintLabel,
+            () => HintBar, () => HintGutter, () => HintLines, () => HintLabel,
             () => ArrangementPanel, () => TrackEditorPanel, () => OpenedTrackName, () => InstrumentButton,
             () => FaithfulPanel, () => FaithfulBody, () => FaithfulTrackName,
             () => InspectorPanelElement, () => InspectorRows, () => InspectorStatusBar, () => InspectorStatusLabel,
             () => SoundFilterModal);
         _transport = new TransportController(Playback,
             TransportProgress, TransportElapsed, TransportTotal, TransportPlay);
-        HintLabel.SetTextContents(HintLegend);
         AlignHintToGrid();
+        LayoutHint(); // Resize re-runs it once the window size is known
 
         // The legend is written into a label once and then sits there, so a rebind has to
         // push it back out. Never unsubscribed: this interface is built during the boot
@@ -229,7 +249,7 @@ public class EditorInterface
             AllSounds);
         // Straight into the editor - the palette IS the instrument list, so routing through
         // the selector would only ask the user to press "New instrument" a second time.
-        _faithfulPalette.OnNewInstrument = () => _instrumentWorkflow.OpenNewInstrument();
+        _faithfulPalette.OnModifyInstruments = () => _instrumentWorkflow.OpenSelector();
 
         // The shell is already in the tree (root markup); this only drives it.
         _inspector = new InspectorPanel(context, State,
@@ -321,6 +341,7 @@ public class EditorInterface
 
     [SetFromLogic] public FlexPanel HintBar { get; set; } = null!;
     [SetFromLogic] public Panel HintGutter { get; set; } = null!;
+    [SetFromLogic] public FlexPanel HintLines { get; set; } = null!;
     [SetFromLogic] public Label HintLabel { get; set; } = null!;
 
     [SetFromLogic] public ModalLayer SoundFilterModal { get; set; } = null!;
@@ -567,9 +588,19 @@ public class EditorInterface
         _inspector.Rebuild();
     }
 
+    /// <summary>
+    ///     How much of an instrument's name the tool bar's button shows. The button is the
+    ///     bar's only auto-width child, so its label is the one thing that can still grow the
+    ///     bar without bound - an untruncated name pushed the Draw/Select toggles over the
+    ///     inspector at any window size. The full name is in the selector this button opens.
+    /// </summary>
+    private const int InstrumentNameLimit = 14;
+
     private void RefreshActiveInstrument()
     {
-        InstrumentButton.Label.SetTextContents($"Instrument: {State.ActiveInstrument?.Name ?? "-"}");
+        var name = State.ActiveInstrument?.Name ?? "-";
+        if (name.Length > InstrumentNameLimit) name = name[..InstrumentNameLimit] + "…";
+        InstrumentButton.Label.SetTextContents($"Instrument: {name}");
         InstrumentButton.InvalidateLayout();
     }
 
@@ -587,7 +618,99 @@ public class EditorInterface
     /// </summary>
     private void SetHint(string? text)
     {
-        HintLabel.SetTextContents(text ?? HintLegend);
+        _hintText = text;
+        LayoutHint();
+    }
+
+    /// <summary>
+    ///     Breaks the current hint across as many of the bar's lines as it needs, and sizes
+    ///     the bar (and the grid area above it) to match. A Label neither wraps nor clips, so
+    ///     a legend wider than the bar painted straight across the inspector column and off
+    ///     the window - at 1080 that lost about 60% of the faithful legend, which is the only
+    ///     place several of its gestures are written down.
+    /// </summary>
+    private void LayoutHint()
+    {
+        var budget = HintBudget();
+        var lines = WrapHint(_hintText ?? HintLegend, budget, HintMaxLines);
+        // The bar is sized for this view's legend, not for whatever it happens to be
+        // showing: a hover hint is one line and a legend is several, and resizing between
+        // them would shuffle the whole view every time the pointer crossed a control.
+        var barLines = _hintText is null ? lines.Count : WrapHint(HintLegend, budget, HintMaxLines).Count;
+        var wanted = Math.Max(barLines, lines.Count);
+
+        // Exactly one label per line the bar is sized for - a spare blank one still takes a
+        // line box in the stack, which then outgrows the bar and gets centred half out of it.
+        // The size and color are copied off the markup's own line rather than left to the
+        // hint-line class: AddChild passes down whatever sheet the element last stored, and
+        // that is the root's, which never saw HintBar.snx.ss - a component's sheet only
+        // styles its own document.
+        while (HintLines.Children.Count < wanted)
+            HintLines.AddChild(new Label(_context, "")
+            {
+                Classes = ["hint-line"], FontSizePx = HintLabel.FontSizePx, Color = HintLabel.Color
+            });
+        while (HintLines.Children.Count > wanted) HintLines.RemoveChild(HintLines.Children[^1]);
+
+        for (var i = 0; i < wanted; i++)
+            ((Label)HintLines.Children[i]).SetTextContents(i < lines.Count ? lines[i] : "");
+
+        var height = HintBarHeight + (wanted - 1) * HintLineHeight;
+        HintBar.Height = height;
+        HintBar.Y = _windowHeight - height;
+        _gridArea.Height = _windowHeight - HeaderHeight - height;
+    }
+
+    /// <summary>
+    ///     How many characters of hint fit on one of the bar's lines.
+    ///     <para>
+    ///         ponytail: derived from the legend's average glyph advance - measured once, off
+    ///         the whole string - rather than by measuring each candidate line. A Label
+    ///         remeasures by rebuilding its glyph buffer and the hint changes on every hover,
+    ///         so a per-word measure would be dozens of buffer rebuilds per pointer move. The
+    ///         average is a few percent off on a line of unusually wide glyphs, which
+    ///         <see cref="HintFitMargin" /> absorbs; measure per line if a legend ever has to
+    ///         sit exactly flush.
+    ///     </para>
+    /// </summary>
+    private int HintBudget()
+    {
+        var legend = HintLegend;
+        if (legend.Length == 0) return int.MaxValue;
+
+        HintLabel.SetTextContents(legend);
+        var perChar = HintLabel.Width.Value / legend.Length;
+        if (perChar <= 0) return int.MaxValue;
+
+        var available = HintBar.Width.Value - 2 * HintBar.Padding - HintGutter.Width.Value;
+        return (int)(available * HintFitMargin / perChar);
+    }
+
+    /// <summary>
+    ///     Greedily breaks <paramref name="text" /> into at most <paramref name="maxLines" />
+    ///     lines of at most <paramref name="budget" /> characters, never inside a word. The
+    ///     last line takes whatever is left, over budget included - losing the tail of a
+    ///     legend is what this whole fix is about. Internal for
+    ///     <c>MinResolutionLayoutTests</c>.
+    /// </summary>
+    internal static List<string> WrapHint(string text, int budget, int maxLines)
+    {
+        budget = Math.Max(1, budget);
+        var lines = new List<string>();
+        var rest = text.AsSpan();
+
+        while (rest.Length > budget && lines.Count < maxLines - 1)
+        {
+            // Back off to the last space inside the budget; a run with none in it (no legend
+            // today has one) goes out over-long rather than split mid-word.
+            var cut = rest[..budget].LastIndexOf(' ');
+            if (cut <= 0) break;
+            lines.Add(rest[..cut].ToString());
+            rest = rest[(cut + 1)..];
+        }
+
+        lines.Add(rest.ToString());
+        return lines;
     }
 
     /// <summary>Whether a dialog is open over the editor.</summary>
@@ -977,13 +1100,15 @@ public class EditorInterface
         // The hint bar only spans the grid area - the track column and inspector run
         // full height beside it.
         var gridWidth = width - TrackColumnWidth - InspectorPanel.PanelWidth;
+        _windowHeight = height;
         _trackColumn.Height = height - HeaderHeight;
         _gridArea.Width = gridWidth;
-        _gridArea.Height = height - HeaderHeight - HintBarHeight;
         _inspectorColumn.X = width - InspectorPanel.PanelWidth;
         _inspectorColumn.Height = height - HeaderHeight;
         HintBar.Width = gridWidth;
-        HintBar.Y = height - HintBarHeight;
+        // Sets the bar's height and Y, and the grid area's height, from how many lines the
+        // hint breaks into at this width - a narrower window wraps it onto more of them.
+        LayoutHint();
 
         // DrawTo (not just Layout): a row whose Visible flips true here (e.g. LaneHeader's
         // M/S toggles, false on the very first pass while grid-area was still 0-height) needs

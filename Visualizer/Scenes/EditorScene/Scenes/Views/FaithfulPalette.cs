@@ -12,9 +12,9 @@ namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     The website's Sounds + Actions sections, as the faithful editor's palette: the whole
-///     sample grid is replaced by one row per project instrument (name on the left, that
-///     instrument's sounds drawn on the right), and the sixteen actions keep their place to
-///     the right of it. Both are drawn with the playfield's own look - see
+///     sample grid is replaced by a wrapping grid of project instruments (a captioned tile
+///     each), and the sixteen actions keep their place to the right of it. Both are drawn
+///     with the playfield's own look - see
 ///     <see cref="EventCanvas" />.
 ///     Pure view: clicking an entry fires the matching callback and the owner
 ///     (<see cref="Scenes.EditorInterface" />) decides what it inserts.
@@ -23,14 +23,24 @@ public sealed class FaithfulPalette : FlexPanel
 {
     private readonly EventCanvas _actions;
 
-    /// <summary>Every instrument row's canvas, so a scale change can reach all of them.</summary>
-    private readonly List<EventCanvas> _rowCanvases = [];
+    /// <summary>Every instrument cell's canvas, so a scale change can reach all of them.</summary>
+    private readonly List<EventCanvas> _cellCanvases = [];
+
+    /// <summary>
+    ///     Labels neither wrap nor ellipsise and a cell is barely wider than its tile, so a
+    ///     long name is cut here and the hint bar carries the whole one. Same trick the file
+    ///     dialog's path header uses, from the other end.
+    /// </summary>
+    private const int NameLimit = 12;
 
     private readonly FaithfulScale _scale;
-    private readonly Button _newInstrumentRow;
     private bool _actionsFilled;
 
     private readonly ScrollView _instruments;
+
+    /// <summary>The wrapping grid inside <see cref="_instruments" /> - the cells' parent.</summary>
+    private readonly FlexPanel _grid;
+
     private readonly PlayfieldSettings _settings;
     private readonly EditorState _state;
 
@@ -46,12 +56,13 @@ public sealed class FaithfulPalette : FlexPanel
         Classes = ["faithful-palette"];
 
         _instruments = new ScrollView(context) { Classes = ["faithful-instruments"] };
-        _newInstrumentRow = new Button(context, "+ New instrument")
+        _grid = new FlexPanel(context) { Classes = ["faithful-palette-grid"] };
+        _instruments.AddChild(_grid);
+        var modify = new Button(context, "Modify")
         {
-            Classes = ["menu-row"],
-            OnClick = _ => OnNewInstrument?.Invoke()
+            Classes = ["tool-button"],
+            OnClick = _ => OnModifyInstruments?.Invoke()
         };
-        _instruments.AddChild(_newInstrumentRow);
 
         _actions = new EventCanvas(context, settings, FaithfulSizing.SoundSize, FaithfulSizing.Margin)
         {
@@ -66,22 +77,26 @@ public sealed class FaithfulPalette : FlexPanel
         // fill, the scroller inside it stays transparent.
         Children =
         [
-            Section(context, "Instruments", _instruments, null),
+            Section(context, "Instruments", _instruments, "faithful-section-instruments", modify),
             Section(context, "Actions", Scroller(context, "faithful-actions", _actions), "faithful-section-actions")
         ];
     }
 
-    /// <summary>Clicking an instrument row - appends a sound item playing it.</summary>
+    /// <summary>Clicking an instrument cell - appends a sound item playing it.</summary>
     public Action<Instrument>? OnPickInstrument { get; set; }
 
-    /// <summary>Right-clicking an instrument row.</summary>
+    /// <summary>Right-clicking an instrument cell.</summary>
     public Action<Instrument>? OnPreviewInstrument { get; set; }
 
     /// <summary>Clicking an action - the owner prompts for its amount when it takes one.</summary>
     public Action<FaithfulAction>? OnPickAction { get; set; }
 
-    /// <summary>The "+ New instrument" trailer; wired to the instrument workflow's editor.</summary>
-    public Action? OnNewInstrument { get; set; }
+    /// <summary>
+    ///     The header's "Modify" button; wired to the same instrument selector the note
+    ///     editor's "Instrument: -" opens, so adding, editing and deleting one is the same
+    ///     dialog in both editors.
+    /// </summary>
+    public Action? OnModifyInstruments { get; set; }
 
     /// <summary>Hover/right-click hint text, relayed to the hint bar. Null clears it.</summary>
     public Action<string?>? OnHint { get; set; }
@@ -90,12 +105,12 @@ public sealed class FaithfulPalette : FlexPanel
     public void RefreshScale()
     {
         _actions.RefreshScale();
-        foreach (var canvas in _rowCanvases) canvas.RefreshScale();
+        foreach (var canvas in _cellCanvases) canvas.RefreshScale();
     }
 
     /// <summary>
-    ///     Rebuilds the instrument rows. Called on every project change, including per-frame
-    ///     ones, so it skips out when nothing about the rows would differ - same guard as
+    ///     Rebuilds the instrument cells. Called on every project change, including per-frame
+    ///     ones, so it skips out when nothing about the cells would differ - same guard as
     ///     <see cref="Scenes.Layout.TrackListPanel.Rebuild" />.
     /// </summary>
     public void Rebuild()
@@ -114,15 +129,11 @@ public sealed class FaithfulPalette : FlexPanel
         var instruments = _state.Project.Instruments;
         if (Unchanged(instruments)) return;
 
-        // The trailer is pulled out and re-appended so it always trails, exactly as
-        // TrackListPanel does with its "+ Add track" row.
-        _instruments.RemoveChild(_newInstrumentRow);
-        foreach (var child in _instruments.Children.ToArray()) _instruments.RemoveChild(child);
-        _rowCanvases.Clear();
+        foreach (var child in _grid.Children.ToArray()) _grid.RemoveChild(child);
+        _cellCanvases.Clear();
 
         foreach (var instrument in instruments)
-            _instruments.AddChild(NewRow(instrument));
-        _instruments.AddChild(_newInstrumentRow);
+            _grid.AddChild(NewCell(instrument));
 
         _built.Clear();
         _built.AddRange(instruments.Select(i => (i, i.Name, i.Sounds.Count)));
@@ -139,29 +150,32 @@ public sealed class FaithfulPalette : FlexPanel
     }
 
     /// <summary>
-    ///     One palette row: the instrument's name, then its sounds as they would sound - the
-    ///     canvas draws each <see cref="InstrumentSound" />'s own tuning as a value badge, so a
-    ///     dual-octave instrument reads as two icons at 0 and -12.
+    ///     One palette cell: the instrument's name above the sound it leads with, drawn at the
+    ///     shared scale so a tile here matches the one it inserts. Only the first sound is
+    ///     drawn - a cell is barely wider than one tile, and a layered instrument's three
+    ///     side by side would break the grid - with a "xN" beside the name saying how many it
+    ///     really is. That count rides in the caption rather than on the tile so the tile keeps
+    ///     the site's own look, which is the whole point of this editor.
     /// </summary>
-    private FlexPanel NewRow(Instrument instrument)
+    private FlexPanel NewCell(Instrument instrument)
     {
         var sounds = new EventCanvas(Context, _settings, FaithfulSizing.SoundSize, FaithfulSizing.Margin)
         {
-            // All on one line, and content-sized: a full-width canvas would cover the whole
-            // row and eat the clicks that are meant for it.
-            PerLine = Math.Max(1, instrument.Sounds.Count),
+            // One tile, content-sized: a full-width canvas would cover the whole cell and eat
+            // the clicks that are meant for it.
+            PerLine = 1,
             BreakOnDividers = false,
-            // The row is what a click hits, and the row's own fill lights up for it - a
-            // panel behind one sound here would point at something that isn't the target.
+            // The cell is what a click hits, and the cell's own fill lights up for it - a
+            // panel behind the tile here would point at something that isn't the target.
             HighlightHover = false,
             Scale = _scale,
-            // The row is the clickable unit, not the individual sounds - a click anywhere
-            // on it appends the whole instrument.
+            // The cell is the clickable unit, not the tile - a click anywhere on it appends
+            // the whole instrument.
             OnPick = _ => OnPickInstrument?.Invoke(instrument),
             OnPreview = _ => OnPreviewInstrument?.Invoke(instrument)
         };
         // Same shape Note.ToEvents() gives at value 0 - the instrument as it plays untouched.
-        sounds.SetEvents(instrument.Sounds.Select(sound => new ExtendedEvent
+        sounds.SetEvents(instrument.Sounds.Take(1).Select(sound => new ExtendedEvent
         {
             SoundEvent = sound.Sound,
             Value = sound.Value,
@@ -170,32 +184,54 @@ public sealed class FaithfulPalette : FlexPanel
             ValueScale = ValueScale.None
         }));
 
-        _rowCanvases.Add(sounds);
+        _cellCanvases.Add(sounds);
+
+        var layered = instrument.Sounds.Count > 1;
+        var caption = new FlexPanel(Context) { Classes = ["faithful-cell-caption"] };
+        // The count costs the name a few characters rather than widening the cell, so every
+        // cell in the grid stays the same width.
+        caption.AddChild(new Label(Context, Shorten(instrument.Name, layered ? NameLimit - 3 : NameLimit))
+        {
+            Classes = ["cell-name"]
+        });
+        if (layered) caption.AddChild(new Label(Context, $"x{instrument.Sounds.Count}") { Classes = ["cell-count"] });
 
         return new FlexPanel(Context)
         {
-            Classes = ["faithful-palette-row"],
+            Classes = ["faithful-palette-cell"],
             UpdateCursorOnHover = true,
             OnClick = _ => OnPickInstrument?.Invoke(instrument),
+            // The caption is cut to fit, so the hint bar is where the whole name lives.
             OnHoverEnter = _ => OnHint?.Invoke($"Click to add \"{instrument.Name}\", right-click to preview it"),
             OnHoverExit = _ => OnHint?.Invoke(null),
-            Children =
-            [
-                new Label(Context, instrument.Name) { Classes = ["body-label"] },
-                sounds
-            ]
+            Children = [caption, sounds]
         };
     }
 
-    /// <summary>One titled box of the palette band.</summary>
-    private static FlexPanel Section(UIContext context, string title, UIElement content, string? modifier)
+    /// <summary>Cuts a name to <paramref name="limit" /> characters - see <see cref="NameLimit" />.</summary>
+    private static string Shorten(string name, int limit) =>
+        name.Length <= limit ? name : string.Concat(name.AsSpan(0, limit - 1), "\u2026");
+
+    /// <summary>
+    ///     One titled box of the palette band. <paramref name="trailing" /> is pushed flush
+    ///     right of the title, the same bar the sequence box hangs its tools on.
+    /// </summary>
+    private static FlexPanel Section(UIContext context, string title, UIElement content, string? modifier,
+        UIElement? trailing = null)
     {
         var classes = modifier is null ? new List<string> { "faithful-section" } : ["faithful-section", modifier];
-        return new FlexPanel(context)
+
+        var bar = new FlexPanel(context) { Classes = ["faithful-section-bar"] };
+        bar.AddChild(new Label(context, title) { Classes = ["sound-section-header"] });
+        if (trailing is not null)
         {
-            Classes = classes,
-            Children = [new Label(context, title) { Classes = ["sound-section-header"] }, content]
-        };
+            // The spacer is the bar's only percent-width child, so it soaks up the free
+            // space on its own and the button lands flush right - see FaithfulPanel.snx.xml.
+            bar.AddChild(new Panel(context) { Classes = ["spacer"] });
+            bar.AddChild(trailing);
+        }
+
+        return new FlexPanel(context) { Classes = classes, Children = [bar, content] };
     }
 
     private static ScrollView Scroller(UIContext context, string cssClass, UIElement content)

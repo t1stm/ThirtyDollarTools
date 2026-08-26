@@ -1,7 +1,8 @@
 // A slim status/hint strip under the grid area only - it sits between the track column
 // and the inspector, which both run full height. A static gesture/shortcut legend by
-// default, swapped for contextual text on hover (see EditorInterface.SetHint). Y and
-// width are set from EditorInterface.Resize - the window remainder isn't expressible here.
+// default, swapped for contextual text on hover (see EditorInterface.SetHint). Y, width
+// and height are set from EditorInterface - the window remainder isn't expressible here,
+// and the height follows how many lines the current hint broke into.
 import "Scenes/Styles/Theme.snx.ss" as theme;
 
 id hint-bar {
@@ -20,7 +21,16 @@ id hint-gutter {
     height = 1;
 }
 
-id hint-label {
+// The stack of hint lines. Auto-sized: it is as tall as the labels EditorInterface put
+// in it, which is what the bar's own height is derived from.
+id hint-lines {
+    direction = "vertical";
+    spacing = 2;
+}
+
+// One line of the hint. A class, not an id, because the lines after the first are added
+// from code and have no markup to hang an id on.
+class hint-line {
     font-size = 12;
     font-color = $theme.text_muted;
 }
