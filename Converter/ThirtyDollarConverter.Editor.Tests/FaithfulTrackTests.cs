@@ -65,6 +65,48 @@ public class FaithfulTrackTests
     }
 
     /// <summary>
+    ///     The playing view animates a slot per reported play, so every slot has to be
+    ///     reported - the ones the walk consumes itself ("!speed", "!combine", "!looptarget",
+    ///     "_pause", the loop family) included, exactly as PlacementCalculator's
+    ///     AddVisualEvents reports them to the visualizer. A "!stop" reports once per step it
+    ///     waits, a looped slot once per pass.
+    /// </summary>
+    [Fact]
+    public void PlayTimes_ReportsEverySlot()
+    {
+        var track = new FaithfulTrack(new TimingInfo(), 1);
+        track.Items.AddRange([
+            FaithfulItem.Sound(Instrument.Single("kick")), // 0
+            FaithfulItem.Parse("!speed@150")!, // 1
+            FaithfulItem.Parse("!stop@2")!, // 2
+            FaithfulItem.Sound(Layered("snare + hat", "snare", "hat")), // 3 snare, 4 !combine, 5 hat
+            FaithfulItem.Parse("_pause")!, // 6
+            FaithfulItem.Parse("!looptarget")!, // 7
+            FaithfulItem.Sound(Instrument.Single("clap")), // 8
+            FaithfulItem.Parse("!loopmany@2")! // 9
+        ]);
+
+        var played = track.PlayTimes().OrderBy(entry => entry.Minutes).ToList();
+        var counts = played.CountBy(entry => entry.Index).ToDictionary();
+
+        // Nothing drawn is silent on screen.
+        Assert.Equal(Enumerable.Range(0, 10), counts.Keys.Order());
+
+        Assert.Equal(2, counts[2]); // "!stop@2" - one fade per step waited
+        Assert.Equal(3, counts[7]); // three passes over the loop body
+        Assert.Equal(3, counts[8]);
+        Assert.Equal(3, counts[9]);
+
+        // The kick opens the sequence, and time only moves forward.
+        Assert.Equal(0, played[0].Index);
+        Assert.Equal(0, played[0].Minutes, 9);
+        Assert.Equal(played.Select(entry => entry.Minutes).Order(), played.Select(entry => entry.Minutes));
+
+        // The counter on the slot counts its passes down, as it does on the site.
+        Assert.Equal([1, 0, 0], played.Where(entry => entry.Index == 9).Select(entry => entry.Event.WorkingValue));
+    }
+
+    /// <summary>
     ///     The clip's width on the arrangement grid: the walked length, loops unrolled.
     ///     Three claps at 150 plus the kick's step at 300 and the two-step stop.
     /// </summary>

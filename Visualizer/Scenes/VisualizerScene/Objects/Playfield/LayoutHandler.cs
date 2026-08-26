@@ -100,6 +100,21 @@ public class LayoutHandler
     {
         CurrentSoundIndex = 0;
         Y = _padding?.Y1 ?? 0;
+        Height = 0;
+    }
+
+    /// <summary>
+    ///     Jumps to a state a previous walk recorded, so a caller can lay out one slice of a
+    ///     sequence without walking everything before it - see
+    ///     <see cref="Batch.ChunkGenerator.PositionChunk" />. This is the whole of the
+    ///     handler's state: positions along a line are a fixed table, and the only things that
+    ///     carry between sounds are which column is next and how far down the lines have got.
+    /// </summary>
+    public void SeekTo(int soundIndex, float y, float height)
+    {
+        CurrentSoundIndex = soundIndex;
+        Y = y;
+        Height = height;
     }
 
     /// <summary>

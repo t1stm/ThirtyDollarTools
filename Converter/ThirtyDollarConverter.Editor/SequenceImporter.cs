@@ -6,7 +6,12 @@ namespace ThirtyDollarConverter.Editor;
 /// <summary>Which shape a dropped TDW sequence is converted into.</summary>
 public enum ImportMode
 {
+    /// <summary>One piano-roll track: the sequence fitted onto a bar/beat grid.</summary>
     Track,
+
+    /// <summary>One faithful track: the sequence's own events, kept as they are.</summary>
+    Faithful,
+
     Project
 }
 
@@ -99,14 +104,183 @@ public static class SequenceImporter
         var track = project.NewTrack();
         track.Name = UniqueName($"{name} - imported", ExistingNames(project));
 
-        var instruments = BuildInstruments(project, walk.SoundOrder);
+        var created = new List<Instrument>();
+        var instruments = BuildInstruments(project, walk.SoundOrder, created);
         var segments = BuildTrackSegments(plans, instruments);
         PopulateTrack(track, segments);
 
         var channel = project.Placements.Count == 0 ? 0 : project.Placements.Max(p => p.Channel) + 1;
         var placement = project.Place(track, channel, 0);
 
-        return new ImportResult(track, [.. instruments.Values], placement, warnings);
+        return new ImportResult(track, created, placement, warnings);
+    }
+
+    /// <summary>
+    ///     Adds the sequence as one new faithful track: its events kept verbatim as items,
+    ///     which is what that kind of track is - no grid, no quantization, and nothing
+    ///     ignored, so the only warning it can raise is a sound the sample set doesn't know.
+    ///     A "!combine"-joined run collapses back into one layered instrument (that is the
+    ///     one thing a faithful item models that the raw stream doesn't), reusing an
+    ///     existing instrument whose sounds match rather than adding a duplicate.
+    /// </summary>
+    public static ImportResult AddAsFaithfulTrack(ThirtyDollarProject project, Sequence sequence, string name,
+        IReadOnlyDictionary<string, Sound>? soundMap)
+    {
+        var events = sequence.Events;
+        // Checked before anything is created, so a sequence this can't take leaves the
+        // project untouched - the same all-or-nothing contract AddAsTrack has.
+        if (events.Length == 0) throw new InvalidOperationException("No events found in this sequence.");
+
+        var unknownSounds = new HashSet<string>();
+        var created = new List<Instrument>();
+        var items = new List<FaithfulItem>();
+
+        for (var i = 0; i < events.Length; i++)
+        {
+            if (!IsSound(events[i]))
+            {
+                items.Add(new FaithfulItem { Action = events[i].Copy() });
+                continue;
+            }
+
+            var run = new List<BaseEvent> { events[i] };
+            while (i + 2 < events.Length && events[i + 1].SoundEvent == "!combine" && IsSound(events[i + 2]))
+            {
+                run.Add(events[i + 2]);
+                i += 2;
+            }
+
+            // A run only becomes one layered instrument when its sounds agree on volume, pan
+            // and offset - the three a Note carries once for the whole item. A run that
+            // doesn't stays what the stream already said it was: a slot each, joined by
+            // "!combine" items, which is also how the site draws them.
+            // Not just for exactness: TDW covers vary "%volume" per sound constantly, and
+            // pushing those onto the instrument gave the palette one near-identical
+            // instrument per note - hundreds of them on a real cover.
+            if (!Uniform(run))
+            {
+                for (var s = 0; s < run.Count; s++)
+                {
+                    if (s > 0) items.Add(Combine());
+                    items.Add(SoundItem(project, [run[s]], soundMap, unknownSounds, created) ?? Pause());
+                }
+
+                continue;
+            }
+
+            // A run this sample set knows nothing about still held its step, so it leaves a
+            // "_pause" behind. Dropping it outright pulled every later sound one step early -
+            // the piano roll importer never had the problem, since the walk has already
+            // placed its notes by the time an unknown one is discarded.
+            items.Add(SoundItem(project, run, soundMap, unknownSounds, created) ?? Pause());
+        }
+
+        var track = (FaithfulTrack)project.NewTrack(TrackKind.Faithful);
+        track.Name = UniqueName($"{name} - imported", ExistingNames(project));
+        track.Items.AddRange(items);
+
+        var channel = project.Placements.Count == 0 ? 0 : project.Placements.Max(p => p.Channel) + 1;
+        var placement = project.Place(track, channel, 0);
+
+        return new ImportResult(track, created, placement,
+            new ImportWarnings(new Dictionary<string, int>(), 0, [.. unknownSounds.Order()]));
+    }
+
+    /// <summary>
+    ///     A playable sound, classified exactly as <see cref="SequenceWalker" /> does it.
+    ///     "_pause" is silence, so it rides with the actions - which is also where the
+    ///     faithful palette keeps it.
+    /// </summary>
+    private static bool IsSound(BaseEvent ev)
+    {
+        return ev.SoundEvent is { } sound && !sound.StartsWith('!') && sound != "_pause" &&
+               ev is not ICustomActionEvent;
+    }
+
+    /// <summary>
+    ///     One sound item from a "!combine"-joined run, or from a single sound. Null when the
+    ///     sample set knows none of them.
+    ///     The run's sounds agree on volume, pan and offset by the time they get here (see
+    ///     <see cref="Uniform" /> and its caller), so the note carries those; only the pitch
+    ///     interval between them lives on the instrument, relative to its first sound.
+    /// </summary>
+    private static FaithfulItem? SoundItem(ThirtyDollarProject project, List<BaseEvent> run,
+        IReadOnlyDictionary<string, Sound>? soundMap, HashSet<string> unknownSounds, List<Instrument> created)
+    {
+        var sounds = new List<(string Id, BaseEvent Event)>();
+        foreach (var ev in run)
+        {
+            if (CanonicalId(ev.SoundEvent!, soundMap) is { } id) sounds.Add((id, ev));
+            else unknownSounds.Add(ev.SoundEvent!);
+        }
+
+        if (sounds.Count == 0) return null;
+
+        var first = sounds[0].Event;
+        var candidate = new Instrument();
+        foreach (var (id, ev) in sounds) candidate.AddSound(id).Value = ev.Value - first.Value;
+
+        var instrument = Adopt(project, candidate, sounds[0].Id, created);
+
+        return new FaithfulItem
+        {
+            Note = new Note
+            {
+                Step = 0,
+                Instrument = instrument,
+                Value = first.Value,
+                Volume = first.Volume,
+                Pan = PanOf(first),
+                Offset = OffsetOf(first)
+            }
+        };
+    }
+
+    /// <summary>Whether every sound of a run carries the same volume, pan and offset.</summary>
+    private static bool Uniform(List<BaseEvent> run)
+    {
+        var first = run[0];
+        return run.All(ev => Nullable.Equals(ev.Volume, first.Volume) &&
+                             Math.Abs(PanOf(ev) - PanOf(first)) < 1e-6f &&
+                             Math.Abs(OffsetOf(ev) - OffsetOf(first)) < 1e-9);
+    }
+
+    /// <summary>Layers the next slot onto this one, without advancing the step.</summary>
+    private static FaithfulItem Combine()
+    {
+        return new FaithfulItem
+        {
+            Action = new NormalEvent { SoundEvent = "!combine", ValueScale = ValueScale.None }
+        };
+    }
+
+    /// <summary>TDW's silent sound: one step, nothing played.</summary>
+    private static FaithfulItem Pause()
+    {
+        return new FaithfulItem
+        {
+            Action = new NormalEvent { SoundEvent = "_pause", ValueScale = ValueScale.None }
+        };
+    }
+
+    private static float PanOf(BaseEvent ev)
+    {
+        return (ev as ExtendedEvent)?.Pan ?? 0f;
+    }
+
+    private static double OffsetOf(BaseEvent ev)
+    {
+        return (ev as ExtendedEvent)?.OffsetInSeconds ?? 0d;
+    }
+
+    /// <summary>Whether two instruments play the same sounds with the same tuning, in the same order.</summary>
+    private static bool SameSounds(Instrument a, Instrument b)
+    {
+        return a.Sounds.Count == b.Sounds.Count && a.Sounds.Zip(b.Sounds).All(pair =>
+            pair.First.Sound == pair.Second.Sound &&
+            Math.Abs(pair.First.Value - pair.Second.Value) < 1e-9 &&
+            Nullable.Equals(pair.First.Volume, pair.Second.Volume) &&
+            Math.Abs(pair.First.Pan - pair.Second.Pan) < 1e-6);
     }
 
     /// <summary>Builds a whole new project: one track per distinct sound, sharing the same segment layout.</summary>
@@ -124,7 +298,8 @@ public static class SequenceImporter
             }
         };
 
-        var instruments = BuildInstruments(project, walk.SoundOrder);
+        var created = new List<Instrument>();
+        var instruments = BuildInstruments(project, walk.SoundOrder, created);
         var masterSegments = BuildTrackSegments(plans, instruments);
 
         var channel = 0;
@@ -144,7 +319,7 @@ public static class SequenceImporter
             project.Place(track, channel++, 0);
         }
 
-        return new ImportResult(null, [.. instruments.Values], null, warnings);
+        return new ImportResult(null, created, null, warnings);
     }
 
     private static (WalkData Walk, List<SegmentPlan> Plans, ImportWarnings Warnings) Prepare(Sequence sequence,
@@ -209,8 +384,11 @@ public static class SequenceImporter
         var unknownSounds = new HashSet<string>();
         var seenCuts = new HashSet<(int Region, double Step, string Sound)>();
 
-        foreach (var (region, step, ev, isSound, _) in walk.Events)
+        foreach (var (region, step, ev, isSound, _, visualOnly) in walk.Events)
         {
+            // Reported only so a view can animate the slot; the walk already consumed them.
+            if (visualOnly) continue;
+
             if (isSound)
             {
                 if (CanonicalId(ev.SoundEvent!, soundMap) is { } sound)
@@ -514,19 +692,40 @@ public static class SequenceImporter
 
     // ---- Phase C: instruments and notes ----
 
+    /// <param name="created">
+    ///     Filled with the instruments this actually added - the ones an undo of the import
+    ///     may remove again. An instrument that was already in the project is reused, not
+    ///     listed here, and must survive the undo.
+    /// </param>
     private static Dictionary<string, Instrument> BuildInstruments(ThirtyDollarProject project,
-        List<string> soundOrder)
+        List<string> soundOrder, List<Instrument> created)
     {
         var instruments = new Dictionary<string, Instrument>();
         foreach (var sound in soundOrder)
         {
-            var name = UniqueName($"{DisplayName(sound)} - imported", ExistingNames(project));
-            var instrument = project.NewInstrument(name);
-            instrument.AddSound(sound);
-            instruments[sound] = instrument;
+            var candidate = new Instrument();
+            candidate.AddSound(sound);
+            instruments[sound] = Adopt(project, candidate, sound, created);
         }
 
         return instruments;
+    }
+
+    /// <summary>
+    ///     The project's instrument for exactly these sounds, adding one when it has none.
+    ///     Reusing rather than adding a near-duplicate beside it is what lets a track-kind
+    ///     conversion round trip without growing the instrument list every time.
+    /// </summary>
+    private static Instrument Adopt(ThirtyDollarProject project, Instrument candidate, string name,
+        List<Instrument> created)
+    {
+        if (project.Instruments.FirstOrDefault(existing => SameSounds(existing, candidate)) is { } match)
+            return match;
+
+        var instrument = project.NewInstrument(UniqueName($"{DisplayName(name)} - imported", ExistingNames(project)));
+        foreach (var sound in candidate.Sounds) instrument.Sounds.Add(sound);
+        created.Add(instrument);
+        return instrument;
     }
 
     private static List<TrackSegment> BuildTrackSegments(List<SegmentPlan> plans,

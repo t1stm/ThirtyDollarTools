@@ -1,6 +1,7 @@
 using EditorScene.Scenes.Components;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Renderer.Planes;
@@ -48,6 +49,8 @@ public class EditorInterface
         "Click the palette to add, right-click to preview  •  " +
         "Draw: click a slot to remove it, drag it to reorder  •  " +
         $"Select: click to select, {Keybinds.PrimaryName}+click to add, Left/Right walk it, " +
+        $"{Keybinds.PrimaryName}+Shift+ extends it, Space+ moves it, " +
+        $"Enter places another, Del removes, Tab adds a divider  •  " +
         $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)} copy/paste  •  " +
         $"Scroll a slot (Up/Down under Select) for value, {Keybinds.PrimaryName}+ volume, Shift+ pan";
 
@@ -370,6 +373,72 @@ public class EditorInterface
     ///     Ctrl: the arrangement wheel zooms instead of panning, and scrolling a sound row
     ///     in the instrument editor adjusts volume instead of value.
     /// </summary>
+    /// <summary>
+    ///     Whether Space is currently a modifier rather than the play/pause key: held with
+    ///     Left/Right it slides the faithful selection along the sequence, which is only a
+    ///     gesture while there is a selection to slide. Read by <c>Editor.KeyDown</c> before
+    ///     the play/pause bind, so the two never fire on one press.
+    /// </summary>
+    public bool SpaceMovesSelection =>
+        State.OpenedFaithfulTrack != null && State.ActiveTool == EditorTool.Select &&
+        State.SelectedItems.Count > 0;
+
+    /// <summary>Space's held state, read every frame from the keyboard - see <see cref="SpaceMovesSelection" />.</summary>
+    public void SetSpaceHeld(bool held)
+    {
+        _faithfulSequence.SpaceHeld = held;
+    }
+
+    /// <summary>
+    ///     The keys that only mean something with a faithful track open, resolved after the
+    ///     bind table has had its go: the arrows (which the table can't match while a
+    ///     modifier is held - see <see cref="NudgeDirection" />), Delete, Enter and Tab.
+    ///     False leaves the key to whatever else wants it.
+    /// </summary>
+    public bool FaithfulKeyDown(KeyboardKeyEventArgs e)
+    {
+        if (State.OpenedFaithfulTrack is null) return false;
+
+        if (Keybinds.Match(e, BindScene.Editor) is Bind.EditorDelete or Bind.EditorDeleteAlt)
+        {
+            State.DeleteSelection();
+            return true;
+        }
+
+        if (NudgeDirection(e) is { } direction)
+        {
+            _faithfulSequence.Nudge(direction.Dx, direction.Dy);
+            return true;
+        }
+
+        switch (e.Key)
+        {
+            case Keys.Enter or Keys.KeyPadEnter:
+                _faithfulSequence.PlaceAgain();
+                return true;
+            case Keys.Tab:
+                _faithfulSequence.AppendDivider();
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>
+    ///     The nudge binds' directions, matched on the key with its modifiers ignored. The
+    ///     bind table compares modifier sets exactly, by design - that is what keeps Ctrl+Z
+    ///     and Ctrl+Shift+Z apart - while the faithful sequence reads Ctrl/Shift on an arrow
+    ///     as volume/pan and Space as a move.
+    /// </summary>
+    private static (int Dx, int Dy)? NudgeDirection(KeyboardKeyEventArgs e)
+    {
+        if (e.Key == Keybinds.Get(Bind.EditorNudgeLeft).Key) return (-1, 0);
+        if (e.Key == Keybinds.Get(Bind.EditorNudgeRight).Key) return (1, 0);
+        if (e.Key == Keybinds.Get(Bind.EditorNudgeUp).Key) return (0, 1);
+        if (e.Key == Keybinds.Get(Bind.EditorNudgeDown).Key) return (0, -1);
+        return null;
+    }
+
     public void SetModifiers(bool shift, bool ctrl)
     {
         _trackList.CtrlHeld = ctrl;
@@ -536,7 +605,7 @@ public class EditorInterface
     }
 
     /// <summary>
-    ///     Shows the single-track/project/cancel choice for a dropped TDW sequence
+    ///     Shows the faithful/piano-roll/project/cancel choice for a dropped TDW sequence
     ///     file. Import-as-project discards the open project, so it's guarded behind the
     ///     same dirty check as every other destructive action here.
     /// </summary>
@@ -545,6 +614,11 @@ public class EditorInterface
         var dialog = new ImportDialog(_context, Path.GetFileName(path));
         var modal = _dialogHost.Show(dialog.Element);
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+        dialog.FaithfulTrackButton.OnClick = _ =>
+        {
+            _dialogHost.Close(modal);
+            _projectIo.ImportTdw(path, ImportMode.Faithful, SoundMap());
+        };
         dialog.SingleTrackButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
@@ -690,6 +764,8 @@ public class EditorInterface
         menu.AddItem("Open", () => State.OpenTrack(track));
         menu.AddItem("Change color…", () => ShowTrackColorDialog(track));
         menu.AddItem("Duplicate…", () => ShowDuplicateTrackDialog(track));
+        menu.AddItem(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
+            () => ConvertTrack(track));
         menu.AddItem("Remove", () => State.RemoveTrack(track));
 
         _dialogHost.Root.AddChild(menu);
@@ -729,6 +805,23 @@ public class EditorInterface
             State.DuplicateTrack(track, dialog.NameInput.Value);
             _dialogHost.Close(modal);
         };
+    }
+
+    /// <summary>
+    ///     The context menu's kind conversion. A track that can't be converted (nothing in
+    ///     it, or a piano roll whose sequence holds no sounds) says so rather than throwing
+    ///     out of the menu - the project is untouched either way.
+    /// </summary>
+    private void ConvertTrack(ProjectTrack track)
+    {
+        try
+        {
+            State.ConvertTrack(track);
+        }
+        catch (Exception e)
+        {
+            _dialogHost.Alert($"Couldn't convert \"{track.Name}\":\n\n{e.Message}");
+        }
     }
 
     /// <summary>Load/Save, wired from EditorHeader.snx.csx - a .csx only reaches the public surface.</summary>
@@ -805,7 +898,12 @@ public class EditorInterface
         _trackList.Rebuild();
         _faithfulPalette.Rebuild();
         if (_openPanel == FaithfulPanel) _faithfulSequence.Refresh();
-        _arrangement.Refresh();
+
+        // Only while it is the view being shown. A clip's width is its track's duration, and
+        // for a faithful track that is a walk of the whole sequence - ~20 ms on an imported
+        // cover, spent on a panel that isn't on screen, for every edit. SwapGridView already
+        // refreshes it on the way back in.
+        if (_openPanel is null) _arrangement.Refresh();
         _trackEditor.InvalidateLayout();
         _inspector.Sync();
         RefreshSelection();
@@ -824,6 +922,7 @@ public class EditorInterface
             _laneHeader.InvalidateLayout();
             _laneHeader.DrawTo(_context);
         }
+
     }
 
     private void RefreshSelection()

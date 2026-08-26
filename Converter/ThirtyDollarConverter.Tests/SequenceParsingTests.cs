@@ -5,6 +5,43 @@ namespace ThirtyDollarConverter.Tests;
 
 public class SequenceParsingTests
 {
+    /// <summary>
+    ///     "!stop" counts down <see cref="BaseEvent.WorkingValue" />, so an event that reaches
+    ///     the calculator with it at zero silently does nothing. Every event of a "#define" is
+    ///     widened to an ExtendedEvent as the define is expanded, and that copy used to leave
+    ///     WorkingValue behind - which made "!stop" (and "!loopmany") a no-op inside a define,
+    ///     and only inside one.
+    /// </summary>
+    [Fact]
+    public void Stop_InsideADefine_StillWaits()
+    {
+        const string defined = "#define(gap)|!stop@4|#enddefine|kick|gap|kick";
+        const string inline = "kick|!stop@4|kick";
+
+        Assert.Equal(Positions(inline), Positions(defined));
+    }
+
+    [Fact]
+    public void Loopmany_InsideADefine_StillLoops()
+    {
+        const string defined = "#define(again)|!loopmany@2|#enddefine|!looptarget|kick|again";
+        const string inline = "!looptarget|kick|!loopmany@2";
+
+        Assert.Equal(Positions(inline), Positions(defined));
+    }
+
+    /// <summary>Where every sound of a sequence lands, in samples.</summary>
+    private static List<ulong> Positions(string text)
+    {
+        return
+        [
+            .. new PlacementCalculator(new Objects.EncoderSettings { SampleRate = 48000 })
+                .CalculateOne(Sequence.FromString(text))
+                .Where(p => p.Audible && !(p.Event.SoundEvent?.StartsWith('!') ?? true))
+                .Select(p => p.Index)
+        ];
+    }
+
     [Fact]
     public void LegacyMarker_SetsIsNewFormatFalse()
     {

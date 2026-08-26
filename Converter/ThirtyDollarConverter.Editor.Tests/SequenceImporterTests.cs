@@ -266,8 +266,13 @@ public class SequenceImporterTests
         Assert.Throws<InvalidOperationException>(() => SequenceImporter.AddAsTrack(project, sequence, "test", null));
     }
 
+    /// <summary>
+    ///     Tracks are named apart; instruments are not, because a second import of the same
+    ///     sound adopts the instrument the first one made rather than adding a twin beside it.
+    ///     Retuning it then reaches both, which is the point of instruments being shared.
+    /// </summary>
     [Fact]
-    public void SecondImport_OfTheSameName_GetsANumberedSuffix()
+    public void SecondImport_SuffixesTheTrackName_AndReusesTheInstrument()
     {
         var sequence = Sequence.FromString("kick");
         var project = new ThirtyDollarProject();
@@ -278,7 +283,9 @@ public class SequenceImporterTests
         Assert.Equal("epic-sequence - imported", first.Track!.Name);
         Assert.Equal("epic-sequence - imported (2)", second.Track!.Name);
         Assert.Equal("kick - imported", first.Instruments[0].Name);
-        Assert.Equal("kick - imported (2)", second.Instruments[0].Name);
+        // Nothing new was added, so an undo of the second import has nothing to take back.
+        Assert.Empty(second.Instruments);
+        Assert.Single(project.Instruments);
     }
 
     [Fact]

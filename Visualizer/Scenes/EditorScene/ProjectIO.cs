@@ -62,9 +62,12 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         try
         {
             var sequence = Sequence.FromString(File.ReadAllText(path));
-            var result = mode == ImportMode.Track
-                ? state.ImportSequenceAsTrack(sequence, name, soundMap)
-                : state.ReplaceWithImportedProject(sequence, name, soundMap);
+            var result = mode switch
+            {
+                ImportMode.Track => state.ImportSequenceAsTrack(sequence, name, soundMap),
+                ImportMode.Faithful => state.ImportSequenceAsTrack(sequence, name, soundMap, TrackKind.Faithful),
+                _ => state.ReplaceWithImportedProject(sequence, name, soundMap)
+            };
 
             if (!result.Warnings.IsEmpty)
                 dialogHost.Alert($"Imported with warnings:\n\n{Summarize(result.Warnings)}");

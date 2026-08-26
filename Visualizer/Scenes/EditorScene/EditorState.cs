@@ -245,9 +245,11 @@ public class EditorState
     ///     until the importer has already fully succeeded.
     /// </summary>
     public ImportResult ImportSequenceAsTrack(Sequence sequence, string name,
-        IReadOnlyDictionary<string, Sound>? soundMap)
+        IReadOnlyDictionary<string, Sound>? soundMap, TrackKind kind = TrackKind.PianoRoll)
     {
-        var result = SequenceImporter.AddAsTrack(Project, sequence, name, soundMap);
+        var result = kind == TrackKind.Faithful
+            ? SequenceImporter.AddAsFaithfulTrack(Project, sequence, name, soundMap)
+            : SequenceImporter.AddAsTrack(Project, sequence, name, soundMap);
         var track = result.Track!;
         var placement = result.Placement!;
         var instruments = result.Instruments;
@@ -270,6 +272,83 @@ public class EditorState
             });
         Touch();
         return result;
+    }
+
+    /// <summary>
+    ///     Rebuilds a track as the other kind, through its own exported sequence - the one
+    ///     representation both kinds already agree on, so the converted track plays the same.
+    ///     It keeps the original's name, colour, transpose, place in the list and every clip
+    ///     it had. Two things a round trip does not survive, both because a TDW sequence
+    ///     doesn't hold them: the piano roll's grid fitting, and trailing silence - a
+    ///     converted clip ends on its last sound rather than at a segment boundary.
+    ///     Throws whatever <see cref="SequenceImporter" /> throws on a track it can't convert
+    ///     (an empty one, a piano roll with no sounds) - nothing is changed when it does.
+    /// </summary>
+    public ProjectTrack ConvertTrack(ProjectTrack track)
+    {
+        var kind = track.Kind == TrackKind.Faithful ? TrackKind.PianoRoll : TrackKind.Faithful;
+        var sequence = track.ToSequence();
+        var result = kind == TrackKind.Faithful
+            ? SequenceImporter.AddAsFaithfulTrack(Project, sequence, track.Name, null)
+            : SequenceImporter.AddAsTrack(Project, sequence, track.Name, null);
+
+        var converted = result.Track!;
+        converted.Name = track.Name;
+        converted.ColorIndex = track.ColorIndex;
+        converted.Transpose = track.Transpose;
+
+        var index = IndexOf(Project.Tracks, track);
+        var oldPlacements = Project.Placements.Where(placement => placement.Track == track).ToArray();
+        var instruments = result.Instruments;
+        var instrumentIndices = instruments.Select(instrument => IndexOf(Project.Instruments, instrument)).ToArray();
+
+        // The importer appended its track (with a clip on a fresh channel) at the end; a
+        // conversion takes the old track's slot and its clips instead.
+        Project.RemoveTrack(converted);
+        Project.RemoveTrack(track);
+        Project.AddTrack(converted, index);
+        var newPlacements = oldPlacements
+            .Select(placement => Project.Place(converted, placement.Channel, placement.StartQuarterNotes))
+            .ToArray();
+
+        Retarget(track, converted, oldPlacements);
+
+        _undoHistory.Push(
+            () =>
+            {
+                Project.RemoveTrack(converted);
+                Project.AddTrack(track, index);
+                foreach (var placement in oldPlacements) Project.AddPlacement(placement);
+                foreach (var instrument in instruments) Project.RemoveInstrument(instrument);
+                Retarget(converted, track, newPlacements);
+            },
+            () =>
+            {
+                Project.RemoveTrack(track);
+                for (var i = 0; i < instruments.Count; i++) Project.AddInstrument(instruments[i], instrumentIndices[i]);
+                Project.AddTrack(converted, index);
+                foreach (var placement in newPlacements) Project.AddPlacement(placement);
+                Retarget(track, converted, oldPlacements);
+            });
+
+        Touch();
+        return converted;
+
+        // Whatever pointed at the track that just went away has to point at the one that
+        // replaced it, or the list highlight and the open panel address a dropped track.
+        void Retarget(ProjectTrack from, ProjectTrack to, TrackPlacement[] dropped)
+        {
+            var open = OpenedTrack == from;
+            if (open) CloseTrack();
+            if (_selectedTracks.Remove(from))
+            {
+                _selectedTracks.Add(to);
+                OnSelectionChanged?.Invoke(SelectedTrack);
+            }
+
+            RemoveFromPlacementSelection(dropped);
+            if (open) OpenTrack(to);
+        }
     }
 
     public void OpenTrack(ProjectTrack track)

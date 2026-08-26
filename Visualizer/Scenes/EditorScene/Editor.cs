@@ -204,6 +204,7 @@ public class Editor : Scene, IFadeInScene
         _editorInterface.SetModifiers(
             keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift),
             Keybinds.PrimaryDown(keyboardState));
+        _editorInterface.SetSpaceHeld(keyboardState.IsKeyDown(Keys.Space));
         _editorInterface.MouseEvent(mouseState, _lastScale);
     }
 
@@ -269,7 +270,9 @@ public class Editor : Scene, IFadeInScene
             case Bind.EditorSelectAll when !textFocused:
                 state.SelectAll();
                 return;
-            case Bind.EditorPlayPause:
+            // Space is the faithful sequence's move modifier while it has a selection, so
+            // it must not also start playback on the same press.
+            case Bind.EditorPlayPause when !_editorInterface.SpaceMovesSelection:
                 _editorInterface.Playback.PlayPause();
                 return;
             case Bind.EditorRestart:
@@ -307,22 +310,10 @@ public class Editor : Scene, IFadeInScene
                 return;
         }
 
-        // A modified arrow matches no bind - the table compares modifier sets exactly, by
-        // design, which is what keeps Ctrl+Z and Ctrl+Shift+Z apart - while the faithful
-        // sequence reads Ctrl/Shift on an arrow as volume/pan. There, and only there, the
-        // nudge keys are resolved by key alone.
-        if (state.OpenedFaithfulTrack != null && NudgeDirection(e) is { } direction)
-            _editorInterface.NudgeSelection(direction.Dx, direction.Dy);
-    }
-
-    /// <summary>The nudge binds' directions, matched on the key with its modifiers ignored.</summary>
-    private static (int Dx, int Dy)? NudgeDirection(KeyboardKeyEventArgs e)
-    {
-        if (e.Key == Keybinds.Get(Bind.EditorNudgeLeft).Key) return (-1, 0);
-        if (e.Key == Keybinds.Get(Bind.EditorNudgeRight).Key) return (1, 0);
-        if (e.Key == Keybinds.Get(Bind.EditorNudgeUp).Key) return (0, 1);
-        if (e.Key == Keybinds.Get(Bind.EditorNudgeDown).Key) return (0, -1);
-        return null;
+        // Keys that only mean something with a faithful track open, and only after the bind
+        // table has passed: the arrows (which match no bind while a modifier is held),
+        // Delete, Enter and Tab.
+        _editorInterface.FaithfulKeyDown(e);
     }
 
     /// <summary>

@@ -55,8 +55,9 @@ cmd_start() {
     # XDG_SESSION_TYPE=x11 is the load-bearing bit: GLFW otherwise picks Wayland and
     # the window opens on the user's real desktop, DISPLAY be damned.
     cd "$app_dir"
+    # VIZ_WRAP prefixes the launch - "mangohud --dlsym" puts an FPS counter on the window.
     XDG_SESSION_TYPE=x11 DISPLAY=$disp LIBGL_ALWAYS_SOFTWARE=1 \
-        nohup ./ThirtyDollarVisualizer --settings-location "$settings" "${audio[@]}" "$@" \
+        nohup ${VIZ_WRAP:-} ./ThirtyDollarVisualizer --settings-location "$settings" "${audio[@]}" "$@" \
         >"$log" 2>&1 </dev/null &
     echo $! >"$pidfile"
 

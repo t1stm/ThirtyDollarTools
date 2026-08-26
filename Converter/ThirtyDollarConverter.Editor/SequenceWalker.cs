@@ -11,8 +11,18 @@ namespace ThirtyDollarConverter.Editor;
 ///     advances the position - exactly PlacementCalculator's classification.
 ///     <paramref name="Source" /> is the index in the walked stream this came from; a loop
 ///     reports the same one once per pass, which is how a view highlights the slot being played.
+///     <paramref name="VisualOnly" /> marks an event the walk consumed itself ("!speed",
+///     "!combine", "_pause", the loop/jump family …) and reports only so a view can animate
+///     the slot as it is passed - PlacementCalculator's AddVisualEvents. Nothing that builds
+///     audio may emit these: their effect is already baked into the regions and the sounds.
 /// </summary>
-internal readonly record struct WalkedEvent(int Region, double Step, BaseEvent Event, bool IsSound, int Source);
+internal readonly record struct WalkedEvent(
+    int Region,
+    double Step,
+    BaseEvent Event,
+    bool IsSound,
+    int Source,
+    bool VisualOnly = false);
 
 /// <summary>
 ///     The result of a walk: the timeline split into constant-speed regions (length in grid
@@ -95,6 +105,16 @@ internal static class SequenceWalker
 
         var index = 0;
         var walked = 0;
+
+        // A slot the walk swallows still lights up on the site as the playhead reaches it, so
+        // it is reported too - see WalkedEvent.VisualOnly. regionUsed, because the trailing
+        // open region has to survive to be indexable by one of these.
+        void Visual(BaseEvent shown)
+        {
+            walkedEvents.Add(new WalkedEvent(regionIndex, position, shown, false, index, true));
+            regionUsed = true;
+        }
+
         while (index < events.Length)
         {
             if (++walked > MaxWalkedEvents)
@@ -122,6 +142,7 @@ internal static class SequenceWalker
                     walkedEvents.Add(new WalkedEvent(regionIndex, position, emitted, true, index));
                     regionUsed = true;
                 }
+                else Visual(ev.Copy());
 
                 if (advance) position += 1;
                 index++;
@@ -132,6 +153,7 @@ internal static class SequenceWalker
             {
                 case "!speed":
                 {
+                    Visual(ev.Copy()); // before the region flip: it plays where it sits
                     var newSpeed = Scale(speed, ev);
                     if (!SequenceBuilder.SameSpeed(speed, newSpeed))
                     {
@@ -146,31 +168,50 @@ internal static class SequenceWalker
                 }
                 case "!volume":
                 {
+                    Visual(ev.Copy());
                     globalVolume = Math.Max(0, Scale(globalVolume, ev));
                     break;
                 }
                 case "!transpose":
                 {
+                    Visual(ev.Copy());
                     transpose = Scale(transpose, ev);
                     break;
                 }
                 case "!stop":
-                    position += ev.Value;
+                {
+                    // One fade per step waited, not one for the whole wait - the site counts
+                    // the wait down on the slot. The steps sum to ev.Value, so the position
+                    // this leaves behind is the one a single add would have.
+                    var end = position + ev.Value;
+                    for (var left = ev.Value; left > 0; left -= 1)
+                    {
+                        position += Math.Min(left, 1);
+                        ev.WorkingValue = Math.Max(left - 1, 0);
+                        Visual(ev.Copy());
+                    }
+
+                    position = end;
                     break;
+                }
                 case "!looptarget":
+                    Visual(ev.Copy());
                     loopTarget = index;
                     break;
                 case "!loopmany":
                     if (ev.WorkingValue > 0)
                     {
                         ev.WorkingValue--;
+                        Visual(ev.Copy()); // after the decrement: the slot shows the passes left
                         index = loopTarget;
                         Untrigger(events, index, LoopmanyUntriggers);
                         continue;
                     }
 
+                    Visual(ev.Copy());
                     break;
                 case "!loop":
+                    Visual(ev.Copy());
                     if (!ev.Triggered)
                     {
                         ev.Triggered = true;
@@ -181,6 +222,7 @@ internal static class SequenceWalker
 
                     break;
                 case "!jump":
+                    Visual(ev.Copy());
                     if (!ev.Triggered)
                     {
                         ev.Triggered = true;
@@ -198,6 +240,7 @@ internal static class SequenceWalker
                 case "!combine":
                 case "!target":
                 case null or "":
+                    Visual(ev.Copy());
                     break;
                 default:
                     walkedEvents.Add(new WalkedEvent(regionIndex, position, ev.Copy(), false, index));

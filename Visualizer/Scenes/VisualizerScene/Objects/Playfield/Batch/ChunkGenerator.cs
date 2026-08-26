@@ -43,16 +43,47 @@ public class ChunkGenerator(PlayfieldSettings settings, LayoutHandler? layout = 
         return [.. chunksList];
     }
 
+    /// <summary>
+    ///     Builds one chunk of an event array on its own, with the same slicing
+    ///     <see cref="GenerateChunks" /> uses - what a view that redraws a single edit needs,
+    ///     instead of regenerating every chunk of a sequence to repaint one badge.
+    /// </summary>
+    public PlayfieldChunk GenerateChunk(BaseEvent[] events, int chunkIndex)
+    {
+        var start = chunkIndex * ChunkSize;
+        var slice = events.AsSpan(start, Math.Min(events.Length - start, ChunkSize));
+        return PlayfieldChunk.GenerateFrom(slice, LayoutHandler, settings);
+    }
+
     public void PositionSounds(ReadOnlySpan<PlayfieldChunk> chunks)
     {
-        LayoutHandler.Reset();
-        foreach (var chunk in chunks)
-        {
-            chunk.StartY = LayoutHandler.Y;
-            foreach (var renderable in chunk.Renderables) PositionSound(renderable);
+        var state = StartState();
+        foreach (var chunk in chunks) state = PositionChunk(chunk, state);
+    }
 
-            chunk.EndY = LayoutHandler.Height + LayoutHandler.Size;
-        }
+    /// <summary>The layout state the first chunk starts from - see <see cref="PositionChunk" />.</summary>
+    public (int SoundIndex, float Y, float Height) StartState()
+    {
+        LayoutHandler.Reset();
+        return (LayoutHandler.CurrentSoundIndex, LayoutHandler.Y, LayoutHandler.Height);
+    }
+
+    /// <summary>
+    ///     Positions one chunk from a recorded layout state and returns the state the next one
+    ///     starts from. A view that redraws only what is on screen keeps those states and lays
+    ///     out the visible chunks alone, instead of walking the whole sequence every time it
+    ///     moves - which is O(events) per scroll frame and, on an imported cover, the frame.
+    /// </summary>
+    public (int SoundIndex, float Y, float Height) PositionChunk(PlayfieldChunk chunk,
+        (int SoundIndex, float Y, float Height) state)
+    {
+        LayoutHandler.SeekTo(state.SoundIndex, state.Y, state.Height);
+
+        chunk.StartY = LayoutHandler.Y;
+        foreach (var renderable in chunk.Renderables) PositionSound(renderable);
+        chunk.EndY = LayoutHandler.Height + LayoutHandler.Size;
+
+        return (LayoutHandler.CurrentSoundIndex, LayoutHandler.Y, LayoutHandler.Height);
     }
 
     private void PositionSound(in SoundRenderable sound)

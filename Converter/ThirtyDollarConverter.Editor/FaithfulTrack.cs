@@ -105,23 +105,127 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
 
     /// <summary>
     ///     When each expanded slot is played, in minutes from the track's start, paired with
-    ///     its index in <see cref="ExpandTagged" />'s stream. A loop reports the same index
-    ///     once per pass - what a view needs to bounce the slot the playhead is on.
+    ///     its index in <see cref="ExpandTagged" />'s stream and the event as the walk saw it
+    ///     (a "!loopmany" carries the passes it has left). A loop reports the same index once
+    ///     per pass - what a view needs to animate the slot the playhead is on.
+    ///     Every slot is here, the ones the walk consumes included: the site animates those
+    ///     too. Read-only - these are the cached walk's own events, not copies.
     /// </summary>
-    public IEnumerable<(double Minutes, int Index)> PlayTimes()
+    public IEnumerable<(double Minutes, int Index, BaseEvent Event)> PlayTimes()
     {
-        var walk = Walk();
-        return walk.Events.Select(walked => (walk.MinutesOf(walked), walked.Source)).ToArray();
+        var walk = Walk(true);
+        return walk.Events.Select(walked => (walk.MinutesOf(walked), walked.Source, walked.Event)).ToArray();
     }
 
-    private WalkedSequence Walk()
+    private WalkedSequence? _walk;
+    private long _timingSignature;
+    private long _contentSignature;
+
+    /// <summary>
+    ///     The walk, kept until what it read changes. Walking an imported cover is ~20 ms, and
+    ///     the editor asks a timing question after every edit.
+    ///     Two signatures, because most edits only change half of what a walk holds: a
+    ///     scrolled value or volume is in every event the walk hands out, but says nothing
+    ///     about *when* anything plays. A duration, a tempo region or a play schedule can
+    ///     therefore reuse a walk that an export could not - which is
+    ///     <paramref name="timingOnly" />.
+    ///     Content-addressed rather than invalidated by hand: <see cref="Items" />, the notes
+    ///     in it and the instruments they play are all public and mutable, so there is no one
+    ///     place a change could announce itself from.
+    /// </summary>
+    private WalkedSequence Walk(bool timingOnly = false)
     {
-        return SequenceWalker.Walk([.. Expand()]);
+        var timing = TimingSignature();
+        if (_walk is { } cached && timing == _timingSignature &&
+            (timingOnly || ContentSignature() == _contentSignature))
+            return cached;
+
+        _walk = SequenceWalker.Walk([.. Expand()]);
+        _timingSignature = timing;
+        _contentSignature = ContentSignature();
+        return _walk;
+    }
+
+    /// <summary>
+    ///     A hash of everything that decides *when* a slot plays: the actions, and whether a
+    ///     sound item takes a step at all (a cut is an action, and an empty instrument emits
+    ///     nothing). A note's own value, volume, pan and offset are deliberately absent - the
+    ///     walk carries them but never reads them.
+    /// </summary>
+    private long TimingSignature()
+    {
+        var hash = Basis;
+        foreach (var item in Items)
+        {
+            if (item.Action is { } action)
+            {
+                Mix(ref hash, action.SoundEvent?.GetHashCode() ?? 0);
+                Mix(ref hash, action.Value.GetHashCode());
+                Mix(ref hash, action.WorkingValue.GetHashCode());
+                Mix(ref hash, (int)action.ValueScale);
+                continue;
+            }
+
+            if (item.Note is not { } note) continue;
+            Mix(ref hash, note.IsCut ? 1 : 2);
+            Mix(ref hash, note.Instrument.Sounds.Count == 0 ? 0 : 3);
+        }
+
+        return hash;
+    }
+
+    /// <summary>
+    ///     A hash of everything else the expansion reads - what the walked events will say.
+    ///     Only an export or playback needs this to still hold.
+    /// </summary>
+    private long ContentSignature()
+    {
+        var hash = Basis;
+        foreach (var item in Items)
+        {
+            if (item.Action is { } action)
+            {
+                Mix(ref hash, action.Volume?.GetHashCode() ?? 0);
+                // A bare "!cut" expands over every sound the track plays, which the notes
+                // below already cover; a targeted one carries its own list.
+                if (action is IndividualCutEvent cut)
+                    foreach (var sound in cut.CutSounds)
+                        Mix(ref hash, sound.GetHashCode());
+
+                continue;
+            }
+
+            if (item.Note is not { } note) continue;
+
+            Mix(ref hash, note.Value.GetHashCode());
+            Mix(ref hash, note.Volume?.GetHashCode() ?? 0);
+            Mix(ref hash, note.Pan.GetHashCode());
+            Mix(ref hash, note.Offset.GetHashCode());
+
+            foreach (var sound in note.Instrument.Sounds)
+            {
+                Mix(ref hash, sound.Sound.GetHashCode());
+                Mix(ref hash, sound.Value.GetHashCode());
+                Mix(ref hash, sound.Volume?.GetHashCode() ?? 0);
+                Mix(ref hash, sound.Pan.GetHashCode());
+            }
+        }
+
+        return hash;
+    }
+
+    /// <summary>FNV-1a 64's offset basis. 64 bits, not the 32 <see cref="HashCode" /> mixes:
+    /// a collision here would keep a stale timing until the next real edit.</summary>
+    private const long Basis = unchecked((long)14695981039346656037);
+
+    private static void Mix(ref long hash, int value)
+    {
+        hash = unchecked((hash ^ value) * 1099511628211);
     }
 
     public override double DurationMinutes()
     {
-        return Walk().DurationMinutes;
+        return Walk(true).DurationMinutes;
     }
 
     /// <summary>The sequence has no bars, so it contributes no bar dividers.</summary>
@@ -143,20 +247,27 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
 
         foreach (var walked in walk.Events)
         {
-            // Safe to mutate: the walker hands out a fresh copy per emitted event.
+            // The walk reports what it swallowed so a view can animate it; re-emitting a
+            // "!speed" or a "!combine" here would apply it a second time.
+            if (walked.VisualOnly) continue;
+
+            // A copy per call, not per walk: the walk is cached now, and everything
+            // downstream treats these as its own - a transpose is written straight onto them,
+            // and PlacementCalculator spends a "!stop"'s WorkingValue as it reads it.
+            var copy = walked.Event.Copy();
             if (transpose != 0 && walked.IsSound)
             {
-                walked.Event.Value += transpose;
-                walked.Event.WorkingValue = walked.Event.Value;
+                copy.Value += transpose;
+                copy.WorkingValue = copy.Value;
             }
 
-            yield return (startMinutes + walk.MinutesOf(walked), walked.Event);
+            yield return (startMinutes + walk.MinutesOf(walked), copy);
         }
     }
 
     internal override List<TempoRegion> TempoRegions(double startMinutes = 0)
     {
-        return Walk().ToTempoRegions(startMinutes);
+        return Walk(true).ToTempoRegions(startMinutes);
     }
 
     internal override ProjectTrack Duplicate(int id, string name)

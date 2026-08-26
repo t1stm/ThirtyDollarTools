@@ -95,28 +95,32 @@ internal static class SequenceBuilder
                 // the notes open the new one.
                 EmitDividersUpTo(time);
 
-                // Actions (e.g. "!cut") never advance the clock in playback, unlike sounds -
-                // emit them first so they act on whatever's already playing before this
-                // step's own sounds start, and join only consecutive *sounds* with
-                // "!combine" (there is nothing to cancel around an action).
-                var has_sound = false;
-                var first_sound = true;
-                foreach (var ev in group_events.Where(IsAction))
-                    events.Add(ev);
-                foreach (var ev in group_events.Where(ev => !IsAction(ev)))
+                // In the order they came in. A step's order is meaningful - a "!cut" silences
+                // what is already playing, so the sounds written before it are cut and the
+                // ones after it are not - and hoisting the actions to the front of the step
+                // (which this used to do) quietly cut the wrong ones.
+                // Only a "!combine" *directly* after a sound cancels its one-step advance, so
+                // every sound that isn't the group's last event gets one: the events after it
+                // belong to the same step.
+                var advanced = false;
+                for (var k = 0; k < group_events.Length; k++)
                 {
-                    if (!first_sound) events.Add(Action("!combine", 0));
+                    var ev = group_events[k];
                     events.Add(ev);
-                    first_sound = false;
-                    has_sound = true;
+                    if (IsAction(ev)) continue;
+
+                    if (k < group_events.Length - 1) events.Add(Action("!combine", 0));
+                    else advanced = true;
                 }
 
                 gi++;
-                if (!has_sound)
+                if (!advanced)
                 {
-                    // An actions-only group never consumes a step - matches PlacementCalculator,
-                    // where actions never increment position. (Advancing here was the latent bug
-                    // that shifted everything after an on-grid automation cut one step early.)
+                    // Nothing here consumed a step: either the group is actions only (which
+                    // never increment position, matching PlacementCalculator - advancing here
+                    // was the latent bug that shifted everything after an on-grid automation
+                    // cut one step early), or its last sound was cancelled by a "!combine"
+                    // because actions follow it. Either way the step comes out of the next gap.
                     clock = time;
                 }
                 else
@@ -238,10 +242,12 @@ internal static class SequenceBuilder
     }
 
     /// <summary>
-    ///     All the cuts landing on one step collapse into a single one carrying the union of
-    ///     their sounds. Tracks sharing an instrument (and several cut notes on the same step)
-    ///     otherwise emit one cut per track per note, each re-silencing sounds the first cut
-    ///     already silenced: identical audio, one extra encoder pass over every cut track.
+    ///     Consecutive cuts landing on one step collapse into a single one carrying the union
+    ///     of their sounds. Tracks sharing an instrument (and several cut notes on the same
+    ///     step) otherwise emit one cut per track per note, each re-silencing sounds the first
+    ///     cut already silenced: identical audio, one extra encoder pass over every cut track.
+    ///     Only consecutive ones: a sound between two cuts is cut by the first and not by the
+    ///     second, and merging across it would silence it either way.
     ///     Standard and legacy ("#icut") cuts stay separate - they serialize differently.
     /// </summary>
     private static BaseEvent[] CollapseCuts(BaseEvent[] events)
@@ -254,6 +260,7 @@ internal static class SequenceBuilder
         {
             if (ev is not IndividualCutEvent cut)
             {
+                merged.Clear();
                 result.Add(ev);
                 continue;
             }

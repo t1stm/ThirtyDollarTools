@@ -15,6 +15,9 @@ public sealed class SoundRenderable : Renderable
     private readonly Memory<Animation> _renderableAnimations;
     private bool _resetAnimationState;
 
+    /// <summary>How high (and which way) the next bounce goes; see <see cref="Bounce" />.</summary>
+    private float _bounceScale = 1f;
+
     public SoundRenderable() : this(Vector3.Zero, Vector2.Zero)
     {
     }
@@ -59,7 +62,7 @@ public sealed class SoundRenderable : Renderable
         set
         {
             base.Scale = value;
-            _bounceAnimation?.FinalY = value.Y / 4.26666667f;
+            _bounceAnimation?.FinalY = value.Y / 4.26666667f * _bounceScale;
         }
     }
 
@@ -137,9 +140,19 @@ public sealed class SoundRenderable : Renderable
     }
 
 
-    public void Bounce()
+    /// <param name="scale">
+    ///     Height against the played bounce: 1 is what the playhead does, a fraction is a
+    ///     smaller hop, and a negative one dips instead. Kept as state so a re-layout mid
+    ///     bounce (which rewrites <see cref="Scale" />, and with it the bounce's height)
+    ///     doesn't flip the hop back to a full upward one.
+    /// </param>
+    public void Bounce(float scale = 1f)
     {
-        _bounceAnimation?.Start();
+        _bounceScale = scale;
+        if (_bounceAnimation is null) return;
+
+        _bounceAnimation.FinalY = Scale.Y / 4.26666667f * scale;
+        _bounceAnimation.Start();
     }
 
     public void Expand()

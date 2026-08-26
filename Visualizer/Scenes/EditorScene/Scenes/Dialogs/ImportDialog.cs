@@ -7,7 +7,8 @@ namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     The import options form (ModalLayer content) shown after dropping a TDW sequence
-///     file onto the editor: single track, whole project, or cancel. Mirrors
+///     file onto the editor: as a faithful track (the suggested one), as a piano-roll
+///     track, whole project, or cancel. Mirrors
 ///     <see cref="ExportDialog" />'s shape - pure form, the owner decides what each
 ///     button does and closes the modal itself. The tree is ImportDialog.snx.xml.
 /// </summary>
@@ -18,6 +19,7 @@ public sealed class ImportDialog
         var component = Markup.Build(context, "Scenes/Dialogs/Import Dialog/ImportDialog.snx.xml");
         Element = component.GetID<FlexPanel>("import-dialog");
         SingleTrackButton = component.GetID<Button>("single-track-button");
+        FaithfulTrackButton = component.GetID<Button>("faithful-track-button");
         ProjectButton = component.GetID<Button>("project-button");
         CancelButton = component.GetID<Button>("cancel-button");
 
@@ -27,7 +29,10 @@ public sealed class ImportDialog
     /// <summary>The dialog's root - what the owner mounts into a ModalLayer.</summary>
     public FlexPanel Element { get; }
 
+    /// <summary>The piano-roll option - a bare label under the suggested faithful one.</summary>
     public Button SingleTrackButton { get; }
+
+    public Button FaithfulTrackButton { get; }
     public Button ProjectButton { get; }
     public Button CancelButton { get; }
 }

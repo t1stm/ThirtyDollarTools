@@ -3,6 +3,9 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
+using VisualizerScene.Objects;
 using VisualizerScene.Objects.Playfield;
 
 namespace EditorScene.Scenes.Views;
@@ -20,6 +23,12 @@ public sealed class FaithfulSequence : ScrollView
     /// <summary>A playhead jump larger than this is a seek, not a frame's worth of playing.</summary>
     private const double SeekToleranceMinutes = 0.05;
 
+    /// <summary>
+    ///     How high a right-click preview hops, against a played slot's full bounce. The site
+    ///     nudges a sound when you audition it; a full bounce would read as "this played".
+    /// </summary>
+    private const float PreviewBounce = 0.35f;
+
     private const double ValueStep = 1;
     private const float VolumeStep = 5;
     private const float PanStep = 5;
@@ -31,7 +40,7 @@ public sealed class FaithfulSequence : ScrollView
     private FaithfulItem[] _itemByEvent = [];
 
     /// <summary>When each slot is played, from <see cref="FaithfulTrack.PlayTimes" />; ordered by time.</summary>
-    private (double Minutes, int Index)[] _playTimes = [];
+    private (double Minutes, int Index, BaseEvent Event)[] _playTimes = [];
 
     /// <summary>How far into <see cref="_playTimes" /> the playhead has already been carried.</summary>
     private int _played;
@@ -54,7 +63,7 @@ public sealed class FaithfulSequence : ScrollView
             ReserveBounceRoom = true, // the scroller scissors to its rect; a bounce needs the room
             Scale = scale, // the sequence sets the scale; the palettes follow it
             OnPick = Pick,
-            OnPreview = index => Preview(ItemAt(index)),
+            OnPreview = PreviewAt,
             OnAdjust = Adjust,
             OnMove = Move,
             // Only under Select: the lit panel says "this is in your selection", and a
@@ -90,6 +99,13 @@ public sealed class FaithfulSequence : ScrollView
 
     public bool ShiftHeld { get; set; }
 
+    /// <summary>
+    ///     Whether Space is down. Held with Left/Right it slides the selected item along the
+    ///     sequence instead of walking the selection; <c>Editor.KeyDown</c> stops the same
+    ///     press from starting playback - see <see cref="Scenes.EditorInterface.SpaceMovesSelection" />.
+    /// </summary>
+    public bool SpaceHeld { get; set; }
+
     /// <summary>Previews a slot's sound as it will sound. Actions have nothing to play and are skipped.</summary>
     public Action<Note>? OnPreviewNote { get; set; }
 
@@ -100,8 +116,8 @@ public sealed class FaithfulSequence : ScrollView
     ///     Redraws from the opened faithful track. Rebuilding regenerates the chunk's GL
     ///     buffers, so this is only worth calling when the sequence actually changed - which is
     ///     what <see cref="Scenes.EditorInterface" /> does (only while the panel is open).
-    ///     ponytail: a whole rebuild per edit, including per scroll notch. Diff the expansion
-    ///     and patch the affected renderables if a long sequence ever makes a scroll stutter.
+    ///     The rebuild itself is incremental - see <see cref="EventCanvas.SetEvents" />, which
+    ///     only regenerates the chunks whose slots actually draw differently.
     /// </summary>
     public void Refresh()
     {
@@ -112,9 +128,18 @@ public sealed class FaithfulSequence : ScrollView
             return;
         }
 
+        // Split in one pass: this runs after every edit on a stream tens of thousands of slots
+        // long, and the two LINQ passes it replaces built two more arrays of that.
         var tagged = track.ExpandTagged().ToArray();
-        _itemByEvent = [.. tagged.Select(pair => pair.Item)];
-        _canvas.SetEvents(tagged.Select(pair => pair.Event));
+        var items = new FaithfulItem[tagged.Length];
+        var events = new BaseEvent[tagged.Length];
+        for (var i = 0; i < tagged.Length; i++) (items[i], events[i]) = tagged[i];
+        _itemByEvent = items;
+
+        // Only when the edit could have moved something: a sound's value, volume or pan
+        // changes what a slot draws and nothing about when it plays, and walking the whole
+        // sequence for a schedule that is still correct costs as much as the redraw did.
+        if (!_canvas.SetEvents(events)) return;
 
         _playTimes = [.. track.PlayTimes().OrderBy(entry => entry.Minutes)];
         _played = 0;
@@ -122,9 +147,10 @@ public sealed class FaithfulSequence : ScrollView
     }
 
     /// <summary>
-    ///     Bounces every slot the playhead has passed since the last frame, the way the
-    ///     visualizer does as it plays them. Null means the playhead is not inside this track,
-    ///     which re-arms the walk so a seek or a second placement starts clean.
+    ///     Animates every slot the playhead has passed since the last frame, the way the
+    ///     visualizer does as it plays them - see <see cref="Play" />. Null means the playhead
+    ///     is not inside this track, which re-arms the walk so a seek or a second placement
+    ///     starts clean.
     /// </summary>
     public void SetPlayhead(double? localMinutes)
     {
@@ -143,12 +169,35 @@ public sealed class FaithfulSequence : ScrollView
         var last = -1;
         while (_played < _playTimes.Length && _playTimes[_played].Minutes <= minutes)
         {
-            last = _playTimes[_played].Index;
-            _canvas.Bounce(last);
+            var (_, index, ev) = _playTimes[_played];
+            last = index;
+            Play(index, ev);
             _played++;
         }
 
         if (last >= 0 && FollowScroll) ScrollTo(last);
+    }
+
+    /// <summary>
+    ///     What the playfield does to a slot as it is played, straight out of
+    ///     <c>PlayfieldContainer</c>'s subscriptions: a sound bounces, an action fades and
+    ///     expands, and the two actions that carry a countdown rewrite their number first.
+    /// </summary>
+    private void Play(int index, BaseEvent ev)
+    {
+        switch (ev.SoundEvent)
+        {
+            // Both of these fade and expand of their own accord - see SoundRenderable.SetValue.
+            case "!loopmany":
+                _canvas.SetValue(index, ev, ValueChangeWrapMode.RemoveTexture);
+                return;
+            case "!stop":
+                _canvas.SetValue(index, ev, ValueChangeWrapMode.ResetToDefault);
+                return;
+        }
+
+        if ((ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomActionEvent) _canvas.FadeExpand(index);
+        else _canvas.Bounce(index);
     }
 
     /// <summary>
@@ -162,16 +211,24 @@ public sealed class FaithfulSequence : ScrollView
         return index;
     }
 
-    /// <summary>Keeps the slot on screen, parking it a line down from the top edge.</summary>
+    /// <summary>
+    ///     Keeps the slot on screen, parking it a line down from the top edge - in either
+    ///     direction, so replaying a track scrolls back up to its first slot.
+    ///     <see cref="EventCanvas.OffsetOf" /> is measured from the canvas's own top, which is
+    ///     the content, not the screen: the scroller moves the canvas by <see cref="ScrollY" />,
+    ///     so the offset does not change as the view scrolls and subtracting ScrollY is what
+    ///     turns it into a position inside the viewport.
+    /// </summary>
     private void ScrollTo(int eventIndex)
     {
         if (_canvas.OffsetOf(eventIndex) is not { } offset) return;
 
-        // OffsetOf is relative to the canvas's origin, which the scroller has already moved
-        // by ScrollY, so the offset is already the slot's position on screen.
-        if (offset >= 0 && offset < Computed.Height - FaithfulSizing.SoundSize) return;
+        var line = _canvas.LineHeight;
+        var onScreen = offset - ScrollY;
+        if (onScreen >= 0 && onScreen + line <= Computed.Height) return;
 
-        ScrollY = Math.Max(0, offset + ScrollY - FaithfulSizing.SoundSize);
+        // The setter clamps to [0, MaxScroll], so the first line needs no special case.
+        ScrollY = offset - line;
     }
 
     private FaithfulItem? ItemAt(int eventIndex)
@@ -217,6 +274,32 @@ public sealed class FaithfulSequence : ScrollView
         if (item?.Note is { } note) OnPreviewNote?.Invoke(note);
     }
 
+    /// <summary>The right-click preview: the slot hops as it is auditioned, as it does on the site.</summary>
+    private void PreviewAt(int eventIndex)
+    {
+        if (ItemAt(eventIndex) is not { } item) return;
+        BounceItem(item, PreviewBounce);
+        Preview(item);
+    }
+
+    /// <summary>
+    ///     Bounces every slot an item occupies - a layered instrument is several of them, and
+    ///     they all move together because they are one thing to the user.
+    /// </summary>
+    private void BounceItem(FaithfulItem item, float scale)
+    {
+        for (var index = 0; index < _itemByEvent.Length; index++)
+            if (_itemByEvent[index] == item)
+                _canvas.Bounce(index, scale);
+    }
+
+    /// <summary>Scrolls the item into view, wherever the sequence has drawn it.</summary>
+    private void ScrollToItem(FaithfulItem item)
+    {
+        var slot = Array.IndexOf(_itemByEvent, item);
+        if (slot >= 0) ScrollTo(slot);
+    }
+
     /// <summary>
     ///     Scrolling a slot adjusts it. Under Select it also selects it - you are editing it,
     ///     so the inspector should be showing it - but never under Draw, where a selection
@@ -243,20 +326,96 @@ public sealed class FaithfulSequence : ScrollView
 
         if (dx != 0)
         {
-            var index = Current is { } current
-                ? track.Items.IndexOf(current) + dx
-                : dx > 0 ? 0 : track.Items.Count - 1;
-
-            var item = track.Items[Math.Clamp(index, 0, track.Items.Count - 1)];
-            _state.SelectItem(item);
-
-            // Walking off the visible block would otherwise select something out of sight.
-            var slot = Array.IndexOf(_itemByEvent, item);
-            if (slot >= 0) ScrollTo(slot);
+            if (SpaceHeld) MoveSelected(track, dx);
+            else if (CtrlHeld && ShiftHeld) ExtendSelection(track, dx);
+            else WalkSelection(track, dx);
             return;
         }
 
         if (dy != 0 && Current is { } selected) AdjustBy(selected, dy);
+    }
+
+    /// <summary>Left/Right on their own move the selection one item along, clamping at either end.</summary>
+    private void WalkSelection(FaithfulTrack track, int dx)
+    {
+        var index = Current is { } current
+            ? track.Items.IndexOf(current) + dx
+            : dx > 0 ? 0 : track.Items.Count - 1;
+
+        var item = track.Items[Math.Clamp(index, 0, track.Items.Count - 1)];
+        _state.SelectItem(item);
+        // Walking off the visible block would otherwise select something out of sight.
+        ScrollToItem(item);
+    }
+
+    /// <summary>
+    ///     Primary+Shift+Left/Right grows the selection one item at a time - the keyboard's
+    ///     version of Ctrl-clicking each of them in turn. Turning back around shrinks it
+    ///     again rather than stalling on an item that is already in.
+    /// </summary>
+    private void ExtendSelection(FaithfulTrack track, int dx)
+    {
+        var index = Current is { } current
+            ? track.Items.IndexOf(current) + dx
+            : dx > 0 ? 0 : track.Items.Count - 1;
+        if (index < 0 || index >= track.Items.Count) return;
+
+        var next = track.Items[index];
+        var selection = _state.SelectedItems.ToList();
+
+        // Walking back onto the item added before the last one: drop the last instead of
+        // re-adding what is already there.
+        if (selection.Count > 1 && selection[^2] == next) selection.RemoveAt(selection.Count - 1);
+        else
+        {
+            selection.Remove(next);
+            selection.Add(next);
+        }
+
+        _state.SetItemSelection(selection);
+        ScrollToItem(next);
+    }
+
+    /// <summary>
+    ///     Space+Left/Right slides the selected item along the sequence - the keyboard's
+    ///     version of dragging it. One item, not the whole selection: each would otherwise be
+    ///     its own undo entry, exactly as with the up/down adjust.
+    /// </summary>
+    private void MoveSelected(FaithfulTrack track, int dx)
+    {
+        if (Current is not { } current) return;
+
+        var from = track.Items.IndexOf(current);
+        var to = from + dx;
+        if (to < 0 || to >= track.Items.Count) return;
+
+        _state.MoveItem(track, from, to);
+        ScrollToItem(current);
+    }
+
+    /// <summary>
+    ///     Enter lays down another copy of the selected slot right after it - the site's
+    ///     "click the sound again" without a trip back to the palette. The copy becomes the
+    ///     selection, so a held Enter draws a run.
+    /// </summary>
+    public void PlaceAgain()
+    {
+        if (!Selecting || _state.OpenedFaithfulTrack is not { } track || Current is not { } current) return;
+
+        var copy = current.Duplicate();
+        _state.InsertItemAt(track, copy, track.Items.IndexOf(current) + 1);
+        _state.SelectItem(copy);
+        ScrollToItem(copy);
+    }
+
+    /// <summary>
+    ///     Tab breaks the line after the last slot. "!divider" is the site's own line break
+    ///     and appending one is the only thing it is ever used for, so it needs no dialog.
+    /// </summary>
+    public void AppendDivider()
+    {
+        if (_state.OpenedFaithfulTrack is not { } track) return;
+        if (FaithfulItem.Parse("!divider") is { } divider) _state.AppendItem(track, divider);
     }
 
     /// <summary>
@@ -266,10 +425,12 @@ public sealed class FaithfulSequence : ScrollView
     /// </summary>
     private void AdjustBy(FaithfulItem item, int notches)
     {
-        // A slot that is mid-bounce is one being played right now; leave it alone rather than
-        // retuning a sound under the playhead. Every other slot still adjusts during playback.
+        // A slot that is mid-bounce while the playhead is inside this track is one being
+        // played right now; leave it alone rather than retuning a sound under the playhead.
+        // Only while playing: an adjust bounces the slot itself (below), and that must not
+        // lock out the next notch of the same gesture.
         var slot = Array.IndexOf(_itemByEvent, item);
-        if (slot >= 0 && _canvas.IsBouncing(slot)) return;
+        if (_lastPlayheadMinutes >= 0 && slot >= 0 && _canvas.IsBouncing(slot)) return;
 
         _state.AdjustItem(item, () =>
         {
@@ -287,6 +448,9 @@ public sealed class FaithfulSequence : ScrollView
         });
 
         Preview(item);
+        // Up bounces up, down bounces down - the site's own feedback that the value moved.
+        // After the edit: the adjustment rebuilds the block, which drops a running bounce.
+        BounceItem(item, Math.Sign(notches));
     }
 
     public override bool HandleScroll(Vector2 scrollDelta)

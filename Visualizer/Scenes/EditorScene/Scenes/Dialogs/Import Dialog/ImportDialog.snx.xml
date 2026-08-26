@@ -12,8 +12,14 @@
            third just to tell the options apart. See dialog-button-primary/-alt. -->
       <flex class="dialog-options">
         <flex class="dialog-column">
-          <button id="single-track-button" class="[dialog-button-primary,dialog-button-tall]">
-            <label value="Import as Single Track"/>
+          <!-- Faithful is the suggested shape: it keeps the sequence exactly as written,
+               where the piano roll has to fit it onto a bar/beat grid. So it gets the
+               filled button and the piano roll sits under it as a bare label. -->
+          <button id="faithful-track-button" class="[dialog-button-primary,dialog-button-tall]">
+            <label value="Import as Faithful Track"/>
+          </button>
+          <button id="single-track-button" class="dialog-button-shape">
+            <label class="caption-label" value="or as a Piano Roll track"/>
           </button>
           <!-- Label has no text-wrap support, so each description is pre-split into
                short lines that fit the column. -->
