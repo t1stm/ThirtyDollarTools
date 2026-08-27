@@ -5,6 +5,7 @@ using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Panels;
 using Sundex.Engine;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
@@ -122,6 +123,8 @@ public class Editor : Scene, IFadeInScene
     public override void TransitionedTo()
     {
         _editorInterface.SceneShown();
+        Game.OnWindowActionUnavailable = message =>
+            MessageDialog.Show(_context, _editorInterface.RootPanel, message);
     }
 
     public override void Update(UpdateArguments updateArgs)

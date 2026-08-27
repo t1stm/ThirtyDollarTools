@@ -70,7 +70,7 @@ public class EditorInterface
         "Draw: click a slot to remove it, drag it to reorder  •  " +
         $"Select: click to select, {Keybinds.PrimaryName}+click to add, Left/Right walk it, " +
         $"{Keybinds.PrimaryName}+Shift+ extends it, Space+ moves it, " +
-        $"Enter places another, Del removes, Tab adds a divider  •  " +
+        $"Enter places another, Del removes, Tab adds a divider, C a combine  •  " +
         $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)} copy/paste  •  " +
         $"Scroll a slot (Up/Down under Select) for value, {Keybinds.PrimaryName}+ volume, Shift+ pan";
 
@@ -439,7 +439,12 @@ public class EditorInterface
                 _faithfulSequence.PlaceAgain();
                 return true;
             case Keys.Tab:
-                _faithfulSequence.AppendDivider();
+                _faithfulSequence.AppendAction("!divider");
+                return true;
+            // Plain C only: Ctrl+C is the copy bind, which matches modifiers exactly and has
+            // already returned above, and a focused name field eats plain letters itself.
+            case Keys.C:
+                _faithfulSequence.AppendAction("!combine");
                 return true;
             default:
                 return false;

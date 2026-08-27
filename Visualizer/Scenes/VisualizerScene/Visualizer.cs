@@ -9,6 +9,7 @@ using Shared.Helpers.Positioning;
 using Shared.Objects;
 using Shared.Renderer.Settings;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Panels;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
@@ -248,6 +249,9 @@ public class Visualizer : Scene, IGamePreloadable
     public override void TransitionedTo()
     {
         TextContainer.Greeting.Value = Greeting ?? _settings.Greeting;
+        if (_playerBar is not null)
+            Game.OnWindowActionUnavailable = message =>
+                MessageDialog.Show(_playerBar.RootPanel.Context, _playerBar.RootPanel, message);
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
         Resize(Game.ClientSize.X, Game.ClientSize.Y);

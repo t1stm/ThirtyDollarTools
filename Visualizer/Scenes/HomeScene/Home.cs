@@ -5,6 +5,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Updates;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Panels;
 using Sundex.Engine;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Enums;
@@ -120,6 +121,8 @@ public class Home : Scene, IFadeInScene
     public override void TransitionedTo()
     {
         _homeInterface.PlayIntro();
+        Game.OnWindowActionUnavailable = message =>
+            MessageDialog.Show(_context, _homeInterface.RootPanel, message);
     }
 
     public override void Update(UpdateArguments updateArgs)

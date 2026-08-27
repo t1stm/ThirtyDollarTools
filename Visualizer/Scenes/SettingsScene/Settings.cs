@@ -5,6 +5,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using SettingsScene.Scenes;
 using Shared;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Panels;
 using Sundex.Engine;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
@@ -89,6 +90,8 @@ public class Settings : Scene
 
     public override void TransitionedTo()
     {
+        Game.OnWindowActionUnavailable = message =>
+            MessageDialog.Show(_context, _settingsInterface.RootPanel, message);
     }
 
     public override void Update(UpdateArguments updateArgs)

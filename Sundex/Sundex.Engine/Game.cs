@@ -22,6 +22,7 @@ public class Game : GameWindow
     private readonly ILogger _loggerGL;
 
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
+    private WindowState _preFullscreenState = WindowState.Normal;
 
 #if DEBUG
     private readonly SourceWatcher _sourceWatcher;
@@ -58,6 +59,24 @@ public class Game : GameWindow
     public ThreadRunner ThreadRunner => AssetProvider.ThreadRunner;
 
     public GameGlobals Globals { get; } = new();
+
+    /// <summary>
+    ///     Text shown when the fullscreen shortcut is pressed on Wayland - see
+    ///     <see cref="OnWindowActionUnavailable" />.
+    /// </summary>
+    public const string WaylandFullscreenMessage =
+        "Fullscreen can't be toggled from inside the app on Wayland:\n" +
+        "GLFW leaves window state to the compositor.\n\n" +
+        "Use your window manager's own fullscreen shortcut instead\n" +
+        "(often Super+F or F11).";
+
+    /// <summary>
+    ///     Raised when a window action the platform refuses is attempted; today only
+    ///     fullscreen on Wayland. The engine has no UI of its own, so the active scene
+    ///     wires this to whatever it shows dialogs with - unwired, the message only
+    ///     reaches the log.
+    /// </summary>
+    public Action<string>? OnWindowActionUnavailable { get; set; }
     private GLInfo GLInfo { get; } = new();
 
     /// <summary>
@@ -275,7 +294,52 @@ public class Game : GameWindow
     protected override void OnKeyDown(KeyboardKeyEventArgs e)
     {
         base.OnKeyDown(e);
+
+        if (!e.IsRepeat && IsFullscreenShortcut(e))
+        {
+            ToggleFullscreen();
+            return;
+        }
+
         SceneManager.KeyDown(e);
+    }
+
+    /// <summary>
+    ///     Alt+Enter on Windows/Linux, Ctrl+Cmd+F on macOS - the platform-native
+    ///     "toggle fullscreen" chord in both cases.
+    /// </summary>
+    private static bool IsFullscreenShortcut(KeyboardKeyEventArgs e)
+    {
+        if (OperatingSystem.IsMacOS())
+            return e.Key == Keys.F &&
+                   (e.Modifiers & (KeyModifiers.Super | KeyModifiers.Control)) ==
+                   (KeyModifiers.Super | KeyModifiers.Control);
+
+        return (e.Key is Keys.Enter or Keys.KeyPadEnter) && e.Modifiers.HasFlag(KeyModifiers.Alt);
+    }
+
+    private void ToggleFullscreen()
+    {
+        // GLFW's Wayland backend has no way to fullscreen a window on the application's
+        // own initiative - the compositor owns window state there - so the assignment
+        // below would silently do nothing. Say so instead of swallowing the key.
+        if (GLFW.GetPlatform() == Platform.Wayland)
+        {
+            Logger.Information("[Fullscreen] Refused: {Message}", WaylandFullscreenMessage);
+            OnWindowActionUnavailable?.Invoke(WaylandFullscreenMessage);
+            return;
+        }
+
+        if (WindowState == WindowState.Fullscreen)
+        {
+            // Restore whatever the window was before, so leaving fullscreen doesn't
+            // silently un-maximize a maximized window.
+            WindowState = _preFullscreenState;
+            return;
+        }
+
+        _preFullscreenState = WindowState;
+        WindowState = WindowState.Fullscreen;
     }
 
     protected override void OnFileDrop(FileDropEventArgs e)

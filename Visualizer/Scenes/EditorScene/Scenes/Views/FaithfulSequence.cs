@@ -445,13 +445,15 @@ public sealed class FaithfulSequence : ScrollView
     }
 
     /// <summary>
-    ///     Tab breaks the line after the last slot. "!divider" is the site's own line break
-    ///     and appending one is the only thing it is ever used for, so it needs no dialog.
+    ///     Appends one valueless action after the last slot - Tab's "!divider" (the site's own
+    ///     line break) and C's "!combine" (plays the next sound on the same step). Both are
+    ///     only ever appended and neither takes an amount, so neither needs the value dialog
+    ///     the palette opens.
     /// </summary>
-    public void AppendDivider()
+    public void AppendAction(string token)
     {
         if (_state.OpenedFaithfulTrack is not { } track) return;
-        if (FaithfulItem.Parse("!divider") is { } divider) _state.AppendItem(track, divider);
+        if (FaithfulItem.Parse(token) is { } item) _state.AppendItem(track, item);
     }
 
     /// <summary>
