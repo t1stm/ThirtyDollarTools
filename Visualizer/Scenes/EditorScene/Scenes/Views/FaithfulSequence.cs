@@ -277,7 +277,17 @@ public sealed class FaithfulSequence : ScrollView
         if (_state.OpenedFaithfulTrack is not { } track) return;
         if (ItemAt(fromEvent) is not { } from || ItemAt(toEvent) is not { } to || from == to) return;
 
-        _state.MoveItem(track, track.Items.IndexOf(from), track.Items.IndexOf(to));
+        _state.MoveItems(track, Group(from), track.Items.IndexOf(to) - track.Items.IndexOf(from));
+    }
+
+    /// <summary>
+    ///     What a gesture on this slot acts on: the whole selection when the slot is part of
+    ///     it, else the slot alone. Dragging or retuning one slot of a multi-selection does it
+    ///     to all of them - the piano roll's own rule for a selected note.
+    /// </summary>
+    private IReadOnlyList<FaithfulItem> Group(FaithfulItem item)
+    {
+        return Selecting && _state.SelectedItems.Contains(item) ? _state.SelectedItems : [item];
     }
 
     /// <summary>
@@ -337,7 +347,9 @@ public sealed class FaithfulSequence : ScrollView
     {
         if (ItemAt(eventIndex) is not { } item || !Adjustable(item)) return false;
 
-        if (Selecting) _state.SelectItem(item);
+        // Scrolling a slot outside the selection makes it the selection; scrolling one
+        // inside it retunes the whole of it instead of collapsing it onto this slot.
+        if (Selecting && !_state.SelectedItems.Contains(item)) _state.SelectItem(item);
         AdjustBy(item, notches);
         return true;
     }
@@ -413,19 +425,15 @@ public sealed class FaithfulSequence : ScrollView
     }
 
     /// <summary>
-    ///     Space+Left/Right slides the selected item along the sequence - the keyboard's
-    ///     version of dragging it. One item, not the whole selection: each would otherwise be
-    ///     its own undo entry, exactly as with the up/down adjust.
+    ///     Space+Left/Right slides the selection along the sequence - the keyboard's version
+    ///     of dragging it. The whole selection moves as one undo entry, and stops as one when
+    ///     either end of it reaches the end of the sequence.
     /// </summary>
     private void MoveSelected(FaithfulTrack track, int dx)
     {
         if (Current is not { } current) return;
 
-        var from = track.Items.IndexOf(current);
-        var to = from + dx;
-        if (to < 0 || to >= track.Items.Count) return;
-
-        _state.MoveItem(track, from, to);
+        _state.MoveItems(track, _state.SelectedItems, dx);
         ScrollToItem(current);
     }
 
@@ -445,15 +453,23 @@ public sealed class FaithfulSequence : ScrollView
     }
 
     /// <summary>
-    ///     Appends one valueless action after the last slot - Tab's "!divider" (the site's own
-    ///     line break) and C's "!combine" (plays the next sound on the same step). Both are
-    ///     only ever appended and neither takes an amount, so neither needs the value dialog
-    ///     the palette opens.
+    ///     Places one valueless action - Tab's "!divider" (the site's own line break) and C's
+    ///     "!combine" (plays the next sound on the same step) - right after the selection, or
+    ///     at the end of the sequence when nothing is selected. Neither takes an amount, so
+    ///     neither needs the value dialog the palette opens.
     /// </summary>
     public void AppendAction(string token)
     {
         if (_state.OpenedFaithfulTrack is not { } track) return;
-        if (FaithfulItem.Parse(token) is { } item) _state.AppendItem(track, item);
+        if (FaithfulItem.Parse(token) is not { } item) return;
+
+        // After the last selected slot, so it lands where you are working rather than at the
+        // end of a sequence you have scrolled away from. Only under Select: the selection is
+        // invisible under Draw, and an insert you cannot see the reason for reads as a bug.
+        var at = Selecting && _state.SelectedItems.Count > 0
+            ? _state.SelectedItems.Max(selected => track.Items.IndexOf(selected)) + 1
+            : track.Items.Count;
+        _state.InsertItemAt(track, item, at);
     }
 
     /// <summary>
@@ -470,29 +486,38 @@ public sealed class FaithfulSequence : ScrollView
         var slot = Array.IndexOf(_itemByEvent, item);
         if (_lastPlayheadMinutes >= 0 && slot >= 0 && _canvas.IsBouncing(slot)) return;
 
-        _state.AdjustItem(item, () =>
-        {
-            if (item.Note is { } note)
-            {
-                if (CtrlHeld) note.Volume = Math.Clamp((note.Volume ?? 100) + notches * VolumeStep, 0, 500);
-                else if (ShiftHeld) note.Pan = Math.Clamp(note.Pan + notches * PanStep, -100, 100);
-                else note.Value = Math.Round(note.Value + notches * ValueStep, 4);
-                return;
-            }
+        var group = Group(item);
+        _state.AdjustItems(group, target => AdjustOne(target, notches));
 
-            if (item.Action is not { } action) return;
-            if (FaithfulAction.ScrollRangeFor(action) is not { } range) return;
-
-            // The site's own bounds and notch size for this action - a "!loopmany" never goes
-            // below one pass, and a "!speed@2@x" moves in tenths because it is a factor.
-            action.Value = Math.Clamp(Math.Round(action.Value + notches * range.Step, 4), range.Min, range.Max);
-            action.WorkingValue = action.Value;
-        });
-
+        // The one under the pointer, not every slot of a group - a selection auditioning
+        // itself all at once is noise, not feedback.
         Preview(item);
         // Up bounces up, down bounces down - the site's own feedback that the value moved.
         // After the edit: the adjustment rebuilds the block, which drops a running bounce.
-        BounceItem(item, Math.Sign(notches) * AdjustBounce, AdjustBounceMs);
+        foreach (var target in group) BounceItem(target, Math.Sign(notches) * AdjustBounce, AdjustBounceMs);
+    }
+
+    /// <summary>
+    ///     One notch on one item. A slot the gesture means nothing on ("!divider", a packed
+    ///     "!bg") is left alone, which is what keeps a mixed selection from breaking on it.
+    /// </summary>
+    private void AdjustOne(FaithfulItem item, int notches)
+    {
+        if (item.Note is { } note)
+        {
+            if (CtrlHeld) note.Volume = Math.Clamp((note.Volume ?? 100) + notches * VolumeStep, 0, 500);
+            else if (ShiftHeld) note.Pan = Math.Clamp(note.Pan + notches * PanStep, -100, 100);
+            else note.Value = Math.Round(note.Value + notches * ValueStep, 4);
+            return;
+        }
+
+        if (item.Action is not { } action) return;
+        if (FaithfulAction.ScrollRangeFor(action) is not { } range) return;
+
+        // The site's own bounds and notch size for this action - a "!loopmany" never goes
+        // below one pass, and a "!speed@2@x" moves in tenths because it is a factor.
+        action.Value = Math.Clamp(Math.Round(action.Value + notches * range.Step, 4), range.Min, range.Max);
+        action.WorkingValue = action.Value;
     }
 
     public override bool HandleScroll(Vector2 scrollDelta)

@@ -410,30 +410,38 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Moves a slot to another index, one undo entry per landing spot. A drag fires this
-    ///     once per boundary it crosses, so the entries merge on the item like a note drag's.
+    ///     Slides every given slot the same distance along the sequence, one undo entry per
+    ///     landing spot. A drag fires this once per boundary it crosses, so the entries merge
+    ///     on the lowest slot like a note drag's - the whole selection moves, because dragging
+    ///     one slot of a selection drags all of it, exactly as <see cref="MoveSelectedNotes" />
+    ///     does in the piano roll. The distance is clamped so the block stops at either end
+    ///     rather than the leading slot running off it.
     /// </summary>
-    public void MoveItem(FaithfulTrack track, int from, int to)
+    public void MoveItems(FaithfulTrack track, IReadOnlyList<FaithfulItem> items, int delta)
     {
-        if (from < 0 || from >= track.Items.Count) return;
-        to = Math.Clamp(to, 0, track.Items.Count - 1);
-        if (from == to) return;
+        var spots = items.Select(item => (Item: item, Index: track.Items.IndexOf(item)))
+            .Where(spot => spot.Index >= 0).OrderBy(spot => spot.Index).ToArray();
+        if (spots.Length == 0) return;
 
-        var item = track.Items[from];
-        track.Items.RemoveAt(from);
-        track.Items.Insert(to, item);
-        _undoHistory.PushOrMergeMove(item,
-            () =>
-            {
-                track.Items.Remove(item);
-                track.Items.Insert(from, item);
-            },
-            () =>
-            {
-                track.Items.Remove(item);
-                track.Items.Insert(to, item);
-            });
+        delta = Math.Clamp(delta, -spots[0].Index, track.Items.Count - 1 - spots[^1].Index);
+        if (delta == 0) return;
+
+        var moved = spots.Select(spot => (spot.Item, Index: spot.Index + delta)).ToArray();
+        Place(track, moved);
+        // Both closures are absolute positions, not a relative slide: a merged drag keeps the
+        // first frame's undo and the last frame's redo, and only absolutes survive that.
+        _undoHistory.PushOrMergeMove(spots[0].Item, () => Place(track, spots), () => Place(track, moved));
         Touch();
+    }
+
+    /// <summary>
+    ///     Puts each item back at its recorded index: pulled out first, then reinserted in
+    ///     index order, so every insert lands in a list whose earlier half is already final.
+    /// </summary>
+    private static void Place(FaithfulTrack track, IReadOnlyList<(FaithfulItem Item, int Index)> spots)
+    {
+        foreach (var (item, _) in spots) track.Items.Remove(item);
+        foreach (var (item, index) in spots) track.Items.Insert(index, item);
     }
 
     public void InsertItemAt(FaithfulTrack track, FaithfulItem item, int index)
@@ -485,18 +493,30 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Applies a scroll adjustment to one item. A run of scrolls on the same item inside
-    ///     one gesture merges into a single undo entry, same as a note drag - the item's
-    ///     identity survives, only its fields move, so undo restores those.
+    ///     Applies a scroll adjustment to every given item - one item under Draw, the whole
+    ///     selection under Select - as a single undo entry. A run of scrolls on the same items
+    ///     inside one gesture merges into that one entry, same as a note drag: their identity
+    ///     survives, only their fields move, so undo restores those.
     /// </summary>
-    public void AdjustItem(FaithfulItem item, Action adjust)
+    public void AdjustItems(IReadOnlyList<FaithfulItem> items, Action<FaithfulItem> adjust)
     {
-        var before = item.Duplicate();
-        adjust();
-        var after = item.Duplicate();
+        // The caller may hand the live selection over; the undo closures outlive it.
+        var targets = items.ToArray();
+        if (targets.Length == 0) return;
 
-        _undoHistory.PushOrMergeMove(item, () => Restore(item, before), () => Restore(item, after));
+        var before = targets.Select(item => item.Duplicate()).ToArray();
+        foreach (var item in targets) adjust(item);
+        var after = targets.Select(item => item.Duplicate()).ToArray();
+
+        _undoHistory.PushOrMergeMove(targets[0],
+            () => RestoreAll(targets, before),
+            () => RestoreAll(targets, after));
         Touch();
+    }
+
+    private static void RestoreAll(IReadOnlyList<FaithfulItem> targets, IReadOnlyList<FaithfulItem> snapshots)
+    {
+        for (var i = 0; i < targets.Count; i++) Restore(targets[i], snapshots[i]);
     }
 
     private static void Restore(FaithfulItem target, FaithfulItem snapshot)

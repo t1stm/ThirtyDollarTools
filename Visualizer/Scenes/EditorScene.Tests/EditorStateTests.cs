@@ -1,5 +1,6 @@
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using EditorScene.Scenes.Views;
 
 namespace EditorScene.Tests;
 
@@ -1497,5 +1498,66 @@ public class EditorStateTests
         Assert.Equal(0, cutNote.Pan);
         Assert.Equal(0, cutNote.Offset);
         Assert.Null(cutNote.Automation);
+    }
+
+    private static (EditorState State, FaithfulTrack Track) FaithfulWith(params string[] tokens)
+    {
+        var state = new EditorState();
+        var track = (FaithfulTrack)state.AddTrack(TrackKind.Faithful);
+        foreach (var token in tokens) state.AppendItem(track, FaithfulItem.Parse(token)!);
+        return (state, track);
+    }
+
+    private static string Order(FaithfulTrack track)
+    {
+        return string.Join(" ", track.Items.Select(item => item.Action!.SoundEvent));
+    }
+
+    [Fact]
+    public void MoveItems_SlidesTheWholeSelection_AsOneUndoEntry()
+    {
+        var (state, track) = FaithfulWith("!flash", "!divider", "!combine", "!cut");
+        var selection = new[] { track.Items[0], track.Items[1] };
+
+        state.MoveItems(track, selection, 1);
+        state.MoveItems(track, selection, 1); // same gesture: merges into the one entry
+
+        Assert.Equal("!combine !cut !flash !divider", Order(track));
+
+        state.Undo();
+        Assert.Equal("!flash !divider !combine !cut", Order(track));
+        state.Redo();
+        Assert.Equal("!combine !cut !flash !divider", Order(track));
+    }
+
+    [Fact]
+    public void MoveItems_MovesAScatteredSelection_AndClampsAtTheEnds()
+    {
+        var (state, track) = FaithfulWith("!flash", "!divider", "!combine", "!cut");
+
+        state.MoveItems(track, [track.Items[0], track.Items[2]], 1);
+        Assert.Equal("!divider !flash !cut !combine", Order(track));
+
+        // "!combine" is now last, so the pair cannot go right at all - neither of them moves.
+        state.MoveItems(track, [track.Items[1], track.Items[3]], 1);
+        Assert.Equal("!divider !flash !cut !combine", Order(track));
+    }
+
+    [Fact]
+    public void AdjustItems_AdjustsEverySelectedItem_AsOneUndoEntry()
+    {
+        var (state, track) = FaithfulWith("!speed@300", "!speed@100", "!divider");
+
+        state.AdjustItems(track.Items, item =>
+        {
+            if (item.Action is { } action && FaithfulAction.ScrollRangeFor(action) is not null) action.Value += 10;
+        });
+
+        Assert.Equal(310, track.Items[0].Action!.Value);
+        Assert.Equal(110, track.Items[1].Action!.Value);
+
+        state.Undo();
+        Assert.Equal(300, track.Items[0].Action!.Value);
+        Assert.Equal(100, track.Items[1].Action!.Value);
     }
 }
