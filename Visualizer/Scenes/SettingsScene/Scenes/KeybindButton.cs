@@ -8,9 +8,8 @@ namespace SettingsScene.Scenes;
 
 /// <summary>
 ///     One shortcut on the settings screen: shows what the action is bound to, and captures a
-///     new combo when clicked. Escape cancels, Delete or Backspace puts the platform default
-///     back - which is also the only escape hatch for someone who has bound themselves into a
-///     corner, so the reset gesture wins over capturing those two keys.
+///     new combo when clicked. Escape cancels and Delete or Backspace restores the platform
+///     default; those three keys can therefore never be captured as a binding.
 /// </summary>
 public sealed class KeybindButton : Button
 {
@@ -23,8 +22,8 @@ public sealed class KeybindButton : Button
         Focusable = true;
 
         // Never unsubscribed: the settings screen is built during the boot preload and lives
-        // as long as the process. Reset shortcuts is why this exists - it rewrites rows the
-        // user is looking at but never touched.
+        // as long as the process. Needed for "Reset shortcuts", which rewrites rows the user
+        // never touched.
         Keybinds.Changed += Refresh;
     }
 
@@ -61,9 +60,8 @@ public sealed class KeybindButton : Button
 
         var bind = Keybind.From(e);
 
-        // Refuse rather than steal: last-writer-wins would silently unbind an unrelated
-        // shortcut and the user would find out three sessions later. Cross-scene duplicates
-        // are fine and expected - Space is play/pause on both screens.
+        // Refuse rather than steal, so a rebind never silently unbinds another action.
+        // Cross-scene duplicates are allowed - Space is play/pause on both screens.
         if (Keybinds.Conflict(_info.Id, bind, _info.Scene) is { } conflict)
         {
             SetClass("keybind-button-conflict", true);

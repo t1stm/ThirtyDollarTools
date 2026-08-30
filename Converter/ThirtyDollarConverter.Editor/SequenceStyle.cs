@@ -9,7 +9,7 @@ public class SequenceStyle
 {
     /// <summary>
     ///     Insert "!divider" every this many bars. Bars are counted across segments;
-    ///     the merged project export follows the first track's bar structure. The count
+    ///     the merged project export tiles them from the root timing. The count
     ///     restarts at every emitted "!speed" change, so each tempo section gets its own
     ///     bar numbering. Null (or &lt; 1) = off.
     /// </summary>

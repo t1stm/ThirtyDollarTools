@@ -59,18 +59,12 @@ public enum Bind
 public sealed record BindInfo(Bind Id, BindScene Scene, string Name, string Description, Keybind Default);
 
 /// <summary>
-///     The shortcut table, shared by every screen that reads a key.
+///     The shortcut table, shared by every screen that reads a key. Static, like the
+///     <see cref="ThirtyDollarVisualizer.VisualizerSettings.SettingsHandler" /> it follows, so
+///     scenes built without a <see cref="VisualizerSettings" /> in hand can still reach it.
 ///     <para>
-///         Static on purpose. The two scenes that consume it are built without a
-///         <see cref="VisualizerSettings" /> in hand (<c>new Editor(game, workflow)</c>) and the real
-///         consumers sit several levels down their UI trees, so threading a settings object to
-///         them would be a ten-file diff that buys nothing over the static
-///         <see cref="ThirtyDollarVisualizer.VisualizerSettings.SettingsHandler" /> the codebase
-///         already has.
-///     </para>
-///     <para>
-///         Read bindings at the point of use - <see cref="Get" /> per event or per frame. Caching
-///         one into a field is the single refactor that would break rebinding on a running process.
+///         Read bindings at the point of use - <see cref="Get" /> per event or per frame.
+///         Caching one into a field breaks rebinding on a running process.
 ///     </para>
 /// </summary>
 public static class Keybinds
@@ -83,10 +77,10 @@ public static class Keybinds
     public static readonly string PrimaryName = OperatingSystem.IsMacOS() ? "Cmd" : "Ctrl";
 
     /// <summary>
-    ///     Every action, in the order the settings screen lists it. The macOS requirement is
-    ///     the whole of <see cref="Primary" /> appearing in the defaults below - a Mac's first
-    ///     launch shows Cmd bindings without anything being written to disk, and a settings
-    ///     file carried to a PC gets Ctrl back for everything the user never rebound.
+    ///     Every action, in the order the settings screen lists it. Defaults name
+    ///     <see cref="Primary" /> rather than a literal modifier, so a Mac shows Cmd bindings
+    ///     with nothing written to disk and a settings file carried to a PC reads back as Ctrl
+    ///     for everything the user never rebound.
     /// </summary>
     public static readonly BindInfo[] All =
     [
@@ -299,10 +293,9 @@ public static class Keybinds
     }
 
     /// <summary>
-    ///     Pushes the table into the settings string, then announces the change. The guard is
-    ///     what keeps <see cref="Changed" /> firing once per rebind rather than twice - the
-    ///     write comes back through <see cref="OnSettingsChanged" />, and re-parsing our own
-    ///     output would say nothing new.
+    ///     Pushes the table into the settings string, then announces the change. Guarded so
+    ///     the write coming back through <see cref="OnSettingsChanged" /> is ignored and
+    ///     <see cref="Changed" /> fires once per rebind rather than twice.
     /// </summary>
     private static void Write()
     {

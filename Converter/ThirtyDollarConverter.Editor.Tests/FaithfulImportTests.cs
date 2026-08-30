@@ -109,9 +109,8 @@ public class FaithfulImportTests
     }
 
     /// <summary>
-    ///     A sound the sample set doesn't know is reported and not played - but it still held
-    ///     its step, so a "_pause" takes its place. Dropping it outright pulled every later
-    ///     sound one step earlier, which is a whole cover slipping out of time.
+    ///     A sound the sample set doesn't know is reported and not played, but a "_pause" takes
+    ///     its place so it keeps holding its step and every later sound stays where it was.
     /// </summary>
     [Fact]
     public void Import_ReportsUnknownSounds_AndKeepsTheirSteps()
@@ -133,10 +132,9 @@ public class FaithfulImportTests
     }
 
     /// <summary>
-    ///     A "!combine"-joined run routinely carries its own per-sound "%volume"
-    ///     ("rdclap@-4.4%30"), and a Note has one volume for the whole item. Rather than lose
-    ///     them - or push them onto the instrument, which gave a real cover hundreds of
-    ///     near-identical instruments - such a run stays a slot per sound.
+    ///     A "!combine"-joined run whose sounds carry differing per-sound volume, pan or offset
+    ///     ("rdclap@-4.4%30") stays one slot per sound, since a Note holds a single volume for
+    ///     the whole item.
     /// </summary>
     [Theory]
     [InlineData("snare|!combine|clap%30", 30d, 0f, 0d)] // volume
@@ -169,9 +167,8 @@ public class FaithfulImportTests
     }
 
     /// <summary>
-    ///     A step's order is meaningful: a "!cut" silences the sounds written before it and
-    ///     not the ones after. The export used to hoist a step's actions to its front, which
-    ///     cut the wrong ones - and a faithful track is nothing but that order.
+    ///     A step's order is meaningful: a "!cut" silences the sounds written before it and not
+    ///     the ones after, so the export keeps a cut where it sits inside its step.
     /// </summary>
     [Fact]
     public void Import_KeepsACutInItsPlaceWithinAStep()

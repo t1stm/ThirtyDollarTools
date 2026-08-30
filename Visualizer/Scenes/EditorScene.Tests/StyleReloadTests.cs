@@ -10,9 +10,8 @@ namespace EditorScene.Tests;
 /// <summary>
 ///     Style hot reload against the editor, which is the screen that composes: seven
 ///     imported documents, each with a stylesheet of its own, and the interface's sheet
-///     applied over the lot afterwards. A reload has to re-run that whole cascade rather
-///     than any one sheet, or the imports come out unstyled - which showed up as the header
-///     labels rendering at the default size and colour.
+///     applied over the lot afterwards. A reload has to re-run that whole cascade rather than
+///     any one sheet, or the imports come out unstyled.
 /// </summary>
 public class StyleReloadTests : IDisposable
 {

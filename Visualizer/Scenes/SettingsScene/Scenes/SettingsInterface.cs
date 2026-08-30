@@ -34,12 +34,11 @@ public sealed record SettingRow(
 public class SettingsInterface
 {
     /// <summary>
-    ///     What the screen shows, in the order it shows it. Written out rather than
-    ///     reflected over <see cref="VisualizerSettings" /> so each setting can carry a name
-    ///     a reader recognises and a line saying what it does - "EventMargin" on its own is
-    ///     the field name, not an explanation - and so state that isn't a setting stays off
-    ///     the screen. A new property is a deliberate addition here; the test suite fails
-    ///     until it is either listed or named in <see cref="HiddenProperties" />.
+    ///     What the screen shows, in the order it shows it. Listed by hand rather than
+    ///     reflected over <see cref="VisualizerSettings" /> so each setting carries a readable
+    ///     name and a description, and so state that isn't a setting stays off the screen.
+    ///     Every new property must be listed here or in <see cref="HiddenProperties" />, or
+    ///     the test suite fails.
     /// </summary>
     public static readonly (string Title, SettingRow[] Rows)[] Sections =
     [
@@ -65,9 +64,9 @@ public class SettingsInterface
             new SettingRow(nameof(VisualizerSettings.AudioBackend), "Audio backend",
                 "Leave empty to pick one automatically.")
         ]),
-        // The parameter rows are always here rather than appearing with the resampler that
-        // reads them: a hidden child still takes its space in the flex, so showing and
-        // hiding them would leave holes in the section. Each one says whose it is instead.
+        // The parameter rows are always present rather than shown with the resampler that
+        // reads them: a hidden child still takes its space in the flex, which would leave
+        // holes in the section. Each row names the resampler it belongs to instead.
         ("R E S A M P L E R", [
             new SettingRow(nameof(VisualizerSettings.Resampler), "Resampler",
                 "Changes how samples are pitched.",
@@ -97,10 +96,9 @@ public class SettingsInterface
     ];
 
     /// <summary>
-    ///     Properties of <see cref="VisualizerSettings" /> that are state rather than
-    ///     settings, and so have no row: the loader flips UpdateCheckAsked itself once it
-    ///     has asked about update checking, and nobody would know what to do with it, and
-    ///     Keybinds is one opaque string that the shortcut sections below present properly.
+    ///     Properties of <see cref="VisualizerSettings" /> that are state rather than settings
+    ///     and so get no row: UpdateCheckAsked is written by the loader, and Keybinds is one
+    ///     opaque string that the shortcut sections present properly.
     /// </summary>
     public static readonly string[] HiddenProperties =
         [nameof(VisualizerSettings.UpdateCheckAsked), nameof(VisualizerSettings.Keybinds)];
@@ -133,8 +131,7 @@ public class SettingsInterface
         foreach (var (title, scene) in KeybindSections)
             SettingsList.AddChild(BuildKeybindSection(title, scene));
 
-        // Nothing about the tiles depends on a measured width any more, so the preview is
-        // right on the first frame rather than appearing after one.
+        // The tiles need no measured width, so the preview is correct on the first frame.
         RebuildStrip();
 
         RootPanel.DrawTo(context);
@@ -173,11 +170,9 @@ public class SettingsInterface
 
     /// <summary>
     ///     Redraws the preview from the three geometry settings: LineAmount tiles, each
-    ///     EventSize across, EventMargin apart. Everything is the playfield's own pixel
-    ///     size - a line too wide for the bed wraps, the way the playfield itself wraps,
-    ///     and the bed's auto height plus the list's scrolling absorb the rest. Nothing
-    ///     here is scaled to fit, so raising the event size raises what you see by the
-    ///     same amount.
+    ///     EventSize across, EventMargin apart. Sized in the playfield's own pixels and never
+    ///     scaled to fit, so a line too wide for the bed wraps as the playfield does and the
+    ///     bed's auto height plus the list's scrolling absorb the rest.
     /// </summary>
     private void RebuildStrip()
     {
@@ -240,8 +235,8 @@ public class SettingsInterface
             ]
         };
 
-        // A capture UI without a way out can genuinely strand someone who binds Escape to
-        // something; this is that way out.
+        // The way out of a capture UI: binding Escape to something would otherwise leave no
+        // means of undoing it.
         var reset = new Button(UI, "Reset shortcuts")
         {
             Classes = ["reset-shortcuts"],
@@ -366,11 +361,9 @@ public class SettingsInterface
 
     /// <summary>
     ///     Writes the setting back into its control whenever anything changes it, so a screen
-    ///     built before the value moved - this one is built during the boot, before the first
-    ///     run's setup has been answered - shows what the object actually holds rather than
-    ///     what it held at construction. Writing a control's own value back into it is a
-    ///     no-op: all three of them drop a set that doesn't change anything, so this can't
-    ///     bounce between the control and the setting.
+    ///     built before the value moved shows what the object holds rather than what it held
+    ///     at construction. No feedback loop: all three controls drop a set that changes
+    ///     nothing.
     /// </summary>
     private void Bind(PropertyInfo property, Action refresh)
     {

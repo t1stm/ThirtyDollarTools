@@ -24,12 +24,10 @@ public enum ReloadScope
 /// <summary>
 ///     The one entry point a reload request goes through, wherever it comes from.
 ///     <para>
-///         Two things raise one. The IDE's hot-reload button reaches
-///         <see cref="UpdateApplication" /> below, via the MetadataUpdateHandler attribute on
-///         this assembly - but only when the edit produced an actual IL delta, so editing
-///         only a .snx.ss or .snx.xml never gets here. <see cref="SourceWatcher" /> covers
-///         exactly that case by watching the markup on disk, which is what makes saving a
-///         stylesheet enough on its own.
+///         The IDE's hot-reload button reaches <see cref="UpdateApplication" /> below through
+///         the MetadataUpdateHandler attribute on this assembly, but only for an edit that
+///         produced an IL delta; <see cref="SourceWatcher" /> covers a .snx.ss or .snx.xml
+///         edit, which produces none, by watching the markup on disk.
 ///     </para>
 ///     <para>
 ///         Both fire from threads that are not the render thread, so <see cref="Request" />
@@ -54,8 +52,8 @@ public static class HotReload
     public static void UpdateApplication(Type[]? updatedTypes)
     {
         _ = updatedTypes;
-        // A code edit can change anything the markup builds against, so this is never the
-        // cheap path.
+        // A code edit can change anything the markup builds against, so the whole UI is
+        // rebuilt rather than restyled.
         Request(ReloadScope.Full);
     }
 }

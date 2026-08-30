@@ -9,9 +9,8 @@ namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     The export options form (ModalLayer content): the <see cref="SequenceStyle" />
-///     cosmetics plus the two export actions. Pure form - the owner handles file
-///     dialogs and the actual writing. The tree is ExportDialog.snx.xml; what stays here
-///     is the input bounds, which are not stylesheet settings.
+///     cosmetics plus the two export actions. Pure form - the owner handles file dialogs
+///     and the actual writing. The tree is ExportDialog.snx.xml; the input bounds are set here.
 /// </summary>
 public sealed class ExportDialog
 {
@@ -34,8 +33,8 @@ public sealed class ExportDialog
         MigrateToStop.Max = 4096;
         MigrateToStop.AllowNull = true;
 
-        // A checkbox builds its own label, so markup cannot put a class on it. Restyle it
-        // by hand - the sheet was already applied while the tree was built.
+        // A checkbox builds its own label, so markup cannot put a class on it; the class and
+        // the sheet are applied by hand here, after the tree's own style pass.
         DividerOnSpeedChanges.Label.Classes = ["muted-check-label"];
         DividerOnSpeedChanges.Label.ApplyStyleSheet(component.StyleSheet!);
     }

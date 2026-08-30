@@ -21,8 +21,8 @@ public class NormalEvent : BaseEvent
     ///     "!pulse"'s packed payload, read the way <see cref="Sequence" /> wrote it. The site's
     ///     text is "!pulse@pulses,frequency" - how many times the screen pulses, then how many
     ///     beats apart - packed as the pulse count in the high short and the frequency in the
-    ///     low byte. Everything that reads one goes through here; reading the two halves the
-    ///     other way round is how they drifted apart in the first place.
+    ///     low byte. Everything that reads one goes through here, so the two halves can't be
+    ///     read the wrong way round.
     /// </summary>
     public static (int Pulses, int Frequency) UnpackPulse(double value)
     {

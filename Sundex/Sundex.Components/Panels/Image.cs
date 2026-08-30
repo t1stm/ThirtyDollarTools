@@ -128,9 +128,8 @@ public class Image : Panel
     public Task? LoadTask { get; private set; }
 
     /// <summary>
-    ///     How many fetches this element has started. A style pass writing src from a class
-    ///     rule and again from an id rule must still only cost one - which for a remote src is
-    ///     the difference between one HTTP request and several.
+    ///     How many fetches this element has started. A style pass that writes src from
+    ///     several rules still counts as one, so a remote src makes a single request.
     /// </summary>
     public int LoadCount { get; private set; }
 
@@ -141,8 +140,8 @@ public class Image : Panel
     public bool IsLoaded => _texture is not null;
 
     /// <summary>
-    ///     Never unregisters. The base implementation drops elements with no animations from
-    ///     the update set, which would strand a fetch that finishes afterwards.
+    ///     Keeps this element in the update set unconditionally. The base implementation drops
+    ///     elements with no animations, which would strand a fetch that finishes afterwards.
     /// </summary>
     public override void UpdateAnimationRegistrationState()
     {
@@ -364,9 +363,9 @@ public class Image : Panel
     }
 
     /// <summary>
-    ///     A texture landing changes this element's measured size, which its parents' layout
-    ///     depends on. Nothing else re-runs layout after an async load: DrawTo happens once at
-    ///     build time and Layout() only on resize.
+    ///     Re-runs layout from the root so a newly landed texture's size reaches the parents
+    ///     that size around it. Nothing else re-runs layout after an async load: DrawTo happens
+    ///     once at build time and Layout() only on resize.
     /// </summary>
     private void RelayoutFromRoot()
     {

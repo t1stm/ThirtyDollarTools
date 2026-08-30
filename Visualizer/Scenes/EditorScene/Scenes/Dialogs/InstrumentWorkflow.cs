@@ -7,9 +7,9 @@ using ThirtyDollarConverter.Parser;
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     The instrument selector/editor/delete/reassign cluster: opening the picker,
-///     creating/editing an instrument, deleting one (with the confirm dance), and
-///     reassigning a single note's instrument. Lifted out of <see cref="EditorInterface" />.
+///     The instrument selector/editor/delete/reassign cluster: opening the picker, creating
+///     or editing an instrument, deleting one behind a confirmation, and reassigning the
+///     instrument of the notes the selector was opened for.
 /// </summary>
 public sealed class InstrumentWorkflow
 {
@@ -30,9 +30,8 @@ public sealed class InstrumentWorkflow
         _dialogHost = dialogHost;
         _allSounds = allSounds;
 
-        // The instrument selector/editor open as modals (add/remove on the root, the
-        // tested show-hide pattern) instead of a DropDownLabel - hidden-panel toggling
-        // doesn't manage the render queue.
+        // Selector and editor are ModalLayers added to and removed from the root rather than
+        // panels toggled hidden: only entering and leaving the tree manages the render queue.
         _instrumentSelector = new InstrumentSelector(context);
         _instrumentSelectorModal = new ModalLayer(context);
         _instrumentSelectorModal.AddChild(_instrumentSelector);
@@ -59,8 +58,8 @@ public sealed class InstrumentWorkflow
         };
         _instrumentSelector.OnDelete = instrument =>
         {
-            // Both are ModalLayers pinned to the same top z-index, so they'd collide -
-            // close the selector while the confirm dialog is up, reopening it after.
+            // Both modals sit at the same top z-index and would collide, so the selector comes
+            // down while the confirm dialog is up and goes back afterwards either way.
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
 
             dialogHost.Confirm($"Delete \"{instrument.Name}\"?\n" +
@@ -85,9 +84,9 @@ public sealed class InstrumentWorkflow
     }
 
     /// <summary>
-    ///     Opens the picker; null means picking sets ActiveInstrument, non-null
-    ///     means picking reassigns every note in the list instead (one for the inspector's
-    ///     single-note "Change", several for a multi-note selection's).
+    ///     Opens the picker. With null, picking sets ActiveInstrument; with a list, picking
+    ///     reassigns every note in it instead - the inspector's "Change" action, for one note
+    ///     or for a whole selection.
     /// </summary>
     public void OpenSelector(IReadOnlyList<Note>? reassignTargets = null)
     {
@@ -97,8 +96,8 @@ public sealed class InstrumentWorkflow
     }
 
     /// <summary>
-    ///     Straight into the editor for a fresh instrument, skipping the selector - for the
-    ///     callers that already show the instrument list themselves.
+    ///     Opens the editor on a fresh instrument, skipping the selector, for callers that
+    ///     already show the instrument list themselves.
     /// </summary>
     public void OpenNewInstrument()
     {
@@ -106,7 +105,7 @@ public sealed class InstrumentWorkflow
         OpenEditor("Instrument", []);
     }
 
-    /// <summary>Shift/Ctrl held: forwarded to the editor's sound picker (pan/volume scroll modes).</summary>
+    /// <summary>Forwards the held Shift/Ctrl state to the editor's sound picker (pan/volume scroll modes).</summary>
     public void SetModifiers(bool shift, bool ctrl)
     {
         _instrumentEditor.SoundsPicker.ShiftHeld = shift;
@@ -114,9 +113,9 @@ public sealed class InstrumentWorkflow
     }
 
     /// <summary>
-    ///     Fills the sound grid before seeding the selection, not after: an older
-    ///     project may hold a sound under its emoji, and the picker can only map that to the
-    ///     sound's ID once it has been filled.
+    ///     Opens the editor modal on the given name and sounds. The sound grid is filled
+    ///     before the selection is seeded, so the picker can map a sound stored under its
+    ///     emoji onto the sound's ID.
     /// </summary>
     private void OpenEditor(string name, IEnumerable<InstrumentSound> sounds)
     {
@@ -148,9 +147,8 @@ public sealed class InstrumentWorkflow
     }
 
     /// <summary>
-    ///     "Picking" an instrument means setting it active, unless the selector was
-    ///     opened from the inspector's "Change" action targeting one or more notes -
-    ///     then it reassigns every one of them instead.
+    ///     Applies a pick: sets the instrument active, or, when the selector was opened with
+    ///     reassign targets, assigns it to every one of those notes instead.
     /// </summary>
     private void ApplyInstrumentPick(Instrument instrument)
     {
@@ -164,9 +162,8 @@ public sealed class InstrumentWorkflow
         else
         {
             _state.ActiveInstrument = instrument;
-            // A plain ActiveInstrument set fires no State.On* event of its own - this is
-            // the active-instrument button's refresh signal (EditorInterface subscribes
-            // RefreshActiveInstrument to OnInstrumentsChanged).
+            // Setting ActiveInstrument raises no State event of its own; this is what makes
+            // the active-instrument button refresh.
             _state.NotifyInstrumentsChanged();
         }
 

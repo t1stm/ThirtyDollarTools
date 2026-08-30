@@ -9,17 +9,16 @@ namespace EditorScene.Scenes.Layout;
 
 /// <summary>
 ///     The scrollable track list docked in the track column, with its "+ Add track"
-///     trailer row. Lifted out of <see cref="EditorInterface" />.
+///     trailer row.
 /// </summary>
 public sealed class TrackListPanel : ScrollView
 {
     private readonly Button _addTrackRow;
 
     /// <summary>
-    ///     Tracks + names as of the last actual rebuild, so a rebuild triggered by
-    ///     an unrelated project change (e.g. a note dragged 60x/s) can be skipped when
-    ///     nothing about the row list itself would change - rows read their track by
-    ///     reference, so in-place data needs no rebuild.
+    ///     Tracks, names and colors as of the last rebuild, so <see cref="Rebuild" /> can skip
+    ///     a project change that leaves the row list identical. Rows read their track by
+    ///     reference, so data changed in place needs no rebuild.
     /// </summary>
     private readonly List<(ProjectTrack Track, string Name, int? ColorIndex)> _built = [];
 
@@ -35,8 +34,8 @@ public sealed class TrackListPanel : ScrollView
         _state = state;
         ID = "track-list";
 
-        // The fill and its hover state come from menu-row now that code-built elements
-        // are styled: no ColoredPlane to swap by hand.
+        // The fill and its hover state come from the menu-row class - no ColoredPlane to
+        // swap by hand.
         _addTrackRow = new Button(context, "+ Add track")
         {
             Classes = ["menu-row"],
@@ -73,11 +72,10 @@ public sealed class TrackListPanel : ScrollView
     public Action<string?>? OnHint { get; set; }
 
     /// <summary>
-    ///     Full row rebuild: the track list is small by design (the grid is what
-    ///     scales). The add-track row is pulled out and re-appended last so it always trails.
-    ///     Skipped entirely when the track set and names match the last rebuild - called on
-    ///     every project change, including per-frame ones (a note drag fires Touch() ~60x/s)
-    ///     that never touch the track list itself.
+    ///     Rebuilds every row. The add-track row is pulled out and re-appended last so it
+    ///     always trails. Returns immediately when the track set, names and colors match the
+    ///     last rebuild, since this runs on every project change - including per-frame ones
+    ///     that never touch the track list.
     /// </summary>
     public void Rebuild()
     {

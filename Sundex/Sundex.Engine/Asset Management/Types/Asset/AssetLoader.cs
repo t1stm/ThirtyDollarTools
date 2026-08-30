@@ -73,8 +73,8 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
 
     /// <summary>
     ///     Whether an <see cref="StorageLocation.Unknown" /> location is really a URL. Checked
-    ///     before disk and assembly: a "https://..." string can never name either of those,
-    ///     and without this an unqualified remote location fell through to a FileNotFound.
+    ///     before disk and assembly, since a "https://..." string can never name either of
+    ///     those and would otherwise be probed as a file path.
     /// </summary>
     public static bool IsWebLocation(string location)
     {

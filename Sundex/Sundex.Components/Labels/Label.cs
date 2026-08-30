@@ -99,11 +99,10 @@ public class Label : UIElement
 
         if (text.Length > TextSlice.Length)
         {
-            // The replacement slice's constructor already ran UpdateCharacters once, at the
-            // default (0,0,0) position - before Position/FontSize/Color below were applied.
-            // Without an explicit final UpdateCharacters call, that stale, wrongly-positioned
-            // (and wrongly-sized/colored) render is all that's ever written for this text,
-            // since nothing else is guaranteed to touch Position again this frame.
+            // The replacement slice's constructor runs UpdateCharacters at the default
+            // (0,0,0) position, before Position/FontSize/Color are applied below, so the
+            // final explicit UpdateCharacters call is what actually writes this text -
+            // nothing else is guaranteed to touch Position again this frame.
             var position = TextSlice.Position;
             TextSlice.Dispose();
             var newSlice = TextBuffer.GetTextSlice(text);

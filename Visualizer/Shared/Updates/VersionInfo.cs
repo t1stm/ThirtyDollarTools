@@ -7,8 +7,7 @@ namespace Shared.Updates;
 
 /// <summary>
 ///     The JSON contents of the embedded "VERSION" file, written by the release workflows.
-///     Lives here rather than next to a scene because every scene that shows or checks the
-///     version can see Shared, and none of them can see each other.
+///     Lives in Shared because every scene that shows or checks the version can reach it.
 /// </summary>
 public sealed record VersionInfo(
     string Tag,

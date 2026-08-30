@@ -87,9 +87,8 @@ public class PlacementCalculator
         var count = (ulong)sequence.Events.LongLength;
         var position = startTime ?? (ulong)(SampleRate / (bpm / 60));
 
-        // I have given up on reverse engineering my own parser.
-        // Here goes GD Colon's code.
-        // - t1stm
+        // The stepping below follows GD Colon's Thirty Dollar Website code, so playback
+        // timing matches the site's.
 
         var scrub_pos = 0ul;
         var loop_target = 0ul;

@@ -10,8 +10,7 @@ public class WaveDecoder
     private readonly PcmDataHolder _holder = new();
     private long _dataChunkLength;
 
-    // Shamefully copied from NAudio.
-    // Here goes copyright infringement.
+    // RIFF header parsing follows NAudio's WAV reader.
     private long _riffFileSize;
 
     private static int HeaderToInt(string header)

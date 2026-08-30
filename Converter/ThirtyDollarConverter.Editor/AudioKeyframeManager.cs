@@ -109,8 +109,7 @@ public class AudioKeyframeManager
 
     /// <summary>
     ///     Same generation, kept at the note level (not flattened to sound events) so views
-    ///     can plot the generated value/time path. Public so views can plot the generated path
-    ///     (pass 0 for note-relative minutes).
+    ///     can plot the generated value/time path. Pass 0 for note-relative minutes.
     /// </summary>
     public IEnumerable<(double Minutes, Note Note)> ExpandNotes(Note note, double noteMinutes, double stepMinutes)
     {

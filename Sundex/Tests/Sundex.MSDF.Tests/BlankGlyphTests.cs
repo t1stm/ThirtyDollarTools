@@ -2,9 +2,6 @@ namespace Sundex.MSDF.Tests;
 
 /// <summary>
 ///     A glyph that exists but carries no ink — space, above all — must still generate.
-///     <para>
-///         Nothing covered this until the engine threw on the first frame of text it drew.
-///     </para>
 /// </summary>
 public class BlankGlyphTests
 {
@@ -35,8 +32,8 @@ public class BlankGlyphTests
     }
 
     /// <summary>
-    ///     False is now reserved for input that decodes to nothing. A codepoint the font does not
-    ///     cover comes back as its <c>.notdef</c> box, which is what FreeType did too.
+    ///     False is reserved for input that decodes to nothing; a codepoint the font does not
+    ///     cover comes back as its <c>.notdef</c> box instead.
     /// </summary>
     [Fact]
     public void EmptyInputReturnsFalse()

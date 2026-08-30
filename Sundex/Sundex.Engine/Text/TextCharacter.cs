@@ -17,9 +17,8 @@ public struct TextCharacter() : IGPUReflection, IPositionable
     ///     Per-glyph scissor, in the same absolute UI units as <see cref="Position" />:
     ///     (left, top, right, bottom). All-zero means unclipped, which is what a default
     ///     <see cref="TextCharacter" /> - and so every caller that never sets one - gets.
-    ///     Per glyph rather than a uniform because a whole <see cref="TextBuffer" /> is one
-    ///     instanced draw call: the arrangement's clip names share a buffer and each needs
-    ///     confining to its own box, which a per-draw uniform (or GL.Scissor) cannot do.
+    ///     Per glyph rather than a per-draw uniform because a whole <see cref="TextBuffer" />
+    ///     is one instanced draw call, and glyphs sharing it can need different clip boxes.
     /// </summary>
     public Vector4 ClipRect { get; set; }
 

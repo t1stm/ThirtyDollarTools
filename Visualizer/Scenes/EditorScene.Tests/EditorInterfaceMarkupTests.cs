@@ -146,10 +146,10 @@ public class EditorInterfaceMarkupTests
 
     /// <summary>
     ///     A factory-built view keeps the class it set on itself and is styled through it.
-    ///     Both halves are load-bearing and neither is visible from the markup: the grid's
-    ///     line and block colors are settings on the view (class note-canvas, set in its
-    ///     constructor), and the builder used to assign markup's class list over the
-    ///     element's own - which dropped it, leaving the whole grid painting transparent.
+    ///     Both halves are load-bearing and neither is visible from the markup: the grid's line
+    ///     and block colors are settings on the view (class note-canvas, set in its
+    ///     constructor), so the builder must add markup's classes to the element's own rather
+    ///     than replace them.
     /// </summary>
     [Fact]
     public void AFactoryBuiltView_KeepsItsOwnClass_AndIsStyledThroughIt()

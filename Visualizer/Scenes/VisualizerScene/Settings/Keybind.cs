@@ -11,9 +11,9 @@ namespace VisualizerScene.Settings;
 public readonly record struct Keybind(Keys Key, KeyModifiers Modifiers)
 {
     /// <summary>
-    ///     The only modifiers a binding can name. Everything else - CapsLock and NumLock,
-    ///     which GLFW reports in the same bitfield - is masked out before comparing, or
-    ///     every shortcut would stop working for anyone with Caps on.
+    ///     The only modifiers a binding can name. Everything else GLFW reports in the same
+    ///     bitfield - CapsLock and NumLock - is masked out before comparing, so a lock key
+    ///     being on does not stop a shortcut matching.
     /// </summary>
     private const KeyModifiers Relevant =
         KeyModifiers.Control | KeyModifiers.Shift | KeyModifiers.Alt | KeyModifiers.Super;
@@ -79,9 +79,8 @@ public readonly record struct Keybind(Keys Key, KeyModifiers Modifiers)
     }
 
     /// <summary>
-    ///     The KeyDown path. Compares the whole modifier set rather than testing flags one
-    ///     at a time: exact comparison is what makes Ctrl+Z and Ctrl+Shift+Z two separate
-    ///     bindings instead of one that fires on both.
+    ///     The KeyDown path. Compares the whole modifier set rather than testing flags
+    ///     individually, so Ctrl+Z and Ctrl+Shift+Z stay two separate bindings.
     /// </summary>
     public bool Matches(KeyboardKeyEventArgs e)
     {

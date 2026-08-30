@@ -7,22 +7,19 @@ using Sundex.Components.Panels;
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     The track recolor grid (ModalLayer content): one swatch per palette entry plus
-///     the default fill, picked in a single click - there is nothing to confirm, and a
-///     backdrop click leaves the track as it was. Reached from a track's right-click
-///     menu and from the inspector's Color row; both hand it the same palette.
-///     Built in code rather than as a .snx.xml because the grid is generated from a
-///     color list the stylesheet owns (arrangement-canvas's <c>clip-palette</c>), so
-///     there is no fixed tree to write out. Pure view - the owner decides what a pick
-///     does and closes the modal itself.
+///     The track recolor grid (ModalLayer content): one swatch per palette entry plus the
+///     default fill, applied on a single click - there is nothing to confirm, and a backdrop
+///     click leaves the track as it was. Reached from a track's right-click menu and from
+///     the inspector's Color row, both handing it the same palette. The grid is generated
+///     from that palette rather than from a .snx.xml tree. Pure view - the owner decides
+///     what a pick does and closes the modal itself.
 /// </summary>
 public sealed class TrackColorDialog
 {
     /// <summary>
-    ///     Names for Theme.snx.ss's clip_palette, in its order - the grid is a set of
-    ///     unlabeled squares otherwise, and a color is a poor thing to name a track by out
-    ///     loud. Extra palette entries fall back to their number, so this never has to be
-    ///     kept exactly as long as the palette.
+    ///     Display names for Theme.snx.ss's clip_palette, in its order, so the grid is not a
+    ///     set of unlabeled squares. Palette entries past the end of this list fall back to
+    ///     their number, so the two need not stay the same length.
     /// </summary>
     private static readonly string[] Names =
         ["Purple", "Green", "Orange", "Rose", "Teal", "Olive", "Violet"];
@@ -62,17 +59,17 @@ public sealed class TrackColorDialog
 
     private UIElement Swatch(UIContext context, string name, Vector4 color, bool selected, int? index)
     {
-        // The chip's fill is the palette entry, so it is set here rather than in the sheet;
-        // `color-chip` only shapes the box. A class the rule doesn't declare a background
-        // for leaves this one alone when the cascade runs at mount.
+        // The fill is a palette entry, so it is set here rather than in the sheet;
+        // `color-chip` only shapes the box and declares no background, so the cascade at
+        // mount leaves this one alone.
         var chip = new Panel(context)
         {
             Classes = ["color-chip"],
             Background = new ColoredPlane { Color = color }
         };
 
-        // The selected option's fill sits behind its name too, so the name brightens with
-        // it - muted text on the selection shade is the one label here worth reading.
+        // The selected option's fill sits behind its name too, so the name brightens with it
+        // instead of staying muted against the selection shade.
         var label = new Label(context, name)
         {
             Classes = selected ? ["color-option-name", "color-option-name-selected"] : ["color-option-name"]

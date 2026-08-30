@@ -3,16 +3,16 @@ using ThirtyDollarConverter.Editor;
 namespace ThirtyDollarConverter.Benchmarks;
 
 /// <summary>
-///     The edits an editor session actually makes, applied to the real project the incremental
-///     renderer misbehaved on. Every one of them is cyclic - invocation <c>n</c> leaves the
+///     The edits an editor session actually makes, applied to a real cut-heavy project. Every
+///     one of them is cyclic - invocation <c>n</c> leaves the
 ///     project in a state the next invocation edits again, so a benchmark can run thousands of
 ///     them without rebuilding a baseline, exactly like holding a scroll wheel down over a note.
 /// </summary>
 public enum EditKind
 {
     /// <summary>
-    ///     Scroll a note's value. The note carries cut automation, which is what forces
-    ///     the subtract-based renderer into a full re-render.
+    ///     Scroll a note's value. The note carries cut automation - the hardest case for an
+    ///     incremental render.
     /// </summary>
     AutomatedNoteValue,
 

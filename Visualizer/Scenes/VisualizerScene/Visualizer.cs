@@ -99,9 +99,8 @@ public class Visualizer : Scene, IGamePreloadable
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
 
         // Flagged rather than applied on the spot: the settings screen writes these while
-        // this scene is not the active one, so nothing here is being updated or rendered,
-        // and a slider being dragged would ask for a playfield rebuild per frame. The flag
-        // is spent on this scene's next update, which is the frame it becomes visible on.
+        // this scene is inactive, and a dragged slider would otherwise ask for a playfield
+        // rebuild per frame. The flag is spent on this scene's next update.
         _settings.Changed += _ => _settingsDirty = true;
     }
 
@@ -191,9 +190,9 @@ public class Visualizer : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Styles only. The playfield is mid-cover state rather than markup, and the player
-    ///     bar is the only tree here a stylesheet reaches; rebuilding it would drop the
-    ///     cover being played, which is never worth it for a look change.
+    ///     Reapplies styles only. The player bar is the only tree here a stylesheet reaches;
+    ///     the playfield is state rather than markup, and rebuilding it would drop the cover
+    ///     being played.
     /// </summary>
     public override void ReloadStyles()
     {
@@ -261,11 +260,10 @@ public class Visualizer : Scene, IGamePreloadable
 
     /// <summary>
     ///     Loads whatever was passed on the command line, once, the first time this scene is
-    ///     opened. Not in <see cref="Initialize" />: this scene is now built while the
-    ///     loading screen is still up, and encoding a sequence needs samples that have not
-    ///     been downloaded yet at that point. Goes through the same off-thread path a
-    ///     dropped file does, so the scene appears first and the sequence fills in after,
-    ///     rather than the encode holding up the transition.
+    ///     opened. Must not run in <see cref="Initialize" />: the scene is built while the
+    ///     loading screen is up, before the samples an encode needs are downloaded. Uses the
+    ///     same off-thread path a dropped file does, so the scene appears first and the
+    ///     sequence fills in after.
     /// </summary>
     private void LoadStartingSequences()
     {
@@ -367,8 +365,8 @@ public class Visualizer : Scene, IGamePreloadable
         const int seekLength = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
 
-        // Kept as locals rather than folded into bindings: on the seek keys these two scale
-        // the step size, they aren't part of what is bound.
+        // Locals rather than part of a binding: on the seek keys these two scale the step
+        // size instead of selecting the action.
         var primary = Keybinds.PrimaryDown(state);
         var shift = state.IsKeyDown(Keys.LeftShift) || state.IsKeyDown(Keys.RightShift);
 
@@ -412,9 +410,8 @@ public class Visualizer : Scene, IGamePreloadable
             _ => oldFollowMode
         };
 
-        // Bookmarks aren't rebindable: thirty combos (set / clear / seek x ten digits) would
-        // triple the settings screen for a feature whose whole shape is "modifier + the digit
-        // you want". Only the modifier follows the platform, so a Mac gets Cmd+1.
+        // Bookmarks are fixed to "modifier + digit" rather than rebindable. Only the modifier
+        // follows the platform, so a Mac gets Cmd+1.
         for (var i = 0; i < 10; i++)
         {
             var key = (Keys)((int)Keys.D0 + i);
@@ -594,13 +591,11 @@ public class Visualizer : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Takes the settings as they now are. The three geometry values are baked into the
-    ///     playfield's chunks when they are built, so changing them means rebuilding what is
-    ///     loaded - skipped when nothing is, since there is nothing to lay out. The camera
-    ///     speeds only need writing over. Not the greeting: Drum Master borrows this scene's
-    ///     text container and puts its own greeting in it, and this runs while that is up.
-    ///     <see cref="TransitionedTo" /> takes the new one instead, which is the moment the
-    ///     greeting is next looked at anyway.
+    ///     Applies the current settings. The three geometry values are baked into the
+    ///     playfield's chunks when they are built, so changing one rebuilds whatever is
+    ///     loaded; the camera speeds are only written over. The greeting is deliberately left
+    ///     out - Drum Master borrows this scene's text container for its own greeting, so
+    ///     <see cref="TransitionedTo" /> picks the new one up instead.
     /// </summary>
     private void ApplySettings()
     {

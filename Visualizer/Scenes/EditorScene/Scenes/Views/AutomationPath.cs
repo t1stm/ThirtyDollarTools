@@ -7,17 +7,13 @@ namespace EditorScene.Scenes.Views;
 /// <summary>
 ///     Plots a note's generated automation events as a step path in the note's sound
 ///     color: a horizontal run at the current value, a vertical jump where a keyframe
-///     changes it, and a short tick at every generated event (so pure repeats stay
-///     visible as "a horizontal line with small vertical lines"). Time-mode gaps are
-///     mapped through the note's own segment step rate - display-only approximation
-///     when the path crosses into a segment with another tempo. Draws into the tail slot
-///     range of <see cref="TrackEditorView" />'s grid batch rather than owning elements -
-///     the path takes no input, so it needs no elements at all. That range is the batch's
-///     last, so it grows with the paths instead of capping them: a note can generate any
-///     number of events, and the old fixed pool simply stopped drawing once spent, cutting
-///     long paths off mid-line. Only what is off-screen is dropped now. Split out of
-///     <see cref="TrackEditorView" /> so automation display (curves, editing) can grow
-///     independently.
+///     changes it, and a short tick at every generated event, so a pure repeat still
+///     reads as a line with marks on it. Time-mode gaps are mapped through the note's own
+///     segment step rate, a display-only approximation once the path crosses into a
+///     segment with another tempo. Draws into the tail slot range of
+///     <see cref="TrackEditorView" />'s grid batch rather than owning elements - the path
+///     takes no input. Being the batch's last range it grows, so a note may generate any
+///     number of events; only off-screen marks are dropped.
 /// </summary>
 internal sealed class AutomationPath(LineBatch batch, int firstSlot)
 {
@@ -30,8 +26,8 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot)
 
     /// <summary>
     ///     Releases every slot from <paramref name="used" /> onward - this layout's unused
-    ///     tail. The slots that exist are exactly the ones drawn into, so the mark list
-    ///     (which the same writes fill) is the high-water mark to release back to.
+    ///     tail. The mark list is the high-water mark to release back to, since the same
+    ///     writes fill both it and the batch.
     /// </summary>
     public void HideUnused(int used)
     {
@@ -76,11 +72,10 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot)
     }
 
     /// <summary>
-    ///     Trims a mark against the grid's bottom edge - the one shared point that
-    ///     covers all three mark kinds (run, jump, tick) bleeding past a partially scrolled
-    ///     grid into the pinned cut row below it. Marks fully left of the gutter or right of
-    ///     the viewport are dropped without taking a slot: what is drawn is bounded by the
-    ///     viewport, not by a pool, so a long track's off-screen paths cost nothing.
+    ///     Writes one mark, trimmed against the grid's bottom edge so no run, jump or tick
+    ///     bleeds past a partially scrolled grid into the pinned cut row below it. Marks fully
+    ///     left of the gutter or right of the viewport are dropped without taking a slot, so
+    ///     the cost follows the viewport rather than the track's length.
     /// </summary>
     private void Mark(ref int used, float x, float y, float width, float height, Vector4 color, float maxY)
     {

@@ -79,8 +79,8 @@ public class OpenALBuffer : AudibleBuffer
 
             if (AL.IsBuffer(AudioBuffer))
             {
-                // We can't update buffer data while it's being used by sources in some OpenAL implementations.
-                // But usually AL.BufferData on an existing buffer is fine if we are careful.
+                // Reuses the existing buffer object. Some OpenAL implementations disallow
+                // this while a source is still bound to it.
                 AL.BufferData(AudioBuffer, format, samples, -1, sampleRate);
             }
             else

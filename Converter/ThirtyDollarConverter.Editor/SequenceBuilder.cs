@@ -98,7 +98,7 @@ internal static class SequenceBuilder
                 // In the order they came in. A step's order is meaningful - a "!cut" silences
                 // what is already playing, so the sounds written before it are cut and the
                 // ones after it are not - and hoisting the actions to the front of the step
-                // (which this used to do) quietly cut the wrong ones.
+                // would cut the wrong ones.
                 // Only a "!combine" *directly* after a sound cancels its one-step advance, so
                 // every sound that isn't the group's last event gets one: the events after it
                 // belong to the same step.
@@ -117,10 +117,9 @@ internal static class SequenceBuilder
                 if (!advanced)
                 {
                     // Nothing here consumed a step: either the group is actions only (which
-                    // never increment position, matching PlacementCalculator - advancing here
-                    // was the latent bug that shifted everything after an on-grid automation
-                    // cut one step early), or its last sound was cancelled by a "!combine"
-                    // because actions follow it. Either way the step comes out of the next gap.
+                    // never increment position, matching PlacementCalculator), or its last
+                    // sound was cancelled by a "!combine" because actions follow it. Either
+                    // way the step comes out of the next gap.
                     clock = time;
                 }
                 else
@@ -243,9 +242,8 @@ internal static class SequenceBuilder
 
     /// <summary>
     ///     Consecutive cuts landing on one step collapse into a single one carrying the union
-    ///     of their sounds. Tracks sharing an instrument (and several cut notes on the same
-    ///     step) otherwise emit one cut per track per note, each re-silencing sounds the first
-    ///     cut already silenced: identical audio, one extra encoder pass over every cut track.
+    ///     of their sounds, so tracks sharing an instrument don't emit one cut per track per
+    ///     note and cost the encoder an extra pass over every cut track for identical audio.
     ///     Only consecutive ones: a sound between two cuts is cut by the first and not by the
     ///     second, and merging across it would silence it either way.
     ///     Standard and legacy ("#icut") cuts stay separate - they serialize differently.
@@ -306,12 +304,11 @@ internal static class SequenceBuilder
             if (ev.SoundEvent is not null)
                 sequence.UsedSounds.Add(ev.SoundEvent);
 
-            // The encoder pre-allocates a mixer track per separated channel before
-            // rendering (see PCMEncoder.GenerateAudioAndMixer) so a cut's target track
-            // is guaranteed to exist - the text parser populates this as a side effect
-            // of parsing "!cut@sound"; building the event list directly (not from text)
-            // must populate it the same way, or cuts silently no-op against a track
-            // that was never created.
+            // The encoder pre-allocates a mixer track per separated channel before rendering
+            // (see PCMEncoder.GenerateAudioAndMixer), so a cut's target track exists. The text
+            // parser fills this in as a side effect of parsing "!cut@sound"; an event list built
+            // directly has to fill it the same way, or cuts silently no-op against a track that
+            // was never created.
             if (ev is IndividualCutEvent individualCut)
                 foreach (var sound in individualCut.CutSounds)
                     sequence.SeparatedChannels.Add(sound);

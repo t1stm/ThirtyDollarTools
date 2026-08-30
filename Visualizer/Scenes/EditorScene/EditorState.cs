@@ -6,9 +6,8 @@ using JetBrains.Annotations;
 namespace EditorScene;
 
 /// <summary>
-///     The active editing tool, shared by both editors. Two tools with three
-///     branch points each do not justify an IEditorTool strategy interface - the views'
-///     input handlers branch on <see cref="EditorState.ActiveTool" /> directly.
+///     The active editing tool, shared by both editors. The views' input handlers branch
+///     on <see cref="EditorState.ActiveTool" /> directly.
 /// </summary>
 // ponytail: tool dispatch is an enum branch in the two views; extract an IEditorTool
 // (per-tool press/drag/release/key handlers) when a third tool with nontrivial
@@ -52,7 +51,7 @@ public class EditorState
 
     /// <summary>
     ///     Derived view: non-null only when exactly one placement is selected.
-    ///     Existing single-selection consumers (arrangement highlight, cascades) read this.
+    ///     Single-selection consumers (arrangement highlight, cascades) read this.
     /// </summary>
     public TrackPlacement? SelectedPlacement => _selectedPlacements.Count == 1 ? _selectedPlacements[0] : null;
 
@@ -66,7 +65,7 @@ public class EditorState
 
     /// <summary>
     ///     Derived view: non-null only when exactly one note is selected.
-    ///     Existing single-selection consumers (inspector form, CopiedModifiers) read this.
+    ///     Single-selection consumers (inspector form, CopiedModifiers) read this.
     /// </summary>
     public Note? SelectedNote => _selectedNotes.Count == 1 ? _selectedNotes[0] : null;
 
@@ -238,11 +237,10 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Imports a TDW sequence as one new track (+ its instruments + one
-    ///     placement), as a single undo step. Throws whatever <see cref="SequenceImporter" />
-    ///     throws on malformed/empty/runaway input - the caller is expected to alert and
-    ///     leave the project untouched, which holds for free here since nothing is added
-    ///     until the importer has already fully succeeded.
+    ///     Imports a TDW sequence as one new track (+ its instruments + one placement), as a
+    ///     single undo step. Throws whatever <see cref="SequenceImporter" /> throws on
+    ///     malformed/empty/runaway input; nothing is added until the importer has fully
+    ///     succeeded, so the project is untouched when it does.
     /// </summary>
     public ImportResult ImportSequenceAsTrack(Sequence sequence, string name,
         IReadOnlyDictionary<string, Sound>? soundMap, TrackKind kind = TrackKind.PianoRoll)
@@ -410,12 +408,11 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Slides every given slot the same distance along the sequence, one undo entry per
-    ///     landing spot. A drag fires this once per boundary it crosses, so the entries merge
-    ///     on the lowest slot like a note drag's - the whole selection moves, because dragging
-    ///     one slot of a selection drags all of it, exactly as <see cref="MoveSelectedNotes" />
-    ///     does in the piano roll. The distance is clamped so the block stops at either end
-    ///     rather than the leading slot running off it.
+    ///     Slides every given slot the same distance along the sequence - dragging one slot
+    ///     of a selection drags all of it, as <see cref="MoveSelectedNotes" /> does in the
+    ///     piano roll. A drag fires this once per boundary it crosses; the entries merge on
+    ///     the lowest slot, so the whole drag is one undo entry. The distance is clamped so
+    ///     the block stops at either end rather than the leading slot running off it.
     /// </summary>
     public void MoveItems(FaithfulTrack track, IReadOnlyList<FaithfulItem> items, int delta)
     {
@@ -495,8 +492,8 @@ public class EditorState
     /// <summary>
     ///     Applies a scroll adjustment to every given item - one item under Draw, the whole
     ///     selection under Select - as a single undo entry. A run of scrolls on the same items
-    ///     inside one gesture merges into that one entry, same as a note drag: their identity
-    ///     survives, only their fields move, so undo restores those.
+    ///     inside one gesture merges into that entry; the items keep their identity and only
+    ///     their fields move, so undo restores the fields.
     /// </summary>
     public void AdjustItems(IReadOnlyList<FaithfulItem> items, Action<FaithfulItem> adjust)
     {
@@ -562,10 +559,7 @@ public class EditorState
         OnSegmentSelectionChanged?.Invoke(segment);
     }
 
-    /// <summary>
-    ///     Replaces the note selection with a single note, or clears it when null.
-    ///     Every existing call site (paint, drag-press, cascades) keeps working unchanged.
-    /// </summary>
+    /// <summary>Replaces the note selection with a single note, or clears it when null.</summary>
     public void SelectNote(Note? note)
     {
         SetNoteSelection(note != null ? [note] : []);
@@ -573,8 +567,8 @@ public class EditorState
 
     /// <summary>
     ///     Replaces the whole note selection. Fires <see cref="OnNoteSelectionChanged" />
-    ///     once, even for multi-note selections (existing subscribers read the derived
-    ///     <see cref="SelectedNote" />, which is non-null only for a single note).
+    ///     once, even for multi-note selections; subscribers read the derived
+    ///     <see cref="SelectedNote" />, which is non-null only for a single note.
     /// </summary>
     public void SetNoteSelection(IEnumerable<Note> notes)
     {
@@ -612,10 +606,7 @@ public class EditorState
         if (removed) AfterNoteSelectionChanged();
     }
 
-    /// <summary>
-    ///     Replaces the placement selection with a single placement, or clears it
-    ///     when null. Every existing call site keeps working unchanged.
-    /// </summary>
+    /// <summary>Replaces the placement selection with a single placement, or clears it when null.</summary>
     public void SelectPlacement(TrackPlacement? placement)
     {
         SetPlacementSelection(placement != null ? [placement] : []);
@@ -706,15 +697,14 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Pastes the clipboard payload in place: notes into the opened track (mapped
-    ///     through <see cref="ProjectTrack.SegmentAtGlobalStep" />, dropping any past the
-    ///     track's end). One clone per copied note, always - a clone landing on an identical
-    ///     existing note stacks on top of it rather than being dropped or nudged aside, so
-    ///     the paste is one-to-one with the copy and can be dragged off the originals as a
-    ///     whole; placements as fresh clips on the arrangement. Cross-editor
-    ///     mismatches (notes payload while the arrangement is shown, or vice versa) are a
-    ///     silent no-op. The pasted clones become the new selection, and the whole paste is
-    ///     one undo entry.
+    ///     Pastes the clipboard payload in place: notes into the opened track (mapped through
+    ///     <see cref="ProjectTrack.SegmentAtGlobalStep" />, dropping any past the track's end),
+    ///     placements as fresh clips on the arrangement. Always one clone per copied note - a
+    ///     clone landing on an identical existing note stacks on top of it, so the paste stays
+    ///     one-to-one with the copy and can be dragged off the originals as a whole.
+    ///     Cross-editor mismatches (a notes payload while the arrangement is shown, or vice
+    ///     versa) are a silent no-op. The pasted clones become the new selection, and the
+    ///     whole paste is one undo entry.
     /// </summary>
     public void Paste()
     {
@@ -796,9 +786,8 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Deletes the whole selection (whichever list is populated) as one composite
-    ///     undo entry - mirrors <see cref="DeleteInstrumentEverywhere" />'s snapshot-then-
-    ///     remove-then-push pattern.
+    ///     Deletes the whole selection - whichever of the item, note and placement lists is
+    ///     populated - as one composite undo entry.
     /// </summary>
     public void DeleteSelection()
     {
@@ -1031,13 +1020,11 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Moves every given note to its target (segment, step, value) together, as one
-    ///     shared drag gesture - dragging any note that's part of a (possibly multi-note)
-    ///     selection moves the whole group. Every drag frame calls this again with the
-    ///     group's latest targets; <see cref="BeginGesture" /> + <see cref="UndoHistory.PushOrMergeMove" />
-    ///     collapse the whole sequence into ONE undo entry, keyed on the first note in the
-    ///     list so every frame's call is recognized as the same gesture (matching
-    ///     <see cref="MoveNote" />'s single-note merge, generalized to a group).
+    ///     Moves every given note to its target (segment, step, value) together, as one shared
+    ///     drag gesture - dragging any note of a selection moves the whole group. Every drag
+    ///     frame calls this again with the group's latest targets;
+    ///     <see cref="BeginGesture" /> + <see cref="UndoHistory.PushOrMergeMove" />, keyed on
+    ///     the first note in the list, collapse the run into one undo entry.
     /// </summary>
     public void MoveSelectedNotes(ProjectTrack track,
         IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
@@ -1070,9 +1057,9 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Places every note at its target (segment, step, value), removing it from
-    ///     whichever segment currently holds it first - robust regardless of which frame's
-    ///     closure (undo/redo) runs, since it never assumes the note's current location.
+    ///     Places every note at its target (segment, step, value), first removing it from
+    ///     whichever segment currently holds it - it never assumes where a note is, so the
+    ///     same call serves both the undo and the redo closure.
     /// </summary>
     private static void Apply(ProjectTrack track,
         IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
@@ -1341,7 +1328,7 @@ public class EditorState
         return _muteSolo.IsSoloed(channel);
     }
 
-    /// <summary>FL semantics: any solo wins; otherwise everything not muted sounds.</summary>
+    /// <summary>Any soloed channel silences the rest; with nothing soloed, every unmuted channel sounds.</summary>
     public bool IsChannelAudible(int channel)
     {
         return _muteSolo.IsChannelAudible(channel);
@@ -1393,8 +1380,8 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement
-    ///     calls on the same object (one drag, many frames) collapses into a single undo step.
+    ///     Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement calls on
+    ///     the same object across the drag's frames collapses into a single undo step.
     /// </summary>
     public void BeginGesture()
     {
@@ -1418,9 +1405,8 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Drops what the last undo/redo removed from the selection, and keeps the rest.
-    ///     A blanket clear here meant undoing a Delete gave the slots back unselected, so
-    ///     the follow-up Enter ("place another") looked broken.
+    ///     Drops what the last undo/redo removed from the selection and keeps the rest, so
+    ///     undoing a delete hands the restored items back still selected.
     /// </summary>
     private void PruneSelection()
     {
@@ -1433,12 +1419,11 @@ public class EditorState
     }
 
     /// <summary>
-    ///     Drops references to tracks the last undo/redo took out of the project. Those
-    ///     steps replay <see cref="ThirtyDollarProject" /> mutations directly, so unlike
-    ///     <see cref="RemoveTrack" /> they never run its cleanup - undoing an import while
-    ///     its track is selected and open left the list highlighting a track the project
-    ///     no longer has, and the next arrangement click handed it to Place, which rejects
-    ///     foreign tracks.
+    ///     Drops references to tracks the last undo/redo took out of the project. Those steps
+    ///     replay <see cref="ThirtyDollarProject" /> mutations directly, so unlike
+    ///     <see cref="RemoveTrack" /> they never run its cleanup: without this the list can
+    ///     highlight a track the project no longer has, and the next arrangement click hands
+    ///     it to Place, which rejects foreign tracks.
     /// </summary>
     private void PruneDroppedTracks()
     {

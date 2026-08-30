@@ -139,10 +139,9 @@ public class StyleReloadTests : IDisposable
     public void AHostSheetDoesNotUndoAnImportedComponentsStyling()
     {
         // How a composed screen is built: the imported document styles its own subtree, and
-        // the host's sheet is then applied over the whole tree. The host has no rules for
-        // the import's elements - its sheet covers its own document - so applying it must
-        // leave what the import did alone. Reverting on every apply wiped exactly this, and
-        // the editor's header labels came out at the default size and colour.
+        // the host's sheet is then applied over the whole tree. The host has no rules for the
+        // import's elements - its sheet covers its own document - so applying it must leave
+        // what the import did alone rather than revert it.
         var inner = new Panel(_context) { Classes = ["inner"] };
         var root = new Panel(_context) { Children = [inner] };
         root.DrawTo(_context);

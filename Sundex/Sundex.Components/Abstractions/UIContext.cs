@@ -400,9 +400,10 @@ public class UIContext : IGamePreloadable
 
     /// <summary>
     ///     Releases pointer/focus state held inside a subtree being removed from its
-    ///     tree. Without this, a capture on a detached element blocks all pointer input
-    ///     forever (its root no longer matches any live root), and keys keep routing to
-    ///     an element that is no longer on screen. Called by Panel.RemoveChild.
+    ///     tree. Must run on removal: a capture left on a detached element blocks all
+    ///     pointer input (its root no longer matches any live root), and focus keeps
+    ///     routing keys to an element that is no longer on screen. Called by
+    ///     Panel.RemoveChild.
     /// </summary>
     public void NotifyDetached(UIElement subtreeRoot)
     {

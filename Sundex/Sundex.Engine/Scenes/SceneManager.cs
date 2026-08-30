@@ -17,9 +17,8 @@ public class SceneManager(ILogger logger)
 
     public T LoadScene<T>(ReadOnlySpan<char> sceneName, Func<SceneManager, T> factory) where T : Scene
     {
-        // Timed because building a scene happens on the render thread and is the one thing
-        // in this program that reliably costs whole frames. The number is what tells you
-        // whether a hitch is worth chasing, and which scene to chase it in.
+        // Building a scene runs on the render thread and can cost whole frames, so the build
+        // is timed and logged per scene.
         var stopwatch = Stopwatch.StartNew();
         var scene = factory(this);
         logger.Debug("[Scene Manager] Built {Scene} in {Elapsed} ms",
@@ -110,14 +109,12 @@ public class SceneManager(ILogger logger)
     }
 
     /// <summary>
-    ///     Applies a hot reload to every loaded scene, not just the active ones: a scene
-    ///     reloaded only when it is next shown would come back stale, and the scenes that
-    ///     are not on screen are the cheap ones anyway.
+    ///     Applies a hot reload to every loaded scene, not just the active ones, so that a
+    ///     scene shown later does not come back stale.
     ///     <para>
-    ///         Each scene is isolated. A markup file saved halfway through an edit throws
-    ///         while it is being parsed, and the scene that failed keeps the UI it already
-    ///         had - the error goes to the log and the other scenes still reload, so a typo
-    ///         costs a log line rather than the running program.
+    ///         Each scene is isolated: one that throws while parsing a half-saved markup file
+    ///         keeps the UI it already had, the error goes to the log, and the other scenes
+    ///         still reload.
     ///     </para>
     /// </summary>
     public void Reload(ReloadScope scope)

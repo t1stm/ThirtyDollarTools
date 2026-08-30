@@ -27,8 +27,7 @@ internal static class EdgeColoring
         var color = InitColor(ref seed);
 
         // Corner indices for the contour being coloured, thrown away at the end of each one.
-        // Most contours fit the stack buffer; the rest borrow rather than allocate (Lato's widest
-        // contour is 72 edges, so the overflow is real but rare).
+        // Most contours fit the stack buffer; a longer one rents from the array pool instead.
         Span<int> corners = stackalloc int[64];
         var cornerBuffer = corners;
         int[]? rented = null;

@@ -12,10 +12,8 @@ public class ScrollBarTests
         var parent = new Panel(context) { Width = 100, Height = 500 };
         var scrollBar = new ScrollBar(context, parent);
 
-        // Ensure parent is added to children so it gets layout updates?
-        // Actually ScrollBar is a sibling or child?
-        // In ScrollBar constructor: Parent = parent; Children = [ScrollBlock];
-        // So scrollBar is NOT a child of parent by default.
+        // The ScrollBar constructor sets Parent but does not add itself to parent.Children,
+        // so it has to be parented explicitly to take part in layout.
         parent.Children = [scrollBar];
 
         parent.Layout();

@@ -343,12 +343,10 @@ public class ComponentBuilderV1 : IComponentBuilder
 
                 if (dependency is null) throw new Exception($"Unknown node tag: {nodeTag}");
 
-                // Rebuild rather than alias: handing out the registered component's own
-                // Element made every usage site the same instance, so a second <header/>
-                // reparented the first one out of the tree. Building the retained document
-                // again is independent - BuildTree reparses from the held XmlElement - and
-                // it binds the sub-component's logic to its own id map, which a shared
-                // instance could never do.
+                // Rebuild rather than alias the registered component's Element: every
+                // usage site needs its own instance, or a second <header/> would reparent
+                // the first out of the tree. BuildTree reparses from the held XmlElement
+                // and binds the sub-component's logic to this usage site's own id map.
                 // ponytail: single builder version exists, so a dependency declaring a
                 // different version than its host would still be built by this one.
                 var instance = CreateComponent(dependency.Document, context, false);
@@ -364,7 +362,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
         // Appended, not assigned: an element built by a factory can carry classes of its
         // own (the grid views name their canvas rule, which their draw code needs), and
-        // assigning here dropped them. Markup's come last, so they still win.
+        // those must survive. Markup's come last, so they still win.
         if (node.Classes is not null)
             foreach (var @class in node.Classes)
                 element.SetClass(@class, true);
@@ -485,10 +483,9 @@ public class ComponentBuilderV1 : IComponentBuilder
 
     /// <summary>
     ///     Resolves a style property for a node the same way <c>UIElement.SetNamedSetting</c>
-    ///     does: tag, then classes, then id, last hit winning. This was tag-only, so a
-    ///     class- or id-scoped <c>background</c> silently never reached the elements that
-    ///     take their planes as constructor arguments (progress, slider, button) - the
-    ///     reason those bars were built in code with hand-made <c>ColoredPlane</c>s.
+    ///     does: tag, then classes, then id, last hit winning. Matching that cascade here is
+    ///     what lets a class- or id-scoped <c>background</c> reach the elements that take
+    ///     their planes as constructor arguments (progress, slider, button).
     /// </summary>
     private static IStyleValue? GetStyleForNode(SundexNode node, string property, StyleSheet? styleSheet)
     {

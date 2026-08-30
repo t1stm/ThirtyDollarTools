@@ -214,8 +214,7 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
     {
         var plane = new ColoredPlane { Color = get() };
         // A flex row rather than the two absolute offsets the other rows use: the chip and
-        // the button have different heights, and centering them against each other beats
-        // hand-tuning a y per font size.
+        // the button have different heights, so they are centered against each other.
         var value = new FlexPanel(context)
         {
             Classes = ["inspector-color-row"],

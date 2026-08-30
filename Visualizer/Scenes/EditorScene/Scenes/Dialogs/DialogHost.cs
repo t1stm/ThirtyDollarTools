@@ -6,14 +6,14 @@ using Sundex.Components.Panels;
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     Wraps the root panel's modal add/remove pattern (ModalLayer only, never
-///     DropDownLabel - the standing rule for popups in this editor).
+///     Mounts and removes the editor's modals on the root panel. Popups here are always a
+///     ModalLayer, never a DropDownLabel.
 /// </summary>
 public sealed class DialogHost(UIContext context, Panel root)
 {
     /// <summary>
-    ///     The panel modals mount on - for components that manage their own
-    ///     hand-built ModalLayer (toggled open/closed, not wrapped fresh per <see cref="Show" />).
+    ///     The panel modals mount on, for components that own a hand-built ModalLayer they
+    ///     add and remove themselves rather than wrapping fresh per <see cref="Show" />.
     /// </summary>
     public Panel Root => root;
 
@@ -34,10 +34,10 @@ public sealed class DialogHost(UIContext context, Panel root)
         root.RemoveChild(modal);
     }
 
-    /// <summary>Whether any modal is mounted - the editor's keybinds stay out while one is.</summary>
+    /// <summary>Whether any modal is mounted; the editor's keybinds stay inactive while one is.</summary>
     public bool HasOpenModal => root.Children.OfType<ModalLayer>().Any();
 
-    /// <summary>Dismisses the topmost open modal, if any. Used so Escape closes a dialog instead of the editor.</summary>
+    /// <summary>Dismisses the topmost open modal, if any, so Escape closes a dialog instead of the editor.</summary>
     public bool TryCloseTop()
     {
         var modal = root.Children.OfType<ModalLayer>().LastOrDefault();
@@ -80,8 +80,8 @@ public sealed class DialogHost(UIContext context, Panel root)
     }
 
     /// <summary>
-    ///     One-button informational dialog - for surfacing failures that would
-    ///     otherwise be silent (e.g. a failed save), not for anything the user confirms.
+    ///     One-button informational dialog, for surfacing failures that would otherwise be
+    ///     silent (e.g. a failed save). Not for anything the user has to confirm.
     /// </summary>
     public void Alert(string message)
     {

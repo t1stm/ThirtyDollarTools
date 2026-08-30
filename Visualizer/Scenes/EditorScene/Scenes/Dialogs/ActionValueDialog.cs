@@ -8,12 +8,10 @@ using EditorScene.Scenes.Views;
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     The amount prompt an action with a value opens before it is inserted, exactly as the
-///     website prompts for one. Pure view - the owner parses the field and closes the modal.
-///     The tree is ActionValueDialog.snx.xml.
-///     <paramref name="current" /> is the slot's text when an existing item is being edited
-///     rather than a new one inserted - the site's right-click-to-edit, which fills its form
-///     from the slot instead of from the default.
+///     Prompts for an action's value before the action is inserted. Pure view - the owner
+///     parses the field and closes the modal. The tree is ActionValueDialog.snx.xml; a
+///     non-null <c>current</c> edits an existing item, prefilling the field from it instead
+///     of from the action's default.
 /// </summary>
 public sealed class ActionValueDialog
 {

@@ -6,11 +6,9 @@ namespace Sundex.MSDF.Distance;
 ///     Measures the signed distance from a point to a whole shape, by walking every edge of every
 ///     contour into one selector and asking it for the answer.
 ///     <para>
-///         Both the edge cache and the selectors are members, so a finder is created once and
-///         reused for every pixel of a glyph. That is not only about allocation: each pixel's
-///         search opens with the previous pixel's bound, and it is that bound which lets most
-///         edges be rejected untouched. A finder used for one pixel and thrown away starts every
-///         search from infinity and evaluates every edge of the glyph.
+///         Both the edge cache and the selectors are members, so one finder is reused for every
+///         pixel of a glyph: each pixel's search opens with the previous pixel's bound, and it is
+///         that bound which lets most edges be rejected untouched.
 ///     </para>
 ///     <para>
 ///         ponytail: one selector takes all contours together, which is only exact where a

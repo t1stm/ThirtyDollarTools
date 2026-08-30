@@ -9,9 +9,8 @@ public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
     /// <summary>
     ///     Widens an event so pan/offset can be written onto it - see
     ///     <c>Sequence.ProcessDefines</c>, which does that to every event of a "#define".
-    ///     <see cref="BaseEvent.WorkingValue" /> comes along: it is what "!stop" counts down
-    ///     and "!loopmany" spends, so leaving it at 0 made both silently do nothing inside a
-    ///     define.
+    ///     <see cref="BaseEvent.WorkingValue" /> is carried over: it is what "!stop" counts down
+    ///     and "!loopmany" spends, and both silently do nothing inside a define without it.
     /// </summary>
     public ExtendedEvent(BaseEvent baseEvent)
     {

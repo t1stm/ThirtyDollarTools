@@ -39,8 +39,8 @@ public class HomeInterfaceMoaiTests
     }
 
     /// <summary>
-    ///     The arrival used to stop the sweep and hide the playhead, which left the screen
-    ///     with nothing moving on it at all. It now drops to the idle loop instead.
+    ///     The arrival drops the sweep into its idle loop rather than stopping it and hiding
+    ///     the playhead, so the screen still has something moving on it afterwards.
     /// </summary>
     [Fact]
     public void AfterTheArrivalLands_TheBandKeepsBeingRead()
@@ -110,9 +110,9 @@ public class HomeInterfaceMoaiTests
     }
 
     /// <summary>
-    ///     The moai draws through TexturedPlane, whose shader used to ignore Color entirely -
-    ///     the head would have punched through the loading screen's hand-off at full opacity
-    ///     while every other element on the screen was still fading up.
+    ///     The moai draws through TexturedPlane, whose shader has to honour Color, or the head
+    ///     sits at full opacity through the loading screen's hand-off while every other element
+    ///     is still fading up.
     /// </summary>
     [Fact]
     public async Task TheEntranceFade_ReachesTheMoai()

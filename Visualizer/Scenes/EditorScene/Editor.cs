@@ -43,8 +43,8 @@ public class Editor : Scene, IFadeInScene
         _editorInterface = BuildInterface(_context);
         _editorInterface.Resize(clientSize.X, clientSize.Y);
 
-        // Last: a sequence puts up the same import dialog a drop does, which needs the
-        // interface laid out to have somewhere to go.
+        // Last: a sequence raises the same import dialog a drop does, and that needs the
+        // interface already laid out to attach to.
         if (initialFile != null) FileDrop([initialFile]);
     }
 
@@ -68,19 +68,17 @@ public class Editor : Scene, IFadeInScene
     }
 
     /// <summary>
-    ///     Rebuilds the whole editor from its markup. This is the expensive reload - the
-    ///     editor's tree is the largest in the program and its logic blocks recompile when
-    ///     their scripts change - and it starts from a blank <c>EditorState</c>: whatever
-    ///     project was open is gone, because the state lives inside the interface being
-    ///     replaced. Editing a stylesheet takes <see cref="ReloadStyles" /> instead, which
-    ///     keeps all of it.
+    ///     Rebuilds the whole editor from its markup, recompiling the logic blocks whose
+    ///     scripts changed. Starts from a blank <c>EditorState</c>, so any open project is
+    ///     lost - the state lives inside the interface being replaced. Stylesheet edits go
+    ///     through <see cref="ReloadStyles" />, which keeps everything.
     /// </summary>
     public override void ReloadUI()
     {
         var context = NewContext();
 
-        // Stopped before the tree that owns it is dropped: playback holds audio channels
-        // that nothing would be left to stop afterwards.
+        // Stop before dropping the tree that owns it: nothing would be left to release
+        // playback's audio channels afterwards.
         _editorInterface.Playback.Stop();
 
         var ui = BuildInterface(context);
@@ -177,8 +175,8 @@ public class Editor : Scene, IFadeInScene
             return;
         }
 
-        // Only the first sequence file of a multi-drop is handled, matching the
-        // FirstOrDefault behavior above. Batch import is out of scope.
+        // Only the first sequence file of a multi-drop is imported; batch import is out
+        // of scope.
         var sequence = locations.FirstOrDefault(l =>
             l.EndsWith(".tdw", StringComparison.OrdinalIgnoreCase) ||
             l.EndsWith(".🗿", StringComparison.OrdinalIgnoreCase) ||
@@ -235,23 +233,22 @@ public class Editor : Scene, IFadeInScene
             return;
         }
 
-        // A dialog is modal: its own focused inputs already ate what they wanted above, and
-        // everything else must not reach the editor behind it - typing a path into the file
-        // dialog was toggling Mute and resetting the transport. Escape stays ahead of this.
+        // A dialog is modal: its focused inputs already took what they wanted above, and
+        // nothing else may reach the editor behind it. Escape stays ahead of this.
         if (_editorInterface.HasOpenModal) return;
 
-        // A focused TextInput deliberately lets modified combos fall through (see
-        // TextInput.HandleKeyDown) - a future TextInput copy/paste must not fight the
-        // editor clipboard, so the clipboard binds skip while one is focused.
+        // A focused TextInput lets modified combos fall through (see
+        // TextInput.HandleKeyDown), so the clipboard binds skip while one is focused
+        // rather than fighting the field's own editing keys.
         var textFocused = _context.FocusedElement is Sundex.Components.Inputs.TextInput;
 
         // The event's own modifier set, not last frame's: Mouse() refreshes these once a
-        // frame, and a Ctrl+Arrow can arrive in the same frame the Ctrl went down - which
-        // would read as a plain arrow to whoever asks (the faithful sequence does).
+        // frame, so a Ctrl+Arrow arriving in the same frame as the Ctrl press would read as
+        // a plain arrow to whoever asks (the faithful sequence does).
         _editorInterface.SetModifiers((e.Modifiers & KeyModifiers.Shift) != 0, Keybinds.PrimaryHeld(e));
 
-        // Ctrl+D stays free for a future "duplicate selection": the Draw tool's plain D is
-        // an exact-modifier match, so it no longer needs a guard saying so.
+        // The Draw tool's plain D is an exact-modifier match, so Ctrl+D stays free for a
+        // future "duplicate selection".
         switch (Keybinds.Match(e, BindScene.Editor))
         {
             case Bind.EditorUndo:

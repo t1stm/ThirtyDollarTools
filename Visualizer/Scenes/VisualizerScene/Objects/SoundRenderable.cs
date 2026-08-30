@@ -142,13 +142,13 @@ public sealed class SoundRenderable : Renderable
 
     /// <param name="scale">
     ///     Height against the played bounce: 1 is what the playhead does, a fraction is a
-    ///     smaller hop, and a negative one dips instead. Kept as state so a re-layout mid
-    ///     bounce (which rewrites <see cref="Scale" />, and with it the bounce's height)
-    ///     doesn't flip the hop back to a full upward one.
+    ///     smaller hop, and a negative one dips instead. Stored as state, so a re-layout
+    ///     mid-bounce - which rewrites <see cref="Scale" />, and with it the bounce's height -
+    ///     keeps the current hop's size.
     /// </param>
     /// <param name="lengthMs">
-    ///     How long the hop takes. The default is what a played slot does; a shorter one reads
-    ///     as feedback on an edit rather than as "this played".
+    ///     How long the hop takes, in milliseconds. The default is what a played slot does; a
+    ///     shorter one reads as feedback on an edit rather than as playback.
     /// </param>
     public void Bounce(float scale = 1f, int lengthMs = BounceAnimation.DefaultLengthMs)
     {

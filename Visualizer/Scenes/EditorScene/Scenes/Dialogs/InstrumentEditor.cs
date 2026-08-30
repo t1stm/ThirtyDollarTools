@@ -11,10 +11,9 @@ namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     Create-or-edit form for one instrument: a name field and a multi-select sound picker
-///     (the same picker construction as the track-automation sound filter), with per-sound
-///     value/volume/pan adjustment turned on (see <see cref="SoundPicker.ShowAdjustments" />).
-///     Pure form - the owner loads/commits the name and <see cref="SoundPicker.Instances" />,
-///     and shows/hides the modal.
+///     with per-sound value/volume/pan adjustment turned on
+///     (see <see cref="SoundPicker.ShowAdjustments" />). Pure form - the owner loads and
+///     commits the name and <see cref="SoundPicker.Instances" />, and shows/hides the modal.
 /// </summary>
 public sealed class InstrumentEditor : FlexPanel
 {
@@ -26,8 +25,8 @@ public sealed class InstrumentEditor : FlexPanel
         PreviewButton = new Button(context, "Preview") { Classes = ["editor-action-button"] };
 
         NameInput = new TextInput(context) { ID = "instrument-name-input" };
-        // Percent-width spacer soaks up the free space so Preview lands flush against
-        // the right edge - this framework has no space-between align.
+        // Percent-width spacer soaks up the free space so Preview lands flush against the
+        // right edge; this framework has no space-between align.
         var nameRowSpacer = new Panel(context) { Classes = ["spacer"] };
         var nameRow = new FlexPanel(context)
         {
@@ -59,14 +58,14 @@ public sealed class InstrumentEditor : FlexPanel
     public SoundPicker SoundsPicker { get; }
     public Button DoneButton { get; }
 
-    /// <summary>Fills the sound grid on first use - lazily, same guard as the other pickers.</summary>
+    /// <summary>Fills the sound grid on first use; a no-op once the picker holds icons.</summary>
     public void EnsureSounds(IEnumerable<Sound> sounds)
     {
         if (SoundsPicker.HasSounds) return;
         SoundsPicker.Fill(sounds);
     }
 
-    /// <summary>Pre-loads the form; call with an empty name/selection to start a fresh instrument.</summary>
+    /// <summary>Pre-loads the form; pass an empty name and selection to start a fresh instrument.</summary>
     public void Load(string name, IEnumerable<InstrumentSound> sounds)
     {
         NameInput.Value = name;

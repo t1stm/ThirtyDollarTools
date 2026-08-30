@@ -20,13 +20,8 @@ public class StyleSheetAnimationTests
         var keyframe = new Keyframe { Opacity = 1, LengthMs = 100 };
         var animation = new KeyframedAnimation(new List<Keyframe> { keyframe });
 
-        // We can't easily populate holder.Animations and call ParseAnimations because it's complex.
-        // But we can create the StyleSheet and then inject into ComputedAnimations if needed, 
-        // OR we can mock the holder.
-
-        // Let's use the actual StyleSheet constructor but we need to satisfy holder.Animations 
-        // if we want it to parse properly, or just use reflection/internal to inject.
-        // Actually, ComputedAnimations is public getter.
+        // ComputedAnimations is settable, so the animation goes in directly rather than
+        // through holder.Animations and the parse pass.
 
         var styleSheet = new StyleSheet(holder)
         {

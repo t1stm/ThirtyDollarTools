@@ -218,8 +218,8 @@ public class EditorInterface
         Keybinds.Changed += () => SetHint(null);
 
         // Both panels are in the markup so one pass resolves their handles; only the
-        // current one stays attached. Detached before the first DrawTo so the note editor
-        // is never drawn without an opened track, exactly as when it was code-built.
+        // current one stays attached. Detached before the first DrawTo, so the note editor
+        // is never drawn without an opened track.
         _gridArea.RemoveChild(TrackEditorPanel);
         _gridArea.RemoveChild(FaithfulPanel);
         RootPanel.RemoveChild(SoundFilterModal);
@@ -247,8 +247,7 @@ public class EditorInterface
 
         _instrumentWorkflow = new InstrumentWorkflow(context, State, Playback, _dialogHost, workflow.AtlasStore,
             AllSounds);
-        // Straight into the editor - the palette IS the instrument list, so routing through
-        // the selector would only ask the user to press "New instrument" a second time.
+        // The palette's "modify instruments" entry opens the instrument selector.
         _faithfulPalette.OnModifyInstruments = () => _instrumentWorkflow.OpenSelector();
 
         // The shell is already in the tree (root markup); this only drives it.
@@ -490,10 +489,8 @@ public class EditorInterface
         if (track != null) (next == FaithfulPanel ? FaithfulTrackName : OpenedTrackName).Value = track.Name;
         if (next == _openPanel)
         {
-            // Same panel, another track: the note editor reads the opened track every layout,
-            // but the sequence caches its expanded stream, so switching faithful-to-faithful
-            // left the old track's slots on screen while everything else (playback, the
-            // inspector, the bounces) had already moved on.
+            // Same panel, another track: the note editor re-reads the opened track on every
+            // layout, but the sequence caches its expanded stream and has to be told.
             if (next == FaithfulPanel) _faithfulSequence.Refresh();
             return;
         }
@@ -595,9 +592,9 @@ public class EditorInterface
 
     /// <summary>
     ///     How much of an instrument's name the tool bar's button shows. The button is the
-    ///     bar's only auto-width child, so its label is the one thing that can still grow the
-    ///     bar without bound - an untruncated name pushed the Draw/Select toggles over the
-    ///     inspector at any window size. The full name is in the selector this button opens.
+    ///     bar's only auto-width child, so an untruncated name grows the bar without bound and
+    ///     pushes the Draw/Select toggles over the inspector. The full name is in the selector
+    ///     this button opens.
     /// </summary>
     private const int InstrumentNameLimit = 14;
 
@@ -630,9 +627,8 @@ public class EditorInterface
     /// <summary>
     ///     Breaks the current hint across as many of the bar's lines as it needs, and sizes
     ///     the bar (and the grid area above it) to match. A Label neither wraps nor clips, so
-    ///     a legend wider than the bar painted straight across the inspector column and off
-    ///     the window - at 1080 that lost about 60% of the faithful legend, which is the only
-    ///     place several of its gestures are written down.
+    ///     without this a legend wider than the bar paints across the inspector column and off
+    ///     the window.
     /// </summary>
     private void LayoutHint()
     {
@@ -669,13 +665,11 @@ public class EditorInterface
     /// <summary>
     ///     How many characters of hint fit on one of the bar's lines.
     ///     <para>
-    ///         ponytail: derived from the legend's average glyph advance - measured once, off
-    ///         the whole string - rather than by measuring each candidate line. A Label
-    ///         remeasures by rebuilding its glyph buffer and the hint changes on every hover,
-    ///         so a per-word measure would be dozens of buffer rebuilds per pointer move. The
-    ///         average is a few percent off on a line of unusually wide glyphs, which
-    ///         <see cref="HintFitMargin" /> absorbs; measure per line if a legend ever has to
-    ///         sit exactly flush.
+    ///         ponytail: derived from the legend's average glyph advance, measured once off the
+    ///         whole string, because a Label remeasures by rebuilding its glyph buffer and the
+    ///         hint changes on every hover. The average runs narrow on a line of unusually wide
+    ///         glyphs, which <see cref="HintFitMargin" /> absorbs; measure per line if a legend
+    ///         ever has to sit exactly flush.
     ///     </para>
     /// </summary>
     private int HintBudget()
@@ -694,9 +688,8 @@ public class EditorInterface
     /// <summary>
     ///     Greedily breaks <paramref name="text" /> into at most <paramref name="maxLines" />
     ///     lines of at most <paramref name="budget" /> characters, never inside a word. The
-    ///     last line takes whatever is left, over budget included - losing the tail of a
-    ///     legend is what this whole fix is about. Internal for
-    ///     <c>MinResolutionLayoutTests</c>.
+    ///     last line takes whatever is left, over budget included, so the tail of a legend is
+    ///     never dropped. Internal for <c>MinResolutionLayoutTests</c>.
     /// </summary>
     internal static List<string> WrapHint(string text, int budget, int maxLines)
     {
@@ -1018,14 +1011,11 @@ public class EditorInterface
     }
 
     /// <summary>
-    ///     Arrow-key nudge, routed to whichever view is showing: whole steps and values in
-    ///     an opened track, the snap grid and whole channels in the arrangement. Up is a
-    ///     lower channel index - the arrangement draws channel 0 at the top.
-    /// </summary>
-    /// <summary>
-    ///     The arrow keys, routed to whichever view is open. A faithful track has no grid to
-    ///     nudge a note across, so there the arrows walk and adjust the selection instead -
-    ///     see <see cref="FaithfulSequence.Nudge" />.
+    ///     Arrow-key nudge, routed to whichever view is open: whole steps and values in an
+    ///     opened piano-roll track, the snap grid and whole channels in the arrangement (up is
+    ///     a lower channel index - the arrangement draws channel 0 at the top). A faithful
+    ///     track has no grid to nudge a note across, so there the arrows walk and adjust the
+    ///     selection instead - see <see cref="FaithfulSequence.Nudge" />.
     /// </summary>
     public void NudgeSelection(int dx, int dy)
     {
@@ -1065,9 +1055,8 @@ public class EditorInterface
         _faithfulPalette.Rebuild();
         if (_openPanel == FaithfulPanel) _faithfulSequence.Refresh();
 
-        // Only while it is the view being shown. A clip's width is its track's duration, and
-        // for a faithful track that is a walk of the whole sequence - ~20 ms on an imported
-        // cover, spent on a panel that isn't on screen, for every edit. SwapGridView already
+        // Only while it is the view being shown: a clip's width is its track's duration, and
+        // for a faithful track working that out walks the whole sequence. SwapGridView
         // refreshes it on the way back in.
         if (_openPanel is null) _arrangement.Refresh();
         _trackEditor.InvalidateLayout();
@@ -1078,11 +1067,11 @@ public class EditorInterface
         // otherwise only relayouts from ArrangementView.OnScrolled. DrawTo (not just
         // Layout): a row whose Visible flips true here needs its DrawSelf to run at
         // least once to ever get QueueRender'd - see Resize()'s identical comment.
-        // Only while the arrangement is actually attached to _gridArea, though - the
-        // note editor detaches it (SwapGridView), and DrawTo queues renders regardless
-        // of tree attachment, so calling this unconditionally painted orphaned M/S
-        // buttons over the note editor. Reopening the arrangement redraws it anyway,
-        // via AddChild's own Drawn-aware DrawTo.
+        // Only while the arrangement is attached to _gridArea, though: the note editor
+        // detaches it (SwapGridView) and DrawTo queues renders regardless of tree
+        // attachment, so doing it unconditionally paints orphaned M/S buttons over the
+        // note editor. Reopening the arrangement redraws it via AddChild's own
+        // Drawn-aware DrawTo.
         if (_openPanel is null)
         {
             _laneHeader.InvalidateLayout();
@@ -1098,10 +1087,9 @@ public class EditorInterface
 
     public void Resize(float width, float height)
     {
-        // The window remainder isn't expressible in the stylesheet (no calc()),
-        // so the body regions are sized here. The transport controls dock inside the
-        // track column now (see the constructor), so no separate footer band to
-        // subtract from the grid/inspector columns.
+        // The window remainder isn't expressible in the stylesheet (no calc()), so the body
+        // regions are sized here. The transport controls dock inside the track column, so
+        // there is no footer band to subtract from the grid/inspector columns.
         // The hint bar only spans the grid area - the track column and inspector run
         // full height beside it.
         var gridWidth = width - TrackColumnWidth - InspectorPanel.PanelWidth;

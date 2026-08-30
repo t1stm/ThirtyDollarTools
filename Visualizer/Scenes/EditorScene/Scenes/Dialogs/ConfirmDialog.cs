@@ -8,13 +8,13 @@ namespace EditorScene.Scenes.Dialogs;
 /// <summary>
 ///     A generic yes/no confirmation form (ModalLayer content) for destructive actions.
 ///     Pure view - the owner decides what "confirm" does and closes the modal itself.
-///     The tree is ConfirmDialog.snx.xml; the three caller-supplied bits are applied here.
+///     The tree is ConfirmDialog.snx.xml; the caller-supplied text and class are applied here.
 /// </summary>
 public sealed class ConfirmDialog
 {
     /// <param name="confirmClass">
-    ///     The confirm button's fill, as one of Controls.snx.ss's dialog-button classes -
-    ///     destructive red by default, but the import flows confirm with the accent.
+    ///     The confirm button's fill, as one of Controls.snx.ss's dialog-button classes;
+    ///     destructive red by default.
     /// </param>
     public ConfirmDialog(UIContext context, string message, string confirmLabel = "Delete",
         string confirmClass = "dialog-button-danger")

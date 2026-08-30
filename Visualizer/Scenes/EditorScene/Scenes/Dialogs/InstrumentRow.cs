@@ -40,15 +40,10 @@ public sealed class InstrumentRow : FlexPanel
             Label = { Classes = ["dark-label"] }
         };
 
-        // The name soaks up the free space itself so Edit/Delete land flush against the
-        // row's right edge (this framework has no space-between align) - and a long name
-        // can no longer push them out of the row, since a percent width ignores the text's
-        // own measured size. Overflowing text is clipped in ApplyClip below.
-        //
-        // The width has to be re-set after the style pass, not just declared on a class:
-        // Label's FontSizePx setter rewrites Width to the measured text, and the sheet
-        // applies font-size and width in reflection order - so a class holding both could
-        // land the wrong way round. See the ApplyStyleSheet override below.
+        // The name takes a percent width rather than its measured one, so it soaks up the
+        // free space (this framework has no space-between align) and a long name can never
+        // push Edit/Delete out of the row. Overflowing text is clipped in ApplyClip, and the
+        // width itself is applied in ApplyStyleSheet, both below.
         _name = new Label(context, instrument.Name) { Classes = ["body-label"] };
 
         Children = [_name, edit, delete];
@@ -57,9 +52,8 @@ public sealed class InstrumentRow : FlexPanel
     public Instrument Instrument { get; }
 
     /// <summary>
-    ///     Re-claims the name's full width after styling. Applying <c>font-size</c> makes
-    ///     Label remeasure and overwrite its own Width, and the sheet sets properties in
-    ///     reflection order - so this can't just be a <c>width</c> on the label's class.
+    ///     Re-claims the name's full width after styling. Label's <c>font-size</c> setter
+    ///     rewrites Width to the measured text, so the width cannot come from the sheet.
     /// </summary>
     public override void ApplyStyleSheet(StyleSheet styleSheet)
     {
@@ -67,7 +61,7 @@ public sealed class InstrumentRow : FlexPanel
         _name.Width = LiteralOrComputable.Percent(100);
     }
 
-    /// <summary>Cuts the name off at its own box so a long one never paints over Edit/Delete.</summary>
+    /// <summary>Clips the name to its own box so a long one never paints over Edit/Delete.</summary>
     public override void ApplyClip(Vector4i? clip)
     {
         base.ApplyClip(clip);

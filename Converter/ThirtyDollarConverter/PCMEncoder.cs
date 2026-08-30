@@ -63,10 +63,9 @@ public class PcmEncoder
     /// </summary>
     /// <param name="sequences">The sequences you want to encode.</param>
     /// <param name="existingProcessedEvents">
-    ///     Already resampled sounds from a previous render to reuse. Resampling dominates a
-    ///     cold render when a project uses many distinct pitches, and a full re-render of an
-    ///     edited project reuses nearly all of them - only the edited sound is ever new.
-    ///     Unused entries are pruned so the cache can't grow without bound.
+    ///     Already resampled sounds from a previous render to reuse, so a re-render only
+    ///     resamples the sounds an edit actually changed. Unused entries are pruned, so the
+    ///     cache can't grow without bound.
     /// </param>
     /// <returns>A RenderedSequence object that stores the encoded audio and metadata.</returns>
     public async Task<RenderedSequence> GetMultipleSequencesAudio(IEnumerable<Sequence> sequences,
@@ -118,11 +117,10 @@ public class PcmEncoder
     ///     <para>
     ///         That range is <c>[first changed placement, last changed placement + biggestEventLength)</c>:
     ///         a sound reaches at most <c>biggestEventLength</c> past where it starts, and a cut can
-    ///         only silence sounds that started before it - so no edit is audible more than one
-    ///         biggest-sample beyond the last placement it changed. <see cref="ProcessChunk" /> already
-    ///         looks that far back when picking the placements for a slice, so replaying the range
-    ///         reproduces exactly what a full render would put there, cuts included - which is why a
-    ///         cut in the diff is an ordinary edit here rather than a reason to re-render everything.
+    ///         only silence sounds that started before it, so no edit is audible further out.
+    ///         <see cref="ProcessChunk" /> looks that far back when picking the placements for a
+    ///         slice, so replaying the range reproduces what a full render would put there, cuts
+    ///         included - a cut in the diff is an ordinary edit here.
     ///     </para>
     ///     Falls back to a full render when the render's length changes, since that moves the chunk
     ///     grid the untouched audio was rendered against (see <see cref="ChunkBoundaries" />).
@@ -176,9 +174,8 @@ public class PcmEncoder
         // Prune before measuring, not after: a full render sizes itself off the samples its own
         // placements use, so an edit that drops the longest sound has to shorten the render with
         // it - otherwise the length check below sees no change and keeps a buffer a full render
-        // would never have produced. Nothing here reads the old samples, so this is safe to do
-        // up front (the subtract-based renderer this replaced couldn't - it needed them to
-        // subtract with).
+        // would never have produced. Nothing below reads the old samples, so pruning up front is
+        // safe.
         RemoveUnusedAudioSamples(final_sounds, final_timed_events);
 
         var big_event = final_sounds.Values.MaxBy(e => e.AudioData.GetLength());
@@ -420,13 +417,12 @@ public class PcmEncoder
     ///     mixer untouched. Used by <see cref="ComputeIncrementalAudio" /> to replay only the range
     ///     an edit can be heard in.
     ///     <para>
-    ///         The wanted range is never handed to <see cref="ProcessChunk" /> as its slice, even though
-    ///         it takes a start and an end: those bounds are the chunk grid a full render uses, and they
-    ///         are audible. <see cref="SampleMixer.HandleCut" />'s search for silence stops at the end of the slice it
-    ///         is given, so a cut rendered inside one wide slice - or inside a slice that starts partway
-    ///         through a chunk - zeroes a different number of samples than the same cut in a full render.
-    ///         Re-rendering whole chunks of the same grid instead keeps the output bit-identical, which is
-    ///         the property the incremental path is built on.
+    ///         The wanted range is never handed to <see cref="ProcessChunk" /> as its slice, even
+    ///         though it takes a start and an end: those bounds are audible in their own right.
+    ///         <see cref="SampleMixer.HandleCut" />'s search for silence stops at the end of the slice
+    ///         it is given, so a cut rendered inside one wide slice - or inside a slice that starts
+    ///         partway through a chunk - zeroes a different number of samples than the same cut in a
+    ///         full render. Re-rendering whole chunks of the same grid keeps the output bit-identical.
     ///     </para>
     /// </summary>
     /// <param name="mixer">The mixer to render into. Its range must already be cleared.</param>

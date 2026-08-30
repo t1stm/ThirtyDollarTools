@@ -84,11 +84,10 @@ public sealed class LaneHeader : Panel
     }
 
     /// <summary>
-    ///     Confines the toggles to the lane strip. The gutter spans the arrangement's full
-    ///     height, but <c>Visible</c> above only culls whole rows: one straddling an edge
-    ///     stayed shown and its 24px buttons hung past the panel - over the hint bar below
-    ///     the grid, or up beside the ruler's bar numbers. Nothing cut them off, because
-    ///     this panel never applied a clip rect at all.
+    ///     Confines the toggles to the lane strip below the ruler. The gutter spans the
+    ///     arrangement's full height and <see cref="DoLayout" />'s <c>Visible</c> check only
+    ///     culls whole rows, so a row straddling an edge needs this scissor to keep its 24px
+    ///     buttons off the hint bar below the grid and the ruler's bar numbers above it.
     /// </summary>
     public override void ApplyClip(Vector4i? clip)
     {

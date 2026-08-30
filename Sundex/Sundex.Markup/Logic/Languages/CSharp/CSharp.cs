@@ -10,16 +10,15 @@ namespace Sundex.Markup.Logic.Languages.CSharp;
 
 public class CSharp : SundexScript
 {
-    // Roslyn compilation is the only genuinely expensive step in building a component
-    // (~85ms warm, ~1.1s on first use) and dwarfs everything else by two orders of
-    // magnitude. The compiled Script is immutable and takes its globals per run, so one
-    // instance serves every component built from the same source - which is what makes a
-    // sub-component usable at many usage sites without paying the compile each time.
+    // Compiled scripts, keyed by imports plus source. Roslyn compilation is by far the
+    // most expensive step in building a component; the compiled Script is immutable and
+    // takes its globals per run, so one instance serves every component built from the
+    // same source and a sub-component compiles once across all its usage sites.
     //
     // Lazy rather than a bare Script: the loading screen precompiles these on a worker
     // (see SundexContext.PrecompileLogic) while the render thread may reach the same
     // source first. Whoever gets there second blocks on the compile already running
-    // instead of starting a second one and throwing ~85ms away.
+    // instead of starting a second one.
     // ponytail: keyed on source+imports only, so two contexts with different asset
     // assemblies would share a script. Add the assembly set to the key if that ever
     // becomes real; today AssetAssemblies is process-wide.
@@ -74,9 +73,9 @@ public class CSharp : SundexScript
 
         var script = CSharpScript.Create(sourceCode, options, typeof(ScriptGlobals));
 
-        // Compile() reports errors, it does not raise them - without this a script that
-        // does not build is silent until the first time it runs, which for a scene's
-        // wiring means "when the scene is opened", long after the build that broke it.
+        // Compile() reports errors rather than raising them, so surface them here: an
+        // unchecked script stays silent until its first run, which for a scene's wiring
+        // means when the scene is opened.
         var diagnostics = script.Compile();
         if (diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
             throw new CompilationErrorException(

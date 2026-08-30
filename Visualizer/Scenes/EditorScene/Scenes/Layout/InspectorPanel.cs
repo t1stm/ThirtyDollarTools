@@ -328,11 +328,10 @@ public sealed class InspectorPanel
     /// <summary>
     ///     Uniform means all null, or all non-null and structurally equal
     ///     (<see cref="AudioKeyframeManager.ValueEquals" />). All-null offers "+ Add
-    ///     automation" (a separate manager instance per note, matching
-    ///     <see cref="Note.Duplicate" />'s never-shared semantics). Uniform renders the
-    ///     full form bound to the primary note; every commit clone-fans-out to the rest
-    ///     (simpler and safer than mirroring individual field writes - the managers are
-    ///     tiny). Mixed shows one disabled info row.
+    ///     automation", giving each note its own manager instance - never shared, matching
+    ///     <see cref="Note.Duplicate" />. Uniform renders the full form bound to the primary
+    ///     note and clones it out to the rest on every commit. Mixed shows one disabled
+    ///     info row.
     /// </summary>
     private void MultiAutomationSection(IReadOnlyList<Note> notes, Note primary)
     {
@@ -409,10 +408,9 @@ public sealed class InspectorPanel
     }
 
     /// <summary>
-    ///     Phase-6 form for <see cref="Note.Automation" />: each keyframe fires one
-    ///     generated event, its gap after the previous one, modifying the previous
-    ///     result. Structural edits (add/remove) rebuild; field edits sync like every
-    ///     other row.
+    ///     Form for <see cref="Note.Automation" />: each keyframe fires one generated event,
+    ///     its gap after the previous one, modifying the previous result. Structural edits
+    ///     (add/remove) rebuild; field edits sync like every other row.
     /// </summary>
     private void AutomationSection(Note note)
     {
@@ -430,8 +428,8 @@ public sealed class InspectorPanel
     }
 
     /// <summary>
-    ///     Phase-6-esque form for a whole track: any number of automations, each with its
-    ///     own sound filter (null = every sound), instead of one note's single nullable
+    ///     The same form for a whole track: any number of automations, each with its own
+    ///     sound filter (null = every sound), instead of one note's single nullable
     ///     <see cref="Note.Automation" />. Shares <see cref="KeyframeBlocks" /> with
     ///     <see cref="AutomationSection" /> for the gap/repeats/keyframe rows.
     /// </summary>
@@ -520,8 +518,7 @@ public sealed class InspectorPanel
                         {
                             keyframe.CutOnly = v;
                             // No note is placed, so the modifiers have nothing to modify:
-                            // their rows go away and the values reset, instead of lying
-                            // dormant and reappearing the moment Cut Only is cleared.
+                            // their rows go away and the values reset.
                             if (v) keyframe.Value = keyframe.Volume = keyframe.Pan = keyframe.Offset = default;
                             afterEdit?.Invoke();
                         })),

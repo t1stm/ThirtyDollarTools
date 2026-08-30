@@ -6,9 +6,8 @@ using ThirtyDollarConverter.Parser;
 namespace ThirtyDollarConverter.Benchmarks;
 
 /// <summary>
-///     What an edit costs before a single sample is rendered. Once the re-rendered range is down
-///     to a couple of chunks these dominate, which is why range-overwrite lands closer to a warm
-///     full render than the size of its dirty range suggests. Measured on the same project the
+///     What an edit costs before a single sample is rendered - the floor an incremental render
+///     can't go below, whatever its dirty range shrinks to. Measured on the same project the
 ///     editor benchmarks use.
 /// </summary>
 [MemoryDiagnoser(false)]
@@ -51,8 +50,7 @@ public class FixedCostBenchmarks
     }
 
     /// <summary>
-    ///     Summing every track into the final buffer. Runs over the whole song on every
-    ///     edit, in both incremental implementations.
+    ///     Summing every track into the final buffer. Runs over the whole song on every edit.
     /// </summary>
     [Benchmark]
     public int MixDown()

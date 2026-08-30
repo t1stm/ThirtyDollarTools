@@ -1,8 +1,8 @@
 namespace EditorScene;
 
 /// <summary>
-///     Undo/redo stacks, lifted verbatim out of <see cref="EditorState" />. Depends on
-///     nothing; <see cref="EditorState" /> owns the follow-up (selection clear, Touch()).
+///     Undo/redo stacks of paired actions. Running a command here does nothing else -
+///     <see cref="EditorState" /> owns the follow-up (selection clear, Touch()).
 /// </summary>
 public sealed class UndoHistory
 {
@@ -14,8 +14,8 @@ public sealed class UndoHistory
     public bool CanRedo => _redoStack.Count > 0;
 
     /// <summary>
-    ///     Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement
-    ///     calls on the same object (one drag, many frames) collapses into a single undo step.
+    ///     Marks the start of a new drag gesture, so a run of MoveNote/MovePlacement calls
+    ///     on the same object across the drag's frames collapses into a single undo step.
     /// </summary>
     public void BeginGesture()
     {
@@ -43,7 +43,7 @@ public sealed class UndoHistory
         _redoStack.Clear();
     }
 
-    /// <summary>Returns whether anything ran, so the caller knows whether to follow up.</summary>
+    /// <summary>Pops and runs the last undo entry. Returns false when the stack is empty.</summary>
     public bool Undo()
     {
         if (_undoStack.Count == 0) return false;
@@ -54,7 +54,7 @@ public sealed class UndoHistory
         return true;
     }
 
-    /// <summary>Returns whether anything ran, so the caller knows whether to follow up.</summary>
+    /// <summary>Pops and runs the last undone entry. Returns false when the stack is empty.</summary>
     public bool Redo()
     {
         if (_redoStack.Count == 0) return false;

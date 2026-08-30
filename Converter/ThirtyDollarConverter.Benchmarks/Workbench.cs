@@ -31,15 +31,15 @@ public static class Workbench
         }
     }
 
-    /// <summary>The project the incremental renderer's cut handling actually chokes on.</summary>
+    /// <summary>The cut-heavy project the editor benchmarks run against.</summary>
     public static string EditorProjectPath =>
         Environment.GetEnvironmentVariable("TDW_PROJECT")
         ?? Path.Combine(RepoRoot, "Visualizer", "ThirtyDollarVisualizer", "bin", "Release", "net10.0",
             "amalgamam.tdwproj");
 
     /// <summary>
-    ///     Loads every TDW sample into memory once per process - a few seconds and a few
-    ///     hundred MB, so it must never happen inside a measured region.
+    ///     Loads every TDW sample into memory once per process. Far too expensive to happen
+    ///     inside a measured region.
     /// </summary>
     public static SampleHolder Samples()
     {

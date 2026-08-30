@@ -94,9 +94,8 @@ public class SeekableStopwatch : ISeekableStopwatch
         StartTime = delta_time;
 
         // Anchored whenever the clock is not accruing, so the wait between a seek and the
-        // start that follows it is not counted as elapsed time. A clock that has never run
-        // has no StopTime of its own, which is how a sought-then-started one used to come
-        // up reading however long it had been sitting there.
+        // start that follows it is not counted as elapsed time. Covers a clock that has
+        // never run, which has no StopTime of its own.
         if (!Running || StopTime != null) StopTime = current;
 
         Lock.Release();

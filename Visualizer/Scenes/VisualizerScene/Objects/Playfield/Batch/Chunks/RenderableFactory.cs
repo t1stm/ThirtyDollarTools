@@ -139,11 +139,9 @@ public class RenderableFactory(AtlasStore store)
     }
 
     /// <summary>
-    ///     The value badge's text ("+3", "-6", "/2", "100%" for !volume, ...), or null when
-    ///     it's suppressed (a zero value on a sound that doesn't always show one). Pulled out
-    ///     of <see cref="AssignTextBuffers" /> so anything that wants these exact conventions -
-    ///     e.g. the instrument editor's per-sound adjustment readout - can reuse them without
-    ///     owning a TextBuffer/SoundRenderable.
+    ///     The value badge's text ("+3", "-6", "/2", "100%" for !volume, ...), or null when it
+    ///     is suppressed (a zero value on a sound that doesn't always show one). Static, so a
+    ///     caller with no TextBuffer or SoundRenderable can use the same conventions.
     /// </summary>
     public static string? FormatValueText(BaseEvent baseEvent)
     {

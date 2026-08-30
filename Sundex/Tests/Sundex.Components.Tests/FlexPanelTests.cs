@@ -99,13 +99,8 @@ public class FlexPanelTests
 
         flex.Layout();
 
-        // Padding = 10.
-        // child1.AbsoluteX = parent.AbsoluteX + Padding + child1.X = 0 + 10 + 0 = 10.
-        // But FlexPanelTests.TestSpacingAndPadding checks child1.X.
-        // child1.X is relative to content origin (after padding).
-        // So child1.X should be 0.
-        // The test seems to expect child1.X to include padding?
-        // Let's check child1.AbsoluteX - flex.AbsoluteX.
+        // Padding = 10, so the first child's content origin sits 10 past the panel's own
+        // origin; the second follows a 20-wide child plus 5 of spacing.
 
         Assert.Equal(10, child1.Computed.AbsoluteX - flex.Computed.AbsoluteX);
         Assert.Equal(35, child2.Computed.AbsoluteX - flex.Computed.AbsoluteX);
@@ -170,11 +165,8 @@ public class FlexPanelTests
     [Fact]
     public void TestHorizontalLayout_Wrap_MeasureMatchesActualRowCountAcrossMultipleWraps()
     {
-        // Regression test: after the first wrap, Measure() used to keep treating the new
-        // line's first item as still-pending ("firstInLine = true"), so the *next* item
-        // silently replaced its width contribution instead of adding to it. That let every
-        // row past the first pack one extra item before wrapping, under-reporting the
-        // total height once there were enough rows for it to show (2+ wraps).
+        // Measure() must count the same rows the layout produces once there are two or more
+        // wraps, so the height it reports matches where the items actually land.
         var context = new TestUIContext();
         var flex = new FlexPanel(context)
         {
@@ -232,7 +224,7 @@ public class FlexPanelTests
     [Fact]
     public void TestVerticalLayout_Wrap_MeasureMatchesActualColumnCountAcrossMultipleWraps()
     {
-        // Same regression as the horizontal case, mirrored for columns.
+        // Same invariant as the horizontal case, mirrored for columns.
         var context = new TestUIContext();
         var flex = new FlexPanel(context)
         {

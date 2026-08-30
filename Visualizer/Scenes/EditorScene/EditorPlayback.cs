@@ -11,14 +11,12 @@ using ThirtyDollarConverter.Parser.Custom_Events;
 namespace EditorScene;
 
 /// <summary>
-///     Playback keeps one persistent render of the mute-filtered project (<see cref="_rendered" />),
-///     updated incrementally through PCMEncoder's native path - the same one
-///     <see cref="ExportWav" /> uses - on every model edit and mute toggle. Soloing renders
-///     a second, independent buffer (<see cref="_soloRendered" />) for just the soloed
-///     channels and plays that instead, while the full mix keeps getting updated underneath
-///     it (so unsoloing is an instant swap back, never a re-render). Unsoloing discards the
-///     solo buffer. Memory is bounded: one full buffer always, plus one solo buffer only
-///     while a channel is soloed - never O(track count).
+///     Owns the editor's audio session. Holds one persistent render of the mute-filtered
+///     project (<see cref="_rendered" />), updated incrementally through PcmEncoder on every
+///     model edit and mute toggle. While a channel is soloed a second buffer
+///     (<see cref="_soloRendered" />) holds just the soloed channels and plays instead, with
+///     the full mix still updated underneath it, so unsoloing swaps back without a
+///     re-render and discards the solo buffer.
 /// </summary>
 public class EditorPlayback
 {
@@ -83,10 +81,10 @@ public class EditorPlayback
 
     /// <summary>
     ///     What the encoder is currently doing, for the inspector's status bar; null = idle.
-    ///     Written on background render/export threads, read once a frame on the update thread -
-    ///     plain field, no lock (see EditorPlayback's class doc for the polling rationale).
+    ///     Written on background render/export threads and read once a frame on the update
+    ///     thread - a plain field, no lock, since the reader only polls it.
     ///     // ponytail: single status slot; per-operation lanes if concurrent encodes (a re-render
-    ///     racing an export, both on the same Encoder) ever need to show independent progress.
+    ///     racing an export, both on the same Encoder) ever need independent progress.
     /// </summary>
     public string? StatusLabel { get; private set; }
 
@@ -346,11 +344,10 @@ public class EditorPlayback
     }
 
     /// <summary>
-    ///     Re-renders the mute-filtered full mix, and - while any channel is soloed - the
-    ///     solo mix alongside it, then plays whichever is active. Model edits and mute
-    ///     toggles keep the full mix's incremental diff cheap; a solo toggle's diff is
-    ///     against the solo buffer, never the full one, and turning solo off entirely just
-    ///     swaps playback back to the (already up to date) full buffer with no re-render.
+    ///     Re-renders the mute-filtered full mix, plus the solo mix while any channel is
+    ///     soloed, then plays whichever is active. Each mix diffs against its own previous
+    ///     buffer; turning solo off swaps playback back to the full buffer, which the
+    ///     background renders have kept up to date.
     /// </summary>
     private void StartRender(bool startPlayback)
     {
@@ -408,10 +405,9 @@ public class EditorPlayback
     }
 
     /// <summary>
-    ///     Sets <see cref="PendingError" /> unless it's a repeat of the last alerted
-    ///     message - an edit-storm where every debounced re-render fails would otherwise pop a
-    ///     dialog per edit. A successful render/export clears the memory so a later failure
-    ///     (even with the same message) alerts again.
+    ///     Sets <see cref="PendingError" /> unless it repeats the last alerted message, so a
+    ///     run of failing re-renders raises one dialog instead of one per edit. A successful
+    ///     render or export clears the memory, so the same message alerts again later.
     /// </summary>
     private void SetError(string message)
     {

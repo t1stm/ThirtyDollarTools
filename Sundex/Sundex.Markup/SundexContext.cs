@@ -68,11 +68,11 @@ public class SundexContext(UIContext context) : ISundexContext
     ///     Compiles the logic block of every markup document embedded in the asset
     ///     assemblies, without building a single element.
     ///     <para>
-    ///         Compiling a logic block is the one genuinely expensive step in building a
-    ///         component - two orders of magnitude above everything else - and it needs no
-    ///         graphics context, so it does not have to happen on the render thread on the
-    ///         frame a scene is opened. Called from a worker while the program has time to
-    ///         spare, it turns every later <see cref="NewComponent" /> into a cache hit.
+    ///         Compiling a logic block is by far the most expensive step in building a
+    ///         component and it needs no graphics context, so it does not have to happen on
+    ///         the render thread on the frame a scene is opened. Called from a worker while
+    ///         the program has time to spare, it turns every later
+    ///         <see cref="NewComponent" /> into a cache hit.
     ///     </para>
     ///     <para>
     ///         Documents are found rather than listed, so a new screen is covered by
@@ -93,9 +93,8 @@ public class SundexContext(UIContext context) : ISundexContext
         var compiled = 0;
 
         // Half the machine, not all of it. Compilations are independent and the asset
-        // loaders behind them hold no shared state, so this scales - but whatever called
-        // this is still drawing, and saturating every core would trade the hitch this
-        // exists to remove for a stuttering screen while it runs.
+        // loaders behind them hold no shared state, so this scales, but the caller is
+        // still drawing and must keep cores to do it on.
         Parallel.ForEach(documents,
             new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount / 2) },
             document =>

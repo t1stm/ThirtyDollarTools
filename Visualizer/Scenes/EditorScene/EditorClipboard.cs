@@ -3,16 +3,16 @@ using ThirtyDollarConverter.Editor;
 namespace EditorScene;
 
 /// <summary>
-///     Session-only internal clipboard for the editor's Copy/Paste/Cut - plain data,
-///     one typed slot (copying notes overwrites a placement payload and vice versa).
-///     Not the OS clipboard: nothing text-serializable exists yet for a selection.
+///     Session-only internal clipboard for the editor's Copy/Paste/Cut, separate from the
+///     OS clipboard. Holds one typed payload at a time: setting notes clears any copied
+///     placements and items, and vice versa.
 /// </summary>
 public sealed class EditorClipboard
 {
     public IReadOnlyList<NoteEntry>? Notes { get; private set; }
     public IReadOnlyList<PlacementEntry>? Placements { get; private set; }
 
-    /// <summary>Copied faithful slots, in sequence order - no position to keep, the index is one.</summary>
+    /// <summary>Copied faithful slots, in sequence order; a slot's position is its index.</summary>
     public IReadOnlyList<FaithfulItem>? Items { get; private set; }
 
     public void SetNotes(IEnumerable<NoteEntry> entries)

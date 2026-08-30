@@ -49,9 +49,8 @@ public class Note
     /// <summary>
     ///     True when this note is a cut (retrigger) instead of a play: it silences every
     ///     one of <see cref="Instrument" />'s sounds instead of playing them, and carries
-    ///     no meaningful Value/Volume/Pan/Offset/Automation of its own - those fields are
-    ///     enforced at default at creation (not by a separate type), same reserved-instrument
-    ///     mechanism the sound-picker can never reach on its own.
+    ///     no meaningful Value/Volume/Pan/Offset/Automation of its own - those fields are left
+    ///     at their defaults when the note is created.
     /// </summary>
     public bool IsCut { get; set; }
 

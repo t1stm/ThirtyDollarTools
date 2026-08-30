@@ -104,11 +104,10 @@ public class LayoutHandler
     }
 
     /// <summary>
-    ///     Jumps to a state a previous walk recorded, so a caller can lay out one slice of a
+    ///     Restores a state a previous walk recorded, so a caller can lay out one slice of a
     ///     sequence without walking everything before it - see
-    ///     <see cref="Batch.ChunkGenerator.PositionChunk" />. This is the whole of the
-    ///     handler's state: positions along a line are a fixed table, and the only things that
-    ///     carry between sounds are which column is next and how far down the lines have got.
+    ///     <see cref="Batch.ChunkGenerator.PositionChunk" />. These three values are the whole
+    ///     of the handler's mutable state; positions along a line are a fixed table.
     /// </summary>
     public void SeekTo(int soundIndex, float y, float height)
     {

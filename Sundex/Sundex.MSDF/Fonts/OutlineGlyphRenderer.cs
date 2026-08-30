@@ -14,10 +14,9 @@ namespace Sundex.MSDF.Fonts;
 ///         font unit, so the conversion is a flip and a divide.
 ///     </para>
 ///     <para>
-///         Horizontal placement comes out right that way, but vertical placement does not:
-///         SixLabors grows its line box for ink that rises above the ascender, which moves the
-///         baseline down for tall glyphs. <see cref="MsdfFont.TryBuildShape" /> puts the finished
-///         shape on the baseline itself.
+///         That gets horizontal placement right but not vertical: SixLabors grows its line box
+///         for ink rising above the ascender, which moves the baseline down for tall glyphs.
+///         <see cref="MsdfFont.TryBuildShape" /> puts the finished shape on the baseline itself.
 ///     </para>
 /// </summary>
 internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGlyphRenderer

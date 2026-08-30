@@ -18,11 +18,10 @@ public class LaneHeaderTests
     [Fact]
     public void ALaneFarPastTheOldTwentyFourChannelCap_StillGetsMuteAndSoloButtons()
     {
-        // Regression: LaneLinePool (shared by the grid's divider lines and this header's
-        // M/S toggle pool) used to be 24 - ArrangementView.ChannelCount's clamp silently
-        // capped the reported lane count there, so a clip on a deeper channel still got
-        // its block (laid out straight from placement.Channel, uncapped - see
-        // ArrangementView.DoLayout) but no divider line or M/S buttons.
+        // A clip's block is laid out straight from placement.Channel, uncapped (see
+        // ArrangementView.DoLayout), so ArrangementView.ChannelCount and the LaneLinePool
+        // shared by the divider lines and this header's M/S toggles have to reach as deep:
+        // a lane past any fixed pool size still gets its line and its buttons.
         const int channel = 40;
         var height = ArrangementView.RulerHeight + (channel + 2) * ArrangementView.LaneHeight;
         var (state, arrangement, header) = NewHeader(height);
@@ -69,9 +68,9 @@ public class LaneHeaderTests
     [Fact]
     public void ScrollingALaneIntoView_QueuesItsButtonsForRender()
     {
-        // Regression: a row hidden at the initial draw (below the grid) never got its
-        // DrawSelf once scrolling flipped Visible back on, so its M/S toggles were
-        // hit-testable - clicking them muted the lane - but never painted.
+        // A row hidden at the initial draw (below the grid) has to get its DrawSelf once
+        // scrolling flips Visible back on: its M/S toggles are hit-testable either way, so
+        // without it they would mute the lane while never being painted.
         const int channel = 15;
         var (state, arrangement, header) = NewHeader(400);
         arrangement.OnScrolled = header.InvalidateLayout;
@@ -99,10 +98,9 @@ public class LaneHeaderTests
     [Fact]
     public void ARowStraddlingAnEdge_IsClippedToTheLaneStrip()
     {
-        // Regression: the gutter spans the arrangement's full height and Visible only culls
-        // whole rows, so the last partly-visible row's M/S buttons hung past the panel's
-        // bottom edge, painting over the hint bar below the grid area. Nothing cut them:
-        // the header applied no clip rect at all.
+        // The gutter spans the arrangement's full height and Visible only culls whole rows,
+        // so the last partly-visible row needs a clip rect: without one its M/S buttons hang
+        // past the panel's bottom edge and paint over the hint bar below the grid area.
         var (state, arrangement, header) = NewHeader(400);
         var track = state.AddTrack();
         state.PlaceTrack(track, 15, 0); // 17 lanes: taller than the 400px gutter

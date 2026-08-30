@@ -7,8 +7,9 @@ using EditorScene.Scenes.Dialogs;
 namespace EditorScene;
 
 /// <summary>
-///     Project file lifecycle: save/load, timestamped backups on a dirty timer, TDW
-///     export. Lifted out of <see cref="Scenes.EditorInterface" />.
+///     Project file lifecycle for <see cref="Scenes.EditorInterface" />: save/load, TDW
+///     import/export, and timestamped backups on a dirty timer. Failures are logged and
+///     reported through the dialog host rather than thrown.
 /// </summary>
 public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger logger)
 {
@@ -50,11 +51,10 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     }
 
     /// <summary>
-    ///     Imports a dropped TDW sequence file as a track or a whole project (see
-    ///     <see cref="ImportMode" />). All-or-nothing: a parse/import failure leaves the
-    ///     project untouched, matching <see cref="Load" />'s try/catch shape. On success,
-    ///     any non-fatal issues (ignored events, quantized notes, unknown sounds) surface
-    ///     as one summary alert - never one dialog per issue.
+    ///     Imports a TDW sequence file as a track or as a whole project (see
+    ///     <see cref="ImportMode" />). All-or-nothing: a parse or import failure leaves the
+    ///     project untouched. Non-fatal issues (ignored events, quantized notes, unknown
+    ///     sounds) surface as one summary alert.
     /// </summary>
     public void ImportTdw(string path, ImportMode mode, IReadOnlyDictionary<string, Sound>? soundMap)
     {
@@ -88,8 +88,8 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
             parts.Add($"{warnings.QuantizedNotes} note{(warnings.QuantizedNotes == 1 ? "" : "s")} quantized");
         foreach (var sound in warnings.UnknownSounds)
             parts.Add($"unknown sound: {sound}");
-        // One warning per line: the alert's label doesn't wrap, so a joined single line
-        // runs straight out of the modal once there's more than one or two warnings.
+        // One warning per line: the alert's label doesn't wrap, so a joined line runs
+        // straight out of the modal.
         return string.Join("\n", parts);
     }
 
@@ -131,10 +131,9 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     }
 
     /// <summary>
-    ///     Timestamped snapshot next to the executable - doesn't touch ProjectPath/Dirty,
-    ///     so it's invisible to the normal save flow (only <see cref="TickBackup" /> drives it).
-    ///     Logged, not surfaced - a failed background backup isn't the data-loss path a failed
-    ///     explicit save is, and popping a dialog on a timer would be its own annoyance.
+    ///     Writes a timestamped snapshot next to the executable. Leaves ProjectPath and Dirty
+    ///     alone, so it stays invisible to the normal save flow; only <see cref="TickBackup" />
+    ///     calls it. Failures are logged, not shown to the user.
     /// </summary>
     private void WriteBackup()
     {
@@ -153,8 +152,8 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     }
 
     /// <summary>
-    ///     Keeps only the newest <see cref="MaxBackups" /> files - a long session
-    ///     backs up every 5 dirty minutes and never stopped growing otherwise.
+    ///     Deletes all but the newest <see cref="MaxBackups" /> files, so a long session's
+    ///     repeated backups stay bounded.
     /// </summary>
     private void PruneBackups()
     {

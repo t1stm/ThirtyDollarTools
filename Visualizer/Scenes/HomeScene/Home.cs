@@ -29,11 +29,10 @@ public class Home : Scene, IFadeInScene
     private bool _updateNoteShown;
 
     /// <param name="checkingForUpdates">
-    ///     Whether the update check runs. When it does, the "check regularly" line is dropped -
-    ///     the program is doing the checking, and the note is replaced by what it finds. Read
-    ///     every frame rather than once: this scene is built during the boot, before the first
-    ///     run has been asked about update checking and before the settings screen can turn it
-    ///     off, so a copy taken here would be stale by the time anyone reads the line.
+    ///     Whether the update check runs. When it does, the "check regularly" line is dropped
+    ///     and replaced by whatever the check finds. Must stay a callback: this scene is built
+    ///     during the boot, before the setting has been answered or the settings screen can
+    ///     change it, so a copy taken here would be stale.
     /// </param>
     public Home(Game game, string version, Func<bool> checkingForUpdates) : base(game)
     {
@@ -79,8 +78,8 @@ public class Home : Scene, IFadeInScene
         var context = NewContext();
         var ui = BuildInterface(context);
 
-        // The update note is written into the label once and then left there, so a rebuilt
-        // tree has to be told again - Update() only writes it on the edge.
+        // Update() writes the note only on the edge, so a rebuilt tree has to be flagged as
+        // not yet carrying it.
         ui.Alpha = _homeInterface.Alpha;
         _updateNoteShown = false;
 
@@ -130,9 +129,9 @@ public class Home : Scene, IFadeInScene
         _cursorType = CursorType.Default;
         _homeInterface.Update(_context);
 
-        // The check runs on the loading screen, but it's over the network - it can land
-        // after this scene is built, so the note is written when it does. Nothing is
-        // written while it's still running, or when it found nothing newer.
+        // The check starts on the loading screen but can land after this scene is built, so
+        // the note is written when it does. Nothing is written while it is still running, or
+        // when it found nothing newer.
         if (!_updateNoteShown)
             _homeInterface.UpdateLabel.Visible = !_checkingForUpdates();
 
@@ -195,8 +194,7 @@ public class Home : Scene, IFadeInScene
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
         // Nothing is clickable until the screen is fully up: this scene renders under the
-        // loading screen for the length of the entrance fade, and a button that can be hit
-        // before it can be read is a button that gets hit by accident.
+        // loading screen for the length of the entrance fade.
         if (_homeInterface.Alpha < 1f) return;
         _homeInterface.MouseEvent(mouseState, _lastScale);
     }

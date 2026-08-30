@@ -36,11 +36,9 @@ public class LabelTests
     [Fact]
     public void SetTextContents_GrowingPastCapacity_KeepsRenderingAtTheCorrectPosition()
     {
-        // Regression test: growing past the slice's capacity disposes it and gets a
-        // replacement, whose constructor renders once at the default (0,0,0) position
-        // before this label's actual on-screen position is ever applied to it. Without
-        // carrying the position over and re-rendering, the text is written to the GPU
-        // buffer at the wrong spot - effectively invisible where the label actually sits.
+        // Growing past the slice's capacity disposes it and gets a replacement, whose
+        // constructor renders once at (0,0,0). The label's position has to be carried over and
+        // re-rendered, or the text lands in the GPU buffer away from where the label sits.
         var context = new TestUIContext();
         var root = new Panel(context) { Width = 800, Height = 600 };
         var label = new Label(context, "Hi") { X = 50, Y = 30 };
@@ -58,13 +56,9 @@ public class LabelTests
     [Fact]
     public void SetTextContents_WithoutFontSizePxEverSet_DoesNotZeroTheFontSize()
     {
-        // Regression: FontSizePx used to default to LiteralOrComputable's zero value, and
-        // SetTextContents unconditionally resolves it into TextSlice.FontSize on every
-        // call. A label that never explicitly sets FontSizePx (e.g. EditorInterface's
-        // instrument button) rendered fine at construction - that first render uses
-        // TextSlice's own hardcoded default of 16 - then went invisible (FontSize=0) the
-        // moment its text was ever updated, even though its Computed bounds (and thus
-        // clicks) stayed correct.
+        // SetTextContents resolves FontSizePx into TextSlice.FontSize on every call, so a
+        // label that never set FontSizePx must keep TextSlice's own default of 16 rather than
+        // take a zero size (which renders nothing while Computed bounds still look correct).
         var context = new TestUIContext();
         var label = new Label(context, "Hi");
 

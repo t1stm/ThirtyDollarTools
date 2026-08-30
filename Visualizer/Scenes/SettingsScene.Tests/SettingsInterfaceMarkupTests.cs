@@ -193,9 +193,8 @@ public class SettingsInterfaceMarkupTests
 
     /// <summary>
     ///     A line too wide for the bed wraps onto further rows at full size instead of being
-    ///     scaled down to fit. Scaling was the bug: at 16 events a line, raising the event
-    ///     size from 64 to 256 only took the tiles from 64px to 84px, so the setting looked
-    ///     like it did almost nothing.
+    ///     scaled down to fit, so raising the event size visibly raises the tile size rather
+    ///     than being absorbed by the shrink.
     /// </summary>
     [Fact]
     public void PreviewLine_WrapsInsteadOfShrinkingWhenItDoesNotFit()
@@ -236,9 +235,8 @@ public class SettingsInterfaceMarkupTests
     }
 
     /// <summary>
-    ///     The band is the same height whatever the settings are. It used to size itself to
-    ///     the tiles, which shifted the whole page under the pointer while a slider was
-    ///     being dragged - the one moment nothing should move.
+    ///     The band is the same height whatever the settings are: sizing it to the tiles would
+    ///     shift the whole page under the pointer while a slider is being dragged.
     /// </summary>
     [Fact]
     public void PreviewBand_KeepsItsHeightWhateverTheSettingsAre()

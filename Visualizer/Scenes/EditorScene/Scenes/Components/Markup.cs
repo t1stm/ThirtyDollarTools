@@ -23,9 +23,9 @@ public static class Markup
     /// <summary>
     ///     Parses and builds a document with no imports and no logic, returning its
     ///     component so the caller can resolve handles off <c>RegisteredIDs</c>.
-    ///     ponytail: a fresh SundexContext per call, so nothing is cached between shows -
-    ///     a modal costs one markup parse plus one style parse (~0.09 ms) to open. Hoist
-    ///     the context onto the scene if a document ever gets built in a loop.
+    ///     ponytail: a fresh SundexContext per call, so nothing is cached between shows and
+    ///     every show pays one markup parse plus one style parse. Hoist the context onto the
+    ///     scene if a document ever gets built in a loop.
     /// </summary>
     public static SundexComponent Build(UIContext context, string location)
     {

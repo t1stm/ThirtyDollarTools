@@ -202,7 +202,7 @@ public class TaikoLane : IDisposable
                     break;
                 }
 
-                // If it was a miss (no HitTime) or hit long ago, we can skip
+                // Skippable once it was missed (no HitTime) or was hit long enough ago
                 var canSkip = (!sound.HitTime.HasValue && sound.Timestamp < currentTime - 1000) ||
                               (sound.HitTime.HasValue && currentTime - sound.HitTime.Value > 2000);
 
@@ -324,10 +324,9 @@ public class TaikoLane : IDisposable
                 }
             }
 
-            // If we are deep into the future and no sounds were visible in this chunk,
-            // we might be able to break early. But some sounds might have different scroll speeds.
-            // However, scroll speeds are usually positive and similar.
-            // For safety, let's only break if the first sound of the chunk is very far in the future.
+            // Break out once the chunk starts far enough ahead that nothing in it, or in any
+            // later chunk, can be on screen. Keyed off the first sound only, since scroll
+            // speeds vary per sound.
             if (chunk.Sounds.Count > 0 && chunk.Sounds[0].Timestamp - currentTime > 10000) break;
         }
     }
@@ -383,7 +382,7 @@ public class TaikoLane : IDisposable
                 var sound = chunk.Sounds[i];
                 var timeDiff = sound.Timestamp - currentTime;
 
-                // If this sound is too far in the future, we can stop searching this and further chunks
+                // Too far in the future: this and every later chunk are out of the hit window
                 if (timeDiff > HitWindowMs)
                 {
                     foundInRange = true; // Not really in range, but to break outer loop
@@ -427,7 +426,8 @@ public class TaikoLane : IDisposable
             var firstX = hitBoxX + (float)(firstSound.Timestamp - currentTime) * firstSound.ScrollSpeed;
             var lastX = hitBoxX + (float)(lastSound.Timestamp - currentTime) * lastSound.ScrollSpeed;
 
-            // Sort them just in case scroll speed or timestamps are weird
+            // Ordered by value, since a negative scroll speed can put the last sound left of
+            // the first
             var minX = Math.Min(firstX, lastX) - HitBoxSize;
             var maxX = Math.Max(firstX, lastX) + HitBoxSize;
 

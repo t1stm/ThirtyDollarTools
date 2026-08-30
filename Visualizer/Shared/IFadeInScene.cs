@@ -9,7 +9,7 @@ public interface IFadeInScene
 {
     /// <summary>
     ///     Scene-wide opacity, driven from 0 to 1 by the loading screen. 1 on every later
-    ///     entry, where it costs nothing.
+    ///     entry.
     /// </summary>
     float InterfaceAlpha { get; set; }
 }

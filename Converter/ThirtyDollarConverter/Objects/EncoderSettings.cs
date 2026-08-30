@@ -17,9 +17,8 @@ public class EncoderSettings
     public uint Channels;
 
     /// <summary>
-    ///     Due to the nature of the TDW before the Thirty Dollar Rewrite got merged, some sequences sound wrong when played
-    ///     perfectly.
-    ///     This controls how much time after the combine event, a sound is played.
+    ///     How long after a "!combine" event a sound is played, in milliseconds. Compensates for
+    ///     pre-rewrite TDW sequences that sound wrong when played with perfect timing.
     /// </summary>
     public uint CombineDelayMs = 0;
 

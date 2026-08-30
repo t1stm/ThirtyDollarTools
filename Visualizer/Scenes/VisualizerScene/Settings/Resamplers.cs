@@ -4,10 +4,9 @@ namespace VisualizerScene.Settings;
 
 /// <summary>
 ///     The resamplers the settings screen offers, keyed by the name written to the settings
-///     file. Stored as a name plus loose numbers rather than the object itself because the
-///     settings file only round-trips primitives - <see cref="Create" /> is what turns them
-///     back into a resampler, and everything that plays audio asks for one from here rather
-///     than newing one up.
+///     file. Settings hold a name plus loose numbers, since the file only round-trips
+///     primitives; <see cref="Create" /> turns them back into a resampler, and every caller
+///     that plays audio goes through it rather than constructing one.
 /// </summary>
 public static class Resamplers
 {

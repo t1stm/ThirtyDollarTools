@@ -16,10 +16,9 @@ public class KeyframedAnimation : Animation
 
     /// <summary>
     ///     A copy of this animation carrying its own <see cref="Animation.TimingStopwatch" />.
-    ///     A stylesheet holds one animation object per rule, so every element matching that
-    ///     rule was handed the same instance - and with it the same clock, so they all played
-    ///     in lockstep off whichever element happened to advance it first. Elements take an
-    ///     instance of their own instead.
+    ///     A stylesheet holds one animation object per rule, so each element matching that
+    ///     rule must take an instance rather than share the object and, with it, one clock
+    ///     that would play them all in lockstep.
     ///     <see cref="Keyframes" /> is a read-only list of structs and is shared as-is.
     /// </summary>
     public KeyframedAnimation CreateInstance()

@@ -35,8 +35,8 @@ public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyph
     public void Warm(ReadOnlySpan<char> character)
     {
         var key = character.ToString();
-        // ContainsKey rather than GetOrAdd: the point is to not generate, and GetOrAdd's
-        // factory would run before the lookup could tell us it was pointless.
+        // ContainsKey rather than GetOrAdd: GetOrAdd's factory would generate the glyph
+        // before the lookup could report that one is already waiting.
         if (_warmed.ContainsKey(key)) return;
 
         lock (SizingData)
@@ -51,8 +51,8 @@ public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyph
     private Image<Rgb48> Generate(ReadOnlySpan<char> character)
     {
         // The generator writes floats, the atlas stores 16-bit channels. The distances only
-        // ever occupy a narrow band around 0.5 (~0.42..0.59 for this font), which 8 bits would
-        // flatten to a handful of steps across an antialiased edge; 16 leaves thousands.
+        // ever occupy a narrow band around 0.5, so the extra bits are what keep an antialiased
+        // edge from collapsing to a handful of steps.
         var distances = new float[GlyphSize * GlyphSize * Channels];
 
         var font = fontProvider.GetFont(fontName);
@@ -80,9 +80,9 @@ public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyph
     }
 
     /// <summary>
-    ///     A signed distance runs well past the shape on both sides, so it has to be clamped
-    ///     rather than cast: anything beyond the range is saturated solid inside or outside,
-    ///     which is exactly what a pixel that far from an edge means.
+    ///     Quantises a signed distance to a 16-bit channel, clamping rather than casting:
+    ///     a distance runs well past the shape on both sides, and anything beyond the range
+    ///     saturates to solid inside or outside.
     /// </summary>
     private static ushort ToChannel(float distance) =>
         (ushort)Math.Clamp(distance * ushort.MaxValue + 0.5f, 0f, ushort.MaxValue);

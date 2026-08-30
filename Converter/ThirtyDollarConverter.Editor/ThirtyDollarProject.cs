@@ -174,7 +174,7 @@ public class ThirtyDollarProject
     ///     The timeline splits into tempo regions wherever any track changes grid rate and
     ///     each region exports at its own "!speed", so tempo changes never turn into stop
     ///     arithmetic. Timing is identical to per-track playback by construction.
-    ///     Bar-based styling follows the first track's bar structure.
+    ///     Bar-based styling follows the root timing's bar grid.
     /// </summary>
     public Sequence ToSequence(SequenceStyle? style = null)
     {
@@ -223,9 +223,8 @@ public class ThirtyDollarProject
 
     /// <summary>
     ///     Project-wide bar lines for the merged sequence: the arrangement grid runs on the
-    ///     root timing, so bars tile the whole exported timeline from its origin. (Following
-    ///     one track's own bars instead ran out of bar lines at the end of that single clip,
-    ///     and every divider after it was silently dropped.)
+    ///     root timing, so bars tile the whole exported timeline from its origin rather than
+    ///     stopping at the end of any one clip.
     /// </summary>
     private List<double>? BarTimes(List<TrackPlacement> placements, SequenceStyle? style)
     {

@@ -6,9 +6,8 @@ namespace Sundex.Components.Tests;
 /// <summary>
 ///     The tracked references a <see cref="GLBufferList{TDataType}" /> hands out have to
 ///     survive their neighbours shifting - EditorScene's sound picker releases one per icon,
-///     long after the insertions and removals that moved them. Releasing them one after
-///     another is the shape that used to throw: the shift dropped references out of the
-///     tracking map, leaving them pointing at someone else's slot.
+///     long after the insertions and removals that moved them, so a reference must still point
+///     at its own slot after every shift.
 ///     Lives here rather than in an engine test project of its own: this is the nearest
 ///     project that already links the engine.
 /// </summary>

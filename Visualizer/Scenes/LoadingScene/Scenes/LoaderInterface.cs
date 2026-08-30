@@ -46,9 +46,9 @@ public class LoaderInterface
     /// <summary>How far a pane travels as it swaps out, in pixels. Small: a nudge, not a carousel.</summary>
     private const float SlidePx = 28f;
 
-    // Hover colours for the two button classes, RGB only. They live here rather than in
-    // state[hovered] blocks because this class owns the buttons' alpha while a pane
-    // cross-fades, and a state override would restore the base alpha mid-fade.
+    // Hover colours for the two button classes, RGB only. Not state[hovered] blocks: this
+    // class owns the buttons' alpha while a pane cross-fades, and a state override would
+    // restore the base alpha mid-fade.
     private static readonly Vector3 ActionRgb = new(0x4c / 255f, 0x6b / 255f, 0xcc / 255f);
     private static readonly Vector3 ActionHoverRgb = new(0x62 / 255f, 0x80 / 255f, 0xdd / 255f);
     private static readonly Vector3 QuietRgb = new(0x19 / 255f, 0x1c / 255f, 0x2a / 255f);
@@ -176,9 +176,8 @@ public class LoaderInterface
     ///     Opens the first-run setup: the strip rises to full height with the greeting on it.
     /// </summary>
     /// <param name="includeUpdates">
-    ///     Whether to ask about update checking. False on a build with no release date behind
-    ///     it, where there is nothing to call a release newer than - the setup is then the
-    ///     greeting and the download, and the meter counts two instead of three.
+    ///     Whether to ask about update checking. False on a build with no release date, which
+    ///     leaves the setup at two panes - the greeting and the download - instead of three.
     /// </param>
     public void BeginSetup(bool includeUpdates = true)
     {
@@ -263,8 +262,8 @@ public class LoaderInterface
         RootPanel.Update(context);
         RootPanel.Layout();
 
-        // Last, and every frame: PaintTicks' SetClass and the hovered-state overrides both
-        // re-run the stylesheet, which puts the styled alpha straight back.
+        // Applied last and on every frame: PaintTicks' SetClass and the hovered-state
+        // overrides re-run the stylesheet, restoring the styled alpha.
         UpdateExit();
     }
 

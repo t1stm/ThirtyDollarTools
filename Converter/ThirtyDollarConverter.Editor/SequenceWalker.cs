@@ -271,7 +271,7 @@ internal static class SequenceWalker
     }
 
     /// <summary>
-    ///     Ported from PlacementCalculator.Untrigger: re-arms loop/jump triggers from
+    ///     Mirrors PlacementCalculator.Untrigger: re-arms loop/jump triggers from
     ///     <paramref name="index" /> onward (except the given event names) so nested loops can fire again.
     /// </summary>
     private static void Untrigger(BaseEvent[] events, int index, string[] except)

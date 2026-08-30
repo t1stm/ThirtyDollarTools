@@ -381,8 +381,8 @@ public class ImageTests
         image.Src = Tall;
         await Settle(image, context);
 
-        // The relayout has to start at the root, or the stack keeps the sibling where the
-        // zero-height image used to leave it.
+        // The relayout has to start at the root, or the stack keeps the sibling at the position
+        // the image's pre-load zero height gave it.
         Assert.Equal(6, below.Computed.Y);
     }
 

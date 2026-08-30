@@ -42,13 +42,9 @@ public sealed record ImportResult(
 
 /// <summary>
 ///     Converts a parsed TDW <see cref="Sequence" /> into the editor's project model -
-///     the inverse of <see cref="SequenceBuilder" />. Lives beside it so the two directions
-///     of the mapping share one assembly and one test suite.
-///     The conversion never mutates the input <see cref="Sequence" /> or (until it has fully
-///     succeeded) the target project: the event walk and the region/segment math below are
-///     pure, and only once they've completed does either public method touch a
-///     <see cref="ThirtyDollarProject" /> - a walk that throws (malformed input, a runaway
-///     loop/jump) can therefore never leave a half-imported track behind.
+///     the inverse of <see cref="SequenceBuilder" />. Never mutates the input sequence, and
+///     touches the target <see cref="ThirtyDollarProject" /> only once the conversion has
+///     fully succeeded, so a failed import leaves no half-imported track behind.
 /// </summary>
 public static class SequenceImporter
 {
@@ -60,14 +56,10 @@ public static class SequenceImporter
 
     /// <summary>
     ///     Total budget for how far a segment's grid may run above its slowest region's speed.
-    ///     Merging and off-grid note fitting both spend from it, and they have to share one
-    ///     budget because they multiply: a group merged 8x that then fits 1/10th-step swing
-    ///     lands on an 80x grid, and since StepsPerBeat can't exceed
-    ///     <see cref="SequenceBuilder.MaxSpeedMultiplier" />, the overflow has nowhere to go but
-    ///     the BPM - which is how a plain 145 BPM track came out as 181.25 BPM at 64 steps/beat.
-    ///     Spending the rest of the budget on rounding a few swung notes onto the grid (counted
-    ///     in <see cref="ImportWarnings.QuantizedNotes" />) beats keeping every note exact at the
-    ///     cost of a tempo nobody wrote.
+    ///     Merging and off-grid note fitting share it because they multiply, and StepsPerBeat is
+    ///     capped at <see cref="SequenceBuilder.MaxSpeedMultiplier" />, so overflow would land in
+    ///     the BPM instead. Notes rounded onto the grid to stay inside the budget are counted in
+    ///     <see cref="ImportWarnings.QuantizedNotes" />.
     /// </summary>
     private const int MaxGridSubdivision = 32;
 
@@ -80,18 +72,17 @@ public static class SequenceImporter
     private const double PadPenalty = 8.0;
 
     /// <summary>
-    ///     Time signature numerators worth using, best first. A note grid almost never
-    ///     implies a numerator on its own, so an exotic one is nearly always the symptom of a
-    ///     length that doesn't divide into bars - which a short trailing bar reports honestly
-    ///     and 59 bars of 5/4 does not.
+    ///     Time signature numerators worth using, best first. A note grid almost never implies
+    ///     a numerator on its own, so an exotic one ranks last: it is nearly always the symptom
+    ///     of a length that doesn't divide into bars, which a short trailing bar states better.
     /// </summary>
     private static readonly int[] Numerators = [4, 3, 2, 6, 8, 5, 7, 9];
 
     /// <summary>
-    ///     Sub-grid multipliers worth considering: halves, thirds and their products.
-    ///     A "!stop@0.05" would land exactly on a 20x grid, but 20 steps to a beat is not a grid
-    ///     anyone can edit against - rounding those few notes onto a musical grid (and reporting
-    ///     it in <see cref="ImportWarnings.QuantizedNotes" />) is the better trade.
+    ///     Sub-grid multipliers worth considering: halves, thirds and their products. Only
+    ///     these are offered, so the grid stays one a human can edit against; positions that
+    ///     don't land on one are rounded and reported in
+    ///     <see cref="ImportWarnings.QuantizedNotes" />.
     /// </summary>
     private static readonly int[] SubGrids = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64];
 
@@ -116,12 +107,11 @@ public static class SequenceImporter
     }
 
     /// <summary>
-    ///     Adds the sequence as one new faithful track: its events kept verbatim as items,
-    ///     which is what that kind of track is - no grid, no quantization, and nothing
-    ///     ignored, so the only warning it can raise is a sound the sample set doesn't know.
-    ///     A "!combine"-joined run collapses back into one layered instrument (that is the
-    ///     one thing a faithful item models that the raw stream doesn't), reusing an
-    ///     existing instrument whose sounds match rather than adding a duplicate.
+    ///     Adds the sequence as one new faithful track: its events kept verbatim as items, with
+    ///     no grid, no quantization and nothing ignored, so the only warning it can raise is a
+    ///     sound the sample set doesn't know. A "!combine"-joined run collapses into one layered
+    ///     instrument, reusing an existing instrument whose sounds match rather than adding a
+    ///     duplicate.
     /// </summary>
     public static ImportResult AddAsFaithfulTrack(ThirtyDollarProject project, Sequence sequence, string name,
         IReadOnlyDictionary<string, Sound>? soundMap)
@@ -151,12 +141,9 @@ public static class SequenceImporter
             }
 
             // A run only becomes one layered instrument when its sounds agree on volume, pan
-            // and offset - the three a Note carries once for the whole item. A run that
-            // doesn't stays what the stream already said it was: a slot each, joined by
-            // "!combine" items, which is also how the site draws them.
-            // Not just for exactness: TDW covers vary "%volume" per sound constantly, and
-            // pushing those onto the instrument gave the palette one near-identical
-            // instrument per note - hundreds of them on a real cover.
+            // and offset - the three a Note carries once for the whole item. A run that doesn't
+            // stays a slot each joined by "!combine" items, which is how the site draws them and
+            // keeps per-sound "%volume" out of the instrument palette.
             if (!Uniform(run))
             {
                 for (var s = 0; s < run.Count; s++)
@@ -169,9 +156,7 @@ public static class SequenceImporter
             }
 
             // A run this sample set knows nothing about still held its step, so it leaves a
-            // "_pause" behind. Dropping it outright pulled every later sound one step early -
-            // the piano roll importer never had the problem, since the walk has already
-            // placed its notes by the time an unknown one is discarded.
+            // "_pause" behind rather than pulling every later sound one step early.
             items.Add(SoundItem(project, run, soundMap, unknownSounds, created) ?? Pause());
         }
 
@@ -358,11 +343,10 @@ public static class SequenceImporter
     }
 
     /// <summary>
-    ///     A sequence names a sound however it was saved - a TDW emoji ("🍕") just as
-    ///     often as an ID ("pizza"). Everything downstream (instrument names, and the labels
-    ///     drawing them) wants the ID, so names are canonicalised here, at the one point where
-    ///     a sequence enters the project model. Null means the sample set doesn't know the
-    ///     sound; a null map (no samples loaded) accepts every name as-is.
+    ///     The sample set's ID for a sound named either by ID ("pizza") or by its TDW emoji
+    ///     ("🍕"). Everything downstream wants the ID, so names are canonicalised here, at the
+    ///     one point where a sequence enters the project model. Null means the sample set
+    ///     doesn't know the sound; a null map (no samples loaded) accepts every name as-is.
     /// </summary>
     private static string? CanonicalId(string sound, IReadOnlyDictionary<string, Sound>? soundMap)
     {
@@ -503,11 +487,9 @@ public static class SequenceImporter
     /// <summary>
     ///     How far the segment starting at <paramref name="first" /> reaches, and the grid rate
     ///     it runs at. Consecutive regions merge while one of the two speeds is a whole multiple
-    ///     of the other: "!speed@2@x" is a subdivision change, not a tempo change, and cutting a
-    ///     segment at every one of them is what turned a steady 177 BPM track into thirty
-    ///     segments of 19 steps per beat - a region left holding an awkward number of steps has
-    ///     no musical subdivision that divides it. A ratio that isn't whole (150 -> 90) is a real
-    ///     tempo change and still starts a new segment.
+    ///     of the other, since "!speed@2@x" is a subdivision change rather than a tempo change
+    ///     and splitting there leaves a region with no musical subdivision that divides it. A
+    ///     ratio that isn't whole (150 -> 90) is a real tempo change and starts a new segment.
     /// </summary>
     private static (int Last, double Rate, double Slowest) GroupRegions(
         List<(double Speed, double Length)> regions, int first)
@@ -532,15 +514,12 @@ public static class SequenceImporter
     }
 
     /// <summary>
-    ///     The subdivision of the group's grid that leaves the fewest positions off it. Not
-    ///     "first exact fit, else the 64 cap": a few unrepresentable fractional positions
-    ///     (swing/humanization stops with an odd denominator) shouldn't force every OTHER
-    ///     already-whole note onto an unnecessarily fine subdivision. A finer grid doesn't just
-    ///     fail to help those outliers (64 is no likelier a multiple of their true denominator
-    ///     than 1 is) - it also makes real playback's own per-step integer sample truncation lose
-    ///     more total precision across the whole group, compounding into audible drift for every
-    ///     note, not just the outliers. A length mismatch is weighted far above any single note's,
-    ///     since it drifts every later group too.
+    ///     The subdivision of the group's grid that leaves the fewest positions off it, rather
+    ///     than the first exact fit: a few positions with an odd denominator (swing, humanized
+    ///     stops) shouldn't force every other already-whole note onto a finer subdivision, whose
+    ///     per-step integer sample truncation loses precision across the whole group. A length
+    ///     that doesn't fit the grid is weighted far above any single note, since it drifts every
+    ///     later group too.
     /// </summary>
     private static int BestSubGrid(List<(double Step, WalkedNote Note)> notes, double length, int maxK)
     {
@@ -573,7 +552,7 @@ public static class SequenceImporter
     ///     by <see cref="SequenceBuilder" />); padding a middle group would shift every later one.
     ///     The trailing bar picks its own shape rather than inheriting the run's, so a group whose
     ///     length is prime (31 steps) doesn't collapse the whole run onto the only subdivision
-    ///     that divides it - which is how a 192 BPM track produced 6144 BPM segments.
+    ///     that divides it.
     /// </summary>
     private static void AddShape(List<SegmentPlan> plans, double rate, int lengthSteps,
         List<(int Step, WalkedNote Note)> notes, int quantized, bool isFinal)
@@ -658,7 +637,7 @@ public static class SequenceImporter
 
     /// <summary>
     ///     Musical subdivisions first - halves and quarters of a beat, then triplets,
-    ///     then whatever's left. A 5- or 19-step beat is a symptom, not a style.
+    ///     then whatever's left; anything unmusical is penalised heavily.
     /// </summary>
     private static double SpbPenalty(int spb)
     {
@@ -681,8 +660,8 @@ public static class SequenceImporter
 
     /// <summary>
     ///     Distance outside the tempo band real music lives in, in halvings/doublings. The band
-    ///     has to be tight: every shape here is a doubling of some other shape, so a flat "60-300
-    ///     is fine" scores 177 and 354 identically and then lets a tiebreak pick the wrong one.
+    ///     is kept tight because every candidate shape is a doubling of another one, and a wide
+    ///     band would score both of them equally.
     /// </summary>
     private static double BpmPenalty(double bpm)
     {
@@ -712,9 +691,8 @@ public static class SequenceImporter
     }
 
     /// <summary>
-    ///     The project's instrument for exactly these sounds, adding one when it has none.
-    ///     Reusing rather than adding a near-duplicate beside it is what lets a track-kind
-    ///     conversion round trip without growing the instrument list every time.
+    ///     The project's instrument for exactly these sounds, adding one when it has none, so a
+    ///     track-kind conversion round trips without growing the instrument list.
     /// </summary>
     private static Instrument Adopt(ThirtyDollarProject project, Instrument candidate, string name,
         List<Instrument> created)

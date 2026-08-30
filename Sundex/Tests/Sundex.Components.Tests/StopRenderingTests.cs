@@ -116,11 +116,10 @@ public class StopRenderingTests
     [Fact]
     public void HoverExitAfterTheClickThatClosedTheDialog_DoesNotResurrectTheBackground()
     {
-        // The reported bug: a dialog button's fill stayed on screen after "Done"/"Import"
-        // closed the dialog. Order of events inside one UpdatePointer call - the click
-        // handler removes the modal (StopRendering dequeues everything), and only then
-        // does ApplyPointerState un-hover the now-detached button, whose state change
-        // swaps the hover plane back to the base one. That swap must not re-queue.
+        // Order of events inside one UpdatePointer call: the click handler removes the modal
+        // (StopRendering dequeues everything), and only then does ApplyPointerState un-hover
+        // the now-detached button, swapping its hover plane back to the base one. That swap
+        // must not re-queue, or the button's fill stays on screen after the dialog closes.
         var context = new TestUIContext();
         var root = new Panel(context) { Width = 800, Height = 600 };
         root.ApplyStyleSheet(HoveredButtonSheet());

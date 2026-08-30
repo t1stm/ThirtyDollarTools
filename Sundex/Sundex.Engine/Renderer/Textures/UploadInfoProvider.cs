@@ -5,11 +5,11 @@ namespace Sundex.Engine.Renderer.Textures;
 
 public static class UploadInfoProvider<TPixel> where TPixel : unmanaged, IPixel, IPixel<TPixel>
 {
-    // This will keep one struct allocated for each TPixel that is used in the application but that isn't a problem.
+    // One instance is kept per TPixel the application uses.
     // ReSharper disable once StaticMemberInGenericType
     public static PixelUploadInfo UploadInfo { get; } = Resolve();
 
-    // converts between ImageSharp and OpenGL pixel formats and types
+    // Maps an ImageSharp pixel type to its OpenGL format and type.
     private static PixelUploadInfo Resolve()
     {
         var tPixel = typeof(TPixel);

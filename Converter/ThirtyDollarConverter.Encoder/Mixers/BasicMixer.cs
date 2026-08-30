@@ -61,9 +61,9 @@ public class BasicMixer : IMixingMethod
 
     private static void BasicMix(Memory<float> source, Memory<float> export)
     {
-        // Hot path: a mixdown runs over the whole song on every incremental edit, so this
-        // is vectorised like PcmEncoder.RenderSample and AudioMixer.Sum. Resolving
-        // export.Span once instead of per iteration matters as much as the SIMD does.
+        // Hot path: a mixdown runs over the whole song on every incremental edit, so this is
+        // vectorised like PcmEncoder.RenderSample and AudioMixer.Sum, and the spans are resolved
+        // once up front rather than per iteration.
         var src = source.Span;
         var dst = export.Span;
 

@@ -21,7 +21,7 @@ var project = BmsToProject.Convert(chart);
 if (args.Length > 2)
     await File.WriteAllTextAsync(args[2], ProjectFile.Save(project));
 
-// Dividers section the text: one before each tempo change, one every four bars
+// Dividers section the text: one before each tempo change, one every two bars
 // within a tempo section (BMS spans without tempo events are whole measures).
 // MigrateToStop = null: gaps render as "_pause"s, the TDW-native idiom.
 var sequence = project.ToSequence(new SequenceStyle

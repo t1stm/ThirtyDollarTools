@@ -80,13 +80,12 @@ public class Game : GameWindow
     private GLInfo GLInfo { get; } = new();
 
     /// <summary>
-    ///     Ratio between physical framebuffer pixels and logical window (client) size.
-    ///     Measured directly instead of asking the platform for its DPI/content scale:
-    ///     that value doesn't always match reality (e.g. on X11, KDE's "125% scaling" only
-    ///     changes Xft.dpi - the framebuffer stays 1:1 with the window - so dividing by a
-    ///     reported 1.25 shrank the UI relative to the untouched, unscaled mouse coordinates).
-    ///     FramebufferSize / ClientSize is correct on every platform by construction, and
-    ///     needs no per-platform (e.g. Wayland) special-casing.
+    ///     Ratio between physical framebuffer pixels and logical window (client) size, measured
+    ///     as FramebufferSize / ClientSize rather than read from the platform's reported DPI or
+    ///     content scale, which can disagree with the real framebuffer (on X11 a desktop scale
+    ///     may only change Xft.dpi while the framebuffer stays 1:1 with the window). Correct on
+    ///     every platform by construction, so no per-platform special-casing. False when the
+    ///     client size is not yet known, in which case both scales come back as 1.
     /// </summary>
     public bool TryGetScreenScale(out float horizontalScale, out float verticalScale)
     {
@@ -139,9 +138,8 @@ public class Game : GameWindow
             };
 
         // Some windowing backends don't reliably deliver a framebuffer-resize event on the
-        // very first frame (e.g. it can arrive after the window manager settles the real
-        // geometry), which left the GL viewport/scenes sized off whatever the driver
-        // defaulted to until the user resized the window by hand. Assign it up front too.
+        // very first frame, so the viewport and the scenes are sized from the current
+        // framebuffer here as well as from the event.
         var framebufferSize = FramebufferSize;
         ApplyFramebufferSize(framebufferSize.X, framebufferSize.Y);
 
@@ -259,9 +257,8 @@ public class Game : GameWindow
         lock (_enqueuedEvents)
         {
             // One per frame, not the whole queue: an enqueued event is typically a scene
-            // being built, and draining them all stacks every one of those costs into a
-            // single stalled frame. Spread out, each lands on a frame of its own and can
-            // be hidden under whatever is animating at the time.
+            // being built, so spreading them keeps a single frame from stalling on all of
+            // them at once.
             if (_enqueuedEvents.TryDequeue(out var action))
             {
                 action(this);

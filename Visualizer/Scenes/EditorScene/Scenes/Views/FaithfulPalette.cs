@@ -27,9 +27,9 @@ public sealed class FaithfulPalette : FlexPanel
     private readonly List<EventCanvas> _cellCanvases = [];
 
     /// <summary>
-    ///     Labels neither wrap nor ellipsise and a cell is barely wider than its tile, so a
-    ///     long name is cut here and the hint bar carries the whole one. Same trick the file
-    ///     dialog's path header uses, from the other end.
+    ///     Longest instrument name a cell caption shows. Labels neither wrap nor ellipsise and
+    ///     a cell is barely wider than its tile, so a longer name is cut here and the hint bar
+    ///     carries the whole one.
     /// </summary>
     private const int NameLimit = 12;
 
@@ -152,10 +152,9 @@ public sealed class FaithfulPalette : FlexPanel
     /// <summary>
     ///     One palette cell: the instrument's name above the sound it leads with, drawn at the
     ///     shared scale so a tile here matches the one it inserts. Only the first sound is
-    ///     drawn - a cell is barely wider than one tile, and a layered instrument's three
-    ///     side by side would break the grid - with a "xN" beside the name saying how many it
-    ///     really is. That count rides in the caption rather than on the tile so the tile keeps
-    ///     the site's own look, which is the whole point of this editor.
+    ///     drawn - a cell is barely wider than one tile - with a "xN" beside the name for a
+    ///     layered instrument. The count rides in the caption rather than on the tile, so the
+    ///     tile itself keeps the site's own look.
     /// </summary>
     private FlexPanel NewCell(Instrument instrument)
     {

@@ -57,10 +57,9 @@ public class Settings : Scene
 
     public override void ReloadUI()
     {
-        // Built into a context of its own and assigned only once it stands: a markup file
-        // saved halfway through an edit throws in here, and this way the screen keeps the
-        // UI it already had instead of being left half-torn-down. The old context takes
-        // the old tree's render queue, hover chain and focus with it.
+        // Built into a context of its own and assigned only once it succeeds, so a markup
+        // file that fails to parse leaves the existing UI standing. The old context takes the
+        // old tree's render queue, hover chain and focus with it.
         var context = NewContext();
         var ui = BuildInterface(context);
 

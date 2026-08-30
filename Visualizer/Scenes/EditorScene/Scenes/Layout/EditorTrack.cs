@@ -42,19 +42,18 @@ public sealed class EditorTrack : FlexPanel
             OnHoverExit = _ => OnHint?.Invoke(null)
         };
 
-        // The name soaks up the free space itself so remove lands flush against the row's
-        // right edge (no space-between align here) - and a long name can no longer push it
-        // out of the row, since a percent width ignores the text's own measured size.
-        // Overflowing text is clipped in ApplyClip below. Same shape as InstrumentRow.
+        // The name takes the row's free space itself, so remove lands flush against the
+        // row's right edge with no space-between align. Its percent width ignores the text's
+        // measured size, so a long name can't push remove out; overflow is clipped in
+        // ApplyClip below. Same shape as InstrumentRow.
         _name = new Label(context, track.Name) { Classes = ["body-label"] };
 
         // The fill is a palette entry, not a look, so it is set here rather than in the
         // sheet - same split as the color dialog's chip. track-row centers and spaces it.
         if (color is { } fill)
         {
-            // Only the non-default kind is marked, and it is marked inside the blip: a
-            // "faithful" word next to every such row's name was more chrome than the
-            // distinction is worth. The blip grows a little to hold the letter.
+            // Only the non-default kind is marked, with a letter inside the blip rather
+            // than a word beside the name. The blip grows a little to hold the letter.
             var faithful = track.Kind == TrackKind.Faithful;
             DragHandle = new FlexPanel(context)
             {
@@ -143,9 +142,9 @@ public sealed class EditorTrack : FlexPanel
     }
 
     /// <summary>
-    ///     The kind letter inside the blip. A Label measures to the font's em box, and that
-    ///     box carries descender space an "F" never fills - so centering it in a fixed box
-    ///     leaves the letter sitting low. This lifts it onto the dot's optical center.
+    ///     The kind letter inside the blip, nudged up onto the dot's optical center: a Label
+    ///     measures to the font's em box, whose descender space an "F" never fills, so
+    ///     centering it in a fixed box leaves it sitting low.
     ///     ponytail: one pixel for one dot, not a font metric - the box and the size are
     ///     both fixed in Panels.snx.ss. Read the real descender if this ever gets reused.
     /// </summary>

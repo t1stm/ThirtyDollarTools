@@ -32,7 +32,7 @@ public class HomeInterfaceFadeTests
         Assert.True(styled > 0f, "the stage resolved to a fully transparent background");
 
         // The sweep is what re-runs the stylesheet mid-frame, so it has to be running for
-        // this to test anything: without it the ordering bug cannot show up.
+        // this to test the ordering at all.
         home.PlayIntro();
         home.Alpha = 0f;
         home.Update(_context);

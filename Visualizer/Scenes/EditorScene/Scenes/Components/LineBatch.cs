@@ -16,13 +16,13 @@ namespace EditorScene.Scenes.Components;
 /// <summary>
 ///     A pool of flat-colored rects (grid/bar lines, markers, block fills) drawn as one
 ///     instanced draw call instead of one <see cref="Shared.Renderer.Planes.ColoredPlane" />
-///     (and one uniform-buffer upload) per rect - cheaper on the GPU/driver and, at a locked
-///     frame rate, on power draw. Reuses the visualizer's flat-color instanced quad plumbing
+///     - and one uniform-buffer upload - per rect. Reuses the visualizer's flat-color
+///     instanced quad plumbing
 ///     (<see cref="RenderStack{TDataType}" /> + <see cref="BackgroundBlip" />, Model+Color only).
 ///     <see cref="Count" /> is a reservation, not a cap: writing past it grows the buffer
 ///     (doubling, contents preserved), so a range with no natural bound - a project's clips,
-///     a note's automation path - can sit last and simply keep going. Ranges before it are
-///     fixed, since growth only ever appends.
+///     a note's automation path - can sit last and simply keep going. Ranges before it must
+///     be fixed, since growth only ever appends.
 /// </summary>
 [PreloadGraphicsContext]
 internal class LineBatch : IRenderable, IClippable, IGamePreloadable
@@ -64,9 +64,8 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
 
     /// <summary>
     ///     Assigns one rect, growing the pool if the slot is past its end. Unchanged slots
-    ///     are skipped: the buffer uploads per written index (see GLBuffer's update map),
-    ///     and the views re-assign - and re-release - every slot of a multi-thousand-slot
-    ///     pool on every layout pass, of which only a handful actually moved.
+    ///     are skipped, since the buffer uploads per written index (see GLBuffer's update
+    ///     map) and the views re-assign every slot on every layout pass.
     /// </summary>
     public void Set(int index, float x, float y, float width, float height, Vector4 color)
     {

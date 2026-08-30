@@ -76,9 +76,8 @@ public class UIElementTests
     [Fact]
     public void TestInvalidateCoordinates_PropagatesToChildren()
     {
-        // UIElement doesn't have Children list, but Panel does. 
-        // We'll test Panel later. 
-        // For UIElement, we can test that setting X/Y invalidates coordinates.
+        // A bare UIElement has no Children, so this covers the leaf case: setting X/Y
+        // invalidates the cached coordinates.
         var context = new TestUIContext();
         var element = new TestElement(context, 10, 10);
 

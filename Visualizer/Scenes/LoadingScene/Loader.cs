@@ -25,28 +25,22 @@ namespace LoadingScene;
 public class Loader : Scene, IGamePreloadable
 {
     /// <summary>
-    ///     How long this screen takes to get off, which is not how long the hand-off takes:
-    ///     the home screen's playhead is still sweeping when the loader is dropped, and that
-    ///     sweep landing is the last beat of the transition, at 2.5s. See
-    ///     HomeInterface.SweepSeconds, which is measured from <see cref="ExitFadeStart" />.
-    ///     <br /><br />
-    ///     The strip's own fade (LoaderInterface.ExitSeconds) covers everything after
-    ///     <see cref="ExitFadeStart" />, so the two move together.
+    ///     How long the loader's exit takes, in seconds. HomeInterface.SweepSeconds and
+    ///     LoaderInterface.ExitSeconds are timed against the same window and measured from
+    ///     <see cref="ExitFadeStart" />, so the three move together.
     /// </summary>
     private const float ExitSeconds = 1.5f;
 
     /// <summary>
-    ///     Every character the interface screens spell their labels with. Printable ASCII:
-    ///     anything outside it is rare enough in this program's own text to be worth the
-    ///     one-off cost on the frame that first draws it.
+    ///     Printable ASCII - the character set the interface screens are warmed with.
+    ///     Anything outside it is generated on demand on the frame that first draws it.
     /// </summary>
     private const string WarmCharacters =
         " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
     /// <summary>
-    ///     When the home screen starts coming up, in seconds into the exit. The sound field
-    ///     drains from the first frame, so it gets a head start on its own before anything
-    ///     is drawn over it.
+    ///     Seconds into the exit at which the target scene starts fading up. The sound field
+    ///     drains from the first frame, so it moves before anything is drawn over it.
     /// </summary>
     private const float ExitFadeStart = 0.5f;
 
@@ -58,7 +52,7 @@ public class Loader : Scene, IGamePreloadable
 
     private readonly LoaderInterface _loaderInterface;
 
-    /// <summary>True on the first run: the setup is up, and it owns when loading starts.</summary>
+    /// <summary>True on a first run: the setup screen is shown and decides when loading starts.</summary>
     private readonly bool _setupNeeded;
 
     private readonly ThirtyDollarDownloader _thirtyDollarDownloader;
@@ -75,9 +69,8 @@ public class Loader : Scene, IGamePreloadable
     private bool _preloadsQueued;
 
     /// <summary>
-    ///     The two warm-ups the scene builds depend on. Held rather than fired and forgotten
-    ///     because building a scene is exactly what they make cheap - see
-    ///     <see cref="QueuePreloadsWhenWarm" />.
+    ///     The warm-up tasks the scene builds depend on. Both must have completed before a
+    ///     scene is built - see <see cref="QueuePreloadsWhenWarm" />.
     /// </summary>
     private Task? _componentWarm;
 
@@ -121,17 +114,15 @@ public class Loader : Scene, IGamePreloadable
             StatusUpdate = StatusUpdate
         };
 
-        // Built here rather than when the download finishes: the sample holder and the
-        // atlas store exist from the downloader's construction and fill in as the files
-        // arrive, so the tool scenes can be handed this and built long before there is
-        // anything in it.
+        // The sample holder and atlas store exist from the downloader's construction and
+        // fill in as files arrive, so tool scenes can be handed this and built before the
+        // download has produced anything.
         _workflow = new ThirtyDollarWorkflow(game, Logger, _thirtyDollarDownloader.SampleHolder,
             _thirtyDollarDownloader.AtlasStore, _audioContext);
 
         // The resampler is stored as a name plus its parameters, so it is rebuilt whenever
-        // one of them moves rather than handed over once. Filtered by name because building
-        // one is real work - the Kaiser tables are a few hundred thousand doubles - and the
-        // greeting changing has nothing to do with it.
+        // one of them changes. Filtered by name because building one is expensive and most
+        // settings have nothing to do with it.
         _workflow.EncoderSettings.Resampler = Resamplers.Create(settings);
         settings.Changed += name =>
         {
@@ -151,8 +142,8 @@ public class Loader : Scene, IGamePreloadable
             OnStartLoading = StartLoading
         };
 
-        // Started before either path below returns: on a returning boot these run against
-        // the download, and on a first run against however long the setup is read for.
+        // Started before either path below returns, so the warm-ups overlap the download on
+        // a returning boot and the setup being read on a first run.
         WarmComponents();
         WarmFonts();
 
@@ -163,8 +154,8 @@ public class Loader : Scene, IGamePreloadable
                 UpdateChecker.Start(_version, _settings.UpdateIncludePrereleases,
                     _settings.UpdateIncludeNightlies, Logger);
 
-            // The sounds were agreed to once and the download skips whatever is already on
-            // disk, so a returning boot needs no permission - only for the scenes to be up.
+            // Permission was given once and the download skips whatever is already on disk,
+            // so a returning boot only waits for the scenes to be up.
             _startRequested = true;
             _loaderInterface.BeginLoading();
             return;
@@ -175,36 +166,24 @@ public class Loader : Scene, IGamePreloadable
         _loaderInterface.IncludePrereleases.Checked = _version?.Prerelease ?? false;
         _loaderInterface.IncludeNightlies.Checked = _version?.Nightly ?? false;
 
-        // A build with no VERSION date (a developer build, or anything not out of a release
-        // workflow) still gets the setup - it just isn't asked about updates, since there is
-        // no build date to call a release newer than and the answer couldn't be used.
+        // A build with no VERSION date (a developer build) still gets the setup, minus the
+        // update question: there is no build date to compare a release against.
         _loaderInterface.BeginSetup(_version?.Date is not null);
     }
 
     /// <summary>
-    ///     Compiles every screen's logic block, on a worker, before any of them is built.
-    ///     <para>
-    ///         Building a component is dominated by compiling its logic block - Roslyn, and
-    ///         nothing else in the process comes close. Measured on this program's own
-    ///         scenes: Editor 1104 ms, Home 394 ms, DrumMaster 362 ms, Settings 107 ms,
-    ///         Visualizer 119 ms. None of it needs a graphics context, and all of it was
-    ///         being paid on the render thread on the frames between the download finishing
-    ///         and the home screen appearing.
-    ///     </para>
-    ///     <para>
-    ///         Its own task, separate from <see cref="WarmFonts" />: they are both CPU and
-    ///         there is no reason for the longer one to wait behind the shorter. The scene
-    ///         builds wait for both - see <see cref="QueuePreloadsWhenWarm" />.
-    ///     </para>
+    ///     Compiles every screen's logic block on a worker, before any of them is built, so
+    ///     the Roslyn compilation that dominates a component build is not paid on the render
+    ///     thread. Runs in its own task alongside <see cref="WarmFonts" />; the scene builds
+    ///     wait for both - see <see cref="QueuePreloadsWhenWarm" />.
     /// </summary>
     private Task WarmComponents()
     {
         return ThreadRunner.RunTask(() =>
         {
             var stopwatch = Stopwatch.StartNew();
-            // A throwaway context: precompiling touches the markup parser, the asset
-            // provider and the script cache, and none of the component registry that
-            // makes a context worth keeping.
+            // A throwaway context: precompiling only touches the markup parser, the asset
+            // provider and the script cache, none of which is per-context state.
             var compiled = new SundexContext(_context).PrecompileLogic();
 
             Logger.Debug("[Component Warmup] Compiled {Count} logic blocks in {Elapsed} ms",
@@ -213,21 +192,10 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Generates every glyph the later screens will ask for, on a worker, before any of
-    ///     them is built.
-    ///     <para>
-    ///         Putting a character on screen for the first time is two jobs: generating its
-    ///         MSDF, and uploading that into the font atlas. Only the upload needs a graphics
-    ///         context - the generation is ~1 ms of pure arithmetic per glyph, and it was
-    ///         being paid synchronously inside a <c>Label</c> constructor on the render
-    ///         thread. A screen introducing thirty new characters therefore cost about thirty
-    ///         milliseconds, i.e. two dropped frames, before it drew anything.
-    ///     </para>
-    ///     <para>
-    ///         The loading screen has cores to spare and a render thread that only has to
-    ///         animate a strip, so the generation happens here instead and the scene builds
-    ///         that follow are left with only the uploads.
-    ///     </para>
+    ///     Generates the MSDF for every glyph in <see cref="WarmCharacters" /> on a worker,
+    ///     before any screen is built. Drawing a character the first time is MSDF generation
+    ///     plus an atlas upload, and only the upload needs a graphics context, so the scene
+    ///     builds that follow are left with just the uploads.
     /// </summary>
     private Task WarmFonts()
     {
@@ -236,18 +204,17 @@ public class Loader : Scene, IGamePreloadable
             var stopwatch = Stopwatch.StartNew();
             try
             {
-                // Three separate atlases, each with its own glyph cache: the interface's
-                // own font, and the two the visualizer's text container and player bar
-                // draw with. Twemoji is left alone - its glyph set is far too large to
-                // warm speculatively, and no label in this program reaches for it.
+                // Three atlases with separate glyph caches: the interface's own font, and
+                // the two the visualizer's text container and player bar draw with. Twemoji
+                // is skipped - its glyph set is too large to warm and no label uses it.
                 _context.TextProvider.Warm(WarmCharacters);
                 Visualizer.VisualizerFonts.LatoRegularProvider.Warm(WarmCharacters);
                 Visualizer.VisualizerFonts.LatoBoldProvider.Warm(WarmCharacters);
             }
             catch (Exception e)
             {
-                // Warming is an optimisation, and a failure here must not take the boot
-                // with it - every glyph it missed is simply generated on demand again.
+                // Warming is an optimisation: a failure must not fail the boot, since any
+                // glyph it missed is generated on demand.
                 Logger.Debug("[Font Warmup] Failed with error: '{Exception}'", e);
                 return;
             }
@@ -258,11 +225,10 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Agrees to the download at the end of the setup. It does not begin here: the
-    ///     scenes still have to be up first, which <see cref="StartDownloadWhenReady" />
-    ///     waits for. This is also where the setup is marked done - a build with no date
-    ///     never reaches the update question, so writing it with that answer would leave
-    ///     those runs asking again on every boot.
+    ///     Records the user's agreement to the download at the end of the setup, and marks
+    ///     the setup done. The download itself waits for the scenes to be up - see
+    ///     <see cref="StartDownloadWhenReady" />. The setup is marked done here rather than
+    ///     in <see cref="AnswerUpdatePrompt" />, which a build with no date never reaches.
     /// </summary>
     private void StartLoading()
     {
@@ -275,8 +241,8 @@ public class Loader : Scene, IGamePreloadable
         _settings.UpdateIncludePrereleases = _loaderInterface.IncludePrereleases.Checked;
         _settings.UpdateIncludeNightlies = _loaderInterface.IncludeNightlies.Checked;
         _settings.CheckForUpdates = optIn;
-        // UpdateCheckAsked is not written here - StartLoading owns it, so the setup only
-        // counts as done once it has actually been finished.
+        // UpdateCheckAsked is owned by StartLoading, so the setup only counts as done once
+        // it has been finished.
 
         if (optIn)
             UpdateChecker.Start(_version, _settings.UpdateIncludePrereleases,
@@ -341,8 +307,8 @@ public class Loader : Scene, IGamePreloadable
         {
             _bootStarted = true;
 
-            // sounds.json needs none of this and nothing needs it yet, so it goes out
-            // now and is in hand by the time the download it feeds is allowed to start.
+            // sounds.json is requested now so it is in hand by the time the download it
+            // feeds is allowed to start.
             _thirtyDollarDownloader.LoadSampleList();
 
             _componentWarm = WarmComponents();
@@ -379,8 +345,8 @@ public class Loader : Scene, IGamePreloadable
 
         if (!_thirtyDollarDownloader.AssetsLoaded) return;
 
-        // Guarded on Finished: this ran on every frame between the assets landing and the
-        // transition taking effect.
+        // Guarded on Finished so the message is set once, not on every frame between the
+        // assets landing and the transition taking effect.
         if (!Finished)
         {
             _loaderInterface.StatusMessage.SetTextContents("Opening the Visualizer");
@@ -392,15 +358,9 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Holds the scene builds until the warm-ups they depend on have landed.
-    ///     <para>
-    ///         Both exist to make building a scene cheap - one compiles the layouts, the
-    ///         other generates the glyphs their labels are spelt with - so starting the
-    ///         builds alongside them would have each build blocking on the very work that
-    ///         was meant to have finished first. Waiting costs nothing: the render thread is
-    ///         free to animate this screen while the workers get on with it, which is the
-    ///         one thing it cannot do while a scene is being built.
-    ///     </para>
+    ///     Holds the scene builds until both warm-ups have landed, so a build never blocks
+    ///     on the work meant to make it cheap. The render thread animates this screen while
+    ///     the workers run, which it cannot do while a scene is being built.
     /// </summary>
     private void QueuePreloadsWhenWarm()
     {
@@ -413,13 +373,10 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Queues every scene in <see cref="Preloads" /> to be built, a frame apart.
-    ///     <para>
-    ///         Two enqueued events per scene, because <see cref="Sundex.Engine.Game" /> runs
-    ///         one per frame: the message gets a frame of its own and is on screen before the
-    ///         build it describes takes the next one. Setting both in one event would leave
-    ///         the previous scene's message up for the whole of this one's build.
-    ///     </para>
+    ///     Queues every scene in <see cref="Preloads" /> to be built, a frame apart. Two
+    ///     enqueued events per scene, because <see cref="Sundex.Engine.Game" /> runs one per
+    ///     frame: the status message gets a frame of its own and is on screen before the
+    ///     build it describes takes the next.
     /// </summary>
     private void QueuePreloads()
     {
@@ -445,14 +402,9 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Starts the sound download once there is nothing left for it to compete with: the
-    ///     user has agreed to it, every scene is built, and sounds.json is in.
-    ///     <para>
-    ///         The scenes come first on purpose. Building them is render-thread work and
-    ///         downloading is not, so running them together would have the loading screen
-    ///         stuttering through the very progress it is drawing - and the download is the
-    ///         long pole either way, so nothing is lost by letting the scenes go first.
-    ///     </para>
+    ///     Starts the sound download once the user has agreed to it, every scene is built
+    ///     and sounds.json is in. The scene builds go first because they are render-thread
+    ///     work and would otherwise stutter the progress this screen is drawing.
     /// </summary>
     private void StartDownloadWhenReady()
     {
@@ -461,10 +413,8 @@ public class Loader : Scene, IGamePreloadable
 
         if (!_thirtyDollarDownloader.SampleListLoaded)
         {
-            // The scenes are up and sounds.json is still out. Only reached on a slow
-            // network - it is one small request against five scene builds - but the screen
-            // should say what it is waiting for rather than leave the last scene's message
-            // up over nothing.
+            // The scenes are up but sounds.json is still in flight; say what is being
+            // waited on rather than leave the last scene's message up.
             StatusUpdate(new LoadingSoundsListReport());
             return;
         }
@@ -476,24 +426,21 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     The hand-off to <see cref="ExitTo" /> - the home screen unless --mode named
-    ///     another. Program loads the scenes a frame apart, so this holds on the loading
-    ///     screen until that one exists - the frames the other four cost land underneath
-    ///     the animation instead of stacking into one stalled frame.
+    ///     Runs the hand-off to <see cref="ExitTo" /> - the home screen unless --mode named
+    ///     another. Holds on the loading screen until that scene exists, since Program loads
+    ///     the scenes a frame apart.
     ///     <br /><br />
-    ///     The exit itself: the sound field stops bouncing and scatters off the top edge,
-    ///     then the strip settles back to the zero height it rose from while the scene
-    ///     underneath fades up through it. Home's playhead starts the moment it is
-    ///     transitioned to, which is the moment the meter finished - one left-to-right
-    ///     motion across the seam rather than two.
+    ///     The exit itself: the sound field stops bouncing and scatters off the top edge, then
+    ///     the strip settles back to the zero height it rose from while the scene underneath
+    ///     fades up through it. Home's playhead starts the moment it is transitioned to,
+    ///     continuing the left-to-right motion across the seam.
     /// </summary>
     private void UpdateExit()
     {
         if (_target is null)
         {
-            // Every scene is built by the time the exit runs, so a miss here is a bad
-            // --mode rather than a build still in flight: falling back beats holding the
-            // loading screen up forever waiting for a scene nobody is going to add.
+            // Every scene is built by the time the exit runs, so a miss is a bad --mode
+            // rather than a build still in flight; fall back instead of hanging here.
             if (!SceneManager.Scenes.TryGetValue(ExitTo, out var scene))
             {
                 Logger.Warning("[Boot] No scene named \"{Mode}\" - opening the home screen instead", ExitTo);
@@ -528,9 +475,8 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Fades the scene being handed off to, if it can be faded. A scene that can't
-    ///     still gets the rest of the exit - the sound field scattering off the top, the
-    ///     strip settling back down - it just arrives opaque underneath it.
+    ///     Fades the scene being handed off to, when it implements <see cref="IFadeInScene" />.
+    ///     A scene that does not still gets the rest of the exit, but arrives opaque.
     /// </summary>
     private void SetTargetAlpha(float alpha)
     {

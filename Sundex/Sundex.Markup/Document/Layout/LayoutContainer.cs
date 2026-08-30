@@ -32,8 +32,8 @@ public class LayoutContainer(RootContainer root, XmlElement layoutElement)
         {
             classes = [];
             if (classString.StartsWith('[') && classString.EndsWith(']'))
-                // Trimmed: `class="[a, b]"` used to yield a class literally named " b",
-                // which matches no rule and fails silently.
+                // Entries are trimmed, so `class="[a, b]"` yields "a" and "b" rather than
+                // a class named " b" that would match no rule.
                 classes = [.. classString[1..^1].Split(',', StringSplitOptions.TrimEntries)];
             else classes.Add(classString);
         }

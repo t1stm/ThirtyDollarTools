@@ -30,9 +30,9 @@ public class NullAudibleBufferTests
     }
 
     /// <summary>
-    ///     The gap between a project being loaded (which seeks to 0) and someone pressing
-    ///     Play used to be counted as elapsed time, so the transport opened on however long
-    ///     the editor had been sitting there.
+    ///     The clock resumes from the sought time, not from the seek's wall clock: the gap
+    ///     between a project loading (which seeks to 0) and someone pressing Play is not
+    ///     elapsed time.
     /// </summary>
     [Fact]
     public void StartingAfterASeekResumesFromTheSoughtTime()

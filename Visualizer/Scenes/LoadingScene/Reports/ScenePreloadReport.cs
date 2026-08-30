@@ -1,10 +1,9 @@
 namespace LoadingScene.Reports;
 
 /// <summary>
-///     One scene being built ahead of the download. See <see cref="LoadingScene.Loader" />:
-///     the scenes go up first so the frames they cost are spent on the loading screen,
-///     where there is something to look at, rather than between the download finishing and
-///     the home screen appearing.
+///     Progress for one scene being built ahead of the download. See
+///     <see cref="LoadingScene.Loader" />, which builds the scenes first so the frames they
+///     cost are spent while the loading screen is on.
 /// </summary>
 public class ScenePreloadReport : IProgressReport
 {

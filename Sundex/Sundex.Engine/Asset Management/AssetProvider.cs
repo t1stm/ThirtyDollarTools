@@ -29,8 +29,8 @@ public class AssetProvider : IAssetProvider
     ///     Project directories of the asset assemblies, stamped in by Directory.Build.props
     ///     under Debug only. <see cref="Types.Asset.AssetLoader" /> probes these before the
     ///     output directory and the assembly manifest, so an asset load resolves to the file
-    ///     on disk that you are editing - which is what lets the UI be reloaded without a
-    ///     rebuild. Empty in Release, where the probe is skipped entirely.
+    ///     on disk being edited and the UI can be reloaded without a rebuild. Empty in
+    ///     Release, where the probe is skipped entirely.
     /// </summary>
     public string[] SourceRoots { get; }
     public ShaderPool ShaderPool { get; }
@@ -39,10 +39,9 @@ public class AssetProvider : IAssetProvider
     public GLInfo GLInfo { get; }
 
     /// <summary>
-    ///     Owned here rather than by <see cref="Game" /> so anything holding an asset provider
-    ///     can fetch off the render thread with its exceptions still surfaced (see
-    ///     <see cref="Sundex.Engine.Threading.ThreadRunner.Update" />). Game exposes this
-    ///     same instance.
+    ///     Runs work off the render thread with its exceptions still surfaced (see
+    ///     <see cref="Sundex.Engine.Threading.ThreadRunner.Update" />), available to anything
+    ///     holding an asset provider. <see cref="Game" /> exposes this same instance.
     /// </summary>
     public ThreadRunner ThreadRunner { get; }
 
@@ -158,9 +157,8 @@ public class AssetProvider : IAssetProvider
 
     /// <summary>
     ///     Reads the SundexSourceRoot metadata off each asset assembly. Assemblies without
-    ///     it (Release builds, and anything not built from this repo) contribute nothing.
-    ///     Directories that no longer exist are dropped here rather than stat-ed on every
-    ///     load - a Debug build copied to another machine keeps its stale attribute.
+    ///     it (Release builds, and anything not built from this repo) contribute nothing, and
+    ///     directories that no longer exist are dropped once here rather than on every load.
     ///     ponytail: flat list, first hit wins, so two projects declaring the same
     ///     project-relative asset path would shadow each other. None do today; key the
     ///     probe by calling assembly if that changes.

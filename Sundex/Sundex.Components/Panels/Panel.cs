@@ -190,11 +190,10 @@ public class Panel(UIContext context) : UIElement(context), IColoredBackground, 
         child.ParentAssignedHeight = null;
         child.Parent = this;
         // Code-built subtrees are composed detached and only ever meet a stylesheet here:
-        // ApplyStyleSheet runs once over the markup tree, long before this child exists.
-        // Without this a code-built element could only be styled inline, which is the
-        // whole reason editor components used to hard-code their colors/sizes.
-        // Guarded on identity so re-parenting (view swaps, list rebuilds) doesn't
-        // re-run reflection over a large subtree that already carries this sheet.
+        // ApplyStyleSheet runs once over the markup tree, long before this child exists,
+        // so without this pass a code-built element could only be styled inline. Guarded
+        // on identity so re-parenting (view swaps, list rebuilds) doesn't re-run
+        // reflection over a large subtree that already carries this sheet.
         if (StoredStyleSheet is { } sheet && !ReferenceEquals(child.StoredStyleSheet, sheet))
             child.ApplyStyleSheet(sheet);
         // DrawTo queues the child's renderables but lays it out against this panel's

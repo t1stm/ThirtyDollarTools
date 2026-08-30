@@ -64,10 +64,10 @@ public abstract class Scene(Game game)
     ///     a scene overrides it only if its interface can be thrown away and built again,
     ///     which one holding live playback state cannot.
     ///     <para>
-    ///         Build the new interface into a fresh <c>UIContext</c> and only then assign
-    ///         both fields. A markup or stylesheet saved mid-edit throws while it is being
-    ///         built, and doing it in that order leaves the running UI untouched when it
-    ///         does - see <see cref="SceneManager.Reload" />, which logs and moves on.
+    ///         Build the new interface into a fresh <c>UIContext</c> and only then assign both
+    ///         fields, so that a markup or stylesheet saved mid-edit - which throws while it is
+    ///         being built - leaves the running UI untouched; <see cref="SceneManager.Reload" />
+    ///         logs the failure and moves on.
     ///     </para>
     /// </summary>
     public virtual void ReloadUI()
@@ -75,9 +75,9 @@ public abstract class Scene(Game game)
     }
 
     /// <summary>
-    ///     Re-reads this scene's stylesheets and applies them to the tree already on screen.
-    ///     Far cheaper than <see cref="ReloadUI" /> and keeps everything the live UI is
-    ///     holding, so it is what a stylesheet-only edit takes.
+    ///     Re-reads this scene's stylesheets and applies them to the tree already on screen,
+    ///     keeping everything the live UI holds. Used for a stylesheet-only edit, where the
+    ///     full <see cref="ReloadUI" /> is not needed.
     /// </summary>
     public virtual void ReloadStyles()
     {

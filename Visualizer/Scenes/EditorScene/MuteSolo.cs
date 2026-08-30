@@ -1,7 +1,7 @@
 namespace EditorScene;
 
 /// <summary>
-///     Session-only mute/solo state, never saved. Lifted out of <see cref="EditorState" />.
+///     Per-channel mute/solo state for the session; never saved with the project.
 /// </summary>
 public sealed class MuteSolo
 {
@@ -30,7 +30,7 @@ public sealed class MuteSolo
         return _soloed.Contains(channel);
     }
 
-    /// <summary>FL semantics: any solo wins; otherwise everything not muted sounds.</summary>
+    /// <summary>Any soloed channel silences the rest; with nothing soloed, every unmuted channel sounds.</summary>
     public bool IsChannelAudible(int channel)
     {
         return _soloed.Count > 0 ? _soloed.Contains(channel) : !_muted.Contains(channel);

@@ -15,31 +15,21 @@ using FontMetrics = SixLabors.Fonts.FontMetrics;
 namespace Sundex.MSDF;
 
 /// <summary>
-///     A parsed font that generates MSDF glyph bitmaps.
+///     A parsed font that generates MSDF glyph bitmaps. Safe to share across threads.
 ///     <para>
 ///         Parsing happens once, in <see cref="Load(Stream)" />, and the caller owns what comes
 ///         back: hold an <see cref="MsdfFont" /> for as long as glyphs are still wanted from it,
-///         since re-loading re-parses the file. It is safe to share across threads.
-///     </para>
-///     <para>
-///         The library keeps nothing of its own between calls. Every buffer a font ever allocated
-///         hangs off that font, so dropping the last reference to it releases all of it — there is
-///         no process-wide cache to grow.
-///     </para>
-///     <para>
-///         <see cref="Dispose" /> exists for callers that want the reusable scratch released at a
-///         point they choose — a tool that renders one atlas and moves on can write
-///         <c>using var font = MsdfFont.Load(…)</c>. It is optional: nothing unmanaged is held, so
-///         a font that is simply dropped costs nothing beyond waiting for the collector.
+///         since re-loading re-parses the file. Every buffer it allocates hangs off the instance,
+///         so dropping the last reference releases all of it; <see cref="Dispose" /> is optional
+///         and only hands that scratch back earlier.
 ///     </para>
 /// </summary>
 public sealed class MsdfFont : IDisposable
 {
     /// <summary>
-    ///     Rendering at <c>Size == UnitsPerEm</c> with this DPI makes one SixLabors output unit
-    ///     equal one font unit (SixLabors: px = size × dpi / 72), which the glyph renderer then
-    ///     divides down to ems. Rendering at size 1 would reach em space directly but throw away
-    ///     most of the outline's precision on the way.
+    ///     Render DPI at which one SixLabors output unit equals one font unit when the font size
+    ///     is <c>UnitsPerEm</c> (SixLabors: px = size × dpi / 72); the glyph renderer divides that
+    ///     down to ems.
     /// </summary>
     private const float RenderDpi = 72f;
 
@@ -52,11 +42,7 @@ public sealed class MsdfFont : IDisposable
     /// <summary>
     ///     Reusable scratch, borrowed for the duration of a <see cref="TryGenerate" /> call and
     ///     handed back afterwards, so generating a glyph allocates nothing in steady state.
-    ///     <para>
-    ///         Bags on the instance rather than <c>[ThreadStatic]</c> or <c>static</c> fields:
-    ///         concurrent callers still never block, but the buffers belong to this font and go
-    ///         away with it instead of being stranded on a thread or held for the process.
-    ///     </para>
+    ///     Concurrent callers never block, and the buffers belong to this font instance.
     /// </summary>
     private readonly ConcurrentBag<ShapeDistanceFinder> _finders = [];
 
@@ -88,16 +74,8 @@ public sealed class MsdfFont : IDisposable
 
     /// <summary>
     ///     Releases the reusable scratch this font has accumulated and stops it generating.
-    ///     <para>
-    ///         There is no unmanaged resource behind a font, so this is a way to hand memory back
-    ///         early rather than an obligation; a font that is never disposed leaks nothing.
-    ///         Calling it twice is harmless, and <see cref="Metrics" /> keeps working afterwards.
-    ///     </para>
-    ///     <para>
-    ///         Do not dispose a font while another thread is still generating from it: that call
-    ///         either finishes or throws depending on how far it got, which is the usual race on
-    ///         disposal and not something the font tries to arbitrate.
-    ///     </para>
+    ///     Optional and idempotent - nothing unmanaged is held, and <see cref="Metrics" /> keeps
+    ///     working afterwards. Do not call it while another thread is still generating from the font.
     /// </summary>
     public void Dispose()
     {
@@ -220,8 +198,8 @@ public sealed class MsdfFont : IDisposable
 
         if (!TryFirstCodePoint(characters, out var codePoint, out var text)) return false;
 
-        // ColorFontSupport.None: we want the base outline, never the colour layers of an emoji
-        // font — those are a stack of filled shapes, not one outline to take a distance from.
+        // ColorFontSupport.None asks for the base outline: an emoji font's colour layers are a
+        // stack of filled shapes, not one outline a distance can be taken from.
         if (!_fontMetrics.TryGetGlyphMetrics(codePoint, TextAttributes.None, TextDecorations.None,
                 LayoutMode.HorizontalTopBottom, ColorFontSupport.None, out var glyphMetrics))
             return false;
@@ -249,16 +227,11 @@ public sealed class MsdfFont : IDisposable
     }
 
     /// <summary>
-    ///     Moves the rendered outline so that it sits on the baseline, where the top of its ink
-    ///     is the height the font's own metrics give it:
-    ///     <c>Ascender − TopSideBearing</c>.
-    ///     <para>
-    ///         This has to be measured from the glyph's own metrics rather than taken from where
-    ///         SixLabors put it, because SixLabors has no fixed baseline to place against: it
-    ///         grows its line box for ink rising above the ascender, which pushes tall glyphs
-    ///         down by their own overshoot. Both sides of the correction use our own curve
-    ///         bounds, so it does not depend on how SixLabors measures ink either.
-    ///     </para>
+    ///     Moves the rendered outline onto the baseline, so the top of its ink sits at the height
+    ///     the font's own metrics give it: <c>Ascender − TopSideBearing</c>. The height comes from
+    ///     those metrics rather than from where SixLabors placed the outline, because SixLabors
+    ///     grows its line box for ink above the ascender and so pushes tall glyphs down by their
+    ///     own overshoot; both sides of the correction use this library's own curve bounds.
     /// </summary>
     private void AnchorToBaseline(Shape shape, FontGlyphMetrics glyphMetrics)
     {
@@ -296,11 +269,8 @@ public sealed class MsdfFont : IDisposable
     ///     Fits the shape into a <paramref name="size" />-square bitmap, centred on its shorter
     ///     axis and leaving <paramref name="pxRange" /> pixels of margin for the distance field to
     ///     fall off in. A shape with no area is framed as the unit square instead.
-    ///     <para>
-    ///         The translate and scale returned are what the caller must apply to place the
-    ///         rendered bitmap, so they are part of the output, not scratch.
-    ///     </para>
     /// </summary>
+    /// <returns>The translate and scale the caller must apply to place the rendered bitmap.</returns>
     internal static (Vector2d Translate, Vector2d Scale) AutoFrame(Shape shape, int size, double pxRange)
     {
         var translate = Vector2d.Zero;

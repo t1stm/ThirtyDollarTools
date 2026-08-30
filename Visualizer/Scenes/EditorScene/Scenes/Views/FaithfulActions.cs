@@ -10,22 +10,21 @@ namespace EditorScene.Scenes.Views;
 public readonly record struct ScrollRange(double Min, double Max, double Step = 1);
 
 /// <summary>
-///     What the palette's Actions section offers, in the website's order. Every one of them is
-///     already in the atlas (the downloader maps <c>action_*</c> to <c>!*</c>), so the palette
-///     draws them with the same <c>RenderableFactory</c> the sounds use.
-///     <c>_pause</c> is the one entry that isn't an action - it is TDW's silent sound, the only
-///     way to leave a gap, and it belongs beside the actions rather than in a palette of
-///     project instruments. It rides the same item shape: the walker advances the position for
-///     it and emits nothing, exactly as it does inside an imported sequence.
-///     <paramref name="Template" /> is the TDW text a fresh item starts from - null for the
-///     actions that take no amount, and the site's own default otherwise. It is offered for
-///     editing rather than applied blind, which is also how "!speed@2@x" and the two-value
-///     "!pulse"/"!bg" payloads get built without a form per action.
+///     One entry of the palette's Actions section, in the website's order. Every one is in the
+///     atlas (the downloader maps <c>action_*</c> to <c>!*</c>), so the palette draws them with
+///     the same <c>RenderableFactory</c> the sounds use.
+///     <c>_pause</c> is the one entry that isn't an action - TDW's silent sound, the only way to
+///     leave a gap - and it rides the same item shape: the walker advances the position for it
+///     and emits nothing.
+///     <paramref name="Template" /> is the TDW text a fresh item starts from - the site's own
+///     default, or null for the actions that take no amount. It is offered for editing rather
+///     than applied blind, which is also how "!speed@2@x" and the two-value "!pulse"/"!bg"
+///     payloads get built without a form per action.
 ///     <paramref name="Scroll" /> is what the scroll gesture may do to the slot once it is in
-///     the sequence, or null for the slots the site turns the wheel away from: the actions
-///     that hold no value at all, "_pause", and the two that pack two values into one
-///     ("!bg"'s color and fade, "!pulse"'s repeats and frequency) - the site only ever edits
-///     those through their form, which here is the right-click dialog.
+///     the sequence, or null for the slots that take nothing from the wheel: the valueless
+///     actions, "_pause", and the two that pack two values into one ("!bg"'s color and fade,
+///     "!pulse"'s repeats and frequency), which are only editable through the right-click
+///     dialog.
 /// </summary>
 public sealed record FaithfulAction(string Name, string? Template, string Hint, ScrollRange? Scroll = null)
 {

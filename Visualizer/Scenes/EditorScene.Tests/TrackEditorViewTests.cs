@@ -184,10 +184,9 @@ public class TrackEditorViewTests
     public void ClickingANote_WithAFractionalValue_LeavesItUntouched()
     {
         // The real render loop calls UIContext.UpdatePointer every frame, so a plain held
-        // click isn't just press-then-release: the button is still down on every frame
-        // after the press, which fires a same-position "drag" too (Click's press+release
-        // helper never exercises that extra frame, which is why this bug slipped past the
-        // existing click tests). Select tool: a click must not move or resnap the note at all.
+        // click isn't just press-then-release: the button is still down on the frame after the
+        // press, which fires a same-position "drag" too (the Click helper skips that frame).
+        // Under the Select tool a click must not move or resnap the note at all.
         var (ctx, state, view, track) = NewView();
         var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 6.4);
         view.Layout();
@@ -657,10 +656,9 @@ public class TrackEditorViewTests
     [Fact]
     public void SelectTool_Marquee_SelectsANote_EvenWhenTheBoxNeverReachesItsLeadingEdge()
     {
-        // Regression: a note isn't a point, it's a whole rendered cell (one step wide,
-        // one row tall). A box whose numeric range never reaches the cell's leading
-        // edge (left for steps, top for values, since rows are drawn top-anchored)
-        // must still select it as long as it overlaps the cell at all.
+        // A note isn't a point, it's a whole rendered cell (one step wide, one row tall), so a
+        // box whose numeric range never reaches the cell's leading edge (left for steps, top
+        // for values, since rows are drawn top-anchored) still selects it if it overlaps at all.
         var (ctx, state, view, track) = NewView();
         var boom = MakeInstrument(state, "boom");
         var note = state.AddNote(track.Segments[0], 3, boom, 0); // cell: step [3,4), value (-1,0]
@@ -1064,10 +1062,9 @@ public class TrackEditorViewTests
     [Fact]
     public void SimultaneousCutsOnDifferentInstruments_ShareTheStep_ButRenderInSeparateSlots()
     {
-        // Regression: individual cuts routinely fire on several sounds at once
-        // ("!cut@a|!cut@b" in a real TDW file), landing two cut notes - different
-        // instruments - on the same step. Before slot-splitting, both rendered at
-        // identical coordinates in the pinned row, so only one was ever reachable.
+        // Individual cuts routinely fire on several sounds at once ("!cut@a|!cut@b" in a real
+        // TDW file), landing two cut notes - different instruments - on the same step. Each
+        // takes its own slot in the pinned row, or only one of them is ever reachable.
         var (ctx, state, view, track) = NewView();
         var kick = MakeInstrument(state, "kick");
         var snare = MakeInstrument(state, "snare");
@@ -1100,9 +1097,9 @@ public class TrackEditorViewTests
     [Fact]
     public void AGridNoteStraddlingTheGridsBottomEdge_GetsItsHeightClamped()
     {
-        // Value -22's row sits at [386.5, 394.5) under this view's default centered
-        // scroll, straddling GridBottom (389, just above the pinned cut row's rule) -
-        // there's no overdraw to hide the overflow anymore, so PlaceNote must clamp it.
+        // Value -22's row sits at [386.5, 394.5) under this view's default centered scroll,
+        // straddling GridBottom (389, just above the pinned cut row's rule). Nothing overdraws
+        // the overflow, so PlaceNote has to clamp it.
         var (ctx, state, view, track) = NewView();
         var boom = MakeInstrument(state, "boom");
         var note = state.AddNote(track.Segments[0], 0, boom, -22);

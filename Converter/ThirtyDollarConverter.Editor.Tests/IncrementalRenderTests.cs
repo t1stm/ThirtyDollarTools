@@ -89,9 +89,8 @@ public class IncrementalRenderTests
     }
 
     /// <summary>
-    ///     The same retune done by walking the note off its step and back. Moving it changes
-    ///     its cuts' placements too, which forces the full re-render the in-place edit skips -
-    ///     this path stayed clean while the one above didn't.
+    ///     The same retune done by walking the note off its step and back. Moving it changes its
+    ///     cuts' placements too, which forces the full re-render the in-place edit skips.
     /// </summary>
     [Fact]
     public async Task MovingAndRetuningANote_MatchesAFullRender()
@@ -200,11 +199,9 @@ public class IncrementalRenderTests
 
     /// <summary>
     ///     Four cut-automated notes on a two-sound instrument, then one sound gains a volume
-    ///     (null -> 60) while the other keeps following the note. The diff holds only that
-    ///     sound, so the range ends at its last placement - well before the render does - which
-    ///     is where the chunked renderer used to drop its final sample: one sample kept its
-    ///     pre-edit value while everything around it was rewritten. Sample-exact here, no
-    ///     tolerance.
+    ///     (null -> 60) while the other keeps following the note. The diff holds only that sound,
+    ///     so the re-rendered range ends at its last placement, well before the render does - the
+    ///     final sample of that range must be rewritten like the rest. Sample-exact, no tolerance.
     /// </summary>
     [Fact]
     public async Task ChangingOneSoundVolume_OnACutAutomatedMultiSoundInstrument()
@@ -241,8 +238,8 @@ public class IncrementalRenderTests
     ///     A cut-automated instrument's sound list edited across four renders: two sounds
     ///     (one tuned -14, one plain), then a third is added, then tuned to -6 at 60% volume,
     ///     then removed again. The third sound is the longest one, so dropping it also shortens
-    ///     what a full render produces - the incremental path has to notice that and rebuild
-    ///     rather than hand back a buffer that still runs to the old length.
+    ///     what a full render produces, and the incremental result must shorten with it rather
+    ///     than still run to the old length.
     /// </summary>
     [Fact]
     public async Task RemovingASoundFromACutAutomatedInstrument_LeavesNoUncutResidue()

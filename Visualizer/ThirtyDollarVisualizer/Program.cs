@@ -185,9 +185,8 @@ return;
 
 /// <summary>
 ///     Every scene the program has, and what the loading screen says while each is built.
-///     They go up before the sounds come down rather than after: built afterwards, all of
-///     this landed on the frames between the download finishing and the home screen
-///     appearing, which is where the boot used to visibly stall.
+///     They are built before the sound download starts, so the work lands while the loading
+///     screen is animating rather than between the download finishing and the home screen.
 /// </summary>
 static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, string? greeting, float? scale,
     string? mode)

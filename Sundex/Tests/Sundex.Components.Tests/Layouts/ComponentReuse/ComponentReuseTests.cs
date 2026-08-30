@@ -8,10 +8,9 @@ using Sundex.Markup;
 namespace Sundex.Components.Tests.Layouts.ComponentReuse;
 
 /// <summary>
-///     A registered component used as a tag elsewhere must yield an independent tree per
-///     usage site. Before this, the builder handed out the registered component's own
-///     Element, so two usages were the same instance and the second reparented the first
-///     out of the tree.
+///     A registered component used as a tag elsewhere yields an independent tree per usage
+///     site, rather than handing every usage the registered component's own Element - which
+///     would make two usages one instance, the second reparenting the first out of the tree.
 /// </summary>
 public class ComponentReuseTests
 {
@@ -44,8 +43,7 @@ public class ComponentReuseTests
         var sundex = new SundexContext(_context);
         var header = sundex.NewComponent(Load(_context, "Header.xml"));
 
-        // Name was never assigned by the builder, so RegisterComponent always threw and
-        // the whole import feature was unreachable.
+        // The builder has to assign Name; RegisterComponent throws without one.
         Assert.Equal("header", header.Name);
         Assert.Same(header, sundex.LoadedComponents["header"]);
     }

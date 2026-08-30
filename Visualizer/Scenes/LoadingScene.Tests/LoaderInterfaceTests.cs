@@ -298,8 +298,7 @@ public class LoaderInterfaceTests
     /// <summary>
     ///     A build with no release date behind it - a local build, which is every build a
     ///     developer runs. It still gets the setup; only the update question is dropped, and
-    ///     the meter counts two. Gating the whole setup on the date meant it never appeared
-    ///     on any machine that hadn't downloaded a release.
+    ///     the meter counts two - the setup itself is not gated on the release date.
     /// </summary>
     [Fact]
     public void WithoutAReleaseDate_TheSetupSkipsTheUpdateQuestion()

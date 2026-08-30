@@ -57,11 +57,9 @@ public class RenderQueueTests
     [Fact]
     public void SiblingPanels_RenderInDrawOrder_LaterOnTop()
     {
-        // Siblings share a depth layer; within it, render order must follow draw
-        // (child) order so the later sibling stacks above the earlier one - the same
-        // priority hit-testing uses. Regression: Panel.DrawSelf used to insert its
-        // background at the layer front, so the FIRST child painted on top of
-        // everything drawn after it (the note editor's zero-row band hid the notes).
+        // Siblings share a depth layer; within it, render order must follow draw (child)
+        // order so the later sibling stacks above the earlier one - the same priority
+        // hit-testing uses. A panel's background belongs at the layer back, not its front.
         var context = new TestUIContext();
         var root = new Panel(context);
         root.DrawTo(context);
@@ -205,12 +203,9 @@ public class RenderQueueTests
         var newBackground = new MockRenderable();
         button.TestHandleRenderableSwap(initialBackground, newBackground);
 
-        // Check order
-        // In a real scenario, both might be in the same layer if Index is the same, 
-        // but here they are in different layers (10 and 11).
-        // If they are in different layers, the layer index handles it.
-        // Wait, if Button and Label have different Index, then background (layer 10) 
-        // should ALWAYS be before text (layer 11) regardless of position in queue 10.
+        // Button and Label sit in different layers (10 and 11), so the layer index alone
+        // orders them: the background always draws before the text, wherever the swap put it
+        // inside layer 10.
 
         Assert.Same(newBackground, context.GetRenderQueue()[10][0]);
         Assert.Same(textBuffer, context.GetRenderQueue()[11][0]);
@@ -302,7 +297,7 @@ public class RenderQueueTests
         element.DrawTo(context);
 
         var queue = context.GetRenderQueue()[5];
-        // FAILURE EXPECTED HERE if the fix is not applied
+        // One entry, not one per style pass.
         Assert.Single(queue);
 
         var baseBackground = element.Background;
@@ -359,7 +354,7 @@ public class RenderQueueTests
         var hoverBackground = element.Background;
         Assert.NotSame(baseBackground, hoverBackground);
 
-        // CHECK: Is the new hover background in the queue?
+        // The new hover background is the queue's only entry.
         var queue = context.GetRenderQueue()[5];
         Assert.Single(queue);
         Assert.Same(hoverBackground, queue[0]);
@@ -392,7 +387,7 @@ public class RenderQueueTests
 
         // Apply base style
         element.ApplyStyleSheet(stylesheet);
-        // Ensure baseBackground is in queue (in real app DrawSelf does this, or we can simulate it)
+        // Stands in for DrawSelf, which queues the background in the real app.
         context.QueueRender(baseBackground, 5);
 
         Assert.Same(baseBackground, context.GetRenderQueue()[5][0]);
@@ -415,7 +410,7 @@ public class RenderQueueTests
 
         Assert.Same(baseBackground, element.Background);
 
-        // CRITICAL CHECK: Is it back in the render queue?
+        // The base background is back in the render queue.
         var queue = context.GetRenderQueue()[5];
         Assert.Contains(baseBackground, queue);
         Assert.Same(baseBackground, queue[0]);

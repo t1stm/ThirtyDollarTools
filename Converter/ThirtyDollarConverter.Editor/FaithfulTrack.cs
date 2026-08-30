@@ -8,8 +8,7 @@ namespace ThirtyDollarConverter.Editor;
 ///     Exactly one of the two is set.
 ///     The <see cref="Note" />'s <see cref="Editor.Note.Step" /> is meaningless here - a faithful
 ///     sequence has no grid, position is the item's index - and stays 0. Actions are raw
-///     <see cref="BaseEvent" />s on purpose (README's "never hand raw events to the editor model"
-///     is waived for them): "!speed@2@x", "!pulse" and "!bg" carry a
+///     <see cref="BaseEvent" />s: "!speed@2@x", "!pulse" and "!bg" carry a
 ///     <see cref="ValueScale" /> and packed two-value payloads that <see cref="Editor.Note" />
 ///     does not model. Sound items stay <see cref="Editor.Note" />s.
 /// </summary>
@@ -131,8 +130,8 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
     private long _contentSignature;
 
     /// <summary>
-    ///     The walk, kept until what it read changes. Walking an imported cover is ~20 ms, and
-    ///     the editor asks a timing question after every edit.
+    ///     The walk, kept until what it read changes, so a timing question after every edit
+    ///     doesn't rewalk the sequence.
     ///     Two signatures, because most edits only change half of what a walk holds: a
     ///     scrolled value or volume is in every event the walk hands out, but says nothing
     ///     about *when* anything plays. A duration, a tempo region or a play schedule can
@@ -260,9 +259,9 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
             // "!speed" or a "!combine" here would apply it a second time.
             if (walked.VisualOnly) continue;
 
-            // A copy per call, not per walk: the walk is cached now, and everything
-            // downstream treats these as its own - a transpose is written straight onto them,
-            // and PlacementCalculator spends a "!stop"'s WorkingValue as it reads it.
+            // A copy per call, not per walk: the cached walk's events are shared, and everything
+            // downstream treats what it gets as its own - a transpose is written straight onto
+            // them, and PlacementCalculator spends a "!stop"'s WorkingValue as it reads it.
             var copy = walked.Event.Copy();
             if (transpose != 0 && walked.IsSound)
             {

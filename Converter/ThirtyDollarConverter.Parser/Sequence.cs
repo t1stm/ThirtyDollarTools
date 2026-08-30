@@ -413,7 +413,7 @@ public partial class Sequence
 
         if (action is "!bg")
         {
-            // Yes I created a custom encoding format for a RGB color and a decimal number. sue me
+            // "!bg@#rrggbb(aa),fade": the colour and the fade time share one packed value.
             var hex = split_data[0];
             byte r, g, b, a = 255;
             try

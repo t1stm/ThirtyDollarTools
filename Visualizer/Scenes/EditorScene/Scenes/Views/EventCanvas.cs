@@ -23,8 +23,8 @@ namespace EditorScene.Scenes.Views;
 ///     The renderables carry absolute positions (that is how the playfield draws them), so a
 ///     scroll has to move every one of them - see <see cref="Reposition" />.
 ///     Chunks that don't reach the visible rectangle are not queued at all - see
-///     <see cref="RefreshCulling" />; an imported cover is thousands of events long and a
-///     queued chunk costs a frame whether it is on screen or not.
+///     <see cref="RefreshCulling" /> - so the cost follows the panel's height rather than
+///     the sequence's length, which can be thousands of events.
 ///     Moving costs nothing per slot either: a scroll shifts the block's bounds and the
 ///     recorded per-chunk layout states, and a chunk's renderables are only put where they
 ///     belong once it is about to be drawn - see <see cref="ShiftBy" /> and
@@ -87,11 +87,10 @@ public sealed class EventCanvas : Panel
     private const float BounceHeight = 1f / 4.2666667f;
 
     /// <summary>
-    ///     Events per chunk. A chunk is the unit <see cref="RefreshCulling" /> keeps or drops,
-    ///     and it draws every renderable it holds - so the playfield's 512 (thirty-two lines
-    ///     at sixteen across) is far coarser than a panel that shows about seven. 128 is eight
-    ///     lines: tight enough that the culled block is close to what is on screen, coarse
-    ///     enough not to multiply the draw calls.
+    ///     Events per chunk - the unit <see cref="RefreshCulling" /> keeps or drops, drawn
+    ///     whole. 128 is eight lines at sixteen across: tight enough that what is kept is close
+    ///     to what is on screen, coarse enough not to multiply the draw calls. (The playfield's
+    ///     own 512 is far coarser than a panel showing about seven lines.)
     /// </summary>
     private const int CullChunkSize = 128;
 
@@ -310,10 +309,10 @@ public sealed class EventCanvas : Panel
 
     /// <summary>
     ///     Redraws an edit without rebuilding the sequence. Every mutation comes back through
-    ///     <see cref="SetEvents" /> with a freshly expanded stream, and regenerating every
-    ///     chunk's renderables, text and GL buffers for it is ~740 ms on an imported cover -
-    ///     for one scrolled value. Slots that draw the same are left exactly as they are and
-    ///     only the chunks holding a changed one are built again.
+    ///     <see cref="SetEvents" /> with a freshly expanded stream, so slots that draw the same
+    ///     are left exactly as they are and only the chunks holding a changed one are built
+    ///     again - one scrolled value never costs a rebuild of every chunk's renderables, text
+    ///     and GL buffers.
     ///     Null when the block's shape moved and the whole thing has to be rebuilt; otherwise
     ///     whether every slot that changed was a sound (so the caller's timing still holds).
     /// </summary>
@@ -402,8 +401,8 @@ public sealed class EventCanvas : Panel
         for (var c = 0; c < _chunks.Count; c++)
         {
             var chunk = _chunks[c];
-            // Off-screen slots can't be under the pointer, and walking them is what made this
-            // cost the whole sequence on every hover frame.
+            // Off-screen slots can't be under the pointer, so their chunks are skipped rather
+            // than walked on every hover frame.
             if (c < _queued.First || c > _queued.Last)
             {
                 index += chunk.Renderables.Length;
@@ -445,7 +444,7 @@ public sealed class EventCanvas : Panel
     }
 
     /// <summary>
-    ///     The single entry point for sizing, so <see cref="Extent" /> can't measure against a
+    ///     The single entry point for sizing, so the measured extent can never be against a
     ///     different box than the layout used. A fitted canvas derives the size and publishes
     ///     it; every other one takes whatever the shared <see cref="Scale" /> holds.
     /// </summary>
@@ -497,15 +496,13 @@ public sealed class EventCanvas : Panel
         if (_generator is null || _positioning || _chunks.Count == 0) return;
 
         // Layout recomputes the rectangle whether or not it moved, and positioning the block
-        // is O(events) - an imported cover's worth of that, every frame, is most of what a
-        // long sequence used to cost. Nothing to do when it would land where it already is.
+        // is O(events), so nothing is done when it would land where it already is.
         var at = (Computed.AbsoluteX, Computed.AbsoluteY, Computed.Width, Scale?.BoxSize ?? _size);
         if (at == _laidOutAt) return;
 
         // Only the origin moved: the block's shape is unchanged, so every position shifts by
-        // exactly that much. The bounds and the seek states take it now (a few hundred of
-        // those) and the renderables take it when they are next needed (tens of thousands).
-        // Laying all of them out again is what made one scroll frame 140 ms.
+        // exactly that much. The bounds and the seek states (a few hundred) take it now, and
+        // the renderables (tens of thousands) take it when they are next needed.
         var shifted = !float.IsNaN(_laidOutAt.X) && at.Item1 == _laidOutAt.X &&
                       at.Item3 == _laidOutAt.Width && at.Item4 == _laidOutAt.Box;
         var dy = at.Item2 - _laidOutAt.Y;
@@ -519,12 +516,10 @@ public sealed class EventCanvas : Panel
         if (Math.Abs(_boxSize - _generatedBoxSize) > 0.5f)
         {
             _positioning = false;
-            // Dropping the generator forces the full rebuild path: SetEvents is being handed
-            // the array it already holds, so TryPatch would find every slot drawing the same
-            // and return without regenerating anything - leaving _generatedBoxSize stale, so
-            // every later Reposition came straight back here and the block never moved again.
-            // That is what froze the action palette: its box size follows the sequence's
-            // shared scale, which moves off 64 on the first real layout.
+            // Dropping the generator forces the full rebuild path. SetEvents is handed the
+            // array it already holds, so TryPatch would otherwise find every slot drawing the
+            // same and return without regenerating anything, leaving _generatedBoxSize stale
+            // and every later Reposition looping straight back here.
             _generator = null;
             SetEvents(_events);
             return;
@@ -556,8 +551,8 @@ public sealed class EventCanvas : Panel
 
         var lit = 0;
         // Only what is on screen: a panel behind an off-screen slot is scissored away anyway,
-        // and Lit() walks the chunks to find a slot's box, so the whole sequence's worth of
-        // that is O(events x chunks) for nothing.
+        // and Lit() walks the chunks to find a slot's box - O(events x chunks) over the whole
+        // sequence.
         var (index, visibleEnd) = VisibleEvents();
         while (index <= visibleEnd)
         {
@@ -664,11 +659,10 @@ public sealed class EventCanvas : Panel
 
     /// <summary>
     ///     Keeps only the chunks that reach the visible rectangle queued for rendering.
-    ///     A queued chunk is drawn every frame and updates every renderable it holds, so an
-    ///     imported cover's worth of them costs a frame whether it is on screen or not - which
-    ///     is the whole of the FPS drop a long sequence used to cause.
-    ///     A chunk is 512 events, so this is coarse on purpose: the point is that the cost
-    ///     follows the panel's height rather than the sequence's length.
+    ///     A queued chunk is drawn every frame and updates every renderable it holds, whether
+    ///     or not it is on screen. Culling by whole <see cref="CullChunkSize" /> chunks is
+    ///     coarse on purpose: the point is that the cost follows the panel's height rather
+    ///     than the sequence's length.
     /// </summary>
     private void RefreshCulling()
     {
@@ -873,9 +867,9 @@ public sealed class EventCanvas : Panel
     ///     each one starts from, and where the block ends. That is everything culling and the
     ///     element's own height need - the chunks are laid out for real when they come on
     ///     screen, by <see cref="CatchUp" />.
-    ///     The walk itself is arithmetic; it is writing a position, a model matrix and three
-    ///     text placements per slot that costs, and on an imported cover that is a quarter of
-    ///     a second for slots nobody is looking at.
+    ///     The walk itself is arithmetic; the cost is in writing a position, a model matrix
+    ///     and three text placements per slot, which is what deferring to
+    ///     <see cref="CatchUp" /> keeps off the slots nobody is looking at.
     /// </summary>
     private void MeasureAll()
     {
@@ -900,8 +894,8 @@ public sealed class EventCanvas : Panel
 
             foreach (var renderable in chunk.Renderables)
             {
-                // The same box GetNewPosition hands PositionSound, so this is the extent the
-                // old whole-block measure arrived at - see BoxOf.
+                // The same box GetNewPosition hands PositionSound, so the extent matches what a
+                // full per-slot layout would produce - see BoxOf.
                 var (x, y) = layout.GetNewPosition(renderable.IsDivider);
                 right = Math.Max(right, x + _boxSize + _margin / 2);
                 bottom = Math.Max(bottom, y + _boxSize + _margin / 2);

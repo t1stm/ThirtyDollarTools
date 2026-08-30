@@ -135,16 +135,11 @@ public class SequenceImporterTests
     [Fact]
     public void OneUnrepresentableOutlier_DoesNotForceTheRestOfTheRegionOntoAFinerGrid()
     {
-        // "!stop@0.01" then "!stop@0.99" cancel out (net +1 step): only the note
-        // sandwiched between them sits at an unrepresentable position (needs a
-        // denominator of 100, past the 64 cap, like real "swing"/humanize timing).
-        // Every other note is already whole at k=1 - real playback later walks this
-        // segment with its own per-step INTEGER sample truncation, so needlessly
-        // forcing a finer subdivision (e.g. the old "give up and use 64" fallback)
-        // doesn't just fail to help the outlier - it also compounds truncation loss
-        // across every other, already-exact note (reproduced against a real dropped
-        // file: a blind k=64 fallback measured a 427ms drift by the end of a 96s
-        // track; minimizing misalignment instead brought it down to ~2ms, bounded).
+        // "!stop@0.01" then "!stop@0.99" cancel out (net +1 step): only the note sandwiched
+        // between them sits at an unrepresentable position (needs a denominator of 100, past
+        // the 64 cap, like real "swing"/humanize timing). Every other note is already whole at
+        // k=1, and a finer subdivision would not help the outlier while compounding playback's
+        // per-step integer sample truncation across every already-exact note.
         var sequence = Sequence.FromString(
             "kick|kick|kick|!stop@0.01|snare|!stop@0.99|kick|kick|kick|kick|kick|kick");
         var project = new ThirtyDollarProject();
@@ -152,17 +147,17 @@ public class SequenceImporterTests
 
         Assert.Equal(1, result.Warnings.QuantizedNotes);
         var segment = result.Track!.Segments[0];
-        // stayed at native speed - k=1, not 64 (BPM alone may be scaled by StepsPerBeat now)
+        // stays at native speed - k=1, not 64 (BPM alone may be scaled by StepsPerBeat)
         Assert.Equal(300, segment.BPM * segment.StepsPerBeat);
     }
 
     [Fact]
     public void StopsWithANonMusicalDenominator_RoundOntoTheGrid_RatherThanWarpItToFitThem()
     {
-        // Stops of 0.95/0.05 would sit exactly on a 20x grid - and 20 steps to a beat is a
-        // grid nobody can edit against, bought at the cost of every other note's timing
-        // (a finer grid multiplies PlacementCalculator's per-step sample truncation).
-        // Rounding the one offending note and saying so is the better trade.
+        // Stops of 0.95/0.05 would sit exactly on a 20x grid, which is a grid nobody can edit
+        // against and costs every other note's timing (a finer grid multiplies
+        // PlacementCalculator's per-step sample truncation). The one offending note rounds
+        // onto the native grid and is reported instead.
         var sequence = Sequence.FromString("!speed@640|kick|!stop@0.95|snare|!stop@0.05|hat");
         var project = new ThirtyDollarProject();
         var result = SequenceImporter.AddAsTrack(project, sequence, "test", null);
@@ -178,8 +173,8 @@ public class SequenceImporterTests
     [Fact]
     public void AWholeMultipleChain_MergesToOneSegment_AtTheTempoTheFileNamed()
     {
-        // The "!speed@2@x" flourish pattern that fragmented real sequences into dozens of
-        // segments: 160 doubling to 320 and back is 8th notes at 160, not three tempos.
+        // The "!speed@2@x" flourish pattern: 160 doubling to 320 and back is 8th notes at 160,
+        // one segment, not three tempos.
         var sequence = Sequence.FromString(
             "!speed@160|kick=4|!speed@2@x|snare=8|!speed@0.5@x|kick=4");
         var project = new ThirtyDollarProject();

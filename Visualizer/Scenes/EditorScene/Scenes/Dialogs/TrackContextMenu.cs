@@ -8,8 +8,8 @@ namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     The duplicate-track prompt (ModalLayer content), reached from a track row's
-///     right-click menu: a name field (prefilled "&lt;name&gt; copy")
-///     plus confirm/cancel. Pure view - the owner decides what "duplicate" does.
+///     right-click menu: a name field (prefilled "&lt;name&gt; copy") plus confirm/cancel.
+///     Pure view - the owner decides what "duplicate" does and closes the modal itself.
 ///     The tree is TrackContextMenu.snx.xml; this only resolves its handles.
 /// </summary>
 public sealed class TrackContextMenu

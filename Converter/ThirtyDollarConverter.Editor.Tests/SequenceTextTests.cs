@@ -17,9 +17,8 @@ public class SequenceTextTests
     }
 
     /// <summary>
-    ///     An event built without stating a ValueScale must serialize without one. This is what
-    ///     caught the enum ordering that made Divide its default member, and exported every gap
-    ///     as "_pause@/".
+    ///     An event built without stating a ValueScale serializes without one, so an exported
+    ///     gap is a bare "_pause" and never "_pause@/".
     /// </summary>
     [Fact]
     public void ExportedPauses_CarryNoValueScale()

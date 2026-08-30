@@ -5,10 +5,9 @@ using ThirtyDollarConverter.Objects;
 namespace ThirtyDollarConverter.Benchmarks;
 
 /// <summary>
-///     The editor loop on the real project this came up on (amalgamam.tdwproj): apply one edit,
-///     rebuild the merged sequence, re-render. Nearly every note in it carries cut automation,
-///     which is what broke the old subtract-based renderer - it couldn't invert a cut, so it
-///     re-rendered the whole 47 seconds instead.
+///     The editor loop on a real project (amalgamam.tdwproj): apply one edit, rebuild the merged
+///     sequence, re-render. Nearly every note in it carries cut automation, the hardest case for
+///     an incremental render.
 /// </summary>
 [MemoryDiagnoser(false)]
 [SimpleJob(RunStrategy.Monitoring, warmupCount: 1, iterationCount: 3, invocationCount: 1)]
@@ -40,8 +39,8 @@ public class EditorWorkflowBenchmarks
     }
 
     /// <summary>
-    ///     Re-render from scratch but keep the resampled samples - what both incremental
-    ///     methods fall back to internally, and the honest "just re-render it" baseline.
+    ///     Re-render from scratch but keep the resampled samples - what the incremental renderer
+    ///     falls back to internally, and the honest "just re-render it" baseline.
     /// </summary>
     [Benchmark]
     public async Task<int> FullRenderWarm()

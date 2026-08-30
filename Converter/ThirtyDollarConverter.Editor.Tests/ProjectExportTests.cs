@@ -310,12 +310,10 @@ public class ProjectExportTests
         Assert.Equal(["kick"], ev.CutSounds);
         Assert.Equal(0, ev.Value);
 
-        // PCMEncoder.GenerateAudioAndMixer pre-allocates a mixer track per separated
-        // channel before rendering, so a cut's target track is guaranteed to exist -
-        // the text parser (TryIndividualCutTDW) populates this as a parsing side effect;
-        // building the event list programmatically must populate it identically, or a
-        // cut silently no-ops against a track that was never created (the sequence would
-        // parse and even look correct, but render byte-identical to having no cut at all).
+        // PCMEncoder.GenerateAudioAndMixer pre-allocates a mixer track per separated channel
+        // before rendering, so a cut's target track only exists if it is listed here. The text
+        // parser populates this as a parsing side effect; an exported event list must list the
+        // same channels, or the cut no-ops against a track that was never created.
         Assert.Contains("kick", sequence.SeparatedChannels);
     }
 
@@ -351,10 +349,9 @@ public class ProjectExportTests
     [Fact]
     public void CutNote_Alone_DoesNotShiftFollowingNotes()
     {
-        // Regression for the SequenceBuilder latent bug: an action (here "!cut@sound", same
-        // as an automation-generated cut) never advances the clock in playback, unlike a
-        // sound. A cut group must not silently consume the step after it - one "!stop@1"
-        // must appear before the following on-grid note.
+        // An action ("!cut@sound", same as an automation-generated cut) never advances the
+        // clock in playback, unlike a sound, so a cut group must not consume the step after
+        // it: one "!stop@1" has to appear before the following on-grid note.
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
@@ -425,14 +422,14 @@ public class ProjectExportTests
         for (var bar = 0; bar < 12; bar++)
             loop.Segments[0].Notes.Add(new Note { Step = bar * 4, Instrument = Instrument.Single("kick") });
 
-        project.Place(stab, 0, 0); // first in the list: used to be the only source of bar lines
+        project.Place(stab, 0, 0); // first in the list, and the shorter of the two
         project.Place(loop, 1, 16);
 
         var events = project.ToSequence(new SequenceStyle { DividerEveryBars = 2 }).Events;
 
-        // The header divider, then bars 2 and 4 collapsing to one inside the silence before
-        // the loop, then bars 6..16 giving one each: 7. Following the first placement's track alone the
-        // bar lines ran out after bar 4 and the whole loop got none.
+        // The header divider, then bars 2 and 4 collapsing to one inside the silence before the
+        // loop, then bars 6..16 giving one each: 7. Bar lines keep coming past the end of the
+        // first placement's track.
         Assert.Equal(7, events.Count(e => e.SoundEvent == "!divider"));
     }
 }

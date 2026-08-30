@@ -10,8 +10,7 @@ namespace LoadingScene.Tests;
 /// <summary>
 ///     The glyph warm-up the loading screen runs on a worker while the sounds come down.
 ///     Generating an MSDF needs no graphics context and is the expensive half of putting a
-///     character on screen (~1 ms each); only the atlas upload that follows needs the render
-///     thread. These run against the real font, no GL - which is exactly the point.
+///     character on screen; only the atlas upload that follows needs the render thread. These run against the real font, no GL - which is exactly the point.
 /// </summary>
 public class GlyphWarmupTests
 {

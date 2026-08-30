@@ -43,10 +43,9 @@ public class Placement : IEquatable<Placement>
 
     /// <summary>
     ///     A cut is only the same cut when it silences the same sounds. Nothing else here
-    ///     distinguishes two <see cref="IndividualCutEvent" />s, so without this an
-    ///     instrument losing a sound leaves its cuts looking untouched - they stay out of
-    ///     the incremental diff, and the dropped sound gets subtracted uncut from a mix that
-    ///     had it cut, ringing on as if the cuts had been undone.
+    ///     distinguishes two <see cref="IndividualCutEvent" />s, so without this an instrument
+    ///     losing a sound would keep its cuts out of the incremental diff and the dropped sound
+    ///     would ring on uncut.
     /// </summary>
     private static bool SameCutSounds(BaseEvent a, BaseEvent b)
     {

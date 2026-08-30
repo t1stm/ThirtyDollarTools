@@ -193,9 +193,9 @@ public static class ProjectFile
     }
 
     /// <summary>
-    ///     An action is stored as the TDW text it stringifies to ("!speed@2@x", "!bg@#ff0000,0.5"),
-    ///     read back with the sequence parser - the pair is already a tested round trip, and the
-    ///     alternative is a second serialization of ValueScale and the packed color/pulse payloads.
+    ///     An action is stored as the TDW text it stringifies to ("!speed@2@x", "!bg@#ff0000,0.5")
+    ///     and read back with the sequence parser, so ValueScale and the packed color/pulse
+    ///     payloads need no serialization of their own.
     /// </summary>
     private static FaithfulItemDto SaveItem(FaithfulItem item)
     {

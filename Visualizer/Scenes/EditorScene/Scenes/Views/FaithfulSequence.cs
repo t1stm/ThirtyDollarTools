@@ -128,11 +128,11 @@ public sealed class FaithfulSequence : ScrollView
     public Action<FaithfulItem>? OnEditAction { get; set; }
 
     /// <summary>
-    ///     Redraws from the opened faithful track. Rebuilding regenerates the chunk's GL
-    ///     buffers, so this is only worth calling when the sequence actually changed - which is
-    ///     what <see cref="Scenes.EditorInterface" /> does (only while the panel is open).
-    ///     The rebuild itself is incremental - see <see cref="EventCanvas.SetEvents" />, which
-    ///     only regenerates the chunks whose slots actually draw differently.
+    ///     Redraws from the opened faithful track. Call only when the sequence actually
+    ///     changed - which is what <see cref="Scenes.EditorInterface" /> does, and only while
+    ///     the panel is open - since a rebuild regenerates GL buffers. The rebuild itself is
+    ///     incremental: see <see cref="EventCanvas.SetEvents" />, which only regenerates the
+    ///     chunks whose slots draw differently.
     /// </summary>
     public void Refresh()
     {
@@ -143,17 +143,16 @@ public sealed class FaithfulSequence : ScrollView
             return;
         }
 
-        // Split in one pass: this runs after every edit on a stream tens of thousands of slots
-        // long, and the two LINQ passes it replaces built two more arrays of that.
+        // Split in one pass: this runs after every edit, on a stream that can be tens of
+        // thousands of slots long.
         var tagged = track.ExpandTagged().ToArray();
         var items = new FaithfulItem[tagged.Length];
         var events = new BaseEvent[tagged.Length];
         for (var i = 0; i < tagged.Length; i++) (items[i], events[i]) = tagged[i];
         _itemByEvent = items;
 
-        // Only when the edit could have moved something: a sound's value, volume or pan
-        // changes what a slot draws and nothing about when it plays, and walking the whole
-        // sequence for a schedule that is still correct costs as much as the redraw did.
+        // The play schedule is only rebuilt when the edit could have moved something: a
+        // sound's value, volume or pan changes what a slot draws, never when it plays.
         if (!_canvas.SetEvents(events)) return;
 
         _playTimes = [.. track.PlayTimes().OrderBy(entry => entry.Minutes)];
@@ -227,12 +226,11 @@ public sealed class FaithfulSequence : ScrollView
     }
 
     /// <summary>
-    ///     Keeps the slot on screen, parking it a line down from the top edge - in either
+    ///     Keeps the slot on screen, parking it a line down from the top edge in either
     ///     direction, so replaying a track scrolls back up to its first slot.
-    ///     <see cref="EventCanvas.OffsetOf" /> is measured from the canvas's own top, which is
-    ///     the content, not the screen: the scroller moves the canvas by <see cref="ScrollY" />,
-    ///     so the offset does not change as the view scrolls and subtracting ScrollY is what
-    ///     turns it into a position inside the viewport.
+    ///     <see cref="EventCanvas.OffsetOf" /> is measured from the canvas's own top - the
+    ///     content, not the screen - so subtracting <see cref="ScrollY" /> is what turns it
+    ///     into a position inside the viewport.
     /// </summary>
     private void ScrollTo(int eventIndex)
     {

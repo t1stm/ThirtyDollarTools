@@ -201,11 +201,9 @@ public class ArrangementViewTests
     [Fact]
     public void RemovingATrack_ThatShrinksTheLaneCount_DoesNotAutoScroll()
     {
-        // Regression: eagerly re-clamping ScrollY to the new (shrunk) MaxScrollY on every
-        // layout auto-scrolled the view under a still-held pointer whenever a removal
-        // shrank the lane count - since right-press is level-triggered, whatever slid
-        // under the cursor next got deleted too, cascading through every track that had
-        // been off-screen below it.
+        // Layout must not re-clamp ScrollY to a shrunk MaxScrollY: the view moving under a
+        // still-held pointer would slide the next lane under the cursor, and right-press is
+        // level-triggered, so that one gets deleted too.
         var (ctx, state, view) = NewView(); // 800x400: gridHeight 382
         var track = state.AddTrack();
         var deep = state.PlaceTrack(track, 10, 0); // 12 lanes: max scroll = 12*44 - 382 = 146
@@ -224,10 +222,9 @@ public class ArrangementViewTests
     [Fact]
     public void ScrollingPastTheRuler_ClipsKeepMovingSmoothly_NeverPinnedAtTheTop()
     {
-        // Regression: a clip's block.Y used to clamp to RulerHeight once scrolled above
-        // it, pinning every clip that scrolled past that band to the same Y - freezing
-        // its label there instead of sliding smoothly off past the ruler (now masked by
-        // the ruler's paint order instead of a geometric clamp, see Refresh).
+        // A clip's block.Y is not clamped to RulerHeight: clips scrolled above the ruler keep
+        // moving with the scroll and are hidden by the ruler's paint order (see Refresh),
+        // rather than being pinned at the band's edge.
         var (ctx, state, view) = NewView(); // 800x400
         var track = state.AddTrack();
         var top = state.PlaceTrack(track, 0, 0); // the clip under test
@@ -350,10 +347,9 @@ public class ArrangementViewTests
     [Fact]
     public void SelectTool_Marquee_SelectsAClip_EvenWhenTheBoxNeverReachesItsTopEdge()
     {
-        // Regression: a lane is a whole rendered row (Channel .. Channel+1), not a
-        // point. A box whose channel range never reaches the row's top edge must
-        // still select an intersecting clip (the time axis already used proper span
-        // intersection; the channel axis didn't).
+        // A lane is a whole rendered row (Channel .. Channel+1), not a point, so the channel
+        // axis intersects by span like the time axis: a box that never reaches the row's top
+        // edge still selects a clip it overlaps.
         var (ctx, state, view) = NewView();
         var track = state.AddTrack();
         var placement = state.PlaceTrack(track, 1, 4); // spans quarters 4..8, lane 1 (y 62..106)
@@ -526,18 +522,17 @@ public class ArrangementViewTests
     [Fact]
     public void AClipBlock_IsClippedToTheLanesBelowTheRuler()
     {
-        // Regression: Refresh re-adds the ruler after the clip blocks so it paints over
-        // them, but that only orders siblings inside one Index layer. A ClipBlock's track
-        // name Label sits a layer deeper, and deeper layers render after shallower ones,
-        // so a clip scrolled up under the ruler had its name painted over the bar numbers.
+        // Refresh re-adds the ruler after the clip blocks so it paints over them, but that
+        // only orders siblings inside one Index layer. A ClipBlock's track name Label sits a
+        // layer deeper, and deeper layers render last, so the names need a clip rect of their
+        // own to stay out of the ruler band.
         var (_, state, view) = NewView();
         var track = state.AddTrack();
         state.PlaceTrack(track, 0, 0);
         view.Layout();
 
-        // The name is the piece that regressed (the clip's own fill is batched with the
-        // grid lines now, under the ruler by layer rather than by clip rect). The names
-        // are a batch of their own, queued past every child - hence still a clip rect.
+        // Only the name needs it: the clip's own fill is batched with the grid lines, under
+        // the ruler by layer. The names are a batch of their own, queued past every child.
         var clip = view.ClipLabels.ClipRect;
         Assert.NotNull(clip);
         Assert.Equal((int)ArrangementView.RulerHeight, clip.Value.Y); // ruler band excluded

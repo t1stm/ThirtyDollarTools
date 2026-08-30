@@ -102,7 +102,7 @@ public class InspectorPanelTests
         ((NumericInput)inspector.Field("Segment.Steps/beat")!).Value = 2.6;
         Assert.Equal(3, segment.StepsPerBeat);
 
-        // The value range is the TDW default ±60, not the old ±24.
+        // The value range is the TDW default ±60.
         ((NumericInput)inspector.Field("Note.Value")!).Value = -48;
         ((NumericInput)inspector.Field("Note.Pan")!).Value = 50;
         ((NumericInput)inspector.Field("Note.Offset (s)")!).Value = 0.25;
@@ -623,13 +623,12 @@ public class InspectorPanelTests
         Assert.Equal("Rendering audio…", inspector.StatusLabelElement.Value.ToString().TrimEnd('\0'));
     }
 
-    // Regression for a real bug: the progress bar's planes are queued for rendering the
-    // instant Background is set on their backing Panels (see Panel's Background setter),
-    // regardless of Visible - at whatever Index the bar has at that construction moment.
-    // Being built hidden and later shown via SetStatus must not leave them stuck rendering
-    // at that stale, wrong depth (see Sundex.Components.Tests.ProgressBarVisibilityToggleTests
-    // for the underlying mechanics); this asserts the fix at the level the bug was reported at
-    // - the bar being invisible in the actual editor despite SetStatus marking it Visible.
+    // The progress bar's planes are queued for rendering the instant Background is set on
+    // their backing Panels (see Panel's Background setter), regardless of Visible - at
+    // whatever Index the bar has at that construction moment. A bar built hidden and later
+    // shown via SetStatus must end up queued at its current depth, not the stale one, or it
+    // stays invisible in the editor despite SetStatus marking it Visible. (See
+    // Sundex.Components.Tests.ProgressBarVisibilityToggleTests for the mechanics.)
     [Fact]
     public void SetStatus_Shown_QueuesTheBarPlanesAtTheirCurrentCorrectLayer()
     {

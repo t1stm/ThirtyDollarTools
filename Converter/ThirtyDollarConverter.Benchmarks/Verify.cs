@@ -3,11 +3,11 @@ using ThirtyDollarConverter.Objects;
 namespace ThirtyDollarConverter.Benchmarks;
 
 /// <summary>
-///     Correctness half of the comparison: for every scenario, apply the same edits to two copies
-///     and render one incrementally and the other from scratch, then report how far the incremental
-///     result drifts from the full render it is supposed to reproduce. Expected drift is zero -
-///     the range-overwrite renderer replays the same placements over the same chunk grid, so it
-///     produces the same samples bit for bit.
+///     Correctness check: for every scenario, apply the same edits to two copies and render one
+///     incrementally and the other from scratch, then report how far the incremental result drifts
+///     from the full render it is supposed to reproduce. Expected drift is zero - the incremental
+///     renderer replays the same placements over the same chunk grid, so it produces the same
+///     samples bit for bit.
 /// </summary>
 public static class Verify
 {

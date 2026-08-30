@@ -128,7 +128,7 @@ public class AudioKeyframeTests
     {
         var track = MakeTrack();
         // The note starts 0.25 s into the sound; each repeat jumps one beat later on
-        // the grid AND another 0.5 s deeper into the sound (Kris's scrub use case).
+        // the grid AND another 0.5 s deeper into the sound (the scrub use case).
         var scrub = new AudioKeyframeManager { Repeats = 2 };
         scrub.Keyframes.Add(new AudioKeyframe { Gap = 4, Offset = new Modifier(0.5) });
         track.Segments[0].Notes.Add(new Note

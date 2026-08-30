@@ -12,10 +12,8 @@ namespace EditorScene.Scenes.Components;
 ///     one buffer - and one draw - per <see cref="Sundex.Components.Labels.Label" />.
 ///     <see cref="LineBatch" />'s counterpart for text, and like it the count is a
 ///     reservation rather than a cap: writing past the end appends slots.
-///     A released slot is <see cref="Hide" />-blanked rather than parked off-screen: a
-///     pooled Label was a live renderable at every zoom, so a 128-slot ruler cost 128 draw
-///     calls whether it showed 128 numbers or three. Blanked slots stay in the buffer as
-///     degenerate quads (no vertex work), which is what makes the fixed pool free here.
+///     <see cref="Hide" /> blanks a slot instead of parking it off-screen; blanked slots
+///     stay in the buffer as degenerate quads and cost no vertex work.
 ///     Slots are written in absolute UI coordinates - this is not an element and never
 ///     goes through layout.
 /// </summary>
@@ -65,15 +63,14 @@ internal sealed class LabelBatch : IRenderable, IClippable
     /// <summary>
     ///     Assigns a slot's text, absolute position and color, re-laying its glyphs only
     ///     when one of them actually changed - the views re-assign every slot on every
-    ///     layout pass, and a Label re-laid its glyphs on each of those assignments.
+    ///     layout pass.
     /// </summary>
     /// <param name="clip">
     ///     Box this caption's pixels are confined to, in the same absolute UI units as
     ///     <paramref name="x" />/<paramref name="y" />: (left, top, right, bottom).
     ///     Default (all-zero) leaves it unclipped. This is per slot, unlike
-    ///     <see cref="ClipRect" /> which scissors the whole batch in one go - a pool whose
-    ///     captions each belong to a different box (arrangement clip names) cannot use the
-    ///     scissor, because the pool is a single draw call. See
+    ///     <see cref="ClipRect" />, which scissors the whole batch at once and so cannot serve
+    ///     a pool whose captions each belong to a different box (arrangement clip names). See
     ///     <see cref="Sundex.Engine.Text.TextCharacter.ClipRect" />.
     /// </param>
     public void Set(int index, string text, float x, float y, Vector4 color, Vector4 clip = default)

@@ -8,7 +8,7 @@ namespace EditorScene.Scenes.Dialogs;
 /// <summary>
 ///     The save/discard/cancel choice (ModalLayer content) shown when leaving the editor
 ///     with unsaved changes. Pure form - the owner decides what each button does and
-///     closes the modal itself, mirroring <see cref="ConfirmDialog" />/<see cref="ImportDialog" />.
+///     closes the modal itself.
 ///     The tree is UnsavedChangesDialog.snx.xml; this only resolves its handles.
 /// </summary>
 public sealed class UnsavedChangesDialog

@@ -4,10 +4,9 @@ namespace Sundex.Engine;
 
 /// <summary>
 ///     Watches the markup, stylesheets and logic scripts in the source tree and raises a
-///     <see cref="HotReload" /> request when one is saved. This is what makes editing a
-///     .snx.ss and hitting save enough: such an edit produces no IL delta, so the IDE's
-///     hot-reload button has nothing to apply and never reaches
-///     <see cref="HotReload.UpdateApplication" />.
+///     <see cref="HotReload" /> request when one is saved. Such an edit produces no IL delta,
+///     so the IDE's hot-reload button has nothing to apply and never reaches
+///     <see cref="HotReload.UpdateApplication" /> for it.
 ///     <para>
 ///         Only ever constructed against <see cref="Asset_Management.AssetProvider.SourceRoots" />,
 ///         which is empty outside Debug - so in Release this watches nothing and starts no

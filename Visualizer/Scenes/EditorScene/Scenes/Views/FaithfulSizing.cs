@@ -1,11 +1,10 @@
 namespace EditorScene.Scenes.Views;
 
 /// <summary>
-///     How big the faithful editor draws a sound, and how many go on a line. These are the
-///     website's own numbers, which are also
-///     <c>VisualizerSettings.EventSize/EventMargin/LineAmount</c>'s defaults - copied rather
-///     than read from there because the editor is not handed the visualizer's settings, and
-///     the faithful views want the site's layout whatever the visualizer is tuned to.
+///     How big the faithful editor draws a sound, and how many go on a line: the website's
+///     own numbers, also <c>VisualizerSettings.EventSize/EventMargin/LineAmount</c>'s
+///     defaults. Held here rather than read from the visualizer's settings, so the faithful
+///     views keep the site's layout whatever the visualizer is tuned to.
 /// </summary>
 internal static class FaithfulSizing
 {
@@ -21,17 +20,16 @@ internal static class FaithfulSizing
 }
 
 /// <summary>
-///     The one box size the whole faithful editor draws at. The sequence decides it - its
-///     sixteen-across rule is the only real constraint, and a panel narrower than sixteen
-///     full-size boxes forces it below <see cref="FaithfulSizing.SoundSize" /> - and the
-///     palettes follow, so a legend is never drawn at a different scale from the sequence it
-///     inserts into. Shared by reference; read on the next layout, which runs every frame.
+///     The one box size the whole faithful editor draws at. The sequence sets it - dropping
+///     below <see cref="FaithfulSizing.SoundSize" /> when the panel is too narrow for sixteen
+///     across - and the palettes follow, so a legend is never drawn at a different scale from
+///     the sequence it inserts into. Shared by reference; read on the next layout.
 /// </summary>
 public sealed class FaithfulScale
 {
     /// <summary>
-    ///     Raised when the size actually moved. A follower has to be told: its box size is
-    ///     not part of its rectangle, so nothing else would ever make it re-measure.
+    ///     Raised when the size actually moved. Followers must subscribe: box size is not part
+    ///     of an element's rectangle, so nothing else makes them re-measure.
     /// </summary>
     public event Action? Changed;
 

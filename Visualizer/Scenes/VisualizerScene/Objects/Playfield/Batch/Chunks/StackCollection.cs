@@ -36,7 +36,7 @@ public class StackCollection : IDisposable, IRenderable, IClippable
         foreach (var (atlas, render_stack) in AnimatedStacks)
         {
             atlas.Bind();
-            render_stack.Shader.Use(); // not a very optimal bind here, but it helps to not refactor the code a lot.
+            render_stack.Shader.Use(); // one bind per stack, rather than grouping stacks by shader
 
             atlas.SetUniforms(render_stack.Shader);
             render_stack.Render(temporaryCamera);

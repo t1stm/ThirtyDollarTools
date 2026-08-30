@@ -9,11 +9,11 @@ using Sundex.Markup;
 namespace EditorScene.Tests;
 
 /// <summary>
-///     1080x720 is the editor's required minimum window size, and the three ways it used to
-///     break there are arithmetic, not rendering: a tool bar whose fixed-width children add
-///     up to more than the grid area, a palette box left narrower than its own widest row,
-///     and a hint legend far wider than the bar holding it. All three are checkable without
-///     GL - see docs/handover/editor-min-resolution.md.
+///     1080x720 is the editor's required minimum window size, and the three ways it can break
+///     there are arithmetic, not rendering: a tool bar whose fixed-width children add up to
+///     more than the grid area, a palette box left narrower than its own widest row, and a
+///     hint legend far wider than the bar holding it. All three are checkable without GL -
+///     see docs/handover/editor-min-resolution.md.
 /// </summary>
 public class MinResolutionLayoutTests
 {
@@ -45,8 +45,7 @@ public class MinResolutionLayoutTests
     /// <summary>
     ///     The note editor's bar holds the most: back, name, instrument and both tools. Its
     ///     children have to end inside it - overflow isn't clipped here, so a child past the
-    ///     right edge paints over the inspector column and, being drawn later, eats its
-    ///     clicks. That is what a fixed 220 px name field did below ~1160 px of window.
+    ///     right edge paints over the inspector column and, being drawn later, eats its clicks.
     /// </summary>
     [Theory]
     [InlineData("Layout/Track Editor Panel/TrackEditorPanel", "track-editor-panel")]
@@ -87,10 +86,10 @@ public class MinResolutionLayoutTests
     }
 
     /// <summary>
-    ///     The palette band's two boxes at the minimum width. The Actions box used to be a
-    ///     fixed 336 px, so it took the same pixels at every window size and the Instruments
-    ///     box got the remainder - 144 px at 1080, narrower than its own "+ New instrument"
-    ///     row, whose label then painted outside the button on both sides.
+    ///     The palette band's two boxes at the minimum width. The Actions box cannot take a
+    ///     fixed share at every window size, or the Instruments box is left with the remainder -
+    ///     narrower at 1080 than its own "+ New instrument" row, whose label then paints outside
+    ///     the button on both sides.
     /// </summary>
     [Fact]
     public void FaithfulPaletteBand_LeavesInstrumentsRoomForItsWidestRow_AtTheMinimumWidth()
@@ -118,8 +117,8 @@ public class MinResolutionLayoutTests
 
     /// <summary>
     ///     The hint bar's wrap. A Label neither wraps nor clips, so an unbroken legend paints
-    ///     across the inspector and off the window - at 1080 that lost about 60% of the
-    ///     faithful legend, which is the only place several of its gestures are documented.
+    ///     across the inspector and off the window, losing the gestures the legend is the only
+    ///     documentation of.
     /// </summary>
     [Fact]
     public void WrapHint_BreaksOnSpaces_AndKeepsEveryWord()

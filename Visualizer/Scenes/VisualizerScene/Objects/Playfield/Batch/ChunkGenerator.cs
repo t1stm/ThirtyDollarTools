@@ -45,8 +45,8 @@ public class ChunkGenerator(PlayfieldSettings settings, LayoutHandler? layout = 
 
     /// <summary>
     ///     Builds one chunk of an event array on its own, with the same slicing
-    ///     <see cref="GenerateChunks" /> uses - what a view that redraws a single edit needs,
-    ///     instead of regenerating every chunk of a sequence to repaint one badge.
+    ///     <see cref="GenerateChunks" /> uses, so a view that changed a single event can
+    ///     rebuild just the chunk holding it.
     /// </summary>
     public PlayfieldChunk GenerateChunk(BaseEvent[] events, int chunkIndex)
     {
@@ -70,9 +70,8 @@ public class ChunkGenerator(PlayfieldSettings settings, LayoutHandler? layout = 
 
     /// <summary>
     ///     Positions one chunk from a recorded layout state and returns the state the next one
-    ///     starts from. A view that redraws only what is on screen keeps those states and lays
-    ///     out the visible chunks alone, instead of walking the whole sequence every time it
-    ///     moves - which is O(events) per scroll frame and, on an imported cover, the frame.
+    ///     starts from. A view that draws only what is on screen keeps those states and lays
+    ///     out the visible chunks alone, rather than walking the whole sequence per frame.
     /// </summary>
     public (int SoundIndex, float Y, float Height) PositionChunk(PlayfieldChunk chunk,
         (int SoundIndex, float Y, float Height) state)
@@ -82,8 +81,7 @@ public class ChunkGenerator(PlayfieldSettings settings, LayoutHandler? layout = 
         chunk.StartY = LayoutHandler.Y;
         foreach (var renderable in chunk.Renderables) PositionSound(renderable);
         // Y, not Height: Height only moves on a line break, so a chunk that never wraps
-        // (anything under one line's worth) would report a bottom of Size alone and be
-        // culled away everywhere it is drawn.
+        // would report a bottom of Size alone and be culled away wherever it is drawn.
         chunk.EndY = LayoutHandler.Y + LayoutHandler.Size;
 
         return (LayoutHandler.CurrentSoundIndex, LayoutHandler.Y, LayoutHandler.Height);

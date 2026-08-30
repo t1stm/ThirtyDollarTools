@@ -93,17 +93,15 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
     public void Warm(string characters)
     {
         // Parallel because MsdfFont hands its scratch out of a concurrent pool, so the
-        // generators genuinely do not block each other. Measured on the printable ASCII
-        // set: 0.94 ms/glyph serial against 0.28 ms/glyph across 16 cores - sub-linear,
-        // since the outline work per glyph is short, but a real 3.4x.
-        // Half the machine: see the note in SundexContext.PrecompileLogic. The caller is
-        // a screen that is still drawing while this runs.
+        // generators do not block each other. Capped at half the machine (as in
+        // SundexContext.PrecompileLogic) because the caller is a screen that is still
+        // drawing while this runs.
         Parallel.ForEach(characters.Distinct(),
             new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount / 2) },
             character =>
             {
-                // The atlas is the authority on what has already been paid for. Checked
-                // here rather than in the glyph provider, which does not know about it.
+                // The atlas is the authority on what is already rasterised, and the glyph
+                // provider does not know about it, so the check belongs here.
                 lock (TextAtlas)
                 {
                     if (!TextAtlas.Atlas.GetImageRectangle(character.ToString()).IsEmpty) return;

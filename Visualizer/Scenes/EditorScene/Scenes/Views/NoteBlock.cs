@@ -7,7 +7,7 @@ namespace EditorScene.Scenes.Views;
 /// <summary>
 ///     One note's hit box. It has no background of its own: the view writes the fill into
 ///     <see cref="BatchSlot" /> of its line batch, so the whole pool costs no draw calls.
-///     The element remains because a note is clicked, right-clicked and dragged.
+///     The element exists only to receive clicks, right-clicks and drags.
 /// </summary>
 internal class NoteBlock : Panel
 {
@@ -37,14 +37,11 @@ internal class NoteBlock : Panel
     }
 
     /// <summary>
-    ///     Press-time selection (both tools, per §2/§3.4). The Select tool only ever
-    ///     selects - Ctrl/Shift append/remove, a plain press replaces the selection - and
-    ///     never starts a drag, so it never moves a note. The Draw tool's plain press
-    ///     replaces the selection the same way, then starts a group drag over whatever
-    ///     ended up selected: pressing an unselected note replaces the selection with just
-    ///     it (a group of one - the plain single-note drag); pressing a note that's already
-    ///     part of a (possibly multi-note) selection leaves the group intact, so the drag
-    ///     moves the whole group together.
+    ///     Selects on press, under both tools. Select only ever selects - Ctrl appends,
+    ///     Shift removes, a plain press replaces the selection - and never starts a drag.
+    ///     Draw's plain press replaces the selection the same way, then starts a group drag
+    ///     over whatever ended up selected: pressing an unselected note drags that note
+    ///     alone, pressing one already in the selection moves the whole group together.
     /// </summary>
     public override bool HandlePress(float x, float y)
     {

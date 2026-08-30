@@ -7,10 +7,9 @@ public class SequenceParsingTests
 {
     /// <summary>
     ///     "!stop" counts down <see cref="BaseEvent.WorkingValue" />, so an event that reaches
-    ///     the calculator with it at zero silently does nothing. Every event of a "#define" is
-    ///     widened to an ExtendedEvent as the define is expanded, and that copy used to leave
-    ///     WorkingValue behind - which made "!stop" (and "!loopmany") a no-op inside a define,
-    ///     and only inside one.
+    ///     the calculator with it at zero silently does nothing. Expanding a "#define" widens
+    ///     every event of it to an ExtendedEvent, and that copy has to carry WorkingValue over,
+    ///     or "!stop" waits inline but not inside a define.
     /// </summary>
     [Fact]
     public void Stop_InsideADefine_StillWaits()

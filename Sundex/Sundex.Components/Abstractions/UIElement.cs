@@ -16,12 +16,8 @@ namespace Sundex.Components.Abstractions;
 public abstract class UIElement
 {
     /// <summary>
-    ///     Per-type list of the [NamedSetting] properties a stylesheet can address.
-    ///     Reflecting this out fresh was ~97% of the cost of building a component
-    ///     (3.2ms of 3.4ms for the editor's markup): GetProperties plus a
-    ///     GetCustomAttribute per property, run twice per element on every
-    ///     ApplyStyleSheet and again on every ApplyStateOverride - i.e. on every hover.
-    ///     The set is fixed per type, so it is computed once.
+    ///     Cache of every [NamedSetting] property on a type, so stylesheet lookups skip
+    ///     reflection. The set is fixed per type and computed on first use.
     /// </summary>
     private static readonly Dictionary<Type, (PropertyInfo Property, NamedSettingAttribute Setting)[]> NamedSettings =
         new();
@@ -32,32 +28,28 @@ public abstract class UIElement
     ///     What the styled properties held before any stylesheet touched them, keyed by
     ///     property name. First write wins, so an element styled by several sheets in turn
     ///     still remembers the value from before the first of them. Only populated while
-    ///     <see cref="TrackPristineStyles" /> is on; null everywhere else, which is one null
-    ///     field per element in a normal run.
+    ///     <see cref="TrackPristineStyles" /> is on; null otherwise.
     /// </summary>
     private Dictionary<string, (PropertyInfo prop, object? value)>? _pristine;
 
     /// <summary>
     ///     Records what each styled property held before styling, so <see cref="ResetStyles" />
-    ///     can put a tree back the way it was and the whole cascade can be re-run over it -
-    ///     which is how an edited stylesheet drops rules that were deleted from it rather
-    ///     than leaving their last value in place. Turned on by the hot-reload bootstrap in
-    ///     Debug builds and off otherwise: it costs a dictionary per styled element, and
-    ///     nothing but a stylesheet edited underneath a running program needs it.
+    ///     can revert a tree and let the whole cascade be re-run over it - which is how an
+    ///     edited stylesheet drops rules deleted from it instead of leaving their last value
+    ///     in place. Costs a dictionary per styled element, so only the hot-reload bootstrap
+    ///     in Debug builds turns it on.
     ///     <para>
     ///         Only properties a sheet actually wrote are recorded, so a value assigned from
-    ///         code after the style pass (a measured width, a pooled tile's size) is left
-    ///         alone unless a sheet was also setting it - in which case a rebuild would have
-    ///         lost it too.
+    ///         code after the style pass is left alone unless a sheet was also setting it.
     ///     </para>
     /// </summary>
     public static bool TrackPristineStyles { get; set; }
 
     /// <summary>
     ///     Whether the start pass in <see cref="DrawTo" /> has run for the current
-    ///     <see cref="Animations" /> set. An animation's clock starts when the element is
-    ///     first drawn, not when the stylesheet assigns it - a tree is commonly styled long
-    ///     before it is shown, and starting at assignment would have it play out unseen.
+    ///     <see cref="Animations" /> set. Animation clocks start on first draw, not when a
+    ///     stylesheet assigns them, so a tree styled long before it is shown does not play
+    ///     out unseen.
     /// </summary>
     private bool _animationsStarted;
 
@@ -129,8 +121,8 @@ public abstract class UIElement
     ///     Main-axis size dictated by a flex parent to a percent-sized child: its share
     ///     of the free space, recomputed on every flex layout pass. Kept apart from
     ///     <see cref="Width" />/<see cref="Height" /> so the declared percentage survives
-    ///     resolution - overwriting it with the resolved pixels froze the layout after
-    ///     the first pass. Null everywhere outside a flex parent's layout.
+    ///     resolution rather than being replaced by the resolved pixels. Null outside a
+    ///     flex parent's layout.
     /// </summary>
     internal float? ParentAssignedWidth
     {
@@ -174,8 +166,7 @@ public abstract class UIElement
             InvalidateLayout();
 
             // The render queue is retained: only DrawTo queues and only StopRendering
-            // dequeues, so a bare flag flip left a shown element hit-testable but
-            // unpainted (and a hidden one painted forever). Re-show only inside a live
+            // dequeues, so toggling the flag has to do both. Re-show only inside a live
             // tree - a detached subtree queues when its container gets its own DrawTo.
             if (!value) StopRendering();
             else if (Parent is { Drawn: true }) DrawTo(Context);
@@ -363,8 +354,8 @@ public abstract class UIElement
     {
         Animations.Add(animation);
         UpdateAnimationRegistrationState();
-        // Appending bypasses the Animations setter, so this one missed the start pass the
-        // element already ran. Adding before the first draw needs nothing - DrawTo covers it.
+        // Appending bypasses the Animations setter, so an already-drawn element has to
+        // start this one here. Before the first draw, DrawTo starts it.
         if (_animationsStarted) animation.Start();
     }
 
@@ -545,11 +536,9 @@ public abstract class UIElement
 
     /// <summary>
     ///     Starts this element's animation clocks, once per <see cref="Animations" /> set.
-    ///     Nothing else does: a stylesheet animation's stopwatch is created stopped, so
-    ///     without this every sheet-declared animation sat frozen on its first keyframe.
-    ///     Guarded rather than calling Start() each pass, because a finished non-looping
-    ///     animation stops its own clock and would otherwise resume - refiring its
-    ///     completion callback on every draw.
+    ///     Stylesheet animations arrive with a stopped stopwatch and are started here. Runs
+    ///     once per set so that a finished non-looping animation, which stops its own clock,
+    ///     is not resumed and its completion callback not refired on every draw.
     /// </summary>
     private void StartAnimations()
     {
@@ -620,9 +609,8 @@ public abstract class UIElement
 
         if (StoredStyleSheet is not { } sheet) return true;
         ApplyOwnStyle(sheet);
-        // The base pass just overwrote whatever the current hover/press override had put
-        // on top - a row is commonly selected by a click, i.e. while hovered. This restores
-        // it from the snapshot ApplyOwnStyle has just retaken.
+        // The base pass overwrites whatever the current hover/press override had put on
+        // top, so reapply it from the snapshot ApplyOwnStyle has just retaken.
         InvalidateStyle();
         return true;
     }
@@ -758,10 +746,9 @@ public abstract class UIElement
     ///     <see cref="TrackPristineStyles" /> to have been on while the tree was styled;
     ///     a no-op otherwise.
     ///     <para>
-    ///         This is a whole-tree step and belongs before the sheets are re-applied, not
-    ///         inside a single apply. An element is commonly styled by an imported
-    ///         component's sheet and then by its host's, and reverting between those two
-    ///         passes would throw away everything the first one did.
+    ///         A whole-tree step: run it over the tree before re-applying any sheet, never
+    ///         between two applies - an element styled by an imported component's sheet and
+    ///         then by its host's would lose the first pass.
     ///     </para>
     /// </summary>
     public virtual void ResetStyles()
@@ -853,9 +840,8 @@ public abstract class UIElement
                 break;
             }
 
-            // One case for every enum-typed setting instead of one per enum: the hand-rolled
-            // Anchor and CursorType arms parsed exactly their own member names anyway, and
-            // enums without an arm (LayoutDirection) silently ignored the sheet.
+            // Covers every enum-typed setting: the value is parsed as a member name,
+            // case-insensitively.
             case StringValue sv when propertyInfo.PropertyType.IsEnum:
             {
                 if (Enum.TryParse(propertyInfo.PropertyType, sv.Value, true, out var parsed))
@@ -877,12 +863,10 @@ public abstract class UIElement
 
         if (newValue is not IRenderable newRenderable) return;
 
-        // Only an element that is currently rendering may put a renderable into the queue.
-        // Without this, a swap on a detached or stopped element resurrects its plane and
-        // paints it forever: closing a dialog removes the modal (dequeuing everything) and
-        // only then un-hovers the button, whose state change swaps the hover fill back to
-        // the base one. queueIndex >= 0 means the old renderable really was queued, which
-        // covers elements kept live by something other than DrawTo.
+        // Only an element that is currently rendering may put a renderable into the queue;
+        // a swap on a detached or stopped element would otherwise resurrect its plane and
+        // paint it forever. queueIndex >= 0 means the old renderable really was queued,
+        // which covers elements kept live by something other than DrawTo.
         if (queueIndex == -1 && !Drawn) return;
 
         if (queueIndex == -1 && !string.IsNullOrEmpty(propertyName))

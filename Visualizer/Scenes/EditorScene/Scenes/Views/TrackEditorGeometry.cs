@@ -4,9 +4,8 @@ namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     Owns the piano roll's scroll/zoom state and every pixel↔model conversion for
-///     <see cref="TrackEditorView" />. Plain state, no GL - the piece that makes the
-///     roll's math unit-testable headless. Every coordinate in and out is local to the
-///     view (relative to its own top-left), never absolute screen space.
+///     <see cref="TrackEditorView" />. Plain state, no GL. Every coordinate in and out is
+///     local to the view (relative to its own top-left), never absolute screen space.
 /// </summary>
 public sealed class TrackEditorGeometry
 {
@@ -174,10 +173,10 @@ public sealed class TrackEditorGeometry
     }
 
     /// <summary>
-    ///     Horizontally, only the left edge is bounded (matching <see cref="ArrangementView" />'s
-    ///     unbounded-right pan) - the grid can scroll past the last segment into empty space,
-    ///     so playhead-follow can keep centering the playhead all the way to the end of
-    ///     playback instead of freezing once the content itself fills the viewport.
+    ///     Clamps scroll into range. Horizontally only the left edge is bounded (matching
+    ///     <see cref="ArrangementView" />'s unbounded-right pan) - the grid can scroll past the
+    ///     last segment into empty space, so playhead-follow keeps centering the playhead all
+    ///     the way to the end of playback.
     /// </summary>
     public void ClampScroll()
     {

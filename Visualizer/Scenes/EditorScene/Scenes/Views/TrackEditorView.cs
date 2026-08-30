@@ -124,8 +124,7 @@ public sealed class TrackEditorView : Panel
 
         // The whole canvas - lines, bands, note and strip fills - renders as two instanced
         // draw calls (see LineBatch), queued in DrawSelf below Children in the same depth
-        // layer; the slot ranges above carry the paint order that adding these as siblings
-        // in the right sequence used to.
+        // layer; the slot ranges above are what carry the paint order.
         _lineBatch.Count = GridBatchReserve;
         _blockBatch.Count = BlockBatchTotal;
 
@@ -160,8 +159,8 @@ public sealed class TrackEditorView : Panel
         AddChild(gutter);
 
         // Every caption on this grid - ruler beats, gutter values, the cut row's - shares
-        // one text buffer and one draw call (see LabelBatch), rather than one Label (and
-        // one draw call) each, live at every zoom whether or not it had anything to say.
+        // one text buffer and one draw call (see LabelBatch), rather than one Label, and
+        // one draw call, per slot at every zoom.
         _labelBatch = new LabelBatch(context, LabelBatchTotal);
         for (var i = 0; i < Rows; i++)
         {
@@ -508,8 +507,7 @@ public sealed class TrackEditorView : Panel
         for (var i = beatLabel; i < BeatLabelPool; i++) _labelBatch.Hide(BeatLabelSlot + i);
 
         // The bands the strip and ruler sit on: batch slots after every note's, so a note
-        // scrolled above the grid is masked by them exactly as it was when they were
-        // children added before the note pool.
+        // scrolled above the grid is masked by them.
         _blockBatch.Set(StripBgSlot, absX, absY, width, StripHeight, StripColor);
         _blockBatch.Set(RulerBgSlot, absX, absY + StripHeight, width, RulerHeight, StripColor);
 
@@ -805,9 +803,8 @@ public sealed class TrackEditorView : Panel
         // then the notes and the bands over them.
         ctx.QueueRender(_lineBatch, Index);
         ctx.QueueRender(_blockBatch, Index);
-        // One layer past the children: the gutter values and beat numbers are painted
-        // over the gutter/ruler backgrounds, which are children (Index + 1) - the paint
-        // order they had as children added after them.
+        // One layer past the children: the gutter values and beat numbers paint over the
+        // gutter/ruler backgrounds, which are children (Index + 1).
         ctx.QueueRender(_labelBatch, LabelLayer);
     }
 
@@ -946,11 +943,9 @@ public sealed class TrackEditorView : Panel
                 // A note isn't a point - it's a whole rendered cell, one step wide
                 // (globalStep .. globalStep+1) and one row tall. The row is drawn
                 // top-anchored (ValueTop), so its cell spans (Value-1 .. Value], the
-                // opposite orientation from the step axis. Comparing the marquee's
-                // box against the note's exact (step, value) point (rather than this
-                // cell) only ever matched when the box touched the cell's leading
-                // edge - top-only, for the value axis - missing anything dragged
-                // entirely inside the cell.
+                // opposite orientation from the step axis. The marquee is tested
+                // against that cell, so a box drawn entirely inside one still
+                // selects the note.
                 var globalStep = offset + note.Step;
                 var stepOverlaps = globalStep < maxStep && globalStep + 1 > minStep;
                 var valueOverlaps = note.Value - 1 < maxValue && note.Value > minValue;
@@ -989,15 +984,13 @@ public sealed class TrackEditorView : Panel
 
         var anchorGlobalStep = track.GlobalStepOf(block.Segment, block.Note.Step);
         _groupDragAnchorStartStep = anchorGlobalStep;
-        // Snapped pointer value at press, not the note's own exact Value: a fractional value
-        // (e.g. 6.4) only snaps back to itself in FineSnap mode, so anchoring on the exact
-        // value would read every later frame's ValueAt(y) as a nonzero delta even at the same
-        // pointer position - including the same-position "drag" frame the input dispatcher
-        // fires for a plain held click (see UIContext.UpdatePointer) - silently rounding the
-        // note on a click, and losing the fraction on an intentional drag (delta = snapped -
-        // exact instead of snapped - snapped). Anchoring on the snap makes a same-position
-        // frame's delta exactly zero, and a one-row drag's delta a clean whole number that
-        // adds onto each note's own exact StartValue below - preserving the fraction.
+        // Snapped pointer value at press, not the note's own exact Value, so both ends of
+        // the per-frame delta are snapped the same way. A same-position drag frame - which
+        // the input dispatcher fires for a plain held click (see UIContext.UpdatePointer) -
+        // then yields a delta of exactly zero, and a one-row drag a clean whole number. That
+        // delta adds onto each note's own exact StartValue below, so a fractional value
+        // (6.4, which only snaps back to itself in FineSnap mode) survives the drag instead
+        // of being silently rounded.
         _groupDragAnchorStartValue = ValueAt(pressY);
         _groupDragLastStep = anchorGlobalStep;
         _groupDragLastValue = _groupDragAnchorStartValue;
@@ -1015,10 +1008,10 @@ public sealed class TrackEditorView : Panel
 
     /// <summary>
     ///     Applies the anchor's per-frame delta (from its own drag start) to every
-    ///     selected note's own start, so the whole group moves together - a group of one
-    ///     reduces to exactly the old single-note drag. Steps/values are clamped into the
-    ///     track's valid range per note (matching FL: notes at the edge just stop there,
-    ///     which can compress the group's relative spacing at the boundary - acceptable).
+    ///     selected note's own start, so the whole group moves together; a group of one
+    ///     reduces to a plain single-note drag. Steps/values are clamped into the track's
+    ///     valid range per note (matching FL: notes at the edge just stop there, which can
+    ///     compress the group's relative spacing at the boundary).
     /// </summary>
     internal void UpdateGroupDrag(float x, float y)
     {

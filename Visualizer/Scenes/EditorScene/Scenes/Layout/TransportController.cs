@@ -4,9 +4,9 @@ using Sundex.Components.Labels;
 namespace EditorScene.Scenes.Layout;
 
 /// <summary>
-///     Drives the transport block docked in the track column. The tree is
-///     Scenes/Layout/Transport Section/TransportSection.snx.xml and its handles are resolved by that
-///     document's logic; all that is left here is the per-frame refresh.
+///     Drives the transport block docked in the track column. The tree lives in
+///     Scenes/Layout/Transport Section/TransportSection.snx.xml and its handles are resolved
+///     by that document's logic; this type only refreshes it per frame.
 /// </summary>
 internal sealed class TransportController(
     EditorPlayback playback,

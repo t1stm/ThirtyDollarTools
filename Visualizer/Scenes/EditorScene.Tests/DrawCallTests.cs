@@ -86,8 +86,8 @@ public class DrawCallTests(ITestOutputHelper output)
     [Fact]
     public void AnAutomationPath_KeepsDrawing_PastTheBatchReservation()
     {
-        // Regression: the marks came from a fixed 768-slot pool, and a path that ran past
-        // it simply stopped being drawn - a note's automation line ended mid-air.
+        // The mark pool grows past its reservation: a path with more marks than the pool
+        // holds is still drawn whole, not cut off mid-air.
         var ctx = new EditorTestContext();
         var state = new EditorState();
         var track = state.AddTrack();

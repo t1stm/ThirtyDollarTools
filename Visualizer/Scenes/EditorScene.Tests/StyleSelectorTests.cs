@@ -6,9 +6,8 @@ using Sundex.Components.Abstractions;
 namespace EditorScene.Tests;
 
 /// <summary>
-///     Guards the one failure mode the migration to stylesheets introduced: a class or id
-///     named in C# that no sheet defines. Nothing throws on that - the element just keeps
-///     its bare framework defaults and renders wrong - so the mismatch has to be caught here.
+///     Every class or id named in C# must be defined by a sheet. Nothing throws on a mismatch -
+///     the element just keeps its bare framework defaults and renders wrong - so it is caught here.
 /// </summary>
 public class StyleSelectorTests
 {

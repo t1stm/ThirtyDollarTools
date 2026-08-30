@@ -122,9 +122,8 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
 
     /// <summary>
     ///     Drives the field's exit: the sprites stop bouncing off the edges, scatter upward
-    ///     and fade out as the home screen comes up underneath them. Progress runs 0 to 1;
-    ///     the first call above zero is what re-aims them, so the drift they were already
-    ///     carrying turns into the exit rather than being replaced by it.
+    ///     and fade out as the home screen comes up underneath them. Progress runs 0 to 1, and
+    ///     the first call above zero re-aims them from the drift they are already carrying.
     /// </summary>
     public void Drain(float progress)
     {
@@ -135,14 +134,12 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
         _semaphore.Wait();
         try
         {
-            // Lateral drift is kept, damped, so the scatter reads as the same field
-            // leaving rather than a new one being thrown upward. Y is negative because
-            // the loader's camera has its origin at the top edge.
+            // Lateral drift is kept, damped, so the scatter reads as the same field leaving.
+            // Y is negative because the loader's camera has its origin at the top edge.
             //
-            // Speed is per frame, like the drift this replaces, so it is paced against the
-            // exit's length rather than the clock: roughly half a screen of travel over the
-            // fade. Faster and the field is gone while the rest of the transition is still
-            // running, which leaves a static fade where the motion should be.
+            // Speed is per frame rather than per second, matching the drift it replaces, and
+            // sized for roughly half a screen of travel over the exit - fast enough to still
+            // be moving when the rest of the transition ends.
             foreach (var sound in _animatedSoundData)
                 sound.Velocity = new Vector2(sound.Velocity.X * 0.4f, -RandomFloat(4, 7));
 

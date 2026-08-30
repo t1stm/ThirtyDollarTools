@@ -22,9 +22,8 @@ public abstract class SundexScript
     ///     Compilation needs no graphics context, which is what makes this worth doing from
     ///     a worker thread ahead of the frame that builds the component.
     ///     <para>
-    ///         Doing nothing is a valid implementation - it only costs the caller the
-    ///         compile it was trying to avoid, and an implementation that does not cache has
-    ///         nothing to gain here anyway.
+    ///         Doing nothing is a valid implementation: it only costs the caller the compile
+    ///         it was trying to avoid.
     ///     </para>
     /// </summary>
     public virtual void Precompile(string sourceCode, ISundexContext context,

@@ -4,10 +4,10 @@ namespace EditorScene.Tests;
 
 /// <summary>
 ///     The bound a chunk's <c>EndY</c> is derived from. A block that never wraps - anything
-///     under one line's worth, which is most faithful sequences - left <see cref="LayoutHandler.Height" />
-///     at 0, so a chunk bottom taken from it landed above the scroller's clip and
-///     <c>EventCanvas.RefreshCulling</c> dropped every chunk: the sequence drew nothing while
-///     the inspector still counted its items.
+///     under one line's worth, which is most faithful sequences - leaves
+///     <see cref="LayoutHandler.Height" /> at 0, so a chunk bottom must come from Y instead:
+///     taken from Height it lands above the scroller's clip and
+///     <c>EventCanvas.RefreshCulling</c> drops every chunk.
 /// </summary>
 public class PlayfieldLayoutTests
 {

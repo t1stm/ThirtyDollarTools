@@ -24,7 +24,8 @@ public sealed class InstrumentSelector : FlexPanel
         _list = new ScrollView(context) { ID = "instrument-selector-list" };
         AddChild(_list);
 
-        // Fill and hover both come from menu-row - see TrackListPanel's "+ Add track".
+        // menu-row supplies both the fill and the hover, as it does for TrackListPanel's
+        // "+ Add track".
         _newRow = new Button(context, "+ New instrument")
         {
             Classes = ["menu-row"],
@@ -44,7 +45,7 @@ public sealed class InstrumentSelector : FlexPanel
     /// <summary>Fired when "+ New instrument" is clicked.</summary>
     public Action? OnNew { get; set; }
 
-    /// <summary>Full row rebuild - the instrument list is small by design.</summary>
+    /// <summary>Rebuilds every row from scratch; the instrument list is small enough not to diff.</summary>
     public void Fill(IEnumerable<Instrument> instruments)
     {
         foreach (var child in _list.Children.ToArray()) _list.RemoveChild(child);

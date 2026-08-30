@@ -6,9 +6,8 @@ using EditorScene.Scenes.Components;
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     Which kind of track "+ Add track" adds. Same shape as <see cref="ImportDialog" /> -
-///     pure form, the owner decides what each button does and closes the modal itself. The
-///     tree is TrackTypeDialog.snx.xml.
+///     Picks which kind of track "+ Add track" adds. Pure form - the owner decides what each
+///     button does and closes the modal itself. The tree is TrackTypeDialog.snx.xml.
 /// </summary>
 public sealed class TrackTypeDialog
 {

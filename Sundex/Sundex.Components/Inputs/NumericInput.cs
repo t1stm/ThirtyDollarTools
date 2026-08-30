@@ -97,9 +97,8 @@ public class NumericInput : TextInput
         base.FocusLost();
         // Normalize: reformat a valid value, revert garbage/empty to the last committed
         // value, or keep it empty (null) when AllowNull. Assigned unconditionally, because
-        // the reformat half needs to happen for text that parsed fine too - ??= only ever
-        // fired for garbage, so "150" typed against a Max of 100 kept its raw text while
-        // Value already read 100.
+        // text that parsed fine still needs the reformat - "150" typed against a Max of
+        // 100 has to show 100, not its raw text.
         Value = Value ?? (AllowNull ? null : _lastValid);
     }
 

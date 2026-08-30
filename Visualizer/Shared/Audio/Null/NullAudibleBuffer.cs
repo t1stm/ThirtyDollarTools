@@ -4,13 +4,10 @@ using ThirtyDollarConverter.Encoder.PCM;
 namespace Shared.Audio.Null;
 
 /// <summary>
-///     A buffer that plays nothing but still keeps time. Silent is not timeless: every
-///     scene reads its playhead off whatever buffer the sequence player is holding - see
-///     <see cref="TimingStopwatchWrapper" /> - so a buffer with no clock of its own leaves
-///     the editor transport and the visualizer playhead reading whatever it makes up.
-///     This one used to say <c>long.MaxValue</c> and <c>IsRunning</c> from the moment it
-///     was built, which is why <c>--no-audio</c> showed a 153722867280912:55 playhead and
-///     a Pause button over a project that had never been started.
+///     A buffer that plays nothing but still keeps time. Every scene reads its playhead off
+///     whatever buffer the sequence player is holding - see
+///     <see cref="TimingStopwatchWrapper" /> - so this one runs a real clock, and that clock
+///     is what the editor transport and the visualizer playhead read under <c>--no-audio</c>.
 /// </summary>
 public class NullAudibleBuffer : AudibleBuffer
 {
@@ -39,12 +36,11 @@ public class NullAudibleBuffer : AudibleBuffer
     }
 
     /// <summary>
-    ///     Starts playing from the beginning, which for a silent buffer means starting the
-    ///     clock from the beginning. <see cref="SequencePlayer.Start" /> calls this rather
-    ///     than <see cref="AudibleBuffer.Start" />, so a Play that only fired the callback
-    ///     left the visualizer holding a loaded sequence that never advanced under
-    ///     <c>--no-audio</c>. OpenAL plays a fresh source here, which starts at offset 0 -
-    ///     hence the seek.
+    ///     Starts playing from the beginning, which for a silent buffer means restarting the
+    ///     clock at zero. <see cref="SequencePlayer.Start" /> calls this rather than
+    ///     <see cref="AudibleBuffer.Start" />, so the clock has to advance from here or a
+    ///     loaded sequence never moves. The seek matches OpenAL, which plays a fresh source
+    ///     from offset 0.
     /// </summary>
     public override void Play(Action? callbackWhenFinished = null, bool autoRemove = true)
     {

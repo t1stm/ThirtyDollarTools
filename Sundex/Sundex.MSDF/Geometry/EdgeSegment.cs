@@ -26,9 +26,9 @@ internal enum EdgeColor : byte
 /// <summary>
 ///     One line or Bézier segment of a contour, and the distance maths for it.
 ///     <para>
-///         All three degrees share this one struct and dispatch on <see cref="Kind" /> rather
-///         than being a class hierarchy: a glyph holds hundreds of edges and every one of them
-///         would otherwise be a separate heap object, walked once per pixel.
+///         All three degrees share this one struct and dispatch on <see cref="Kind" />, so a
+///         glyph's hundreds of edges stay in one flat array of values rather than becoming
+///         separate heap objects walked once per pixel.
 ///     </para>
 ///     <para>Control points fill from P0 up: Linear uses P0..P1, Quadratic P0..P2, Cubic P0..P3.</para>
 /// </summary>

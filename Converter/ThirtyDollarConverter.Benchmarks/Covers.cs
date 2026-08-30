@@ -5,8 +5,8 @@ namespace ThirtyDollarConverter.Benchmarks;
 /// <summary>
 ///     Real covers out of ~/tdw, spanning a size range, with a "retune one note in the middle"
 ///     edit each - the cheapest edit an editor can make, and the one incremental rendering
-///     exists for. <see cref="IcutHeavy" /> is the interesting one: its cuts are what makes the
-///     subtract-based renderer give up and re-render everything.
+///     exists for. <see cref="IcutHeavy" /> is the cut-heavy cover, the hardest case for an
+///     incremental render.
 /// </summary>
 public sealed record Cover(string Name, string Path)
 {

@@ -45,10 +45,10 @@ public class CoverEditBenchmarks
     }
 
     /// <summary>
-    ///     What an edit costs when the render is thrown away and redone, but the resampled
-    ///     samples are kept - which is what both incremental methods fall back to internally, and the
-    ///     only fair "just re-render it" baseline. <see cref="FullRender" /> above pays for resampling
-    ///     every sound again, which only ever happens on the first render of a session.
+    ///     What an edit costs when the render is thrown away and redone, but the resampled samples
+    ///     are kept - what the incremental renderer falls back to internally, and the fair
+    ///     "just re-render it" baseline. <see cref="FullRender" /> above also pays for resampling
+    ///     every sound, which only happens on the first render of a session.
     /// </summary>
     [Benchmark]
     public async Task<int> FullRenderWarm()

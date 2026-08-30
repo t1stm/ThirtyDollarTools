@@ -105,11 +105,8 @@ public class LayoutPaddingTests
         parent.Layout();
 
         // Assert
-        // Parent AbsoluteX/Y is 0 (root).
-        // Parent Padding is 10.
-        // Child relative X is 0 (from StackPanel layout).
-        // Child AbsoluteX should be Parent AbsX + Padding + X = 0 + 10 + 0 = 10.
-        // IT PASSES, which means X=0 and Padding=10 results in AbsoluteX=10.
+        // Parent AbsoluteX/Y is 0 (root), padding is 10, and the child's relative X is 0
+        // (StackPanel layout), so the child's AbsoluteX is 0 + 10 + 0 = 10.
         Assert.Equal(10, child.Computed.AbsoluteX);
         Assert.Equal(10, child.Computed.AbsoluteY);
     }
@@ -183,7 +180,7 @@ public class LayoutPaddingTests
 
         // Act 2: Move parent
         parent.X = 200;
-        // In reality, setting X should call InvalidateLayout which sets NeedsLayout = true on parent and notifies root.
+        // Setting X invalidates layout on the parent and notifies the root.
 
         root.Layout();
 

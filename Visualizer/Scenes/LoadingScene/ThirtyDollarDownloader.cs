@@ -26,17 +26,15 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
     public bool SampleListLoaded => _sampleListTask is { IsCompleted: true };
 
     /// <summary>
-    ///     Fetches sounds.json, and nothing else. Split out of <see cref="Load" /> because it
-    ///     is a single small request that depends on nothing the program is doing: the
-    ///     loading screen starts it while it is still building scenes, so the list is
-    ///     already in hand by the time the download it feeds is allowed to begin.
+    ///     Fetches sounds.json, and nothing else. Separate from <see cref="Load" /> so the
+    ///     loading screen can start it while it is still building scenes, leaving the list in
+    ///     hand by the time the download it feeds begins.
     ///     <para>Calling it more than once returns the first call's task rather than refetching.</para>
     /// </summary>
     public Task LoadSampleList()
     {
-        // No status of its own: this runs against the scene preloads, and those own the
-        // status line while they do. The loading screen says what it is waiting for only
-        // if this is still out once they have finished.
+        // No status of its own: this runs alongside the scene preloads, which own the status
+        // line. The loading screen reports this only if it is still out once they finish.
         return _sampleListTask ??= threadRunner.RunTask(() =>
         {
             try
@@ -65,8 +63,8 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
 
     private async Task LoadTask()
     {
-        // Awaited rather than re-run: the loading screen starts this well before it starts
-        // the download, but nothing stops another caller going straight to Load().
+        // Awaited rather than re-run, since the loading screen normally starts this first but
+        // a caller may go straight to Load().
         await LoadSampleList();
 
         var loadedImages = await CheckFilesAndDownload();

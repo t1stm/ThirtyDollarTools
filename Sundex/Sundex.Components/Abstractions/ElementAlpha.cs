@@ -10,11 +10,9 @@ namespace Sundex.Components.Abstractions;
 ///     Fades a subtree by scaling every colour's alpha against the value it was styled
 ///     with, so a surface meant to be translucent (a 95% strip, a checkbox's box) still is
 ///     once the fade lands on 1. Labels and panel fills are the only things that carry
-///     colour; a checkbox also owns an off-tree tick plane, which is why it gets its own
-///     case.
+///     colour; a checkbox also owns an off-tree tick plane, handled by its own case.
 ///     <br /><br />
-///     One instance per faded tree: the styled alphas are remembered on first touch, and
-///     sharing an instance across trees would only grow the table for no gain.
+///     Use one instance per faded tree: the styled alphas are remembered on first touch.
 /// </summary>
 public sealed class ElementAlpha
 {
@@ -53,8 +51,8 @@ public sealed class ElementAlpha
 
         switch (panel.Background)
         {
-            // Scaling Color here would do nothing at all: the gradient shader is fed the
-            // stops, and Color is never read. Fading one means fading every stop.
+            // The gradient shader is fed the stops and never reads Color, so fading a
+            // gradient means fading every stop.
             case GradientPlane gradient:
                 FadeStops(gradient, alpha);
                 break;

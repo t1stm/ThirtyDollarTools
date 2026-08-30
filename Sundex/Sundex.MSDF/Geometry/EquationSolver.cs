@@ -4,9 +4,8 @@ namespace Sundex.MSDF.Geometry;
 ///     Closed-form real roots of the quadratics and cubics the curve maths reduces to.
 ///     <para>
 ///         Each solver drops to the next lower degree when its leading coefficient is negligible
-///         against the others, rather than dividing by it. Those branches are what keep
-///         near-degenerate curves accurate; folding them away leaves subtly wrong distances that
-///         show up as soft glyph edges.
+///         against the others rather than dividing by it, which is what keeps near-degenerate
+///         curves accurate instead of returning subtly wrong distances.
 ///     </para>
 /// </summary>
 internal static class EquationSolver

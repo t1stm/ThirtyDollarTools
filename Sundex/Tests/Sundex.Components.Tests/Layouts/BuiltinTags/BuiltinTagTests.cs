@@ -13,9 +13,9 @@ using Sundex.Markup;
 namespace Sundex.Components.Tests.Layouts.BuiltinTags;
 
 /// <summary>
-///     Every tag a component declares must also be buildable from markup. Six of the
-///     twelve only had a <see cref="UIElement.Tag" /> - enough for a stylesheet to target
-///     them, not enough for the builder, which threw "Unknown tag" instead.
+///     Every tag a component declares must also be buildable from markup: a
+///     <see cref="UIElement.Tag" /> alone lets a stylesheet target the element, but the
+///     builder needs its own case for it or the tag is rejected as unknown.
 /// </summary>
 public class BuiltinTagTests
 {
@@ -123,8 +123,8 @@ public class BuiltinTagTests
     /// <summary>
     ///     A ProgressBar's planes are constructor arguments, and its background/foreground
     ///     [NamedSetting]s are Panel-typed, which no ApplyStyleValue case handles - so the
-    ///     builder's resolution is the only route the sheet has to them. It was tag-only,
-    ///     leaving class/id rules silently dead.
+    ///     builder's resolution is the only route the sheet has to them, and it must honour id
+    ///     and class rules, not only tag ones.
     /// </summary>
     [Fact]
     public void BarBackgrounds_ResolveByIdThenClassThenTag()
