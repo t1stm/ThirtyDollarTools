@@ -30,8 +30,10 @@ internal sealed class Shape
     public Span<EdgeSegment> Edges => _edges.AsSpan(0, EdgeCount);
     public ReadOnlySpan<ContourRange> Contours => _contours.AsSpan(0, ContourCount);
 
-    public Span<EdgeSegment> ContourEdges(int contour) =>
-        _edges.AsSpan(_contours[contour].Start, _contours[contour].Count);
+    public Span<EdgeSegment> ContourEdges(int contour)
+    {
+        return _edges.AsSpan(_contours[contour].Start, _contours[contour].Count);
+    }
 
     public void Clear()
     {
@@ -104,6 +106,7 @@ internal sealed class Shape
             var start = write;
 
             if (range.Count is > 0 and < 3)
+            {
                 for (var e = 0; e < range.Count; e++)
                 {
                     _edges[range.Start + e].SplitInThirds(out var p0, out var p1, out var p2);
@@ -111,6 +114,7 @@ internal sealed class Shape
                     _scratch[write++] = p1;
                     _scratch[write++] = p2;
                 }
+            }
             else
             {
                 _edges.AsSpan(range.Start, range.Count).CopyTo(_scratch.AsSpan(write));
@@ -199,5 +203,8 @@ internal struct Bounds
 
     public readonly bool IsDegenerate => L >= R || B >= T;
 
-    public override readonly string ToString() => $"L={L:R} B={B:R} R={R:R} T={T:R}";
+    public readonly override string ToString()
+    {
+        return $"L={L:R} B={B:R} R={R:R} T={T:R}";
+    }
 }

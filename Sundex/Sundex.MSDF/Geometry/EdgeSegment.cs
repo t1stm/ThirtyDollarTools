@@ -41,8 +41,10 @@ internal struct EdgeSegment
     public EdgeKind Kind;
     public EdgeColor Color;
 
-    public static EdgeSegment Linear(Vector2d p0, Vector2d p1, EdgeColor color = EdgeColor.White) =>
-        new() { Kind = EdgeKind.Linear, P0 = p0, P1 = p1, Color = color };
+    public static EdgeSegment Linear(Vector2d p0, Vector2d p1, EdgeColor color = EdgeColor.White)
+    {
+        return new EdgeSegment { Kind = EdgeKind.Linear, P0 = p0, P1 = p1, Color = color };
+    }
 
     public static EdgeSegment Quadratic(Vector2d p0, Vector2d p1, Vector2d p2, EdgeColor color = EdgeColor.White)
     {
@@ -70,19 +72,28 @@ internal struct EdgeSegment
     };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector2d Mix(Vector2d a, Vector2d b, double t) => a * (1 - t) + b * t;
+    private static Vector2d Mix(Vector2d a, Vector2d b, double t)
+    {
+        return a * (1 - t) + b * t;
+    }
 
     /// <summary>+1 for positive, -1 for zero or negative — a sign that is never 0.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static double NonZeroSign(double n) => n > 0 ? 1 : -1;
+    private static double NonZeroSign(double n)
+    {
+        return n > 0 ? 1 : -1;
+    }
 
     /// <summary>The point at parameter <paramref name="t" /> along the segment, 0 at the start, 1 at the end.</summary>
-    public readonly Vector2d Point(double t) => Kind switch
+    public readonly Vector2d Point(double t)
     {
-        EdgeKind.Linear => Mix(P0, P1, t),
-        EdgeKind.Quadratic => Mix(Mix(P0, P1, t), Mix(P1, P2, t), t),
-        _ => CubicPoint(t)
-    };
+        return Kind switch
+        {
+            EdgeKind.Linear => Mix(P0, P1, t),
+            EdgeKind.Quadratic => Mix(Mix(P0, P1, t), Mix(P1, P2, t), t),
+            _ => CubicPoint(t)
+        };
+    }
 
     private readonly Vector2d CubicPoint(double t)
     {
@@ -119,12 +130,15 @@ internal struct EdgeSegment
     }
 
     /// <summary>The second derivative at parameter <paramref name="t" /> — how fast the tangent is turning.</summary>
-    public readonly Vector2d DirectionChange(double t) => Kind switch
+    public readonly Vector2d DirectionChange(double t)
     {
-        EdgeKind.Linear => Vector2d.Zero,
-        EdgeKind.Quadratic => P2 - P1 - (P1 - P0),
-        _ => Mix(P2 - P1 - (P1 - P0), P3 - P2 - (P2 - P1), t)
-    };
+        return Kind switch
+        {
+            EdgeKind.Linear => Vector2d.Zero,
+            EdgeKind.Quadratic => P2 - P1 - (P1 - P0),
+            _ => Mix(P2 - P1 - (P1 - P0), P3 - P2 - (P2 - P1), t)
+        };
+    }
 
     /// <summary>
     ///     Distance from <paramref name="origin" /> to the nearest point of the segment, signed
@@ -132,12 +146,15 @@ internal struct EdgeSegment
     ///     <paramref name="param" /> comes back as the parameter of that nearest point, which
     ///     falls outside 0..1 when the projection lands beyond an end point.
     /// </summary>
-    public readonly SignedDistance SignedDistance(Vector2d origin, out double param) => Kind switch
+    public readonly SignedDistance SignedDistance(Vector2d origin, out double param)
     {
-        EdgeKind.Linear => LinearSignedDistance(origin, out param),
-        EdgeKind.Quadratic => QuadraticSignedDistance(origin, out param),
-        _ => CubicSignedDistance(origin, out param)
-    };
+        return Kind switch
+        {
+            EdgeKind.Linear => LinearSignedDistance(origin, out param),
+            EdgeKind.Quadratic => QuadraticSignedDistance(origin, out param),
+            _ => CubicSignedDistance(origin, out param)
+        };
+    }
 
     private readonly SignedDistance LinearSignedDistance(Vector2d origin, out double param)
     {

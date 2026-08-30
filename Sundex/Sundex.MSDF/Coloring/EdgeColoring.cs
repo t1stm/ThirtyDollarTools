@@ -122,8 +122,10 @@ internal static class EdgeColoring
         }
     }
 
-    private static bool IsCorner(Vector2d aDir, Vector2d bDir, double crossThreshold) =>
-        Vector2d.Dot(aDir, bDir) <= 0 || Math.Abs(Vector2d.Cross(aDir, bDir)) > crossThreshold;
+    private static bool IsCorner(Vector2d aDir, Vector2d bDir, double crossThreshold)
+    {
+        return Vector2d.Dot(aDir, bDir) <= 0 || Math.Abs(Vector2d.Cross(aDir, bDir)) > crossThreshold;
+    }
 
     private static int SeedExtract2(ref ulong seed)
     {

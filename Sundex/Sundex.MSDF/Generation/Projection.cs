@@ -30,16 +30,24 @@ internal readonly struct DistanceMapping
         _translate = -range.Lower;
     }
 
-    public double Map(double distance) => _scale * (distance + _translate);
+    public double Map(double distance)
+    {
+        return _scale * (distance + _translate);
+    }
 }
 
 /// <summary>Converts between shape space and output pixel space.</summary>
 internal readonly struct Projection(Vector2d scale, Vector2d translate)
 {
-    public Vector2d Project(Vector2d coord) => Vector2d.Scale(scale, coord + translate);
+    public Vector2d Project(Vector2d coord)
+    {
+        return Vector2d.Scale(scale, coord + translate);
+    }
 
-    public Vector2d Unproject(Vector2d coord) =>
-        new(coord.X / scale.X - translate.X, coord.Y / scale.Y - translate.Y);
+    public Vector2d Unproject(Vector2d coord)
+    {
+        return new Vector2d(coord.X / scale.X - translate.X, coord.Y / scale.Y - translate.Y);
+    }
 }
 
 /// <summary>Everything needed to place a shape in a bitmap: where the pixels fall, and what the distances mean.</summary>
@@ -47,5 +55,8 @@ internal readonly struct SdfTransformation(Projection projection, DistanceMappin
 {
     public readonly DistanceMapping Mapping = mapping;
 
-    public Vector2d Unproject(Vector2d coord) => projection.Unproject(coord);
+    public Vector2d Unproject(Vector2d coord)
+    {
+        return projection.Unproject(coord);
+    }
 }

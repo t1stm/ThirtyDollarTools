@@ -18,7 +18,10 @@ internal struct TrueDistanceSelector
     private Vector2d _p;
     private SignedDistance _minDistance;
 
-    public static TrueDistanceSelector Create() => new() { _minDistance = SignedDistance.Initial };
+    public static TrueDistanceSelector Create()
+    {
+        return new TrueDistanceSelector { _minDistance = SignedDistance.Initial };
+    }
 
     /// <summary>
     ///     Moves the selector to a new sample point. The distance found at the last point is
@@ -45,7 +48,13 @@ internal struct TrueDistanceSelector
         cache.AbsDistance = Math.Abs(distance.Distance);
     }
 
-    public readonly double Distance() => _minDistance.Distance;
+    public readonly double Distance()
+    {
+        return _minDistance.Distance;
+    }
 
-    private static double NonZeroSign(double n) => n > 0 ? 1 : -1;
+    private static double NonZeroSign(double n)
+    {
+        return n > 0 ? 1 : -1;
+    }
 }

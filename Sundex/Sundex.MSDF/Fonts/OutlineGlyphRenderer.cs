@@ -35,7 +35,10 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
     {
     }
 
-    public bool BeginGlyph(in FontRectangle bounds, in GlyphRendererParameters parameters) => true;
+    public bool BeginGlyph(in FontRectangle bounds, in GlyphRendererParameters parameters)
+    {
+        return true;
+    }
 
     public void EndGlyph()
     {
@@ -62,7 +65,10 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
         _inFigure = false;
     }
 
-    public void MoveTo(Vector2 point) => _current = Transform(point);
+    public void MoveTo(Vector2 point)
+    {
+        _current = Transform(point);
+    }
 
     public void LineTo(Vector2 point)
     {
@@ -92,10 +98,15 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
     // asks for, so the arc is chorded to a straight line rather than approximated. An unexpected
     // font degrades instead of crashing text rendering. Split it into cubics if an SVG-table font
     // ever has to work.
-    public void ArcTo(float radiusX, float radiusY, float rotation, bool largeArc, bool sweep, Vector2 point) =>
+    public void ArcTo(float radiusX, float radiusY, float rotation, bool largeArc, bool sweep, Vector2 point)
+    {
         LineTo(point);
+    }
 
-    public TextDecorations EnabledDecorations() => TextDecorations.None;
+    public TextDecorations EnabledDecorations()
+    {
+        return TextDecorations.None;
+    }
 
     public void SetDecoration(TextDecorations textDecorations, Vector2 start, Vector2 end, float thickness)
     {
@@ -108,6 +119,8 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
         shape.AddEdge(edge);
     }
 
-    private Vector2d Transform(Vector2 p) =>
-        new(p.X / _unitsPerEm, -p.Y / _unitsPerEm);
+    private Vector2d Transform(Vector2 p)
+    {
+        return new Vector2d(p.X / _unitsPerEm, -p.Y / _unitsPerEm);
+    }
 }

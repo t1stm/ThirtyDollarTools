@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Numerics;
 using System.Text;
 using SixLabors.Fonts;
 using SixLabors.Fonts.Rendering;
@@ -59,10 +60,10 @@ public sealed class MsdfFont : IDisposable
     /// </summary>
     private readonly ConcurrentBag<ShapeDistanceFinder> _finders = [];
 
-    private readonly ConcurrentBag<Shape> _shapes = [];
-
     private readonly Font _font;
     private readonly FontMetrics _fontMetrics;
+
+    private readonly ConcurrentBag<Shape> _shapes = [];
 
     private volatile bool _disposed;
 
@@ -161,8 +162,8 @@ public sealed class MsdfFont : IDisposable
             MsdfGenerator.Generate(destination, size, channels, shape, transformation, finder, _finders);
 
             glyph = new MsdfGlyph(advance,
-                new System.Numerics.Vector2((float)translate.X, (float)translate.Y),
-                new System.Numerics.Vector2((float)scale.X, (float)scale.Y));
+                new Vector2((float)translate.X, (float)translate.Y),
+                new Vector2((float)scale.X, (float)scale.Y));
             return true;
         }
         finally
@@ -231,7 +232,7 @@ public sealed class MsdfFont : IDisposable
         var options = new TextOptions(_font)
         {
             Dpi = RenderDpi,
-            Origin = System.Numerics.Vector2.Zero,
+            Origin = Vector2.Zero,
             ColorFontSupport = ColorFontSupport.None
         };
 

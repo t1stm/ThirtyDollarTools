@@ -29,8 +29,10 @@ internal readonly struct Vector2d(double x, double y) : IEquatable<Vector2d>
     }
 
     /// <summary>Perpendicular vector of the same length; <paramref name="polarity" /> picks which of the two.</summary>
-    public Vector2d GetOrthogonal(bool polarity = true) =>
-        polarity ? new Vector2d(-Y, X) : new Vector2d(Y, -X);
+    public Vector2d GetOrthogonal(bool polarity = true)
+    {
+        return polarity ? new Vector2d(-Y, X) : new Vector2d(Y, -X);
+    }
 
     /// <summary>Unit-length perpendicular vector; <paramref name="polarity" /> picks which of the two.</summary>
     public Vector2d GetOrthonormal(bool polarity = true, bool allowZero = true)
@@ -41,27 +43,81 @@ internal readonly struct Vector2d(double x, double y) : IEquatable<Vector2d>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Dot(Vector2d a, Vector2d b) => a.X * b.X + a.Y * b.Y;
+    public static double Dot(Vector2d a, Vector2d b)
+    {
+        return a.X * b.X + a.Y * b.Y;
+    }
 
     /// <summary>The 2D "cross product" — the z component of the 3D cross product.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Cross(Vector2d a, Vector2d b) => a.X * b.Y - a.Y * b.X;
+    public static double Cross(Vector2d a, Vector2d b)
+    {
+        return a.X * b.Y - a.Y * b.X;
+    }
 
-    public static Vector2d operator +(Vector2d a, Vector2d b) => new(a.X + b.X, a.Y + b.Y);
-    public static Vector2d operator -(Vector2d a, Vector2d b) => new(a.X - b.X, a.Y - b.Y);
-    public static Vector2d operator -(Vector2d a) => new(-a.X, -a.Y);
-    public static Vector2d operator *(Vector2d a, double s) => new(a.X * s, a.Y * s);
-    public static Vector2d operator *(double s, Vector2d a) => new(a.X * s, a.Y * s);
-    public static Vector2d operator /(Vector2d a, double s) => new(a.X / s, a.Y / s);
+    public static Vector2d operator +(Vector2d a, Vector2d b)
+    {
+        return new Vector2d(a.X + b.X, a.Y + b.Y);
+    }
+
+    public static Vector2d operator -(Vector2d a, Vector2d b)
+    {
+        return new Vector2d(a.X - b.X, a.Y - b.Y);
+    }
+
+    public static Vector2d operator -(Vector2d a)
+    {
+        return new Vector2d(-a.X, -a.Y);
+    }
+
+    public static Vector2d operator *(Vector2d a, double s)
+    {
+        return new Vector2d(a.X * s, a.Y * s);
+    }
+
+    public static Vector2d operator *(double s, Vector2d a)
+    {
+        return new Vector2d(a.X * s, a.Y * s);
+    }
+
+    public static Vector2d operator /(Vector2d a, double s)
+    {
+        return new Vector2d(a.X / s, a.Y / s);
+    }
 
     /// <summary>Component-wise product.</summary>
-    public static Vector2d Scale(Vector2d a, Vector2d b) => new(a.X * b.X, a.Y * b.Y);
+    public static Vector2d Scale(Vector2d a, Vector2d b)
+    {
+        return new Vector2d(a.X * b.X, a.Y * b.Y);
+    }
 
-    public bool Equals(Vector2d other) => X.Equals(other.X) && Y.Equals(other.Y);
-    public override bool Equals(object? obj) => obj is Vector2d o && Equals(o);
-    public override int GetHashCode() => HashCode.Combine(X, Y);
-    public static bool operator ==(Vector2d a, Vector2d b) => a.Equals(b);
-    public static bool operator !=(Vector2d a, Vector2d b) => !a.Equals(b);
+    public bool Equals(Vector2d other)
+    {
+        return X.Equals(other.X) && Y.Equals(other.Y);
+    }
 
-    public override string ToString() => $"({X:R}, {Y:R})";
+    public override bool Equals(object? obj)
+    {
+        return obj is Vector2d o && Equals(o);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(X, Y);
+    }
+
+    public static bool operator ==(Vector2d a, Vector2d b)
+    {
+        return a.Equals(b);
+    }
+
+    public static bool operator !=(Vector2d a, Vector2d b)
+    {
+        return !a.Equals(b);
+    }
+
+    public override string ToString()
+    {
+        return $"({X:R}, {Y:R})";
+    }
 }

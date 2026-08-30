@@ -138,7 +138,13 @@ internal struct PerpendicularDistanceSelectorBase
         return minDistance;
     }
 
-    public readonly SignedDistance TrueDistance() => _minTrueDistance;
+    public readonly SignedDistance TrueDistance()
+    {
+        return _minTrueDistance;
+    }
 
-    private static double NonZeroSign(double n) => n > 0 ? 1 : -1;
+    private static double NonZeroSign(double n)
+    {
+        return n > 0 ? 1 : -1;
+    }
 }

@@ -18,21 +18,32 @@ internal struct SignedDistance(double distance, double dot)
     public static SignedDistance Initial => new(-double.MaxValue, 0);
 
     /// <summary>Orders by nearness: smaller magnitude wins, and <see cref="Dot" /> breaks ties.</summary>
-    public static bool operator <(SignedDistance a, SignedDistance b) =>
-        Math.Abs(a.Distance) < Math.Abs(b.Distance) ||
-        (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot < b.Dot);
+    public static bool operator <(SignedDistance a, SignedDistance b)
+    {
+        return Math.Abs(a.Distance) < Math.Abs(b.Distance) ||
+               (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot < b.Dot);
+    }
 
-    public static bool operator >(SignedDistance a, SignedDistance b) =>
-        Math.Abs(a.Distance) > Math.Abs(b.Distance) ||
-        (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot > b.Dot);
+    public static bool operator >(SignedDistance a, SignedDistance b)
+    {
+        return Math.Abs(a.Distance) > Math.Abs(b.Distance) ||
+               (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot > b.Dot);
+    }
 
-    public static bool operator <=(SignedDistance a, SignedDistance b) =>
-        Math.Abs(a.Distance) < Math.Abs(b.Distance) ||
-        (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot <= b.Dot);
+    public static bool operator <=(SignedDistance a, SignedDistance b)
+    {
+        return Math.Abs(a.Distance) < Math.Abs(b.Distance) ||
+               (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot <= b.Dot);
+    }
 
-    public static bool operator >=(SignedDistance a, SignedDistance b) =>
-        Math.Abs(a.Distance) > Math.Abs(b.Distance) ||
-        (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot >= b.Dot);
+    public static bool operator >=(SignedDistance a, SignedDistance b)
+    {
+        return Math.Abs(a.Distance) > Math.Abs(b.Distance) ||
+               (Math.Abs(a.Distance) == Math.Abs(b.Distance) && a.Dot >= b.Dot);
+    }
 
-    public override string ToString() => $"{Distance:R} (dot {Dot:R})";
+    public override string ToString()
+    {
+        return $"{Distance:R} (dot {Dot:R})";
+    }
 }

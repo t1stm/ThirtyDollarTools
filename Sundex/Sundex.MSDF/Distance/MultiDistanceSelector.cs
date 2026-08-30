@@ -15,12 +15,15 @@ internal struct MultiDistanceSelector
     private PerpendicularDistanceSelectorBase _g;
     private PerpendicularDistanceSelectorBase _b;
 
-    public static MultiDistanceSelector Create() => new()
+    public static MultiDistanceSelector Create()
     {
-        _r = PerpendicularDistanceSelectorBase.Create(),
-        _g = PerpendicularDistanceSelectorBase.Create(),
-        _b = PerpendicularDistanceSelectorBase.Create()
-    };
+        return new MultiDistanceSelector
+        {
+            _r = PerpendicularDistanceSelectorBase.Create(),
+            _g = PerpendicularDistanceSelectorBase.Create(),
+            _b = PerpendicularDistanceSelectorBase.Create()
+        };
+    }
 
     /// <summary>Moves all three channels to a new sample point, carrying their bounds over.</summary>
     public void Reset(Vector2d p)
@@ -110,12 +113,15 @@ internal struct MultiDistanceSelector
     }
 
     /// <summary>The three channels' distances at the current sample point.</summary>
-    public readonly MultiDistance Distance(ReadOnlySpan<EdgeSegment> edges) => new()
+    public readonly MultiDistance Distance(ReadOnlySpan<EdgeSegment> edges)
     {
-        R = _r.ComputeDistance(_p, edges),
-        G = _g.ComputeDistance(_p, edges),
-        B = _b.ComputeDistance(_p, edges)
-    };
+        return new MultiDistance
+        {
+            R = _r.ComputeDistance(_p, edges),
+            G = _g.ComputeDistance(_p, edges),
+            B = _b.ComputeDistance(_p, edges)
+        };
+    }
 
     /// <summary>The nearest true distance any of the three channels found.</summary>
     public readonly SignedDistance TrueDistance()
