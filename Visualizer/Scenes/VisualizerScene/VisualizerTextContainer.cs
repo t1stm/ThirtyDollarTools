@@ -65,10 +65,7 @@ public class VisualizerTextContainer
                 }));
 
         overlay.Add("debug",
-            () => _debugBuffer.GetTextSlice(
-                "123456789QWERTYUIOPASDFGHJKLZXCVBNM,./;[]'\"-=_+!@#$%^&*()|{}:><?~`qwertyuiopasdfghjklzxcvbnm",
-                // TODO: THIS IS A HACK. REALTIME TEXT GENERATION IS BUGGY AT THE MOMENT
-                UpdatableTextSliceMaxLength),
+            () => _debugBuffer.GetTextSlice("", UpdatableTextSliceMaxLength),
             text =>
             {
                 text.FontSize = 14 * _scale;
