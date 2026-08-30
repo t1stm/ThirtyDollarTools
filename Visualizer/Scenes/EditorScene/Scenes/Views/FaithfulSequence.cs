@@ -259,6 +259,15 @@ public sealed class FaithfulSequence : ScrollView
     {
         if (_state.OpenedFaithfulTrack is not { } track || ItemAt(eventIndex) is not { } item) return;
 
+        // Shift-click is the mouse equivalent of Enter in Select mode. Keep it available in
+        // Draw as well, where a plain click removes the slot. Actions retain their existing
+        // click behavior; this shortcut is specifically for copying instruments.
+        if (ShiftHeld && item.Note is not null)
+        {
+            PlaceAgain(track, item);
+            return;
+        }
+
         if (!Selecting)
         {
             _state.RemoveItemAt(track, track.Items.IndexOf(item));
@@ -444,9 +453,18 @@ public sealed class FaithfulSequence : ScrollView
     {
         if (!Selecting || _state.OpenedFaithfulTrack is not { } track || Current is not { } current) return;
 
+        PlaceAgain(track, current);
+    }
+
+    /// <summary>
+    ///     Inserts a deep copy immediately after an instrument. Shift-click uses this in both
+    ///     tools; Enter reaches it through the current Select-mode selection.
+    /// </summary>
+    private void PlaceAgain(FaithfulTrack track, FaithfulItem current)
+    {
         var copy = current.Duplicate();
         _state.InsertItemAt(track, copy, track.Items.IndexOf(current) + 1);
-        _state.SelectItem(copy);
+        if (Selecting) _state.SelectItem(copy);
         ScrollToItem(copy);
     }
 

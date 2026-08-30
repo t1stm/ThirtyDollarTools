@@ -67,7 +67,7 @@ public class EditorInterface
     /// </summary>
     private static string FaithfulLegend =>
         "Click the palette to add, right-click to preview  •  " +
-        "Draw: click a slot to remove it, drag it to reorder  •  " +
+        "Draw: click a slot to remove it, Shift+click to copy, drag it to reorder  •  " +
         $"Select: click to select, {Keybinds.PrimaryName}+click to add, Left/Right walk it, " +
         $"{Keybinds.PrimaryName}+Shift+ extends it, Space+ moves it, " +
         $"Enter places another, Del removes, Tab adds a divider, C a combine  •  " +
