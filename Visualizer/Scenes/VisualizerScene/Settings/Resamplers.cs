@@ -15,13 +15,11 @@ public static class Resamplers
     public const string Linear = "Linear";
     public const string None = "No interpolation";
     public const string SincHann = "Sinc (Hann)";
-    public const string SincKaiserBest = "Sinc (Kaiser best)";
-    public const string SincKaiserFast = "Sinc (Kaiser fast)";
     public const string ByteCruncher = "Byte cruncher";
 
     /// <summary>In the order the settings screen lists them: cheapest first.</summary>
     public static readonly string[] Names =
-        [Hermite, Linear, None, SincHann, SincKaiserBest, SincKaiserFast, ByteCruncher];
+        [Hermite, Linear, None, SincHann, ByteCruncher];
 
     /// <summary>The settings whose value changes what <see cref="Create" /> returns.</summary>
     public static readonly string[] Properties =
@@ -38,8 +36,6 @@ public static class Resamplers
             Linear => new LinearResampler(),
             None => new NoInterpolationResampler(),
             SincHann => new HannSincResampler(settings.SincFilterSize, settings.SincPrecision),
-            SincKaiserBest => new KaiserBestResampler(),
-            SincKaiserFast => new KaiserFastResampler(),
             ByteCruncher => new ByteCruncherResampler(settings.CruncherBits),
             _ => new HermiteResampler()
         };
