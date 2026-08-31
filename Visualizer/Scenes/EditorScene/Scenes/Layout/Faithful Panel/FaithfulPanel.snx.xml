@@ -1,6 +1,6 @@
 <sundex version="1.0" component="faithful-panel">
   <style language="sundex" src="Scenes/Layout/Faithful Panel/FaithfulPanel.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/Faithful Panel/FaithfulPanel.snx.csx" imports="[EditorScene, EditorScene.Scenes]"/>
+  <logic language="csharp" src="Scenes/Layout/Faithful Panel/FaithfulPanel.snx.csx" imports="[EditorScene, EditorScene.Scenes, EditorScene.State]"/>
 
   <layout>
     <flex id="faithful-panel" class="grid-panel">

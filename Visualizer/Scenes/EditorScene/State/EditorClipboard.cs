@@ -1,6 +1,6 @@
 using ThirtyDollarConverter.Editor;
 
-namespace EditorScene;
+namespace EditorScene.State;
 
 /// <summary>
 ///     Session-only internal clipboard for the editor's Copy/Paste/Cut, separate from the

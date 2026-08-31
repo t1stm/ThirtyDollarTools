@@ -1,4 +1,4 @@
-namespace EditorScene;
+namespace EditorScene.State;
 
 /// <summary>
 ///     Per-channel mute/solo state for the session; never saved with the project.

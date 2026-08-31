@@ -1,3 +1,4 @@
+using EditorScene.State;
 using System.Diagnostics;
 using Serilog;
 using ThirtyDollarConverter.Editor;

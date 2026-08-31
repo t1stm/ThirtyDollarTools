@@ -1,4 +1,4 @@
-namespace EditorScene;
+namespace EditorScene.State;
 
 /// <summary>
 ///     Undo/redo stacks of paired actions. Running a command here does nothing else -
@@ -26,6 +26,25 @@ public sealed class UndoHistory
     {
         _undoStack.Add(new EditorCommand(undo, redo, -1, null));
         _redoStack.Clear();
+    }
+
+    /// <summary>
+    ///     The undo pair for a plain list insert, pushed after the insert has happened. The
+    ///     editor's add/remove operations on a segment's notes and a faithful track's items
+    ///     differ only in which list, which item and where it sits.
+    /// </summary>
+    public void PushInsert<T>(IList<T> list, T item, int index)
+    {
+        Push(() => list.Remove(item), () => list.Insert(index, item));
+    }
+
+    /// <summary>
+    ///     The mirror of <see cref="PushInsert{T}" />, pushed after the removal with the index
+    ///     the item sat at - so undo puts it back where it was rather than at the end.
+    /// </summary>
+    public void PushRemove<T>(IList<T> list, T item, int index)
+    {
+        Push(() => list.Insert(index, item), () => list.Remove(item));
     }
 
     /// <summary>

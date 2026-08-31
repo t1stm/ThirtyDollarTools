@@ -1,6 +1,6 @@
 <sundex version="1.0" component="track-editor-panel">
   <style language="sundex" src="Scenes/Layout/Track Editor Panel/TrackEditorPanel.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/Track Editor Panel/TrackEditorPanel.snx.csx" imports="[EditorScene, EditorScene.Scenes]"/>
+  <logic language="csharp" src="Scenes/Layout/Track Editor Panel/TrackEditorPanel.snx.csx" imports="[EditorScene, EditorScene.Scenes, EditorScene.State]"/>
 
   <layout>
     <flex id="track-editor-panel" class="grid-panel">

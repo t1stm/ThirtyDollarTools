@@ -1,6 +1,7 @@
 using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;
+using EditorScene.State;
 using Sundex.Components.Abstractions;
 
 namespace EditorScene.Tests;

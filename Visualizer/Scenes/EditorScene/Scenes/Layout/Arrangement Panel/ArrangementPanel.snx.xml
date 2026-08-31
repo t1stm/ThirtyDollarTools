@@ -1,6 +1,6 @@
 <sundex version="1.0" component="arrangement-panel">
   <style language="sundex" src="Scenes/Layout/Arrangement Panel/ArrangementPanel.snx.ss"/>
-  <logic language="csharp" src="Scenes/Layout/Arrangement Panel/ArrangementPanel.snx.csx" imports="[EditorScene, EditorScene.Scenes]"/>
+  <logic language="csharp" src="Scenes/Layout/Arrangement Panel/ArrangementPanel.snx.csx" imports="[EditorScene, EditorScene.Scenes, EditorScene.State]"/>
 
   <layout>
     <flex id="arrangement-panel" class="grid-panel">
