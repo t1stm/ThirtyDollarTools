@@ -36,7 +36,10 @@ public class BassBuffer : AudibleBuffer, IDisposable
     public override void SetVolume(float volume)
     {
         Volume = volume;
-        SampleInfo.Volume = volume;
+        // The sample's own volume is the default for channels created from it later and is a
+        // 0-1 setting; amplification rides the channel attribute below, which BASS does allow
+        // past 1 (at the cost of clipping, which is the caller's business).
+        SampleInfo.Volume = Math.Min(volume, 1f);
         Bass.SampleSetInfo(SampleHandle, SampleInfo);
 
         var channels = Bass.SampleGetChannels(SampleHandle);

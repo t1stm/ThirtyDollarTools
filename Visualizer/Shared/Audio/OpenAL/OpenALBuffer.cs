@@ -127,6 +127,8 @@ public class OpenALBuffer : AudibleBuffer
 
         AL.Sourcei(source, SourcePNameI.Buffer, AudioBuffer);
 
+        // MaxGain first, for the same reason as in SetVolume: it caps Gain, and it defaults to 1.
+        AL.Sourcef(source, SourcePNameF.MaxGain, Math.Max(1f, Volume));
         AL.Sourcef(source, SourcePNameF.Gain, Volume);
         AL.Source3f(source, SourcePName3F.Position, _pan, 0, 0);
 
@@ -188,7 +190,15 @@ public class OpenALBuffer : AudibleBuffer
         Volume = volume;
         lock (_audioSources)
         {
-            foreach (var source in _audioSources) AL.Sourcef(source, SourcePNameF.Gain, Volume);
+            foreach (var source in _audioSources)
+            {
+                // AL_GAIN is clamped to AL_MAX_GAIN, which defaults to 1 - without raising it
+                // first, every gain above unity is silently flattened to unity. That is a
+                // note previewed at volume 200, or a wave reference turned up to sit with the
+                // song. BASS amplifies past 1 on its own.
+                AL.Sourcef(source, SourcePNameF.MaxGain, Math.Max(1f, Volume));
+                AL.Sourcef(source, SourcePNameF.Gain, Volume);
+            }
         }
     }
 
