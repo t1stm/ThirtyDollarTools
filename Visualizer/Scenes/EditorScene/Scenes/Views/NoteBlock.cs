@@ -43,6 +43,9 @@ internal class NoteBlock : Panel
     ///     Draw's plain press replaces the selection the same way, then starts a group drag
     ///     over whatever ended up selected: pressing an unselected note drags that note
     ///     alone, pressing one already in the selection moves the whole group together.
+    ///     Reaching for a note also picks its instrument (see
+    ///     <see cref="TrackEditorView.PickInstrument" />) - every press here except the
+    ///     Shift one, which is putting a note down rather than reaching for it.
     /// </summary>
     public override bool HandlePress(float x, float y)
     {
@@ -52,16 +55,20 @@ internal class NoteBlock : Panel
         if (_view._state.ActiveTool == EditorTool.Select)
         {
             if (_view.FineSnap)
+            {
                 _view._state.RemoveFromNoteSelection([Note]);
-            else if (_view.WheelZooms)
-                _view._state.AddToNoteSelection([Note]);
-            else if (!_view._state.SelectedNotes.Contains(Note))
-                _view._state.SelectNote(Note);
+                return true;
+            }
 
+            if (_view.WheelZooms) _view._state.AddToNoteSelection([Note]);
+            else if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note);
+
+            _view.PickInstrument(Note);
             return true;
         }
 
         if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note);
+        _view.PickInstrument(Note);
         _view.BeginNoteDrag(this, y);
         return true;
     }

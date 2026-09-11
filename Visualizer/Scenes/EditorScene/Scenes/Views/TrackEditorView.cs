@@ -1057,6 +1057,22 @@ public sealed class TrackEditorView : Panel
     }
 
     /// <summary>
+    ///     Makes a note's instrument the one the next click paints - the eyedropper a piano
+    ///     roll is expected to have, and the only way to get back to an instrument a track
+    ///     plays without walking the picker. Cuts included: a cut targets an instrument like
+    ///     any other note. Fires the instruments event by hand, since a plain
+    ///     <see cref="EditorState.ActiveInstrument" /> set raises none and the tool bar's
+    ///     button reads it.
+    /// </summary>
+    internal void PickInstrument(Note note)
+    {
+        if (_state.ActiveInstrument == note.Instrument) return;
+
+        _state.ActiveInstrument = note.Instrument;
+        _state.NotifyInstrumentsChanged();
+    }
+
+    /// <summary>
     ///     Places one painted note, unless the cell already holds an identical one. A cut's
     ///     dedup is per (step, instrument) - independent instruments' cuts may share a step,
     ///     but re-pressing the same instrument's cut on the same step is a no-op, not a stack.

@@ -85,6 +85,49 @@ public class TrackEditorViewTests
     }
 
     [Fact]
+    public void ClickingANote_MakesItsInstrumentTheOneThatPaints()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var hat = MakeInstrument(state, "hat");
+
+        state.ActiveInstrument = boom;
+        Click(ctx, view, 100, 214.5f); // step 3, value 0 - a boom
+        state.ActiveInstrument = hat;
+        Click(ctx, view, 132, 214.5f); // step 5 - a hat
+        view.Layout(); // the blocks the clicks below land on
+
+        var notified = 0;
+        state.OnInstrumentsChanged += () => notified++;
+
+        // Back onto the boom: picking it is what lets the next click paint one.
+        Click(ctx, view, 100, 214.5f);
+
+        Assert.Same(boom, state.ActiveInstrument);
+        Assert.Equal(1, notified); // the tool bar's button reads the event, not the field
+
+        Click(ctx, view, 132, 214.5f);
+        Assert.Same(hat, state.ActiveInstrument);
+        Assert.Equal(2, track.Segments[0].Notes.Count); // clicks landed on notes, not on cells
+    }
+
+    [Fact]
+    public void PickingTheInstrumentAlreadyActive_NotifiesNobody()
+    {
+        var (ctx, state, view, track) = NewView();
+        state.ActiveInstrument = MakeInstrument(state, "boom");
+        Click(ctx, view, 100, 214.5f);
+        view.Layout();
+
+        var notified = 0;
+        state.OnInstrumentsChanged += () => notified++;
+        Click(ctx, view, 100, 214.5f);
+
+        Assert.Equal(0, notified);
+        Assert.Single(track.Segments[0].Notes);
+    }
+
+    [Fact]
     public void PressAndSweep_PaintsANoteIntoEveryCellCrossed()
     {
         var (ctx, state, view, track) = NewView();
