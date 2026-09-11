@@ -91,7 +91,7 @@ public class AudioKeyframeManager
         foreach (var (minutes, generated, keyframe) in ExpandCore(note, noteMinutes, stepMinutes))
         {
             if (keyframe.Cut)
-                yield return (minutes, new IndividualCutEvent(note.Instrument.SoundNames));
+                yield return (minutes, new GeneratedCutEvent(note.Instrument.SoundNames));
 
             if (keyframe is not { Cut: true, CutOnly: true })
                 foreach (var ev in generated.ToEvents())
@@ -104,7 +104,7 @@ public class AudioKeyframeManager
         // lands one more gap after it, where its next repeat would have cut it anyway.
         if (last is { Cut: true, CutLast: true })
             yield return (lastMinutes + GapMinutes(last, stepMinutes),
-                new IndividualCutEvent(note.Instrument.SoundNames));
+                new GeneratedCutEvent(note.Instrument.SoundNames));
     }
 
     /// <summary>
@@ -152,5 +152,20 @@ public class AudioKeyframeManager
                     Offset = offset
                 }, keyframe);
             }
+    }
+}
+
+/// <summary>
+///     A cut the editor generated itself: an automation "Cut" keyframe's retrigger guard,
+///     silencing the previous instance of one note's instrument. It is never meant to touch
+///     the sounds that start alongside it, so <see cref="SequenceBuilder" /> hoists it to the
+///     front of its step and merges it with the step's other generated cuts. A cut the user
+///     wrote - a faithful "!cut" item, a cut note - stays exactly where it was placed.
+/// </summary>
+internal sealed class GeneratedCutEvent(HashSet<string> cutSounds) : IndividualCutEvent(cutSounds)
+{
+    public override IndividualCutEvent Copy()
+    {
+        return new GeneratedCutEvent(CutSounds);
     }
 }

@@ -239,6 +239,36 @@ public class AudioKeyframeTests
         Assert.Equal(3, track.ToSequence().Events.Count(e => e.SoundEvent == "loop"));
     }
 
+    /// <summary>
+    ///     Several notes of one instrument retriggering on the same beat used to emit a cut
+    ///     each, and every cut but the last silenced the note written before it.
+    /// </summary>
+    [Fact]
+    public void CutKeyframes_OnOneStep_CutOnceBeforeTheWholeStep()
+    {
+        var track = MakeTrack(); // 4/4 sixteenth grid at 480 steps/min
+        var chord = Instrument.Single("bleep");
+        for (var value = 0; value < 3; value++)
+        {
+            var automation = new AudioKeyframeManager { Repeats = 2 };
+            automation.Keyframes.Add(new AudioKeyframe { Gap = 4, Cut = true });
+            track.Segments[0].Notes.Add(new Note
+                { Step = 0, Instrument = chord, Value = value, Automation = automation });
+        }
+
+        var events = track.ToSequence().Events
+            .Select(e => e is IndividualCutEvent ? "!cut" : e.SoundEvent)
+            .Where(name => name is not ("!speed" or "!divider" or "!combine"))
+            .ToArray();
+
+        // Three voices, two retriggers: one cut per retriggered step, ahead of its notes.
+        Assert.Equal([
+            "bleep", "bleep", "bleep",
+            "!stop", "!cut", "bleep", "bleep", "bleep",
+            "!stop", "!cut", "bleep", "bleep", "bleep"
+        ], events);
+    }
+
     [Fact]
     public void Keyframe_OldFileWithNoCutKey_LoadsAsNotCut()
     {

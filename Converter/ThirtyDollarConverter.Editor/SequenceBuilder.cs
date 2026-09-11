@@ -39,8 +39,15 @@ internal static class SequenceBuilder
         return Math.Abs(a - b) <= 1e-9 * Math.Max(Math.Abs(a), Math.Abs(b));
     }
 
+    /// <param name="padToMinutes">
+    ///     Run the timeline out to this time with silence, ending on a "_pause" so the encoder
+    ///     has a placement to size its buffer from. Zero (the default) keeps the sequence
+    ///     exactly as long as its last sound, which is what an export wants. Editor playback
+    ///     passes the end of its wave reference clips: the rendered buffer is the transport's
+    ///     clock, so a reference outlasting the notes has to outlast the buffer too.
+    /// </param>
     public static Sequence Build(IReadOnlyList<TempoRegion> regions, (double Minutes, BaseEvent Event)[] timedEvents,
-        SequenceStyle? style = null, IReadOnlyList<double>? barTimes = null)
+        SequenceStyle? style = null, IReadOnlyList<double>? barTimes = null, double padToMinutes = 0)
     {
         var divider_every_bars = style?.DividerEveryBars ?? 0;
         var speed_dividers = style?.DividerOnSpeedChanges ?? false;
@@ -64,16 +71,18 @@ internal static class SequenceBuilder
             })
             .GroupBy(n => (n.Region, n.Step))
             .OrderBy(g => g.Key.Region).ThenBy(g => g.Key.Step)
-            .Select(g => (g.Key.Region, g.Key.Step, Events: CollapseCuts([.. g.Select(n => n.Event)])))
+            .Select(g => (g.Key.Region, g.Key.Step, Events: HoistCuts([.. g.Select(n => n.Event)])))
             .ToArray();
+
+        var clock = 0d;
 
         if (groups.Length == 0)
         {
             EmitSpeed(regions[0]);
+            EmitPad();
             return Finish(events);
         }
 
-        var clock = 0d;
         var gi = 0;
         for (var ri = 0; ri < regions.Count && gi < groups.Length; ri++)
         {
@@ -95,10 +104,7 @@ internal static class SequenceBuilder
                 // the notes open the new one.
                 EmitDividersUpTo(time);
 
-                // In the order they came in. A step's order is meaningful - a "!cut" silences
-                // what is already playing, so the sounds written before it are cut and the
-                // ones after it are not - and hoisting the actions to the front of the step
-                // would cut the wrong ones.
+                // In the order they came in, cuts first (see HoistCuts).
                 // Only a "!combine" *directly* after a sound cancels its one-step advance, so
                 // every sound that isn't the group's last event gets one: the events after it
                 // belong to the same step.
@@ -147,7 +153,19 @@ internal static class SequenceBuilder
             clock = Math.Max(clock, region.EndMinutes);
         }
 
+        EmitPad();
         return Finish(events);
+
+        // Trailing silence is normally dropped; this is the one caller that wants it. The
+        // gap rides the grid rate in effect at the end, and the closing "_pause" is what
+        // PlacementCalculator turns into a placement - a bare "!stop" leaves none behind.
+        void EmitPad()
+        {
+            if (padToMinutes <= clock + 1e-12) return;
+
+            EmitGap((padToMinutes - clock) * current_speed);
+            events.Add(new NormalEvent { SoundEvent = "_pause" });
+        }
 
         // A gap becomes "_pause"s (one step each) below the migrate-to-stop threshold,
         // "!stop@n" at or above it. Fractional gaps always need "!stop" to stay exact.
@@ -241,42 +259,55 @@ internal static class SequenceBuilder
     }
 
     /// <summary>
-    ///     Consecutive cuts landing on one step collapse into a single one carrying the union
-    ///     of their sounds, so tracks sharing an instrument don't emit one cut per track per
-    ///     note and cost the encoder an extra pass over every cut track for identical audio.
-    ///     Only consecutive ones: a sound between two cuts is cut by the first and not by the
-    ///     second, and merging across it would silence it either way.
+    ///     Puts a step's generated cuts at its front, merged into a single one carrying the
+    ///     union of their sounds. The sounds of a step all start at the same instant, so a cut
+    ///     sitting between two of them silences the one before it the moment it starts: several
+    ///     notes retriggering one instrument on the same beat used to cut each other away, one
+    ///     cut per note. A retrigger guard belongs before the whole step - it silences what was
+    ///     already ringing, then the step plays. See <see cref="GeneratedCutEvent" />: a cut the
+    ///     user wrote keeps its place, and only merges with the cut directly before it, since a
+    ///     sound between two of those is cut by the first and not by the second.
     ///     Standard and legacy ("#icut") cuts stay separate - they serialize differently.
     /// </summary>
-    private static BaseEvent[] CollapseCuts(BaseEvent[] events)
+    private static BaseEvent[] HoistCuts(BaseEvent[] events)
     {
-        if (events.OfType<IndividualCutEvent>().Take(2).Count() < 2) return events;
+        if (!Array.Exists(events, ev => ev is IndividualCutEvent)) return events;
 
-        var merged = new Dictionary<bool, IndividualCutEvent>();
-        var result = new List<BaseEvent>(events.Length);
+        var hoisted = new List<IndividualCutEvent>(1);
+        var rest = new List<BaseEvent>(events.Length);
         foreach (var ev in events)
         {
             if (ev is not IndividualCutEvent cut)
             {
-                merged.Clear();
-                result.Add(ev);
+                rest.Add(ev);
                 continue;
             }
 
-            if (merged.TryGetValue(cut.IsStandardImplementation, out var existing))
+            if (cut is GeneratedCutEvent)
             {
-                existing.CutSounds.UnionWith(cut.CutSounds);
+                var existing = hoisted.Find(c => c.IsStandardImplementation == cut.IsStandardImplementation);
+                if (existing is not null) existing.CutSounds.UnionWith(cut.CutSounds);
+                else hoisted.Add(Fresh(cut));
                 continue;
             }
 
-            // A fresh set, never the source event's: Copy() shares CutSounds by reference,
-            // so unioning into an existing cut would edit whatever it was copied from.
-            var collapsed = new IndividualCutEvent([.. cut.CutSounds], cut.IsStandardImplementation);
-            merged[cut.IsStandardImplementation] = collapsed;
-            result.Add(collapsed); // in place of the first cut: action order at a step is preserved
+            if (rest.Count > 0 && rest[^1] is IndividualCutEvent previous &&
+                previous.IsStandardImplementation == cut.IsStandardImplementation)
+                previous.CutSounds.UnionWith(cut.CutSounds);
+            else rest.Add(Fresh(cut));
         }
 
-        return [.. result];
+        return hoisted.Count == 0 ? [.. rest] : [.. hoisted, .. rest];
+    }
+
+    /// <summary>
+    ///     A copy with a set of its own, never the source event's: Copy() shares CutSounds by
+    ///     reference, so unioning into a cut taken straight from the stream would edit whatever
+    ///     it was copied from.
+    /// </summary>
+    private static IndividualCutEvent Fresh(IndividualCutEvent cut)
+    {
+        return new IndividualCutEvent([.. cut.CutSounds], cut.IsStandardImplementation);
     }
 
     /// <summary>
