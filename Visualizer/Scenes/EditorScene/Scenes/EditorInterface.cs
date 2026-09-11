@@ -1,6 +1,7 @@
 using EditorScene.Scenes.Components;
 using EditorScene.State;
 using JetBrains.Annotations;
+using System.Collections.Concurrent;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -264,6 +265,7 @@ public class EditorInterface
                 },
                 OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes),
                 OnChangeTrackColor = ShowTrackColorDialog,
+                OnReplaceWaveFile = ShowWaveReplaceDialog,
                 TrackColor = track => _arrangement.ColorOf(track) // the chip shows the resting fill, never the selected lift
             };
 
@@ -305,10 +307,17 @@ public class EditorInterface
             _trackEditor.InvalidateLayout();
             _inspector.Rebuild();
         };
+        _arrangement.WavePeaks = Playback.WavePeaks;
+        // A decode lands long after the clip was laid out, and nothing else would invalidate
+        // it - the envelope would sit invisible until the user happened to scroll.
+        Playback.OnWaveDecoded = _arrangement.InvalidateLayout;
         _trackEditor.OnPreviewNote = Playback.PreviewNote;
         _trackEditor.OnSeekQuarters = Playback.Seek;
         RefreshProject();
     }
+
+    /// <summary>Model edits handed back from background work; drained in <see cref="Update" />.</summary>
+    private readonly ConcurrentQueue<Action> _pendingEdits = new();
 
     public EditorState State { get; } = new();
     public EditorPlayback Playback { get; }
@@ -849,6 +858,11 @@ public class EditorInterface
 
         dialog.PianoRollButton.OnClick = _ => Add(TrackKind.PianoRoll);
         dialog.FaithfulButton.OnClick = _ => Add(TrackKind.Faithful);
+        dialog.WaveButton.OnClick = _ =>
+        {
+            _dialogHost.Close(modal);
+            _dialogHost.ShowFileDialog(null, ".wav", ImportWaveFile, "Open");
+        };
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
         return;
 
@@ -857,6 +871,33 @@ public class EditorInterface
             _dialogHost.Close(modal);
             State.OpenTrack(State.AddTrack(kind));
         }
+    }
+
+    /// <summary>
+    ///     Adds a wave reference for a file - picked in the dialog, or dropped on the window.
+    ///     The track is created only once the file has decoded (its length is what the clip
+    ///     draws) and the decode runs off the update thread, so the model edit is queued back
+    ///     onto it rather than made from the task. A file that cannot be read raises its own
+    ///     error and adds nothing.
+    /// </summary>
+    public void ImportWaveFile(string path)
+    {
+        Playback.PrepareWave(path).ContinueWith(decode =>
+        {
+            if (decode.Result is not { } seconds) return;
+            _pendingEdits.Enqueue(() => State.AddWaveTrack(path, seconds));
+        });
+    }
+
+    /// <summary>Replaces the file a wave track plays, keeping the clip where it is.</summary>
+    private void ShowWaveReplaceDialog(WaveTrack track)
+    {
+        _dialogHost.ShowFileDialog(null, ".wav", path =>
+            Playback.PrepareWave(path).ContinueWith(decode =>
+            {
+                if (decode.Result is not { } seconds) return;
+                _pendingEdits.Enqueue(() => State.SetWaveFile(track, path, seconds));
+            }), "Open");
     }
 
     /// <summary>
@@ -921,11 +962,22 @@ public class EditorInterface
         if (_trackContextMenuModal != null) return;
 
         var menu = new DropdownMenu(_context, x, y);
-        menu.AddItem("Open", () => State.OpenTrack(track));
+        // A wave track has no editor to open and nothing to convert into - it is a file.
+        if (track is WaveTrack wave)
+        {
+            menu.AddItem("Replace file…", () => ShowWaveReplaceDialog(wave));
+        }
+        else
+        {
+            menu.AddItem("Open", () => State.OpenTrack(track));
+        }
+
         menu.AddItem("Change color…", () => ShowTrackColorDialog(track));
         menu.AddItem("Duplicate…", () => ShowDuplicateTrackDialog(track));
-        menu.AddItem(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
-            () => ConvertTrack(track));
+        if (track.Kind != TrackKind.Wave)
+            menu.AddItem(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
+                () => ConvertTrack(track));
+
         menu.AddItem("Remove", () => State.RemoveTrack(track));
 
         _dialogHost.Root.AddChild(menu);
@@ -1029,6 +1081,9 @@ public class EditorInterface
     public void ShowExportDialog()
     {
         var dialog = new ExportDialog(_context);
+        if (!State.Project.Tracks.Any(track => track.Kind == TrackKind.Wave))
+            dialog.Element.RemoveChild(dialog.WaveNote);
+
         var modal = _dialogHost.Show(dialog.Element);
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
         dialog.TdwButton.OnClick = _ =>
@@ -1114,6 +1169,10 @@ public class EditorInterface
 
     public void Update(UIContext context)
     {
+        // Model edits that finished on a background thread (a wave file's decode) are applied
+        // here: the update thread is the only one allowed to touch the project.
+        while (_pendingEdits.TryDequeue(out var edit)) edit();
+
         Playback.Update();
         _inspector.SetStatus(Playback.StatusLabel, Playback.StatusProgress, Playback.StatusDone, Playback.StatusTotal);
         if (Playback.TakeError() is { } error) _dialogHost.Alert(error);

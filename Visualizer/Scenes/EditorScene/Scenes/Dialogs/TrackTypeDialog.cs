@@ -17,6 +17,7 @@ public sealed class TrackTypeDialog
         Element = component.GetID<FlexPanel>("track-type-dialog");
         PianoRollButton = component.GetID<Button>("piano-roll-button");
         FaithfulButton = component.GetID<Button>("faithful-button");
+        WaveButton = component.GetID<Button>("wave-button");
         CancelButton = component.GetID<Button>("cancel-button");
     }
 
@@ -25,5 +26,8 @@ public sealed class TrackTypeDialog
 
     public Button PianoRollButton { get; }
     public Button FaithfulButton { get; }
+
+    /// <summary>Picking this one asks for the file before any track exists - see EditorInterface.</summary>
+    public Button WaveButton { get; }
     public Button CancelButton { get; }
 }

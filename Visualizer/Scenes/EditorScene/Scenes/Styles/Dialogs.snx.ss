@@ -174,9 +174,12 @@ id import-dialog {
     spacing = 18;
 }
 
-// Same frame as the import dialog: two columns of the same width plus their divider.
+// The import dialog's frame, one column wider: three dialog-columns (240 each), their two
+// dividers and the four 20 px gaps of dialog-options, plus this padding = 834. The row's
+// children are fixed-width, so a frame narrower than their sum doesn't shrink them - they
+// spill out over whatever is behind the modal. Keep this in step with the column count.
 id track-type-dialog {
-    width = 560;
+    width = 834;
     padding = 16;
     spacing = 18;
 }

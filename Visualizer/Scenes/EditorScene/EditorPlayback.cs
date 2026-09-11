@@ -37,6 +37,7 @@ public class EditorPlayback
 
     private readonly Stopwatch _sinceEdit = new();
     private readonly EditorState _state;
+    private readonly WavePlayback _wave;
     private readonly ThirtyDollarWorkflow _workflow;
     private string? _lastAlertedError;
 
@@ -53,6 +54,7 @@ public class EditorPlayback
     {
         _workflow = workflow;
         _state = state;
+        _wave = new WavePlayback(workflow.SequencePlayer.AudioContext, workflow.Logger, SetError);
         Encoder = new PcmEncoder(workflow.SampleHolder, workflow.EncoderSettings,
             indexReport: (done, total) =>
             {
@@ -188,6 +190,7 @@ public class EditorPlayback
     public void Stop()
     {
         StopPreview();
+        _wave.StopAll();
         _playWhenReady = false;
         var player = _workflow.SequencePlayer;
         if (player.GetTimingStopwatch().IsRunning) player.TogglePause();
@@ -324,6 +327,35 @@ public class EditorPlayback
         });
     }
 
+    /// <summary>
+    ///     Decodes a wave file (or answers from the cache) and reports its length in seconds;
+    ///     null when it could not be read, in which case the failure has already been raised as
+    ///     an error. Adding a wave track needs the length before the clip can draw.
+    /// </summary>
+    public Task<double?> PrepareWave(string path)
+    {
+        return _wave.Prepare(path);
+    }
+
+    /// <summary>
+    ///     Fired on the update thread when a wave file finishes decoding - whatever draws from
+    ///     it has been drawing from nothing until now. See <see cref="WavePeaks" />.
+    /// </summary>
+    public Action? OnWaveDecoded
+    {
+        get => _wave.OnFileDecoded;
+        set => _wave.OnFileDecoded = value;
+    }
+
+    /// <summary>
+    ///     The peak envelope of an already-decoded wave file, for the clip the arrangement
+    ///     draws; null until the decode lands.
+    /// </summary>
+    public float[]? WavePeaks(string path)
+    {
+        return _wave.Peaks(path);
+    }
+
     public void StopPreview()
     {
         foreach (var buffer in _preview)
@@ -338,6 +370,11 @@ public class EditorPlayback
     /// <summary>Call once per frame on the update thread.</summary>
     public void Update()
     {
+        // Ahead of the render guard: the wave references follow the transport's clock, which
+        // keeps running while a re-render is in flight.
+        _wave.Sync(_state.Project, _state.IsChannelAudible, ElapsedMs / 1000d, IsPlaying,
+            _workflow.SequencePlayer.Volume);
+
         if (_rendering) return;
 
         if (_modelDirty && _sinceEdit.ElapsedMilliseconds >= DebounceMs) StartRender(false);

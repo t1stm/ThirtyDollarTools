@@ -41,6 +41,16 @@ public sealed class ArrangementView : Panel
     private const int ClipBlockSlot = BarLineSlot + BarLinePool;
     private const int LineBatchReserve = ClipBlockSlot + 64;
 
+    // A wave clip's peak envelope: 2 px bars every 3 px, inset from the clip's top and
+    // bottom, lightened off the clip's own fill. The budget caps a zoomed-in project's
+    // bars per frame - past it the envelope simply stops, rather than the pool growing
+    // without bound.
+    private const float WaveBarPitch = 3f;
+    private const float WaveBarWidth = 2f;
+    private const float WaveBarPadding = 6f;
+    private const float WaveBarLift = 0.5f;
+    private const int WaveBarBudget = 2048;
+
     // A clip's name, inset into its box: the padding and font size the batched label
     // draws with, since no stylesheet rule can reach a batch slot.
     private const float ClipPadding = 6f;
@@ -62,6 +72,15 @@ public sealed class ArrangementView : Panel
     private readonly Panel _rulerBackground;
     private readonly EditorState _state;
     private int _clipSlotsUsed;
+    private int _waveSlotStart;
+    private int _waveSlotsUsed;
+
+    /// <summary>
+    ///     The wave clips of the current layout pass, with the rectangle they were just laid
+    ///     out at - reused between frames, since a clip's element carries its geometry as
+    ///     layout values rather than numbers this pass can read back.
+    /// </summary>
+    private readonly List<(WaveTrack Track, float X, float Y, float Width, float Height)> _waveClips = [];
     private ClipBlock? _dragging;
     private Vector4i? _inheritedClip;
     private (double Quarters, double Channel)? _marqueeAnchor;
@@ -180,7 +199,28 @@ public sealed class ArrangementView : Panel
     public int Channels => ChannelCount;
 
     // Test seam (internal - see EditorAssembly's InternalsVisibleTo("EditorScene.Tests")).
+    /// <summary>
+    ///     A wave file's peak envelope, by path; null while it is still decoding. Wired to
+    ///     EditorPlayback, which owns the decode - the view never touches a file.
+    /// </summary>
+    public Func<string, float[]?>? WavePeaks { get; set; }
+
     internal IReadOnlyList<ClipBlock> Blocks => _blocks;
+
+    /// <summary>Test seam: how many peak bars the last layout wrote.</summary>
+    internal int WaveBarsDrawn => _waveSlotsUsed;
+
+    /// <summary>Test seam: the slot a peak bar was written to, by index within the wave range.</summary>
+    internal int WaveBarSlot(int index)
+    {
+        return _waveSlotStart + index;
+    }
+
+    /// <summary>Test seam: what a batch slot is currently painted with; transparent when released.</summary>
+    internal Vector4 BatchColorAt(int slot)
+    {
+        return _lineBatch.ColorOf(slot);
+    }
     internal IReadOnlyList<LabelBatch.Slot> BarLabels => _barLabels.Slots;
 
     /// <summary>
@@ -351,6 +391,7 @@ public sealed class ArrangementView : Panel
                 isCurrentBar ? PlayheadColor : LabelColor);
         }
 
+        _waveClips.Clear();
         foreach (var block in _blocks)
         {
             var placement = block.Placement;
@@ -371,6 +412,7 @@ public sealed class ArrangementView : Panel
             block.Height = LaneHeight - 4;
             var fill = ColorOf(placement.Track, block.Selected);
             _lineBatch.Set(block.BatchSlot, absX + x, absY + y, blockWidth, LaneHeight - 4, fill);
+            if (placement.Track is WaveTrack wave) _waveClips.Add((wave, x, y, blockWidth, LaneHeight - 4));
             // Confine the name to its own clip's box, per slot (see LabelBatch.Set's clip):
             // the batch's ClipRect is one scissor for the whole draw call and can only bound
             // the pool as a group, so a clip zoomed narrower than its name would otherwise
@@ -390,6 +432,7 @@ public sealed class ArrangementView : Panel
         }
 
         _clipSlotsUsed = _blocks.Count;
+        DrawWaveforms(absX, absY, width);
 
         _playhead.Width = playheadVisible ? 2 : 0;
         _playhead.Height = visibleLanesBottom;
@@ -466,6 +509,63 @@ public sealed class ArrangementView : Panel
         if (_marqueeAnchor == null) return;
         _marqueeCursor = (UnsnappedQuartersAt(x - Computed.AbsoluteX), UnsnappedChannelAt(y - Computed.AbsoluteY));
         InvalidateLayout();
+    }
+
+    /// <summary>
+    ///     The peak envelope inside every wave reference clip, as thin bars centred in the
+    ///     lane - what makes a reference alignable by eye rather than by ear. The bars sit in
+    ///     their own slot range after the clips, which is why the leftover clip slots are
+    ///     released before this runs: both ranges grow with the project and the wave range
+    ///     starts wherever the clip range currently ends.
+    ///     Nothing is drawn until the file has decoded (<see cref="WavePeaks" /> answers null
+    ///     until then), and the bars are clipped to the visible width, so a long reference
+    ///     costs slots for the part of it that is on screen.
+    /// </summary>
+    private void DrawWaveforms(float absX, float absY, float width)
+    {
+        var start = ClipBlockSlot + _blocks.Count;
+        var used = 0;
+
+        if (WavePeaks is not null)
+            foreach (var (track, clipX, clipY, clipWidth, clipHeight) in _waveClips)
+            {
+                if (WavePeaks(track.Path) is not { Length: > 0 } peaks) continue;
+
+                var band = clipHeight - 2 * WaveBarPadding;
+                if (band <= 0 || clipWidth <= 0) continue;
+
+                var middle = clipY + clipHeight / 2f;
+                var color = Vector4.Lerp(ColorOf(track, false), Vector4.One, WaveBarLift);
+
+                var first = (int)Math.Max(0, Math.Floor(-clipX / WaveBarPitch));
+                for (var bar = first; used < WaveBarBudget; bar++)
+                {
+                    var x = clipX + bar * WaveBarPitch;
+                    if (x >= clipX + clipWidth - WaveBarWidth || x > width) break;
+
+                    // The clip is the whole file, so its width maps linearly onto the envelope.
+                    var bucket = (int)(peaks.Length * ((x - clipX) / clipWidth));
+                    var peak = peaks[Math.Clamp(bucket, 0, peaks.Length - 1)];
+
+                    // A bar even where it is silent: the line reads as "the file runs here".
+                    var height = Math.Max(1f, peak * band);
+                    _lineBatch.Set(start + used++, absX + x, absY + middle - height / 2f,
+                        WaveBarWidth, height, color);
+                }
+            }
+
+        // Released against the previous pass's own range, not this one's: the range moves
+        // when the clip count changes, so "everything past what I wrote" would leave the
+        // tail of a higher range behind, painted, with no clip under it.
+        for (var i = 0; i < _waveSlotsUsed; i++)
+        {
+            var previous = _waveSlotStart + i;
+            if (previous >= start && previous < start + used) continue;
+            _lineBatch.Hide(previous);
+        }
+
+        _waveSlotStart = start;
+        _waveSlotsUsed = used;
     }
 
     /// <summary>

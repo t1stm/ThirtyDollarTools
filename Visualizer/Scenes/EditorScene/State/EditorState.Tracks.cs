@@ -20,6 +20,67 @@ public partial class EditorState
         return track;
     }
 
+    /// <summary>
+    ///     Adds a wave reference track for an already-decoded file and places it at the start of
+    ///     the first empty channel, as one undo step. Unlike the two editable kinds a reference
+    ///     has nothing to draw until it is on the arrangement, so it arrives placed.
+    /// </summary>
+    public WaveTrack AddWaveTrack(string path, double durationSeconds)
+    {
+        var track = (WaveTrack)Project.NewTrack(TrackKind.Wave);
+        track.Name = Path.GetFileNameWithoutExtension(path);
+        track.Path = path;
+        track.DurationSeconds = durationSeconds;
+
+        var trackIndex = IndexOf(Project.Tracks, track);
+        var placement = Project.Place(track, FirstEmptyChannel(), 0);
+
+        _undoHistory.Push(
+            () =>
+            {
+                Project.RemovePlacement(placement);
+                Project.RemoveTrack(track);
+            },
+            () =>
+            {
+                Project.AddTrack(track, trackIndex);
+                Project.AddPlacement(placement);
+            });
+        SelectTrack(track);
+        Touch();
+        return track;
+    }
+
+    /// <summary>
+    ///     Points a wave track at another file, keeping its clips where they are. The clip's
+    ///     width follows the new length, so this is undoable as one step like any other edit.
+    /// </summary>
+    public void SetWaveFile(WaveTrack track, string path, double durationSeconds)
+    {
+        var (oldPath, oldSeconds) = (track.Path, track.DurationSeconds);
+        if (oldPath == path && oldSeconds == durationSeconds) return;
+
+        Apply(path, durationSeconds);
+        _undoHistory.Push(() => Apply(oldPath, oldSeconds), () => Apply(path, durationSeconds));
+        Touch();
+        return;
+
+        void Apply(string to, double seconds)
+        {
+            track.Path = to;
+            track.DurationSeconds = seconds;
+        }
+    }
+
+    /// <summary>The lowest arrangement lane holding no clips, so a new reference lands on its own.</summary>
+    private int FirstEmptyChannel()
+    {
+        var used = Project.Placements.Select(placement => placement.Channel).ToHashSet();
+        var channel = 0;
+        while (used.Contains(channel)) channel++;
+        return channel;
+    }
+
     /// <summary>Duplicates a track under the given name, deep-copied so editing the copy never reaches the source.</summary>
     [UsedImplicitly]
     public ProjectTrack DuplicateTrack(ProjectTrack track, string name)
@@ -194,7 +255,9 @@ public partial class EditorState
 
     public void OpenTrack(ProjectTrack track)
     {
-        if (OpenedTrack == track) return;
+        // A wave track has no editor of its own: it is a file, and everything about it that
+        // can be changed (name, colour, gain, where it sits) is on the arrangement already.
+        if (track.Kind == TrackKind.Wave || OpenedTrack == track) return;
         OpenedTrack = track;
         // A faithful track has no editable segments - its one default segment is an
         // artefact of the base class, and offering its bars/steps in the inspector would

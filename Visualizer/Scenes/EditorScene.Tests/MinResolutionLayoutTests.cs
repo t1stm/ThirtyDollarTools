@@ -1,4 +1,5 @@
 using EditorScene.Scenes;
+using EditorScene.Scenes.Dialogs;
 using EditorScene.State;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
@@ -114,6 +115,32 @@ public class MinResolutionLayoutTests
         Assert.True(actions.Computed.Width > 0, "the Actions box collapsed");
         Assert.True(instruments.Computed.Width + actions.Computed.Width + band.Spacing <= band.Computed.Width + 0.5f,
             "the two boxes together overflow the band");
+    }
+
+    /// <summary>
+    ///     The track-kind dialog's options row holds fixed-width columns, so a frame narrower
+    ///     than their sum does not shrink them - they spill out over whatever is behind the
+    ///     modal, which at 1080 is the track list. The frame also has to fit the window.
+    /// </summary>
+    [Fact]
+    public void TrackTypeDialog_HoldsItsOwnColumns_AndFitsTheMinimumWidth()
+    {
+        var dialog = new TrackTypeDialog(_context).Element;
+        dialog.Layout();
+
+        var frame = dialog.Computed;
+        Assert.True(frame.Width <= 1080, $"the dialog is {frame.Width} px wide, past a 1080 px window");
+
+        var options = Assert.Single(dialog.Children.OfType<FlexPanel>(),
+            child => child.Classes.Contains("dialog-options"));
+        foreach (var column in options.Children)
+        {
+            Assert.True(column.Computed.AbsoluteX >= frame.AbsoluteX + dialog.Padding - 0.5f,
+                $"a column starts at {column.Computed.AbsoluteX}, left of the frame's {frame.AbsoluteX}");
+            var edge = column.Computed.AbsoluteX + column.Computed.Width;
+            Assert.True(edge <= frame.AbsoluteX + frame.Width - dialog.Padding + 0.5f,
+                $"a column ends at {edge}, past the frame's {frame.AbsoluteX + frame.Width}");
+        }
     }
 
     /// <summary>

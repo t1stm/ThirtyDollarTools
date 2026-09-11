@@ -43,8 +43,8 @@ class track-color-blip {
     cursor = "ResizeY";
 }
 
-// A faithful track says so in its blip - see EditorTrack.
-class track-color-blip-faithful {
+// A track that isn't a piano roll says so with a letter in its blip - see EditorTrack.
+class track-color-blip-letter {
     horizontal-align = "center";
     vertical-align = "center";
 }

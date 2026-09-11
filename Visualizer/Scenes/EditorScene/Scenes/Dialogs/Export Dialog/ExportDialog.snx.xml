@@ -18,6 +18,10 @@
 
       <checkbox id="divider-on-speed-changes" value="Divider on !speed changes"/>
 
+      <!-- Removed by EditorInterface unless the project actually holds a wave track: a
+           reference is played, never written, and neither export carries it. -->
+      <label id="wave-note" class="caption-label" value="Wave reference tracks are not exported."/>
+
       <flex id="export-actions" class="dialog-actions-split">
         <!-- Percent-width spacer soaks up the free space so Cancel sits flush left and
              the export actions flush right - no space-between align in this framework. -->

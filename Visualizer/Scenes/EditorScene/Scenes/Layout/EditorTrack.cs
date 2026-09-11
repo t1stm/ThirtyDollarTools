@@ -53,15 +53,21 @@ public sealed class EditorTrack : FlexPanel
         // sheet - same split as the color dialog's chip. track-row centers and spaces it.
         if (color is { } fill)
         {
-            // Only the non-default kind is marked, with a letter inside the blip rather
-            // than a word beside the name. The blip grows a little to hold the letter.
-            var faithful = track.Kind == TrackKind.Faithful;
+            // Only the non-default kinds are marked, with a letter inside the blip rather
+            // than a word beside the name.
+            var letter = track.Kind switch
+            {
+                TrackKind.Faithful => "F",
+                TrackKind.Wave => "W",
+                _ => null
+            };
             DragHandle = new FlexPanel(context)
             {
-                Classes = faithful ? ["track-color-blip", "track-color-blip-faithful"] : ["track-color-blip"],
+                Classes = letter is null ? ["track-color-blip"] : ["track-color-blip", "track-color-blip-letter"],
                 Background = new ColoredPlane { Color = fill }
             };
-            if (faithful) DragHandle.AddChild(new BlipLetter(context) { Classes = ["track-blip-letter"] });
+            if (letter is not null)
+                DragHandle.AddChild(new BlipLetter(context, letter) { Classes = ["track-blip-letter"] });
         }
 
         var children = new List<UIElement>();
@@ -149,7 +155,7 @@ public sealed class EditorTrack : FlexPanel
     ///     ponytail: one pixel for one dot, not a font metric - the box and the size are
     ///     both fixed in Panels.snx.ss. Read the real descender if this ever gets reused.
     /// </summary>
-    private sealed class BlipLetter(UIContext context) : Label(context, "F")
+    private sealed class BlipLetter(UIContext context, string letter) : Label(context, letter)
     {
         protected override void DoLayout()
         {

@@ -9,7 +9,10 @@ public enum TrackKind
     PianoRoll,
 
     /// <summary>thirtydollar.website's linear list of sounds and actions. <see cref="FaithfulTrack" />.</summary>
-    Faithful
+    Faithful,
+
+    /// <summary>A WAVE file played for reference, with nothing to edit. <see cref="WaveTrack" />.</summary>
+    Wave
 }
 
 public class ProjectTrack(TimingInfo timing, int id)
@@ -118,7 +121,7 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     Converts only this track to a TDW sequence. Used for editor playback,
     ///     where each track gets its own AudioMixer channel.
     /// </summary>
-    public Sequence ToSequence(SequenceStyle? style = null)
+    public virtual Sequence ToSequence(SequenceStyle? style = null)
     {
         return SequenceBuilder.Build(TempoRegions(), [.. TimedNotes()], style, BarTimes(style));
     }

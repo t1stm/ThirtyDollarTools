@@ -57,6 +57,7 @@ public class ThirtyDollarProject
         return kind switch
         {
             TrackKind.Faithful => new FaithfulTrack(timing, id),
+            TrackKind.Wave => new WaveTrack(timing, id),
             _ => new ProjectTrack(timing, id)
         };
     }
@@ -189,7 +190,7 @@ public class ThirtyDollarProject
     /// </summary>
     public Sequence ToSequence(Func<int, bool> isChannelAudible, SequenceStyle? style = null)
     {
-        return BuildSequence([.. _placements.Where(p => isChannelAudible(p.Channel))], style);
+        return BuildSequence([.. _placements.Where(p => isChannelAudible(p.Channel))], style, WavePadMinutes());
     }
 
     /// <summary>
@@ -200,10 +201,30 @@ public class ThirtyDollarProject
     /// </summary>
     public Sequence ChannelSequence(int channel, SequenceStyle? style = null)
     {
-        return BuildSequence([.. _placements.Where(p => p.Channel == channel)], style);
+        return BuildSequence([.. _placements.Where(p => p.Channel == channel)], style, WavePadMinutes());
     }
 
-    private Sequence BuildSequence(List<TrackPlacement> placements, SequenceStyle? style)
+    /// <summary>
+    ///     Where the last wave reference clip ends; 0 when there are none. Playback runs the
+    ///     timeline out to here (see <see cref="SequenceBuilder.Build" />'s pad), because a
+    ///     reference is heard through its own buffer while the transport's clock is the
+    ///     rendered one - a project holding nothing but a reference would otherwise render to
+    ///     nothing and never start. Counted over every placement, audible or not, so muting or
+    ///     soloing a channel can't change how long the song is.
+    /// </summary>
+    // ponytail: a project holding only a reference renders a silent buffer as long as the
+    // file - the same allocation any song of that length makes. Render the clock separately
+    // if that ever costs more than the transport is worth.
+    private double WavePadMinutes()
+    {
+        return _placements
+            .Where(placement => placement.Track is WaveTrack)
+            .Select(placement => StartMinutes(placement) + placement.Track.DurationMinutes())
+            .DefaultIfEmpty(0)
+            .Max();
+    }
+
+    private Sequence BuildSequence(List<TrackPlacement> placements, SequenceStyle? style, double padToMinutes = 0)
     {
         var timed = placements
             .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement), Transpose))
@@ -218,7 +239,8 @@ public class ThirtyDollarProject
             timed.AddRange(placement.Track.TimedNotes(StartMinutes(placement), Transpose)
                 .Where(t => t.Event is IndividualCutEvent));
 
-        return SequenceBuilder.Build(MergedRegions(placements), [.. timed], style, BarTimes(placements, style));
+        return SequenceBuilder.Build(MergedRegions(placements), [.. timed], style, BarTimes(placements, style),
+            padToMinutes);
     }
 
     /// <summary>
@@ -302,8 +324,10 @@ public class ThirtyDollarProject
         }
 
         if (merged.Count == 0)
-            merged.Add(tracks.Count > 0
-                ? tracks[0][0] with { StartMinutes = 0, DurationMinutes = 0 }
+            // First track with regions, not the first track: a wave track has none at all,
+            // and placed first it would otherwise index into an empty list.
+            merged.Add(tracks.FirstOrDefault(regions => regions.Count > 0) is { } first
+                ? first[0] with { StartMinutes = 0, DurationMinutes = 0 }
                 : new TempoRegion(0, 0, RootTiming.BPM, RootTiming.BPM));
 
         return merged;

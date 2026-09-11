@@ -5,8 +5,8 @@
     <flex id="track-type-dialog" class="dialog-frame">
       <label class="title-label" value="Add a track"/>
 
-      <!-- Same two-column shape (and the same two accents) as the import dialog: two
-           options that differ in kind, not in weight, so neither reads as the default. -->
+      <!-- Same column shape (and the same accents) as the import dialog: options that
+           differ in kind, not in weight, so none of them reads as the default. -->
       <flex class="dialog-options">
         <flex class="dialog-column">
           <button id="piano-roll-button" class="[dialog-button-primary,dialog-button-tall]">
@@ -30,6 +30,18 @@
           <flex class="dialog-column-description">
             <label class="caption-label" value="A linear list of sounds and"/>
             <label class="caption-label" value="actions, like the website."/>
+          </flex>
+        </flex>
+
+        <panel class="dialog-divider"/>
+
+        <flex class="dialog-column">
+          <button id="wave-button" class="[dialog-button,dialog-button-tall]">
+            <label value="Wave"/>
+          </button>
+          <flex class="dialog-column-description">
+            <label class="caption-label" value="A WAVE file to play along"/>
+            <label class="caption-label" value="to. Nothing to edit."/>
           </flex>
         </flex>
       </flex>

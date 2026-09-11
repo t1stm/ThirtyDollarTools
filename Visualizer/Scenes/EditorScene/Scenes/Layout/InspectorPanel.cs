@@ -76,6 +76,31 @@ public sealed class InspectorPanel
     }
 
     /// <summary>
+    ///     A wave reference track's fields. No tempo and no automation - the file plays at its
+    ///     own rate whatever the project does - and no segments, since there is nothing in it
+    ///     to edit. "Missing" marks a path that no longer resolves: the clip keeps its saved
+    ///     length and draws, it just has nothing to play.
+    /// </summary>
+    private void WaveSection(WaveTrack track)
+    {
+        _form.Header("Wave track");
+        _form.TextRow("Name", () => track.Name, v => _state.RenameTrack(track, v));
+        _form.ColorRow("Color", () => TrackColor?.Invoke(track) ?? default,
+            () => OnChangeTrackColor?.Invoke(track));
+        _form.InfoRow("File", () => track.Path.Length == 0
+            ? "None"
+            : System.IO.Path.GetFileName(track.Path) + (File.Exists(track.Path) ? "" : " (missing)"));
+        _form.ActionRow("Replace", () => OnReplaceWaveFile?.Invoke(track));
+        _form.InfoRow("Length", () => $"{track.DurationSeconds:0.##} s");
+        // Up to 8x, not the 2x a note gets: a note is played from a Thirty Dollar sound, which
+        // is mastered loud (a bleep is about -9 dBFS RMS), while a reference is usually one stem
+        // of a finished mix - the MOON "other" stem is -21 dBFS RMS, and several notes sounding
+        // together put the song further above it still. Bridging that needs +15 dB or so, and
+        // +6 dB was nowhere near it.
+        _form.NumberRow("Volume", () => track.Volume, v => track.Volume = v!.Value, 0, 800, 5);
+    }
+
+    /// <summary>
     ///     Drives the chrome built by <c>InspectorShell.snx.xml</c> - this class owns no tree
     ///     of its own, only the handles that document's logic resolved. Standalone callers
     ///     (the test suite) build the shell themselves and hand the same four elements over.
@@ -117,6 +142,12 @@ public sealed class InspectorPanel
     ///     wires <see cref="OnEditTrackAutomationSounds" />.
     /// </summary>
     public Action<IReadOnlyList<Note>>? OnReassignInstrument { get; set; }
+
+    /// <summary>
+    ///     Fired when the user wants to point a wave track at another file. Wired like
+    ///     <see cref="OnChangeTrackColor" /> - the inspector owns no file dialog.
+    /// </summary>
+    public Action<WaveTrack>? OnReplaceWaveFile { get; set; }
 
     /// <summary>
     ///     Fired when the user wants to recolor the selected track. Same seam as the two
@@ -250,6 +281,10 @@ public sealed class InspectorPanel
             if (_state.SelectedPlacements.Count > 1)
             {
                 MultiPlacementSection(_state.SelectedPlacements);
+            }
+            else if (_state.SelectedTrack is WaveTrack wave)
+            {
+                WaveSection(wave);
             }
             else if (_state.SelectedTrack is { } track)
             {

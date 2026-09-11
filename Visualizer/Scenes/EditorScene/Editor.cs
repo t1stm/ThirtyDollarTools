@@ -188,11 +188,30 @@ public class Editor : Scene, IFadeInScene
             return;
         }
 
+        // Every dropped wave file is imported, not just the first: a reference is added
+        // without a dialog, and dropping a folder of stems in one go is the whole point.
+        // They land in decode order, each on its own lane.
+        var waves = WaveFiles(locations);
+        if (waves.Length > 0)
+        {
+            foreach (var wave in waves) _editorInterface.ImportWaveFile(wave);
+            return;
+        }
+
         // Extension-less files are usually TDW sequences saved without one, but they could be
         // anything - File.Exists keeps dropped folders out of the prompt.
         var extensionless = locations.FirstOrDefault(l =>
             string.IsNullOrEmpty(Path.GetExtension(l)) && File.Exists(l));
         if (extensionless != null) _editorInterface.ConfirmImportSequenceFile(extensionless);
+    }
+
+    /// <summary>
+    ///     The wave files of a drop, in the order they were dropped. Internal rather than
+    ///     inline so the routing is testable without a window - see EditorScene.Tests.
+    /// </summary>
+    internal static string[] WaveFiles(string[] locations)
+    {
+        return [.. locations.Where(l => l.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))];
     }
 
     public override void Keyboard(KeyboardState state)

@@ -24,6 +24,7 @@ public sealed class ExportDialog
         TdwButton = component.GetID<Button>("tdw-button");
         WavButton = component.GetID<Button>("wav-button");
         CancelButton = component.GetID<Button>("cancel-button");
+        WaveNote = component.GetID<Label>("wave-note");
 
         DividerEveryBars.Min = 0;
         DividerEveryBars.Max = 1024;
@@ -48,6 +49,12 @@ public sealed class ExportDialog
     public Button TdwButton { get; }
     public Button WavButton { get; }
     public Button CancelButton { get; }
+
+    /// <summary>
+    ///     The "not exported" caption for wave reference tracks. The owner removes it when the
+    ///     project holds none, so it is never a line of text about something that isn't there.
+    /// </summary>
+    public Label WaveNote { get; }
 
     /// <summary>The style the form currently describes.</summary>
     public SequenceStyle Style => new()

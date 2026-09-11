@@ -6,12 +6,13 @@ namespace EditorScene.Tests;
 public class TrackTypeDialogTests
 {
     [Fact]
-    public void ExposesThreeDistinctButtons()
+    public void ExposesFourDistinctButtons()
     {
         var dialog = new TrackTypeDialog(new EditorTestContext());
 
-        Assert.Equal(3,
-            new[] { dialog.PianoRollButton, dialog.FaithfulButton, dialog.CancelButton }.Distinct().Count());
+        Assert.Equal(4,
+            new[] { dialog.PianoRollButton, dialog.FaithfulButton, dialog.WaveButton, dialog.CancelButton }
+                .Distinct().Count());
     }
 
     /// <summary>The dialog is a pure form: each button fires only its own handler.</summary>
@@ -23,6 +24,7 @@ public class TrackTypeDialogTests
         var cancelled = false;
         dialog.PianoRollButton.OnClick = _ => picked = TrackKind.PianoRoll;
         dialog.FaithfulButton.OnClick = _ => picked = TrackKind.Faithful;
+        dialog.WaveButton.OnClick = _ => picked = TrackKind.Wave;
         dialog.CancelButton.OnClick = _ => cancelled = true;
 
         dialog.FaithfulButton.OnClick(dialog.FaithfulButton);

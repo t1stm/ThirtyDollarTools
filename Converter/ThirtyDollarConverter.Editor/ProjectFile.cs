@@ -53,7 +53,10 @@ public static class ProjectFile
                     track.ColorIndex,
                     // Omitted for the default kind so piano-roll files stay byte-identical.
                     track.Kind == TrackKind.PianoRoll ? null : track.Kind,
-                    track is FaithfulTrack faithful ? [.. faithful.Items.Select(SaveItem)] : null
+                    track is FaithfulTrack faithful ? [.. faithful.Items.Select(SaveItem)] : null,
+                    (track as WaveTrack)?.Path,
+                    (track as WaveTrack)?.DurationSeconds,
+                    track is WaveTrack { Volume: var volume } && volume != 100 ? volume : null
                 ))
             ],
             [
@@ -133,6 +136,13 @@ public static class ProjectFile
 
             foreach (var automation_dto in track_dto.TrackAutomations ?? [])
                 track.AddTrackAutomation(LoadAutomation(automation_dto.Automation)!, automation_dto.Sounds);
+
+            if (track is WaveTrack wave)
+            {
+                wave.Path = track_dto.Path ?? "";
+                wave.DurationSeconds = track_dto.DurationSeconds ?? 0;
+                wave.Volume = track_dto.Volume ?? 100;
+            }
 
             if (track is not FaithfulTrack faithful) continue;
             foreach (var item_dto in track_dto.Items ?? [])
@@ -329,7 +339,13 @@ public static class ProjectFile
         // Null (missing key) = a piano-roll track - every file written before faithful tracks existed.
         TrackKind? Kind = null,
         // Only a faithful track has these; its Segments list is the unused default one.
-        List<FaithfulItemDto>? Items = null);
+        List<FaithfulItemDto>? Items = null,
+        // The next three belong to a wave track only. The length is stored beside the path so
+        // a project whose file has moved still draws its clip at the right width.
+        string? Path = null,
+        double? DurationSeconds = null,
+        // Null (missing key) = full volume.
+        double? Volume = null);
 
     /// <summary>One faithful slot: exactly one of the two is set. See <see cref="FaithfulItem" />.</summary>
     private record FaithfulItemDto(NoteDto? Note = null, string? Action = null);
