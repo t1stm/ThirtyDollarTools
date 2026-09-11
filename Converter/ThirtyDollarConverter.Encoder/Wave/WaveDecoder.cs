@@ -66,8 +66,12 @@ public class WaveDecoder
             break;
         }
 
-        var bytes = new byte[_dataChunkLength];
-        var read = reader.Read(bytes);
+        // Clamped to what is actually there (a truncated file says more than it holds) and
+        // read in full: one Read is allowed to return early, which would silently cut the
+        // audio short rather than fail.
+        var length = (int)Math.Min(_dataChunkLength, inputStream.Length - inputStream.Position);
+        var bytes = new byte[length];
+        reader.BaseStream.ReadExactly(bytes);
         reader.Close();
         _holder.AudioData = bytes;
         _holder.Samples = (uint)(bytes.Length / _holder.Channels / (int)_holder.Encoding * 4);
@@ -79,18 +83,22 @@ public class WaveDecoder
         if (chunkLength < 16)
             throw new InvalidDataException("Invalid WaveFormat Structure");
         var waveFormatTag = reader.ReadUInt16();
-        if (waveFormatTag != 0x0001) Console.WriteLine("File is probably not int PCM.");
+        // 0xFFFE is WAVE_FORMAT_EXTENSIBLE - what a DAW writes for anything past 16-bit
+        // stereo, and still integer PCM. Its real format lives in the extension below.
+        if (waveFormatTag is not (0x0001 or 0xFFFE)) Console.WriteLine("File is probably not int PCM.");
         _holder.Channels = (uint)reader.ReadInt16();
         _holder.SampleRate = (uint)reader.ReadInt32();
         var averageBytesPerSecond = reader.ReadInt32();
         var blockAlign = reader.ReadInt16();
         _holder.Encoding = (PCM.Encoding)reader.ReadInt16();
-        if (chunkLength <= 16) return;
-        var extraSize = reader.ReadInt16();
-        if (extraSize == chunkLength - 18) return;
-        extraSize = (short)(chunkLength - 18);
-        var extraData = new byte[extraSize];
-        var read = reader.Read(extraData, 0, extraSize);
+
+        // Everything past the standard 16 bytes is the format extension: cbSize, and for
+        // WAVE_FORMAT_EXTENSIBLE the valid bit count, the channel mask and the sub-format
+        // GUID. None of it changes how the samples are read, but all of it has to be
+        // consumed - the chunk walk in Read resumes from wherever this leaves the reader,
+        // and stopping inside the extension makes it read sample-format bytes as the next
+        // chunk header and never find "data".
+        if (chunkLength > 16) reader.BaseStream.Seek(chunkLength - 16, SeekOrigin.Current);
     }
 
     private void ReadDs64StandardChunk(BinaryReader reader)
