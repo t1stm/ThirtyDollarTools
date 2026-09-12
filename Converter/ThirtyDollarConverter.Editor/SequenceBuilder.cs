@@ -39,6 +39,24 @@ internal static class SequenceBuilder
         return Math.Abs(a - b) <= 1e-9 * Math.Max(Math.Abs(a), Math.Abs(b));
     }
 
+    /// <summary>
+    ///     Every cut on a flattened timeline, in time order - what a long note has to survive.
+    ///     Harvested from an ordinary first flatten rather than recomputed, so there is only
+    ///     one place that decides where a cut goes. The sound sets are the events' own: only
+    ///     <see cref="HoistCuts" />'s <see cref="Fresh" /> copies are ever unioned into, never
+    ///     the events these came from.
+    /// </summary>
+    public static List<CutPoint> CutPoints(IEnumerable<(double Minutes, BaseEvent Event)> timed)
+    {
+        return
+        [
+            .. timed.Where(t => t.Event is IndividualCutEvent)
+                .Select(t => new CutPoint(t.Minutes, ((IndividualCutEvent)t.Event).CutSounds,
+                    t.Event is GeneratedCutEvent))
+                .OrderBy(cut => cut.Minutes)
+        ];
+    }
+
     /// <param name="padToMinutes">
     ///     Run the timeline out to this time with silence, ending on a "_pause" so the encoder
     ///     has a placement to size its buffer from. Zero (the default) keeps the sequence

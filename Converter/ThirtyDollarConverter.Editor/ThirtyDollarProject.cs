@@ -24,6 +24,16 @@ public class ThirtyDollarProject
     /// </summary>
     public float Transpose { get; set; }
 
+    /// <summary>
+    ///     Put a long note back when another note's automation cuts it. TDW cuts by sound
+    ///     name, so one note's retrigger guard silences every other note playing the same
+    ///     sounds; with this on, the sounds it silenced are re-placed at that instant, and
+    ///     where the automation's auto offset asks for it they continue instead of restarting.
+    ///     Off leaves the timeline exactly as the notes' own automations wrote it. A cut the
+    ///     user placed is never repaired either way. See docs/handover/editor-auto-resume-plan.md.
+    /// </summary>
+    public bool AutoResume { get; set; } = true;
+
     public IReadOnlyList<ProjectTrack> Tracks => _projectTracks;
     public IReadOnlyList<Instrument> Instruments => _instruments;
 
@@ -226,8 +236,29 @@ public class ThirtyDollarProject
 
     private Sequence BuildSequence(List<TrackPlacement> placements, SequenceStyle? style, double padToMinutes = 0)
     {
+        var timed = Flatten(placements, null);
+
+        // The cuts have to be known before the notes expand, so the timeline is flattened
+        // once to harvest them and once more to repair the notes they silenced. Harvesting
+        // after the injection below is what keeps an isolated channel's resumes the same as
+        // the export's: both see every cut in the project.
+        if (AutoResume)
+        {
+            var cuts = SequenceBuilder.CutPoints(timed);
+            if (cuts.Exists(cut => cut.Generated)) timed = Flatten(placements, cuts);
+        }
+
+        return SequenceBuilder.Build(MergedRegions(placements), [.. timed], style, BarTimes(placements, style),
+            padToMinutes);
+    }
+
+    // ponytail: two full passes over the notes per build. Flattening is microseconds next to
+    // encoding - measure before caching the cut list against an edit counter.
+    private List<(double Minutes, BaseEvent Event)> Flatten(List<TrackPlacement> placements,
+        IReadOnlyList<CutPoint>? cuts)
+    {
         var timed = placements
-            .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement), Transpose))
+            .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement), Transpose, cuts))
             .ToList();
 
         // Cross-channel cut parity: real (merged) playback has a cut silence everything
@@ -235,12 +266,13 @@ public class ThirtyDollarProject
         // isolation. Inject every OTHER placement's cuts (harmless no-op when building
         // the full merged export, where there is no "outside") so an isolated channel's
         // preview matches the export instead of missing cuts from other channels' tracks.
+        // Their own resumes belong to their own channel and place no cuts, so this pass
+        // never needs the list.
         foreach (var placement in _placements.Except(placements))
             timed.AddRange(placement.Track.TimedNotes(StartMinutes(placement), Transpose)
                 .Where(t => t.Event is IndividualCutEvent));
 
-        return SequenceBuilder.Build(MergedRegions(placements), [.. timed], style, BarTimes(placements, style),
-            padToMinutes);
+        return timed;
     }
 
     /// <summary>

@@ -74,7 +74,8 @@ public static class ProjectFile
                     placement.Channel,
                     placement.StartQuarterNotes))
             ],
-            project.Transpose == 0 ? null : project.Transpose);
+            project.Transpose == 0 ? null : project.Transpose,
+            project.AutoResume ? null : false);
 
         return JsonSerializer.Serialize(dto, Options);
     }
@@ -88,7 +89,8 @@ public static class ProjectFile
         {
             Info = dto.Info,
             RootTiming = dto.RootTiming,
-            Transpose = dto.Transpose ?? 0
+            Transpose = dto.Transpose ?? 0,
+            AutoResume = dto.AutoResume ?? true
         };
 
         var instruments_by_id = new Dictionary<int, Instrument>();
@@ -367,7 +369,10 @@ public static class ProjectFile
         // Null (missing key) marks a pre-arrangement file - see Load.
         List<PlacementDto>? Placements = null,
         // Null (missing key) = 0 - files from before the feature stay valid.
-        float? Transpose = null);
+        float? Transpose = null,
+        // Null (missing key) = on. A file written before auto-resume existed gets it too:
+        // the notes it was cutting are meant to sustain, and the flag is the way back.
+        bool? AutoResume = null);
 
     private record InstrumentDto(
         int Id,

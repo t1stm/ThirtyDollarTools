@@ -17,6 +17,9 @@ namespace EditorScene.Scenes.Views;
 ///     takes no input - sitting after the note pool so the marks paint over the bodies.
 ///     Marks outside the viewport are dropped without taking a slot, so a 256-keyframe note
 ///     costs what is on screen; past <paramref name="cap" /> the path simply stops drawing.
+///     Given the track's cuts it also plots the note's resumes - the instants another note's
+///     automation silenced this one and auto-resume put it back - as half ticks in the end
+///     cap's color, drawn but not draggable.
 /// </summary>
 internal sealed class AutomationPath(LineBatch batch, int firstSlot, int cap)
 {
@@ -60,7 +63,7 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot, int cap)
     }
 
     public void Draw(TrackEditorGeometry geometry, Vector2 origin, ProjectTrack track, TrackSegment segment, Note note,
-        float segStartPx, Vector4 color, Vector4 endColor, ref int used)
+        float segStartPx, Vector4 color, Vector4 endColor, ref int used, IReadOnlyList<CutPoint>? cuts = null)
     {
         var automation = note.Automation!;
         var stepMinutes = segment.StepMinutes(track.Timing.BPM);
@@ -78,21 +81,35 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot, int cap)
                         TrackEditorGeometry.MaxValue)) +
                     rowHeight / 2;
 
-        var index = 0;
-        foreach (var (minutes, generated) in automation.ExpandNotes(note, 0, stepMinutes))
+        // The cuts are on the track's own timeline, so the walk has to run there too and the
+        // plot subtracts the note's start again. Without a cut list the note's own zero is
+        // enough, and the extra segment walks are skipped.
+        var noteMinutes = cuts is null ? 0 : track.MinutesAtStepPosition(track.GlobalStepOf(segment, note));
+
+        foreach (var (minutes, generated, index, _) in automation.ExpandNotes(note, noteMinutes, stepMinutes, cuts))
         {
             if (used >= cap) break;
-            var x = noteX + (0.5f + (float)(minutes / stepMinutes)) * pixelsPerStep;
+            var x = noteX + (0.5f + (float)((minutes - noteMinutes) / stepMinutes)) * pixelsPerStep;
             var y = geometry.ValueTop(Math.Clamp(generated.Value, -TrackEditorGeometry.MaxValue,
                         TrackEditorGeometry.MaxValue)) +
                     rowHeight / 2;
+
+            // A resume is somebody else's cut being repaired: half a tick, in the end cap's
+            // color, and no handle - it is automatic and carries nothing to drag. It stays
+            // off the connecting line for the same reason it has no keyframe: the value is
+            // the one already running, and routing the lean through it would flatten the
+            // path the keyframes describe.
+            if (index < 0)
+            {
+                Mark(ref used, x - 0.5f, y - rowHeight * 0.15f, 1f, rowHeight * 0.3f, endColor, maxY);
+                continue;
+            }
 
             Line(ref used, prevX, prevY, x, y, color, maxY);
             Mark(ref used, x - 1f, y - rowHeight * 0.3f, 2f, rowHeight * 0.6f, color, maxY);
             if (x >= TrackEditorGeometry.GutterWidth && x <= _clipRight && y <= maxY)
                 _handles.Add(new MarkerHandle(note, segment, index, x, y));
 
-            index++;
             prevX = x;
             prevY = y;
         }

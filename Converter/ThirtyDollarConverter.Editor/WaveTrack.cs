@@ -34,7 +34,7 @@ public sealed class WaveTrack(TimingInfo timing, int id) : ProjectTrack(timing, 
     }
 
     /// <summary>The file is not a sequence, so there is nothing for a per-track render to play.</summary>
-    public override Sequence ToSequence(SequenceStyle? style = null)
+    public override Sequence ToSequence(SequenceStyle? style = null, bool autoResume = true)
     {
         return new Sequence();
     }
@@ -46,7 +46,7 @@ public sealed class WaveTrack(TimingInfo timing, int id) : ProjectTrack(timing, 
     }
 
     internal override IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0,
-        float projectTranspose = 0)
+        float projectTranspose = 0, IReadOnlyList<CutPoint>? cuts = null)
     {
         return [];
     }

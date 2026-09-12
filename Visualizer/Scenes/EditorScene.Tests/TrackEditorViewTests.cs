@@ -596,6 +596,39 @@ public class TrackEditorViewTests
     }
 
     [Fact]
+    public void ARepairedNote_GetsAHalfTickWhereAnotherNoteCutIt_AndNoHandle()
+    {
+        var (_, state, view, track) = NewView();
+        var pad = MakeInstrument(state, "pad");
+
+        // Two held notes on one instrument, no retriggers of their own - so the only cut on
+        // the timeline is the short one's end cut, four steps in, and it lands inside the
+        // long one. Auto-resume puts the long note back there.
+        var held = state.AddNote(track.Segments[0], 0, pad, 0);
+        held.Automation = new AudioKeyframeManager { Gap = 0, End = 6 };
+        var shorter = state.AddNote(track.Segments[0], 2, pad, 0);
+        shorter.Automation = new AudioKeyframeManager { Gap = 0, End = 2 };
+
+        view.InvalidateLayout();
+        view.Layout();
+
+        // The held note's resume at step 4, then its own end cap at step 6, then the short
+        // note's cap - also at step 4, where it cut. Only the resume is one pixel wide.
+        var visible = view.AutomationMarks.Where(m => m.Z > 0).ToList();
+        Assert.Equal([115.5f, 138f, 106f], visible.Select(m => m.X));
+        Assert.Equal([1f, 2f, 2f], visible.Select(m => m.Z));
+
+        // Nothing to drag at a resume: it is automatic, and has no keyframe behind it.
+        Assert.Empty(view.KeyframeHandles);
+
+        // Turned off, the note is simply cut and there is nothing to mark.
+        state.Edit(() => state.Project.AutoResume = false);
+        view.InvalidateLayout();
+        view.Layout();
+        Assert.Equal([138f, 106f], view.AutomationMarks.Where(m => m.Z > 0).Select(m => m.X));
+    }
+
+    [Fact]
     public void ALongNote_IsDrawnAndHitTestableAcrossItsWholeLength()
     {
         var (ctx, state, view, track) = NewView();

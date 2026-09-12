@@ -121,9 +121,39 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     Converts only this track to a TDW sequence. Used for editor playback,
     ///     where each track gets its own AudioMixer channel.
     /// </summary>
-    public virtual Sequence ToSequence(SequenceStyle? style = null)
+    public virtual Sequence ToSequence(SequenceStyle? style = null, bool autoResume = true)
     {
-        return SequenceBuilder.Build(TempoRegions(), [.. TimedNotes()], style, BarTimes(style));
+        return SequenceBuilder.Build(TempoRegions(), [.. Flatten(autoResume)], style, BarTimes(style));
+    }
+
+    /// <summary>
+    ///     This track's events, with the long notes repaired: a cut is by sound name, so one
+    ///     note's retrigger guard silences every other note playing the same sounds. The cuts
+    ///     have to be known before the notes expand, so the timeline is flattened once to
+    ///     harvest them and once more to use them - see docs/handover/editor-auto-resume-plan.md.
+    ///     A single track sees only its own cuts; the project's own build merges every
+    ///     placement's first, so nothing an export hears is missing from the list there.
+    /// </summary>
+    // ponytail: two full passes. A note flattens in microseconds next to encoding, and the
+    // playback loop already re-expands the project on every edit - measure before caching.
+    private IEnumerable<(double Minutes, BaseEvent Event)> Flatten(bool autoResume)
+    {
+        var timed = TimedNotes();
+        if (!autoResume) return timed;
+
+        var cuts = SequenceBuilder.CutPoints(timed);
+        return cuts.Exists(cut => cut.Generated) ? TimedNotes(cuts: cuts) : timed;
+    }
+
+    /// <summary>
+    ///     Every cut this track puts on its own timeline, in time order - what the note
+    ///     editor needs to show which of a long note's instances were repaired. The project's
+    ///     own build harvests the merged list instead, so a resume caused by another track is
+    ///     heard but not drawn here; the note editor shows one track at a time.
+    /// </summary>
+    public IReadOnlyList<CutPoint> CutPoints()
+    {
+        return SequenceBuilder.CutPoints(TimedNotes());
     }
 
     /// <summary>
@@ -247,9 +277,12 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     Every sound event of this track (notes and their generated automation, flattened
     ///     to instrument sounds) with its absolute time. Segments inherit the track's BPM;
     ///     their own time signature and resolution set the local step length.
+    ///     <paramref name="cuts" /> is the timeline's cuts, for auto-resume; only a note's own
+    ///     automation reads them, since a <see cref="TrackAutomation" /> expands against the
+    ///     same note in parallel and would repair the same cut twice.
     /// </summary>
     internal virtual IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0,
-        float projectTranspose = 0)
+        float projectTranspose = 0, IReadOnlyList<CutPoint>? cuts = null)
     {
         var transpose = Transpose ?? projectTranspose;
         var offset = startMinutes;
@@ -279,7 +312,7 @@ public class ProjectTrack(TimingInfo timing, int id)
                 if (note.IsCut) continue; // a cut has no value/sound for automation to expand against
 
                 if (transposed.Automation is not null)
-                    foreach (var generated in transposed.Automation.Expand(transposed, minutes, step_minutes))
+                    foreach (var generated in transposed.Automation.Expand(transposed, minutes, step_minutes, cuts))
                         yield return generated;
 
                 foreach (var automation in _trackAutomations)

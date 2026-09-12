@@ -194,7 +194,7 @@ public partial class EditorState
     public ProjectTrack ConvertTrack(ProjectTrack track)
     {
         var kind = track.Kind == TrackKind.Faithful ? TrackKind.PianoRoll : TrackKind.Faithful;
-        var sequence = track.ToSequence();
+        var sequence = track.ToSequence(autoResume: Project.AutoResume);
         var (converted, instruments, _, _) = kind == TrackKind.Faithful
             ? SequenceImporter.AddAsFaithfulTrack(Project, sequence, track.Name, null)
             : SequenceImporter.AddAsTrack(Project, sequence, track.Name, null);

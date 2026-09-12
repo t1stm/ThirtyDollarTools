@@ -13,6 +13,25 @@ public enum KeyframeTiming
 }
 
 /// <summary>
+///     A cut somewhere on the timeline: when it fires, which sounds it silences, and whether
+///     the editor generated it (an automation retrigger guard) or the user wrote it (a cut
+///     note, a faithful "!cut"). Passed to <see cref="AudioKeyframeManager.Expand" /> so a
+///     long note can repair the cuts that were never aimed at it - see
+///     <see cref="AudioKeyframeManager.ExpandNotes" />. Lists must be in time order.
+/// </summary>
+public readonly record struct CutPoint(double Minutes, IReadOnlySet<string> Sounds, bool Generated);
+
+/// <summary>
+///     One instance an automation starts: a keyframe's retrigger, or a resume repairing a
+///     cut that belonged to another note. <paramref name="KeyframeIndex" /> is the keyframe's
+///     index, or -1 for a resume - which is automatic and has nothing to edit, so the editor
+///     draws it but hangs no handle on it. <paramref name="Sounds" /> is null for a retrigger
+///     (the instrument plays whole) and the cut's sound set for a resume, so an instrument
+///     sound the cut missed is not re-placed on top of itself.
+/// </summary>
+public readonly record struct GeneratedNote(double Minutes, Note Note, int KeyframeIndex, IReadOnlySet<string>? Sounds);
+
+/// <summary>
 ///     Holds a note's automation: the note's length (<see cref="End" />) and the retrigger
 ///     grid inside it (<see cref="Gap" />, <see cref="AutomationOffset" />). Keyframes are
 ///     generated from those three, one per grid position, and each fires one generated
@@ -21,6 +40,13 @@ public enum KeyframeTiming
 /// </summary>
 public class AudioKeyframeManager
 {
+    /// <summary>
+    ///     How close two instants have to be to count as the same one. A step is 2e-3 minutes
+    ///     at a sixteenth grid, and SequenceBuilder rounds steps to 6 decimals, so anything
+    ///     inside this lands on the same step of the exported sequence anyway.
+    /// </summary>
+    private const double CoincidentMinutes = 1e-9;
+
     private readonly List<AudioKeyframe> _keyframes = [];
     private float _automationOffset;
     private float _end;
@@ -218,15 +244,23 @@ public class AudioKeyframeManager
     ///     immediately before placing its note (both at the same position), so the retrigger
     ///     never overlaps the sound it replaces; <see cref="CutAtEnd" /> adds one last cut at
     ///     <see cref="End" />. This is what feeds the export/playback pipeline.
+    ///     <paramref name="cuts" /> is the timeline's cuts, in time order: a cut in there that
+    ///     belongs to another note silences this one too (TDW cuts by sound name), so the
+    ///     expansion puts it back - see <see cref="ExpandNotes" />. Null skips that entirely and
+    ///     generates exactly what the note's own automation says.
     /// </summary>
-    public IEnumerable<(double Minutes, BaseEvent Event)> Expand(Note note, double noteMinutes, double stepMinutes)
+    public IEnumerable<(double Minutes, BaseEvent Event)> Expand(Note note, double noteMinutes, double stepMinutes,
+        IReadOnlyList<CutPoint>? cuts = null)
     {
-        foreach (var (minutes, generated) in ExpandNotes(note, noteMinutes, stepMinutes))
+        foreach (var (minutes, generated, index, sounds) in ExpandNotes(note, noteMinutes, stepMinutes, cuts))
         {
-            if (Cut) yield return (minutes, new GeneratedCutEvent(note.Instrument.SoundNames));
+            // A resume carries no cut of its own: the foreign cut it repairs is already at
+            // that instant, and HoistCuts has already put it in front of everything there.
+            if (Cut && index >= 0) yield return (minutes, new GeneratedCutEvent(note.Instrument.SoundNames));
 
             foreach (var ev in generated.ToEvents())
-                yield return (minutes, ev);
+                if (sounds is null || sounds.Contains(ev.SoundEvent!))
+                    yield return (minutes, ev);
         }
 
         // The note stops where it ends instead of ringing on past it.
@@ -238,8 +272,15 @@ public class AudioKeyframeManager
     /// <summary>
     ///     Same generation, kept at the note level (not flattened to sound events) so views
     ///     can plot the generated value/time path. Pass 0 for note-relative minutes.
+    ///     Interleaved with the keyframes, in time order, are the <b>resumes</b>: a cut in
+    ///     <paramref name="cuts" /> that belongs to another note silences this one as well,
+    ///     because TDW cuts by sound name, so the cut sounds are re-placed at that instant.
+    ///     Only inside the note's length, only across cuts the editor generated, and only
+    ///     continuing the sample where the ringing instance's auto offset asks for it -
+    ///     otherwise the sound restarts, which is what this note's own retriggers sound like.
     /// </summary>
-    public IEnumerable<(double Minutes, Note Note)> ExpandNotes(Note note, double noteMinutes, double stepMinutes)
+    public IEnumerable<GeneratedNote> ExpandNotes(Note note, double noteMinutes, double stepMinutes,
+        IReadOnlyList<CutPoint>? cuts = null)
     {
         var value = note.Value;
         var volume = note.Volume ?? 100;
@@ -249,11 +290,24 @@ public class AudioKeyframeManager
         // every keyframe that starts the sound over instead of splicing onto it.
         var autoSeconds = 0d;
         var lastMinutes = noteMinutes;
+        // The instance currently ringing, and whether it wants to be spliced back onto: the
+        // note itself until the first keyframe replaces it, so the automation's Template
+        // speaks for the stretch before any keyframe exists.
+        var ringing = note;
+        var ringingMinutes = noteMinutes;
+        var ringingSplices = Template.AutoOffset;
+        // Nothing outside the note's declared length is resumed; End of 0 is a plain note,
+        // which has no length to be inside of.
+        var endMinutes = _end > 0 ? noteMinutes + PositionMinutes(_end, stepMinutes) : (double?)null;
 
         for (var i = 0; i < _keyframes.Count; i++)
         {
             var keyframe = _keyframes[i];
             var minutes = noteMinutes + PositionMinutes(PositionOf(i), stepMinutes);
+
+            foreach (var resume in Resumes(note, cuts, ringing, ringingMinutes, ringingSplices, minutes))
+                yield return resume;
+
             // The playing instance consumed the interval at the pitch it was playing at.
             autoSeconds += (minutes - lastMinutes) * 60d * Math.Pow(2, value / 12);
             lastMinutes = minutes;
@@ -267,7 +321,7 @@ public class AudioKeyframeManager
                 autoSeconds = 0;
             }
 
-            yield return (minutes, new Note
+            var generated = new Note
             {
                 Step = note.Step,
                 Instrument = note.Instrument,
@@ -276,7 +330,60 @@ public class AudioKeyframeManager
                 Pan = pan,
                 Offset = offset,
                 AutoOffsetSeconds = autoSeconds
-            });
+            };
+
+            yield return new GeneratedNote(minutes, generated, i, null);
+
+            ringing = generated;
+            ringingMinutes = minutes;
+            ringingSplices = keyframe.AutoOffset;
+        }
+
+        // The last stretch: from whatever is ringing to the note's end.
+        if (endMinutes is not { } end) yield break;
+
+        foreach (var resume in Resumes(note, cuts, ringing, ringingMinutes, ringingSplices, end))
+            yield return resume;
+    }
+
+    /// <summary>
+    ///     Repairs the foreign cuts landing strictly between the ringing instance's start and
+    ///     <paramref name="until" />: each one re-places the sounds it silenced at the instant
+    ///     it silenced them. <paramref name="splices" /> - the ringing instance's auto offset -
+    ///     decides whether the sound continues from where it had reached or starts over; the
+    ///     elapsed time is measured at the pitch it was playing at, the same way
+    ///     <see cref="ExpandNotes" /> measures its own.
+    ///     A cut the user wrote ends the stretch instead of being repaired: it was aimed at
+    ///     this sound on purpose, and the note is left silent until it retriggers itself.
+    /// </summary>
+    private static IEnumerable<GeneratedNote> Resumes(Note note, IReadOnlyList<CutPoint>? cuts, Note ringing,
+        double ringingMinutes, bool splices, double until)
+    {
+        if (cuts is null) yield break;
+        var sounds = note.Instrument.SoundNames;
+        if (sounds.Count == 0) yield break;
+
+        foreach (var cut in cuts)
+        {
+            // Open at both ends: a cut on an own start is the retrigger's own guard, and one
+            // on End is the note ending. The tolerance matches the 6-decimal step SequenceBuilder
+            // quantizes to, so a coincidence that survives serialization counts as one here.
+            if (cut.Minutes <= ringingMinutes + CoincidentMinutes ||
+                cut.Minutes >= until - CoincidentMinutes) continue;
+            if (!cut.Sounds.Overlaps(sounds)) continue;
+            if (!cut.Generated) yield break;
+
+            var elapsed = (cut.Minutes - ringingMinutes) * 60d * Math.Pow(2, ringing.Value / 12);
+            yield return new GeneratedNote(cut.Minutes, new Note
+            {
+                Step = ringing.Step,
+                Instrument = ringing.Instrument,
+                Value = ringing.Value,
+                Volume = ringing.Volume,
+                Pan = ringing.Pan,
+                Offset = ringing.Offset,
+                AutoOffsetSeconds = splices ? ringing.AutoOffsetSeconds + elapsed : 0
+            }, -1, cut.Sounds);
         }
     }
 

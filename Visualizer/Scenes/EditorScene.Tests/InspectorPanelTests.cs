@@ -55,6 +55,13 @@ public class InspectorPanelTests
         Assert.Equal(200, state.Project.RootTiming.BPM);
         Assert.True(state.Dirty);
 
+        // On by default; the checkbox is how a project opts out of having its long notes
+        // put back when another note's automation cuts them.
+        var resume = (Checkbox)inspector.Field("Project.Auto resume")!;
+        Assert.True(resume.Checked);
+        resume.Checked = false;
+        Assert.False(state.Project.AutoResume);
+
         // No track selected, no note editor: only the project section exists.
         Assert.Null(inspector.Field("Track.Name"));
         Assert.Null(inspector.Field("Segment.Bars"));

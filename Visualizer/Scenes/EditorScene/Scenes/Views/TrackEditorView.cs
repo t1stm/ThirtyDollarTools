@@ -142,6 +142,11 @@ public sealed class TrackEditorView : Panel
     private float _longestNoteSteps = 1;
     private ProjectTrack? _longestNoteTrack;
 
+    // Cached cut harvest for the resume marks, keyed the same way.
+    private IReadOnlyList<CutPoint>? _cutPoints;
+    private int _cutPointsRevision = -1;
+    private ProjectTrack? _cutPointsTrack;
+
     public TrackEditorView(UIContext context, EditorState state) : base(context)
     {
         _state = state;
@@ -299,6 +304,9 @@ public sealed class TrackEditorView : Panel
     public Vector4[] SoundPalette { get; set; } = [];
 
     internal IReadOnlyList<Vector4> AutomationMarks => _automationPath.Marks;
+
+    /// <summary>Test seam: the keyframe markers the last layout made draggable.</summary>
+    internal IReadOnlyList<AutomationPath.MarkerHandle> KeyframeHandles => _automationPath.Handles;
     internal IReadOnlyList<NoteBlock> NoteBlocks => _noteBlocks;
     internal Vector4 ResizeHandleBand => _handleBand;
     internal IReadOnlyList<KeyframeBlock> KeyframeBlocks => _keyframeBlocks;
@@ -525,7 +533,7 @@ public sealed class TrackEditorView : Panel
                         var fill = InstrumentColor(note.Instrument);
                         _automationPath.Draw(_geometry, (absX, absY), track, segment, note, segStart,
                             _state.SelectedNotes.Contains(note) ? fill : Lighten(fill, 0.45f),
-                            AutomationEndColor, ref autoMark);
+                            AutomationEndColor, ref autoMark, CutPoints(track));
                     }
 
                     if (_dragging?.Note == note) continue;
@@ -781,6 +789,26 @@ public sealed class TrackEditorView : Panel
         _longestNoteRevision = _state.Revision;
         _longestNoteSteps = longest;
         return longest;
+    }
+
+    /// <summary>
+    ///     The track's own cuts, for the resume marks: a cut is by sound name, so one note's
+    ///     retrigger guard silences every other note playing the same sounds, and auto-resume
+    ///     puts them back. Rebuilt only when the project changed, the same way
+    ///     <see cref="LongestNoteSteps" /> is - it walks every note of the track.
+    /// </summary>
+    // ponytail: a drag edits per frame, so this re-expands the track per frame while one
+    // runs. It is the same walk the playback re-render already makes on every edit -
+    // measure before caching it against anything finer than the revision.
+    private IReadOnlyList<CutPoint>? CutPoints(ProjectTrack track)
+    {
+        if (!_state.Project.AutoResume) return null;
+        if (ReferenceEquals(_cutPointsTrack, track) && _cutPointsRevision == _state.Revision) return _cutPoints;
+
+        _cutPointsTrack = track;
+        _cutPointsRevision = _state.Revision;
+        _cutPoints = track.CutPoints();
+        return _cutPoints;
     }
 
     /// <summary>

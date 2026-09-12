@@ -281,6 +281,10 @@ public sealed class InspectorPanel
             _form.NumberRow("Transpose", () => _state.Project.Transpose,
                 v => _state.Project.Transpose = (float)v!.Value,
                 -TrackEditorView.MaxValue, TrackEditorView.MaxValue, 0.1);
+            // A cut is by sound name, so one note's retriggers silence every other note on
+            // the same sounds. On, the editor puts them back where they were cut.
+            _form.CheckRow("Auto resume", () => _state.Project.AutoResume,
+                resume => _state.Edit(() => _state.Project.AutoResume = resume));
 
             if (_state.SelectedPlacements.Count > 1)
             {

@@ -116,6 +116,36 @@ public class IncrementalRenderTests
         await AssertMatchesFullRender(project, [() => note.Value = 5]);
     }
 
+    /// <summary>
+    ///     Auto-resume makes one note's events depend on another's: resizing the second note
+    ///     moves the cuts the first is repaired at, so the edit reaches past the note it
+    ///     touched. The diff is over the built sequence, which knows nothing of that - this is
+    ///     the check that the assumption holds.
+    /// </summary>
+    [Fact]
+    public async Task ResizingALongNote_MovesTheResumesOfTheOneItCuts()
+    {
+        var (project, note) = Project();
+        var segment = project.Tracks[0].Segments[0];
+        note.Automation = new AudioKeyframeManager
+            { Template = new AudioKeyframe { AutoOffset = true }, Gap = 0, End = 12 };
+
+        var neighbour = new Note
+        {
+            Step = 2,
+            Instrument = note.Instrument,
+            Automation = new AudioKeyframeManager
+                { Template = new AudioKeyframe { AutoOffset = true }, Gap = 3, End = 6 }
+        };
+        segment.Notes.Add(neighbour);
+
+        await AssertMatchesFullRender(project, [
+            () => neighbour.Automation!.End = 9,
+            () => neighbour.Automation!.Gap = 2,
+            () => neighbour.Step = 1
+        ]);
+    }
+
     /// <summary>Same edit on a note whose automation retriggers it through cuts.</summary>
     [Fact]
     public async Task ChangingANoteValue_WithCutAutomation()

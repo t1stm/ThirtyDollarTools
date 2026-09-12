@@ -248,7 +248,7 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
     }
 
     internal override IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0,
-        float projectTranspose = 0)
+        float projectTranspose = 0, IReadOnlyList<CutPoint>? cuts = null)
     {
         var transpose = Transpose ?? projectTranspose;
         var walk = Walk();
