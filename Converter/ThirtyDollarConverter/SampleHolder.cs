@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Serilog;
 using ThirtyDollarConverter.Encoder.PCM;
@@ -67,7 +68,7 @@ public class SampleHolder(ILogger logger)
         _logger.Information("Loading sounds.json file.");
         try
         {
-            await using var response = await Client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json");
+            await using var response = await Client.GetStreamAsync($"{ThirtyDollarWebsiteUrl}/sounds.json", new CancellationTokenSource(2500).Token);
             await using var download_file_stream = File.Open(sample_list_location, FileMode.Create,
                 FileAccess.ReadWrite, FileShare.ReadWrite);
 
