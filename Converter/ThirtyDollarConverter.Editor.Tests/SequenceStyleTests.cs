@@ -140,8 +140,8 @@ public class SequenceStyleTests
         // A 7 ms slapback sits off any grid; even in pause-only mode its gap must
         // remain a fractional "!stop" - "_pause"s can only count whole steps.
         var track = MakeTrack();
-        var slapback = new AudioKeyframeManager { Timing = KeyframeTiming.Time };
-        slapback.Keyframes.Add(new AudioKeyframe { Gap = 0.007f });
+        var slapback = new AudioKeyframeManager
+            { Timing = KeyframeTiming.Time, Cut = false, CutAtEnd = false, Gap = 0.007f, End = 0.01f };
         track.Segments[0].Notes
             .Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = slapback });
 

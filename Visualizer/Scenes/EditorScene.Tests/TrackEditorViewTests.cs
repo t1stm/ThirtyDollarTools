@@ -553,36 +553,316 @@ public class TrackEditorViewTests
     }
 
     [Fact]
-    public void AutomationDrawsAStepPath_RunJumpAndTickPerGeneratedEvent()
+    public void AutomationDrawsALeaningPath_LineAndTickPerGeneratedEvent_AndAnEndCap()
     {
         var (_, state, view, track) = NewView();
         var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
         note.Automation = new AudioKeyframeManager
         {
-            Repeats = 2,
-            Keyframes = { new AudioKeyframe { Gap = 2, Value = new Modifier(12) } }
+            Gap = 2,
+            Template = new AudioKeyframe { Value = new Modifier(12) },
+            End = 6
         };
         view.Layout();
 
-        // Two generated events (steps 5 and 7, values 12 and 24), each drawn as a
-        // horizontal run + a vertical jump + a tick = 6 visible marks.
+        // Two generated events (2 and 4 steps in, values 12 and 24), each drawn as a
+        // connecting line + a tick, and the cut-at-end cap = 5 visible marks.
         var visible = view.AutomationMarks.Where(m => m.Z > 0).ToList();
-        Assert.Equal(6, visible.Count);
+        Assert.Equal(5, visible.Count);
 
-        // The path starts at the note's center (x = 44 + 3.5*16 = 100) and runs the
-        // 2-step gap (32 px) to the first event at x = 132.
+        // The path starts at the note's center (x = 44 + 3.5*16 = 100) and leans to the
+        // first event, 2 steps (32 px) right and 12 rows (96 px) up: the line is longer
+        // than either leg, which a stepped run-then-jump path could never be.
         Assert.Equal(100, visible[0].X);
-        Assert.Equal(32, visible[0].Z);
-        // The jump covers the 12-row value change (96 px at 8 px rows)…
-        Assert.Equal(96, visible[1].W);
-        // …and the tick straddles the event column.
-        Assert.Equal(131, visible[2].X);
+        Assert.Equal(MathF.Sqrt(32 * 32 + 96 * 96), visible[0].Z, 3);
+        // The tick straddles the event column.
+        Assert.Equal(131, visible[1].X);
+
+        // The cap sits on the note's right edge: 6 steps past x = 44 + 3*16 = 92.
+        Assert.Equal(92 + 6 * 16 - 2, visible[4].X);
+        Assert.Equal(2, visible[4].Z);
+
+        // Nothing marks the end when the note is left to ring on.
+        note.Automation.CutAtEnd = false;
+        view.InvalidateLayout();
+        view.Layout();
+        Assert.Equal(4, view.AutomationMarks.Count(m => m.Z > 0));
 
         // Removing the automation hides the whole path on the next layout.
         note.Automation = null;
         view.InvalidateLayout();
         view.Layout();
         Assert.DoesNotContain(view.AutomationMarks, m => m.Z > 0);
+    }
+
+    [Fact]
+    public void ALongNote_IsDrawnAndHitTestableAcrossItsWholeLength()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 2, MakeInstrument(state, "boom"), 0);
+        // A gap as wide as the note: no markers sit on the body, which own presses over it.
+        note.Automation = new AudioKeyframeManager { Gap = 3, End = 3 };
+        view.Layout();
+
+        // Three steps wide from x = 44 + 2*16 = 76, minus the 1 px gap between blocks.
+        var block = view.NoteBlocks.Single(b => b.Note == note);
+        Assert.Equal(76, block.Computed.X);
+        Assert.Equal(3 * 16 - 1, block.Computed.Width);
+
+        // A press near its far end still lands on the note, not on empty grid.
+        state.SetNoteSelection([]);
+        Press(ctx, view, 76 + 40, 214.5f);
+        Assert.Same(note, Assert.Single(state.SelectedNotes));
+        Release(ctx, view, 76 + 40, 214.5f);
+    }
+
+    [Fact]
+    public void ALongNote_StartingLeftOfTheViewport_StillReachesIntoIt()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var segment = track.Segments[0];
+        segment.Bars = 8; // 128 steps
+        var note = state.AddNote(segment, 0, boom, 0);
+        note.Automation = new AudioKeyframeManager { Gap = 4, End = 64 };
+        view.Layout();
+
+        // Pan 10 notches right (480 px = 30 steps): the note starts well off-screen left.
+        ctx.UpdatePointer(view, 400, 300, false, false, false, new Vector2(-10, 0));
+        view.Layout();
+
+        var block = view.NoteBlocks.Single(b => b.Note == note);
+        var blockX = (float)block.Computed.X;
+        var blockWidth = (float)block.Computed.Width;
+        Assert.True(blockX < 0, $"the body should start off-screen left, was at {blockX}");
+        Assert.True(blockX + blockWidth > TrackEditorView.GutterWidth,
+            "the body should still reach into the viewport");
+        // And its marks are still drawn, culled to what is on screen.
+        Assert.Contains(view.AutomationMarks, m => m.Z > 0 && m.X > TrackEditorView.GutterWidth);
+    }
+
+    [Fact]
+    public void PressingALongNotePastItsStart_LeavesItWhereItIs()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 2, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Gap = 4, End = 4 }; // 4 steps, no markers
+        view.Layout();
+
+        // Two steps into the body: the drag delta runs from the pointer, not from the
+        // note's start, so grabbing it here must not snap its start to the cursor.
+        Press(ctx, view, 44 + 4 * 16 + 4, 214.5f);
+        Assert.Equal(2, note.Step);
+
+        // And it still moves by what the pointer moves.
+        Drag(ctx, view, 44 + 5 * 16 + 4, 214.5f);
+        Assert.Equal(3, note.Step);
+        Release(ctx, view, 44 + 5 * 16 + 4, 214.5f);
+    }
+
+    [Fact]
+    public void DraggingTheRightBorder_SetsTheNotesLength_AsOneUndoEntry()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 2, MakeInstrument(state, "boom"), 0);
+        view.Layout();
+
+        // The block is at x = 76, 15 px wide: its right grab zone starts at 86.
+        Press(ctx, view, 88, 214.5f);
+        Drag(ctx, view, 44 + 5 * 16 + 8, 214.5f); // 3 steps right
+        Release(ctx, view, 44 + 5 * 16 + 8, 214.5f);
+
+        // A plain note had no automation at all - the drag gives it a cutting sustain that
+        // holds for its whole length: the gap starts at zero, so nothing retriggers inside
+        // it until one is typed in.
+        Assert.Equal(4, note.Automation!.End);
+        Assert.True(note.Automation.Cut);
+        Assert.True(note.Automation.CutAtEnd);
+        Assert.Equal(0, note.Automation.Gap);
+        Assert.Empty(note.Automation.Keyframes);
+
+        note.Automation.Gap = 1;
+        Assert.Equal(3, note.Automation.Keyframes.Count); // one a step, inside the 4
+
+        // The whole drag is one entry, and undoing it takes the automation back off.
+        state.Undo();
+        Assert.Null(note.Automation);
+        Assert.Equal(2, note.Step);
+    }
+
+    [Fact]
+    public void DraggingTheLeftBorder_MovesTheNote_AndKeepsItsEndWhereItWas()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 4, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Gap = 1, End = 4 }; // steps 4..8
+        view.Layout();
+
+        Press(ctx, view, 44 + 4 * 16 + 1, 214.5f); // inside the left grab zone
+        Drag(ctx, view, 44 + 2 * 16 + 8, 214.5f); // two steps left
+        Assert.Equal(2, note.Step);
+        Assert.Equal(6, note.Automation.End); // still ends at step 8
+
+        // Dragging the left border past the end floors the note at one step.
+        Drag(ctx, view, 44 + 12 * 16 + 8, 214.5f);
+        Assert.Equal(7, note.Step);
+        Assert.Equal(1, note.Automation.End);
+        Release(ctx, view, 44 + 12 * 16 + 8, 214.5f);
+
+        state.Undo();
+        Assert.Equal(4, note.Step);
+        Assert.Equal(4, note.Automation!.End);
+    }
+
+    [Fact]
+    public void ResizingANoteOfTheSelection_ResizesTheWholeSelectionByOneDelta()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var segment = track.Segments[0];
+        var a = state.AddNote(segment, 1, boom, 0);
+        a.Automation = new AudioKeyframeManager { Gap = 1, End = 2 };
+        var b = state.AddNote(segment, 6, boom, 1);
+        b.Automation = new AudioKeyframeManager { Gap = 1, End = 4 };
+        state.SetNoteSelection([a, b]);
+        view.Layout();
+
+        // a spans steps 1..3: press its right border and pull three steps out. The delta
+        // is the pointer's, from where it pressed - grabbing a border mid-zone doesn't
+        // snap the note to the pointer.
+        Press(ctx, view, 44 + 3 * 16 - 2, 214.5f);
+        Drag(ctx, view, 44 + 5 * 16 + 8, 214.5f);
+        Release(ctx, view, 44 + 5 * 16 + 8, 214.5f);
+
+        Assert.Equal(5, a.Automation!.End);
+        Assert.Equal(7, b.Automation!.End); // same delta, its own start
+    }
+
+    [Fact]
+    public void DraggingAKeyframeMarker_WritesItsValueAndItsOwnPosition()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 2, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Gap = 1, End = 4 }; // markers 1, 2 and 3 steps in
+        state.SelectNote(note); // markers are handles on the selected note only
+        view.Layout();
+
+        // The second marker sits at x = 44 + 2*16 + (0.5 + 2)*16 = 116, on value 0's row.
+        var marker = view.KeyframeBlocks.Single(b => b.Note == note && b.KeyframeIndex == 1);
+        Assert.Equal(116 - 5, marker.Computed.X);
+
+        // Drag it half a step left and 3 rows up (8 px rows).
+        Press(ctx, view, 116, 214.5f);
+        Drag(ctx, view, 108, 214.5f - 24);
+
+        var keyframe = note.Automation.Keyframes[1];
+        Assert.Equal(1.5f, keyframe.Position!.Value, 2);
+        Assert.Equal(new Modifier(3), keyframe.Value); // relative to the previous result
+        // Its neighbours stay on the derived grid.
+        Assert.Null(note.Automation.Keyframes[0].Position);
+        Assert.Equal(3f, note.Automation.PositionOf(2));
+
+        // Markers cannot cross: dragged past its neighbour it stops just short of it.
+        Drag(ctx, view, 44 + 2 * 16 + 8, 214.5f - 24);
+        Assert.InRange(keyframe.Position!.Value, 1f, 1.001f);
+        Release(ctx, view, 44 + 2 * 16 + 8, 214.5f - 24);
+
+        // And the whole drag is one undo entry.
+        state.Undo();
+        Assert.Null(note.Automation.Keyframes[1].Position);
+        Assert.Equal(default, note.Automation.Keyframes[1].Value);
+    }
+
+    [Fact]
+    public void PressingAnUnselectedNotesMarker_SelectsTheNote_RatherThanMovingIt()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 2, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Gap = 1, End = 4 };
+        state.SetNoteSelection([]);
+        view.Layout();
+
+        // Markers sit on the body, so an unselected note has none to catch the press.
+        Assert.DoesNotContain(view.KeyframeBlocks, b => b.Note == note && b.Computed.Width > 0);
+
+        // A press right on where the second marker is drawn selects the note instead.
+        Press(ctx, view, 116, 214.5f);
+        Release(ctx, view, 116, 214.5f);
+        Assert.Same(note, Assert.Single(state.SelectedNotes));
+        Assert.Null(note.Automation.Keyframes[1].Position);
+
+        // Now that it is selected, its markers are handles again.
+        view.InvalidateLayout();
+        view.Layout();
+        Assert.Contains(view.KeyframeBlocks, b => b.Note == note && b.KeyframeIndex == 1);
+    }
+
+    [Fact]
+    public void CtrlDraggingAKeyframeMarker_ShapesEveryUneditedKeyframe()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 2, MakeInstrument(state, "boom"), 0);
+        var automation = new AudioKeyframeManager { Gap = 1, End = 4 };
+        automation.Keyframes[2].Value = new Modifier(-5); // hand-edited: the fan-out leaves it
+        note.Automation = automation;
+        state.SelectNote(note);
+        view.Layout();
+
+        view.WheelZooms = true; // Ctrl
+        Press(ctx, view, 44 + 2 * 16 + (0.5f + 1) * 16, 214.5f);
+        Drag(ctx, view, 44 + 2 * 16 + (0.5f + 1) * 16, 214.5f - 16); // two rows up
+        Release(ctx, view, 44 + 2 * 16 + (0.5f + 1) * 16, 214.5f - 16);
+        view.WheelZooms = false;
+
+        Assert.Equal(new Modifier(2), automation.Template.Value);
+        Assert.Equal(new Modifier(2), automation.Keyframes[0].Value);
+        Assert.Equal(new Modifier(2), automation.Keyframes[1].Value);
+        Assert.Equal(new Modifier(-5), automation.Keyframes[2].Value); // untouched
+    }
+
+    [Fact]
+    public void HoveringANoteBorder_LightensIt_AndNothingIsDrawnAtRest()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 2, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Gap = 4, End = 4 }; // no markers in the way
+        view.Layout();
+
+        // Hovering the body draws no handle.
+        ctx.UpdatePointer(view, 76 + 30, 214.5f, false, false, false, Vector2.Zero);
+        view.Update(ctx);
+        Assert.Equal(0, view.ResizeHandleBand.Z);
+
+        // Hovering the right border lightens a 6 px band on it.
+        ctx.UpdatePointer(view, 76 + 4 * 16 - 3, 214.5f, false, false, false, Vector2.Zero);
+        view.Update(ctx);
+        Assert.Equal(6, view.ResizeHandleBand.Z);
+        Assert.Equal(76 + 4 * 16 - 1 - 6, view.ResizeHandleBand.X);
+
+        // And the pointer leaves it behind with the note.
+        ctx.UpdatePointer(view, 400, 100, false, false, false, Vector2.Zero);
+        view.Update(ctx);
+        Assert.Equal(0, view.ResizeHandleBand.Z);
+    }
+
+    [Fact]
+    public void PaintingInsideALongNote_IsANoOp_RatherThanStackingOnIt()
+    {
+        var (ctx, state, view, track) = NewView();
+        var segment = track.Segments[0];
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(segment, 2, boom, 0);
+        note.Automation = new AudioKeyframeManager { Gap = 1, End = 4 };
+        state.ActiveInstrument = boom;
+        view.Layout();
+
+        // Step 4, value 0: inside the note's span, same row.
+        Click(ctx, view, 44 + 4 * 16 + 8, 214.5f);
+        Assert.Same(note, Assert.Single(segment.Notes));
+
+        // One step past its end there is room again.
+        Click(ctx, view, 44 + 6 * 16 + 8, 214.5f);
+        Assert.Equal(2, segment.Notes.Count);
     }
 
     [Fact]
@@ -792,8 +1072,9 @@ public class TrackEditorViewTests
         for (var step = 0; step < 120; step++)
             state.AddNote(segment, step, boom, 0).Automation = new AudioKeyframeManager
             {
-                Repeats = 4,
-                Keyframes = { new AudioKeyframe { Gap = 1, Value = new Modifier(1) } }
+                Gap = 1,
+                Template = new AudioKeyframe { Value = new Modifier(1) },
+                End = 5
             };
         view.Layout();
 

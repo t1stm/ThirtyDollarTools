@@ -103,8 +103,7 @@ public class ProjectExportTests
         layer.AddSound("boom");
         layer.AddSound("clap");
 
-        var echo = new AudioKeyframeManager();
-        echo.Keyframes.Add(new AudioKeyframe { Gap = 2 });
+        var echo = new AudioKeyframeManager { Cut = false, CutAtEnd = false, Gap = 2, End = 3 };
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layer, Automation = echo });
         project.Place(track, 0, 0);
 

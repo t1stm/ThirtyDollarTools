@@ -121,8 +121,7 @@ public class IncrementalRenderTests
     public async Task ChangingANoteValue_WithCutAutomation()
     {
         var (project, note) = Project();
-        note.Automation = new AudioKeyframeManager { Repeats = 2 };
-        note.Automation.Keyframes.Add(new AudioKeyframe { Gap = 1, Cut = true });
+        note.Automation = new AudioKeyframeManager { CutAtEnd = false, Gap = 1, End = 3 };
 
         await AssertMatchesFullRender(project, [() => note.Value = 5]);
     }
@@ -143,9 +142,12 @@ public class IncrementalRenderTests
     public async Task ChangingANoteVolume_WithAutomation()
     {
         var (project, note) = Project();
-        note.Automation = new AudioKeyframeManager { Repeats = 2 };
-        note.Automation.Keyframes.Add(new AudioKeyframe
-            { Gap = 1, Volume = new Modifier(0.5, ModifierKind.Multiply) });
+        note.Automation = new AudioKeyframeManager
+        {
+            Cut = false, CutAtEnd = false, Gap = 1,
+            Template = new AudioKeyframe { Volume = new Modifier(0.5, ModifierKind.Multiply) },
+            End = 3
+        };
 
         await AssertMatchesFullRender(project, [() => note.Volume = 50]);
     }
@@ -164,9 +166,12 @@ public class IncrementalRenderTests
     public async Task ChangingAnInstrumentSoundVolume_WithAutomation()
     {
         var (project, note) = Project();
-        note.Automation = new AudioKeyframeManager { Repeats = 3 };
-        note.Automation.Keyframes.Add(new AudioKeyframe
-            { Gap = 1, Volume = new Modifier(0.5, ModifierKind.Multiply) });
+        note.Automation = new AudioKeyframeManager
+        {
+            Cut = false, CutAtEnd = false, Gap = 1,
+            Template = new AudioKeyframe { Volume = new Modifier(0.5, ModifierKind.Multiply) },
+            End = 4
+        };
 
         await AssertMatchesFullRender(project,
             [() => note.Instrument.Sounds.Single(sound => sound.Sound == "kick").Volume = 40]);
@@ -177,9 +182,12 @@ public class IncrementalRenderTests
     public async Task ChangingAnInstrumentSoundVolume_WithCutAutomation()
     {
         var (project, note) = Project();
-        note.Automation = new AudioKeyframeManager { Repeats = 3 };
-        note.Automation.Keyframes.Add(new AudioKeyframe
-            { Gap = 1, Cut = true, Volume = new Modifier(0.5, ModifierKind.Multiply) });
+        note.Automation = new AudioKeyframeManager
+        {
+            CutAtEnd = false, Gap = 1,
+            Template = new AudioKeyframe { Volume = new Modifier(0.5, ModifierKind.Multiply) },
+            End = 4
+        };
 
         await AssertMatchesFullRender(project,
             [() => note.Instrument.Sounds.Single(sound => sound.Sound == "kick").Volume = 40]);
@@ -190,9 +198,12 @@ public class IncrementalRenderTests
     public async Task ChangingANoteVolume_WithCutAutomation()
     {
         var (project, note) = Project();
-        note.Automation = new AudioKeyframeManager { Repeats = 3 };
-        note.Automation.Keyframes.Add(new AudioKeyframe
-            { Gap = 1, Cut = true, Volume = new Modifier(0.5, ModifierKind.Multiply) });
+        note.Automation = new AudioKeyframeManager
+        {
+            CutAtEnd = false, Gap = 1,
+            Template = new AudioKeyframe { Volume = new Modifier(0.5, ModifierKind.Multiply) },
+            End = 4
+        };
 
         await AssertMatchesFullRender(project, [() => note.Volume = 50]);
     }
@@ -214,8 +225,7 @@ public class IncrementalRenderTests
 
         for (var step = 0; step < 4; step++)
         {
-            var automation = new AudioKeyframeManager { Repeats = 6 };
-            automation.Keyframes.Add(new AudioKeyframe { Gap = 1, Cut = true });
+            var automation = new AudioKeyframeManager { CutAtEnd = false, Gap = 1, End = 7 };
             track.Segments[0].Notes.Add(new Note { Step = step * 8, Instrument = instrument, Automation = automation });
         }
 
@@ -253,8 +263,7 @@ public class IncrementalRenderTests
 
         for (var step = 0; step < 4; step++)
         {
-            var automation = new AudioKeyframeManager { Repeats = 6 };
-            automation.Keyframes.Add(new AudioKeyframe { Gap = 1, Cut = true });
+            var automation = new AudioKeyframeManager { CutAtEnd = false, Gap = 1, End = 7 };
             track.Segments[0].Notes.Add(new Note { Step = step * 8, Instrument = instrument, Automation = automation });
         }
 
@@ -285,8 +294,12 @@ public class IncrementalRenderTests
     public async Task ChangingANoteVolume_WithTrackAutomation()
     {
         var (project, note) = Project();
-        var automation = new AudioKeyframeManager { Repeats = 2 };
-        automation.Keyframes.Add(new AudioKeyframe { Gap = 1, Volume = new Modifier(0.5, ModifierKind.Multiply) });
+        var automation = new AudioKeyframeManager
+        {
+            Cut = false, CutAtEnd = false, Gap = 1,
+            Template = new AudioKeyframe { Volume = new Modifier(0.5, ModifierKind.Multiply) },
+            End = 3
+        };
         project.Tracks[0].AddTrackAutomation(automation);
 
         await AssertMatchesFullRender(project, [() => note.Volume = 50]);

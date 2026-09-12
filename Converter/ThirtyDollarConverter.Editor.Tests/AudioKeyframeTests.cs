@@ -11,13 +11,91 @@ public class AudioKeyframeTests
         return new ProjectTrack(new TimingInfo { BPM = 120 }, 1);
     }
 
+    /// <summary>An automation that only places notes - the cuts are tested on their own.</summary>
+    private static AudioKeyframeManager Silent(float gap, float end, AudioKeyframe? template = null)
+    {
+        return new AudioKeyframeManager
+        {
+            Cut = false,
+            CutAtEnd = false,
+            Gap = gap,
+            Template = template ?? new AudioKeyframe(),
+            End = end
+        };
+    }
+
+    [Fact]
+    public void Keyframes_FillTheGridBetweenTheNoteAndItsEnd()
+    {
+        var automation = Silent(1, 4);
+
+        // Positions run one gap apart, the note's own start and its end excluded.
+        Assert.Equal(3, automation.Keyframes.Count);
+        Assert.Equal([1f, 2f, 3f], Enumerable.Range(0, 3).Select(automation.PositionOf));
+
+        // A fractional end keeps every whole gap that still fits before it.
+        automation.End = 3.5f;
+        Assert.Equal([1f, 2f, 3f], Enumerable.Range(0, automation.Keyframes.Count).Select(automation.PositionOf));
+
+        // A gap wider than the note leaves a long note with nothing inside it.
+        automation.Gap = 8;
+        Assert.Empty(automation.Keyframes);
+
+        // And no length at all is a plain one-step note.
+        automation.Gap = 1;
+        automation.End = 0;
+        Assert.Empty(automation.Keyframes);
+    }
+
+    [Fact]
+    public void AutomationOffset_ShiftsTheWholeGrid()
+    {
+        // A voice that starts 2 steps after the one it must stay in phase with.
+        var automation = Silent(4, 7);
+        Assert.Equal([4f], Enumerable.Range(0, automation.Keyframes.Count).Select(automation.PositionOf));
+
+        automation.AutomationOffset = -2;
+        // Now on the earlier voice's instants: step 2 and 6 of the note = 4 and 8 of the track.
+        Assert.Equal([2f, 6f], Enumerable.Range(0, automation.Keyframes.Count).Select(automation.PositionOf));
+
+        // Positions at or before the note itself are not slots: they'd fire before it plays.
+        automation.AutomationOffset = -4;
+        Assert.Equal([4f], Enumerable.Range(0, automation.Keyframes.Count).Select(automation.PositionOf));
+    }
+
+    [Fact]
+    public void Sync_KeepsEditedKeyframes_AndLosesTrimmedOnes()
+    {
+        var automation = Silent(1, 4, new AudioKeyframe { Volume = new Modifier(0.5, ModifierKind.Multiply) });
+
+        // New keyframes clone the template, without taking its position.
+        Assert.All(automation.Keyframes,
+            keyframe => Assert.Equal(new Modifier(0.5, ModifierKind.Multiply), keyframe.Volume));
+        Assert.All(automation.Keyframes, keyframe => Assert.Null(keyframe.Position));
+
+        automation.Keyframes[1].Position = 2.5f;
+        automation.Keyframes[1].Value = new Modifier(7);
+
+        // Growing keeps what's there and appends template copies.
+        automation.End = 6;
+        Assert.Equal(5, automation.Keyframes.Count);
+        Assert.Equal(2.5f, automation.PositionOf(1));
+        Assert.Equal(new Modifier(7), automation.Keyframes[1].Value);
+        Assert.Equal([2.5f, 3f, 4f, 5f], Enumerable.Range(1, 4).Select(automation.PositionOf));
+
+        // Shortening drops from the tail; re-extending brings back a fresh template copy.
+        automation.End = 2;
+        Assert.Single(automation.Keyframes);
+        automation.End = 6;
+        Assert.Equal(new Modifier(0), automation.Keyframes[1].Value);
+        Assert.Equal(2f, automation.PositionOf(1));
+    }
+
     [Fact]
     public void StepKeyframes_GenerateADecayingEcho()
     {
         var track = MakeTrack(); // 4/4, sixteenth grid at 480 steps/min
-        var echo = new AudioKeyframeManager();
-        echo.Keyframes.Add(new AudioKeyframe { Gap = 1, Volume = new Modifier(0.5, ModifierKind.Multiply) });
-        echo.Keyframes.Add(new AudioKeyframe { Gap = 1, Volume = new Modifier(0.5, ModifierKind.Multiply) });
+        var echo = Silent(1, 3, new AudioKeyframe { Volume = new Modifier(0.5, ModifierKind.Multiply) });
 
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = echo });
 
@@ -32,11 +110,34 @@ public class AudioKeyframeTests
     }
 
     [Fact]
+    public void PositionOverride_MovesOneKeyframeOnly()
+    {
+        var track = MakeTrack();
+        var automation = Silent(4, 13);
+        automation.Keyframes[1].Position = 6; // dragged off the grid, halfway back
+
+        track.Segments[0].Notes.Add(new Note
+            { Step = 0, Instrument = Instrument.Single("boom"), Automation = automation });
+
+        var placements = new PlacementCalculator(new EncoderSettings { SampleRate = 48000 })
+            .CalculateOne(track.ToSequence())
+            .Where(p => p.Audible)
+            .ToArray();
+
+        // 4 steps = 0.5 s = 24000 samples: the note, then steps 4, 6 and 12.
+        var starts = placements.Select(p => (double)p.Index - placements[0].Index).ToArray();
+        Assert.Equal(4, starts.Length);
+        Assert.InRange(starts[1], 23999, 24001);
+        Assert.InRange(starts[2], 35999, 36001);
+        Assert.InRange(starts[3], 71999, 72001);
+    }
+
+    [Fact]
     public void TimeKeyframes_PlaceExactlyBySeconds()
     {
         var track = MakeTrack();
-        var slapback = new AudioKeyframeManager { Timing = KeyframeTiming.Time };
-        slapback.Keyframes.Add(new AudioKeyframe { Gap = 0.007f }); // 7 ms, off any musical grid
+        var slapback = Silent(0.007f, 0.01f); // 7 ms, off any musical grid
+        slapback.Timing = KeyframeTiming.Time;
 
         track.Segments[0].Notes
             .Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = slapback });
@@ -60,8 +161,8 @@ public class AudioKeyframeTests
         // fractional stop and stay sample-exact across the "!speed" change.
         var track = MakeTrack();
         track.Segments[0].StepsPerBeat = 1; // 4 quarters of 0.5 s
-        var echo = new AudioKeyframeManager { Timing = KeyframeTiming.Time };
-        echo.Keyframes.Add(new AudioKeyframe { Gap = 0.6f });
+        var echo = Silent(0.6f, 1);
+        echo.Timing = KeyframeTiming.Time;
         track.Segments[0].Notes.Add(new Note { Step = 3, Instrument = Instrument.Single("boom"), Automation = echo });
 
         var fast = track.NewSegment();
@@ -83,14 +184,8 @@ public class AudioKeyframeTests
     public void Modifiers_ClampPanAndFloorVolume()
     {
         var track = MakeTrack();
-        var automation = new AudioKeyframeManager();
-        automation.Keyframes.Add(new AudioKeyframe
-        {
-            Gap = 1,
-            Pan = new Modifier(80),
-            Volume = new Modifier(-200)
-        });
-        automation.Keyframes.Add(new AudioKeyframe { Gap = 1, Pan = new Modifier(80) });
+        var automation = Silent(1, 3, new AudioKeyframe { Pan = new Modifier(80), Volume = new Modifier(-200) });
+        automation.Keyframes[1].Volume = default; // the second one only pans
 
         track.Segments[0].Notes.Add(new Note
             { Step = 0, Instrument = Instrument.Single("boom"), Automation = automation });
@@ -107,30 +202,12 @@ public class AudioKeyframeTests
     }
 
     [Fact]
-    public void Repeats_RunTheKeyframeList_CompoundingEachPass()
-    {
-        var track = MakeTrack();
-        var echo = new AudioKeyframeManager { Repeats = 3 };
-        echo.Keyframes.Add(new AudioKeyframe { Gap = 1, Volume = new Modifier(0.5, ModifierKind.Multiply) });
-
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Automation = echo });
-
-        var events = track.ToSequence().Events;
-
-        // One keyframe repeated 3 times = 3 echoes, each halving the previous pass.
-        Assert.Equal(["!speed", "!speed", "!divider", "boom", "boom", "boom", "boom"],
-            events.Select(e => e.SoundEvent));
-        Assert.Equal([50d, 25d, 12.5], events.Skip(4).Select(e => e.Volume));
-    }
-
-    [Fact]
     public void OffsetKeyframes_WalkTheSoundStart_AndSurviveTheTextExport()
     {
         var track = MakeTrack();
-        // The note starts 0.25 s into the sound; each repeat jumps one beat later on
+        // The note starts 0.25 s into the sound; each keyframe jumps one beat later on
         // the grid AND another 0.5 s deeper into the sound (the scrub use case).
-        var scrub = new AudioKeyframeManager { Repeats = 2 };
-        scrub.Keyframes.Add(new AudioKeyframe { Gap = 4, Offset = new Modifier(0.5) });
+        var scrub = Silent(4, 12, new AudioKeyframe { Offset = new Modifier(0.5) });
         track.Segments[0].Notes.Add(new Note
             { Step = 0, Instrument = Instrument.Single("boom"), Offset = 0.25, Automation = scrub });
 
@@ -147,35 +224,10 @@ public class AudioKeyframeTests
     }
 
     [Fact]
-    public void Repeats_SurviveTheProjectFileRoundTrip_AndOldFilesDefaultToOne()
-    {
-        var project = new ThirtyDollarProject();
-        var track = project.NewTrack();
-        var instrument = project.NewInstrument("boom");
-        instrument.AddSound("boom");
-        var echo = new AudioKeyframeManager { Repeats = 4 };
-        echo.Keyframes.Add(new AudioKeyframe { Gap = 1, Offset = new Modifier(0.5) });
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = instrument, Offset = 0.25, Automation = echo });
-
-        var loadedNote = ProjectFile.Load(ProjectFile.Save(project)).Tracks[0].Segments[0].Notes[0];
-        Assert.Equal(4, loadedNote.Automation!.Repeats);
-        Assert.Equal(0.25, loadedNote.Offset);
-        Assert.Equal(new Modifier(0.5), loadedNote.Automation.Keyframes[0].Offset);
-
-        // Repeats of 1 is never written, so the file is identical to a pre-feature one -
-        // and a missing key loads back as 1.
-        echo.Repeats = 1;
-        var legacy = ProjectFile.Save(project);
-        Assert.DoesNotContain("repeats", legacy);
-        Assert.Equal(1, ProjectFile.Load(legacy).Tracks[0].Segments[0].Notes[0].Automation!.Repeats);
-    }
-
-    [Fact]
     public void CutKeyframe_CutsThenPlacesTheNoteAfterTheCut()
     {
         var track = MakeTrack(); // 4/4 sixteenth grid at 480 steps/min
-        var cut = new AudioKeyframeManager();
-        cut.Keyframes.Add(new AudioKeyframe { Gap = 4, Cut = true });
+        var cut = new AudioKeyframeManager { CutAtEnd = false, Gap = 4, End = 8 };
 
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("loop"), Automation = cut });
 
@@ -204,19 +256,17 @@ public class AudioKeyframeTests
     }
 
     [Fact]
-    public void CutOnlyAndCutLast_SilenceInsteadOfRetriggering_AndCutTheLastBeat()
+    public void CutAtEnd_SilencesTheNoteWhereItEnds()
     {
         var track = MakeTrack(); // 4/4 sixteenth grid at 480 steps/min
-        var automation = new AudioKeyframeManager { Repeats = 2 };
-        automation.Keyframes.Add(new AudioKeyframe { Gap = 4, Cut = true, CutOnly = true, CutLast = true });
+        var automation = new AudioKeyframeManager { Gap = 4, End = 12 };
 
         track.Segments[0].Notes.Add(new Note
             { Step = 0, Instrument = Instrument.Single("loop"), Automation = automation });
 
-        // Cut-only keyframes place no note: the base note, then a cut per pass, then the
-        // trailing Cut Last one - and no retriggered "loop" after the first.
+        // Two retriggers, each cut first, and one trailing cut where the note ends.
         var events = track.ToSequence().Events;
-        Assert.Equal(1, events.Count(e => e.SoundEvent == "loop"));
+        Assert.Equal(3, events.Count(e => e.SoundEvent == "loop"));
         Assert.Equal(3, events.OfType<IndividualCutEvent>().Count());
 
         var placements = new PlacementCalculator(new EncoderSettings { SampleRate = 48000 })
@@ -224,19 +274,14 @@ public class AudioKeyframeTests
             .Where(p => p.Audible)
             .ToArray();
 
-        // Cuts land 4 steps apart (0.5 s = 24000 samples), the last one a gap past the final pass.
-        Assert.Equal(4, placements.Length);
-        Assert.InRange((double)placements[1].Index - placements[0].Index, 23999, 24001);
-        Assert.InRange((double)placements[2].Index - placements[1].Index, 23999, 24001);
-        Assert.InRange((double)placements[3].Index - placements[2].Index, 23999, 24001);
+        // The last cut is one gap past the last retrigger: 4 steps = 0.5 s = 24000 samples.
+        var last = placements[^1];
+        Assert.IsType<IndividualCutEvent>(last.Event);
+        Assert.InRange((double)last.Index - placements[0].Index, 71999, 72001);
 
-        // Without Cut Last the trailing cut is gone.
-        automation.Keyframes[0].CutLast = false;
+        // Without it the note rings on past its end.
+        automation.CutAtEnd = false;
         Assert.Equal(2, track.ToSequence().Events.OfType<IndividualCutEvent>().Count());
-
-        // Without Cut Only the notes come back, one per cut.
-        automation.Keyframes[0].CutOnly = false;
-        Assert.Equal(3, track.ToSequence().Events.Count(e => e.SoundEvent == "loop"));
     }
 
     /// <summary>
@@ -250,8 +295,7 @@ public class AudioKeyframeTests
         var chord = Instrument.Single("bleep");
         for (var value = 0; value < 3; value++)
         {
-            var automation = new AudioKeyframeManager { Repeats = 2 };
-            automation.Keyframes.Add(new AudioKeyframe { Gap = 4, Cut = true });
+            var automation = new AudioKeyframeManager { CutAtEnd = false, Gap = 4, End = 12 };
             track.Segments[0].Notes.Add(new Note
                 { Step = 0, Instrument = chord, Value = value, Automation = automation });
         }
@@ -269,22 +313,73 @@ public class AudioKeyframeTests
         ], events);
     }
 
+    /// <summary>
+    ///     Cuts are per sound name, so a chord voice that starts later must retrigger on the
+    ///     same instants as the voice it shares an instrument with - or its cuts silence the
+    ///     other voice between its own retriggers. That is what the automation offset is for.
+    /// </summary>
     [Fact]
-    public void Keyframe_OldFileWithNoCutKey_LoadsAsNotCut()
+    public void ChordVoices_LineUpOnTheSameInstants_ViaTheAutomationOffset()
+    {
+        var track = MakeTrack();
+        var chord = Instrument.Single("bleep");
+        track.Segments[0].Notes.Add(new Note
+        {
+            Step = 0, Instrument = chord, Value = 0,
+            Automation = new AudioKeyframeManager { CutAtEnd = false, Gap = 4, End = 16 }
+        });
+        track.Segments[0].Notes.Add(new Note
+        {
+            Step = 2, Instrument = chord, Value = 7,
+            Automation = new AudioKeyframeManager
+                { CutAtEnd = false, Gap = 4, AutomationOffset = -2, End = 14 }
+        });
+
+        var events = track.ToSequence().Events
+            .Select(e => e is IndividualCutEvent ? "!cut" : e.SoundEvent)
+            .Where(name => name is not ("!speed" or "!divider" or "!combine"))
+            .ToArray();
+
+        // Step 0: the low voice. Step 2: the high one. Steps 4, 8 and 12: one cut, then
+        // both voices - never a cut that lands between the two voices' retriggers.
+        Assert.Equal([
+            "bleep",
+            "!stop", "bleep",
+            "!stop", "!cut", "bleep", "bleep",
+            "!stop", "!cut", "bleep", "bleep",
+            "!stop", "!cut", "bleep", "bleep"
+        ], events);
+    }
+
+    [Fact]
+    public void Automation_SurvivesTheProjectFileRoundTrip_AndOnlyWritesEditedKeyframes()
     {
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var instrument = project.NewInstrument("boom");
         instrument.AddSound("boom");
-        var automation = new AudioKeyframeManager();
-        automation.Keyframes.Add(new AudioKeyframe { Gap = 1 });
-        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = instrument, Automation = automation });
+        var echo = new AudioKeyframeManager
+        {
+            CutAtEnd = false,
+            Gap = 1,
+            AutomationOffset = -0.5f,
+            Template = new AudioKeyframe { Offset = new Modifier(0.5) },
+            End = 5
+        };
+        echo.Keyframes[2].Position = 3.25f;
+        echo.Keyframes[2].Value = new Modifier(12);
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = instrument, Offset = 0.25, Automation = echo });
 
         var saved = ProjectFile.Save(project);
-        Assert.DoesNotContain("cut", saved); // never-cut keyframe writes no "cut" key at all
+        var loaded = ProjectFile.Load(saved).Tracks[0].Segments[0].Notes[0].Automation!;
 
-        var loaded = ProjectFile.Load(saved).Tracks[0].Segments[0].Notes[0];
-        Assert.False(loaded.Automation!.Keyframes[0].Cut);
+        Assert.True(echo.ValueEquals(loaded));
+        Assert.Equal(5, loaded.Keyframes.Count);
+        Assert.Equal(3.25f, loaded.PositionOf(2));
+        Assert.Equal(new Modifier(0.5), loaded.Keyframes[0].Offset);
+
+        // Only the one edited keyframe is written, not all five.
+        Assert.Equal(1, saved.Split("\"index\"").Length - 1);
     }
 
     [Fact]
@@ -292,8 +387,7 @@ public class AudioKeyframeTests
     {
         // The segment-level use case: one manager instance across many notes.
         var track = MakeTrack();
-        var octave_up = new AudioKeyframeManager();
-        octave_up.Keyframes.Add(new AudioKeyframe { Gap = 1, Value = new Modifier(12) });
+        var octave_up = Silent(1, 2, new AudioKeyframe { Value = new Modifier(12) });
 
         var notes = track.Segments[0].Notes;
         notes.Add(new Note { Step = 0, Instrument = Instrument.Single("harp"), Value = 0, Automation = octave_up });
@@ -311,37 +405,36 @@ public class AudioKeyframeTests
     [Fact]
     public void Clone_IsIndependentOfTheOriginal()
     {
-        var original = new AudioKeyframeManager { Timing = KeyframeTiming.Time, Repeats = 2 };
-        original.Keyframes.Add(new AudioKeyframe { Gap = 1, Value = new Modifier(12) });
+        var original = new AudioKeyframeManager
+            { Timing = KeyframeTiming.Time, Gap = 1, Template = new AudioKeyframe { Value = new Modifier(12) }, End = 3 };
 
         var clone = original.Clone();
-        clone.Repeats = 5;
-        clone.Keyframes[0].Gap = 99;
-        clone.Keyframes.Add(new AudioKeyframe { Gap = 2 });
+        clone.End = 9;
+        clone.Keyframes[0].Position = 99;
+        clone.Template.Value = new Modifier(1);
 
-        Assert.Equal(2, original.Repeats);
-        Assert.Single(original.Keyframes);
-        Assert.Equal(1, original.Keyframes[0].Gap);
+        Assert.Equal(3, original.End);
+        Assert.Equal(2, original.Keyframes.Count);
+        Assert.Null(original.Keyframes[0].Position);
+        Assert.Equal(new Modifier(12), original.Template.Value);
     }
 
     [Fact]
     public void ValueEquals_ComparesStructureNotReference()
     {
-        var a = new AudioKeyframeManager { Timing = KeyframeTiming.Time, Repeats = 2 };
-        a.Keyframes.Add(new AudioKeyframe { Gap = 1, Value = new Modifier(12) });
+        var a = new AudioKeyframeManager { Timing = KeyframeTiming.Time, Gap = 1, End = 3 };
         var clone = a.Clone();
 
         Assert.NotSame(a, clone);
         Assert.True(a.ValueEquals(clone));
 
-        clone.Repeats = 3;
+        clone.End = 4;
         Assert.False(a.ValueEquals(clone));
 
-        clone.Repeats = 2;
-        clone.Keyframes[0].Cut = true;
+        clone.End = 3;
+        clone.Keyframes[0].Value = new Modifier(1);
         Assert.False(a.ValueEquals(clone));
 
-        var shorter = new AudioKeyframeManager { Timing = KeyframeTiming.Time, Repeats = 2 };
-        Assert.False(a.ValueEquals(shorter));
+        Assert.False(a.ValueEquals(new AudioKeyframeManager { Timing = KeyframeTiming.Time, Gap = 1 }));
     }
 }

@@ -223,43 +223,133 @@ public static class ProjectFile
 
     private static AutomationDto? SaveAutomation(AudioKeyframeManager? manager)
     {
-        return manager is null
+        if (manager is null) return null;
+
+        // Only the keyframes that differ from the template or sit off the derived grid are
+        // written, by index: a 256-keyframe note with one edited keyframe is a few lines.
+        List<KeyframeDto>? overrides = null;
+        for (var i = 0; i < manager.Keyframes.Count; i++)
+        {
+            var keyframe = manager.Keyframes[i];
+            if (keyframe.ValueEquals(manager.Template) && keyframe.Position is null) continue;
+            overrides ??= [];
+            overrides.Add(new KeyframeDto(
+                i,
+                keyframe.Position,
+                NullIfNoOp(keyframe.Value),
+                NullIfNoOp(keyframe.Volume),
+                NullIfNoOp(keyframe.Pan),
+                NullIfNoOp(keyframe.Offset),
+                keyframe.AutoOffset ? true : null));
+        }
+
+        return new AutomationDto(
+            manager.Timing,
+            manager.Gap,
+            manager.End,
+            AutomationOffset: manager.AutomationOffset == 0 ? null : manager.AutomationOffset,
+            Cut: manager.Cut ? null : false,
+            CutAtEnd: manager.CutAtEnd ? null : false,
+            Template: SaveTemplate(manager.Template),
+            Keyframes: overrides);
+    }
+
+    private static KeyframeDto? SaveTemplate(AudioKeyframe template)
+    {
+        return template.ValueEquals(new AudioKeyframe())
             ? null
-            : new AutomationDto(
-                manager.Timing,
-                [
-                    .. manager.Keyframes.Select(keyframe => new KeyframeDto(
-                        keyframe.Gap,
-                        NullIfNoOp(keyframe.Value),
-                        NullIfNoOp(keyframe.Volume),
-                        NullIfNoOp(keyframe.Pan),
-                        NullIfNoOp(keyframe.Offset),
-                        keyframe.Cut ? true : null,
-                        keyframe.CutOnly ? true : null,
-                        keyframe.CutLast ? true : null))
-                ],
-                manager.Repeats == 1 ? null : manager.Repeats);
+            : new KeyframeDto(null, null, NullIfNoOp(template.Value), NullIfNoOp(template.Volume),
+                NullIfNoOp(template.Pan), NullIfNoOp(template.Offset), template.AutoOffset ? true : null);
     }
 
     private static AudioKeyframeManager? LoadAutomation(AutomationDto? dto)
     {
         if (dto is null) return null;
+        if (IsLegacy(dto)) return LoadLegacyAutomation(dto);
 
-        var manager = new AudioKeyframeManager { Timing = dto.Timing, Repeats = dto.Repeats ?? 1 };
+        var manager = new AudioKeyframeManager
+        {
+            Timing = dto.Timing,
+            Cut = dto.Cut ?? true,
+            CutAtEnd = dto.CutAtEnd ?? true
+        };
+        if (dto.Template is { } template) Apply(manager.Template, template);
+
+        // Order matters: the keyframe list is sized from these, and the overrides address
+        // it by index.
+        manager.Gap = dto.Gap;
+        manager.AutomationOffset = dto.AutomationOffset ?? 0;
+        manager.End = dto.End;
+
         foreach (var keyframe in dto.Keyframes ?? [])
-            manager.Keyframes.Add(new AudioKeyframe
-            {
-                Gap = keyframe.Gap,
-                Value = keyframe.Value ?? default,
-                Volume = keyframe.Volume ?? default,
-                Pan = keyframe.Pan ?? default,
-                Offset = keyframe.Offset ?? default,
-                Cut = keyframe.Cut ?? false,
-                CutOnly = keyframe.CutOnly ?? false,
-                CutLast = keyframe.CutLast ?? false
-            });
+        {
+            if (keyframe.Index is not { } index || index < 0 || index >= manager.Keyframes.Count) continue;
+            Apply(manager.Keyframes[index], keyframe);
+        }
 
         return manager;
+    }
+
+    // Hand-built sustains used to be a keyframe list with its own gaps, repeated by
+    // "repeats"; the length and the grid were not in the file at all.
+    private static bool IsLegacy(AutomationDto dto)
+    {
+        return dto.Repeats is not null || (dto.Keyframes ?? []).Any(keyframe => keyframe.Gap is not null);
+    }
+
+    /// <summary>
+    ///     Converts an old automation to the length/grid shape, keeping its timing exactly:
+    ///     every generated position of the old list (the keyframe gaps, run "repeats" times)
+    ///     becomes one keyframe, carrying its own position wherever that is not where the new
+    ///     grid would put it. The note ends one gap past the last of them, which is where the
+    ///     next repeat would have cut it.
+    /// </summary>
+    private static AudioKeyframeManager LoadLegacyAutomation(AutomationDto dto)
+    {
+        var manager = new AudioKeyframeManager { Timing = dto.Timing };
+        var legacy = dto.Keyframes ?? [];
+        if (legacy.Count == 0) return manager;
+
+        var positions = new List<float>();
+        var sources = new List<KeyframeDto>();
+        var position = 0f;
+        for (var pass = 0; pass < Math.Max(dto.Repeats ?? 1, 1); pass++)
+            foreach (var keyframe in legacy)
+            {
+                position += keyframe.Gap ?? 0;
+                positions.Add(position);
+                sources.Add(keyframe);
+            }
+
+        var gap = legacy[0].Gap is > 0 ? legacy[0].Gap!.Value : 1;
+        manager.Cut = legacy.Any(keyframe => keyframe.Cut ?? false);
+        manager.CutAtEnd = legacy[^1] is { Cut: true, CutLast: true };
+        manager.End = positions[^1] + gap;
+        // An even old sustain keeps its gap; an uneven one gets a grid that only has to hold
+        // the right number of slots, because every position is written out as an override.
+        var even = !positions.Where((p, i) => Math.Abs(p - (i + 1) * gap) > 1e-4).Any();
+        manager.Gap = even ? gap : manager.End / (positions.Count + 1);
+
+        for (var i = 0; i < positions.Count && i < manager.Keyframes.Count; i++)
+        {
+            var keyframe = manager.Keyframes[i];
+            Apply(keyframe, sources[i]);
+            if (Math.Abs(manager.PositionOf(i) - positions[i]) > 1e-4) keyframe.Position = positions[i];
+            // "Cut only" placed nothing; a silent note keeps both the cut and the timing.
+            if (sources[i].CutOnly ?? false) keyframe.Volume = new Modifier(0, ModifierKind.Multiply);
+        }
+
+        return manager;
+    }
+
+    private static void Apply(AudioKeyframe keyframe, KeyframeDto dto)
+    {
+        keyframe.Position = dto.Position;
+        keyframe.Value = dto.Value ?? default;
+        keyframe.Volume = dto.Volume ?? default;
+        keyframe.Pan = dto.Pan ?? default;
+        keyframe.Offset = dto.Offset ?? default;
+        keyframe.AutoOffset = dto.AutoOffset ?? false;
     }
 
     private static Modifier? NullIfNoOp(Modifier modifier)
@@ -375,16 +465,33 @@ public static class ProjectFile
         // Null (missing key) = false - files from before the feature stay valid.
         bool? IsCut = null);
 
-    // Null Repeats (missing key) = 1 - files from before the feature stay valid.
-    private record AutomationDto(KeyframeTiming Timing, List<KeyframeDto> Keyframes, int? Repeats = null);
+    // The keyframe list is derived from Gap/End/AutomationOffset; Keyframes holds only the
+    // entries that differ from Template, by index. Null Cut/CutAtEnd (missing key) = true.
+    private record AutomationDto(
+        KeyframeTiming Timing,
+        float Gap,
+        float End,
+        // Old files only: the keyframe list ran this many times, its own gaps apart.
+        int? Repeats = null,
+        float? AutomationOffset = null,
+        bool? Cut = null,
+        bool? CutAtEnd = null,
+        KeyframeDto? Template = null,
+        List<KeyframeDto>? Keyframes = null);
 
     private record KeyframeDto(
-        float Gap,
+        // Null on the template, which addresses no slot.
+        int? Index,
+        float? Position,
         Modifier? Value,
         Modifier? Volume,
         Modifier? Pan,
-        // Null (missing key) = false - files from before the feature stay valid.
         Modifier? Offset = null,
+        // Null (missing key) = false - files from before the feature stay valid.
+        bool? AutoOffset = null,
+        // Old files only: the keyframe's own gap and cut flags, before both moved up to the
+        // automation. Their presence is what marks a file as needing conversion.
+        float? Gap = null,
         bool? Cut = null,
         bool? CutOnly = null,
         bool? CutLast = null);

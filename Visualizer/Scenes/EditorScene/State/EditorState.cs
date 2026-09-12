@@ -46,6 +46,12 @@ public partial class EditorState
     } = EditorTool.Draw;
 
     public bool Dirty { get; private set; }
+
+    /// <summary>
+    ///     Bumped by every edit. Views cache per-project scans (the longest note in a track,
+    ///     say) against it instead of rescanning per frame.
+    /// </summary>
+    public int Revision { get; private set; }
     public bool IsCurrentlyPlayingAudio { get; set; }
 
     public bool CanUndo => _undoHistory.CanUndo;
@@ -258,6 +264,7 @@ public partial class EditorState
     private void Touch()
     {
         Dirty = true;
+        Revision++;
         OnProjectChanged?.Invoke();
     }
 

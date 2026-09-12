@@ -121,18 +121,20 @@ public partial class EditorState
     ///     the first note in the list, collapse the run into one undo entry.
     /// </summary>
     public void MoveSelectedNotes(ProjectTrack track,
-        IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
+        IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value, float? End)> targets)
     {
         if (targets.Count == 0) return;
 
         var before = targets
-            .Select(t => (t.Note, Segment: FindSegment(track, t.Note), t.Note.Step, t.Note.Value))
+            .Select(t => (t.Note, Segment: FindSegment(track, t.Note), t.Note.Step, t.Note.Value,
+                End: t.Note.Automation?.End))
             .ToArray();
         var changed = false;
         for (var i = 0; i < targets.Count; i++)
         {
-            var (note, segment, step, value) = targets[i];
-            if (before[i].Segment != segment || note.Step != step || note.Value != value) changed = true;
+            var (note, segment, step, value, end) = targets[i];
+            if (before[i].Segment != segment || note.Step != step || note.Value != value ||
+                before[i].End != end) changed = true;
         }
 
         if (!changed) return;
@@ -142,6 +144,26 @@ public partial class EditorState
         _undoHistory.PushOrMergeMove(targets[0].Note,
             () => Apply(track, before),
             () => Apply(track, targets));
+        Touch();
+    }
+
+    /// <summary>
+    ///     One frame of an automation gesture - a keyframe marker drag. The whole automation
+    ///     is snapshotted around the edit rather than each field plumbed through: a drag
+    ///     touches a keyframe's value, its position and sometimes the template, and
+    ///     <see cref="BeginGesture" /> + <see cref="UndoHistory.PushOrMergeMove" /> keyed on
+    ///     the manager collapse the run of frames into one entry either way.
+    /// </summary>
+    public void EditAutomation(AudioKeyframeManager automation, Action edit)
+    {
+        var before = automation.Clone();
+        edit();
+        if (automation.ValueEquals(before)) return;
+
+        var after = automation.Clone();
+        _undoHistory.PushOrMergeMove(automation,
+            () => automation.CopyFrom(before),
+            () => automation.CopyFrom(after));
         Touch();
     }
 
@@ -156,7 +178,7 @@ public partial class EditorState
         if (OpenedTrack is not { } track || _notes.Count == 0) return;
 
         var maxGlobalStep = Math.Max(0, track.Segments.Sum(segment => segment.StepCount) - 1);
-        var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value)>(_notes.Count);
+        var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value, float? End)>(_notes.Count);
         foreach (var note in _notes.Items)
         {
             var globalStep = Math.Clamp(
@@ -164,7 +186,7 @@ public partial class EditorState
             if (track.SegmentAtGlobalStep(globalStep) is not { } mapped) continue;
 
             targets.Add((note, mapped.Segment, mapped.LocalStep,
-                Math.Clamp(note.Value + valueDelta, -maxValue, maxValue)));
+                Math.Clamp(note.Value + valueDelta, -maxValue, maxValue), note.Automation?.End));
         }
 
         BeginGesture();
@@ -172,19 +194,25 @@ public partial class EditorState
     }
 
     /// <summary>
-    ///     Places every note at its target (segment, step, value), first removing it from
-    ///     whichever segment currently holds it - it never assumes where a note is, so the
-    ///     same call serves both the undo and the redo closure.
+    ///     Places every note at its target (segment, step, value, length), first removing it
+    ///     from whichever segment currently holds it - it never assumes where a note is, so
+    ///     the same call serves both the undo and the redo closure. A plain move carries the
+    ///     note's own length along unchanged; a border drag is the same call with a new one.
+    ///     A null length is a note with no automation at all, so undoing the drag that
+    ///     created one takes it back off the note.
     /// </summary>
     private static void Apply(ProjectTrack track,
-        IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value)> targets)
+        IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value, float? End)> targets)
     {
-        foreach (var (note, segment, step, value) in targets)
+        foreach (var (note, segment, step, value, end) in targets)
         {
             foreach (var s in track.Segments) s.Notes.Remove(note);
             segment.Notes.Add(note);
             note.Step = step;
             note.Value = value;
+
+            if (end is not { } length) note.Automation = null;
+            else (note.Automation ??= new AudioKeyframeManager()).End = length;
         }
     }
 

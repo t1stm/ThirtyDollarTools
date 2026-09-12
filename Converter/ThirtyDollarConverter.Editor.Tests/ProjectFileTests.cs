@@ -40,21 +40,25 @@ public class ProjectFileTests
 
         drums.Transpose = -0.4f;
 
-        var kickEcho = new AudioKeyframeManager();
-        kickEcho.Keyframes.Add(new AudioKeyframe { Gap = 2, Value = new Modifier(3) });
+        var kickEcho = new AudioKeyframeManager
+            { Gap = 2, Template = new AudioKeyframe { Value = new Modifier(3) }, End = 3 };
         drums.AddTrackAutomation(kickEcho, ["kick"]);
 
         var melody = project.NewTrack();
         melody.Name = "Melody";
         melody.Timing = new TimingInfo { BPM = 90 }; // own tempo
 
-        var echo = new AudioKeyframeManager { Timing = KeyframeTiming.Time };
-        echo.Keyframes.Add(new AudioKeyframe
+        var echo = new AudioKeyframeManager
         {
+            Timing = KeyframeTiming.Time,
             Gap = 0.25f,
-            Volume = new Modifier(0.5, ModifierKind.Multiply),
-            Value = new Modifier(12)
-        });
+            Template = new AudioKeyframe
+            {
+                Volume = new Modifier(0.5, ModifierKind.Multiply),
+                Value = new Modifier(12)
+            },
+            End = 0.4f
+        };
         melody.Segments[0].Notes.Add(new Note
             { Step = 0, Instrument = MakeInstrument(project, "harp"), Automation = echo });
 

@@ -50,8 +50,8 @@ public sealed class EditorEdits
             .SelectMany(pair => pair.segment.Notes.Select(note => (pair.track, pair.segment, note)))
             .ToList();
 
-        var automated = notes.FirstOrDefault(entry => entry.note.Automation is { Keyframes.Count: > 0 } automation
-                                                      && automation.Keyframes.Any(keyframe => keyframe.Cut));
+        var automated = notes.FirstOrDefault(entry =>
+            entry.note.Automation is { Keyframes.Count: > 0, Cut: true });
         if (automated.note == null) automated = notes.First(entry => entry.note.Automation != null);
 
         _automated = automated.note;

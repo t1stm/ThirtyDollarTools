@@ -67,8 +67,10 @@ class note-canvas {
     strip-selected-color = $theme.accent;
 
     // A note block's fill: its instrument's entry in the palette, or the highlight when
-    // it is part of the selection.
+    // it is part of the selection. The end cap sits on top of a note that gets cut where
+    // it ends, so it takes the brightest shade on the canvas.
     selected-note-color = $theme.selection_highlight;
+    automation-end-color = $theme.playhead;
     sound-palette = $theme.sound_palette;
 }
 

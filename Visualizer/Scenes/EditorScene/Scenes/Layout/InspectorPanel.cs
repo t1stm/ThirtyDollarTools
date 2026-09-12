@@ -32,6 +32,9 @@ public sealed class InspectorPanel
 
     private readonly EditorState _state;
 
+    /// <summary>The automation layout the rows were built for; see <see cref="Sync" />.</summary>
+    private int _automationShape;
+
     private string? _syncedStatusLabel = "Idle"; // matches InspectorShell.snx.xml's constructed default
     private float _syncedStatusProgress = -1f; // never a valid Progress value, forces the first real SetStatus to apply
 
@@ -198,6 +201,7 @@ public sealed class InspectorPanel
     /// <summary>Rebuilds the rows for the current mode and selection.</summary>
     public void Rebuild()
     {
+        _automationShape = AutomationShape();
         foreach (var child in Rows.Children.ToArray()) Rows.RemoveChild(child);
         _form.Reset();
 
@@ -504,10 +508,12 @@ public sealed class InspectorPanel
     }
 
     /// <summary>
-    ///     Gaps-in-seconds checkbox, Repeats, and the per-keyframe rows - shared by note
-    ///     and track automation. <paramref name="keyframeHeaderPrefix" /> disambiguates
-    ///     keyframe headers when several automations are on screen at once (empty for the
-    ///     single per-note automation, so its field keys are unchanged: "Keyframe 1.Gap").
+    ///     Timing, the note's length and retrigger grid, the cut flags, and one card per
+    ///     keyframe - shared by note and track automation. Keyframes are generated from
+    ///     Gap/End/AutomationOffset, so there is nothing to add or remove by hand.
+    ///     <paramref name="keyframeHeaderPrefix" /> disambiguates keyframe headers when
+    ///     several automations are on screen at once (empty for the single per-note
+    ///     automation, so its field keys are unchanged: "Keyframe 1.Value").
     ///     <paramref name="afterEdit" />, when given, runs after every commit (field or
     ///     structural) - the multi-note form's clone-fan-out hook (see
     ///     <see cref="MultiAutomationSection" />); null for every other caller.
@@ -528,83 +534,127 @@ public sealed class InspectorPanel
                 _state.Edit(() => automation.Timing = timeMode ? KeyframeTiming.Time : KeyframeTiming.Step);
                 afterEdit?.Invoke();
             });
-        _form.IntRow("Repeats", () => automation.Repeats, v =>
+        // Gap and End resize the keyframe list, so their cards appear and disappear.
+        _form.NumberRow("Gap", () => automation.Gap, v => EditAndRebuild(() =>
         {
-            automation.Repeats = v;
+            automation.Gap = (float)v!.Value;
             afterEdit?.Invoke();
-        }, 1, 1024);
+        }), 0, 4096, 0.5);
+        _form.NumberRow("End", () => automation.End, v => EditAndRebuild(() =>
+        {
+            automation.End = (float)v!.Value;
+            afterEdit?.Invoke();
+        }), 0, 4096, 1);
+        // "Grid offset", not "Automation offset": the label column is 84 px and the longer
+        // name clips. It still reads apart from the per-keyframe sound Offset below.
+        _form.NumberRow("Grid offset", () => automation.AutomationOffset, v => EditAndRebuild(() =>
+        {
+            automation.AutomationOffset = (float)v!.Value;
+            afterEdit?.Invoke();
+        }), -4096, 4096, 0.5);
+        _form.CheckRow("Cut", () => automation.Cut, cut => EditAndRebuild(() =>
+        {
+            automation.Cut = cut;
+            afterEdit?.Invoke();
+        }), [("Cut at end", () => automation.CutAtEnd, v => EditAndRebuild(() =>
+        {
+            automation.CutAtEnd = v;
+            afterEdit?.Invoke();
+        }))]);
+
+        // The keyframe list can be hundreds long, so one card edits them all: the template
+        // every auto-created keyframe copies, fanned out to the ones that still match it.
+        // Only keyframes given settings of their own get a card.
+        void EditTemplate(Action<AudioKeyframe> apply)
+        {
+            var followers = automation.Keyframes.Where(k => k.ValueEquals(automation.Template)).ToList();
+            _state.Edit(() =>
+            {
+                apply(automation.Template);
+                foreach (var keyframe in followers) apply(keyframe);
+            });
+            afterEdit?.Invoke();
+        }
+
+        // Nothing to shape until the note has a length to hold keyframes.
+        if (automation.Keyframes.Count > 0)
+            _form.Card("inspector-card-keyframe", () =>
+        {
+            _form.Header($"{keyframeHeaderPrefix}All keyframes  (× {automation.Keyframes.Count})");
+            _form.Section = $"{keyframeHeaderPrefix}All keyframes";
+            KeyframeFields(automation.Template, EditTemplate, () => EditTemplate(k => k.Position = null));
+            // Auto offset splices onto the instance it replaces, which only works if that
+            // instance is cut - so ticking it turns the automation's cut on and keeps it.
+            _form.CheckRow("Auto offset", () => automation.Template.AutoOffset, auto => EditAndRebuild(() =>
+            {
+                EditTemplate(k => k.AutoOffset = auto);
+                if (auto) automation.Cut = true;
+            }));
+        });
 
         for (var i = 0; i < automation.Keyframes.Count; i++)
         {
             var keyframe = automation.Keyframes[i];
+            if (keyframe.ValueEquals(automation.Template)) continue; // follows the card above
+
+            var index = i;
             _form.Card("inspector-card-keyframe", () =>
             {
-                _form.Header($"{keyframeHeaderPrefix}Keyframe {i + 1}");
-                _form.NumberRow("Gap", () => keyframe.Gap, v =>
+                _form.Header($"{keyframeHeaderPrefix}Keyframe {index + 1}  (edited)");
+                _form.Section = $"{keyframeHeaderPrefix}Keyframe {index + 1}";
+                _form.NumberRow("Position", () => keyframe.Position ?? automation.PositionOf(index),
+                    v => Commit(() => keyframe.Position = (float?)v), 0, 4096, 0.25, true);
+                KeyframeFields(keyframe, apply => Commit(() => apply(keyframe)), null);
+                _form.CheckRow("Auto offset", () => keyframe.AutoOffset, auto => EditAndRebuild(() =>
                 {
-                    keyframe.Gap = (float)v!.Value;
+                    keyframe.AutoOffset = auto;
+                    if (auto) automation.Cut = true;
                     afterEdit?.Invoke();
-                }, 0, 4096, 0.5);
-                // Cut Only / Cut Last mean nothing without Cut, so they show up beside it
-                // only while it's on - toggling Cut rebuilds the panel to reveal/hide them.
-                (string, Func<bool>, Action<bool>)[] cutFlags = keyframe.Cut
-                    ?
-                    [
-                        ("Cut Only", () => keyframe.CutOnly, v => EditAndRebuild(() =>
-                        {
-                            keyframe.CutOnly = v;
-                            // No note is placed, so the modifiers have nothing to modify:
-                            // their rows go away and the values reset.
-                            if (v) keyframe.Value = keyframe.Volume = keyframe.Pan = keyframe.Offset = default;
-                            afterEdit?.Invoke();
-                        })),
-                        ("Cut Last", () => keyframe.CutLast, v => Commit(() => keyframe.CutLast = v))
-                    ]
-                    : [];
-                _form.CheckRow("Cut", () => keyframe.Cut,
-                    cut => EditAndRebuild(() =>
-                    {
-                        keyframe.Cut = cut;
-                        afterEdit?.Invoke();
-                    }), cutFlags);
-                if (keyframe is not { Cut: true, CutOnly: true })
+                }));
+                _form.ActionRow("reset", () => EditAndRebuild(() =>
                 {
-                    _form.ModifierRow("Value", () => keyframe.Value, m =>
-                    {
-                        keyframe.Value = m;
-                        afterEdit?.Invoke();
-                    });
-                    _form.ModifierRow("Volume", () => keyframe.Volume, m =>
-                    {
-                        keyframe.Volume = m;
-                        afterEdit?.Invoke();
-                    });
-                    _form.ModifierRow("Pan", () => keyframe.Pan, m =>
-                    {
-                        keyframe.Pan = m;
-                        afterEdit?.Invoke();
-                    });
-                    _form.ModifierRow("Offset", () => keyframe.Offset, m =>
-                    {
-                        keyframe.Offset = m;
-                        afterEdit?.Invoke();
-                    });
-                }
-
-                _form.ActionRow("Remove", () => EditAndRebuild(() =>
-                {
-                    automation.Keyframes.Remove(keyframe);
+                    var template = automation.Template.Clone(false);
+                    keyframe.Position = null;
+                    keyframe.Value = template.Value;
+                    keyframe.Volume = template.Volume;
+                    keyframe.Pan = template.Pan;
+                    keyframe.Offset = template.Offset;
+                    keyframe.AutoOffset = template.AutoOffset;
                     afterEdit?.Invoke();
                 }));
             });
         }
 
         _form.Section = section;
-        _form.ActionRow("+ Keyframe", () => EditAndRebuild(() =>
-        {
-            automation.Keyframes.Add(new AudioKeyframe());
-            afterEdit?.Invoke();
-        }));
+        // Typing a keyframe's own values needs a card, and only an edited keyframe has one -
+        // this pins the first one that still follows the template, the way dragging its
+        // marker would.
+        if (automation.Keyframes.Count > 0)
+            _form.ActionRow("+ Edit a single keyframe...", () => EditAndRebuild(() =>
+            {
+                for (var i = 0; i < automation.Keyframes.Count; i++)
+                {
+                    if (!automation.Keyframes[i].ValueEquals(automation.Template)) continue;
+                    automation.Keyframes[i].Position = automation.PositionOf(i);
+                    break;
+                }
+
+                afterEdit?.Invoke();
+            }));
+    }
+
+    /// <summary>
+    ///     The four relative-change rows shared by the "All keyframes" card and an edited
+    ///     keyframe's own. <paramref name="edit" /> applies one change - to the template and
+    ///     its followers, or to the single keyframe.
+    /// </summary>
+    private void KeyframeFields(AudioKeyframe keyframe, Action<Action<AudioKeyframe>> edit, Action? resetPosition)
+    {
+        _ = resetPosition;
+        _form.ModifierRow("Value", () => keyframe.Value, m => edit(k => k.Value = m));
+        _form.ModifierRow("Volume", () => keyframe.Volume, m => edit(k => k.Volume = m));
+        _form.ModifierRow("Pan", () => keyframe.Pan, m => edit(k => k.Pan = m));
+        _form.ModifierRow("Offset", () => keyframe.Offset, m => edit(k => k.Offset = m));
     }
 
     private void EditAndRebuild(Action edit)
@@ -616,7 +666,42 @@ public sealed class InspectorPanel
     /// <summary>Writes the model values into the rows. Call on any model change.</summary>
     public void Sync()
     {
+        // A border or marker drag on the grid changes which automation rows belong on the
+        // panel - a note can gain an automation, lose it, or grow a keyframe of its own -
+        // and none of that goes through the panel, so the form would otherwise stay as it
+        // was built.
+        if (AutomationShape() != _automationShape)
+        {
+            Rebuild();
+            return;
+        }
+
         _form.Sync();
+    }
+
+    /// <summary>
+    ///     What the automation rows are built from: whether each selected note has an
+    ///     automation at all, how many keyframes it holds, and which of them carry settings
+    ///     of their own. Walks only the selection, so it is bounded by what is on the panel.
+    /// </summary>
+    private int AutomationShape()
+    {
+        var shape = new HashCode();
+        foreach (var note in _state.SelectedNotes)
+        {
+            if (note.Automation is not { } automation)
+            {
+                shape.Add(-1);
+                continue;
+            }
+
+            shape.Add(automation.Keyframes.Count);
+            for (var i = 0; i < automation.Keyframes.Count; i++)
+                if (!automation.Keyframes[i].ValueEquals(automation.Template))
+                    shape.Add(i);
+        }
+
+        return shape.ToHashCode();
     }
 
     private static string? NullIfEmpty(string value)

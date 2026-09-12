@@ -272,9 +272,14 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
             }
         };
 
+        // Writing either half back during a sync fires its change handler, which would
+        // commit this row's OTHER half over whatever the sync was reporting - a fan-out
+        // that changed the kind under the row would be undone by the row it changed.
+        var syncing = false;
+
         void Commit()
         {
-            if (amount.Value is not { } value) return; // mid-edit ("", "-")
+            if (syncing || amount.Value is not { } value) return; // mid-edit ("", "-")
             state.Edit(() =>
                 set(new Modifier(value, multiply.Checked ? ModifierKind.Multiply : ModifierKind.Add)));
         }
@@ -286,8 +291,10 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
         Row(label, amount, multiply);
         _syncs.Add(() =>
         {
+            syncing = true;
             if (!amount.IsFocused) amount.Value = get().Amount;
             multiply.Checked = get().Kind == ModifierKind.Multiply;
+            syncing = false;
         });
     }
 }

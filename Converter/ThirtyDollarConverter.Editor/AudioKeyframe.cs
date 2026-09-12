@@ -19,37 +19,18 @@ public readonly record struct Modifier(double Amount, ModifierKind Kind = Modifi
 
 /// <summary>
 ///     One automation point. Generates a copy of the running note state with each field
-///     modified relative to the previous keyframe's result.
+///     modified relative to the previous keyframe's result. Keyframes are created and
+///     removed by <see cref="AudioKeyframeManager" /> as the note's length changes - they
+///     are never added by hand.
 /// </summary>
 public class AudioKeyframe
 {
     /// <summary>
-    ///     Distance from the previous keyframe (or the note itself). Counted in grid steps
-    ///     under <see cref="KeyframeTiming.Step" />, in seconds under <see cref="KeyframeTiming.Time" />.
+    ///     Own position, in <see cref="AudioKeyframeManager.Timing" /> units from the note's
+    ///     start, set by dragging this keyframe's marker sideways on the grid. Null (the
+    ///     default) follows the derived grid position instead.
     /// </summary>
-    public float Gap { get; set; }
-
-    /// <summary>
-    ///     When true, this keyframe cuts the note's instrument sounds immediately before
-    ///     placing its note (both at the same position) - restarting a sustained/looped
-    ///     sound cleanly instead of overlapping the new instance onto the old one.
-    /// </summary>
-    public bool Cut { get; set; }
-
-    /// <summary>
-    ///     Only meaningful with <see cref="Cut" />: the keyframe emits its cut and stops
-    ///     there, placing no note of its own - the sound is silenced once the gap ends
-    ///     instead of retriggered. The running value/volume/pan/offset still advance, so
-    ///     later keyframes keep compounding as usual.
-    /// </summary>
-    public bool CutOnly { get; set; }
-
-    /// <summary>
-    ///     Only meaningful with <see cref="Cut" /> on the last keyframe: one extra cut is
-    ///     emitted one more <see cref="Gap" /> after the automation's final note, so the
-    ///     last beat is cut once it ends instead of ringing on past the automation.
-    /// </summary>
-    public bool CutLast { get; set; }
+    public float? Position { get; set; }
 
     /// <summary>Pitch change in semitones.</summary>
     public Modifier Value { get; set; }
@@ -62,7 +43,34 @@ public class AudioKeyframe
 
     /// <summary>
     ///     Change to the sound-start offset in seconds (the TDW "&gt;" extension). An
-    ///     additive offset per keyframe walks the sound forward on every repeat.
+    ///     additive offset per keyframe walks the sound forward on every retrigger.
     /// </summary>
     public Modifier Offset { get; set; }
+
+    /// <summary>
+    ///     Ignore <see cref="Offset" /> and continue the sound from where the previous
+    ///     instance reached, so a retrigger splices onto it seamlessly instead of restarting.
+    ///     Only useful with the automation's cut, which silences the instance it continues.
+    /// </summary>
+    public bool AutoOffset { get; set; }
+
+    /// <summary>Deep copy; <paramref name="keepPosition" /> false drops the grid override.</summary>
+    public AudioKeyframe Clone(bool keepPosition = true)
+    {
+        return new AudioKeyframe
+        {
+            Position = keepPosition ? Position : null,
+            Value = Value,
+            Volume = Volume,
+            Pan = Pan,
+            Offset = Offset,
+            AutoOffset = AutoOffset
+        };
+    }
+
+    public bool ValueEquals(AudioKeyframe other)
+    {
+        return Position == other.Position && Value == other.Value && Volume == other.Volume &&
+               Pan == other.Pan && Offset == other.Offset && AutoOffset == other.AutoOffset;
+    }
 }

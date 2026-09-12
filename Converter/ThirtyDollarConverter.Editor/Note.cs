@@ -47,6 +47,14 @@ public class Note
     public AudioKeyframeManager? Automation { get; set; }
 
     /// <summary>
+    ///     Auto offset: how far the sound has already played when this (generated) note
+    ///     starts, in seconds of the sound at the note's own pitch. Each instrument sound
+    ///     scales it by its own value, because a sound's pitch decides how much of it one
+    ///     second of playback consumes. Set only by <see cref="AudioKeyframeManager" />.
+    /// </summary>
+    internal double AutoOffsetSeconds { get; init; }
+
+    /// <summary>
     ///     True when this note is a cut (retrigger) instead of a play: it silences every
     ///     one of <see cref="Instrument" />'s sounds instead of playing them, and carries
     ///     no meaningful Value/Volume/Pan/Offset/Automation of its own - those fields are left
@@ -95,8 +103,14 @@ public class Note
             var value = instrument_sound.CombineValue(Value);
             var volume = instrument_sound.CombineVolume(Volume);
             var pan = instrument_sound.CombinePan(Pan);
+            // The encoder skips (offset x sample rate / 2^(value/12)) samples of the sound's
+            // own buffer, so the offset counts seconds of the unpitched sound: an auto offset
+            // measured in playback time has to be scaled by this sound's own pitch.
+            var offset = AutoOffsetSeconds == 0
+                ? Offset
+                : Offset + AutoOffsetSeconds * Math.Pow(2, instrument_sound.Value / 12);
 
-            if (pan == 0 && Offset == 0)
+            if (pan == 0 && offset == 0)
                 yield return new NormalEvent
                 {
                     SoundEvent = sound,
@@ -114,7 +128,7 @@ public class Note
                     Volume = volume,
                     ValueScale = ValueScale.None,
                     Pan = pan,
-                    OffsetInSeconds = Offset
+                    OffsetInSeconds = offset
                 };
         }
     }

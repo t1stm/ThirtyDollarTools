@@ -191,39 +191,117 @@ public class InspectorPanelTests
 
         // No automation yet: only the add button exists.
         Assert.NotNull(inspector.Field("Automation.+ Add automation"));
-        Assert.Null(inspector.Field("Automation.+ Keyframe"));
+        Assert.Null(inspector.Field("Automation.End"));
 
         ((Button)inspector.Field("Automation.+ Add automation")!).OnClick!.Invoke(null!);
         Assert.NotNull(note.Automation);
 
-        ((Button)inspector.Field("Automation.+ Keyframe")!).OnClick!.Invoke(null!);
-        var keyframe = Assert.Single(note.Automation!.Keyframes);
+        // Keyframes come from the note's length and gap - there are none to add by hand,
+        // and none at all until a gap is typed: a fresh automation starts at zero.
+        Assert.Empty(note.Automation!.Keyframes);
+        ((NumericInput)inspector.Field("Automation.End")!).Value = 3;
+        Assert.Empty(note.Automation.Keyframes);
+        ((NumericInput)inspector.Field("Automation.Gap")!).Value = 1;
+        Assert.Equal(2, note.Automation.Keyframes.Count);
+        var keyframe = note.Automation.Keyframes[0];
 
-        ((NumericInput)inspector.Field("Keyframe 1.Gap")!).Value = 2.5;
-        Assert.Equal(2.5f, keyframe.Gap);
-
-        // Amount + the "×" checkbox commit as one modifier.
-        ((NumericInput)inspector.Field("Keyframe 1.Value")!).Value = 3;
+        // One card edits every keyframe at once: amount + the "×" checkbox commit as one
+        // modifier, into the template and out to the keyframes that still follow it.
+        ((NumericInput)inspector.Field("All keyframes.Value")!).Value = 3;
         Assert.Equal(new Modifier(3), keyframe.Value);
-        ((Checkbox)inspector.Field("Keyframe 1.Value.Kind")!).Checked = true;
+        ((Checkbox)inspector.Field("All keyframes.Value.Kind")!).Checked = true;
         Assert.Equal(new Modifier(3, ModifierKind.Multiply), keyframe.Value);
+        Assert.All(note.Automation.Keyframes,
+            k => Assert.Equal(new Modifier(3, ModifierKind.Multiply), k.Value));
 
-        ((NumericInput)inspector.Field("Keyframe 1.Offset")!).Value = 0.5;
+        ((NumericInput)inspector.Field("All keyframes.Offset")!).Value = 0.5;
         Assert.Equal(new Modifier(0.5), keyframe.Offset);
 
         ((Checkbox)inspector.Field("Automation.Gaps in seconds")!).Checked = true;
         Assert.Equal(KeyframeTiming.Time, note.Automation.Timing);
 
-        ((NumericInput)inspector.Field("Automation.Repeats")!).Value = 4;
-        Assert.Equal(4, note.Automation.Repeats);
+        ((NumericInput)inspector.Field("Automation.Grid offset")!).Value = -1;
+        Assert.Equal(-1f, note.Automation.AutomationOffset);
+        ((Checkbox)inspector.Field("Automation.Cut")!).Checked = false;
+        Assert.False(note.Automation.Cut);
         Assert.True(state.Dirty);
 
-        ((Button)inspector.Field("Keyframe 1.Remove")!).OnClick!.Invoke(null!);
+        // Shortening the note takes its keyframes with it.
+        ((NumericInput)inspector.Field("Automation.End")!).Value = 0;
         Assert.Empty(note.Automation.Keyframes);
 
         ((Button)inspector.Field("Automation.Remove automation")!).OnClick!.Invoke(null!);
         Assert.Null(note.Automation);
         Assert.NotNull(inspector.Field("Automation.+ Add automation"));
+    }
+
+    [Fact]
+    public void AutomationSection_EditedKeyframes_GetTheirOwnCard_AndResetBackToTheTemplate()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Gap = 1, End = 4 }; // three keyframes
+        state.SelectNote(note);
+
+        // All three follow the shared card: none has one of its own.
+        Assert.Null(inspector.Field("Keyframe 2.Volume"));
+
+        // Pinning one gives it a card, with its own position row.
+        ((Button)inspector.Field("Automation.+ Edit a single keyframe...")!).OnClick!.Invoke(null!);
+        Assert.Equal(1f, note.Automation!.Keyframes[0].Position);
+        Assert.NotNull(inspector.Field("Keyframe 1.Position"));
+        ((NumericInput)inspector.Field("Keyframe 1.Volume")!).Value = 0.5;
+        ((Checkbox)inspector.Field("Keyframe 1.Volume.Kind")!).Checked = true;
+        Assert.Equal(new Modifier(0.5, ModifierKind.Multiply), note.Automation.Keyframes[0].Volume);
+
+        // The shared card no longer reaches it; the other two still follow.
+        ((NumericInput)inspector.Field("All keyframes.Volume")!).Value = 0.9;
+        Assert.Equal(new Modifier(0.5, ModifierKind.Multiply), note.Automation.Keyframes[0].Volume);
+        Assert.Equal(new Modifier(0.9), note.Automation.Keyframes[1].Volume);
+
+        // Reset puts it back on the template, and its card goes away with it.
+        ((Button)inspector.Field("Keyframe 1.reset")!).OnClick!.Invoke(null!);
+        Assert.Equal(new Modifier(0.9), note.Automation.Keyframes[0].Volume);
+        Assert.Null(note.Automation.Keyframes[0].Position);
+        Assert.Null(inspector.Field("Keyframe 1.Position"));
+    }
+
+    [Fact]
+    public void AutomationSection_PicksUpAGridDragThatCreatedTheAutomation()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
+        state.SelectNote(note);
+        Assert.NotNull(inspector.Field("Automation.+ Add automation"));
+
+        // What a border drag on the grid does - no inspector row involved.
+        note.Automation = new AudioKeyframeManager { Gap = 1, End = 4 };
+        inspector.Sync();
+
+        Assert.Null(inspector.Field("Automation.+ Add automation"));
+        Assert.Equal(4, ((NumericInput)inspector.Field("Automation.End")!).Value);
+    }
+
+    [Fact]
+    public void AutomationSection_AutoOffset_TurnsTheCutOn()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Cut = false, Gap = 1, End = 4 };
+        state.SelectNote(note);
+
+        ((Checkbox)inspector.Field("All keyframes.Auto offset")!).Checked = true;
+
+        Assert.All(note.Automation!.Keyframes, keyframe => Assert.True(keyframe.AutoOffset));
+        // Without the cut the old instance keeps ringing under the spliced one.
+        Assert.True(note.Automation.Cut);
+        Assert.True(((Checkbox)inspector.Field("Automation.Cut")!).Checked);
     }
 
     [Fact]
@@ -236,7 +314,9 @@ public class InspectorPanelTests
         note.Automation = new AudioKeyframeManager
         {
             Timing = KeyframeTiming.Time,
-            Keyframes = { new AudioKeyframe { Gap = 1.5f, Value = new Modifier(2, ModifierKind.Multiply) } }
+            Gap = 1.5f,
+            Template = new AudioKeyframe { Value = new Modifier(2, ModifierKind.Multiply) },
+            End = 4
         };
         var json = state.SaveProject();
 
@@ -246,8 +326,8 @@ public class InspectorPanelTests
         var loadedNote = loadedTrack.Segments[0].Notes.Single();
         state.SelectNote(loadedNote);
 
-        Assert.Equal(1.5, ((NumericInput)inspector.Field("Keyframe 1.Gap")!).Value);
-        Assert.True(((Checkbox)inspector.Field("Keyframe 1.Value.Kind")!).Checked);
+        Assert.Equal(1.5, ((NumericInput)inspector.Field("Automation.Gap")!).Value);
+        Assert.True(((Checkbox)inspector.Field("All keyframes.Value.Kind")!).Checked);
         Assert.True(((Checkbox)inspector.Field("Automation.Gaps in seconds")!).Checked);
     }
 
@@ -269,21 +349,18 @@ public class InspectorPanelTests
         Assert.True(((Checkbox)inspector.Field("Track Automation 1.All sounds")!).Checked);
         Assert.Null(inspector.Field("Track Automation 1.Sounds"));
 
-        ((Button)inspector.Field("Track Automation 1.+ Keyframe")!).OnClick!.Invoke(null!);
-        var keyframe = Assert.Single(automation.Keyframes.Keyframes);
+        ((NumericInput)inspector.Field("Track Automation 1.Gap")!).Value = 1;
+        ((NumericInput)inspector.Field("Track Automation 1.End")!).Value = 3;
+        Assert.Equal(2, automation.Keyframes.Keyframes.Count);
+        var keyframe = automation.Keyframes.Keyframes[0];
 
-        ((NumericInput)inspector.Field("Track Automation 1 Keyframe 1.Gap")!).Value = 2.5;
-        Assert.Equal(2.5f, keyframe.Gap);
-
-        ((NumericInput)inspector.Field("Track Automation 1 Keyframe 1.Value")!).Value = 3;
+        ((NumericInput)inspector.Field("Track Automation 1 All keyframes.Value")!).Value = 3;
         Assert.Equal(new Modifier(3), keyframe.Value);
 
-        ((NumericInput)inspector.Field("Track Automation 1.Repeats")!).Value = 4;
-        Assert.Equal(4, automation.Keyframes.Repeats);
+        ((NumericInput)inspector.Field("Track Automation 1.Gap")!).Value = 4;
+        Assert.Equal(4f, automation.Keyframes.Gap);
         Assert.True(state.Dirty);
-
-        ((Button)inspector.Field("Track Automation 1 Keyframe 1.Remove")!).OnClick!.Invoke(null!);
-        Assert.Empty(automation.Keyframes.Keyframes);
+        Assert.Empty(automation.Keyframes.Keyframes); // a gap wider than the length holds nothing
 
         ((Button)inspector.Field("Track Automation 1.Remove")!).OnClick!.Invoke(null!);
         Assert.Empty(track.TrackAutomations);
@@ -325,11 +402,11 @@ public class InspectorPanelTests
         var first = track.TrackAutomations[0];
         var second = track.TrackAutomations[1];
 
-        ((Button)inspector.Field("Track Automation 1.+ Keyframe")!).OnClick!.Invoke(null!);
-        ((NumericInput)inspector.Field("Track Automation 1 Keyframe 1.Gap")!).Value = 1;
-        Assert.Equal(1f, first.Keyframes.Keyframes[0].Gap);
+        ((NumericInput)inspector.Field("Track Automation 1.Gap")!).Value = 1;
+        ((NumericInput)inspector.Field("Track Automation 1.End")!).Value = 2;
+        Assert.Single(first.Keyframes.Keyframes);
         Assert.Empty(second.Keyframes.Keyframes);
-        Assert.Null(inspector.Field("Track Automation 2 Keyframe 1.Gap"));
+        Assert.Null(inspector.Field("Track Automation 2 All keyframes.Value"));
 
         ((Button)inspector.Field("Track Automation 2.Remove")!).OnClick!.Invoke(null!);
         Assert.Same(first, Assert.Single(track.TrackAutomations));
@@ -343,7 +420,9 @@ public class InspectorPanelTests
         var manager = new AudioKeyframeManager
         {
             Timing = KeyframeTiming.Time,
-            Keyframes = { new AudioKeyframe { Gap = 1.5f, Value = new Modifier(2, ModifierKind.Multiply) } }
+            Gap = 1.5f,
+            Template = new AudioKeyframe { Value = new Modifier(2, ModifierKind.Multiply) },
+            End = 4
         };
         track.AddTrackAutomation(manager, ["kick"]);
         var json = state.SaveProject();
@@ -353,8 +432,8 @@ public class InspectorPanelTests
         state.SelectTrack(loadedTrack);
 
         Assert.False(((Checkbox)inspector.Field("Track Automation 1.All sounds")!).Checked);
-        Assert.Equal(1.5, ((NumericInput)inspector.Field("Track Automation 1 Keyframe 1.Gap")!).Value);
-        Assert.True(((Checkbox)inspector.Field("Track Automation 1 Keyframe 1.Value.Kind")!).Checked);
+        Assert.Equal(1.5, ((NumericInput)inspector.Field("Track Automation 1.Gap")!).Value);
+        Assert.True(((Checkbox)inspector.Field("Track Automation 1 All keyframes.Value.Kind")!).Checked);
     }
 
     [Fact]
@@ -467,7 +546,7 @@ public class InspectorPanelTests
         state.SetNoteSelection([a, b]);
 
         Assert.Null(inspector.Field("Automation.+ Add automation"));
-        Assert.Null(inspector.Field("Automation.Repeats")); // no editable form while mixed
+        Assert.Null(inspector.Field("Automation.End")); // no editable form while mixed
         Assert.NotNull(inspector.Field("Automation.Automation"));
     }
 
@@ -484,10 +563,10 @@ public class InspectorPanelTests
         b.Automation = new AudioKeyframeManager();
         state.SetNoteSelection([a, b]);
 
-        ((NumericInput)inspector.Field("Automation.Repeats")!).Value = 4;
+        ((NumericInput)inspector.Field("Automation.End")!).Value = 4;
 
-        Assert.Equal(4, b.Automation.Repeats); // primary edited directly
-        Assert.Equal(4, a.Automation!.Repeats); // fanned out via clone
+        Assert.Equal(4, b.Automation.End); // primary edited directly
+        Assert.Equal(4, a.Automation!.End); // fanned out via clone
         Assert.NotSame(a.Automation, b.Automation); // still independent instances
     }
 

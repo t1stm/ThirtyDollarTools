@@ -589,8 +589,8 @@ public class EditorStateTests
         var b = state.AddNote(segment, 5, boom, 3);
 
         state.BeginGesture();
-        state.MoveSelectedNotes(track, [(a, segment, 1, 1), (b, segment, 6, 4)]);
-        state.MoveSelectedNotes(track, [(a, segment, 2, 2), (b, segment, 7, 5)]);
+        state.MoveSelectedNotes(track, [(a, segment, 1, 1, null), (b, segment, 6, 4, null)]);
+        state.MoveSelectedNotes(track, [(a, segment, 2, 2, null), (b, segment, 7, 5, null)]);
 
         Assert.Equal(2, a.Step);
         Assert.Equal(2, a.Value);
@@ -618,10 +618,10 @@ public class EditorStateTests
         var note = state.AddNote(segment, 0, boom, 0);
 
         state.BeginGesture();
-        state.MoveSelectedNotes(track, [(note, segment, 1, 0)]);
+        state.MoveSelectedNotes(track, [(note, segment, 1, 0, null)]);
 
         state.BeginGesture(); // a second, separate drag
-        state.MoveSelectedNotes(track, [(note, segment, 2, 0)]);
+        state.MoveSelectedNotes(track, [(note, segment, 2, 0, null)]);
 
         state.Undo();
         Assert.Equal(1, note.Step); // only the second drag undone
@@ -639,7 +639,7 @@ public class EditorStateTests
         var boom = MakeInstrument(state, "boom");
         var note = state.AddNote(first, 3, boom, 0);
 
-        state.MoveSelectedNotes(track, [(note, second, 0, 0)]);
+        state.MoveSelectedNotes(track, [(note, second, 0, 0, null)]);
 
         Assert.Empty(first.Notes);
         Assert.Equal([note], second.Notes);
@@ -732,7 +732,7 @@ public class EditorStateTests
         var note = state.AddNote(segment, 3, boom, 0);
         state.SaveProject(); // clears dirty
 
-        state.MoveSelectedNotes(track, [(note, segment, 3, 0)]); // identical position
+        state.MoveSelectedNotes(track, [(note, segment, 3, 0, null)]); // identical position
 
         Assert.False(state.Dirty); // Touch() never ran: proves the no-op guard short-circuited
     }
@@ -1269,7 +1269,7 @@ public class EditorStateTests
 
         // The pasted block is the selection, so it can be dragged off the originals whole.
         state.MoveSelectedNotes(track,
-            [.. state.SelectedNotes.Select(n => (n, segment, n.Step + 4, n.Value))]);
+            [.. state.SelectedNotes.Select(n => (n, segment, n.Step + 4, n.Value, n.Automation?.End))]);
         Assert.Equal([0, 1, 2, 3, 4, 5, 6, 7], segment.Notes.Select(n => n.Step).Order());
     }
 
@@ -1326,8 +1326,8 @@ public class EditorStateTests
         Assert.NotSame(pastedA.Automation, pastedB.Automation);
 
         // Editing one clone's automation must not reach the other.
-        pastedA.Automation!.Repeats = 5;
-        Assert.Equal(1, pastedB.Automation!.Repeats);
+        pastedA.Automation!.End = 5;
+        Assert.Equal(0, pastedB.Automation!.End);
     }
 
     [Fact]

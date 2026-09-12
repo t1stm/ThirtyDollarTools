@@ -144,8 +144,7 @@ public class ProjectTrackTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
         track.Segments[0].Notes.Add(new Note { Step = 4, Instrument = Instrument.Single("clap") });
 
-        var manager = new AudioKeyframeManager();
-        manager.Keyframes.Add(new AudioKeyframe { Gap = 2 });
+        var manager = new AudioKeyframeManager { Cut = false, CutAtEnd = false, Gap = 2, End = 3 };
         track.AddTrackAutomation(manager, ["boom"]);
 
         var events = track.ToSequence().Events;
@@ -162,8 +161,7 @@ public class ProjectTrackTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom") });
         track.Segments[0].Notes.Add(new Note { Step = 5, Instrument = Instrument.Single("clap") });
 
-        var manager = new AudioKeyframeManager();
-        manager.Keyframes.Add(new AudioKeyframe { Gap = 2 });
+        var manager = new AudioKeyframeManager { Cut = false, CutAtEnd = false, Gap = 2, End = 3 };
         track.AddTrackAutomation(manager); // Sounds == null -> every sound
 
         var events = track.ToSequence().Events;
@@ -180,13 +178,12 @@ public class ProjectTrackTests
         var note = new Note
         {
             Step = 0, Instrument = Instrument.Single("boom"),
-            Automation = new AudioKeyframeManager()
+            Automation = new AudioKeyframeManager { Cut = false, CutAtEnd = false, Gap = 2, End = 3 }
         };
-        note.Automation.Keyframes.Add(new AudioKeyframe { Gap = 2 }); // note-level echo at step 2
         track.Segments[0].Notes.Add(note);
 
-        var trackManager = new AudioKeyframeManager();
-        trackManager.Keyframes.Add(new AudioKeyframe { Gap = 4 }); // track-level echo at step 4
+        // track-level echo at step 4
+        var trackManager = new AudioKeyframeManager { Cut = false, CutAtEnd = false, Gap = 4, End = 5 };
         track.AddTrackAutomation(trackManager);
 
         var events = track.ToSequence().Events;
@@ -203,9 +200,8 @@ public class ProjectTrackTests
         var note = new Note
         {
             Step = 0, Instrument = Instrument.Single("boom"), Value = 5,
-            Automation = new AudioKeyframeManager()
+            Automation = new AudioKeyframeManager { Cut = false, CutAtEnd = false, Gap = 2, End = 3 }
         };
-        note.Automation.Keyframes.Add(new AudioKeyframe { Gap = 2 }); // echo at step 2, same pitch
         track.Segments[0].Notes.Add(note);
         track.Transpose = -0.4f;
 

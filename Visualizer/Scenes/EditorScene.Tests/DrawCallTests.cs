@@ -85,10 +85,10 @@ public class DrawCallTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void AnAutomationPath_KeepsDrawing_PastTheBatchReservation()
+    public void AnAutomationPath_StopsAtItsReservation_AndStaysOneBatch()
     {
-        // The mark pool grows past its reservation: a path with more marks than the pool
-        // holds is still drawn whole, not cut off mid-air.
+        // The marks share the block batch with the notes now, so the path has a bound:
+        // it draws what fits and stops, rather than growing the batch under the strips.
         var ctx = new EditorTestContext();
         var state = new EditorState();
         var track = state.AddTrack();
@@ -97,11 +97,12 @@ public class DrawCallTests(ITestOutputHelper output)
 
         var segment = track.Segments[0];
         segment.Bars = 64; // wide enough that the whole path stays on screen at 4 px/step
-        // ~3 marks per generated event, 500 events: far past the 768-slot reservation.
+        // 2 marks per generated event, 500 events: far past the 768-slot reservation.
         state.AddNote(segment, 0, instrument, 0).Automation = new AudioKeyframeManager
         {
-            Repeats = 500,
-            Keyframes = { new AudioKeyframe { Gap = 1, Value = new Modifier(1) } }
+            Gap = 1,
+            Template = new AudioKeyframe { Value = new Modifier(1) },
+            End = 501
         };
 
         state.OpenTrack(track);
@@ -110,9 +111,8 @@ public class DrawCallTests(ITestOutputHelper output)
         view.Layout();
         view.DrawTo(ctx);
 
-        Assert.True(view.AutomationMarks.Count > 768,
-            $"path truncated at {view.AutomationMarks.Count} marks");
-        // And the grown path is still two draw calls: the grid batch and the block batch.
+        Assert.InRange(view.AutomationMarks.Count, 1, 768);
+        // And the whole canvas is still two draw calls: the grid batch and the block batch.
         Assert.Equal(2, Report(ctx).OfType<LineBatch>().Count());
     }
 

@@ -43,31 +43,37 @@ public sealed class TrackEditorView : Panel
     private const int NoteBlockPool = 2048;
     private const int StripBlockPool = 512; // changed from 256 for Aleph-0 demo
     private const int BoundaryLinePool = 512; // changed from 256 for Aleph-0 demo
-    private const int AutomationMarkReserve = 768; // ≤3 marks per generated automation event
+    // ≤2 marks per generated automation event (a tick and the line into it), and the
+    // marks are viewport-culled, so this bounds what one screen can show rather than what
+    // a note can generate. Past it the paths simply stop drawing.
+    private const int AutomationMarkReserve = 768;
+
+    // The marker grab boxes: viewport-bounded like the marks they sit on, and far fewer,
+    // since only the markers actually on screen are catchable.
+    private const int KeyframeBlockPool = 256;
 
     // Everything flat-colored on this grid is batched - the line work, the bands, and the
     // note/strip pools' fills - and ascending slot order IS paint order within a batch.
-    // That order is why there are two: the automation paths have no bound (a note can
-    // generate any number of events), and only a batch's LAST range can grow, but they
-    // must still paint under the notes. So the grid batch holds everything up to and
-    // including automation, and the block batch picks up from the notes.
+    // There are two: the grid batch paints under every block, the block batch over it.
     //
     // Grid batch: the cut row's band first (every later slot paints over it), the line
-    // work, the zero-value band over that, then the automation paths.
+    // work, then the zero-value band over that.
     private const int CutRowBgSlot = 0;
     private const int RowLineSlot = CutRowBgSlot + 1;
     private const int StepLineSlot = RowLineSlot + Rows + 1;
     private const int BoundaryLineSlot = StepLineSlot + StepLinePool;
     private const int ZeroRowSlot = BoundaryLineSlot + BoundaryLinePool;
-    private const int AutomationMarkSlot = ZeroRowSlot + 1;
-    private const int GridBatchReserve = AutomationMarkSlot + AutomationMarkReserve;
+    private const int GridBatchReserve = ZeroRowSlot + 1;
 
-    // Block batch: the notes, then the strip/ruler bands over anything a note bleeds
-    // above the grid into, then the segment strips on top of those. The pieces that must
-    // paint over ALL of it - the gutter, the cut rule, the playheads, the marquee - stay
-    // ordinary children, which render a layer above both batches.
+    // Block batch: the notes, the automation marks over the bodies they belong to, then
+    // the strip/ruler bands over anything a note bleeds above the grid into, then the
+    // segment strips on top of those. The pieces that must paint over ALL of it - the
+    // gutter, the cut rule, the playheads, the marquee - stay ordinary children, which
+    // render a layer above both batches.
     private const int NoteBlockSlot = 0;
-    private const int StripBgSlot = NoteBlockSlot + NoteBlockPool;
+    private const int AutomationMarkSlot = NoteBlockSlot + NoteBlockPool;
+    private const int ResizeHandleSlot = AutomationMarkSlot + AutomationMarkReserve;
+    private const int StripBgSlot = ResizeHandleSlot + 1;
     private const int RulerBgSlot = StripBgSlot + 1;
     private const int StripBlockSlot = RulerBgSlot + 1;
     private const int BlockBatchTotal = StripBlockSlot + StripBlockPool;
@@ -94,6 +100,7 @@ public sealed class TrackEditorView : Panel
     private readonly Panel _gutterBackground;
     private readonly LineBatch _lineBatch = new();
     private readonly Panel _marqueeRect;
+    private readonly List<KeyframeBlock> _keyframeBlocks = [];
     private readonly List<NoteBlock> _noteBlocks = [];
     private readonly List<float> _playheadXs = [];
     private readonly List<Panel> _playheads = [];
@@ -101,6 +108,21 @@ public sealed class TrackEditorView : Panel
     private readonly List<StripBlock> _stripBlocks = [];
 
     internal NoteBlock? _dragging;
+
+    /// <summary>Which border a running resize drag has hold of: -1 left, +1 right, 0 = none.</summary>
+    private int _resizeEdge;
+
+    /// <summary>Test seam: the hovered border band's view-local rect, zero-sized when none.</summary>
+    private Vector4 _handleBand;
+
+    /// <summary>The marker a keyframe drag has hold of; null while none is running.</summary>
+    private KeyframeBlock? _keyframeDrag;
+
+    /// <summary>Indices that carried their own settings when the drag started (Ctrl fan-out).</summary>
+    private HashSet<int> _keyframeEdited = [];
+
+    /// <summary>Whether the running keyframe drag shapes the whole automation (Ctrl held).</summary>
+    private bool _keyframeFanOut;
     private List<GroupDragEntry>? _groupDrag;
     private int _groupDragAnchorStartStep;
     private double _groupDragAnchorStartValue;
@@ -114,6 +136,11 @@ public sealed class TrackEditorView : Panel
 
     /// <summary>Last pointer y of a Ctrl+middle row-scaling drag; null while none is running.</summary>
     private float? _rowScaleY;
+
+    // Cached longest-note scan, keyed by the track and the edit revision it was taken at.
+    private int _longestNoteRevision = -1;
+    private float _longestNoteSteps = 1;
+    private ProjectTrack? _longestNoteTrack;
 
     public TrackEditorView(UIContext context, EditorState state) : base(context)
     {
@@ -129,10 +156,9 @@ public sealed class TrackEditorView : Panel
         _lineBatch.Count = GridBatchReserve;
         _blockBatch.Count = BlockBatchTotal;
 
-        // Automation paths paint under the note blocks and never take input, so they are
-        // batch slots only - no elements at all, and no cap: they are the grid batch's
-        // last range, which grows.
-        _automationPath = new AutomationPath(_lineBatch, AutomationMarkSlot);
+        // Automation marks paint over the note blocks and never take input, so they are
+        // batch slots only - no elements at all, just the reserve above them.
+        _automationPath = new AutomationPath(_blockBatch, AutomationMarkSlot, AutomationMarkReserve);
 
         // The note and strip blocks stay elements, but only to be hit: each owns the
         // batch slot its fill is written into (pool position = slot), so nothing has to
@@ -142,6 +168,16 @@ public sealed class TrackEditorView : Panel
             var block = new NoteBlock(context, this) { BatchSlot = NoteBlockSlot + i };
             _noteBlocks.Add(block);
             AddChild(block);
+        }
+
+        // Added after the note pool on purpose: a marker sitting on a note body has to win
+        // the press over the body it is drawn on, and equal-depth hits resolve to the last
+        // child tested (see Panel.HitTest).
+        for (var i = 0; i < KeyframeBlockPool; i++)
+        {
+            var marker = new KeyframeBlock(context, this);
+            _keyframeBlocks.Add(marker);
+            AddChild(marker);
         }
 
         for (var i = 0; i < StripBlockPool; i++)
@@ -247,6 +283,10 @@ public sealed class TrackEditorView : Panel
     [NamedSetting("strip-selected-color")]
     public Vector4 StripSelected { get; set; }
 
+    /// <summary>The cap marking where an automation's "cut at end" stops the note.</summary>
+    [NamedSetting("automation-end-color")]
+    public Vector4 AutomationEndColor { get; set; }
+
     /// <summary>A note block's fill while it is part of the selection.</summary>
     [NamedSetting("selected-note-color")]
     public Vector4 SelectedNoteColor { get; set; }
@@ -260,6 +300,8 @@ public sealed class TrackEditorView : Panel
 
     internal IReadOnlyList<Vector4> AutomationMarks => _automationPath.Marks;
     internal IReadOnlyList<NoteBlock> NoteBlocks => _noteBlocks;
+    internal Vector4 ResizeHandleBand => _handleBand;
+    internal IReadOnlyList<KeyframeBlock> KeyframeBlocks => _keyframeBlocks;
     internal IReadOnlyList<LabelBatch.Slot> BeatLabels => _labelBatch.Range(BeatLabelSlot, BeatLabelPool);
     internal IReadOnlyList<LabelBatch.Slot> GutterLabels => _labelBatch.Range(GutterLabelSlot, Rows);
 
@@ -391,6 +433,8 @@ public sealed class TrackEditorView : Panel
                 // scrolling) can never steal the captured element mid-drag.
                 PlaceNote(dragged, dragged.Segment, dragged.Note, _geometry.SegmentStartPx(track, dragged.Segment));
 
+            _automationPath.BeginFrame();
+            var longestNoteSteps = LongestNoteSteps(track);
             float offset = 0;
             var beatAccum = 0;
             for (var i = 0; i < track.Segments.Count && offset <= visibleEnd; i++)
@@ -401,7 +445,8 @@ public sealed class TrackEditorView : Panel
                 var segBeatStart = beatAccum;
                 offset += segWidth;
                 beatAccum += segment.Bars * segment.Numerator;
-                if (offset < visibleStart || segWidth <= 0) continue;
+                // A long note whose segment ends left of the viewport can still reach into it.
+                if (offset + longestNoteSteps * pps < visibleStart || segWidth <= 0) continue;
 
                 if (stripBlock < _stripBlocks.Count)
                 {
@@ -470,12 +515,21 @@ public sealed class TrackEditorView : Panel
 
                 foreach (var note in segment.Notes)
                 {
-                    if (note.Automation != null && segStart + note.Step * pps <= visibleEnd)
-                        _automationPath.Draw(_geometry, (absX, absY), track, segment, note, segStart,
-                            InstrumentColor(note.Instrument), ref autoMark);
-                    if (_dragging?.Note == note) continue;
                     var x = segStart + note.Step * pps;
-                    if (x + pps < visibleStart || x > visibleEnd) continue;
+                    var noteWidth = NoteSteps(track, segment, note) * pps;
+                    if (note.Automation != null && x <= visibleEnd && x + noteWidth >= visibleStart)
+                    {
+                        // The marks paint ON the note body, so they take whichever of the
+                        // two shades the body is not: the instrument colour over a selected
+                        // note's highlight, a lightened one over the instrument fill.
+                        var fill = InstrumentColor(note.Instrument);
+                        _automationPath.Draw(_geometry, (absX, absY), track, segment, note, segStart,
+                            _state.SelectedNotes.Contains(note) ? fill : Lighten(fill, 0.45f),
+                            AutomationEndColor, ref autoMark);
+                    }
+
+                    if (_dragging?.Note == note) continue;
+                    if (x + noteWidth < visibleStart || x > visibleEnd) continue;
                     while (noteBlock < _noteBlocks.Count && _noteBlocks[noteBlock] == _dragging) noteBlock++;
                     if (noteBlock >= _noteBlocks.Count) break;
 
@@ -497,6 +551,7 @@ public sealed class TrackEditorView : Panel
         }
 
         _automationPath.HideUnused(autoMark);
+        PlaceKeyframeBlocks();
         for (var i = stepLine; i < StepLinePool; i++) _lineBatch.Hide(StepLineSlot + i);
         for (var i = stripBlock; i < _stripBlocks.Count; i++)
         {
@@ -677,7 +732,8 @@ public sealed class TrackEditorView : Panel
         {
             x = stepX;
             y = _geometry.ValueTop(note.Value) + 0.5f;
-            blockWidth = Math.Max(3, PixelsPerStep - 1);
+            var steps = _state.OpenedTrack is { } track ? NoteSteps(track, segment, note) : 1;
+            blockWidth = Math.Max(3, steps * PixelsPerStep - 1);
             // No overdraw covers a grid note bleeding past the grid's bottom edge
             // (unlike the top, still covered by the strip/ruler bands), so clamp it.
             var naturalHeight = Math.Max(3, _geometry.RowHeight - 1);
@@ -691,6 +747,156 @@ public sealed class TrackEditorView : Panel
         block.Height = blockHeight;
         _blockBatch.Set(block.BatchSlot, Computed.AbsoluteX + x, Computed.AbsoluteY + y, blockWidth, blockHeight,
             _state.SelectedNotes.Contains(note) ? SelectedNoteColor : InstrumentColor(note.Instrument));
+    }
+
+    /// <summary>
+    ///     A note's drawn length in grid steps: its automation's end, or one step when it has
+    ///     none. Never shorter than a step, so a stub automation still shows a note.
+    /// </summary>
+    private float NoteSteps(ProjectTrack track, TrackSegment segment, Note note)
+    {
+        if (note.Automation is not { End: > 0 } automation) return 1;
+        return Math.Max(1, automation.EndSteps(segment.StepMinutes(track.Timing.BPM)));
+    }
+
+    /// <summary>
+    ///     How far the longest note of the track reaches, in steps - how much wider than the
+    ///     viewport the segment scan has to start, since a long note in a segment that ends
+    ///     off-screen left can still reach into view. Rescanned only when the project changed
+    ///     (<see cref="EditorState.Revision" />), not per frame: per frame it would undo the
+    ///     culling it exists to keep correct.
+    /// </summary>
+    private float LongestNoteSteps(ProjectTrack track)
+    {
+        if (ReferenceEquals(_longestNoteTrack, track) && _longestNoteRevision == _state.Revision)
+            return _longestNoteSteps;
+
+        var longest = 1f;
+        foreach (var segment in track.Segments)
+        foreach (var note in segment.Notes)
+            if (note.Automation is { End: > 0 })
+                longest = Math.Max(longest, NoteSteps(track, segment, note));
+
+        _longestNoteTrack = track;
+        _longestNoteRevision = _state.Revision;
+        _longestNoteSteps = longest;
+        return longest;
+    }
+
+    /// <summary>
+    ///     Hangs the marker grab boxes on whatever <see cref="AutomationPath" /> just drew,
+    ///     so only the markers actually on screen are catchable. Only a selected note's
+    ///     markers get one: they sit on top of the note body, so on every other note they
+    ///     would swallow the press that selects it. Reach for a note first, then shape it.
+    ///     The block a drag has hold of keeps its keyframe for the whole gesture, the way a
+    ///     dragged note keeps its block.
+    /// </summary>
+    private void PlaceKeyframeBlocks()
+    {
+        var used = 0;
+        foreach (var handle in _automationPath.Handles)
+        {
+            var pinned = _keyframeDrag is { } drag && drag.Note == handle.Note && drag.KeyframeIndex == handle.Index;
+            if (!pinned && !_state.SelectedNotes.Contains(handle.Note)) continue;
+            KeyframeBlock block;
+            if (pinned)
+            {
+                block = _keyframeDrag!;
+            }
+            else
+            {
+                while (used < _keyframeBlocks.Count && _keyframeBlocks[used] == _keyframeDrag) used++;
+                if (used >= _keyframeBlocks.Count) break;
+                block = _keyframeBlocks[used++];
+            }
+
+            block.Assign(handle.Note, handle.Segment, handle.Index);
+            block.X = handle.X - KeyframeBlock.GrabRadius;
+            block.Y = handle.Y - KeyframeBlock.GrabRadius;
+            block.Width = KeyframeBlock.GrabRadius * 2;
+            block.Height = KeyframeBlock.GrabRadius * 2;
+        }
+
+        for (var i = used; i < _keyframeBlocks.Count; i++)
+            if (_keyframeBlocks[i] != _keyframeDrag)
+                Hide(_keyframeBlocks[i]);
+    }
+
+    /// <summary>
+    ///     Starts a marker drag. Ctrl at press makes it shape the whole automation: the value
+    ///     goes into the template and fans out to every keyframe that had no settings of its
+    ///     own, which is captured here so the fan-out cannot swallow hand-edited keyframes as
+    ///     the template moves under them.
+    /// </summary>
+    internal void BeginKeyframeDrag(KeyframeBlock block)
+    {
+        if (block.Note?.Automation is not { } automation) return;
+
+        _keyframeDrag = block;
+        _keyframeFanOut = WheelZooms;
+        _keyframeEdited =
+        [
+            .. Enumerable.Range(0, automation.Keyframes.Count)
+                .Where(i => !automation.Keyframes[i].ValueEquals(automation.Template))
+        ];
+        _state.BeginGesture();
+    }
+
+    /// <summary>
+    ///     One frame of a marker drag: vertically it writes the keyframe's value, horizontally
+    ///     its own position. Modifiers are relative, so the value is written as
+    ///     "add whatever gets from the previous keyframe's result to the pointer" - always
+    ///     defined, which a multiplicative one would not be. The position is clamped strictly
+    ///     between the neighbouring markers, so markers can never cross or reorder.
+    /// </summary>
+    internal void UpdateKeyframeDrag(float x, float y)
+    {
+        if (_keyframeDrag is not { Note: { Automation: { } automation } note, Segment: { } segment } block) return;
+        if (_state.OpenedTrack is not { } track) return;
+
+        var index = block.KeyframeIndex;
+        if (index >= automation.Keyframes.Count) return;
+
+        var stepMinutes = segment.StepMinutes(track.Timing.BPM);
+        var noteGlobalStep = track.GlobalStepOf(segment, note.Step);
+        // Markers are drawn in the middle of the cell their position falls in, like the
+        // note's own start is - so the pointer's own half-step offset comes back off here.
+        var steps = UnsnappedStepAt(x) - noteGlobalStep - 0.5;
+        var position = automation.Timing == KeyframeTiming.Step ? steps : steps * stepMinutes * 60d;
+
+        // Strictly inside the neighbours, and strictly inside the note.
+        const float margin = 0.001f;
+        var lower = index > 0 ? automation.PositionOf(index - 1) : 0;
+        var upper = index + 1 < automation.Keyframes.Count ? automation.PositionOf(index + 1) : automation.End;
+        var clamped = Math.Clamp((float)position, lower + margin, Math.Max(lower + margin, upper - margin));
+
+        var target = Math.Clamp(ValueAt(y), -MaxValue, MaxValue);
+        var modifier = new Modifier(target - automation.ValueBefore(note, index));
+
+        _state.EditAutomation(automation, () =>
+        {
+            automation.Keyframes[index].Position = clamped;
+            if (!_keyframeFanOut)
+            {
+                automation.Keyframes[index].Value = modifier;
+                return;
+            }
+
+            automation.Template.Value = modifier;
+            for (var i = 0; i < automation.Keyframes.Count; i++)
+                if (!_keyframeEdited.Contains(i))
+                    automation.Keyframes[i].Value = modifier;
+        });
+
+        InvalidateLayout();
+    }
+
+    /// <summary>The same colour lifted toward white, alpha untouched - what reads on top of it.</summary>
+    private static Vector4 Lighten(Vector4 color, float amount)
+    {
+        var lightened = color + (Vector4.One - color) * amount;
+        lightened.W = color.W;
+        return lightened;
     }
 
     private static void Hide(UIElement element)
@@ -820,6 +1026,7 @@ public sealed class TrackEditorView : Panel
     public override void Update(UIContext uiContext)
     {
         base.Update(uiContext);
+        DrawResizeHandle(uiContext);
         if (_placing != null && uiContext.CapturedElement != this) _placing = null;
 
         if (_marqueeAnchor != null && uiContext.CapturedElement != this)
@@ -829,10 +1036,17 @@ public sealed class TrackEditorView : Panel
             InvalidateLayout();
         }
 
+        if (_keyframeDrag != null && uiContext.CapturedElement != _keyframeDrag)
+        {
+            _keyframeDrag = null;
+            InvalidateLayout();
+        }
+
         if (_dragging == null || uiContext.CapturedElement == _dragging) return;
 
         _dragging = null; // drag ended: let the pool reassign freely again
         _groupDrag = null;
+        _resizeEdge = 0;
         InvalidateLayout();
     }
 
@@ -948,7 +1162,7 @@ public sealed class TrackEditorView : Panel
                 // against that cell, so a box drawn entirely inside one still
                 // selects the note.
                 var globalStep = offset + note.Step;
-                var stepOverlaps = globalStep < maxStep && globalStep + 1 > minStep;
+                var stepOverlaps = globalStep < maxStep && globalStep + NoteSteps(track, segment, note) > minStep;
                 var valueOverlaps = note.Value - 1 < maxValue && note.Value > minValue;
                 if (stepOverlaps && valueOverlaps) contained.Add(note);
             }
@@ -976,14 +1190,21 @@ public sealed class TrackEditorView : Panel
     ///     of them (a fresh press onto an unselected note already replaced the selection
     ///     with just it, so this naturally degrades to a plain single-note drag).
     /// </summary>
-    internal void BeginNoteDrag(NoteBlock block, float pressY)
+    internal void BeginNoteDrag(NoteBlock block, float pressX, float pressY)
     {
         if (_state.OpenedTrack is not { } track || block.Note == null || block.Segment == null) return;
 
         _dragging = block;
         _state.BeginGesture();
 
-        var anchorGlobalStep = track.GlobalStepOf(block.Segment, block.Note.Step);
+        // The pointer's own step at press, not the note's: the drag moves every note by the
+        // delta from here, so anchoring on the note's start would shift it by however far
+        // into the note the press landed - grabbing a long note in the middle would snap its
+        // start to the cursor before the pointer moved at all.
+        var (pressSegment, pressStep) = StepAt(pressX, true);
+        var anchorGlobalStep = pressSegment != null
+            ? track.GlobalStepOf(pressSegment, pressStep)
+            : track.GlobalStepOf(block.Segment, block.Note.Step);
         _groupDragAnchorStartStep = anchorGlobalStep;
         // Snapped pointer value at press, not the note's own exact Value, so both ends of
         // the per-frame delta are snapped the same way. A same-position drag frame - which
@@ -1008,6 +1229,132 @@ public sealed class TrackEditorView : Panel
     }
 
     /// <summary>
+    ///     Lightens the border band under the pointer, so the grab zone shows itself without
+    ///     anything being drawn on a note at rest. Written per frame rather than per layout:
+    ///     hovering a border changes no geometry, so nothing would invalidate the layout.
+    /// </summary>
+    private void DrawResizeHandle(UIContext uiContext)
+    {
+        var hovered = _dragging;
+        if (hovered == null)
+            foreach (var block in _noteBlocks)
+                if (block is { IsHovered: true, Note: not null })
+                {
+                    hovered = block;
+                    break;
+                }
+
+        var edge = _resizeEdge != 0 ? _resizeEdge : hovered?.EdgeAt(uiContext.PointerX) ?? 0;
+        if (hovered?.Note == null || edge == 0)
+        {
+            _blockBatch.Hide(ResizeHandleSlot);
+            _handleBand = default;
+            return;
+        }
+
+        var zone = hovered.EdgeZone;
+        var width = (float)hovered.Computed.Width;
+        var x = (float)hovered.Computed.AbsoluteX + (edge > 0 ? width - zone : 0);
+        var y = (float)hovered.Computed.AbsoluteY;
+        var height = (float)hovered.Computed.Height;
+
+        // The band is the note's own fill, lifted toward white - it reads as the same note.
+        _blockBatch.Set(ResizeHandleSlot, x, y, zone, height,
+            Lighten(_blockBatch.ColorOf(hovered.BatchSlot), 0.35f));
+        _handleBand = new Vector4(x - Computed.AbsoluteX, y - Computed.AbsoluteY, zone, height);
+    }
+
+    /// <summary>
+    ///     Starts a border drag on the given block's edge: -1 is its left border, +1 its
+    ///     right. Every selected note is captured with its own start and length, so a group
+    ///     resize applies one delta to all of them - the same shape as the group move, and
+    ///     the same single undo entry.
+    /// </summary>
+    internal void BeginNoteResize(NoteBlock block, int edge, float pressX)
+    {
+        if (_state.OpenedTrack is not { } track || block.Note == null || block.Segment == null) return;
+
+        _dragging = block;
+        _resizeEdge = edge;
+        _state.BeginGesture();
+
+        var (_, pressStep) = StepAt(pressX, true);
+        _groupDragAnchorStartStep = track.GlobalStepOf(block.Segment, pressStep);
+        _groupDragLastStep = _groupDragAnchorStartStep;
+
+        _groupDrag =
+        [
+            .. _state.SelectedNotes.Select(note =>
+            {
+                var segment = track.Segments.FirstOrDefault(s => s.Notes.Contains(note));
+                var globalStep = segment != null ? track.GlobalStepOf(segment, note.Step) : note.Step;
+                var steps = segment != null ? NoteSteps(track, segment, note) : 1;
+                return new GroupDragEntry(note, globalStep, note.Value, steps);
+            })
+        ];
+    }
+
+    /// <summary>
+    ///     One frame of a border drag. The right border sets the length; the left one moves
+    ///     the note and grows the length by as much, so its end stays put. Both are floored
+    ///     at one step and clamped to the track's own length, and a note with no automation
+    ///     gets one the moment it is dragged - a cutting sustain with no gap, so it holds for
+    ///     its whole length until a gap is typed into the inspector.
+    /// </summary>
+    private void UpdateResizeDrag(float x)
+    {
+        if (_groupDrag is not { Count: > 0 } entries || _state.OpenedTrack is not { } track) return;
+
+        var (segment, step) = StepAt(x, true);
+        if (segment == null) return;
+
+        var totalSteps = track.Segments.Sum(s => s.StepCount);
+        var newAnchorGlobalStep = track.GlobalStepOf(segment, step);
+        var stepDelta = newAnchorGlobalStep - _groupDragAnchorStartStep;
+
+        var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value, float? End)>(entries.Count);
+        foreach (var entry in entries)
+        {
+            var globalStep = entry.StartGlobalStep;
+            var end = entry.StartSteps;
+            if (_resizeEdge > 0)
+            {
+                end = Math.Clamp(end + stepDelta, 1, Math.Max(1, totalSteps - globalStep));
+            }
+            else
+            {
+                // The end stays put: whatever the start loses, the length gains.
+                var moved = Math.Clamp(globalStep + stepDelta, 0,
+                    globalStep + (int)Math.Ceiling(entry.StartSteps) - 1);
+                end = globalStep + entry.StartSteps - moved;
+                globalStep = moved;
+            }
+
+            if (track.SegmentAtGlobalStep(globalStep) is not { } mapped) continue;
+            targets.Add((entry.Note, mapped.Segment, mapped.LocalStep, entry.Note.Value, end));
+        }
+
+        _state.MoveSelectedNotes(track, targets);
+
+        foreach (var target in targets)
+            if (target.Note == _dragging?.Note)
+            {
+                _dragging!.Segment = target.Segment;
+                break;
+            }
+
+        _groupDragLastStep = newAnchorGlobalStep;
+        InvalidateLayout();
+    }
+
+    /// <summary>Routes a drag frame to the gesture that is running - a resize or a move.</summary>
+    internal void UpdateDrag(float x, float y)
+    {
+        if (_resizeEdge != 0) UpdateResizeDrag(x);
+        else UpdateGroupDrag(x, y);
+    }
+
+    /// <summary>
     ///     Applies the anchor's per-frame delta (from its own drag start) to every
     ///     selected note's own start, so the whole group moves together; a group of one
     ///     reduces to a plain single-note drag. Steps/values are clamped into the track's
@@ -1027,7 +1374,7 @@ public sealed class TrackEditorView : Panel
         var valueDelta = value - _groupDragAnchorStartValue;
 
         var maxGlobalStep = Math.Max(0, track.Segments.Sum(s => s.StepCount) - 1);
-        var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value)>(entries.Count);
+        var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value, float? End)>(entries.Count);
         foreach (var entry in entries)
         {
             var targetGlobalStep = Math.Clamp(entry.StartGlobalStep + stepDelta, 0, maxGlobalStep);
@@ -1036,7 +1383,7 @@ public sealed class TrackEditorView : Panel
             var targetValue = Math.Clamp(entry.StartValue + valueDelta, -MaxValue, MaxValue);
             if (track.SegmentAtGlobalStep(targetGlobalStep) is not { } mapped) continue;
 
-            targets.Add((entry.Note, mapped.Segment, mapped.LocalStep, targetValue));
+            targets.Add((entry.Note, mapped.Segment, mapped.LocalStep, targetValue, entry.Note.Automation?.End));
         }
 
         _state.MoveSelectedNotes(track, targets);
@@ -1080,9 +1427,13 @@ public sealed class TrackEditorView : Panel
     private (TrackSegment segment, Note note)? Paint(TrackSegment segment, int step, Instrument instrument,
         double value, bool isCut = false)
     {
+        var track = _state.OpenedTrack;
+        // A long note occupies every step it covers, so a paint sweep can't stack a note
+        // inside one that is already there.
         var duplicate = isCut
             ? segment.Notes.Any(n => n.Step == step && n.IsCut && n.Instrument == instrument)
-            : segment.Notes.Any(n => n.Step == step && n.Value == value && !n.IsCut);
+            : segment.Notes.Any(n => !n.IsCut && n.Value == value && n.Step <= step &&
+                                     n.Step + (track is null ? 1 : NoteSteps(track, segment, n)) > step);
         if (duplicate) return null;
 
         var note = _state.AddNote(segment, step, instrument, value, isCut);
@@ -1174,5 +1525,6 @@ public sealed class TrackEditorView : Panel
     // once at press. Each drag frame re-derives the anchor's (pressed note's) delta
     // from its own start and applies that same delta to every entry - this is what
     // makes dragging one note of a multi-selection move the whole group together.
-    private readonly record struct GroupDragEntry(Note Note, int StartGlobalStep, double StartValue);
+    private readonly record struct GroupDragEntry(Note Note, int StartGlobalStep, double StartValue,
+        float StartSteps = 1);
 }

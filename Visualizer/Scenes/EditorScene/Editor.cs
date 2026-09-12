@@ -295,6 +295,13 @@ public class Editor : Scene, IFadeInScene
             case Bind.EditorSelectAll when !textFocused:
                 state.SelectAll();
                 return;
+            // Delete belongs here beside the rest of the selection binds, not only on the
+            // grid views: they see a key at all only while one of them is the focused
+            // element, which a click on the grid gives them and Ctrl+A does not - so a
+            // keyboard-only select-all used to produce a selection nothing could delete.
+            case (Bind.EditorDelete or Bind.EditorDeleteAlt) when !textFocused:
+                state.DeleteSelection();
+                return;
             // Space is the faithful sequence's move modifier while it has a selection, so
             // it must not also start playback on the same press.
             case Bind.EditorPlayPause when !_editorInterface.SpaceMovesSelection:

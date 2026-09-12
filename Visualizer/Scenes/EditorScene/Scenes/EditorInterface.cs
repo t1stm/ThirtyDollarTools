@@ -78,6 +78,7 @@ public class EditorInterface
 
     private static string GridLegend =>
         "Double-click a track to open it, right-click for options  •  " +
+        $"Drag a note's border for length, a keyframe marker to shape it ({Keybinds.PrimaryName}+drag: all)  •  " +
         $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)}/{Keybinds.Get(Bind.EditorCut)} " +
         $"copy/paste/cut, {Keybinds.Get(Bind.EditorSelectAll)} select all  •  " +
         $"Middle-drag to pan, {Keybinds.PrimaryName}+scroll to zoom, Shift+drag to fine-snap";
@@ -423,18 +424,14 @@ public class EditorInterface
     /// <summary>
     ///     The keys that only mean something with a faithful track open, resolved after the
     ///     bind table has had its go: the arrows (which the table can't match while a
-    ///     modifier is held - see <see cref="NudgeDirection" />), Delete, Enter and Tab.
-    ///     False leaves the key to whatever else wants it.
+    ///     modifier is held - see <see cref="NudgeDirection" />), Enter and Tab. Delete is
+    ///     the bind table's own now (see <see cref="Editor" />'s KeyDown), for every
+    ///     selection rather than only a faithful one. False leaves the key to whatever else
+    ///     wants it.
     /// </summary>
     public bool FaithfulKeyDown(KeyboardKeyEventArgs e)
     {
         if (State.OpenedFaithfulTrack is null) return false;
-
-        if (Keybinds.Match(e, BindScene.Editor) is Bind.EditorDelete or Bind.EditorDeleteAlt)
-        {
-            State.DeleteSelection();
-            return true;
-        }
 
         if (NudgeDirection(e) is { } direction)
         {

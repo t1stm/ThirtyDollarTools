@@ -80,6 +80,28 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
     }
 
     /// <summary>
+    ///     Assigns one rect as a line between two points - the same instanced quad with a
+    ///     rotation slipped between its scale and translation, so a diagonal costs no more
+    ///     than a straight run. The line is centered on the two points across its thickness.
+    /// </summary>
+    public void SetLine(int index, float x1, float y1, float x2, float y2, float thickness, Vector4 color)
+    {
+        var list = _stack!.List;
+        list.EnsureCount(index + 1);
+
+        var (dx, dy) = (x2 - x1, y2 - y1);
+        var length = MathF.Sqrt(dx * dx + dy * dy);
+        var model = Matrix4.CreateScale(length, thickness, 1f) *
+                    Matrix4.CreateTranslation(0f, -thickness / 2f, 0f) *
+                    Matrix4.CreateRotationZ(MathF.Atan2(dy, dx)) *
+                    Matrix4.CreateTranslation(x1, y1, 0f);
+        var current = list[index];
+        if (current.Model == model && current.Color == color) return;
+
+        list[index] = new BackgroundBlip { Model = model, Color = color };
+    }
+
+    /// <summary>
     ///     Releases a slot - a zero-sized rect draws nothing. A slot past the pool's end
     ///     holds nothing to release, so it is left alone rather than grown into existence.
     /// </summary>

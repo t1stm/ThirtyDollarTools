@@ -5,23 +5,47 @@ using EditorScene.Scenes.Components;
 namespace EditorScene.Scenes.Views;
 
 /// <summary>
-///     Plots a note's generated automation events as a step path in the note's sound
-///     color: a horizontal run at the current value, a vertical jump where a keyframe
-///     changes it, and a short tick at every generated event, so a pure repeat still
-///     reads as a line with marks on it. Time-mode gaps are mapped through the note's own
-///     segment step rate, a display-only approximation once the path crosses into a
-///     segment with another tempo. Draws into the tail slot range of
-///     <see cref="TrackEditorView" />'s grid batch rather than owning elements - the path
-///     takes no input. Being the batch's last range it grows, so a note may generate any
-///     number of events; only off-screen marks are dropped.
+///     Plots a note's generated automation events over its body, in the note's sound color:
+///     a tick at every generated event and a straight line leaning from each one to the
+///     next, so the path shows where the value is going instead of stepping horizontally and
+///     then jumping. A bright cap on the note's right edge marks where a
+///     <see cref="AudioKeyframeManager.CutAtEnd" /> stops the note, so one that ends reads
+///     apart from one that bleeds into what follows. Time-mode positions are mapped through
+///     the note's own segment step rate, a display-only approximation once the path crosses
+///     into a segment with another tempo. Draws into a slot range of
+///     <see cref="TrackEditorView" />'s block batch rather than owning elements - the path
+///     takes no input - sitting after the note pool so the marks paint over the bodies.
+///     Marks outside the viewport are dropped without taking a slot, so a 256-keyframe note
+///     costs what is on screen; past <paramref name="cap" /> the path simply stops drawing.
 /// </summary>
-internal sealed class AutomationPath(LineBatch batch, int firstSlot)
+internal sealed class AutomationPath(LineBatch batch, int firstSlot, int cap)
 {
     private readonly List<Vector4> _marks = [];
+    private readonly List<MarkerHandle> _handles = [];
     private float _clipRight;
     private Vector2 _origin;
 
-    /// <summary>Test seam: the rects the last layout drew, in view-local (x, y, width, height).</summary>
+    /// <summary>
+    ///     Where the last layout put every visible keyframe marker, in view-local
+    ///     coordinates - what the view hangs its draggable <see cref="KeyframeBlock" />
+    ///     pool on. Rebuilt per layout, like the marks themselves.
+    /// </summary>
+    public IReadOnlyList<MarkerHandle> Handles => _handles;
+
+    /// <summary>One visible marker: which keyframe it is, and where it was drawn.</summary>
+    internal readonly record struct MarkerHandle(Note Note, TrackSegment Segment, int Index, float X, float Y);
+
+    /// <summary>Clears the handle list; the view calls this once before the segment pass.</summary>
+    public void BeginFrame()
+    {
+        _handles.Clear();
+    }
+
+    /// <summary>
+    ///     Test seam: what the last layout drew, in view-local coordinates. A tick or cap is
+    ///     (x, y, width, height); a connecting line is (x, y, length, thickness) from its
+    ///     left-hand end, since a leaning line has no axis-aligned rect to report.
+    /// </summary>
     public IReadOnlyList<Vector4> Marks => _marks;
 
     /// <summary>
@@ -36,8 +60,9 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot)
     }
 
     public void Draw(TrackEditorGeometry geometry, Vector2 origin, ProjectTrack track, TrackSegment segment, Note note,
-        float segStartPx, Vector4 color, ref int used)
+        float segStartPx, Vector4 color, Vector4 endColor, ref int used)
     {
+        var automation = note.Automation!;
         var stepMinutes = segment.StepMinutes(track.Timing.BPM);
         if (stepMinutes <= 0) return;
 
@@ -47,35 +72,67 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot)
         var pixelsPerStep = geometry.PixelsPerStep;
         var scrollX = geometry.ScrollX;
         var rowHeight = geometry.RowHeight;
-        var prevX = TrackEditorGeometry.GutterWidth + segStartPx + (note.Step + 0.5f) * pixelsPerStep - scrollX;
+        var noteX = TrackEditorGeometry.GutterWidth + segStartPx + note.Step * pixelsPerStep - scrollX;
+        var prevX = noteX + 0.5f * pixelsPerStep;
         var prevY = geometry.ValueTop(Math.Clamp(note.Value, -TrackEditorGeometry.MaxValue,
                         TrackEditorGeometry.MaxValue)) +
                     rowHeight / 2;
 
-        foreach (var (minutes, generated) in note.Automation!.ExpandNotes(note, 0, stepMinutes))
+        var index = 0;
+        foreach (var (minutes, generated) in automation.ExpandNotes(note, 0, stepMinutes))
         {
-            var x = TrackEditorGeometry.GutterWidth + segStartPx +
-                (note.Step + 0.5f + (float)(minutes / stepMinutes)) * pixelsPerStep - scrollX;
+            if (used >= cap) break;
+            var x = noteX + (0.5f + (float)(minutes / stepMinutes)) * pixelsPerStep;
             var y = geometry.ValueTop(Math.Clamp(generated.Value, -TrackEditorGeometry.MaxValue,
                         TrackEditorGeometry.MaxValue)) +
                     rowHeight / 2;
 
-            // The horizontal run, the value jump (only when the value moved), the tick.
-            Mark(ref used, Math.Min(prevX, x), prevY - 0.5f, Math.Abs(x - prevX), 1f, color, maxY);
-            if (Math.Abs(y - prevY) >= 1f)
-                Mark(ref used, x - 0.5f, Math.Min(prevY, y), 1f, Math.Abs(y - prevY), color, maxY);
+            Line(ref used, prevX, prevY, x, y, color, maxY);
             Mark(ref used, x - 1f, y - rowHeight * 0.3f, 2f, rowHeight * 0.6f, color, maxY);
+            if (x >= TrackEditorGeometry.GutterWidth && x <= _clipRight && y <= maxY)
+                _handles.Add(new MarkerHandle(note, segment, index, x, y));
 
+            index++;
             prevX = x;
             prevY = y;
+        }
+
+        // Where the note stops ringing - nothing is drawn when it is left to bleed on.
+        if (automation is { CutAtEnd: true, End: > 0 } && used < cap)
+        {
+            var endX = noteX + automation.EndSteps(stepMinutes) * pixelsPerStep;
+            var top = geometry.ValueTop(Math.Clamp(note.Value, -TrackEditorGeometry.MaxValue,
+                TrackEditorGeometry.MaxValue));
+            Mark(ref used, endX - 2f, top + 0.5f, 2f, Math.Max(1, rowHeight - 1), endColor, maxY);
         }
     }
 
     /// <summary>
-    ///     Writes one mark, trimmed against the grid's bottom edge so no run, jump or tick
-    ///     bleeds past a partially scrolled grid into the pinned cut row below it. Marks fully
-    ///     left of the gutter or right of the viewport are dropped without taking a slot, so
-    ///     the cost follows the viewport rather than the track's length.
+    ///     One connecting line between two generated points, trimmed the same way a mark is.
+    ///     Lines with both ends outside the viewport are dropped; one crossing it is drawn
+    ///     whole, since a leaning line cannot be clipped by shrinking a rect.
+    /// </summary>
+    private void Line(ref int used, float x1, float y1, float x2, float y2, Vector4 color, float maxY)
+    {
+        if (Math.Max(x1, x2) < TrackEditorGeometry.GutterWidth || Math.Min(x1, x2) > _clipRight) return;
+        if (Math.Min(y1, y2) > maxY) return;
+
+        var slot = used++;
+        var (left, right) = x1 <= x2 ? ((x1, y1), (x2, y2)) : ((x2, y2), (x1, y1));
+        batch.SetLine(firstSlot + slot, _origin.X + left.Item1, _origin.Y + left.Item2,
+            _origin.X + right.Item1, _origin.Y + right.Item2, 1f, color);
+
+        var length = MathF.Sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+        var rect = new Vector4(left.Item1, left.Item2, length, 1f);
+        if (slot < _marks.Count) _marks[slot] = rect;
+        else _marks.Add(rect);
+    }
+
+    /// <summary>
+    ///     Writes one mark, trimmed against the grid's bottom edge so no tick or cap bleeds
+    ///     past a partially scrolled grid into the pinned cut row below it. Marks fully left
+    ///     of the gutter or right of the viewport are dropped without taking a slot, so the
+    ///     cost follows the viewport rather than the note's length.
     /// </summary>
     private void Mark(ref int used, float x, float y, float width, float height, Vector4 color, float maxY)
     {
