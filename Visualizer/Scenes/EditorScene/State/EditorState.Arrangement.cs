@@ -61,7 +61,7 @@ public partial class EditorState
         if (_placements.Count == 0) return;
 
         BeginGesture();
-        MoveSelectedPlacements(_placements.Items.Select(placement => (
+        MovePlacements(_placements.Items.Select(placement => (
             placement,
             Math.Clamp(placement.Channel + channelDelta, 0, maxChannel),
             Math.Max(0, placement.StartQuarterNotes + startDelta))).ToArray());
@@ -71,9 +71,10 @@ public partial class EditorState
     ///     Moves every given placement to its target (channel, start) together - the
     ///     arrangement's counterpart to <see cref="MoveSelectedNotes" />, keyed on the first
     ///     placement so a run of calls inside one gesture collapses into ONE undo entry
-    ///     instead of one per clip.
+    ///     instead of one per clip. Both a keyboard nudge and a clip drag land here, so a
+    ///     drag moves the whole selection rather than the one clip under the pointer.
     /// </summary>
-    private void MoveSelectedPlacements(IReadOnlyList<(TrackPlacement Placement, int Channel, double Start)> targets)
+    public void MovePlacements(IReadOnlyList<(TrackPlacement Placement, int Channel, double Start)> targets)
     {
         if (targets.Count == 0) return;
 

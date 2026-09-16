@@ -85,6 +85,12 @@ public sealed class ArrangementView : Panel
     /// </summary>
     private readonly List<(WaveTrack Track, float X, float Y, float Width, float Height)> _waveClips = [];
     private ClipBlock? _dragging;
+
+    // A clip drag moves the whole selection: every selected clip's position at press,
+    // plus the anchor's own snapped press position, so each frame applies the anchor's
+    // delta to the originals (see UpdateClipDrag). Null while no drag is running.
+    private List<(TrackPlacement Placement, int Channel, double Start)>? _clipDrag;
+    private (int Channel, double Start) _clipDragAnchor;
     private Vector4i? _inheritedClip;
     private (double Quarters, double Channel)? _marqueeAnchor;
     private (double Quarters, double Channel)? _marqueeCursor;
@@ -740,6 +746,7 @@ public sealed class ArrangementView : Panel
         // rebuild, or the second press of a double-click lands on a fresh ClipBlock
         // and UIContext's same-element check can never see a double-press.
         _dragging = null;
+        _clipDrag = null;
         if (!_refreshDeferred) return;
         _refreshDeferred = false;
         Refresh();
@@ -755,6 +762,41 @@ public sealed class ArrangementView : Panel
 
         var (channel, start) = GridPosition(Context.PointerX, Context.PointerY, 0);
         _state.SelectPlacement(_state.PlaceTrack(track, channel, start));
+    }
+
+    /// <summary>
+    ///     Captures every selected clip's position at press, along with the anchor clip's own
+    ///     snapped press position - the clip under the pointer is one of them, since a press
+    ///     onto an unselected clip has already replaced the selection with just it.
+    /// </summary>
+    private void BeginClipDrag(float x, float y, double grabOffsetQuarters)
+    {
+        _clipDragAnchor = GridPosition(x, y, grabOffsetQuarters);
+        _clipDrag = [.. _state.SelectedPlacements.Select(p => (p, p.Channel, p.StartQuarterNotes))];
+    }
+
+    /// <summary>
+    ///     One frame of a clip drag: the anchor's delta from its own press position applies
+    ///     to every captured clip's own start and channel, so the group keeps its shape and a
+    ///     selection of one reduces to a plain single-clip drag. Clamping is per clip, as in
+    ///     <see cref="TrackEditorView.UpdateGroupDrag" /> - a clip against the timeline start
+    ///     or the last lane stops there while the rest keep moving.
+    /// </summary>
+    private void UpdateClipDrag(float x, float y, double grabOffsetQuarters)
+    {
+        if (_clipDrag is not { Count: > 0 } entries) return;
+
+        var (channel, start) = GridPosition(x, y, grabOffsetQuarters);
+        var channelDelta = channel - _clipDragAnchor.Channel;
+        var startDelta = start - _clipDragAnchor.Start;
+        var maxChannel = ChannelCount - 1;
+
+        _state.MovePlacements([
+            .. entries.Select(e => (e.Placement,
+                Math.Clamp(e.Channel + channelDelta, 0, maxChannel),
+                Math.Max(0, e.Start + startDelta)))
+        ]);
+        InvalidateLayout();
     }
 
     private (int channel, double start) GridPosition(float x, float y, double grabOffsetQuarters)
@@ -826,16 +868,19 @@ public sealed class ArrangementView : Panel
             _view._dragging = this;
             _view._state.BeginGesture();
             _grabOffsetQuarters = (x - Computed.AbsoluteX) / _view.PixelsPerQuarter;
-            _view._state.SelectPlacement(Placement);
+            // A press onto a clip already in the selection keeps the selection, so the whole
+            // group drags; pressing an unselected one replaces it with just this clip. Same
+            // rule as a note press - see TrackEditorView.BeginNoteDrag.
+            if (!_view._state.SelectedPlacements.Contains(Placement))
+                _view._state.SelectPlacement(Placement);
+            _view.BeginClipDrag(x, y, _grabOffsetQuarters);
             return true;
         }
 
         public override void HandlePointerDrag(float x, float y)
         {
             if (_view._state.ActiveTool == EditorTool.Select) return; // no-op: press already applied selection
-            var (channel, start) = _view.GridPosition(x, y, _grabOffsetQuarters);
-            _view._state.MovePlacement(Placement, channel, start);
-            _view.InvalidateLayout();
+            _view.UpdateClipDrag(x, y, _grabOffsetQuarters);
         }
 
         public override bool HandleDoublePress(float x, float y)

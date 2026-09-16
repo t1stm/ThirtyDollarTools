@@ -74,6 +74,68 @@ public class ArrangementViewTests
     }
 
     [Fact]
+    public void DraggingOneOfSeveralSelectedClips_MovesTheWholeSelection()
+    {
+        var (ctx, state, view) = NewView();
+        var a = state.PlaceTrack(state.AddTrack(), 1, 4);
+        var b = state.PlaceTrack(state.AddTrack(), 3, 8);
+        state.SetPlacementSelection([a, b]);
+        view.Layout();
+
+        // The press lands on a (see PressOnAClip_..); b moves by the same delta, keeping
+        // the two lanes and the four quarter notes between them.
+        Press(ctx, view, 100, 78);
+        Drag(ctx, view, 124, 122); // one beat right, one lane down
+
+        Assert.Equal([a, b], state.SelectedPlacements); // the press kept the selection
+        Assert.Equal((2, 5d), (a.Channel, a.StartQuarterNotes));
+        Assert.Equal((4, 9d), (b.Channel, b.StartQuarterNotes));
+
+        Release(ctx, view, 124, 122);
+        view.Update(ctx);
+
+        state.Undo(); // one gesture, one entry - both clips go back
+        Assert.Equal((1, 4d), (a.Channel, a.StartQuarterNotes));
+        Assert.Equal((3, 8d), (b.Channel, b.StartQuarterNotes));
+    }
+
+    [Fact]
+    public void DraggingAClipOutsideTheSelection_MovesOnlyIt()
+    {
+        var (ctx, state, view) = NewView();
+        var selected = state.PlaceTrack(state.AddTrack(), 3, 8);
+        var pressed = state.PlaceTrack(state.AddTrack(), 1, 4);
+        state.SetPlacementSelection([selected]);
+        view.Layout();
+
+        Press(ctx, view, 100, 78); // onto `pressed`, which is not in the selection
+        Assert.Equal([pressed], state.SelectedPlacements);
+
+        Drag(ctx, view, 124, 122);
+        Assert.Equal((2, 5d), (pressed.Channel, pressed.StartQuarterNotes));
+        Assert.Equal((3, 8d), (selected.Channel, selected.StartQuarterNotes)); // left alone
+    }
+
+    [Fact]
+    public void DraggingASelectionPastTheTimelineStart_KeepsItsShape()
+    {
+        var (ctx, state, view) = NewView();
+        var a = state.PlaceTrack(state.AddTrack(), 1, 4);
+        var b = state.PlaceTrack(state.AddTrack(), 3, 8);
+        state.SetPlacementSelection([a, b]);
+        view.Layout();
+
+        Press(ctx, view, 100, 78);
+        Drag(ctx, view, 100 - 8 * 24, 78); // eight beats left: a would land at -4
+
+        // The anchor stops at the timeline start (GridPosition floors it there), so the
+        // whole group shifts by what the anchor could actually travel and keeps its shape
+        // rather than piling every clip onto quarter 0.
+        Assert.Equal(0, a.StartQuarterNotes);
+        Assert.Equal(4, b.StartQuarterNotes);
+    }
+
+    [Fact]
     public void ClickOnAnEmptyLane_PlacesTheSelectedPattern()
     {
         var (ctx, state, view) = NewView();
