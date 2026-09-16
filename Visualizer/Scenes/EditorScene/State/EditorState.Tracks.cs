@@ -302,6 +302,24 @@ public partial class EditorState
         Touch();
     }
 
+    /// <summary>
+    ///     Recolors several tracks at once - a Ctrl-click selection in the track list, or
+    ///     the tracks a multi-clip selection references. One <see cref="Touch" /> for the
+    ///     whole group, so the views rebuild once instead of once per track.
+    /// </summary>
+    public void SetTrackColor(IReadOnlyList<ProjectTrack> tracks, int? colorIndex)
+    {
+        var changed = false;
+        foreach (var track in tracks)
+        {
+            if (track.ColorIndex == colorIndex) continue;
+            track.ColorIndex = colorIndex;
+            changed = true;
+        }
+
+        if (changed) Touch();
+    }
+
     /// <summary>True when the track shares the project's timing instance and follows its tempo.</summary>
     public bool TrackFollowsRootTiming(ProjectTrack track)
     {

@@ -89,7 +89,7 @@ public sealed class InspectorPanel
         _form.Header("Wave track");
         _form.TextRow("Name", () => track.Name, v => _state.RenameTrack(track, v));
         _form.ColorRow("Color", () => TrackColor?.Invoke(track) ?? default,
-            () => OnChangeTrackColor?.Invoke(track));
+            () => OnChangeTrackColor?.Invoke([track]));
         _form.InfoRow("File", () => track.Path.Length == 0
             ? "None"
             : System.IO.Path.GetFileName(track.Path) + (File.Exists(track.Path) ? "" : " (missing)"));
@@ -153,10 +153,12 @@ public sealed class InspectorPanel
     public Action<WaveTrack>? OnReplaceWaveFile { get; set; }
 
     /// <summary>
-    ///     Fired when the user wants to recolor the selected track. Same seam as the two
-    ///     above: EditorInterface owns the swatch dialog, this panel only offers the row.
+    ///     Fired when the user wants to recolor the selected track(s) - one for a single
+    ///     selection, several for a multi-selection, as <see cref="OnReassignInstrument" />
+    ///     does. Same seam as the two above: EditorInterface owns the swatch dialog, this
+    ///     panel only offers the row.
     /// </summary>
-    public Action<ProjectTrack>? OnChangeTrackColor { get; set; }
+    public Action<IReadOnlyList<ProjectTrack>>? OnChangeTrackColor { get; set; }
 
     /// <summary>
     ///     The clip color a track currently paints with, for the Color row's chip. Supplied
@@ -290,6 +292,13 @@ public sealed class InspectorPanel
             {
                 MultiPlacementSection(_state.SelectedPlacements);
             }
+            else if (_state.SelectedTracks.Count > 1)
+            {
+                // Name, tempo and automation are all per track; color is the one that
+                // means something applied to the whole group at once.
+                _form.Header($"Tracks (× {_state.SelectedTracks.Count})");
+                ColorRowFor(_state.SelectedTracks);
+            }
             else if (_state.SelectedTrack is WaveTrack wave)
             {
                 WaveSection(wave);
@@ -299,7 +308,7 @@ public sealed class InspectorPanel
                 _form.Header("Track");
                 _form.TextRow("Name", () => track.Name, v => _state.RenameTrack(track, v));
                 _form.ColorRow("Color", () => TrackColor?.Invoke(track) ?? default,
-                    () => OnChangeTrackColor?.Invoke(track));
+                    () => OnChangeTrackColor?.Invoke([track]));
                 _form.CheckRow("Project tempo", () => _state.TrackFollowsRootTiming(track), follows =>
                 {
                     _state.SetTrackFollowsRootTiming(track, follows);
@@ -427,13 +436,17 @@ public sealed class InspectorPanel
         if (!AllEqual(placements, p => p.Track))
         {
             _form.InfoRow("Track", () => "mixed");
+            // Color is the one track property a mixed selection can still set: it is per
+            // track, but picking one swatch for all of them is exactly what grouping a
+            // section of an arrangement by color means.
+            ColorRowFor([.. placements.Select(p => p.Track).Distinct()]);
             return;
         }
 
         var track = placements[0].Track;
         _form.TextRow("Name", () => track.Name, v => _state.RenameTrack(track, v));
         _form.ColorRow("Color", () => TrackColor?.Invoke(track) ?? default,
-            () => OnChangeTrackColor?.Invoke(track));
+            () => OnChangeTrackColor?.Invoke([track]));
         _form.CheckRow("Project tempo", () => _state.TrackFollowsRootTiming(track), follows =>
         {
             _state.SetTrackFollowsRootTiming(track, follows);
@@ -443,6 +456,20 @@ public sealed class InspectorPanel
             _form.NumberRow("BPM", () => track.Timing.BPM, v => track.Timing.BPM = (float)v!.Value, 1, 9999);
 
         TrackAutomationSection(track);
+    }
+
+    /// <summary>
+    ///     A Color row for a group of tracks: the chip shows their shared fill, or nothing
+    ///     when they differ - the counterpart of the multi-note rows' "mixed" state - and
+    ///     the picked swatch applies to every track in the group.
+    /// </summary>
+    private void ColorRowFor(IReadOnlyList<ProjectTrack> tracks)
+    {
+        if (tracks.Count == 0) return;
+
+        _form.ColorRow("Color",
+            () => AllEqual(tracks, t => t.ColorIndex) ? TrackColor?.Invoke(tracks[0]) ?? default : default,
+            () => OnChangeTrackColor?.Invoke(tracks));
     }
 
     private static bool AllEqual<TItem, TValue>(IReadOnlyList<TItem> items, Func<TItem, TValue> selector)

@@ -112,6 +112,12 @@ public sealed class TrackListPanel : ScrollView
     /// <summary>Row click: Ctrl/Cmd toggles the track in the selection, a plain click replaces it.</summary>
     private void Select(ProjectTrack track)
     {
+        // Picking tracks here makes tracks the subject: a clip selection left over from the
+        // arrangement would otherwise keep the inspector on its own section, and the tracks
+        // just picked would have nowhere to show. The arrangement's own clip press selects
+        // its track too (ArrangementView.ClipBlock.HandlePress) and must not clear it, which
+        // is why this sits here rather than in SelectTrack.
+        _state.SelectPlacement(null);
         if (CtrlHeld) _state.ToggleTrackSelection(track);
         else _state.SelectTrack(track);
     }

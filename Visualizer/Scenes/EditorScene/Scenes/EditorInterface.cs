@@ -969,7 +969,11 @@ public class EditorInterface
             menu.AddItem("Open", () => State.OpenTrack(track));
         }
 
-        menu.AddItem("Change color…", () => ShowTrackColorDialog(track));
+        // The right-press kept an existing multi-selection the track is part of (see
+        // TrackListPanel.ContextMenu), so the recolor follows it rather than the one row
+        // the pointer happens to be over.
+        menu.AddItem("Change color…", () => ShowTrackColorDialog(
+            State.SelectedTracks.Contains(track) ? State.SelectedTracks : [track]));
         menu.AddItem("Duplicate…", () => ShowDuplicateTrackDialog(track));
         if (track.Kind != TrackKind.Wave)
             menu.AddItem(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
@@ -989,17 +993,22 @@ public class EditorInterface
     /// <summary>
     ///     The recolor swatch grid, reached from a track's context menu and from the
     ///     inspector's Color row. The palette is the arrangement's, so the swatches are
-    ///     exactly the fills a clip can take.
+    ///     exactly the fills a clip can take. Several tracks recolor together: the grid
+    ///     marks their current swatch only when they already share one.
     /// </summary>
-    private void ShowTrackColorDialog(ProjectTrack track)
+    private void ShowTrackColorDialog(IReadOnlyList<ProjectTrack> tracks)
     {
-        var dialog = new TrackColorDialog(_context, track.Name, _arrangement.ClipPalette,
-            _arrangement.ClipColor, track.ColorIndex);
+        if (tracks.Count == 0) return;
+
+        var shared = tracks.All(t => t.ColorIndex == tracks[0].ColorIndex) ? tracks[0].ColorIndex : null;
+        var title = tracks.Count == 1 ? tracks[0].Name : $"{tracks.Count} tracks";
+        var dialog = new TrackColorDialog(_context, title, _arrangement.ClipPalette,
+            _arrangement.ClipColor, shared);
         var modal = _dialogHost.Show(dialog.Element);
         dialog.OnPick = index =>
         {
             _dialogHost.Close(modal);
-            State.SetTrackColor(track, index);
+            State.SetTrackColor(tracks, index);
         };
     }
 

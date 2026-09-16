@@ -733,6 +733,57 @@ public class InspectorPanelTests
         Assert.Equal(-1, ctx.LayerOf(fg));
     }
 
+    /// <summary>Fires a Color row's "Change…" button, the way a click on it would.</summary>
+    private static void PressChange(InspectorPanel inspector, string field)
+    {
+        var row = (Panel)inspector.Field(field)!;
+        var button = (Button)row.Children[1];
+        button.OnClick!(button);
+    }
+
+    [Fact]
+    public void SeveralSelectedTracks_RecolorTogether()
+    {
+        var (_, state, inspector) = NewInspector();
+        var a = state.AddTrack();
+        var b = state.AddTrack();
+        var c = state.AddTrack();
+
+        IReadOnlyList<ProjectTrack>? asked = null;
+        inspector.OnChangeTrackColor = tracks => asked = tracks;
+        state.SetTrackSelection([a, b]);
+
+        PressChange(inspector, "Tracks (× 2).Color");
+        Assert.Equal([a, b], asked);
+
+        var changes = 0;
+        state.OnProjectChanged += () => changes++;
+        state.SetTrackColor(asked!, 3);
+
+        Assert.Equal(3, a.ColorIndex);
+        Assert.Equal(3, b.ColorIndex);
+        Assert.Null(c.ColorIndex); // unselected, untouched
+        Assert.Equal(1, changes); // one group edit, one rebuild
+    }
+
+    [Fact]
+    public void AMixedClipSelection_StillOffersOneColorRow_ForEveryTrackInIt()
+    {
+        var (_, state, inspector) = NewInspector();
+        var a = state.AddTrack();
+        var b = state.AddTrack();
+        var first = state.PlaceTrack(a, 0, 0);
+        var second = state.PlaceTrack(b, 1, 4);
+        var third = state.PlaceTrack(a, 2, 8); // same track as `first` - must not be asked for twice
+
+        IReadOnlyList<ProjectTrack>? asked = null;
+        inspector.OnChangeTrackColor = tracks => asked = tracks;
+        state.SetPlacementSelection([first, second, third]);
+
+        PressChange(inspector, "Track.Color");
+        Assert.Equal([a, b], asked);
+    }
+
     [Fact]
     public void TheTrackColorRow_CentersItsChipAndButtonAgainstItsLabel()
     {
