@@ -194,6 +194,50 @@ public class WaveTrackUiTests
     }
 
     [Fact]
+    public void EveryWaveClip_DrawsItsEnvelope_NotJustTheFirstFew()
+    {
+        // A project of stems: with one budget shared across the whole frame, the first few
+        // lanes spend it and every lane below them is left blank.
+        var ctx = new EditorTestContext();
+        var state = new EditorState();
+        var view = EditorTestContext.Styled(new ArrangementView(ctx, state) { Width = 800, Height = 1000 });
+        state.OnProjectChanged += view.Refresh;
+        view.WavePeaks = _ => [.. Enumerable.Repeat(1f, 2048)];
+
+        AddWave(state, "/music/stem0.wav", 190);
+        view.Layout();
+        var perClip = view.WaveBarsDrawn;
+        Assert.True(perClip > 0);
+
+        for (var i = 1; i < 20; i++) AddWave(state, $"/music/stem{i}.wav", 190);
+        view.Layout();
+
+        Assert.Equal(20 * perClip, view.WaveBarsDrawn);
+    }
+
+    [Fact]
+    public void ClipsScrolledOffTheBottom_CostNoBars()
+    {
+        var ctx = new EditorTestContext();
+        var state = new EditorState();
+        var view = EditorTestContext.Styled(new ArrangementView(ctx, state) { Width = 800, Height = 1000 });
+        state.OnProjectChanged += view.Refresh;
+        view.WavePeaks = _ => [.. Enumerable.Repeat(1f, 2048)];
+
+        for (var i = 0; i < 20; i++) AddWave(state, $"/music/stem{i}.wav", 190);
+        view.Layout();
+        var tall = view.WaveBarsDrawn;
+
+        view.Height = 200; // a handful of lanes; the rest are past the bottom edge
+        view.InvalidateLayout();
+        view.Layout();
+
+        Assert.True(view.WaveBarsDrawn > 0);
+        Assert.True(view.WaveBarsDrawn < tall,
+            $"{view.WaveBarsDrawn} bars in a 200 px view against {tall} in a 1000 px one");
+    }
+
+    [Fact]
     public void RemovingAnEarlierClip_LeavesNoStaleBars()
     {
         // The envelope's slots start where the clip range ends, so losing a clip slides the

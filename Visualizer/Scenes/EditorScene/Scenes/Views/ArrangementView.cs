@@ -42,9 +42,12 @@ public sealed class ArrangementView : Panel
     private const int LineBatchReserve = ClipBlockSlot + 64;
 
     // A wave clip's peak envelope: 2 px bars every 3 px, inset from the clip's top and
-    // bottom, lightened off the clip's own fill. The budget caps a zoomed-in project's
-    // bars per frame - past it the envelope simply stops, rather than the pool growing
-    // without bound.
+    // bottom, lightened off the clip's own fill. The budget is per clip, not per frame:
+    // a shared one is spent by whichever clips are laid out first, which leaves every
+    // lane past it blank in a project of stems. A clip's visible bars are already bounded
+    // by the view's width / WaveBarPitch, so the budget only ever binds on an absurdly
+    // wide window - it is a backstop against the pool growing without bound, not a cap
+    // the normal case reaches.
     private const float WaveBarPitch = 3f;
     private const float WaveBarWidth = 2f;
     private const float WaveBarPadding = 6f;
@@ -534,11 +537,15 @@ public sealed class ArrangementView : Panel
                 var band = clipHeight - 2 * WaveBarPadding;
                 if (band <= 0 || clipWidth <= 0) continue;
 
+                // A lane scrolled off the top or the bottom costs nothing: its bars would be
+                // built, uploaded and then scissored away by the batch's clip rect.
+                if (clipY + clipHeight <= RulerHeight || clipY >= Computed.Height) continue;
+
                 var middle = clipY + clipHeight / 2f;
                 var color = Vector4.Lerp(ColorOf(track, false), Vector4.One, WaveBarLift);
 
                 var first = (int)Math.Max(0, Math.Floor(-clipX / WaveBarPitch));
-                for (var bar = first; used < WaveBarBudget; bar++)
+                for (int bar = first, drawn = 0; drawn < WaveBarBudget; bar++, drawn++)
                 {
                     var x = clipX + bar * WaveBarPitch;
                     if (x >= clipX + clipWidth - WaveBarWidth || x > width) break;
