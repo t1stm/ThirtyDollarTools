@@ -363,13 +363,24 @@ public class AudioKeyframeManager
         var sounds = note.Instrument.SoundNames;
         if (sounds.Count == 0) yield break;
 
-        foreach (var cut in cuts)
+        // Open at both ends: a cut on an own start is the retrigger's own guard, and one on End
+        // is the note ending. The tolerance matches the 6-decimal step SequenceBuilder quantizes
+        // to, so a coincidence that survives serialization counts as one here.
+        // The cuts are in time order (see CutPoint), so the window is found by bisection and
+        // left at its end. A scan of every cut per window made a project with a few hundred
+        // long notes and a few thousand cuts spend ~200 ms here on every edit.
+        int first = 0, last = cuts.Count;
+        while (first < last)
         {
-            // Open at both ends: a cut on an own start is the retrigger's own guard, and one
-            // on End is the note ending. The tolerance matches the 6-decimal step SequenceBuilder
-            // quantizes to, so a coincidence that survives serialization counts as one here.
-            if (cut.Minutes <= ringingMinutes + CoincidentMinutes ||
-                cut.Minutes >= until - CoincidentMinutes) continue;
+            var middle = (first + last) / 2;
+            if (cuts[middle].Minutes <= ringingMinutes + CoincidentMinutes) first = middle + 1;
+            else last = middle;
+        }
+
+        for (var i = first; i < cuts.Count; i++)
+        {
+            var cut = cuts[i];
+            if (cut.Minutes >= until - CoincidentMinutes) yield break;
             if (!cut.Sounds.Overlaps(sounds)) continue;
             if (!cut.Generated) yield break;
 

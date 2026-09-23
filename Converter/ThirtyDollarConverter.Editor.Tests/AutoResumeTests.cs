@@ -161,6 +161,18 @@ public class AutoResumeTests
     }
 
     [Fact]
+    public void EachStretchRepairsOnlyTheCutsInsideIt_WhereverTheListStarts()
+    {
+        // Runs 2 -> 6.5, retriggering at 3.5 and 5.0: three stretches, each looked up in one
+        // time-ordered list that starts well before the note and ends well after it.
+        var note = LongNote(2, Long(1.5f, 4.5f));
+        List<CutPoint> cuts = [Cut(0.5), Cut(1.5), Cut(2), Cut(3), Cut(3.5), Cut(4), Cut(5), Cut(6), Cut(6.5), Cut(8)];
+
+        // The ones on the note's own start, its retriggers and its end are its own business.
+        Assert.Equal([3.0, 4.0, 6.0], ResumesOf(note, cuts).Select(resume => Math.Round(resume.Minutes / StepMinutes, 6)));
+    }
+
+    [Fact]
     public void AutoOffsetOff_RestartsTheSoundInsteadOfSplicing()
     {
         // What the note's own retriggers already sound like: the sample from the top.
