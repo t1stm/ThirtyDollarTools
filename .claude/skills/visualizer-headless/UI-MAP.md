@@ -56,7 +56,7 @@ An unknown `--mode` silently falls back to Home and says so in the log.
 
 The window is at 0,0, so screen coordinates are window coordinates: `shot`, read the pixel
 position off the PNG, click it. Everything below is measured at the default `VIZ_SIZE`
-(`1600x900`, giving a 1600×840 client area). **Re-measure after any layout change** — treat
+(`1600x840`, which is also the window size). **Re-measure after any layout change** — treat
 the numbers as anchors for orientation, not as constants.
 
 The editor's chrome is pinned to the window edges, so these three hold at any size

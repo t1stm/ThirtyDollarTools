@@ -5,8 +5,8 @@ description: Run the Debug Visualizer on a private headless X11 display and driv
 
 # Visualizer, headless
 
-`viz.sh` (next to this file) runs the Debug build on its own Xvfb display and drives it
-with xdotool. Screenshots come back as PNGs you read with the Read tool; `start` also
+`viz.sh` (next to this file) runs the Debug build on its own private X display and drives
+it with xdotool. Screenshots come back as PNGs you read with the Read tool; `start` also
 brings up a VNC server on that display, so the user can attach a viewer and watch it
 live at any time without asking for it separately.
 
@@ -23,7 +23,7 @@ GLFW pick X11 and honour `DISPLAY`; the script sets it.
 
 ```bash
 S=.claude/skills/visualizer-headless
-bash $S/viz.sh start            # builds Debug, starts Xvfb :99, boots to Home (~20 s)
+bash $S/viz.sh start            # builds Debug, starts display :99, boots to Home (~20 s)
 bash $S/viz.sh shot home        # -> /tmp/tdviz/shots/home.png   (Read that path)
 bash $S/viz.sh click 1290 495   # the Editor card on Home
 bash $S/viz.sh key ctrl+s
@@ -35,8 +35,10 @@ Commands: `start [app args]`, `restart`, `stop`, `status`, `shot [name]`,
 `type <text>`, `scroll up|down [n]`, `log [lines]`, `vnc`.
 
 `start` passes anything after it to the app, so `start --mode editor -i cover.tdw`
-works. The window is at 0,0, so screen coordinates are window coordinates: take a
-`shot`, read the pixel position off the image, click it.
+works. The window is at 0,0 and fills the display (`-w`/`-h` from `VIZ_SIZE`), so
+screen coordinates are window coordinates: take a `shot`, read the pixel position off the
+image, click it. It runs capped at 60 fps (`-f 60`). Passing your own `-w`, `-h` or `-f`
+replaces the script's value, so `start -f 0` runs uncapped.
 
 ## Letting the user watch
 
@@ -47,6 +49,14 @@ it separately; it's a no-op if VNC is already running.
 
 ## Worth knowing
 
+- **It renders on the GPU.** The display is a rootful Xwayland on a private headless
+  weston (`weston --backend=headless --renderer=gl`), so the app gets DRI3 and radeonsi,
+  the same driver as a desktop run. That makes it about 25x faster than Xvfb's llvmpipe
+  (Home: ~1950 fps against ~77, uncapped with `-f 0`). `status` prints the renderer.
+  `VIZ_GPU=0` goes back to Xvfb + llvmpipe, and so does a machine without weston or
+  Xwayland. Zink and VirtualGL on Xvfb were tried and dropped: zink never gets pixels onto
+  Xvfb (black screenshots), and VirtualGL's per-frame readback caps it near 400 fps and
+  crashes under `mangohud --dlsym`.
 - **Clicks are held ~150 ms on purpose.** Sundex samples pointer state once a frame and
   fires clicks on release, so a plain `xdotool click` can fall between two frames and do
   nothing. Use the script's `click`, never raw xdotool. Keys are fine either way.
@@ -60,8 +70,10 @@ it separately; it's a no-op if VNC is already running.
   nothing, exceptions land there.
 - The app dies with the shell that started it (no `setsid`), so a `start` in one Bash
   call and a `click` in the next is fine, but a killed session takes the app with it.
-- Env: `VIZ_DISPLAY` (`:99`), `VIZ_SIZE` (`1600x900`), `VIZ_DIR` (`/tmp/tdviz`),
-  `VIZ_VNC_PORT` (`5900`), `VIZ_NO_BUILD=1` to skip the build.
-- `VIZ_SIZE` needs the RandR mode fix the script applies: Xvfb advertises a fixed
+- Env: `VIZ_DISPLAY` (`:99`), `VIZ_SIZE` (`1600x840`), `VIZ_DIR` (`/tmp/tdviz`),
+  `VIZ_VNC_PORT` (`5900`), `VIZ_NO_BUILD=1` to skip the build, `VIZ_GPU=0` for Xvfb.
+- `start` reuses whatever X server already answers on `VIZ_DISPLAY`, so changing
+  `VIZ_SIZE` or `VIZ_GPU` needs a `stop` first.
+- In Xvfb mode, `VIZ_SIZE` needs the RandR mode fix the script applies: Xvfb advertises a fixed
   1280x1024 output whatever `-screen` says and X confines the pointer to it, so without
   it nothing past x=1279 is clickable.

@@ -8,11 +8,16 @@ proj="$repo/Visualizer/ThirtyDollarVisualizer/ThirtyDollarVisualizer.csproj"
 app_dir="$repo/Visualizer/ThirtyDollarVisualizer/bin/Debug/net10.0"
 
 disp=${VIZ_DISPLAY:-:99}
-size=${VIZ_SIZE:-1600x900}
+size=${VIZ_SIZE:-1600x840}  # the display and the app window; UI-MAP.md is measured at 1600x840
 state=${VIZ_DIR:-/tmp/tdviz}
 log="$state/visualizer.log"
 settings="$state/Settings.30\$"
 pidfile="$state/app.pid"
+# GPU by default: a rootful Xwayland on a private headless weston is a real X display with
+# DRI3, so the app renders on the GPU. VIZ_GPU=0 falls back to Xvfb + llvmpipe.
+gpu=${VIZ_GPU:-1}
+{ command -v weston && command -v Xwayland; } >/dev/null || gpu=0
+wl="tdviz-wl${disp#:}"
 
 # pipefail would make a dead display abort the script, hence the || true.
 win() { DISPLAY=$disp xdotool search --name "Thirty Dollar Visualizer" 2>/dev/null | head -1 || true; }
@@ -21,9 +26,21 @@ alive() { [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; }
 ensure_display() {
     mkdir -p "$state/shots"
     DISPLAY=$disp xdpyinfo >/dev/null 2>&1 && return
-    Xvfb "$disp" -screen 0 "${size}x24" >"$state/xvfb.log" 2>&1 </dev/null &
-    echo $! >"$state/xvfb.pid"
+    if [ "$gpu" = 1 ]; then
+        env -u DISPLAY weston --backend=headless --renderer=gl --width="${size%x*}" \
+            --height="${size#*x}" --socket="$wl" --idle-time=0 >"$state/weston.log" 2>&1 </dev/null &
+        echo $! >"$state/weston.pid"
+        for _ in $(seq 40); do [ -S "$XDG_RUNTIME_DIR/$wl" ] && break; sleep 0.25; done
+        [ -S "$XDG_RUNTIME_DIR/$wl" ] || { echo "weston did not start:"; tail -5 "$state/weston.log"; exit 1; }
+        # WAYLAND_DISPLAY must name the private socket: unset, Xwayland connects to the
+        # user's compositor and opens a real window on their desktop.
+        WAYLAND_DISPLAY=$wl Xwayland "$disp" -geometry "$size" >"$state/xvfb.log" 2>&1 </dev/null &
+    else
+        Xvfb "$disp" -screen 0 "${size}x24" >"$state/xvfb.log" 2>&1 </dev/null &
+    fi
+    echo $! >"$state/xvfb.pid"  # the X server, Xvfb or Xwayland
     for _ in $(seq 40); do DISPLAY=$disp xdpyinfo >/dev/null 2>&1 && break; sleep 0.25; done
+    [ "$gpu" = 1 ] && return  # -geometry sizes Xwayland's output, no RandR fix needed
     # Xvfb advertises one 1280x1024 RandR output no matter what -screen says, and X
     # confines the pointer to it: without a matching mode, anything past x=1279 is
     # unclickable - the pointer silently stops short.
@@ -51,13 +68,23 @@ cmd_start() {
 
     local audio=(--no-audio)
     [ -n "${VIZ_AUDIO:-}" ] && audio=()
+    # Window = VIZ_SIZE, capped at 60 fps, unless the args set their own. Only the missing
+    # ones are added: the app's CommandLineParser rejects a repeated option outright.
+    local a w=${size%x*} h=${size#*x} f=60
+    for a in "$@"; do
+        case $a in -w*|--width*) w= ;; -h*|--height*) h= ;; -f*|--fps-limit*) f= ;; esac
+    done
+    # WAYLAND_DISPLAY is a second guard: even if GLFW went Wayland, it lands on the private weston.
+    local gl=(LIBGL_ALWAYS_SOFTWARE=1)
+    [ "$gpu" = 1 ] && gl=(WAYLAND_DISPLAY="$wl")
 
     # XDG_SESSION_TYPE=x11 is the load-bearing bit: GLFW otherwise picks Wayland and
     # the window opens on the user's real desktop, DISPLAY be damned.
     cd "$app_dir"
     # VIZ_WRAP prefixes the launch - "mangohud --dlsym" puts an FPS counter on the window.
-    XDG_SESSION_TYPE=x11 DISPLAY=$disp LIBGL_ALWAYS_SOFTWARE=1 \
-        nohup ${VIZ_WRAP:-} ./ThirtyDollarVisualizer --settings-location "$settings" "${audio[@]}" "$@" \
+    env XDG_SESSION_TYPE=x11 DISPLAY="$disp" "${gl[@]}" \
+        nohup ${VIZ_WRAP:-} ./ThirtyDollarVisualizer --settings-location "$settings" "${audio[@]}" \
+        ${w:+-w "$w"} ${h:+-h "$h"} ${f:+-f "$f"} "$@" \
         >"$log" 2>&1 </dev/null &
     echo $! >"$pidfile"
 
@@ -72,7 +99,7 @@ cmd_start() {
 # happens to mention them - including the caller's.
 cmd_stop() {
     local f p
-    for f in "$pidfile" "$state/vnc.pid" "$state/xvfb.pid"; do
+    for f in "$pidfile" "$state/vnc.pid" "$state/xvfb.pid" "$state/weston.pid"; do
         p=$(cat "$f" 2>/dev/null) || continue
         kill "$p" 2>/dev/null || true
         rm -f "$f"
@@ -86,6 +113,7 @@ cmd_status() {
     echo "display $disp  app pid $(cat "$pidfile" 2>/dev/null || echo none)  window ${w:-none}"
     [ -n "$w" ] && DISPLAY=$disp xdotool getwindowgeometry "$w"
     echo "log: $log"
+    grep -m1 -o '"Renderer":"[^"]*"' "$log" 2>/dev/null || true
     tail -1 "$log" 2>/dev/null || true
 }
 
