@@ -26,6 +26,9 @@ public class ImportWarningsDialogTests
         Assert.True(dialog.OffersFaithful);
         Assert.Contains(dialog.FaithfulButton, Walk(dialog.Element));
         Assert.Equal("Keep Piano Roll", dialog.KeepButton.Label.Value.ToString());
+        // Faithful is the suggested shape for a TDW sequence, so it holds the fill.
+        Assert.Contains("dialog-button-primary", dialog.FaithfulButton.Classes);
+        Assert.DoesNotContain("dialog-button-primary", dialog.KeepButton.Classes);
     }
 
     [Fact]
@@ -36,6 +39,7 @@ public class ImportWarningsDialogTests
         Assert.False(dialog.OffersFaithful);
         Assert.DoesNotContain(dialog.FaithfulButton, Walk(dialog.Element));
         Assert.Equal("OK", dialog.KeepButton.Label.Value.ToString());
+        Assert.Contains("dialog-button-primary", dialog.KeepButton.Classes);
     }
 
     [Fact]

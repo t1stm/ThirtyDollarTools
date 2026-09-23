@@ -13,7 +13,8 @@ namespace EditorScene.Scenes.Dialogs;
 ///     What a TDW import didn't carry over (ModalLayer content): the events a piano roll has
 ///     no place for and the sounds the sample set doesn't know, each drawn as the tile the
 ///     faithful palette draws it with, and how many notes were snapped to the grid. A Piano
-///     Roll track import also offers to redo it as a Faithful Track, which keeps all of that.
+///     Roll track import also suggests a Faithful Track - the shape a TDW sequence is made
+///     for, which keeps all of that.
 ///     Pure form - the owner wires the buttons and closes the modal. The tree is
 ///     ImportWarningsDialog.snx.xml.
 /// </summary>
@@ -79,12 +80,16 @@ public sealed class ImportWarningsDialog
         OffersFaithful = mode == ImportMode.Track && (warnings.IgnoredEvents.Count > 0 || warnings.QuantizedNotes > 0);
         if (OffersFaithful)
         {
+            // Relabelled only this way round: a Label shortened in place keeps the longer
+            // text's buffer, padded with NULs.
             KeepButton.Label.SetTextContents("Keep Piano Roll");
         }
         else
         {
             Element.RemoveChild(component.GetID<FlexPanel>("faithful-footer"));
             ((Panel)FaithfulButton.Parent!).RemoveChild(FaithfulButton);
+            // Appended after dialog-button, so its fill wins.
+            KeepButton.SetClass("dialog-button-primary", true);
         }
 
         return;
@@ -100,7 +105,7 @@ public sealed class ImportWarningsDialog
     /// <summary>The dialog's root - what the owner mounts into a ModalLayer.</summary>
     public FlexPanel Element { get; }
 
-    /// <summary>Redoes the import as a Faithful Track. Out of the tree unless <see cref="OffersFaithful" />.</summary>
+    /// <summary>Redoes the import as a Faithful Track - the suggested action. Out of the tree unless <see cref="OffersFaithful" />.</summary>
     public Button FaithfulButton { get; }
 
     public Button KeepButton { get; }

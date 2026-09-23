@@ -28,21 +28,23 @@
         <label id="quantized-label" class="body-label" value=""/>
       </flex>
 
-      <!-- The way back, for a Piano Roll track import only: a faithful track keeps what
-           the two sections above lost, and the track import is one undo step. Removed
-           with the button otherwise. -->
+      <!-- For a Piano Roll track import only: a TDW sequence is what a Faithful Track is
+           made for, and it keeps what the sections above lost. The track import is one
+           undo step, so switching over is clean. Removed with the button otherwise. -->
       <flex id="faithful-footer" class="warning-section">
         <panel class="rule"/>
-        <label class="caption-label" value="A Faithful Track keeps every event exactly as written."/>
+        <label class="caption-label" value="Faithful Tracks are made for TDW sequences: every event stays as written."/>
       </flex>
 
       <flex class="dialog-actions-split">
-        <button id="faithful-button" class="dialog-button">
-          <label value="Import as Faithful Track instead"/>
+        <!-- Filled, like the import dialog's own Faithful option: the suggested shape. -->
+        <button id="faithful-button" class="dialog-button-primary">
+          <label value="Import as Faithful Track"/>
         </button>
         <panel class="spacer"/>
-        <!-- "OK", or "Keep Piano Roll" when the faithful button is there to choose from. -->
-        <button id="keep-button" class="dialog-button-primary">
+        <!-- Relabelled "Keep Piano Roll" beside the faithful button. On its own it is the
+             dialog's only action, so ImportWarningsDialog.cs fills it instead. -->
+        <button id="keep-button" class="dialog-button">
           <label value="OK"/>
         </button>
       </flex>
