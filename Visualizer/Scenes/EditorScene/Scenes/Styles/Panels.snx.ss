@@ -267,25 +267,6 @@ class faithful-palette-cell {
     }
 }
 
-// The caption line: the name, and the sound count when there is more than one.
-class faithful-cell-caption {
-    direction = "horizontal";
-    vertical-align = "center";
-    spacing = 4;
-}
-
-class cell-name {
-    font-size = 11;
-    font-color = $theme.text;
-}
-
-// A layered instrument draws one tile, so this is the only thing saying it is more than
-// one sound - muted, but never hidden.
-class cell-count {
-    font-size = 11;
-    font-color = $theme.text_muted;
-}
-
 // A section box's header row: its title, then whatever tools the box hangs off it -
 // the sequence's follow/tool toggles, the instruments' "Modify".
 class faithful-section-bar {

@@ -206,6 +206,28 @@ class caption-label {
 // Text painted over a grid canvas (bar numbers, gutter values) is not an element any
 // more - it is a LabelBatch slot, colored from the canvas's own `label-color` setting.
 
+// ---------------------------------------------------------------- tile cells
+
+// The caption over a cell's tile - the faithful palette's instruments, the import warnings'
+// left-out events: a name, then a count when there is one.
+class cell-caption {
+    direction = "horizontal";
+    vertical-align = "center";
+    spacing = 4;
+}
+
+class cell-name {
+    font-size = 11;
+    font-color = $theme.text;
+}
+
+// A tile draws one of something, so this is the only thing saying there is more than one -
+// muted, but never hidden.
+class cell-count {
+    font-size = 11;
+    font-color = $theme.text_muted;
+}
+
 // ---------------------------------------------------------------- structure
 
 // A 1px full-width horizontal rule.

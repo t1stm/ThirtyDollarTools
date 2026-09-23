@@ -3,6 +3,7 @@ using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;
 using EditorScene.State;
 using Sundex.Components.Abstractions;
+using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Tests;
 
@@ -48,6 +49,9 @@ public class StyleSelectorTests
         yield return new TrackTypeDialog(ctx).Element;
         yield return new ActionValueDialog(ctx, FaithfulAction.All[0]).Element;
         yield return new ExportDialog(ctx).Element;
+        // Every section kept, so the code-built cells and the overflow line are walked too.
+        yield return new ImportWarningsDialog(ctx, "song.tdw", ImportMode.Track, new ImportWarnings(
+            Enumerable.Range(0, 9).ToDictionary(i => $"!event{i}", i => i + 1), 3, ["mystery"])).Element;
     }
 
     [Fact]
@@ -82,7 +86,7 @@ public class StyleSelectorTests
     [InlineData("faithful-palette-grid")]
     [InlineData("faithful-palette-cell")]
     [InlineData("faithful-section-bar")]
-    [InlineData("faithful-cell-caption")]
+    [InlineData("cell-caption")]
     [InlineData("cell-name")]
     [InlineData("cell-count")]
     [InlineData("faithful-sequence")]

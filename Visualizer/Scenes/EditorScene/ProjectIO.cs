@@ -54,10 +54,11 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     /// <summary>
     ///     Imports a TDW sequence file as a track or as a whole project (see
     ///     <see cref="ImportMode" />). All-or-nothing: a parse or import failure leaves the
-    ///     project untouched. Non-fatal issues (ignored events, quantized notes, unknown
-    ///     sounds) surface as one summary alert.
+    ///     project untouched and is reported here. Non-fatal issues (ignored events, quantized
+    ///     notes, unknown sounds) are returned for the owner to show; null means the import
+    ///     failed.
     /// </summary>
-    public void ImportTdw(string path, ImportMode mode, IReadOnlyDictionary<string, Sound>? soundMap)
+    public ImportWarnings? ImportTdw(string path, ImportMode mode, IReadOnlyDictionary<string, Sound>? soundMap)
     {
         var name = Path.GetFileNameWithoutExtension(path);
         try
@@ -70,28 +71,14 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
                 _ => state.ReplaceWithImportedProject(sequence, name, soundMap)
             };
 
-            if (!result.Warnings.IsEmpty)
-                dialogHost.Alert($"Imported with warnings:\n\n{Summarize(result.Warnings)}");
+            return result.Warnings;
         }
         catch (Exception e)
         {
             logger.Error("[Editor] Failed to import \"{Path}\": {Exception}", path, e);
             dialogHost.Alert($"Couldn't import \"{Path.GetFileName(path)}\":\n\n{e.Message}");
+            return null;
         }
-    }
-
-    private static string Summarize(ImportWarnings warnings)
-    {
-        var parts = new List<string>();
-        foreach (var (name, count) in warnings.IgnoredEvents)
-            parts.Add($"ignored {name} ×{count}");
-        if (warnings.QuantizedNotes > 0)
-            parts.Add($"{warnings.QuantizedNotes} note{(warnings.QuantizedNotes == 1 ? "" : "s")} quantized");
-        foreach (var sound in warnings.UnknownSounds)
-            parts.Add($"unknown sound: {sound}");
-        // One warning per line: the alert's label doesn't wrap, so a joined line runs
-        // straight out of the modal.
-        return string.Join("\n", parts);
     }
 
     public void ExportTdw(string path, SequenceStyle style)

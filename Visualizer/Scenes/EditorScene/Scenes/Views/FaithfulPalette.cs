@@ -187,7 +187,7 @@ public sealed class FaithfulPalette : FlexPanel
         _cellCanvases.Add(sounds);
 
         var layered = instrument.Sounds.Count > 1;
-        var caption = new FlexPanel(Context) { Classes = ["faithful-cell-caption"] };
+        var caption = new FlexPanel(Context) { Classes = ["cell-caption"] };
         // The count costs the name a few characters rather than widening the cell, so every
         // cell in the grid stays the same width.
         caption.AddChild(new Label(Context, Shorten(instrument.Name, layered ? NameLimit - 3 : NameLimit))
@@ -209,7 +209,7 @@ public sealed class FaithfulPalette : FlexPanel
     }
 
     /// <summary>Cuts a name to <paramref name="limit" /> characters - see <see cref="NameLimit" />.</summary>
-    private static string Shorten(string name, int limit) =>
+    internal static string Shorten(string name, int limit) =>
         name.Length <= limit ? name : string.Concat(name.AsSpan(0, limit - 1), "\u2026");
 
     /// <summary>

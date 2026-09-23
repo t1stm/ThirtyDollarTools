@@ -214,6 +214,39 @@ class dialog-options {
     horizontal-align = "center";
 }
 
+// ---------------------------------------------------------------- import warnings
+
+// Four 88-wide cells plus three 8 gaps fill the 392 inner width.
+id import-warnings-dialog {
+    width = 420;
+}
+
+// One kind of warning: its heading, a line on what became of it, then what it applies to.
+class warning-section {
+    direction = "vertical";
+    width = 100%;
+    spacing = 6;
+}
+
+class warning-grid {
+    width = 100%;
+    spacing = 8;
+    wrap = true;
+}
+
+// The faithful palette's cell (Panels.snx.ss) without its hover - these tiles show what
+// was left out, there is nothing to click. Wider than the palette's 76 so an event name
+// and its count share the caption line.
+class warning-cell {
+    direction = "vertical";
+    horizontal-align = "center";
+    width = 88;
+    padding = 6;
+    spacing = 4;
+    border-radius = 6;
+    background = $theme.surface;
+}
+
 // ---------------------------------------------------------------- instruments
 
 id instrument-editor {

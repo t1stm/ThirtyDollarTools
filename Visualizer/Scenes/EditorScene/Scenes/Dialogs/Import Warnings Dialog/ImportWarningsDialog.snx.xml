@@ -1,0 +1,51 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Dialogs/Dialogs.snx.ss"/>
+
+  <layout>
+    <flex id="import-warnings-dialog" class="dialog-frame">
+      <!-- The file and the shape it went in as, set by ImportWarningsDialog.cs. Echoes the
+           import dialog's own "Import "file"" title. -->
+      <label id="title-label" class="title-label" value=""/>
+
+      <!-- One section per kind of warning. ImportWarningsDialog.cs fills the grids with
+           the faithful palette's tiles and removes any section the import raised nothing
+           for. -->
+      <flex id="ignored-section" class="warning-section">
+        <label class="sound-section-header" value="Left out"/>
+        <label class="caption-label" value="Piano Roll tracks have no place for these."/>
+        <flex id="ignored-grid" class="warning-grid"/>
+      </flex>
+
+      <flex id="unknown-section" class="warning-section">
+        <label class="sound-section-header" value="Unknown sounds"/>
+        <!-- What became of them depends on the import - set in code. -->
+        <label id="unknown-caption" class="caption-label" value=""/>
+        <flex id="unknown-grid" class="warning-grid"/>
+      </flex>
+
+      <flex id="quantized-section" class="warning-section">
+        <label class="sound-section-header" value="Snapped to the grid"/>
+        <label id="quantized-label" class="body-label" value=""/>
+      </flex>
+
+      <!-- The way back, for a Piano Roll track import only: a faithful track keeps what
+           the two sections above lost, and the track import is one undo step. Removed
+           with the button otherwise. -->
+      <flex id="faithful-footer" class="warning-section">
+        <panel class="rule"/>
+        <label class="caption-label" value="A Faithful Track keeps every event exactly as written."/>
+      </flex>
+
+      <flex class="dialog-actions-split">
+        <button id="faithful-button" class="dialog-button">
+          <label value="Import as Faithful Track instead"/>
+        </button>
+        <panel class="spacer"/>
+        <!-- "OK", or "Keep Piano Roll" when the faithful button is there to choose from. -->
+        <button id="keep-button" class="dialog-button-primary">
+          <label value="OK"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

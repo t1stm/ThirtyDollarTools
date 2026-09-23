@@ -93,6 +93,7 @@ public class EditorInterface
     private readonly Panel _inspectorColumn;
     private readonly InstrumentWorkflow _instrumentWorkflow;
     private readonly LaneHeader _laneHeader;
+    private readonly PlayfieldSettings _playfieldLook;
     private readonly ProjectIO _projectIo;
     private readonly SoundPicker _soundFilterPicker;
     private readonly List<(Button Button, EditorTool Tool)> _toolButtons = [];
@@ -149,10 +150,10 @@ public class EditorInterface
             OnHint = SetHint
         };
         _trackEditor = new TrackEditorView(context, State);
-        var playfieldLook = PlayfieldLook(workflow);
+        _playfieldLook = PlayfieldLook(workflow);
         var faithfulScale = new FaithfulScale();
-        _faithfulPalette = new FaithfulPalette(context, State, playfieldLook, faithfulScale);
-        _faithfulSequence = new FaithfulSequence(context, State, playfieldLook, faithfulScale);
+        _faithfulPalette = new FaithfulPalette(context, State, _playfieldLook, faithfulScale);
+        _faithfulSequence = new FaithfulSequence(context, State, _playfieldLook, faithfulScale);
         // The sequence works the size out from its own width; the palettes are told, since
         // nothing about their rectangles changes when it does.
         faithfulScale.Changed += _faithfulPalette.RefreshScale;
@@ -757,12 +758,12 @@ public class EditorInterface
         dialog.FaithfulTrackButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
-            _projectIo.ImportTdw(path, ImportMode.Faithful, SoundMap());
+            Import(path, ImportMode.Faithful);
         };
         dialog.SingleTrackButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
-            _projectIo.ImportTdw(path, ImportMode.Track, SoundMap());
+            Import(path, ImportMode.Track);
         };
         dialog.ProjectButton.OnClick = _ =>
         {
@@ -771,11 +772,39 @@ public class EditorInterface
                 _dialogHost.Confirm(
                     "Importing as a project discards unsaved changes.\n" +
                     "Continue?",
-                    () => _projectIo.ImportTdw(path, ImportMode.Project, SoundMap()),
+                    () => Import(path, ImportMode.Project),
                     confirmLabel: "Import", confirmClass: "dialog-button-primary");
             else
-                _projectIo.ImportTdw(path, ImportMode.Project, SoundMap());
+                Import(path, ImportMode.Project);
         };
+    }
+
+    /// <summary>
+    ///     Imports a sequence file and, when anything didn't carry over, shows what. A Piano
+    ///     Roll track import can be redone as a Faithful Track from there: the track import
+    ///     is one undo step, so stepping back over it leaves the project as it was.
+    /// </summary>
+    private void Import(string path, ImportMode mode)
+    {
+        if (_projectIo.ImportTdw(path, mode, SoundMap()) is not { IsEmpty: false } warnings) return;
+
+        var dialog = new ImportWarningsDialog(_context, Path.GetFileName(path), mode, warnings, _playfieldLook);
+        var modal = _dialogHost.Show(dialog.Element);
+        modal.OnDismissRequested = _ => Close();
+        dialog.KeepButton.OnClick = _ => Close();
+        dialog.FaithfulButton.OnClick = _ =>
+        {
+            Close();
+            State.Undo();
+            Import(path, ImportMode.Faithful);
+        };
+        return;
+
+        void Close()
+        {
+            _dialogHost.Close(modal);
+            dialog.Release();
+        }
     }
 
     /// <summary>
