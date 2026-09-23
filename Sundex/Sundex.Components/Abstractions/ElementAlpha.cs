@@ -1,5 +1,6 @@
 using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
+using Sundex.Components.Bars;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
@@ -45,6 +46,12 @@ public sealed class ElementAlpha
                     W = Styled(checkbox, checkbox.CheckColor.W) * alpha
                 };
                 break;
+
+            // Not a panel: its two fills are off-tree panels of its own.
+            case ProgressBar bar:
+                Apply(bar.BackgroundPanel, alpha);
+                Apply(bar.ForegroundPanel, alpha);
+                return;
         }
 
         if (element is not Panel panel) return;

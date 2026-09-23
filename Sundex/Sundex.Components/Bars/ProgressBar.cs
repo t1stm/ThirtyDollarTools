@@ -45,9 +45,11 @@ public class ProgressBar : UIElement
         get;
         set
         {
+            var old = field;
             UpdateSetDirty(ref field, value);
             field.Parent = this;
             UpdatePanelIndices(BackgroundPanel, ForegroundPanel);
+            SwapDrawnPanel(old, value);
         }
     }
 
@@ -57,9 +59,11 @@ public class ProgressBar : UIElement
         get;
         set
         {
+            var old = field;
             UpdateSetDirty(ref field, value);
             field.Parent = this;
             UpdatePanelIndices(BackgroundPanel, ForegroundPanel);
+            SwapDrawnPanel(old, value);
         }
     }
 
@@ -98,6 +102,19 @@ public class ProgressBar : UIElement
             ForegroundPanel.Parent = this;
             UpdatePanelIndices(BackgroundPanel, ForegroundPanel);
         }
+    }
+
+    /// <summary>
+    ///     Moves a drawn bar's queued planes over to a replacement panel. Here rather than in
+    ///     <see cref="ApplyStyleValue" />: a style reload and a state restore both put a
+    ///     previous panel back through the setter, and <c>HandleRenderableSwap</c> cannot see
+    ///     the plane inside a panel - the replaced one stayed queued, frozen at its last width.
+    /// </summary>
+    private void SwapDrawnPanel(Panel? old, Panel current)
+    {
+        if (!Drawn || ReferenceEquals(old, current)) return;
+        old?.StopRendering();
+        current.DrawTo(Context);
     }
 
     private void UpdatePanelIndices(Panel? backgroundPanel, Panel? foregroundPanel)
@@ -191,7 +208,6 @@ public class ProgressBar : UIElement
     {
         if (styleValue is null) return;
 
-        var oldValue = propertyInfo.GetValue(this) as Panel;
         Panel newPanel;
         switch (styleValue)
         {
@@ -233,7 +249,6 @@ public class ProgressBar : UIElement
             }
         }
 
-        HandleRenderableSwap(oldValue?.Background, newPanel.Background, propertyInfo.Name);
         propertyInfo.SetValue(this, newPanel);
     }
 }

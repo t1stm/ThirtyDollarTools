@@ -135,6 +135,42 @@ public class ProgressBarTests
         Assert.Equal(16, progressBar.ForegroundPanel.Computed.Height);
     }
 
+    [Fact]
+    public void ReplacingAPanelOnADrawnBar_DequeuesTheOldPlane()
+    {
+        var context = new TestUIContext();
+        var oldFill = new ColoredPlane { Color = Vector4.One };
+        var progressBar = new ProgressBar(context, new ColoredPlane { Color = Vector4.One }, oldFill);
+        progressBar.DrawTo(context);
+
+        // What a style reload does: sets a different panel straight through the property.
+        var newFill = new ColoredPlane { Color = Vector4.UnitX };
+        progressBar.ForegroundPanel = new Panel(context) { Background = newFill };
+
+        var queued = context.QueuedRenderables().ToList();
+        Assert.DoesNotContain(oldFill, queued);
+        Assert.Single(queued, item => item == newFill);
+        Assert.Equal(progressBar.Index + 2, progressBar.ForegroundPanel.Index);
+    }
+
+    [Fact]
+    public void ElementAlpha_FadesBothFillsAgainstTheirStyledAlpha()
+    {
+        var context = new TestUIContext();
+        var track = new ColoredPlane { Color = new Vector4(1, 1, 1, 0.5f) };
+        var fill = new ColoredPlane { Color = Vector4.One };
+        var root = new Panel(context) { Children = [new ProgressBar(context, track, fill)] };
+
+        var alpha = new ElementAlpha();
+        alpha.Apply(root, 0.5f);
+        Assert.Equal(0.25f, track.Color.W, 3);
+        Assert.Equal(0.5f, fill.Color.W, 3);
+
+        alpha.Apply(root, 1f);
+        Assert.Equal(0.5f, track.Color.W, 3);
+        Assert.Equal(1f, fill.Color.W, 3);
+    }
+
     private class TestContext : UIContext
     {
         public TestContext()
