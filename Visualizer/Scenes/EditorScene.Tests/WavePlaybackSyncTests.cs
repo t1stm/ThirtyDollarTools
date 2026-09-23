@@ -90,6 +90,27 @@ public class WavePlaybackSyncTests : IDisposable
     }
 
     [Fact]
+    public void TwoClipsOfOneFile_KeepTheirOwnPlace()
+    {
+        // The second clip starts 2 s (4 quarters at 120 BPM) after the first.
+        var (project, first) = ProjectWithClip();
+        var second = project.Place(first.Track, 1, 4);
+        var playback = Ready(project);
+
+        playback.Sync(project, _ => true, EditorPlayback.LeadInSeconds + 3, true, 1f);
+        Assert.Equal(2, playback.ClipCount);
+        Assert.Equal(3, playback.PositionSeconds(first)!.Value, 1);
+        Assert.Equal(1, playback.PositionSeconds(second)!.Value, 1);
+
+        // Muting one lane pauses only its own clip.
+        playback.Sync(project, channel => channel != 1, EditorPlayback.LeadInSeconds + 3.1, true, 1f);
+        Assert.True(playback.IsSounding(first));
+        Assert.False(playback.IsSounding(second));
+
+        playback.Dispose();
+    }
+
+    [Fact]
     public void OutsideItsOwnSpan_TheClipIsSilent()
     {
         var (project, placement) = ProjectWithClip(8); // 8 quarters at 120 BPM = 4 s in
@@ -125,6 +146,49 @@ public class WavePlaybackSyncTests : IDisposable
         Assert.False(playback.IsSounding(placement));
 
         playback.Dispose();
+    }
+
+    [Fact]
+    public async Task A16BitMonoFile_IsTimedAndDrawnFromItsOwnSamples()
+    {
+        // Two seconds of mono 16-bit: quiet, then loud. Nothing is widened on the way in, so
+        // the length has to come from 2-byte single-channel frames and the peaks from shorts.
+        var path = Path.Combine(Path.GetTempPath(), $"wave-int16-{Guid.NewGuid():N}.wav");
+        var samples = Enumerable.Range(0, (int)SampleRate * 2).Select(i => (short)(i < SampleRate ? 1000 : -20000))
+            .ToArray();
+        using (var writer = new BinaryWriter(File.Create(path)))
+        {
+            writer.Write("RIFF"u8);
+            writer.Write(36 + samples.Length * 2);
+            writer.Write("WAVEfmt "u8);
+            writer.Write(16);
+            writer.Write((short)1); // integer PCM
+            writer.Write((short)1); // mono
+            writer.Write((int)SampleRate);
+            writer.Write((int)SampleRate * 2);
+            writer.Write((short)2);
+            writer.Write((short)16);
+            writer.Write("data"u8);
+            writer.Write(samples.Length * 2);
+            foreach (var sample in samples) writer.Write(sample);
+        }
+
+        try
+        {
+            var playback = NewPlayback();
+            Assert.Equal(2, (await playback.Prepare(path))!.Value, 3);
+            playback.Sync(new ThirtyDollarProject(), _ => true, 0, false, 1f);
+
+            var peaks = playback.Peaks(path)!;
+            Assert.Equal(1000 / 20000f, peaks[0], 3);
+            Assert.Equal(1, peaks[^1], 3);
+            Assert.Empty(_errors);
+            playback.Dispose();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

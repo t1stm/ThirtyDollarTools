@@ -65,4 +65,9 @@ public class BassAudioContext(ILogger logger) : AudioContext
     {
         return new BassBuffer(_logger, sampleData, sampleRate);
     }
+
+    public override BassBuffer GetBufferObject(PcmDataHolder pcm)
+    {
+        return new BassBuffer(_logger, pcm);
+    }
 }

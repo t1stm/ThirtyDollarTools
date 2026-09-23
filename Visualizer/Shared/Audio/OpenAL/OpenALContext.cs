@@ -95,4 +95,9 @@ public class OpenALContext(ILogger logger) : AudioContext
     {
         return new OpenALBuffer(this, _logger, sampleData, sampleRate);
     }
+
+    public override OpenALBuffer GetBufferObject(PcmDataHolder pcm)
+    {
+        return new OpenALBuffer(this, _logger, pcm);
+    }
 }

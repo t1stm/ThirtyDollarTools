@@ -44,4 +44,12 @@ public abstract class AudibleBuffer : IBufferStopwatch
     public abstract void Delete();
     public abstract void SetPause(bool state);
     public abstract void SetPan(float pan);
+
+    /// <summary>
+    ///     A voice of its own on this buffer's data - see <see cref="AudioVoice" />. The
+    ///     buffer's own playback calls can reach its voices too (BASS pauses and seeks every
+    ///     channel of a sample at once), so a buffer that hands out voices is used for nothing
+    ///     else but <see cref="Delete" />.
+    /// </summary>
+    public abstract AudioVoice NewVoice();
 }

@@ -83,4 +83,39 @@ public class NullAudibleBuffer : AudibleBuffer
     public override void SetPan(float pan)
     {
     }
+
+    public override AudioVoice NewVoice()
+    {
+        return new NullVoice();
+    }
+
+    /// <summary>Silent, but keeps time like the buffer does - a clip is driven by where its voice is.</summary>
+    private sealed class NullVoice : AudioVoice
+    {
+        private readonly SeekableStopwatch _clock = new();
+
+        public override long GetTime_Milliseconds()
+        {
+            return _clock.ElapsedMilliseconds;
+        }
+
+        public override void SeekTime_Milliseconds(long milliseconds)
+        {
+            _clock.Seek(milliseconds);
+        }
+
+        public override void SetPause(bool paused)
+        {
+            if (paused) _clock.Stop();
+            else _clock.Start();
+        }
+
+        public override void SetVolume(float volume)
+        {
+        }
+
+        public override void Delete()
+        {
+        }
+    }
 }

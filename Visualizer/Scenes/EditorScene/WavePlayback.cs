@@ -4,15 +4,17 @@ using System.Collections.Concurrent;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Encoder.PCM;
 using ThirtyDollarConverter.Encoder.Wave;
+using System.Runtime.InteropServices;
+using PCMEncoding = ThirtyDollarConverter.Encoder.PCM.Encoding;
 
 namespace EditorScene;
 
 /// <summary>
 ///     The audio half of the wave reference tracks: every <see cref="WaveTrack" /> clip plays
-///     on a buffer of its own, kept in step with the rendered mix once a frame. The mix is
-///     never touched - it is re-rendered on a debounce after every edit, and a full-length copy
-///     per render is what this avoids - so alignment is corrective rather than sample-exact,
-///     within <see cref="SyncToleranceSeconds" />.
+///     on a voice of its own over its file's one buffer, kept in step with the rendered mix
+///     once a frame. The mix is never touched - it is re-rendered on a debounce after every
+///     edit, and a full-length copy per render is what this avoids - so alignment is
+///     corrective rather than sample-exact, within <see cref="SyncToleranceSeconds" />.
 ///     Shares its shape with <see cref="BackingAudio" />, the visualizer's single backing track,
 ///     but not its code: a clip here starts at an offset, carries its own gain, follows mute and
 ///     solo, and holds still outside its own span.
@@ -39,6 +41,9 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
 
     private readonly HashSet<string> _reading = [];
     private readonly HashSet<TrackPlacement> _seen = [];
+
+    private const int ConcurrentDecodes = 2;
+    private readonly SemaphoreSlim _decodes = new(ConcurrentDecodes);
 
     /// <summary>
     ///     Where the file should be, in seconds, when the transport's clock reads
@@ -83,7 +88,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
         if (_files.TryGetValue(path, out var cached)) return cached.Seconds;
 
         _failed.Remove(path);
-        var file = await Task.Run(() => Read(path));
+        var file = await Decode(path);
         _decoded.Enqueue((path, file));
         return file?.Seconds;
     }
@@ -101,8 +106,11 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
             _reading.Remove(done.Path);
             if (done.File is { } file)
             {
-                _files[done.Path] = file;
-                OnFileDecoded?.Invoke();
+                // Prepare doesn't go through _reading, so one path can be decoded twice. The
+                // first stays - its clips may already be playing - and the second is freed,
+                // since a buffer is native memory the collector never sees.
+                if (!_files.TryAdd(done.Path, file)) file.Buffer.Delete();
+                else OnFileDecoded?.Invoke();
             }
             else
             {
@@ -149,7 +157,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
         foreach (var clip in _clips.Values) clip.Delete();
         _clips.Clear();
 
-        foreach (var file in _files.Values) file.Data.Dispose();
+        foreach (var file in _files.Values) file.Buffer.Delete();
         _files.Clear();
     }
 
@@ -173,7 +181,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
         if (_clips.TryGetValue(placement, out var existing) && existing.File == file) return existing;
 
         existing?.Delete(); // the clip's track points at another file now
-        var clip = new Clip(context.GetBufferObject(file.Data, file.SampleRate), file);
+        var clip = new Clip(file.Buffer.NewVoice(), file);
         _clips[placement] = clip;
         return clip;
     }
@@ -181,13 +189,42 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
     private void BeginRead(string path)
     {
         if (path.Length == 0 || _failed.Contains(path) || !_reading.Add(path)) return;
-        Task.Run(() => _decoded.Enqueue((path, Read(path))));
+        Task.Run(async () => _decoded.Enqueue((path, await Decode(path))));
     }
 
     /// <summary>
-    ///     Decodes one file to float samples. Null (with the failure reported once) when the
-    ///     path is gone or the decoder cannot read it - the clip then draws at its saved length
-    ///     and stays silent, rather than the project failing to load.
+    ///     <see cref="Read" /> off the calling thread, at most <see cref="ConcurrentDecodes" />
+    ///     at a time. A decode passes through several times the file's size in samples on its
+    ///     way to the audio library, and the collector keeps what it frees resident long after:
+    ///     a project opening two dozen full-length stems at once held gigabytes it no longer
+    ///     used.
+    /// </summary>
+    private async Task<WaveFile?> Decode(string path)
+    {
+        await _decodes.WaitAsync();
+        try
+        {
+            return await Task.Run(() => Read(path));
+        }
+        finally
+        {
+            _decodes.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Decodes one file and uploads it as the one buffer every clip of it plays a voice on.
+    ///     Here, on the decode thread, rather than when a clip first needs it: an upload copies
+    ///     the whole file, which on the update thread was a hitch per clip. The decoded samples
+    ///     are let go once the buffer holds them, so a file costs its audio once, in the audio
+    ///     library - not once there per clip and again here for the whole session, which for a
+    ///     project of full-length stems ran to gigabytes. And in the file's own sample format
+    ///     and channel count (see <see cref="AudioContext.GetBufferObject(PcmDataHolder)" />):
+    ///     widened to stereo float, a 16-bit stereo stem took twice its size and a mono one four
+    ///     times.
+    ///     Null (with the failure reported once) when the path is gone or the decoder cannot
+    ///     read it - the clip then draws at its saved length and stays silent, rather than the
+    ///     project failing to load.
     /// </summary>
     private WaveFile? Read(string path)
     {
@@ -195,16 +232,16 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
         {
             using var stream = File.OpenRead(path);
             var pcm = new WaveDecoder().Read(stream);
-            // Mono has to be upmixed here: BassBuffer uploads every sample as stereo.
-            var data = pcm.ReadAsFloat32Array(true);
+            var frameBytes = (int)pcm.Channels * ((int)pcm.Encoding / 8);
+            var frames = frameBytes > 0 ? (pcm.AudioData?.Length ?? 0) / frameBytes : 0;
             // A decode that yields nothing is a failure, not a zero-second reference: a
             // format the decoder cannot follow otherwise lands as a silent sliver of a clip
             // with no clue as to why.
-            if (data is null || data.GetLength() == 0)
+            if (frames == 0 || pcm.SampleRate == 0)
                 throw new InvalidDataException("The file holds no readable audio.");
 
-            return new WaveFile(data, (int)pcm.SampleRate, data.GetLength() / (double)pcm.SampleRate,
-                PeaksOf(data));
+            var peaks = PeaksOf(pcm, frames);
+            return new WaveFile(context.GetBufferObject(pcm), frames / (double)pcm.SampleRate, peaks);
         }
         catch (Exception e)
         {
@@ -222,20 +259,37 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
     ///     // ponytail: channel 0 only. A stereo file whose channels differ wildly draws the
     ///     left one; take the max of both if that ever misleads.
     /// </summary>
-    private static float[] PeaksOf(AudioData<float> data)
+    private static float[] PeaksOf(PcmDataHolder pcm, int frames)
     {
-        var samples = data.GetChannel(0);
+        // Read straight off the file's own samples: widening a copy to float just to measure
+        // it would cost the very memory the native upload saves.
+        var data = pcm.AudioData.AsSpan();
+        var shorts = MemoryMarshal.Cast<byte, short>(data);
+        var int24s = MemoryMarshal.Cast<byte, Int24>(data);
+        var floats = MemoryMarshal.Cast<byte, float>(data);
+        var channels = (int)pcm.Channels;
         var peaks = new float[PeakBuckets];
-        if (samples.Length == 0) return peaks;
 
         var loudest = 0f;
         for (var bucket = 0; bucket < PeakBuckets; bucket++)
         {
-            var start = (int)((long)bucket * samples.Length / PeakBuckets);
-            var end = (int)((long)(bucket + 1) * samples.Length / PeakBuckets);
+            var start = (int)((long)bucket * frames / PeakBuckets);
+            var end = (int)((long)(bucket + 1) * frames / PeakBuckets);
 
             var peak = 0f;
-            for (var i = start; i < end; i++) peak = Math.Max(peak, Math.Abs(samples[i]));
+            for (var frame = start; frame < end; frame++)
+            {
+                var i = frame * channels;
+                var sample = pcm.Encoding switch
+                {
+                    PCMEncoding.Int8 => (data[i] - 128) / 128f,
+                    PCMEncoding.Int16 => shorts[i] / 32768f,
+                    PCMEncoding.Int24 => int24s[i].ToFloat(),
+                    _ => floats[i]
+                };
+                peak = Math.Max(peak, Math.Abs(sample));
+            }
+
             peaks[bucket] = peak;
             loudest = Math.Max(loudest, peak);
         }
@@ -250,57 +304,41 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
     ///     // ponytail: never evicted while the editor is open - a project holds a handful of
     ///     references, not a library. Evict by use count if that stops being true.
     /// </summary>
-    private sealed record WaveFile(AudioData<float> Data, int SampleRate, double Seconds, float[] Peaks);
+    private sealed record WaveFile(AudibleBuffer Buffer, double Seconds, float[] Peaks);
 
-    /// <summary>
-    ///     One placement's buffer. It is played once at creation and paused immediately, so a
-    ///     channel exists to seek: <see cref="AudibleBuffer.Play" /> starts a *new* channel on
-    ///     every call, and calling it per resume would layer the file over itself.
-    /// </summary>
-    private sealed class Clip
+    /// <summary>One placement's voice on its file's buffer, paused at the start until the first Drive.</summary>
+    private sealed class Clip(AudioVoice voice, WaveFile file)
     {
-        private readonly AudibleBuffer _buffer;
         private bool _playing;
         private float _volume = -1;
 
-        public Clip(AudibleBuffer buffer, WaveFile file)
-        {
-            _buffer = buffer;
-            File = file;
-
-            buffer.SetVolume(0); // silent until the first Drive, so priming makes no sound
-            buffer.Play();
-            buffer.SetPause(true);
-        }
-
-        public WaveFile File { get; }
+        public WaveFile File { get; } = file;
 
         public bool Sounding => _playing;
 
-        public double PositionSeconds => _buffer.GetTime_Milliseconds() / 1000d;
+        public double PositionSeconds => voice.GetTime_Milliseconds() / 1000d;
 
         public void Drive(double? position, bool play, float volume)
         {
             if (Math.Abs(volume - _volume) > 0.0005f)
             {
-                _buffer.SetVolume(volume);
+                voice.SetVolume(volume);
                 _volume = volume;
             }
 
             // Seeked before the pause state changes, so a resume starts from the right sample.
             if (position is { } seconds &&
-                Math.Abs(_buffer.GetTime_Milliseconds() / 1000d - seconds) > SyncToleranceSeconds)
-                _buffer.SeekTime_Milliseconds((long)(seconds * 1000));
+                Math.Abs(voice.GetTime_Milliseconds() / 1000d - seconds) > SyncToleranceSeconds)
+                voice.SeekTime_Milliseconds((long)(seconds * 1000));
 
             if (play == _playing) return;
-            _buffer.SetPause(!play);
+            voice.SetPause(!play);
             _playing = play;
         }
 
         public void Delete()
         {
-            _buffer.Stop();
-            _buffer.Delete();
+            voice.Delete();
         }
     }
 }

@@ -24,4 +24,9 @@ public class NullAudioContext : AudioContext
     {
         return new NullAudibleBuffer();
     }
+
+    public override AudibleBuffer GetBufferObject(PcmDataHolder pcm)
+    {
+        return new NullAudibleBuffer();
+    }
 }

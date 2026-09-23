@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.InteropServices;
 using OpenTK.Audio.OpenAL;
 using Serilog;
 using ThirtyDollarConverter.Encoder.PCM;
@@ -48,6 +49,54 @@ public class OpenALBuffer : AudibleBuffer
         finally
         {
             ArrayPool<float>.Shared.Return(samples);
+        }
+    }
+
+    /// <summary>The samples as the source holds them - see <see cref="AudioContext.GetBufferObject(PcmDataHolder)" />.</summary>
+    public unsafe OpenALBuffer(AudioContext context, ILogger logger, PcmDataHolder pcm)
+    {
+        _logger = logger.ForContext<OpenALBuffer>();
+        _context = context;
+        var data = pcm.AudioData ?? [];
+        var stereo = pcm.Channels switch
+        {
+            1 => false,
+            2 => true,
+            _ => throw new ArgumentOutOfRangeException(nameof(pcm), "The given channels count is invalid.")
+        };
+
+        var format = (pcm.Encoding, stereo) switch
+        {
+            (Encoding.Int8, false) => Format.FormatMono8,
+            (Encoding.Int8, true) => Format.FormatStereo8,
+            (Encoding.Int16, false) => Format.FormatMono16,
+            (Encoding.Int16, true) => Format.FormatStereo16,
+            (Encoding.Int24 or Encoding.Float32, false) => Format.FormatMonoFloat32,
+            (Encoding.Int24 or Encoding.Float32, true) => Format.FormatStereoFloat32,
+            _ => throw new InvalidDataException($"{(int)pcm.Encoding}-bit samples aren't supported.")
+        };
+
+        AudioBuffer = AL.GenBuffer();
+        if (pcm.Encoding == Encoding.Int24)
+        {
+            var count = data.Length / 3;
+            var widened = (float*)NativeMemory.Alloc((nuint)count, sizeof(float));
+            try
+            {
+                DataHolderExtensions.Int24ToFloat(data, new Span<float>(widened, count));
+                AL.BufferData(AudioBuffer, format, widened, count * sizeof(float), (int)pcm.SampleRate);
+            }
+            finally
+            {
+                NativeMemory.Free(widened);
+            }
+
+            return;
+        }
+
+        fixed (byte* bytes = data)
+        {
+            AL.BufferData(AudioBuffer, format, bytes, data.Length, (int)pcm.SampleRate);
         }
     }
 
@@ -248,5 +297,60 @@ public class OpenALBuffer : AudibleBuffer
     public override void SetPan(float pan)
     {
         _pan = pan;
+    }
+
+    public override AudioVoice NewVoice()
+    {
+        return new OpenALVoice(AudioBuffer);
+    }
+
+    /// <summary>
+    ///     One source on the buffer, primed - played and paused straight away - so a seek lands
+    ///     at once rather than being held for the next play.
+    /// </summary>
+    private sealed class OpenALVoice : AudioVoice
+    {
+        private readonly int _source;
+
+        public OpenALVoice(int buffer)
+        {
+            _source = AL.GenSource();
+            AL.Sourcei(_source, SourcePNameI.Buffer, buffer);
+            AL.Sourcef(_source, SourcePNameF.Gain, 0);
+            AL.SourcePlay(_source);
+            AL.SourcePause(_source);
+        }
+
+        public override long GetTime_Milliseconds()
+        {
+            AL.GetSourcef(_source, SourceGetPNameF.SecOffset, out var offset);
+            return (long)(offset * 1000f);
+        }
+
+        public override void SeekTime_Milliseconds(long milliseconds)
+        {
+            AL.Sourcef(_source, SourcePNameF.SecOffset, milliseconds / 1000f);
+        }
+
+        public override void SetPause(bool paused)
+        {
+            AL.GetSourcei(_source, SourceGetPNameI.SourceState, out var state);
+            if (paused) AL.SourcePause(_source);
+            // Playing a source that already plays starts it over.
+            else if ((SourceState)state != SourceState.Playing) AL.SourcePlay(_source);
+        }
+
+        public override void SetVolume(float volume)
+        {
+            // MaxGain first: it caps Gain and defaults to 1 - see OpenALBuffer.SetVolume.
+            AL.Sourcef(_source, SourcePNameF.MaxGain, Math.Max(1f, volume));
+            AL.Sourcef(_source, SourcePNameF.Gain, volume);
+        }
+
+        public override void Delete()
+        {
+            AL.SourceStop(_source);
+            AL.DeleteSource(_source);
+        }
     }
 }

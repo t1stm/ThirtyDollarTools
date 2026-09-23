@@ -204,6 +204,13 @@ public static class DataHolderExtensions // i love duplicating code (false state
         }
     }
 
+    /// <summary>Widens packed little-endian 24-bit samples to float, sample for sample.</summary>
+    public static void Int24ToFloat(ReadOnlySpan<byte> source, Span<float> destination)
+    {
+        var samples = MemoryMarshal.Cast<byte, Int24>(source);
+        for (var i = 0; i < samples.Length; i++) destination[i] = samples[i].ToFloat();
+    }
+
     private static ReadOnlySpan<short> ReadAsShortArray(Span<byte> bytes)
     {
         return MemoryMarshal.Cast<byte, short>(bytes);
