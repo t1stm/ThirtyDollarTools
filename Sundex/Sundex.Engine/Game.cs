@@ -77,6 +77,14 @@ public class Game : GameWindow
     ///     reaches the log.
     /// </summary>
     public Action<string>? OnWindowActionUnavailable { get; set; }
+
+    /// <summary>
+    ///     Whether the pointer is over the window. <see cref="NativeWindow.MouseState" /> keeps
+    ///     the last position it had inside, so UI that reacts to where the pointer is can't
+    ///     tell a pointer resting at an edge from one that left across it without this.
+    /// </summary>
+    public bool IsCursorInWindow { get; private set; }
+
     private GLInfo GLInfo { get; } = new();
 
     /// <summary>
@@ -126,6 +134,12 @@ public class Game : GameWindow
 
         GL.Hint(HintTarget.PolygonSmoothHint, HintMode.Nicest);
         GL.Hint(HintTarget.LineSmoothHint, HintMode.Nicest);
+
+        // Enter/leave only report changes, so the state at startup has to be asked for.
+        unsafe
+        {
+            IsCursorInWindow = GLFW.GetWindowAttrib(WindowPtr, WindowAttributeGetBool.Hovered);
+        }
 
         RenderMarker.Debug("Game Window Initialized");
         foreach (var assembly in AssetAssemblies) ReflectionPreloadObjects(assembly);
@@ -280,6 +294,18 @@ public class Game : GameWindow
 
         if (KeyboardState.IsKeyDown(Keys.LeftControl) && KeyboardState.IsKeyDown(Keys.Q))
             Close();
+    }
+
+    protected override void OnMouseEnter()
+    {
+        base.OnMouseEnter();
+        IsCursorInWindow = true;
+    }
+
+    protected override void OnMouseLeave()
+    {
+        base.OnMouseLeave();
+        IsCursorInWindow = false;
     }
 
     protected override void OnTextInput(TextInputEventArgs e)
