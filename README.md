@@ -6,6 +6,9 @@ that help creators make better and more complex covers,
 and users have more enjoyment experiencing public covers and _"particle accelerators"_, 
 **free of the lag that you might encounter on the Thirty Dollar Website.** 
 
+The project's website, with downloads for your system and the latest release notes, is at
+**[t1stm.github.io/ThirtyDollarTools](https://t1stm.github.io/ThirtyDollarTools/)**.
+
 The wiki also has some useful information if you're planning on using these tools.
 [Here's the link](https://github.com/t1stm/ThirtyDollarTools/wiki)
 
@@ -41,7 +44,8 @@ the time you can leave your device powered on.
 
 ## Download
 
-If you want to download these tools, you can visit the
+If you want to download these tools, the [website](https://t1stm.github.io/ThirtyDollarTools/)
+picks the right build for your system. You can also visit the
 [release tab](https://github.com/t1stm/ThirtyDollarTools/releases) and download the 
 latest copy of the compiled projects, or you can compile this project from the source code.
 
