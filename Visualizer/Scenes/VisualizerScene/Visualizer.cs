@@ -9,6 +9,7 @@ using Shared.Helpers.Positioning;
 using Shared.Objects;
 using Shared.Renderer.Settings;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
@@ -49,6 +50,12 @@ public class Visualizer : Scene, IGamePreloadable
     private readonly ThirtyDollarWorkflow _workflow;
 
     private BackingAudio? _backingAudio;
+
+    /// <summary>
+    ///     Full-window parent for <see cref="MessageDialog" />. A modal fills its parent, and
+    ///     on the player bar that meant the bar's 64 px, faded out with it.
+    /// </summary>
+    private Panel? _dialogHost;
     private CursorType _cursorType;
     private char[]? _debugBuffer;
     private GLInfo _glInfo = null!;
@@ -187,6 +194,12 @@ public class Visualizer : Scene, IGamePreloadable
             }
         );
         _shortcutSheet = new ShortcutSheet(playerBarContext);
+        _dialogHost = new Panel(playerBarContext)
+        {
+            Width = LiteralOrComputable.Percent(100),
+            Height = LiteralOrComputable.Percent(100)
+        };
+        _dialogHost.DrawTo(playerBarContext);
 
         PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
     }
@@ -222,6 +235,8 @@ public class Visualizer : Scene, IGamePreloadable
         PlayfieldContainer.Resize(resize);
         _playerBar?.Resize();
         _shortcutSheet?.Resize();
+        _dialogHost?.InvalidateCoordinates();
+        _dialogHost?.Layout();
         UpdateStaticRenderables(w, h, PlayfieldContainer.Camera.GetRenderScale());
 
         _width = w;
@@ -259,9 +274,9 @@ public class Visualizer : Scene, IGamePreloadable
     public override void TransitionedTo()
     {
         TextContainer.Greeting.Value = Greeting ?? _settings.Greeting;
-        if (_playerBar is not null)
+        if (_dialogHost is not null)
             Game.OnWindowActionUnavailable = message =>
-                MessageDialog.Show(_playerBar.RootPanel.Context, _playerBar.RootPanel, message);
+                MessageDialog.Show(_dialogHost.Context, _dialogHost, message);
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
         Resize(Game.ClientSize.X, Game.ClientSize.Y);
@@ -312,6 +327,12 @@ public class Visualizer : Scene, IGamePreloadable
         if (_playerBar is not null) _playerBar.Idle = idle;
         _shortcutSheet?.Update(_shortcutSheet.UI, idle);
 
+        if (_dialogHost is not null)
+        {
+            _dialogHost.Update(_dialogHost.Context);
+            _dialogHost.Layout();
+        }
+
         var cursor = _cursorType switch
         {
             CursorType.Default => MouseCursor.Default,
@@ -361,6 +382,14 @@ public class Visualizer : Scene, IGamePreloadable
 
     public override void Mouse(MouseState mouseState, KeyboardState keyboardState)
     {
+        // An open dialog is modal: it takes the pointer, and neither the bar nor the
+        // playfield's scrolling sees it.
+        if (_dialogHost is { Children.Count: > 0 })
+        {
+            _dialogHost.Test(mouseState, Vector2.One);
+            return;
+        }
+
         _playerBar?.MouseEvent(mouseState, Vector2.One);
         // gets scroll
         var scroll = mouseState.ScrollDelta;
