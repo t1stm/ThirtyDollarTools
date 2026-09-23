@@ -3,6 +3,16 @@ name: Cross-Platform Build and Release
 on:
   push:
     branches: [ '*' ]
+    # Only what goes into the zips: the two published apps and everything they reference.
+    paths:
+      - 'Visualizer/**'
+      - 'Converter/**'
+      - 'Sundex/**'
+      - 'BASS.Redist/**'
+      - 'Directory.Build.props'
+      - 'ThirtyDollarTools.slnx'
+      - '.github/workflows/dotnet-desktop.yml'
+      - '.github/changelog-config.json'
   workflow_dispatch:
 
 permissions:
