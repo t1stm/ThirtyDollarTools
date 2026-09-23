@@ -1,0 +1,119 @@
+>!speed@200|!speed@4@x|!divider|!stop@2|!loop=4|!highspeed@2|
+#^^^^^^ source.tdw keyword.control.tdw
+#      ^ source.tdw keyword.operator.pitch.tdw
+#       ^^^ source.tdw constant.numeric.pitch.tdw
+#          ^ source.tdw punctuation.separator.tdw
+#           ^^^^^^ source.tdw keyword.control.tdw
+#                 ^ source.tdw keyword.operator.pitch.tdw
+#                  ^ source.tdw constant.numeric.pitch.tdw
+#                   ^ source.tdw keyword.operator.scale.tdw
+#                    ^ source.tdw keyword.operator.scale.tdw
+#                     ^ source.tdw punctuation.separator.tdw
+#                      ^^^^^^^^ source.tdw keyword.control.tdw
+#                              ^ source.tdw punctuation.separator.tdw
+#                               ^^^^^ source.tdw keyword.control.tdw
+#                                    ^ source.tdw keyword.operator.pitch.tdw
+#                                     ^ source.tdw constant.numeric.pitch.tdw
+#                                      ^ source.tdw punctuation.separator.tdw
+#                                       ^^^^^ source.tdw keyword.control.tdw
+#                                            ^ source.tdw keyword.operator.repeat.tdw
+#                                             ^ source.tdw constant.numeric.repeat.tdw
+#                                              ^ source.tdw punctuation.separator.tdw
+#                                               ^^^^^^^^^^ source.tdw keyword.control.tdw
+#                                                         ^ source.tdw keyword.operator.pitch.tdw
+#                                                          ^ source.tdw constant.numeric.pitch.tdw
+#                                                           ^ source.tdw punctuation.separator.tdw
+>🥁|kick%80@5@x^-0.5>0.25|tab@12=4|dk64-bonus-barrel@-12|
+#^^ source.tdw entity.name.function.sound.tdw
+#  ^ source.tdw punctuation.separator.tdw
+#   ^^^^ source.tdw entity.name.function.sound.tdw
+#       ^ source.tdw keyword.operator.volume.tdw
+#        ^^ source.tdw constant.numeric.volume.tdw
+#          ^ source.tdw keyword.operator.pitch.tdw
+#           ^ source.tdw constant.numeric.pitch.tdw
+#            ^ source.tdw keyword.operator.scale.tdw
+#             ^ source.tdw keyword.operator.scale.tdw
+#              ^ source.tdw keyword.operator.pan.tdw
+#               ^^^^ source.tdw constant.numeric.pan.tdw
+#                   ^ source.tdw keyword.operator.offset.tdw
+#                    ^^^^ source.tdw constant.numeric.offset.tdw
+#                        ^ source.tdw punctuation.separator.tdw
+#                         ^^^ source.tdw entity.name.function.sound.tdw
+#                            ^ source.tdw keyword.operator.pitch.tdw
+#                             ^^ source.tdw constant.numeric.pitch.tdw
+#                               ^ source.tdw keyword.operator.repeat.tdw
+#                                ^ source.tdw constant.numeric.repeat.tdw
+#                                 ^ source.tdw punctuation.separator.tdw
+#                                  ^^^^^^^^^^^^^^^^^ source.tdw entity.name.function.sound.tdw
+#                                                   ^ source.tdw keyword.operator.pitch.tdw
+#                                                    ^^^ source.tdw constant.numeric.pitch.tdw
+#                                                       ^ source.tdw punctuation.separator.tdw
+>!cut@kick,🥁|!cut|#icut(kick, snare)|#bookmark(3)|
+#^^^^ source.tdw keyword.control.tdw
+#    ^ source.tdw keyword.operator.cut.tdw
+#     ^^^^ source.tdw entity.name.function.sound.cut.tdw
+#         ^ source.tdw punctuation.separator.cut.tdw
+#          ^^ source.tdw entity.name.function.sound.cut.tdw
+#            ^ source.tdw punctuation.separator.tdw
+#             ^^^^ source.tdw keyword.control.tdw
+#                 ^ source.tdw punctuation.separator.tdw
+#                  ^^^^^ source.tdw keyword.control.custom.tdwex
+#                       ^ source.tdw punctuation.section.arguments.begin.tdw
+#                        ^^^^ source.tdw entity.name.function.sound.cut.tdw
+#                            ^ source.tdw punctuation.separator.cut.tdw
+#                             ^^^^^^ source.tdw entity.name.function.sound.cut.tdw
+#                                   ^ source.tdw punctuation.section.arguments.end.tdw
+#                                    ^ source.tdw punctuation.separator.tdw
+#                                     ^^^^^^^^^ source.tdw keyword.control.custom.tdwex
+#                                              ^ source.tdw punctuation.section.arguments.begin.tdw
+#                                               ^ source.tdw constant.numeric.bookmark.tdw
+#                                                ^ source.tdw punctuation.section.arguments.end.tdw
+#                                                 ^ source.tdw punctuation.separator.tdw
+>!bg@#FF0000FF,1.5|!pulse@3,2|!speeed@1|
+#^^^ source.tdw keyword.control.tdw
+#   ^ source.tdw keyword.operator.value.tdw
+#    ^^^^^^^^^ source.tdw constant.other.color.rgb-value.tdw
+#             ^ source.tdw punctuation.separator.tdw
+#              ^^^ source.tdw constant.numeric.tdw
+#                 ^ source.tdw punctuation.separator.tdw
+#                  ^^^^^^ source.tdw keyword.control.tdw
+#                        ^ source.tdw keyword.operator.value.tdw
+#                         ^ source.tdw constant.numeric.tdw
+#                          ^ source.tdw punctuation.separator.tdw
+#                           ^ source.tdw constant.numeric.tdw
+#                            ^ source.tdw punctuation.separator.tdw
+#                             ^^^^^^^ source.tdw invalid.illegal.unknown-action.tdw
+#                                    ^ source.tdw keyword.operator.pitch.tdw
+#                                     ^ source.tdw constant.numeric.pitch.tdw
+#                                      ^ source.tdw punctuation.separator.tdw
+>#define(chord)|🎹@0|🎹@4|#enddefine|chord%50>0.1|
+#^^^^^^^^ source.tdw meta.define.tdw keyword.control.define.tdw
+#        ^^^^^ source.tdw meta.define.tdw keyword.control.define.tdw entity.name.function.define.tdw
+#             ^^ source.tdw meta.define.tdw keyword.control.define.tdw
+#               ^^ source.tdw meta.define.tdw entity.name.function.sound.tdw
+#                 ^ source.tdw meta.define.tdw keyword.operator.pitch.tdw
+#                  ^ source.tdw meta.define.tdw constant.numeric.pitch.tdw
+#                   ^ source.tdw meta.define.tdw punctuation.separator.tdw
+#                    ^^ source.tdw meta.define.tdw entity.name.function.sound.tdw
+#                      ^ source.tdw meta.define.tdw keyword.operator.pitch.tdw
+#                       ^ source.tdw meta.define.tdw constant.numeric.pitch.tdw
+#                        ^^^^^^^^^^^^ source.tdw meta.define.tdw keyword.control.define-end.tdw
+#                                    ^^^^^ source.tdw entity.name.function.sound.tdw
+#                                         ^ source.tdw keyword.operator.volume.tdw
+#                                          ^^ source.tdw constant.numeric.volume.tdw
+#                                            ^ source.tdw keyword.operator.offset.tdw
+#                                             ^^^ source.tdw constant.numeric.offset.tdw
+#                                                ^ source.tdw punctuation.separator.tdw
+>_pause=2|# a plain comment|#legacy|boom|
+#^^^^^^ source.tdw variable.language.pause.tdw
+#      ^ source.tdw keyword.operator.repeat.tdw
+#       ^ source.tdw constant.numeric.repeat.tdw
+#        ^ source.tdw punctuation.separator.tdw
+#         ^^ source.tdw comment.block.tdw punctuation.definition.comment.tdw
+#           ^^^^^^^^^^^^^^^ source.tdw comment.block.tdw comment.block.content.tdw
+#                          ^ source.tdw punctuation.separator.tdw
+#                           ^^^^^^^ source.tdw keyword.control.custom.tdwex
+#                                  ^ source.tdw punctuation.separator.tdw
+#                                   ^^^^ source.tdw entity.name.function.sound.tdw
+#                                       ^ source.tdw punctuation.separator.tdw
+>

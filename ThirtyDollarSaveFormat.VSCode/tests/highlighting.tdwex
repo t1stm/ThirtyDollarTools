@@ -1,0 +1,6 @@
+!speed@200|!speed@4@x|!divider|!stop@2|!loop=4|!highspeed@2|
+🥁|kick%80@5@x^-0.5>0.25|tab@12=4|dk64-bonus-barrel@-12|
+!cut@kick,🥁|!cut|#icut(kick, snare)|#bookmark(3)|
+!bg@#FF0000FF,1.5|!pulse@3,2|!speeed@1|
+#define(chord)|🎹@0|🎹@4|#enddefine|chord%50>0.1|
+_pause=2|# a plain comment|#legacy|boom|
