@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thirty Dollar Tools</title>
+  <meta name="description" content="Play, edit and export Thirty Dollar Website covers on your own computer, at a higher frame rate, in higher-quality audio, and with note automation for echoes, sustains and fades.">
+  <meta name="theme-color" content="#101A78">
+  <meta property="og:title" content="Thirty Dollar Tools">
+  <meta property="og:description" content="Play, edit and export Thirty Dollar Website covers on your own computer, at a higher frame rate, in higher-quality audio, and with note automation for echoes, sustains and fades.">
+  <meta property="og:image" content="media/visualizer-tv-world.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fragment+Mono&family=Lato:ital,wght@0,400;0,700;0,900;1,400&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="main.js"></script>
+</head>
+<body>
+
+<div class="field">
+  <header class="top wrap">
+    <a class="badge wordmark" href="#">THIRTY DOLLAR TOOLS</a>
+    <nav aria-label="Sections">
+      <a href="#tools">Tools</a>
+      <a href="#download">Download</a>
+      <a href="#changes">Changes</a>
+      <a href="https://github.com/t1stm/ThirtyDollarTools">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <section class="hero wrap" aria-label="Introduction">
+    <div class="stage">
+      <video id="hero-video" muted loop playsinline preload="metadata"
+             poster="media/hero-poster.webp"
+             aria-label="Another Medium, covered by t1stm, playing in the Visualizer">
+        <source src="media/hero.webm" type="video/webm">
+        <source src="media/hero.mp4" type="video/mp4">
+      </video>
+      <div class="stage-controls" id="stage-controls" hidden>
+        <button type="button" class="round" id="play" aria-label="Pause video">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><g class="i-pause"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></g><path class="i-play" d="M7 5l12 7-12 7z"/></svg>
+        </button>
+        <button type="button" class="round" id="sound" aria-pressed="false" aria-label="Turn sound on">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>
+            <g class="i-muted"><path d="M17 9l5 6M22 9l-5 6"/></g>
+            <g class="i-sound"><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19.5 5.5a9 9 0 0 1 0 13"/></g>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <p class="credit">Another Medium, covered by t1stm · playing in the Visualizer</p>
+
+    <div class="intro">
+      <p class="lede">Play, edit and export Thirty Dollar Website covers on your own computer, at a higher frame rate, in higher-quality audio, and with note automation for echoes, sustains and fades.</p>
+      <div class="get">
+        <a class="red" id="hero-dl" href="https://github.com/t1stm/ThirtyDollarTools/releases/latest">Download</a>
+        <span class="sub mono" id="hero-sub"></span>
+        <p class="get-links" id="hero-links"><a href="#download">Other platforms</a></p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<main class="wrap">
+
+  <div class="divider" id="tools"></div>
+
+  <article class="tool">
+    <div class="tool-text">
+      <h2 class="badge">VISUALIZER</h2>
+      <p class="tag">Play a cover back with no dropped notes.</p>
+      <ul>
+        <li>Plays on several CPU threads, so dense covers and particle accelerators stay smooth.</li>
+        <li>Seek, restart and pause from the playback bar at the bottom of the window.</li>
+        <li>Open any <code>.tdw</code> or <code>.🗿</code> file, or start one from the command line with <code>-i cover.tdw</code>.</li>
+      </ul>
+    </div>
+    <figure class="shot"><img src="media/visualizer-tv-world.webp" width="1600" height="840" loading="lazy" alt="The Visualizer playing TV World: rows of sound tiles with pitch and volume badges on an ultramarine background"></figure>
+  </article>
+
+  <article class="tool tool-wide">
+    <div class="tool-text">
+      <h2 class="badge">EDITOR</h2>
+      <p class="tag">Build a cover track by track and export it.</p>
+      <p>Open your existing covers as a project, or start from scratch. <a href="https://github.com/t1stm/ThirtyDollarTools/blob/master/docs/editor-keyboard-shortcuts.md">Keyboard shortcuts</a></p>
+    </div>
+    <div class="editor-views">
+      <div role="tablist" aria-label="Editor views" class="pills" id="editor-tabs">
+        <button role="tab" id="et-arr" aria-controls="ep" aria-selected="true" data-img="media/editor-arrangement-amalgam.webp" data-alt="Arrangement of the Amalgam project: coloured clips on tracks across 18 bars" data-cap="Lay out clips on tracks, like a DAW. The project exports back to a sequence the website can open.">Arrangement</button>
+        <button role="tab" id="et-roll" aria-controls="ep" aria-selected="false" tabindex="-1" data-img="media/editor-piano-roll-amalgam.webp" data-alt="Piano roll of Amalgam's drums #3, with long notes and keyframe markers" data-cap="Draw notes by pitch. Drag a note's border to make it long; the markers shape it.">Piano roll</button>
+        <button role="tab" id="et-wave" aria-controls="ep" aria-selected="false" tabindex="-1" data-img="media/editor-wave-tracks-wonder.webp" data-alt="The Wonder project: audio tracks with waveforms next to instrument clips" data-cap="Drop a WAV stem next to your tracks to write against the original song.">Audio clips</button>
+      </div>
+      <figure class="shot" id="ep" role="tabpanel" aria-labelledby="et-arr">
+        <img id="ep-img" src="media/editor-arrangement-amalgam.webp" width="1600" height="840" loading="lazy" alt="Arrangement of the Amalgam project: coloured clips on tracks across 18 bars">
+        <figcaption id="ep-cap">Lay out clips on tracks, like a DAW. The project exports back to a sequence the website can open.</figcaption>
+      </figure>
+    </div>
+  </article>
+
+  <article class="tool tool-flip">
+    <div class="tool-text">
+      <h2 class="badge">CONVERTER</h2>
+      <p class="tag">Turn a sequence into a WAV file.</p>
+      <ul>
+        <li>Exports match the website's sound one to one, panning included.</li>
+        <li>Only your RAM and your patience limit how long a cover can be.</li>
+        <li>Comes with a command-line version for batch jobs:</li>
+      </ul>
+      <pre><code>ThirtyDollarConverter.CLI -i cover.tdw -s 48000</code></pre>
+    </div>
+    <!-- TODO: replace with a screenshot of the rc6 restyle. -->
+    <figure class="shot shot-narrow"><img src="media/converter.webp" width="496" height="679" loading="lazy" alt="The Converter window with a sequence and export location selected"></figure>
+  </article>
+
+  <div class="divider" id="download"></div>
+  <h2 class="badge">DOWNLOAD</h2>
+
+  <div class="dl">
+    <div role="tablist" aria-label="Release channel" class="pills" id="channel-tabs">
+      <button role="tab" id="tab-stable" data-ch="stable" aria-controls="channel-panel">Stable</button>
+      <button role="tab" id="tab-rc" data-ch="rc" aria-controls="channel-panel">Release candidate</button>
+      <button role="tab" id="tab-nightly" data-ch="nightly" aria-controls="channel-panel">Nightly</button>
+    </div>
+    <div id="channel-panel" role="tabpanel" aria-labelledby="tab-rc">
+      <p class="note">Loading releases from GitHub…</p>
+    </div>
+    <p class="note">Each zip has the Visualizer (with the Editor and Drum Master) and the Converter. Unzip and run; the first launch downloads the Thirty Dollar Website's sounds. Debug builds and older versions are on the <a href="https://github.com/t1stm/ThirtyDollarTools/releases">releases page ↗</a>.</p>
+  </div>
+
+  <div class="divider" id="changes"></div>
+  <h2 class="badge">WHAT'S NEW</h2>
+  <div id="changes-list" class="changes">
+    <p class="note">Loading release notes from GitHub…</p>
+  </div>
+  <p><a href="https://github.com/t1stm/ThirtyDollarTools/releases">All releases on GitHub ↗</a></p>
+
+</main>
+
+<footer class="wrap foot">
+  <a href="https://github.com/t1stm/ThirtyDollarTools/wiki">Wiki ↗</a>
+  <a href="https://github.com/t1stm/ThirtyDollarTools">Source ↗</a>
+  <a href="https://github.com/t1stm/ThirtyDollarTools/blob/master/LICENSE">Public domain (Unlicense)</a>
+  <p class="credit-tdw">The <a href="https://thirtydollar.website/">Thirty Dollar Website ↗</a> was developed by <a href="https://gdcolon.com/">GD Colon ↗</a>:
+    <a href="https://www.youtube.com/@GDColon">YouTube ↗</a> ·
+    <a href="https://x.com/TheRealGDColon">X (Twitter) ↗</a></p>
+</footer>
+
+</body>
+</html>

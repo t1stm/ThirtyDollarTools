@@ -1,0 +1,273 @@
+/* A typed colour so --field itself can transition, which also smooths the gradient built from it. */
+@property --field { syntax: "<color>"; inherits: true; initial-value: #101A78; }
+
+/* Palette comes from the TDW tiles; see docs/handover/github-pages-plan.md. One dark world on purpose. */
+:root {
+  color-scheme: dark;
+  --field-rest: #101A78;   /* TV World's !bg */
+  --field: var(--field-rest); /* overwritten per frame by the hero video */
+  --divider-gap: 48px;     /* space above and below every divider row */
+  --tile: #3D8BD9;         /* arrow / !speed tile */
+  --cut: #6B4FA8;          /* !cut tile, nightly only */
+  --drum: #D8313B;         /* drum tile, the main download button only */
+  --chalk: #EEF0FA;
+  --ink: #0B0E2E;
+  --dim: #A9B0D8;
+  --panel: #0C145C;
+  --line: #2A3596;
+  --font: "Lato", "Segoe UI", system-ui, sans-serif;
+  --mono: "Fragment Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--field-rest); }
+body {
+  margin: 0;
+  background: var(--field-rest);
+  color: var(--chalk);
+  font: 17px/1.55 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1120px; margin-inline: auto; padding-inline: 16px; }
+img, video { max-width: 100%; }
+a { color: var(--chalk); text-underline-offset: 3px; text-decoration-color: var(--tile); }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--tile); outline-offset: 2px; }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+code { background: rgba(11, 14, 46, .55); padding: 0.08em 0.35em; border-radius: 3px; }
+pre {
+  background: var(--ink); border: 1px solid var(--line); border-radius: 6px;
+  padding: 12px 14px; margin: 0;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+pre code { background: none; padding: 0; font-size: 14px; }
+
+/* Display type: Lato Black. */
+.badge {
+  font-family: var(--font);
+  font-weight: 900;
+  color: var(--chalk);
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+h2.badge { font-size: clamp(30px, 4.4vw, 44px); margin: 0 0 12px; }
+
+/* ---- Hero band: follows the cover's !bg ---- */
+:root { transition: --field 120ms linear; }
+/* The live colour blends into the resting one over the band's last 200px; the band ends where #tools starts. */
+.field {
+  background: linear-gradient(to bottom, var(--field) calc(100% - 200px), var(--field-rest) 100%);
+  background: linear-gradient(in oklab to bottom, var(--field) calc(100% - 200px), var(--field-rest) 100%);
+}
+.top {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 8px 24px; padding-block: 18px;
+}
+.wordmark { font-size: 22px; text-decoration: none; }
+.top nav { display: flex; flex-wrap: wrap; gap: 4px 20px; font-weight: 700; font-size: 15px; }
+.top nav a { text-decoration: none; }
+.top nav a:hover { text-decoration: underline; }
+
+.hero { padding-bottom: var(--divider-gap); }
+/* Height-capped so the download button stays in the first screen; cover crops the video's plain margins. */
+.stage { position: relative; border-radius: 8px; overflow: hidden; background: var(--ink); width: 100%; aspect-ratio: 16 / 9; max-height: 48vh; max-height: 48svh; }
+.stage video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.stage-controls { position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; }
+.round {
+  width: 44px; height: 44px; display: grid; place-items: center; padding: 0;
+  background: rgba(11, 14, 46, .72); color: var(--chalk);
+  border: 1px solid rgba(238, 240, 250, .35); border-radius: 50%; cursor: pointer;
+}
+.round svg { width: 22px; height: 22px; fill: currentColor; }
+.round:hover { background: rgba(11, 14, 46, .9); }
+#play .i-play { display: none; }
+#play.paused .i-play { display: inline; }
+#play.paused .i-pause { display: none; }
+#sound .i-sound { display: none; }
+#sound[aria-pressed="true"] .i-sound { display: inline; }
+#sound[aria-pressed="true"] .i-muted { display: none; }
+
+.credit { margin: 8px 0 0; font-size: 13px; font-family: var(--mono); color: var(--chalk); text-shadow: 0 0 1px var(--ink), 0 0 4px var(--ink); }
+
+/* Line on the left straight on the cover colour, download card on the right. */
+.intro {
+  margin-top: 24px;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 24px 40px; align-items: center;
+}
+.lede {
+  margin: 0; font-size: clamp(21px, 2.4vw, 28px); font-weight: 700; line-height: 1.35;
+  color: var(--chalk);
+  /* Keeps it readable when the cover turns light (cyan, green, grey). */
+  text-shadow: 0 1px 2px rgba(11, 14, 46, .9), 0 0 14px rgba(11, 14, 46, .55);
+  text-wrap: pretty;
+}
+.get {
+  display: grid; gap: 10px; padding: 20px; border-radius: 8px;
+  background: rgba(11, 14, 46, .88);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+@media (max-width: 760px) {
+  .intro { grid-template-columns: minmax(0, 1fr); }
+}
+.red {
+  display: block; text-align: center; background: var(--drum); color: var(--chalk); text-decoration: none;
+  border-radius: 6px; padding: 12px 22px; font-weight: 900; font-size: 18px;
+  box-shadow: 0 3px 0 #7d1a21;
+}
+.red:hover { filter: brightness(1.08); }
+.red:active { transform: translateY(2px); box-shadow: 0 1px 0 #7d1a21; }
+.sub { color: var(--dim); }
+.get-links { margin: 0; font-size: 15px; }
+.get-links button {
+  font: inherit; color: var(--chalk); background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-decoration-color: var(--tile); text-underline-offset: 3px;
+}
+
+/* ---- Section breaks: a sequence line of _pause cells ending in TDW's !divider ----
+   `space` fits only whole 34px cells and pins the last one to the right edge, where !divider covers it. */
+.divider {
+  position: relative; height: 34px; margin-block: var(--divider-gap); scroll-margin-top: 16px;
+  background: url("media/pause.png") left center / 34px 34px space no-repeat;
+  background-repeat: space no-repeat;
+}
+/* The hero band's own padding is the gap, so the blend stops at this row's first pixel. */
+#tools { margin-top: 0; }
+.divider::after {
+  content: ""; position: absolute; right: 3px; top: 3px; width: 28px; height: 28px;
+  background: url("media/divider.png") center / contain no-repeat;
+}
+
+/* ---- Tools ---- */
+.tool {
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 24px 40px;
+  align-items: center; padding-block: 28px; border-bottom: 1px solid var(--line);
+}
+.tool:last-of-type { border-bottom: 0; padding-bottom: 0; }
+/* The divider's own margin is the gap; the tool rows' padding only separates them from each other. */
+.divider + .tool { padding-top: 0; }
+.tool-flip .tool-text { order: 2; }
+.tool-flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.tool-wide { grid-template-columns: 1fr; }
+.tool-text > * + * { margin-top: 10px; }
+.tool-text ul { padding-left: 20px; margin-bottom: 0; }
+.tool-text li + li { margin-top: 4px; }
+.tag { font-size: 20px; font-weight: 700; margin: 0; }
+.chip {
+  font: 400 12px var(--mono); padding: 2px 7px; border-radius: 3px;
+  background: var(--ink); color: var(--chalk); vertical-align: middle; letter-spacing: 0;
+}
+.shot { margin: 0; }
+.shot img {
+  display: block; width: 100%; height: auto; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--ink);
+  transition: transform 120ms ease-out;
+}
+.shot img:hover { transform: scale(1.02); }
+.shot figcaption { font-size: 15px; color: var(--dim); margin-top: 10px; }
+.shot-narrow { justify-self: center; max-width: 360px; }
+.editor-views { display: grid; gap: 14px; }
+
+@media (max-width: 800px) {
+  .tool, .tool-flip { grid-template-columns: minmax(0, 1fr); }
+  .tool-flip .tool-text { order: 0; }
+}
+
+/* ---- Tabs (editor views and release channels) ---- */
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pills [role="tab"] {
+  font: 700 15px var(--font); color: var(--chalk); background: transparent;
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer;
+}
+.pills [role="tab"]:hover { border-color: var(--tile); }
+.pills [role="tab"][aria-selected="true"] { background: var(--tile); border-color: var(--tile); color: var(--ink); }
+.pills [data-ch="nightly"][aria-selected="true"] { background: var(--cut); border-color: var(--cut); color: var(--chalk); }
+
+/* ---- Download ---- */
+.dl { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 20px; display: grid; gap: 16px; }
+#channel-panel { display: grid; gap: 12px; }
+.blurb { margin: 0; }
+.blurb .mono { display: block; color: var(--dim); margin-bottom: 2px; }
+.note { font-size: 14px; color: var(--dim); margin: 0; }
+.tbl { position: relative; overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font: 400 12px var(--mono); color: var(--dim); background: var(--ink); letter-spacing: .04em; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; font-family: var(--mono); font-size: 14px; }
+td:last-child { text-align: right; }
+.rowbtn {
+  display: inline-block; font-weight: 700; font-size: 14px; border-radius: 4px; padding: 5px 12px;
+  border: 1px solid var(--line); color: var(--chalk); text-decoration: none; white-space: nowrap;
+}
+.rowbtn:hover { border-color: var(--tile); }
+tr.mine .rowbtn { background: var(--drum); border-color: var(--drum); }
+tr.mine td:first-child { font-weight: 700; }
+.commits { margin: 0; }
+.commits summary { cursor: pointer; font-weight: 700; }
+
+/* ---- Release notes (GitHub-rendered HTML) ---- */
+.changes { display: grid; gap: 10px; }
+/* Boxes right under a section heading. */
+h2 + .dl, h2 + .changes { margin-top: 32px; }
+.changes details { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
+.changes summary {
+  cursor: pointer; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
+}
+.changes summary strong { font-size: 17px; }
+.changes summary .mono { color: var(--dim); }
+.notes { padding: 4px 16px 16px; overflow-wrap: anywhere; }
+.notes img { height: auto; border-radius: 4px; }
+.notes h1, .notes h2, .notes h3 { font-size: 19px; margin: 20px 0 6px; }
+.notes a { overflow-wrap: anywhere; }
+.chip-rc { background: var(--tile); color: var(--ink); }
+
+.credit-tdw { margin: 0 0 0 auto; }
+.foot {
+  display: flex; flex-wrap: wrap; gap: 8px 24px; padding-block: 48px 40px; margin-top: 48px;
+  border-top: 1px solid var(--line); font-size: 14px; color: var(--dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root, .shot img { transition: none; }
+  .shot img:hover { transform: none; }
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Phone: the four-column table fits without sideways scrolling. */
+@media (max-width: 520px) {
+  .dl { padding: 14px; }
+  th, td { padding: 8px 6px; }
+  td:first-child, th:first-child { padding-left: 10px; }
+  .rowbtn { padding: 5px 9px; }
+}
+
+/* Very narrow: each platform becomes a two-line card instead of a table row. */
+@media (max-width: 400px) {
+  .tbl thead { display: none; }
+  .tbl tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center;
+    grid-template-areas: "os size" "chip btn";
+    padding: 10px; border-bottom: 1px solid var(--line);
+  }
+  .tbl tr:last-child { border-bottom: 0; }
+  .tbl td { padding: 0; border: 0; }
+  .tbl td:first-child { grid-area: os; padding: 0; }
+  .tbl td:nth-child(2) { grid-area: chip; color: var(--dim); font-size: 14px; }
+  .tbl td.num { grid-area: size; text-align: right; }
+  .tbl td:last-child { grid-area: btn; }
+}
+
+/* Narrow: crop the Visualizer's side margins so the tile grid stays readable. */
+@media (max-width: 600px) {
+  .stage { aspect-ratio: 4 / 3; }
+  .stage-controls { top: 8px; right: 8px; gap: 6px; }
+  .round { width: 38px; height: 38px; }
+  .round svg { width: 19px; height: 19px; }
+}
