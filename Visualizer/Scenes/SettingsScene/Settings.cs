@@ -89,8 +89,8 @@ public class Settings : Scene
 
     public override void TransitionedTo()
     {
-        Game.OnWindowActionUnavailable = message =>
-            MessageDialog.Show(_context, _settingsInterface.RootPanel, message);
+        Game.OnWindowActionUnavailable = (title, message) =>
+            MessageDialog.Show(_context, _settingsInterface.RootPanel, title, message);
     }
 
     public override void Update(UpdateArguments updateArgs)

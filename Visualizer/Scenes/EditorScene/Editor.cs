@@ -122,8 +122,8 @@ public class Editor : Scene, IFadeInScene
     public override void TransitionedTo()
     {
         _editorInterface.SceneShown();
-        Game.OnWindowActionUnavailable = message =>
-            MessageDialog.Show(_context, _editorInterface.RootPanel, message);
+        Game.OnWindowActionUnavailable = (title, message) =>
+            MessageDialog.Show(_context, _editorInterface.RootPanel, title, message);
     }
 
     public override void Update(UpdateArguments updateArgs)

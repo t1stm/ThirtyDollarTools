@@ -275,8 +275,8 @@ public class Visualizer : Scene, IGamePreloadable
     {
         TextContainer.Greeting.Value = Greeting ?? _settings.Greeting;
         if (_dialogHost is not null)
-            Game.OnWindowActionUnavailable = message =>
-                MessageDialog.Show(_dialogHost.Context, _dialogHost, message);
+            Game.OnWindowActionUnavailable = (title, message) =>
+                MessageDialog.Show(_dialogHost.Context, _dialogHost, title, message);
         _workflow.HandleAfterSequenceLoad = HandleAfterSequenceLoad;
         // TODO: this is a workaround for now
         Resize(Game.ClientSize.X, Game.ClientSize.Y);

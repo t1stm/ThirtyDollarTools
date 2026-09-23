@@ -11,7 +11,7 @@ public class MessageDialogTests
         var ctx = new TestUIContext();
         var root = new Panel(ctx) { Width = 800, Height = 600 };
 
-        var modal = MessageDialog.Show(ctx, root, "Line one\nLine two");
+        var modal = MessageDialog.Show(ctx, root, "Title", "Line one\nLine two");
         root.Layout();
         Assert.Contains(modal, root.Children);
 

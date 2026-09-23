@@ -120,8 +120,8 @@ public class Home : Scene, IFadeInScene
     public override void TransitionedTo()
     {
         _homeInterface.PlayIntro();
-        Game.OnWindowActionUnavailable = message =>
-            MessageDialog.Show(_context, _homeInterface.RootPanel, message);
+        Game.OnWindowActionUnavailable = (title, message) =>
+            MessageDialog.Show(_context, _homeInterface.RootPanel, title, message);
     }
 
     public override void Update(UpdateArguments updateArgs)

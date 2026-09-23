@@ -61,22 +61,24 @@ public class Game : GameWindow
     public GameGlobals Globals { get; } = new();
 
     /// <summary>
-    ///     Text shown when the fullscreen shortcut is pressed on Wayland - see
-    ///     <see cref="OnWindowActionUnavailable" />.
+    ///     Title and text shown when the fullscreen shortcut is pressed on Wayland - see
+    ///     <see cref="OnWindowActionUnavailable" />. Says what to do, not why: the GLFW
+    ///     reason goes to the log.
     /// </summary>
+    public const string WaylandFullscreenTitle = "Fullscreen is up to your desktop";
+
+    /// <inheritdoc cref="WaylandFullscreenTitle" />
     public const string WaylandFullscreenMessage =
-        "Fullscreen can't be toggled from inside the app on Wayland:\n" +
-        "GLFW leaves window state to the compositor.\n\n" +
-        "Use your window manager's own fullscreen shortcut instead\n" +
-        "(often Super+F or F11).";
+        "On Wayland, apps can't switch themselves to fullscreen.\n" +
+        "Use your window manager's shortcut instead, often Super+F or F11.";
 
     /// <summary>
-    ///     Raised when a window action the platform refuses is attempted; today only
-    ///     fullscreen on Wayland. The engine has no UI of its own, so the active scene
-    ///     wires this to whatever it shows dialogs with - unwired, the message only
-    ///     reaches the log.
+    ///     Raised with a title and a message when a window action the platform refuses is
+    ///     attempted; today only fullscreen on Wayland. The engine has no UI of its own, so
+    ///     the active scene wires this to whatever it shows dialogs with - unwired, the
+    ///     refusal only reaches the log.
     /// </summary>
-    public Action<string>? OnWindowActionUnavailable { get; set; }
+    public Action<string, string>? OnWindowActionUnavailable { get; set; }
 
     /// <summary>
     ///     Whether the pointer is over the window. <see cref="NativeWindow.MouseState" /> keeps
@@ -348,8 +350,8 @@ public class Game : GameWindow
         // below would silently do nothing. Say so instead of swallowing the key.
         if (GLFW.GetPlatform() == Platform.Wayland)
         {
-            Logger.Information("[Fullscreen] Refused: {Message}", WaylandFullscreenMessage);
-            OnWindowActionUnavailable?.Invoke(WaylandFullscreenMessage);
+            Logger.Information("[Fullscreen] Refused: GLFW leaves window state to the compositor on Wayland");
+            OnWindowActionUnavailable?.Invoke(WaylandFullscreenTitle, WaylandFullscreenMessage);
             return;
         }
 
