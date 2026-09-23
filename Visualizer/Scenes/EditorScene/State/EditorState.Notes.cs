@@ -125,8 +125,9 @@ public partial class EditorState
     {
         if (targets.Count == 0) return;
 
+        var layout = new TrackLayout(track);
         var before = targets
-            .Select(t => (t.Note, Segment: FindSegment(track, t.Note), t.Note.Step, t.Note.Value,
+            .Select(t => (t.Note, Segment: FindSegment(layout, t.Note), t.Note.Step, t.Note.Value,
                 End: t.Note.Automation?.End))
             .ToArray();
         var changed = false;
@@ -177,13 +178,14 @@ public partial class EditorState
     {
         if (OpenedTrack is not { } track || _notes.Count == 0) return;
 
-        var maxGlobalStep = Math.Max(0, track.Segments.Sum(segment => segment.StepCount) - 1);
+        var layout = new TrackLayout(track);
+        var maxGlobalStep = Math.Max(0, layout.TotalSteps - 1);
         var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value, float? End)>(_notes.Count);
         foreach (var note in _notes.Items)
         {
             var globalStep = Math.Clamp(
-                track.GlobalStepOf(FindSegment(track, note), note.Step) + stepDelta, 0, maxGlobalStep);
-            if (track.SegmentAtGlobalStep(globalStep) is not { } mapped) continue;
+                layout.GlobalStepOf(FindSegment(layout, note), note.Step) + stepDelta, 0, maxGlobalStep);
+            if (layout.SegmentAt(globalStep) is not { } mapped) continue;
 
             targets.Add((note, mapped.Segment, mapped.LocalStep,
                 Math.Clamp(note.Value + valueDelta, -maxValue, maxValue), note.Automation?.End));
@@ -200,13 +202,23 @@ public partial class EditorState
     ///     note's own length along unchanged; a border drag is the same call with a new one.
     ///     A null length is a note with no automation at all, so undoing the drag that
     ///     created one takes it back off the note.
+    ///     The group leaves its segments in one sweep rather than one per note: a select-all
+    ///     drag moves every note of a track that can hold thousands of segments. Unmoved notes
+    ///     keep their order and the moved ones follow in target order - exactly what removing
+    ///     and re-adding them one at a time left behind.
     /// </summary>
     private static void Apply(ProjectTrack track,
         IReadOnlyList<(Note Note, TrackSegment Segment, int Step, double Value, float? End)> targets)
     {
+        var moving = new HashSet<Note>(targets.Count);
+        foreach (var target in targets) moving.Add(target.Note);
+        foreach (var segment in track.Segments) segment.Notes.RemoveAll(moving.Contains);
+
         foreach (var (note, segment, step, value, end) in targets)
         {
-            foreach (var s in track.Segments) s.Notes.Remove(note);
+            // A note listed twice is already back in a segment by now; its later target wins.
+            if (!moving.Remove(note))
+                foreach (var s in track.Segments) s.Notes.Remove(note);
             segment.Notes.Add(note);
             note.Step = step;
             note.Value = value;
@@ -216,14 +228,14 @@ public partial class EditorState
         }
     }
 
-    private static TrackSegment FindSegment(ProjectTrack track, Note note)
+    private static TrackSegment FindSegment(TrackLayout layout, Note note)
     {
-        return track.Segments.First(s => s.Notes.Contains(note));
+        return layout.SegmentOf(note) ??
+               throw new InvalidOperationException("The note is not in any of the track's segments.");
     }
 
-    private static int GlobalStepOf(ProjectTrack track, Note note)
+    private static int GlobalStepOf(TrackLayout layout, Note note)
     {
-        var segment = track.Segments.FirstOrDefault(s => s.Notes.Contains(note));
-        return segment != null ? track.GlobalStepOf(segment, note) : note.Step;
+        return layout.SegmentOf(note) is { } segment ? layout.GlobalStepOf(segment, note.Step) : note.Step;
     }
 }

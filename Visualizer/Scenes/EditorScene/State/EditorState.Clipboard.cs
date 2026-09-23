@@ -27,8 +27,9 @@ public partial class EditorState
         if (OpenedTrack is { } track)
         {
             if (_notes.Count == 0) return;
+            var layout = new TrackLayout(track);
             _clipboard.SetNotes(_notes.Items
-                .Select(note => new EditorClipboard.NoteEntry(GlobalStepOf(track, note), note.Duplicate())));
+                .Select(note => new EditorClipboard.NoteEntry(GlobalStepOf(layout, note), note.Duplicate())));
         }
         else
         {
@@ -74,10 +75,11 @@ public partial class EditorState
         {
             if (OpenedTrack is not { } track) return; // cross-editor mismatch
 
+            var layout = new TrackLayout(track);
             var pasted = new List<(TrackSegment Segment, Note Note)>();
             foreach (var entry in noteEntries)
             {
-                if (track.SegmentAtGlobalStep(entry.GlobalStep) is not { } mapped) continue;
+                if (layout.SegmentAt(entry.GlobalStep) is not { } mapped) continue;
                 var (segment, localStep) = mapped;
                 var clone = entry.Snapshot.Duplicate();
                 clone.Step = localStep;
@@ -159,8 +161,9 @@ public partial class EditorState
 
         if (_notes.Count > 0 && OpenedTrack is { } track)
         {
+            var layout = new TrackLayout(track);
             var snapshot = _notes.Items
-                .Select(note => (Segment: track.Segments.FirstOrDefault(s => s.Notes.Contains(note)), Note: note))
+                .Select(note => (Segment: layout.SegmentOf(note), Note: note))
                 .Where(pair => pair.Segment != null)
                 .Select(pair => (pair.Segment!, pair.Note))
                 .ToArray();

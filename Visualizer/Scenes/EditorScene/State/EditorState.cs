@@ -241,7 +241,10 @@ public partial class EditorState
     {
         if (OpenedFaithfulTrack is { } faithful) _items.Keep(faithful.Items.Contains);
         else if (OpenedTrack is { } track)
-            _notes.Keep(note => track.Segments.Any(segment => segment.Notes.Contains(note)));
+        {
+            var layout = new TrackLayout(track);
+            _notes.Keep(note => layout.SegmentOf(note) != null);
+        }
         else _placements.Keep(Project.Placements.Contains);
     }
 

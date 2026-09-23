@@ -1229,10 +1229,11 @@ public sealed class TrackEditorView : Panel
         // delta from here, so anchoring on the note's start would shift it by however far
         // into the note the press landed - grabbing a long note in the middle would snap its
         // start to the cursor before the pointer moved at all.
+        var layout = new TrackLayout(track);
         var (pressSegment, pressStep) = StepAt(pressX, true);
         var anchorGlobalStep = pressSegment != null
-            ? track.GlobalStepOf(pressSegment, pressStep)
-            : track.GlobalStepOf(block.Segment, block.Note.Step);
+            ? layout.GlobalStepOf(pressSegment, pressStep)
+            : layout.GlobalStepOf(block.Segment, block.Note.Step);
         _groupDragAnchorStartStep = anchorGlobalStep;
         // Snapped pointer value at press, not the note's own exact Value, so both ends of
         // the per-frame delta are snapped the same way. A same-position drag frame - which
@@ -1249,8 +1250,8 @@ public sealed class TrackEditorView : Panel
         [
             .. _state.SelectedNotes.Select(note =>
             {
-                var segment = track.Segments.FirstOrDefault(s => s.Notes.Contains(note));
-                var globalStep = segment != null ? track.GlobalStepOf(segment, note.Step) : note.Step;
+                var segment = layout.SegmentOf(note);
+                var globalStep = segment != null ? layout.GlobalStepOf(segment, note.Step) : note.Step;
                 return new GroupDragEntry(note, globalStep, note.Value);
             })
         ];
@@ -1306,16 +1307,17 @@ public sealed class TrackEditorView : Panel
         _resizeEdge = edge;
         _state.BeginGesture();
 
+        var layout = new TrackLayout(track);
         var (_, pressStep) = StepAt(pressX, true);
-        _groupDragAnchorStartStep = track.GlobalStepOf(block.Segment, pressStep);
+        _groupDragAnchorStartStep = layout.GlobalStepOf(block.Segment, pressStep);
         _groupDragLastStep = _groupDragAnchorStartStep;
 
         _groupDrag =
         [
             .. _state.SelectedNotes.Select(note =>
             {
-                var segment = track.Segments.FirstOrDefault(s => s.Notes.Contains(note));
-                var globalStep = segment != null ? track.GlobalStepOf(segment, note.Step) : note.Step;
+                var segment = layout.SegmentOf(note);
+                var globalStep = segment != null ? layout.GlobalStepOf(segment, note.Step) : note.Step;
                 var steps = segment != null ? NoteSteps(track, segment, note) : 1;
                 return new GroupDragEntry(note, globalStep, note.Value, steps);
             })
@@ -1336,8 +1338,9 @@ public sealed class TrackEditorView : Panel
         var (segment, step) = StepAt(x, true);
         if (segment == null) return;
 
-        var totalSteps = track.Segments.Sum(s => s.StepCount);
-        var newAnchorGlobalStep = track.GlobalStepOf(segment, step);
+        var layout = new TrackLayout(track);
+        var totalSteps = layout.TotalSteps;
+        var newAnchorGlobalStep = layout.GlobalStepOf(segment, step);
         var stepDelta = newAnchorGlobalStep - _groupDragAnchorStartStep;
 
         var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value, float? End)>(entries.Count);
@@ -1358,7 +1361,7 @@ public sealed class TrackEditorView : Panel
                 globalStep = moved;
             }
 
-            if (track.SegmentAtGlobalStep(globalStep) is not { } mapped) continue;
+            if (layout.SegmentAt(globalStep) is not { } mapped) continue;
             targets.Add((entry.Note, mapped.Segment, mapped.LocalStep, entry.Note.Value, end));
         }
 
@@ -1397,11 +1400,12 @@ public sealed class TrackEditorView : Panel
         if (segment == null) return;
         var value = ValueAt(y);
 
-        var newAnchorGlobalStep = track.GlobalStepOf(segment, step);
+        var layout = new TrackLayout(track);
+        var newAnchorGlobalStep = layout.GlobalStepOf(segment, step);
         var stepDelta = newAnchorGlobalStep - _groupDragAnchorStartStep;
         var valueDelta = value - _groupDragAnchorStartValue;
 
-        var maxGlobalStep = Math.Max(0, track.Segments.Sum(s => s.StepCount) - 1);
+        var maxGlobalStep = Math.Max(0, layout.TotalSteps - 1);
         var targets = new List<(Note Note, TrackSegment Segment, int Step, double Value, float? End)>(entries.Count);
         foreach (var entry in entries)
         {
@@ -1409,7 +1413,7 @@ public sealed class TrackEditorView : Panel
             // A cut note's Value is unused (it renders in the fixed pinned row regardless),
             // so clamping it along with everything else is harmless - no special case needed.
             var targetValue = Math.Clamp(entry.StartValue + valueDelta, -MaxValue, MaxValue);
-            if (track.SegmentAtGlobalStep(targetGlobalStep) is not { } mapped) continue;
+            if (layout.SegmentAt(targetGlobalStep) is not { } mapped) continue;
 
             targets.Add((entry.Note, mapped.Segment, mapped.LocalStep, targetValue, entry.Note.Automation?.End));
         }
