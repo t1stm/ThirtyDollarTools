@@ -4,22 +4,33 @@
 
   <layout>
     <panel id="bar-root">
+      <!-- The timeline is the bar's top edge. It comes first so the playhead paints over
+           it, and the controls last so they paint over the playhead. -->
+      <progress id="progress-bar"/>
+
+      <!-- Home's playhead, standing where the cover is. PlayerBar moves it. -->
+      <panel id="playhead">
+        <panel id="playhead-line"/>
+        <panel id="playhead-stem"/>
+      </panel>
+
       <flex id="left-group">
-        <button id="back-button">
-          <label value="Back"/>
-        </button>
-      </flex>
-      <flex id="center-group">
-        <label id="current-time" value="00:00.00"/>
-        <progress id="progress-bar"/>
-        <label id="total-time" value="00:00.00"/>
-      </flex>
-      <flex id="right-group">
         <button id="play-pause-button">
           <label value="Play"/>
         </button>
         <button id="restart-button">
           <label value="Restart"/>
+        </button>
+        <flex id="clock">
+          <label id="current-time" value="00:00.00"/>
+          <label id="time-separator" value="/"/>
+          <label id="total-time" value="00:00.00"/>
+        </flex>
+      </flex>
+
+      <flex id="right-group">
+        <button id="back-button">
+          <label value="Back"/>
         </button>
       </flex>
     </panel>

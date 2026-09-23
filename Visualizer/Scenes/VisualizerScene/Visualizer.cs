@@ -289,7 +289,8 @@ public class Visualizer : Scene, IGamePreloadable
                 ? SequencePlayer.GetTimeFromIndex(TimedEvents.Placement[^1].Index)
                 : 0;
             _playerBar.ProgressBar.Progress = p_total > 0 ? (float)p_elapsed / p_total : 0;
-            _playerBar.CurrentTimeLabel.Value = TimeString(p_elapsed);
+            // The clock runs on past the last event; the readout stops at the end.
+            _playerBar.CurrentTimeLabel.Value = TimeString(p_total > 0 ? Math.Min(p_elapsed, p_total) : p_elapsed);
             _playerBar.TotalTimeLabel.Value = TimeString(p_total);
             _playerBar.PlayPauseButton.Label.Value = p_stopwatch.IsRunning ? "Pause" : "Play";
 

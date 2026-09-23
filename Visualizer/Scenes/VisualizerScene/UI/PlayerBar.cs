@@ -19,11 +19,17 @@ public class PlayerBar
     private const float ZoneLow = 0.75f;
     private const float ZoneHigh = 0.85f;
 
-    // Hover feedback colors (RGB only - W is owned by PropagateAlpha). Not state[hovered]
-    // stylesheet blocks: those go through InvalidateStyle, which would restore alpha=1 from
-    // the base snapshot on every state transition.
-    private static readonly Vector3 ButtonBaseRgb = new(0x7a / 255f, 0xa2 / 255f, 0xf7 / 255f);
-    private static readonly Vector3 ButtonHoverRgb = new(0x9a / 255f, 0xb8 / 255f, 1.0f);
+    /// <summary>
+    ///     How far past the drawn timeline, above and below, a press still seeks. The line is
+    ///     4 px, far too thin to aim at.
+    /// </summary>
+    private const float SeekSlop = 8f;
+
+    /// <summary>
+    ///     Applied every frame, not only mid-fade: the hovered/pressed state overrides re-run
+    ///     the stylesheet, which puts the styled alpha back.
+    /// </summary>
+    private readonly ElementAlpha _alpha = new();
 
     private float _inactivityTimer;
     private Vector2 _lastMousePos;
@@ -50,6 +56,7 @@ public class PlayerBar
         sundexContext.RunLogicAndVerify(Component,
             () => RootPanel,
             () => ProgressBar,
+            () => Playhead,
             () => CurrentTimeLabel,
             () => TotalTimeLabel,
             () => PlayPauseButton,
@@ -75,6 +82,7 @@ public class PlayerBar
 
     [SetFromLogic] public Panel RootPanel { get; set; } = null!;
     [SetFromLogic] public ProgressBar ProgressBar { get; set; } = null!;
+    [SetFromLogic] public Panel Playhead { get; set; } = null!;
     [SetFromLogic] public Label CurrentTimeLabel { get; set; } = null!;
     [SetFromLogic] public Label TotalTimeLabel { get; set; } = null!;
     [SetFromLogic] public Button PlayPauseButton { get; set; } = null!;
@@ -91,6 +99,7 @@ public class PlayerBar
     {
         if (CurrentAlpha < 0.01f) return;
         RootPanel.Update(context);
+        Playhead.X = RootPanel.Computed.Width * Math.Clamp(ProgressBar.Progress, 0f, 1f) - Playhead.Computed.Width / 2f;
         RootPanel.Layout();
     }
 
@@ -101,7 +110,7 @@ public class PlayerBar
             _inactivityTimer = 0f;
             _lastMousePos = mouse.Position;
             CurrentAlpha = 1f;
-            PropagateAlpha(1f);
+            _alpha.Apply(RootPanel, 1f);
             return;
         }
 
@@ -127,7 +136,7 @@ public class PlayerBar
             ? Math.Min(CurrentAlpha + step, targetAlpha)
             : Math.Max(CurrentAlpha - step, targetAlpha);
 
-        PropagateAlpha(CurrentAlpha);
+        _alpha.Apply(RootPanel, CurrentAlpha);
     }
 
     public void MouseEvent(MouseState mouse, Vector2 scale)
@@ -144,37 +153,9 @@ public class PlayerBar
         var my = mouse.Position.Y / scale.Y;
 
         if (!(mx >= pb.AbsoluteX) || !(mx <= pb.AbsoluteX + pb.Width) ||
-            !(my >= pb.AbsoluteY) || !(my <= pb.AbsoluteY + pb.Height)) return;
+            !(my >= pb.AbsoluteY - SeekSlop) || !(my <= pb.AbsoluteY + pb.Height + SeekSlop)) return;
 
         var fraction = (mx - pb.AbsoluteX) / pb.Width;
         OnSeek(Math.Clamp(fraction, 0f, 1f));
-    }
-
-    private void PropagateAlpha(float a)
-    {
-        SetPanelAlpha(RootPanel, a);
-        SetLabelAlpha(CurrentTimeLabel, a);
-        SetLabelAlpha(TotalTimeLabel, a);
-        SetButtonAlpha(BackButton, a);
-        SetButtonAlpha(PlayPauseButton, a);
-        SetButtonAlpha(RestartButton, a);
-        SetPanelAlpha(ProgressBar.BackgroundPanel, a);
-        SetPanelAlpha(ProgressBar.ForegroundPanel, a);
-    }
-
-    private static void SetLabelAlpha(Label label, float a)
-    {
-        label.Color = label.Color with { W = a };
-    }
-
-    private static void SetButtonAlpha(Button button, float a)
-    {
-        SetLabelAlpha(button.Label, a);
-        SetPanelAlpha(button, a);
-    }
-
-    private static void SetPanelAlpha(Panel panel, float a)
-    {
-        panel.Background?.Color = panel.Background.Color with { W = a };
     }
 }
