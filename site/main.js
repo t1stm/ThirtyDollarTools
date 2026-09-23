@@ -142,6 +142,12 @@ function safeFragment(html) {
   const t = document.createElement('template');
   t.innerHTML = html;
   t.content.querySelectorAll('script, style, iframe, object, embed, form, link, meta').forEach(n => n.remove());
+  // Release Markdown uses # and ##; demote them so they sit under the page's own h2 sections.
+  t.content.querySelectorAll('h1, h2').forEach(h => {
+    const h3 = document.createElement('h3');
+    h3.append(...h.childNodes);
+    h.replaceWith(h3);
+  });
   for (const el of t.content.querySelectorAll('*')) {
     for (const attr of [...el.attributes]) {
       const n = attr.name.toLowerCase();

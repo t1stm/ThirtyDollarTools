@@ -3,12 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Thirty Dollar Tools</title>
-  <meta name="description" content="Play, edit and export Thirty Dollar Website covers on your own computer, at a higher frame rate, in higher-quality audio, and with note automation for echoes, sustains and fades.">
+  <title>Thirty Dollar Tools: Thirty Dollar Website visualizer, editor and WAV exporter</title>
+  <meta name="description" content="Play, edit and export Thirty Dollar Website covers on your computer: a smooth visualizer, a track editor and a WAV converter. Free for Windows, Linux and macOS.">
   <meta name="theme-color" content="#101A78">
+  <link rel="canonical" href="https://t1stm.github.io/ThirtyDollarTools/">
+  <link rel="icon" href="media/icon.png" type="image/png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Thirty Dollar Tools">
+  <meta property="og:url" content="https://t1stm.github.io/ThirtyDollarTools/">
   <meta property="og:title" content="Thirty Dollar Tools">
-  <meta property="og:description" content="Play, edit and export Thirty Dollar Website covers on your own computer, at a higher frame rate, in higher-quality audio, and with note automation for echoes, sustains and fades.">
-  <meta property="og:image" content="media/visualizer-tv-world.webp">
+  <meta property="og:description" content="Play, edit and export Thirty Dollar Website covers on your computer: a smooth visualizer, a track editor and a WAV converter. Free for Windows, Linux and macOS.">
+  <meta property="og:image" content="https://t1stm.github.io/ThirtyDollarTools/media/visualizer-tv-world.webp">
+  <meta property="og:image:width" content="1600">
+  <meta property="og:image:height" content="840">
+  <meta property="og:image:alt" content="The Visualizer playing TV World">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preload" as="image" href="media/hero-poster.webp" fetchpriority="high">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Thirty Dollar Tools",
+    "description": "Play, edit and export Thirty Dollar Website covers on your computer: a smooth visualizer, a track editor and a WAV converter.",
+    "applicationCategory": "MultimediaApplication",
+    "operatingSystem": "Windows, Linux, macOS",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "license": "https://unlicense.org/",
+    "url": "https://t1stm.github.io/ThirtyDollarTools/",
+    "downloadUrl": "https://github.com/t1stm/ThirtyDollarTools/releases/latest",
+    "codeRepository": "https://github.com/t1stm/ThirtyDollarTools",
+    "screenshot": [
+      "https://t1stm.github.io/ThirtyDollarTools/media/visualizer-tv-world.webp",
+      "https://t1stm.github.io/ThirtyDollarTools/media/editor-arrangement-amalgam.webp",
+      "https://t1stm.github.io/ThirtyDollarTools/media/editor-piano-roll-amalgam.webp",
+      "https://t1stm.github.io/ThirtyDollarTools/media/editor-wave-tracks-wonder.webp",
+      "https://t1stm.github.io/ThirtyDollarTools/media/converter.webp"
+    ]
+  }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fragment+Mono&family=Lato:ital,wght@0,400;0,700;0,900;1,400&display=swap">
@@ -19,7 +51,7 @@
 
 <div class="field">
   <header class="top wrap">
-    <a class="badge wordmark" href="#">THIRTY DOLLAR TOOLS</a>
+    <a class="badge wordmark" href="#">Thirty Dollar Tools</a>
     <nav aria-label="Sections">
       <a href="#tools">Tools</a>
       <a href="#download">Download</a>
@@ -52,7 +84,7 @@
     <p class="credit">Another Medium, covered by t1stm · playing in the Visualizer</p>
 
     <div class="intro">
-      <p class="lede">Play, edit and export Thirty Dollar Website covers on your own computer, at a higher frame rate, in higher-quality audio, and with note automation for echoes, sustains and fades.</p>
+      <h1 class="lede">Play, edit and export Thirty Dollar Website covers on your own computer, at a higher frame rate, in higher-quality audio, and with note automation for echoes, sustains and fades.</h1>
       <div class="get">
         <a class="red" id="hero-dl" href="https://github.com/t1stm/ThirtyDollarTools/releases/latest">Download</a>
         <span class="sub mono" id="hero-sub"></span>
@@ -68,7 +100,7 @@
 
   <article class="tool">
     <div class="tool-text">
-      <h2 class="badge">VISUALIZER</h2>
+      <h2 class="badge">Visualizer</h2>
       <p class="tag">Play a cover back with no dropped notes.</p>
       <ul>
         <li>Plays on several CPU threads, so dense covers and particle accelerators stay smooth.</li>
@@ -81,7 +113,7 @@
 
   <article class="tool tool-wide">
     <div class="tool-text">
-      <h2 class="badge">EDITOR</h2>
+      <h2 class="badge">Editor</h2>
       <p class="tag">Build a cover track by track and export it.</p>
       <p>Open your existing covers as a project, or start from scratch. <a href="https://github.com/t1stm/ThirtyDollarTools/blob/master/docs/editor-keyboard-shortcuts.md">Keyboard shortcuts</a></p>
     </div>
@@ -100,7 +132,7 @@
 
   <article class="tool tool-flip">
     <div class="tool-text">
-      <h2 class="badge">CONVERTER</h2>
+      <h2 class="badge">Converter</h2>
       <p class="tag">Turn a sequence into a WAV file.</p>
       <ul>
         <li>Exports match the website's sound one to one, panning included.</li>
@@ -113,7 +145,7 @@
   </article>
 
   <div class="divider" id="download"></div>
-  <h2 class="badge">DOWNLOAD</h2>
+  <h2 class="badge">Download</h2>
 
   <div class="dl">
     <div role="tablist" aria-label="Release channel" class="pills" id="channel-tabs">
@@ -123,14 +155,16 @@
     </div>
     <div id="channel-panel" role="tabpanel" aria-labelledby="tab-rc">
       <p class="note">Loading releases from GitHub…</p>
+      <noscript><p class="note"><a href="https://github.com/t1stm/ThirtyDollarTools/releases/latest">Download the latest release on GitHub ↗</a></p></noscript>
     </div>
     <p class="note">Each zip has the Visualizer (with the Editor and Drum Master) and the Converter. Unzip and run; the first launch downloads the Thirty Dollar Website's sounds. Debug builds and older versions are on the <a href="https://github.com/t1stm/ThirtyDollarTools/releases">releases page ↗</a>.</p>
   </div>
 
   <div class="divider" id="changes"></div>
-  <h2 class="badge">WHAT'S NEW</h2>
+  <h2 class="badge">What's new</h2>
   <div id="changes-list" class="changes">
     <p class="note">Loading release notes from GitHub…</p>
+    <noscript><p class="note">Release notes need JavaScript; read them on GitHub below.</p></noscript>
   </div>
   <p><a href="https://github.com/t1stm/ThirtyDollarTools/releases">All releases on GitHub ↗</a></p>
 

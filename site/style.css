@@ -51,6 +51,7 @@ pre code { background: none; padding: 0; font-size: 14px; }
   letter-spacing: -0.01em;
   line-height: 1.02;
   text-wrap: balance;
+  text-transform: uppercase;
 }
 h2.badge { font-size: clamp(30px, 4.4vw, 44px); margin: 0 0 12px; }
 
