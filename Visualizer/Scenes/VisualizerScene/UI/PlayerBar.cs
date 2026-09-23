@@ -103,7 +103,13 @@ public class PlayerBar
         RootPanel.Layout();
     }
 
-    public void UpdateAlpha(MouseState mouse, Vector2i windowSize, float deltaTime, bool forceVisible = false)
+    /// <param name="cursorInWindow">
+    ///     <c>Game.IsCursorInWindow</c>. The position alone can't tell: it stays wherever the
+    ///     pointer was last seen inside, so a pointer that left across the bottom edge would
+    ///     keep the bar up until the inactivity delay ran out.
+    /// </param>
+    public void UpdateAlpha(MouseState mouse, Vector2i windowSize, bool cursorInWindow, float deltaTime,
+        bool forceVisible = false)
     {
         if (forceVisible && !Hidden)
         {
@@ -115,7 +121,8 @@ public class PlayerBar
         }
 
         var mousePos = mouse.Position;
-        var inWindow = mousePos.X >= 0 && mousePos.X <= windowSize.X &&
+        // The bounds still matter: a drag keeps reporting positions past the edges.
+        var inWindow = cursorInWindow && mousePos.X >= 0 && mousePos.X <= windowSize.X &&
                        mousePos.Y >= 0 && mousePos.Y <= windowSize.Y;
         var moved = mousePos != _lastMousePos;
         _lastMousePos = mousePos;
