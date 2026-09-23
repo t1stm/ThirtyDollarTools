@@ -59,7 +59,9 @@ it separately; it's a no-op if VNC is already running.
   crashes under `mangohud --dlsym`.
 - **Clicks are held ~150 ms on purpose.** Sundex samples pointer state once a frame and
   fires clicks on release, so a plain `xdotool click` can fall between two frames and do
-  nothing. Use the script's `click`, never raw xdotool. Keys are fine either way.
+  nothing. Use the script's `click`, never raw xdotool. Keys have the same problem wherever a
+  scene polls `KeyboardState` (`IsPressed` in `Visualizer.Keyboard`): a `key` tap can fall
+  between two frames and be dropped. Hold it: `xdotool keydown F1; sleep 0.3; xdotool keyup F1`.
 - **Headless runs get their own `Settings.30$`** in `/tmp/tdviz`, seeded past
   `UpdateCheckAsked` so the first-run setup wizard stays out of the way. The dev settings
   in `bin/Debug` are never touched. Delete `/tmp/tdviz/Settings.30$` to see the wizard.
