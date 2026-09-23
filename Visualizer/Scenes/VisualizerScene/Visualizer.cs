@@ -506,7 +506,7 @@ public class Visualizer : Scene, IGamePreloadable
         if (Keybinds.Get(Bind.VisualizerVolumeUp).IsDown(state) && IsSeekTimeoutPassed(7))
         {
             RestartSeekTimer();
-            SequencePlayer.SetVolume(SequencePlayer.Volume + 0.01f);
+            SequencePlayer.SetVolume(Math.Min(1f, SequencePlayer.Volume + 0.01f));
             SetStatusMessage($"[Playback]: Volume = {SequencePlayer.Volume * 100:0.##}%");
         }
 
