@@ -30,6 +30,7 @@ public enum Bind
     VisualizerZoomIn,
     VisualizerZoomOut,
     VisualizerToggleDebug,
+    VisualizerShowShortcuts,
 
     EditorUndo,
     EditorRedo,
@@ -121,6 +122,8 @@ public static class Keybinds
             "Hold to move the camera away.", new Keybind(Keys.Minus, Primary)),
         new(Bind.VisualizerToggleDebug, BindScene.Visualizer, "Toggle debug info",
             "Show frame timings and playback counters.", new Keybind(Keys.D, Primary)),
+        new(Bind.VisualizerShowShortcuts, BindScene.Visualizer, "Show shortcuts",
+            "Show or hide the list of shortcuts.", new Keybind(Keys.F1, 0)),
 
         new(Bind.EditorUndo, BindScene.Editor, "Undo",
             "Take back the last edit.", new Keybind(Keys.Z, Primary)),

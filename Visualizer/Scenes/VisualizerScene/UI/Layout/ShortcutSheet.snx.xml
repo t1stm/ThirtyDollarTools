@@ -1,0 +1,20 @@
+<sundex version="1.0">
+  <style language="sundex" src="UI/Layout/ShortcutSheet.snx.ss"/>
+  <logic language="csharp" src="UI/Layout/ShortcutSheet.snx.csx" imports="[VisualizerScene.UI]"/>
+
+  <!-- With nothing loaded this is the screen's content, under the greeting. While a cover
+       plays the same tiles are a card, opened with the Show shortcuts key. ShortcutSheet
+       builds the rows and sets the footnote, which names that key. -->
+  <layout>
+    <flex id="sheet-root" class="sheet">
+      <flex id="header">
+        <label id="headline" value="Drop a .tdw file here to play it."/>
+        <label id="subline" value="Drop a .wav too and it plays along."/>
+      </flex>
+
+      <flex id="groups"/>
+
+      <label id="footnote" value="While a cover plays, move the pointer to the top of the window to see these again."/>
+    </flex>
+  </layout>
+</sundex>

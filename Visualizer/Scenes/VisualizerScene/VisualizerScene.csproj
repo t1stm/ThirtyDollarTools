@@ -17,6 +17,9 @@
     <EmbeddedResource Include="UI\Layout\PlayerBar.snx.xml"/>
     <EmbeddedResource Include="UI\Layout\PlayerBar.snx.ss"/>
     <EmbeddedResource Include="UI\Layout\PlayerBar.snx.csx"/>
+    <EmbeddedResource Include="UI\Layout\ShortcutSheet.snx.xml"/>
+    <EmbeddedResource Include="UI\Layout\ShortcutSheet.snx.ss"/>
+    <EmbeddedResource Include="UI\Layout\ShortcutSheet.snx.csx"/>
   </ItemGroup>
 
 </Project>

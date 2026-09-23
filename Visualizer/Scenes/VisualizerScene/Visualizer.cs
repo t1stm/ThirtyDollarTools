@@ -55,6 +55,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     private int _height;
     private PlayerBar? _playerBar;
+    private ShortcutSheet? _shortcutSheet;
 
     private bool _settingsDirty;
     private bool _startingSequencesLoaded;
@@ -185,20 +186,27 @@ public class Visualizer : Scene, IGamePreloadable
                                            SequencePlayer.GetTimeFromIndex(TimedEvents.Placement[^1].Index)));
             }
         );
+        _shortcutSheet = new ShortcutSheet(playerBarContext);
 
         PlayfieldContainer.BackgroundPlane.TransitionToColor(new Vector4(0x1a / 255f, 0x1b / 255f, 0x26 / 255f, 1), 0);
     }
 
     /// <summary>
-    ///     Reapplies styles only. The player bar is the only tree here a stylesheet reaches;
-    ///     the playfield is state rather than markup, and rebuilding it would drop the cover
-    ///     being played.
+    ///     Reapplies styles only. The player bar and the shortcut sheet are the only trees
+    ///     here a stylesheet reaches; the playfield is state rather than markup, and
+    ///     rebuilding it would drop the cover being played.
     /// </summary>
     public override void ReloadStyles()
     {
-        if (_playerBar is null) return;
-        _playerBar.Component.ReloadStyleSheet();
-        _playerBar.Resize();
+        if (_playerBar is not null)
+        {
+            _playerBar.Component.ReloadStyleSheet();
+            _playerBar.Resize();
+        }
+
+        if (_shortcutSheet is null) return;
+        _shortcutSheet.Component.ReloadStyleSheet();
+        _shortcutSheet.Resize();
     }
 
     public override void Resize(int w, int h)
@@ -213,6 +221,7 @@ public class Visualizer : Scene, IGamePreloadable
         Overlay.Resize(w, h);
         PlayfieldContainer.Resize(resize);
         _playerBar?.Resize();
+        _shortcutSheet?.Resize();
         UpdateStaticRenderables(w, h, PlayfieldContainer.Camera.GetRenderScale());
 
         _width = w;
@@ -241,8 +250,9 @@ public class Visualizer : Scene, IGamePreloadable
         TextContainer.RenderStaticText(_textCamera);
 
         if (_playerBar is null) return;
-        _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, Game.IsCursorInWindow, (float)deltaTime,
-            TimedEvents.Placement.Length == 0);
+        var idle = TimedEvents.Placement.Length == 0;
+        _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, Game.IsCursorInWindow, (float)deltaTime, idle);
+        _shortcutSheet?.UpdateAlpha((float)deltaTime, idle);
         _playerBar.RootPanel.Context.Render();
     }
 
@@ -298,7 +308,9 @@ public class Visualizer : Scene, IGamePreloadable
             _playerBar.Update(_playerBar.RootPanel.Context);
         }
 
-        if (_playerBar is not null) _playerBar.Idle = TimedEvents.Placement.Length == 0;
+        var idle = TimedEvents.Placement.Length == 0;
+        if (_playerBar is not null) _playerBar.Idle = idle;
+        _shortcutSheet?.Update(_shortcutSheet.UI, idle);
 
         var cursor = _cursorType switch
         {
@@ -354,6 +366,8 @@ public class Visualizer : Scene, IGamePreloadable
         var scroll = mouseState.ScrollDelta;
         if (scroll == Vector2.Zero) return;
 
+        _shortcutSheet?.TrackScroll(Keybinds.PrimaryDown(keyboardState));
+
         var new_delta = Vector3.UnitY * (scroll.Y * 100f);
 
         // if the primary modifier is pressed handle zoom
@@ -368,14 +382,19 @@ public class Visualizer : Scene, IGamePreloadable
     {
         const int seekLength = 1000;
         var stopwatch = SequencePlayer.GetTimingStopwatch();
+        _shortcutSheet?.TrackKeys(state);
 
         // Locals rather than part of a binding: on the seek keys these two scale the step
         // size instead of selecting the action.
         var primary = Keybinds.PrimaryDown(state);
         var shift = state.IsKeyDown(Keys.LeftShift) || state.IsKeyDown(Keys.RightShift);
 
-        if (Keybinds.Get(Bind.VisualizerBack).IsPressed(state))
+        // Back closes the shortcut sheet first, and only leaves once it is closed.
+        if (Keybinds.Get(Bind.VisualizerBack).IsPressed(state) && _shortcutSheet?.Close() != true)
             SceneManager.TransitionTo("home");
+
+        if (Keybinds.Get(Bind.VisualizerShowShortcuts).IsPressed(state))
+            _shortcutSheet?.Toggle();
 
         // toggle play / pause, loudly or quietly
         var playPause = Keybinds.Get(Bind.VisualizerPlayPause).IsPressed(state);
@@ -624,8 +643,6 @@ public class Visualizer : Scene, IGamePreloadable
 
     public Task HandleAfterSequenceLoad(TimedEvents events, SequencePlayer sequencePlayer)
     {
-        TextContainer.ShowControls = false;
-
         PlayfieldContainer.Camera.ScrollTo((0, -300, 0));
 
         PlayfieldContainer.BackgroundPlane.Reset(0.66f);
