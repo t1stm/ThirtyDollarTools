@@ -57,6 +57,7 @@ public class PlayerBar
             () => RootPanel,
             () => ProgressBar,
             () => Playhead,
+            () => LeftGroup,
             () => CurrentTimeLabel,
             () => TotalTimeLabel,
             () => PlayPauseButton,
@@ -67,6 +68,19 @@ public class PlayerBar
     }
 
     public float CurrentAlpha { get; private set; }
+
+    /// <summary>
+    ///     With nothing loaded, the transport and the clock have nothing to act on, so only
+    ///     Back stays.
+    /// </summary>
+    public bool Idle
+    {
+        set
+        {
+            LeftGroup.Visible = !value;
+            Playhead.Visible = !value;
+        }
+    }
 
     /// <summary>
     ///     When set, the bar fades out and stays hidden regardless of the mouse position.
@@ -83,6 +97,7 @@ public class PlayerBar
     [SetFromLogic] public Panel RootPanel { get; set; } = null!;
     [SetFromLogic] public ProgressBar ProgressBar { get; set; } = null!;
     [SetFromLogic] public Panel Playhead { get; set; } = null!;
+    [SetFromLogic] public FlexPanel LeftGroup { get; set; } = null!;
     [SetFromLogic] public Label CurrentTimeLabel { get; set; } = null!;
     [SetFromLogic] public Label TotalTimeLabel { get; set; } = null!;
     [SetFromLogic] public Button PlayPauseButton { get; set; } = null!;

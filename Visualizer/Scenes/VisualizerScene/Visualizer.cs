@@ -298,6 +298,8 @@ public class Visualizer : Scene, IGamePreloadable
             _playerBar.Update(_playerBar.RootPanel.Context);
         }
 
+        if (_playerBar is not null) _playerBar.Idle = TimedEvents.Placement.Length == 0;
+
         var cursor = _cursorType switch
         {
             CursorType.Default => MouseCursor.Default,
