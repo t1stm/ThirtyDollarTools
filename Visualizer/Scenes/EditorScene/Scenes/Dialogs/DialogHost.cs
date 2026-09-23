@@ -85,7 +85,7 @@ public sealed class DialogHost(UIContext context, Panel root)
     /// </summary>
     public void Alert(string message)
     {
-        var ok = new Button(context, "OK") { Classes = ["dialog-button"] };
+        var ok = new Button(context, "OK") { Classes = ["dialog-button-primary"] };
         var content = new FlexPanel(context)
         {
             ID = "alert-dialog",
