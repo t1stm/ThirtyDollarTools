@@ -1,6 +1,18 @@
 // Pure release logic: no DOM, so releases.test.mjs can run it under node.
 // Same rules as Visualizer/Shared/Updates/UpdateChecker.cs: compare by date, nightlies by tag prefix.
 
+// Which channel the hero's red button offers. Switch to 'stable' once 2.0.0 ships
+// (docs/handover/github-pages-plan.md §9). With no RC newer than Stable it falls back on its own.
+export const HERO_CHANNEL = 'rc';
+
+export const API = 'https://api.github.com/repos/t1stm/ThirtyDollarTools/releases?per_page=100';
+
+export const BLURB = {
+  stable: 'Tested release, for everyday use.',
+  rc: 'The next version, nearly finished. Report problems on GitHub or in the TDW Discord.',
+  nightly: 'Built from every commit to master. Untested; things may break.',
+};
+
 export const PLATFORMS = {
   'win-x64': { os: 'Windows', chip: 'x64' },
   'linux-x64': { os: 'Linux', chip: 'x64' },
@@ -67,3 +79,4 @@ export function label(r) {
 }
 
 export const mb = bytes => Math.round(bytes / 1048576) + ' MB';
+export const fmtDate = iso => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

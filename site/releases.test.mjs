@@ -1,6 +1,7 @@
 // Run: node site/releases.test.mjs
 import assert from 'node:assert/strict';
 import { channelOf, platformOf, pickChannels, heroChannel, label } from './releases.js';
+import { sanitize } from './prerender.mjs';
 
 const rel = (tag, published_at, extra = {}) => ({
   tag_name: tag, name: tag, published_at, prerelease: false, draft: false, html_url: '', assets: [], ...extra,
@@ -46,4 +47,12 @@ assert.equal(p.stable.tag, 'v2.0.0');
 assert.equal(p.rc, null);
 assert.equal(heroChannel(p, 'rc'), 'stable');
 
-console.log('releases.js: all checks passed');
+// prerender.mjs's DOM-free copy of main.js's safeFragment.
+assert.equal(sanitize('<h1 dir="auto">A</h1><h2>B</h2><h3>C</h3>'), '<h3>A</h3><h3>B</h3><h3>C</h3>');
+assert.equal(sanitize('<p onclick="x()">hi<script>alert(1)</script><style>p{}</style><link rel="x"></p>'), '<p>hi</p>');
+assert.equal(sanitize('<a href="javascript:alert(1)" target="_self">x</a>'), '<a target="_blank" rel="noopener">x</a>');
+assert.equal(sanitize('<p>set only= 3 and onload=4</p>'), '<p>set only= 3 and onload=4</p>'); // text is left alone
+assert.equal(sanitize('<img src="https://private-user-images.githubusercontent.com/88944096/626700124-26e34312-d459-4549-8095-61732e8054d0.png?jwt=abc.def" />'),
+  '<img src="https://github.com/user-attachments/assets/26e34312-d459-4549-8095-61732e8054d0" loading="lazy"/>');
+
+console.log('releases.js, prerender.mjs: all checks passed');

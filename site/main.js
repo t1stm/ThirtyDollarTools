@@ -1,11 +1,6 @@
-import { PLATFORMS, pickChannels, heroChannel, label, mb } from './releases.js';
-
-// Which channel the hero's red button offers. Switch to 'stable' once 2.0.0 ships
-// (docs/handover/github-pages-plan.md §9). With no RC newer than Stable it falls back on its own.
-const HERO_CHANNEL = 'rc';
+import { PLATFORMS, HERO_CHANNEL, API, BLURB, pickChannels, heroChannel, label, mb, fmtDate } from './releases.js';
 
 const REPO = 'https://github.com/t1stm/ThirtyDollarTools';
-const API = 'https://api.github.com/repos/t1stm/ThirtyDollarTools/releases?per_page=100';
 const CACHE_KEY = 'tdt-releases-v1';
 const CACHE_MS = 5 * 60 * 1000; // reuse the stored response without asking GitHub for 5 minutes
 const $ = id => document.getElementById(id);
@@ -161,14 +156,6 @@ function safeFragment(html) {
   return t.content;
 }
 
-const fmtDate = iso => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-
-const BLURB = {
-  stable: 'Tested release, for everyday use.',
-  rc: 'The next version, nearly finished. Report problems on GitHub or in the TDW Discord.',
-  nightly: 'Built from every commit to master. Untested; things may break.',
-};
-
 /* ---------------- Rendering ---------------- */
 
 function el(tag, props = {}, ...children) {
@@ -293,6 +280,8 @@ function renderFallback(platform) {
   }
   $('hero-sub').textContent = '';
   document.querySelector('#channel-tabs').hidden = true;
+  // The deploy baked in real sizes and notes (prerender.mjs); they beat the generic links below.
+  if ($('channel-panel').hasAttribute('data-prerendered')) return;
   const rows = Object.keys(PLATFORMS).map(k => el('tr', { className: k === rid ? 'mine' : '' },
     el('td', { textContent: PLATFORMS[k].os }), el('td', { textContent: PLATFORMS[k].chip }),
     el('td', {}, el('a', { className: 'rowbtn', href: latest(k), textContent: 'Download' }))));

@@ -3,8 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Thirty Dollar Tools: Thirty Dollar Website visualizer, editor and WAV exporter</title>
+  <title>Thirty Dollar Tools: Thirty Dollar Website Visualizer &amp; WAV Export</title>
   <meta name="description" content="Play, edit and export Thirty Dollar Website covers on your computer: a smooth visualizer, a track editor and a WAV converter. Free for Windows, Linux and macOS.">
+  <meta name="google-site-verification" content="y9aCBeMY-68Mw0URvbpx-TVHq39qasUJtNr_y70wapg">
   <meta name="theme-color" content="#101A78">
   <link rel="canonical" href="https://t1stm.github.io/ThirtyDollarTools/">
   <link rel="icon" href="media/icon.png" type="image/png">
@@ -24,11 +25,19 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "Thirty Dollar Tools",
+    "alternateName": ["Thirty Dollar Visualizer", "Thirty Dollar Editor", "Thirty Dollar Converter"],
     "description": "Play, edit and export Thirty Dollar Website covers on your computer: a smooth visualizer, a track editor and a WAV converter.",
     "applicationCategory": "MultimediaApplication",
     "operatingSystem": "Windows, Linux, macOS",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
     "license": "https://unlicense.org/",
+    "author": { "@type": "Person", "name": "t1stm", "url": "https://github.com/t1stm" },
+    "image": "https://t1stm.github.io/ThirtyDollarTools/media/visualizer-tv-world.webp",
+    "featureList": [
+      "Multithreaded playback of Thirty Dollar Website covers (.tdw and .🗿 files)",
+      "DAW-style editor with arrangement, piano roll and audio clips",
+      "WAV export that matches the website's sound, with a command-line converter"
+    ],
     "url": "https://t1stm.github.io/ThirtyDollarTools/",
     "downloadUrl": "https://github.com/t1stm/ThirtyDollarTools/releases/latest",
     "codeRepository": "https://github.com/t1stm/ThirtyDollarTools",
@@ -101,7 +110,7 @@
   <article class="tool">
     <div class="tool-text">
       <h2 class="badge">Visualizer</h2>
-      <p class="tag">Play a cover back with no dropped notes.</p>
+      <p class="tag">Play a Thirty Dollar Website cover back with no dropped notes.</p>
       <ul>
         <li>Plays on several CPU threads, so dense covers and particle accelerators stay smooth.</li>
         <li>Seek, restart and pause from the playback bar at the bottom of the window.</li>
@@ -114,7 +123,7 @@
   <article class="tool tool-wide">
     <div class="tool-text">
       <h2 class="badge">Editor</h2>
-      <p class="tag">Build a cover track by track and export it.</p>
+      <p class="tag">Build a Thirty Dollar Website cover track by track and export it.</p>
       <p>Open your existing covers as a project, or start from scratch. <a href="https://github.com/t1stm/ThirtyDollarTools/blob/master/docs/editor-keyboard-shortcuts.md">Keyboard shortcuts</a></p>
     </div>
     <div class="editor-views">
@@ -133,7 +142,7 @@
   <article class="tool tool-flip">
     <div class="tool-text">
       <h2 class="badge">Converter</h2>
-      <p class="tag">Turn a sequence into a WAV file.</p>
+      <p class="tag">Turn a Thirty Dollar Website sequence into a WAV file.</p>
       <ul>
         <li>Exports match the website's sound one to one, panning included.</li>
         <li>Only your RAM and your patience limit how long a cover can be.</li>
@@ -154,8 +163,10 @@
       <button role="tab" id="tab-nightly" data-ch="nightly" aria-controls="channel-panel">Nightly</button>
     </div>
     <div id="channel-panel" role="tabpanel" aria-labelledby="tab-rc">
+      <!-- prerender:channel -->
       <p class="note">Loading releases from GitHub…</p>
       <noscript><p class="note"><a href="https://github.com/t1stm/ThirtyDollarTools/releases/latest">Download the latest release on GitHub ↗</a></p></noscript>
+      <!-- /prerender:channel -->
     </div>
     <p class="note">Each zip has the Visualizer (with the Editor and Drum Master) and the Converter. Unzip and run; the first launch downloads the Thirty Dollar Website's sounds. Debug builds and older versions are on the <a href="https://github.com/t1stm/ThirtyDollarTools/releases">releases page ↗</a>.</p>
   </div>
@@ -163,8 +174,10 @@
   <div class="divider" id="changes"></div>
   <h2 class="badge">What's new</h2>
   <div id="changes-list" class="changes">
+    <!-- prerender:changes -->
     <p class="note">Loading release notes from GitHub…</p>
     <noscript><p class="note">Release notes need JavaScript; read them on GitHub below.</p></noscript>
+    <!-- /prerender:changes -->
   </div>
   <p><a href="https://github.com/t1stm/ThirtyDollarTools/releases">All releases on GitHub ↗</a></p>
 

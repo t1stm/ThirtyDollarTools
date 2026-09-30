@@ -1,10 +1,17 @@
 name: Deploy site to GitHub Pages
 
-# Release data is fetched live by the page, so only changes to the site itself need a deploy.
+# The deploy bakes the latest release data into index.html (site/prerender.mjs) for crawlers and
+# no-JS visitors; the page still fetches it live on load. So besides site changes, redeploy once a
+# release's zips are attached (not on `release`, which fires before they exist) and daily for nightlies.
 on:
   push:
     branches: [ master ]
     paths: [ 'site/**', '.github/workflows/pages.yml' ]
+  workflow_run:
+    workflows: [ 'Attach Binaries to Release' ]
+    types: [ completed ]
+  schedule:
+    - cron: '17 4 * * *'
   workflow_dispatch:
 
 permissions:
@@ -28,6 +35,11 @@ jobs:
 
       - name: Check release logic
         run: node site/releases.test.mjs
+
+      - name: Pre-render release data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node site/prerender.mjs
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
