@@ -719,6 +719,12 @@ public class EditorInterface
         return lines;
     }
 
+    /// <summary>Previews the instrument being edited; false when the instrument editor isn't open.</summary>
+    public bool TryPreviewInstrument()
+    {
+        return _instrumentWorkflow.TryPreview();
+    }
+
     /// <summary>Whether a dialog is open over the editor.</summary>
     public bool HasOpenModal => _dialogHost.HasOpenModal;
 

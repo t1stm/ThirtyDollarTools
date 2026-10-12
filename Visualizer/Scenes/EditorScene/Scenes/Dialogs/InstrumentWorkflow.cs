@@ -20,6 +20,7 @@ public sealed class InstrumentWorkflow
     private readonly ModalLayer _instrumentEditorModal;
     private readonly InstrumentSelector _instrumentSelector;
     private readonly ModalLayer _instrumentSelectorModal;
+    private readonly EditorPlayback _playback;
     private readonly EditorState _state;
     private Instrument? _editingInstrument;
     private IReadOnlyList<Note>? _reassignTargets;
@@ -28,6 +29,7 @@ public sealed class InstrumentWorkflow
         DialogHost dialogHost, AtlasStore atlasStore, Func<IEnumerable<Sound>> allSounds)
     {
         _state = state;
+        _playback = playback;
         _dialogHost = dialogHost;
         _allSounds = allSounds;
 
@@ -77,11 +79,10 @@ public sealed class InstrumentWorkflow
         _instrumentEditor = new InstrumentEditor(context, atlasStore);
         _instrumentEditorModal = new ModalLayer(context);
         _instrumentEditorModal.AddChild(_instrumentEditor);
-        _instrumentEditorModal.OnDismissRequested = modal => dialogHost.Root.RemoveChild(modal);
+        _instrumentEditorModal.OnDismissRequested = _ => CloseEditor();
         _instrumentEditor.DoneButton.OnClick = _ => Commit();
         _instrumentEditor.SoundsPicker.OnPreviewSound = playback.PreviewSound;
-        _instrumentEditor.PreviewButton.OnClick = _ =>
-            playback.PreviewInstrument(_instrumentEditor.SoundsPicker.Instances);
+        _instrumentEditor.PreviewButton.OnClick = _ => Preview();
     }
 
     /// <summary>
@@ -104,6 +105,29 @@ public sealed class InstrumentWorkflow
     {
         _editingInstrument = null;
         OpenEditor("Instrument", []);
+    }
+
+    /// <summary>
+    ///     The play key's job while the instrument editor is open: preview the instrument
+    ///     being built, as its Preview button does. False when the editor is closed.
+    /// </summary>
+    public bool TryPreview()
+    {
+        if (_instrumentEditorModal.Parent == null) return false;
+        Preview();
+        return true;
+    }
+
+    private void Preview()
+    {
+        _playback.PreviewInstrument(_instrumentEditor.SoundsPicker.Instances);
+    }
+
+    /// <summary>Takes the editor down and drops its cached preview with it.</summary>
+    private void CloseEditor()
+    {
+        _dialogHost.Root.RemoveChild(_instrumentEditorModal);
+        _playback.ClearPreviewCache();
     }
 
     /// <summary>Forwards the held Shift/Ctrl state to the editor's sound picker (pan/volume scroll modes).</summary>
@@ -143,7 +167,7 @@ public sealed class InstrumentWorkflow
             ApplyInstrumentPick(created);
         }
 
-        _dialogHost.Root.RemoveChild(_instrumentEditorModal);
+        CloseEditor();
         _state.NotifyInstrumentsChanged();
     }
 

@@ -253,6 +253,12 @@ public class Editor : Scene, IFadeInScene
             return;
         }
 
+        // Inside the instrument editor the play key previews the instrument instead - a
+        // focused name field has already taken it above. Once per press: a held key repeats.
+        if (!e.IsRepeat && Keybinds.Match(e, BindScene.Editor) == Bind.EditorPlayPause &&
+            _editorInterface.TryPreviewInstrument())
+            return;
+
         // A dialog is modal: its focused inputs already took what they wanted above, and
         // nothing else may reach the editor behind it. Escape stays ahead of this.
         if (_editorInterface.HasOpenModal) return;

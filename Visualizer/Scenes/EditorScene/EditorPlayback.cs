@@ -4,6 +4,7 @@ using Shared;
 using Shared.Audio;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarConverter.Encoder.PCM;
 using ThirtyDollarConverter.Encoder.Resamplers;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
@@ -32,6 +33,8 @@ public class EditorPlayback
 
     private readonly List<AudibleBuffer> _preview = [];
 
+    private readonly PcmEncoder _previewEncoder;
+    private readonly PlacementCalculator _previewPlacement;
     private readonly SampleProcessor _previewProcessor;
     private readonly uint _previewSampleRate;
 
@@ -39,6 +42,19 @@ public class EditorPlayback
     private readonly EditorState _state;
     private readonly WavePlayback _wave;
     private readonly ThirtyDollarWorkflow _workflow;
+
+    /// <summary>
+    ///     The last combo <see cref="PreviewInstrument(IEnumerable{InstrumentSound})" /> rendered,
+    ///     kept so previewing it again plays at once. One entry; cleared by
+    ///     <see cref="ClearPreviewCache" /> when the instrument editor closes.
+    /// </summary>
+    private Task<AudioData<float>>? _combo;
+
+    private (string Sound, double Value, double? Volume, float Pan)[] _comboKey = [];
+
+    /// <summary>Set while a requested combo preview waits on its render; <see cref="Update" /> plays it.</summary>
+    private bool _comboPlayPending;
+
     private string? _lastAlertedError;
 
     private bool _modelDirty;
@@ -72,6 +88,9 @@ public class EditorPlayback
         };
         _previewSampleRate = previewSettings.SampleRate;
         _previewProcessor = new SampleProcessor(workflow.SampleHolder.SampleList, previewSettings);
+        // Its own encoder, so a preview never reports into the status bar or queues behind a re-render.
+        _previewEncoder = new PcmEncoder(workflow.SampleHolder, previewSettings);
+        _previewPlacement = new PlacementCalculator(previewSettings);
     }
 
     /// <summary>
@@ -258,24 +277,105 @@ public class EditorPlayback
     /// <summary>
     ///     Plays every given sound layered together, each with its own adjustment on
     ///     top of no base note - the instrument editor's "Preview" button, previewing the whole
-    ///     instrument as it would sound on a note at value 0.
+    ///     instrument as it would sound on a note at value 0. Mixed by PcmEncoder into one
+    ///     buffer, as a render would, rather than one buffer per sound started side by side.
+    ///     The render runs in the background and <see cref="Update" /> plays it once it lands;
+    ///     previewing the same combo again replays the cached mix.
     /// </summary>
     public void PreviewInstrument(IEnumerable<InstrumentSound> sounds)
     {
         if (IsPlaying && !PreviewDuringPlayback) return;
 
         StopPreview();
-        foreach (var sound in sounds)
-            PlayOne(sound.Sound, sound.CombineValue(0), sound.CombineVolume(null), sound.CombinePan(0));
+        (string, double, double?, float)[] combo =
+            [.. sounds.Select(s => (s.Sound, s.CombineValue(0), s.CombineVolume(null), s.CombinePan(0)))];
+        if (combo.Length == 0) return;
+
+        if (_combo == null || !combo.SequenceEqual(_comboKey))
+        {
+            _comboKey = combo;
+            _combo = RenderCombo(_previewEncoder, _previewPlacement, _previewSampleRate, combo);
+        }
+
+        _comboPlayPending = true;
+        TryPlayCombo();
+    }
+
+    /// <summary>Drops the cached combo render - the instrument editor calls this as it closes.</summary>
+    public void ClearPreviewCache()
+    {
+        _combo = null;
+        _comboKey = [];
+        _comboPlayPending = false;
+    }
+
+    /// <summary>
+    ///     Mixes a combo into one buffer that starts with its sounds. Static and internal so the
+    ///     mix can be pinned without an audio device - see EditorScene.Tests.
+    /// </summary>
+    internal static Task<AudioData<float>> RenderCombo(PcmEncoder encoder, PlacementCalculator calculator,
+        uint sampleRate, (string Sound, double Value, double? Volume, float Pan)[] combo)
+    {
+        // Layered on one step and "!combine"-joined, the way a note's sounds are.
+        var events = new List<BaseEvent>();
+        foreach (var (sound, value, volume, pan) in combo)
+        {
+            if (events.Count > 0) events.Add(new NormalEvent { SoundEvent = "!combine", ValueScale = ValueScale.None });
+            events.Add(PreviewEvent(sound, value, volume, pan));
+        }
+
+        var sequence = new Sequence { Events = [.. events] };
+
+        return Task.Run(() =>
+        {
+            // Placed from index 0: a full render opens on a lead-in step (LeadInSeconds),
+            // which would be dead air in front of a preview.
+            var placement = calculator.CalculateOne(sequence, 0).OrderBy(p => p.Index).ToArray();
+            return encoder.GetAudioFromTimedEvents(new TimedEvents
+            {
+                Sequences = [sequence],
+                Placement = placement,
+                TimingSampleRate = (int)sampleRate
+            });
+        });
+    }
+
+    /// <summary>Plays the pending combo once its render has landed; a no-op until then.</summary>
+    private void TryPlayCombo()
+    {
+        if (_combo is not { IsCompleted: true } done) return;
+        _comboPlayPending = false;
+
+        if (!done.IsCompletedSuccessfully)
+        {
+            _workflow.Logger.Error("[Editor Playback] Preview render failed: {Exception}", done.Exception);
+            _combo = null; // the next preview retries instead of replaying the failure
+            return;
+        }
+
+        var audio = done.Result;
+        if (audio.GetLength() == 0)
+        {
+            _combo = null; // unknown sounds or samples still downloading - retry next time
+            return;
+        }
+
+        var buffer = _workflow.SequencePlayer.AudioContext.GetBufferObject(audio, (int)_previewSampleRate);
+        buffer.SetVolume(1f); // volume and pan are already mixed in
+        buffer.Play();
+        _preview.Add(buffer);
+    }
+
+    private static BaseEvent PreviewEvent(string sound, double value, double? volume, float pan)
+    {
+        return pan == 0
+            ? new NormalEvent { SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume }
+            : new ExtendedEvent { SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume, Pan = pan };
     }
 
     private void PlayOne(string sound, double value, double? volume, float pan)
     {
-        BaseEvent ev = pan == 0
-            ? new NormalEvent { SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume }
-            : new ExtendedEvent { SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume, Pan = pan };
-
-        var audio = _previewProcessor.ProcessEvent(ev);
+        var audio = _previewProcessor.ProcessEvent(PreviewEvent(sound, value, volume, pan));
         if (audio.GetLength() == 0) return; // unknown sound or samples still downloading
 
         var buffer = _workflow.SequencePlayer.AudioContext.GetBufferObject(audio, (int)_previewSampleRate);
@@ -358,6 +458,7 @@ public class EditorPlayback
 
     public void StopPreview()
     {
+        _comboPlayPending = false;
         foreach (var buffer in _preview)
         {
             buffer.Stop();
@@ -370,6 +471,8 @@ public class EditorPlayback
     /// <summary>Call once per frame on the update thread.</summary>
     public void Update()
     {
+        if (_comboPlayPending) TryPlayCombo();
+
         // Ahead of the render guard: the wave references follow the transport's clock, which
         // keeps running while a re-render is in flight.
         _wave.Sync(_state.Project, _state.IsChannelAudible, ElapsedMs / 1000d, IsPlaying,
