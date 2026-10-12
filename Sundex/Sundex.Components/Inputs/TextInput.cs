@@ -36,6 +36,7 @@ public class TextInput : Panel
 {
     private readonly ColoredPlane _caretPlane = new() { Color = Vector4.One };
     private readonly Label _label;
+    private readonly Label _placeholder;
     private readonly ColoredPlane _selectionPlane = new() { Color = new Vector4(0.3f, 0.5f, 0.9f, 0.45f) };
 
     private int _anchor;
@@ -53,7 +54,13 @@ public class TextInput : Panel
             Parent = this,
             FontSizePx = 16f
         };
-        Children = [_label];
+        _placeholder = new Label(context, "")
+        {
+            Parent = this,
+            FontSizePx = 16f,
+            Color = new Vector4(1, 1, 1, 0.4f)
+        };
+        Children = [_label, _placeholder];
 
         Focusable = true;
         Cursor = CursorType.Text;
@@ -87,7 +94,25 @@ public class TextInput : Panel
     public LiteralOrComputable FontSizePx
     {
         get => _label.FontSizePx;
-        set => _label.FontSizePx = value;
+        set => _label.FontSizePx = _placeholder.FontSizePx = value;
+    }
+
+    /// <summary>Text shown, dimmed, while the field is empty - a browser input's placeholder.</summary>
+    public string Placeholder
+    {
+        get;
+        set
+        {
+            field = value;
+            RefreshPlaceholder();
+        }
+    } = "";
+
+    [NamedSetting("placeholder-color")]
+    public Vector4 PlaceholderColor
+    {
+        get => _placeholder.Color;
+        set => _placeholder.Color = value;
     }
 
     [NamedSetting("font-color")]
@@ -287,8 +312,15 @@ public class TextInput : Panel
         CaretIndex = Math.Clamp(caret ?? CaretIndex, 0, _text.Length);
         _anchor = CaretIndex;
         _label.Value = _text;
+        RefreshPlaceholder();
         AfterCaretMove();
         if (changed) OnValueChanged?.Invoke(this);
+    }
+
+    /// <summary>The placeholder stays in the tree and goes blank while there is text, so nothing re-queues.</summary>
+    private void RefreshPlaceholder()
+    {
+        _placeholder.SetTextContents(_text.Length == 0 ? Placeholder : "");
     }
 
     private void AfterCaretMove()

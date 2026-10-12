@@ -100,15 +100,8 @@ public class Note
         foreach (var instrument_sound in Instrument.Sounds)
         {
             var sound = instrument_sound.Sound;
-            var value = instrument_sound.CombineValue(Value);
-            var volume = instrument_sound.CombineVolume(Volume);
-            var pan = instrument_sound.CombinePan(Pan);
-            // The encoder skips (offset x sample rate / 2^(value/12)) samples of the sound's
-            // own buffer, so the offset counts seconds of the unpitched sound: an auto offset
-            // measured in playback time has to be scaled by this sound's own pitch.
-            var offset = Instrument.Offset + (AutoOffsetSeconds == 0
-                ? Offset
-                : Offset + AutoOffsetSeconds * Math.Pow(2, instrument_sound.Value / 12));
+            var (value, volume, pan, offset) =
+                Instrument.Combine(instrument_sound, Value, Volume, Pan, Offset, AutoOffsetSeconds);
 
             if (pan == 0 && offset == 0)
                 yield return new NormalEvent

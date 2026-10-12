@@ -1,3 +1,4 @@
+using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor.Tests;
@@ -142,6 +143,65 @@ public class InstrumentTests
         Assert.Equal(-3, adjustment.Value);
         Assert.Equal(20, adjustment.Volume);
         Assert.Equal(-15, adjustment.Pan);
+    }
+
+    private static BaseEvent PlayOne(Note note)
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        track.Segments[0].Notes.Add(note);
+        project.Place(track, 0, 0);
+
+        return project.ToSequence().Events.Single(e => e.SoundEvent == "kick");
+    }
+
+    [Fact]
+    public void InstrumentWide_ValuePanAndOffset_AddAcrossNoteInstrumentAndSound()
+    {
+        var instrument = new Instrument { Name = "Layer", Value = 2, Pan = 10, Offset = 0.1 };
+        instrument.Sounds.Add(new InstrumentSound { Sound = "kick", Value = -5, Pan = 20, Offset = 0.02 });
+
+        var ev = Assert.IsType<ExtendedEvent>(PlayOne(new Note
+            { Step = 0, Instrument = instrument, Value = 7, Pan = -50, Offset = 0.3 }));
+
+        Assert.Equal(4, ev.Value);
+        Assert.Equal(-20, ev.Pan);
+        Assert.Equal(0.42, ev.OffsetInSeconds, 10);
+    }
+
+    [Theory]
+    [InlineData(80, 30, 20, 100)]
+    [InlineData(-80, -30, -20, -100)]
+    public void InstrumentWide_Pan_ClampsAfterAdding(float note, float instrumentPan, float sound, float expected)
+    {
+        var instrument = new Instrument { Name = "Layer", Pan = instrumentPan };
+        instrument.Sounds.Add(new InstrumentSound { Sound = "kick", Pan = sound });
+
+        var ev = Assert.IsType<ExtendedEvent>(PlayOne(new Note { Step = 0, Instrument = instrument, Pan = note }));
+        Assert.Equal(expected, ev.Pan);
+    }
+
+    [Theory]
+    [InlineData(50.0, 50.0, 50.0, 12.5)] // percent times percent at every level
+    [InlineData(null, 50.0, 50.0, 25.0)] // a note with no volume: the instrument's leads
+    [InlineData(50.0, null, 50.0, 25.0)] // an instrument with no volume follows the note
+    [InlineData(50.0, 50.0, null, 25.0)] // a sound with no volume follows the instrument
+    [InlineData(null, null, null, null)]
+    public void InstrumentWide_Volume_MultipliesAndNullFollows(double? note, double? instrumentVolume,
+        double? sound, double? expected)
+    {
+        var instrument = new Instrument { Name = "Layer", Volume = instrumentVolume };
+        instrument.Sounds.Add(new InstrumentSound { Sound = "kick", Volume = sound });
+
+        Assert.Equal(expected, PlayOne(new Note { Step = 0, Instrument = instrument, Volume = note }).Volume);
+    }
+
+    [Fact]
+    public void SoundClone_KeepsItsOffset()
+    {
+        var sound = new InstrumentSound { Sound = "kick", Value = 1, Volume = 2, Pan = 3, Offset = 0.04 };
+
+        Assert.Equal(0.04, sound.Clone().Offset);
     }
 
     [Fact]

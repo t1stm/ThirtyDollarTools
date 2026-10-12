@@ -184,7 +184,7 @@ public class SlugCoverageTests
     ///     thresholded coverage disagrees with the winding test, skipping those within a pixel of
     ///     an edge, where anti-aliasing legitimately decides either way.
     /// </summary>
-    private static (int Mismatched, int Counted) Compare(SlugFontData data, SlugGlyph glyph,
+    internal static (int Mismatched, int Counted) Compare(SlugFontData data, SlugGlyph glyph,
         Shape shape, float pixelsPerEm)
     {
         var segments = Flatten(shape);

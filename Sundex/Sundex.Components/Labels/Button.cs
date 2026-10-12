@@ -7,8 +7,9 @@ namespace Sundex.Components.Labels;
 
 public class Button : FlexPanel
 {
-    public Button(UIContext context, string label, Renderable? background = null) : this(context,
-        new Label(context, label), background)
+    /// <param name="font">The label's font; null for the interface font. See <see cref="Label" />.</param>
+    public Button(UIContext context, string label, Renderable? background = null, string? font = null) : this(
+        context, new Label(context, label, font), background)
     {
     }
 

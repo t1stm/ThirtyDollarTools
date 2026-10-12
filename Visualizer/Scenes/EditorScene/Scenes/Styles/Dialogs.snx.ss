@@ -249,44 +249,6 @@ class warning-cell {
 
 // ---------------------------------------------------------------- instruments
 
-id instrument-editor {
-    width = 640;
-    padding = 10;
-    spacing = 8;
-}
-
-id instrument-editor-sounds {
-    width = 100%;
-    height = 380;
-}
-
-id instrument-editor-picker {
-    width = 100%;
-}
-
-// Preview and Done. Their 8px corner is rounder than a dialog action's 6.
-class editor-action-button {
-    font-size = 14;
-    border-radius = 8;
-    background = $theme.accent;
-
-    state[hovered] = {
-        background = $theme.accent_hover;
-    }
-}
-
-class instrument-editor-done-row {
-    width = 100%;
-    horizontal-align = "end";
-}
-
-id instrument-name-input {
-    width = 300;
-    font-size = 15;
-    border-radius = 6;
-    background = $theme.input_background;
-}
-
 id instrument-selector {
     direction = "vertical";
     width = 320;

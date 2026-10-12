@@ -8,6 +8,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Audio;
 using Shared.Updates;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
@@ -196,11 +197,12 @@ public class Loader : Scene, IGamePreloadable
     {
         return ThreadRunner.RunTask(() =>
         {
-            // The interface's own font, and the two the visualizer's text container and player
-            // bar draw with. Twemoji is skipped: no label uses it.
+            // The interface's own font and its icons, and the two the visualizer's text
+            // container and player bar draw with. Twemoji is skipped: no label uses it.
             (string Name, ITextProvider Provider)[] fonts =
             [
                 ("Lato Bold (interface)", _context.TextProvider),
+                ("Lucide (icons)", _context.GetTextProvider(Icons.Font)),
                 ("Lato Regular", Visualizer.VisualizerFonts.LatoRegularProvider),
                 ("Lato Bold", Visualizer.VisualizerFonts.LatoBoldProvider)
             ];

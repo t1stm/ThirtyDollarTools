@@ -22,6 +22,11 @@ public class FontProvider : IFontProvider
         {
             Location = "Assets/Fonts/Twemoji.Mozilla.ttf"
         }));
+
+        AddFont("Lucide", assetProvider.Load<AssetStream, AssetInfo>(new AssetInfo
+        {
+            Location = "Assets/Fonts/lucide.ttf"
+        }));
     }
 
     /// <summary>Every bundled font, parsed at construction and kept for the process lifetime.</summary>

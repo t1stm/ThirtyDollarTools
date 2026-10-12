@@ -4,9 +4,9 @@ using Sundex.Engine.Text.Fonts;
 
 namespace Sundex.Components.Tests;
 
-public class MockTextProvider : ITextProvider
+public class MockTextProvider(IGlyphProvider? glyphProvider = null) : ITextProvider
 {
-    public IGlyphProvider GlyphProvider { get; } = new MockGlyphProvider();
+    public IGlyphProvider GlyphProvider { get; } = glyphProvider ?? new MockGlyphProvider();
 
     public void BindAndSetUniforms(Camera camera)
     {

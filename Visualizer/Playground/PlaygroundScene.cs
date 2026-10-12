@@ -4,6 +4,7 @@ using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Renderer.Planes;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
@@ -112,6 +113,7 @@ public class PlaygroundScene : Scene
                 {
                     OnClick = _ => OpenModal()
                 },
+                IconRow(ctx, 16),
                 scroll
             ]
         };
@@ -131,8 +133,31 @@ public class PlaygroundScene : Scene
             {
                 Color = index % 2 == 0 ? (0.16f, 0.17f, 0.21f, 1f) : (0.13f, 0.14f, 0.18f, 1f)
             },
-            Children = [new Label(ctx, $"Row {index}") { FontSizePx = 14f }]
+            Children = [IconRow(ctx, 14, $"Row {index}")]
         };
+    }
+
+    /// <summary>Lucide icons beside Lato text on one line, and an icon-only button (multi-font text).</summary>
+    private static FlexPanel IconRow(UIContext ctx, float size, string text = "Icons beside text")
+    {
+        var row = new FlexPanel(ctx)
+        {
+            Direction = LayoutDirection.Horizontal,
+            VerticalAlign = Align.Center,
+            Spacing = 6,
+            Width = LiteralOrComputable.AutoSize,
+            Height = LiteralOrComputable.AutoSize
+        };
+
+        row.AddChild(new Label(ctx, Icons.Play, Icons.Font) { FontSizePx = size });
+        row.AddChild(new Label(ctx, text) { FontSizePx = size });
+        row.AddChild(new Label(ctx, Icons.Copy + Icons.Search, Icons.Font) { FontSizePx = size });
+        row.AddChild(new Button(ctx, Icons.X, new ColoredPlane { Color = (0.30f, 0.42f, 0.80f, 1f) }, Icons.Font)
+        {
+            FontSizePx = size,
+            Padding = 3
+        });
+        return row;
     }
 
     private void OpenModal()
@@ -149,6 +174,7 @@ public class PlaygroundScene : Scene
             Background = new ColoredPlane { Color = (0.15f, 0.17f, 0.22f, 1f) }
         };
         content.AddChild(new Label(_context, "A modal dialog") { FontSizePx = 18f });
+        content.AddChild(IconRow(_context, 18, "Icons in a modal"));
         content.AddChild(new Button(_context, "Close", new ColoredPlane { Color = (0.30f, 0.42f, 0.80f, 1f) })
         {
             OnClick = _ => _root.RemoveChild(modal)

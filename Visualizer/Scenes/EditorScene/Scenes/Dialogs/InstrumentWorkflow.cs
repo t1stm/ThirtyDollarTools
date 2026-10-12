@@ -57,7 +57,7 @@ public sealed class InstrumentWorkflow
         {
             _editingInstrument = instrument;
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
-            OpenEditor(instrument.Name, instrument.Sounds);
+            OpenEditor(instrument.Name, instrument);
         };
         _instrumentSelector.OnDelete = instrument =>
         {
@@ -81,7 +81,7 @@ public sealed class InstrumentWorkflow
         _instrumentEditorModal.AddChild(_instrumentEditor);
         _instrumentEditorModal.OnDismissRequested = _ => CloseEditor();
         _instrumentEditor.DoneButton.OnClick = _ => Commit();
-        _instrumentEditor.SoundsPicker.OnPreviewSound = playback.PreviewSound;
+        _instrumentEditor.OnPreviewSound = sound => playback.PreviewSound(_instrumentEditor.Working, sound);
         _instrumentEditor.PreviewButton.OnClick = _ => Preview();
     }
 
@@ -104,7 +104,7 @@ public sealed class InstrumentWorkflow
     public void OpenNewInstrument()
     {
         _editingInstrument = null;
-        OpenEditor("Instrument", []);
+        OpenEditor("Instrument", null);
     }
 
     /// <summary>
@@ -118,9 +118,10 @@ public sealed class InstrumentWorkflow
         return true;
     }
 
+    /// <summary>Previews the editor's working copy - the unsaved instrument, as tuned so far.</summary>
     private void Preview()
     {
-        _playback.PreviewInstrument(_instrumentEditor.SoundsPicker.Instances);
+        _playback.PreviewInstrument(_instrumentEditor.Working);
     }
 
     /// <summary>Takes the editor down and drops its cached preview with it.</summary>
@@ -130,22 +131,21 @@ public sealed class InstrumentWorkflow
         _playback.ClearPreviewCache();
     }
 
-    /// <summary>Forwards the held Shift/Ctrl state to the editor's sound picker (pan/volume scroll modes).</summary>
-    public void SetModifiers(bool shift, bool ctrl)
+    /// <summary>Forwards the held modifiers to the editor, whose scroll gestures and key chips follow them.</summary>
+    public void SetModifiers(bool shift, bool ctrl, bool alt)
     {
-        _instrumentEditor.SoundsPicker.ShiftHeld = shift;
-        _instrumentEditor.SoundsPicker.CtrlHeld = ctrl;
+        _instrumentEditor.SetModifiers(ctrl, shift, alt);
     }
 
     /// <summary>
-    ///     Opens the editor modal on the given name and sounds. The sound grid is filled
-    ///     before the selection is seeded, so the picker can map a sound stored under its
-    ///     emoji onto the sound's ID.
+    ///     Opens the editor modal on a copy of <paramref name="source" />, or a blank instrument.
+    ///     The sound grid is filled before the sounds are seeded, so the picker can map a sound
+    ///     stored under its emoji onto the sound's ID.
     /// </summary>
-    private void OpenEditor(string name, IEnumerable<InstrumentSound> sounds)
+    private void OpenEditor(string name, Instrument? source)
     {
         _instrumentEditor.EnsureSounds(_allSounds());
-        _instrumentEditor.Load(name, sounds);
+        _instrumentEditor.Load(name, source);
         _dialogHost.Root.AddChild(_instrumentEditorModal);
     }
 
@@ -155,17 +155,12 @@ public sealed class InstrumentWorkflow
             ? "Instrument"
             : _instrumentEditor.NameInput.Value;
 
-        if (_editingInstrument is { } existing)
-        {
-            _state.RenameInstrument(existing, name);
-            _state.SetInstrumentSounds(existing, _instrumentEditor.SoundsPicker.Instances);
-        }
-        else
-        {
-            var created = _state.AddInstrument(name);
-            _state.SetInstrumentSounds(created, _instrumentEditor.SoundsPicker.Instances);
-            ApplyInstrumentPick(created);
-        }
+        var working = _instrumentEditor.Working;
+        var target = _editingInstrument ?? _state.AddInstrument(name);
+        _state.RenameInstrument(target, name);
+        _state.SetInstrumentSounds(target, working.Sounds);
+        _state.SetInstrumentModifiers(target, working.Value, working.Volume, working.Pan, working.Offset);
+        if (_editingInstrument == null) ApplyInstrumentPick(target);
 
         CloseEditor();
         _state.NotifyInstrumentsChanged();

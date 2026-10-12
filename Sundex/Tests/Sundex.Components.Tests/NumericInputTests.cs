@@ -177,4 +177,51 @@ public class NumericInputTests
 
         Assert.Equal(96 - 48, input.ScrollX, 2);
     }
+
+    [Fact]
+    public void Unit_SitsBetweenTheTextAndTheStepButtons()
+    {
+        var (_, root, input) = NewInput(5);
+
+        input.StepSpacing = 4;
+        input.Unit = "%";
+        root.Layout();
+
+        var unit = input.Children.OfType<Labels.Label>().Single(label => label.Value.SequenceEqual("%"));
+        var minus = input.DecrementButton.Computed;
+        var plus = input.IncrementButton.Computed;
+        Assert.Equal(minus.AbsoluteX - 4, unit.Computed.AbsoluteX + unit.Computed.Width, 2);
+        Assert.Equal(minus.AbsoluteX + minus.Width + 4, plus.AbsoluteX, 2);
+        // Centred against the field's text area.
+        Assert.Equal(input.Computed.AbsoluteY + input.Computed.Height / 2,
+            unit.Computed.AbsoluteY + unit.Computed.Height / 2, 2);
+    }
+
+    [Fact]
+    public void StepFromEmpty_StartsFromEmptyValueWhenSet()
+    {
+        var (_, _, input) = NewInput();
+        input.AllowNull = true;
+        input.EmptyValue = 100;
+        input.Step = 5;
+
+        input.StepBy(-1);
+
+        Assert.Equal(95, input.Value);
+    }
+
+    [Fact]
+    public void Wheel_StepsOnlyWhenScrollStepIsSet_FinerWhenFine()
+    {
+        var (_, _, input) = NewInput(1);
+
+        Assert.False(input.HandleScroll(new Vector2(0, 1)));
+
+        input.ScrollStep = 1;
+        Assert.True(input.HandleScroll(new Vector2(0, 1)));
+        input.FineScroll = true;
+        Assert.True(input.HandleScroll(new Vector2(0, -1)));
+
+        Assert.Equal(1.9, input.Value);
+    }
 }

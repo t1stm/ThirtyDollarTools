@@ -144,6 +144,45 @@ public class MinResolutionLayoutTests
     }
 
     /// <summary>
+    ///     The instrument editor at the minimum window, holding seven sounds: it fills the
+    ///     window, the list shows six and scrolls, the "Add a sound" grid under it keeps room for
+    ///     two rows of icons, and the right column's contents end inside it.
+    /// </summary>
+    [Fact]
+    public void InstrumentEditor_FitsTheMinimumWindow_WithSevenSounds()
+    {
+        var atlases = new Shared.Atlases.AtlasStore((Sundex.Engine.Asset_Management.AssetProvider)_context.AssetProvider,
+            new Serilog.LoggerConfiguration().CreateLogger());
+        var editor = EditorTestContext.Styled(new InstrumentEditor(_context, atlases));
+        var root = EditorTestContext.Styled(new Panel(_context) { Width = 1080, Height = 720 });
+        root.AddChild(editor);
+
+        var instrument = new ThirtyDollarConverter.Editor.Instrument();
+        for (var i = 0; i < 7; i++) instrument.AddSound("kick");
+        editor.Load("Seven", instrument);
+        root.Layout();
+
+        var frame = editor.Computed;
+        Assert.Equal((1080f, 720f), (frame.Width, frame.Height));
+
+        Assert.Equal(7, editor.Rows.Count);
+        Assert.Equal(InstrumentEditor.VisibleRows * 46 + 5 * 4, editor.SoundsList.Computed.Height);
+        Assert.True(editor.SoundsList.MaxScroll > 0, "seven rows should overflow six");
+
+        // Two rows of 40 px icons, the gap between them, and the picker's padding.
+        var grid = editor.AvailablePicker.Parent!.Computed;
+        Assert.True(grid.Height >= 2 * 40 + 6 + 2 * 8, $"the add grid is {grid.Height} px tall");
+        Assert.True(grid.AbsoluteY + grid.Height <= frame.AbsoluteY + frame.Height,
+            "the add grid runs past the dialog");
+
+        var right = (Panel)editor.AllCard.Parent!;
+        var last = right.Children[^1].Computed;
+        Assert.True(last.AbsoluteY + last.Height <= right.Computed.AbsoluteY + right.Computed.Height + 0.5f,
+            $"the right column's contents end at {last.AbsoluteY + last.Height}, past its " +
+            $"{right.Computed.AbsoluteY + right.Computed.Height}");
+    }
+
+    /// <summary>
     ///     The hint bar's wrap. A Label neither wraps nor clips, so an unbroken legend paints
     ///     across the inspector and off the window, losing the gestures the legend is the only
     ///     documentation of.

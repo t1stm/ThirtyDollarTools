@@ -1,4 +1,8 @@
+using EditorScene.Scenes.Layout;
+using EditorScene.Scenes.Views;
+using OpenTK.Mathematics;
 using Shared.Atlases;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
@@ -6,69 +10,682 @@ using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     Create-or-edit form for one instrument: a name field and a multi-select sound picker
-///     with per-sound value/volume/pan adjustment turned on
-///     (see <see cref="SoundPicker.ShowAdjustments" />). Pure form - the owner loads and
-///     commits the name and <see cref="SoundPicker.Instances" />, and shows/hides the modal.
+///     Create-or-edit form for one instrument (docs/handover/editor-instrument-builder-plan.md,
+///     artboard A3): a name and a Preview button on top; on the left the instrument's sounds as
+///     rows and a grid of the sounds it doesn't have yet; on the right the instrument-wide
+///     fields, then the selected sound's fields and what it plays as on a note at 0.
+///     Pure form - it edits <see cref="Working" />, a copy, and the owner loads it, commits it
+///     and shows/hides the modal.
 /// </summary>
 public sealed class InstrumentEditor : FlexPanel
 {
+    /// <summary>Rows the sound list shows before it scrolls.</summary>
+    public const int VisibleRows = 6;
+
+    private const float RowHeight = 46;
+    private const float RowSpacing = 4;
+    private const float IconSize = 34;
+
+    /// <summary>The tuning fields' labels, in <see cref="TuneField" /> order.</summary>
+    private static readonly string[] FieldLabels = ["Value", "Volume", "Pan", "Offset"];
+
+    private readonly Label _allHeader;
+    private readonly Label[] _chipLabels;
+    private readonly Label[] _columnNames;
+    private readonly InspectorForm _allForm;
+    private readonly Panel _emptyList;
+    private readonly Label _keyLabel;
+    private readonly FlexPanel _noSelection;
+    private readonly Label[] _results = new Label[SoundRow.Columns];
+    private readonly List<SoundRow> _rows = [];
+    private readonly SelectedSoundHeader _selectedHeader;
+    private readonly FlexPanel _soundSection;
+    private readonly InspectorForm _soundForm;
+    private readonly Dictionary<string, Sound> _sounds = [];
+    private readonly FlexPanel _soundsBlock;
+    private readonly FlexPanel _right;
+
+    private bool _ctrl;
+    private bool _shift;
+    private bool _alt;
+    private bool _cardHovered;
+    private SoundRow? _hoveredRow;
+
     public InstrumentEditor(UIContext context, AtlasStore store) : base(context)
     {
         ID = "instrument-editor";
         Classes = ["dialog-frame"];
 
-        PreviewButton = new Button(context, "Preview") { Classes = ["editor-action-button"] };
-
+        // ---- header: name, then the Preview button with the play key's label on it
         NameInput = new TextInput(context) { ID = "instrument-name-input" };
-        // Percent-width spacer soaks up the free space so Preview lands flush against the
-        // right edge; this framework has no space-between align.
-        var nameRowSpacer = new Panel(context) { Classes = ["spacer"] };
-        var nameRow = new FlexPanel(context)
+        _keyLabel = new Label(context, KeyText()) { Classes = ["instrument-key-label"] };
+        // The key can be rebound while the editor exists; the label follows.
+        Keybinds.Changed += () => _keyLabel.Value = KeyText();
+        PreviewButton = new FlexPanel(context)
         {
-            Classes = ["dialog-row"],
+            Classes = ["instrument-preview-button"],
+            UpdateCursorOnHover = true,
             Children =
-                [new Label(context, "Name: ") { Classes = ["heading-label"] }, NameInput, nameRowSpacer, PreviewButton]
+            [
+                new FlexPanel(context) { Classes = ["instrument-key-chip"], Children = [_keyLabel] },
+                new Label(context, "Preview") { Classes = ["instrument-preview-label"] },
+                // Padding is one value on every side; this makes the right side's 16 out of its 8.
+                new Panel(context) { Classes = ["instrument-preview-tail"] }
+            ]
         };
-
-        SoundsPicker = new SoundPicker(context, store)
+        var header = new FlexPanel(context)
         {
-            ID = "instrument-editor-picker",
-            MultiSelect = true,
-            ShowAdjustments = true
+            Classes = ["instrument-editor-header"],
+            Children =
+            [
+                new Label(context, "Name") { Classes = ["instrument-editor-name-label"] },
+                NameInput,
+                new Panel(context) { Classes = ["spacer"] },
+                PreviewButton
+            ]
         };
-        var soundsList = new ScrollView(context) { ID = "instrument-editor-sounds" };
-        soundsList.AddChild(SoundsPicker);
 
-        DoneButton = new Button(context, "Done") { Classes = ["editor-action-button"] };
-        var doneRow = new FlexPanel(context) { Classes = ["instrument-editor-done-row"] };
-        doneRow.AddChild(DoneButton);
+        // ---- left: the sounds, then the sounds that can be added
+        var columnHeads = new FlexPanel(context) { Classes = ["instrument-column-heads"] };
+        foreach (var (chip, name) in ColumnHeads())
+            columnHeads.AddChild(new FlexPanel(context)
+            {
+                Classes = ["instrument-column-head"],
+                Children =
+                [
+                    new FlexPanel(context)
+                    {
+                        Classes = ["scroll-chip"],
+                        Children =
+                        [
+                            new Label(context, chip) { Classes = ["scroll-chip-label", "instrument-column-chip-label"] }
+                        ]
+                    },
+                    new Label(context, name) { Classes = ["instrument-column-name"] }
+                ]
+            });
+        ColumnHeadChips = [.. columnHeads.Children.Select(head => (FlexPanel)((FlexPanel)head).Children[0])];
+        _chipLabels = [.. ColumnHeadChips.Select(chip => (Label)chip.Children[0])];
+        _columnNames = [.. columnHeads.Children.Select(head => (Label)((FlexPanel)head).Children[1])];
 
-        AddChild(nameRow);
-        AddChild(soundsList);
-        AddChild(doneRow);
+        // The heads' band is rounded on top only, where the list below doesn't meet it. A
+        // corner radius applies to all four corners, so a square panel covers the bottom two.
+        var columnBand = new Panel(context)
+        {
+            Classes = ["instrument-column-band"],
+            Children = [new Panel(context) { Classes = ["instrument-column-band-cover"] }, columnHeads]
+        };
+
+        var soundsHeader = new FlexPanel(context)
+        {
+            Classes = ["instrument-sounds-header"],
+            Children =
+            [
+                new Label(context, "Sounds") { Classes = ["instrument-section-title"] },
+                new Panel(context) { Classes = ["spacer"] },
+                columnBand,
+                new Panel(context) { Classes = ["instrument-sounds-header-tail"] }
+            ]
+        };
+
+        SoundsList = new SoundList(context, store) { ID = "instrument-sounds-list" };
+        _emptyList = new FlexPanel(context)
+        {
+            Classes = ["instrument-sounds-empty"],
+            Children =
+            [
+                new Label(context, "No sounds yet. Pick one below to start the instrument.")
+                    { Classes = ["instrument-hint-label"] }
+            ]
+        };
+        _soundsBlock = new FlexPanel(context)
+        {
+            Classes = ["instrument-sounds-block"],
+            Children = [soundsHeader, _emptyList]
+        };
+
+        FilterInput = new TextInput(context)
+        {
+            Classes = ["instrument-filter-input"],
+            Placeholder = "Filter sounds",
+            OnValueChanged = input => AvailablePicker.Filter(input.Value)
+        };
+        var addHeader = new FlexPanel(context)
+        {
+            Classes = ["instrument-add-header"],
+            Children =
+            [
+                new Label(context, "Add a sound") { Classes = ["instrument-section-title"] },
+                new Panel(context) { Classes = ["spacer"] },
+                new FlexPanel(context)
+                {
+                    Classes = ["instrument-filter"],
+                    Children = [new Label(context, Icons.Search, Icons.Font) { Classes = ["instrument-filter-icon"] }, FilterInput]
+                }
+            ]
+        };
+
+        AvailablePicker = new SoundPicker(context, store)
+        {
+            ID = "instrument-available-picker",
+            MultiSelect = true,
+            AvailableOnly = true,
+            OnInstanceAdded = added =>
+            {
+                RebuildRows();
+                Select(added);
+                ScrollIntoView(added);
+            }
+        };
+        var available = new ScrollView(context) { ID = "instrument-available" };
+        available.AddChild(AvailablePicker);
+
+        var left = new FlexPanel(context)
+        {
+            Classes = ["instrument-editor-left"],
+            Children = [_soundsBlock, addHeader, available]
+        };
+
+        // ---- right: instrument-wide fields, then the selected sound's
+        _allHeader = new Label(context, "") { Classes = ["instrument-section-title"] };
+        AllCard = new ScrollZone(context)
+        {
+            Classes = ["instrument-all-card"],
+            Children = [_allHeader],
+            OnScroll = TuneAll,
+            OnHoverEnter = _ => SetHover(null, true),
+            OnHoverExit = _ => SetHover(_hoveredRow, false)
+        };
+        _allForm = new InspectorForm(context, AllCard, Edit) { Section = "All", Modifier = "instrument-form" };
+        AddFields(_allForm, () => Working);
+
+        _selectedHeader = new SelectedSoundHeader(context, store);
+        var soundFields = new FlexPanel(context) { Classes = ["instrument-sound-fields"] };
+        _soundForm = new InspectorForm(context, soundFields, Edit) { Section = "Sound", Modifier = "instrument-form" };
+        AddFields(_soundForm, () => Selected);
+
+        var results = new FlexPanel(context) { Classes = ["instrument-results"] };
+        for (var i = 0; i < _results.Length; i++)
+        {
+            _results[i] = new Label(context, "") { Classes = ["instrument-result-value"] };
+            results.AddChild(new FlexPanel(context)
+            {
+                Classes = ["instrument-result"],
+                Children = [new Label(context, ColumnHeads()[i].Name) { Classes = ["instrument-result-name"] }, _results[i]]
+            });
+        }
+
+        _soundSection = new FlexPanel(context)
+        {
+            Classes = ["instrument-sound-section"],
+            Children = [_selectedHeader, soundFields, results]
+        };
+        _noSelection = new FlexPanel(context)
+        {
+            Classes = ["instrument-no-selection"],
+            Children = [new Label(context, "Select a sound on the left to tune it.") { Classes = ["instrument-hint-label"] }]
+        };
+
+        _right = new FlexPanel(context)
+        {
+            Classes = ["instrument-editor-right"],
+            Children = [AllCard, new Panel(context) { Classes = ["rule", "instrument-rule"] }, _noSelection]
+        };
+
+        var body = new FlexPanel(context) { Classes = ["instrument-editor-body"], Children = [left, _right] };
+
+        // ---- footer
+        FineChip = new FlexPanel(context)
+        {
+            Classes = ["scroll-chip"],
+            Children = [new Label(context, $"{Keybinds.PrimaryName}+Shift+Scroll") { Classes = ["scroll-chip-label"] }]
+        };
+        DoneButton = new Button(context, "Done") { Classes = ["instrument-done-button"] };
+        var footer = new FlexPanel(context)
+        {
+            Classes = ["instrument-editor-footer"],
+            Children =
+            [
+                FineChip,
+                new Label(context, "value by 0.1") { Classes = ["instrument-footer-label"] },
+                new Panel(context) { Classes = ["spacer"] },
+                DoneButton
+            ]
+        };
+
+        Children = [header, body, footer];
+
+        for (var i = 0; i < FieldLabels.Length; i++)
+        foreach (var section in (string[])["All", "Sound"])
+        {
+            var input = Field($"{section}.{FieldLabels[i]}")!;
+            input.ScrollStep = ScrollGesture.StepOf((TuneField)i);
+            // An empty volume follows the note, which plays it at 100.
+            if ((TuneField)i == TuneField.Volume) input.EmptyValue = 100;
+            input.Unit = (TuneField)i switch
+            {
+                TuneField.Volume => "%",
+                TuneField.Offset => "s",
+                _ => ""
+            };
+            input.DecrementButton.Classes.Add("instrument-step");
+            input.IncrementButton.Classes.Add("instrument-step");
+        }
+
+        Refresh();
+        RefreshHighlights();
     }
 
     public TextInput NameInput { get; }
-    public Button PreviewButton { get; }
-    public SoundPicker SoundsPicker { get; }
+    public FlexPanel PreviewButton { get; }
+    public TextInput FilterInput { get; }
+    public SoundPicker AvailablePicker { get; }
     public Button DoneButton { get; }
+
+    /// <summary>The "All sounds" card: the instrument-wide fields, and a scroll zone for them.</summary>
+    public ScrollZone AllCard { get; }
+
+    /// <summary>The Value/Volume/Pan/Offset column heads' key chips, in <see cref="SoundRow.Columns" /> order.</summary>
+    public IReadOnlyList<FlexPanel> ColumnHeadChips { get; }
+
+    /// <summary>The footer's Ctrl+Shift+Scroll chip.</summary>
+    public FlexPanel FineChip { get; }
+
+    internal SoundList SoundsList { get; }
+
+    internal IReadOnlyList<SoundRow> Rows => _rows;
+
+    /// <summary>
+    ///     The instrument as the form has it: the instrument-wide fields, and the sounds (the
+    ///     picker's instances, which the rows show and the fields tune). Not committed anywhere
+    ///     until the owner reads it on Done.
+    /// </summary>
+    public Instrument Working { get; } = new();
+
+    /// <summary>The sound the right column tunes; null when there is none.</summary>
+    public InstrumentSound? Selected { get; private set; }
+
+    /// <summary>Fired with a sound to play on its own - the row's Preview button.</summary>
+    public Action<InstrumentSound>? OnPreviewSound { get; set; }
+
+    /// <summary>The "All sounds - N" heading's text.</summary>
+    public string AllHeaderText => _allHeader.Value.ToString();
+
+    /// <summary>A field of the right column by key: "All.Value", "Sound.Volume", ...</summary>
+    public NumericInput? Field(string key) => (key.StartsWith("All.") ? _allForm : _soundForm).Field(key) as NumericInput;
+
+    /// <summary>What a wheel notch would tune now, from the held modifiers.</summary>
+    public (TuneField Field, double Step) Gesture => ScrollGesture.For(_ctrl, _shift, _alt);
+
+    /// <summary>
+    ///     The held modifiers, forwarded from the editor's input every frame. They pick what a
+    ///     scroll tunes (<see cref="ScrollGesture" />), and the chips and cells light to match.
+    /// </summary>
+    public void SetModifiers(bool ctrl, bool shift, bool alt)
+    {
+        if (_ctrl == ctrl && _shift == shift && _alt == alt) return;
+        (_ctrl, _shift, _alt) = (ctrl, shift, alt);
+        RefreshHighlights();
+    }
+
+    private IEnumerable<NumericInput> Inputs() =>
+        FieldLabels.SelectMany(label => (string[])[$"All.{label}", $"Sound.{label}"]).Select(Field).OfType<NumericInput>();
+
+    /// <summary>A notch over a row's read-outs: tunes that sound, selects it and plays it.</summary>
+    internal bool TuneRow(SoundRow row, Vector2 scrollDelta)
+    {
+        var notches = MathF.Sign(scrollDelta.Y);
+        if (notches == 0) return false;
+
+        var (field, step) = Gesture;
+        ScrollGesture.Apply(row.Instance, field, notches * step);
+        Select(row.Instance);
+        OnPreviewSound?.Invoke(row.Instance);
+        return true;
+    }
+
+    /// <summary>A notch over the "All sounds" card: tunes the instrument-wide field.</summary>
+    internal bool TuneAll(Vector2 scrollDelta)
+    {
+        var notches = MathF.Sign(scrollDelta.Y);
+        if (notches == 0) return false;
+
+        var (field, step) = Gesture;
+        ScrollGesture.Apply(Working, field, notches * step);
+        Refresh();
+        return true;
+    }
+
+    private void SetHover(SoundRow? row, bool card)
+    {
+        _hoveredRow = row;
+        _cardHovered = card;
+        RefreshHighlights();
+    }
+
+    /// <summary>
+    ///     Lights what a scroll would change: the chip of the gesture the held keys pick, the
+    ///     hovered row's cell for it, and the matching field on the right - the instrument's
+    ///     while the pointer is over its card, the sound's while over the selected row.
+    /// </summary>
+    private void RefreshHighlights()
+    {
+        var (field, _) = Gesture;
+        var column = (int)field;
+
+        for (var i = 0; i < ColumnHeadChips.Count; i++)
+        {
+            ColumnHeadChips[i].SetClass("scroll-chip-lit", i == column);
+            _chipLabels[i].SetClass("scroll-chip-label-lit", i == column);
+            _columnNames[i].SetClass("instrument-column-name-lit", i == column);
+        }
+
+        var fine = _ctrl && _shift && !_alt;
+        FineChip.SetClass("scroll-chip-lit", fine);
+        ((Label)FineChip.Children[0]).SetClass("scroll-chip-label-lit", fine);
+
+        foreach (var row in _rows) row.Highlight(ReferenceEquals(row, _hoveredRow) ? column : null);
+
+        var outlined = _cardHovered ? $"All.{FieldLabels[column]}"
+            : _hoveredRow != null && ReferenceEquals(_hoveredRow.Instance, Selected) ? $"Sound.{FieldLabels[column]}"
+            : null;
+        foreach (var input in Inputs())
+        {
+            input.FineScroll = fine;
+            input.SetClass("instrument-field-target", outlined != null && Field(outlined) == input);
+        }
+    }
+
+    private static string KeyText() => Keybinds.Get(Bind.EditorPlayPause).ToString();
+
+    private static (string Chip, string Name)[] ColumnHeads() =>
+        [("Scroll", "Value"), (Keybinds.PrimaryName, "Volume"), ("Shift", "Pan"), ("Alt", "Offset")];
 
     /// <summary>Fills the sound grid on first use; a no-op once the picker holds icons.</summary>
     public void EnsureSounds(IEnumerable<Sound> sounds)
     {
-        if (SoundsPicker.HasSounds) return;
-        SoundsPicker.Fill(sounds);
+        if (AvailablePicker.HasSounds) return;
+
+        var list = sounds.ToList();
+        foreach (var sound in list) _sounds[sound.Id] = sound;
+        AvailablePicker.Fill(list);
     }
 
-    /// <summary>Pre-loads the form; pass an empty name and selection to start a fresh instrument.</summary>
-    public void Load(string name, IEnumerable<InstrumentSound> sounds)
+    /// <summary>
+    ///     Pre-loads the form from <paramref name="source" />, copied, or blank for a fresh
+    ///     instrument. Selects the first sound.
+    /// </summary>
+    public void Load(string name, Instrument? source)
     {
         NameInput.Value = name;
-        SoundsPicker.SetInstances(sounds);
+        FilterInput.Value = "";
+        AvailablePicker.Filter("");
+
+        Working.Value = source?.Value ?? 0;
+        Working.Volume = source?.Volume;
+        Working.Pan = source?.Pan ?? 0;
+        Working.Offset = source?.Offset ?? 0;
+        AvailablePicker.SetInstances(source?.Sounds ?? []);
+
+        RebuildRows();
+        Select(Working.Sounds.FirstOrDefault());
+    }
+
+    public void Select(InstrumentSound? sound)
+    {
+        Selected = sound;
+        foreach (var row in _rows) row.SetSelected(ReferenceEquals(row.Instance, sound));
+
+        var showing = _right.Children.Contains(_soundSection);
+        if (sound != null && !showing)
+        {
+            _right.RemoveChild(_noSelection);
+            _right.AddChild(_soundSection);
+        }
+        else if (sound == null && showing)
+        {
+            _right.RemoveChild(_soundSection);
+            _right.AddChild(_noSelection);
+        }
+
+        if (sound != null) _selectedHeader.Show(_sounds.GetValueOrDefault(sound.Sound), sound.Sound);
+        Refresh();
+        RefreshHighlights();
+    }
+
+    /// <summary>Inserts a copy of <paramref name="sound" /> after it, and selects the copy.</summary>
+    public void Duplicate(InstrumentSound sound)
+    {
+        var copy = AvailablePicker.AddInstance(sound.Sound, sound);
+        RebuildRows();
+        Select(copy);
+        ScrollIntoView(copy);
+    }
+
+    /// <summary>Scrolls the list just far enough to show <paramref name="sound" />'s row.</summary>
+    private void ScrollIntoView(InstrumentSound sound)
+    {
+        // Laid out first: the list's scroll range still reflects the rows before this change.
+        SoundsList.Layout();
+        var top = Working.Sounds.IndexOf(sound) * (RowHeight + RowSpacing);
+        var height = SoundsList.Computed.Height;
+        if (top < SoundsList.ScrollY) SoundsList.ScrollY = top;
+        else if (top + RowHeight > SoundsList.ScrollY + height) SoundsList.ScrollY = top + RowHeight - height;
+    }
+
+    /// <summary>Removes <paramref name="sound" />; a removed selection moves to the sound that took its place.</summary>
+    public void Remove(InstrumentSound sound)
+    {
+        var index = Working.Sounds.IndexOf(sound);
+        AvailablePicker.RemoveInstance(sound);
+        RebuildRows();
+
+        if (!ReferenceEquals(Selected, sound) && Selected != null)
+        {
+            Select(Selected);
+            return;
+        }
+
+        Select(Working.Sounds.Count == 0 ? null : Working.Sounds[Math.Clamp(index, 0, Working.Sounds.Count - 1)]);
+    }
+
+    /// <summary>Applies one field edit to the working copy, then redraws everything that shows it.</summary>
+    private void Edit(Action change)
+    {
+        change();
+        Refresh();
+    }
+
+    /// <summary>
+    ///     The four tuning fields, read from and written to whatever <paramref name="target" />
+    ///     returns at the time - the instrument, or the selected sound - so a new selection needs
+    ///     only a sync, not new fields.
+    /// </summary>
+    private static void AddFields(InspectorForm form, Func<object?> target)
+    {
+        form.NumberRow("Value", () => Get(target(), t => t.Value, s => s.Value),
+            v => Set(target(), v, (t, x) => t.Value = x!.Value, (s, x) => s.Value = x!.Value),
+            -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
+        form.NumberRow("Volume", () => Get(target(), t => t.Volume, s => s.Volume),
+            v => Set(target(), v, (t, x) => t.Volume = x, (s, x) => s.Volume = x), 0, 500, 5, true);
+        form.NumberRow("Pan", () => Get(target(), t => t.Pan, s => s.Pan),
+            v => Set(target(), v, (t, x) => t.Pan = (float)x!.Value, (s, x) => s.Pan = (float)x!.Value),
+            -100, 100, 10);
+        form.NumberRow("Offset", () => Get(target(), t => t.Offset, s => s.Offset),
+            v => Set(target(), v, (t, x) => t.Offset = x!.Value, (s, x) => s.Offset = x!.Value), -60, 60, 0.01);
+    }
+
+    private static double? Get(object? target, Func<Instrument, double?> instrument, Func<InstrumentSound, double?> sound) =>
+        target switch
+        {
+            Instrument i => instrument(i),
+            InstrumentSound s => sound(s),
+            _ => null
+        };
+
+    private static void Set(object? target, double? value, Action<Instrument, double?> instrument,
+        Action<InstrumentSound, double?> sound)
+    {
+        if (target is Instrument i) instrument(i, value);
+        else if (target is InstrumentSound s) sound(s, value);
+    }
+
+    /// <summary>
+    ///     Rebuilds one row per sound, after the sounds changed. The picker's instances are the
+    ///     working copy's sounds: <see cref="Working" /> mirrors them here.
+    /// </summary>
+    private void RebuildRows()
+    {
+        Working.Sounds.Clear();
+        Working.Sounds.AddRange(AvailablePicker.Instances);
+
+        foreach (var row in _rows)
+        {
+            SoundsList.RemoveChild(row);
+            row.Icon.Release();
+        }
+
+        _rows.Clear();
+        _hoveredRow = null;
+
+        foreach (var sound in Working.Sounds)
+        {
+            var icon = (_sounds.TryGetValue(sound.Sound, out var known)
+                           ? SoundsList.Images.Create(known, IconSize)
+                           : null)
+                       ?? new SoundImage(Context, null, IconSize);
+            var row = new SoundRow(Context, sound, icon)
+            {
+                OnSelect = r => Select(r.Instance),
+                OnPreview = r => OnPreviewSound?.Invoke(r.Instance),
+                OnDuplicate = r => Duplicate(r.Instance),
+                OnRemove = r => Remove(r.Instance)
+            };
+            row.NumberZone.OnScroll = delta => TuneRow(row, delta);
+            row.NumberZone.OnHoverEnter = _ => SetHover(row, false);
+            row.NumberZone.OnHoverExit = _ =>
+            {
+                if (ReferenceEquals(_hoveredRow, row)) SetHover(null, _cardHovered);
+            };
+            _rows.Add(row);
+            SoundsList.AddChild(row);
+        }
+
+        var visible = Math.Min(_rows.Count, VisibleRows);
+        SoundsList.Height = visible * RowHeight + Math.Max(0, visible - 1) * RowSpacing;
+
+        // The empty state stands in for the list, so the list never shows as a zero-height box.
+        var list = _rows.Count > 0 ? (Panel)SoundsList : _emptyList;
+        var stale = list == SoundsList ? _emptyList : (Panel)SoundsList;
+        if (_soundsBlock.Children.Contains(stale)) _soundsBlock.RemoveChild(stale);
+        if (!_soundsBlock.Children.Contains(list)) _soundsBlock.AddChild(list);
+    }
+
+    /// <summary>Redraws everything that shows a value: headings, read-outs, fields and results.</summary>
+    private void Refresh()
+    {
+        _allHeader.Value = $"All sounds - {Working.Sounds.Count}";
+        foreach (var row in _rows) row.Refresh();
+        _allForm.Sync();
+        _soundForm.Sync();
+
+        if (Selected is not { } sound) return;
+
+        _selectedHeader.SetPosition($"Sound {Working.Sounds.IndexOf(sound) + 1} of {Working.Sounds.Count}");
+
+        // What it plays as on a note at 0: the same combination playback uses.
+        var (value, volume, pan, offset) = Working.Combine(sound);
+        _results[0].Value = SoundRow.ValueText(value) ?? "0";
+        _results[1].Value = SoundRow.VolumeText(volume) ?? "note";
+        _results[2].Value = SoundRow.PanText(pan) ?? "0";
+        _results[3].Value = $"{offset:0.###} s";
+    }
+
+    /// <summary>
+    ///     The sound list: a scroll view that also draws its rows' icons, as one batch. A row's
+    ///     icon sits three levels below the list (list, row, the row's icon-and-name area), so
+    ///     the batch is queued at that depth: one level up, the row's own fill would paint over it.
+    /// </summary>
+    internal sealed class SoundList(UIContext context, AtlasStore store) : ScrollView(context)
+    {
+        public SoundImages Images { get; } = new(context, store);
+
+        private int IconLayer => Index + 3;
+
+        protected override void DrawSelf(UIContext ctx)
+        {
+            base.DrawSelf(ctx);
+            ctx.QueueRender(Images.Stacks, IconLayer);
+        }
+
+        public override void StopRendering()
+        {
+            Context.DequeueRender(Images.Stacks, IconLayer);
+            base.StopRendering();
+        }
+
+        public override void ApplyClip(Vector4i? clip)
+        {
+            base.ApplyClip(clip);
+            var x = (int)Computed.AbsoluteX;
+            var y = (int)Computed.AbsoluteY;
+            Images.Stacks.ClipRect = IntersectClip(new Vector4i(x, y, x + (int)Computed.Width, y + (int)Computed.Height), clip);
+        }
+    }
+
+    /// <summary>The selected sound's icon and name, with its position in the list under the name.</summary>
+    private sealed class SelectedSoundHeader : FlexPanel
+    {
+        private const float Size = 28;
+
+        private readonly SoundImages _images;
+        private readonly Label _name;
+        private readonly Label _position;
+        private SoundImage _icon;
+
+        public SelectedSoundHeader(UIContext context, AtlasStore store) : base(context)
+        {
+            _images = new SoundImages(context, store);
+            Classes = ["instrument-sound-header"];
+            _icon = new SoundImage(context, null, Size);
+            _name = new Label(context, "") { Classes = ["instrument-section-title"] };
+            _position = new Label(context, "") { Classes = ["instrument-footer-label"] };
+            Children =
+            [
+                _icon,
+                new FlexPanel(context) { Classes = ["instrument-sound-header-text"], Children = [_name, _position] }
+            ];
+        }
+
+        public void Show(Sound? sound, string name)
+        {
+            _name.Value = name;
+
+            var icon = (sound == null ? null : _images.Create(sound, Size)) ?? new SoundImage(Context, null, Size);
+            RemoveChild(_icon);
+            _icon.Release();
+            _icon = icon;
+            AddChild(_icon);
+            Children = [_icon, .. Children.Where(child => child != _icon)];
+        }
+
+        public void SetPosition(string text) => _position.Value = text;
+
+        protected override void DrawSelf(UIContext ctx)
+        {
+            base.DrawSelf(ctx);
+            ctx.QueueRender(_images.Stacks, Index + 1);
+        }
+
+        public override void StopRendering()
+        {
+            Context.DequeueRender(_images.Stacks, Index + 1);
+            base.StopRendering();
+        }
     }
 }

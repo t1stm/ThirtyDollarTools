@@ -15,9 +15,14 @@ public class Label : UIElement
 
     protected readonly TextBuffer? TextBuffer;
 
-    public Label(UIContext context, ReadOnlySpan<char> text) : base(context)
+    /// <param name="font">
+    ///     A bundled font's name (<c>FontProvider</c>), e.g. <see cref="Icons.Font" />. Null draws in
+    ///     the interface font. Fixed for the label's lifetime: the buffer is built for one font.
+    /// </param>
+    public Label(UIContext context, ReadOnlySpan<char> text, string? font = null) : base(context)
     {
-        TextBuffer = new TextBuffer(context.TextProvider, context.DeleteQueue);
+        TextBuffer = new TextBuffer(font == null ? context.TextProvider : context.GetTextProvider(font),
+            context.DeleteQueue);
         TextSlice = TextBuffer.GetTextSlice(text);
     }
 
@@ -28,8 +33,7 @@ public class Label : UIElement
         {
             field = value;
             if (field == null) return;
-            Width = field.Scale.X;
-            Height = field.Scale.Y;
+            ApplySize(field);
         }
     }
 
@@ -53,10 +57,7 @@ public class Label : UIElement
             field = value;
             if (TextSlice == null) return;
             TextSlice.FontSize = value.Resolve(ReferenceFontSize);
-
-            var scale = TextSlice.Scale;
-            Width = scale.X;
-            Height = scale.Y;
+            ApplySize(TextSlice);
         }
     } = 16;
 
@@ -126,11 +127,25 @@ public class Label : UIElement
             TextSlice.UpdateCharacters();
         }
 
-        var scale = TextSlice.Scale;
-
-        Width = scale.X;
-        Height = scale.Y;
+        ApplySize(TextSlice);
         Layout();
+    }
+
+    /// <summary>
+    ///     Sizes the box to the text. The slice measures each line at the font's line height, line
+    ///     gap included; the box leaves out the last line's gap, so it ends at the descender. That
+    ///     changes nothing for Lato, which has no gap. For Lucide, whose icons are drawn centred in
+    ///     an em that runs from the baseline (descender 0) to the ascender (1 em), it makes the box
+    ///     the em square, so an icon sits centred in its label and lines up with text beside it.
+    /// </summary>
+    private void ApplySize(TextSlice slice)
+    {
+        var metrics = TextBuffer!.TextProvider.GlyphProvider.GetFontMetrics();
+        var lineGap = (metrics.LineHeight - (metrics.AscenderY - metrics.DescenderY)) / metrics.EmSize;
+
+        Width = slice.Scale.X;
+        // An empty slice measures no line at all, so there is no gap to take off.
+        Height = Math.Max(0, slice.Scale.Y - (float)Math.Max(0, lineGap) * slice.FontSize);
     }
 
     protected override void DoLayout()

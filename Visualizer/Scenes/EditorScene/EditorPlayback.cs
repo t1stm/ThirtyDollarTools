@@ -50,7 +50,7 @@ public class EditorPlayback
     /// </summary>
     private Task<AudioData<float>>? _combo;
 
-    private (string Sound, double Value, double? Volume, float Pan)[] _comboKey = [];
+    private (string Sound, double Value, double? Volume, float Pan, double Offset)[] _comboKey = [];
 
     /// <summary>Set while a requested combo preview waits on its render; <see cref="Update" /> plays it.</summary>
     private bool _comboPlayPending;
@@ -229,8 +229,8 @@ public class EditorPlayback
 
     /// <summary>
     ///     Plays a note as it will actually sound: every sound of its instrument, each
-    ///     combining the note's value, volume and pan with its own
-    ///     <see cref="InstrumentSound" /> tuning. Replaces any still-playing preview;
+    ///     combining the note's value, volume, pan and offset with the instrument's and its
+    ///     own (<see cref="Instrument.Combine" />). Replaces any still-playing preview;
     ///     suppressed during playback unless <see cref="PreviewDuringPlayback" /> is set.
     ///     Empty instrument (or a cut, which has no sound of its own) -> no preview.
     /// </summary>
@@ -247,48 +247,38 @@ public class EditorPlayback
 
         var value = valueOverride ?? note.Value;
         foreach (var sound in note.Instrument.Sounds)
-            PlayOne(sound.Sound, sound.CombineValue(value), sound.CombineVolume(note.Volume),
-                sound.CombinePan(note.Pan));
+            PlayOne(sound.Sound, note.Instrument.Combine(sound, value, note.Volume, note.Pan, note.Offset));
     }
 
     /// <summary>
-    ///     Every sound of an instrument at its own tuning, on no note - the palette's
-    ///     right-click preview, where there is no note to take a volume or pan from.
+    ///     Plays one of <paramref name="instrument" />'s sounds as it sounds on a note at 0
+    ///     (default volume and pan, no offset of its own) - the instrument editor's per-sound
+    ///     preview, fired as the user tunes a sound or hits its row's preview button. The
+    ///     editor passes its working copy, so the preview plays the unsaved tuning. Replaces
+    ///     any still-playing preview, same suppression as <see cref="PreviewNote" />.
+    /// </summary>
+    public void PreviewSound(Instrument instrument, InstrumentSound sound)
+    {
+        if (IsPlaying && !PreviewDuringPlayback) return;
+
+        StopPreview();
+        PlayOne(sound.Sound, instrument.Combine(sound));
+    }
+
+    /// <summary>
+    ///     Plays every sound of <paramref name="instrument" /> layered together, as on a note at
+    ///     0 - the palette's right-click preview and the instrument editor's "Preview" button
+    ///     (which passes its working copy). Mixed by PcmEncoder into one buffer, as a render
+    ///     would, rather than one buffer per sound started side by side. The render runs in the
+    ///     background and <see cref="Update" /> plays it once it lands; previewing the same
+    ///     combo again replays the cached mix.
     /// </summary>
     public void PreviewInstrument(Instrument instrument)
     {
-        PreviewInstrument(instrument.Sounds);
-    }
-
-    /// <summary>
-    ///     Plays one sound with its adjustment applied on top of no base note (value 0,
-    ///     default volume/pan) - the instrument editor's per-sound preview, fired as the user
-    ///     scrolls a sound's value/volume/pan or hits its row's preview button. Replaces any
-    ///     still-playing preview, same suppression as <see cref="PreviewNote" />.
-    /// </summary>
-    public void PreviewSound(InstrumentSound sound)
-    {
         if (IsPlaying && !PreviewDuringPlayback) return;
 
         StopPreview();
-        PlayOne(sound.Sound, sound.CombineValue(0), sound.CombineVolume(null), sound.CombinePan(0));
-    }
-
-    /// <summary>
-    ///     Plays every given sound layered together, each with its own adjustment on
-    ///     top of no base note - the instrument editor's "Preview" button, previewing the whole
-    ///     instrument as it would sound on a note at value 0. Mixed by PcmEncoder into one
-    ///     buffer, as a render would, rather than one buffer per sound started side by side.
-    ///     The render runs in the background and <see cref="Update" /> plays it once it lands;
-    ///     previewing the same combo again replays the cached mix.
-    /// </summary>
-    public void PreviewInstrument(IEnumerable<InstrumentSound> sounds)
-    {
-        if (IsPlaying && !PreviewDuringPlayback) return;
-
-        StopPreview();
-        (string, double, double?, float)[] combo =
-            [.. sounds.Select(s => (s.Sound, s.CombineValue(0), s.CombineVolume(null), s.CombinePan(0)))];
+        var combo = ComboOf(instrument);
         if (combo.Length == 0) return;
 
         if (_combo == null || !combo.SequenceEqual(_comboKey))
@@ -299,6 +289,24 @@ public class EditorPlayback
 
         _comboPlayPending = true;
         TryPlayCombo();
+    }
+
+    /// <summary>
+    ///     What each of the instrument's sounds plays as on a note at 0: the combo to render, and
+    ///     the cache key. Keyed on the combined values, so any field that changes the mix, the
+    ///     instrument-wide ones included, renders it afresh.
+    /// </summary>
+    internal static (string Sound, double Value, double? Volume, float Pan, double Offset)[] ComboOf(
+        Instrument instrument)
+    {
+        return
+        [
+            .. instrument.Sounds.Select(sound =>
+            {
+                var (value, volume, pan, offset) = instrument.Combine(sound);
+                return (sound.Sound, value, volume, pan, offset);
+            })
+        ];
     }
 
     /// <summary>Drops the cached combo render - the instrument editor calls this as it closes.</summary>
@@ -314,14 +322,14 @@ public class EditorPlayback
     ///     mix can be pinned without an audio device - see EditorScene.Tests.
     /// </summary>
     internal static Task<AudioData<float>> RenderCombo(PcmEncoder encoder, PlacementCalculator calculator,
-        uint sampleRate, (string Sound, double Value, double? Volume, float Pan)[] combo)
+        uint sampleRate, (string Sound, double Value, double? Volume, float Pan, double Offset)[] combo)
     {
         // Layered on one step and "!combine"-joined, the way a note's sounds are.
         var events = new List<BaseEvent>();
-        foreach (var (sound, value, volume, pan) in combo)
+        foreach (var (sound, value, volume, pan, offset) in combo)
         {
             if (events.Count > 0) events.Add(new NormalEvent { SoundEvent = "!combine", ValueScale = ValueScale.None });
-            events.Add(PreviewEvent(sound, value, volume, pan));
+            events.Add(PreviewEvent(sound, (value, volume, pan, offset)));
         }
 
         var sequence = new Sequence { Events = [.. events] };
@@ -366,16 +374,23 @@ public class EditorPlayback
         _preview.Add(buffer);
     }
 
-    private static BaseEvent PreviewEvent(string sound, double value, double? volume, float pan)
+    private static BaseEvent PreviewEvent(string sound, (double Value, double? Volume, float Pan, double Offset) play)
     {
-        return pan == 0
+        var (value, volume, pan, offset) = play;
+        return pan == 0 && offset == 0
             ? new NormalEvent { SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume }
-            : new ExtendedEvent { SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume, Pan = pan };
+            : new ExtendedEvent
+            {
+                SoundEvent = sound, Value = value, WorkingValue = value, Volume = volume, Pan = pan,
+                OffsetInSeconds = offset
+            };
     }
 
-    private void PlayOne(string sound, double value, double? volume, float pan)
+    private void PlayOne(string sound, (double Value, double? Volume, float Pan, double Offset) play)
     {
-        var audio = _previewProcessor.ProcessEvent(PreviewEvent(sound, value, volume, pan));
+        var (value, volume, pan, offset) = play;
+        var audio = SkipOffset(_previewProcessor.ProcessEvent(PreviewEvent(sound, play)), offset, value,
+            _previewSampleRate);
         if (audio.GetLength() == 0) return; // unknown sound or samples still downloading
 
         var buffer = _workflow.SequencePlayer.AudioContext.GetBufferObject(audio, (int)_previewSampleRate);
@@ -387,6 +402,21 @@ public class EditorPlayback
         buffer.SetPan(pan / 100f);
         buffer.Play();
         _preview.Add(buffer);
+    }
+
+    /// <summary>
+    ///     Drops the start of a pitched one-shot buffer the way PcmEncoder's mix does: the offset
+    ///     counts seconds of the unpitched sound, so at <paramref name="value" /> it is
+    ///     <c>offset × rate / 2^(value/12)</c> samples of the resampled buffer.
+    /// </summary>
+    internal static AudioData<float> SkipOffset(AudioData<float> audio, double offset, double value, uint sampleRate)
+    {
+        if (offset <= 0 || audio.GetLength() == 0) return audio;
+
+        var skip = (int)Math.Min(offset * sampleRate / Math.Pow(2, value / 12), audio.GetLength());
+        var trimmed = new AudioData<float>(audio.ChannelCount) { SourceChannels = audio.SourceChannels };
+        for (var i = 0; i < audio.ChannelCount; i++) trimmed.Samples[i] = audio.Samples[i][skip..];
+        return trimmed;
     }
 
     /// <summary>

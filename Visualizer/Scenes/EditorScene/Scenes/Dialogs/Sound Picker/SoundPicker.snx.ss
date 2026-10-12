@@ -19,30 +19,3 @@ class sound-grid {
     wrap = true;
     spacing = 6;
 }
-
-// The "Selected" grid plus the scroll-adjust hint pinned to its right. Deliberately
-// non-wrapping: the icon grid inside it wraps within whatever width the hint leaves.
-class sound-selected-row {
-    direction = "horizontal";
-    width = 100%;
-    spacing = 14;
-}
-
-// The vertical hairline between the selected grid and the scroll-adjust hint. Height
-// matches one icon cell.
-class sound-keybind-divider {
-    width = 1;
-    height = 40;
-    background = $theme.divider;
-}
-
-// The scroll-adjust hint text itself.
-class sound-keybind-note {
-    font-size = 12;
-    font-color = $theme.text_muted;
-}
-
-// The value/volume/pan readout under a selected icon.
-class sound-adjustment-label {
-    font-size = 10;
-}

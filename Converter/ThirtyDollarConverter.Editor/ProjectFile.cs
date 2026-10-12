@@ -65,9 +65,12 @@ public static class ProjectFile
                     instrument.Name,
                     [
                         .. instrument.Sounds.Select(sound => new InstrumentSoundDto(
-                            sound.Sound, sound.Value, sound.Volume, sound.Pan))
+                            sound.Sound, sound.Value, sound.Volume, sound.Pan, sound.Offset))
                     ],
-                    Offset: instrument.Offset == 0 ? null : instrument.Offset))
+                    Offset: instrument.Offset == 0 ? null : instrument.Offset,
+                    Value: instrument.Value == 0 ? null : instrument.Value,
+                    Volume: instrument.Volume,
+                    Pan: instrument.Pan == 0 ? null : instrument.Pan))
             ],
             [
                 .. project.Placements.Select(placement => new PlacementDto(
@@ -99,6 +102,9 @@ public static class ProjectFile
         {
             var instrument = project.AddInstrument(instrument_dto.Id, instrument_dto.Name);
             instrument.Offset = instrument_dto.Offset ?? 0;
+            instrument.Value = instrument_dto.Value ?? 0;
+            instrument.Volume = instrument_dto.Volume;
+            instrument.Pan = instrument_dto.Pan ?? 0;
             foreach (var sound_dto in instrument_dto.Sounds)
             {
                 // Legacy files wrote sounds as bare names plus an adjustment map keyed by
@@ -109,7 +115,8 @@ public static class ProjectFile
                     Sound = sound_dto.Sound,
                     Value = legacy?.Value ?? sound_dto.Value,
                     Volume = legacy?.Volume ?? sound_dto.Volume,
-                    Pan = legacy?.Pan ?? sound_dto.Pan
+                    Pan = legacy?.Pan ?? sound_dto.Pan,
+                    Offset = sound_dto.Offset
                 });
             }
 
@@ -384,13 +391,22 @@ public static class ProjectFile
         // reading old files; never written. See Load.
         Dictionary<string, SoundAdjustmentDto>? Adjustments = null,
         // Sound-start offset in seconds; null (missing key) = 0.
-        double? Offset = null);
+        double? Offset = null,
+        // Instrument-wide value and pan, null (missing key) = 0; volume null = follows the note.
+        double? Value = null,
+        double? Volume = null,
+        float? Pan = null);
 
     /// <summary>
     ///     One entry of an instrument's "sounds". Older files wrote a bare sound name
     ///     here instead of an object - <see cref="InstrumentSoundDtoConverter" /> reads both.
     /// </summary>
-    private record InstrumentSoundDto(string Sound, double Value = 0, double? Volume = null, float Pan = 0);
+    private record InstrumentSoundDto(
+        string Sound,
+        double Value = 0,
+        double? Volume = null,
+        float Pan = 0,
+        double Offset = 0);
 
     private record SoundAdjustmentDto(double Value, double? Volume, float Pan);
 
@@ -418,6 +434,7 @@ public static class ProjectFile
             if (value.Value != 0) writer.WriteNumber("value", value.Value);
             if (value.Volume is { } volume) writer.WriteNumber("volume", volume);
             if (value.Pan != 0) writer.WriteNumber("pan", value.Pan);
+            if (value.Offset != 0) writer.WriteNumber("offset", value.Offset);
             writer.WriteEndObject();
         }
     }

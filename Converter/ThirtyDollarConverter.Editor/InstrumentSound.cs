@@ -22,29 +22,23 @@ public class InstrumentSound
 
     public float Pan { get; set; }
 
-    public double CombineValue(double baseValue)
-    {
-        return baseValue + Value;
-    }
+    /// <summary>Sound-start offset in seconds, added on top of the note's and the instrument's.</summary>
+    public double Offset { get; set; }
 
     /// <summary>
-    ///     Percent times percent: 50 on a note at 50 gives 25. A note that carries no
-    ///     volume of its own leaves this one as-is - the sequence volume it follows is applied
-    ///     later, multiplicatively all the same (see PlacementCalculator).
+    ///     Percent times percent: 50 on a note at 50 gives 25. A base that carries no volume of
+    ///     its own leaves this one as-is - the sequence volume it follows is applied later,
+    ///     multiplicatively all the same (see PlacementCalculator). A null
+    ///     <paramref name="volume" /> follows the base.
     /// </summary>
-    public double? CombineVolume(double? baseVolume)
+    public static double? CombineVolume(double? volume, double? baseVolume)
     {
-        if (Volume is null) return baseVolume;
-        return baseVolume is null ? Volume : Volume * baseVolume / 100;
-    }
-
-    public float CombinePan(float basePan)
-    {
-        return Math.Clamp(basePan + Pan, -100f, 100f);
+        if (volume is null) return baseVolume;
+        return baseVolume is null ? volume : volume * baseVolume / 100;
     }
 
     public InstrumentSound Clone()
     {
-        return new InstrumentSound { Sound = Sound, Value = Value, Volume = Volume, Pan = Pan };
+        return new InstrumentSound { Sound = Sound, Value = Value, Volume = Volume, Pan = Pan, Offset = Offset };
     }
 }

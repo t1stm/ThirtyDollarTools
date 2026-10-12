@@ -13,7 +13,7 @@ public class SlugDataTests(ITestOutputHelper output)
 {
     private const int Width = SlugFontData.TextureWidth;
 
-    public static TheoryData<string> Fonts => [TestFonts.LatoRegular, TestFonts.LatoBold, TestFonts.Twemoji];
+    public static TheoryData<string> Fonts => [TestFonts.LatoRegular, TestFonts.LatoBold, TestFonts.Twemoji, TestFonts.Lucide];
 
     [Theory]
     [MemberData(nameof(Fonts))]
@@ -139,7 +139,7 @@ public class SlugDataTests(ITestOutputHelper output)
     [Fact]
     public void BuildCostOfTheBundledFonts()
     {
-        foreach (var fontName in (string[])[TestFonts.LatoRegular, TestFonts.LatoBold, TestFonts.Twemoji])
+        foreach (var fontName in (string[])[TestFonts.LatoRegular, TestFonts.LatoBold, TestFonts.Twemoji, TestFonts.Lucide])
         {
             using var stream = TestFonts.Open(fontName);
             var font = SlugFont.Load(stream);

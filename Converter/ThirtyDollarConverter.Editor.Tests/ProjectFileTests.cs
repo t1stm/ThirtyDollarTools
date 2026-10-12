@@ -105,6 +105,94 @@ public class ProjectFileTests
     }
 
     [Fact]
+    public void InstrumentWideFieldsAndSoundOffset_SurviveTheRoundTrip()
+    {
+        var project = new ThirtyDollarProject();
+        var layer = project.NewInstrument("Layer");
+        layer.Value = -2.5;
+        layer.Volume = 70;
+        layer.Pan = 15;
+        layer.Offset = 0.03;
+        layer.Sounds.Add(new InstrumentSound { Sound = "kick", Offset = 0.02 });
+
+        var loaded = Assert.Single(ProjectFile.Load(ProjectFile.Save(project)).Instruments);
+
+        Assert.Equal(-2.5, loaded.Value);
+        Assert.Equal(70, loaded.Volume);
+        Assert.Equal(15, loaded.Pan);
+        Assert.Equal(0.03, loaded.Offset);
+        Assert.Equal(0.02, Assert.Single(loaded.Sounds).Offset);
+    }
+
+    /// <summary>Written by the editor before instruments had their own value, volume and pan.</summary>
+    [Fact]
+    public void FileFromBeforeInstrumentWideFields_LoadsWithDefaults_AndResavesByteIdentical()
+    {
+        const string json = """
+                            {
+                              "info": {
+                                "name": "Untitled Project"
+                              },
+                              "rootTiming": {
+                                "bpm": 120,
+                                "numerator": 4,
+                                "denominator": 4
+                              },
+                              "tracks": [
+                                {
+                                  "id": 1,
+                                  "name": "Track 1",
+                                  "segments": [
+                                    {
+                                      "numerator": 4,
+                                      "denominator": 4,
+                                      "bars": 1,
+                                      "stepsPerBeat": 4,
+                                      "notes": [
+                                        {
+                                          "step": 0,
+                                          "instrumentId": 1,
+                                          "value": 2,
+                                          "pan": 0
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ],
+                              "instruments": [
+                                {
+                                  "id": 1,
+                                  "name": "Layer",
+                                  "sounds": [
+                                    {
+                                      "sound": "kick",
+                                      "value": -3,
+                                      "volume": 20,
+                                      "pan": -15
+                                    },
+                                    {
+                                      "sound": "clap"
+                                    }
+                                  ],
+                                  "offset": 0.05
+                                }
+                              ],
+                              "placements": []
+                            }
+                            """;
+
+        var loaded = ProjectFile.Load(json);
+
+        var instrument = Assert.Single(loaded.Instruments);
+        Assert.Equal(0, instrument.Value);
+        Assert.Null(instrument.Volume);
+        Assert.Equal(0, instrument.Pan);
+        Assert.All(instrument.Sounds, sound => Assert.Equal(0, sound.Offset));
+        Assert.Equal(json.ReplaceLineEndings("\n"), ProjectFile.Save(loaded).ReplaceLineEndings("\n"));
+    }
+
+    [Fact]
     public void RootTimingSharing_SurvivesTheRoundTrip()
     {
         var loaded = ProjectFile.Load(ProjectFile.Save(MakeProject()));

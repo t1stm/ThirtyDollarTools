@@ -64,6 +64,18 @@ public partial class EditorState
         OnInstrumentsChanged?.Invoke();
     }
 
+    /// <summary>Sets the instrument-wide value, volume, pan and offset its sounds play with.</summary>
+    public void SetInstrumentModifiers(Instrument instrument, double value, double? volume, float pan, double offset)
+    {
+        instrument.Value = value;
+        instrument.Volume = volume;
+        instrument.Pan = pan;
+        instrument.Offset = offset;
+
+        Touch();
+        OnInstrumentsChanged?.Invoke();
+    }
+
     /// <summary>Refuses while any note still references the instrument (library invariant).</summary>
     public bool RemoveInstrument(Instrument instrument)
     {

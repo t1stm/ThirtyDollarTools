@@ -473,7 +473,7 @@ public class EditorInterface
         return null;
     }
 
-    public void SetModifiers(bool shift, bool ctrl)
+    public void SetModifiers(bool shift, bool ctrl, bool alt = false)
     {
         _trackList.CtrlHeld = ctrl;
         _faithfulSequence.CtrlHeld = ctrl;
@@ -482,7 +482,7 @@ public class EditorInterface
         _trackEditor.WheelZooms = ctrl;
         _arrangement.FineSnap = shift;
         _arrangement.WheelZooms = ctrl;
-        _instrumentWorkflow.SetModifiers(shift, ctrl);
+        _instrumentWorkflow.SetModifiers(shift, ctrl, alt);
     }
 
     private void SwapGridView(ProjectTrack? track)

@@ -8,6 +8,7 @@ internal static class TestFonts
     public const string LatoRegular = "Lato-Regular";
     public const string LatoBold = "Lato-Bold";
     public const string Twemoji = "Twemoji.Mozilla";
+    public const string Lucide = "lucide";
 
     private static readonly ConcurrentDictionary<string, Lazy<SlugFont>> SharedFonts = new();
 

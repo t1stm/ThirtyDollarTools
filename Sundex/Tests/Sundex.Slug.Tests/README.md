@@ -16,6 +16,7 @@ opened through `TestFonts`. Nothing depends on stored reference images.
 | `CoordinateContractTests` | The space outlines are built in: em-normalised, Y-up, on the baseline. Descenders below it and `_` entirely below it catch a flipped Y. Contour winding catches a double reverse. Metrics are checked against the font tables. |
 | `SlugReference` | Not a test: a line-by-line C# port of the reference pixel shader's `SlugRender`, the same function `Batched.frag` is in GLSL. |
 | `SlugCoverageTests` | The reference shader, run on the CPU over the built data, against a non-zero winding rasteriser of the flattened outline. Covers printable ASCII in Lato Regular and Bold at 16 and 48 px/em, overlapping and nested contours both ways round, `.notdef`, blank glyphs, empty input and surrogate pairs. |
+| `IconFontTests` | The icons the UI takes from Lucide (`Sundex.Components/Icons.cs`, linked in): each is a real glyph with curves and matches its outline at 16 and 48 px/em. Logs icon ink bounds against Lato Bold's lines and writes `lucide-contact-sheet.png` to the test output for a human look. |
 | `SlugDataTests` | The layout rules the shader relies on: no run crosses a row end, band lists are sorted farthest-first, lines never sit in bands parallel to them, and every curve is in every band it touches. Also checks that the vectorised band helpers match scalar maths, and logs each bundled font's build cost. |
 
 The coverage tests can't see every data fault. Slug combines two rays with `min()`, which hides

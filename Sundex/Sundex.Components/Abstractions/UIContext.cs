@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
@@ -20,6 +21,11 @@ public class UIContext : IGamePreloadable
     private static IAssetProvider _assetProvider = null!;
     private static IFontProvider _fontProvider = null!;
     private static ITextProvider _textProvider = null!;
+
+    /// <summary>One provider per font name, shared by every label in that font: each uploads its own textures.</summary>
+    private static readonly ConcurrentDictionary<string, ITextProvider> TextProviders = new();
+
+    private static Func<string, ITextProvider> _createTextProvider = null!;
     protected readonly List<List<IRenderable>> LayeredRenderQueue = [];
 
     private readonly HashSet<UIElement> _updatingElements = [];
@@ -36,6 +42,12 @@ public class UIContext : IGamePreloadable
     public IAssetProvider AssetProvider => _assetProvider;
     public IFontProvider FontProvider => _fontProvider;
     public ITextProvider TextProvider => _textProvider;
+
+    /// <summary>The interface font, which <see cref="TextProvider" /> draws with.</summary>
+    public const string DefaultFont = "Lato Bold";
+
+    /// <summary>The shared provider for a bundled font (see <c>FontProvider</c>), created on first request.</summary>
+    public ITextProvider GetTextProvider(string fontName) => TextProviders.GetOrAdd(fontName, _createTextProvider);
     public DeleteQueue DeleteQueue => _assetProvider.DeleteQueue;
 
     public Action<CursorType> RequestCursor { get; set; } = _ => { };
@@ -50,7 +62,9 @@ public class UIContext : IGamePreloadable
 #endif
         _assetProvider = assetProvider;
         _fontProvider = new FontProvider(assetProvider);
-        _textProvider = new TextProvider(_assetProvider, _fontProvider, "Lato Bold");
+        _createTextProvider = name => new TextProvider(_assetProvider, _fontProvider, name);
+        TextProviders.Clear();
+        _textProvider = TextProviders.GetOrAdd(DefaultFont, _createTextProvider);
 
         // A font's glyph data takes a few hundred ms to build, on first use. Started here, the
         // build overlaps the rest of the boot instead of stalling the first label drawn.
@@ -61,14 +75,21 @@ public class UIContext : IGamePreloadable
     ///     Injects mock provider instances for use in unit tests.
     ///     Should not be called in production code.
     /// </summary>
+    /// <param name="fontTextProviders">
+    ///     Providers <see cref="GetTextProvider" /> returns by font name. Any other font gets
+    ///     <paramref name="textProvider" />.
+    /// </param>
     internal static void InjectForTesting(
         IAssetProvider assetProvider,
         IFontProvider? fontProvider = null,
-        ITextProvider? textProvider = null)
+        ITextProvider? textProvider = null,
+        IReadOnlyDictionary<string, ITextProvider>? fontTextProviders = null)
     {
         _assetProvider = assetProvider;
         _fontProvider = fontProvider!;
         _textProvider = textProvider!;
+        _createTextProvider = name => fontTextProviders?.GetValueOrDefault(name) ?? textProvider!;
+        TextProviders.Clear();
     }
 
     public void Clear()

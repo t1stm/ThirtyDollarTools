@@ -431,4 +431,21 @@ public class ProjectExportTests
         // first placement's track.
         Assert.Equal(7, events.Count(e => e.SoundEvent == "!divider"));
     }
+
+    [Fact]
+    public void SoundOffset_ExportsOnThatSoundsEventOnly()
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        var layer = project.NewInstrument("Layer");
+        layer.AddSound("kick").Offset = 0.02;
+        layer.AddSound("clap");
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = layer });
+        project.Place(track, 0, 0);
+
+        var events = project.ToSequence().Events;
+
+        Assert.Equal(0.02, Assert.IsType<ExtendedEvent>(events.Single(e => e.SoundEvent == "kick")).OffsetInSeconds);
+        Assert.IsNotType<ExtendedEvent>(events.Single(e => e.SoundEvent == "clap"));
+    }
 }

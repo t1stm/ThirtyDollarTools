@@ -151,7 +151,7 @@ public class ScrollViewTests
         root.Children = [input];
         root.Layout();
 
-        var button = (Panel)input.Children[1];
+        var button = input.DecrementButton;
         Assert.Equal(new Vector4i(10, 10, 210, 42), ((ColoredPlane)button.Background!).ClipRect);
     }
 }

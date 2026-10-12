@@ -252,4 +252,31 @@ public class FaithfulTrackTests
         // The instrument is a shared project resource, not owned by the item.
         Assert.Same(instrument, copy.Items[0].Note!.Instrument);
     }
+
+    /// <summary>
+    ///     The walk is cached by a content hash, so every field the expansion reads has to be in
+    ///     it: an edit that misses the hash keeps exporting the stale value.
+    /// </summary>
+    [Theory]
+    [InlineData("instrument value")]
+    [InlineData("instrument volume")]
+    [InlineData("instrument pan")]
+    [InlineData("sound offset")]
+    public void EditingAnInstrumentField_ReachesTheNextExport(string field)
+    {
+        var instrument = Layered("Layer", "kick");
+        var track = new FaithfulTrack(new TimingInfo(), 1);
+        track.Items.Add(FaithfulItem.Sound(instrument));
+        var before = SequenceText.Serialize(track.ToSequence());
+
+        switch (field)
+        {
+            case "instrument value": instrument.Value = 3; break;
+            case "instrument volume": instrument.Volume = 50; break;
+            case "instrument pan": instrument.Pan = 20; break;
+            case "sound offset": instrument.Sounds[0].Offset = 0.02; break;
+        }
+
+        Assert.NotEqual(before, SequenceText.Serialize(track.ToSequence()));
+    }
 }

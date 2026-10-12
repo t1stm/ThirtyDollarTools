@@ -224,7 +224,8 @@ public class Editor : Scene, IFadeInScene
         // so modifier releases are seen too.
         _editorInterface.SetModifiers(
             keyboardState.IsKeyDown(Keys.LeftShift) || keyboardState.IsKeyDown(Keys.RightShift),
-            Keybinds.PrimaryDown(keyboardState));
+            Keybinds.PrimaryDown(keyboardState),
+            keyboardState.IsKeyDown(Keys.LeftAlt) || keyboardState.IsKeyDown(Keys.RightAlt));
         _editorInterface.SetSpaceHeld(keyboardState.IsKeyDown(Keys.Space));
         _editorInterface.MouseEvent(mouseState, _lastScale);
     }
@@ -271,7 +272,8 @@ public class Editor : Scene, IFadeInScene
         // The event's own modifier set, not last frame's: Mouse() refreshes these once a
         // frame, so a Ctrl+Arrow arriving in the same frame as the Ctrl press would read as
         // a plain arrow to whoever asks (the faithful sequence does).
-        _editorInterface.SetModifiers((e.Modifiers & KeyModifiers.Shift) != 0, Keybinds.PrimaryHeld(e));
+        _editorInterface.SetModifiers((e.Modifiers & KeyModifiers.Shift) != 0, Keybinds.PrimaryHeld(e),
+            (e.Modifiers & KeyModifiers.Alt) != 0);
 
         // The Draw tool's plain D is an exact-modifier match, so Ctrl+D stays free for a
         // future "duplicate selection".

@@ -305,4 +305,22 @@ public class TextInputTests
         Assert.Equal("xy", input.Value);
         Assert.True(input.CaretIndex <= input.Value.Length);
     }
+
+    [Fact]
+    public void Placeholder_ShowsOnlyWhileTheFieldIsEmpty()
+    {
+        var (_, _, input) = NewInput();
+        var placeholder = input.Children.OfType<Labels.Label>().Last();
+        // A label that shrank keeps its buffer, padded with NULs that draw nothing.
+        string Shown() => placeholder.Value.ToString().TrimEnd('\0');
+
+        input.Placeholder = "Filter sounds";
+        Assert.Equal("Filter sounds", Shown());
+
+        input.Value = "kick";
+        Assert.Equal("", Shown());
+
+        input.Value = "";
+        Assert.Equal("Filter sounds", Shown());
+    }
 }

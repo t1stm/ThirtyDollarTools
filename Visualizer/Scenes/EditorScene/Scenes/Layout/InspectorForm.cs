@@ -16,8 +16,17 @@ namespace EditorScene.Scenes.Layout;
 ///     that box a group of rows. Pure builder - no domain knowledge of what a section
 ///     contains, that's <see cref="InspectorPanel" />'s job.
 /// </summary>
-public sealed class InspectorForm(UIContext context, EditorState state, Panel root)
+/// <param name="edit">
+///     Every commit runs through this: <see cref="EditorState.Edit" /> in the inspector. The
+///     instrument editor edits a working copy that isn't committed until Done, so it passes a
+///     hook that applies the change and refreshes its read-outs instead.
+/// </param>
+public sealed class InspectorForm(UIContext context, Panel root, Action<Action> edit)
 {
+    public InspectorForm(UIContext context, EditorState state, Panel root) : this(context, root, state.Edit)
+    {
+    }
+
     /// <summary>
     ///     Where a row's input starts, and what the "×" in a modifier row is offset from.
     ///     A layout offset inside an absolutely-positioned row rather than a look, so it
@@ -35,6 +44,13 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
     ///     section/card content methods are building rows for.
     /// </summary>
     public string Section { get; set; } = "";
+
+    /// <summary>
+    ///     Added to every row's, row label's and input's classes as "{Modifier}-row",
+    ///     "{Modifier}-label" and "{Modifier}-field", after their own, so a form outside the
+    ///     inspector can reshape its rows from its own sheet. Null leaves them as they are.
+    /// </summary>
+    public string? Modifier { get; init; }
 
     /// <summary>The input element showing a field, keyed "Section.Label" (e.g. "Track.Name").</summary>
     public UIElement? Field(string key)
@@ -101,7 +117,15 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
         input.X = LabelWidth;
         var row = new Panel(context) { Classes = ["form-row"] };
         // Y centers the text against form-row's height - a layout offset, not a look.
-        row.AddChild(new Label(context, label) { Classes = ["muted-label"], Y = 9 });
+        var name = new Label(context, label) { Classes = ["muted-label"], Y = 9 };
+        if (Modifier != null)
+        {
+            row.Classes.Add($"{Modifier}-row");
+            name.Classes.Add($"{Modifier}-label");
+            input.Classes.Add($"{Modifier}-field");
+        }
+
+        row.AddChild(name);
         row.AddChild(input);
         if (extra != null) row.AddChild(extra);
         _container.AddChild(row);
@@ -122,7 +146,7 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
     }
 
     /// <summary>
-    ///     A numeric field routed through <see cref="EditorState.Edit" />. Non-nullable
+    ///     A numeric field routed through the form's edit hook. Non-nullable
     ///     fields ignore the transient null while the text is mid-edit ("", "-");
     ///     nullable ones commit it (empty = inherit).
     /// </summary>
@@ -148,7 +172,7 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
         input.OnValueChanged = _ =>
         {
             var value = input.Value;
-            if (value != null || allowNull) state.Edit(() => set(value));
+            if (value != null || allowNull) edit(() => set(value));
         };
         Row(label, input);
         _syncs.Add(() =>
@@ -280,7 +304,7 @@ public sealed class InspectorForm(UIContext context, EditorState state, Panel ro
         void Commit()
         {
             if (syncing || amount.Value is not { } value) return; // mid-edit ("", "-")
-            state.Edit(() =>
+            edit(() =>
                 set(new Modifier(value, multiply.Checked ? ModifierKind.Multiply : ModifierKind.Add)));
         }
 

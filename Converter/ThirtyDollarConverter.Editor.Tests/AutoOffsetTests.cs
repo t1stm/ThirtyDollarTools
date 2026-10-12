@@ -41,12 +41,14 @@ public class AutoOffsetTests
         return new PcmDataHolder { FloatData = data, SampleRate = SampleRate, Channels = 2 };
     }
 
-    private async Task<float[]> Render(double value, AudioKeyframeManager? automation)
+    private async Task<float[]> Render(double value, AudioKeyframeManager? automation,
+        double instrumentValue = 0, double soundValue = 0)
     {
         var project = new ThirtyDollarProject();
         var track = project.NewTrack();
         var instrument = project.NewInstrument("tone");
-        instrument.AddSound("tone");
+        instrument.Value = instrumentValue;
+        instrument.AddSound("tone").Value = soundValue;
         track.Segments[0].Notes.Add(new Note
             { Step = 0, Instrument = instrument, Value = value, Automation = automation });
         project.Place(track, 0, 0);
@@ -98,5 +100,30 @@ public class AutoOffsetTests
         }
 
         Assert.True(compared > 40000, $"only {compared} samples compared");
+    }
+
+    /// <summary>
+    ///     The sound's pitch is the instrument's value plus its own, so an instrument-wide
+    ///     transpose has to scale the auto offset exactly as the same value on the sound does,
+    ///     or every sustained note on a transposed instrument would skip to the wrong place.
+    /// </summary>
+    [Fact]
+    public async Task AutoOffset_InstrumentWideValue_ScalesLikeTheSameValueOnTheSound()
+    {
+        AudioKeyframeManager Sustain() => new()
+        {
+            CutAtEnd = false,
+            Gap = 1,
+            Template = new AudioKeyframe { AutoOffset = true },
+            End = 8
+        };
+
+        var onInstrument = await Render(0, Sustain(), instrumentValue: 12);
+        var onSound = await Render(0, Sustain(), soundValue: 12);
+
+        Assert.Equal(onSound.Length, onInstrument.Length);
+        for (var i = 0; i < onSound.Length; i++)
+            Assert.True(Math.Abs(onSound[i] - onInstrument[i]) < 1e-6f,
+                $"sample {i}: {onInstrument[i]} vs {onSound[i]}");
     }
 }

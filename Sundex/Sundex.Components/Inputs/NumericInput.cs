@@ -4,6 +4,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
+using Sundex.Components.Attributes;
 using Sundex.Components.Labels;
 
 namespace Sundex.Components.Inputs;
@@ -19,6 +20,7 @@ public class NumericInput : TextInput
 {
     private readonly SpinnerButton _minus;
     private readonly SpinnerButton _plus;
+    private readonly Label _unit;
     private double _lastValid;
 
     public NumericInput(UIContext context, double? value = null) : base(context)
@@ -26,7 +28,8 @@ public class NumericInput : TextInput
         Filter = TextInputFilter.Decimal;
         _minus = new SpinnerButton(context, "-") { OnClick = _ => StepBy(-1) };
         _plus = new SpinnerButton(context, "+") { OnClick = _ => StepBy(1) };
-        Children = [.. Children, _minus, _plus];
+        _unit = new Label(context, "") { FontSizePx = 12f };
+        Children = [.. Children, _unit, _minus, _plus];
         Value = value;
     }
 
@@ -40,6 +43,61 @@ public class NumericInput : TextInput
 
     /// <summary>When set, empty text commits as null instead of reverting to the last value.</summary>
     public bool AllowNull { get; set; }
+
+    /// <summary>
+    ///     What a step starts from while the field is empty (see <see cref="AllowNull" />) -
+    ///     the value an empty field stands for. Null starts from the last value.
+    /// </summary>
+    public double? EmptyValue { get; set; }
+
+    /// <summary>
+    ///     Amount one wheel notch over the field adds. Null, the default, leaves the wheel to
+    ///     whatever is under the field (a scrolling list, say).
+    /// </summary>
+    public double? ScrollStep { get; set; }
+
+    /// <summary>Scales <see cref="ScrollStep" /> by 0.1 while set; the owner sets it from held modifiers.</summary>
+    public bool FineScroll { get; set; }
+
+    /// <summary>The − button, for an owner that styles it (a class on it overrides its default fill).</summary>
+    public Button DecrementButton => _minus;
+
+    /// <summary>The + button; see <see cref="DecrementButton" />.</summary>
+    public Button IncrementButton => _plus;
+
+    /// <summary>
+    ///     Gap between the two step buttons, and between the <see cref="Unit" /> and the first
+    ///     of them; 0 puts them edge to edge.
+    /// </summary>
+    [NamedSetting("step-spacing")]
+    public float StepSpacing { get; set; }
+
+    /// <summary>A unit ("%", "s") shown at the right end of the text, before the step buttons. Empty shows none.</summary>
+    public string Unit
+    {
+        get;
+        set
+        {
+            field = value;
+            _unit.SetTextContents(value);
+        }
+    } = "";
+
+    [NamedSetting("unit-font-size")]
+    public float UnitFontSize
+    {
+        get => _unit.FontSizePx.Value;
+        set => _unit.FontSizePx = value;
+    }
+
+    [NamedSetting("unit-color")]
+    public Vector4 UnitColor
+    {
+        get => _unit.Color;
+        set => _unit.Color = value;
+    }
+
+    private float UnitWidth => Unit.Length == 0 ? 0 : _unit.Width.Value + StepSpacing;
 
     /// <summary>The raw text (this class hides the string <see cref="TextInput.Value" />).</summary>
     public string Text => base.Value;
@@ -67,12 +125,24 @@ public class NumericInput : TextInput
     private float ButtonSize => Math.Max(0, Computed.Height - 2 * Padding);
 
     /// <summary>Keeps the text viewport clear of the two buttons at the right end.</summary>
-    protected override float ReservedRightWidth => 2 * ButtonSize;
+    protected override float ReservedRightWidth => 2 * ButtonSize + StepSpacing + UnitWidth;
 
     public void StepBy(int direction)
     {
+        StepBy(direction, Step);
+    }
+
+    private void StepBy(int direction, double step)
+    {
         // ponytail: rounding kills accumulated binary noise from repeated fractional steps.
-        Value = Math.Round((Value ?? _lastValid) + direction * Step, 9);
+        Value = Math.Round((Value ?? EmptyValue ?? _lastValid) + direction * step, 9);
+    }
+
+    public override bool HandleScroll(Vector2 scrollDelta)
+    {
+        if (ScrollStep is not { } step || scrollDelta.Y == 0) return false;
+        StepBy(Math.Sign(scrollDelta.Y), FineScroll ? step * 0.1 : step);
+        return true;
     }
 
     public override bool HandleKeyDown(KeyboardKeyEventArgs e)
@@ -110,8 +180,10 @@ public class NumericInput : TextInput
         _minus.Width = _plus.Width = size;
         _minus.Height = _plus.Height = size;
         _minus.Y = _plus.Y = 0;
-        _minus.X = innerWidth - 2 * size;
+        _minus.X = innerWidth - 2 * size - StepSpacing;
         _plus.X = innerWidth - size;
+        _unit.X = innerWidth - 2 * size - StepSpacing - UnitWidth;
+        _unit.Y = (Computed.Height - 2 * Padding - _unit.Height.Value) / 2;
 
         base.DoLayout();
     }

@@ -60,6 +60,14 @@ var text_dark = "#16161e";
 // place that shade is used.
 var progress_track = "#404060";
 
+// The instrument editor: the scroll zone over a sound row's numbers (at rest, then
+// hovered), the cell a scroll there would change, and the key label on the light Preview
+// button. All translucent, so they read over whatever row fill is under them.
+var scroll_zone = "#ffffff0d";
+var scroll_zone_hover = "#ffffff1a";
+var scroll_target = "#4c6bcc66";
+var key_label = "#16161e2e";
+
 // ---------------------------------------------------------------- metrics
 
 // The track column's width. Also the x of everything right of it - the grid area and

@@ -25,8 +25,12 @@ void main() {
 
     if (borderRadius > 0.0) {
         float dist = roundedBoxSDF(vLocalPos, u_ScaleAndBorderPx.xy * 0.5, borderRadius);
-        float edge = fwidth(dist);
-        float alpha = 1.0 - smoothstep(0.0, edge, dist);
+        // Coverage centred on the edge, one pixel wide: half covered on the boundary, as a
+        // browser draws it. Fading out only past the edge grew the shape by up to a pixel and a
+        // half, most on the diagonal (fwidth is |dx| + |dy|), which flattened the corners.
+        // The gradient's length is how far dist moves per screen pixel, at any pixel scale.
+        float pixel = length(vec2(dFdx(dist), dFdy(dist)));
+        float alpha = clamp(0.5 - dist / max(pixel, 1e-4), 0.0, 1.0);
         color.a *= alpha;
     }
 }

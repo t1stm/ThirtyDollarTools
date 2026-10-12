@@ -261,14 +261,19 @@ public static class SequenceImporter
     /// <summary>Whether two instruments play the same sounds with the same tuning, in the same order.</summary>
     private static bool SameSounds(Instrument a, Instrument b)
     {
-        // Offsets too: an imported note already carries its whole offset, so reusing an
-        // instrument that adds one of its own would shift every note of it a second time.
+        // The instrument-wide fields and offsets too: an imported note already carries its
+        // whole value, volume, pan and offset, so reusing an instrument that adds its own
+        // would apply them to every note of it a second time.
         return Math.Abs(a.Offset - b.Offset) < 1e-9 &&
+               Math.Abs(a.Value - b.Value) < 1e-9 &&
+               Nullable.Equals(a.Volume, b.Volume) &&
+               Math.Abs(a.Pan - b.Pan) < 1e-6 &&
                a.Sounds.Count == b.Sounds.Count && a.Sounds.Zip(b.Sounds).All(pair =>
             pair.First.Sound == pair.Second.Sound &&
             Math.Abs(pair.First.Value - pair.Second.Value) < 1e-9 &&
             Nullable.Equals(pair.First.Volume, pair.Second.Volume) &&
-            Math.Abs(pair.First.Pan - pair.Second.Pan) < 1e-6);
+            Math.Abs(pair.First.Pan - pair.Second.Pan) < 1e-6 &&
+            Math.Abs(pair.First.Offset - pair.Second.Offset) < 1e-9);
     }
 
     /// <summary>Builds a whole new project: one track per distinct sound, sharing the same segment layout.</summary>

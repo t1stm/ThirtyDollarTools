@@ -13,6 +13,7 @@ import "Scenes/Styles/Dialogs.snx.ss";
 import "Scenes/Styles/Panels.snx.ss";
 import "Scenes/Layout/Inspector Panel/InspectorPanel.snx.ss";
 import "Scenes/Dialogs/Sound Picker/SoundPicker.snx.ss";
+import "Scenes/Dialogs/Instrument Editor/InstrumentEditor.snx.ss";
 import "Scenes/Views/GridViews.snx.ss";
 
 id main-holder {
