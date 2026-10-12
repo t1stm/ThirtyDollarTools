@@ -186,10 +186,69 @@ public class ProjectFileTests
 
         var instrument = Assert.Single(loaded.Instruments);
         Assert.Equal(0, instrument.Value);
-        Assert.Null(instrument.Volume);
+        Assert.Equal(100, instrument.Volume);
         Assert.Equal(0, instrument.Pan);
         Assert.All(instrument.Sounds, sound => Assert.Equal(0, sound.Offset));
+        // A sound with no volume used to follow the note; 100 is what that plays as now.
+        Assert.Equal([20, 100], instrument.Sounds.Select(sound => sound.Volume));
         Assert.Equal(json.ReplaceLineEndings("\n"), ProjectFile.Save(loaded).ReplaceLineEndings("\n"));
+    }
+
+    [Fact]
+    public void AnExplicitNullVolume_LoadsAs100_AndIsNotWrittenBack()
+    {
+        const string json = """
+                            {
+                              "info": { "name": "Old" },
+                              "rootTiming": { "bpm": 120 },
+                              "tracks": [],
+                              "instruments": [
+                                {
+                                  "id": 1,
+                                  "name": "Layer",
+                                  "sounds": [ { "sound": "kick", "volume": null } ],
+                                  "volume": null
+                                }
+                              ],
+                              "placements": []
+                            }
+                            """;
+
+        var instrument = Assert.Single(ProjectFile.Load(json).Instruments);
+        Assert.Equal(100, instrument.Volume);
+        Assert.Equal(100, Assert.Single(instrument.Sounds).Volume);
+
+        var project = ProjectFile.Load(json);
+        Assert.DoesNotContain("\"volume\"", ProjectFile.Save(project));
+
+        project.Instruments[0].Sounds[0].Volume = 50;
+        var loaded = Assert.Single(ProjectFile.Load(ProjectFile.Save(project)).Instruments);
+        Assert.Equal(50, Assert.Single(loaded.Sounds).Volume);
+    }
+
+    [Fact]
+    public void ANegativeInstrumentOffset_LoadsAsZero()
+    {
+        const string json = """
+                            {
+                              "info": { "name": "Old" },
+                              "rootTiming": { "bpm": 120 },
+                              "tracks": [],
+                              "instruments": [
+                                {
+                                  "id": 1,
+                                  "name": "Layer",
+                                  "sounds": [ { "sound": "kick", "offset": -0.2 } ],
+                                  "offset": -0.1
+                                }
+                              ],
+                              "placements": []
+                            }
+                            """;
+
+        var instrument = Assert.Single(ProjectFile.Load(json).Instruments);
+        Assert.Equal(0, instrument.Offset);
+        Assert.Equal(0, Assert.Single(instrument.Sounds).Offset);
     }
 
     [Fact]

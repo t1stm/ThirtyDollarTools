@@ -21,9 +21,9 @@ public class Instrument
 
     /// <summary>
     ///     Volume in percent, scaling the playing note's for every one of this instrument's sounds,
-    ///     the way <see cref="InstrumentSound.Volume" /> does. Null follows the note.
+    ///     the way <see cref="InstrumentSound.Volume" /> does. 100 leaves the note's as it is.
     /// </summary>
-    public double? Volume { get; set; }
+    public double Volume { get; set; } = 100;
 
     /// <summary>Stereo pan, added to the playing note's for every one of this instrument's sounds.</summary>
     public float Pan { get; set; }
@@ -37,7 +37,7 @@ public class Instrument
     /// <summary>
     ///     What <paramref name="sound" /> plays as on a note carrying the given values: the note's,
     ///     then this instrument's, then the sound's own. Value and offset add; pan adds and clamps
-    ///     to ±100; volume multiplies as percentages, a null at any level following the one before.
+    ///     to ±100; volume multiplies as percentages, 100 at any level following the one before.
     ///     Playback, export and every preview go through here, so they can't disagree.
     /// </summary>
     /// <param name="autoOffsetSeconds">

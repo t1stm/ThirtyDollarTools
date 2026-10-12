@@ -210,7 +210,7 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
             Mix(ref hash, note.Pan.GetHashCode());
             Mix(ref hash, note.Offset.GetHashCode());
             Mix(ref hash, note.Instrument.Value.GetHashCode());
-            Mix(ref hash, note.Instrument.Volume?.GetHashCode() ?? 0);
+            Mix(ref hash, note.Instrument.Volume.GetHashCode());
             Mix(ref hash, note.Instrument.Pan.GetHashCode());
             Mix(ref hash, note.Instrument.Offset.GetHashCode());
 
@@ -218,7 +218,7 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
             {
                 Mix(ref hash, sound.Sound.GetHashCode());
                 Mix(ref hash, sound.Value.GetHashCode());
-                Mix(ref hash, sound.Volume?.GetHashCode() ?? 0);
+                Mix(ref hash, sound.Volume.GetHashCode());
                 Mix(ref hash, sound.Pan.GetHashCode());
                 Mix(ref hash, sound.Offset.GetHashCode());
             }

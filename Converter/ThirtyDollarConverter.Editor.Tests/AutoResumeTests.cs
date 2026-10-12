@@ -278,6 +278,66 @@ public class AutoResumeTests
         Assert.Equal([0, 1, 1.5, 1.5, 2.5, 2.5, 3, 3, 4, 4, 4.5], SoundSteps(project.ToSequence(), "pad"));
     }
 
+    /// <summary>
+    ///     The same two notes, plain, with the automation coming from the track instead -
+    ///     the shape a continuous sound placed back to back is built from.
+    /// </summary>
+    private static ThirtyDollarProject InterferingByTrackAutomation(List<string>? sounds = null)
+    {
+        var project = new ThirtyDollarProject();
+        var track = project.NewTrack();
+        var pad = project.NewInstrument("pad");
+        pad.AddSound("pad");
+
+        track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = pad });
+        track.Segments[0].Notes.Add(new Note { Step = 1, Instrument = pad });
+        track.AddTrackAutomation(Long(1.5f, 4.5f), sounds);
+        project.Place(track, 0, 0);
+        return project;
+    }
+
+    [Fact]
+    public void ATrackAutomationRepairsTheNotesItsCutsSilence()
+    {
+        // Exactly the per-note automation's repairs: the track's automation expands against
+        // each note the same way, so it has to be put back the same way.
+        Assert.Equal([0, 1, 1.5, 1.5, 2.5, 2.5, 3, 3, 4, 4, 4.5],
+            SoundSteps(InterferingByTrackAutomation().ToSequence(), "pad"));
+    }
+
+    [Fact]
+    public void ATrackAutomationForOtherSounds_LeavesTheNoteAlone()
+    {
+        // Filtered to a sound these notes don't have: no automation, no cuts, nothing to repair.
+        Assert.Equal([0, 1], SoundSteps(InterferingByTrackAutomation(["other"]).ToSequence(), "pad"));
+    }
+
+    [Fact]
+    public void ANoteWithBothAutomations_IsRepairedOnce()
+    {
+        // The note's own automation and the track's expand in parallel, so their retriggers
+        // double; the repairs mustn't double on top. Same sound, other instrument, so the
+        // track automation (which follows sounds) still applies to it.
+        var project = Interfering(out var track);
+        var solo = project.NewInstrument("solo");
+        solo.AddSound("pad");
+        track.Segments[0].Notes.Clear();
+        track.Segments[0].Notes.Add(LongNote(0, Long(1.5f, 4.5f), solo));
+        track.AddTrackAutomation(Long(1.5f, 4.5f));
+
+        // Alone on the timeline: own and track grids coincide, so nothing is cut that the
+        // note doesn't restart itself - past the start, every event is a doubled retrigger.
+        Assert.Equal([0, 1.5, 1.5, 3, 3], SoundSteps(project.ToSequence(), "pad"));
+
+        // A plain neighbour a step later picks up the track automation, whose retrigger cuts
+        // the note at 2.5: one repair there, not one per automation the note carries.
+        track.Segments[0].Notes.Add(new Note { Step = 1, Instrument = Instrument.Single("pad") });
+        var steps = SoundSteps(project.ToSequence(), "pad");
+        project.AutoResume = false;
+        var unrepaired = SoundSteps(project.ToSequence(), "pad");
+        Assert.Equal(1, steps.Count(step => step == 2.5) - unrepaired.Count(step => step == 2.5));
+    }
+
     [Fact]
     public void TheFlagSurvivesARoundTrip_AndAFileWithoutItIsOn()
     {

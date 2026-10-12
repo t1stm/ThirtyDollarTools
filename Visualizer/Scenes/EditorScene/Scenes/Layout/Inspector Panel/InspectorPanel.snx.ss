@@ -1,6 +1,6 @@
 // Styles used only by the right-side inspector (InspectorPanel + its row builder
 // InspectorForm), so they live next to those files rather than in Scenes/Styles.
-// Shared vocabulary the inspector also uses - text-field, muted-label, chip-button -
+// Shared vocabulary the inspector also uses - the field tags, field-label, chip-button -
 // comes from Scenes/Styles/Controls.snx.ss.
 import "Scenes/Styles/Theme.snx.ss" as theme;
 
@@ -68,7 +68,7 @@ class inspector-card {
     width = 100%;
     padding = 8;
     spacing = 8;
-    border-radius = 4;
+    border-radius = 6;
 }
 
 // One shade above the panel background.
@@ -97,8 +97,6 @@ class inspector-field {
 // The relative-change row's amount box, narrower again to leave room for its "×".
 class inspector-field-narrow {
     width = 100;
-    height = 32;
-    font-size = 14;
 }
 
 // A checkbox's own label, and the read-only value shown by an info row.

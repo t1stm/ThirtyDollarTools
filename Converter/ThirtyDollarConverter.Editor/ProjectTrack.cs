@@ -277,9 +277,10 @@ public class ProjectTrack(TimingInfo timing, int id)
     ///     Every sound event of this track (notes and their generated automation, flattened
     ///     to instrument sounds) with its absolute time. Segments inherit the track's BPM;
     ///     their own time signature and resolution set the local step length.
-    ///     <paramref name="cuts" /> is the timeline's cuts, for auto-resume; only a note's own
-    ///     automation reads them, since a <see cref="TrackAutomation" /> expands against the
-    ///     same note in parallel and would repair the same cut twice.
+    ///     <paramref name="cuts" /> is the timeline's cuts, for auto-resume. Exactly one
+    ///     automation per note reads them - its own, or else the first track automation that
+    ///     applies to it - since every automation on a note expands against it in parallel, and
+    ///     two reading the cuts would repair the same cut twice.
     /// </summary>
     internal virtual IEnumerable<(double Minutes, BaseEvent Event)> TimedNotes(double startMinutes = 0,
         float projectTranspose = 0, IReadOnlyList<CutPoint>? cuts = null)
@@ -311,16 +312,21 @@ public class ProjectTrack(TimingInfo timing, int id)
 
                 if (note.IsCut) continue; // a cut has no value/sound for automation to expand against
 
+                var resume_cuts = cuts;
                 if (transposed.Automation is not null)
+                {
                     foreach (var generated in transposed.Automation.Expand(transposed, minutes, step_minutes, cuts))
                         yield return generated;
+                    resume_cuts = null;
+                }
 
                 foreach (var automation in _trackAutomations)
                 {
                     if (automation.Sounds is { } sounds &&
                         !note.Instrument.Sounds.Any(sound => sounds.Contains(sound.Sound))) continue;
-                    foreach (var generated in automation.Keyframes.Expand(transposed, minutes, step_minutes))
+                    foreach (var generated in automation.Keyframes.Expand(transposed, minutes, step_minutes, resume_cuts))
                         yield return generated;
+                    resume_cuts = null;
                 }
             }
 

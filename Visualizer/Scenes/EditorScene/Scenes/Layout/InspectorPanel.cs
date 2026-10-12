@@ -35,6 +35,9 @@ public sealed class InspectorPanel
     /// <summary>The automation layout the rows were built for; see <see cref="Sync" />.</summary>
     private int _automationShape;
 
+    /// <summary>A rebuild held back while a field was being typed in; see <see cref="RebuildWhenIdle" />.</summary>
+    private bool _rebuildPending;
+
     private string? _syncedStatusLabel = "Idle"; // matches InspectorShell.snx.xml's constructed default
     private float _syncedStatusProgress = -1f; // never a valid Progress value, forces the first real SetStatus to apply
 
@@ -203,6 +206,7 @@ public sealed class InspectorPanel
     /// <summary>Rebuilds the rows for the current mode and selection.</summary>
     public void Rebuild()
     {
+        _rebuildPending = false;
         _automationShape = AutomationShape();
         foreach (var child in Rows.Children.ToArray()) Rows.RemoveChild(child);
         _form.Reset();
@@ -542,9 +546,11 @@ public sealed class InspectorPanel
     ///     Timing, the note's length and retrigger grid, the cut flags, and one card per
     ///     keyframe - shared by note and track automation. Keyframes are generated from
     ///     Gap/End/AutomationOffset, so there is nothing to add or remove by hand.
-    ///     <paramref name="keyframeHeaderPrefix" /> disambiguates keyframe headers when
-    ///     several automations are on screen at once (empty for the single per-note
-    ///     automation, so its field keys are unchanged: "Keyframe 1.Value").
+    ///     <paramref name="keyframeHeaderPrefix" /> disambiguates the keyframe cards' field keys
+    ///     when several automations are on screen at once (empty for the single per-note
+    ///     automation, so its field keys are unchanged: "Keyframe 1.Value"). Their headings
+    ///     leave it out: each card already sits inside its automation's own, and "Track
+    ///     Automation 1 All keyframes (× 3)" ran past the 300 px panel.
     ///     <paramref name="afterEdit" />, when given, runs after every commit (field or
     ///     structural) - the multi-note form's clone-fan-out hook (see
     ///     <see cref="MultiAutomationSection" />); null for every other caller.
@@ -611,7 +617,7 @@ public sealed class InspectorPanel
         if (automation.Keyframes.Count > 0)
             _form.Card("inspector-card-keyframe", () =>
         {
-            _form.Header($"{keyframeHeaderPrefix}All keyframes  (× {automation.Keyframes.Count})");
+            _form.Header($"All keyframes  (× {automation.Keyframes.Count})");
             _form.Section = $"{keyframeHeaderPrefix}All keyframes";
             KeyframeFields(automation.Template, EditTemplate, () => EditTemplate(k => k.Position = null));
             // Auto offset splices onto the instance it replaces, which only works if that
@@ -631,7 +637,7 @@ public sealed class InspectorPanel
             var index = i;
             _form.Card("inspector-card-keyframe", () =>
             {
-                _form.Header($"{keyframeHeaderPrefix}Keyframe {index + 1}  (edited)");
+                _form.Header($"Keyframe {index + 1}  (edited)");
                 _form.Section = $"{keyframeHeaderPrefix}Keyframe {index + 1}";
                 _form.NumberRow("Position", () => keyframe.Position ?? automation.PositionOf(index),
                     v => Commit(() => keyframe.Position = (float?)v), 0, 4096, 0.25, true);
@@ -691,7 +697,33 @@ public sealed class InspectorPanel
     private void EditAndRebuild(Action edit)
     {
         _state.Edit(edit);
-        Rebuild();
+        RebuildWhenIdle();
+    }
+
+    /// <summary>
+    ///     Rebuilds now, or once the field being typed in lets go. A rebuild throws the
+    ///     focused field away with whatever is half typed in it - "1." on the way to "1.5"
+    ///     commits 1 and would lose the field - so the edit is committed live and only the
+    ///     rows it adds or removes wait. <see cref="Update" /> runs the held rebuild.
+    /// </summary>
+    private void RebuildWhenIdle()
+    {
+        if (IsTyping()) _rebuildPending = true;
+        else Rebuild();
+    }
+
+    private bool IsTyping()
+    {
+        for (var element = _context.FocusedElement; element != null; element = element.Parent)
+            if (ReferenceEquals(element, Rows))
+                return true;
+        return false;
+    }
+
+    /// <summary>Per frame: runs a rebuild held back while a field was focused, once none is.</summary>
+    public void Update()
+    {
+        if (_rebuildPending && !IsTyping()) Rebuild();
     }
 
     /// <summary>Writes the model values into the rows. Call on any model change.</summary>
@@ -703,8 +735,8 @@ public sealed class InspectorPanel
         // was built.
         if (AutomationShape() != _automationShape)
         {
-            Rebuild();
-            return;
+            RebuildWhenIdle();
+            if (!_rebuildPending) return; // rebuilt, and built rows start in sync
         }
 
         _form.Sync();

@@ -1215,6 +1215,7 @@ public class EditorInterface
         while (_pendingEdits.TryDequeue(out var edit)) edit();
 
         Playback.Update();
+        _inspector.Update();
         _inspector.SetStatus(Playback.StatusLabel, Playback.StatusProgress, Playback.StatusDone, Playback.StatusTotal);
         if (Playback.TakeError() is { } error) _dialogHost.Alert(error);
         _workflow.AtlasStore.Update(); // animated sound icons advance their frames here

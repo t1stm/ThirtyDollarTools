@@ -17,8 +17,8 @@ public enum TuneField
 
 /// <summary>
 ///     What a wheel notch tunes in the instrument editor, from the held modifiers: plain scroll
-///     changes the value by 1, Ctrl+Shift by 0.1, Ctrl the volume by 5 (an empty volume counts
-///     as 100), Shift the pan by 10, Alt the offset by 0.01 s. Alt wins over the others.
+///     changes the value by 1, Ctrl+Shift by 0.1, Ctrl the volume by 5, Shift the pan by 10, Alt
+///     the offset by 0.01 s. Alt wins over the others.
 /// </summary>
 public static class ScrollGesture
 {
@@ -27,6 +27,9 @@ public static class ScrollGesture
     public const double VolumeStep = 5;
     public const double PanStep = 10;
     public const double OffsetStep = 0.01;
+
+    /// <summary>The latest a sound can be told to start, in seconds; the earliest is its start, 0.</summary>
+    public const double MaxOffset = 60;
 
     /// <summary>A field's plain step: one wheel notch over it, or over a read-out of it.</summary>
     public static double StepOf(TuneField field) => field switch
@@ -73,11 +76,11 @@ public static class ScrollGesture
     private static double StepValue(double value, double delta) =>
         Math.Round(Math.Clamp(value + delta, -TrackEditorView.MaxValue, TrackEditorView.MaxValue), 4);
 
-    private static double StepVolume(double? volume, double delta) => Math.Clamp((volume ?? 100) + delta, 0, 500);
+    private static double StepVolume(double volume, double delta) => Math.Clamp(volume + delta, 0, 500);
 
     private static float StepPan(float pan, double delta) => (float)Math.Clamp(pan + delta, -100, 100);
 
-    private static double StepOffset(double offset, double delta) => Math.Round(Math.Clamp(offset + delta, -60, 60), 4);
+    private static double StepOffset(double offset, double delta) => Math.Round(Math.Clamp(offset + delta, 0, MaxOffset), 4);
 }
 
 /// <summary>A panel that tunes something under the wheel; see <see cref="OnScroll" />.</summary>

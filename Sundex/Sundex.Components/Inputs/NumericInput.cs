@@ -23,6 +23,9 @@ public class NumericInput : TextInput
     private readonly Label _unit;
     private double _lastValid;
 
+    /// <summary>The text the last <see cref="Value" /> set wrote; null after an empty one.</summary>
+    private string? _shown;
+
     public NumericInput(UIContext context, double? value = null) : base(context)
     {
         Filter = TextInputFilter.Decimal;
@@ -45,21 +48,12 @@ public class NumericInput : TextInput
     public bool AllowNull { get; set; }
 
     /// <summary>
-    ///     What a step starts from while the field is empty (see <see cref="AllowNull" />) -
-    ///     the value an empty field stands for. Null starts from the last value.
-    /// </summary>
-    public double? EmptyValue { get; set; }
-
-    /// <summary>
     ///     Amount one wheel notch over the field adds. Null, the default, leaves the wheel to
     ///     whatever is under the field (a scrolling list, say).
     /// </summary>
     public double? ScrollStep { get; set; }
 
-    /// <summary>Scales <see cref="ScrollStep" /> by 0.1 while set; the owner sets it from held modifiers.</summary>
-    public bool FineScroll { get; set; }
-
-    /// <summary>The − button, for an owner that styles it (a class on it overrides its default fill).</summary>
+    /// <summary>The − button. A sheet styles both buttons through their tag, <c>numeric-step</c>.</summary>
     public Button DecrementButton => _minus;
 
     /// <summary>The + button; see <see cref="DecrementButton" />.</summary>
@@ -70,7 +64,7 @@ public class NumericInput : TextInput
     ///     of them; 0 puts them edge to edge.
     /// </summary>
     [NamedSetting("step-spacing")]
-    public float StepSpacing { get; set; }
+    public float StepSpacing { get; set; } = 4;
 
     /// <summary>A unit ("%", "s") shown at the right end of the text, before the step buttons. Empty shows none.</summary>
     public string Unit
@@ -102,21 +96,32 @@ public class NumericInput : TextInput
     /// <summary>The raw text (this class hides the string <see cref="TextInput.Value" />).</summary>
     public string Text => base.Value;
 
-    /// <summary>Parsed and clamped value of the current text; null when unparseable/empty.</summary>
+    /// <summary>
+    ///     Parsed and clamped value of the current text; null when unparseable/empty. The text
+    ///     shows at most four decimals, so a float's noise (-0.4f is -0.400000006) never shows;
+    ///     while it still shows what was set, this returns the value that was set, unrounded,
+    ///     so reading a field back never rounds what it holds.
+    /// </summary>
     public new double? Value
     {
-        get => double.TryParse(base.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)
-            ? Math.Clamp(v, Min, Max)
-            : null;
+        get
+        {
+            if (_shown != null && base.Value == _shown) return Math.Clamp(_lastValid, Min, Max);
+            return double.TryParse(base.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)
+                ? Math.Clamp(v, Min, Max)
+                : null;
+        }
         set
         {
             if (value is { } v)
             {
                 _lastValid = Math.Clamp(v, Min, Max);
-                base.Value = _lastValid.ToString("0.#########", CultureInfo.InvariantCulture);
+                _shown = _lastValid.ToString("0.####", CultureInfo.InvariantCulture);
+                base.Value = _shown;
             }
             else
             {
+                _shown = null;
                 base.Value = "";
             }
         }
@@ -135,13 +140,13 @@ public class NumericInput : TextInput
     private void StepBy(int direction, double step)
     {
         // ponytail: rounding kills accumulated binary noise from repeated fractional steps.
-        Value = Math.Round((Value ?? EmptyValue ?? _lastValid) + direction * step, 9);
+        Value = Math.Round((Value ?? _lastValid) + direction * step, 9);
     }
 
     public override bool HandleScroll(Vector2 scrollDelta)
     {
         if (ScrollStep is not { } step || scrollDelta.Y == 0) return false;
-        StepBy(Math.Sign(scrollDelta.Y), FineScroll ? step * 0.1 : step);
+        StepBy(Math.Sign(scrollDelta.Y), step);
         return true;
     }
 
@@ -188,10 +193,21 @@ public class NumericInput : TextInput
         base.DoLayout();
     }
 
-    /// <summary>Consumes presses so the text field doesn't move its caret under the buttons.</summary>
-    private sealed class SpinnerButton(UIContext context, string label)
-        : Button(context, label, new ColoredPlane { Color = new Vector4(1, 1, 1, 0.15f) })
+    /// <summary>
+    ///     Consumes presses so the text field doesn't move its caret under the buttons. Its own
+    ///     tag, so a sheet can style both buttons of every field (hover included) with one
+    ///     <c>component numeric-step</c> rule.
+    /// </summary>
+    private sealed class SpinnerButton : Button
     {
+        public SpinnerButton(UIContext context, string label) : base(context, label,
+            new ColoredPlane { Color = FieldColors.Step })
+        {
+            BorderRadius = 4;
+        }
+
+        public override string Tag => "numeric-step";
+
         public override bool HandlePress(float x, float y)
         {
             return true;

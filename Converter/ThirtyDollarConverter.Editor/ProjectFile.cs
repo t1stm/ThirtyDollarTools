@@ -65,11 +65,12 @@ public static class ProjectFile
                     instrument.Name,
                     [
                         .. instrument.Sounds.Select(sound => new InstrumentSoundDto(
-                            sound.Sound, sound.Value, sound.Volume, sound.Pan, sound.Offset))
+                            sound.Sound, sound.Value, sound.Volume == 100 ? null : sound.Volume, sound.Pan,
+                            sound.Offset))
                     ],
                     Offset: instrument.Offset == 0 ? null : instrument.Offset,
                     Value: instrument.Value == 0 ? null : instrument.Value,
-                    Volume: instrument.Volume,
+                    Volume: instrument.Volume == 100 ? null : instrument.Volume,
                     Pan: instrument.Pan == 0 ? null : instrument.Pan))
             ],
             [
@@ -101,9 +102,12 @@ public static class ProjectFile
         foreach (var instrument_dto in dto.Instruments ?? [])
         {
             var instrument = project.AddInstrument(instrument_dto.Id, instrument_dto.Name);
-            instrument.Offset = instrument_dto.Offset ?? 0;
+            // A negative offset (an older editor allowed one) would start a sound before itself.
+            instrument.Offset = Math.Max(0, instrument_dto.Offset ?? 0);
             instrument.Value = instrument_dto.Value ?? 0;
-            instrument.Volume = instrument_dto.Volume;
+            // Files from before volume was a plain number wrote null for "follows the note",
+            // which is what 100 does now.
+            instrument.Volume = instrument_dto.Volume ?? 100;
             instrument.Pan = instrument_dto.Pan ?? 0;
             foreach (var sound_dto in instrument_dto.Sounds)
             {
@@ -114,9 +118,9 @@ public static class ProjectFile
                 {
                     Sound = sound_dto.Sound,
                     Value = legacy?.Value ?? sound_dto.Value,
-                    Volume = legacy?.Volume ?? sound_dto.Volume,
+                    Volume = legacy?.Volume ?? sound_dto.Volume ?? 100,
                     Pan = legacy?.Pan ?? sound_dto.Pan,
-                    Offset = sound_dto.Offset
+                    Offset = Math.Max(0, sound_dto.Offset)
                 });
             }
 
@@ -392,7 +396,7 @@ public static class ProjectFile
         Dictionary<string, SoundAdjustmentDto>? Adjustments = null,
         // Sound-start offset in seconds; null (missing key) = 0.
         double? Offset = null,
-        // Instrument-wide value and pan, null (missing key) = 0; volume null = follows the note.
+        // Instrument-wide value and pan, null (missing key) = 0; volume null (missing) = 100.
         double? Value = null,
         double? Volume = null,
         float? Pan = null);

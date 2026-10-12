@@ -52,15 +52,17 @@ public class TextInput : Panel
         _label = new Label(context, value)
         {
             Parent = this,
-            FontSizePx = 16f
+            FontSizePx = 15f
         };
         _placeholder = new Label(context, "")
         {
             Parent = this,
-            FontSizePx = 16f,
-            Color = new Vector4(1, 1, 1, 0.4f)
+            FontSizePx = 15f,
+            Color = FieldColors.Placeholder
         };
         Children = [_label, _placeholder];
+        BorderRadius = 4;
+        Background = new ColoredPlane { Color = FieldColors.Fill };
 
         Focusable = true;
         Cursor = CursorType.Text;
@@ -68,7 +70,7 @@ public class TextInput : Panel
         CaretIndex = _anchor = _text.Length;
     }
 
-    public override float Padding { get; set; } = 6;
+    public override float Padding { get; set; } = 5;
     public override LiteralOrComputable Height { get; set; } = 32;
 
     public override string Tag => "text-input";
@@ -411,13 +413,17 @@ public class TextInput : Panel
         return _text.Length;
     }
 
+    /// <summary>How far below the padding the text sits, so a line is centred in the box like a browser's input.</summary>
+    private float TextTop => Math.Max(0, (Computed.Height - 2 * Padding - LineHeight) / 2);
+
     protected override void DoLayout()
     {
         _label.X = -ScrollX;
+        _label.Y = _placeholder.Y = TextTop;
         base.DoLayout();
 
         var textX = Computed.AbsoluteX + Padding - ScrollX;
-        var textY = Computed.AbsoluteY + Padding;
+        var textY = Computed.AbsoluteY + Padding + TextTop;
 
         var caretX = textX + MeasurePrefix(CaretIndex);
         _caretPlane.SetPosition((caretX, textY, 0));

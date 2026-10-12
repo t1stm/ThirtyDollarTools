@@ -179,7 +179,7 @@ public sealed class FaithfulPalette : FlexPanel
         {
             SoundEvent = sound.Sound,
             Value = sound.Value,
-            Volume = sound.Volume,
+            Volume = sound.Volume == 100 ? null : sound.Volume, // no badge at the default
             Pan = sound.Pan,
             ValueScale = ValueScale.None
         }));

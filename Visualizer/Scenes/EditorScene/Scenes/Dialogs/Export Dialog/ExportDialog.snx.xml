@@ -6,13 +6,13 @@
       <label class="title-label-large" value="Export"/>
 
       <panel class="form-row">
-        <label class="[muted-label,form-row-label]" value="Divider every N bars (0 = off)"/>
+        <label class="[field-label,form-row-label]" value="Divider every N bars (0 = off)"/>
         <numeric-input id="divider-every-bars" class="[export-field,form-row-input]" value="2"/>
       </panel>
 
       <panel class="form-row">
         <!-- The default comes from SequenceStyle, so ExportDialog.cs sets it after build. -->
-        <label class="[muted-label,form-row-label]" value="!stop after N pauses (0 = never)"/>
+        <label class="[field-label,form-row-label]" value="!stop after N pauses (0 = never)"/>
         <numeric-input id="migrate-to-stop" class="[export-field,form-row-input]"/>
       </panel>
 

@@ -16,9 +16,9 @@ public class InstrumentSound
     /// <summary>
     ///     Volume in percent, scaling the note's own volume for this sound - a 50% sound on
     ///     a 50% note plays at 25%, the same way the sequence-wide volume scales an event's.
-    ///     Null means the sound follows whatever volume the note carries.
+    ///     100, the default, plays the note's volume as it is.
     /// </summary>
-    public double? Volume { get; set; }
+    public double Volume { get; set; } = 100;
 
     public float Pan { get; set; }
 
@@ -28,12 +28,13 @@ public class InstrumentSound
     /// <summary>
     ///     Percent times percent: 50 on a note at 50 gives 25. A base that carries no volume of
     ///     its own leaves this one as-is - the sequence volume it follows is applied later,
-    ///     multiplicatively all the same (see PlacementCalculator). A null
-    ///     <paramref name="volume" /> follows the base.
+    ///     multiplicatively all the same (see PlacementCalculator). A
+    ///     <paramref name="volume" /> of 100 follows the base, unscaled: a note with no volume
+    ///     of its own then still has none, so its events and an export carry none either.
     /// </summary>
-    public static double? CombineVolume(double? volume, double? baseVolume)
+    public static double? CombineVolume(double volume, double? baseVolume)
     {
-        if (volume is null) return baseVolume;
+        if (volume == 100) return baseVolume;
         return baseVolume is null ? volume : volume * baseVolume / 100;
     }
 

@@ -65,7 +65,7 @@ public partial class EditorState
     }
 
     /// <summary>Sets the instrument-wide value, volume, pan and offset its sounds play with.</summary>
-    public void SetInstrumentModifiers(Instrument instrument, double value, double? volume, float pan, double offset)
+    public void SetInstrumentModifiers(Instrument instrument, double value, double volume, float pan, double offset)
     {
         instrument.Value = value;
         instrument.Volume = volume;

@@ -117,7 +117,7 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
         input.X = LabelWidth;
         var row = new Panel(context) { Classes = ["form-row"] };
         // Y centers the text against form-row's height - a layout offset, not a look.
-        var name = new Label(context, label) { Classes = ["muted-label"], Y = 9 };
+        var name = new Label(context, label) { Classes = ["field-label"], Y = 9 };
         if (Modifier != null)
         {
             row.Classes.Add($"{Modifier}-row");
@@ -135,7 +135,7 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
     {
         var input = new TextInput(context, get())
         {
-            Classes = ["text-field", "inspector-field"],
+            Classes = ["inspector-field"],
             OnValueChanged = i => set(i.Value)
         };
         Row(label, input);
@@ -163,7 +163,7 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
     {
         var input = new NumericInput(context, mixed?.Invoke() == true ? null : get())
         {
-            Classes = ["text-field", "text-field-tall", "inspector-field"],
+            Classes = ["inspector-field"],
             Min = min,
             Max = max,
             Step = step,
@@ -282,7 +282,7 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
         var initial = get();
         var amount = new NumericInput(context, initial.Amount)
         {
-            Classes = ["text-field", "inspector-field-narrow"],
+            Classes = ["inspector-field-narrow"],
             Min = -10000,
             Max = 10000
         };

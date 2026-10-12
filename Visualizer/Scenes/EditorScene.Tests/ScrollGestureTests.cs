@@ -22,7 +22,7 @@ public class ScrollGestureTests
     }
 
     [Fact]
-    public void Volume_StartsFromAHundredWhenEmpty_AndClamps()
+    public void Volume_StartsFromAHundred_AndClamps()
     {
         var sound = new InstrumentSound { Sound = "kick" };
 

@@ -147,16 +147,47 @@ class menu-label {
 
 // ---------------------------------------------------------------- fields
 
-// The standard single-line text/number field.
-class text-field {
-    font-size = 14;
+// Every text and number field is the instrument builder's: 32 tall (Sundex's default), its
+// text 15 px and centred, a 4 radius. Sundex draws the same shades by default; they are
+// restated here so the palette above owns them. Tag rules rather than a class, because nothing
+// but a field carries these tags - unlike `component label` they can't reach the grid views'
+// pooled labels. A field that differs (the builder's name and filter) says so with a class or
+// an id, which apply after these.
+component text-input {
+    font-size = 15;
+    padding = 5;
     border-radius = 4;
+    font-color = $theme.text;
+    placeholder-color = $theme.text_muted;
     background = $theme.input_background;
 }
 
-// Height only - composes with text-field where a row has a fixed height to fill.
-class text-field-tall {
-    height = 32;
+component numeric-input {
+    font-size = 15;
+    padding = 5;
+    border-radius = 4;
+    font-color = $theme.text;
+    background = $theme.input_background;
+    step-spacing = 4;
+    unit-font-size = 12;
+    unit-color = $theme.text_dim;
+}
+
+// A number field's - and + buttons (NumericInput's own tag for them).
+component numeric-step {
+    font-size = 14;
+    border-radius = 4;
+    background = $theme.surface_raised;
+
+    state[hovered] = {
+        background = $theme.divider_hover;
+    }
+}
+
+// A field's name beside it in a form row (the inspector, the export options, the builder).
+class field-label {
+    font-size = 13;
+    font-color = $theme.text_dim;
 }
 
 // ---------------------------------------------------------------- label roles

@@ -5,7 +5,7 @@
     <flex id="track-context-menu" class="dialog-frame">
       <label class="heading-label" value="Duplicate track"/>
       <!-- Prefilled with "<name> copy" by TrackContextMenu.cs after the build. -->
-      <text-input id="duplicate-name-input" class="text-field"/>
+      <text-input id="duplicate-name-input"/>
       <flex class="dialog-actions-compact">
         <!-- No fill class: Cancel here has always been a bare label, unlike the filled
              Cancel the other dialogs use. -->

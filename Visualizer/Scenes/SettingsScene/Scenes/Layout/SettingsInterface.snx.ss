@@ -63,6 +63,7 @@ id wordmark {
 id strip-view {
     width = 100%;
     height = 300;
+    border-radius = 8;
     background = "#171925";
 }
 
@@ -272,12 +273,6 @@ component button {
     state[pressed] = {
         background = "#171925";
     }
-}
-
-component text-input {
-    background = "#171925";
-    border-radius = 4;
-    height = 32;
 }
 
 component label {

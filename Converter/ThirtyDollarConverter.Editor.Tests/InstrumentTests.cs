@@ -184,16 +184,23 @@ public class InstrumentTests
     [Theory]
     [InlineData(50.0, 50.0, 50.0, 12.5)] // percent times percent at every level
     [InlineData(null, 50.0, 50.0, 25.0)] // a note with no volume: the instrument's leads
-    [InlineData(50.0, null, 50.0, 25.0)] // an instrument with no volume follows the note
-    [InlineData(50.0, 50.0, null, 25.0)] // a sound with no volume follows the instrument
-    [InlineData(null, null, null, null)]
-    public void InstrumentWide_Volume_MultipliesAndNullFollows(double? note, double? instrumentVolume,
-        double? sound, double? expected)
+    [InlineData(50.0, 100.0, 50.0, 25.0)] // an instrument at 100 follows the note
+    [InlineData(50.0, 50.0, 100.0, 25.0)] // a sound at 100 follows the instrument
+    [InlineData(null, 100.0, 100.0, null)] // nothing below 100: the event carries no volume, as before
+    public void InstrumentWide_Volume_MultipliesAnd100Follows(double? note, double instrumentVolume,
+        double sound, double? expected)
     {
         var instrument = new Instrument { Name = "Layer", Volume = instrumentVolume };
         instrument.Sounds.Add(new InstrumentSound { Sound = "kick", Volume = sound });
 
         Assert.Equal(expected, PlayOne(new Note { Step = 0, Instrument = instrument, Volume = note }).Volume);
+    }
+
+    [Fact]
+    public void Volume_DefaultsTo100()
+    {
+        Assert.Equal(100, new Instrument().Volume);
+        Assert.Equal(100, new InstrumentSound { Sound = "kick" }.Volume);
     }
 
     [Fact]
@@ -281,6 +288,6 @@ public class InstrumentTests
         Assert.Equal(20, instrument.Sounds[0].Volume);
         Assert.Equal(-15, instrument.Sounds[0].Pan);
         Assert.Equal(0, instrument.Sounds[1].Value);
-        Assert.Null(instrument.Sounds[1].Volume);
+        Assert.Equal(100, instrument.Sounds[1].Volume);
     }
 }

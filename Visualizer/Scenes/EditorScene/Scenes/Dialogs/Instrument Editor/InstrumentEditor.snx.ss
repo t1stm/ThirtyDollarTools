@@ -36,15 +36,13 @@ class instrument-editor-name-label {
     font-color = $theme.text_dim;
 }
 
-// A3 pads the text 12 from the left; a text field's text sits at its padding from the top
-// too, and 8 is what centres 16 px text in 36.
+// Larger than the other fields: 36 tall, 16 px text 8 in from the left, a 6 radius.
 id instrument-name-input {
     width = 320;
     height = 36;
     padding = 8;
     font-size = 16;
     border-radius = 6;
-    background = $theme.input_background;
 }
 
 // The light Preview button: the play key's label, then the word. 8 on the left; the tail
@@ -417,40 +415,21 @@ class instrument-all-card {
     }
 }
 
-// The field rows, on top of InspectorForm's form-row / muted-label / inspector-field:
-// 36 tall, a 70 label and a 10 gap, the field filling the 272 the column leaves.
+// The field rows, on top of InspectorForm's form-row / field-label / inspector-field (the
+// field's look itself is every field's, Controls.snx.ss): 36 tall, a 70 label and a 10 gap,
+// the field filling the 272 the column leaves.
 class instrument-form-row {
     height = 36;
 }
 
 class instrument-form-label {
     y = 10;
-    font-size = 13;
-    font-color = $theme.text_dim;
 }
 
 class instrument-form-field {
     x = 80;
     y = 2;
     width = 192;
-    height = 32;
-    padding = 5;
-    font-size = 15;
-    border-radius = 4;
-    step-spacing = 4;
-    unit-font-size = 12;
-    unit-color = $theme.text_dim;
-}
-
-// A field's -/+ buttons: 22 square (the field's 32 less its padding), rounded.
-class instrument-step {
-    font-size = 14;
-    border-radius = 4;
-    background = $theme.surface_raised;
-
-    state[hovered] = {
-        background = $theme.divider_hover;
-    }
 }
 
 // The field a scroll would change, picked out against the others.

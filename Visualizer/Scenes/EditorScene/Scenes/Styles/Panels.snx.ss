@@ -299,9 +299,6 @@ class follow-label-active {
 // a 220 px field did below ~1160 px of window.
 id opened-track-name {
     width = 100%;
-    font-size = 15;
-    border-radius = 4;
-    background = $theme.input_background;
 }
 
 // ---------------------------------------------------------------- lane header

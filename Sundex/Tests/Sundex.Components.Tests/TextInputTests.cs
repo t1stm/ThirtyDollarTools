@@ -15,10 +15,27 @@ public class TextInputTests
     {
         var ctx = new TestUIContext();
         var root = new Panel(ctx) { Width = 800, Height = 600 };
-        var input = new TextInput(ctx) { X = 10, Y = 10, Width = width };
+        // The geometry below is worked out at 16 px text and 6 padding, not the defaults.
+        var input = new TextInput(ctx) { X = 10, Y = 10, Width = width, FontSizePx = 16, Padding = 6 };
         root.Children = [input];
         root.Layout();
         return (ctx, root, input);
+    }
+
+    [Fact]
+    public void Defaults_AreTheFieldLook_WithTheTextCentred()
+    {
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = 800, Height = 600 };
+        var input = new TextInput(ctx, "abc");
+        root.Children = [input];
+        root.Layout();
+
+        Assert.Equal(5, input.Padding);
+        Assert.Equal(4, input.BorderRadius.Resolve(32));
+        Assert.NotNull(input.Background);
+        // 15 px text is an 18 px line; 32 tall less 2 x 5 padding leaves 22, so 2 above it.
+        Assert.Equal(5 + 2, input.Children[0].Computed.AbsoluteY - input.Computed.AbsoluteY, 2);
     }
 
     private static void Type(TestUIContext ctx, string text)

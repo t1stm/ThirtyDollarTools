@@ -266,12 +266,12 @@ public static class SequenceImporter
         // would apply them to every note of it a second time.
         return Math.Abs(a.Offset - b.Offset) < 1e-9 &&
                Math.Abs(a.Value - b.Value) < 1e-9 &&
-               Nullable.Equals(a.Volume, b.Volume) &&
+               Math.Abs(a.Volume - b.Volume) < 1e-9 &&
                Math.Abs(a.Pan - b.Pan) < 1e-6 &&
                a.Sounds.Count == b.Sounds.Count && a.Sounds.Zip(b.Sounds).All(pair =>
             pair.First.Sound == pair.Second.Sound &&
             Math.Abs(pair.First.Value - pair.Second.Value) < 1e-9 &&
-            Nullable.Equals(pair.First.Volume, pair.Second.Volume) &&
+            Math.Abs(pair.First.Volume - pair.Second.Volume) < 1e-9 &&
             Math.Abs(pair.First.Pan - pair.Second.Pan) < 1e-6 &&
             Math.Abs(pair.First.Offset - pair.Second.Offset) < 1e-9);
     }

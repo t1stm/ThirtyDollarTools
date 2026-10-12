@@ -22,9 +22,10 @@ internal sealed class SoundRow : FlexPanel
     public const int Columns = 4;
 
     private readonly Label[] _cells = new Label[Columns];
-    private readonly FlexPanel[] _cellBoxes = new FlexPanel[Columns];
+    private readonly ScrollZone[] _cellBoxes = new ScrollZone[Columns];
     private readonly bool[] _isDefault = new bool[Columns];
     private int? _highlighted;
+    private bool _hovered;
 
     public SoundRow(UIContext context, InstrumentSound instance, SoundImage icon) : base(context)
     {
@@ -49,7 +50,15 @@ internal sealed class SoundRow : FlexPanel
         for (var i = 0; i < Columns; i++)
         {
             _cells[i] = new Label(context, "") { Classes = ["sound-row-cell-label"] };
-            _cellBoxes[i] = new FlexPanel(context) { Classes = ["sound-row-cell"], Children = [_cells[i]] };
+            var column = i;
+            _cellBoxes[i] = new ScrollZone(context)
+            {
+                Classes = ["sound-row-cell"],
+                Children = [_cells[i]],
+                OnScroll = delta => OnCellScroll?.Invoke(column, delta) ?? false,
+                OnHoverEnter = _ => OnCellHover?.Invoke(this, column),
+                OnHoverExit = _ => OnCellHover?.Invoke(this, null)
+            };
             NumberZone.AddChild(_cellBoxes[i]);
         }
 
@@ -90,6 +99,16 @@ internal sealed class SoundRow : FlexPanel
     public Action<SoundRow>? OnDuplicate { get; set; }
     public Action<SoundRow>? OnRemove { get; set; }
 
+    /// <summary>Fired with the read-out column the pointer just moved onto, or null when it left one.</summary>
+    public Action<SoundRow, int?>? OnCellHover { get; set; }
+
+    /// <summary>
+    ///     A wheel notch over one read-out, with its column. The cell under the pointer is the
+    ///     one the wheel lands on, so this never lags a frame behind the pointer the way the
+    ///     hover events can (the context dispatches a notch before it updates hover).
+    /// </summary>
+    public Func<int, Vector2, bool>? OnCellScroll { get; set; }
+
     /// <summary>The read-outs' current text, in <see cref="Columns" /> order.</summary>
     public IEnumerable<string> CellTexts => _cells.Select(cell => cell.Value.ToString());
 
@@ -110,17 +129,19 @@ internal sealed class SoundRow : FlexPanel
             _isDefault[i] = texts[i] == null;
         }
 
-        Highlight(_highlighted);
+        Highlight(_highlighted, _hovered);
     }
 
     /// <summary>
-    ///     The read-out column a scroll would change, lit, or none. The editor drives this from
-    ///     the held modifiers while the pointer is over <see cref="NumberZone" />.
+    ///     The read-out column a scroll would change, lit, or none, and whether the pointer is over
+    ///     <see cref="NumberZone" /> at all. The editor drives this from the hovered read-out and
+    ///     the held modifiers.
     /// </summary>
-    public void Highlight(int? column)
+    public void Highlight(int? column, bool hovered)
     {
         _highlighted = column;
-        NumberZone.SetClass("sound-row-zone-hovered", column != null);
+        _hovered = hovered;
+        NumberZone.SetClass("sound-row-zone-hovered", hovered);
         for (var i = 0; i < Columns; i++)
         {
             _cellBoxes[i].SetClass("sound-row-cell-target", column == i);
@@ -133,8 +154,8 @@ internal sealed class SoundRow : FlexPanel
     internal static string? ValueText(double value) =>
         RenderableFactory.FormatValueText(new NormalEvent { SoundEvent = "", Value = value });
 
-    internal static string? VolumeText(double? volume) =>
-        RenderableFactory.FormatVolumeText(new NormalEvent { Volume = volume });
+    internal static string? VolumeText(double volume) =>
+        volume == 100 ? null : RenderableFactory.FormatVolumeText(new NormalEvent { Volume = volume });
 
     /// <summary>
     ///     The pan badge's arrows, but on the editor's -100..100 scale rather than the badge's

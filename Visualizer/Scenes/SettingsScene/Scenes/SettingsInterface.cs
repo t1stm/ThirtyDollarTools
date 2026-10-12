@@ -412,11 +412,8 @@ public class SettingsInterface
 
     private TextInput BuildTextInput(PropertyInfo property)
     {
-        var input = new TextInput(UI, property.GetValue(_settings) as string ?? "")
-        {
-            Width = 380f,
-            FontSizePx = 14f
-        };
+        // The look is every field's (Sundex's defaults); only the width is this screen's.
+        var input = new TextInput(UI, property.GetValue(_settings) as string ?? "") { Width = 380f };
 
         // Clearing a nullable string setting means "unset", not "empty string" - AudioBackend
         // picks its default from null, and "" would pin it to a backend that doesn't exist.

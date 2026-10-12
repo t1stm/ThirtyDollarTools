@@ -364,6 +364,11 @@ public class InspectorPanelTests
         ((NumericInput)inspector.Field("Track Automation 1 All keyframes.Value")!).Value = 3;
         Assert.Equal(new Modifier(3), keyframe.Value);
 
+        // The key keeps the automation's name; the heading drops it, since the card sits
+        // inside that automation's own and the full text ran past the panel.
+        Assert.Contains(Walk(inspector.Rows).OfType<Label>(),
+            label => label.Value.ToString().TrimEnd('\0') == "All keyframes  (× 2)");
+
         ((NumericInput)inspector.Field("Track Automation 1.Gap")!).Value = 4;
         Assert.Equal(4f, automation.Keyframes.Gap);
         Assert.True(state.Dirty);
@@ -372,6 +377,67 @@ public class InspectorPanelTests
         ((Button)inspector.Field("Track Automation 1.Remove")!).OnClick!.Invoke(null!);
         Assert.Empty(track.TrackAutomations);
         Assert.NotNull(inspector.Field("Track Automation.+ Add automation"));
+    }
+
+    private static IEnumerable<UIElement> Walk(UIElement element)
+    {
+        yield return element;
+        if (element is not Panel panel) yield break;
+        foreach (var child in panel.Children)
+            foreach (var descendant in Walk(child))
+                yield return descendant;
+    }
+
+    /// <summary>Types into a field the way the keyboard does: focus, then one character at a time.</summary>
+    private static void Type(EditorTestContext ctx, UIElement field, string text)
+    {
+        ctx.Focus(field);
+        ((TextInput)field).SelectAll();
+        foreach (var c in text) ctx.DispatchTextInput(new OpenTK.Windowing.Common.TextInputEventArgs(c));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void TypingAGap_KeepsTheField_UntilItLetsGo(bool trackAutomation)
+    {
+        var (ctx, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        AudioKeyframeManager automation;
+        string section;
+        if (trackAutomation)
+        {
+            state.SelectTrack(track);
+            automation = track.AddTrackAutomation(new AudioKeyframeManager { End = 6 }).Keyframes;
+            section = "Track Automation 1";
+        }
+        else
+        {
+            state.OpenTrack(track);
+            var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
+            note.Automation = automation = new AudioKeyframeManager { End = 6 };
+            section = "Automation";
+            state.SelectNote(note);
+        }
+
+        inspector.Rebuild();
+
+        // Every keystroke still commits, so the grid follows the typing...
+        var gap = (NumericInput)inspector.Field($"{section}.Gap")!;
+        Type(ctx, gap, "1.5");
+        Assert.Equal(1.5f, automation.Gap);
+        Assert.Equal(3, automation.Keyframes.Count);
+
+        // ...but the keyframe count it changed waits for the field: rebuilding would have
+        // thrown it away after the "1".
+        Assert.Same(gap, inspector.Field($"{section}.Gap"));
+        Assert.True(gap.IsFocused);
+        Assert.Equal("1.5", gap.Text);
+
+        ctx.Blur();
+        inspector.Update();
+        Assert.NotSame(gap, inspector.Field($"{section}.Gap"));
+        Assert.Equal(1.5, ((NumericInput)inspector.Field($"{section}.Gap")!).Value);
     }
 
     [Fact]

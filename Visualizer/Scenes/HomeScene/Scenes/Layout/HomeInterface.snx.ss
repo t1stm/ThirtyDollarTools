@@ -78,12 +78,15 @@ id wordmark {
 id band {
     width = 100%;
     height = 200;
+    border-radius = 8;
     background = "#171925";
 }
 
+// Rounded like the band, so the end cells' hover fill keeps to its corners.
 class cell {
     height = 100%;
     width = 33.34%;
+    border-radius = 8;
     background = "#171925";
     cursor = "pointer";
 

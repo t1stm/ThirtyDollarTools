@@ -163,7 +163,7 @@ public class FaithfulImportTests
         var item = Assert.Single(track.Items);
         Assert.Equal(30d, item.Note!.Volume);
         Assert.Equal(["snare", "clap"], item.Note.Instrument.Sounds.Select(s => s.Sound));
-        Assert.All(item.Note.Instrument.Sounds, sound => Assert.Null(sound.Volume));
+        Assert.All(item.Note.Instrument.Sounds, sound => Assert.Equal(100, sound.Volume));
     }
 
     /// <summary>

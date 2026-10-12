@@ -43,6 +43,13 @@ public class Sound
     public string? Source { get; init; }
 
     /// <summary>
+    ///     The categories the website files the sound under ("note", "percussion", "melody").
+    /// </summary>
+    [JsonPropertyName("tags")]
+    [JsonInclude]
+    public string[]? Tags { get; init; }
+
+    /// <summary>
     ///     Whether the sound should always use its ID when saving, even if it has an emoji.
     /// </summary>
     [JsonPropertyName("useId")]

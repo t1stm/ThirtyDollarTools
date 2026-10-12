@@ -9,7 +9,7 @@
       <!-- The whole event as TDW text, not a number field: it is the one input that can
            express "!speed@2@x" and the packed "!pulse@4,100" / "!bg@#ff0000,0.5" payloads
            without a form per action, and it is what the item is saved as anyway. -->
-      <text-input id="value-input" class="[text-field,text-field-tall]"/>
+      <text-input id="value-input"/>
       <flex class="dialog-actions-compact">
         <button id="cancel-button" class="dialog-button-shape">
           <label value="Cancel"/>

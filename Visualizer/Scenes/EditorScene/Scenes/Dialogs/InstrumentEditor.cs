@@ -54,7 +54,10 @@ public sealed class InstrumentEditor : FlexPanel
     private bool _shift;
     private bool _alt;
     private bool _cardHovered;
+    private bool _soundFieldsHovered;
+    private int? _hoveredFieldColumn;
     private SoundRow? _hoveredRow;
+    private int? _hoveredCell;
 
     public InstrumentEditor(UIContext context, AtlasStore store) : base(context)
     {
@@ -205,8 +208,22 @@ public sealed class InstrumentEditor : FlexPanel
         AddFields(_allForm, () => Working);
 
         _selectedHeader = new SelectedSoundHeader(context, store);
-        var soundFields = new FlexPanel(context) { Classes = ["instrument-sound-fields"] };
-        _soundForm = new InspectorForm(context, soundFields, Edit) { Section = "Sound", Modifier = "instrument-form" };
+        SoundFields = new ScrollZone(context)
+        {
+            Classes = ["instrument-sound-fields"],
+            OnScroll = TuneSelected,
+            OnHoverEnter = _ =>
+            {
+                _soundFieldsHovered = true;
+                RefreshHighlights();
+            },
+            OnHoverExit = _ =>
+            {
+                _soundFieldsHovered = false;
+                RefreshHighlights();
+            }
+        };
+        _soundForm = new InspectorForm(context, SoundFields, Edit) { Section = "Sound", Modifier = "instrument-form" };
         AddFields(_soundForm, () => Selected);
 
         var results = new FlexPanel(context) { Classes = ["instrument-results"] };
@@ -223,7 +240,7 @@ public sealed class InstrumentEditor : FlexPanel
         _soundSection = new FlexPanel(context)
         {
             Classes = ["instrument-sound-section"],
-            Children = [_selectedHeader, soundFields, results]
+            Children = [_selectedHeader, SoundFields, results]
         };
         _noSelection = new FlexPanel(context)
         {
@@ -264,17 +281,23 @@ public sealed class InstrumentEditor : FlexPanel
         foreach (var section in (string[])["All", "Sound"])
         {
             var input = Field($"{section}.{FieldLabels[i]}")!;
-            input.ScrollStep = ScrollGesture.StepOf((TuneField)i);
-            // An empty volume follows the note, which plays it at 100.
-            if ((TuneField)i == TuneField.Volume) input.EmptyValue = 100;
+            var column = i;
+            input.OnHoverEnter = _ =>
+            {
+                _hoveredFieldColumn = column;
+                RefreshHighlights();
+            };
+            input.OnHoverExit = _ =>
+            {
+                _hoveredFieldColumn = null;
+                RefreshHighlights();
+            };
             input.Unit = (TuneField)i switch
             {
                 TuneField.Volume => "%",
                 TuneField.Offset => "s",
                 _ => ""
             };
-            input.DecrementButton.Classes.Add("instrument-step");
-            input.IncrementButton.Classes.Add("instrument-step");
         }
 
         Refresh();
@@ -289,6 +312,9 @@ public sealed class InstrumentEditor : FlexPanel
 
     /// <summary>The "All sounds" card: the instrument-wide fields, and a scroll zone for them.</summary>
     public ScrollZone AllCard { get; }
+
+    /// <summary>The selected sound's fields, and a scroll zone for them like <see cref="AllCard" />.</summary>
+    public ScrollZone SoundFields { get; }
 
     /// <summary>The Value/Volume/Pan/Offset column heads' key chips, in <see cref="SoundRow.Columns" /> order.</summary>
     public IReadOnlyList<FlexPanel> ColumnHeadChips { get; }
@@ -313,6 +339,9 @@ public sealed class InstrumentEditor : FlexPanel
     /// <summary>Fired with a sound to play on its own - the row's Preview button.</summary>
     public Action<InstrumentSound>? OnPreviewSound { get; set; }
 
+    /// <summary>The result tiles' values, in <see cref="TuneField" /> order.</summary>
+    public IReadOnlyList<string> ResultTexts => [.. _results.Select(result => result.Value.ToString().TrimEnd('\0'))];
+
     /// <summary>The "All sounds - N" heading's text.</summary>
     public string AllHeaderText => _allHeader.Value.ToString();
 
@@ -333,30 +362,66 @@ public sealed class InstrumentEditor : FlexPanel
         RefreshHighlights();
     }
 
-    private IEnumerable<NumericInput> Inputs() =>
-        FieldLabels.SelectMany(label => (string[])[$"All.{label}", $"Sound.{label}"]).Select(Field).OfType<NumericInput>();
+    /// <summary>
+    ///     What a notch tunes in a zone whose read-out or field under the pointer is
+    ///     <paramref name="hovered" /> (a column, in <see cref="TuneField" /> order): with a
+    ///     modifier held, that modifier's own field wherever in the zone the pointer is; without
+    ///     one, the hovered field, and nothing at all between fields.
+    /// </summary>
+    private (TuneField Field, double Step)? TargetOf(int? hovered)
+    {
+        if (_ctrl || _shift || _alt) return Gesture;
+        return hovered is { } column ? ((TuneField)column, ScrollGesture.StepOf((TuneField)column)) : null;
+    }
 
-    /// <summary>A notch over a row's read-outs: tunes that sound, selects it and plays it.</summary>
-    internal bool TuneRow(SoundRow row, Vector2 scrollDelta)
+    /// <summary>The target in whichever zone the pointer is over, if any; see <see cref="TargetOf" />.</summary>
+    private (TuneField Field, double Step)? HoveredTarget =>
+        _hoveredRow != null ? TargetOf(_hoveredCell)
+        : _cardHovered || _soundFieldsHovered ? TargetOf(_hoveredFieldColumn)
+        : null;
+
+    /// <summary>
+    ///     A notch over a row's read-outs: tunes the read-out it landed on, <paramref name="column" />
+    ///     (null between two), or the held modifier's; then selects the sound and plays it. Between
+    ///     two read-outs a plain notch tunes nothing, and still isn't passed on: the list scrolling
+    ///     under the pointer would turn the next notch into an edit.
+    /// </summary>
+    internal bool TuneRow(SoundRow row, int? column, Vector2 scrollDelta)
     {
         var notches = MathF.Sign(scrollDelta.Y);
         if (notches == 0) return false;
+        if (TargetOf(column) is not { } target) return true;
 
-        var (field, step) = Gesture;
-        ScrollGesture.Apply(row.Instance, field, notches * step);
+        ScrollGesture.Apply(row.Instance, target.Field, notches * target.Step);
         Select(row.Instance);
         OnPreviewSound?.Invoke(row.Instance);
         return true;
     }
 
-    /// <summary>A notch over the "All sounds" card: tunes the instrument-wide field.</summary>
+    /// <summary>
+    ///     A notch over the "All sounds" card that no field took: a held modifier's field, or
+    ///     nothing. A plain notch over a field is that field's own (see
+    ///     <see cref="RefreshHighlights" />), so a plain one here is between fields.
+    /// </summary>
     internal bool TuneAll(Vector2 scrollDelta)
     {
         var notches = MathF.Sign(scrollDelta.Y);
         if (notches == 0) return false;
+        if (TargetOf(null) is not { } target) return true;
 
-        var (field, step) = Gesture;
-        ScrollGesture.Apply(Working, field, notches * step);
+        ScrollGesture.Apply(Working, target.Field, notches * target.Step);
+        Refresh();
+        return true;
+    }
+
+    /// <summary>The same over the selected sound's fields, for that sound.</summary>
+    internal bool TuneSelected(Vector2 scrollDelta)
+    {
+        var notches = MathF.Sign(scrollDelta.Y);
+        if (notches == 0 || Selected is not { } sound) return false;
+        if (TargetOf(null) is not { } target) return true;
+
+        ScrollGesture.Apply(sound, target.Field, notches * target.Step);
         Refresh();
         return true;
     }
@@ -369,14 +434,20 @@ public sealed class InstrumentEditor : FlexPanel
     }
 
     /// <summary>
-    ///     Lights what a scroll would change: the chip of the gesture the held keys pick, the
-    ///     hovered row's cell for it, and the matching field on the right - the instrument's
-    ///     while the pointer is over its card, the sound's while over the selected row.
+    ///     Lights what a scroll would change (<see cref="HoveredTarget" />): its column's head
+    ///     chip, the hovered row's cell, and the matching field on the right - the instrument's
+    ///     while the pointer is over its card, the sound's while over its fields or the selected
+    ///     row. With nothing under the pointer, a held modifier still lights its chip. A field
+    ///     under the pointer takes a plain notch itself; while a modifier is held it lets the
+    ///     notch through to its card, so the modifier reaches its own field from there.
     /// </summary>
     private void RefreshHighlights()
     {
-        var (field, _) = Gesture;
-        var column = (int)field;
+        var modified = _ctrl || _shift || _alt;
+        var target = HoveredTarget?.Field;
+        var column = (int?)target ?? (modified && _hoveredRow == null && !_cardHovered && !_soundFieldsHovered
+            ? (int)Gesture.Field
+            : null);
 
         for (var i = 0; i < ColumnHeadChips.Count; i++)
         {
@@ -389,15 +460,23 @@ public sealed class InstrumentEditor : FlexPanel
         FineChip.SetClass("scroll-chip-lit", fine);
         ((Label)FineChip.Children[0]).SetClass("scroll-chip-label-lit", fine);
 
-        foreach (var row in _rows) row.Highlight(ReferenceEquals(row, _hoveredRow) ? column : null);
-
-        var outlined = _cardHovered ? $"All.{FieldLabels[column]}"
-            : _hoveredRow != null && ReferenceEquals(_hoveredRow.Instance, Selected) ? $"Sound.{FieldLabels[column]}"
-            : null;
-        foreach (var input in Inputs())
+        foreach (var row in _rows)
         {
-            input.FineScroll = fine;
-            input.SetClass("instrument-field-target", outlined != null && Field(outlined) == input);
+            var hovered = ReferenceEquals(row, _hoveredRow);
+            row.Highlight(hovered ? (int?)target : null, hovered);
+        }
+
+        var outlined = target is not { } lit ? null
+            : _cardHovered ? Field($"All.{FieldLabels[(int)lit]}")
+            : _soundFieldsHovered || (_hoveredRow != null && ReferenceEquals(_hoveredRow.Instance, Selected))
+                ? Field($"Sound.{FieldLabels[(int)lit]}")
+                : null;
+        for (var i = 0; i < FieldLabels.Length; i++)
+        foreach (var section in (string[])["All", "Sound"])
+        {
+            var input = Field($"{section}.{FieldLabels[i]}")!;
+            input.ScrollStep = modified ? null : ScrollGesture.StepOf((TuneField)i);
+            input.SetClass("instrument-field-target", ReferenceEquals(input, outlined));
         }
     }
 
@@ -427,7 +506,7 @@ public sealed class InstrumentEditor : FlexPanel
         AvailablePicker.Filter("");
 
         Working.Value = source?.Value ?? 0;
-        Working.Volume = source?.Volume;
+        Working.Volume = source?.Volume ?? 100;
         Working.Pan = source?.Pan ?? 0;
         Working.Offset = source?.Offset ?? 0;
         AvailablePicker.SetInstances(source?.Sounds ?? []);
@@ -512,12 +591,14 @@ public sealed class InstrumentEditor : FlexPanel
             v => Set(target(), v, (t, x) => t.Value = x!.Value, (s, x) => s.Value = x!.Value),
             -TrackEditorView.MaxValue, TrackEditorView.MaxValue);
         form.NumberRow("Volume", () => Get(target(), t => t.Volume, s => s.Volume),
-            v => Set(target(), v, (t, x) => t.Volume = x, (s, x) => s.Volume = x), 0, 500, 5, true);
+            v => Set(target(), v, (t, x) => t.Volume = x!.Value, (s, x) => s.Volume = x!.Value), 0, 500, 5);
         form.NumberRow("Pan", () => Get(target(), t => t.Pan, s => s.Pan),
             v => Set(target(), v, (t, x) => t.Pan = (float)x!.Value, (s, x) => s.Pan = (float)x!.Value),
             -100, 100, 10);
+        // A sound can't start before its own beginning: an offset is 0 or later.
         form.NumberRow("Offset", () => Get(target(), t => t.Offset, s => s.Offset),
-            v => Set(target(), v, (t, x) => t.Offset = x!.Value, (s, x) => s.Offset = x!.Value), -60, 60, 0.01);
+            v => Set(target(), v, (t, x) => t.Offset = x!.Value, (s, x) => s.Offset = x!.Value), 0,
+            ScrollGesture.MaxOffset, 0.01);
     }
 
     private static double? Get(object? target, Func<Instrument, double?> instrument, Func<InstrumentSound, double?> sound) =>
@@ -552,6 +633,7 @@ public sealed class InstrumentEditor : FlexPanel
 
         _rows.Clear();
         _hoveredRow = null;
+        _hoveredCell = null;
 
         foreach (var sound in Working.Sounds)
         {
@@ -566,7 +648,13 @@ public sealed class InstrumentEditor : FlexPanel
                 OnDuplicate = r => Duplicate(r.Instance),
                 OnRemove = r => Remove(r.Instance)
             };
-            row.NumberZone.OnScroll = delta => TuneRow(row, delta);
+            row.NumberZone.OnScroll = delta => TuneRow(row, null, delta);
+            row.OnCellScroll = (column, delta) => TuneRow(row, column, delta);
+            row.OnCellHover = (_, cell) =>
+            {
+                _hoveredCell = cell;
+                RefreshHighlights();
+            };
             row.NumberZone.OnHoverEnter = _ => SetHover(row, false);
             row.NumberZone.OnHoverExit = _ =>
             {
@@ -601,7 +689,7 @@ public sealed class InstrumentEditor : FlexPanel
         // What it plays as on a note at 0: the same combination playback uses.
         var (value, volume, pan, offset) = Working.Combine(sound);
         _results[0].Value = SoundRow.ValueText(value) ?? "0";
-        _results[1].Value = SoundRow.VolumeText(volume) ?? "note";
+        _results[1].Value = $"{volume ?? 100:0.##}%"; // none left from the combination plays at 100
         _results[2].Value = SoundRow.PanText(pan) ?? "0";
         _results[3].Value = $"{offset:0.###} s";
     }

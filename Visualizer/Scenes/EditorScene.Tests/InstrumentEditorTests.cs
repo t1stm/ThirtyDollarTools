@@ -199,7 +199,6 @@ public class InstrumentEditorTests
     // ---------------------------------------------------------------- scroll gestures
 
     [Theory]
-    [InlineData(false, false, false, "value", 1)]
     [InlineData(true, true, false, "value", 0.1)]
     [InlineData(true, false, false, "volume", 105)]
     [InlineData(false, true, false, "pan", 10)]
@@ -222,7 +221,7 @@ public class InstrumentEditorTests
         Assert.Equal(expected, field switch
         {
             "value" => sound.Value,
-            "volume" => sound.Volume ?? 100,
+            "volume" => sound.Volume,
             "pan" => sound.Pan,
             _ => sound.Offset
         }, 6);
@@ -260,24 +259,182 @@ public class InstrumentEditorTests
         Assert.True(editor.AllCard.HandleScroll(-Up));
 
         Assert.Equal(95, editor.Working.Volume);
-        Assert.Null(editor.Working.Sounds[0].Volume);
+        Assert.Equal(100, editor.Working.Sounds[0].Volume);
+    }
+
+    /// <summary>One wheel notch with the pointer 4 px inside <paramref name="element" />'s box.</summary>
+    private static void ScrollOver(EditorTestContext ctx, Panel root, Sundex.Components.Abstractions.UIElement element,
+        Vector2 delta)
+    {
+        var box = element.Computed;
+        ctx.UpdatePointer(root, box.AbsoluteX + 4, box.AbsoluteY + 4, false, false, false, delta);
     }
 
     [Fact]
-    public void ScrollingAField_StepsThatField_FinerWithCtrlShift()
+    public void APlainNotchOverAField_StepsThatField()
+    {
+        var ctx = new EditorTestContext();
+        var (editor, root) = Shown(ctx);
+        editor.Load("Layer", Layered("kick"));
+        root.Layout();
+
+        ScrollOver(ctx, root, editor.Field("Sound.Pan")!, Up);
+        ScrollOver(ctx, root, editor.Field("All.Volume")!, -Up);
+
+        Assert.Equal(10, editor.Working.Sounds[0].Pan);
+        Assert.Equal(95, editor.Working.Volume);
+        Assert.Equal(0, editor.Working.Sounds[0].Value);
+        // The field under the pointer is the one lit.
+        Assert.Contains("instrument-field-target", editor.Field("All.Volume")!.Classes);
+    }
+
+    [Theory]
+    [InlineData(true, false, false, "Volume", 105)]
+    [InlineData(false, true, false, "Pan", 10)]
+    [InlineData(false, false, true, "Offset", 0.01)]
+    [InlineData(true, true, false, "Value", 0.1)]
+    public void AModifierOverAField_TunesItsOwnField(bool ctrl, bool shift, bool alt, string field, double expected)
+    {
+        var ctx = new EditorTestContext();
+        var (editor, root) = Shown(ctx);
+        editor.Load("Layer", Layered("kick"));
+        root.Layout();
+        var sound = editor.Working.Sounds[0];
+
+        // Over the Value field, or the Pan one for the value gestures: never the field the
+        // modifier picks, so it has to be the modifier that reached it.
+        var under = field == "Value" ? "Pan" : "Value";
+        editor.SetModifiers(ctrl, shift, alt);
+        ScrollOver(ctx, root, editor.Field($"Sound.{under}")!, Up);
+
+        double Read(string name) => name switch
+        {
+            "Value" => sound.Value,
+            "Volume" => sound.Volume,
+            "Pan" => sound.Pan,
+            _ => sound.Offset
+        };
+
+        Assert.Equal(expected, Read(field), 6);
+        Assert.Equal(0, Read(under));
+        Assert.Contains("instrument-field-target", editor.Field($"Sound.{field}")!.Classes);
+        Assert.DoesNotContain("instrument-field-target", editor.Field($"Sound.{under}")!.Classes);
+
+        // The card does the same for the instrument-wide fields.
+        ScrollOver(ctx, root, editor.Field($"All.{under}")!, Up);
+        Assert.Equal(field switch
+        {
+            "Value" => editor.Working.Value,
+            "Volume" => editor.Working.Volume,
+            "Pan" => editor.Working.Pan,
+            _ => editor.Working.Offset
+        }, expected, 6);
+    }
+
+    [Fact]
+    public void Volume_IsANumber_100ByDefault()
     {
         var editor = NewEditor(new EditorTestContext());
         editor.Load("Layer", Layered("kick"));
-        var value = editor.Field("Sound.Value")!;
-        var volume = editor.Field("All.Volume")!;
 
-        Assert.True(value.HandleScroll(Up));
-        Assert.True(volume.HandleScroll(-Up)); // empty volume counts as 100
-        editor.SetModifiers(true, true, false);
-        Assert.True(value.HandleScroll(Up));
+        Assert.Equal("100", editor.Field("Sound.Volume")!.Text);
+        Assert.Equal("100", editor.Field("All.Volume")!.Text);
+        Assert.False(editor.Field("Sound.Volume")!.AllowNull);
+        // At its default it reads as a dash in the row, like every other field.
+        Assert.Equal("\u2014", editor.Rows[0].CellTexts.ElementAt(1));
+        Assert.Equal("100%", editor.ResultTexts[1]);
 
-        Assert.Equal(1.1, editor.Working.Sounds[0].Value, 6);
-        Assert.Equal(95, editor.Working.Volume);
+        editor.Field("Sound.Volume")!.Value = 50;
+        Assert.Equal("50%", editor.Rows[0].CellTexts.ElementAt(1));
+        Assert.Equal("50%", editor.ResultTexts[1]);
+    }
+
+    [Fact]
+    public void Offset_NeverGoesBelowZero()
+    {
+        var ctx = new EditorTestContext();
+        var (editor, root) = Shown(ctx);
+        editor.Load("Layer", Layered("kick"));
+        root.Layout();
+
+        editor.Field("Sound.Offset")!.Value = -1;
+        Assert.Equal(0, editor.Working.Sounds[0].Offset);
+
+        editor.SetModifiers(false, false, true);
+        ScrollOver(ctx, root, editor.Rows[0].NumberZone, -Up);
+        ScrollOver(ctx, root, editor.AllCard, -Up);
+        Assert.Equal(0, editor.Working.Sounds[0].Offset);
+        Assert.Equal(0, editor.Working.Offset);
+    }
+
+    [Fact]
+    public void ANotchBetweenFields_TunesNothing_UnlessAModifierIsHeld()
+    {
+        var editor = NewEditor(new EditorTestContext());
+        editor.Load("Layer", Layered("kick"));
+        var sound = editor.Working.Sounds[0];
+
+        // Plain, off any field: nothing is the target, not the value.
+        Assert.True(editor.SoundFields.HandleScroll(Up));
+        Assert.True(editor.AllCard.HandleScroll(Up));
+        Assert.Equal(0, sound.Value);
+        Assert.Equal(0, editor.Working.Value);
+
+        editor.SetModifiers(true, false, false);
+        editor.SoundFields.HandleScroll(Up);
+        Assert.Equal(105, sound.Volume);
+    }
+
+    [Theory]
+    [InlineData(0, "Value", 1)]
+    [InlineData(1, "Volume", 105)]
+    [InlineData(2, "Pan", 10)]
+    [InlineData(3, "Offset", 0.01)]
+    public void APlainNotchOverARowsReadOut_TunesThatReadOut(int column, string field, double expected)
+    {
+        var ctx = new EditorTestContext();
+        var (editor, root) = Shown(ctx);
+        editor.Load("Layer", Layered("kick", "clap"));
+        root.Layout();
+        var clap = editor.Rows[1];
+
+        ScrollOver(ctx, root, clap.NumberZone.Children[column], Up);
+
+        var sound = clap.Instance;
+        Assert.Equal(expected, field switch
+        {
+            "Value" => sound.Value,
+            "Volume" => sound.Volume,
+            "Pan" => sound.Pan,
+            _ => sound.Offset
+        }, 6);
+        Assert.Same(sound, editor.Selected);
+        // Its cell, its column's head and the selected sound's field light up; nothing else.
+        Assert.Contains("sound-row-cell-target", clap.NumberZone.Children[column].Classes);
+        Assert.Equal(Enumerable.Range(0, 4).Select(i => i == column),
+            editor.ColumnHeadChips.Select(chip => chip.Classes.Contains("scroll-chip-lit")));
+        Assert.Contains("instrument-field-target", editor.Field($"Sound.{field}")!.Classes);
+    }
+
+    [Fact]
+    public void ARowsReadOuts_LightNothing_UntilOneIsHovered()
+    {
+        var ctx = new EditorTestContext();
+        var (editor, root) = Shown(ctx);
+        editor.Load("Layer", Layered("kick"));
+        root.Layout();
+        var row = editor.Rows[0];
+
+        // At rest no chip claims the plain wheel.
+        Assert.DoesNotContain(editor.ColumnHeadChips, chip => chip.Classes.Contains("scroll-chip-lit"));
+
+        // The band's own padding, left of the first read-out: the band lights, no cell does,
+        // and a plain notch there changes nothing (and doesn't scroll the list either).
+        var zone = row.NumberZone.Computed;
+        ctx.UpdatePointer(root, zone.AbsoluteX + 2, zone.AbsoluteY + 2, false, false, false, Up);
+        Assert.Contains("sound-row-zone-hovered", row.NumberZone.Classes);
+        Assert.DoesNotContain(row.NumberZone.Children, cell => cell.Classes.Contains("sound-row-cell-target"));
+        Assert.Equal(0, row.Instance.Value);
     }
 
     [Fact]

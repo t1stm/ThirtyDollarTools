@@ -82,7 +82,7 @@ id action-value-dialog {
     width = 360;
 }
 
-// The whole event as text; text-field-tall in the markup gives it its height.
+// The whole event as text.
 id value-input {
     width = 100%;
 }
@@ -159,8 +159,6 @@ id export-actions {
 // The export options' numeric boxes.
 class export-field {
     width = 120;
-    height = 32;
-    font-size = 14;
 }
 
 // A checkbox's own label - smaller than the row text beside it.

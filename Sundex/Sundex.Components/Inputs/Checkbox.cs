@@ -21,7 +21,7 @@ public class Checkbox : StackPanel
     private readonly Panel _box;
 
     // Off-tree plane like TextInput's caret: always queued, hidden via Scale = 0.
-    private readonly ColoredPlane _check = new() { Color = new Vector4(0.9f, 0.9f, 0.9f, 1f) };
+    private readonly ColoredPlane _check = new() { Color = FieldColors.Check, BorderRadius = 2 };
 
     public Checkbox(UIContext context, string label = "", bool isChecked = false) : base(context)
     {
@@ -32,7 +32,8 @@ public class Checkbox : StackPanel
         {
             Width = BoxSize,
             Height = BoxSize,
-            Background = new ColoredPlane { Color = new Vector4(1, 1, 1, 0.25f) }
+            BorderRadius = 4,
+            Background = new ColoredPlane { Color = FieldColors.Fill }
         };
         Label = new Label(context, label) { FontSizePx = 16f };
         Children = [_box, Label];

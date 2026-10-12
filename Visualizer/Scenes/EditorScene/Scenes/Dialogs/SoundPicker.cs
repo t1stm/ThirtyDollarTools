@@ -90,8 +90,14 @@ public sealed class SoundPicker : FlexPanel
     ///     atlases have no image for yet is listed here but gets no icon.
     /// </summary>
     public IEnumerable<string> AvailableSounds => _order.Where(name =>
-        !(MultiSelect && Instances.Any(instance => instance.Sound == name)) &&
-        name.Contains(_filter, StringComparison.OrdinalIgnoreCase));
+        !(MultiSelect && Instances.Any(instance => instance.Sound == name)) && Matches(_soundsById[name]));
+
+    /// <summary>Whether any text the sound carries - ID, name, source or a tag - contains the filter.</summary>
+    private bool Matches(Sound sound)
+    {
+        return ((string?[])[sound.Id, sound.Name, sound.Source, .. sound.Tags ?? []]).Any(text =>
+            text?.Contains(_filter, StringComparison.OrdinalIgnoreCase) == true);
+    }
 
     private static FlexPanel NewGrid(UIContext context)
     {
@@ -114,7 +120,7 @@ public sealed class SoundPicker : FlexPanel
         Sync();
     }
 
-    /// <summary>Hides Available icons whose sound name doesn't contain <paramref name="text" /> (any case).</summary>
+    /// <summary>Hides Available icons none of whose texts contain <paramref name="text" /> (any case); see <see cref="Matches" />.</summary>
     public void Filter(string text)
     {
         text = text.Trim();

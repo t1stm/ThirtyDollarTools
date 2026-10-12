@@ -124,6 +124,33 @@ public class NumericInputTests
     }
 
     [Fact]
+    public void AFloatShowsFourDecimals_AndReadsBackUnrounded()
+    {
+        var (ctx, _, input) = NewInput((double)-0.4f);
+        var changes = 0;
+        input.OnValueChanged = _ => changes++;
+
+        Assert.Equal("-0.4", input.Text);
+        Assert.Equal((double)-0.4f, input.Value);
+
+        // Focusing and leaving it writes nothing back.
+        ctx.Focus(input);
+        ctx.Blur();
+        Assert.Equal(0, changes);
+        Assert.Equal((double)-0.4f, input.Value);
+
+        input.Value = 1.23456789;
+        Assert.Equal("1.2346", input.Text);
+        Assert.Equal(1.23456789, input.Value);
+
+        // Typed text is what it says.
+        ctx.Focus(input);
+        input.SelectAll();
+        Type(ctx, "2.25");
+        Assert.Equal(2.25, input.Value);
+    }
+
+    [Fact]
     public void Buttons_StepFocusAndDontMoveCaret()
     {
         var (ctx, root, input) = NewInput(10);
@@ -198,30 +225,15 @@ public class NumericInputTests
     }
 
     [Fact]
-    public void StepFromEmpty_StartsFromEmptyValueWhenSet()
-    {
-        var (_, _, input) = NewInput();
-        input.AllowNull = true;
-        input.EmptyValue = 100;
-        input.Step = 5;
-
-        input.StepBy(-1);
-
-        Assert.Equal(95, input.Value);
-    }
-
-    [Fact]
-    public void Wheel_StepsOnlyWhenScrollStepIsSet_FinerWhenFine()
+    public void Wheel_StepsOnlyWhenScrollStepIsSet()
     {
         var (_, _, input) = NewInput(1);
 
         Assert.False(input.HandleScroll(new Vector2(0, 1)));
 
-        input.ScrollStep = 1;
+        input.ScrollStep = 0.5;
         Assert.True(input.HandleScroll(new Vector2(0, 1)));
-        input.FineScroll = true;
-        Assert.True(input.HandleScroll(new Vector2(0, -1)));
 
-        Assert.Equal(1.9, input.Value);
+        Assert.Equal(1.5, input.Value);
     }
 }
