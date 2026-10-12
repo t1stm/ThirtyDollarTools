@@ -68,7 +68,7 @@ public sealed class SoundPicker : FlexPanel
         // Built once and never refreshed: PrimaryName follows the platform rather than a
         // binding, and these scroll gestures aren't rebindable.
         _keybindNote = new Label(context,
-            "Right click - add another copy\n" +
+            "Right click - copy / preview available\n" +
             "Scroll - change value\n" +
             $"{Keybinds.PrimaryName}+Shift+Scroll - change value by 0.1\n" +
             $"{Keybinds.PrimaryName}+Scroll - change volume\n" +
@@ -527,21 +527,25 @@ public sealed class SoundPicker : FlexPanel
         }
 
         /// <summary>
-        ///     Adds another copy of this sound, so one instrument can play it twice with
-        ///     different tuning (0 and -12 for dual-octave playback). Handled only in
+        ///     On a Selected icon, adds another copy of this sound, so one instrument can play
+        ///     it twice with different tuning (0 and -12 for dual-octave playback) - only in
         ///     multi-select mode with <see cref="ShowAdjustments" /> on, where the copies can be
-        ///     told apart.
+        ///     told apart. On an Available icon, previews the sound without adding it, when the
+        ///     owner wired <see cref="OnPreviewSound" />.
         /// </summary>
         public override bool HandleRightPress(float x, float y)
         {
-            if (!_picker.MultiSelect || !_picker.ShowAdjustments) return false;
+            var duplicates = Instance != null && _picker.MultiSelect && _picker.ShowAdjustments;
+            var previews = Instance == null && _picker.OnPreviewSound != null;
+            if (!duplicates && !previews) return false;
 
-            // This fires every frame the button is held and adding is not idempotent, so act
-            // once per press (see UIContext.RightPressId).
+            // This fires every frame the button is held and neither adding nor restarting a
+            // preview is idempotent, so act once per press (see UIContext.RightPressId).
             if (Context.RightPressId == _picker._handledRightPressId) return true;
             _picker._handledRightPressId = Context.RightPressId;
 
-            _picker.AddInstance(SoundName, Instance);
+            if (duplicates) _picker.AddInstance(SoundName, Instance);
+            else _picker.OnPreviewSound!(new InstrumentSound { Sound = SoundName });
             return true;
         }
 

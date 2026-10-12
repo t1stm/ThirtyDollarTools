@@ -36,10 +36,16 @@ public class SoundPickerTests
     /// </summary>
     private static Panel NewIcon(SoundPicker picker, InstrumentSound instance)
     {
+        return NewIcon(picker, instance.Sound, instance);
+    }
+
+    /// <summary>A null instance builds an Available icon, one for a sound not added yet.</summary>
+    private static Panel NewIcon(SoundPicker picker, string sound, InstrumentSound? instance)
+    {
         var type = typeof(SoundPicker).GetNestedType("SoundIcon", BindingFlags.NonPublic)!;
         return (Panel)Activator.CreateInstance(type,
             BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
-            [picker.Context, picker, instance.Sound, instance], null)!;
+            [picker.Context, picker, sound, instance], null)!;
     }
 
     /// <summary>Scrolls a fresh icon for the instance with the given modifiers held.</summary>
@@ -119,6 +125,21 @@ public class SoundPickerTests
         var label = Assert.Single(shifted.Children);
         Assert.True(shifted.Computed.AbsoluteX > 0);
         Assert.Equal(shifted.Computed.AbsoluteX, label.Computed.AbsoluteX);
+    }
+
+    [Fact]
+    public void RightPress_OnAnAvailableIcon_PreviewsItWithoutAddingIt()
+    {
+        var picker = NewPicker(new EditorTestContext());
+        InstrumentSound? previewed = null;
+        picker.OnPreviewSound = sound => previewed = sound;
+        var icon = NewIcon(picker, "kick", null);
+
+        var handled = (bool)icon.GetType().GetMethod("HandleRightPress")!.Invoke(icon, [0f, 0f])!;
+
+        Assert.True(handled);
+        Assert.Equal("kick", previewed?.Sound);
+        Assert.Empty(picker.Instances);
     }
 
     [Fact]
