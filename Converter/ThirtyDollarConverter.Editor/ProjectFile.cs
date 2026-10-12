@@ -66,7 +66,8 @@ public static class ProjectFile
                     [
                         .. instrument.Sounds.Select(sound => new InstrumentSoundDto(
                             sound.Sound, sound.Value, sound.Volume, sound.Pan))
-                    ]))
+                    ],
+                    Offset: instrument.Offset == 0 ? null : instrument.Offset))
             ],
             [
                 .. project.Placements.Select(placement => new PlacementDto(
@@ -97,6 +98,7 @@ public static class ProjectFile
         foreach (var instrument_dto in dto.Instruments ?? [])
         {
             var instrument = project.AddInstrument(instrument_dto.Id, instrument_dto.Name);
+            instrument.Offset = instrument_dto.Offset ?? 0;
             foreach (var sound_dto in instrument_dto.Sounds)
             {
                 // Legacy files wrote sounds as bare names plus an adjustment map keyed by
@@ -380,7 +382,9 @@ public static class ProjectFile
         List<InstrumentSoundDto> Sounds,
         // Legacy (pre-duplicate-sounds) adjustment map keyed by sound name, kept only for
         // reading old files; never written. See Load.
-        Dictionary<string, SoundAdjustmentDto>? Adjustments = null);
+        Dictionary<string, SoundAdjustmentDto>? Adjustments = null,
+        // Sound-start offset in seconds; null (missing key) = 0.
+        double? Offset = null);
 
     /// <summary>
     ///     One entry of an instrument's "sounds". Older files wrote a bare sound name

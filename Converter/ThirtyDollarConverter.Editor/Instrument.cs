@@ -17,6 +17,12 @@ public class Instrument
     public List<InstrumentSound> Sounds { get; } = [];
 
     /// <summary>
+    ///     Sound-start offset in seconds, added to the playing note's own
+    ///     <see cref="Note.Offset" /> for every one of this instrument's sounds.
+    /// </summary>
+    public double Offset { get; set; }
+
+    /// <summary>
     ///     Every distinct sound name this instrument plays, duplicates collapsed -
     ///     what a cut has to silence.
     /// </summary>

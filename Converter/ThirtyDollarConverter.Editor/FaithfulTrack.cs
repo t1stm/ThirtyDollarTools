@@ -209,6 +209,7 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
             Mix(ref hash, note.Volume?.GetHashCode() ?? 0);
             Mix(ref hash, note.Pan.GetHashCode());
             Mix(ref hash, note.Offset.GetHashCode());
+            Mix(ref hash, note.Instrument.Offset.GetHashCode());
 
             foreach (var sound in note.Instrument.Sounds)
             {

@@ -106,9 +106,9 @@ public class Note
             // The encoder skips (offset x sample rate / 2^(value/12)) samples of the sound's
             // own buffer, so the offset counts seconds of the unpitched sound: an auto offset
             // measured in playback time has to be scaled by this sound's own pitch.
-            var offset = AutoOffsetSeconds == 0
+            var offset = Instrument.Offset + (AutoOffsetSeconds == 0
                 ? Offset
-                : Offset + AutoOffsetSeconds * Math.Pow(2, instrument_sound.Value / 12);
+                : Offset + AutoOffsetSeconds * Math.Pow(2, instrument_sound.Value / 12));
 
             if (pan == 0 && offset == 0)
                 yield return new NormalEvent

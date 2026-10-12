@@ -261,7 +261,10 @@ public static class SequenceImporter
     /// <summary>Whether two instruments play the same sounds with the same tuning, in the same order.</summary>
     private static bool SameSounds(Instrument a, Instrument b)
     {
-        return a.Sounds.Count == b.Sounds.Count && a.Sounds.Zip(b.Sounds).All(pair =>
+        // Offsets too: an imported note already carries its whole offset, so reusing an
+        // instrument that adds one of its own would shift every note of it a second time.
+        return Math.Abs(a.Offset - b.Offset) < 1e-9 &&
+               a.Sounds.Count == b.Sounds.Count && a.Sounds.Zip(b.Sounds).All(pair =>
             pair.First.Sound == pair.Second.Sound &&
             Math.Abs(pair.First.Value - pair.Second.Value) < 1e-9 &&
             Nullable.Equals(pair.First.Volume, pair.Second.Volume) &&
