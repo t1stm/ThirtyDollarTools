@@ -1,6 +1,6 @@
-using Sundex.MSDF.Geometry;
+using Sundex.Slug.Geometry;
 
-namespace Sundex.MSDF.Tests;
+namespace Sundex.Slug.Tests;
 
 /// <summary>
 ///     Pins the space glyph outlines are built in: em-normalised, Y-up, sitting on the baseline.
@@ -24,7 +24,7 @@ public class CoordinateContractTests
     public void DescendersSitBelowTheBaseline(char character, bool expectedBelow)
     {
         using var stream = TestFonts.Open(TestFonts.LatoRegular);
-        var font = MsdfFont.Load(stream);
+        var font = SlugFont.Load(stream);
 
         var shape = new Shape();
         Assert.True(font.TryBuildShape([character], shape, out _));
@@ -38,7 +38,7 @@ public class CoordinateContractTests
     public void UnderscoreIsEntirelyBelowTheBaseline()
     {
         using var stream = TestFonts.Open(TestFonts.LatoRegular);
-        var font = MsdfFont.Load(stream);
+        var font = SlugFont.Load(stream);
 
         var shape = new Shape();
         Assert.True(font.TryBuildShape("_", shape, out _));
@@ -54,7 +54,7 @@ public class CoordinateContractTests
     public void SolidGlyphHasExactlyOneContourWithConsistentWinding()
     {
         using var stream = TestFonts.Open(TestFonts.LatoRegular);
-        var font = MsdfFont.Load(stream);
+        var font = SlugFont.Load(stream);
 
         var shape = new Shape();
         Assert.True(font.TryBuildShape(".", shape, out _));
@@ -69,7 +69,7 @@ public class CoordinateContractTests
     public void HoledGlyphHasOppositelyWoundContours()
     {
         using var stream = TestFonts.Open(TestFonts.LatoRegular);
-        var font = MsdfFont.Load(stream);
+        var font = SlugFont.Load(stream);
 
         var shape = new Shape();
         Assert.True(font.TryBuildShape("o", shape, out _));
@@ -89,7 +89,7 @@ public class CoordinateContractTests
         double lineHeight)
     {
         using var stream = TestFonts.Open(font);
-        var metrics = MsdfFont.Load(stream).Metrics;
+        var metrics = SlugFont.Load(stream).Metrics;
 
         Assert.Equal(em, metrics.EmSize);
         Assert.Equal(ascender, metrics.AscenderY);

@@ -15,6 +15,7 @@ using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
+using Sundex.Engine.Text;
 using Sundex.Markup;
 using VisualizerScene;
 using VisualizerScene.Settings;
@@ -30,13 +31,6 @@ public class Loader : Scene, IGamePreloadable
     ///     <see cref="ExitFadeStart" />, so the three move together.
     /// </summary>
     private const float ExitSeconds = 1.5f;
-
-    /// <summary>
-    ///     Printable ASCII - the character set the interface screens are warmed with.
-    ///     Anything outside it is generated on demand on the frame that first draws it.
-    /// </summary>
-    private const string WarmCharacters =
-        " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
     /// <summary>
     ///     Seconds into the exit at which the target scene starts fading up. The sound field
@@ -192,35 +186,44 @@ public class Loader : Scene, IGamePreloadable
     }
 
     /// <summary>
-    ///     Generates the MSDF for every glyph in <see cref="WarmCharacters" /> on a worker,
-    ///     before any screen is built. Drawing a character the first time is MSDF generation
-    ///     plus an atlas upload, and only the upload needs a graphics context, so the scene
-    ///     builds that follow are left with just the uploads.
+    ///     Builds each font's Slug glyph data on a worker, before any screen is built. A
+    ///     font builds on first use and takes a few hundred milliseconds
+    ///     (docs/handover/sundex-slug-plan.md), which would otherwise land on the render
+    ///     thread with the first label. Only the texture upload that follows needs a graphics
+    ///     context, and that stays on the render thread.
     /// </summary>
     private Task WarmFonts()
     {
         return ThreadRunner.RunTask(() =>
         {
-            var stopwatch = Stopwatch.StartNew();
-            try
-            {
-                // Three atlases with separate glyph caches: the interface's own font, and
-                // the two the visualizer's text container and player bar draw with. Twemoji
-                // is skipped - its glyph set is too large to warm and no label uses it.
-                _context.TextProvider.Warm(WarmCharacters);
-                Visualizer.VisualizerFonts.LatoRegularProvider.Warm(WarmCharacters);
-                Visualizer.VisualizerFonts.LatoBoldProvider.Warm(WarmCharacters);
-            }
-            catch (Exception e)
-            {
-                // Warming is an optimisation: a failure must not fail the boot, since any
-                // glyph it missed is generated on demand.
-                Logger.Debug("[Font Warmup] Failed with error: '{Exception}'", e);
-                return;
-            }
+            // The interface's own font, and the two the visualizer's text container and player
+            // bar draw with. Twemoji is skipped: no label uses it.
+            (string Name, ITextProvider Provider)[] fonts =
+            [
+                ("Lato Bold (interface)", _context.TextProvider),
+                ("Lato Regular", Visualizer.VisualizerFonts.LatoRegularProvider),
+                ("Lato Bold", Visualizer.VisualizerFonts.LatoBoldProvider)
+            ];
 
-            Logger.Debug("[Font Warmup] Generated {Count} glyphs per atlas in {Elapsed} ms",
-                WarmCharacters.Length, stopwatch.ElapsedMilliseconds);
+            foreach (var (name, provider) in fonts)
+            {
+                var stopwatch = Stopwatch.StartNew();
+                try
+                {
+                    // The first glyph lookup is what builds the font's data.
+                    provider.GetGlyph(" ");
+                }
+                catch (Exception e)
+                {
+                    // Warming is an optimisation: a failure must not fail the boot. The
+                    // same failure will surface on the frame that first draws this font.
+                    Logger.Debug("[Font Warmup] {Font} failed with error: '{Exception}'", name, e);
+                    continue;
+                }
+
+                Logger.Debug("[Font Warmup] Built Slug data for {Font} in {Elapsed} ms",
+                    name, stopwatch.ElapsedMilliseconds);
+            }
         });
     }
 

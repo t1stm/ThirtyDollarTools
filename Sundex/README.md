@@ -54,4 +54,5 @@ Unit and integration tests for various Sundex modules.
 - **.NET 10.0**
 - **OpenTK (OpenGL)**
 - **Serilog** (Logging)
-- **MSDF-Sharp** (Multi-channel signed distance field text rendering)
+- **Slug** (GPU text rendering from glyph outlines, by Eric Lengyel)
+- **SixLabors.Fonts** (font parsing and glyph outlines)

@@ -1,6 +1,6 @@
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.MSDF;
+using Sundex.Slug;
 
 namespace Sundex.Engine.Text.Fonts;
 
@@ -25,9 +25,9 @@ public class FontProvider : IFontProvider
     }
 
     /// <summary>Every bundled font, parsed at construction and kept for the process lifetime.</summary>
-    private Dictionary<string, MsdfFont> LoadedFonts { get; } = new();
+    private Dictionary<string, SlugFont> LoadedFonts { get; } = new();
 
-    public MsdfFont GetFont(ReadOnlySpan<char> fontName)
+    public SlugFont GetFont(ReadOnlySpan<char> fontName)
     {
         var lookup = LoadedFonts.GetAlternateLookup<ReadOnlySpan<char>>();
 
@@ -39,6 +39,6 @@ public class FontProvider : IFontProvider
     private void AddFont(string fontName, AssetStream assetStream)
     {
         var lookup = LoadedFonts.GetAlternateLookup<ReadOnlySpan<char>>();
-        lookup.TryAdd(fontName, MsdfFont.Load(assetStream.Stream));
+        lookup.TryAdd(fontName, SlugFont.Load(assetStream.Stream));
     }
 }

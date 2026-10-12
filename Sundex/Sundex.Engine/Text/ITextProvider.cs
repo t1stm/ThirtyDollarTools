@@ -1,6 +1,6 @@
-using OpenTK.Mathematics;
 using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Text.Fonts;
+using Sundex.Slug;
 
 namespace Sundex.Engine.Text;
 
@@ -11,26 +11,13 @@ public interface ITextProvider
 {
     IGlyphProvider GlyphProvider { get; }
 
-    float TextureWidth { get; }
-    float TextureHeight { get; }
-
     /// <summary>
-    ///     Returns the UV rectangle and alignment data for a single character glyph.
+    ///     The Slug data and layout for a single character glyph. Safe to call from any thread.
     /// </summary>
-    (Vector4, TextAlignmentData) GetTextCharacterRect(ReadOnlySpan<char> character);
+    SlugGlyph GetGlyph(ReadOnlySpan<char> character) => GlyphProvider.GetSlugGlyph(character);
 
     /// <summary>
-    ///     Binds the text atlas to the OpenGL context and activates the shader program.
+    ///     Binds the font's curve and band textures and activates the shader program.
     /// </summary>
     void BindAndSetUniforms(Camera camera);
-
-    /// <summary>
-    ///     Generates the glyphs for every character in <paramref name="characters" /> ahead
-    ///     of the frame that first draws them, so <see cref="GetTextCharacterRect" /> is left
-    ///     with only the upload to do. Safe to call from any thread, and cheap to call again
-    ///     for characters already generated or already in the atlas.
-    /// </summary>
-    void Warm(string characters)
-    {
-    }
 }

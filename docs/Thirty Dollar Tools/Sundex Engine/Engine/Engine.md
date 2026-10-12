@@ -10,7 +10,7 @@ If you only read one section in this vault, this is the one. The whole stack rea
 - [Asset Management](Asset%20Management.md) — `AssetProvider`, `IAssetLoader<T>`, `CacheProvider`, `ShaderPool`, embedded vs. file vs. cache storage.
 - [Renderer](Renderer/Renderer.md) — VAOs, VBOs, shaders, textures, atlases, the deferred [delete queue](Renderer/Queues.md), cameras.
 - [Scene Management](Scene%20Management.md) — `Scene`, `SceneManager`, transitions, init/render/update/resize/keyboard/mouse pipelines.
-- [Text Rendering](Text%20Rendering/Text%20Rendering.md) — MSDF font rasterization (`GlyphProvider`), `TextProvider`, `TextBuffer`, `TextSlice`, `Batched.vert`/`.frag`.
+- [Text Rendering](Text%20Rendering/Text%20Rendering.md) — Slug text: font data (`Sundex.Slug`), `TextProvider`, `TextBuffer`, `TextSlice`, `Batched.vert`/`.frag`.
 - [Threading](Threading.md) — `ThreadRunner`, marshalling exceptions back to the GL thread.
 
 ## Bird's-eye picture
@@ -48,7 +48,7 @@ From `Sundex.Engine.csproj`:
 - `OpenTK` (5.0-pre.15) — windowing, input, GL bindings.
 - `OpenTK.Mathematics` — `Vector2/3/4`, `Matrix4`.
 - `Serilog`, `Serilog.Sinks.Console`, `Serilog.Sinks.File`.
-- `Msdfgen` (MSDF-Sharp) — vector glyph → MSDF bitmap.
+- `Sundex.Slug` (project reference) — font loading and the Slug curve/band data built from glyph outlines.
 - `SixLabors.ImageSharp` — pixel container, image loading.
 - `Microsoft.Extensions.Logging` — abstraction layer used by some sub-systems.
 

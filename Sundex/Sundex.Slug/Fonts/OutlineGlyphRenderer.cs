@@ -1,9 +1,9 @@
 using System.Numerics;
 using SixLabors.Fonts;
 using SixLabors.Fonts.Rendering;
-using Sundex.MSDF.Geometry;
+using Sundex.Slug.Geometry;
 
-namespace Sundex.MSDF.Fonts;
+namespace Sundex.Slug.Fonts;
 
 /// <summary>
 ///     Collects SixLabors.Fonts' outline callbacks into a <see cref="Shape" />.
@@ -16,7 +16,7 @@ namespace Sundex.MSDF.Fonts;
 ///     <para>
 ///         That gets horizontal placement right but not vertical: SixLabors grows its line box
 ///         for ink rising above the ascender, which moves the baseline down for tall glyphs.
-///         <see cref="MsdfFont.TryBuildShape" /> puts the finished shape on the baseline itself.
+///         <see cref="SlugFont.TryBuildShape" /> puts the finished shape on the baseline itself.
 ///     </para>
 /// </summary>
 internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGlyphRenderer
@@ -93,7 +93,7 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
         _current = next;
     }
 
-    // ponytail: arcs only reach a glyph renderer through SVG-in-OpenType, which MsdfFont never
+    // ponytail: arcs only reach a glyph renderer through SVG-in-OpenType, which SlugFont never
     // asks for, so the arc is chorded to a straight line rather than approximated. An unexpected
     // font degrades instead of crashing text rendering. Split it into cubics if an SVG-table font
     // ever has to work.
@@ -113,7 +113,7 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
 
     private void Emit(EdgeSegment edge)
     {
-        // A zero-length edge has no direction, which edge colouring's corner detection needs.
+        // An edge that ends where it starts adds no winding, so it is dropped rather than packed.
         if (edge.P0 == edge.EndPoint) return;
         shape.AddEdge(edge);
     }

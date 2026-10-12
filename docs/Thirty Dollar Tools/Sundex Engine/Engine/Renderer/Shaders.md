@@ -114,7 +114,7 @@ By inspection of the `.vert`/`.frag` files referenced from the engine:
 
 - **Vertex shaders** receive `vp_matrix` (uniform `Matrix4`) and per-instance attributes for offset, scale, colour.
 - **Fragment shaders** typically take a single 2D texture sampler and an alpha multiplier.
-- **The MSDF text shader pair** (`Assets/Shaders/Text/Batched.vert/.frag`) reads UV from `GLQuad.VBOWithUV`, instance data from a `GLBuffer<TextCharacter>`, and a 2048×2048 RGBA32F atlas — see [Text Rendering](../Text%20Rendering/Text%20Rendering.md).
+- **The Slug text shader pair** (`Assets/Shaders/Text/Batched.vert/.frag`) reads the unit quad from `GLQuad.VBOWithoutUV`, instance data from a `GLBuffer<TextCharacter>`, and two RGBA32F textures: curves on unit 0, bands on unit 1. The fragment shader is a translation of Eric Lengyel's reference Slug shader — see [Text Rendering](../Text%20Rendering/Text%20Rendering.md).
 
 ## Lifetime and threading
 
@@ -126,4 +126,4 @@ By inspection of the `.vert`/`.frag` files referenced from the engine:
 
 - [ShaderPool](../Asset%20Management.md#shaders-and-the-shaderpool) caches `Shader` instances by name.
 - [GLBuffer](Buffers.md) feeds per-vertex / per-instance data; the shader's `vp_matrix` uniform comes from a [Camera](Textures.md).
-- The MSDF shader pair powers [TextProvider](../Text%20Rendering/Text%20Rendering.md).
+- The Slug shader pair powers [TextProvider](../Text%20Rendering/Text%20Rendering.md).

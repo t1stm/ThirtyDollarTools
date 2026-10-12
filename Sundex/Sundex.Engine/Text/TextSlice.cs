@@ -2,8 +2,8 @@ using System.Buffers;
 using OpenTK.Mathematics;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
-using Sundex.Engine.Text.Fonts;
-using Sundex.MSDF.Fonts;
+using Sundex.Slug;
+using Sundex.Slug.Fonts;
 
 namespace Sundex.Engine.Text;
 
@@ -72,7 +72,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
         }
     }
 
-    private MsdfFontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.GetFontMetrics();
+    private SlugFontMetrics FontMetrics => textBuffer.TextProvider.GlyphProvider.GetFontMetrics();
 
     public void Dispose()
     {
@@ -139,43 +139,39 @@ public class TextSlice(TextBuffer textBuffer, Range range)
                     continue;
             }
 
-            Vector4 textureRectangle;
-            TextAlignmentData textAlignmentData;
-
+            SlugGlyph glyph;
             if (char.IsSurrogate(character) && index + 1 < val.Length &&
                 char.IsSurrogatePair(character, val[index + 1]))
             {
                 characters[0] = character;
                 characters[1] = val[index + 1];
 
-                (textureRectangle, textAlignmentData) = textProvider.GetTextCharacterRect(characters);
+                glyph = textProvider.GetGlyph(characters);
                 index++;
             }
             else
             {
                 characters[0] = character;
                 characters[1] = (char)0;
-                (textureRectangle, textAlignmentData) = textProvider.GetTextCharacterRect(characters[..1]);
+                glyph = textProvider.GetGlyph(characters[..1]);
             }
 
             var textCharacter = new TextCharacter
             {
                 Color = Color,
-                ClipRect = ClipRect
+                ClipRect = ClipRect,
+                EmRect = Convert(glyph.EmRect),
+                Banding = Convert(glyph.Banding),
+                GlyphData = Convert(glyph.GlyphData)
             };
-            var atlasSize = new Vector2(textProvider.TextureWidth, textProvider.TextureHeight);
 
-            textCharacter.TextureUV =
-                (textureRectangle.X / atlasSize.X,
-                    textureRectangle.Y / atlasSize.Y,
-                    (textureRectangle.X + textureRectangle.Z) / atlasSize.X,
-                    (textureRectangle.Y + textureRectangle.W) / atlasSize.Y);
-
+            // The quad is the glyph's padded ink box: the positioning provider places it from
+            // Translate/Scale at its default RelativeSize of 1 (sundex-slug-plan.md, "Layout mapping").
             layoutsSpan[bufferIndex] = new FlexLineItemPlacementLayout
             {
-                Advance = textAlignmentData.AdvanceInUnitSpace,
-                Translate = new Vector2(textAlignmentData.Translate.X, textAlignmentData.Translate.Y),
-                Scale = new Vector2(textAlignmentData.Scale.X, textAlignmentData.Scale.Y),
+                Advance = glyph.Advance,
+                Translate = new Vector2(glyph.TextTranslate.X, glyph.TextTranslate.Y),
+                Scale = new Vector2(glyph.TextScale.X, glyph.TextScale.Y),
                 NewLines = newLineCount
             };
 
@@ -197,4 +193,6 @@ public class TextSlice(TextBuffer textBuffer, Range range)
 
         ArrayPool<FlexLineItemPlacementLayout>.Shared.Return(layouts);
     }
+
+    private static Vector4 Convert(System.Numerics.Vector4 v) => new(v.X, v.Y, v.Z, v.W);
 }

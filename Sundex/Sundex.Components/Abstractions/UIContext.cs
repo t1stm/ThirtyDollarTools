@@ -51,6 +51,10 @@ public class UIContext : IGamePreloadable
         _assetProvider = assetProvider;
         _fontProvider = new FontProvider(assetProvider);
         _textProvider = new TextProvider(_assetProvider, _fontProvider, "Lato Bold");
+
+        // A font's glyph data takes a few hundred ms to build, on first use. Started here, the
+        // build overlaps the rest of the boot instead of stalling the first label drawn.
+        Task.Run(() => _textProvider.GetGlyph(" "));
     }
 
     /// <summary>

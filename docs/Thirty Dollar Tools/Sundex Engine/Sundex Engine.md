@@ -9,7 +9,7 @@
 Built on top of:
 
 - **OpenTK 5.0-pre** — OpenGL bindings, windowing, input.
-- **MSDF-Sharp** — multi-channel signed distance field rasterisation for high-quality scalable text.
+- **Slug** (Eric Lengyel) — GPU text rendering straight from glyph outlines, built by `Sundex.Slug` on top of **SixLabors.Fonts**.
 - **SixLabors.ImageSharp** — image decoding and pixel manipulation.
 - **Serilog** — structured logging with per-context loggers.
 - **Microsoft.CodeAnalysis.CSharp.Scripting** (Roslyn) — runtime C# compilation for embedded `<logic>` blocks.
@@ -64,7 +64,7 @@ Bound, styled UI
 | Game loop, input, GL context | `Sundex.Engine` | [Entrypoint](Engine/Entrypoint.md) |
 | GPU buffers, shaders, textures | `Sundex.Engine` | [Renderer](Engine/Renderer/Renderer.md) |
 | Loading files / shaders / textures from disk + assemblies | `Sundex.Engine` | [Asset Management](Engine/Asset%20Management.md) |
-| MSDF text rendering | `Sundex.Engine` | [Text Rendering](Engine/Text%20Rendering/Text%20Rendering.md) |
+| Slug text rendering | `Sundex.Engine`, `Sundex.Slug` | [Text Rendering](Engine/Text%20Rendering/Text%20Rendering.md) |
 | Scenes (stacking, transitions) | `Sundex.Engine` | [Scene Management](Engine/Scene%20Management.md) |
 | Off-thread work + exception marshalling | `Sundex.Engine` | [Threading](Engine/Threading.md) |
 | `UIElement`, panels, labels, animations on UI | `Sundex.Components` | [Components](Components/Components.md) |

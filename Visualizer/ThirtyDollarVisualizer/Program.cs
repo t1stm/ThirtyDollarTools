@@ -172,8 +172,8 @@ game.Enqueue(instance =>
         {
             Preloads = BuildPreloads(version, sequence, greeting, scale, mode),
             // Scene names, as LoadScene registers them: "visualizer", "drum-master",
-            // "editor", "settings". An unknown one falls back to the home screen and says
-            // so in the log - see Loader.UpdateExit.
+            // "editor", "settings", "text-bench". An unknown one falls back to the home
+            // screen and says so in the log - see Loader.UpdateExit.
             ExitTo = mode ?? "home"
         });
 });
@@ -220,6 +220,10 @@ static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, stri
 
         new ScenePreload("Preparing settings", (game, _) =>
             game.SceneManager.LoadScene<Settings>("settings",
-                _ => new Settings(game, SettingsHandler.Settings)))
+                _ => new Settings(game, SettingsHandler.Settings))),
+
+        // Only --mode text-bench opens it, and it builds nothing until it is shown.
+        new ScenePreload("Preparing the text benchmark", (game, _) =>
+            game.SceneManager.LoadScene<TextBenchScene>("text-bench", _ => new TextBenchScene(game)))
     ];
 }

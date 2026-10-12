@@ -1,30 +1,38 @@
 # Text Rendering
 
-Sundex renders text using **MSDF (Multi-channel Signed Distance Field)** glyphs. Every glyph the application uses is rasterised once at 48×48, packed into a single 2048×2048 `Rgba32f` atlas, and drawn via instanced quads with a small fragment shader that decodes the distance field. The result is crisp text at any zoom level with a single draw call per `TextBuffer`, no font hinting, no per-frame CPU rasterisation.
+Sundex renders text with **[Slug](https://github.com/EricLengyel/Slug)**, Eric Lengyel's algorithm. The GPU computes each pixel's coverage directly from the glyph's quadratic Bézier outline. There's no distance field and no glyph bitmap, and the CPU rasterises nothing per glyph. Each font is built once into two float textures, and each `TextBuffer` draws all its characters as instanced quads in one call. Text is sharp at any size, and overlapping contours fill correctly by the non-zero rule.
 
-> Source: `Sundex/Sundex.Engine/Text/`. Shaders: `Assets/Shaders/Text/Batched.vert/.frag`.
+> Source: `Sundex/Sundex.Engine/Text/` and `Sundex/Sundex.Slug/`. Shaders: `Assets/Shaders/Text/Batched.vert/.frag`. Full design and measurements: `docs/handover/sundex-slug-plan.md`.
 
 ## Pipeline
 
 ```
    font file
-      │
-      │  GlyphProvider (per missing character)
+      │  SlugFont.Load (Sundex.Slug)
       ▼
-   Msdfgen.Shape ── normalise, orient, edge-colour ──► MTSDF bitmap (48×48 RgbaVector)
+   SlugFont.SlugData ── built once per font, on first use ──► SlugFontData
+      │                                                        Curves  (RGBA32F, 4096 wide)
+      │                                                        Bands   (RGBA32F, 4096 wide)
+      │                                                        SlugGlyph per codepoint
       │
-      │  GuillotineAtlas.AddImage  +  GPUTexture.QueueUploadToGPU
-      ▼
-   GPUTextureAtlas (2048×2048 Rgba32f)
-      ▲
-      │  TextProvider.GetTextCharacterRect("a") returns (atlas-rect, alignment-data)
+      │  TextProvider: two GPUTextures, uploaded once on first bind
       │
-   TextSlice.UpdateCharacters  ──── writes per-instance TextCharacter into ────►  GLBuffer<TextCharacter>.WithCPUCache
-                                                                                      │
-                                                                                      │  VAO + Quad + Batched.vert/.frag
-                                                                                      ▼
-                                                                                  TextBuffer.Render(camera)
+   TextSlice.UpdateCharacters ── GetGlyph(c) → SlugGlyph ── writes TextCharacter into ──► GLBuffer<TextCharacter>
+                                                                                              │
+                                                                                              │  VAO + GLQuad + Batched.vert/.frag
+                                                                                              ▼
+                                                                                          TextBuffer.Render(camera)
 ```
+
+## `Sundex.Slug`: the font data
+
+`SlugFont.Load(stream)` parses a font with SixLabors.Fonts. The first access to `font.SlugData` builds `SlugFontData` for every codepoint the font maps, plus `.notdef`:
+
+- **Curves:** every glyph outline as quadratic Béziers, two texels per curve (`(p1, p2)` then `(p3, –)`). Consecutive curves of a contour share a texel. Lines are stored as quadratics; cubics are split into four quadratics.
+- **Bands:** per glyph, 1–16 horizontal and 1–16 vertical bands. Each band lists the curves that cross it, sorted so the shader can stop early.
+- **`SlugGlyph`:** `Advance`, `EmRect` (the ink box padded by 1/16 em), `Banding` and `GlyphData` (where its bands live), plus `TextTranslate`/`TextScale` for layout. Everything is in em space: Y-up, origin on the baseline.
+
+A Lato face takes about 1.3 MiB of curves and 5.4 MiB of bands. The outlines are extracted in parallel and the build takes a few hundred ms, so the Loader runs it on a worker at boot (`Loader.WarmFonts`). `UIContext.Preload` starts the interface font's build even earlier, because the loading screen's own labels need it. After the build, `GetGlyph` is a dictionary lookup and is safe from any thread.
 
 ## `TextProvider`
 
@@ -33,99 +41,69 @@ Sundex renders text using **MSDF (Multi-channel Signed Distance Field)** glyphs.
 public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, string fontName)
     : IGamePreloadable, ITextProvider
 {
-    private static Shader _shader = null!;
-
-    public readonly GPUTextureAtlas TextAtlas = new(2048, 2048,
-        InternalFormat.Rgba32f, MipmapMode.Disabled)
-    { AtlasID = "TextAtlas_" + fontName.Replace(' ', '_') };
-
-    public IGlyphProvider GlyphProvider { get; } = new GlyphProvider(fontProvider, fontName);
-
-    public static void Preload(AssetProvider assetProvider) {
-        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Text/Batched");
-    }
-
-    public (Vector4, TextAlignmentData) GetTextCharacterRect(ReadOnlySpan<char> character);
+    public IGlyphProvider GlyphProvider { get; }
     public void BindAndSetUniforms(Camera camera);
 }
-```
 
-One `TextProvider` per font. The atlas is `Rgba32f` because MSDF data is float-valued (signed distances need negative values) and `Disabled` mipmaps because the shader does its own anti-aliasing in the distance domain — mipmapping a distance field would average distances and produce wrong results.
-
-### Lazy glyph generation
-
-`GetTextCharacterRect("a")` is the lazy entry point:
-
-1. Lock the atlas, look up the existing rectangle for that character.
-2. If empty, synthesise the glyph via `GlyphProvider.GetGlyph("a")` — which generates a 48×48 MTSDF bitmap, packs it into the atlas, and queues an upload to the texture.
-3. Return `(uv-rect, sizing-data)`.
-
-Glyphs are never evicted — once a character is drawn, its slot stays. The 2048×2048 atlas is intentionally oversized so any reasonable application's character set fits without churn.
-
-### `BindAndSetUniforms`
-
-Called once per `TextBuffer.Render(camera)`:
-
-```csharp
-TextAtlas.Bind();
-_shader.Use();
-_shader.SetUniform("uVPMatrix", camera.GetVPMatrix());
-_shader.SetUniform("uPxRange", GlyphProvider.GlyphSize * GlyphProvider.MsdfRange);  // 48 * 4 = 192
-```
-
-`uPxRange` is the screen-space distance scale — it tells the fragment shader how to map the unit-space distance values to pixel widths for anti-aliasing.
-
-## `GlyphProvider` — the MSDF generator
-
-```csharp
-public class GlyphProvider(IFontProvider fontProvider, string fontName) : IGlyphProvider
+public interface ITextProvider
 {
-    public const int   GlyphSize = 48;
-    public const float MsdfRange = 4.0f;
-
-    public Image<RgbaVector> GetGlyph(ReadOnlySpan<char> character);
-    public TextAlignmentData GetSizingData(ReadOnlySpan<char> character);
-    public FontMetrics       GetFontMetrics();
+    IGlyphProvider GlyphProvider { get; }
+    SlugGlyph GetGlyph(ReadOnlySpan<char> character) => GlyphProvider.GetSlugGlyph(character);
+    void BindAndSetUniforms(Camera camera);
 }
 ```
 
-The interesting work happens in `GetGlyph`:
+There's one `TextProvider` per font. On its first `BindAndSetUniforms`, it creates two `GPUTexture { InternalFormat = Rgba32f, MipmapMode = Disabled }` from the font's `SlugFontData` and queues one upload each. Every bind after that:
 
-1. **Read the codepoint** — `MemoryMarshal.AsBytes(character).CopyTo(MemoryMarshal.AsBytes(uintSpan))`. Surrogate pairs are stored as a `uint`.
-2. **Load the glyph contour** via `Msdfgen.FontLoader.LoadGlyph` — uses the font's em-normalised coordinate system, returns the advance width.
-3. **Validate / normalise / orient** — `shape.Validate()`, `shape.Normalize()`, `FixGeometry(shape)` (reverses contours if the glyph is "outside in"), then orient + normalise again.
-4. **Auto-frame** the shape into the 48×48 bitmap, leaving room for the `pxRange = 4` padding band on each side.
-5. **Edge-colour** the shape with a 3° angle threshold — assigns red/green/blue channels to different edge directions for the multi-channel SDF trick.
-6. **Generate** with `MsdfGenerator.GenerateMTSDF` into a `Bitmap<float>` (4 channels — R, G, B for the multi-channel distances, A for the true distance).
-7. **Repack** into a `RgbaVector[]` and wrap as `Image<RgbaVector>` for ImageSharp / `GPUTexture` consumption.
-8. Cache the alignment data (`advance`, `scale`, `translate`) in `SizingData`.
+```csharp
+GL.ActiveTexture(TextureUnit.Texture1);
+_bands.Bind();
+GL.ActiveTexture(TextureUnit.Texture0);   // left active: everything else binds to unit 0
+_curves.Bind();
+_shader.Use();
+_shader.SetUniform("uVPMatrix", camera.GetVPMatrix());
+_shader.SetUniform("uCurves", 0);
+_shader.SetUniform("uBands", 1);
+```
 
-The font handle is **not cached** — the comment in source explains: *"Font cannot be a cached due to some constraint with the underlying library / unmanaged C# probably disposing the handle somewhere in the code."* Each glyph generation re-opens the font via `FontProvider`. Cheap enough since `FontMetrics` itself is cached.
+This is the only place in the engine that uses a texture unit other than 0.
 
-## `TextCharacter` — the per-instance vertex
+`GlyphProvider` holds the font name and hands out `GetSlugGlyph` and `GetFontMetrics`. Providers over the same `SlugFont` share one build.
+
+## `TextCharacter`: the per-instance vertex
 
 ```csharp
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct TextCharacter() : IGPUReflection, IPositionable
 {
-    public Vector4 TextureUV;
-    public Vector3 Position { get; set; }
-    public Vector3 Scale    { get; set; }
-    public Vector4 Color    { get; set; } = Vector4.One;
-
-    public static void SelfReflectToGL(VertexBufferLayout layout)
-    {
-        layout.PushFloat(4, true);  // TextureUV
-        layout.PushFloat(3, true);  // Position
-        layout.PushFloat(3, true);  // Scale
-        layout.PushFloat(4, true);  // Color
-    }
+    public Vector4 EmRect;                 // location 1: (left, bottom, right, top) in ems
+    public Vector3 Position { get; set; }  // location 2
+    public Vector3 Scale    { get; set; }  // location 3
+    public Vector4 Color    { get; set; }  // location 4
+    public Vector4 ClipRect { get; set; }  // location 5: (left, top, right, bottom) UI units; all-zero = unclipped
+    public Vector4 Banding;                // location 6: the shader's bandTransform
+    public Vector4 GlyphData;              // location 7: band location and band counts
 }
 ```
 
-Each character on screen is one instance of a unit quad ([GLQuad](../Renderer/Buffers.md#glquad)) with these per-instance attributes. `TextureUV` is normalised to atlas coordinates `(u0, v0, u1, v1)`. `Position` and `Scale` come from the layout pass.
+Each character on screen is one instance of the unit quad ([GLQuad](../Renderer/Buffers.md#glquad)). `SelfReflectToGL` pushes these attributes into the `VertexBufferLayout`, which is the [`IGPUReflection`](../Renderer/Abstractions.md#igpureflection) pattern.
 
-`SelfReflectToGL` pushes its own attributes into the `VertexBufferLayout` — this is the [`IGPUReflection`](../Renderer/Abstractions.md#igpureflection) pattern in action.
+## The shaders
+
+- **`Batched.vert`** places the quad from `Position`/`Scale` and interpolates an em-space sample position across it from `EmRect`. The quad's UI-top edge maps to the em box's top, because UI is Y-down and em space is Y-up. `Banding` and `GlyphData` pass through `flat`.
+- **`Batched.frag`** is a GLSL 330 translation of Lengyel's `SlugPixelShader.hlsl` (MIT, and his copyright header is kept). It casts one ray along x and one along y through the pixel, sums the signed coverage of the curves in the pixel's two bands, and combines the two. The output is `vec4(color.rgb, color.a * coverage)`. A per-glyph clip rect is tested first and discards outside fragments.
+
+`Sundex.Slug.Tests/SlugReference.cs` is the same pixel function in C#, run on the CPU against a ground-truth rasteriser. A data bug shows up in a test, not on screen.
+
+## Layout
+
+`TextSlice.UpdateCharacters` asks the provider for each character's `SlugGlyph` and builds a `FlexLineItemPlacementLayout` from it (`Advance`, `TextTranslate`, `TextScale`, newlines). `FlexLinePositioningProvider<TextCharacter>.UpdatePositions` then places each quad at a relative size of 1. That lands it exactly on the padded ink box:
+
+- left edge `= pen + (l − 1/16)·fontSize`
+- width `= (r − l + 1/8)·fontSize`
+- top edge `= baseline − (t + 1/16)·fontSize`, with the baseline at `cursorY + fontSize`
+
+`TextSliceTests` pins this. Advances, and so all label widths and caret positions, come straight from the font's advance widths.
 
 ## `TextBuffer`
 
@@ -134,113 +112,36 @@ public class TextBuffer : IRenderable, IClippable, IDisposable
 {
     public readonly GLBuffer<TextCharacter>.WithCPUCache Characters;
     public readonly ITextProvider TextProvider;
-    private readonly VertexArrayObject _vao = new();
-    private readonly List<Range> _freeRanges = [];
-    private readonly Dictionary<TextSlice, Range> _usedRanges = [];
-    private int _currentOffset;
-
     public Vector4i? ClipRect { get; set; }   // scissor-clip rect, UI/camera space; null = unclipped
 }
 ```
 
-A `TextBuffer` owns a single GPU buffer holding *every* character of *every* slice that lives in it. Slices are allocated as ranges inside `Characters`, with free-range tracking so removed slices' slots can be reused.
+A `TextBuffer` owns one GPU buffer holding every character of every slice in it. Slices are ranges inside `Characters`, and removed slices' ranges are reused.
 
-### VAO setup
-
-```csharp
-vao.AddBuffer(GLQuad.VBOWithoutUV, new VertexBufferLayout().PushFloat(3));
-
-var layout = new VertexBufferLayout();
-TextCharacter.SelfReflectToGL(layout);
-vao.AddBuffer(Characters, layout);
-
-vao.SetIndexBuffer(GLQuad.EBO);
-```
-
-Two VBOs: the static unit quad (3 floats per vertex) and the dynamic per-character instance buffer. The fragment shader takes the quad's per-vertex UV (0..1), interpolates it, and uses `TextureUV` to remap into atlas coordinates.
-
-### Slice allocation
-
-`GetTextSlice(text, capacity)`:
-
-1. If the buffer doesn't have room for `_currentOffset + capacity`, resize the CPU + GPU buffers.
-2. Look for a free range with enough length; split it if it's larger than needed.
-3. Otherwise, append at `_currentOffset` and bump.
-4. Hand back a `TextSlice` that knows its `Offset` and `Length`.
-
-### Render
-
-```csharp
-public void RenderBuffer(Camera camera, int endIndex = -1)
-{
-    if (endIndex < 0) endIndex = _currentOffset;
-    _vao.Bind();
-    _vao.Update();
-    TextProvider.BindAndSetUniforms(camera);
-    GLQuad.DrawInstanced(endIndex);
-}
-```
-
-One `glDrawElementsInstanced` call covers the entire buffer. `endIndex` defaults to `_currentOffset`, which means *only the slots up to the highest-watermark allocation* are drawn; cleared slots at indices < `_currentOffset` carry zero `Color.A` so they're transparent.
+The VAO has two buffers: the static unit quad (3 floats per vertex), and the per-character instance buffer laid out by `TextCharacter.SelfReflectToGL`. `RenderBuffer` binds the VAO, calls `TextProvider.BindAndSetUniforms`, and issues one `glDrawElementsInstanced` up to the highest allocated slot. Cleared slots have zero scale and draw nothing.
 
 ## `TextSlice`
 
-A logical handle to a contiguous range inside `TextBuffer.Characters`:
+A handle to a contiguous range inside `TextBuffer.Characters`, with `Value`, `FontSize`, `Color`, `Position` and `ClipRect`. Setting any of them calls `UpdateCharacters()`, unless `UpdateManually` is set to batch several changes. `Dispose()` zeroes the slots and frees the range.
 
-```csharp
-public class TextSlice(TextBuffer textBuffer, Range range) : IPositionable, IDisposable
-{
-    public ReadOnlySpan<char> Value { get; set; }
-    public float FontSize { get; set; }
-    public Vector4 Color  { get; set; }
-    public Vector3 Position { get; set; }
-    public Vector3 Scale    { get; set; }
-    public bool UpdateManually { get; set; }
-}
-```
-
-Setting `Value`, `FontSize`, or `Position` calls `UpdateCharacters()` — which walks the string, asks the `TextProvider` for each character's atlas rectangle and alignment data, builds a `FlexLineItemPlacementLayout` describing wrapping/advance, and writes one `TextCharacter` per character into `textBuffer.Characters[Offset + i]`.
-
-The actual *positioning* is done by `FlexLinePositioningProvider<TextCharacter>.UpdatePositions` — flex-line layout that supports newlines, font-metric-based line-height, em-relative scaling, and optional character-by-character overrides. The provider mutates the slice of `TextBuffer.Characters` in place.
-
-`UpdateManually = true` defers the rebuild — useful when you're about to set multiple properties at once and don't want N redundant rebuilds.
-
-`Dispose()` calls `textBuffer.Remove(this)`, which zeroes out the character slots and adds the range to `_freeRanges` for reuse.
-
-### Surrogate pairs
-
-`UpdateCharacters` handles UTF-16 surrogate pairs explicitly:
-
-```csharp
-if (char.IsSurrogate(character) &&
-    char.IsSurrogatePair(character, val[index + 1])) {
-    characters[0] = character;
-    characters[1] = val[index + 1];
-    rect = textProvider.GetTextCharacterRect(characters);
-    index++;
-}
-```
-
-The `GetTextCharacterRect` overload takes a `ReadOnlySpan<char>` of length 1 or 2, so emoji and other supplementary-plane glyphs work without special-casing in the atlas.
-
-## Layout helpers
-
-`FlexLinePositioningProvider<T>` and `FlexLineItemPlacementLayout` live in the same folder. They turn a sequence of `(advance, translate, scale, newLines)` records into actual `TextCharacter.Position` values, accounting for line-height (from font metrics), em-size, and the slice's font-size scale. The result is also returned as a `Vector2` size that becomes `slice.Scale.XY` — useful for caller-side bounding boxes.
-
-## The `Allocationless/` folder
-
-A handful of helpers for zero-allocation iteration over text — typically used by [labels and buttons](../../Components/Components.md) during input handling, where they need to walk character positions to find click targets without GC pressure.
+Surrogate pairs are passed to `GetGlyph` as a two-character span, which decodes them as one codepoint. A codepoint the font lacks draws as its `.notdef` box.
 
 ## Threading
 
-- **Glyph generation** (`GlyphProvider.GetGlyph`) runs on whichever thread invoked it, but is locked behind the atlas lock so two concurrent loads of the same character won't collide. The MSDF generation is pure CPU.
-- **Atlas upload** (`GPUTexture.QueueUploadToGPU`) is queued; the actual GL upload happens on next `Bind()` (i.e. next render frame).
-- **`TextSlice` mutation** is single-threaded — typically from `Scene.Update` or input handlers.
+- **Building a font's data** runs on whichever thread first touches `SlugData`, behind a thread-safe `Lazy`. At boot, that's a worker.
+- **`GetGlyph`** is a lookup and is safe from any thread.
+- **The texture upload** is queued and happens on the first `Bind()`, on the render thread.
+- **`TextSlice` mutation** is single-threaded, typically from `Scene.Update` or input handlers.
+
+## Limits
+
+- Colour emoji (COLR layers) aren't drawn; an emoji font's base outlines are empty. The plan's "Not in this plan" section sketches how to stack one Slug glyph per colour layer.
+- The quad pad is a fixed 1/16 em, enough down to about 8 px text. Lengyel's `SlugDilate` is the fix if smaller text clips.
+- Each `TextProvider` uploads its own texture pair, so two providers over one font hold two copies.
 
 ## Related
 
-- [GPUTextureAtlas](../Renderer/Textures.md#atlases) is the storage substrate.
+- [Textures](../Renderer/Textures.md): `GPUTexture` is the storage.
 - [GLQuad](../Renderer/Buffers.md#glquad) supplies the geometry.
-- [Batched shader](../Renderer/Shaders.md) decodes the MSDF in the fragment stage.
-- [CacheProvider](../Asset%20Management.md#the-cache) is what makes the atlas survive across runs (see `GPUTextureAtlas.LoadFromCache`).
+- [Shaders](../Renderer/Shaders.md): the `Batched` pair.
 - The [`Label`](../../Components/Labels.md) component is the most common consumer.

@@ -344,8 +344,7 @@ public class TextInput : Panel
                 i += 1;
             }
 
-            var (_, alignment) = Context.TextProvider.GetTextCharacterRect(character);
-            width += (float)alignment.AdvanceInUnitSpace * fontSize;
+            width += Context.TextProvider.GetGlyph(character).Advance * fontSize;
         }
 
         return width;
@@ -370,8 +369,7 @@ public class TextInput : Panel
             pair[0] = _text[i];
             if (step == 2) pair[1] = _text[i + 1];
 
-            var (_, alignment) = Context.TextProvider.GetTextCharacterRect(pair[..step]);
-            var advance = (float)alignment.AdvanceInUnitSpace * fontSize;
+            var advance = Context.TextProvider.GetGlyph(pair[..step]).Advance * fontSize;
 
             if (local < width + advance / 2) return i;
             width += advance;

@@ -50,3 +50,8 @@ picks the right build for your system. You can also visit the
 latest copy of the compiled projects, or you can compile this project from the source code.
 
 The **officially supported operating systems** are **Windows x64** and **Linux x64**, but I also include builds for **macOS x64/ARM**
+
+## Acknowledgements
+
+Text is drawn with the [Slug algorithm](https://github.com/EricLengyel/Slug) by Eric Lengyel. The
+text shader is translated from his reference shaders (MIT, Copyright 2017 Eric Lengyel).

@@ -1,11 +1,11 @@
 using Sundex.Engine.Text.Fonts;
-using Sundex.MSDF;
+using Sundex.Slug;
 
 namespace Sundex.Components.Tests;
 
 public class MockFontProvider : IFontProvider
 {
-    public MsdfFont GetFont(ReadOnlySpan<char> fontName)
+    public SlugFont GetFont(ReadOnlySpan<char> fontName)
     {
         return null!;
     }

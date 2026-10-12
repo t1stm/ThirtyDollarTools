@@ -1,45 +1,20 @@
 using System.Runtime.CompilerServices;
 
-namespace Sundex.MSDF.Geometry;
+namespace Sundex.Slug.Geometry;
 
 /// <summary>
-///     Double-precision 2D vector.
-///     Double rather than float because the cubic root finding in the distance solver loses
-///     curved-segment accuracy at single precision.
+///     Double-precision 2D vector, which outlines are built and measured in. The Slug build
+///     narrows to float only when it packs the curves.
 /// </summary>
 internal readonly struct Vector2d(double x, double y) : IEquatable<Vector2d>
 {
     public readonly double X = x;
     public readonly double Y = y;
 
-    public static Vector2d Zero => new(0, 0);
-
     public double Length
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Math.Sqrt(X * X + Y * Y);
-    }
-
-    /// <summary>Unit vector in the same direction. A zero-length vector yields (0,1), or (0,0) when allowed.</summary>
-    public Vector2d Normalize(bool allowZero = false)
-    {
-        var len = Length;
-        if (len != 0) return new Vector2d(X / len, Y / len);
-        return new Vector2d(0, allowZero ? 0 : 1);
-    }
-
-    /// <summary>Perpendicular vector of the same length; <paramref name="polarity" /> picks which of the two.</summary>
-    public Vector2d GetOrthogonal(bool polarity = true)
-    {
-        return polarity ? new Vector2d(-Y, X) : new Vector2d(Y, -X);
-    }
-
-    /// <summary>Unit-length perpendicular vector; <paramref name="polarity" /> picks which of the two.</summary>
-    public Vector2d GetOrthonormal(bool polarity = true, bool allowZero = true)
-    {
-        var len = Length;
-        if (len == 0) return polarity ? new Vector2d(0, allowZero ? 0 : 1) : new Vector2d(0, -(allowZero ? 0 : 1));
-        return polarity ? new Vector2d(-Y / len, X / len) : new Vector2d(Y / len, -X / len);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -86,11 +61,6 @@ internal readonly struct Vector2d(double x, double y) : IEquatable<Vector2d>
     }
 
     /// <summary>Component-wise product.</summary>
-    public static Vector2d Scale(Vector2d a, Vector2d b)
-    {
-        return new Vector2d(a.X * b.X, a.Y * b.Y);
-    }
-
     public bool Equals(Vector2d other)
     {
         return X.Equals(other.X) && Y.Equals(other.Y);

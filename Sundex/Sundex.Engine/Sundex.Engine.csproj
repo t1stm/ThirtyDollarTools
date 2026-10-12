@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Sundex.MSDF\Sundex.MSDF.csproj"/>
+    <ProjectReference Include="..\Sundex.Slug\Sundex.Slug.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

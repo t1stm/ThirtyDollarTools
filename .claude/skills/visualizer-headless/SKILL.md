@@ -40,6 +40,23 @@ screen coordinates are window coordinates: take a `shot`, read the pixel positio
 image, click it. It runs capped at 60 fps (`-f 60`). Passing your own `-w`, `-h` or `-f`
 replaces the script's value, so `start -f 0` runs uncapped.
 
+## Text benchmark
+
+`--mode text-bench` fills the window with text and times its draw on the GPU (the Slug
+plan's 4 ms gate, `docs/handover/sundex-slug-plan.md`):
+
+```bash
+bash $S/viz.sh stop; VIZ_SIZE=1920x1080 bash $S/viz.sh start --mode text-bench
+grep '\[TextBench\]' /tmp/tdviz/visualizer.log   # one line per variant, then verdict=pass|fail
+```
+
+Repeat at `VIZ_SIZE=1080x720` (the minimum window) for context. It takes ~40 s and closes
+itself. `start` will say "not running" after waiting for a Home that never comes; that's
+expected. Wait for the `verdict=` line instead. The app runs under `nohup`, so its exit code
+(1 on a fail) never reaches you; the verdict line carries it. Before you grep, make sure
+the log is from this run and not the last one. Anything else using the GPU at the same time
+(a game, a miner) inflates the numbers.
+
 ## Letting the user watch
 
 `start` already brings up VNC and prints a `vncviewer localhost:5900` line - hand that

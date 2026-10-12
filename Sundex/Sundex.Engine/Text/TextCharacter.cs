@@ -8,7 +8,9 @@ namespace Sundex.Engine.Text;
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct TextCharacter() : IGPUReflection, IPositionable
 {
-    public Vector4 TextureUV;
+    /// <summary>The glyph's padded ink box in em space: (left, bottom, right, top). See <c>SlugGlyph.EmRect</c>.</summary>
+    public Vector4 EmRect;
+
     public Vector3 Position { get; set; }
     public Vector3 Scale { get; set; }
     public Vector4 Color { get; set; } = Vector4.One;
@@ -22,11 +24,19 @@ public struct TextCharacter() : IGPUReflection, IPositionable
     /// </summary>
     public Vector4 ClipRect { get; set; }
 
+    /// <summary>The Slug shader's <c>bandTransform</c>. See <c>SlugGlyph.Banding</c>.</summary>
+    public Vector4 Banding;
+
+    /// <summary>The Slug shader's <c>glyphData</c>. See <c>SlugGlyph.GlyphData</c>.</summary>
+    public Vector4 GlyphData;
+
     public static void SelfReflectToGL(VertexBufferLayout layout)
     {
         layout.PushFloat(4, true);
         layout.PushFloat(3, true);
         layout.PushFloat(3, true);
+        layout.PushFloat(4, true);
+        layout.PushFloat(4, true);
         layout.PushFloat(4, true);
         layout.PushFloat(4, true);
     }

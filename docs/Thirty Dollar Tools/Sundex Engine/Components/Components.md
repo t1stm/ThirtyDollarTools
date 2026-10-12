@@ -66,7 +66,7 @@ If you're new to the codebase:
 
 1. **[Abstractions](Abstractions.md)** — the `UIElement` contract. Everything else is variations on this theme.
 2. **[Panels](Panels.md)** — `Panel` is the simplest concrete element; `FlexPanel` is the layout workhorse.
-3. **[Labels](Labels.md)** — how text wires into the [MSDF text pipeline](../Engine/Text%20Rendering/Text%20Rendering.md).
+3. **[Labels](Labels.md)** — how text wires into the [Slug text pipeline](../Engine/Text%20Rendering/Text%20Rendering.md).
 4. **[Bars](Bars.md)** — `ProgressBar` is a good example of a composite that wraps two child Panels with controlled style propagation.
 
 ## Threading

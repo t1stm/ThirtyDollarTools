@@ -1,6 +1,5 @@
 using OpenTK.Mathematics;
 using Sundex.Engine.Renderer.Abstract;
-using Sundex.Engine.Text.Fonts;
 
 namespace Sundex.Engine.Text;
 
@@ -10,7 +9,7 @@ public ref struct FlexLinePositioningProvider<TValue>() where TValue : IPosition
     public double LineHeight { get; set; } = 1f;
     public double EmSize { get; set; } = 1f;
     public Vector3 BasePosition { get; set; } = Vector3.Zero;
-    public float RelativeSize { get; set; } = GlyphProvider.GlyphSize;
+    public float RelativeSize { get; set; } = 1;
 
     public Vector2 UpdatePositions<TCollection>(ref TCollection items,
         ReadOnlySpan<FlexLineItemPlacementLayout> layouts, int offset, int bufferIndex)

@@ -57,4 +57,4 @@ The renderer is the part of `Sundex.Engine` that owns GPU resources: VAOs, VBOs/
 
 - The lifecycle of these resources is owned by [AssetProvider](../Asset%20Management.md) (via the `DeleteQueue` and `ShaderPool`).
 - `[PreloadGraphicsContext]` is discovered by reflection in [Game.OnLoad](../Entrypoint.md#onload).
-- Higher-level rendering — [MSDF text](../Text%20Rendering/Text%20Rendering.md), component layout — is built directly on these abstractions.
+- Higher-level rendering — [Slug text](../Text%20Rendering/Text%20Rendering.md), component layout — is built directly on these abstractions.

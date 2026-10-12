@@ -177,7 +177,7 @@ Add image → ask atlas for a rectangle → enqueue an upload to that rectangle.
 - `Atlas_Texture<id>` — the rendered atlas image, decoded with `Image.Load<Rgba32>` or `Image.Load<RgbaVector>` depending on the `InternalFormat`.
 - `Atlas_Lookup<id>` — the `GuillotineAtlas` JSON, deserialised back into a fully-populated bin-pack state.
 
-If both exist the texture is uploaded directly and the atlas's used-rectangle dictionary is restored — bypassing per-glyph rasterisation. This is what lets [TextProvider](../Text%20Rendering/Text%20Rendering.md) start instantly on second launch even though MSDF generation is expensive.
+If both exist the texture is uploaded directly and the atlas's used-rectangle dictionary is restored — bypassing per-glyph rasterisation. Text no longer uses an atlas: [TextProvider](../Text%20Rendering/Text%20Rendering.md) uploads two plain `GPUTexture`s per font.
 
 Only `Rgba8` and `Rgba32f` formats can be cached — the other internal formats either don't have a portable on-disk representation or aren't used for atlases.
 
@@ -189,6 +189,6 @@ Only `Rgba8` and `Rgba32f` formats can be cached — the other internal formats 
 
 ## Related
 
-- [TextProvider](../Text%20Rendering/Text%20Rendering.md) uses a single `GPUTextureAtlas` (2048×2048, `Rgba32f`) for all glyph MSDFs.
+- [TextProvider](../Text%20Rendering/Text%20Rendering.md) uses two `Rgba32f` `GPUTexture`s per font (Slug curves and bands, 4096 texels wide), not an atlas. It's the one caller that binds a second texture unit.
 - [CacheProvider](../Asset%20Management.md#the-cache) is what makes atlas caching possible.
 - [GLQuad](Buffers.md) supplies the geometry that gets textured at draw time.
