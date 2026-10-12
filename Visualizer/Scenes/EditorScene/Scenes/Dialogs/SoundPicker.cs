@@ -451,7 +451,9 @@ public sealed class SoundPicker : FlexPanel
             SoundName = soundName;
             Instance = instance;
             UpdateCursorOnHover = true;
-            Computed = new ComputedRectangle { OnUpdate = UpdateMatrix };
+            // Chained onto the base hook, not replacing it: its InvalidateCoordinates is what
+            // re-lays-out the adjustment label when the grid moves this icon.
+            Computed.OnUpdate += UpdateMatrix;
             OnClick = _ =>
             {
                 if (!picker.MultiSelect)
@@ -477,8 +479,6 @@ public sealed class SoundPicker : FlexPanel
 
         /// <summary>Frees this icon's slot in the render stack; see <see cref="DestroyIcon" />.</summary>
         public Action? Release { get; init; }
-
-        public override ComputedRectangle Computed { get; protected set; }
 
         /// <summary>
         ///     Reserves room below the icon for the value/volume/pan label and adds it; only

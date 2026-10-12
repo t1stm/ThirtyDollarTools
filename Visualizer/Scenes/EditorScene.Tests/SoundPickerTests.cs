@@ -32,19 +32,35 @@ public class SoundPickerTests
 
     /// <summary>
     ///     Builds a Selected icon directly - the normal path goes through the atlas store,
-    ///     which has no images in tests - and scrolls it with the given modifiers held.
+    ///     which has no images in tests.
     /// </summary>
+    private static Panel NewIcon(SoundPicker picker, InstrumentSound instance)
+    {
+        var type = typeof(SoundPicker).GetNestedType("SoundIcon", BindingFlags.NonPublic)!;
+        return (Panel)Activator.CreateInstance(type,
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
+            [picker.Context, picker, instance.Sound, instance], null)!;
+    }
+
+    /// <summary>Scrolls a fresh icon for the instance with the given modifiers held.</summary>
     private static void ScrollIcon(SoundPicker picker, InstrumentSound instance, float notches,
         bool ctrl = false, bool shift = false)
     {
         picker.CtrlHeld = ctrl;
         picker.ShiftHeld = shift;
 
-        var type = typeof(SoundPicker).GetNestedType("SoundIcon", BindingFlags.NonPublic)!;
-        var icon = Activator.CreateInstance(type,
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null,
-            [picker.Context, picker, instance.Sound, instance], null)!;
-        type.GetMethod("HandleScroll")!.Invoke(icon, [new Vector2(0, notches)]);
+        var icon = NewIcon(picker, instance);
+        icon.GetType().GetMethod("HandleScroll")!.Invoke(icon, [new Vector2(0, notches)]);
+    }
+
+    /// <summary>An icon carrying its value/volume/pan label, as Selected icons do with adjustments on.</summary>
+    private static Panel NewAdjustableIcon(SoundPicker picker, InstrumentSound instance)
+    {
+        var icon = NewIcon(picker, instance);
+        icon.Width = 40;
+        icon.Height = 40;
+        icon.GetType().GetMethod("EnableAdjustmentText")!.Invoke(icon, null);
+        return icon;
     }
 
     [Fact]
@@ -84,6 +100,25 @@ public class SoundPickerTests
         Assert.Equal(-5, duplicate.Value);
         Assert.NotSame(picker.Instances[0], duplicate);
         Assert.Equal(["kick", "clap"], picker.Selected); // names dedupe
+    }
+
+    [Fact]
+    public void AdjustmentLabel_FollowsItsIcon_WhenTheGridMovesIt()
+    {
+        // Duplicating inserts an icon mid-grid and shifts the ones after it; each label has
+        // to move with its icon instead of staying behind over the new neighbour's.
+        var picker = NewPicker(new EditorTestContext());
+        var grid = new FlexPanel(picker.Context) { Width = 500, Height = 100 };
+        var shifted = NewAdjustableIcon(picker, new InstrumentSound { Sound = "clap", Value = -12 });
+        grid.AddChild(shifted);
+        grid.Layout();
+
+        grid.Children = [NewAdjustableIcon(picker, new InstrumentSound { Sound = "kick" }), shifted];
+        grid.Layout();
+
+        var label = Assert.Single(shifted.Children);
+        Assert.True(shifted.Computed.AbsoluteX > 0);
+        Assert.Equal(shifted.Computed.AbsoluteX, label.Computed.AbsoluteX);
     }
 
     [Fact]
