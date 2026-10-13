@@ -49,6 +49,9 @@ var accent_yellow_hover = "#e8bf82";
 var text = "#d6dadc";
 var text_dim = "#a8b3db";
 var text_muted = "#565f89";
+// Between dim and muted: secondary text on the dialog fill, where text_muted is too faint
+// (a file's date, a footnote).
+var text_subtle = "#737ca6";
 
 // Text on a fill light enough that `text` is unreadable on it. Happens to equal `panel`
 // today; it is a separate name so retuning the chrome does not recolor those labels.

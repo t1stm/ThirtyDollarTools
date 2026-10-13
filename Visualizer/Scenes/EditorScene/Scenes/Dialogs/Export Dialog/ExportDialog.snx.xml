@@ -3,37 +3,79 @@
 
   <layout>
     <flex id="export-dialog" class="dialog-frame">
-      <label class="title-label-large" value="Export"/>
+      <flex class="dialog-header">
+        <label class="dialog-title" value="Export"/>
+        <label id="project-label" class="dialog-subtitle" value=""/>
+        <panel class="spacer"/>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
 
-      <panel class="form-row">
-        <label class="[field-label,form-row-label]" value="Divider every N bars (0 = off)"/>
-        <numeric-input id="divider-every-bars" class="[export-field,form-row-input]" value="2"/>
-      </panel>
+      <!-- The two formats. ExportDialog.cs swaps export-card-idle/-selected as one is picked. -->
+      <flex class="export-cards">
+        <flex id="tdw-card" class="[export-card,export-card-selected]">
+          <flex class="export-card-title">
+            <label class="export-card-icon" font="Lucide" value="&#xe0cc;"/>
+            <label class="body-label" value="Sequence"/>
+            <flex class="key-chip">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value=".tdw"/>
+            </flex>
+          </flex>
+          <label class="export-card-caption" value="Text for thirtydollar.website"/>
+        </flex>
+        <flex id="wav-card" class="[export-card,export-card-idle]">
+          <flex class="export-card-title">
+            <label class="export-card-icon" font="Lucide" value="&#xe55b;"/>
+            <label class="body-label" value="Audio"/>
+            <flex class="key-chip">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value=".wav"/>
+            </flex>
+          </flex>
+          <label class="export-card-caption" value="One file with every track mixed"/>
+        </flex>
+      </flex>
 
-      <panel class="form-row">
-        <!-- The default comes from SequenceStyle, so ExportDialog.cs sets it after build. -->
-        <label class="[field-label,form-row-label]" value="!stop after N pauses (0 = never)"/>
-        <numeric-input id="migrate-to-stop" class="[export-field,form-row-input]"/>
-      </panel>
+      <!-- Holds the chosen format's options: ExportDialog.cs keeps one of the two in it. -->
+      <flex id="export-options">
+        <flex id="tdw-options" class="export-option-rows">
+          <panel class="export-row">
+            <label class="[field-label,export-row-label]" value="Divider every"/>
+            <numeric-input id="divider-every-bars" class="export-row-input" value="2"/>
+          </panel>
 
-      <checkbox id="divider-on-speed-changes" value="Divider on !speed changes"/>
+          <panel class="export-row">
+            <!-- The default comes from SequenceStyle, so ExportDialog.cs sets it after build. -->
+            <label class="[field-label,export-row-label]" value="!stop after"/>
+            <numeric-input id="migrate-to-stop" class="export-row-input"/>
+          </panel>
+
+          <flex class="export-line">
+            <checkbox id="divider-on-speed-changes" value="Divider on !speed changes"/>
+          </flex>
+        </flex>
+
+        <!-- True per EditorPlayback.ExportWav: it mixes every track, muted or not. -->
+        <flex id="wav-options" class="export-line">
+          <label class="export-line-icon" font="Lucide" value="&#xe1ab;"/>
+          <label class="field-label" value="Every track is in the file. Mute and solo are ignored."/>
+        </flex>
+      </flex>
 
       <!-- Removed by EditorInterface unless the project actually holds a wave track: a
            reference is played, never written, and neither export carries it. -->
-      <label id="wave-note" class="caption-label" value="Wave reference tracks are not exported."/>
+      <flex id="wave-note" class="export-note">
+        <label class="export-note-icon" font="Lucide" value="&#xe0f9;"/>
+        <label class="export-note-label" value="Wave reference tracks are not exported."/>
+      </flex>
 
-      <flex id="export-actions" class="dialog-actions-split">
-        <!-- Percent-width spacer soaks up the free space so Cancel sits flush left and
-             the export actions flush right - no space-between align in this framework. -->
+      <!-- ExportDialog.cs puts the Esc and Enter chips on these. -->
+      <flex class="dialog-actions">
         <button id="cancel-button" class="dialog-button">
           <label value="Cancel"/>
         </button>
-        <panel class="spacer"/>
-        <button id="tdw-button" class="dialog-button-primary">
-          <label value="Export .tdw"/>
-        </button>
-        <button id="wav-button" class="dialog-button-primary">
-          <label value="Export .wav"/>
+        <button id="export-button" class="dialog-button-primary">
+          <label value="Export .tdw…"/>
         </button>
       </flex>
     </flex>

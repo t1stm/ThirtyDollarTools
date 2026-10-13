@@ -1,4 +1,5 @@
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
@@ -50,6 +51,24 @@ public class ModalLayer : FlexPanel
 
     /// <summary>Fired when the backdrop (not the content) is clicked.</summary>
     public Action<ModalLayer>? OnDismissRequested { get; set; }
+
+    /// <summary>
+    ///     The content's primary action, for the owner's Enter key. Null when the content has
+    ///     none; the layer never fires it itself.
+    /// </summary>
+    public Action<ModalLayer>? OnConfirmRequested { get; set; }
+
+    /// <summary>
+    ///     Hands its content a key that no focused field took, so a dialog can answer the
+    ///     keyboard without holding focus. The modal is never focused itself: the owner calls this.
+    /// </summary>
+    public override bool HandleKeyDown(KeyboardKeyEventArgs e)
+    {
+        foreach (var child in Children)
+            if (child.HandleKeyDown(e))
+                return true;
+        return false;
+    }
 
     public override bool HandleScroll(Vector2 scrollDelta)
     {

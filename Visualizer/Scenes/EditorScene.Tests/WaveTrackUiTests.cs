@@ -292,7 +292,8 @@ public class WaveTrackUiTests
     {
         var dialog = new ExportDialog(new EditorTestContext());
 
-        Assert.Contains("not exported", dialog.WaveNote.Value);
+        Assert.Contains(dialog.WaveNote.Children.OfType<Sundex.Components.Labels.Label>(),
+            label => label.Value.ToString().Contains("not exported"));
         Assert.Contains(dialog.WaveNote, dialog.Element.Children); // removable, so it must be a child
     }
 }

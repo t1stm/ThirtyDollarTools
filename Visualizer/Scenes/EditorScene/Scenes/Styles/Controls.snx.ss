@@ -16,10 +16,16 @@ import "Scenes/Styles/Theme.snx.ss" as theme;
 
 // ---------------------------------------------------------------- buttons
 
-// The default dialog action: bland fill, for anything that isn't the primary choice.
+// Every dialog action is the instrument builder's Done: 34 tall, a radius of 8, 22 at the
+// sides (the label is centred, so the 22 at the top is harmless), 14 px. Each fill class
+// restates the shape, so any one of them alone makes a whole button.
+
+// The default dialog action (Cancel): the quiet fill, for anything that isn't the main choice.
 class dialog-button {
+    height = 34;
+    padding = 22;
     font-size = 14;
-    border-radius = 6;
+    border-radius = 8;
     background = $theme.divider;
 
     state[hovered] = {
@@ -27,10 +33,12 @@ class dialog-button {
     }
 }
 
-// The affirmative action of a dialog (Save, Export, Import as track).
+// The affirmative action of a dialog (Save, Export, Done).
 class dialog-button-primary {
+    height = 34;
+    padding = 22;
     font-size = 14;
-    border-radius = 6;
+    border-radius = 8;
     background = $theme.accent;
 
     state[hovered] = {
@@ -38,11 +46,13 @@ class dialog-button-primary {
     }
 }
 
-// Destructive actions (Delete, Discard). Light fill, so its label is darkened
-// separately - see the dark-label class below.
+// A destructive action that is a dialog's whole point (Delete). Light fill, so its label is
+// darkened separately - see the dark-label class below.
 class dialog-button-danger {
+    height = 34;
+    padding = 22;
     font-size = 14;
-    border-radius = 6;
+    border-radius = 8;
     background = $theme.danger;
 
     state[hovered] = {
@@ -50,10 +60,30 @@ class dialog-button-danger {
     }
 }
 
-// The light-blue action (Duplicate, a row's Edit). Also needs a dark label.
-class dialog-button-light {
+// A destructive way out that must not compete with the main choice (Discard changes): no
+// fill until hovered, a red label (danger-label), 14 at the sides. Stands alone at the left.
+class dialog-button-danger-quiet {
+    height = 34;
+    padding = 14;
     font-size = 14;
-    border-radius = 6;
+    border-radius = 8;
+    background = "#00000000";
+
+    state[hovered] = {
+        background = "#f7768e1f";
+    }
+}
+
+class danger-label {
+    font-color = $theme.danger;
+}
+
+// The light-blue action (Duplicate, the builder's Preview). Also needs a dark label.
+class dialog-button-light {
+    height = 34;
+    padding = 22;
+    font-size = 14;
+    border-radius = 8;
     background = $theme.header;
 
     state[hovered] = {
@@ -63,8 +93,10 @@ class dialog-button-light {
 
 // The yellow alternative in a two-option dialog. Dark label as well.
 class dialog-button-alt {
+    height = 34;
+    padding = 22;
     font-size = 14;
-    border-radius = 6;
+    border-radius = 8;
     background = $theme.accent_yellow;
 
     state[hovered] = {
@@ -72,17 +104,98 @@ class dialog-button-alt {
     }
 }
 
-// Height only, so it composes with any of the fills above: the import dialog's two
-// options must line up across the divider between them.
+// Height only, listed after a fill: the import dialog's two options must line up across the
+// divider between them.
 class dialog-button-tall {
     height = 40;
 }
 
 // Shape without a fill, for a button that reads as a bare label - the track context
-// menu's Cancel, which has never been filled like the other dialogs' are.
+// menu's Cancel, the import dialog's "or as a Piano Roll track". Nothing shows its edges, so
+// it pads only 5: its text lines up with the text around it.
 class dialog-button-shape {
+    height = 34;
+    padding = 5;
     font-size = 14;
+    border-radius = 8;
+}
+
+// A modifier listed after a fill, for a button that leads with its key: the chip, the label,
+// then a tail (button-tail). Padding is one value on every side, so 8 on the left, and the
+// tail after the 8 gap makes the right 16. KeyChip.Add builds it.
+class key-button {
+    direction = "horizontal";
+    padding = 8;
+    spacing = 8;
+    horizontal-align = "center";
+    vertical-align = "center";
+}
+
+class button-tail {
+    width = 0;
+    height = 1;
+}
+
+// 2 x 7 padding: 18 tall with the 11 px key centred, 7 at the sides. Its fill is 18% of the
+// darkest text over whatever button it sits on.
+class key-chip {
+    height = 18;
+    padding = 7;
+    vertical-align = "center";
+    border-radius = 4;
+    background = $theme.key_label;
+}
+
+// The key's name: dark on a light button, and the two below on the others.
+class key-chip-label {
+    font-size = 11;
+    font-color = $theme.text_dark;
+}
+
+class key-chip-label-on-accent {
+    font-color = "#ffffffd9";
+}
+
+class key-chip-label-on-quiet {
+    font-color = $theme.text_dim;
+}
+
+// The ghost button holding one Lucide glyph (a row's play/edit/delete, a dialog's close):
+// 28 square, no fill until hovered.
+class icon-button {
+    width = 28;
+    height = 28;
+    padding = 0;
     border-radius = 6;
+    background = "#00000000";
+
+    state[hovered] = {
+        background = $theme.divider;
+    }
+}
+
+class icon-button-icon {
+    font-size = 16;
+    font-color = $theme.text_dim;
+}
+
+// The play triangle is the smaller of the glyphs.
+class icon-button-play {
+    font-size = 14;
+}
+
+// A small fact beside a title (a file type, a count): the key chip's shape on the field fill.
+class info-chip {
+    height = 18;
+    padding = 7;
+    vertical-align = "center";
+    border-radius = 4;
+    background = $theme.input_background;
+}
+
+class info-chip-label {
+    font-size = 11;
+    font-color = $theme.text_dim;
 }
 
 // Sits on any button whose fill is light enough that white text on it is unreadable.
@@ -195,12 +308,6 @@ class field-label {
 // A section/dialog title.
 class title-label {
     font-size = 15;
-    font-color = $theme.header;
-}
-
-// The larger title used by the export dialog's heading.
-class title-label-large {
-    font-size = 18;
     font-color = $theme.header;
 }
 

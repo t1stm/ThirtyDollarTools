@@ -734,6 +734,18 @@ public class EditorInterface
         return _dialogHost.TryCloseTop();
     }
 
+    /// <summary>Offers a key to the topmost modal's content; see <see cref="DialogHost.TryKeyTop" />.</summary>
+    public bool TryKeyTopModal(KeyboardKeyEventArgs e)
+    {
+        return _dialogHost.TryKeyTop(e);
+    }
+
+    /// <summary>Runs the topmost modal's primary action, if it has one. Used so Enter confirms a dialog.</summary>
+    public bool TryConfirmTopModal()
+    {
+        return _dialogHost.TryConfirmTop();
+    }
+
     public void LoadProjectFile(string location)
     {
         _projectIo.Load(location);
@@ -831,13 +843,10 @@ public class EditorInterface
             return;
         }
 
-        var dialog = new UnsavedChangesDialog(_context);
+        var dialog = new UnsavedChangesDialog(_context, State.Project.Info.Name, State.ProjectPath);
         var modal = _dialogHost.Show(dialog.Element);
-        dialog.SaveButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            _projectIo.Save(PerformBack);
-        };
+        modal.OnConfirmRequested = _ => Save();
+        dialog.SaveButton.OnClick = _ => Save();
         dialog.DiscardButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
@@ -845,6 +854,14 @@ public class EditorInterface
             PerformBack();
         };
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
+        return;
+
+        void Save()
+        {
+            _dialogHost.Close(modal);
+            _projectIo.Save(PerformBack);
+        }
     }
 
     /// <summary>
@@ -893,7 +910,7 @@ public class EditorInterface
         dialog.WaveButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
-            _dialogHost.ShowFileDialog(null, ".wav", ImportWaveFile, "Open");
+            _dialogHost.ShowFileDialog("Open audio", null, ".wav", ImportWaveFile);
         };
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
         return;
@@ -924,12 +941,12 @@ public class EditorInterface
     /// <summary>Replaces the file a wave track plays, keeping the clip where it is.</summary>
     private void ShowWaveReplaceDialog(WaveTrack track)
     {
-        _dialogHost.ShowFileDialog(null, ".wav", path =>
+        _dialogHost.ShowFileDialog("Open audio", null, ".wav", path =>
             Playback.PrepareWave(path).ContinueWith(decode =>
             {
                 if (decode.Result is not { } seconds) return;
                 _pendingEdits.Enqueue(() => State.SetWaveFile(track, path, seconds));
-            }), "Open");
+            }));
     }
 
     /// <summary>
@@ -1081,7 +1098,7 @@ public class EditorInterface
     [UsedImplicitly]
     public void ShowLoadDialog()
     {
-        _dialogHost.ShowFileDialog(null, ".tdwproj", LoadProjectFile);
+        _dialogHost.ShowFileDialog("Open project", null, ".tdwproj", LoadProjectFile);
     }
 
     [UsedImplicitly]
@@ -1122,24 +1139,34 @@ public class EditorInterface
     public void ShowExportDialog()
     {
         var dialog = new ExportDialog(_context);
+        dialog.ProjectLabel.SetTextContents(State.Project.Info.Name);
         if (!State.Project.Tracks.Any(track => track.Kind == TrackKind.Wave))
             dialog.Element.RemoveChild(dialog.WaveNote);
 
+        // Exports land next to the project file; an unsaved project has none and opens home.
+        var directory = Path.GetDirectoryName(State.ProjectPath);
         var modal = _dialogHost.Show(dialog.Element);
+        modal.OnConfirmRequested = _ => Export();
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.TdwButton.OnClick = _ =>
-        {
-            var style = dialog.Style;
-            _dialogHost.Close(modal);
-            _dialogHost.ShowFileDialog($"{State.Project.Info.Name}.tdw", ".tdw",
-                path => _projectIo.ExportTdw(path, style), "Export");
-        };
-        dialog.WavButton.OnClick = _ =>
+        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
+        dialog.ExportButton.OnClick = _ => Export();
+        return;
+
+        void Export()
         {
             _dialogHost.Close(modal);
-            _dialogHost.ShowFileDialog($"{State.Project.Info.Name}.wav", ".wav", path => Playback.ExportWav(path),
-                "Export");
-        };
+            if (dialog.Format == ExportFormat.Tdw)
+            {
+                var style = dialog.Style;
+                _dialogHost.ShowFileDialog("Export sequence", $"{State.Project.Info.Name}.tdw", ".tdw",
+                    path => _projectIo.ExportTdw(path, style), "Export", directory);
+            }
+            else
+            {
+                _dialogHost.ShowFileDialog("Export audio", $"{State.Project.Info.Name}.wav", ".wav",
+                    path => Playback.ExportWav(path), "Export", directory);
+            }
+        }
     }
 
     private void RefreshProject()

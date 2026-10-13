@@ -42,4 +42,22 @@ public class ExportDialogTests
         Assert.True(style.DividerOnSpeedChanges);
         Assert.Null(style.MigrateToStop);
     }
+
+    [Fact]
+    public void PickingAudio_ShowsItsLine_AndNamesTheExportAfterIt()
+    {
+        var dialog = new ExportDialog(new EditorTestContext());
+        var options = (Sundex.Components.Panels.Panel)dialog.Element.Children
+            .Single(child => child.ID == "export-options");
+        Assert.Equal("Export .tdw…", dialog.ExportButton.Value.ToString());
+        Assert.Equal("tdw-options", Assert.Single(options.Children).ID);
+
+        dialog.Format = ExportFormat.Wav;
+
+        Assert.Equal("Export .wav…", dialog.ExportButton.Value.ToString());
+        Assert.Equal("wav-options", Assert.Single(options.Children).ID);
+
+        dialog.Format = ExportFormat.Tdw;
+        Assert.Equal("tdw-options", Assert.Single(options.Children).ID);
+    }
 }

@@ -45,41 +45,8 @@ id instrument-name-input {
     border-radius = 6;
 }
 
-// The light Preview button: the play key's label, then the word. 8 on the left; the tail
-// panel after the word makes the right 16.
-class instrument-preview-button {
-    direction = "horizontal";
-    height = 34;
-    padding = 8;
-    spacing = 8;
-    vertical-align = "center";
-    border-radius = 8;
-    background = $theme.header;
-
-    state[hovered] = {
-        background = $theme.header_hover;
-    }
-}
-
-class instrument-preview-tail {
-    width = 0;
-    height = 1;
-}
-
-// 2 x 7 padding: 18 tall with the 11 px label centred, 7 at the sides.
-class instrument-key-chip {
-    height = 18;
-    padding = 7;
-    vertical-align = "center";
-    border-radius = 4;
-    background = $theme.key_label;
-}
-
-class instrument-key-label {
-    font-size = 11;
-    font-color = $theme.text_dark;
-}
-
+// The Preview button is the shared light button with a key (Controls.snx.ss); only its label,
+// a separate element because the button is a panel, is styled here.
 class instrument-preview-label {
     font-size = 14;
     font-color = $theme.text_dark;
@@ -327,28 +294,6 @@ class sound-row-cell-default {
     font-color = $theme.text_muted;
 }
 
-class sound-row-button {
-    width = 28;
-    height = 28;
-    padding = 0;
-    border-radius = 6;
-    background = "#00000000";
-
-    state[hovered] = {
-        background = $theme.divider;
-    }
-}
-
-class sound-row-button-icon {
-    font-size = 16;
-    font-color = $theme.text_dim;
-}
-
-// A3's play triangle is the smaller of the three.
-class sound-row-button-play {
-    font-size = 14;
-}
-
 // ---------------------------------------------------------------- add a sound
 
 // 34 tall in A3, 4 below the list's 8 gap: 38 with its contents at the bottom.
@@ -510,17 +455,4 @@ class instrument-editor-footer {
 class instrument-footer-label {
     font-size = 12;
     font-color = $theme.text_dim;
-}
-
-// 34 tall, 22 at the sides (the label is centred, so the 22 at the top is harmless).
-class instrument-done-button {
-    height = 34;
-    padding = 22;
-    font-size = 14;
-    border-radius = 8;
-    background = $theme.accent;
-
-    state[hovered] = {
-        background = $theme.accent_hover;
-    }
 }

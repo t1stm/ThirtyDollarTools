@@ -1,74 +1,85 @@
-using OpenTK.Mathematics;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Style.DSL;
 using ThirtyDollarConverter.Editor;
-using EditorScene.Scenes.Views;
 
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     One instrument-list row: clicking it picks the instrument; a separate "edit"
-///     button opens the name/sounds form instead. Pure view - <see cref="InstrumentSelector" />
-///     owns both callbacks.
+///     One instrument-list row: up to four of its sounds' icons, its name and sound count, then
+///     Preview, Edit and Delete icon-buttons. Clicking anywhere else on it picks the instrument.
+///     Pure view - <see cref="InstrumentSelector" /> owns the callbacks and the icons' batch.
 /// </summary>
 public sealed class InstrumentRow : FlexPanel
 {
-    private readonly Label _name;
+    private readonly Label _count;
+    private readonly SoundImage[] _icons;
 
-    public InstrumentRow(UIContext context, Instrument instrument, Action<Instrument> onPick,
-        Action<Instrument> onEdit, Action<Instrument> onDelete) : base(context)
+    internal InstrumentRow(UIContext context, Instrument instrument, SoundImage[] icons, Action<Instrument> onPick,
+        Action<Instrument> onPreview, Action<Instrument> onEdit, Action<Instrument> onDelete) : base(context)
     {
         Instrument = instrument;
-        Classes = ["instrument-row"];
+        _icons = icons;
+        Classes = ["instrument-row", "instrument-row-idle"];
         UpdateCursorOnHover = true;
         OnClick = _ => onPick(instrument);
 
-        var edit = new Button(context, "Edit")
-        {
-            Classes = ["row-button-light"],
-            OnClick = _ => onEdit(instrument),
-            Label = { Classes = ["dark-label"] }
-        };
+        var sounds = instrument.Sounds.Count;
+        _count = new Label(context, sounds == 1 ? "1 sound" : $"{sounds} sounds") { Classes = ["instrument-row-count"] };
 
-        var delete = new Button(context, "Delete")
-        {
-            Classes = ["row-button-danger"],
-            OnClick = _ => onDelete(instrument),
-            Label = { Classes = ["dark-label"] }
-        };
+        var preview = IconButton(context, Icons.Play, () => onPreview(instrument));
+        preview.Label.Classes.Add("icon-button-play");
 
-        // The name takes a percent width rather than its measured one, so it soaks up the
-        // free space (this framework has no space-between align) and a long name can never
-        // push Edit/Delete out of the row. Overflowing text is clipped in ApplyClip, and the
-        // width itself is applied in ApplyStyleSheet, both below.
-        _name = new Label(context, instrument.Name) { Classes = ["body-label"] };
-
-        Children = [_name, edit, delete];
+        Children =
+        [
+            new FlexPanel(context)
+            {
+                Classes = ["instrument-row-pick"],
+                Children =
+                [
+                    new FlexPanel(context) { Classes = ["instrument-row-icons"], Children = [.. icons] },
+                    new FlexPanel(context)
+                    {
+                        Classes = ["instrument-row-text"],
+                        Children = [new ClippedLabel(context, instrument.Name) { Classes = ["instrument-row-name"] }, _count]
+                    }
+                ]
+            },
+            preview,
+            IconButton(context, Icons.Pencil, () => onEdit(instrument)),
+            IconButton(context, Icons.Trash2, () => onDelete(instrument)),
+            new Panel(context) { Classes = ["instrument-row-tail"] }
+        ];
     }
 
     public Instrument Instrument { get; }
 
     /// <summary>
-    ///     Re-claims the name's full width after styling. Label's <c>font-size</c> setter
-    ///     rewrites Width to the measured text, so the width cannot come from the sheet.
+    ///     Marks the row as the active instrument (or the one the notes being changed share). Swaps
+    ///     the idle fill for the selected one rather than adding a modifier: a hover override is
+    ///     taken from the first class that has one.
     /// </summary>
-    public override void ApplyStyleSheet(StyleSheet styleSheet)
+    public bool Selected
     {
-        base.ApplyStyleSheet(styleSheet);
-        _name.Width = LiteralOrComputable.Percent(100);
+        set
+        {
+            SetClass("instrument-row-idle", !value);
+            SetClass("instrument-row-selected", value);
+            _count.SetClass("instrument-row-count-selected", value);
+        }
     }
 
-    /// <summary>Clips the name to its own box so a long one never paints over Edit/Delete.</summary>
-    public override void ApplyClip(Vector4i? clip)
+    /// <summary>Frees the icons' instances in the list's batch; call when the row is dropped.</summary>
+    public void ReleaseIcons()
     {
-        base.ApplyClip(clip);
+        foreach (var icon in _icons) icon.Release();
+    }
 
-        var x = (int)Computed.AbsoluteX;
-        var y = (int)Computed.AbsoluteY;
-        var right = (int)(_name.Computed.AbsoluteX + _name.Computed.Width);
-        _name.ApplyClip(IntersectClip(new Vector4i(x, y, right, y + (int)Computed.Height), clip));
+    private static Button IconButton(UIContext context, string icon, Action onClick)
+    {
+        var button = new Button(context, icon, font: Icons.Font) { Classes = ["icon-button"], OnClick = _ => onClick() };
+        button.Label.Classes = ["icon-button-icon"];
+        return button;
     }
 }

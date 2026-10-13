@@ -3,6 +3,7 @@ using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;
 using EditorScene.State;
 using Sundex.Components.Abstractions;
+using Sundex.Components.File_Selector;
 using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Tests;
@@ -23,7 +24,12 @@ public class StyleSelectorTests
         var state = new EditorState();
         var track = state.AddTrack();
 
-        yield return new InstrumentSelector(ctx);
+        var selector = new InstrumentSelector(ctx, ctx.NewAtlasStore());
+        selector.Fill([new Instrument { Name = "Lead" }]);
+        yield return selector;
+        // Sundex's, but its parts are styled by this editor's sheet; built the way DialogHost does.
+        yield return new FileSelection(ctx, "song", ".tdwproj", "Save", title: "Save project")
+            { ID = "file-dialog", Classes = ["dialog-frame"] };
         yield return new EditorTrack(ctx, track, state);
         yield return new TrackListPanel(ctx, state);
         // The rows, not the whole panel: the shell around them is markup.

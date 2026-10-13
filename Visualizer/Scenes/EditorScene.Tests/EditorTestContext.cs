@@ -40,6 +40,12 @@ public class EditorTestContext : UIContext
         Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
     }
 
+    /// <summary>An atlas store over these assets; it holds no sound images, so icons come out empty.</summary>
+    public Shared.Atlases.AtlasStore NewAtlasStore()
+    {
+        return new Shared.Atlases.AtlasStore((AssetProvider)AssetProvider, new LoggerConfiguration().CreateLogger());
+    }
+
     /// <summary>
     ///     The editor's real stylesheet, imports and all. Components under test are built
     ///     the way <see cref="EditorInterface" /> builds them - detached, then styled - so

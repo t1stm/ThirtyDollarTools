@@ -217,8 +217,12 @@ public class ComponentBuilderV1 : IComponentBuilder
 
             case "label":
             {
-                node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var text);
-                element = new Label(context.UIContext, text ?? string.Empty);
+                var attributes = node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>();
+                attributes.TryGetValue("value", out var text);
+                // A label's font is fixed when it is built, so it is an attribute, not a style:
+                // font="Lucide" makes an icon (see Icons.cs for the codepoints).
+                attributes.TryGetValue("font", out var font);
+                element = new Label(context.UIContext, text ?? string.Empty, font);
                 break;
             }
 

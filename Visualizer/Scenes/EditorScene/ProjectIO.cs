@@ -45,7 +45,8 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
             return;
         }
 
-        dialogHost.ShowFileDialog($"{state.Project.Info.Name}.tdwproj", ".tdwproj", picked =>
+        // No path yet means no project folder either, so this opens in the home directory.
+        dialogHost.ShowFileDialog("Save project", $"{state.Project.Info.Name}.tdwproj", ".tdwproj", picked =>
         {
             if (Write(picked)) andThen?.Invoke();
         }, "Save");

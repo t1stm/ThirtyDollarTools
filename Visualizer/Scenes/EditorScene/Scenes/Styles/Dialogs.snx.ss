@@ -6,30 +6,51 @@
 // applied after classes, so the override is deterministic.
 import "Scenes/Styles/Theme.snx.ss" as theme;
 
-// The panel a dialog's contents stack in. Width is per-dialog (below) because it is
-// driven by the content: a two-column import dialog needs far more room than a
-// yes/no confirm.
+// The panel a dialog's contents stack in: 16 in, 14 between blocks, a 10 radius. Width is
+// per-dialog (below) because it is driven by the content: a two-column import dialog needs far
+// more room than a yes/no confirm.
 class dialog-frame {
     direction = "vertical";
-    padding = 14;
+    padding = 16;
     spacing = 14;
+    border-radius = 10;
     background = $theme.panel;
+}
+
+// A dialog's first row: its title, maybe a fact beside it, then a close icon-button flush
+// right behind a spacer.
+class dialog-header {
+    width = 100%;
+    height = 28;
+    spacing = 10;
+    vertical-align = "center";
+}
+
+class dialog-title {
+    font-size = 16;
+    font-color = $theme.header;
+}
+
+// What the dialog is about, beside its title (the export's project name).
+class dialog-subtitle {
+    font-size = 13;
+    font-color = $theme.text_dim;
 }
 
 // The trailing row holding a dialog's action buttons, right-aligned.
 class dialog-actions {
     width = 100%;
-    height = 40;
-    spacing = 10;
+    height = 34;
+    spacing = 8;
     horizontal-align = "end";
     vertical-align = "center";
 }
 
-// The same row, 36 tall, for dialogs whose buttons are the compact kind.
+// Kept as its own name for the dialogs that use it; it is the same row now.
 class dialog-actions-compact {
     width = 100%;
-    height = 36;
-    spacing = 10;
+    height = 34;
+    spacing = 8;
     horizontal-align = "end";
     vertical-align = "center";
 }
@@ -38,8 +59,8 @@ class dialog-actions-compact {
 // Deliberately unaligned - the spacer does the work.
 class dialog-actions-split {
     width = 100%;
-    height = 40;
-    spacing = 10;
+    height = 34;
+    spacing = 8;
     vertical-align = "center";
 }
 
@@ -88,10 +109,37 @@ id value-input {
 }
 
 id unsaved-changes-dialog {
-    width = 360;
+    width = 440;
 }
 
-// The recolor grid. Three 88-wide options plus two 8 gaps fill the 292 inner width.
+// The project being left: its icon, then its name over where it is saved.
+class project-card {
+    width = 100%;
+    padding = 12;
+    spacing = 12;
+    vertical-align = "center";
+    border-radius = 8;
+    background = $theme.background;
+}
+
+class project-card-icon {
+    font-size = 20;
+    font-color = $theme.header;
+}
+
+// Percent-wide, so the clipped name and path stop at the card's padding.
+class project-card-text {
+    direction = "vertical";
+    width = 100%;
+    spacing = 3;
+}
+
+class project-card-path {
+    font-size = 12;
+    font-color = $theme.text_dim;
+}
+
+// The recolor grid. Three 88-wide options plus two 8 gaps fit the 288 inner width.
 id track-color-dialog {
     width = 320;
     spacing = 12;
@@ -147,23 +195,121 @@ id duplicate-name-input {
 }
 
 id export-dialog {
-    width = 420;
+    width = 520;
+}
+
+// The two formats, side by side: (488 inner - 8) / 2 each.
+class export-cards {
+    width = 100%;
+    spacing = 8;
+}
+
+// One format: its name with an icon and the extension, over a line on what it makes. The
+// chosen one swaps export-card-idle for export-card-selected - two classes rather than a
+// modifier, because a hover override comes from the first class that has one.
+class export-card {
+    direction = "vertical";
+    width = 240;
+    padding = 12;
+    spacing = 6;
+    border-radius = 8;
+}
+
+class export-card-idle {
+    background = $theme.background;
+
+    state[hovered] = {
+        background = $theme.surface;
+    }
+}
+
+class export-card-selected {
+    background = $theme.row_selected;
+
+    state[hovered] = {
+        background = $theme.row_selected;
+    }
+}
+
+class export-card-title {
+    spacing = 8;
+    vertical-align = "center";
+}
+
+class export-card-icon {
+    font-size = 16;
+    font-color = $theme.header;
+}
+
+class export-card-caption {
+    font-size = 12;
+    font-color = $theme.text_dim;
+}
+
+// The chosen format's options. Fixed height (two field rows, the checkbox row and their
+// gaps), so picking the other format doesn't resize the dialog.
+id export-options {
+    direction = "vertical";
+    width = 100%;
+    height = 116;
+    spacing = 4;
+}
+
+class export-option-rows {
+    direction = "vertical";
+    width = 100%;
+    spacing = 4;
+}
+
+// A field row: the name in a 150 column, the 180-wide field after it, both placed rather
+// than flowed (a label's font size resets its width, so a column can't come from width).
+class export-row {
+    width = 100%;
+    height = 36;
+}
+
+class export-row-label {
+    y = 11;
+}
+
+class export-row-input {
+    x = 150;
+    y = 2;
+    width = 180;
+}
+
+// A line of icon and text: the checkbox's, the .wav note's.
+class export-line {
+    width = 100%;
+    height = 36;
     spacing = 10;
+    vertical-align = "center";
 }
 
-// The export dialog's action row is a little taller than the shared split row.
-id export-actions {
-    height = 44;
-}
-
-// The export options' numeric boxes.
-class export-field {
-    width = 120;
+class export-line-icon {
+    font-size = 15;
+    font-color = $theme.text_dim;
 }
 
 // A checkbox's own label - smaller than the row text beside it.
 class muted-check-label {
     font-size = 13;
+}
+
+// The footnote on wave tracks.
+class export-note {
+    spacing = 8;
+    vertical-align = "center";
+}
+
+class export-note-icon {
+    font-size = 14;
+    font-color = $theme.text_subtle;
+}
+
+class export-note-label {
+    font-size = 12;
+    font-color = $theme.text_subtle;
 }
 
 id import-dialog {
@@ -214,7 +360,7 @@ class dialog-options {
 
 // ---------------------------------------------------------------- import warnings
 
-// Four 88-wide cells plus three 8 gaps fill the 392 inner width.
+// Four 88-wide cells plus three 8 gaps fit the 388 inner width.
 id import-warnings-dialog {
     width = 420;
 }
@@ -248,52 +394,92 @@ class warning-cell {
 // ---------------------------------------------------------------- instruments
 
 id instrument-selector {
-    direction = "vertical";
-    width = 320;
-    height = 420;
-    padding = 10;
-    background = $theme.panel;
+    width = 460;
 }
 
+// Five and a half 46 rows with their 4 gaps, so a longer list shows it scrolls.
 id instrument-selector-list {
     width = 100%;
-    height = 100%;
+    height = 296;
     spacing = 4;
 }
 
-// One instrument row: click to pick, with Edit/Delete buttons flush right.
+// One instrument, a builder sound row's size: click to pick, with Preview/Edit/Delete
+// icon-buttons flush right and 6 after them (the tail plus the 4 gap). The active one swaps
+// instrument-row-idle for instrument-row-selected, as export-card does.
 class instrument-row {
     direction = "horizontal";
     vertical-align = "center";
     width = 100%;
-    height = 36;
-    padding = 6;
-    spacing = 10;
+    height = 46;
+    spacing = 4;
     border-radius = 6;
-    background = $theme.panel;
 }
 
-// The Edit/Delete buttons on an instrument row - smaller than a dialog action.
-// Standalone rather than dialog-button-light/-danger plus a size class: they'd both
-// set font-size, which the rule at the top of Controls.snx.ss forbids.
-class row-button-light {
-    font-size = 12;
-    border-radius = 6;
-    background = $theme.header;
+class instrument-row-idle {
+    background = $theme.background;
 
     state[hovered] = {
-        background = $theme.header_hover;
+        background = $theme.surface;
     }
 }
 
-class row-button-danger {
-    font-size = 12;
-    border-radius = 6;
-    background = $theme.danger;
+class instrument-row-selected {
+    background = $theme.row_selected;
 
     state[hovered] = {
-        background = $theme.danger_hover;
+        background = $theme.row_selected;
     }
+}
+
+// The icons and the name. 8 in from the left; the contents are centred, so the 8 at the top
+// is harmless.
+class instrument-row-pick {
+    width = 100%;
+    height = 46;
+    padding = 8;
+    spacing = 12;
+    vertical-align = "center";
+}
+
+// Up to four 28 icons and their 2 gaps, fixed so every name starts at the same x.
+class instrument-row-icons {
+    width = 118;
+    height = 28;
+    spacing = 2;
+    vertical-align = "center";
+}
+
+class instrument-row-text {
+    direction = "vertical";
+    width = 100%;
+    spacing = 2;
+}
+
+class instrument-row-name {
+    font-size = 14;
+    font-color = $theme.text;
+}
+
+class instrument-row-count {
+    font-size = 11;
+    font-color = $theme.text_subtle;
+}
+
+class instrument-row-count-selected {
+    font-color = $theme.text_dim;
+}
+
+class instrument-row-tail {
+    width = 2;
+    height = 1;
+}
+
+class instrument-selector-empty {
+    width = 100%;
+    height = 296;
+    horizontal-align = "center";
+    vertical-align = "center";
 }
 
 // ---------------------------------------------------------------- sound filter
@@ -313,7 +499,208 @@ id sound-filter-picker {
     width = 640;
 }
 
+// ---------------------------------------------------------------- file dialog
+
+// Sundex's FileSelection, under dialog-frame (DialogHost). Its parts carry these classes; see
+// its summary for the list.
 id file-dialog {
-    width = 560;
-    height = 440;
+    width = 640;
+    height = 472;
+    spacing = 12;
+}
+
+// Up, a hairline, then the path as crumbs.
+class file-location {
+    width = 100%;
+    height = 36;
+    padding = 4;
+    spacing = 2;
+    vertical-align = "center";
+    border-radius = 6;
+    background = $theme.input_background;
+}
+
+// The hairline with 6 either side of it.
+class file-location-gap {
+    width = 13;
+    height = 18;
+    horizontal-align = "center";
+}
+
+class file-location-rule {
+    width = 1;
+    height = 18;
+    background = $theme.divider;
+}
+
+class file-crumbs {
+    width = 100%;
+    height = 28;
+    spacing = 2;
+    vertical-align = "center";
+}
+
+// A folder on the path. Only the ones above the current folder are links (file-crumb-link).
+class file-crumb {
+    height = 28;
+    padding = 8;
+    spacing = 6;
+    vertical-align = "center";
+    border-radius = 6;
+    background = "#00000000";
+}
+
+class file-crumb-link {
+    state[hovered] = {
+        background = $theme.divider;
+    }
+}
+
+class file-crumb-icon {
+    font-size = 14;
+    font-color = $theme.text_dim;
+}
+
+class file-crumb-label {
+    font-size = 13;
+    font-color = $theme.text_dim;
+}
+
+class file-crumb-label-current {
+    font-color = $theme.text;
+}
+
+class file-crumb-chevron {
+    font-size = 12;
+    font-color = $theme.text_muted;
+}
+
+// The path as text, while it is being typed (click the crumbs, or Ctrl+L). No fill of its own:
+// the bar it replaces the crumbs in is the field. 6 in, so the 15 px line fits the 28.
+class file-path-input {
+    width = 100%;
+    height = 28;
+    padding = 6;
+    font-size = 13;
+    background = "#00000000";
+}
+
+// A path that leads nowhere, until it is edited.
+class file-path-input-invalid {
+    font-color = $theme.danger;
+}
+
+// The folder's contents, on the grid's darker fill.
+class file-list {
+    width = 100%;
+    height = 100%;
+    spacing = 2;
+    border-radius = 6;
+    background = $theme.grid_background;
+}
+
+// 34 tall, 10 at the sides (centred, so the 10 at the top is harmless). The picked file swaps
+// file-row-idle for file-row-selected, as export-card does.
+class file-row {
+    width = 100%;
+    height = 34;
+    padding = 10;
+    spacing = 10;
+    vertical-align = "center";
+    border-radius = 6;
+}
+
+class file-row-idle {
+    background = "#00000000";
+
+    state[hovered] = {
+        background = $theme.surface;
+    }
+}
+
+class file-row-selected {
+    background = $theme.row_selected;
+
+    state[hovered] = {
+        background = $theme.row_selected;
+    }
+}
+
+class file-row-folder {
+    font-size = 16;
+    font-color = $theme.header;
+}
+
+class file-row-icon {
+    font-size = 16;
+    font-color = $theme.text_dim;
+}
+
+class file-row-name {
+    font-size = 14;
+    font-color = $theme.text;
+}
+
+class file-row-date {
+    font-size = 12;
+    font-color = $theme.text_subtle;
+}
+
+class file-list-empty {
+    width = 100%;
+    height = 100%;
+    horizontal-align = "center";
+    vertical-align = "center";
+}
+
+class file-list-empty-label {
+    font-size = 14;
+    font-color = $theme.text_dim;
+}
+
+// A line under the folders when none of the files match.
+class file-list-note {
+    width = 100%;
+    height = 30;
+    padding = 10;
+    vertical-align = "center";
+}
+
+class file-list-note-label {
+    font-size = 13;
+    font-color = $theme.text_subtle;
+}
+
+// Shown over the footer while the typed name is a file that is already there.
+class file-overwrite {
+    width = 100%;
+    height = 18;
+    spacing = 8;
+    vertical-align = "center";
+}
+
+class file-overwrite-icon {
+    font-size = 15;
+    font-color = $theme.accent_yellow;
+}
+
+class file-overwrite-label {
+    font-size = 13;
+    font-color = $theme.accent_yellow;
+}
+
+class file-footer {
+    width = 100%;
+    height = 34;
+    spacing = 8;
+    vertical-align = "center";
+}
+
+class file-name-input {
+    width = 240;
+}
+
+class file-ext-label {
+    font-size = 13;
+    font-color = $theme.text_subtle;
 }

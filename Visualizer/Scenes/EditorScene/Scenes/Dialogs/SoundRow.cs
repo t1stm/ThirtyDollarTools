@@ -66,7 +66,7 @@ internal sealed class SoundRow : FlexPanel
         DuplicateButton = IconButton(context, Icons.Copy, () => OnDuplicate?.Invoke(this));
         RemoveButton = IconButton(context, Icons.X, () => OnRemove?.Invoke(this));
 
-        PreviewButton.Label.Classes.Add("sound-row-button-play");
+        PreviewButton.Label.Classes.Add("icon-button-play");
 
         // Lead and tail stand in for left and right padding: a row's padding is one value,
         // and its read-out band has to reach the row's full height.
@@ -172,29 +172,8 @@ internal sealed class SoundRow : FlexPanel
 
     private static Button IconButton(UIContext context, string icon, Action onClick)
     {
-        var button = new Button(context, icon, font: Icons.Font) { Classes = ["sound-row-button"], OnClick = _ => onClick() };
-        button.Label.Classes = ["sound-row-button-icon"];
+        var button = new Button(context, icon, font: Icons.Font) { Classes = ["icon-button"], OnClick = _ => onClick() };
+        button.Label.Classes = ["icon-button-icon"];
         return button;
-    }
-
-    /// <summary>
-    ///     A label cut off at its parent's edges. A Sundex label neither wraps nor ellipsizes,
-    ///     and a long sound name would otherwise paint over the read-outs beside it.
-    /// </summary>
-    private sealed class ClippedLabel(UIContext context, string text) : Label(context, text)
-    {
-        public override void ApplyClip(Vector4i? clip)
-        {
-            if (Parent is not { } parent)
-            {
-                base.ApplyClip(clip);
-                return;
-            }
-
-            var box = parent.Computed;
-            var x = (int)box.AbsoluteX;
-            var y = (int)box.AbsoluteY;
-            base.ApplyClip(IntersectClip(new Vector4i(x, y, x + (int)box.Width, y + (int)box.Height), clip));
-        }
     }
 }

@@ -66,19 +66,20 @@ public sealed class InstrumentEditor : FlexPanel
 
         // ---- header: name, then the Preview button with the play key's label on it
         NameInput = new TextInput(context) { ID = "instrument-name-input" };
-        _keyLabel = new Label(context, KeyText()) { Classes = ["instrument-key-label"] };
+        _keyLabel = new Label(context, KeyText()) { Classes = ["key-chip-label"] };
         // The key can be rebound while the editor exists; the label follows.
         Keybinds.Changed += () => _keyLabel.Value = KeyText();
         PreviewButton = new FlexPanel(context)
         {
-            Classes = ["instrument-preview-button"],
+            // The shared light button with a key, as KeyChip.Add builds one; a panel rather than
+            // a Button so the key's label can follow a rebind.
+            Classes = ["dialog-button-light", "key-button"],
             UpdateCursorOnHover = true,
             Children =
             [
-                new FlexPanel(context) { Classes = ["instrument-key-chip"], Children = [_keyLabel] },
+                new FlexPanel(context) { Classes = ["key-chip"], Children = [_keyLabel] },
                 new Label(context, "Preview") { Classes = ["instrument-preview-label"] },
-                // Padding is one value on every side; this makes the right side's 16 out of its 8.
-                new Panel(context) { Classes = ["instrument-preview-tail"] }
+                new Panel(context) { Classes = ["button-tail"] }
             ]
         };
         var header = new FlexPanel(context)
@@ -262,7 +263,7 @@ public sealed class InstrumentEditor : FlexPanel
             Classes = ["scroll-chip"],
             Children = [new Label(context, $"{Keybinds.PrimaryName}+Shift+Scroll") { Classes = ["scroll-chip-label"] }]
         };
-        DoneButton = new Button(context, "Done") { Classes = ["instrument-done-button"] };
+        DoneButton = new Button(context, "Done") { Classes = ["dialog-button-primary"] };
         var footer = new FlexPanel(context)
         {
             Classes = ["instrument-editor-footer"],

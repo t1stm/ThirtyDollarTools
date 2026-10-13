@@ -50,6 +50,28 @@ public class FontSelectionTests
     }
 
     [Fact]
+    public void MarkupLabelTakesItsFontFromTheFontAttribute()
+    {
+        var (context, icons) = ContextWithIconFont();
+
+        var component = new Sundex.Markup.SundexContext(context).NewComponent("""
+            <sundex version="1.0">
+              <layout>
+                <panel id="root">
+                  <label id="icon" font="Lucide" value="&#xe13c;"/>
+                  <label id="text" value="Play"/>
+                </panel>
+              </layout>
+            </sundex>
+            """);
+
+        var icon = component.GetID<Label>("icon");
+        Assert.Same(icons, ProviderOf(icon));
+        Assert.Equal(Icons.Play, icon.Value.ToString()); // the character reference is decoded
+        Assert.Same(context.TextProvider, ProviderOf(component.GetID<Label>("text")));
+    }
+
+    [Fact]
     public void LabelWithoutAFontIsUnchanged()
     {
         var (context, _) = ContextWithIconFont();

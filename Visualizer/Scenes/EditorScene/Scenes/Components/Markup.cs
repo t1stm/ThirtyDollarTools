@@ -1,4 +1,5 @@
 using Sundex.Components.Abstractions;
+using Sundex.Components.Labels;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
@@ -29,6 +30,10 @@ public static class Markup
     /// </summary>
     public static SundexComponent Build(UIContext context, string location)
     {
-        return new SundexContext(context).NewComponent(Load(context, location));
+        var sundex = new SundexContext(context);
+        // A label cut off at its parent's edge, for text that comes at runtime and may be long
+        // (a project's name, its path). Its text is set from code, so it takes no value.
+        sundex.RegisterElementFactory("clipped-label", ui => new ClippedLabel(ui, ""));
+        return sundex.NewComponent(Load(context, location));
     }
 }

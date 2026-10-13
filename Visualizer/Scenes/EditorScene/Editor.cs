@@ -260,6 +260,15 @@ public class Editor : Scene, IFadeInScene
             _editorInterface.TryPreviewInstrument())
             return;
 
+        // A dialog's own keys (the file dialog's list) come before the editor's. Escape is
+        // already taken above, and closes it.
+        if (_editorInterface.TryKeyTopModal(e)) return;
+
+        // Enter runs the top dialog's primary action (Save, Export, Open). A focused field took
+        // it above instead (the file dialog's name field confirms from there). Once per press:
+        // a held key would confirm the dialog this one opens, too.
+        if (e.Key is Keys.Enter or Keys.KeyPadEnter && !e.IsRepeat && _editorInterface.TryConfirmTopModal()) return;
+
         // A dialog is modal: its focused inputs already took what they wanted above, and
         // nothing else may reach the editor behind it. Escape stays ahead of this.
         if (_editorInterface.HasOpenModal) return;

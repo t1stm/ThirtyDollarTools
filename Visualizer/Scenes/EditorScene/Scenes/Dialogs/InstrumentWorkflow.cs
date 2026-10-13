@@ -35,7 +35,7 @@ public sealed class InstrumentWorkflow
 
         // Selector and editor are ModalLayers added to and removed from the root rather than
         // panels toggled hidden: only entering and leaving the tree manages the render queue.
-        _instrumentSelector = new InstrumentSelector(context);
+        _instrumentSelector = new InstrumentSelector(context, atlasStore);
         _instrumentSelectorModal = new ModalLayer(context);
         _instrumentSelectorModal.AddChild(_instrumentSelector);
         _instrumentSelectorModal.OnDismissRequested = modal =>
@@ -48,6 +48,8 @@ public sealed class InstrumentWorkflow
             ApplyInstrumentPick(instrument);
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
         };
+        _instrumentSelector.OnClose = () => _instrumentSelectorModal.OnDismissRequested?.Invoke(_instrumentSelectorModal);
+        _instrumentSelector.OnPreview = instrument => playback.PreviewInstrument(instrument);
         _instrumentSelector.OnNew = () =>
         {
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
@@ -70,7 +72,7 @@ public sealed class InstrumentWorkflow
                 () =>
                 {
                     state.DeleteInstrumentEverywhere(instrument);
-                    _instrumentSelector.Fill(state.Project.Instruments);
+                    FillSelector();
                     dialogHost.Root.AddChild(_instrumentSelectorModal);
                 },
                 () => dialogHost.Root.AddChild(_instrumentSelectorModal));
@@ -93,8 +95,29 @@ public sealed class InstrumentWorkflow
     public void OpenSelector(IReadOnlyList<Note>? reassignTargets = null)
     {
         _reassignTargets = reassignTargets;
-        _instrumentSelector.Fill(_state.Project.Instruments);
+        FillSelector();
         _dialogHost.Root.AddChild(_instrumentSelectorModal);
+    }
+
+    /// <summary>
+    ///     Fills the picker, marking the active instrument - or, when changing notes', the one they
+    ///     all share, if they do.
+    /// </summary>
+    private void FillSelector()
+    {
+        var marked = _reassignTargets is { } notes
+            ? notes.Select(note => note.Instrument).Distinct().Count() == 1 ? notes[0].Instrument : null
+            : _state.ActiveInstrument;
+
+        // Instruments name sounds by ID, or by emoji in older projects.
+        var sounds = new Dictionary<string, Sound>();
+        foreach (var sound in _allSounds())
+        {
+            sounds.TryAdd(sound.Id, sound);
+            if (sound.Emoji != null) sounds.TryAdd(sound.Emoji, sound);
+        }
+
+        _instrumentSelector.Fill(_state.Project.Instruments, marked, sounds, _reassignTargets?.Count);
     }
 
     /// <summary>

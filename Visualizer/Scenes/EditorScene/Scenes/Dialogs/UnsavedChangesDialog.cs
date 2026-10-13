@@ -7,19 +7,27 @@ namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     The save/discard/cancel choice (ModalLayer content) shown when leaving the editor
-///     with unsaved changes. Pure form - the owner decides what each button does and
-///     closes the modal itself.
-///     The tree is UnsavedChangesDialog.snx.xml; this only resolves its handles.
+///     with unsaved changes, over a card naming the project. Pure form - the owner decides
+///     what each button does and closes the modal itself.
+///     The tree is UnsavedChangesDialog.snx.xml; this resolves its handles and fills the card.
 /// </summary>
 public sealed class UnsavedChangesDialog
 {
-    public UnsavedChangesDialog(UIContext context)
+    /// <param name="projectPath">Where the project is saved; null when it never has been.</param>
+    public UnsavedChangesDialog(UIContext context, string projectName = "", string? projectPath = null)
     {
         var component = Markup.Build(context, "Scenes/Dialogs/Unsaved Changes Dialog/UnsavedChangesDialog.snx.xml");
         Element = component.GetID<FlexPanel>("unsaved-changes-dialog");
         SaveButton = component.GetID<Button>("save-button");
         DiscardButton = component.GetID<Button>("discard-button");
         CancelButton = component.GetID<Button>("cancel-button");
+        CloseButton = component.GetID<Button>("close-button");
+
+        component.GetID<Label>("project-name").SetTextContents(projectName);
+        component.GetID<Label>("project-path").SetTextContents(Where(projectPath));
+
+        KeyChip.Add(CancelButton, "Esc");
+        KeyChip.Add(SaveButton, "Enter");
     }
 
     /// <summary>The dialog's root - what the owner mounts into a ModalLayer.</summary>
@@ -28,4 +36,16 @@ public sealed class UnsavedChangesDialog
     public Button SaveButton { get; }
     public Button DiscardButton { get; }
     public Button CancelButton { get; }
+    public Button CloseButton { get; }
+
+    /// <summary>The card's second line: the path with the home directory as "~", or why there is none.</summary>
+    internal static string Where(string? path)
+    {
+        if (path == null) return "Not saved yet. Save asks where to put it.";
+
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return home.Length > 0 && path.StartsWith(home + Path.DirectorySeparatorChar)
+            ? "~" + path[home.Length..]
+            : path;
+    }
 }
