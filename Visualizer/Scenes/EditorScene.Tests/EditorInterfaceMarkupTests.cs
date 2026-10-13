@@ -2,8 +2,8 @@ using EditorScene.State;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 using EditorScene.Scenes.Views;
 
@@ -25,14 +25,7 @@ public class EditorInterfaceMarkupTests
     /// <summary>Loads a document by its path under Scenes/ (e.g. "Layout/Hint Bar/HintBar").</summary>
     private static string Load(UIContext context, string name)
     {
-        return context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo
-            {
-                Location = $"Scenes/{name}.snx.xml",
-                Storage = StorageLocation.Assembly
-            }
-        }).Value;
+        return context.AssetProvider.LoadString($"Scenes/{name}.snx.xml", StorageLocation.Assembly);
     }
 
     /// <summary>
@@ -63,7 +56,7 @@ public class EditorInterfaceMarkupTests
         return markup;
     }
 
-    /// <summary>The imported region that owns <paramref name="id" />, by name.</summary>
+    /// <summary>The imported region <paramref name="root" /> holds under <paramref name="name" />.</summary>
     private static SundexComponent Child(SundexComponent root, string name)
     {
         return (SundexComponent)Assert.Single(root.Children, child => child.Name == name);

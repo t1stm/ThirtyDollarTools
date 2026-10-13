@@ -6,8 +6,8 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 
 namespace Sundex.Components.Tests.Layouts.BuiltinTags;
@@ -24,14 +24,7 @@ public class BuiltinTagTests
     private SundexComponent Build(string document = "AllTags.xml")
     {
         var sundex = new SundexContext(_context);
-        return sundex.NewComponent(_context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo
-            {
-                Location = $"Layouts/BuiltinTags/{document}",
-                Storage = StorageLocation.Assembly
-            }
-        }).Value);
+        return sundex.NewComponent(_context.AssetProvider.LoadString($"Layouts/BuiltinTags/{document}", StorageLocation.Assembly));
     }
 
     private static Vector4 FillOf(Panel panel)

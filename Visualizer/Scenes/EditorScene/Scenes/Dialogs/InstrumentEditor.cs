@@ -1,13 +1,14 @@
+using EditorScene.Scenes.Components;
 using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;
 using OpenTK.Mathematics;
 using Shared.Atlases;
-using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
+using Sundex.Markup;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 using VisualizerScene.Settings;
@@ -39,7 +40,6 @@ public sealed class InstrumentEditor : FlexPanel
     private readonly Label[] _columnNames;
     private readonly InspectorForm _allForm;
     private readonly Panel _emptyList;
-    private readonly Label _keyLabel;
     private readonly FlexPanel _noSelection;
     private readonly Label[] _results = new Label[SoundRow.Columns];
     private readonly List<SoundRow> _rows = [];
@@ -64,38 +64,24 @@ public sealed class InstrumentEditor : FlexPanel
         ID = "instrument-editor";
         Classes = ["dialog-frame"];
 
-        // ---- header: name, then the Preview button with the play key's label on it
-        NameInput = new TextInput(context) { ID = "instrument-name-input" };
-        _keyLabel = new Label(context, KeyText()) { Classes = ["key-chip-label"] };
-        // The key can be rebound while the editor exists; the label follows.
-        Keybinds.Changed += () => _keyLabel.Value = KeyText();
-        PreviewButton = new FlexPanel(context)
-        {
-            // The shared light button with a key, as KeyChip.Add builds one; a panel rather than
-            // a Button so the key's label can follow a rebind.
-            Classes = ["dialog-button-light", "key-button"],
-            UpdateCursorOnHover = true,
-            Children =
-            [
-                new FlexPanel(context) { Classes = ["key-chip"], Children = [_keyLabel] },
-                new Label(context, "Preview") { Classes = ["instrument-preview-label"] },
-                new Panel(context) { Classes = ["button-tail"] }
-            ]
-        };
-        var header = new FlexPanel(context)
-        {
-            Classes = ["instrument-editor-header"],
-            Children =
-            [
-                new Label(context, "Name") { Classes = ["instrument-editor-name-label"] },
-                NameInput,
-                new Panel(context) { Classes = ["spacer"] },
-                PreviewButton
-            ]
-        };
+        // The tree is InstrumentEditor.snx.xml; its root's children become this panel's.
+        var sundex = new SundexContext(context);
+        sundex.RegisterElementFactory("scroll-zone", ui => new ScrollZone(ui));
+        sundex.RegisterElementFactory("sound-picker", ui => new SoundPicker(ui, store));
+        sundex.RegisterElementFactory("selected-sound-header", ui => new SelectedSoundHeader(ui, store));
+        var tree = sundex.NewComponent(Markup.Load(context, "Scenes/Dialogs/Instrument Editor/InstrumentEditor.snx.xml"));
 
-        // ---- left: the sounds, then the sounds that can be added
-        var columnHeads = new FlexPanel(context) { Classes = ["instrument-column-heads"] };
+        // ---- header
+        NameInput = tree.GetID<TextInput>("instrument-name-input");
+        var keyLabel = tree.GetID<Label>("key-label");
+        keyLabel.Value = KeyText();
+        // The key can be rebound while the editor exists; the label follows.
+        Keybinds.Changed += () => keyLabel.Value = KeyText();
+        PreviewButton = tree.GetID<FlexPanel>("preview-button");
+        PreviewButton.UpdateCursorOnHover = true;
+
+        // ---- left
+        var columnHeads = tree.GetID<FlexPanel>("column-heads");
         foreach (var (chip, name) in ColumnHeads())
             columnHeads.AddChild(new FlexPanel(context)
             {
@@ -117,117 +103,50 @@ public sealed class InstrumentEditor : FlexPanel
         _chipLabels = [.. ColumnHeadChips.Select(chip => (Label)chip.Children[0])];
         _columnNames = [.. columnHeads.Children.Select(head => (Label)((FlexPanel)head).Children[1])];
 
-        // The heads' band is rounded on top only, where the list below doesn't meet it. A
-        // corner radius applies to all four corners, so a square panel covers the bottom two.
-        var columnBand = new Panel(context)
-        {
-            Classes = ["instrument-column-band"],
-            Children = [new Panel(context) { Classes = ["instrument-column-band-cover"] }, columnHeads]
-        };
-
-        var soundsHeader = new FlexPanel(context)
-        {
-            Classes = ["instrument-sounds-header"],
-            Children =
-            [
-                new Label(context, "Sounds") { Classes = ["instrument-section-title"] },
-                new Panel(context) { Classes = ["spacer"] },
-                columnBand,
-                new Panel(context) { Classes = ["instrument-sounds-header-tail"] }
-            ]
-        };
-
         SoundsList = new SoundList(context, store) { ID = "instrument-sounds-list" };
-        _emptyList = new FlexPanel(context)
+        _emptyList = tree.GetID<FlexPanel>("sounds-empty");
+        _soundsBlock = tree.GetID<FlexPanel>("sounds-block");
+
+        AvailablePicker = tree.GetID<SoundPicker>("instrument-available-picker");
+        AvailablePicker.MultiSelect = true;
+        AvailablePicker.AvailableOnly = true;
+        AvailablePicker.OnInstanceAdded = added =>
         {
-            Classes = ["instrument-sounds-empty"],
-            Children =
-            [
-                new Label(context, "No sounds yet. Pick one below to start the instrument.")
-                    { Classes = ["instrument-hint-label"] }
-            ]
-        };
-        _soundsBlock = new FlexPanel(context)
-        {
-            Classes = ["instrument-sounds-block"],
-            Children = [soundsHeader, _emptyList]
+            RebuildRows();
+            Select(added);
+            ScrollIntoView(added);
         };
 
-        FilterInput = new TextInput(context)
-        {
-            Classes = ["instrument-filter-input"],
-            Placeholder = "Filter sounds",
-            OnValueChanged = input => AvailablePicker.Filter(input.Value)
-        };
-        var addHeader = new FlexPanel(context)
-        {
-            Classes = ["instrument-add-header"],
-            Children =
-            [
-                new Label(context, "Add a sound") { Classes = ["instrument-section-title"] },
-                new Panel(context) { Classes = ["spacer"] },
-                new FlexPanel(context)
-                {
-                    Classes = ["instrument-filter"],
-                    Children = [new Label(context, Icons.Search, Icons.Font) { Classes = ["instrument-filter-icon"] }, FilterInput]
-                }
-            ]
-        };
+        FilterInput = tree.GetID<TextInput>("filter-input");
+        FilterInput.Placeholder = "Filter sounds";
+        FilterInput.OnValueChanged = input => AvailablePicker.Filter(input.Value);
 
-        AvailablePicker = new SoundPicker(context, store)
-        {
-            ID = "instrument-available-picker",
-            MultiSelect = true,
-            AvailableOnly = true,
-            OnInstanceAdded = added =>
-            {
-                RebuildRows();
-                Select(added);
-                ScrollIntoView(added);
-            }
-        };
-        var available = new ScrollView(context) { ID = "instrument-available" };
-        available.AddChild(AvailablePicker);
-
-        var left = new FlexPanel(context)
-        {
-            Classes = ["instrument-editor-left"],
-            Children = [_soundsBlock, addHeader, available]
-        };
-
-        // ---- right: instrument-wide fields, then the selected sound's
-        _allHeader = new Label(context, "") { Classes = ["instrument-section-title"] };
-        AllCard = new ScrollZone(context)
-        {
-            Classes = ["instrument-all-card"],
-            Children = [_allHeader],
-            OnScroll = TuneAll,
-            OnHoverEnter = _ => SetHover(null, true),
-            OnHoverExit = _ => SetHover(_hoveredRow, false)
-        };
+        // ---- right
+        _allHeader = tree.GetID<Label>("all-header");
+        AllCard = tree.GetID<ScrollZone>("all-card");
+        AllCard.OnScroll = TuneAll;
+        AllCard.OnHoverEnter = _ => SetHover(null, true);
+        AllCard.OnHoverExit = _ => SetHover(_hoveredRow, false);
         _allForm = new InspectorForm(context, AllCard, Edit) { Section = "All", Modifier = "instrument-form" };
         AddFields(_allForm, () => Working);
 
-        _selectedHeader = new SelectedSoundHeader(context, store);
-        SoundFields = new ScrollZone(context)
+        _selectedHeader = tree.GetID<SelectedSoundHeader>("selected-header");
+        SoundFields = tree.GetID<ScrollZone>("sound-fields");
+        SoundFields.OnScroll = TuneSelected;
+        SoundFields.OnHoverEnter = _ =>
         {
-            Classes = ["instrument-sound-fields"],
-            OnScroll = TuneSelected,
-            OnHoverEnter = _ =>
-            {
-                _soundFieldsHovered = true;
-                RefreshHighlights();
-            },
-            OnHoverExit = _ =>
-            {
-                _soundFieldsHovered = false;
-                RefreshHighlights();
-            }
+            _soundFieldsHovered = true;
+            RefreshHighlights();
+        };
+        SoundFields.OnHoverExit = _ =>
+        {
+            _soundFieldsHovered = false;
+            RefreshHighlights();
         };
         _soundForm = new InspectorForm(context, SoundFields, Edit) { Section = "Sound", Modifier = "instrument-form" };
         AddFields(_soundForm, () => Selected);
 
-        var results = new FlexPanel(context) { Classes = ["instrument-results"] };
+        var results = tree.GetID<FlexPanel>("results");
         for (var i = 0; i < _results.Length; i++)
         {
             _results[i] = new Label(context, "") { Classes = ["instrument-result-value"] };
@@ -238,68 +157,40 @@ public sealed class InstrumentEditor : FlexPanel
             });
         }
 
-        _soundSection = new FlexPanel(context)
-        {
-            Classes = ["instrument-sound-section"],
-            Children = [_selectedHeader, SoundFields, results]
-        };
-        _noSelection = new FlexPanel(context)
-        {
-            Classes = ["instrument-no-selection"],
-            Children = [new Label(context, "Select a sound on the left to tune it.") { Classes = ["instrument-hint-label"] }]
-        };
-
-        _right = new FlexPanel(context)
-        {
-            Classes = ["instrument-editor-right"],
-            Children = [AllCard, new Panel(context) { Classes = ["rule", "instrument-rule"] }, _noSelection]
-        };
-
-        var body = new FlexPanel(context) { Classes = ["instrument-editor-body"], Children = [left, _right] };
+        _soundSection = tree.GetID<FlexPanel>("sound-section");
+        _noSelection = tree.GetID<FlexPanel>("no-selection");
+        _right = tree.GetID<FlexPanel>("right-column");
+        _right.RemoveChild(_soundSection); // Select attaches it once there is a sound
 
         // ---- footer
-        FineChip = new FlexPanel(context)
-        {
-            Classes = ["scroll-chip"],
-            Children = [new Label(context, $"{Keybinds.PrimaryName}+Shift+Scroll") { Classes = ["scroll-chip-label"] }]
-        };
-        DoneButton = new Button(context, "Done") { Classes = ["dialog-button-primary"] };
-        var footer = new FlexPanel(context)
-        {
-            Classes = ["instrument-editor-footer"],
-            Children =
-            [
-                FineChip,
-                new Label(context, "value by 0.1") { Classes = ["instrument-footer-label"] },
-                new Panel(context) { Classes = ["spacer"] },
-                DoneButton
-            ]
-        };
+        FineChip = tree.GetID<FlexPanel>("fine-chip");
+        ((Label)FineChip.Children[0]).Value = $"{Keybinds.PrimaryName}+Shift+Scroll";
+        DoneButton = tree.GetID<Button>("done-button");
 
-        Children = [header, body, footer];
+        Children = [.. ((Panel)tree.Element).Children];
 
         for (var i = 0; i < FieldLabels.Length; i++)
-        foreach (var section in (string[])["All", "Sound"])
-        {
-            var input = Field($"{section}.{FieldLabels[i]}")!;
-            var column = i;
-            input.OnHoverEnter = _ =>
+            foreach (var section in (string[])["All", "Sound"])
             {
-                _hoveredFieldColumn = column;
-                RefreshHighlights();
-            };
-            input.OnHoverExit = _ =>
-            {
-                _hoveredFieldColumn = null;
-                RefreshHighlights();
-            };
-            input.Unit = (TuneField)i switch
-            {
-                TuneField.Volume => "%",
-                TuneField.Offset => "s",
-                _ => ""
-            };
-        }
+                var input = Field($"{section}.{FieldLabels[i]}")!;
+                var column = i;
+                input.OnHoverEnter = _ =>
+                {
+                    _hoveredFieldColumn = column;
+                    RefreshHighlights();
+                };
+                input.OnHoverExit = _ =>
+                {
+                    _hoveredFieldColumn = null;
+                    RefreshHighlights();
+                };
+                input.Unit = (TuneField)i switch
+                {
+                    TuneField.Volume => "%",
+                    TuneField.Offset => "s",
+                    _ => ""
+                };
+            }
 
         Refresh();
         RefreshHighlights();
@@ -350,7 +241,7 @@ public sealed class InstrumentEditor : FlexPanel
     public NumericInput? Field(string key) => (key.StartsWith("All.") ? _allForm : _soundForm).Field(key) as NumericInput;
 
     /// <summary>What a wheel notch would tune now, from the held modifiers.</summary>
-    public (TuneField Field, double Step) Gesture => ScrollGesture.For(_ctrl, _shift, _alt);
+    private (TuneField Field, double Step) Gesture => ScrollGesture.For(_ctrl, _shift, _alt);
 
     /// <summary>
     ///     The held modifiers, forwarded from the editor's input every frame. They pick what a
@@ -387,7 +278,7 @@ public sealed class InstrumentEditor : FlexPanel
     ///     two read-outs a plain notch tunes nothing, and still isn't passed on: the list scrolling
     ///     under the pointer would turn the next notch into an edit.
     /// </summary>
-    internal bool TuneRow(SoundRow row, int? column, Vector2 scrollDelta)
+    private bool TuneRow(SoundRow row, int? column, Vector2 scrollDelta)
     {
         var notches = MathF.Sign(scrollDelta.Y);
         if (notches == 0) return false;
@@ -404,7 +295,7 @@ public sealed class InstrumentEditor : FlexPanel
     ///     nothing. A plain notch over a field is that field's own (see
     ///     <see cref="RefreshHighlights" />), so a plain one here is between fields.
     /// </summary>
-    internal bool TuneAll(Vector2 scrollDelta)
+    private bool TuneAll(Vector2 scrollDelta)
     {
         var notches = MathF.Sign(scrollDelta.Y);
         if (notches == 0) return false;
@@ -416,7 +307,7 @@ public sealed class InstrumentEditor : FlexPanel
     }
 
     /// <summary>The same over the selected sound's fields, for that sound.</summary>
-    internal bool TuneSelected(Vector2 scrollDelta)
+    private bool TuneSelected(Vector2 scrollDelta)
     {
         var notches = MathF.Sign(scrollDelta.Y);
         if (notches == 0 || Selected is not { } sound) return false;
@@ -473,12 +364,12 @@ public sealed class InstrumentEditor : FlexPanel
                 ? Field($"Sound.{FieldLabels[(int)lit]}")
                 : null;
         for (var i = 0; i < FieldLabels.Length; i++)
-        foreach (var section in (string[])["All", "Sound"])
-        {
-            var input = Field($"{section}.{FieldLabels[i]}")!;
-            input.ScrollStep = modified ? null : ScrollGesture.StepOf((TuneField)i);
-            input.SetClass("instrument-field-target", ReferenceEquals(input, outlined));
-        }
+            foreach (var section in (string[])["All", "Sound"])
+            {
+                var input = Field($"{section}.{FieldLabels[i]}")!;
+                input.ScrollStep = modified ? null : ScrollGesture.StepOf((TuneField)i);
+                input.SetClass("instrument-field-target", ReferenceEquals(input, outlined));
+            }
     }
 
     private static string KeyText() => Keybinds.Get(Bind.EditorPlayPause).ToString();
@@ -669,8 +560,8 @@ public sealed class InstrumentEditor : FlexPanel
         SoundsList.Height = visible * RowHeight + Math.Max(0, visible - 1) * RowSpacing;
 
         // The empty state stands in for the list, so the list never shows as a zero-height box.
-        var list = _rows.Count > 0 ? (Panel)SoundsList : _emptyList;
-        var stale = list == SoundsList ? _emptyList : (Panel)SoundsList;
+        var list = _rows.Count > 0 ? SoundsList : _emptyList;
+        var stale = list == SoundsList ? _emptyList : SoundsList;
         if (_soundsBlock.Children.Contains(stale)) _soundsBlock.RemoveChild(stale);
         if (!_soundsBlock.Children.Contains(list)) _soundsBlock.AddChild(list);
     }

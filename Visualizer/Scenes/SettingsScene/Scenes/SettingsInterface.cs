@@ -7,8 +7,7 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
-using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Markup;
 using Sundex.Markup.Attributes;
 using VisualizerScene.Settings;
@@ -89,7 +88,7 @@ public class SettingsInterface
     ];
 
     /// <summary>The two shortcut sections, in the order they appear under the settings above.</summary>
-    public static readonly (string Title, BindScene Scene)[] KeybindSections =
+    private static readonly (string Title, BindScene Scene)[] KeybindSections =
     [
         ("V I S U A L I Z E R   S H O R T C U T S", BindScene.Visualizer),
         ("E D I T O R   S H O R T C U T S", BindScene.Editor)
@@ -117,12 +116,9 @@ public class SettingsInterface
         _settings = settings;
 
         var sundexContext = new SundexContext(context);
-        var componentSource = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo { Location = "Scenes/Layout/SettingsInterface.snx.xml" }
-        });
+        var componentSource = context.AssetProvider.LoadString("Scenes/Layout/SettingsInterface.snx.xml");
 
-        Component = sundexContext.NewComponent(componentSource.Value);
+        Component = sundexContext.NewComponent(componentSource);
         sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => SettingsList, () => Strip);
 
         foreach (var (title, rows) in Sections)
@@ -138,9 +134,9 @@ public class SettingsInterface
     }
 
     /// <summary>The context the rows and preview tiles are built against.</summary>
-    public UIContext UI { get; }
+    private UIContext UI { get; }
 
-    public Action OnBack { get; }
+    [UsedImplicitly] public Action OnBack { get; }
     [UsedImplicitly] public SundexComponent Component { get; }
     [SetFromLogic] public Panel RootPanel { get; set; } = null!;
     [SetFromLogic] public ScrollView SettingsList { get; set; } = null!;

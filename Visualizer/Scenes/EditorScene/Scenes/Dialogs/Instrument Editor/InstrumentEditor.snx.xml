@@ -1,0 +1,90 @@
+<sundex version="1.0">
+  <!-- No style of its own: like the selector and the picker, the editor is styled by the
+       editor's root sheet when it is mounted (InstrumentEditor.snx.ss is one of its imports),
+       and so are the rows it adds at runtime. InstrumentEditor.cs adopts this root's children,
+       fills the column heads and the result tiles, and writes the key names in. -->
+  <layout>
+    <flex>
+      <!-- header: name, then the Preview button with the play key's label on it -->
+      <flex class="instrument-editor-header">
+        <label class="instrument-editor-name-label" value="Name"/>
+        <text-input id="instrument-name-input"/>
+        <panel class="spacer"/>
+        <!-- The shared light button with a key, as KeyChip.Add builds one; a panel rather
+             than a button so the key's label can follow a rebind. -->
+        <flex id="preview-button" class="[dialog-button-light,key-button]">
+          <flex class="key-chip">
+            <label id="key-label" class="key-chip-label" value=""/>
+          </flex>
+          <label class="instrument-preview-label" value="Preview"/>
+          <panel class="button-tail"/>
+        </flex>
+      </flex>
+
+      <flex class="instrument-editor-body">
+        <!-- left: the sounds, then the sounds that can be added -->
+        <flex class="instrument-editor-left">
+          <!-- The sound list itself stands in for sounds-empty once there is a sound. -->
+          <flex id="sounds-block" class="instrument-sounds-block">
+            <flex class="instrument-sounds-header">
+              <label class="instrument-section-title" value="Sounds"/>
+              <panel class="spacer"/>
+              <!-- The heads' band is rounded on top only, where the list below doesn't meet
+                   it. A corner radius applies to all four corners, so a square panel covers
+                   the bottom two. -->
+              <panel class="instrument-column-band">
+                <panel class="instrument-column-band-cover"/>
+                <flex id="column-heads" class="instrument-column-heads"/>
+              </panel>
+              <panel class="instrument-sounds-header-tail"/>
+            </flex>
+            <flex id="sounds-empty" class="instrument-sounds-empty">
+              <label class="instrument-hint-label" value="No sounds yet. Pick one below to start the instrument."/>
+            </flex>
+          </flex>
+
+          <flex class="instrument-add-header">
+            <label class="instrument-section-title" value="Add a sound"/>
+            <panel class="spacer"/>
+            <flex class="instrument-filter">
+              <label class="instrument-filter-icon" font="Lucide" value="&#xe151;"/>
+              <text-input id="filter-input" class="instrument-filter-input"/>
+            </flex>
+          </flex>
+
+          <scroll-view id="instrument-available">
+            <sound-picker id="instrument-available-picker"/>
+          </scroll-view>
+        </flex>
+
+        <!-- right: instrument-wide fields, then the selected sound's. Both sound-section and
+             no-selection are here so one pass resolves them; the editor keeps one attached. -->
+        <flex id="right-column" class="instrument-editor-right">
+          <scroll-zone id="all-card" class="instrument-all-card">
+            <label id="all-header" class="instrument-section-title" value=""/>
+          </scroll-zone>
+          <panel class="[rule,instrument-rule]"/>
+          <flex id="no-selection" class="instrument-no-selection">
+            <label class="instrument-hint-label" value="Select a sound on the left to tune it."/>
+          </flex>
+          <flex id="sound-section" class="instrument-sound-section">
+            <selected-sound-header id="selected-header"/>
+            <scroll-zone id="sound-fields" class="instrument-sound-fields"/>
+            <flex id="results" class="instrument-results"/>
+          </flex>
+        </flex>
+      </flex>
+
+      <flex class="instrument-editor-footer">
+        <flex id="fine-chip" class="scroll-chip">
+          <label class="scroll-chip-label" value=""/>
+        </flex>
+        <label class="instrument-footer-label" value="value by 0.1"/>
+        <panel class="spacer"/>
+        <button id="done-button" class="dialog-button-primary">
+          <label value="Done"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

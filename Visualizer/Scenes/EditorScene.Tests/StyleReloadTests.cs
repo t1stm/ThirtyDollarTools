@@ -1,9 +1,7 @@
-using EditorScene.Scenes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
-using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Markup;
-using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace EditorScene.Tests;
 
@@ -31,8 +29,7 @@ public class StyleReloadTests : IDisposable
     /// <summary>The real editor header, built and styled by its own document as the editor builds it.</summary>
     private SundexComponent Header()
     {
-        var markup = _context.AssetProvider.Load<StringAsset, StringInfo>(
-            StringInfo.CreateFromUnknownStorage("Scenes/Layout/Editor Header/EditorHeader.snx.xml")).Value;
+        var markup = _context.AssetProvider.LoadString("Scenes/Layout/Editor Header/EditorHeader.snx.xml");
         return new SundexContext(_context).NewComponent(markup);
     }
 

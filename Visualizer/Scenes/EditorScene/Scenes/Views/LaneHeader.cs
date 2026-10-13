@@ -46,8 +46,8 @@ public sealed class LaneHeader : Panel
     /// <inheritdoc cref="ApplyClip" />
     internal Vector4i? RowClip { get; private set; }
 
-    /// <summary>Hover hint text for the M/S toggles; null on hover exit. See EditorInterface.SetHint.</summary>
-    public Action<string?>? OnHint { get; set; }
+    /// <summary>Hover hint text for the M/S toggles; null on hover exit. See HintBarController.Show.</summary>
+    public Action<string?>? OnHint { get; init; }
 
     /// <summary>Re-colors the toggles from the state. Call when mute/solo changes.</summary>
     public void RefreshChannels()

@@ -8,8 +8,8 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using Sundex.Core;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup.Abstract;
 using Sundex.Markup.Document;
 using Sundex.Markup.Layout;
@@ -18,7 +18,6 @@ using Sundex.Style.DSL;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
-using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace Sundex.Markup.Builders;
 
@@ -87,9 +86,8 @@ public class ComponentBuilderV1 : IComponentBuilder
             if (!string.IsNullOrEmpty(logic.SrcLocation))
             {
                 var newSource =
-                    context.UIContext.AssetProvider.Load<StringAsset, StringInfo>(
-                        StringInfo.CreateFromUnknownStorage(logic.SrcLocation));
-                logic.UpdateSourceCode(newSource.Value);
+                    context.UIContext.AssetProvider.LoadString(logic.SrcLocation);
+                logic.UpdateSourceCode(newSource);
             }
 
             runLogic = language.Compile(logic.SourceCode, context, component, logic.LanguageImports);
@@ -125,9 +123,8 @@ public class ComponentBuilderV1 : IComponentBuilder
         if (!string.IsNullOrEmpty(src))
         {
             var newSource =
-                context.UIContext.AssetProvider.Load<StringAsset, StringInfo>(
-                    StringInfo.CreateFromUnknownStorage(src));
-            layout.Style.UpdateSourceCode(newSource.Value);
+                context.UIContext.AssetProvider.LoadString(src);
+            layout.Style.UpdateSourceCode(newSource);
         }
 
         var styleSheetHolder = StyleParser.Parse(layout.Style.SourceCode, path =>

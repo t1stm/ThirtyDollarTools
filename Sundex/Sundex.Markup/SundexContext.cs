@@ -1,12 +1,11 @@
 using System.Buffers;
 using System.Reflection;
 using Sundex.Components.Abstractions;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Markup.Abstract;
 using Sundex.Markup.Attributes;
 using Sundex.Markup.Builders;
 using Sundex.Markup.Logic;
-using Sundex.Engine.Asset_Management.Types.String;
-using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace Sundex.Markup;
 
@@ -125,8 +124,7 @@ public class SundexContext(UIContext context) : ISundexContext
             // too: the compiled script is keyed on the source, and the markup carries a
             // path rather than the code itself.
             if (!string.IsNullOrEmpty(logic.SrcLocation))
-                logic.UpdateSourceCode(UIContext.AssetProvider
-                    .Load<StringAsset, StringInfo>(StringInfo.CreateFromUnknownStorage(logic.SrcLocation)).Value);
+                logic.UpdateSourceCode(UIContext.AssetProvider.LoadString(logic.SrcLocation));
 
             language.Precompile(logic.SourceCode, this, logic.LanguageImports);
             return true;

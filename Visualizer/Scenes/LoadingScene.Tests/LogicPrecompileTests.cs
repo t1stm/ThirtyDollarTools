@@ -1,9 +1,7 @@
 using LoadingScene.Scenes;
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
-using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace LoadingScene.Tests;
 
@@ -19,14 +17,7 @@ public class LogicPrecompileTests
 
     private string LoadMarkup()
     {
-        return _context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo
-            {
-                Location = "Scenes/Layout/LoaderInterface.snx.xml",
-                Storage = StorageLocation.Assembly
-            }
-        }).Value;
+        return _context.AssetProvider.LoadString("Scenes/Layout/LoaderInterface.snx.xml", StorageLocation.Assembly);
     }
 
     /// <summary>
@@ -73,7 +64,7 @@ public class LogicPrecompileTests
         var precompile = Task.Run(() =>
         {
             for (var i = 0; i < 4; i++) new SundexContext(_context).PrecompileLogic(markup);
-        });
+        }, TestContext.Current.CancellationToken);
 
         var built = new LoaderInterface(_context);
         await precompile;

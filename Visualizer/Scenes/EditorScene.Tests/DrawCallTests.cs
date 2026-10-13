@@ -1,6 +1,6 @@
 using EditorScene.Scenes.Components;
 using EditorScene.State;
-using Sundex.Components.Abstractions;
+using Sundex.Components.Labels;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Text;
 using ThirtyDollarConverter.Editor;
@@ -18,7 +18,7 @@ namespace EditorScene.Tests;
 public class DrawCallTests(ITestOutputHelper output)
 {
     /// <summary>A dense chart: 8 segments of 4 bars, 4 notes on every step.</summary>
-    private static (EditorTestContext ctx, TrackEditorView view) DenseTrack()
+    private static EditorTestContext DenseTrack()
     {
         var ctx = new EditorTestContext();
         var state = new EditorState();
@@ -40,13 +40,13 @@ public class DrawCallTests(ITestOutputHelper output)
             { Width = 1600, Height = 800, PixelsPerStep = 16f });
         view.Layout();
         view.DrawTo(ctx);
-        return (ctx, view);
+        return ctx;
     }
 
     [Fact]
     public void DenseNoteEditor_CostsAHandfulOfDrawCalls()
     {
-        var (ctx, _) = DenseTrack();
+        var ctx = DenseTrack();
         var calls = Report(ctx);
 
         // The line batch, the label batch, and the few pieces still painted by a plane of

@@ -1,13 +1,11 @@
 using EditorScene.State;
 using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Attributes;
+using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Components;
-using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes.Views;
 
@@ -18,11 +16,11 @@ namespace EditorScene.Scenes.Views;
 ///     the selected clip; the wheel pans horizontally. Double-clicking a clip fires
 ///     <see cref="OnOpenTrack" /> (the future per-track note editor).
 /// </summary>
-public sealed class ArrangementView : Panel
+public sealed partial class ArrangementView : Panel
 {
     public const float LaneHeight = 44f;
     public const float RulerHeight = 18f;
-    public const int MinChannels = 8;
+    private const int MinChannels = 8;
 
     // ponytail: fixed pools - 128 bar lines cover a 3k px window at minimum zoom (6 ppq).
     // LaneLinePool is also the LaneHeader's toggle pool and the bound ChannelCount clamps
@@ -68,7 +66,7 @@ public sealed class ArrangementView : Panel
     private readonly List<ClipBlock> _blocks = [];
     private readonly LabelBatch _clipLabels;
     private readonly LineBatch _lineBatch = new();
-    private readonly Panel _marqueeRect;
+    private readonly Marquee _marquee;
 
     private readonly ViewNavigation _nav = new(6f, 96f) { Zoom = 24f };
     private readonly Panel _playhead;
@@ -84,17 +82,8 @@ public sealed class ArrangementView : Panel
     ///     layout values rather than numbers this pass can read back.
     /// </summary>
     private readonly List<(WaveTrack Track, float X, float Y, float Width, float Height)> _waveClips = [];
-    private ClipBlock? _dragging;
 
-    // A clip drag moves the whole selection: every selected clip's position at press,
-    // plus the anchor's own snapped press position, so each frame applies the anchor's
-    // delta to the originals (see UpdateClipDrag). Null while no drag is running.
-    private List<(TrackPlacement Placement, int Channel, double Start)>? _clipDrag;
-    private (int Channel, double Start) _clipDragAnchor;
     private Vector4i? _inheritedClip;
-    private (double Quarters, double Channel)? _marqueeAnchor;
-    private (double Quarters, double Channel)? _marqueeCursor;
-    private MarqueeMode _marqueeMode;
     private bool _refreshDeferred;
 
     public ArrangementView(UIContext context, EditorState state) : base(context)
@@ -145,15 +134,9 @@ public sealed class ArrangementView : Panel
         };
         AddChild(_playhead);
 
-        // Never takes input (GhostPanel), fill only, no border; a child, so it renders
-        // above the batched clips by layer.
-        _marqueeRect = new GhostPanel(context)
-        {
-            Width = 0,
-            Height = 0,
-            Classes = ["grid-marquee"]
-        };
-        AddChild(_marqueeRect);
+        // A child, so it renders above the batched clips by layer.
+        _marquee = new Marquee(context);
+        AddChild(_marquee.Rect);
 
         Refresh();
     }
@@ -230,8 +213,6 @@ public sealed class ArrangementView : Panel
     {
         return _lineBatch.ColorOf(slot);
     }
-    internal IReadOnlyList<LabelBatch.Slot> BarLabels => _barLabels.Slots;
-
     /// <summary>
     ///     A track's clip fill: its palette entry, or <see cref="ClipColor" /> when it has
     ///     no color of its own. The index wraps, so retuning the palette to fewer entries
@@ -275,7 +256,7 @@ public sealed class ArrangementView : Panel
     }
 
     /// <summary>Drag/place snap, in quarter notes.</summary>
-    public double SnapQuarterNotes { get; set; } = 1;
+    public double SnapQuarterNotes { get; } = 1;
 
     /// <summary>While true (Ctrl held), the wheel zooms horizontally instead of panning.</summary>
     public bool WheelZooms { get; set; }
@@ -448,7 +429,9 @@ public sealed class ArrangementView : Panel
         _playhead.X = playheadX;
         _playhead.Y = RulerHeight;
 
-        LayoutMarquee();
+        // The marquee's axes are (quarters, channel).
+        _marquee.Layout((quarters, channel) => ((float)(quarters * PixelsPerQuarter) - _nav.ScrollX,
+            RulerHeight + (float)(channel * LaneHeight) - _nav.ScrollY));
 
         _rulerBackground.X = 0;
         _rulerBackground.Y = 0;
@@ -457,67 +440,6 @@ public sealed class ArrangementView : Panel
 
         base.DoLayout();
         ApplyClip(_inheritedClip);
-    }
-
-    /// <summary>
-    ///     Positions the marquee rectangle from its model-space anchor/cursor every
-    ///     frame, so it scroll-corrects; zero size (hidden) while no marquee is active.
-    /// </summary>
-    private void LayoutMarquee()
-    {
-        if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor)
-        {
-            _marqueeRect.Width = 0;
-            _marqueeRect.Height = 0;
-            return;
-        }
-
-        var x1 = (float)(anchor.Quarters * PixelsPerQuarter) - _nav.ScrollX;
-        var x2 = (float)(cursor.Quarters * PixelsPerQuarter) - _nav.ScrollX;
-        var y1 = RulerHeight + (float)(anchor.Channel * LaneHeight) - _nav.ScrollY;
-        var y2 = RulerHeight + (float)(cursor.Channel * LaneHeight) - _nav.ScrollY;
-
-        _marqueeRect.X = Math.Min(x1, x2);
-        _marqueeRect.Y = Math.Min(y1, y2);
-        _marqueeRect.Width = Math.Abs(x2 - x1);
-        _marqueeRect.Height = Math.Abs(y2 - y1);
-    }
-
-    /// <summary>Continuous, unsnapped quarter-note position - the marquee's counterpart to <see cref="GridPosition" />.</summary>
-    private double UnsnappedQuartersAt(float localX)
-    {
-        return (localX + _nav.ScrollX) / PixelsPerQuarter;
-    }
-
-    /// <summary>Continuous, unsnapped channel - the marquee's counterpart to <see cref="GridPosition" />.</summary>
-    private double UnsnappedChannelAt(float localY)
-    {
-        return (localY - RulerHeight + _nav.ScrollY) / LaneHeight;
-    }
-
-    /// <summary>
-    ///     Select tool only: starts a marquee on an empty-lane press (below the ruler).
-    ///     Empty-lane presses otherwise reach only <c>OnClick</c> on release, but the
-    ///     marquee needs the press to capture the pointer for the drag.
-    /// </summary>
-    public override bool HandlePress(float x, float y)
-    {
-        var localY = y - Computed.AbsoluteY;
-        if (localY < RulerHeight) return false; // ruler seek still runs on release via OnClick
-        if (_state.ActiveTool != EditorTool.Select) return false; // Draw tool: PlaceAtPointer on release, unchanged
-
-        var localX = x - Computed.AbsoluteX;
-        _marqueeAnchor = _marqueeCursor = (UnsnappedQuartersAt(localX), UnsnappedChannelAt(localY));
-        _marqueeMode = FineSnap ? MarqueeMode.Remove : WheelZooms ? MarqueeMode.Append : MarqueeMode.Replace;
-        InvalidateLayout();
-        return true; // capture: the drag updates the marquee rect
-    }
-
-    public override void HandlePointerDrag(float x, float y)
-    {
-        if (_marqueeAnchor == null) return;
-        _marqueeCursor = (UnsnappedQuartersAt(x - Computed.AbsoluteX), UnsnappedChannelAt(y - Computed.AbsoluteY));
-        InvalidateLayout();
     }
 
     /// <summary>
@@ -548,7 +470,7 @@ public sealed class ArrangementView : Panel
                 if (clipY + clipHeight <= RulerHeight || clipY >= Computed.Height) continue;
 
                 var middle = clipY + clipHeight / 2f;
-                var color = Vector4.Lerp(ColorOf(track, false), Vector4.One, WaveBarLift);
+                var color = Vector4.Lerp(ColorOf(track), Vector4.One, WaveBarLift);
 
                 var first = (int)Math.Max(0, Math.Floor(-clipX / WaveBarPitch));
                 for (int bar = first, drawn = 0; drawn < WaveBarBudget; bar++, drawn++)
@@ -579,103 +501,6 @@ public sealed class ArrangementView : Panel
 
         _waveSlotStart = start;
         _waveSlotsUsed = used;
-    }
-
-    /// <summary>
-    ///     Applies the marquee's Replace/Append/Remove modifier semantics against every
-    ///     placement whose time span intersects the marquee's quarter range and whose
-    ///     channel is within its row range - span-intersection (not containment), since
-    ///     clips are wide objects and a marquee merely touching one should select it.
-    /// </summary>
-    private void CommitMarquee()
-    {
-        if (_marqueeAnchor is not { } anchor || _marqueeCursor is not { } cursor) return;
-
-        var minQ = Math.Min(anchor.Quarters, cursor.Quarters);
-        var maxQ = Math.Max(anchor.Quarters, cursor.Quarters);
-        var minChannel = Math.Min(anchor.Channel, cursor.Channel);
-        var maxChannel = Math.Max(anchor.Channel, cursor.Channel);
-
-        var contained = new List<TrackPlacement>();
-        foreach (var placement in _state.Project.Placements)
-        {
-            var quarters = placement.Track.DurationMinutes() * _state.Project.RootTiming.BPM;
-            var end = placement.StartQuarterNotes + quarters;
-            if (end <= minQ || placement.StartQuarterNotes >= maxQ) continue;
-
-            // The lane is a whole rendered row (Channel .. Channel+1), not a point, so
-            // the marquee's box is tested against that span - a box drawn entirely
-            // inside a row still selects it, as on the time axis above.
-            if (placement.Channel >= maxChannel || placement.Channel + 1 <= minChannel) continue;
-
-            contained.Add(placement);
-        }
-
-        switch (_marqueeMode)
-        {
-            case MarqueeMode.Append:
-                _state.AddToPlacementSelection(contained);
-                break;
-            case MarqueeMode.Remove:
-                _state.RemoveFromPlacementSelection(contained);
-                break;
-            default:
-                _state.SetPlacementSelection(contained); // empty marquee clears the selection
-                break;
-        }
-    }
-
-    /// <summary>
-    ///     Plain wheel scrolls lanes vertically; Shift+wheel pans time instead -
-    ///     same binding as <see cref="TrackEditorView.HandleScroll" />'s FineSnap/panXWithY.
-    /// </summary>
-    public override bool HandleScroll(Vector2 scrollDelta)
-    {
-        var pointerPx = Context.PointerX - Computed.AbsoluteX;
-        _nav.Wheel(scrollDelta, WheelZooms, FineSnap, pointerPx);
-        InvalidateLayout();
-        OnScrolled?.Invoke();
-        return true;
-    }
-
-    /// <summary>
-    ///     FL-style middle-mouse pan of both axes, fed per frame from the scene's mouse
-    ///     handler (the framework only routes left/right buttons). A hold that starts
-    ///     inside the view drags the viewport with the pointer until release.
-    /// </summary>
-    public void MiddlePan(bool held, float x, float y)
-    {
-        if (!_nav.MiddlePan(held, x, y, ContainsPoint(x, y))) return;
-        InvalidateLayout();
-        OnScrolled?.Invoke();
-    }
-
-    public override bool HandleKeyDown(KeyboardKeyEventArgs e)
-    {
-        switch (Keybinds.Match(e, BindScene.Editor))
-        {
-            case Bind.EditorDelete or Bind.EditorDeleteAlt when _state.SelectedPlacements.Count > 0:
-                _state.DeleteSelection();
-                return true;
-            case Bind.EditorCopy:
-                _state.CopySelection();
-                return true;
-            case Bind.EditorPaste:
-                _state.Paste();
-                return true;
-            case Bind.EditorCut:
-                _state.CutSelection();
-                return true;
-            case Bind.EditorSelectAll:
-                _state.SelectAll();
-                return true;
-        }
-
-        // Escape is the fallthrough chain's first step, not a shortcut - see Editor.KeyDown.
-        if (e.Key != Keys.Escape || _state.SelectedPlacements.Count == 0) return base.HandleKeyDown(e);
-
-        _state.ClearSelection();
-        return true;
     }
 
     public override UIElement? HitTest(float x, float y)
@@ -732,10 +557,10 @@ public sealed class ArrangementView : Panel
     {
         base.Update(uiContext);
 
-        if (_marqueeAnchor != null && uiContext.CapturedElement != this)
+        if (_marquee.Active && uiContext.CapturedElement != this)
         {
             CommitMarquee();
-            _marqueeAnchor = _marqueeCursor = null;
+            _marquee.End();
             InvalidateLayout();
         }
 
@@ -750,151 +575,5 @@ public sealed class ArrangementView : Panel
         if (!_refreshDeferred) return;
         _refreshDeferred = false;
         Refresh();
-    }
-
-    private void PlaceAtPointer()
-    {
-        if (_state.SelectedTrack is not { } track)
-        {
-            _state.SelectPlacement(null);
-            return;
-        }
-
-        var (channel, start) = GridPosition(Context.PointerX, Context.PointerY, 0);
-        _state.SelectPlacement(_state.PlaceTrack(track, channel, start));
-    }
-
-    /// <summary>
-    ///     Captures every selected clip's position at press, along with the anchor clip's own
-    ///     snapped press position - the clip under the pointer is one of them, since a press
-    ///     onto an unselected clip has already replaced the selection with just it.
-    /// </summary>
-    private void BeginClipDrag(float x, float y, double grabOffsetQuarters)
-    {
-        _clipDragAnchor = GridPosition(x, y, grabOffsetQuarters);
-        _clipDrag = [.. _state.SelectedPlacements.Select(p => (p, p.Channel, p.StartQuarterNotes))];
-    }
-
-    /// <summary>
-    ///     One frame of a clip drag: the anchor's delta from its own press position applies
-    ///     to every captured clip's own start and channel, so the group keeps its shape and a
-    ///     selection of one reduces to a plain single-clip drag. Clamping is per clip, as in
-    ///     <see cref="TrackEditorView.UpdateGroupDrag" /> - a clip against the timeline start
-    ///     or the last lane stops there while the rest keep moving.
-    /// </summary>
-    private void UpdateClipDrag(float x, float y, double grabOffsetQuarters)
-    {
-        if (_clipDrag is not { Count: > 0 } entries) return;
-
-        var (channel, start) = GridPosition(x, y, grabOffsetQuarters);
-        var channelDelta = channel - _clipDragAnchor.Channel;
-        var startDelta = start - _clipDragAnchor.Start;
-        var maxChannel = ChannelCount - 1;
-
-        _state.MovePlacements([
-            .. entries.Select(e => (e.Placement,
-                Math.Clamp(e.Channel + channelDelta, 0, maxChannel),
-                Math.Max(0, e.Start + startDelta)))
-        ]);
-        InvalidateLayout();
-    }
-
-    private (int channel, double start) GridPosition(float x, float y, double grabOffsetQuarters)
-    {
-        var quarters = (x - Computed.AbsoluteX + _nav.ScrollX) / PixelsPerQuarter - grabOffsetQuarters;
-        var snapped = Math.Max(0, Math.Round(quarters / SnapQuarterNotes) * SnapQuarterNotes);
-        var channel = (int)Math.Floor((y - Computed.AbsoluteY - RulerHeight + _nav.ScrollY) / LaneHeight);
-        return (Math.Clamp(channel, 0, ChannelCount - 1), snapped);
-    }
-
-    // Marquee (Select tool): model-space anchor/cursor (continuous quarters, channel),
-    // so mid-drag panning can't corrupt it. Mode is sampled from the modifier bools at
-    // press, applied at release. See TrackEditorView for the identical note-editor version.
-    private enum MarqueeMode
-    {
-        Replace,
-        Append,
-        Remove
-    }
-
-    /// <summary>
-    ///     One clip's hit box. Its fill and its track name are slots in the view's batches
-    ///     (see <see cref="DoLayout" />), so a project's clips cost no draw calls of their
-    ///     own - which is also why <see cref="Selected" /> is a flag the layout reads rather
-    ///     than a style class: there is no styled element to swap a background on.
-    /// </summary>
-    internal class ClipBlock : Panel
-    {
-        private readonly ArrangementView _view;
-        private double _grabOffsetQuarters;
-
-        public ClipBlock(UIContext context, ArrangementView view, TrackPlacement placement) : base(context)
-        {
-            _view = view;
-            Placement = placement;
-            Cursor = CursorType.Pointer;
-            // Swallow the click so a release on a clip never bubbles into the view's
-            // place-at-pointer handler; selection already happened on press.
-            OnClick = _ => { };
-        }
-
-        public TrackPlacement Placement { get; }
-
-        /// <summary>This clip's slot in the view's line batch - its position in the clip list.</summary>
-        public required int BatchSlot { get; init; }
-
-        /// <summary>Its slot in the clip-name batch, which has a range of its own.</summary>
-        public required int LabelSlot { get; init; }
-
-        /// <summary>Whether this clip is part of the selection - picks its fill in the layout.</summary>
-        public bool Selected { get; set; }
-
-        public override bool HandlePress(float x, float y)
-        {
-            _view._state.SelectTrack(Placement.Track);
-
-            if (_view._state.ActiveTool == EditorTool.Select)
-            {
-                // Select tool: press-time selection only, matching the Draw tool's press
-                // feel - no move drag, no BeginGesture.
-                if (_view.FineSnap)
-                    _view._state.RemoveFromPlacementSelection([Placement]); // Shift: remove (no-op if absent)
-                else if (_view.WheelZooms)
-                    _view._state.AddToPlacementSelection([Placement]); // Ctrl: append (no-op if present)
-                else _view._state.SelectPlacement(Placement); // no modifier: replace
-                return true;
-            }
-
-            _view._dragging = this;
-            _view._state.BeginGesture();
-            _grabOffsetQuarters = (x - Computed.AbsoluteX) / _view.PixelsPerQuarter;
-            // A press onto a clip already in the selection keeps the selection, so the whole
-            // group drags; pressing an unselected one replaces it with just this clip. Same
-            // rule as a note press - see TrackEditorView.BeginNoteDrag.
-            if (!_view._state.SelectedPlacements.Contains(Placement))
-                _view._state.SelectPlacement(Placement);
-            _view.BeginClipDrag(x, y, _grabOffsetQuarters);
-            return true;
-        }
-
-        public override void HandlePointerDrag(float x, float y)
-        {
-            if (_view._state.ActiveTool == EditorTool.Select) return; // no-op: press already applied selection
-            _view.UpdateClipDrag(x, y, _grabOffsetQuarters);
-        }
-
-        public override bool HandleDoublePress(float x, float y)
-        {
-            _view.OnOpenTrack?.Invoke(Placement.Track);
-            return true;
-        }
-
-        /// <summary>Right-click removes the clip, same as selecting it and pressing Delete.</summary>
-        public override bool HandleRightPress(float x, float y)
-        {
-            if (_view._dragging == this) return false;
-            _view._state.RemovePlacement(Placement);
-            return true;
-        }
     }
 }

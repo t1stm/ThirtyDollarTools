@@ -7,10 +7,10 @@ using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Tests;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
@@ -38,7 +38,7 @@ public class FakeReport : IProgressReport
 {
     public required string Message { get; init; }
     public required double Percentage { get; init; }
-    public string? Detail { get; init; }
+    public string? Detail => null;
 }
 
 /// <summary>
@@ -58,14 +58,7 @@ public class LoaderInterfaceTests
 
     private string LoadMarkup()
     {
-        return _context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo
-            {
-                Location = "Scenes/Layout/LoaderInterface.snx.xml",
-                Storage = StorageLocation.Assembly
-            }
-        }).Value;
+        return _context.AssetProvider.LoadString("Scenes/Layout/LoaderInterface.snx.xml", StorageLocation.Assembly);
     }
 
     /// <summary>Every id LoaderInterface.snx.csx reaches for.</summary>

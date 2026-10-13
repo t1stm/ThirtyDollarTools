@@ -1,4 +1,5 @@
 using EditorScene.State;
+using Sundex.Engine.Asset_Management.Extensions;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using EditorScene.Scenes;
@@ -8,7 +9,6 @@ using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 using Serilog;
 using Shared;
@@ -70,8 +70,7 @@ public class EditorTestContext : UIContext
     /// </summary>
     public InspectorPanel NewInspector(EditorState state)
     {
-        var markup = AssetProvider.Load<StringAsset, StringInfo>(
-            StringInfo.CreateFromUnknownStorage("Scenes/Layout/Inspector Shell/InspectorShell.snx.xml")).Value;
+        var markup = AssetProvider.LoadString("Scenes/Layout/Inspector Shell/InspectorShell.snx.xml");
         var component = new SundexContext(this).NewComponent(markup);
         return new InspectorPanel(this, state,
             component.GetID<Panel>("inspector-panel"),

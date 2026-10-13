@@ -1,11 +1,9 @@
-using EditorScene.Scenes;
 using EditorScene.Scenes.Dialogs;
-using EditorScene.State;
-using Sundex.Components.Abstractions;
+using EditorScene.Scenes.Layout;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 
 namespace EditorScene.Tests;
@@ -31,10 +29,7 @@ public class MinResolutionLayoutTests
         foreach (var tag in new[] { "track-editor-view", "faithful-palette", "faithful-sequence" })
             markup.RegisterElementFactory(tag, ctx => new Panel(ctx));
 
-        var source = _context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo { Location = $"Scenes/{document}.snx.xml", Storage = StorageLocation.Assembly }
-        }).Value;
+        var source = _context.AssetProvider.LoadString($"Scenes/{document}.snx.xml", StorageLocation.Assembly);
 
         return markup.NewComponent(source).GetID<FlexPanel>(id);
     }
@@ -191,7 +186,7 @@ public class MinResolutionLayoutTests
     public void WrapHint_BreaksOnSpaces_AndKeepsEveryWord()
     {
         const string text = "Click the palette to add, right-click to preview  •  Draw: click a slot to remove it";
-        var lines = EditorInterface.WrapHint(text, 30, 3);
+        var lines = HintBarController.WrapHint(text, 30, 3);
 
         Assert.True(lines.Count > 1, "a legend well over the budget stayed on one line");
         Assert.Equal(text.Split(' ', StringSplitOptions.RemoveEmptyEntries),
@@ -204,7 +199,7 @@ public class MinResolutionLayoutTests
     [Fact]
     public void WrapHint_NeverExceedsItsLineCount()
     {
-        var lines = EditorInterface.WrapHint(string.Join(' ', Enumerable.Repeat("gesture", 200)), 20, 3);
+        var lines = HintBarController.WrapHint(string.Join(' ', Enumerable.Repeat("gesture", 200)), 20, 3);
         Assert.Equal(3, lines.Count);
     }
 }

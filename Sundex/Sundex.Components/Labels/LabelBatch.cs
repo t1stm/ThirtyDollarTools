@@ -4,22 +4,22 @@ using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Text;
 
-namespace EditorScene.Scenes.Components;
+namespace Sundex.Components.Labels;
 
 /// <summary>
 ///     A pool of short strings (beat numbers, gutter values, clip names) sharing one
 ///     <see cref="TextBuffer" />, so the whole pool is one instanced draw call instead of
-///     one buffer - and one draw - per <see cref="Sundex.Components.Labels.Label" />.
-///     <see cref="LineBatch" />'s counterpart for text, and like it the count is a
+///     one buffer - and one draw - per <see cref="Label" />.
+///     Like the editor's line batch, the count is a
 ///     reservation rather than a cap: writing past the end appends slots.
 ///     <see cref="Hide" /> blanks a slot instead of parking it off-screen; blanked slots
 ///     stay in the buffer as degenerate quads and cost no vertex work.
 ///     Slots are written in absolute UI coordinates - this is not an element and never
 ///     goes through layout.
 /// </summary>
-internal sealed class LabelBatch : IRenderable, IClippable
+public sealed class LabelBatch : IRenderable, IClippable
 {
-    /// <summary>Both grids' captions are 11px - the same constant their row math centers on.</summary>
+    /// <summary>The default caption size.</summary>
     public const float FontSize = 11f;
 
     private readonly TextBuffer _buffer;
@@ -49,7 +49,7 @@ internal sealed class LabelBatch : IRenderable, IClippable
     }
 
     /// <summary>Appends slots until the pool holds at least <paramref name="count" /> of them.</summary>
-    public void EnsureCount(int count)
+    private void EnsureCount(int count)
     {
         while (_slots.Count < count) _slots.Add(NewSlot(_sliceCapacity));
     }
@@ -124,7 +124,7 @@ internal sealed class LabelBatch : IRenderable, IClippable
     }
 
     /// <summary>One caption. <see cref="Visible" /> is false while the slot is released.</summary>
-    internal sealed class Slot(TextSlice slice, int capacity)
+    public sealed class Slot(TextSlice slice, int capacity)
     {
         public TextSlice Slice { get; } = slice;
 

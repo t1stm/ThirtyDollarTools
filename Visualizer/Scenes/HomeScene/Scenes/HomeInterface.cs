@@ -5,8 +5,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Markup;
 using Shared.Animations;
 using Sundex.Markup.Attributes;
@@ -84,18 +83,12 @@ public class HomeInterface
     private Vector3 _hitTint = Vector3.One;
 
     /// <summary>The moai's styled y, which the nod is measured from.</summary>
-    private float _moaiRestY;
+    private readonly float _moaiRestY;
 
     public HomeInterface(UIContext context, Action visualizer, Action drumMaster, Action editor, Action settings)
     {
         var sundexContext = new SundexContext(context);
-        var componentSource = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo
-            {
-                Location = "Scenes/Layout/HomeInterface.snx.xml"
-            }
-        });
+        var componentSource = context.AssetProvider.LoadString("Scenes/Layout/HomeInterface.snx.xml");
 
         UI = context;
         OnVisualizer = visualizer;
@@ -103,7 +96,7 @@ public class HomeInterface
         OnDrumMaster = drumMaster;
         OnSettings = settings;
 
-        Component = sundexContext.NewComponent(componentSource.Value);
+        Component = sundexContext.NewComponent(componentSource);
         sundexContext.RunLogicAndVerify(Component, () => RootPanel);
         RootPanel.DrawTo(context);
 
@@ -121,12 +114,12 @@ public class HomeInterface
     }
 
     /// <summary>The context the logic block builds the step panels against.</summary>
-    public UIContext UI { get; }
+    [UsedImplicitly] public UIContext UI { get; }
 
-    public Action OnVisualizer { get; }
-    public Action OnEditor { get; }
-    public Action OnDrumMaster { get; }
-    public Action OnSettings { get; }
+    [UsedImplicitly] public Action OnVisualizer { get; }
+    [UsedImplicitly] public Action OnEditor { get; }
+    [UsedImplicitly] public Action OnDrumMaster { get; }
+    [UsedImplicitly] public Action OnSettings { get; }
 
     [UsedImplicitly] public SundexComponent Component { get; }
 
@@ -138,7 +131,7 @@ public class HomeInterface
     [SetFromLogic] public Label UpdateLabel { get; set; } = null!;
 
     /// <summary>Every cell's steps, left to right, as one row - the sweep reads them in order.</summary>
-    public List<Panel> Steps { get; } = [];
+    [UsedImplicitly] public List<Panel> Steps { get; } = [];
 
     /// <summary>
     ///     Scene-wide opacity. The loading screen drives this from 0 to 1 as it fades itself
@@ -222,7 +215,7 @@ public class HomeInterface
         for (var i = 0; i < Steps.Count; i++)
         {
             var distance = reached - i;
-            var lit = distance >= 0 && distance < LitTrailSteps;
+            var lit = distance is >= 0 and < LitTrailSteps;
 
             // Both set every frame, so the pass that switches to idle also clears the bright
             // class off steps the arrival left lit.

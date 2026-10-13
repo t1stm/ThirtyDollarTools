@@ -8,8 +8,7 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Markup;
 using Sundex.Markup.Attributes;
 
@@ -95,15 +94,9 @@ public class LoaderInterface
         _context = context;
 
         var sundexContext = new SundexContext(context);
-        var componentSource = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo
-            {
-                Location = "Scenes/Layout/LoaderInterface.snx.xml"
-            }
-        });
+        var componentSource = context.AssetProvider.LoadString("Scenes/Layout/LoaderInterface.snx.xml");
 
-        Component = sundexContext.NewComponent(componentSource.Value);
+        Component = sundexContext.NewComponent(componentSource);
         sundexContext.RunLogicAndVerify(Component, () => RootPanel, () => Strip, () => Ticks, () => Status,
             () => StatusMessage, () => StatusDetail, () => StatusPercent, () => PaneWelcome, () => PaneUpdates,
             () => PaneSounds, () => IncludePrereleases, () => IncludeNightlies, () => WelcomeNext,
@@ -135,10 +128,10 @@ public class LoaderInterface
     }
 
     /// <summary>Raised with the user's answer when the update question is answered.</summary>
-    public Action<bool>? OnUpdateAnswer { get; set; }
+    public Action<bool>? OnUpdateAnswer { get; init; }
 
     /// <summary>Raised when the user starts the download on the last setup pane.</summary>
-    public Action? OnStartLoading { get; set; }
+    public Action? OnStartLoading { get; init; }
 
     [UsedImplicitly] public SundexComponent Component { get; }
 

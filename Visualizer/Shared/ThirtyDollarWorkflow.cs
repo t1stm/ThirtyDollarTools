@@ -2,17 +2,16 @@ using System.Diagnostics;
 using Shared.Atlases;
 using Shared.Audio;
 using Shared.Objects;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Encoder.Resamplers;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 using ILogger = Serilog.ILogger;
-using StringInfo = Sundex.Engine.Asset_Management.Types.String.StringInfo;
 
 namespace Shared;
 
@@ -64,13 +63,13 @@ public class ThirtyDollarWorkflow
         TimingSampleRate = 100_000
     };
 
-    public AtlasStore AtlasStore { get; init; }
-    public SampleHolder SampleHolder { get; init; }
+    public AtlasStore AtlasStore { get; }
+    public SampleHolder SampleHolder { get; }
     public Game Game { get; }
     public ILogger Logger { get; }
     public SequencePlayer SequencePlayer { get; }
 
-    public bool AutoUpdate { get; set; } = true;
+    private bool AutoUpdate { get; set; } = true;
     public bool ShowDebugInfo { get; set; }
     public SequenceIndices SequenceIndices { get; private set; } = new();
     public SequenceInfo[] SequenceInfos { get; private set; } = [];
@@ -95,9 +94,7 @@ public class ThirtyDollarWorkflow
         for (var index = 0; index < SequenceInfos.Length; index++)
         {
             var sequence_info = SequenceInfos[index];
-            var asset = _assetProvider.Load<StringAsset, StringInfo>(
-                StringInfo.CreateFromUnknownStorage(sequence_info.FileLocation));
-            var sequence = Sequence.FromString(asset.Value);
+            var sequence = Sequence.FromString(_assetProvider.LoadString(sequence_info.FileLocation));
             sequence_array[index] = sequence;
         }
 
@@ -185,7 +182,7 @@ public class ThirtyDollarWorkflow
         ];
     }
 
-    public void UpdateExtractedSpeedEvents()
+    private void UpdateExtractedSpeedEvents()
     {
         lock (ExtractedSpeedEvents)
         {

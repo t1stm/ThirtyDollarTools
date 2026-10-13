@@ -1,12 +1,10 @@
 using System.Diagnostics;
 using JetBrains.Annotations;
-using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Markup;
 using Sundex.Markup.Attributes;
 using VisualizerScene.Settings;
@@ -40,12 +38,9 @@ public class ShortcutSheet
         UI = context;
 
         var sundexContext = new SundexContext(context);
-        var source = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo { Location = "UI/Layout/ShortcutSheet.snx.xml" }
-        });
+        var source = context.AssetProvider.LoadString("UI/Layout/ShortcutSheet.snx.xml");
 
-        Component = sundexContext.NewComponent(source.Value);
+        Component = sundexContext.NewComponent(source);
         sundexContext.RunLogicAndVerify(Component,
             () => RootPanel,
             () => Header,
@@ -68,10 +63,10 @@ public class ShortcutSheet
     [SetFromLogic] public FlexPanel Groups { get; set; } = null!;
     [SetFromLogic] public Label Footnote { get; set; } = null!;
 
-    public float CurrentAlpha { get; private set; }
+    private float CurrentAlpha { get; set; }
 
     /// <summary>Whether the card is open over a playing cover. Always false while idle, where the sheet is simply shown.</summary>
-    public bool Open { get; private set; }
+    private bool Open { get; set; }
 
     public void Toggle()
     {

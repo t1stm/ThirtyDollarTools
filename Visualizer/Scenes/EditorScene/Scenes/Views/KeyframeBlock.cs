@@ -46,7 +46,7 @@ internal sealed class KeyframeBlock : Panel
     public override bool HandlePress(float x, float y)
     {
         if (Note?.Automation is null || Segment == null) return false;
-        _view._state.SelectSegment(Segment);
+        _view.State.SelectSegment(Segment);
         _view.BeginKeyframeDrag(this);
         return true;
     }

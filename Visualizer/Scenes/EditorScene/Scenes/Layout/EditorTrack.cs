@@ -98,10 +98,10 @@ public sealed class EditorTrack : FlexPanel
     ///     Ctrl-click (Cmd on macOS) toggles the multi-selection instead; unset, the row
     ///     selects on its own.
     /// </summary>
-    public Action<ProjectTrack>? OnSelect { get; set; }
+    public Action<ProjectTrack>? OnSelect { get; init; }
 
-    /// <summary>Hover hint text for the remove button; null on hover exit. See EditorInterface.SetHint.</summary>
-    public Action<string?>? OnHint { get; set; }
+    /// <summary>Hover hint text for the remove button; null on hover exit. See HintBarController.Show.</summary>
+    public Action<string?>? OnHint { get; init; }
 
     /// <summary>Double-clicking a row opens the pattern, same as double-clicking a clip.</summary>
     public override bool HandleDoublePress(float x, float y)

@@ -10,7 +10,7 @@ namespace EditorScene.Scenes.Views;
 ///     <see cref="BatchSlot" /> of its line batch, so the whole pool costs no draw calls.
 ///     The element exists only to receive clicks, right-clicks and drags.
 /// </summary>
-internal class NoteBlock : Panel
+internal sealed class NoteBlock : Panel
 {
     private readonly TrackEditorView _view;
 
@@ -32,7 +32,7 @@ internal class NoteBlock : Panel
     ///     How wide the grab zone on each border is: 6 px, or a third of the block when it is
     ///     narrower than that, so a one-step note at low zoom keeps a middle to press.
     /// </summary>
-    public float EdgeZone => Math.Min(6f, (float)Computed.Width / 3f);
+    public float EdgeZone => Math.Min(6f, Computed.Width / 3f);
 
     /// <summary>
     ///     Which border the given absolute x is on: -1 left, +1 right, 0 for the body. Cuts
@@ -42,9 +42,9 @@ internal class NoteBlock : Panel
     {
         if (Note is null or { IsCut: true } || Computed.Width <= 0) return 0;
 
-        var local = absoluteX - (float)Computed.AbsoluteX;
+        var local = absoluteX - Computed.AbsoluteX;
         if (local <= EdgeZone) return -1;
-        if (local >= (float)Computed.Width - EdgeZone) return 1;
+        if (local >= Computed.Width - EdgeZone) return 1;
         return 0;
     }
 
@@ -70,35 +70,35 @@ internal class NoteBlock : Panel
     public override bool HandlePress(float x, float y)
     {
         if (Note == null || Segment == null) return false;
-        _view._state.SelectSegment(Segment);
+        _view.State.SelectSegment(Segment);
 
         // A border press resizes under both tools: the marquee only ever starts on empty
         // grid, so nothing of the Select tool conflicts with it. Selection first, the same
         // way a move does it - a border of an already-selected note resizes the whole group.
         if (EdgeAt(x) is var edge and not 0)
         {
-            if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note);
+            if (!_view.State.SelectedNotes.Contains(Note)) _view.State.SelectNote(Note);
             _view.PickInstrument(Note);
             _view.BeginNoteResize(this, edge, x);
             return true;
         }
 
-        if (_view._state.ActiveTool == EditorTool.Select)
+        if (_view.State.ActiveTool == EditorTool.Select)
         {
             if (_view.FineSnap)
             {
-                _view._state.RemoveFromNoteSelection([Note]);
+                _view.State.RemoveFromNoteSelection([Note]);
                 return true;
             }
 
-            if (_view.WheelZooms) _view._state.AddToNoteSelection([Note]);
-            else if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note);
+            if (_view.WheelZooms) _view.State.AddToNoteSelection([Note]);
+            else if (!_view.State.SelectedNotes.Contains(Note)) _view.State.SelectNote(Note);
 
             _view.PickInstrument(Note);
             return true;
         }
 
-        if (!_view._state.SelectedNotes.Contains(Note)) _view._state.SelectNote(Note);
+        if (!_view.State.SelectedNotes.Contains(Note)) _view.State.SelectNote(Note);
         _view.PickInstrument(Note);
         _view.BeginNoteDrag(this, x, y);
         return true;
@@ -109,8 +109,8 @@ internal class NoteBlock : Panel
     {
         // Ignored mid-drag: deleting the note under the left-button capture would
         // leave the drag mutating a note that is no longer in any segment.
-        if (Note == null || Segment == null || _view._dragging == this) return false;
-        _view._state.RemoveNote(Segment, Note);
+        if (Note == null || Segment == null || _view.Dragging == this) return false;
+        _view.State.RemoveNote(Segment, Note);
         return true;
     }
 

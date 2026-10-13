@@ -5,8 +5,7 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Bars;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Markup;
 using Sundex.Markup.Attributes;
 
@@ -47,12 +46,9 @@ public class PlayerBar
         OnSeek = onSeek;
 
         var sundexContext = new SundexContext(context);
-        var source = context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo { Location = "UI/Layout/PlayerBar.snx.xml" }
-        });
+        var source = context.AssetProvider.LoadString("UI/Layout/PlayerBar.snx.xml");
 
-        Component = sundexContext.NewComponent(source.Value);
+        Component = sundexContext.NewComponent(source);
         sundexContext.RunLogicAndVerify(Component,
             () => RootPanel,
             () => ProgressBar,
@@ -87,10 +83,10 @@ public class PlayerBar
     /// </summary>
     public bool Hidden { get; set; }
 
-    public Action OnBack { get; }
-    public Action OnPlayPause { get; }
-    public Action OnRestart { get; }
-    public Action<float> OnSeek { get; }
+    [UsedImplicitly] public Action OnBack { get; }
+    [UsedImplicitly] public Action OnPlayPause { get; }
+    [UsedImplicitly] public Action OnRestart { get; }
+    private Action<float> OnSeek { get; }
 
     [UsedImplicitly] public SundexComponent Component { get; }
 

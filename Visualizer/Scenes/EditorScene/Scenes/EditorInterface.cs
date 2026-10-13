@@ -2,11 +2,7 @@ using EditorScene.Scenes.Components;
 using EditorScene.State;
 using JetBrains.Annotations;
 using System.Collections.Concurrent;
-using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
-using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
@@ -14,74 +10,21 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
-using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 using Sundex.Markup.Attributes;
 using ThirtyDollarConverter.Editor;
-using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Layout;
 using EditorScene.Scenes.Views;
 using VisualizerScene;
 using VisualizerScene.Objects.Playfield;
-using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes;
 
-public class EditorInterface
+public partial class EditorInterface
 {
     private const float HeaderHeight = 32;
     private const float TrackColumnWidth = 260;
-
-    /// <summary>The hint bar at one line - what it is whenever the hint fits the grid area's width.</summary>
-    private const float HintBarHeight = 26;
-
-    /// <summary>What each further line of a wrapped hint adds to that (line box + HintLines' spacing).</summary>
-    private const float HintLineHeight = 15;
-
-    /// <summary>
-    ///     The most lines a hint may take. Five is what the faithful legend needs at the
-    ///     1080 px minimum, where the bar has only the grid area's width to write in.
-    /// </summary>
-    private const int HintMaxLines = 5;
-
-    /// <summary>How much of the measured width a line may use - slack for <see cref="SplitHint" />'s average.</summary>
-    private const float HintFitMargin = 0.94f;
-
-    /// <summary>The hint currently shown, or null for the static legend. Re-split on every resize.</summary>
-    private string? _hintText;
-
-    /// <summary>The last window height <see cref="Resize" /> saw; the hint bar's Y is derived from it.</summary>
-    private float _windowHeight;
-
-    /// <summary>
-    ///     The hint bar's default text: gestures and shortcuts that have no on-screen
-    ///     control of their own, so nothing else in the UI hints they exist. Built from the
-    ///     bind table rather than written out, so a rebound shortcut is named correctly and
-    ///     a Mac reads Cmd.
-    /// </summary>
-    private string HintLegend => _openPanel == FaithfulPanel ? FaithfulLegend : GridLegend;
-
-    /// <summary>
-    ///     The faithful editor's own gestures. Nothing here has an on-screen control, and
-    ///     none of it matches the grid views' bindings, so the bar says so outright.
-    /// </summary>
-    private static string FaithfulLegend =>
-        "Click the palette to add, right-click to preview  •  " +
-        "Draw: click a slot to remove it, Shift+click to copy, drag it to reorder  •  " +
-        $"Select: click to select, {Keybinds.PrimaryName}+click to add, Left/Right walk it, " +
-        $"{Keybinds.PrimaryName}+Shift+ extends it, Space+ moves it, " +
-        $"Enter places another, Del removes, Tab adds a divider, C a combine  •  " +
-        $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)} copy/paste  •  " +
-        $"Scroll a slot (Up/Down under Select) for value, {Keybinds.PrimaryName}+ volume, Shift+ pan";
-
-    private static string GridLegend =>
-        "Double-click a track to open it, right-click for options  •  " +
-        $"Drag a note's border for length, a keyframe marker to shape it ({Keybinds.PrimaryName}+drag: all)  •  " +
-        $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)}/{Keybinds.Get(Bind.EditorCut)} " +
-        $"copy/paste/cut, {Keybinds.Get(Bind.EditorSelectAll)} select all  •  " +
-        $"Middle-drag to pan, {Keybinds.PrimaryName}+scroll to zoom, Shift+drag to fine-snap";
 
     private readonly ArrangementView _arrangement;
     private readonly UIContext _context;
@@ -89,6 +32,7 @@ public class EditorInterface
     private readonly string _defaultTitle;
     private readonly DialogHost _dialogHost;
     private readonly FlexPanel _gridArea;
+    private readonly HintBarController _hint;
     private readonly InspectorPanel _inspector;
     private readonly Panel _inspectorColumn;
     private readonly InstrumentWorkflow _instrumentWorkflow;
@@ -115,12 +59,6 @@ public class EditorInterface
 
     /// <summary>Scenes are constructed at startup; only the active editor owns the window title.</summary>
     private bool _titleActive;
-
-    /// <summary>
-    ///     Guards <see cref="ShowTrackContextMenu" /> against reopening on every held frame -
-    ///     right-press is level-triggered, so a stationary right-click keeps firing.
-    /// </summary>
-    private DropdownMenu? _trackContextMenuModal;
 
     public EditorInterface(UIContext context, ThirtyDollarWorkflow workflow, Action back)
     {
@@ -183,9 +121,9 @@ public class EditorInterface
                      "Layout/Inspector Shell/InspectorShell",
                      "Dialogs/Sound Filter/SoundFilter"
                  })
-            sundexContext.NewComponent(LoadMarkup(context, $"Scenes/{name}.snx.xml"));
+            sundexContext.NewComponent(Markup.Load(context, $"Scenes/{name}.snx.xml"));
 
-        Component = sundexContext.NewComponent(LoadMarkup(context, "Scenes/Layout/Editor Interface/EditorInterface.snx.xml"));
+        Component = sundexContext.NewComponent(Markup.Load(context, "Scenes/Layout/Editor Interface/EditorInterface.snx.xml"));
         RootPanel = Component.Element as Panel ?? throw new Exception("Root panel not found");
 
         var ids = Component.RegisteredIDs;
@@ -213,13 +151,8 @@ public class EditorInterface
             () => SoundFilterModal);
         _transport = new TransportController(Playback,
             TransportProgress, TransportElapsed, TransportTotal, TransportPlay);
-        AlignHintToGrid();
-        LayoutHint(); // Resize re-runs it once the window size is known
-
-        // The legend is written into a label once and then sits there, so a rebind has to
-        // push it back out. Never unsubscribed: this interface is built during the boot
-        // preload and lives as long as the process does.
-        Keybinds.Changed += () => SetHint(null);
+        _hint = new HintBarController(context, HintBar, HintGutter, HintLines, HintLabel, _gridArea, HeaderHeight);
+        _hint.SetView(LaneHeader.GutterWidth, false); // Resize re-lays it once the window size is known
 
         // Both panels are in the markup so one pass resolves their handles; only the
         // current one stays attached. Detached before the first DrawTo, so the note editor
@@ -279,7 +212,7 @@ public class EditorInterface
         State.OnInstrumentsChanged += RefreshActiveInstrument;
         State.OnSelectionChanged += _ =>
         {
-            RefreshSelection();
+            _trackList.RefreshSelection();
             _inspector.Rebuild();
         };
         State.OnPlacementSelectionChanged += _ =>
@@ -324,7 +257,7 @@ public class EditorInterface
     public EditorState State { get; } = new();
     public EditorPlayback Playback { get; }
 
-    public Action OnBack { get; }
+    private Action OnBack { get; }
     [UsedImplicitly] public SundexComponent Component { get; }
     public Panel RootPanel { get; }
 
@@ -391,100 +324,6 @@ public class EditorInterface
         };
     }
 
-    /// <summary>Loads an embedded markup/script asset by its project-relative path.</summary>
-    private static string LoadMarkup(UIContext context, string location)
-    {
-        return context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo { Location = location }
-        }).Value;
-    }
-
-    /// <summary>
-    ///     Shift: the note editor snaps values to 0.2 instead of 1, and scrolling a sound
-    ///     row in the instrument editor adjusts pan instead of value.
-    ///     Ctrl: the arrangement wheel zooms instead of panning, and scrolling a sound row
-    ///     in the instrument editor adjusts volume instead of value.
-    /// </summary>
-    /// <summary>
-    ///     Whether Space is currently a modifier rather than the play/pause key: held with
-    ///     Left/Right it slides the faithful selection along the sequence, which is only a
-    ///     gesture while there is a selection to slide. Read by <c>Editor.KeyDown</c> before
-    ///     the play/pause bind, so the two never fire on one press.
-    /// </summary>
-    public bool SpaceMovesSelection =>
-        State.OpenedFaithfulTrack != null && State.ActiveTool == EditorTool.Select &&
-        State.SelectedItems.Count > 0;
-
-    /// <summary>Space's held state, read every frame from the keyboard - see <see cref="SpaceMovesSelection" />.</summary>
-    public void SetSpaceHeld(bool held)
-    {
-        _faithfulSequence.SpaceHeld = held;
-    }
-
-    /// <summary>
-    ///     The keys that only mean something with a faithful track open, resolved after the
-    ///     bind table has had its go: the arrows (which the table can't match while a
-    ///     modifier is held - see <see cref="NudgeDirection" />), Enter and Tab. Delete is
-    ///     the bind table's own now (see <see cref="Editor" />'s KeyDown), for every
-    ///     selection rather than only a faithful one. False leaves the key to whatever else
-    ///     wants it.
-    /// </summary>
-    public bool FaithfulKeyDown(KeyboardKeyEventArgs e)
-    {
-        if (State.OpenedFaithfulTrack is null) return false;
-
-        if (NudgeDirection(e) is { } direction)
-        {
-            _faithfulSequence.Nudge(direction.Dx, direction.Dy);
-            return true;
-        }
-
-        switch (e.Key)
-        {
-            case Keys.Enter or Keys.KeyPadEnter:
-                _faithfulSequence.PlaceAgain();
-                return true;
-            case Keys.Tab:
-                _faithfulSequence.AppendAction("!divider");
-                return true;
-            // Plain C only: Ctrl+C is the copy bind, which matches modifiers exactly and has
-            // already returned above, and a focused name field eats plain letters itself.
-            case Keys.C:
-                _faithfulSequence.AppendAction("!combine");
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    /// <summary>
-    ///     The nudge binds' directions, matched on the key with its modifiers ignored. The
-    ///     bind table compares modifier sets exactly, by design - that is what keeps Ctrl+Z
-    ///     and Ctrl+Shift+Z apart - while the faithful sequence reads Ctrl/Shift on an arrow
-    ///     as volume/pan and Space as a move.
-    /// </summary>
-    private static (int Dx, int Dy)? NudgeDirection(KeyboardKeyEventArgs e)
-    {
-        if (e.Key == Keybinds.Get(Bind.EditorNudgeLeft).Key) return (-1, 0);
-        if (e.Key == Keybinds.Get(Bind.EditorNudgeRight).Key) return (1, 0);
-        if (e.Key == Keybinds.Get(Bind.EditorNudgeUp).Key) return (0, 1);
-        if (e.Key == Keybinds.Get(Bind.EditorNudgeDown).Key) return (0, -1);
-        return null;
-    }
-
-    public void SetModifiers(bool shift, bool ctrl, bool alt = false)
-    {
-        _trackList.CtrlHeld = ctrl;
-        _faithfulSequence.CtrlHeld = ctrl;
-        _faithfulSequence.ShiftHeld = shift;
-        _trackEditor.FineSnap = shift;
-        _trackEditor.WheelZooms = ctrl;
-        _arrangement.FineSnap = shift;
-        _arrangement.WheelZooms = ctrl;
-        _instrumentWorkflow.SetModifiers(shift, ctrl, alt);
-    }
-
     private void SwapGridView(ProjectTrack? track)
     {
         var next = track switch
@@ -515,24 +354,13 @@ public class EditorInterface
         }
         else _arrangement.Refresh();
 
-        AlignHintToGrid();
-        SetHint(null); // the legend differs per view
+        // The faithful panel has no gutter at all, so its hint starts at the panel's own padding.
+        var gutter = next == TrackEditorPanel ? TrackEditorView.GutterWidth : next != null ? 0 : LaneHeader.GutterWidth;
+        _hint.SetView(gutter, next == FaithfulPanel); // the legend differs per view
     }
 
     /// <summary>The note editor specifically - the only view with a grid to pan and a value ruler.</summary>
     private bool NoteEditorOpen => _openPanel == TrackEditorPanel;
-
-    /// <summary>
-    ///     Indents the hint text past the active view's gutter - the arrangement's M/S lane
-    ///     header, the note editor's narrower value ruler - so it starts at the first grid
-    ///     column. The bar's own padding already covers part of that offset.
-    /// </summary>
-    private void AlignHintToGrid()
-    {
-        // The faithful panel has no gutter at all, so its hint starts at the panel's own padding.
-        var gutter = NoteEditorOpen ? TrackEditorView.GutterWidth : _openPanel != null ? 0 : LaneHeader.GutterWidth;
-        HintGutter.Width = Math.Max(0, gutter - HintBar.Padding);
-    }
 
     /// <summary>
     ///     Takes over a markup-built Draw/Select toggle; every adopted button then follows
@@ -572,32 +400,6 @@ public class EditorInterface
         button.Label.SetClass("dark-label", active && select);
     }
 
-    /// <summary>Same lazy-fill guard as <see cref="InstrumentEditor.EnsureSounds" />, for the filter picker.</summary>
-    private void EnsureSoundFilterItems()
-    {
-        if (_soundFilterPicker.HasSounds) return;
-        _soundFilterPicker.Fill(AllSounds());
-    }
-
-    /// <summary>
-    ///     Every pickable sound, once - the sample holder's map holds each one
-    ///     twice (ID and emoji) when it has an emoji.
-    /// </summary>
-    private IEnumerable<Sound> AllSounds()
-    {
-        return _workflow.SampleHolder.StringToSoundReferences.Values.Distinct().OrderBy(sound => sound.Id);
-    }
-
-    /// <summary>Public because SoundFilter.snx.csx wires both the Done button and the backdrop dismiss to it.</summary>
-    [UsedImplicitly]
-    public void CommitAndCloseSoundFilter()
-    {
-        if (_editingTrackAutomation is { } automation)
-            State.Edit(() => automation.Sounds = [.. _soundFilterPicker.Selected]);
-        RootPanel.RemoveChild(SoundFilterModal);
-        _inspector.Rebuild();
-    }
-
     /// <summary>
     ///     How much of an instrument's name the tool bar's button shows. The button is the
     ///     bar's only auto-width child, so an untruncated name grows the bar without bound and
@@ -614,266 +416,10 @@ public class EditorInterface
         InstrumentButton.InvalidateLayout();
     }
 
-    /// <summary>Wired from TrackEditorPanel.snx.csx - the workflow only exists once the root is drawn.</summary>
-    [UsedImplicitly]
-    public void OpenInstrumentSelector()
-    {
-        _instrumentWorkflow.OpenSelector();
-    }
-
-    /// <summary>
-    ///     Shows contextual text in the hint bar, or reverts to the static legend when
-    ///     <paramref name="text" /> is null (hover exit). Wired into every control whose
-    ///     purpose isn't obvious at a glance (see EditorTrack/LaneHeader's OnHint).
-    /// </summary>
+    /// <summary>See <see cref="HintBarController.Show" />.</summary>
     private void SetHint(string? text)
     {
-        _hintText = text;
-        LayoutHint();
-    }
-
-    /// <summary>
-    ///     Breaks the current hint across as many of the bar's lines as it needs, and sizes
-    ///     the bar (and the grid area above it) to match. A Label neither wraps nor clips, so
-    ///     without this a legend wider than the bar paints across the inspector column and off
-    ///     the window.
-    /// </summary>
-    private void LayoutHint()
-    {
-        var budget = HintBudget();
-        var lines = WrapHint(_hintText ?? HintLegend, budget, HintMaxLines);
-        // The bar is sized for this view's legend, not for whatever it happens to be
-        // showing: a hover hint is one line and a legend is several, and resizing between
-        // them would shuffle the whole view every time the pointer crossed a control.
-        var barLines = _hintText is null ? lines.Count : WrapHint(HintLegend, budget, HintMaxLines).Count;
-        var wanted = Math.Max(barLines, lines.Count);
-
-        // Exactly one label per line the bar is sized for - a spare blank one still takes a
-        // line box in the stack, which then outgrows the bar and gets centred half out of it.
-        // The size and color are copied off the markup's own line rather than left to the
-        // hint-line class: AddChild passes down whatever sheet the element last stored, and
-        // that is the root's, which never saw HintBar.snx.ss - a component's sheet only
-        // styles its own document.
-        while (HintLines.Children.Count < wanted)
-            HintLines.AddChild(new Label(_context, "")
-            {
-                Classes = ["hint-line"], FontSizePx = HintLabel.FontSizePx, Color = HintLabel.Color
-            });
-        while (HintLines.Children.Count > wanted) HintLines.RemoveChild(HintLines.Children[^1]);
-
-        for (var i = 0; i < wanted; i++)
-            ((Label)HintLines.Children[i]).SetTextContents(i < lines.Count ? lines[i] : "");
-
-        var height = HintBarHeight + (wanted - 1) * HintLineHeight;
-        HintBar.Height = height;
-        HintBar.Y = _windowHeight - height;
-        _gridArea.Height = _windowHeight - HeaderHeight - height;
-    }
-
-    /// <summary>
-    ///     How many characters of hint fit on one of the bar's lines.
-    ///     <para>
-    ///         ponytail: derived from the legend's average glyph advance, measured once off the
-    ///         whole string, because a Label remeasures by rebuilding its glyph buffer and the
-    ///         hint changes on every hover. The average runs narrow on a line of unusually wide
-    ///         glyphs, which <see cref="HintFitMargin" /> absorbs; measure per line if a legend
-    ///         ever has to sit exactly flush.
-    ///     </para>
-    /// </summary>
-    private int HintBudget()
-    {
-        var legend = HintLegend;
-        if (legend.Length == 0) return int.MaxValue;
-
-        HintLabel.SetTextContents(legend);
-        var perChar = HintLabel.Width.Value / legend.Length;
-        if (perChar <= 0) return int.MaxValue;
-
-        var available = HintBar.Width.Value - 2 * HintBar.Padding - HintGutter.Width.Value;
-        return (int)(available * HintFitMargin / perChar);
-    }
-
-    /// <summary>
-    ///     Greedily breaks <paramref name="text" /> into at most <paramref name="maxLines" />
-    ///     lines of at most <paramref name="budget" /> characters, never inside a word. The
-    ///     last line takes whatever is left, over budget included, so the tail of a legend is
-    ///     never dropped. Internal for <c>MinResolutionLayoutTests</c>.
-    /// </summary>
-    internal static List<string> WrapHint(string text, int budget, int maxLines)
-    {
-        budget = Math.Max(1, budget);
-        var lines = new List<string>();
-        var rest = text.AsSpan();
-
-        while (rest.Length > budget && lines.Count < maxLines - 1)
-        {
-            // Back off to the last space inside the budget; a run with none in it (no legend
-            // today has one) goes out over-long rather than split mid-word.
-            var cut = rest[..budget].LastIndexOf(' ');
-            if (cut <= 0) break;
-            lines.Add(rest[..cut].ToString());
-            rest = rest[(cut + 1)..];
-        }
-
-        lines.Add(rest.ToString());
-        return lines;
-    }
-
-    /// <summary>Previews the instrument being edited; false when the instrument editor isn't open.</summary>
-    public bool TryPreviewInstrument()
-    {
-        return _instrumentWorkflow.TryPreview();
-    }
-
-    /// <summary>Whether a dialog is open over the editor.</summary>
-    public bool HasOpenModal => _dialogHost.HasOpenModal;
-
-    /// <summary>Dismisses the topmost open modal, if any. Used so Escape closes a dialog instead of the editor.</summary>
-    public bool TryCloseTopModal()
-    {
-        return _dialogHost.TryCloseTop();
-    }
-
-    /// <summary>Offers a key to the topmost modal's content; see <see cref="DialogHost.TryKeyTop" />.</summary>
-    public bool TryKeyTopModal(KeyboardKeyEventArgs e)
-    {
-        return _dialogHost.TryKeyTop(e);
-    }
-
-    /// <summary>Runs the topmost modal's primary action, if it has one. Used so Enter confirms a dialog.</summary>
-    public bool TryConfirmTopModal()
-    {
-        return _dialogHost.TryConfirmTop();
-    }
-
-    public void LoadProjectFile(string location)
-    {
-        _projectIo.Load(location);
-    }
-
-    /// <summary>
-    ///     Asks first, then falls into the normal <see cref="ImportSequenceFile" /> flow -
-    ///     for drops with no extension, where the file being a sequence is a guess.
-    /// </summary>
-    public void ConfirmImportSequenceFile(string path)
-    {
-        _dialogHost.Confirm($"\"{Path.GetFileName(path)}\" has no file extension.\n" +
-                            $"Import it as a TDW sequence?",
-            () => ImportSequenceFile(path),
-            confirmLabel: "Continue", confirmClass: "dialog-button-primary");
-    }
-
-    /// <summary>
-    ///     Shows the faithful/piano-roll/project/cancel choice for a dropped TDW sequence
-    ///     file. Import-as-project discards the open project, so it's guarded behind the
-    ///     same dirty check as every other destructive action here.
-    /// </summary>
-    public void ImportSequenceFile(string path)
-    {
-        var dialog = new ImportDialog(_context, Path.GetFileName(path));
-        var modal = _dialogHost.Show(dialog.Element);
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.FaithfulTrackButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            Import(path, ImportMode.Faithful);
-        };
-        dialog.SingleTrackButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            Import(path, ImportMode.Track);
-        };
-        dialog.ProjectButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            if (State.Dirty)
-                _dialogHost.Confirm(
-                    "Importing as a project discards unsaved changes.\n" +
-                    "Continue?",
-                    () => Import(path, ImportMode.Project),
-                    confirmLabel: "Import", confirmClass: "dialog-button-primary");
-            else
-                Import(path, ImportMode.Project);
-        };
-    }
-
-    /// <summary>
-    ///     Imports a sequence file and, when anything didn't carry over, shows what. A Piano
-    ///     Roll track import can be redone as a Faithful Track from there: the track import
-    ///     is one undo step, so stepping back over it leaves the project as it was.
-    /// </summary>
-    private void Import(string path, ImportMode mode)
-    {
-        if (_projectIo.ImportTdw(path, mode, SoundMap()) is not { IsEmpty: false } warnings) return;
-
-        var dialog = new ImportWarningsDialog(_context, Path.GetFileName(path), mode, warnings, _playfieldLook);
-        var modal = _dialogHost.Show(dialog.Element);
-        modal.OnDismissRequested = _ => Close();
-        dialog.KeepButton.OnClick = _ => Close();
-        dialog.FaithfulButton.OnClick = _ =>
-        {
-            Close();
-            State.Undo();
-            Import(path, ImportMode.Faithful);
-        };
-        return;
-
-        void Close()
-        {
-            _dialogHost.Close(modal);
-            dialog.Release();
-        }
-    }
-
-    /// <summary>
-    ///     Every name a sequence may use (ID or emoji) mapped to its sound - the
-    ///     importer both filters unknown sounds and canonicalises names through it.
-    /// </summary>
-    private IReadOnlyDictionary<string, Sound> SoundMap()
-    {
-        return _workflow.SampleHolder.StringToSoundReferences;
-    }
-
-    /// <summary>Back button / Escape: leaves directly when clean, otherwise asks first.</summary>
-    public void RequestBack()
-    {
-        if (!State.Dirty)
-        {
-            PerformBack();
-            return;
-        }
-
-        var dialog = new UnsavedChangesDialog(_context, State.Project.Info.Name, State.ProjectPath);
-        var modal = _dialogHost.Show(dialog.Element);
-        modal.OnConfirmRequested = _ => Save();
-        dialog.SaveButton.OnClick = _ => Save();
-        dialog.DiscardButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            DiscardChanges();
-            PerformBack();
-        };
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
-        return;
-
-        void Save()
-        {
-            _dialogHost.Close(modal);
-            _projectIo.Save(PerformBack);
-        }
-    }
-
-    /// <summary>
-    ///     Throws away the unsaved work: the editor scene outlives a trip to the
-    ///     home screen, so without this the "discarded" project is still sitting there
-    ///     (still dirty) on the way back in. Reverts to the file on disk when there is one,
-    ///     otherwise to an empty project.
-    /// </summary>
-    private void DiscardChanges()
-    {
-        if (State.ProjectPath is { } path) _projectIo.Load(path);
-        else State.NewProject();
+        _hint.Show(text);
     }
 
     private void PerformBack()
@@ -896,279 +442,6 @@ public class EditorInterface
         _workflow.Game.Title = $"{State.Project.Info.Name}{(State.Dirty ? " •" : "")} - {_defaultTitle}";
     }
 
-    /// <summary>
-    ///     "+ Add track" asks which kind first. The new track is selected and opened, so the
-    ///     kind that was picked is immediately visible instead of being a silent list entry.
-    /// </summary>
-    private void ShowTrackTypeDialog()
-    {
-        var dialog = new TrackTypeDialog(_context);
-        var modal = _dialogHost.Show(dialog.Element);
-
-        dialog.PianoRollButton.OnClick = _ => Add(TrackKind.PianoRoll);
-        dialog.FaithfulButton.OnClick = _ => Add(TrackKind.Faithful);
-        dialog.WaveButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            _dialogHost.ShowFileDialog("Open audio", null, ".wav", ImportWaveFile);
-        };
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        return;
-
-        void Add(TrackKind kind)
-        {
-            _dialogHost.Close(modal);
-            State.OpenTrack(State.AddTrack(kind));
-        }
-    }
-
-    /// <summary>
-    ///     Adds a wave reference for a file - picked in the dialog, or dropped on the window.
-    ///     The track is created only once the file has decoded (its length is what the clip
-    ///     draws) and the decode runs off the update thread, so the model edit is queued back
-    ///     onto it rather than made from the task. A file that cannot be read raises its own
-    ///     error and adds nothing.
-    /// </summary>
-    public void ImportWaveFile(string path)
-    {
-        Playback.PrepareWave(path).ContinueWith(decode =>
-        {
-            if (decode.Result is not { } seconds) return;
-            _pendingEdits.Enqueue(() => State.AddWaveTrack(path, seconds));
-        });
-    }
-
-    /// <summary>Replaces the file a wave track plays, keeping the clip where it is.</summary>
-    private void ShowWaveReplaceDialog(WaveTrack track)
-    {
-        _dialogHost.ShowFileDialog("Open audio", null, ".wav", path =>
-            Playback.PrepareWave(path).ContinueWith(decode =>
-            {
-                if (decode.Result is not { } seconds) return;
-                _pendingEdits.Enqueue(() => State.SetWaveFile(track, path, seconds));
-            }));
-    }
-
-    /// <summary>
-    ///     Inserts a palette action. One with an amount prompts for it first, exactly as the
-    ///     site does - as the whole TDW text, so "!speed@2@x" and the two-value "!pulse"/"!bg"
-    ///     payloads need no form of their own.
-    /// </summary>
-    private void ShowActionValueDialog(FaithfulAction action)
-    {
-        if (action.Template is null)
-        {
-            Append(action.Name);
-            return;
-        }
-
-        var dialog = new ActionValueDialog(_context, action);
-        var modal = _dialogHost.Show(dialog.Element);
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.AddButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            Append(dialog.ValueInput.Value);
-        };
-        return;
-
-        void Append(string tdw)
-        {
-            if (State.OpenedFaithfulTrack is not { } track) return;
-            if (FaithfulItem.Parse(tdw) is { } item) State.AppendItem(track, item);
-            else _dialogHost.Alert($"\"{tdw}\" isn't an event this editor can read.");
-        }
-    }
-
-    /// <summary>
-    ///     Right-clicking an action that carries a value reopens its dialog on what the slot
-    ///     says now, which is the site's own right-click. The whole TDW text again, so the
-    ///     packed "!bg@#ff0000,0.5" and "!pulse@4,100" payloads are editable at all - the
-    ///     event's own <c>Stringify</c> writes those two back in their readable form.
-    /// </summary>
-    private void ShowActionEditDialog(FaithfulItem item)
-    {
-        if (State.OpenedFaithfulTrack is not { } track || item.Action is not { } action) return;
-        if (FaithfulAction.Find(action.SoundEvent) is not { } definition) return;
-
-        var index = track.Items.IndexOf(item);
-        if (index < 0) return;
-
-        var dialog = new ActionValueDialog(_context, definition, action.Stringify());
-        var modal = _dialogHost.Show(dialog.Element);
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.AddButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            var tdw = dialog.ValueInput.Value;
-            if (FaithfulItem.Parse(tdw) is { } edited) State.ReplaceItemAt(track, index, edited);
-            else _dialogHost.Alert($"\"{tdw}\" isn't an event this editor can read.");
-        };
-    }
-
-    private void ShowTrackContextMenu(ProjectTrack track, float x, float y)
-    {
-        if (_trackContextMenuModal != null) return;
-
-        var menu = new DropdownMenu(_context, x, y);
-        // A wave track has no editor to open and nothing to convert into - it is a file.
-        if (track is WaveTrack wave)
-        {
-            menu.AddItem("Replace file…", () => ShowWaveReplaceDialog(wave));
-        }
-        else
-        {
-            menu.AddItem("Open", () => State.OpenTrack(track));
-        }
-
-        // The right-press kept an existing multi-selection the track is part of (see
-        // TrackListPanel.ContextMenu), so the recolor follows it rather than the one row
-        // the pointer happens to be over.
-        menu.AddItem("Change color…", () => ShowTrackColorDialog(
-            State.SelectedTracks.Contains(track) ? State.SelectedTracks : [track]));
-        menu.AddItem("Duplicate…", () => ShowDuplicateTrackDialog(track));
-        if (track.Kind != TrackKind.Wave)
-            menu.AddItem(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
-                () => ConvertTrack(track));
-
-        menu.AddItem("Remove", () => State.RemoveTrack(track));
-
-        _dialogHost.Root.AddChild(menu);
-        _trackContextMenuModal = menu;
-        menu.OnDismissRequested = m =>
-        {
-            _dialogHost.Root.RemoveChild(m);
-            _trackContextMenuModal = null;
-        };
-    }
-
-    /// <summary>
-    ///     The recolor swatch grid, reached from a track's context menu and from the
-    ///     inspector's Color row. The palette is the arrangement's, so the swatches are
-    ///     exactly the fills a clip can take. Several tracks recolor together: the grid
-    ///     marks their current swatch only when they already share one.
-    /// </summary>
-    private void ShowTrackColorDialog(IReadOnlyList<ProjectTrack> tracks)
-    {
-        if (tracks.Count == 0) return;
-
-        var shared = tracks.All(t => t.ColorIndex == tracks[0].ColorIndex) ? tracks[0].ColorIndex : null;
-        var title = tracks.Count == 1 ? tracks[0].Name : $"{tracks.Count} tracks";
-        var dialog = new TrackColorDialog(_context, title, _arrangement.ClipPalette,
-            _arrangement.ClipColor, shared);
-        var modal = _dialogHost.Show(dialog.Element);
-        dialog.OnPick = index =>
-        {
-            _dialogHost.Close(modal);
-            State.SetTrackColor(tracks, index);
-        };
-    }
-
-    /// <summary>Duplicate's name prompt, reached from the track context menu.</summary>
-    private void ShowDuplicateTrackDialog(ProjectTrack track)
-    {
-        var dialog = new TrackContextMenu(_context, $"{track.Name} copy");
-        var modal = _dialogHost.Show(dialog.Element);
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.DuplicateButton.OnClick = _ =>
-        {
-            State.DuplicateTrack(track, dialog.NameInput.Value);
-            _dialogHost.Close(modal);
-        };
-    }
-
-    /// <summary>
-    ///     The context menu's kind conversion. A track that can't be converted (nothing in
-    ///     it, or a piano roll whose sequence holds no sounds) says so rather than throwing
-    ///     out of the menu - the project is untouched either way.
-    /// </summary>
-    private void ConvertTrack(ProjectTrack track)
-    {
-        try
-        {
-            State.ConvertTrack(track);
-        }
-        catch (Exception e)
-        {
-            _dialogHost.Alert($"Couldn't convert \"{track.Name}\":\n\n{e.Message}");
-        }
-    }
-
-    /// <summary>Load/Save, wired from EditorHeader.snx.csx - a .csx only reaches the public surface.</summary>
-    [UsedImplicitly]
-    public void ShowLoadDialog()
-    {
-        _dialogHost.ShowFileDialog("Open project", null, ".tdwproj", LoadProjectFile);
-    }
-
-    [UsedImplicitly]
-    public void SaveProject()
-    {
-        _projectIo.Save();
-    }
-
-    /// <summary>Discards the open project, so it asks first when there is unsaved work.</summary>
-    [UsedImplicitly]
-    public void NewProject()
-    {
-        if (!State.Dirty)
-        {
-            State.NewProject();
-            return;
-        }
-
-        _dialogHost.Confirm("Starting a new project discards unsaved changes.\nContinue?",
-            State.NewProject, confirmLabel: "New project", confirmClass: "dialog-button-primary");
-    }
-
-    /// <summary>
-    ///     Arrow-key nudge, routed to whichever view is open: whole steps and values in an
-    ///     opened piano-roll track, the snap grid and whole channels in the arrangement (up is
-    ///     a lower channel index - the arrangement draws channel 0 at the top). A faithful
-    ///     track has no grid to nudge a note across, so there the arrows walk and adjust the
-    ///     selection instead - see <see cref="FaithfulSequence.Nudge" />.
-    /// </summary>
-    public void NudgeSelection(int dx, int dy)
-    {
-        if (State.OpenedFaithfulTrack != null) _faithfulSequence.Nudge(dx, dy);
-        else if (State.OpenedTrack != null) State.NudgeNotes(dx, dy, TrackEditorGeometry.MaxValue);
-        else State.NudgePlacements(dx * _arrangement.SnapQuarterNotes, -dy, _arrangement.Channels - 1);
-    }
-
-    [UsedImplicitly]
-    public void ShowExportDialog()
-    {
-        var dialog = new ExportDialog(_context);
-        dialog.ProjectLabel.SetTextContents(State.Project.Info.Name);
-        if (!State.Project.Tracks.Any(track => track.Kind == TrackKind.Wave))
-            dialog.Element.RemoveChild(dialog.WaveNote);
-
-        // Exports land next to the project file; an unsaved project has none and opens home.
-        var directory = Path.GetDirectoryName(State.ProjectPath);
-        var modal = _dialogHost.Show(dialog.Element);
-        modal.OnConfirmRequested = _ => Export();
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.ExportButton.OnClick = _ => Export();
-        return;
-
-        void Export()
-        {
-            _dialogHost.Close(modal);
-            if (dialog.Format == ExportFormat.Tdw)
-            {
-                var style = dialog.Style;
-                _dialogHost.ShowFileDialog("Export sequence", $"{State.Project.Info.Name}.tdw", ".tdw",
-                    path => _projectIo.ExportTdw(path, style), "Export", directory);
-            }
-            else
-            {
-                _dialogHost.ShowFileDialog("Export audio", $"{State.Project.Info.Name}.wav", ".wav",
-                    path => Playback.ExportWav(path), "Export", directory);
-            }
-        }
-    }
-
     private void RefreshProject()
     {
         ProjectName.SetTextContents(State.Project.Info.Name);
@@ -1185,7 +458,7 @@ public class EditorInterface
         if (_openPanel is null) _arrangement.Refresh();
         _trackEditor.InvalidateLayout();
         _inspector.Sync();
-        RefreshSelection();
+        _trackList.RefreshSelection();
 
         // Channel count may have just changed (import/load/undo/...), and the header
         // otherwise only relayouts from ArrangementView.OnScrolled. DrawTo (not just
@@ -1204,11 +477,6 @@ public class EditorInterface
 
     }
 
-    private void RefreshSelection()
-    {
-        _trackList.RefreshSelection();
-    }
-
     public void Resize(float width, float height)
     {
         // The window remainder isn't expressible in the stylesheet (no calc()), so the body
@@ -1217,15 +485,11 @@ public class EditorInterface
         // The hint bar only spans the grid area - the track column and inspector run
         // full height beside it.
         var gridWidth = width - TrackColumnWidth - InspectorPanel.PanelWidth;
-        _windowHeight = height;
         _trackColumn.Height = height - HeaderHeight;
         _gridArea.Width = gridWidth;
         _inspectorColumn.X = width - InspectorPanel.PanelWidth;
         _inspectorColumn.Height = height - HeaderHeight;
-        HintBar.Width = gridWidth;
-        // Sets the bar's height and Y, and the grid area's height, from how many lines the
-        // hint breaks into at this width - a narrower window wraps it onto more of them.
-        LayoutHint();
+        _hint.Resize(gridWidth, height);
 
         // DrawTo (not just Layout): a row whose Visible flips true here (e.g. LaneHeader's
         // M/S toggles, false on the very first pass while grid-area was still 0-height) needs
@@ -1270,15 +534,9 @@ public class EditorInterface
     }
 
     /// <summary>
-    ///     Keeps the inspector panel live during playback: selects whichever segment of the
-    ///     opened track the playhead currently sits inside, same placement lookup as
-    ///     <see cref="TrackEditorView" />'s playhead line.
-    /// </summary>
-    /// <summary>
     ///     How far the playhead is into the opened track, in minutes, or null while it is
-    ///     outside every placement of it. Same placement lookup as
-    ///     <see cref="FollowPlayheadSegment" />, which a faithful track can't use - it has no
-    ///     segments, only a walked position.
+    ///     outside every placement of it. A faithful track walks its position from this;
+    ///     a piano roll's <see cref="FollowPlayheadSegment" /> finds the segment under it.
     /// </summary>
     private double? LocalPlayheadMinutes()
     {
@@ -1297,29 +555,17 @@ public class EditorInterface
         return null;
     }
 
+    /// <summary>
+    ///     Keeps the inspector panel live during playback: selects whichever segment of the
+    ///     opened track the playhead currently sits inside, same placement lookup as
+    ///     <see cref="TrackEditorView" />'s playhead line.
+    /// </summary>
     private void FollowPlayheadSegment()
     {
         // A faithful track has no segments to follow - its position is an item index.
-        if (State.OpenedTrack is not { } track || track.Kind != TrackKind.PianoRoll) return;
-        var bpm = State.Project.RootTiming.BPM;
-        var duration = track.DurationMinutes();
-        foreach (var placement in State.Project.Placements)
-        {
-            if (placement.Track != track) continue;
-            var localMinutes = (Playback.PlayheadQuarters - placement.StartQuarterNotes) / bpm;
-            if (localMinutes < 0 || localMinutes >= duration) continue;
-            if (track.SegmentAtGlobalStep((int)track.StepPositionAt(localMinutes)) is { } found)
-                State.SelectSegment(found.Segment);
-            return;
-        }
-    }
-
-    public void MouseEvent(MouseState mouseState, Vector2 scale)
-    {
-        RootPanel.Test(mouseState, scale);
-        // The framework only routes left/right buttons; middle-drag panning is fed here.
-        var middle = mouseState.IsButtonDown(MouseButton.Middle);
-        if (NoteEditorOpen) _trackEditor.MiddlePan(middle, _context.PointerX, _context.PointerY);
-        else if (_openPanel is null) _arrangement.MiddlePan(middle, _context.PointerX, _context.PointerY);
+        if (State.OpenedTrack is not { Kind: TrackKind.PianoRoll } track) return;
+        if (LocalPlayheadMinutes() is { } localMinutes &&
+            track.SegmentAtGlobalStep((int)track.StepPositionAt(localMinutes)) is { } found)
+            State.SelectSegment(found.Segment);
     }
 }

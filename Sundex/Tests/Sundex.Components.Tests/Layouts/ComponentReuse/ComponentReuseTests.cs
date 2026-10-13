@@ -1,8 +1,8 @@
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 
 namespace Sundex.Components.Tests.Layouts.ComponentReuse;
@@ -18,14 +18,7 @@ public class ComponentReuseTests
 
     private static string Load(UIContext uiContext, string name)
     {
-        return uiContext.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo
-            {
-                Location = $"Layouts/ComponentReuse/{name}",
-                Storage = StorageLocation.Assembly
-            }
-        }).Value;
+        return uiContext.AssetProvider.LoadString($"Layouts/ComponentReuse/{name}", StorageLocation.Assembly);
     }
 
     /// <summary>Registers the header component, then builds the host that uses it twice.</summary>

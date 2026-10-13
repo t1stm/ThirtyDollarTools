@@ -11,10 +11,10 @@ using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Tests;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Markup;
 using VisualizerScene.Settings;
 
@@ -50,14 +50,7 @@ public class SettingsInterfaceMarkupTests
 
     private string LoadMarkup()
     {
-        return _context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo
-            {
-                Location = "Scenes/Layout/SettingsInterface.snx.xml",
-                Storage = StorageLocation.Assembly
-            }
-        }).Value;
+        return _context.AssetProvider.LoadString("Scenes/Layout/SettingsInterface.snx.xml", StorageLocation.Assembly);
     }
 
     /// <summary>Every id the logic block reaches for, plus the click target.</summary>

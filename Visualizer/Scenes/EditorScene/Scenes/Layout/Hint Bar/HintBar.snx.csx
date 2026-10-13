@@ -1,8 +1,8 @@
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 
-// Handles only - the bar has no controls of its own. EditorInterface drives the text
-// (SetHint) and the gutter width (AlignHintToGrid).
+// Handles only - the bar has no controls of its own. HintBarController drives the text
+// (Show) and the gutter width (SetView).
 var ctx = As<EditorInterface>(Context);
 
 ctx.HintBar = Component.GetID<FlexPanel>("hint-bar");

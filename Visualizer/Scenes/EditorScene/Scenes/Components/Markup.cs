@@ -1,7 +1,6 @@
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
-using Sundex.Engine.Asset_Management.Types.Asset;
-using Sundex.Engine.Asset_Management.Types.String;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Markup;
 
 namespace EditorScene.Scenes.Components;
@@ -15,10 +14,7 @@ public static class Markup
     /// <summary>Loads an embedded markup/script asset by its project-relative path.</summary>
     public static string Load(UIContext context, string location)
     {
-        return context.AssetProvider.Load<StringAsset, StringInfo>(new StringInfo
-        {
-            AssetInfo = new AssetInfo { Location = location }
-        }).Value;
+        return context.AssetProvider.LoadString(location);
     }
 
     /// <summary>

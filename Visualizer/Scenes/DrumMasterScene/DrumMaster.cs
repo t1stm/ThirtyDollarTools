@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using DrumMasterScene.Components;
 using DrumMasterScene.UI;
 using OpenTK.Mathematics;
@@ -6,8 +7,8 @@ using Shared;
 using Shared.Audio;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
+using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine;
-using Sundex.Engine.Asset_Management.Types.String;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 using Sundex.Markup;
@@ -58,19 +59,18 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
             return config;
         });
 
-        _configUI = _sundexContext.NewComponent(Game.AssetProvider.Load<StringAsset, StringInfo>(
-            StringInfo.CreateFromUnknownStorage("UI/Select Sounds/SelectSounds.snx.xml")).Value);
+        _configUI = _sundexContext.NewComponent(Game.AssetProvider.LoadString("UI/Select Sounds/SelectSounds.snx.xml"));
         _configUI.RunLogic?.Invoke(this);
         _configUI.Element.Layout();
 
-        _messageUI = _sundexContext.NewComponent(Game.AssetProvider.Load<StringAsset, StringInfo>(
-            StringInfo.CreateFromUnknownStorage("UI/WaitingForSequence.snx.xml")).Value);
+        _messageUI = _sundexContext.NewComponent(Game.AssetProvider.LoadString("UI/WaitingForSequence.snx.xml"));
         _messageUI.RunLogic?.Invoke(this);
         _messageUI.Element.Layout();
 
         ChangeState(DrumMasterState.WaitingForSequence);
     }
 
+    [UsedImplicitly]
     public void StartPlayback()
     {
         if (_pendingSequences.Length == 0) return;
@@ -237,9 +237,8 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
         for (var index = 0; index < sequenceInfos.Length; index++)
         {
             var sequence_info = sequenceInfos[index];
-            var asset = Game.AssetProvider.Load<StringAsset, StringInfo>(
-                StringInfo.CreateFromUnknownStorage(sequence_info.FileLocation));
-            var sequence = Sequence.FromString(asset.Value);
+            var asset = Game.AssetProvider.LoadString(sequence_info.FileLocation);
+            var sequence = Sequence.FromString(asset);
             _pendingSequences[index] = sequence;
         }
 
