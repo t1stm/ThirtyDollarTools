@@ -318,18 +318,7 @@ id import-dialog {
     spacing = 18;
 }
 
-// The import dialog's frame, one column wider: three dialog-columns (240 each), their two
-// dividers and the four 20 px gaps of dialog-options, plus this padding = 834. The row's
-// children are fixed-width, so a frame narrower than their sum doesn't shrink them - they
-// spill out over whatever is behind the modal. Keep this in step with the column count.
-id track-type-dialog {
-    width = 834;
-    padding = 16;
-    spacing = 18;
-}
-
-// One option of a two-option dialog (import kind, track kind): its button with a
-// short explanation underneath.
+// One option of the import dialog: its button with a short explanation underneath.
 class dialog-column {
     direction = "vertical";
     width = 240;
@@ -356,6 +345,316 @@ class dialog-options {
     width = 100%;
     spacing = 20;
     horizontal-align = "center";
+}
+
+// ---------------------------------------------------------------- add a track
+
+id track-type-dialog {
+    width = 680;
+}
+
+// The kind list, then the picked kind's card. Fixed height, the card's own: the list's gap
+// stretches to it, which is what puts the drop hint at the bottom.
+class track-kind-body {
+    width = 100%;
+    height = 336;
+    spacing = 12;
+}
+
+class track-kind-list {
+    direction = "vertical";
+    width = 200;
+    height = 100%;
+    spacing = 4;
+}
+
+// One kind: its glyph, its name, then its key flush right. The picked one swaps
+// track-kind-row-idle for track-kind-row-selected, as export-card does.
+class track-kind-row {
+    width = 100%;
+    height = 46;
+    padding = 12;
+    spacing = 10;
+    vertical-align = "center";
+    border-radius = 6;
+}
+
+class track-kind-row-idle {
+    background = $theme.background;
+
+    state[hovered] = {
+        background = $theme.surface;
+    }
+}
+
+class track-kind-row-selected {
+    background = $theme.row_selected;
+
+    state[hovered] = {
+        background = $theme.row_selected;
+    }
+}
+
+class track-kind-icon {
+    font-size = 16;
+    font-color = $theme.header;
+}
+
+class track-kind-name {
+    font-size = 14;
+    font-color = $theme.text;
+}
+
+class track-kind-gap {
+    width = 100%;
+    height = 100%;
+}
+
+// "Or drop a .tdw or .wav file on the window." under the list.
+class track-kind-drop {
+    width = 100%;
+    padding = 4;
+    spacing = 8;
+}
+
+class track-kind-drop-icon {
+    font-size = 14;
+    font-color = $theme.text_subtle;
+}
+
+class track-kind-drop-text {
+    direction = "vertical";
+    spacing = 3;
+}
+
+class track-kind-drop-label {
+    font-size = 12;
+    font-color = $theme.text_subtle;
+}
+
+// The picked kind's card: 436 wide, so 412 inside its padding.
+class track-kind-details {
+    direction = "vertical";
+    width = 100%;
+    height = 100%;
+    padding = 12;
+    spacing = 12;
+    border-radius = 8;
+    background = $theme.background;
+}
+
+// Holds one of TrackKindPreview's pictures, 412 x 156.
+class track-kind-preview-slot {
+    width = 100%;
+    height = 156;
+}
+
+class track-kind-facts-slot {
+    width = 100%;
+}
+
+class track-kind-facts {
+    direction = "vertical";
+    width = 100%;
+    spacing = 6;
+}
+
+class track-kind-fact {
+    height = 16;
+    spacing = 10;
+    vertical-align = "center";
+}
+
+class track-kind-fact-dot {
+    width = 4;
+    height = 4;
+    border-radius = 2;
+    background = $theme.text_muted;
+}
+
+class track-kind-fact-label {
+    font-size = 13;
+    font-color = $theme.text_dim;
+}
+
+class track-kind-fields {
+    direction = "vertical";
+    width = 100%;
+    spacing = 8;
+}
+
+class track-kind-name-slot {
+    width = 100%;
+}
+
+// A field row: the name in a 64 column, then the field, both placed rather than flowed (see
+// export-row).
+class track-field-row {
+    width = 100%;
+    height = 32;
+}
+
+class track-field-label {
+    y = 9;
+}
+
+class track-field-input {
+    x = 64;
+    width = 348;
+}
+
+class track-field-note {
+    x = 64;
+    y = 9;
+    font-size = 13;
+    font-color = $theme.text_subtle;
+}
+
+class track-swatches {
+    x = 64;
+    y = 5;
+    spacing = 6;
+}
+
+// One color: its fill is a palette entry, set in code (as color-chip's is). The picked one
+// holds a check.
+class track-swatch {
+    width = 22;
+    height = 22;
+    border-radius = 4;
+    horizontal-align = "center";
+    vertical-align = "center";
+}
+
+class track-swatch-check {
+    font-size = 14;
+    font-color = "#ffffff";
+}
+
+// The previews (TrackKindPreview.cs): what the track looks like once it is open, on the grid
+// canvas's shade. The code places the parts; these only fill them.
+class track-preview {
+    width = 100%;
+    height = 156;
+    border-radius = 6;
+    background = $theme.grid_background;
+}
+
+// Piano roll: the note editor's line work and three of its sound colors.
+class track-preview-zero-row {
+    background = $theme.zero_row;
+}
+
+class track-preview-line {
+    background = $theme.step_line;
+}
+
+class track-preview-octave {
+    background = $theme.octave_line;
+}
+
+class track-preview-note {
+    border-radius = 2;
+    background = $theme.palette_blue;
+}
+
+class track-preview-note-purple {
+    background = $theme.palette_purple;
+}
+
+class track-preview-note-green {
+    background = $theme.palette_green;
+}
+
+// Faithful: the faithful editor at about a third of its size - the Instruments and Actions
+// boxes over the Sequence box (faithful-body, faithful-section).
+class track-preview-faithful {
+    direction = "vertical";
+    padding = 6;
+    spacing = 6;
+}
+
+class track-preview-band {
+    width = 100%;
+    height = 58;
+    spacing = 6;
+}
+
+class track-preview-card {
+    direction = "vertical";
+    height = 100%;
+    padding = 5;
+    spacing = 4;
+    border-radius = 4;
+    background = $theme.background;
+}
+
+class track-preview-card-instruments {
+    width = 52%;
+}
+
+class track-preview-card-actions {
+    width = 48%;
+}
+
+class track-preview-card-sequence {
+    width = 100%;
+    height = 80;
+}
+
+class track-preview-card-bar {
+    width = 100%;
+    height = 12;
+    spacing = 3;
+    vertical-align = "center";
+}
+
+class track-preview-card-title {
+    font-size = 9;
+    font-color = $theme.header;
+}
+
+// The boxes' header buttons (Modify, Draw, Select), as shapes with their names.
+class track-preview-pill {
+    height = 12;
+    padding = 3;
+    vertical-align = "center";
+    border-radius = 3;
+    background = $theme.divider;
+}
+
+class track-preview-pill-on {
+    background = $theme.accent;
+}
+
+class track-preview-pill-label {
+    font-size = 7;
+    font-color = $theme.text;
+}
+
+class track-preview-icons {
+    width = 100%;
+    spacing = 3;
+    wrap = true;
+}
+
+// An instrument's cell in the Instruments box (faithful-palette-cell).
+class track-preview-cell {
+    padding = 2;
+    border-radius = 3;
+    background = $theme.surface;
+}
+
+// Wave: an arrangement clip with its bars.
+class track-preview-clip {
+    border-radius = 3;
+    background = $theme.accent;
+}
+
+// The clip's fill lifted halfway to white, as ArrangementView draws a wave clip's bars
+// (WaveBarLift).
+class track-preview-wave-bar {
+    background = "#a5b5e5";
 }
 
 // ---------------------------------------------------------------- import warnings

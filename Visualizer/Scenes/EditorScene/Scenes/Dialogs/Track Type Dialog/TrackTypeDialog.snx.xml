@@ -3,52 +3,139 @@
 
   <layout>
     <flex id="track-type-dialog" class="dialog-frame">
-      <label class="title-label" value="Add a track"/>
+      <flex class="dialog-header">
+        <label class="dialog-title" value="Add a track"/>
+        <panel class="spacer"/>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
 
-      <!-- Same column shape (and the same accents) as the import dialog: options that
-           differ in kind, not in weight, so none of them reads as the default. -->
-      <flex class="dialog-options">
-        <flex class="dialog-column">
-          <button id="piano-roll-button" class="[dialog-button-primary,dialog-button-tall]">
-            <label value="Piano Roll"/>
-          </button>
-          <!-- Label has no text-wrap support, so each description is pre-split into
-               short lines that fit the column. -->
-          <flex class="dialog-column-description">
-            <label class="caption-label" value="Notes on a bar/beat grid,"/>
-            <label class="caption-label" value="segments and automation."/>
+      <flex class="track-kind-body">
+        <!-- The three kinds. TrackTypeDialog.cs swaps track-kind-row-idle/-selected as one is
+             picked (a click, 1-3, or Up/Down). -->
+        <flex class="track-kind-list">
+          <flex id="piano-roll-row" class="[track-kind-row,track-kind-row-selected]">
+            <label class="track-kind-icon" font="Lucide" value="&#xe560;"/>
+            <label class="track-kind-name" value="Piano Roll"/>
+            <panel class="spacer"/>
+            <flex class="[key-chip,key-chip-on-card]">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value="1"/>
+            </flex>
+          </flex>
+          <flex id="faithful-row" class="[track-kind-row,track-kind-row-idle]">
+            <label class="track-kind-icon" font="Lucide" value="&#xe2e0;"/>
+            <label class="track-kind-name" value="Faithful"/>
+            <panel class="spacer"/>
+            <flex class="[key-chip,key-chip-on-card]">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value="2"/>
+            </flex>
+          </flex>
+          <flex id="wave-row" class="[track-kind-row,track-kind-row-idle]">
+            <label class="track-kind-icon" font="Lucide" value="&#xe55b;"/>
+            <label class="track-kind-name" value="Wave"/>
+            <panel class="spacer"/>
+            <flex class="[key-chip,key-chip-on-card]">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value="3"/>
+            </flex>
+          </flex>
+
+          <panel class="track-kind-gap"/>
+
+          <!-- Both drops are handled by Editor.FileDrop: a .tdw opens the import dialog, a
+               .wav becomes a wave track. Label has no text-wrap, so the line is pre-split. -->
+          <flex class="track-kind-drop">
+            <label class="track-kind-drop-icon" font="Lucide" value="&#xe0f9;"/>
+            <flex class="track-kind-drop-text">
+              <label class="track-kind-drop-label" value="Or drop a .tdw or .wav"/>
+              <label class="track-kind-drop-label" value="file on the window."/>
+            </flex>
           </flex>
         </flex>
 
-        <panel class="dialog-divider"/>
+        <!-- The picked kind: its preview, three facts and the new track's name and color.
+             TrackTypeDialog.cs keeps one preview, one facts block and one name row in their
+             slots. -->
+        <flex class="track-kind-details">
+          <panel id="preview-slot" class="track-kind-preview-slot"/>
 
-        <flex class="dialog-column">
-          <button id="faithful-button" class="[dialog-button-alt,dialog-button-tall]">
-            <!-- Same light-background-needs-dark-text contrast rule as the Select toggle. -->
-            <label class="dark-label" value="Faithful"/>
-          </button>
-          <flex class="dialog-column-description">
-            <label class="caption-label" value="A linear list of sounds and"/>
-            <label class="caption-label" value="actions, like the website."/>
+          <flex id="facts-slot" class="track-kind-facts-slot">
+            <flex id="piano-roll-facts" class="track-kind-facts">
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="Notes on a bar and beat grid, any length."/>
+              </flex>
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="Segments change the time signature or tempo."/>
+              </flex>
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="Automation keyframes on notes and the track."/>
+              </flex>
+            </flex>
+
+            <flex id="faithful-facts" class="track-kind-facts">
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="Every sound and action, in the order it plays."/>
+              </flex>
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="!speed, dividers and combines stay as written."/>
+              </flex>
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="Turn it into a Piano Roll later from the track's menu."/>
+              </flex>
+            </flex>
+
+            <!-- True per the export dialog's own note: a reference is played, never written. -->
+            <flex id="wave-facts" class="track-kind-facts">
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="Plays a .wav file alongside your tracks."/>
+              </flex>
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="Left out of every export. It is a guide only."/>
+              </flex>
+              <flex class="track-kind-fact">
+                <panel class="track-kind-fact-dot"/>
+                <label class="track-kind-fact-label" value="The file picker opens next."/>
+              </flex>
+            </flex>
           </flex>
-        </flex>
 
-        <panel class="dialog-divider"/>
-
-        <flex class="dialog-column">
-          <button id="wave-button" class="[dialog-button,dialog-button-tall]">
-            <label value="Wave"/>
-          </button>
-          <flex class="dialog-column-description">
-            <label class="caption-label" value="A WAVE file to play along"/>
-            <label class="caption-label" value="to. Nothing to edit."/>
+          <flex class="track-kind-fields">
+            <flex id="name-slot" class="track-kind-name-slot">
+              <panel id="name-row" class="track-field-row">
+                <label class="[field-label,track-field-label]" value="Name"/>
+                <text-input id="name-input" class="track-field-input"/>
+              </panel>
+              <!-- A wave track is named after its file (EditorState.AddWaveTrack). -->
+              <panel id="wave-name-row" class="track-field-row">
+                <label class="[field-label,track-field-label]" value="Name"/>
+                <label class="track-field-note" value="Taken from the file you pick."/>
+              </panel>
+            </flex>
+            <panel class="track-field-row">
+              <label class="[field-label,track-field-label]" value="Color"/>
+              <!-- One swatch per clip palette entry plus the default, built in code. -->
+              <flex id="color-swatches" class="track-swatches"/>
+            </panel>
           </flex>
         </flex>
       </flex>
 
-      <flex class="dialog-actions-compact">
+      <!-- TrackTypeDialog.cs puts the Esc and Enter chips on these, and names the action
+           after the picked kind. -->
+      <flex class="dialog-actions">
         <button id="cancel-button" class="dialog-button">
           <label value="Cancel"/>
+        </button>
+        <button id="add-button" class="dialog-button-primary">
+          <label value="Add Piano Roll"/>
         </button>
       </flex>
     </flex>

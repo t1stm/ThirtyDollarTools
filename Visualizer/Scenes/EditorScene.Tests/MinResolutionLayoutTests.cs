@@ -113,29 +113,33 @@ public class MinResolutionLayoutTests
     }
 
     /// <summary>
-    ///     The track-kind dialog's options row holds fixed-width columns, so a frame narrower
-    ///     than their sum does not shrink them - they spill out over whatever is behind the
-    ///     modal, which at 1080 is the track list. The frame also has to fit the window.
+    ///     The Add a track dialog fits the minimum window, and nothing in it - the list, the card,
+    ///     the 412-wide preview and the placed name field - runs past the frame's padding.
     /// </summary>
     [Fact]
-    public void TrackTypeDialog_HoldsItsOwnColumns_AndFitsTheMinimumWidth()
+    public void TrackTypeDialog_FitsTheMinimumWindow()
     {
-        var dialog = new TrackTypeDialog(_context).Element;
+        var dialog = EditorTestContext.Styled(new TrackTypeDialog(_context, _context.NewAtlasStore(), [],
+            OpenTK.Mathematics.Vector4.One).Element);
         dialog.Layout();
 
         var frame = dialog.Computed;
-        Assert.True(frame.Width <= 1080, $"the dialog is {frame.Width} px wide, past a 1080 px window");
-
-        var options = Assert.Single(dialog.Children.OfType<FlexPanel>(),
-            child => child.Classes.Contains("dialog-options"));
-        foreach (var column in options.Children)
+        Assert.True(frame is { Width: <= 1080, Height: <= 720 }, $"the dialog is {frame.Width} x {frame.Height}");
+        foreach (var element in Walk(dialog).Skip(1))
         {
-            Assert.True(column.Computed.AbsoluteX >= frame.AbsoluteX + dialog.Padding - 0.5f,
-                $"a column starts at {column.Computed.AbsoluteX}, left of the frame's {frame.AbsoluteX}");
-            var edge = column.Computed.AbsoluteX + column.Computed.Width;
+            var edge = element.Computed.AbsoluteX + element.Computed.Width;
             Assert.True(edge <= frame.AbsoluteX + frame.Width - dialog.Padding + 0.5f,
-                $"a column ends at {edge}, past the frame's {frame.AbsoluteX + frame.Width}");
+                $"{element.Tag} #{element.ID} ends at {edge}, past the frame's {frame.AbsoluteX + frame.Width}");
         }
+    }
+
+    private static IEnumerable<Sundex.Components.Abstractions.UIElement> Walk(Sundex.Components.Abstractions.UIElement element)
+    {
+        yield return element;
+        if (element is not Panel panel) yield break;
+        foreach (var child in panel.Children)
+            foreach (var descendant in Walk(child))
+                yield return descendant;
     }
 
     /// <summary>

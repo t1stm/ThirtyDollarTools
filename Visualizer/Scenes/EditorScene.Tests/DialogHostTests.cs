@@ -49,4 +49,22 @@ public class DialogHostTests
         Assert.True(host.TryKeyTop(new KeyboardKeyEventArgs(Keys.Down, 0, 0, false)));
         Assert.False(host.TryKeyTop(new KeyboardKeyEventArgs(Keys.F5, 0, 0, false)));
     }
+
+    /// <summary>A markup dialog can't override HandleKeyDown, so it hands its keys in at Show.</summary>
+    [Fact]
+    public void TryKeyTop_OffersTheKeyToTheHandlerGivenAtShow()
+    {
+        var ctx = new EditorTestContext();
+        var host = new DialogHost(ctx, new Panel(ctx));
+        var keys = new List<Keys>();
+        host.Show(new Label(ctx, "keys"), onKey: e =>
+        {
+            keys.Add(e.Key);
+            return e.Key == Keys.D1;
+        });
+
+        Assert.True(host.TryKeyTop(new KeyboardKeyEventArgs(Keys.D1, 0, 0, false)));
+        Assert.False(host.TryKeyTop(new KeyboardKeyEventArgs(Keys.F5, 0, 0, false)));
+        Assert.Equal([Keys.D1, Keys.F5], keys);
+    }
 }

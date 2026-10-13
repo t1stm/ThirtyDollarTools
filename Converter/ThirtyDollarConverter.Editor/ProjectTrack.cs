@@ -24,7 +24,10 @@ public class ProjectTrack(TimingInfo timing, int id)
     /// <summary>Which of the two editing workflows this track uses.</summary>
     public virtual TrackKind Kind => TrackKind.PianoRoll;
 
-    public string Name { get; set; } = $"Track {id}";
+    public string Name { get; set; } = DefaultName(id);
+
+    /// <summary>The name a track with this id starts with.</summary>
+    public static string DefaultName(int id) => $"Track {id}";
     public TimingInfo Timing { get; set; } = timing;
 
     /// <summary>

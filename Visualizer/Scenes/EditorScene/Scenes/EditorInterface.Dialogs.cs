@@ -212,28 +212,33 @@ public partial class EditorInterface
     }
 
     /// <summary>
-    ///     "+ Add track" asks which kind first. The new track is selected and opened, so the
-    ///     kind that was picked is immediately visible instead of being a silent list entry.
+    ///     "+ Add track" asks which kind first, and the new track's name and color. The new track
+    ///     is selected and opened, so the kind that was picked is immediately visible instead of
+    ///     being a silent list entry. A wave track asks for its file next and is named after it.
+    ///     The dialog is built on first use (the clip palette is styled by then) and kept.
     /// </summary>
     private void ShowTrackTypeDialog()
     {
-        var dialog = new TrackTypeDialog(_context);
-        var modal = _dialogHost.Show(dialog.Element);
+        var dialog = _trackTypeDialog ??= new TrackTypeDialog(_context, _workflow.AtlasStore,
+            _arrangement.ClipPalette, _arrangement.ClipColor);
+        dialog.Reset(State.Project.NextTrackName, SoundMap());
+        var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
 
-        dialog.PianoRollButton.OnClick = _ => Add(TrackKind.PianoRoll);
-        dialog.FaithfulButton.OnClick = _ => Add(TrackKind.Faithful);
-        dialog.WaveButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            _dialogHost.ShowFileDialog("Open audio", null, ".wav", ImportWaveFile);
-        };
+        modal.OnConfirmRequested = _ => Add();
+        dialog.AddButton.OnClick = _ => Add();
+        dialog.NameInput.OnCommit = _ => Add();
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
+        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
         return;
 
-        void Add(TrackKind kind)
+        void Add()
         {
             _dialogHost.Close(modal);
-            State.OpenTrack(State.AddTrack(kind));
+            var color = dialog.ColorIndex;
+            if (dialog.Kind == TrackKind.Wave)
+                _dialogHost.ShowFileDialog("Open audio", null, ".wav", path => ImportWaveFile(path, color));
+            else
+                State.OpenTrack(State.AddTrack(dialog.Kind, dialog.NameInput.Value, color));
         }
     }
 
@@ -244,12 +249,14 @@ public partial class EditorInterface
     ///     onto it rather than made from the task. A file that cannot be read raises its own
     ///     error and adds nothing.
     /// </summary>
-    public void ImportWaveFile(string path)
+    /// <param name="path">The .wav file.</param>
+    /// <param name="colorIndex">The new track's clip color, as picked in the Add a track dialog.</param>
+    public void ImportWaveFile(string path, int? colorIndex = null)
     {
         Playback.PrepareWave(path).ContinueWith(decode =>
         {
             if (decode.Result is not { } seconds) return;
-            _pendingEdits.Enqueue(() => State.AddWaveTrack(path, seconds));
+            _pendingEdits.Enqueue(() => State.AddWaveTrack(path, seconds, colorIndex));
         });
     }
 

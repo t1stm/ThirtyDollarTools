@@ -146,6 +146,12 @@ class key-chip {
     background = $theme.key_label;
 }
 
+// Listed after key-chip, for a chip on a card or row rather than a button: a light veil, so it
+// shows on the row's idle, hovered and selected fills alike.
+class key-chip-on-card {
+    background = "#ffffff14";
+}
+
 // The key's name: dark on a light button, and the two below on the others.
 class key-chip-label {
     font-size = 11;

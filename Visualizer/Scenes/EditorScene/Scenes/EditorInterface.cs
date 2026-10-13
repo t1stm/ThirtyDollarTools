@@ -48,6 +48,7 @@ public partial class EditorInterface
     private readonly FaithfulSequence _faithfulSequence;
     private readonly TransportController _transport;
     private readonly ThirtyDollarWorkflow _workflow;
+    private TrackTypeDialog? _trackTypeDialog;
     private TrackAutomation? _editingTrackAutomation;
 
     /// <summary>

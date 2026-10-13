@@ -28,6 +28,24 @@ public class EditorStateTests
         Assert.Equal(1, changed);
     }
 
+    /// <summary>The Add a track dialog's name and color; a blank name keeps the one it prefilled.</summary>
+    [Fact]
+    public void AddTrack_TakesANameAndColor_AndBlankKeepsTheDefault()
+    {
+        var state = new EditorState();
+        var expected = state.Project.NextTrackName;
+
+        var unnamed = state.AddTrack(TrackKind.Faithful, "  ", 2);
+        var named = state.AddTrack(TrackKind.PianoRoll, " Bass ");
+
+        Assert.Equal(expected, unnamed.Name);
+        Assert.Equal(TrackKind.Faithful, unnamed.Kind);
+        Assert.Equal(2, unnamed.ColorIndex);
+        Assert.Equal("Bass", named.Name);
+        Assert.Null(named.ColorIndex);
+        Assert.Equal("Track 3", state.Project.NextTrackName);
+    }
+
     [Fact]
     public void RemoveTrack_ClearsSelection_WhenTheSelectedTrackGoes()
     {

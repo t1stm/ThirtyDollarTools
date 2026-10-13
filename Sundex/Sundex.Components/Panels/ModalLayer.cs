@@ -59,11 +59,18 @@ public class ModalLayer : FlexPanel
     public Action<ModalLayer>? OnConfirmRequested { get; set; }
 
     /// <summary>
+    ///     The content's own keys, for content that can't take them itself (a markup-built
+    ///     frame). Return true for a key it used. Tried before the content's own HandleKeyDown.
+    /// </summary>
+    public Func<KeyboardKeyEventArgs, bool>? OnKeyRequested { get; init; }
+
+    /// <summary>
     ///     Hands its content a key that no focused field took, so a dialog can answer the
     ///     keyboard without holding focus. The modal is never focused itself: the owner calls this.
     /// </summary>
     public override bool HandleKeyDown(KeyboardKeyEventArgs e)
     {
+        if (OnKeyRequested?.Invoke(e) == true) return true;
         foreach (var child in Children)
             if (child.HandleKeyDown(e))
                 return true;

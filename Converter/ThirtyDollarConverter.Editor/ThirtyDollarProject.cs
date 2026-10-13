@@ -43,6 +43,9 @@ public class ThirtyDollarProject
     /// </summary>
     public IReadOnlyList<TrackPlacement> Placements => _placements;
 
+    /// <summary>The name <see cref="NewTrack" /> would give the next track.</summary>
+    public string NextTrackName => ProjectTrack.DefaultName(_tracks + 1);
+
     public ProjectTrack NewTrack(TrackKind kind = TrackKind.PianoRoll)
     {
         var track = NewTrack(kind, RootTiming, ++_tracks);

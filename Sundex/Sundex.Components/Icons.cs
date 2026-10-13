@@ -29,6 +29,9 @@ public static class Icons
     public const string Info = "";
     public const string TriangleAlert = "";
     public const string Volume2 = "";
+    public const string KeyboardMusic = "";
+    public const string ListMusic = "";
+    public const string Check = "";
 
     /// <summary>Every icon above, for tests that check each one renders.</summary>
     public static readonly (string Name, string Glyph)[] All =
@@ -49,6 +52,9 @@ public static class Icons
         (nameof(Plus), Plus),
         (nameof(Info), Info),
         (nameof(TriangleAlert), TriangleAlert),
-        (nameof(Volume2), Volume2)
+        (nameof(Volume2), Volume2),
+        (nameof(KeyboardMusic), KeyboardMusic),
+        (nameof(ListMusic), ListMusic),
+        (nameof(Check), Check)
     ];
 }

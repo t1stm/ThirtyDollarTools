@@ -34,6 +34,9 @@ public class StyleSelectorTests
         yield return new TrackListPanel(ctx, state);
         // The rows, not the whole panel: the shell around them is markup.
         yield return ctx.NewInspector(state).Rows;
+        // The two previews the Add a track dialog doesn't start on.
+        yield return new FaithfulPreview(ctx, ctx.NewAtlasStore());
+        yield return TrackKindPreview.Wave(ctx);
     }
 
     /// <summary>
@@ -52,7 +55,7 @@ public class StyleSelectorTests
         yield return new UnsavedChangesDialog(ctx).Element;
         yield return new TrackContextMenu(ctx, "Copy").Element;
         yield return new ImportDialog(ctx, "song.tdw").Element;
-        yield return new TrackTypeDialog(ctx).Element;
+        yield return new TrackTypeDialog(ctx, ctx.NewAtlasStore(), [], OpenTK.Mathematics.Vector4.One).Element;
         yield return new ActionValueDialog(ctx, FaithfulAction.All[0]).Element;
         yield return new ExportDialog(ctx).Element;
         // Every section kept, so the code-built cells and the overflow line are walked too.

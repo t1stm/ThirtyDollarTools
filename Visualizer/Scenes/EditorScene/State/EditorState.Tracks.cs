@@ -13,9 +13,14 @@ public partial class EditorState
     /// <summary>The track open in the note editor; null means the arrangement is shown.</summary>
     public ProjectTrack? OpenedTrack { get; private set; }
 
-    public ProjectTrack AddTrack(TrackKind kind = TrackKind.PianoRoll)
+    /// <param name="kind">Which editor it opens in.</param>
+    /// <param name="name">Its name; null or blank keeps the default ("Track N").</param>
+    /// <param name="colorIndex">Its clip color, as for <see cref="SetTrackColor(ProjectTrack, int?)" />.</param>
+    public ProjectTrack AddTrack(TrackKind kind = TrackKind.PianoRoll, string? name = null, int? colorIndex = null)
     {
         var track = Project.NewTrack(kind);
+        if (!string.IsNullOrWhiteSpace(name)) track.Name = name.Trim();
+        track.ColorIndex = colorIndex;
         Touch();
         return track;
     }
@@ -25,10 +30,11 @@ public partial class EditorState
     ///     the first empty channel, as one undo step. Unlike the two editable kinds a reference
     ///     has nothing to draw until it is on the arrangement, so it arrives placed.
     /// </summary>
-    public WaveTrack AddWaveTrack(string path, double durationSeconds)
+    public WaveTrack AddWaveTrack(string path, double durationSeconds, int? colorIndex = null)
     {
         var track = (WaveTrack)Project.NewTrack(TrackKind.Wave);
         track.Name = Path.GetFileNameWithoutExtension(path);
+        track.ColorIndex = colorIndex;
         track.Path = path;
         track.DurationSeconds = durationSeconds;
 

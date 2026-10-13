@@ -20,13 +20,16 @@ public sealed class DialogHost(UIContext context, Panel root)
     public Panel Root => root;
 
     /// <summary>Adds a modal wrapping the given content; the backdrop dismiss removes it by default.</summary>
+    /// <param name="content">The dialog itself.</param>
     /// <param name="onConfirm">The content's primary action, for Enter (<see cref="TryConfirmTop" />).</param>
-    public ModalLayer Show(UIElement content, Action? onConfirm = null)
+    /// <param name="onKey">The content's other keys (<see cref="TryKeyTop" />); true for a key it used.</param>
+    public ModalLayer Show(UIElement content, Action? onConfirm = null, Func<KeyboardKeyEventArgs, bool>? onKey = null)
     {
         var modal = new ModalLayer(context)
         {
             OnDismissRequested = Close,
-            OnConfirmRequested = onConfirm == null ? null : _ => onConfirm()
+            OnConfirmRequested = onConfirm == null ? null : _ => onConfirm(),
+            OnKeyRequested = onKey
         };
         modal.AddChild(content);
         root.AddChild(modal);
