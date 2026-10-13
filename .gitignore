@@ -17,3 +17,10 @@ BenchmarkDotNet.Artifacts/
 
 # written by the release workflow
 Visualizer/ThirtyDollarVisualizer/VERSION
+
+# handover plans and their screenshots stay local
+docs/handover/
+
+# runtime settings and logs
+Settings.30$
+*.log
