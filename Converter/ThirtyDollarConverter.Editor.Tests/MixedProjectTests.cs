@@ -157,6 +157,72 @@ public class MixedProjectTests
     }
 
     /// <summary>
+    ///     A faithful clip that plays alone (here: before the drums come in) goes out as
+    ///     written - its loop and "!volume" left for the site to run, an absolute "!transpose"
+    ///     carrying the project's - and the state it leaves behind is put back before the
+    ///     drums play. Checked on the exported text, the way the site reads it.
+    /// </summary>
+    [Fact]
+    public void LoneFaithfulClip_ExportsAsWritten_AndPutsTheStateBack()
+    {
+        var project = new ThirtyDollarProject { RootTiming = { BPM = 120 }, Transpose = 1 };
+        var hat = project.NewInstrument("hat");
+        hat.AddSound("hat");
+        var kick = project.NewInstrument("kick");
+        kick.AddSound("kick");
+
+        // Four passes of one hat at 480 steps a minute: a quarter note at 120 BPM.
+        var loop = (FaithfulTrack)project.NewTrack(TrackKind.Faithful);
+        loop.Items.AddRange([
+            FaithfulItem.Parse("!speed@480")!,
+            FaithfulItem.Parse("!transpose@2")!,
+            FaithfulItem.Parse("!looptarget")!,
+            FaithfulItem.Sound(hat),
+            FaithfulItem.Parse("!volume@50@+")!,
+            FaithfulItem.Parse("!loopmany@3")!
+        ]);
+        var drums = project.NewTrack();
+        drums.Segments[0].Notes.Add(new Note { Step = 0, Instrument = kick });
+        project.Place(loop, 0, 0);
+        project.Place(drums, 1, 1);
+
+        var text = SequenceText.Serialize(project.ToSequence());
+        Assert.StartsWith("!transpose@1|!speed@480|!transpose@3|!looptarget|", text);
+        // The drums run at 480 too: no "!speed" to put back.
+        Assert.EndsWith("!loopmany@3|!volume@100|!transpose@1|kick", text);
+
+        var played = new PlacementCalculator(new EncoderSettings { SampleRate = SampleRate })
+            .CalculateOne(Sequence.FromString(text))
+            .Where(p => p.Audible && !(p.Event.SoundEvent?.StartsWith('!') ?? true))
+            .Select(p => (p.Event.SoundEvent, p.Event.Value, p.Event.WorkingVolume))
+            .ToList();
+        Assert.Equal([
+            ("hat", 3d, 100d),
+            ("hat", 3d, 150d),
+            ("hat", 3d, 200d),
+            ("hat", 3d, 250d),
+            ("kick", 1d, 100d)
+        ], played);
+        AssertTimes([("hat", 0), ("hat", 0.125), ("hat", 0.25), ("hat", 0.375), ("kick", 0.5)],
+            SoundTimes(Sequence.FromString(text)));
+    }
+
+    /// <summary>A note inside the clip's span means it doesn't play alone: it unrolls as before.</summary>
+    [Fact]
+    public void OverlappedFaithfulClip_StillUnrolls()
+    {
+        var project = MixedProject();
+        var loop = project.Tracks.OfType<FaithfulTrack>().Single();
+        loop.Items.InsertRange(0, [FaithfulItem.Parse("!looptarget")!]);
+        loop.Items.Add(FaithfulItem.Parse("!loopmany@1")!);
+
+        var events = project.ToSequence().Events;
+
+        Assert.DoesNotContain(events, e => e.SoundEvent is "!looptarget" or "!loopmany");
+        Assert.Equal(4, events.Count(e => e.SoundEvent == "hat"));
+    }
+
+    /// <summary>
     ///     Save/load has to preserve a mixed project's timing exactly - the two kinds are
     ///     stored differently (segments and notes against items), and only the export proves
     ///     they came back the same.

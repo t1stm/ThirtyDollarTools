@@ -266,9 +266,12 @@ public class ProjectExportTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5 });
         project.Place(track, 0, 0);
 
-        var ev = project.ToSequence().Events[3];
+        var events = project.ToSequence().Events;
 
-        Assert.Equal(7, ev.Value);
+        // Stated once in the header, not baked into the note.
+        Assert.Equal(["!speed", "!speed", "!transpose", "!divider", "boom"], events.Select(e => e.SoundEvent));
+        Assert.Equal(2, events[2].Value);
+        Assert.Equal(5, events[4].Value);
     }
 
     [Fact]
@@ -280,9 +283,12 @@ public class ProjectExportTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("boom"), Value = 5 });
         project.Place(track, 0, 0);
 
-        var ev = project.ToSequence().Events[3];
+        var events = project.ToSequence().Events;
 
-        Assert.Equal(5, ev.Value);
+        // The header states the project's 2; this track sheds it again.
+        Assert.Equal("!transpose", events[2].SoundEvent);
+        Assert.Equal(2, events[2].Value);
+        Assert.Equal(3, events[4].Value);
     }
 
     [Fact]
@@ -340,7 +346,7 @@ public class ProjectExportTests
         track.Segments[0].Notes.Add(new Note { Step = 0, Instrument = Instrument.Single("kick"), IsCut = true });
         project.Place(track, 0, 0);
 
-        var ev = project.ToSequence().Events[3];
+        var ev = project.ToSequence().Events.OfType<IndividualCutEvent>().Single();
 
         Assert.Equal(0, ev.Value);
     }

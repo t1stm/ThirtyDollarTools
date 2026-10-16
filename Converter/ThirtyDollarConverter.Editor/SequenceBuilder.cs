@@ -8,15 +8,37 @@ namespace ThirtyDollarConverter.Editor;
 ///     <paramref name="Bpm" /> is the quarter-note tempo that rate was built from, kept apart
 ///     from the grid resolution so the export can say "120 BPM, four steps a beat" instead of
 ///     the bare product. Zero means unknown (concurrent tracks at different tempi) - then the
-///     rate is stated outright.
+///     rate is stated outright. A region holding a <paramref name="Block" /> is exported as that
+///     block's events and nothing else; its speed is the one the block leaves behind.
 /// </summary>
-internal readonly record struct TempoRegion(double StartMinutes, double DurationMinutes, double Speed, double Bpm = 0)
+internal readonly record struct TempoRegion(
+    double StartMinutes,
+    double DurationMinutes,
+    double Speed,
+    double Bpm = 0,
+    VerbatimBlock? Block = null)
 {
     public double EndMinutes => StartMinutes + DurationMinutes;
 
     /// <summary>How many grid steps fit in one beat: the "!speed@n@x" factor.</summary>
     public double Multiplier => Bpm > 0 ? Speed / Bpm : 1;
 }
+
+/// <summary>
+///     A faithful clip exported as written - its own loops, "!speed"s and "!volume"s - rather
+///     than unrolled, for a stretch of the timeline where nothing else plays (see
+///     <see cref="FaithfulTrack.Verbatim" />). The events assume the site's starting state:
+///     300 BPM unless <paramref name="SetsOwnSpeed" />, full volume, and
+///     <paramref name="Transpose" />. The End values are the state they leave behind.
+/// </summary>
+internal sealed record VerbatimBlock(
+    BaseEvent[] Events,
+    double DurationMinutes,
+    bool SetsOwnSpeed,
+    double Transpose,
+    double EndSpeed,
+    double EndVolume,
+    double EndTranspose);
 
 /// <summary>
 ///     Turns grid-placed notes into a sequential TDW sequence: one "!speed" per tempo region,
@@ -64,8 +86,13 @@ internal static class SequenceBuilder
     ///     passes the end of its wave reference clips: the rendered buffer is the transport's
     ///     clock, so a reference outlasting the notes has to outlast the buffer too.
     /// </param>
+    /// <param name="transpose">
+    ///     The pitch shift the sounds already carry, stated once as "!transpose" in the header
+    ///     instead: every sound sheds it and the site adds it back. Zero leaves it baked in.
+    /// </param>
     public static Sequence Build(IReadOnlyList<TempoRegion> regions, (double Minutes, BaseEvent Event)[] timedEvents,
-        SequenceStyle? style = null, IReadOnlyList<double>? barTimes = null, double padToMinutes = 0)
+        SequenceStyle? style = null, IReadOnlyList<double>? barTimes = null, double padToMinutes = 0,
+        double transpose = 0)
     {
         var divider_every_bars = style?.DividerEveryBars ?? 0;
         var speed_dividers = style?.DividerOnSpeedChanges ?? false;
@@ -75,8 +102,22 @@ internal static class SequenceBuilder
         var current_speed = double.NaN;
         var current_bpm = double.NaN;
         var current_multiplier = 1d;
+        var current_transpose = 0d;
         var bar_index = 0;
         var bars_pending = 0; // bars completed since the last divider or tempo change
+
+        // Where the next verbatim block after each region starts, and the last one's region:
+        // a block is played even with no notes left, and nothing may overshoot its start.
+        var last_block = -1;
+        var block_after = new double[regions.Count];
+        var upcoming = double.PositiveInfinity;
+        for (var r = regions.Count - 1; r >= 0; r--)
+        {
+            block_after[r] = upcoming;
+            if (regions[r].Block is null) continue;
+            upcoming = regions[r].StartMinutes;
+            if (last_block < 0) last_block = r;
+        }
 
         // Assign each event to the region containing it and quantize the step to 6 decimals
         // (the serialized precision) so float noise can't split simultaneous events.
@@ -94,7 +135,7 @@ internal static class SequenceBuilder
 
         var clock = 0d;
 
-        if (groups.Length == 0)
+        if (groups.Length == 0 && last_block < 0)
         {
             EmitSpeed(regions[0]);
             EmitPad();
@@ -102,14 +143,16 @@ internal static class SequenceBuilder
         }
 
         var gi = 0;
-        for (var ri = 0; ri < regions.Count && gi < groups.Length; ri++)
+        for (var ri = 0; ri < regions.Count && (gi < groups.Length || ri <= last_block); ri++)
         {
             var region = regions[ri];
             // A one-step advance can overshoot a silent region shorter than the step.
-            if (groups[gi].Region != ri && clock >= region.EndMinutes - 1e-12) continue;
+            if (region.Block is null && (gi >= groups.Length || groups[gi].Region != ri) &&
+                clock >= region.EndMinutes - 1e-12) continue;
 
             EmitDividersUpTo(region.StartMinutes);
-            EmitSpeed(region);
+            if (region.Block is { } block) EmitBlock(region, block, gi < groups.Length || ri < last_block);
+            else EmitSpeed(region);
 
             while (gi < groups.Length && groups[gi].Region == ri)
             {
@@ -133,6 +176,12 @@ internal static class SequenceBuilder
                     events.Add(ev);
                     if (IsAction(ev)) continue;
 
+                    if (transpose != 0)
+                    {
+                        ev.Value -= transpose;
+                        ev.WorkingValue = ev.Value;
+                    }
+
                     if (k < group_events.Length - 1) events.Add(Action("!combine", 0));
                     else advanced = true;
                 }
@@ -148,11 +197,12 @@ internal static class SequenceBuilder
                 }
                 else
                 {
-                    // A sound advances the clock a whole step. When the next group comes sooner
-                    // (an off-grid note), cancel the advance with "!combine" and let the next
-                    // "!stop" carry the exact fractional gap instead.
+                    // A sound advances the clock a whole step. When the next group - or block -
+                    // comes sooner (an off-grid note), cancel the advance with "!combine" and let
+                    // the next "!stop" carry the exact fractional gap instead.
                     var advance = 1d / region.Speed;
-                    if (gi < groups.Length && GroupTime(gi) - time < advance * (1 - 1e-6))
+                    var next = Math.Min(gi < groups.Length ? GroupTime(gi) : double.PositiveInfinity, block_after[ri]);
+                    if (next - time < advance * (1 - 1e-6))
                     {
                         events.Add(Action("!combine", 0));
                         clock = time;
@@ -164,7 +214,7 @@ internal static class SequenceBuilder
                 }
             }
 
-            if (gi >= groups.Length) break; // trailing silence isn't represented
+            if (gi >= groups.Length && ri >= last_block) break; // trailing silence isn't represented
 
             // Advance to the boundary so the next region starts on its own grid.
             EmitGap((region.EndMinutes - clock) * region.Speed);
@@ -260,7 +310,40 @@ internal static class SequenceBuilder
             // The opening tempo is a header, not music: a divider closes it off so the
             // first bar starts on a line of its own. Bar counting is untouched - this
             // isn't a bar line.
-            if (first) EmitDivider();
+            if (!first) return;
+            SetTranspose(transpose);
+            EmitDivider();
+        }
+
+        // A clip nothing else plays beside goes out as written. It was walked from the site's
+        // starting state, so that state is restored first where it differs; whatever it leaves
+        // changed is put back before anything else plays. The speed is put back by the next
+        // region's own "!speed", restated in full: the block's speeds were never a tempo
+        // times a resolution.
+        void EmitBlock(TempoRegion region, VerbatimBlock block, bool more)
+        {
+            var speed = double.IsNaN(current_speed) ? 300 : current_speed; // the site starts at 300
+            EmitGap((region.StartMinutes - clock) * speed);
+            if (!block.SetsOwnSpeed && !SameSpeed(speed, 300)) events.Add(Action("!speed", 300));
+            SetTranspose(block.Transpose);
+            events.AddRange(block.Events);
+
+            clock = region.StartMinutes + block.DurationMinutes;
+            current_speed = block.EndSpeed;
+            current_bpm = double.NaN;
+            current_multiplier = 1;
+            current_transpose = block.EndTranspose;
+            if (!more) return;
+
+            if (Math.Abs(block.EndVolume - 100) > 1e-9) events.Add(Action("!volume", 100));
+            SetTranspose(transpose);
+        }
+
+        void SetTranspose(double value)
+        {
+            if (Math.Abs(value - current_transpose) < 1e-9) return;
+            events.Add(Action("!transpose", value));
+            current_transpose = value;
         }
 
         double GroupTime(int index)
@@ -367,7 +450,7 @@ internal static class SequenceBuilder
     }
 
     /// <summary>Exactly PlacementCalculator's classification: actions never advance the clock.</summary>
-    private static bool IsAction(BaseEvent ev)
+    internal static bool IsAction(BaseEvent ev)
     {
         return (ev.SoundEvent?.StartsWith('!') ?? true) || ev is ICustomActionEvent;
     }

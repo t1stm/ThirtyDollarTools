@@ -283,6 +283,37 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
         return Walk(true).ToTempoRegions(startMinutes);
     }
 
+    /// <summary>
+    ///     The items as written - loops, "!volume"s and "!speed"s left for the site to play
+    ///     rather than unrolled - for a clip nothing else plays beside. The site's transpose
+    ///     starts at this track's instead of 0, so an absolute "!transpose" carries it along.
+    ///     Null when the sequence can't stand as written: a runaway loop the site would never
+    ///     leave, nothing to play, or a scaled "!transpose" that would scale the track's
+    ///     transpose too.
+    /// </summary>
+    internal VerbatimBlock? Verbatim(float projectTranspose)
+    {
+        var walk = Walk(true);
+        if (walk.Truncated || walk.DurationMinutes <= 0) return null;
+
+        var transpose = Transpose ?? projectTranspose;
+        var events = Expand().ToArray();
+        foreach (var ev in events.Where(ev => ev.SoundEvent == "!transpose"))
+        {
+            if (ev.ValueScale is ValueScale.Times or ValueScale.Divide && transpose != 0) return null;
+            if (ev.ValueScale is not ValueScale.None) continue;
+            ev.Value += transpose;
+            ev.WorkingValue = ev.Value;
+        }
+
+        // Anything that takes time before the first absolute "!speed" plays at the site's 300.
+        var opener = Array.Find(events,
+            ev => ev.SoundEvent is "!speed" or "!stop" || !SequenceBuilder.IsAction(ev));
+        return new VerbatimBlock(events, walk.DurationMinutes,
+            opener is { SoundEvent: "!speed", ValueScale: ValueScale.None },
+            transpose, walk.EndSpeed, walk.EndVolume, walk.EndTranspose + transpose);
+    }
+
     internal override ProjectTrack Duplicate(int id, string name)
     {
         var copy = new FaithfulTrack(Timing, id) { Name = name, Transpose = Transpose, ColorIndex = ColorIndex };

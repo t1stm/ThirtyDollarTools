@@ -74,7 +74,8 @@ public class SpeedEventTests
     {
         var text = SequenceText.Serialize(Track((4, null), (8, null)).ToSequence());
 
-        Assert.StartsWith("!speed@120|\n!speed@4@x|\n!divider|\nboom", text);
+        // The site's layout: one line, broken only after a divider.
+        Assert.StartsWith("!speed@120|!speed@4@x|!divider\n|boom", text);
         Assert.Contains("!speed@2@x", text);
     }
 

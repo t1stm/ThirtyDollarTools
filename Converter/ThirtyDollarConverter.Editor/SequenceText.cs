@@ -10,11 +10,14 @@ public static class SequenceText
     ///     Serializes a sequence to .tdw text with full value precision.
     ///     BaseEvent.Stringify rounds values to 2 decimals, which would corrupt the
     ///     builder's fractional stops. The builder emits sounds (with volume, pan and
-    ///     sound-start offset), !speed/!stop/!combine/!divider/!cut - nothing else.
+    ///     sound-start offset), !speed/!stop/!combine/!divider/!cut/!transpose/!volume, and a
+    ///     faithful clip's own actions verbatim.
+    ///     Laid out the way the site saves (generateSequenceFile in its 💾.js): one line,
+    ///     broken only after a "!divider", so every section reads as a line.
     /// </summary>
     public static string Serialize(Sequence sequence)
     {
-        return string.Join("|\n", sequence.Events.Select(Stringify));
+        return string.Join("|", sequence.Events.Select(e => e.SoundEvent == "!divider" ? "!divider\n" : Stringify(e)));
     }
 
     private static string Stringify(BaseEvent e)
@@ -24,7 +27,8 @@ public static class SequenceText
         if (e is IndividualCutEvent cut) return cut.Stringify();
 
         var text = e.SoundEvent!;
-        if (e.Value != 0) text += $"@{Exact(e.Value)}";
+        // A transpose back to 0 says so: a bare "!transpose" leaves the value to the reader.
+        if (e.Value != 0 || e.SoundEvent == "!transpose") text += $"@{Exact(e.Value)}";
         text += e.ValueScale switch
         {
             ValueScale.Times => "@x",

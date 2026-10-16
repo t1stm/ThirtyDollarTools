@@ -28,11 +28,16 @@ internal readonly record struct WalkedEvent(
 ///     The result of a walk: the timeline split into constant-speed regions (length in grid
 ///     steps) plus the events that landed in them. <see cref="Truncated" /> marks a walk that
 ///     hit <see cref="SequenceWalker.MaxWalkedEvents" /> and stopped - a runaway loop/jump.
+///     The End values are the "!speed" / "!volume" / "!transpose" state the walk finished in -
+///     what the site is left in after playing the sequence as written.
 /// </summary>
 internal sealed record WalkedSequence(
     List<(double Speed, double Length)> Regions,
     List<WalkedEvent> Events,
-    bool Truncated)
+    bool Truncated,
+    double EndSpeed,
+    double EndVolume,
+    double EndTranspose)
 {
     /// <summary>Absolute start of every region in minutes; the last entry is the total length.</summary>
     private readonly double[] _starts = Starts(Regions);
@@ -256,7 +261,7 @@ internal static class SequenceWalker
         // landed in it (a "!cut" right after a "!speed", say), and dropping it would strand them.
         if (position > 1e-9 || regionUsed || regions.Count == 0) regions.Add((speed, position));
 
-        return new WalkedSequence(regions, walkedEvents, truncated);
+        return new WalkedSequence(regions, walkedEvents, truncated, speed, globalVolume, transpose);
     }
 
     private static double Scale(double current, BaseEvent ev)

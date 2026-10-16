@@ -247,21 +247,72 @@ public class ThirtyDollarProject
         // the export's: both see every cut in the project.
         if (AutoResume)
         {
-            var cuts = SequenceBuilder.CutPoints(timed);
+            var cuts = SequenceBuilder.CutPoints(timed.Select(t => (t.Minutes, t.Event)));
             if (cuts.Exists(cut => cut.Generated)) timed = Flatten(placements, cuts);
         }
 
-        return SequenceBuilder.Build(MergedRegions(placements), [.. timed], style, BarTimes(placements, style),
-            padToMinutes);
+        var regions = MergedRegions(placements);
+        // A faithful clip nothing else sounds beside is handed to the site as written. In time
+        // order, so a clip right after a verbatim one isn't put off by the actions that one
+        // ends on - those go out inside its own block. Something a hair before the start is
+        // simultaneous with it; something a hair before the end lands in the next region.
+        var verbatim = new HashSet<TrackPlacement>();
+        var taken_until = double.NegativeInfinity;
+        foreach (var placement in placements.OrderBy(StartMinutes))
+        {
+            if (placement.Track is not FaithfulTrack faithful || faithful.Verbatim(Transpose) is not { } block)
+                continue;
+
+            var start = StartMinutes(placement);
+            var end = start + block.DurationMinutes;
+            if (start < taken_until - 1e-9 ||
+                timed.Exists(t => t.Placement != placement && !verbatim.Contains(t.Placement) &&
+                                  t.Minutes >= start - 1e-9 && t.Minutes < end - 1e-12))
+                continue;
+
+            verbatim.Add(placement);
+            taken_until = end;
+            regions = Splice(regions, new TempoRegion(start, block.DurationMinutes, block.EndSpeed, Block: block));
+        }
+
+        timed.RemoveAll(t => verbatim.Contains(t.Placement));
+        return SequenceBuilder.Build(regions, [.. timed.Select(t => (t.Minutes, t.Event))], style,
+            BarTimes(placements, style), padToMinutes, Transpose);
+    }
+
+    /// <summary>
+    ///     Puts a block's region in place of whatever the timeline held over its span, cutting
+    ///     the regions it overlaps back to its edges.
+    /// </summary>
+    private static List<TempoRegion> Splice(List<TempoRegion> regions, TempoRegion block)
+    {
+        var spliced = new List<TempoRegion> { block };
+        foreach (var region in regions)
+        {
+            if (region.StartMinutes < block.StartMinutes - 1e-10)
+                spliced.Add(region with
+                {
+                    DurationMinutes = Math.Min(region.EndMinutes, block.StartMinutes) - region.StartMinutes
+                });
+
+            if (region.EndMinutes > block.EndMinutes + 1e-10)
+            {
+                var from = Math.Max(region.StartMinutes, block.EndMinutes);
+                spliced.Add(region with { StartMinutes = from, DurationMinutes = region.EndMinutes - from });
+            }
+        }
+
+        return [.. spliced.OrderBy(region => region.StartMinutes)];
     }
 
     // ponytail: two full passes over the notes per build. Flattening is microseconds next to
     // encoding - measure before caching the cut list against an edit counter.
-    private List<(double Minutes, BaseEvent Event)> Flatten(List<TrackPlacement> placements,
-        IReadOnlyList<CutPoint>? cuts)
+    private List<(double Minutes, BaseEvent Event, TrackPlacement Placement)> Flatten(
+        List<TrackPlacement> placements, IReadOnlyList<CutPoint>? cuts)
     {
         var timed = placements
-            .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement), Transpose, cuts))
+            .SelectMany(placement => placement.Track.TimedNotes(StartMinutes(placement), Transpose, cuts)
+                .Select(t => (t.Minutes, t.Event, placement)))
             .ToList();
 
         // Cross-channel cut parity: real (merged) playback has a cut silence everything
@@ -273,7 +324,8 @@ public class ThirtyDollarProject
         // never needs the list.
         foreach (var placement in _placements.Except(placements))
             timed.AddRange(placement.Track.TimedNotes(StartMinutes(placement), Transpose)
-                .Where(t => t.Event is IndividualCutEvent));
+                .Where(t => t.Event is IndividualCutEvent)
+                .Select(t => (t.Minutes, t.Event, placement)));
 
         return timed;
     }
