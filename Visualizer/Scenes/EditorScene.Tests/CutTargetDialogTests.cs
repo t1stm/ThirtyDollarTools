@@ -23,7 +23,8 @@ public class CutTargetDialogTests
 
     private static CutTargetDialog Open(FaithfulItem cut)
     {
-        return new CutTargetDialog(new EditorTestContext(), [Empty, Kit, Bell], ["kick", "hat", "bell"], cut);
+        var context = new EditorTestContext();
+        return new CutTargetDialog(context, context.NewAtlasStore(), [Empty, Kit, Bell], ["kick", "hat", "bell"], cut);
     }
 
     private static KeyboardKeyEventArgs Key(Keys key) => new(key, 0, 0, false);

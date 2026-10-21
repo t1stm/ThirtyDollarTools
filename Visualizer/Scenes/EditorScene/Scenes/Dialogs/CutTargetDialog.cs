@@ -1,5 +1,6 @@
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Shared.Atlases;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
@@ -34,20 +35,23 @@ public enum CutTarget
 ///     sound", an instrument keeps "One sound" or becomes "Instrument". Up/Down step the
 ///     instruments, Left/Right the sounds (<see cref="HandleKey" />).
 ///     Pure form - the owner swaps <see cref="Result" /> in and closes the modal. Built per
-///     show; <see cref="Release" /> frees the tiles once it is closed. The tree is
+///     show; <see cref="Release" /> frees the tiles and icons once it is closed. The tree is
 ///     CutTargetDialog.snx.xml.
 /// </summary>
 public sealed class CutTargetDialog
 {
     private const float TileSize = 56;
     private const float TileMargin = 10;
+    private const float IconSize = 24;
+    private const int MaxIcons = 4;
 
-    /// <summary>Longest instrument name a row shows - a 200 px row at 13 px text, count beside it.</summary>
-    private const int NameLimit = 20;
+    /// <summary>Longest instrument name a row shows - a 310 px row at 13 px text, icons before it and count after.</summary>
+    private const int NameLimit = 23;
 
     private readonly Label _caption;
     private readonly Label _count;
     private readonly IReadOnlyList<Instrument> _instruments;
+    private readonly InstrumentEditor.SoundList _list;
     private readonly FlexPanel[] _modeRows;
     private readonly List<(Instrument Instrument, FlexPanel Row)> _rows = [];
     private readonly Label _soundsLabel;
@@ -57,12 +61,15 @@ public sealed class CutTargetDialog
     /// <summary>The sounds the tiles show, in tile order.</summary>
     private string[] _shown = [];
 
+    /// <param name="store">The atlases the instrument rows' icons come from.</param>
     /// <param name="instruments">The project's instruments; the ones with no sounds are left out.</param>
     /// <param name="trackSounds">Every sound the track plays - what "Every sound" silences.</param>
     /// <param name="cut">The cut being edited; the form starts on what it silences now.</param>
+    /// <param name="sounds">Sounds by ID and emoji, for the instrument rows' icons. Null draws none.</param>
     /// <param name="look">The tiles' playfield look. Null leaves the tiles out - the headless tests have no atlases.</param>
-    public CutTargetDialog(UIContext context, IReadOnlyList<Instrument> instruments,
-        IReadOnlyList<string> trackSounds, FaithfulItem cut, PlayfieldSettings? look = null)
+    public CutTargetDialog(UIContext context, AtlasStore store, IReadOnlyList<Instrument> instruments,
+        IReadOnlyList<string> trackSounds, FaithfulItem cut, IReadOnlyDictionary<string, Sound>? sounds = null,
+        PlayfieldSettings? look = null)
     {
         var component = Markup.Build(context, "Scenes/Dialogs/Cut Target Dialog/CutTargetDialog.snx.xml");
         Element = component.GetID<FlexPanel>("cut-target-dialog");
@@ -91,7 +98,10 @@ public sealed class CutTargetDialog
             _modeRows[i].OnClick = _ => Pick(target);
         }
 
-        var list = component.GetID<ScrollView>("cut-instrument-list");
+        // The instrument selector's list: a row leads with up to four of its sounds' icons, drawn
+        // as one batch by the list (a row, its icon strip, then the icon - the depth it queues at).
+        _list = new InstrumentEditor.SoundList(context, store) { ID = "cut-instrument-list" };
+        component.GetID<FlexPanel>("cut-instrument-column").AddChild(_list);
         foreach (var instrument in _instruments)
         {
             var row = new FlexPanel(context)
@@ -100,13 +110,18 @@ public sealed class CutTargetDialog
                 UpdateCursorOnHover = true,
                 OnClick = _ => Pick(instrument)
             };
+            row.AddChild(new FlexPanel(context)
+            {
+                Classes = ["cut-instrument-icons"],
+                Children = [.. _list.Images.Icons(instrument, sounds, IconSize, MaxIcons)]
+            });
             row.AddChild(new Label(context, FaithfulPalette.Shorten(instrument.Name, NameLimit))
             {
                 Classes = ["cut-instrument-name"]
             });
             if (instrument.Sounds.Count > 1)
                 row.AddChild(new Label(context, $"x{instrument.Sounds.Count}") { Classes = ["cell-count"] });
-            list.AddChild(row);
+            _list.AddChild(row);
             _rows.Add((instrument, row));
         }
 
@@ -265,10 +280,11 @@ public sealed class CutTargetDialog
         }
     }
 
-    /// <summary>Frees the tiles' GL buffers - nothing else owns them. Call once the modal is closed.</summary>
+    /// <summary>Frees the tiles' and icons' GL buffers - nothing else owns them. Call once the modal is closed.</summary>
     public void Release()
     {
         _tiles?.SetEvents([]);
+        _list.Images.Stacks.Dispose();
     }
 
     private Instrument? Owner(string sound)

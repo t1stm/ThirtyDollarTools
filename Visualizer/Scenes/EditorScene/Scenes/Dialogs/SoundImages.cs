@@ -2,6 +2,7 @@ using OpenTK.Mathematics;
 using Shared.Atlases;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
+using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 using VisualizerScene.Objects.Playfield.Batch.Chunks;
 using VisualizerScene.Objects.Playfield.Batch.Objects;
@@ -30,6 +31,20 @@ internal sealed class SoundImages(UIContext context, AtlasStore store)
     {
         var quad = Add(sound.Filename);
         return quad == null ? null : new SoundImage(context, quad, size);
+    }
+
+    /// <summary>
+    ///     An instrument's first <paramref name="max" /> sounds as images, the instrument lists'
+    ///     preview of what it plays. <paramref name="sounds" /> maps the IDs (or emoji, in older
+    ///     projects) instruments name sounds by; a sound it or the atlases don't know is skipped.
+    /// </summary>
+    public SoundImage[] Icons(Instrument instrument, IReadOnlyDictionary<string, Sound>? sounds, float size, int max)
+    {
+        return instrument.Sounds
+            .Select(sound => sounds?.GetValueOrDefault(sound.Sound) is { } known ? Create(known, size) : null)
+            .OfType<SoundImage>()
+            .Take(max)
+            .ToArray();
     }
 
     /// <summary>The same, for an element that keeps its own quad; see <see cref="SoundImage" />.</summary>

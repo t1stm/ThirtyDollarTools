@@ -115,14 +115,7 @@ public sealed class InstrumentSelector : FlexPanel
 
         foreach (var instrument in instruments)
         {
-            var icons = instrument.Sounds
-                .Select(sound => sounds?.GetValueOrDefault(sound.Sound) is { } known
-                    ? _list.Images.Create(known, IconSize)
-                    : null)
-                .OfType<SoundImage>()
-                .Take(MaxIcons)
-                .ToArray();
-            _list.AddChild(new InstrumentRow(Context, instrument, icons,
+            _list.AddChild(new InstrumentRow(Context, instrument, _list.Images.Icons(instrument, sounds, IconSize, MaxIcons),
                 i => OnPick?.Invoke(i), i => OnPreview?.Invoke(i), i => OnEdit?.Invoke(i), i => OnDelete?.Invoke(i))
             {
                 Selected = instrument == marked

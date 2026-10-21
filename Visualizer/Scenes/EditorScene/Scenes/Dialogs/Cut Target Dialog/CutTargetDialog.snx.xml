@@ -38,10 +38,10 @@
       </flex>
 
       <flex class="cut-body">
-        <flex class="cut-instruments">
+        <flex id="cut-instrument-column" class="cut-instruments">
           <label class="cut-column-label" value="Instruments"/>
-          <!-- One row per instrument with sounds, built in code. -->
-          <scroll-view id="cut-instrument-list"/>
+          <!-- CutTargetDialog.cs puts the list in - the instrument selector's, which draws each
+               row's sound icons - with one row per instrument with sounds. -->
         </flex>
 
         <flex class="cut-sounds">

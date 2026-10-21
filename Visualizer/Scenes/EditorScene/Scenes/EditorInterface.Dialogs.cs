@@ -339,8 +339,8 @@ public partial class EditorInterface
         var index = track.Items.IndexOf(item);
         if (index < 0) return;
 
-        var dialog = new CutTargetDialog(_context, State.Project.Instruments, [.. track.TrackSounds()], item,
-            _playfieldLook);
+        var dialog = new CutTargetDialog(_context, _workflow.AtlasStore, State.Project.Instruments,
+            [.. track.TrackSounds()], item, _workflow.SampleHolder.StringToSoundReferences, _playfieldLook);
         var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
         modal.OnDismissRequested = _ => Close();
         modal.OnConfirmRequested = _ => Save();

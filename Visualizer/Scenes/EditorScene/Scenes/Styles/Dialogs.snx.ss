@@ -659,10 +659,10 @@ class track-preview-wave-bar {
 
 // ---------------------------------------------------------------- cut target
 
-// Three 184 targets and two 8 gaps fill the 568 inner width. Every id here starts "cut-": the
+// Three 224 targets and two 8 gaps fill the 688 inner width. Every id here starts "cut-": the
 // sheet looks ids up among the class names, so an id like "sound-row" picks up that class too.
 id cut-target-dialog {
-    width = 600;
+    width = 720;
 }
 
 class cut-modes {
@@ -673,7 +673,7 @@ class cut-modes {
 // A target: its key chip, then its name. The fills are track-kind-row-idle/-selected, swapped
 // as one is picked.
 class cut-mode {
-    width = 184;
+    width = 224;
     height = 40;
     padding = 10;
     spacing = 10;
@@ -684,13 +684,13 @@ class cut-mode {
 // The instrument list, then the card of the sounds the cut silences.
 class cut-body {
     width = 100%;
-    height = 248;
+    height = 294;
     spacing = 12;
 }
 
 class cut-instruments {
     direction = "vertical";
-    width = 200;
+    width = 310;
     height = 100%;
     spacing = 6;
 }
@@ -700,22 +700,31 @@ class cut-column-label {
     font-color = $theme.text_subtle;
 }
 
-// Six and a half 34 rows with their 4 gaps, so a longer list shows it scrolls.
+// Six and a half 38 rows with their 4 gaps, so a longer list shows it scrolls.
 id cut-instrument-list {
     width = 100%;
-    height = 226;
+    height = 272;
     spacing = 4;
 }
 
-// One instrument: its name and, for a layered one, the count. The fills are
-// track-kind-row-idle/-selected, as the targets' are.
+// One instrument: its sounds' icons, its name and, for a layered one, the count. The fills
+// are track-kind-row-idle/-selected, as the targets' are.
 class cut-instrument {
     width = 100%;
-    height = 34;
-    padding = 10;
-    spacing = 6;
+    height = 38;
+    padding = 8;
+    spacing = 8;
     vertical-align = "center";
     border-radius = 6;
+}
+
+// Up to four 24 icons and their 2 gaps, fixed so every name starts at the same x - the
+// instrument selector's instrument-row-icons, a size down.
+class cut-instrument-icons {
+    width = 102;
+    height = 24;
+    spacing = 2;
+    vertical-align = "center";
 }
 
 class cut-instrument-name {
@@ -723,7 +732,8 @@ class cut-instrument-name {
     font-color = $theme.text;
 }
 
-// 332 inside its padding: five 56 tiles with their 10 margins to a line.
+// 342 inside its padding, 324 inside the scroll bar's gutters: five 56 tiles with their 10
+// margins to a line.
 class cut-sounds {
     direction = "vertical";
     width = 100%;
@@ -734,10 +744,10 @@ class cut-sounds {
     background = $theme.background;
 }
 
-// Two and a half lines of tiles, so a track with many sounds shows it scrolls.
+// Three lines of tiles and a sliver of the fourth, so a track with many sounds shows it scrolls.
 id cut-sound-scroll {
     width = 100%;
-    height = 164;
+    height = 210;
 }
 
 // ---------------------------------------------------------------- import warnings
