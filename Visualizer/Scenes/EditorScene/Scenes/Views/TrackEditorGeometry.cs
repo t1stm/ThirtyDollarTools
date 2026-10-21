@@ -155,9 +155,57 @@ public sealed class TrackEditorGeometry
         return Math.Clamp(value, -MaxValue, MaxValue);
     }
 
+    /// <summary>A value's row line: the first pixel of its row, the way a step line is the first of its cell.</summary>
     public float ValueTop(double value)
     {
         return GridTop + (float)((MaxValue - value) * RowHeight) - ScrollY;
+    }
+
+    // A note's tile sits centred in its step cell and in its row: 1 px clear of the grid lines
+    // on every side, once the cell or row is wide enough to spare it. A line is the first pixel
+    // of its cell, so the clear space runs from line + 1 up to the next line.
+
+    /// <summary>How far a tile keeps from the lines across a cell or row this many px wide.</summary>
+    public static float MarginFor(float cellPx)
+    {
+        return cellPx >= 8 ? 1 : 0;
+    }
+
+    public float CellMargin => MarginFor(PixelsPerStep);
+    public float RowMargin => MarginFor(RowHeight);
+
+    /// <summary>
+    ///     A step's grid line, view-local: <paramref name="stepPx" /> is how far the step is
+    ///     from the grid's start, its segment's offset included.
+    /// </summary>
+    public float LineX(float stepPx)
+    {
+        return GutterWidth + stepPx - ScrollX;
+    }
+
+    /// <summary>Where a tile starting on that step begins: one pixel past its line, plus the margin.</summary>
+    public float CellX(float stepPx)
+    {
+        return LineX(stepPx) + 1 + CellMargin;
+    }
+
+    /// <summary>How wide a tile spanning that many steps is drawn.</summary>
+    public float SpanWidth(float steps)
+    {
+        return Math.Max(2, steps * PixelsPerStep - 1 - 2 * CellMargin);
+    }
+
+    public float NoteTop(double value)
+    {
+        return ValueTop(value) + 1 + RowMargin;
+    }
+
+    public float NoteHeight => RowHeight - 1 - 2 * RowMargin;
+
+    /// <summary>The middle of a row's clear space - where an automation path runs through it.</summary>
+    public float RowMiddle(double value)
+    {
+        return ValueTop(value) + (RowHeight + 1) / 2;
     }
 
     public float SegmentStartPx(ProjectTrack track, TrackSegment target)

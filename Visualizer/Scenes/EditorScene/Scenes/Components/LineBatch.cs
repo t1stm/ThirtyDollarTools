@@ -14,11 +14,12 @@ using VisualizerScene.Objects.Playfield.Batch.Objects;
 namespace EditorScene.Scenes.Components;
 
 /// <summary>
-///     A pool of flat-colored rects (grid/bar lines, markers, block fills) drawn as one
-///     instanced draw call instead of one <see cref="Shared.Renderer.Planes.ColoredPlane" />
-///     - and one uniform-buffer upload - per rect. Reuses the visualizer's flat-color
-///     instanced quad plumbing
-///     (<see cref="RenderStack{TDataType}" /> + <see cref="BackgroundBlip" />, Model+Color only).
+///     A pool of rects (grid/bar lines, markers, block fills) drawn as one instanced draw
+///     call instead of one <see cref="Shared.Renderer.Planes.ColoredPlane" /> - and one
+///     uniform-buffer upload - per rect. Reuses the visualizer's instanced quad plumbing
+///     (<see cref="RenderStack{TDataType}" />) with an instance of its own,
+///     <see cref="ShadedRect" />: a rect is flat unless it is given a shape, which rounds
+///     its corners, outlines it or lights it (see shaded-instanced.frag).
 ///     <see cref="Count" /> is a reservation, not a cap: writing past it grows the buffer
 ///     (doubling, contents preserved), so a range with no natural bound - a project's clips,
 ///     a note's automation path - can sit last and simply keep going. Ranges before it must
@@ -29,14 +30,14 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
 {
     private static DeleteQueue _deleteQueue = null!;
     private static Shader _shader = null!;
-    private RenderStack<BackgroundBlip>? _stack;
+    private RenderStack<ShadedRect>? _stack;
 
     /// <summary>Slots to reserve up front - enough for the fixed ranges, so only the last one grows.</summary>
     public int Count
     {
         set
         {
-            _stack ??= new RenderStack<BackgroundBlip>(_deleteQueue, value) { Shader = _shader };
+            _stack ??= new RenderStack<ShadedRect>(_deleteQueue, value) { Shader = _shader };
             _stack.List.EnsureCount(value);
         }
     }
@@ -47,12 +48,12 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
     public static void Preload(AssetProvider assetProvider)
     {
         _deleteQueue = assetProvider.DeleteQueue;
-        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Planes/Colored/instanced", provider =>
+        _shader = assetProvider.ShaderPool.GetOrLoad("Assets/Shaders/Planes/Colored/shaded-instanced", provider =>
             new Shader(provider, provider.LoadShaders(
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.VertexShader,
-                    "Assets/Shaders/Planes/Colored/instanced.vert"),
+                    "Assets/Shaders/Planes/Colored/shaded-instanced.vert"),
                 ShaderInfo.CreateFromUnknownStorage(ShaderType.FragmentShader,
-                    "Assets/Shaders/Planes/Colored/instanced.frag")))
+                    "Assets/Shaders/Planes/Colored/shaded-instanced.frag")))
         );
     }
 
@@ -69,14 +70,24 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
     /// </summary>
     public void Set(int index, float x, float y, float width, float height, Vector4 color)
     {
+        Set(index, x, y, width, height, color, Vector4.Zero);
+    }
+
+    /// <summary>
+    ///     Assigns one rect with a shape - see <see cref="ShadedRect.Shape" /> and
+    ///     <see cref="ShadedRect.Of" />. A zero shape is the flat rect the overload above writes.
+    /// </summary>
+    public void Set(int index, float x, float y, float width, float height, Vector4 color, Vector4 shape)
+    {
         var list = _stack!.List;
         list.EnsureCount(index + 1);
 
-        var model = Matrix4.CreateScale(width, height, 1f) * Matrix4.CreateTranslation(x, y, 0f);
+        // Scale then translate, written out: the views re-assign thousands of slots per layout.
+        var model = new Matrix4(width, 0, 0, 0, 0, height, 0, 0, 0, 0, 1, 0, x, y, 0, 1);
         var current = list[index];
-        if (current.Model == model && current.Color == color) return;
+        if (current.Model == model && current.Color == color && current.Shape == shape) return;
 
-        list[index] = new BackgroundBlip { Model = model, Color = color };
+        list[index] = new ShadedRect { Model = model, Color = color, Shape = shape };
     }
 
     /// <summary>
@@ -96,9 +107,9 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
                     Matrix4.CreateRotationZ(MathF.Atan2(dy, dx)) *
                     Matrix4.CreateTranslation(x1, y1, 0f);
         var current = list[index];
-        if (current.Model == model && current.Color == color) return;
+        if (current.Model == model && current.Color == color && current.Shape == Vector4.Zero) return;
 
-        list[index] = new BackgroundBlip { Model = model, Color = color };
+        list[index] = new ShadedRect { Model = model, Color = color };
     }
 
     /// <summary>
@@ -108,12 +119,39 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
     public void Hide(int index)
     {
         if (_stack is null || index >= _stack.List.Count) return;
-        Set(index, 0, 0, 0, 0, default);
+        var list = _stack.List;
+        // Most released slots were released last layout too: one read, no write.
+        if (list[index] is { Color.W: 0 } current && current.Model == Hidden && current.Shape == Vector4.Zero &&
+            current.Color == Vector4.Zero) return;
+
+        list[index] = new ShadedRect { Model = Hidden };
     }
+
+    private static readonly Matrix4 Hidden = Matrix4.CreateScale(0, 0, 1);
 
     /// <summary>The color a slot is currently painted with - a test seam.</summary>
     public Vector4 ColorOf(int index)
     {
         return _stack!.List[index].Color;
     }
+
+    /// <summary>The shape a slot is currently drawn with - a test seam.</summary>
+    public Vector4 ShapeOf(int index)
+    {
+        return _stack!.List[index].Shape;
+    }
+
+    /// <summary>
+    ///     A slot's rect as (x, y, width, height) in absolute px - a test seam. Only
+    ///     meaningful for a slot written by <see cref="Set(int,float,float,float,float,Vector4)" />;
+    ///     a line from <see cref="SetLine" /> is rotated and has no rect.
+    /// </summary>
+    public Vector4 RectOf(int index)
+    {
+        var model = _stack!.List[index].Model;
+        return new Vector4(model.M41, model.M42, model.M11, model.M22);
+    }
+
+    /// <summary>How many slots the batch holds, the grown tail included - a test seam.</summary>
+    public int SlotCount => _stack?.List.Count ?? 0;
 }

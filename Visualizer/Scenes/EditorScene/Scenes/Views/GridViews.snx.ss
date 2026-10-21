@@ -21,13 +21,17 @@ class arrangement-canvas {
     label-color = $theme.text_dim;
     playhead-color = $theme.playhead;
 
-    // A clip's fill, batched with the lines, and the track name written across it. There
-    // is no selected shade: a selected clip lifts its own color toward white (see
-    // ArrangementView.SelectedLift), so a track keeps its identity while it is picked.
+    // A clip's color, batched with the lines: its name strip, over a body sunk toward the
+    // grid. There is no selected shade: a selected clip takes the ring and lifts its own color
+    // a little toward white (see ArrangementView.SelectedLift), so a track keeps its identity
+    // while it is picked. A faithful clip's beats take the note editor's sound colors.
     clip-color = $theme.accent;
+    grid-color = $theme.grid_background;
+    selection-ring-color = $theme.selection_ring;
+    sound-palette = $theme.sound_palette;
 
-    // The track name across a clip. Dark, not `text`: every fill a clip can take is a
-    // mid-to-light palette entry - lighter still while selected - and `text` carries on
+    // The track name in a clip's strip. Dark, not `text`: every color a strip can take is
+    // a mid-to-light palette entry - lighter still while selected - and `text` carries on
     // none of them (1.4:1 on a selected olive). See ArrangementViewTests's contrast guard,
     // which fails if a palette entry ever goes dark enough to want the light shade back.
     clip-label-color = $theme.text_dark;
@@ -66,10 +70,13 @@ class note-canvas {
     strip-segment-b = $theme.strip_segment_b;
     strip-selected-color = $theme.accent;
 
-    // A note block's fill: its instrument's entry in the palette, or the highlight when
-    // it is part of the selection. The end cap sits on top of a note that gets cut where
-    // it ends, so it takes the brightest shade on the canvas.
-    selected-note-color = $theme.selection_highlight;
+    // A note's fill: its instrument's entry in the palette, sunk toward the canvas's own
+    // background as its volume drops - by volume-depth at silence. A selected note lifts its
+    // own color and takes the ring. The end cap sits on top of a note that gets cut where it
+    // ends, so it takes the brightest shade on the canvas.
+    grid-color = $theme.grid_background;
+    volume-depth = 0.62;
+    selection-ring-color = $theme.selection_ring;
     automation-end-color = $theme.playhead;
     sound-palette = $theme.sound_palette;
 }
@@ -107,6 +114,6 @@ class grid-marquee {
 
 // ---------------------------------------------------------------- clips
 
-// A clip on an arrangement lane has no rule of its own any more: its fill, its selected
-// shade and its name all come from arrangement-canvas's settings above, written into the
-// batches. The name's inset and size live next to that code (ClipPadding, ClipFontSize).
+// A clip on an arrangement lane has no rule of its own any more: its strip, body, ring and
+// name all come from arrangement-canvas's settings above, written into the batches. The
+// name's inset and size live next to that code (ClipPadding, ClipFontSize).

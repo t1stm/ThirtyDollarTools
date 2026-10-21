@@ -84,8 +84,11 @@ var track_column_width = 260;
 // itself, set by the arrangement-canvas/note-canvas rules in GridViews.snx.ss.
 
 // Markers over the two canvas views.
-var selection_highlight = "#9bc0ff";
 var playhead = "#c0caf5";
+
+// The ring around a selected note, clip or keyframe marker: near white, so it reads on every
+// palette entry and on the lifted shade a selection gives them.
+var selection_ring = "#eef2ff";
 
 // Row fill for the selected track in the track list.
 var row_selected = "#414868";

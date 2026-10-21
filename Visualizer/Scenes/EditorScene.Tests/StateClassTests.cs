@@ -96,6 +96,40 @@ public class StateClassTests
         Assert.Equal(resting, solo.Label.Color);
     }
 
+    [Fact]
+    public void SelectingANote_LiftsItsOwnHue_AndRingsIt()
+    {
+        var ctx = new EditorTestContext();
+        var state = new EditorState();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var view = EditorTestContext.Styled(new TrackEditorView(ctx, state)
+            { Width = 800, Height = 414, PixelsPerStep = 16f, RowHeight = 8f });
+        var note = state.AddNote(track.Segments[0], 0, state.AddInstrument("boom"), 0);
+        view.InvalidateLayout();
+        view.Layout();
+
+        var block = view.NoteBlocks.First(b => b.Note == note);
+        var resting = view.FillOf(block);
+        Assert.Equal(0, view.RingOf(block).Color.W);
+
+        state.SelectNote(note);
+        view.InvalidateLayout();
+        view.Layout();
+
+        // Still its own palette entry, lifted toward white - not a highlight that replaces it.
+        var lifted = view.SoundPalette.Select(c => new Vector4(Vector3.Lerp(c.Xyz, Vector3.One, 0.16f), c.W));
+        Assert.Contains(view.FillOf(block), lifted);
+        Assert.NotEqual(resting, view.FillOf(block));
+        Assert.Equal(view.SelectionRingColor, view.RingOf(block).Color);
+
+        state.SetNoteSelection([]);
+        view.InvalidateLayout();
+        view.Layout();
+        Assert.Equal(resting, view.FillOf(block));
+        Assert.Equal(0, view.RingOf(block).Color.W);
+    }
+
     /// <summary>
     ///     The one setting that isn't a single color: the note palette is an array in the
     ///     sheet, so a note block's fill proves the whole array reached the view.

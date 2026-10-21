@@ -1,4 +1,6 @@
+using EditorScene.Scenes.Components;
 using EditorScene.State;
+using OpenTK.Mathematics;
 using Sundex.Components.Labels;
 using ThirtyDollarConverter.Editor;
 
@@ -15,6 +17,9 @@ public partial class TrackEditorView
     private int _longestNoteRevision = -1;
     private float _longestNoteSteps = 1;
     private ProjectTrack? _longestNoteTrack;
+
+    // How many pool blocks from the front may still be placed from the last layout.
+    private int _noteBlocksPlaced;
 
     // Cached cut harvest for the resume marks, keyed the same way.
     private IReadOnlyList<CutPoint>? _cutPoints;
@@ -168,13 +173,16 @@ public partial class TrackEditorView
                     var noteWidth = NoteSteps(track, segment, note) * pps;
                     if (note.Automation != null && x <= visibleEnd && x + noteWidth >= visibleStart)
                     {
-                        // The marks paint ON the note body, so they take whichever of the
-                        // two shades the body is not: the instrument colour over a selected
-                        // note's highlight, a lightened one over the instrument fill.
-                        var fill = InstrumentColor(note.Instrument);
+                        // The path paints ON the note body: a lightened instrument colour over
+                        // its fill, and the ring's colour over a selected one - its lifted body
+                        // would swallow the plain instrument colour.
+                        var selected = _state.SelectedNotes.Contains(note);
                         _automationPath.Draw(_geometry, (absX, absY), track, segment, note, segStart,
-                            _state.SelectedNotes.Contains(note) ? fill : Lighten(fill, 0.45f),
-                            AutomationEndColor, ref autoMark, CutPoints(track));
+                            NoteSteps(track, segment, note),
+                            new AutomationPath.Look(NoteColor(note, selected), selected,
+                                selected ? SelectionRingColor : Lighten(InstrumentColor(note.Instrument), 0.45f),
+                                SelectionRingColor, AutomationEndColor),
+                            Shading, ref autoMark, CutPoints(track));
                     }
 
                     if (_dragging?.Note == note) continue;
@@ -191,13 +199,16 @@ public partial class TrackEditorView
             }
         }
 
-        // A released block gives up both its hit box and its fill slot.
-        for (var i = noteBlock; i < _noteBlocks.Count; i++)
+        // A released block gives up both its hit box and its slots - only up to the last
+        // layout's high-water mark, past which nothing was placed to release.
+        for (var i = noteBlock; i < _noteBlocksPlaced; i++)
         {
             if (_noteBlocks[i] == _dragging) continue;
             Hide(_noteBlocks[i]);
-            _blockBatch.Hide(NoteBlockSlot + i);
+            for (var slot = 0; slot < SlotsPerNote; slot++) _blockBatch.Hide(NoteBlockSlot + i * SlotsPerNote + slot);
         }
+
+        _noteBlocksPlaced = _dragging is { } pinned ? Math.Max(noteBlock, _noteBlocks.IndexOf(pinned) + 1) : noteBlock;
 
         _automationPath.HideUnused(autoMark);
         PlaceKeyframeBlocks();
@@ -334,42 +345,81 @@ public partial class TrackEditorView
         }
     }
 
+    /// <summary>
+    ///     Lays one note out twice: its hit box is the whole cell span, grid line to grid line,
+    ///     so two notes side by side leave no dead pixel between them; its tile is drawn
+    ///     centred inside that, clear of the lines (see <see cref="TrackEditorGeometry.CellX" />).
+    /// </summary>
     private void PlaceNote(NoteBlock block, TrackSegment segment, Note note, float segStartPx,
         int cutSlot = 0, int cutSlotCount = 1)
     {
         block.Assign(segment, note);
-        var stepX = GutterWidth + segStartPx + note.Step * PixelsPerStep - _geometry.ScrollX;
-        float x, y, blockWidth, blockHeight;
+        var stepPx = segStartPx + note.Step * PixelsPerStep;
+        float x, y, width, height;
+        Vector4 tile;
         if (note.IsCut)
         {
             // Fixed row - never scrolls, unlike every other row. Simultaneous cuts on
             // different instruments (cutSlotCount > 1) split the step evenly instead of
-            // stacking exactly on top of each other.
+            // stacking exactly on top of each other, each centred in its own slot.
             var slotWidth = PixelsPerStep / cutSlotCount;
-            x = stepX + cutSlot * slotWidth;
-            y = _geometry.CutRowTop + 0.5f;
-            blockWidth = Math.Max(3, slotWidth - 1);
-            blockHeight = Math.Max(3, CutRowHeight - 1);
+            var margin = TrackEditorGeometry.MarginFor(slotWidth);
+            x = _geometry.LineX(stepPx) + cutSlot * slotWidth + 1;
+            width = Math.Max(1, slotWidth - 1);
+            y = _geometry.CutRowTop + 1;
+            height = CutRowHeight - 2;
+            tile = new Vector4(x + margin, y, Math.Max(2, width - 2 * margin), height);
         }
         else
         {
-            x = stepX;
-            y = _geometry.ValueTop(note.Value) + 0.5f;
             var steps = _state.OpenedTrack is { } track ? NoteSteps(track, segment, note) : 1;
-            blockWidth = Math.Max(3, steps * PixelsPerStep - 1);
+            x = _geometry.LineX(stepPx) + 1;
+            width = steps * PixelsPerStep - 1;
+            y = _geometry.ValueTop(note.Value) + 1;
             // No overdraw covers a grid note bleeding past the grid's bottom edge
             // (unlike the top, still covered by the strip/ruler bands), so clamp it.
-            var naturalHeight = Math.Max(3, _geometry.RowHeight - 1);
-            blockHeight = Math.Max(0, Math.Min(y + naturalHeight, _geometry.GridBottom) - y);
+            var gridBottom = _geometry.GridBottom;
+            height = Math.Max(0, Math.Min(y + _geometry.RowHeight - 1, gridBottom) - y);
+            var tileY = _geometry.NoteTop(note.Value);
+            tile = new Vector4(_geometry.CellX(stepPx), tileY, _geometry.SpanWidth(steps),
+                Math.Max(0, Math.Min(tileY + _geometry.NoteHeight, gridBottom) - tileY));
         }
 
-        // The element carries the hit box; the batch slot carries the fill.
+        // The element carries the hit box; the batch slots carry the tile.
         block.X = x;
         block.Y = y;
-        block.Width = blockWidth;
-        block.Height = blockHeight;
-        _blockBatch.Set(block.BatchSlot, Computed.AbsoluteX + x, Computed.AbsoluteY + y, blockWidth, blockHeight,
-            _state.SelectedNotes.Contains(note) ? SelectedNoteColor : InstrumentColor(note.Instrument));
+        block.Width = width;
+        block.Height = height;
+        block.Tile = tile;
+        DrawNote(block, note, new Vector4(x, y, width, height));
+    }
+
+    /// <summary>
+    ///     A note's three slots: a drop shadow 1 px straight down, the lit tile filled at its
+    ///     volume, and - while it is selected - a ring around the whole cell span, which is
+    ///     the margin the tile keeps from the grid lines (or its own edge, with none to spare).
+    /// </summary>
+    private void DrawNote(NoteBlock block, Note note, Vector4 hit)
+    {
+        var (absX, absY) = (Computed.AbsoluteX, Computed.AbsoluteY);
+        var tile = block.Tile;
+        var selected = _state.SelectedNotes.Contains(note);
+        var radius = CornerRadius(tile.Z, tile.W);
+
+        if (PixelsPerStep >= MinShadowPixelsPerStep && tile.W > 0)
+            _blockBatch.Set(block.BatchSlot - 1, absX + tile.X, absY + tile.Y + 1, tile.Z, tile.W,
+                new Vector4(0, 0, 0, ShadowAlpha * Shading), ShadedRect.Of(radius));
+        else
+            _blockBatch.Hide(block.BatchSlot - 1);
+
+        _blockBatch.Set(block.BatchSlot, absX + tile.X, absY + tile.Y, tile.Z, tile.W,
+            VolumeFill(NoteColor(note, selected), note.Volume), ShadedRect.Of(radius, strength: Shading));
+
+        if (selected)
+            _blockBatch.Set(block.BatchSlot + 1, absX + hit.X, absY + hit.Y, hit.Z, hit.W, SelectionRingColor,
+                ShadedRect.Of(radius + Math.Min(tile.X - hit.X, tile.Y - hit.Y), outline: 1));
+        else
+            _blockBatch.Hide(block.BatchSlot + 1);
     }
 
     /// <summary>
@@ -453,11 +503,15 @@ public partial class TrackEditorView
                 block = _keyframeBlocks[used++];
             }
 
+            // The marker's own box, grown to the grab radius around its centre where it is
+            // smaller, so a 4 px marker stays catchable.
+            var width = Math.Max(handle.Width, KeyframeBlock.GrabRadius * 2);
+            var height = Math.Max(handle.Height, KeyframeBlock.GrabRadius * 2);
             block.Assign(handle.Note, handle.Segment, handle.Index);
-            block.X = handle.X - KeyframeBlock.GrabRadius;
-            block.Y = handle.Y - KeyframeBlock.GrabRadius;
-            block.Width = KeyframeBlock.GrabRadius * 2;
-            block.Height = KeyframeBlock.GrabRadius * 2;
+            block.X = handle.X - width / 2;
+            block.Y = handle.Y - height / 2;
+            block.Width = width;
+            block.Height = height;
         }
 
         for (var i = used; i < _keyframeBlocks.Count; i++)

@@ -107,6 +107,35 @@ public class FaithfulTrackTests
     }
 
     /// <summary>
+    ///     The sounds alone, from the full walk: no action or consumed slot, a layered
+    ///     instrument's sounds sharing their beat, and a volume edit showing at once - which the
+    ///     timing-only walk behind <see cref="FaithfulTrack.PlayTimes" /> may not.
+    /// </summary>
+    [Fact]
+    public void PlayedSounds_AreTheSoundsOnly_WithTheirCurrentVolume()
+    {
+        var track = new FaithfulTrack(new TimingInfo(), 1);
+        var kick = FaithfulItem.Sound(Instrument.Single("kick"));
+        track.Items.AddRange([
+            kick,
+            FaithfulItem.Parse("!speed@150")!,
+            FaithfulItem.Sound(Layered("snare + hat", "snare", "hat")),
+            FaithfulItem.Parse("_pause")!,
+            FaithfulItem.Cut("snare"),
+            FaithfulItem.Sound(Instrument.Single("clap"))
+        ]);
+
+        var played = track.PlayedSounds().ToList();
+        Assert.Equal(["kick", "snare", "hat", "clap"], played.Select(entry => entry.Event.SoundEvent!));
+        Assert.Equal(played[1].Minutes, played[2].Minutes, 9); // the layer shares its beat
+        Assert.True(played[3].Minutes > played[2].Minutes);
+
+        _ = track.PlayTimes(); // caches the timing-only walk
+        kick.Note!.Volume = 40;
+        Assert.Equal(40, track.PlayedSounds().First().Event.Volume);
+    }
+
+    /// <summary>
     ///     The clip's width on the arrangement grid: the walked length, loops unrolled.
     ///     Three claps at 150 plus the kick's step at 300 and the two-step stop.
     /// </summary>
