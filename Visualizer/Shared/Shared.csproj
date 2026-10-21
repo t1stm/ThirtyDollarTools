@@ -16,6 +16,8 @@
     <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Colored\instanced.frag"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Colored\instanced.vert"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\shaded-instanced.frag"/>
+    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\shaded-instanced.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.frag"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.frag"/>
