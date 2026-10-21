@@ -121,6 +121,12 @@ cmd_status() {
 cmd_shot() {
     local w f; w=$(win)
     f="$state/shots/${1:-shot-$(date +%H%M%S)}.png"
+    # The input trace logs after SwapBuffers, but Xwayland only shows a swapped frame on the X
+    # window once weston's next repaint lands - measured 1-2 frames later, vsync off. Reading
+    # it straight after an input can return the frame before.
+    # ponytail: fixed 3-frame settle at 60 fps; an app-side Debug capture (glReadPixels after
+    # render, on request) would be exact if this ever reads stale.
+    sleep 0.05
     DISPLAY=$disp import -window "${w:-root}" "$f"
     echo "$f"
 }
