@@ -166,16 +166,18 @@ public partial class TrackEditorView
             return;
         }
 
+        // The grab zone is measured from the hit box; the band paints where it crosses the tile.
         var zone = hovered.EdgeZone;
-        var width = hovered.Computed.Width;
-        var x = hovered.Computed.AbsoluteX + (edge > 0 ? width - zone : 0);
-        var y = hovered.Computed.AbsoluteY;
-        var height = hovered.Computed.Height;
+        var tile = hovered.Tile;
+        var hitLeft = hovered.Computed.AbsoluteX - Computed.AbsoluteX;
+        var hitRight = hitLeft + hovered.Computed.Width;
+        var left = edge > 0 ? Math.Max(tile.X, hitRight - zone) : tile.X;
+        var right = edge > 0 ? tile.X + tile.Z : Math.Min(tile.X + tile.Z, hitLeft + zone);
 
         // The band is the note's own fill, lifted toward white - it reads as the same note.
-        _blockBatch.Set(ResizeHandleSlot, x, y, zone, height,
-            Lighten(_blockBatch.ColorOf(hovered.BatchSlot), 0.35f));
-        _handleBand = new Vector4(x - Computed.AbsoluteX, y - Computed.AbsoluteY, zone, height);
+        _blockBatch.Set(ResizeHandleSlot, Computed.AbsoluteX + left, Computed.AbsoluteY + tile.Y,
+            Math.Max(0, right - left), tile.W, Lighten(_blockBatch.ColorOf(hovered.BatchSlot), 0.35f));
+        _handleBand = new Vector4(left, tile.Y, Math.Max(0, right - left), tile.W);
     }
 
     /// <summary>

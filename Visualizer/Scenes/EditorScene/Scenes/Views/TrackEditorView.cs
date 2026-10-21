@@ -288,6 +288,15 @@ public sealed partial class TrackEditorView : Panel
         return _blockBatch.ColorOf(block.BatchSlot);
     }
 
+    /// <summary>Test seam: the rect a pooled block's tile was drawn at, in absolute px.</summary>
+    internal Vector4 BlockRectOf(NoteBlock block)
+    {
+        return _blockBatch.RectOf(block.BatchSlot);
+    }
+
+    /// <summary>Test seam: the scroll, zoom and pixel mapping the last layout used.</summary>
+    internal TrackEditorGeometry Geometry => _geometry;
+
     /// <summary>Horizontal zoom: pixels per grid step. Ctrl+wheel adjusts it (4–128).</summary>
     public float PixelsPerStep
     {

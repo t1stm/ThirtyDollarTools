@@ -1,4 +1,5 @@
 using EditorScene.State;
+using OpenTK.Mathematics;
 using Sundex.Components.Labels;
 using ThirtyDollarConverter.Editor;
 
@@ -334,41 +335,53 @@ public partial class TrackEditorView
         }
     }
 
+    /// <summary>
+    ///     Lays one note out twice: its hit box is the whole cell span, grid line to grid line,
+    ///     so two notes side by side leave no dead pixel between them; its tile is drawn
+    ///     centred inside that, clear of the lines (see <see cref="TrackEditorGeometry.CellX" />).
+    /// </summary>
     private void PlaceNote(NoteBlock block, TrackSegment segment, Note note, float segStartPx,
         int cutSlot = 0, int cutSlotCount = 1)
     {
         block.Assign(segment, note);
-        var stepX = GutterWidth + segStartPx + note.Step * PixelsPerStep - _geometry.ScrollX;
-        float x, y, blockWidth, blockHeight;
+        var stepPx = segStartPx + note.Step * PixelsPerStep;
+        float x, y, width, height;
+        Vector4 tile;
         if (note.IsCut)
         {
             // Fixed row - never scrolls, unlike every other row. Simultaneous cuts on
             // different instruments (cutSlotCount > 1) split the step evenly instead of
-            // stacking exactly on top of each other.
+            // stacking exactly on top of each other, each centred in its own slot.
             var slotWidth = PixelsPerStep / cutSlotCount;
-            x = stepX + cutSlot * slotWidth;
-            y = _geometry.CutRowTop + 0.5f;
-            blockWidth = Math.Max(3, slotWidth - 1);
-            blockHeight = Math.Max(3, CutRowHeight - 1);
+            var margin = TrackEditorGeometry.MarginFor(slotWidth);
+            x = _geometry.LineX(stepPx) + cutSlot * slotWidth + 1;
+            width = Math.Max(1, slotWidth - 1);
+            y = _geometry.CutRowTop + 1;
+            height = CutRowHeight - 2;
+            tile = new Vector4(x + margin, y, Math.Max(2, width - 2 * margin), height);
         }
         else
         {
-            x = stepX;
-            y = _geometry.ValueTop(note.Value) + 0.5f;
             var steps = _state.OpenedTrack is { } track ? NoteSteps(track, segment, note) : 1;
-            blockWidth = Math.Max(3, steps * PixelsPerStep - 1);
+            x = _geometry.LineX(stepPx) + 1;
+            width = steps * PixelsPerStep - 1;
+            y = _geometry.ValueTop(note.Value) + 1;
             // No overdraw covers a grid note bleeding past the grid's bottom edge
             // (unlike the top, still covered by the strip/ruler bands), so clamp it.
-            var naturalHeight = Math.Max(3, _geometry.RowHeight - 1);
-            blockHeight = Math.Max(0, Math.Min(y + naturalHeight, _geometry.GridBottom) - y);
+            var gridBottom = _geometry.GridBottom;
+            height = Math.Max(0, Math.Min(y + _geometry.RowHeight - 1, gridBottom) - y);
+            var tileY = _geometry.NoteTop(note.Value);
+            tile = new Vector4(_geometry.CellX(stepPx), tileY, _geometry.SpanWidth(steps),
+                Math.Max(0, Math.Min(tileY + _geometry.NoteHeight, gridBottom) - tileY));
         }
 
-        // The element carries the hit box; the batch slot carries the fill.
+        // The element carries the hit box; the batch slot carries the tile.
         block.X = x;
         block.Y = y;
-        block.Width = blockWidth;
-        block.Height = blockHeight;
-        _blockBatch.Set(block.BatchSlot, Computed.AbsoluteX + x, Computed.AbsoluteY + y, blockWidth, blockHeight,
+        block.Width = width;
+        block.Height = height;
+        block.Tile = tile;
+        _blockBatch.Set(block.BatchSlot, Computed.AbsoluteX + tile.X, Computed.AbsoluteY + tile.Y, tile.Z, tile.W,
             _state.SelectedNotes.Contains(note) ? SelectedNoteColor : InstrumentColor(note.Instrument));
     }
 

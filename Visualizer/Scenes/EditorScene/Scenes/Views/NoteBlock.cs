@@ -1,4 +1,5 @@
 using EditorScene.State;
+using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
@@ -6,9 +7,10 @@ using ThirtyDollarConverter.Editor;
 namespace EditorScene.Scenes.Views;
 
 /// <summary>
-///     One note's hit box. It has no background of its own: the view writes the fill into
-///     <see cref="BatchSlot" /> of its line batch, so the whole pool costs no draw calls.
-///     The element exists only to receive clicks, right-clicks and drags.
+///     One note's hit box: the whole span of its cells, grid line to grid line. It has no
+///     background of its own: the view writes the tile into <see cref="BatchSlot" /> of its
+///     line batch, so the whole pool costs no draw calls. The element exists only to receive
+///     clicks, right-clicks and drags.
 /// </summary>
 internal sealed class NoteBlock : Panel
 {
@@ -47,6 +49,12 @@ internal sealed class NoteBlock : Panel
         if (local >= Computed.Width - EdgeZone) return 1;
         return 0;
     }
+
+    /// <summary>
+    ///     The tile the view draws for this note, view-local (x, y, width, height): centred
+    ///     inside the hit box, which is the element itself.
+    /// </summary>
+    public Vector4 Tile { get; set; }
 
     public TrackSegment? Segment { get; internal set; }
     public Note? Note { get; private set; }

@@ -637,9 +637,10 @@ public class TrackEditorViewTests
         note.Automation = new AudioKeyframeManager { Gap = 3, End = 3 };
         view.Layout();
 
-        // Three steps wide from x = 44 + 2*16 = 76, minus the 1 px gap between blocks.
+        // Three steps wide: from the first pixel after its step line (44 + 2*16) up to the
+        // line after its last step.
         var block = view.NoteBlocks.Single(b => b.Note == note);
-        Assert.Equal(76, block.Computed.X);
+        Assert.Equal(77, block.Computed.X);
         Assert.Equal(3 * 16 - 1, block.Computed.Width);
 
         // A press near its far end still lands on the note, not on empty grid.
@@ -647,6 +648,67 @@ public class TrackEditorViewTests
         Press(ctx, view, 76 + 40, 214.5f);
         Assert.Same(note, Assert.Single(state.SelectedNotes));
         Release(ctx, view, 76 + 40, 214.5f);
+    }
+
+    [Fact]
+    public void ANote_IsDrawnCentredInItsCell_AndHitAcrossTheWholeCell()
+    {
+        var (_, state, view, track) = NewView();
+        view.PixelsPerStep = 12;
+        view.RowHeight = 20;
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
+        view.Layout();
+
+        // The step line is the cell's first pixel and the row line the row's: the hit box runs
+        // from a pixel past each up to the next line, the tile keeps a further pixel clear.
+        var line = TrackEditorView.GutterWidth + 3 * 12;
+        var row = view.Geometry.ValueTop(0);
+        var block = view.NoteBlocks.Single(b => b.Note == note);
+        Assert.Equal(new Vector4(line + 1, row + 1, 11, 19),
+            new Vector4(block.Computed.X, block.Computed.Y, block.Computed.Width, block.Computed.Height));
+        Assert.Equal(new Vector4(line + 2, row + 2, 9, 17), block.Tile);
+        Assert.Equal(new Vector4(line + 2, row + 2, 9, 17) + new Vector4(view.Computed.AbsoluteX,
+            view.Computed.AbsoluteY, 0, 0), view.BlockRectOf(block));
+    }
+
+    [Fact]
+    public void BelowEightPixelsPerStep_ATileHasNoMarginToSpare()
+    {
+        var (_, state, view, track) = NewView();
+        view.PixelsPerStep = 6;
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
+        view.Layout();
+
+        var block = view.NoteBlocks.Single(b => b.Note == note);
+        Assert.Equal(0, view.Geometry.CellMargin);
+        Assert.Equal(block.Computed.X, block.Tile.X);
+        Assert.Equal(6 - 1, block.Tile.Z);
+        // Rows are still 8 px here, which spares one.
+        Assert.Equal(block.Computed.Y + 1, block.Tile.Y);
+    }
+
+    [Fact]
+    public void APressBetweenTwoAdjacentNotes_LandsOnOneOfThem()
+    {
+        var (ctx, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var left = state.AddNote(track.Segments[0], 2, boom, 0);
+        var right = state.AddNote(track.Segments[0], 3, boom, 0);
+        view.Layout();
+
+        // The last margin pixel of the left note, the grid line, and the first margin pixel of
+        // the right one: nothing between two notes is dead grid that would place a third.
+        var line = view.Computed.AbsoluteX + TrackEditorView.GutterWidth + 3 * 16;
+        foreach (var x in new[] { line - 1, line, line + 1 })
+        {
+            state.SetNoteSelection([]);
+            Press(ctx, view, x, 214.5f);
+            Release(ctx, view, x, 214.5f);
+            var pressed = Assert.Single(state.SelectedNotes);
+            Assert.True(pressed == left || pressed == right);
+        }
+
+        Assert.Equal(2, track.Segments[0].Notes.Count);
     }
 
     [Fact]
@@ -866,11 +928,12 @@ public class TrackEditorViewTests
         view.Update(ctx);
         Assert.Equal(0, view.ResizeHandleBand.Z);
 
-        // Hovering the right border lightens a 6 px band on it.
+        // Hovering the right border lightens the 6 px grab zone where it crosses the drawn
+        // tile: the zone runs to the hit box's edge, the tile stops a 1 px margin short of it.
         ctx.UpdatePointer(view, 76 + 4 * 16 - 3, 214.5f, false, false, false, Vector2.Zero);
         view.Update(ctx);
-        Assert.Equal(6, view.ResizeHandleBand.Z);
-        Assert.Equal(76 + 4 * 16 - 1 - 6, view.ResizeHandleBand.X);
+        Assert.Equal(6 - 1, view.ResizeHandleBand.Z);
+        Assert.Equal(77 + 4 * 16 - 1 - 6, view.ResizeHandleBand.X);
 
         // And the pointer leaves it behind with the note.
         ctx.UpdatePointer(view, 400, 100, false, false, false, Vector2.Zero);
@@ -1457,14 +1520,16 @@ public class TrackEditorViewTests
     {
         // Value -22's row sits at [386.5, 394.5) under this view's default centered scroll,
         // straddling GridBottom (389, just above the pinned cut row's rule). Nothing overdraws
-        // the overflow, so PlaceNote has to clamp it.
+        // the overflow, so PlaceNote has to clamp it - the hit box from a pixel below the row
+        // line, the tile from a pixel below that.
         var (ctx, state, view, track) = NewView();
         var boom = MakeInstrument(state, "boom");
         var note = state.AddNote(track.Segments[0], 0, boom, -22);
         view.Layout();
 
         var block = view.NoteBlocks.Single(b => b.Note == note);
-        Assert.Equal(2f, block.Height.Value);
+        Assert.Equal(1.5f, block.Height.Value);
+        Assert.Equal(0.5f, block.Tile.W);
     }
 
     [Fact]
