@@ -607,7 +607,112 @@ public class InspectorPanelTests
     }
 
     [Fact]
-    public void MultiNoteSelection_MismatchedAutomation_ShowsDisabledMixedRow()
+    public void MultiNoteSelection_PartlyAutomated_EditsTheAutomated_AndOffersToAddToTheRest()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(track.Segments[0], 1, boom, 0);
+        a.Automation = new AudioKeyframeManager { End = 2 };
+        state.SetNoteSelection([a, b]);
+
+        Assert.Equal(2, ((NumericInput)inspector.Field("Automation.End")!).Value);
+        ((NumericInput)inspector.Field("Automation.End")!).Value = 3;
+        Assert.Equal(3, a.Automation.End);
+        Assert.Null(b.Automation);
+
+        ((Button)inspector.Field("Automation.+ Add automation")!).OnClick!.Invoke(null!);
+        Assert.NotNull(b.Automation);
+        Assert.Null(inspector.Field("Automation.+ Add automation"));
+        Assert.Null(((NumericInput)inspector.Field("Automation.End")!).Value); // 3 against a fresh 0
+    }
+
+    /// <summary>
+    ///     Two notes whose automations differ in some fields: the shared ones show, the
+    ///     differing ones render empty, and typing into one writes that field - only that
+    ///     field - to both. One Ctrl+Z takes the edit back off both notes.
+    /// </summary>
+    [Fact]
+    public void MultiNoteSelection_MixedAutomation_ShowsSharedFields_AndEditsOneFieldAcrossAll_Undoably()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(track.Segments[0], 1, boom, 0);
+        a.Automation = new AudioKeyframeManager
+        {
+            // Template first: keyframes made before it copy the default one.
+            Template = new AudioKeyframe { Volume = new Modifier(0.5, ModifierKind.Multiply) }, Gap = 1, End = 4
+        };
+        b.Automation = new AudioKeyframeManager
+        {
+            // Template first: keyframes made before it copy the default one.
+            Template = new AudioKeyframe { Volume = new Modifier(3, ModifierKind.Multiply) }, Gap = 1, End = 2
+        };
+        state.SetNoteSelection([a, b]);
+
+        var end = (NumericInput)inspector.Field("Automation.End")!;
+        var volume = (NumericInput)inspector.Field("All keyframes.Volume")!;
+        Assert.Equal(1, ((NumericInput)inspector.Field("Automation.Gap")!).Value);
+        Assert.Null(end.Value);
+        Assert.Null(volume.Value);
+        Assert.True(((Checkbox)inspector.Field("All keyframes.Volume.Kind")!).Checked); // both multiply
+
+        // Typed one keystroke at a time - one field, so one undo step.
+        end.Value = 6;
+        end.Value = 8;
+        Assert.Equal(8, a.Automation.End);
+        Assert.Equal(8, b.Automation.End);
+        Assert.Equal(new Modifier(0.5, ModifierKind.Multiply), a.Automation.Template.Volume); // untouched
+
+        // The amount alone: each note keeps its own kind of change.
+        ((NumericInput)inspector.Field("All keyframes.Volume")!).Value = 2;
+        Assert.All([a.Automation, b.Automation], automation =>
+            Assert.All(automation.Keyframes, k => Assert.Equal(new Modifier(2, ModifierKind.Multiply), k.Volume)));
+
+        state.Undo();
+        Assert.Equal(new Modifier(0.5, ModifierKind.Multiply), a.Automation.Template.Volume);
+        Assert.Equal(new Modifier(3, ModifierKind.Multiply), b.Automation.Template.Volume);
+        Assert.Equal(8, a.Automation.End);
+
+        state.Undo();
+        Assert.Equal(4, a.Automation.End);
+        Assert.Equal(2, b.Automation.End);
+        Assert.Null(((NumericInput)inspector.Field("Automation.End")!).Value); // differing again
+
+        state.Redo();
+        Assert.Equal(8, a.Automation.End);
+        Assert.Equal(8, b.Automation.End);
+    }
+
+    [Fact]
+    public void NoteAutomation_AddAndRemove_UndoBackToWhatEachNoteHeld()
+    {
+        var (_, state, inspector) = NewInspector();
+        var track = state.AddTrack();
+        state.OpenTrack(track);
+        var boom = MakeInstrument(state, "boom");
+        var a = state.AddNote(track.Segments[0], 0, boom, 0);
+        var b = state.AddNote(track.Segments[0], 1, boom, 0);
+        var own = new AudioKeyframeManager { End = 2 };
+        a.Automation = own;
+        state.SetNoteSelection([a, b]);
+
+        ((Button)inspector.Field("Automation.Remove automation")!).OnClick!.Invoke(null!);
+        Assert.Null(a.Automation);
+
+        state.Undo();
+        Assert.Same(own, a.Automation); // the instance the grid and inspector hold
+        Assert.Null(b.Automation);
+        Assert.NotNull(inspector.Field("Automation.+ Add automation"));
+    }
+
+    [Fact]
+    public void MultiNoteSelection_UniformAutomation_EditsEveryNote_KeepingThemIndependent()
     {
         var (_, state, inspector) = NewInspector();
         var track = state.AddTrack();
@@ -616,30 +721,13 @@ public class InspectorPanelTests
         var a = state.AddNote(track.Segments[0], 0, boom, 0);
         var b = state.AddNote(track.Segments[0], 1, boom, 0);
         a.Automation = new AudioKeyframeManager();
-        state.SetNoteSelection([a, b]);
-
-        Assert.Null(inspector.Field("Automation.+ Add automation"));
-        Assert.Null(inspector.Field("Automation.End")); // no editable form while mixed
-        Assert.NotNull(inspector.Field("Automation.Automation"));
-    }
-
-    [Fact]
-    public void MultiNoteSelection_UniformAutomation_EditsThePrimary_AndCloneFansOutToTheRest()
-    {
-        var (_, state, inspector) = NewInspector();
-        var track = state.AddTrack();
-        state.OpenTrack(track);
-        var boom = MakeInstrument(state, "boom");
-        var a = state.AddNote(track.Segments[0], 0, boom, 0);
-        var b = state.AddNote(track.Segments[0], 1, boom, 0); // primary: last in selection order
-        a.Automation = new AudioKeyframeManager();
         b.Automation = new AudioKeyframeManager();
         state.SetNoteSelection([a, b]);
 
         ((NumericInput)inspector.Field("Automation.End")!).Value = 4;
 
-        Assert.Equal(4, b.Automation.End); // primary edited directly
-        Assert.Equal(4, a.Automation!.End); // fanned out via clone
+        Assert.Equal(4, b.Automation.End);
+        Assert.Equal(4, a.Automation!.End);
         Assert.NotSame(a.Automation, b.Automation); // still independent instances
     }
 

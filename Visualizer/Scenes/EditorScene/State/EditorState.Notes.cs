@@ -169,6 +169,42 @@ public partial class EditorState
     }
 
     /// <summary>
+    ///     An inspector edit to the automation of one or more notes: a field across all of them,
+    ///     or adding/removing it. Which manager each note holds and what is in it are snapshotted
+    ///     around the edit, so one undo puts every note back - restored in place, since the
+    ///     inspector's rows hold the managers. Keystrokes into one field (the same
+    ///     <paramref name="field" />, no gesture in between) merge into a single entry.
+    /// </summary>
+    public void EditNoteAutomations(IReadOnlyList<Note> notes, object field, Action edit)
+    {
+        var before = AutomationSnapshot(notes);
+        edit();
+        var after = AutomationSnapshot(notes);
+        if (before.Zip(after).All(pair => pair.First.Held == pair.Second.Held &&
+                                          (pair.First.State?.ValueEquals(pair.Second.State!) ?? true)))
+            return;
+
+        _undoHistory.PushOrMergeMove(field, () => PutBack(before), () => PutBack(after));
+        Touch();
+        return;
+
+        static (Note Note, AudioKeyframeManager? Held, AudioKeyframeManager? State)[] AutomationSnapshot(
+            IReadOnlyList<Note> notes)
+        {
+            return [.. notes.Select(note => (note, note.Automation, note.Automation?.Clone()))];
+        }
+
+        static void PutBack((Note Note, AudioKeyframeManager? Held, AudioKeyframeManager? State)[] snapshot)
+        {
+            foreach (var (note, held, state) in snapshot)
+            {
+                note.Automation = held;
+                if (state != null) held!.CopyFrom(state);
+            }
+        }
+    }
+
+    /// <summary>
     ///     Arrow-key nudge of the selected notes: whole steps along the track and values
     ///     up/down, clamped the same way a drag is (<paramref name="maxValue" /> is the
     ///     view's value range). One <see cref="BeginGesture" /> per call, so a keystroke is

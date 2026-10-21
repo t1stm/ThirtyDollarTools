@@ -205,7 +205,7 @@ public sealed partial class InspectorPanel
                     _form.NumberRow("Volume", () => note.Volume, v => note.Volume = v, 0, 500, 5, true);
                     _form.NumberRow("Pan", () => note.Pan, v => note.Pan = (float)v!.Value, -100, 100, 10);
                     _form.NumberRow("Offset (s)", () => note.Offset, v => note.Offset = v!.Value, -60, 60, 0.05);
-                    AutomationSection(note);
+                    AutomationSection([note]);
                 }
             }
         }

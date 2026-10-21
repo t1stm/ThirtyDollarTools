@@ -1,77 +1,59 @@
+using EditorScene.State;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Views;
 
 namespace EditorScene.Scenes.Layout;
 
 /// <summary>
-///     The automation sections - a note's, several notes' at once, and a track's - and the
-///     keyframe blocks inside them.
+///     The automation sections - one or several notes', and a track's - and the keyframe
+///     blocks inside them.
 /// </summary>
 public partial class InspectorPanel
 {
     /// <summary>
-    ///     Uniform means all null, or all non-null and structurally equal
-    ///     (<see cref="AudioKeyframeManager.ValueEquals" />). All-null offers "+ Add
-    ///     automation", giving each note its own manager instance - never shared, matching
-    ///     <see cref="Note.Duplicate" />. Uniform renders the full form bound to the primary
-    ///     note and clones it out to the rest on every commit. Mixed shows one disabled
-    ///     info row.
+    ///     The automation of one note or several. None of them has one: "+ Add automation"
+    ///     gives each its own manager - never shared, matching <see cref="Note.Duplicate" />.
+    ///     Otherwise the form edits every automation in the selection at once: a field they
+    ///     agree on shows its value, one they differ on renders empty, and an edit writes that
+    ///     one field to all of them, leaving the rest of each as it was. Every commit is one
+    ///     undo step across all the notes (<see cref="EditorState.EditNoteAutomations" />).
     /// </summary>
-    private void MultiAutomationSection(IReadOnlyList<Note> notes, Note primary)
+    private void AutomationSection(IReadOnlyList<Note> notes)
     {
         _form.Header("Automation");
 
-        if (notes.All(n => n.Automation == null))
+        void Commit(object field, Action edit)
         {
-            _form.ActionRow("+ Add automation", () => EditAndRebuild(() =>
-            {
-                foreach (var note in notes)
-                    if (!note.IsCut)
-                        note.Automation = new AudioKeyframeManager();
-            }));
-            return;
+            _state.EditNoteAutomations(notes, field, edit);
         }
 
-        if (notes.Any(n => n.Automation == null) ||
-            !notes.All(n => n.Automation!.ValueEquals(primary.Automation!)))
-        {
-            _form.InfoRow("Automation", () => "mixed - select notes with matching automation to edit");
-            return;
-        }
+        // A cut has no value or sound for an automation to expand against (see Note.IsCut).
+        var missing = notes.Where(n => n is { Automation: null, IsCut: false }).ToList();
+        var automations = notes.Select(n => n.Automation).OfType<AudioKeyframeManager>().ToList();
+        if (automations.Count > 0) KeyframeBlocks("Automation", "", automations, Commit);
 
-        KeyframeBlocks("Automation", "", primary.Automation!, () => FanOutAutomation(notes, primary));
         _form.Section = "Automation";
-        _form.ActionRow("Remove automation", () => EditAndRebuild(() =>
-        {
-            foreach (var note in notes) note.Automation = null;
-        }));
-    }
-
-    private static void FanOutAutomation(IReadOnlyList<Note> notes, Note primary)
-    {
-        foreach (var note in notes)
-            if (note != primary && !note.IsCut)
-                note.Automation = primary.Automation!.Clone();
-    }
-
-    /// <summary>
-    ///     Form for <see cref="Note.Automation" />: each keyframe fires one generated event,
-    ///     its gap after the previous one, modifying the previous result. Structural edits
-    ///     (add/remove) rebuild; field edits sync like every other row.
-    /// </summary>
-    private void AutomationSection(Note note)
-    {
-        _form.Header("Automation");
-        if (note.Automation is not { } automation)
-        {
+        if (missing.Count > 0)
             _form.ActionRow("+ Add automation",
-                () => EditAndRebuild(() => note.Automation = new AudioKeyframeManager()));
-            return;
-        }
+                automations.Count == 0 ? "+ Add automation" : $"+ Add automation to the other {missing.Count}",
+                () =>
+                {
+                    Commit(new object(), () =>
+                    {
+                        foreach (var note in missing) note.Automation = new AudioKeyframeManager();
+                    });
+                    RebuildWhenIdle();
+                });
 
-        KeyframeBlocks("Automation", "", automation);
-        _form.Section = "Automation";
-        _form.ActionRow("Remove automation", () => EditAndRebuild(() => note.Automation = null));
+        if (automations.Count > 0)
+            _form.ActionRow("Remove automation", () =>
+            {
+                Commit(new object(), () =>
+                {
+                    foreach (var note in notes) note.Automation = null;
+                });
+                RebuildWhenIdle();
+            });
     }
 
     /// <summary>
@@ -102,7 +84,7 @@ public partial class InspectorPanel
                     _form.ActionRow("Sounds", $"Sounds: {sounds.Count} selected",
                         () => OnEditTrackAutomationSounds?.Invoke(entry));
 
-                KeyframeBlocks(section, $"{section} ", entry.Keyframes);
+                KeyframeBlocks(section, $"{section} ", [entry.Keyframes], (_, edit) => _state.Edit(edit));
 
                 _form.Section = section;
                 _form.ActionRow("Remove", () => EditAndRebuild(() => track.RemoveTrackAutomation(entry)));
@@ -116,153 +98,203 @@ public partial class InspectorPanel
 
     /// <summary>
     ///     Timing, the note's length and retrigger grid, the cut flags, and one card per
-    ///     keyframe - shared by note and track automation. Keyframes are generated from
-    ///     Gap/End/AutomationOffset, so there is nothing to add or remove by hand.
-    ///     <paramref name="keyframeHeaderPrefix" /> disambiguates the keyframe cards' field keys
-    ///     when several automations are on screen at once (empty for the single per-note
+    ///     keyframe - shared by note and track automation, and by any number of automations at
+    ///     once: a row shows a value only where they all agree, and writes to all of them.
+    ///     Keyframes are generated from Gap/End/AutomationOffset, so there is nothing to add or
+    ///     remove by hand. <paramref name="keyframeHeaderPrefix" /> disambiguates the keyframe
+    ///     cards' field keys when several automations are on screen at once (empty for a note's
     ///     automation, so its field keys are unchanged: "Keyframe 1.Value"). Their headings
     ///     leave it out: each card already sits inside its automation's own, and "Track
     ///     Automation 1 All keyframes (× 3)" ran past the 300 px panel.
-    ///     <paramref name="afterEdit" />, when given, runs after every commit (field or
-    ///     structural) - the multi-note form's clone-fan-out hook (see
-    ///     <see cref="MultiAutomationSection" />); null for every other caller.
+    ///     <paramref name="commit" /> applies one row's edit; the row comes along so typing
+    ///     into one field can be a single undo step.
     /// </summary>
-    private void KeyframeBlocks(string section, string keyframeHeaderPrefix, AudioKeyframeManager automation,
-        Action? afterEdit = null)
+    private void KeyframeBlocks(string section, string keyframeHeaderPrefix,
+        IReadOnlyList<AudioKeyframeManager> automations, Action<object, Action> commit)
     {
-        void Commit(Action edit)
+        var first = automations[0];
+
+        // One undo subject per row, fresh on every build.
+        Action<Action> Row()
         {
-            _state.Edit(edit);
-            afterEdit?.Invoke();
+            var row = new object();
+            return edit => commit(row, edit);
+        }
+
+        Action<Action> RebuildingRow()
+        {
+            var field = Row();
+            return edit =>
+            {
+                field(edit);
+                RebuildWhenIdle();
+            };
+        }
+
+        void Each(Action<AudioKeyframeManager> apply)
+        {
+            foreach (var automation in automations) apply(automation);
         }
 
         _form.Section = section;
-        _form.CheckRow("Gaps in seconds", () => automation.Timing == KeyframeTiming.Time,
-            timeMode =>
-            {
-                _state.Edit(() => automation.Timing = timeMode ? KeyframeTiming.Time : KeyframeTiming.Step);
-                afterEdit?.Invoke();
-            });
+        var timing = Row();
+        _form.CheckRow("Gaps in seconds", () => automations.All(a => a.Timing == KeyframeTiming.Time),
+            timeMode => timing(() => Each(a => a.Timing = timeMode ? KeyframeTiming.Time : KeyframeTiming.Step)));
         // Gap and End resize the keyframe list, so their cards appear and disappear.
-        _form.NumberRow("Gap", () => automation.Gap, v => EditAndRebuild(() =>
-        {
-            automation.Gap = (float)v!.Value;
-            afterEdit?.Invoke();
-        }), 0, 4096, 0.5);
-        _form.NumberRow("End", () => automation.End, v => EditAndRebuild(() =>
-        {
-            automation.End = (float)v!.Value;
-            afterEdit?.Invoke();
-        }), 0, 4096);
+        var gap = RebuildingRow();
+        _form.NumberRow("Gap", () => first.Gap, v => gap(() => Each(a => a.Gap = (float)v!.Value)), 0, 4096, 0.5,
+            mixed: () => !AllEqual(automations, a => a.Gap));
+        var end = RebuildingRow();
+        _form.NumberRow("End", () => first.End, v => end(() => Each(a => a.End = (float)v!.Value)), 0, 4096,
+            mixed: () => !AllEqual(automations, a => a.End));
         // "Grid offset", not "Automation offset": the label column is 84 px and the longer
         // name clips. It still reads apart from the per-keyframe sound Offset below.
-        _form.NumberRow("Grid offset", () => automation.AutomationOffset, v => EditAndRebuild(() =>
-        {
-            automation.AutomationOffset = (float)v!.Value;
-            afterEdit?.Invoke();
-        }), -4096, 4096, 0.5);
-        _form.CheckRow("Cut", () => automation.Cut, cut => EditAndRebuild(() =>
-        {
-            automation.Cut = cut;
-            afterEdit?.Invoke();
-        }), ("Cut at end", () => automation.CutAtEnd, v => EditAndRebuild(() =>
-        {
-            automation.CutAtEnd = v;
-            afterEdit?.Invoke();
-        })));
+        var offset = RebuildingRow();
+        _form.NumberRow("Grid offset", () => first.AutomationOffset,
+            v => offset(() => Each(a => a.AutomationOffset = (float)v!.Value)), -4096, 4096, 0.5,
+            mixed: () => !AllEqual(automations, a => a.AutomationOffset));
+        var cut = RebuildingRow();
+        var cutAtEnd = RebuildingRow();
+        _form.CheckRow("Cut", () => automations.All(a => a.Cut), on => cut(() => Each(a => a.Cut = on)),
+            ("Cut at end", () => automations.All(a => a.CutAtEnd), on => cutAtEnd(() => Each(a => a.CutAtEnd = on))));
 
         // The keyframe list can be hundreds long, so one card edits them all: the template
         // every auto-created keyframe copies, fanned out to the ones that still match it.
         // Only keyframes given settings of their own get a card.
-        void EditTemplate(Action<AudioKeyframe> apply)
+        void EditTemplates(Action<AudioKeyframe> apply)
         {
-            var followers = automation.Keyframes.Where(k => k.ValueEquals(automation.Template)).ToList();
-            _state.Edit(() =>
+            Each(a =>
             {
-                apply(automation.Template);
+                var followers = a.Keyframes.Where(k => k.ValueEquals(a.Template)).ToList();
+                apply(a.Template);
                 foreach (var keyframe in followers) apply(keyframe);
             });
-            afterEdit?.Invoke();
         }
 
-        // Nothing to shape until the note has a length to hold keyframes.
-        if (automation.Keyframes.Count > 0)
+        // Nothing to shape until a note has a length to hold keyframes.
+        if (automations.Any(a => a.Keyframes.Count > 0))
             _form.Card("inspector-card-keyframe", () =>
-        {
-            _form.Header($"All keyframes  (× {automation.Keyframes.Count})");
-            _form.Section = $"{keyframeHeaderPrefix}All keyframes";
-            KeyframeFields(automation.Template, EditTemplate, () => EditTemplate(k => k.Position = null));
-            // Auto offset splices onto the instance it replaces, which only works if that
-            // instance is cut - so ticking it turns the automation's cut on and keeps it.
-            _form.CheckRow("Auto offset", () => automation.Template.AutoOffset, auto => EditAndRebuild(() =>
             {
-                EditTemplate(k => k.AutoOffset = auto);
-                if (auto) automation.Cut = true;
-            }));
-        });
+                _form.Header(AllEqual(automations, a => a.Keyframes.Count)
+                    ? $"All keyframes  (× {first.Keyframes.Count})"
+                    : "All keyframes");
+                _form.Section = $"{keyframeHeaderPrefix}All keyframes";
+                // Read through the managers, never a captured keyframe: an undo restores a
+                // manager in place but hands it fresh keyframes (CopyFrom).
+                KeyframeFields(() => [.. automations.Select(a => a.Template)], Row, EditTemplates);
+                // Auto offset splices onto the instance it replaces, which only works if that
+                // instance is cut - so ticking it turns the automation's cut on and keeps it.
+                var auto = RebuildingRow();
+                _form.CheckRow("Auto offset", () => automations.All(a => a.Template.AutoOffset), on => auto(() =>
+                {
+                    EditTemplates(k => k.AutoOffset = on);
+                    if (on) Each(a => a.Cut = true);
+                }));
+            });
 
-        for (var i = 0; i < automation.Keyframes.Count; i++)
+        // A keyframe card edits the same slot of every automation, so the slots have to line
+        // up: only when they all hold as many keyframes.
+        if (!AllEqual(automations, a => a.Keyframes.Count)) return;
+
+        for (var i = 0; i < first.Keyframes.Count; i++)
         {
-            var keyframe = automation.Keyframes[i];
-            if (keyframe.ValueEquals(automation.Template)) continue; // follows the card above
-
             var index = i;
+            if (automations.All(a => a.Keyframes[index].ValueEquals(a.Template))) continue; // follows the card above
+
             _form.Card("inspector-card-keyframe", () =>
             {
                 _form.Header($"Keyframe {index + 1}  (edited)");
                 _form.Section = $"{keyframeHeaderPrefix}Keyframe {index + 1}";
-                _form.NumberRow("Position", () => keyframe.Position ?? automation.PositionOf(index),
-                    v => Commit(() => keyframe.Position = (float?)v), 0, 4096, 0.25, true);
-                KeyframeFields(keyframe, apply => Commit(() => apply(keyframe)), null);
-                _form.CheckRow("Auto offset", () => keyframe.AutoOffset, auto => EditAndRebuild(() =>
+
+                var position = Row();
+                _form.NumberRow("Position", () => PositionOf(first, index),
+                    v => position(() => Each(a => At(a, index).Position = (float?)v)), 0, 4096, 0.25, true,
+                    () => !AllEqual(automations, a => PositionOf(a, index)));
+                KeyframeFields(() => [.. automations.Select(a => At(a, index))], Row,
+                    apply => Each(a => apply(At(a, index))));
+                var auto = RebuildingRow();
+                _form.CheckRow("Auto offset", () => automations.All(a => At(a, index).AutoOffset), on => auto(() =>
+                    Each(a =>
+                    {
+                        At(a, index).AutoOffset = on;
+                        if (on) a.Cut = true;
+                    })));
+                var reset = RebuildingRow();
+                _form.ActionRow("reset", () => reset(() => Each(a =>
                 {
-                    keyframe.AutoOffset = auto;
-                    if (auto) automation.Cut = true;
-                    afterEdit?.Invoke();
-                }));
-                _form.ActionRow("reset", () => EditAndRebuild(() =>
-                {
-                    var template = automation.Template.Clone(false);
+                    var keyframe = At(a, index);
+                    var template = a.Template.Clone(false);
                     keyframe.Position = null;
                     keyframe.Value = template.Value;
                     keyframe.Volume = template.Volume;
                     keyframe.Pan = template.Pan;
                     keyframe.Offset = template.Offset;
                     keyframe.AutoOffset = template.AutoOffset;
-                    afterEdit?.Invoke();
-                }));
+                })));
             });
         }
 
         _form.Section = section;
         // Typing a keyframe's own values needs a card, and only an edited keyframe has one -
-        // this pins the first one that still follows the template, the way dragging its
-        // marker would.
-        if (automation.Keyframes.Count > 0)
-            _form.ActionRow("+ Edit a single keyframe...", () => EditAndRebuild(() =>
+        // this pins the first slot that still follows the template everywhere, the way
+        // dragging its marker would.
+        var pin = RebuildingRow();
+        if (first.Keyframes.Count > 0)
+            _form.ActionRow("+ Edit a single keyframe...", () => pin(() =>
             {
-                for (var i = 0; i < automation.Keyframes.Count; i++)
+                for (var i = 0; i < first.Keyframes.Count; i++)
                 {
-                    if (!automation.Keyframes[i].ValueEquals(automation.Template)) continue;
-                    automation.Keyframes[i].Position = automation.PositionOf(i);
+                    var index = i;
+                    if (!automations.All(a => a.Keyframes[index].ValueEquals(a.Template))) continue;
+                    Each(a => a.Keyframes[index].Position = a.PositionOf(index));
                     break;
                 }
-
-                afterEdit?.Invoke();
             }));
+        return;
+
+        // A card's rows read their slot on every sync, never a captured keyframe (see the
+        // template card). Past the end only while a rebuild waits on a focused field (see
+        // Sync), where any value will do.
+        static AudioKeyframe At(AudioKeyframeManager automation, int index)
+        {
+            return index < automation.Keyframes.Count ? automation.Keyframes[index] : automation.Template;
+        }
+
+        static float? PositionOf(AudioKeyframeManager automation, int index)
+        {
+            return index < automation.Keyframes.Count
+                ? automation.Keyframes[index].Position ?? automation.PositionOf(index)
+                : null;
+        }
     }
 
     /// <summary>
     ///     The four relative-change rows shared by the "All keyframes" card and an edited
-    ///     keyframe's own. <paramref name="edit" /> applies one change - to the template and
-    ///     its followers, or to the single keyframe.
+    ///     keyframe's own. <paramref name="keyframes" /> are the ones shown - one per automation
+    ///     being edited - and <paramref name="apply" /> makes one change to all of them (the
+    ///     templates and their followers, or one slot). <paramref name="field" /> hands each
+    ///     row its undo subject.
     /// </summary>
-    private void KeyframeFields(AudioKeyframe keyframe, Action<Action<AudioKeyframe>> edit, Action? resetPosition)
+    private void KeyframeFields(Func<IReadOnlyList<AudioKeyframe>> keyframes, Func<Action<Action>> field,
+        Action<Action<AudioKeyframe>> apply)
     {
-        _ = resetPosition;
-        _form.ModifierRow("Value", () => keyframe.Value, m => edit(k => k.Value = m));
-        _form.ModifierRow("Volume", () => keyframe.Volume, m => edit(k => k.Volume = m));
-        _form.ModifierRow("Pan", () => keyframe.Pan, m => edit(k => k.Pan = m));
-        _form.ModifierRow("Offset", () => keyframe.Offset, m => edit(k => k.Offset = m));
+        Row("Value", k => k.Value, (k, m) => k.Value = m);
+        Row("Volume", k => k.Volume, (k, m) => k.Volume = m);
+        Row("Pan", k => k.Pan, (k, m) => k.Pan = m);
+        Row("Offset", k => k.Offset, (k, m) => k.Offset = m);
+        return;
+
+        void Row(string label, Func<AudioKeyframe, Modifier> of, Action<AudioKeyframe, Modifier> set)
+        {
+            var commit = field();
+            _form.ModifierRow(label,
+                () => AllEqual(keyframes(), k => of(k).Amount) ? of(keyframes()[0]).Amount : null,
+                () => AllEqual(keyframes(), k => of(k).Kind) ? of(keyframes()[0]).Kind == ModifierKind.Multiply : null,
+                amount => commit(() => apply(k => set(k, of(k) with { Amount = amount }))),
+                multiply => commit(() => apply(k => set(k, of(k) with
+                {
+                    Kind = multiply ? ModifierKind.Multiply : ModifierKind.Add
+                }))));
+        }
     }
 }

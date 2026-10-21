@@ -78,8 +78,8 @@ public partial class InspectorPanel
     ///     Multi-note selection: independent modifier properties (Value/Volume/Pan/
     ///     Offset/Instrument) are always editable - uniform values show, differing ones
     ///     render empty and committing applies the absolute value to every selected
-    ///     note. Automation is editable only when every note's is uniform (see
-    ///     <see cref="MultiAutomationSection" />).
+    ///     note. Automation works the same way, field by field (see
+    ///     <see cref="AutomationSection" />).
     /// </summary>
     private void MultiNoteSection(IReadOnlyList<Note> notes)
     {
@@ -125,7 +125,7 @@ public partial class InspectorPanel
             },
             -60, 60, 0.05, mixed: () => !AllEqual(notes, n => n.Offset));
 
-        MultiAutomationSection(notes, primary);
+        AutomationSection(notes);
     }
 
     /// <summary>

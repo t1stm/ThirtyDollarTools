@@ -5,7 +5,6 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using ThirtyDollarConverter.Editor;
 
 namespace EditorScene.Scenes.Layout;
 
@@ -275,18 +274,20 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
 
     /// <summary>
     ///     A relative-change field: amount plus a "×" checkbox choosing multiply over
-    ///     add. Committed as one <see cref="Modifier" /> whenever either part changes.
+    ///     add. The two halves commit on their own, so a multi-selection that differs in
+    ///     one keeps its own values there while the other is set. A null from either getter
+    ///     is such a difference: the amount renders empty, the "×" unticked.
     /// </summary>
-    public void ModifierRow(string label, Func<Modifier> get, Action<Modifier> set)
+    public void ModifierRow(string label, Func<double?> getAmount, Func<bool?> getMultiply,
+        Action<double> setAmount, Action<bool> setMultiply)
     {
-        var initial = get();
-        var amount = new NumericInput(context, initial.Amount)
+        var amount = new NumericInput(context, getAmount())
         {
             Classes = ["inspector-field-narrow"],
             Min = -10000,
             Max = 10000
         };
-        var multiply = new Checkbox(context, "×", initial.Kind == ModifierKind.Multiply)
+        var multiply = new Checkbox(context, "×", getMultiply() == true)
         {
             X = LabelWidth + 108,
             Y = 6,
@@ -301,23 +302,23 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
         // that changed the kind under the row would be undone by the row it changed.
         var syncing = false;
 
-        void Commit()
+        amount.OnValueChanged = _ =>
         {
             if (syncing || amount.Value is not { } value) return; // mid-edit ("", "-")
-            edit(() =>
-                set(new Modifier(value, multiply.Checked ? ModifierKind.Multiply : ModifierKind.Add)));
-        }
-
-        amount.OnValueChanged = _ => Commit();
-        multiply.OnCheckedChanged = _ => Commit();
+            edit(() => setAmount(value));
+        };
+        multiply.OnCheckedChanged = _ =>
+        {
+            if (!syncing) edit(() => setMultiply(multiply.Checked));
+        };
 
         _fields[$"{Section}.{label}.Kind"] = multiply;
         Row(label, amount, multiply);
         _syncs.Add(() =>
         {
             syncing = true;
-            if (!amount.IsFocused) amount.Value = get().Amount;
-            multiply.Checked = get().Kind == ModifierKind.Multiply;
+            if (!amount.IsFocused) amount.Value = getAmount();
+            multiply.Checked = getMultiply() == true;
             syncing = false;
         });
     }
