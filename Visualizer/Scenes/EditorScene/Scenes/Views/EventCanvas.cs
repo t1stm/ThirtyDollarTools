@@ -68,6 +68,17 @@ public sealed class EventCanvas : Panel
 
     private bool _dragged;
 
+    /// <summary>Where the press that may start a drag landed; see <see cref="DragSlopPx" />.</summary>
+    private Vector2 _pressAt;
+
+    /// <summary>
+    ///     How far the pointer travels from the press before it is a drag, whether or not it
+    ///     has moved anything. A group's own slots are no drop target, so a drag that stays on
+    ///     them never moves - and without this its release read as a click, which under Draw
+    ///     deletes the group. UIContext's double-click slop, for the same "did it move" call.
+    /// </summary>
+    private const float DragSlopPx = 4;
+
     /// <summary>The lit panel behind a hovered or selected slot; one per lit slot, pooled.</summary>
     private readonly List<ColoredPlane> _highlights = [];
 
@@ -811,12 +822,15 @@ public sealed class EventCanvas : Panel
         _dragGroup = _dragIndex is { } index ? GroupOf?.Invoke(index) : null;
         _dragOver = _dragGroup ?? _dragIndex;
         _dragged = false;
+        _pressAt = new Vector2(x, y);
         return _dragIndex is not null;
     }
 
     public override void HandlePointerDrag(float x, float y)
     {
-        if (_dragIndex is not { } from || DragTarget(x, y) is not { } to || to == from) return;
+        if (_dragIndex is not { } from) return;
+        if (Vector2.Distance(new Vector2(x, y), _pressAt) > DragSlopPx) _dragged = true;
+        if (DragTarget(x, y) is not { } to || to == from) return;
 
         var over = GroupOf?.Invoke(to) ?? to;
         if (Equals(over, _dragOver)) return;
