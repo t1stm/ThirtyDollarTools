@@ -24,10 +24,19 @@ public sealed class DollarStoreCamera : Camera
     /// from a setting, and that can move while the camera is alive.</summary>
     public float ScrollSpeed { get; set; }
 
+    /// <summary>
+    ///     How far below <see cref="Camera.Position" /> the visible top edge sits, and above the
+    ///     bottom edge the visible bottom. Zoom scales about the viewport's centre, so 200%
+    ///     shows a quarter of the height less at each edge, and 50% half a height more
+    ///     (a negative inset).
+    /// </summary>
+    public float ZoomInset => (Height - Height / RenderScale) / 2f;
+
     public bool IsOutsideOfCameraView(Vector3 position, Vector3 scale, float marginFromTopBottom = 0)
     {
-        var collide_top = position.Y < _virtualPosition.Y + marginFromTopBottom;
-        var collide_bottom = position.Y + scale.Y > _virtualPosition.Y + Height - marginFromTopBottom;
+        var inset = ZoomInset;
+        var collide_top = position.Y < _virtualPosition.Y + inset + marginFromTopBottom;
+        var collide_bottom = position.Y + scale.Y > _virtualPosition.Y + Height - inset - marginFromTopBottom;
 
         var collide_left = position.X < _virtualPosition.X;
         var collide_right = position.X + scale.X > _virtualPosition.X + Width;

@@ -241,7 +241,8 @@ public class PlayfieldContainer(
                 if (!Camera.IsOutsideOfCameraView(position, scale, margin) &&
                     placement.Event.SoundEvent is not "!divider") break;
 
-                var pos = new Vector3(0, position.Y - margin, 0f);
+                // The visible top, not the camera's: zoomed, the two part.
+                var pos = new Vector3(0, position.Y - margin - Camera.ZoomInset, 0f);
 
                 if (CameraFollowMode.HasFlag(CameraFollowMode.NoAnimation))
                 {
