@@ -54,18 +54,37 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     }
 
     /// <summary>
-    ///     Imports a TDW sequence file as a track or as a whole project (see
-    ///     <see cref="ImportMode" />). All-or-nothing: a parse or import failure leaves the
-    ///     project untouched and is reported here. Non-fatal issues (ignored events, quantized
-    ///     notes, unknown sounds) are returned for the owner to show; null means the import
-    ///     failed.
+    ///     Reads a TDW sequence file and dry-runs every <see cref="ImportMode" /> on it, for the
+    ///     import dialog to show. A file that can't be read or parsed is reported here and gives
+    ///     null, so no dialog opens.
     /// </summary>
-    public ImportWarnings? ImportTdw(string path, ImportMode mode, IReadOnlyDictionary<string, Sound>? soundMap)
+    public (Sequence Sequence, ImportPreview Preview)? ReadTdw(string path,
+        IReadOnlyDictionary<string, Sound>? soundMap)
     {
-        var name = Path.GetFileNameWithoutExtension(path);
         try
         {
             var sequence = Sequence.FromString(File.ReadAllText(path));
+            return (sequence, SequenceImporter.Preview(sequence, soundMap));
+        }
+        catch (Exception e)
+        {
+            ImportFailed(e, path);
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///     Imports a sequence read by <see cref="ReadTdw" /> as a track or as a whole project (see
+    ///     <see cref="ImportMode" />). All-or-nothing: an import failure leaves the project
+    ///     untouched and is reported here. Non-fatal issues (ignored events, quantized notes,
+    ///     unknown sounds) are returned for the owner to show; null means the import failed.
+    /// </summary>
+    /// <param name="name">The new track's or project's name.</param>
+    public ImportWarnings? ImportTdw(string path, Sequence sequence, ImportMode mode, string name,
+        IReadOnlyDictionary<string, Sound>? soundMap)
+    {
+        try
+        {
             var result = mode switch
             {
                 ImportMode.Track => state.ImportSequenceAsTrack(sequence, name, soundMap),
@@ -78,10 +97,15 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         }
         catch (Exception e)
         {
-            logger.ImportFailed(e, path);
-            dialogHost.Alert($"Couldn't import \"{Path.GetFileName(path)}\":\n\n{e.Message}");
+            ImportFailed(e, path);
             return null;
         }
+    }
+
+    private void ImportFailed(Exception e, string path)
+    {
+        logger.ImportFailed(e, path);
+        dialogHost.Alert($"Couldn't import \"{Path.GetFileName(path)}\":\n\n{e.Message}");
     }
 
     public void ExportTdw(string path, SequenceStyle style)

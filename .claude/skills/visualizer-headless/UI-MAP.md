@@ -40,7 +40,7 @@ Five scenes, registered under these names: `home`, `visualizer`, `drum-master`, 
 S=.claude/skills/visualizer-headless
 bash $S/viz.sh start                          # boots to Home
 bash $S/viz.sh start --mode editor            # straight into the Editor
-bash $S/viz.sh start --mode editor -i cover.tdw   # editor, with that sequence imported
+bash $S/viz.sh start --mode editor -i cover.tdw   # editor, with that sequence's import dialog open
 bash $S/viz.sh start --mode visualizer -i cover.tdw
 ```
 
@@ -214,7 +214,7 @@ project memory). `Escape` closes the top one.
 | Action value | clicking a value-taking action; right-clicking a placed one reopens it prefilled |
 | Track colour | track context menu → `Change color…` |
 | Track context menu | right-click a track row: `Open`, `Change color…`, `Duplicate…`, `Convert to Faithful` / `Convert to Piano Roll`, `Remove` |
-| Import | dropping or importing a `.tdw` |
+| Import (Faithful / Piano Roll / Replace project, keys `1`-`3`) | dropping a `.tdw`, or `-i` on boot |
 | Export | `Export` |
 | Confirm / Unsaved changes / Alert | destructive actions, leaving dirty, and any error |
 | File selection | `Load` and `Save` |

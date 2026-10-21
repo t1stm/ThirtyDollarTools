@@ -5,6 +5,7 @@ using EditorScene.State;
 using Sundex.Components.Abstractions;
 using Sundex.Components.File_Selector;
 using ThirtyDollarConverter.Editor;
+using ThirtyDollarConverter.Parser;
 
 namespace EditorScene.Tests;
 
@@ -54,7 +55,18 @@ public class StyleSelectorTests
         yield return new ConfirmDialog(ctx, "Delete this?").Element;
         yield return new UnsavedChangesDialog(ctx).Element;
         yield return new TrackContextMenu(ctx, "Copy").Element;
-        yield return new ImportDialog(ctx, "song.tdw").Element;
+        // Each way's preview and facts show only while it is picked. This file has a snapped
+        // note, a lost action and more sounds than the project preview has lanes for.
+        var sequence = Sequence.FromString("!speed@640|a|!stop@0.95|b|!stop@0.05|c|d|e|f|!divider");
+        var import = new ImportDialog(ctx, ctx.NewAtlasStore(), "song.tdw", sequence,
+            SequenceImporter.Preview(sequence, null), new Dictionary<string, Sound>(),
+            [OpenTK.Mathematics.Vector4.One], "Song", true);
+        foreach (var mode in new[] { ImportMode.Faithful, ImportMode.Track, ImportMode.Project })
+        {
+            import.Mode = mode;
+            yield return import.Element;
+        }
+
         yield return new TrackTypeDialog(ctx, ctx.NewAtlasStore(), [], OpenTK.Mathematics.Vector4.One).Element;
         yield return new ActionValueDialog(ctx, FaithfulAction.All[0]).Element;
         yield return new ExportDialog(ctx).Element;

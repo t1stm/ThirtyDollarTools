@@ -40,9 +40,8 @@ var header_hover = "#93b4f9";
 var danger = "#f7768e";
 var danger_hover = "#f78fa2";
 
-// The yellow alternative in a two-option dialog.
+// The Select tool's fill, and warnings: a file that is already there, what an import changes.
 var accent_yellow = "#e0af68";
-var accent_yellow_hover = "#e8bf82";
 
 // ---------------------------------------------------------------- text
 

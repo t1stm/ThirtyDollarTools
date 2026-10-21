@@ -99,37 +99,40 @@ public partial class EditorInterface
     }
 
     /// <summary>
-    ///     Shows the faithful/piano-roll/project/cancel choice for a dropped TDW sequence
-    ///     file. Import-as-project discards the open project, so it's guarded behind the
-    ///     same dirty check as every other destructive action here.
+    ///     Reads a dropped TDW sequence file and asks how to import it: as a faithful track, a
+    ///     piano-roll track or a new project, each with what it keeps and loses. A file that
+    ///     doesn't parse is reported and opens nothing. Replacing the project needs no second
+    ///     confirm: the dialog says so on that choice, unsaved changes included.
     /// </summary>
     public void ImportSequenceFile(string path)
     {
-        var dialog = new ImportDialog(_context, Path.GetFileName(path));
-        var modal = _dialogHost.Show(dialog.Element);
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.FaithfulTrackButton.OnClick = _ =>
+        var sounds = SoundMap();
+        if (_projectIo.ReadTdw(path, sounds) is not ({ } sequence, { } preview)) return;
+
+        var dialog = new ImportDialog(_context, _workflow.AtlasStore, Path.GetFileName(path), sequence, preview,
+            sounds, _arrangement.ClipPalette, State.Project.Info.Name, State.Dirty);
+        var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
+
+        modal.OnDismissRequested = _ => Close();
+        modal.OnConfirmRequested = _ => Confirm();
+        dialog.ImportButton.OnClick = _ => Confirm();
+        dialog.NameInput.OnCommit = _ => Confirm();
+        dialog.CancelButton.OnClick = _ => Close();
+        dialog.CloseButton.OnClick = _ => Close();
+        return;
+
+        void Close()
         {
             _dialogHost.Close(modal);
-            Import(path, ImportMode.Faithful);
-        };
-        dialog.SingleTrackButton.OnClick = _ =>
+            dialog.Release();
+        }
+
+        void Confirm()
         {
-            _dialogHost.Close(modal);
-            Import(path, ImportMode.Track);
-        };
-        dialog.ProjectButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            if (State.Dirty)
-                _dialogHost.Confirm(
-                    "Importing as a project discards unsaved changes.\n" +
-                    "Continue?",
-                    () => Import(path, ImportMode.Project),
-                    confirmLabel: "Import", confirmClass: "dialog-button-primary");
-            else
-                Import(path, ImportMode.Project);
-        };
+            Close();
+            var name = dialog.NameInput.Value.Trim();
+            Import(path, sequence, dialog.Mode, name.Length > 0 ? name : Path.GetFileNameWithoutExtension(path));
+        }
     }
 
     /// <summary>
@@ -137,9 +140,9 @@ public partial class EditorInterface
     ///     Roll track import can be redone as a Faithful Track from there: the track import
     ///     is one undo step, so stepping back over it leaves the project as it was.
     /// </summary>
-    private void Import(string path, ImportMode mode)
+    private void Import(string path, Sequence sequence, ImportMode mode, string name)
     {
-        if (_projectIo.ImportTdw(path, mode, SoundMap()) is not { IsEmpty: false } warnings) return;
+        if (_projectIo.ImportTdw(path, sequence, mode, name, SoundMap()) is not { IsEmpty: false } warnings) return;
 
         var dialog = new ImportWarningsDialog(_context, Path.GetFileName(path), mode, warnings, _playfieldLook);
         var modal = _dialogHost.Show(dialog.Element);
@@ -149,7 +152,7 @@ public partial class EditorInterface
         {
             Close();
             State.Undo();
-            Import(path, ImportMode.Faithful);
+            Import(path, sequence, ImportMode.Faithful, name);
         };
         return;
 

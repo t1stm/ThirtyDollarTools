@@ -481,4 +481,88 @@ public class SequenceImporterTests
 
         Assert.Equal(SequenceText.Serialize(sequence), SequenceText.Serialize(target.ToSequence()));
     }
+
+    // ---- Preview: the import dialog's dry run ----
+
+    /// <summary>
+    ///     Every warning kind at once: a divider the grid drops, a note the grid snaps, a sound
+    ///     the sample set lacks, an emoji name, and a "!combine" run.
+    /// </summary>
+    private const string LossySequence =
+        "!speed@640|kick|!stop@0.95|snare|!stop@0.05|hat|!divider|mystery|🍕|!combine|kick|!cut@hat|kick";
+
+    private static readonly string[] LossySounds = ["kick", "snare", "hat", "pizza:🍕"];
+
+    [Fact]
+    public void Preview_ReportsWhatEveryImportModeReports()
+    {
+        var sequence = Sequence.FromString(LossySequence);
+        var map = SoundMap(LossySounds);
+
+        var preview = SequenceImporter.Preview(sequence, map);
+        var track = SequenceImporter.AddAsTrack(new ThirtyDollarProject(), sequence, "test", map).Warnings;
+        var faithful = SequenceImporter.AddAsFaithfulTrack(new ThirtyDollarProject(), sequence, "test", map).Warnings;
+        var whole = SequenceImporter.ToProject(sequence, "test", map, out var project).Warnings;
+
+        Assert.Null(preview.GridError);
+        foreach (var warnings in new[] { track, whole })
+        {
+            Assert.Equal(warnings.IgnoredEvents, preview.Grid!.IgnoredEvents);
+            Assert.Equal(warnings.QuantizedNotes, preview.Grid.QuantizedNotes);
+            Assert.Equal(warnings.UnknownSounds, preview.Grid.UnknownSounds);
+        }
+
+        Assert.Equal(1, preview.Grid!.QuantizedNotes);
+        Assert.Equal(["mystery"], faithful.UnknownSounds);
+        Assert.Equal(faithful.UnknownSounds, preview.FaithfulUnknownSounds);
+        Assert.Equal(project.Tracks.Count, preview.Tracks.Count);
+        Assert.Equal(sequence.Events.Length, preview.Events);
+        Assert.Equal(640, preview.StartBpm);
+    }
+
+    [Fact]
+    public void Preview_CountsEachSoundOnce_UnderItsId_KnownOrNot()
+    {
+        var preview = SequenceImporter.Preview(Sequence.FromString(LossySequence), SoundMap(LossySounds));
+
+        Assert.Equal(["kick", "snare", "hat", "pizza"], preview.FaithfulSounds);
+        Assert.Equal(5, preview.Sounds);
+    }
+
+    [Fact]
+    public void Preview_PlacesTheNotesWhereThePianoRollImportDoes_AndMarksTheSnappedOne()
+    {
+        var sequence = Sequence.FromString(LossySequence);
+        var map = SoundMap(LossySounds);
+
+        var preview = SequenceImporter.Preview(sequence, map);
+        var track = SequenceImporter.AddAsTrack(new ThirtyDollarProject(), sequence, "test", map).Track!;
+
+        Assert.Equal(track.Segments.Count, preview.Segments.Count);
+        for (var i = 0; i < track.Segments.Count; i++)
+        {
+            var segment = track.Segments[i];
+            Assert.Equal(new PreviewSegment(segment.Numerator, segment.StepsPerBeat, segment.Bars), preview.Segments[i]);
+            Assert.Equal(segment.Notes.Where(n => !n.IsCut).Select(n => (n.Step, n.Instrument.Sounds[0].Sound, n.Value)),
+                preview.Notes.Where(n => n.Segment == i).Select(n => (n.Step, n.Sound, n.Value)));
+        }
+
+        var snapped = Assert.Single(preview.Notes, n => n.Snapped);
+        Assert.Equal("snare", snapped.Sound);
+        Assert.All(preview.Notes, n => Assert.InRange(n.Time, 0, 1));
+        Assert.Equal(preview.Notes.OrderBy(n => n.Time).Select(n => n.Time), preview.Notes.Select(n => n.Time));
+    }
+
+    [Fact]
+    public void Preview_OfASequenceTheGridCannotTake_StillPreviewsTheFaithfulImport()
+    {
+        // Only actions: a Faithful track keeps them, a piano roll has no note to place.
+        var preview = SequenceImporter.Preview(Sequence.FromString("!speed@200|!divider|!flash"), null);
+
+        Assert.Null(preview.Grid);
+        Assert.Equal("No sounds found in this sequence.", preview.GridError);
+        Assert.Empty(preview.Tracks);
+        Assert.Empty(preview.FaithfulUnknownSounds);
+        Assert.Equal(3, preview.Events);
+    }
 }
