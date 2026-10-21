@@ -140,7 +140,7 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot, int cap, Fu
         var bodyRight = bodyX + geometry.SpanWidth(steps);
         var bodyY = geometry.NoteTop(Clamp(note.Value));
         var bodyHeight = geometry.NoteHeight;
-        var radius = Math.Min(TrackEditorView.NoteRadius, Math.Min(bodyRight - bodyX, bodyHeight) / 2);
+        var radius = TrackEditorView.CornerRadius(bodyRight - bodyX, bodyHeight);
         var lit = ShadedRect.Of(0, 0, strength: shading);
 
         // Bands: each keyframe repaints the body from its step's grid line on, at the volume
@@ -197,12 +197,14 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot, int cap, Fu
         // inside the box, so its left edge - outline included - is the start.
         var gapSteps = automation.Gap <= 0 ? steps
             : automation.Timing == KeyframeTiming.Step ? automation.Gap : (float)(automation.Gap / 60d / stepMinutes);
-        var width = Math.Max(4, Math.Min(MathF.Round(MarkerStepShare * pps), gapSteps * pps - 2));
+        // Never wider than tall: zooming in past that keeps the marker square, not a bar.
         var height = Math.Max(3, MathF.Round(geometry.RowHeight * MarkerRowShare));
+        var width = Math.Max(4, Math.Min(Math.Min(MathF.Round(MarkerStepShare * pps), height), gapSteps * pps - 2));
         var inset = MathF.Floor((geometry.RowHeight + 1 - height) / 2);
+        var corner = TrackEditorView.CornerRadius(width, height, MarkerRadius, 11f);
         var shadow = new Vector4(0, 0, 0, ShadowAlpha * shading);
         var outline = new Vector4(0, 0, 0, OutlineAlpha);
-        var box = ShadedRect.Of(MarkerRadius);
+        var box = ShadedRect.Of(corner);
         foreach (var point in _points)
         {
             var x = geometry.CellX(stepPx + point.Steps * pps);
@@ -213,9 +215,9 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot, int cap, Fu
             if (point.Index < 0)
             {
                 Rect(MarkKind.Resume, ref used, x, y, width, height, look.EndCap,
-                    ShadedRect.Of(MarkerRadius, outline: 2), maxY);
+                    ShadedRect.Of(corner, outline: 2), maxY);
                 Rect(MarkKind.MarkerOutline, ref used, x, y, width, height, outline,
-                    ShadedRect.Of(MarkerRadius, outline: 1), maxY);
+                    ShadedRect.Of(corner, outline: 1), maxY);
                 continue;
             }
 
@@ -224,12 +226,12 @@ internal sealed class AutomationPath(LineBatch batch, int firstSlot, int cap, Fu
             var fill = volumeFill(look.Color, point.Volume);
             Rect(MarkKind.Marker, ref used, x, y, width, height,
                 Mix(fill, Vector4.One, look.Selected ? SelectedMarkerLift : MarkerLift),
-                ShadedRect.Of(MarkerRadius, strength: shading, light: ShadedRect.Light.Marker), maxY);
+                ShadedRect.Of(corner, strength: shading, light: ShadedRect.Light.Marker), maxY);
             if (look.Selected)
                 Rect(MarkKind.MarkerRing, ref used, x, y, width, height, look.Ring,
-                    ShadedRect.Of(MarkerRadius, outline: 2), maxY);
+                    ShadedRect.Of(corner, outline: 2), maxY);
             Rect(MarkKind.MarkerOutline, ref used, x, y, width, height, outline,
-                ShadedRect.Of(MarkerRadius, outline: 1), maxY);
+                ShadedRect.Of(corner, outline: 1), maxY);
 
             var (centreX, centreY) = (x + width / 2, y + height / 2);
             if (centreX >= TrackEditorGeometry.GutterWidth && centreX <= _clipRight && centreY <= maxY)

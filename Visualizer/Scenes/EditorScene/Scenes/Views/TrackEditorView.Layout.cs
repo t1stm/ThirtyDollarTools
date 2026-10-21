@@ -404,7 +404,7 @@ public partial class TrackEditorView
         var (absX, absY) = (Computed.AbsoluteX, Computed.AbsoluteY);
         var tile = block.Tile;
         var selected = _state.SelectedNotes.Contains(note);
-        var radius = Math.Min(NoteRadius, Math.Min(tile.Z, tile.W) / 2);
+        var radius = CornerRadius(tile.Z, tile.W);
 
         if (PixelsPerStep >= MinShadowPixelsPerStep && tile.W > 0)
             _blockBatch.Set(block.BatchSlot - 1, absX + tile.X, absY + tile.Y + 1, tile.Z, tile.W,

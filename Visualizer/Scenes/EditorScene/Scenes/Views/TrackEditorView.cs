@@ -89,6 +89,16 @@ public sealed partial class TrackEditorView : Panel
     private const float ShadowAlpha = 0.6f;
     internal const float MinShadowPixelsPerStep = 4f;
 
+    /// <summary>
+    ///     A rounded box's corner, kept in proportion as the rows zoom: <paramref name="radius" />
+    ///     at <paramref name="atHeight" /> px tall (the boards' 20 px rows), scaled by the box's
+    ///     own height, and never more than half its short side.
+    /// </summary>
+    internal static float CornerRadius(float width, float height, float radius = NoteRadius, float atHeight = 17f)
+    {
+        return Math.Min(radius * height / atHeight, Math.Min(width, height) / 2);
+    }
+
     // ponytail: worst case (StepsPerBeat=1 at 4px/step min zoom) would need ~750 like
     // StepLinePool, but MinBeatLabelSpacingPx bounds real usage to ~110 labels for a
     // 3000px viewport, so 128 is generous without paying for a 768-sized label pool.

@@ -205,7 +205,7 @@ public partial class TrackEditorView
 
         // The band is the note's own fill, lifted toward white and lit the same way, rounded
         // on the tile's own corners at that end - it reads as a lighter piece of the note.
-        var radius = Math.Min(NoteRadius, Math.Min(tile.Z, tile.W) / 2);
+        var radius = CornerRadius(tile.Z, tile.W);
         _blockBatch.Set(ResizeHandleSlot, Computed.AbsoluteX + left, Computed.AbsoluteY + tile.Y,
             Math.Max(0, right - left), tile.W, Lighten(_blockBatch.ColorOf(hovered.BatchSlot), 0.35f),
             ShadedRect.Of(radius, edge > 0 ? ShadedRect.TopRight | ShadedRect.BottomRight

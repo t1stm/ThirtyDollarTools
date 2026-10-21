@@ -670,6 +670,12 @@ public class TrackEditorViewTests
         Assert.Equal(view.Geometry.ValueTop(0) + 5, marker.Rect.Y);
         Assert.Equal(9, marker.Rect.Z); // 0.75 of a step
 
+        // Zoomed in, the width stops at the height, so the marker stays square.
+        view.PixelsPerStep = 48;
+        view.InvalidateLayout();
+        view.Layout();
+        Assert.Equal(11, MarksOf(view, AutomationPath.MarkKind.Marker)[0].Rect.Z);
+
         // Over a selected note, the path takes the ring's colour.
         Assert.All(MarksOf(view, AutomationPath.MarkKind.Line), line => Assert.Equal(view.SelectionRingColor, line.Color));
     }
@@ -809,6 +815,24 @@ public class TrackEditorViewTests
         // And the tile itself is lit, with its drop shadow a pixel below it.
         Assert.True(view.BlockShapeOf(block).W > 0);
         Assert.Equal(view.BlockRectOf(block) + new Vector4(0, 1, 0, 0), view.ShadowOf(block).Rect);
+    }
+
+    [Fact]
+    public void ANotesCorner_FollowsTheRowZoom()
+    {
+        var (_, state, view, track) = NewView();
+        view.PixelsPerStep = 64;
+        view.RowHeight = 20;
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
+        view.Layout();
+        var block = view.NoteBlocks.Single(b => b.Note == note);
+        Assert.Equal(3, view.BlockShapeOf(block).X, 3); // the boards' 3 px on a 17 px tile
+
+        // Rows three times as tall: a 57 px tile, its corner grown in step.
+        view.RowHeight = 60;
+        view.InvalidateLayout();
+        view.Layout();
+        Assert.Equal(3f * 57 / 17, view.BlockShapeOf(block).X, 3);
     }
 
     [Fact]
@@ -1006,9 +1030,10 @@ public class TrackEditorViewTests
         view.Layout();
 
         // The second marker starts on step 4's cell, x = 44 + 4*16 + 2 = 110, on value 0's
-        // row; its grab box is the marker's own 12 px.
+        // row. It is 4 px square at 8 px rows, so its grab box grows to GrabRadius around
+        // its centre: 112 - 5 = 107.
         var marker = view.KeyframeBlocks.Single(b => b.Note == note && b.KeyframeIndex == 1);
-        Assert.Equal(110, marker.Computed.X);
+        Assert.Equal(107, marker.Computed.X);
 
         // Drag it half a step left and 3 rows up (8 px rows).
         Press(ctx, view, 116, 214.5f);
