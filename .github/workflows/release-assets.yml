@@ -1,8 +1,14 @@
 name: Attach Binaries to Release
 
 on:
+  # published, not created: a release saved as a draft first never fires created.
   release:
-    types: [ created ]
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the release to build and attach the zips to
+        required: true
 
 permissions:
   contents: write
@@ -21,7 +27,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - name: Read release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          gh release view "$TAG" --json tagName,name,isPrerelease \
+            --jq '"TAG=\(.tagName)\nTITLE=\(.name)\nPRERELEASE=\(.isPrerelease)"' >> "$GITHUB_ENV"
 
       - name: Setup .NET Core
         uses: actions/setup-dotnet@v3
@@ -53,10 +67,6 @@ jobs:
             -o ./bin/${{ matrix.platform }}-Release
 
       - name: Write VERSION file
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-          TITLE: ${{ github.event.release.name }}
-          PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           # The date is what the in-app update check compares against - see the same step
           # in dotnet-desktop.yml.
@@ -94,4 +104,4 @@ jobs:
       - name: Upload to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" dist/*.zip --clobber
+        run: gh release upload "$TAG" dist/*.zip --clobber
