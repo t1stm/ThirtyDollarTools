@@ -23,6 +23,17 @@ public partial class TrackEditorView
 
     /// <summary>Whether the running keyframe drag shapes the whole automation (Ctrl held).</summary>
     private bool _keyframeFanOut;
+
+    /// <summary>
+    ///     How far into its marker, in steps, the running keyframe drag pressed - taken back off
+    ///     the pointer, so a grab anywhere on the marker moves it without a jump.
+    /// </summary>
+    private double _keyframeGrabSteps;
+
+    /// <summary>Where the running keyframe drag pressed, and whether the pointer has left it yet.</summary>
+    private Vector2 _keyframePress;
+
+    private bool _keyframeMoved;
     private List<GroupDragEntry>? _groupDrag;
     private int _groupDragAnchorStartStep;
     private double _groupDragAnchorStartValue;
@@ -35,12 +46,18 @@ public partial class TrackEditorView
     ///     own, which is captured here so the fan-out cannot swallow hand-edited keyframes as
     ///     the template moves under them.
     /// </summary>
-    internal void BeginKeyframeDrag(KeyframeBlock block)
+    internal void BeginKeyframeDrag(KeyframeBlock block, float pressX, float pressY)
     {
         if (block.Note?.Automation is not { } automation) return;
+        if (block.Segment is not { } segment || _state.OpenedTrack is not { } track) return;
 
         _keyframeDrag = block;
         _keyframeFanOut = WheelZooms;
+        _keyframePress = new Vector2(pressX, pressY);
+        _keyframeMoved = false;
+        var noteGlobalStep = track.GlobalStepOf(segment, block.Note.Step);
+        _keyframeGrabSteps = UnsnappedStepAt(pressX) - noteGlobalStep -
+                             PositionSteps(automation, block.KeyframeIndex, segment.StepMinutes(track.Timing.BPM));
         _keyframeEdited =
         [
             .. Enumerable.Range(0, automation.Keyframes.Count)
@@ -64,11 +81,15 @@ public partial class TrackEditorView
         var index = block.KeyframeIndex;
         if (index >= automation.Keyframes.Count) return;
 
+        // A press that has not moved yet is a click, not a drag: nothing to write.
+        _keyframeMoved |= new Vector2(x, y) != _keyframePress;
+        if (!_keyframeMoved) return;
+
         var stepMinutes = segment.StepMinutes(track.Timing.BPM);
         var noteGlobalStep = track.GlobalStepOf(segment, note.Step);
-        // Markers are drawn in the middle of the cell their position falls in, like the
-        // note's own start is - so the pointer's own half-step offset comes back off here.
-        var steps = UnsnappedStepAt(x) - noteGlobalStep - 0.5;
+        // The marker starts on its position's cell; wherever on it the press landed comes
+        // back off the pointer.
+        var steps = UnsnappedStepAt(x) - noteGlobalStep - _keyframeGrabSteps;
         var position = automation.Timing == KeyframeTiming.Step ? steps : steps * stepMinutes * 60d;
 
         // Strictly inside the neighbours, and strictly inside the note.
@@ -96,6 +117,13 @@ public partial class TrackEditorView
         });
 
         InvalidateLayout();
+    }
+
+    /// <summary>A keyframe's position in grid steps from its note's start, whatever its timing counts in.</summary>
+    private static double PositionSteps(AudioKeyframeManager automation, int index, double stepMinutes)
+    {
+        var position = automation.PositionOf(index);
+        return automation.Timing == KeyframeTiming.Step ? position : position / 60d / stepMinutes;
     }
 
     /// <summary>

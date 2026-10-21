@@ -19,8 +19,10 @@ public struct ShadedRect : IGPUReflection
     /// <summary>
     ///     x: corner radius in px. y: which corners round (<see cref="TopLeft" /> and the rest,
     ///     OR'd), plus the light's kind times 16. z: outline width in px - 0 fills, anything
-    ///     above draws only that band inside the edge. w: light strength - 0 is unlit.
-    ///     Build one with <see cref="Of" />.
+    ///     above draws only that band inside the edge, and anything below is a reach: the
+    ///     box runs that many px past the rect's left edge, so the rect is the right-hand end
+    ///     of a wider rounded box (a note's end cap, clipped by the note's corners). w: light
+    ///     strength - 0 is unlit. Build one with <see cref="Of" />.
     /// </summary>
     public Vector4 Shape;
 

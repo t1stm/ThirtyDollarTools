@@ -41,10 +41,11 @@ public sealed partial class TrackEditorView : Panel
     private const int NoteBlockPool = 2048;
     private const int StripBlockPool = 512; // changed from 256 for Aleph-0 demo
     private const int BoundaryLinePool = 512; // changed from 256 for Aleph-0 demo
-    // ≤2 marks per generated automation event (a tick and the line into it), and the
-    // marks are viewport-culled, so this bounds what one screen can show rather than what
-    // a note can generate. Past it the paths simply stop drawing.
-    private const int AutomationMarkReserve = 768;
+    // ≤7 slots per generated automation event (its band, seam, the line into it, and its
+    // marker's shadow, fill, ring and outline), and the marks are viewport-culled, so this
+    // bounds what one screen can show rather than what a note can generate. Past it the
+    // paths simply stop drawing.
+    internal const int AutomationMarkReserve = 4096;
 
     // The marker grab boxes: viewport-bounded like the marks they sit on, and far fewer,
     // since only the markers actually on screen are catchable.
@@ -84,9 +85,9 @@ public sealed partial class TrackEditorView : Panel
     // drop shadow - 1 px straight down, and none once a step is too narrow to show it.
     private const float Shading = 1f;
     private const float SelectedLift = 0.16f;
-    private const float NoteRadius = 3f;
+    internal const float NoteRadius = 3f;
     private const float ShadowAlpha = 0.6f;
-    private const float MinShadowPixelsPerStep = 4f;
+    internal const float MinShadowPixelsPerStep = 4f;
 
     // ponytail: worst case (StepsPerBeat=1 at 4px/step min zoom) would need ~750 like
     // StepLinePool, but MinBeatLabelSpacingPx bounds real usage to ~110 labels for a
@@ -140,7 +141,7 @@ public sealed partial class TrackEditorView : Panel
 
         // Automation marks paint over the note blocks and never take input, so they are
         // batch slots only - no elements at all, just the reserve above them.
-        _automationPath = new AutomationPath(_blockBatch, AutomationMarkSlot, AutomationMarkReserve);
+        _automationPath = new AutomationPath(_blockBatch, AutomationMarkSlot, AutomationMarkReserve, VolumeFill);
 
         // The note and strip blocks stay elements, but only to be hit: each owns the
         // batch slot its fill is written into (pool position = slot), so nothing has to
@@ -283,7 +284,7 @@ public sealed partial class TrackEditorView : Panel
     [NamedSetting("sound-palette")]
     public Vector4[] SoundPalette { get; set; } = [];
 
-    internal IReadOnlyList<Vector4> AutomationMarks => _automationPath.Marks;
+    internal IReadOnlyList<AutomationPath.Mark> AutomationMarks => _automationPath.Marks;
 
     /// <summary>Test seam: the keyframe markers the last layout made draggable.</summary>
     /// <summary>The model the blocks route their edits through.</summary>

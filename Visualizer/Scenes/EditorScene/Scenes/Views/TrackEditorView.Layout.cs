@@ -173,13 +173,16 @@ public partial class TrackEditorView
                     var noteWidth = NoteSteps(track, segment, note) * pps;
                     if (note.Automation != null && x <= visibleEnd && x + noteWidth >= visibleStart)
                     {
-                        // The marks paint ON the note body, so they take whichever of the
-                        // two shades the body is not: the instrument colour over a selected
-                        // note's highlight, a lightened one over the instrument fill.
-                        var fill = InstrumentColor(note.Instrument);
+                        // The path paints ON the note body: a lightened instrument colour over
+                        // its fill, and the ring's colour over a selected one - its lifted body
+                        // would swallow the plain instrument colour.
+                        var selected = _state.SelectedNotes.Contains(note);
                         _automationPath.Draw(_geometry, (absX, absY), track, segment, note, segStart,
-                            _state.SelectedNotes.Contains(note) ? fill : Lighten(fill, 0.45f),
-                            AutomationEndColor, ref autoMark, CutPoints(track));
+                            NoteSteps(track, segment, note),
+                            new AutomationPath.Look(NoteColor(note, selected), selected,
+                                selected ? SelectionRingColor : Lighten(InstrumentColor(note.Instrument), 0.45f),
+                                SelectionRingColor, AutomationEndColor),
+                            Shading, ref autoMark, CutPoints(track));
                     }
 
                     if (_dragging?.Note == note) continue;
@@ -500,11 +503,15 @@ public partial class TrackEditorView
                 block = _keyframeBlocks[used++];
             }
 
+            // The marker's own box, grown to the grab radius around its centre where it is
+            // smaller, so a 4 px marker stays catchable.
+            var width = Math.Max(handle.Width, KeyframeBlock.GrabRadius * 2);
+            var height = Math.Max(handle.Height, KeyframeBlock.GrabRadius * 2);
             block.Assign(handle.Note, handle.Segment, handle.Index);
-            block.X = handle.X - KeyframeBlock.GrabRadius;
-            block.Y = handle.Y - KeyframeBlock.GrabRadius;
-            block.Width = KeyframeBlock.GrabRadius * 2;
-            block.Height = KeyframeBlock.GrabRadius * 2;
+            block.X = handle.X - width / 2;
+            block.Y = handle.Y - height / 2;
+            block.Width = width;
+            block.Height = height;
         }
 
         for (var i = used; i < _keyframeBlocks.Count; i++)

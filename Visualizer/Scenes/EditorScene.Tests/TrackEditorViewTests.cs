@@ -552,8 +552,13 @@ public class TrackEditorViewTests
         Assert.Equal(TrackEditorGeometry.MinRowHeight, view.RowHeight);
     }
 
+    private static List<AutomationPath.Mark> MarksOf(TrackEditorView view, AutomationPath.MarkKind kind)
+    {
+        return [.. view.AutomationMarks.Where(m => m.Kind == kind && m.Rect.Z > 0)];
+    }
+
     [Fact]
-    public void AutomationDrawsALeaningPath_LineAndTickPerGeneratedEvent_AndAnEndCap()
+    public void AutomationDrawsBandsSeamsALeaningPathMarkers_AndAnEndCap()
     {
         var (_, state, view, track) = NewView();
         var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
@@ -565,38 +570,44 @@ public class TrackEditorViewTests
         };
         view.Layout();
 
-        // Two generated events (2 and 4 steps in, values 12 and 24), each drawn as a
-        // connecting line + a tick, and the cut-at-end cap = 5 visible marks.
-        var visible = view.AutomationMarks.Where(m => m.Z > 0).ToList();
-        Assert.Equal(5, visible.Count);
+        // Two keyframes, 2 and 4 steps in (values 12 and 24). Each repaints the body from its
+        // step's grid line (44 + 5*16, 44 + 7*16) - the seam - with a band just past it, up
+        // to the next seam or the body's end. The body starts at 44 + 3*16 + 2 and spans six
+        // steps less its margins: 94 to 187.
+        Assert.Equal([124f, 156f], MarksOf(view, AutomationPath.MarkKind.Seam).Select(m => m.Rect.X));
+        Assert.Equal([new Vector2(125, 31), new Vector2(157, 30)],
+            MarksOf(view, AutomationPath.MarkKind.Band).Select(m => new Vector2(m.Rect.X, m.Rect.Z)));
 
-        // The path starts at the note's center (x = 44 + 3.5*16 = 100) and leans to the
-        // first event, 2 steps (32 px) right and 12 rows (96 px) up: the line is longer
-        // than either leg, which a stepped run-then-jump path could never be.
-        Assert.Equal(100, visible[0].X);
-        Assert.Equal(MathF.Sqrt(32 * 32 + 96 * 96), visible[0].Z, 3);
-        // The tick straddles the event column.
-        Assert.Equal(131, visible[1].X);
+        // The path leans from the note's own start to each marker's: 2 steps (32 px) right and
+        // 12 rows (96 px) up, longer than either leg, which a stepped path could never be.
+        var lines = MarksOf(view, AutomationPath.MarkKind.Line);
+        Assert.Equal(2, lines.Count);
+        Assert.Equal(94, lines[0].Rect.X);
+        Assert.Equal(MathF.Sqrt(32 * 32 + 96 * 96), lines[0].Rect.Z, 3);
 
-        // The cap sits on the note's right edge: 6 steps past x = 44 + 3*16 = 92.
-        Assert.Equal(92 + 6 * 16 - 2, visible[4].X);
-        Assert.Equal(2, visible[4].Z);
+        // The markers start one pixel past their seams, where a note on that step would.
+        Assert.Equal([126f, 158f], MarksOf(view, AutomationPath.MarkKind.Marker).Select(m => m.Rect.X));
+
+        // The cap is the body's last 2 px.
+        var endCap = Assert.Single(MarksOf(view, AutomationPath.MarkKind.EndCap));
+        Assert.Equal(187 - 2, endCap.Rect.X);
+        Assert.Equal(2, endCap.Rect.Z);
 
         // Nothing marks the end when the note is left to ring on.
         note.Automation.CutAtEnd = false;
         view.InvalidateLayout();
         view.Layout();
-        Assert.Equal(4, view.AutomationMarks.Count(m => m.Z > 0));
+        Assert.Empty(MarksOf(view, AutomationPath.MarkKind.EndCap));
 
         // Removing the automation hides the whole path on the next layout.
         note.Automation = null;
         view.InvalidateLayout();
         view.Layout();
-        Assert.DoesNotContain(view.AutomationMarks, m => m.Z > 0);
+        Assert.DoesNotContain(view.AutomationMarks, m => m.Rect.Z > 0);
     }
 
     [Fact]
-    public void ARepairedNote_GetsAHalfTickWhereAnotherNoteCutIt_AndNoHandle()
+    public void ARepairedNote_GetsAHollowMarkerWhereAnotherNoteCutIt_AndNoHandle()
     {
         var (_, state, view, track) = NewView();
         var pad = MakeInstrument(state, "pad");
@@ -612,11 +623,14 @@ public class TrackEditorViewTests
         view.InvalidateLayout();
         view.Layout();
 
-        // The held note's resume at step 4, then its own end cap at step 6, then the short
-        // note's cap - also at step 4, where it cut. Only the resume is one pixel wide.
-        var visible = view.AutomationMarks.Where(m => m.Z > 0).ToList();
-        Assert.Equal([115.5f, 138f, 106f], visible.Select(m => m.X));
-        Assert.Equal([1f, 2f, 2f], visible.Select(m => m.Z));
+        // The held note's resume starts on step 4's cell (44 + 4*16 + 2); the end caps are
+        // each body's last 2 px - the held one's at 46 + 93, the short one's at 78 + 29.
+        var resume = Assert.Single(MarksOf(view, AutomationPath.MarkKind.Resume));
+        Assert.Equal(110, resume.Rect.X);
+        Assert.Equal(view.AutomationEndColor, resume.Color);
+        Assert.Equal([137f, 105f], MarksOf(view, AutomationPath.MarkKind.EndCap).Select(m => m.Rect.X));
+        // No band: a resume plays the volume already running.
+        Assert.Empty(MarksOf(view, AutomationPath.MarkKind.Band));
 
         // Nothing to drag at a resume: it is automatic, and has no keyframe behind it.
         Assert.Empty(view.KeyframeHandles);
@@ -625,7 +639,82 @@ public class TrackEditorViewTests
         state.Edit(() => state.Project.AutoResume = false);
         view.InvalidateLayout();
         view.Layout();
-        Assert.Equal([138f, 106f], view.AutomationMarks.Where(m => m.Z > 0).Select(m => m.X));
+        Assert.Empty(MarksOf(view, AutomationPath.MarkKind.Resume));
+        Assert.Equal([137f, 105f], MarksOf(view, AutomationPath.MarkKind.EndCap).Select(m => m.Rect.X));
+    }
+
+    [Fact]
+    public void ASeamSitsOnItsKeyframesGridLine_AndNothingOfItsMarkerIsLeftOfThatCell()
+    {
+        var (_, state, view, track) = NewView();
+        view.PixelsPerStep = 12;
+        view.RowHeight = 20;
+        var note = state.AddNote(track.Segments[0], 2, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Gap = 1, End = 4 };
+        state.SelectNote(note); // the ring too
+        view.Layout();
+
+        var lines = Enumerable.Range(3, 3).Select(step => TrackEditorView.GutterWidth + step * 12f).ToList();
+        Assert.Equal(lines, MarksOf(view, AutomationPath.MarkKind.Seam).Select(m => m.Rect.X));
+
+        // Every piece of a marker - shadow, fill, ring, outline - starts on the keyframe
+        // step's cell, one pixel after its seam plus the margin; the outlines are drawn inside.
+        var parts = view.AutomationMarks.Where(m => m.Kind is AutomationPath.MarkKind.MarkerShadow
+            or AutomationPath.MarkKind.Marker or AutomationPath.MarkKind.MarkerRing
+            or AutomationPath.MarkKind.MarkerOutline).ToList();
+        Assert.Equal(3 * 4, parts.Count);
+        Assert.All(parts, part => Assert.Contains(part.Rect.X, lines.Select(line => line + 2)));
+        // 11 px tall at 20 px rows, centred on the row's clear space.
+        var marker = MarksOf(view, AutomationPath.MarkKind.Marker)[0];
+        Assert.Equal(11, marker.Rect.W);
+        Assert.Equal(view.Geometry.ValueTop(0) + 5, marker.Rect.Y);
+        Assert.Equal(9, marker.Rect.Z); // 0.75 of a step
+
+        // Over a selected note, the path takes the ring's colour.
+        Assert.All(MarksOf(view, AutomationPath.MarkKind.Line), line => Assert.Equal(view.SelectionRingColor, line.Color));
+    }
+
+    [Fact]
+    public void BandFills_FollowTheVolumeEachKeyframePlaysAt()
+    {
+        var (_, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var note = state.AddNote(track.Segments[0], 2, boom, 0);
+        // The template first: keyframes copy it as Gap and End create them.
+        note.Automation = new AudioKeyframeManager
+            { Template = new AudioKeyframe { Volume = new Modifier(-25) }, Gap = 1, End = 4 };
+        view.Layout();
+
+        var block = view.NoteBlocks.Single(b => b.Note == note);
+        var color = view.FillOf(block); // the body is the first instance, at the note's own 100
+        Assert.Equal(new double[] { 75, 50, 25 }.Select(volume => view.VolumeFill(color, volume)),
+            MarksOf(view, AutomationPath.MarkKind.Band).Select(m => m.Color));
+    }
+
+    [Fact]
+    public void AMarkerGrabbedOffItsStart_MovesByThePointersDelta_AndAClickMovesNothing()
+    {
+        var (ctx, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 0, MakeInstrument(state, "boom"), 0);
+        note.Automation = new AudioKeyframeManager { Gap = 2, End = 8 }; // keyframes 2, 4 and 6 in
+        state.SelectNote(note);
+        view.Layout();
+
+        // The middle marker's right half: a press there and a release with no move is a click.
+        var handle = view.KeyframeHandles.Single(h => h.Index == 1);
+        var (x, y) = (handle.X + handle.Width / 2 - 2, handle.Y);
+        Press(ctx, view, x, y);
+        Drag(ctx, view, x, y);
+        Release(ctx, view, x, y);
+        Assert.Null(note.Automation.Keyframes[1].Position);
+        Assert.Equal(default, note.Automation.Keyframes[1].Value);
+
+        // Grabbed there and pulled one step right, it moves one step - no jump to the pointer.
+        view.Layout();
+        Press(ctx, view, x, y);
+        Drag(ctx, view, x + 16, y);
+        Release(ctx, view, x + 16, y);
+        Assert.Equal(5f, note.Automation.Keyframes[1].Position!.Value, 3);
     }
 
     [Fact]
@@ -806,7 +895,7 @@ public class TrackEditorViewTests
         Assert.True(blockX + blockWidth > TrackEditorView.GutterWidth,
             "the body should still reach into the viewport");
         // And its marks are still drawn, culled to what is on screen.
-        Assert.Contains(view.AutomationMarks, m => m.Z > 0 && m.X > TrackEditorView.GutterWidth);
+        Assert.Contains(view.AutomationMarks, m => m.Rect.Z > 0 && m.Rect.X > TrackEditorView.GutterWidth);
     }
 
     [Fact]
@@ -897,8 +986,9 @@ public class TrackEditorViewTests
 
         // a spans steps 1..3: press its right border and pull three steps out. The delta
         // is the pointer's, from where it pressed - grabbing a border mid-zone doesn't
-        // snap the note to the pointer.
-        Press(ctx, view, 44 + 3 * 16 - 2, 214.5f);
+        // snap the note to the pointer. Its keyframe's marker (step 2's cell, 78 to 90)
+        // covers the front of the zone, so the press goes past it.
+        Press(ctx, view, 44 + 3 * 16 - 1, 214.5f);
         Drag(ctx, view, 44 + 5 * 16 + 8, 214.5f);
         Release(ctx, view, 44 + 5 * 16 + 8, 214.5f);
 
@@ -915,9 +1005,10 @@ public class TrackEditorViewTests
         state.SelectNote(note); // markers are handles on the selected note only
         view.Layout();
 
-        // The second marker sits at x = 44 + 2*16 + (0.5 + 2)*16 = 116, on value 0's row.
+        // The second marker starts on step 4's cell, x = 44 + 4*16 + 2 = 110, on value 0's
+        // row; its grab box is the marker's own 12 px.
         var marker = view.KeyframeBlocks.Single(b => b.Note == note && b.KeyframeIndex == 1);
-        Assert.Equal(116 - 5, marker.Computed.X);
+        Assert.Equal(110, marker.Computed.X);
 
         // Drag it half a step left and 3 rows up (8 px rows).
         Press(ctx, view, 116, 214.5f);
@@ -1253,8 +1344,8 @@ public class TrackEditorViewTests
 
         // The notes now on screen still get their paths - the scrolled-off ones must not
         // have eaten the pool on the way there.
-        Assert.Contains(view.AutomationMarks, m => m.Z > 0 && m.X > 700);
-        Assert.DoesNotContain(view.AutomationMarks, m => m.Z > 0 && m.X + m.Z < 44);
+        Assert.Contains(view.AutomationMarks, m => m.Rect.Z > 0 && m.Rect.X > 700);
+        Assert.DoesNotContain(view.AutomationMarks, m => m.Rect.Z > 0 && m.Rect.X + m.Rect.Z < 44);
     }
 
     [Fact]

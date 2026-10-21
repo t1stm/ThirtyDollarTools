@@ -97,7 +97,7 @@ public class DrawCallTests(ITestOutputHelper output)
 
         var segment = track.Segments[0];
         segment.Bars = 64; // wide enough that the whole path stays on screen at 4 px/step
-        // 2 marks per generated event, 500 events: far past the 768-slot reservation.
+        // Up to 7 slots per generated event, 500 events: far past the reservation.
         state.AddNote(segment, 0, instrument, 0).Automation = new AudioKeyframeManager
         {
             Gap = 1,
@@ -111,7 +111,7 @@ public class DrawCallTests(ITestOutputHelper output)
         view.Layout();
         view.DrawTo(ctx);
 
-        Assert.InRange(view.AutomationMarks.Count, 1, 768);
+        Assert.InRange(view.AutomationMarks.Count, 1, TrackEditorView.AutomationMarkReserve);
         // And the whole canvas is still two draw calls: the grid batch and the block batch.
         Assert.Equal(2, Report(ctx).OfType<LineBatch>().Count());
     }

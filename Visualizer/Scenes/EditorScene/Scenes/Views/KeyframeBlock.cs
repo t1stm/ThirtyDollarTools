@@ -6,14 +6,15 @@ namespace EditorScene.Scenes.Views;
 
 /// <summary>
 ///     One automation keyframe's grab box. Like <see cref="NoteBlock" /> it carries no fill
-///     of its own - the marker is drawn by <see cref="AutomationPath" /> - but it is several
-///     pixels wider than the 1 px mark so a marker stays catchable at any zoom. The pool is
-///     added to the view after the note pool, so a marker sitting on a note body wins the
-///     press over the body it is drawn on.
+///     of its own - the marker is drawn by <see cref="AutomationPath" /> - and it covers the
+///     marker's box, grown to <see cref="GrabRadius" /> around its centre where the marker is
+///     smaller, so a marker stays catchable at any zoom. The pool is added to the view after
+///     the note pool, so a marker sitting on a note body wins the press over the body it is
+///     drawn on.
 /// </summary>
 internal sealed class KeyframeBlock : Panel
 {
-    /// <summary>Half the grab box, in pixels, around the marker's own point.</summary>
+    /// <summary>Half the smallest grab box, in pixels, around the marker's centre.</summary>
     public const float GrabRadius = 5f;
 
     private readonly TrackEditorView _view;
@@ -47,7 +48,7 @@ internal sealed class KeyframeBlock : Panel
     {
         if (Note?.Automation is null || Segment == null) return false;
         _view.State.SelectSegment(Segment);
-        _view.BeginKeyframeDrag(this);
+        _view.BeginKeyframeDrag(this, x, y);
         return true;
     }
 
