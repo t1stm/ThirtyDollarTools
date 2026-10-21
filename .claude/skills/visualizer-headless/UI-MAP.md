@@ -262,21 +262,21 @@ assuming the handler is broken.
 
 ## 10. Driving traps that have already cost time
 
-- **`viz.sh dblclick` cannot double-click.** `press()` does a `mousemove` + `sleep 0.2` before
-  each `mousedown`, so the two presses land ~430 ms apart against
-  `UIContext.DoubleClickMs = 400`. Use one `xdotool` chain instead:
-  ```bash
-  DISPLAY=:99 xdotool mousemove X Y sleep 0.2 mousedown 1 sleep 0.1 mouseup 1 \
-      sleep 0.06 mousedown 1 sleep 0.1 mouseup 1
-  ```
-  A "double-click does nothing" finding is almost always this, not the app. Verify with the
-  chain before writing it down.
-- **Use `viz.sh click`, never a bare `xdotool click`.** Sundex samples the pointer once a
+- **`viz.sh dblclick` lands both presses in ~130 ms**, well inside
+  `UIContext.DoubleClickMs = 400`, since the input commands wait on the trace instead of
+  sleeping. (Before Oct 21 2026 it slept, landed ~430 ms apart and never double-clicked - an
+  old note saying so is stale.)
+- **Use `viz.sh`'s input commands, never bare `xdotool`.** Sundex samples the pointer once a
   frame and fires clicks on release; a 12 ms click falls between frames.
-- **Scroll goes to whatever is under the pointer**, and `viz.sh scroll` does not move it
-  first. `xdotool mousemove X Y`, then `click 4` (up) / `click 5` (down).
+- **Scroll and hover keys go to whatever is under the pointer**, and `viz.sh scroll` does not
+  move it first. `viz.sh move X Y` first: it returns once a frame has seen the pointer there,
+  so hover-driven targets (the instrument editor's scroll cell, `X` cutting the hovered
+  instrument) have caught up.
 - **`--no-audio` is the default.** `VIZ_AUDIO=1` if you are testing playback for real; the
   transport and the playhead work fine without it.
+- **`wait` on a log line, never `sleep`.** Every dialog, track, event and render in the
+  editor logs a line when it lands (SKILL.md, "Wait on the log"). A step that has no line
+  yet is a reason to add one to `EditorScene/Logs.cs`, not to guess a sleep.
 - **`log 100` after any click that did nothing.** Exceptions land in
   `/tmp/tdviz/visualizer.log`; the GL debug output is noisy, so grep rather than tail:
   `grep -aiE "exception|error|unhandled" /tmp/tdviz/visualizer.log | tail`.

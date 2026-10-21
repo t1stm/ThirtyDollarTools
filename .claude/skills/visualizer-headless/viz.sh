@@ -87,11 +87,12 @@ cmd_start() {
         ${w:+-w "$w"} ${h:+-h "$h"} ${f:+-f "$f"} "$@" \
         >"$log" 2>&1 </dev/null &
     echo $! >"$pidfile"
+    echo 0 >"$state/mark"
 
     for _ in $(seq 120); do [ -n "$(win)" ] && break; sleep 0.5; alive || break; done
     [ -n "$(win)" ] || { echo "no window appeared:"; tail -20 "$log"; exit 1; }
-    for _ in $(seq 120); do grep -q "Transitioning to scene: Home" "$log" && break; sleep 0.5; done
-    sleep 2  # the loader fades out into Home, and input is ignored until it lands
+    # Logged once the loader's fade has finished and the --mode scene (Home by default) takes input.
+    cmd_wait '\[Boot\] Handed off to' 60 >/dev/null || true
     cmd_status
 }
 
@@ -124,37 +125,123 @@ cmd_shot() {
     echo "$f"
 }
 
-# Sundex samples pointer state once a frame and fires clicks on release, so a default
-# 12 ms xdotool click can fall between two frames and never register. Hold the button.
-press() {
-    DISPLAY=$disp xdotool mousemove "$1" "$2"; sleep 0.2
-    DISPLAY=$disp xdotool mousedown "${3:-1}"; sleep 0.15
-    DISPLAY=$disp xdotool mouseup "${3:-1}"
+# Each input step waits for the app's input trace (Debug builds; Game.LogInput) to say a frame
+# has handled it, instead of sleeping long enough to be sure. Sundex samples the pointer once a
+# frame and fires clicks on release, so a button let go before any frame saw it down never
+# clicks - hence press, wait, release. A step that times out carries on regardless: a button
+# or key must never be left held.
+step() {
+    local from; from=$(size)
+    DISPLAY=$disp xdotool "${@:2}"
+    wait_past "$from" "$1" 3 >/dev/null || true
 }
 
-cmd_click() { press "$@"; sleep 0.4; echo "clicked $1,$2"; }
-cmd_dblclick() { press "$1" "$2" "${3:-1}"; sleep 0.08; press "$1" "$2" "${3:-1}"; echo "double-clicked $1,$2"; }
+bname() { case $1 in 1) echo left ;; 2) echo middle ;; 3) echo right ;; esac; }
+
+# Returns once a frame has seen the pointer there, so hover-driven targets (scroll, the X
+# cut key) have caught up. A move to where the pointer already is logs nothing; skipped.
+move() {
+    [ "$(DISPLAY=$disp xdotool getmouselocation | grep -o 'x:[0-9]* y:[0-9]*')" = "x:$1 y:$2" ] && return 0
+    step "Pointer at $1, $2\$" mousemove "$1" "$2"
+}
+
+press() {
+    local b=${3:-1}
+    move "$1" "$2"
+    step "Pointer pressed: $(bname "$b")" mousedown "$b"
+    step "Pointer released: $(bname "$b")" mouseup "$b"
+}
+
+cmd_move() { mark; move "$1" "$2"; }
+cmd_click() { mark; press "$@"; echo "clicked $1,$2"; }
+cmd_dblclick() { mark; press "$1" "$2" "${3:-1}"; press "$1" "$2" "${3:-1}"; echo "double-clicked $1,$2"; }
 
 cmd_drag() {
-    local b=${5:-1}
-    DISPLAY=$disp xdotool mousemove "$1" "$2"; sleep 0.2
-    DISPLAY=$disp xdotool mousedown "$b"; sleep 0.15
+    local b=${5:-1} i
+    mark
+    move "$1" "$2"
+    step "Pointer pressed: $(bname "$b")" mousedown "$b"
     # Stepped, so drag handlers that follow the pointer see motion rather than a jump.
-    for i in 1 2 3 4; do
-        DISPLAY=$disp xdotool mousemove $(( $1 + (($3 - $1) * i) / 4 )) $(( $2 + (($4 - $2) * i) / 4 ))
-        sleep 0.05
-    done
-    sleep 0.1; DISPLAY=$disp xdotool mouseup "$b"; echo "dragged $1,$2 -> $3,$4"
+    for i in 1 2 3 4; do move $(($1 + ($3 - $1) * i / 4)) $(($2 + ($4 - $2) * i / 4)); done
+    step "Pointer released: $(bname "$b")" mouseup "$b"
+    echo "dragged $1,$2 -> $3,$4"
 }
 
-cmd_key() { DISPLAY=$disp xdotool windowfocus "$(win)" key --clearmodifiers "$@"; sleep 0.3; }
-cmd_type() { DISPLAY=$disp xdotool windowfocus "$(win)" type --delay 30 "$*"; sleep 0.3; }
+# The OpenTK Keys name the trace logs for an xdotool keysym.
+keyname() {
+    case $1 in
+        Return) echo Enter ;; KP_Enter) echo KeyPadEnter ;; BackSpace) echo Backspace ;;
+        [0-9]) echo "D$1" ;; [a-z]) echo "${1^^}" ;;
+        Prior | Page_Up) echo PageUp ;; Next | Page_Down) echo PageDown ;;
+        ctrl | Control_L) echo LeftControl ;; Control_R) echo RightControl ;;
+        shift | Shift_L) echo LeftShift ;; Shift_R) echo RightShift ;;
+        alt | Alt_L) echo LeftAlt ;; Alt_R) echo RightAlt ;; super | Super_L) echo LeftSuper ;;
+        bracketleft) echo LeftBracket ;; bracketright) echo RightBracket ;; grave) echo GraveAccent ;;
+        *) echo "${1^}" ;;
+    esac
+}
+
+# Sends keydown or keyup for a key or combo, then waits until a frame has seen every part of it.
+keystep() {
+    local from part; from=$(size)
+    DISPLAY=$disp xdotool windowfocus "$(win)" "$1" "$3"
+    for part in ${3//+/ }; do wait_past "$from" "Key $2: $(keyname "$part")\$" 3 >/dev/null || true; done
+}
+
+# Each key or combo is held until a frame has seen it down, so scenes polling KeyboardState
+# catch it too, and released until one has seen it up, so repeating it reads as a new press.
+cmd_key() {
+    local k
+    mark
+    for k in "$@"; do
+        keystep keydown pressed "$k"
+        keystep keyup released "$k"
+    done
+}
+
+# Text arrives as one trace line per character; returns once they are all in. Newlines and
+# tabs type as keys rather than text, so they are not counted.
+cmd_type() {
+    local text="$*" from end n
+    n=${text//[$'\n\t']/}; n=${#n}
+    mark; from=$(size); end=$((SECONDS + 5 + n / 20))
+    DISPLAY=$disp xdotool windowfocus "$(win)" type "$text"
+    until (($(tail -c +$((from + 1)) "$log" | grep -ac 'Text input: ') >= n)); do
+        ((SECONDS < end)) || { echo "timed out typing" >&2; return 1; }
+        sleep 0.01
+    done
+}
+
+# One notch at a time, each waiting for its frame, so none merge or go missing.
 cmd_scroll() {
-    local b=4; [ "${1:-up}" = down ] && b=5
-    DISPLAY=$disp xdotool click --repeat "${2:-3}" --delay 60 $b
+    local b=4 i; [ "${1:-up}" = down ] && b=5
+    mark
+    for ((i = 0; i < ${2:-3}; i++)); do step 'Scrolled ' click $b; done
 }
 
 cmd_log() { tail -n "${1:-40}" "$log"; }
+
+# Every input command marks the log's size before acting, so `wait` only sees what came after.
+# Bytes rather than lines: tail -c seeks straight there, where tail -n re-reads the GL-noisy log.
+size() { stat -c %s "$log" 2>/dev/null || echo 0; }
+mark() { size >"$state/mark"; }
+
+# Blocks until a log line past byte $1 matches the ERE $2 and prints it; fails after $3 s.
+# Process substitution, not a pipe: under pipefail a grep -m1 that matches still fails the
+# pipe once tail takes the SIGPIPE.
+wait_past() {
+    local end=$((SECONDS + $3))
+    while ((SECONDS < end)); do
+        grep -m1 -aE "$2" <(tail -c +"$(($1 + 1))" "$log") && return 0
+        alive || { echo "app is not running" >&2; return 1; }
+        sleep 0.01
+    done
+    echo "timed out after $3 s waiting for: $2" >&2
+    return 1
+}
+
+# Waits on a line that came after the last input command (or start); see SKILL.md.
+cmd_wait() { wait_past "$(cat "$state/mark" 2>/dev/null || echo 0)" "$1" "${2:-10}"; }
 
 vnc_alive() { [ -f "$state/vnc.pid" ] && kill -0 "$(cat "$state/vnc.pid")" 2>/dev/null; }
 
@@ -170,7 +257,7 @@ cmd_vnc() {
 }
 
 case "${1:-}" in
-    start|stop|status|shot|click|dblclick|drag|key|type|scroll|log|vnc) c=$1; shift; "cmd_$c" "$@" ;;
+    start|stop|status|shot|move|click|dblclick|drag|key|type|scroll|log|wait|vnc) c=$1; shift; "cmd_$c" "$@" ;;
     restart) shift; cmd_stop; cmd_start "$@" ;;
     *) sed -n '/^case /,/^esac/p' "$0" | head -3; echo "see SKILL.md"; exit 1 ;;
 esac
