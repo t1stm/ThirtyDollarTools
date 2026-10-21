@@ -70,7 +70,7 @@ public class EditorPlayback
     {
         _workflow = workflow;
         _state = state;
-        _wave = new WavePlayback(workflow.SequencePlayer.AudioContext, workflow.Logger, SetError);
+        _wave = new WavePlayback(workflow.SequencePlayer.AudioContext, state.Logger, SetError);
         Encoder = new PcmEncoder(workflow.SampleHolder, workflow.EncoderSettings,
             indexReport: (done, total) =>
             {
@@ -356,7 +356,7 @@ public class EditorPlayback
 
         if (!done.IsCompletedSuccessfully)
         {
-            _workflow.Logger.Error("[Editor Playback] Preview render failed: {Exception}", done.Exception);
+            _state.Logger.PreviewRenderFailed(done.Exception);
             _combo = null; // the next preview retries instead of replaying the failure
             return;
         }
@@ -442,12 +442,13 @@ public class EditorPlayback
                 StatusDone = 0;
                 StatusTotal = 0;
                 Encoder.WriteAsWavFile(path, rendered.Audio);
+                _state.Logger.Exported(path);
 
                 _lastAlertedError = null;
             }
             catch (Exception e)
             {
-                _workflow.Logger.Error("[Editor Playback] WAV export failed: {Exception}", e);
+                _state.Logger.ExportFailed(e, path);
                 SetError($"WAV export failed:\n{e.Message}");
             }
             finally
@@ -535,6 +536,7 @@ public class EditorPlayback
         var project = _state.Project;
         var full = project.ToSequence(c => !_state.IsMuted(c));
         var solo = _state.AnySoloed ? project.ToSequence(_state.IsSoloed) : null;
+        var stopwatch = Stopwatch.StartNew();
 
         Task.Run(async () =>
         {
@@ -560,11 +562,12 @@ public class EditorPlayback
                     Upload(_rendered, startPlayback);
                 }
 
+                _state.Logger.RenderFinished(stopwatch.ElapsedMilliseconds);
                 _lastAlertedError = null;
             }
             catch (Exception e)
             {
-                _workflow.Logger.Error("[Editor Playback] Render failed: {Exception}", e);
+                _state.Logger.RenderFailed(e);
                 SetError($"Render failed:\n{e.Message}");
             }
             finally

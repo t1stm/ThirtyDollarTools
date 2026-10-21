@@ -477,6 +477,8 @@ public class Loader : Scene, IGamePreloadable
         if (fade < 1f) return;
         _exitClock.Stop();
         SceneManager.TransitionTo(ExitTo);
+        // The scene is fully up and taking input from here; viz.sh start waits on this line.
+        Logger.Information("[Boot] Handed off to {Scene}", ExitTo);
     }
 
     /// <summary>

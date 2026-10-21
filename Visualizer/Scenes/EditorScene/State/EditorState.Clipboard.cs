@@ -68,6 +68,7 @@ public partial class EditorState
                 () => faithful.Items.RemoveRange(at, pasted.Length),
                 () => faithful.Items.InsertRange(at, pasted));
             Touch();
+            Logger.Pasted(pasted.Length, "items");
             return;
         }
 
@@ -100,6 +101,7 @@ public partial class EditorState
                     foreach (var (segment, note) in pasted) segment.Notes.Add(note);
                 });
             Touch();
+            Logger.Pasted(pasted.Count, "notes");
         }
         else if (_clipboard.Placements is { } placementEntries)
         {
@@ -119,6 +121,7 @@ public partial class EditorState
                     foreach (var placement in pasted) Project.AddPlacement(placement);
                 });
             Touch();
+            Logger.Pasted(pasted.Length, "clips");
         }
     }
 
@@ -156,6 +159,7 @@ public partial class EditorState
                     foreach (var (_, item) in snapshot) faithful.Items.Remove(item);
                 });
             Touch();
+            Logger.Deleted(snapshot.Length, "items");
             return;
         }
 
@@ -181,6 +185,7 @@ public partial class EditorState
                     foreach (var (segment, note) in snapshot) segment.Notes.Remove(note);
                 });
             Touch();
+            Logger.Deleted(snapshot.Length, "notes");
         }
         else if (_placements.Count > 0)
         {
@@ -199,6 +204,7 @@ public partial class EditorState
                     foreach (var placement in snapshot) Project.RemovePlacement(placement);
                 });
             Touch();
+            Logger.Deleted(snapshot.Length, "clips");
         }
     }
 

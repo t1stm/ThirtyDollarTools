@@ -41,6 +41,7 @@ public partial class EditorState
         track.Items.Insert(index, item);
         _undoHistory.PushInsert(track.Items, item, index);
         Touch();
+        Logger.ItemAdded(index, item.Note?.Instrument.Name ?? item.Action?.SoundEvent, track.Items.Count);
     }
 
     public void AppendItem(FaithfulTrack track, FaithfulItem item)

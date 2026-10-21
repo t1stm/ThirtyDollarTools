@@ -2,6 +2,7 @@ using EditorScene.Scenes.Components;
 using EditorScene.State;
 using JetBrains.Annotations;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Shared;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
@@ -12,6 +13,7 @@ using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using Sundex.Markup;
 using Sundex.Markup.Attributes;
+using Serilog.Extensions.Logging;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Layout;
@@ -66,6 +68,7 @@ public partial class EditorInterface
         _context = context;
         _workflow = workflow;
         OnBack = back;
+        State = new EditorState { Logger = new SerilogLoggerFactory(workflow.Logger).CreateLogger("Editor") };
 
         var sundexContext = new SundexContext(context);
 
@@ -164,7 +167,7 @@ public partial class EditorInterface
 
         RootPanel.DrawTo(context);
         _dialogHost = new DialogHost(context, RootPanel);
-        _projectIo = new ProjectIO(State, _dialogHost, workflow.Logger) { OnSaved = RefreshTitle };
+        _projectIo = new ProjectIO(State, _dialogHost, State.Logger) { OnSaved = RefreshTitle };
 
         _defaultTitle = workflow.Game.Title;
 
@@ -257,7 +260,7 @@ public partial class EditorInterface
     /// <summary>Model edits handed back from background work; drained in <see cref="Update" />.</summary>
     private readonly ConcurrentQueue<Action> _pendingEdits = new();
 
-    public EditorState State { get; } = new();
+    public EditorState State { get; }
     public EditorPlayback Playback { get; }
 
     private Action OnBack { get; }
@@ -528,12 +531,37 @@ public partial class EditorInterface
 
         RootPanel.Update(context);
         RootPanel.Layout();
+        LogDialogChanges();
 
         // Last, and every frame while fading: the stylesheet re-runs during the update pass
         // and puts the styled alpha straight back.
         if (Alpha >= 1f && _appliedAlpha >= 1f) return;
         _alpha.Apply(RootPanel, Alpha);
         _appliedAlpha = Alpha;
+    }
+
+    private List<ModalLayer> _openModals = [];
+
+    /// <summary>
+    ///     Logs each modal mounting and unmounting. Every way a dialog opens - DialogHost, the
+    ///     instrument workflow's own layers, the sound filter, the track context menu - ends on
+    ///     the root panel, so diffing its modals once a frame catches all of them. Debug builds
+    ///     only, like the lines it writes.
+    /// </summary>
+    [Conditional("DEBUG")]
+    private void LogDialogChanges()
+    {
+        var open = RootPanel.Children.OfType<ModalLayer>().ToList();
+        foreach (var modal in open.Except(_openModals)) State.Logger.DialogOpened(DialogName(modal));
+        foreach (var modal in _openModals.Except(open)) State.Logger.DialogClosed(DialogName(modal));
+        _openModals = open;
+    }
+
+    /// <summary>The modal's id, else its content's (a dialog's markup root), else its type.</summary>
+    private static string DialogName(ModalLayer modal)
+    {
+        var id = modal.ID.Length > 0 ? modal.ID : modal.Children.FirstOrDefault()?.ID;
+        return string.IsNullOrEmpty(id) ? modal.GetType().Name : id;
     }
 
     /// <summary>

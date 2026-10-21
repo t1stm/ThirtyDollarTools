@@ -1,4 +1,4 @@
-using Serilog.Core;
+using Microsoft.Extensions.Logging.Abstractions;
 using Shared.Audio.Null;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Encoder.PCM;
@@ -39,7 +39,7 @@ public class WavePlaybackSyncTests : IDisposable
 
     private WavePlayback NewPlayback()
     {
-        return new WavePlayback(new NullAudioContext(), Logger.None, _errors.Add);
+        return new WavePlayback(new NullAudioContext(), NullLogger.Instance, _errors.Add);
     }
 
     private (ThirtyDollarProject Project, TrackPlacement Placement) ProjectWithClip(double startQuarters = 0)

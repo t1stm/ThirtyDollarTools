@@ -15,6 +15,7 @@ public partial class EditorState
             () => Project.RemovePlacement(placement),
             () => Project.AddPlacement(placement));
         Touch();
+        Logger.ClipPlaced(track.Name, channel, startQuarterNotes);
         return placement;
     }
 

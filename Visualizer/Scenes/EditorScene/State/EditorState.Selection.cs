@@ -16,7 +16,11 @@ public partial class EditorState
 
     public EditorState()
     {
-        _tracks.Changed += track => OnSelectionChanged?.Invoke(track);
+        _tracks.Changed += track =>
+        {
+            OnSelectionChanged?.Invoke(track);
+            Logger.TrackSelected(track?.Name, _tracks.Count);
+        };
         _placements.Changed += placement => OnPlacementSelectionChanged?.Invoke(placement);
         _items.Changed += item => OnItemSelectionChanged?.Invoke(item);
         _notes.Changed += note =>

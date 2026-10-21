@@ -1,4 +1,4 @@
-using Serilog;
+using Microsoft.Extensions.Logging;
 using Shared.Audio;
 using System.Collections.Concurrent;
 using ThirtyDollarConverter.Editor;
@@ -245,7 +245,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
         }
         catch (Exception e)
         {
-            logger.Error("[Editor Playback] Couldn't read wave file \"{Path}\": {Exception}", path, e);
+            logger.WaveReadFailed(e, path);
             onError($"Couldn't read \"{Path.GetFileName(path)}\":\n{e.Message}");
             return null;
         }

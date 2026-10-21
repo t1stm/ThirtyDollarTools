@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 
@@ -30,6 +32,9 @@ public partial class EditorState
 
     public ThirtyDollarProject Project { get; private set; } = new();
 
+    /// <summary>Where the editor's <see cref="Logs" /> lines go; silent unless the interface hands one over.</summary>
+    public ILogger Logger { get; init; } = NullLogger.Instance;
+
     /// <summary>
     ///     Draw (paint/place, single selection on click) or Select (marquee,
     ///     multi-selection). Switching tools keeps the current selection.
@@ -42,6 +47,7 @@ public partial class EditorState
             if (field == value) return;
             field = value;
             OnToolChanged?.Invoke(value);
+            Logger.ToolChanged(value);
         }
     } = EditorTool.Draw;
 
@@ -147,6 +153,7 @@ public partial class EditorState
     public void NewProject()
     {
         Replace(new ThirtyDollarProject());
+        Logger.ProjectCreated();
     }
 
     public void LoadProject(string json)
@@ -223,6 +230,7 @@ public partial class EditorState
         PruneDroppedTracks();
         PruneSelection();
         Touch();
+        Logger.Undone();
     }
 
     public void Redo()
@@ -231,6 +239,7 @@ public partial class EditorState
         PruneDroppedTracks();
         PruneSelection();
         Touch();
+        Logger.Redone();
     }
 
     /// <summary>

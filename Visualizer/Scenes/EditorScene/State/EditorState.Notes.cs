@@ -58,6 +58,7 @@ public partial class EditorState
         segment.Notes.Add(note);
         _undoHistory.PushInsert(segment.Notes, note, segment.Notes.Count - 1);
         Touch();
+        Logger.NoteAdded(step, instrument.Name, value, isCut);
         return note;
     }
 

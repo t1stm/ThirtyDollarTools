@@ -1,11 +1,14 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using OpenTK.Graphics.OpenGL;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Serilog;
+using Serilog.Extensions.Logging;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
@@ -22,6 +25,17 @@ public class Game : GameWindow
     private readonly ILogger _loggerGL;
 
     private GLDebugProc _storedDebugCallback = null!; // exists due to .NET design
+
+    private static readonly (MouseButton Button, string Name)[] TracedButtons =
+        [(MouseButton.Left, "left"), (MouseButton.Middle, "middle"), (MouseButton.Right, "right")];
+
+    // Distinct: Keys has aliases, which would log one press twice.
+    private static readonly Keys[] TracedKeys = [.. Enum.GetValues<Keys>().Where(key => key != Keys.Unknown).Distinct()];
+
+    /// <summary>The input trace's logger and the pointer position it last wrote; see <see cref="LogInput" />.</summary>
+    private readonly Microsoft.Extensions.Logging.ILogger _inputLogger;
+
+    private Vector2 _loggedPointer = new(float.NaN);
     private WindowState _preFullscreenState = WindowState.Normal;
 
 #if DEBUG
@@ -36,6 +50,7 @@ public class Game : GameWindow
 
         Logger = serilogLogger.ForContext<Game>();
         _loggerGL = Logger.ForContext("SourceContext", "OpenGL");
+        _inputLogger = new SerilogLoggerFactory(serilogLogger).CreateLogger("Input");
 
         var callingAssembly = Assembly.GetExecutingAssembly();
         AssetAssemblies = [callingAssembly, .. assemblies];
@@ -293,6 +308,7 @@ public class Game : GameWindow
         {
             Delta = args.Time
         });
+        LogInput();
 
         if (KeyboardState.IsKeyDown(Keys.LeftControl) && KeyboardState.IsKeyDown(Keys.Q))
             Close();
@@ -314,6 +330,45 @@ public class Game : GameWindow
     {
         base.OnTextInput(e);
         SceneManager.TextInput(e);
+        LogTextInput(e);
+    }
+
+    /// <summary>
+    ///     Writes the frame's input once every scene has had it: pointer moves, button and key
+    ///     presses and releases, scroll. Debug builds only, since a moving mouse
+    ///     writes a line a frame. Sampled here rather than in the window callbacks so a line
+    ///     means the polled MouseState/KeyboardState saw it too - what a headless driver has to
+    ///     know before letting go of a button or key (viz.sh in the visualizer-headless skill).
+    /// </summary>
+    [Conditional("DEBUG")]
+    private void LogInput()
+    {
+        var mouse = MouseState;
+        var (x, y) = ((int)mouse.X, (int)mouse.Y);
+        if (mouse.Position != _loggedPointer)
+        {
+            _loggedPointer = mouse.Position;
+            _inputLogger.PointerMoved(x, y);
+        }
+
+        foreach (var (button, name) in TracedButtons)
+        {
+            if (mouse.IsButtonPressed(button)) _inputLogger.PointerPressed(name, x, y);
+            if (mouse.IsButtonReleased(button)) _inputLogger.PointerReleased(name, x, y);
+        }
+
+        if (mouse.ScrollDelta != Vector2.Zero) _inputLogger.Scrolled(mouse.ScrollDelta.X, mouse.ScrollDelta.Y);
+
+        foreach (var key in TracedKeys)
+            if (KeyboardState.IsKeyPressed(key)) _inputLogger.KeyPressed(key);
+            else if (KeyboardState.IsKeyReleased(key)) _inputLogger.KeyReleased(key);
+    }
+
+    /// <summary>Text arrives as events, not polled state, so it is traced as each one lands; see <see cref="LogInput" />.</summary>
+    [Conditional("DEBUG")]
+    private void LogTextInput(TextInputEventArgs e)
+    {
+        _inputLogger.TextEntered(e.AsString);
     }
 
     protected override void OnKeyDown(KeyboardKeyEventArgs e)

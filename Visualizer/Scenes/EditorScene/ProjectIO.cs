@@ -1,6 +1,6 @@
 using EditorScene.State;
 using System.Diagnostics;
-using Serilog;
+using Microsoft.Extensions.Logging;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Dialogs;
@@ -28,10 +28,11 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         try
         {
             state.LoadProjectFromFile(path);
+            logger.ProjectLoaded(path, state.Project.Tracks.Count);
         }
         catch (Exception e)
         {
-            logger.Error("[Editor] Failed to load project \"{Path}\": {Exception}", path, e);
+            logger.LoadFailed(e, path);
             dialogHost.Alert($"Couldn't open \"{Path.GetFileName(path)}\":\n{e.Message}");
         }
     }
@@ -72,11 +73,12 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
                 _ => state.ReplaceWithImportedProject(sequence, name, soundMap)
             };
 
+            logger.Imported(path, mode);
             return result.Warnings;
         }
         catch (Exception e)
         {
-            logger.Error("[Editor] Failed to import \"{Path}\": {Exception}", path, e);
+            logger.ImportFailed(e, path);
             dialogHost.Alert($"Couldn't import \"{Path.GetFileName(path)}\":\n\n{e.Message}");
             return null;
         }
@@ -87,10 +89,11 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         try
         {
             File.WriteAllText(path, SequenceText.Serialize(state.Project.ToSequence(style)));
+            logger.Exported(path);
         }
         catch (Exception e)
         {
-            logger.Error("[Editor] Failed to export \"{Path}\": {Exception}", path, e);
+            logger.ExportFailed(e, path);
             dialogHost.Alert($"Couldn't export \"{Path.GetFileName(path)}\":\n{e.Message}");
         }
     }
@@ -109,11 +112,12 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         {
             state.SaveProjectToFile(path);
             OnSaved?.Invoke();
+            logger.ProjectSaved(path);
             return true;
         }
         catch (Exception e)
         {
-            logger.Error("[Editor] Failed to save project \"{Path}\": {Exception}", path, e);
+            logger.SaveFailed(e, path);
             dialogHost.Alert($"Couldn't save \"{Path.GetFileName(path)}\":\n{e.Message}");
             return false;
         }
@@ -136,7 +140,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         }
         catch (Exception e)
         {
-            logger.Error("[Editor] Failed to write backup: {Exception}", e);
+            logger.BackupFailed(e);
         }
     }
 

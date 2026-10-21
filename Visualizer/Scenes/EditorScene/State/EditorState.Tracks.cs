@@ -22,6 +22,7 @@ public partial class EditorState
         if (!string.IsNullOrWhiteSpace(name)) track.Name = name.Trim();
         track.ColorIndex = colorIndex;
         Touch();
+        Logger.TrackAdded(track.Name, track.Kind);
         return track;
     }
 
@@ -54,6 +55,7 @@ public partial class EditorState
             });
         SelectTrack(track);
         Touch();
+        Logger.TrackAdded(track.Name, track.Kind);
         return track;
     }
 
@@ -94,6 +96,7 @@ public partial class EditorState
         var copy = Project.DuplicateTrack(track, name);
         SelectTrack(copy);
         Touch();
+        Logger.TrackAdded(copy.Name, copy.Kind);
         return copy;
     }
 
@@ -148,6 +151,7 @@ public partial class EditorState
             },
             () => Project.RemoveTrack(track));
         Touch();
+        Logger.TrackRemoved(track.Name);
         return true;
     }
 
@@ -184,6 +188,7 @@ public partial class EditorState
                 Project.AddPlacement(placement);
             });
         Touch();
+        Logger.TrackAdded(track.Name, track.Kind);
         return result;
     }
 
@@ -245,6 +250,7 @@ public partial class EditorState
             });
 
         Touch();
+        Logger.TrackConverted(converted.Name, converted.Kind);
         return converted;
 
         // Whatever pointed at the track that just went away has to point at the one that
@@ -275,17 +281,19 @@ public partial class EditorState
             ? last
             : InstrumentsOf(track).FirstOrDefault();
         OnOpenedTrackChanged?.Invoke(track);
+        Logger.TrackOpened(track.Name, track.Kind);
     }
 
     public void CloseTrack()
     {
-        if (OpenedTrack == null) return;
+        if (OpenedTrack is not { } track) return;
         OpenedTrack = null;
         SelectSegment(null);
         SelectNote(null);
         SelectItem(null);
         CopiedModifiers = null;
         OnOpenedTrackChanged?.Invoke(null);
+        Logger.TrackClosed(track.Name);
     }
 
     public void RenameTrack(ProjectTrack track, string name)
