@@ -81,9 +81,16 @@ public partial class EditorInterface
         return _dialogHost.TryConfirmTop();
     }
 
+    /// <summary>A dropped project file. Asks first when the open project has unsaved changes.</summary>
     public void LoadProjectFile(string location)
     {
-        _projectIo.Load(location);
+        AskToSave(OpenTitle, Load, Load);
+        return;
+
+        void Load()
+        {
+            _projectIo.Load(location);
+        }
     }
 
     /// <summary>
@@ -175,21 +182,36 @@ public partial class EditorInterface
     /// <summary>Back button / Escape: leaves directly when clean, otherwise asks first.</summary>
     public void RequestBack()
     {
+        AskToSave("Save before leaving?", PerformBack, () =>
+        {
+            DiscardChanges();
+            PerformBack();
+        });
+    }
+
+    private const string OpenTitle = "Save before opening another project?";
+
+    /// <summary>
+    ///     Runs <paramref name="proceed" /> straight away when nothing is unsaved. Otherwise asks:
+    ///     Save saves and then proceeds (not when the save failed or its dialog was cancelled),
+    ///     Discard runs <paramref name="discard" />, Cancel leaves everything as it was.
+    /// </summary>
+    private void AskToSave(string title, Action proceed, Action discard)
+    {
         if (!State.Dirty)
         {
-            PerformBack();
+            proceed();
             return;
         }
 
-        var dialog = new UnsavedChangesDialog(_context, State.Project.Info.Name, State.ProjectPath);
+        var dialog = new UnsavedChangesDialog(_context, State.Project.Info.Name, State.ProjectPath, title);
         var modal = _dialogHost.Show(dialog.Element);
         modal.OnConfirmRequested = _ => Save();
         dialog.SaveButton.OnClick = _ => Save();
         dialog.DiscardButton.OnClick = _ =>
         {
             _dialogHost.Close(modal);
-            DiscardChanges();
-            PerformBack();
+            discard();
         };
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
         dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
@@ -198,7 +220,7 @@ public partial class EditorInterface
         void Save()
         {
             _dialogHost.Close(modal);
-            _projectIo.Save(PerformBack);
+            _projectIo.Save(proceed);
         }
     }
 
@@ -453,11 +475,21 @@ public partial class EditorInterface
         }
     }
 
-    /// <summary>Load/Save, wired from EditorHeader.snx.csx - a .csx only reaches the public surface.</summary>
+    /// <summary>
+    ///     Open/Save, wired from EditorHeader.snx.csx - a .csx only reaches the public surface.
+    ///     Open asks about unsaved changes before the picker, the way leaving the editor does;
+    ///     the changes are only gone once a file is actually picked.
+    /// </summary>
     [UsedImplicitly]
     public void ShowLoadDialog()
     {
-        _dialogHost.ShowFileDialog("Open project", null, ".tdwproj", LoadProjectFile);
+        AskToSave(OpenTitle, Pick, Pick);
+        return;
+
+        void Pick()
+        {
+            _dialogHost.ShowFileDialog("Open project", null, ".tdwproj", _projectIo.Load);
+        }
     }
 
     [UsedImplicitly]
@@ -470,14 +502,7 @@ public partial class EditorInterface
     [UsedImplicitly]
     public void NewProject()
     {
-        if (!State.Dirty)
-        {
-            State.NewProject();
-            return;
-        }
-
-        _dialogHost.Confirm("Starting a new project discards unsaved changes.\nContinue?",
-            State.NewProject, confirmLabel: "New project", confirmClass: "dialog-button-primary");
+        AskToSave("Save before starting a new project?", State.NewProject, State.NewProject);
     }
 
     [UsedImplicitly]
