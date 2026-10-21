@@ -1,3 +1,4 @@
+using EditorScene.Scenes.Components;
 using EditorScene.State;
 using OpenTK.Mathematics;
 using Shared.Renderer.Planes;
@@ -5,11 +6,12 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
+using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes.Layout;
 
 /// <summary>
-///     The scrollable track list docked in the track column, with its "+ Add track"
+///     The scrollable track list docked in the track column, with its "Add track"
 ///     trailer row.
 /// </summary>
 public sealed class TrackListPanel : ScrollView
@@ -36,19 +38,21 @@ public sealed class TrackListPanel : ScrollView
         ID = "track-list";
 
         // The fill and its hover state come from the menu-row class - no ColoredPlane to
-        // swap by hand.
-        _addTrackRow = new Button(context, "+ Add track")
+        // swap by hand. The key chip stands where the "+" used to.
+        _addTrackRow = KeyChip.Add(new Button(context, "Add track")
         {
             Classes = ["menu-row"],
             OnClick = _ => (OnAddTrack ?? (() => state.AddTrack()))()
-        };
+        }, Keybinds.Get(Bind.EditorAddTrack).ToString());
         AddChild(_addTrackRow);
+        // Never unsubscribed, like the hint bar's: the editor lives as long as the process.
+        Keybinds.Changed += () => KeyChip.SetKey(_addTrackRow, Keybinds.Get(Bind.EditorAddTrack).ToString());
     }
 
     public Action<ProjectTrack, float, float>? OnContextMenu { get; set; }
 
     /// <summary>
-    ///     What "+ Add track" does. Set by <see cref="Scenes.EditorInterface" /> to ask which
+    ///     What "Add track" does. Set by <see cref="Scenes.EditorInterface" /> to ask which
     ///     kind first (<see cref="Scenes.Dialogs.TrackTypeDialog" />); unset, the row adds a
     ///     piano-roll track outright - this panel has no <see cref="Scenes.Dialogs.DialogHost" />
     ///     of its own.

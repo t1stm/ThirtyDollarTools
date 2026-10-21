@@ -92,8 +92,8 @@ class transport-buttons-row {
     spacing = 8;
 }
 
-// The transport's own buttons. Standalone rather than menu-button plus a width class:
-// menu-button pins height to 24 and these size to their text.
+// The transport's own buttons. Standalone rather than header-button plus a width class:
+// header-button pins height to 28 and these size to their text.
 class transport-button {
     font-size = 13;
     border-radius = 6;
@@ -113,9 +113,66 @@ class transport-full {
     width = 100%;
 }
 
+// ---------------------------------------------------------------- Draw / Select
+
+// The top bar's Draw/Select switch (ToolSwitch): a recessed track holding the two tools.
+class tool-switch {
+    direction = "horizontal";
+    vertical-align = "center";
+    padding = 2;
+    spacing = 2;
+    border-radius = 9;
+    background = $theme.input_background;
+}
+
+// One tool's shape: 26 tall, the 18 px chip 4 in from the top, bottom and left. Its fill is
+// exactly one of the three classes below, swapped as EditorState.ActiveTool changes - a
+// runtime state, not a hover/press one - so the idle one's hover is the only override there is.
+class tool-segment {
+    height = 26;
+    padding = 4;
+    direction = "horizontal";
+    vertical-align = "center";
+    horizontal-align = "start";
+    border-radius = 7;
+}
+
+class tool-segment-idle {
+    background = "#00000000";
+
+    state[hovered] = {
+        background = $theme.divider;
+    }
+}
+
+// Draw's: the primary accent, white text (light-label on its icon and name).
+class tool-segment-draw {
+    background = $theme.accent;
+}
+
+// Select's: the yellow, light enough that its text goes dark (dark-label).
+class tool-segment-select {
+    background = $theme.accent_yellow;
+}
+
+// The icon and the folded name. tool-segment-text is the idle shade; light-label or
+// dark-label after it are the active ones.
+class tool-segment-icon {
+    font-size = 15;
+}
+
+class tool-segment-name {
+    font-size = 13;
+}
+
+class tool-segment-text {
+    font-color = $theme.text_dim;
+}
+
 // ---------------------------------------------------------------- grid tool bars
 
-// The slim bar above each grid view holding the Draw/Select toggles.
+// The slim bar above the note editor and the faithful editor: back, the track's name, and
+// the note editor's instrument.
 class tool-bar {
     width = 100%;
     height = 40;
@@ -123,24 +180,11 @@ class tool-bar {
     padding = 6;
 }
 
-// A Draw/Select toggle at rest. The active highlight is one of the two classes below,
-// added and removed by EditorInterface.AdoptToolButton as EditorState.ActiveTool
-// changes - a runtime state, not a hover/press one, so it can't be a state[] block.
+// A small filled button that sits in a bar (the faithful palette's "Modify").
 class tool-button {
     font-size = 12;
     border-radius = 6;
     background = $theme.surface;
-}
-
-// Draw's highlight: the primary accent, white label.
-class tool-button-draw-active {
-    background = $theme.accent;
-}
-
-// Select's: the yellow, light enough that its label needs darkening (dark-label goes
-// on the button's Label alongside tool-label).
-class tool-button-select-active {
-    background = $theme.accent_yellow;
 }
 
 // The label inside a tool button - carries the color, since font-color isn't one of the
@@ -295,7 +339,7 @@ class follow-label-active {
 
 // The opened track's name field in the note editor's bar. Percent, not a fixed 220: it
 // is the bar's only percent-width child, so it takes whatever the fixed ones leave and
-// shrinks instead of pushing the Draw/Select toggles over the inspector - which is what
+// shrinks instead of pushing the bar's other children over the inspector - which is what
 // a 220 px field did below ~1160 px of window.
 id opened-track-name {
     width = 100%;

@@ -30,21 +30,21 @@ id main-holder {
 // Track column and grid area heights/widths are set from
 // EditorInterface.Resize - the window remainder isn't expressible here.
 id track-column {
-    y = 32;
+    y = 40;
     width = $theme.track_column_width;
     background = $theme.panel;
 }
 
 id grid-area {
     x = $theme.track_column_width;
-    y = 32;
+    y = 40;
     direction = "horizontal";
 }
 
 // X is set from EditorInterface.Resize (window remainder). Width must match
 // InspectorPanel.PanelWidth.
 id inspector-column {
-    y = 32;
+    y = 40;
     width = 300;
     background = $theme.panel;
 }
@@ -53,11 +53,11 @@ id inspector-column {
 //
 // A tag rule applies to EVERY element of that kind, and since code-built elements are
 // styled now too, that means the hundreds of labels the grid views pool and every
-// button whose fill is owned by code - the Draw/Select toggles tint themselves from
+// button whose fill is owned by code - the Draw/Select switch's tools tint themselves from
 // EditorState.ActiveTool, and a `background` here would be re-created underneath them
 // on the next hover, dropping the active tint. A `font-size` here would likewise
 // overrule every label that set its own.
 //
 // So every look is a class or an id. What used to live here - the blue button fill and
-// the 16px label default - was already dead: all three menu-bar buttons carry
-// menu-button, and every label in this file sets its own size.
+// the 16px label default - was already dead: every top-bar button carries its own class,
+// and every label in this file sets its own size.

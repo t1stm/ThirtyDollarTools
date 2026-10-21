@@ -4,9 +4,8 @@
 
   <layout>
     <flex id="faithful-panel" class="grid-panel">
-      <!-- Same bar as the note editor's, minus everything that only means something on a
-           grid: no instrument button (the palette is the instrument list) and no
-           Draw/Select tools (there is nothing to draw on). -->
+      <!-- Same bar as the note editor's, minus its instrument button: the palette is the
+           instrument list. -->
       <flex class="tool-bar">
         <button id="back-to-arrangement">
           <label value="← Arrangement"/>
@@ -23,12 +22,6 @@
             <panel class="spacer"/>
             <button id="faithful-follow" class="faithful-follow-button">
               <label class="follow-label" value="Follow scroll"/>
-            </button>
-            <button id="faithful-tool-draw" class="tool-button">
-              <label class="tool-label" value="Draw"/>
-            </button>
-            <button id="faithful-tool-select" class="tool-button">
-              <label class="tool-label" value="Select"/>
             </button>
           </flex>
           <faithful-sequence/>

@@ -1,10 +1,13 @@
 using JetBrains.Annotations;
 using OpenTK.Windowing.Common;
+using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using EditorScene.Scenes.Components;
 using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Views;
+using VisualizerScene.Settings;
 
 namespace EditorScene.Scenes;
 
@@ -20,6 +23,9 @@ public partial class EditorInterface
     ///     right-press is level-triggered, so a stationary right-click keeps firing.
     /// </summary>
     private DropdownMenu? _trackContextMenuModal;
+
+    /// <summary>The open project menu, if any - so a second open while it is up does nothing.</summary>
+    private DropdownMenu? _projectMenu;
 
     /// <summary>Same lazy-fill guard as <see cref="InstrumentEditor.EnsureSounds" />, for the filter picker.</summary>
     private void EnsureSoundFilterItems()
@@ -496,6 +502,56 @@ public partial class EditorInterface
     public void SaveProject()
     {
         _projectIo.Save();
+    }
+
+    public void SaveProjectAs()
+    {
+        _projectIo.SaveAs();
+    }
+
+    /// <summary>"Add track" and its key: asks which kind, see <see cref="ShowTrackTypeDialog" />.</summary>
+    public void AddTrack()
+    {
+        ShowTrackTypeDialog();
+    }
+
+    /// <summary>
+    ///     The menu under the project's name in the top bar: every file action, each with its key.
+    ///     Export is only here - the bar keeps Save, and New and Open while the project is new.
+    /// </summary>
+    [UsedImplicitly]
+    public void ShowProjectMenu(Button anchor)
+    {
+        if (_projectMenu != null) return;
+
+        var menu = DropdownMenu.Below(anchor);
+        menu.ID = "project-menu";
+        Item("New project", Bind.EditorNew, NewProject);
+        Item("Open…", Bind.EditorOpen, ShowLoadDialog);
+        menu.Menu.AddChild(new Panel(_context) { Classes = ["menu-rule"] });
+        KeyChip.SetLit(Item("Save", Bind.EditorSave, SaveProject), State.Dirty);
+        Item("Save As…", Bind.EditorSaveAs, SaveProjectAs);
+        Item("Export…", Bind.EditorExport, ShowExportDialog);
+
+        // The name keeps its hovered fill while its menu hangs from it.
+        anchor.SetClass("header-menu-button-open", true);
+        menu.OnDismissRequested = m =>
+        {
+            _dialogHost.Root.RemoveChild(m);
+            anchor.SetClass("header-menu-button-open", false);
+            _projectMenu = null;
+        };
+        _dialogHost.Root.AddChild(menu);
+        _projectMenu = menu;
+        return;
+
+        DropdownItem Item(string text, Bind bind, Action action)
+        {
+            var item = KeyChip.Add(menu.AddItem(text, action), Keybinds.Get(bind).ToString());
+            item.SetClass("menu-key-item", true);
+            item.Children[0].SetClass("key-chip-menu", true);
+            return item;
+        }
     }
 
     /// <summary>Discards the open project, so it asks first when there is unsaved work.</summary>

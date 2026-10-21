@@ -14,7 +14,4 @@ ctx.FaithfulTrackName.OnValueChanged = input =>
 };
 Component.GetID<Button>("back-to-arrangement").OnClick = _ => ctx.State.CloseTrack();
 
-// Same Draw/Select pair the two grid panels carry, on the one shared EditorState.ActiveTool.
-ctx.AdoptToolButton(Component.GetID<Button>("faithful-tool-draw"), EditorTool.Draw);
-ctx.AdoptToolButton(Component.GetID<Button>("faithful-tool-select"), EditorTool.Select);
 ctx.AdoptFollowButton(Component.GetID<Button>("faithful-follow"));

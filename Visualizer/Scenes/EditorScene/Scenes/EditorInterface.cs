@@ -25,7 +25,7 @@ namespace EditorScene.Scenes;
 
 public partial class EditorInterface
 {
-    private const float HeaderHeight = 32;
+    private const float HeaderHeight = 40;
     private const float TrackColumnWidth = 260;
 
     private readonly ArrangementView _arrangement;
@@ -41,8 +41,9 @@ public partial class EditorInterface
     private readonly LaneHeader _laneHeader;
     private readonly PlayfieldSettings _playfieldLook;
     private readonly ProjectIO _projectIo;
+    private readonly EditorHeaderController _header;
     private readonly SoundPicker _soundFilterPicker;
-    private readonly List<(Button Button, EditorTool Tool)> _toolButtons = [];
+    private readonly ToolSwitch _toolSwitch;
     private readonly Panel _trackColumn;
     private readonly TrackEditorView _trackEditor;
     private readonly TrackListPanel _trackList;
@@ -101,6 +102,8 @@ public partial class EditorInterface
         faithfulScale.Changed += _faithfulPalette.RefreshScale;
         _soundFilterPicker = new SoundPicker(context, workflow.AtlasStore)
             { ID = "sound-filter-picker", MultiSelect = true };
+        _toolSwitch = new ToolSwitch(context) { OnPick = SelectTool, OnHint = SetHint };
+        _toolSwitch.SetActive(State.ActiveTool);
 
         // Built here rather than inside the factories because LaneHeader takes the
         // ArrangementView and factories fire in document order, with <lane-header/> ahead
@@ -135,18 +138,17 @@ public partial class EditorInterface
         _gridArea = (FlexPanel)ids["grid-area"];
         _inspectorColumn = (Panel)ids["inspector-column"];
 
-        // Fired by AdoptToolButton's registrations, which the two grid panels' logic makes
-        // below - the handler reads _toolButtons per fire, so order does not matter.
+        // Every change of tool, whichever way it came, shows the new one's name for a moment.
         State.OnToolChanged += tool =>
         {
-            foreach (var (button, buttonTool) in _toolButtons)
-                SetToolActive(button, buttonTool, buttonTool == tool);
+            _toolSwitch.SetActive(tool);
+            _toolSwitch.Peek(tool);
         };
 
         // Runs every component's logic depth-first, then verifies that no [SetFromLogic]
         // property was left null. The getters catch one nulled back out during logic.
         sundexContext.RunLogicAndVerify(Component,
-            () => ProjectName, () => ProjectBpm,
+            () => Header,
             () => TransportProgress, () => TransportElapsed, () => TransportTotal, () => TransportPlay,
             () => HintBar, () => HintGutter, () => HintLines, () => HintLabel,
             () => ArrangementPanel, () => TrackEditorPanel, () => OpenedTrackName, () => InstrumentButton,
@@ -157,6 +159,7 @@ public partial class EditorInterface
             TransportProgress, TransportElapsed, TransportTotal, TransportPlay);
         _hint = new HintBarController(context, HintBar, HintGutter, HintLines, HintLabel, _gridArea, HeaderHeight);
         _hint.SetView(LaneHeader.GutterWidth, false); // Resize re-lays it once the window size is known
+        _header = new EditorHeaderController(Header, State, _toolSwitch);
 
         // Both panels are in the markup so one pass resolves their handles; only the
         // current one stays attached. Detached before the first DrawTo, so the note editor
@@ -281,8 +284,8 @@ public partial class EditorInterface
     // Assigned by each region's .snx.csx. They live flat on this class rather than on the
     // controllers because RunLogicAndVerify only reflects over the one target type - a
     // nested object's properties are never checked.
-    [SetFromLogic] public Label ProjectName { get; set; } = null!;
-    [SetFromLogic] public Label ProjectBpm { get; set; } = null!;
+    /// <summary>The top bar's document; <see cref="EditorHeaderController" /> takes its handles from it.</summary>
+    [SetFromLogic] public SundexComponent Header { get; set; } = null!;
 
     [SetFromLogic] public ProgressBar TransportProgress { get; set; } = null!;
     [SetFromLogic] public Label TransportElapsed { get; set; } = null!;
@@ -369,16 +372,13 @@ public partial class EditorInterface
     private bool NoteEditorOpen => _openPanel == TrackEditorPanel;
 
     /// <summary>
-    ///     Takes over a markup-built Draw/Select toggle; every adopted button then follows
-    ///     State.OnToolChanged (see ctor). Public because the two grid panels' .snx.csx
-    ///     call it, and a script only reaches the public surface.
+    ///     A click on the switch or the tool's key. Picking the tool that is already active
+    ///     still shows its name - nothing changes, so the change handler would not.
     /// </summary>
-    [UsedImplicitly]
-    public void AdoptToolButton(Button button, EditorTool tool)
+    public void SelectTool(EditorTool tool)
     {
-        SetToolActive(button, tool, State.ActiveTool == tool);
-        button.OnClick = _ => State.ActiveTool = tool;
-        _toolButtons.Add((button, tool));
+        if (State.ActiveTool == tool) _toolSwitch.Peek(tool);
+        else State.ActiveTool = tool;
     }
 
     /// <summary>
@@ -396,20 +396,9 @@ public partial class EditorInterface
     }
 
     /// <summary>
-    ///     Adds or removes a toggle's highlight class: Draw's is blue, Select's is a yellow
-    ///     light enough that its label needs darkening (dark-label) to stay readable.
-    /// </summary>
-    private static void SetToolActive(Button button, EditorTool tool, bool active)
-    {
-        var select = tool == EditorTool.Select;
-        button.SetClass(select ? "tool-button-select-active" : "tool-button-draw-active", active);
-        button.Label.SetClass("dark-label", active && select);
-    }
-
-    /// <summary>
     ///     How much of an instrument's name the tool bar's button shows. The button is the
     ///     bar's only auto-width child, so an untruncated name grows the bar without bound and
-    ///     pushes the Draw/Select toggles over the inspector. The full name is in the selector
+    ///     pushes itself over the inspector. The full name is in the selector
     ///     this button opens.
     /// </summary>
     private const int InstrumentNameLimit = 14;
@@ -450,8 +439,7 @@ public partial class EditorInterface
 
     private void RefreshProject()
     {
-        ProjectName.SetTextContents(State.Project.Info.Name);
-        ProjectBpm.SetTextContents($"{State.Project.RootTiming.BPM:0.##} BPM");
+        _header.RefreshProject(State.Project.Info.Name, $"{State.Project.RootTiming.BPM:0.##} BPM");
         RefreshTitle();
 
         _trackList.Rebuild();
@@ -496,6 +484,9 @@ public partial class EditorInterface
         _inspectorColumn.X = width - InspectorPanel.PanelWidth;
         _inspectorColumn.Height = height - HeaderHeight;
         _hint.Resize(gridWidth, height);
+        // Centred on the grid area, the view the tools act on; anchored on its own centre.
+        _toolSwitch.X = TrackColumnWidth + gridWidth / 2;
+        _toolSwitch.Y = HeaderHeight / 2;
 
         // DrawTo (not just Layout): a row whose Visible flips true here (e.g. LaneHeader's
         // M/S toggles, false on the very first pass while grid-area was still 0-height) needs
@@ -530,6 +521,10 @@ public partial class EditorInterface
         _transport.Refresh();
 
         RootPanel.Update(context);
+        // After the update pass, which restyles hovered elements and so resets their alpha,
+        // and before layout, which has to see this frame's widths.
+        _header.Update();
+        _toolSwitch.Animate();
         RootPanel.Layout();
         LogDialogChanges();
 
