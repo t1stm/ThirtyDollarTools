@@ -303,7 +303,13 @@ public sealed class CutTargetDialog
     private void Refresh()
     {
         for (var i = 0; i < _modeRows.Length; i++) Mark(_modeRows[i], (CutTarget)i == Target);
-        foreach (var (instrument, row) in _rows) Mark(row, Target != CutTarget.Every && instrument == Instrument);
+        foreach (var (instrument, row) in _rows)
+        {
+            var marked = Target != CutTarget.Every && instrument == Instrument;
+            Mark(row, marked);
+            // Opening on, or stepping to, an instrument far down the list scrolls to it.
+            if (marked) _list.ScrollIntoView(row);
+        }
 
         // The whole track's sounds for a bare cut; otherwise the instrument's, or the lone sound
         // a "!cut@sound" names when no instrument plays it.

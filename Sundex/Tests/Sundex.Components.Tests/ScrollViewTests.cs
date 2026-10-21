@@ -49,6 +49,29 @@ public class ScrollViewTests
         Assert.Equal(10, firstRow.Computed.AbsoluteY);
     }
 
+    /// <summary>Asked before the first layout, as a dialog does for its starting row while it is built.</summary>
+    [Fact]
+    public void ScrollIntoView_BeforeTheFirstLayout_ShowsTheRowOnceLaidOut()
+    {
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = 800, Height = 600 };
+        var view = new ScrollView(ctx) { X = 10, Y = 10, Width = 200, Height = 100 };
+        root.Children = [view];
+        for (var i = 0; i < 10; i++) view.AddChild(NewRow(ctx, 30));
+
+        view.ScrollIntoView(view.Children[7]); // rows are 30 apart: row 7 spans 210..240
+        root.Layout();
+        Assert.Equal(140, view.ScrollY); // its bottom on the view's bottom edge
+
+        view.ScrollIntoView(view.Children[6]); // 180..210, already in view
+        root.Layout();
+        Assert.Equal(140, view.ScrollY);
+
+        view.ScrollIntoView(view.Children[2]); // 60..90, above the view
+        root.Layout();
+        Assert.Equal(60, view.ScrollY); // its top on the view's top edge
+    }
+
     [Fact]
     public void Wheel_ScrollsAndClamps()
     {

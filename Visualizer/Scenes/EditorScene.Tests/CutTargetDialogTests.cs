@@ -3,6 +3,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
+using Sundex.Components.Scroll;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser.Custom_Events;
 
@@ -120,6 +121,22 @@ public class CutTargetDialogTests
             .Select(label => label.Value.ToString().TrimEnd('\0')).ToArray();
         Assert.Contains("kit", names);
         Assert.DoesNotContain("empty", names);
+    }
+
+    /// <summary>The list opens scrolled to the instrument the cut aims at, however far down it is.</summary>
+    [Fact]
+    public void OpensScrolledToTheCutsInstrument()
+    {
+        Instrument[] many = [.. Enumerable.Range(0, 12).Select(i => Layered($"i{i}", $"s{i}"))];
+        var context = new EditorTestContext();
+        var dialog = new CutTargetDialog(context, context.NewAtlasStore(), many, [], FaithfulItem.Cut(many[^1]));
+        dialog.Element.Layout();
+
+        var list = Walk(dialog.Element).OfType<ScrollView>().Single(view => view.ID == "cut-instrument-list");
+        var row = list.Children[^1];
+        Assert.True(list.ScrollY > 0);
+        Assert.InRange(row.Computed.AbsoluteY + row.Computed.Height, list.Computed.AbsoluteY,
+            list.Computed.AbsoluteY + list.Computed.Height + 0.5f);
     }
 
     [Fact]

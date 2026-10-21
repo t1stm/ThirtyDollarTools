@@ -22,6 +22,7 @@ public class ScrollView : Panel
     private readonly ScrollBar _bar;
     private float[] _heightsCache = [];
     private Vector4i? _inheritedClip;
+    private UIElement? _reveal;
     private float _scrollY;
 
     public ScrollView(UIContext context) : base(context)
@@ -56,6 +57,16 @@ public class ScrollView : Panel
         }
     }
 
+    /// <summary>
+    ///     Scrolls just far enough to show <paramref name="child" /> whole. Applied on the next
+    ///     layout, so it also works before the view's first one, when there is no scroll range yet.
+    /// </summary>
+    public void ScrollIntoView(UIElement child)
+    {
+        _reveal = child;
+        InvalidateLayout();
+    }
+
     public override bool HandleScroll(Vector2 scrollDelta)
     {
         if (MaxScroll <= 0) return false;
@@ -82,6 +93,18 @@ public class ScrollView : Panel
 
         MaxScroll = Math.Max(0, ContentHeight - innerHeight);
         _scrollY = Math.Clamp(_scrollY, 0, MaxScroll);
+
+        // A pending ScrollIntoView, kept until the view has a height to show the child in.
+        if (_reveal != null && innerHeight > 0)
+        {
+            var index = Children.IndexOf(_reveal);
+            var top = 0f;
+            for (var i = 0; i < index; i++) top += heights[i] + Spacing;
+            if (index >= 0 && top < _scrollY) _scrollY = top;
+            else if (index >= 0 && top + heights[index] > _scrollY + innerHeight)
+                _scrollY = Math.Min(top + heights[index] - innerHeight, MaxScroll);
+            _reveal = null;
+        }
 
         var offset = -_scrollY;
         for (var i = 0; i < Children.Count; i++)
