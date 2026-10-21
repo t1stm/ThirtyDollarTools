@@ -3,22 +3,44 @@
   <logic language="csharp" src="Scenes/Layout/Editor Header/EditorHeader.snx.csx" imports="[EditorScene.Scenes]"/>
 
   <layout>
-    <flex id="editor-header">
-      <label id="editor-title" value="Editor"/>
-      <label id="project-name" value="Untitled Project"/>
-      <label id="project-bpm" value=""/>
+    <!-- A plain panel, not a flex: the bar fills it, and the Draw/Select switch
+         EditorHeaderController adds goes on top at the grid area's centre, where a flex would
+         line it up after the bar instead. -->
+    <panel id="editor-header">
+      <flex id="editor-header-bar">
+        <label id="editor-title" value="Editor"/>
 
-      <panel class="header-divider"/>
+        <panel class="header-divider"/>
 
-      <button id="load-button" class="menu-button">
-        <label class="menu-label" value="Load"/>
-      </button>
-      <button id="save-button" class="menu-button">
-        <label class="menu-label" value="Save"/>
-      </button>
-      <button id="export-button" class="menu-button">
-        <label class="menu-label" value="Export"/>
-      </button>
-    </flex>
+        <button id="project-menu-button" class="header-menu-button">
+          <label id="project-name" class="header-menu-label" value="Untitled Project"/>
+        </button>
+        <flex class="info-chip">
+          <label id="project-bpm" class="info-chip-label" value=""/>
+        </flex>
+
+        <!-- Each slot is a plain panel the size of what it holds, so a button can drop into
+             place: the bar positions the slot, and the slot leaves its child where its Y says. -->
+        <panel id="save-slot" class="header-slot">
+          <button id="save-button" class="header-button">
+            <label class="header-button-label" value="Save As"/>
+          </button>
+        </panel>
+
+        <panel class="spacer"/>
+
+        <!-- Only while the project is new and untouched; EditorHeaderController hides it. -->
+        <panel id="file-slot" class="header-slot">
+          <flex id="file-actions">
+            <button id="new-button" class="header-button">
+              <label class="header-button-label" value="New"/>
+            </button>
+            <button id="open-button" class="header-button">
+              <label class="header-button-label" value="Open"/>
+            </button>
+          </flex>
+        </panel>
+      </flex>
+    </panel>
   </layout>
 </sundex>

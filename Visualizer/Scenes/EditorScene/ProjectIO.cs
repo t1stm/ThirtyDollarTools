@@ -46,11 +46,21 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
             return;
         }
 
-        // No path yet means no project folder either, so this opens in the home directory.
-        dialogHost.ShowFileDialog("Save project", $"{state.Project.Info.Name}.tdwproj", ".tdwproj", picked =>
+        SaveAs(andThen);
+    }
+
+    /// <summary>
+    ///     Always asks where, even when the project already has a file; it lives at the picked one
+    ///     afterwards. Opens beside the current file, or in the home directory for a project that
+    ///     has never been saved.
+    /// </summary>
+    public void SaveAs(Action? andThen = null)
+    {
+        var name = state.ProjectPath is { } path ? Path.GetFileName(path) : $"{state.Project.Info.Name}.tdwproj";
+        dialogHost.ShowFileDialog("Save project as", name, ".tdwproj", picked =>
         {
             if (Write(picked)) andThen?.Invoke();
-        }, "Save");
+        }, "Save", Path.GetDirectoryName(state.ProjectPath));
     }
 
     /// <summary>

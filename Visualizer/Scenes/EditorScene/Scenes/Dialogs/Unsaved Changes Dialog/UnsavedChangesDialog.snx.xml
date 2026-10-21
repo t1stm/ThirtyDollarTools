@@ -4,14 +4,16 @@
   <layout>
     <flex id="unsaved-changes-dialog" class="dialog-frame">
       <flex class="dialog-header">
-        <label class="dialog-title" value="Save before leaving?"/>
+        <!-- What is about to happen - leaving, opening another project - is set by
+             UnsavedChangesDialog.cs. -->
+        <label id="unsaved-changes-title" class="dialog-title" value="Save before leaving?"/>
         <panel class="spacer"/>
         <button id="close-button" class="icon-button">
           <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
         </button>
       </flex>
 
-      <!-- The project being left. Its name and where it is saved are set by
+      <!-- The project with the unsaved work. Its name and where it is saved are set by
            UnsavedChangesDialog.cs, and cut off at the card's edge when long. -->
       <flex class="project-card">
         <label class="project-card-icon" font="Lucide" value="&#xe55e;"/>

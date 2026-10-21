@@ -1,4 +1,3 @@
-using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 
@@ -21,7 +20,7 @@ public static class KeyChip
         var label = new Label(context, key, font) { Classes = ["key-chip-label", .. ShadeFor(button)] };
         button.Children =
         [
-            new FlexPanel(context) { Classes = ["key-chip"], Children = [label] },
+            new FlexPanel(context) { Classes = ["key-chip", .. VeilFor(button)], Children = [label] },
             button.Label,
             new Panel(context) { Classes = ["button-tail"] }
         ];
@@ -29,11 +28,44 @@ public static class KeyChip
         return button;
     }
 
+    /// <summary>Renames the key on a button <see cref="Add{T}" /> gave a chip - after a rebind.</summary>
+    public static void SetKey(Button button, string key)
+    {
+        ChipLabel(button)?.SetTextContents(key);
+    }
+
+    /// <summary>
+    ///     Turns the chip amber: the key it names has work waiting on it (Save, with unsaved
+    ///     changes). Both classes go last, so they win over the fill's own shading.
+    /// </summary>
+    public static void SetLit(Button button, bool lit)
+    {
+        if (ChipLabel(button) is not { Parent: FlexPanel chip } label) return;
+        chip.SetClass("key-chip-lit", lit);
+        label.SetClass("key-chip-label-lit", lit);
+    }
+
+    private static Label? ChipLabel(Button button)
+    {
+        return button.Children is [FlexPanel { Children: [Label label] }, ..] ? label : null;
+    }
+
     /// <summary>The chip label's color modifier for the button's fill: dark on a light fill.</summary>
     private static string[] ShadeFor(Button button)
     {
         if (button.Classes.Contains("dialog-button-primary")) return ["key-chip-label-on-accent"];
-        if (button.Classes.Contains("dialog-button")) return ["key-chip-label-on-quiet"];
+        if (button.Classes.Contains("dialog-button") || button.Classes.Contains("header-button") ||
+            button.Classes.Contains("menu-row") || button is DropdownItem)
+            return ["key-chip-label-on-quiet"];
         return [];
+    }
+
+    /// <summary>
+    ///     A menu row's chip takes the light veil: the dark one vanishes on the menu's fill, and
+    ///     the light one shows on its idle and hovered rows alike.
+    /// </summary>
+    private static string[] VeilFor(Button button)
+    {
+        return button is DropdownItem ? ["key-chip-on-card"] : [];
     }
 }

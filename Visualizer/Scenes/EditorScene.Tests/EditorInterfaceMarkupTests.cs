@@ -78,13 +78,14 @@ public class EditorInterfaceMarkupTests
     ///     opens.
     /// </summary>
     [Theory]
-    [InlineData("editor-header", "project-name", "project-bpm", "load-button", "save-button", "export-button")]
+    [InlineData("editor-header", "editor-header", "editor-header-bar", "project-menu-button", "project-name",
+        "project-bpm", "save-slot", "save-button", "file-slot", "file-actions", "new-button", "open-button")]
     [InlineData("transport-section", "transport-progress", "transport-elapsed", "transport-total",
         "transport-play", "transport-stop", "transport-back")]
     [InlineData("hint-bar", "hint-bar", "hint-gutter", "hint-lines", "hint-label")]
-    [InlineData("arrangement-panel", "arrangement-panel", "arrangement-tool-draw", "arrangement-tool-select")]
+    [InlineData("arrangement-panel", "arrangement-panel")]
     [InlineData("track-editor-panel", "track-editor-panel", "opened-track-name", "instrument-button",
-        "back-to-arrangement", "editor-tool-draw", "editor-tool-select")]
+        "back-to-arrangement")]
     [InlineData("faithful-panel", "faithful-panel", "faithful-body", "opened-track-name",
         "back-to-arrangement")]
     [InlineData("inspector-shell", "inspector-panel", "inspector-rows", "inspector-status-bar",

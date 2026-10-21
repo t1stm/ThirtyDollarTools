@@ -17,6 +17,3 @@ Component.GetID<Button>("back-to-arrangement").OnClick = _ => ctx.State.CloseTra
 // The instrument workflow is only constructed after the root is drawn, which is after
 // this runs - the lambda resolves it at click time.
 ctx.InstrumentButton.OnClick = _ => ctx.OpenInstrumentSelector();
-
-ctx.AdoptToolButton(Component.GetID<Button>("editor-tool-draw"), EditorTool.Draw);
-ctx.AdoptToolButton(Component.GetID<Button>("editor-tool-select"), EditorTool.Select);

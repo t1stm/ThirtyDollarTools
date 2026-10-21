@@ -32,6 +32,8 @@ public static class Icons
     public const string KeyboardMusic = "";
     public const string ListMusic = "";
     public const string Check = "";
+    public const string ChevronDown = "";
+    public const string MousePointer2 = "";
 
     /// <summary>Every icon above, for tests that check each one renders.</summary>
     public static readonly (string Name, string Glyph)[] All =
@@ -55,6 +57,8 @@ public static class Icons
         (nameof(Volume2), Volume2),
         (nameof(KeyboardMusic), KeyboardMusic),
         (nameof(ListMusic), ListMusic),
-        (nameof(Check), Check)
+        (nameof(Check), Check),
+        (nameof(ChevronDown), ChevronDown),
+        (nameof(MousePointer2), MousePointer2)
     ];
 }

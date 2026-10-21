@@ -299,10 +299,10 @@ public class Editor : Scene, IFadeInScene
                 state.Redo();
                 return;
             case Bind.EditorDrawTool:
-                state.ActiveTool = EditorTool.Draw;
+                _editorInterface.SelectTool(EditorTool.Draw);
                 return;
             case Bind.EditorSelectTool:
-                state.ActiveTool = EditorTool.Select;
+                _editorInterface.SelectTool(EditorTool.Select);
                 return;
             case Bind.EditorCopy when !textFocused:
                 state.CopySelection();
@@ -342,6 +342,15 @@ public class Editor : Scene, IFadeInScene
                 return;
             case Bind.EditorNew:
                 _editorInterface.NewProject();
+                return;
+            case Bind.EditorSaveAs:
+                _editorInterface.SaveProjectAs();
+                return;
+            case Bind.EditorExport:
+                _editorInterface.ShowExportDialog();
+                return;
+            case Bind.EditorAddTrack:
+                _editorInterface.AddTrack();
                 return;
             case Bind.EditorNudgeLeft:
                 _editorInterface.NudgeSelection(-1, 0);

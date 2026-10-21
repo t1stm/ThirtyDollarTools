@@ -12,16 +12,7 @@
         <button id="instrument-button">
           <label value="Instrument: -"/>
         </button>
-        <!-- No spacer: the name field is the percent-width child, so it soaks up the
-             free space itself and the tool buttons still land flush right. A spacer
-             beside it would take a second 100% share of the same free space (FlexPanel
-             doesn't normalise percentages) and push the tools off the bar. -->
-        <button id="editor-tool-draw" class="tool-button">
-          <label class="tool-label" value="Draw"/>
-        </button>
-        <button id="editor-tool-select" class="tool-button">
-          <label class="tool-label" value="Select"/>
-        </button>
+        <!-- No Draw/Select here: the one switch for every view is in the top bar. -->
       </flex>
       <track-editor-view class="grid-view"/>
     </flex>

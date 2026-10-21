@@ -197,13 +197,26 @@ class light-label {
     font-color = "#ffffff";
 }
 
-// The subtle-filled button used for chrome that isn't a dialog action: the menu bar,
-// the transport controls. Reads as a surface you can click rather than as a call to
-// action.
-class menu-button {
+// A chip whose key has work waiting on it - Save while there are unsaved changes (KeyChip.SetLit).
+// Listed after any veil, so the amber wins over it; the label goes dark to read on it.
+class key-chip-lit {
+    background = $theme.accent_yellow;
+}
+
+class key-chip-label-lit {
+    font-color = $theme.text_dark;
+}
+
+// ---------------------------------------------------------------- top bar
+
+// The top bar's buttons (Save, New, Open): the dialog-button fill at bar scale - 28 tall, a
+// radius of 7. They lead with their key, and the 5 padding (after key-button's 8, so it wins)
+// sets the chip 5 in from the top, bottom and left alike.
+class header-button {
+    height = 28;
+    font-size = 14;
+    border-radius = 7;
     background = $theme.divider;
-    border-radius = 6;
-    height = 24;
 
     state[hovered] = {
         background = $theme.divider_hover;
@@ -214,9 +227,68 @@ class menu-button {
     }
 }
 
-// The same look at list-row scale ("+ Add track", "+ New instrument"). Standalone
-// rather than a modifier on menu-button - both set height, and two classes setting one
-// property is exactly what the rule at the top forbids.
+class header-key-button {
+    padding = 5;
+}
+
+// Carries the color: there is no `component label` rule to fall back on - see the note in
+// EditorInterface.snx.ss.
+class header-button-label {
+    font-size = 14;
+    font-color = $theme.text;
+}
+
+// The project name, which opens the project menu: no fill until hovered, and the hovered fill
+// held while the menu is open (header-menu-button-open, after it, has no hover of its own).
+class header-menu-button {
+    height = 28;
+    padding = 7;
+    spacing = 6;
+    direction = "horizontal";
+    vertical-align = "center";
+    border-radius = 7;
+    background = "#00000000";
+
+    state[hovered] = {
+        background = $theme.surface;
+    }
+}
+
+class header-menu-button-open {
+    background = $theme.divider;
+}
+
+class header-menu-label {
+    font-size = 14;
+    font-color = $theme.text;
+}
+
+class header-menu-chevron {
+    font-size = 15;
+    font-color = $theme.text_dim;
+}
+
+// A project-menu row: KeyChip's layout, read down a left edge like every menu row, the chip
+// in a fixed-width column so the names line up whatever the key.
+class menu-key-item {
+    horizontal-align = "start";
+    padding = 6;
+    spacing = 10;
+}
+
+class key-chip-menu {
+    width = 82;
+    horizontal-align = "center";
+}
+
+// The rule between the menu's file and save groups.
+class menu-rule {
+    height = 1;
+    background = $theme.divider_hover;
+}
+
+// The subtle fill at list-row scale ("Add track", "+ New instrument"): a surface you can
+// click rather than a call to action.
 class menu-row {
     width = 100%;
     height = 36;
@@ -242,13 +314,6 @@ class chip-button {
     state[hovered] = {
         background = $theme.surface_raised;
     }
-}
-
-// The label inside a menu-button. Carries the color too: there is no `component label`
-// rule to fall back on - see the note in EditorInterface.snx.ss.
-class menu-label {
-    font-size = 14;
-    font-color = $theme.text;
 }
 
 // ---------------------------------------------------------------- fields
