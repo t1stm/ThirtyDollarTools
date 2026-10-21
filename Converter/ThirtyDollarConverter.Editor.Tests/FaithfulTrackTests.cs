@@ -219,6 +219,24 @@ public class FaithfulTrackTests
         Assert.DoesNotContain("\"items\"", json);
     }
 
+    /// <summary>
+    ///     Converting a piano roll's cut note to a faithful track leaves one action cutting
+    ///     several sounds. It stringifies to a "!cut@sound" each, and only the first event of
+    ///     a saved action is read back - so it must be saved in a form that keeps them all.
+    /// </summary>
+    [Fact]
+    public void SaveLoad_KeepsEverySoundOfACutList()
+    {
+        var project = new ThirtyDollarProject();
+        var track = (FaithfulTrack)project.NewTrack(TrackKind.Faithful);
+        track.Items.Add(new FaithfulItem { Action = new IndividualCutEvent(["kick", "hat"]) });
+
+        var reloaded = Assert.IsType<FaithfulTrack>(Assert.Single(ProjectFile.Load(ProjectFile.Save(project)).Tracks));
+
+        var cut = Assert.IsType<IndividualCutEvent>(Assert.Single(reloaded.Items).Action);
+        Assert.Equal(["hat", "kick"], cut.CutSounds.Order());
+    }
+
     [Fact]
     public void RemoveInstrument_RefusesWhileAFaithfulItemPlaysIt()
     {

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ThirtyDollarConverter.Parser;
+using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor;
 
@@ -221,12 +222,19 @@ public static class ProjectFile
     ///     An action is stored as the TDW text it stringifies to ("!speed@2@x", "!bg@#ff0000,0.5")
     ///     and read back with the sequence parser, so ValueScale and the packed color/pulse
     ///     payloads need no serialization of their own.
+    ///     A cut of several sounds is the exception: it stringifies to one "!cut@sound" per sound,
+    ///     and only the first event of the text is read back, so it is written in the parser's
+    ///     "!cut@a,b" form instead.
     /// </summary>
     private static FaithfulItemDto SaveItem(FaithfulItem item)
     {
-        return item.Action is { } action
-            ? new FaithfulItemDto(Action: action.Stringify())
-            : new FaithfulItemDto(SaveNote(item.Note!));
+        return item.Action switch
+        {
+            IndividualCutEvent { CutSounds.Count: > 1 } cut =>
+                new FaithfulItemDto(Action: $"!cut@{string.Join(',', cut.CutSounds)}"),
+            { } action => new FaithfulItemDto(Action: action.Stringify()),
+            _ => new FaithfulItemDto(SaveNote(item.Note!))
+        };
     }
 
     private static FaithfulItem? LoadItem(FaithfulItemDto dto, ThirtyDollarProject project,
