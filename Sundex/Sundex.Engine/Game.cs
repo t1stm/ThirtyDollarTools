@@ -36,6 +36,9 @@ public class Game : GameWindow
     private readonly Microsoft.Extensions.Logging.ILogger _inputLogger;
 
     private Vector2 _loggedPointer = new(float.NaN);
+
+    /// <summary>Text events since the last drawn frame, held for <see cref="LogInput" />.</summary>
+    private readonly List<string> _pendingText = [];
     private WindowState _preFullscreenState = WindowState.Normal;
 
 #if DEBUG
@@ -268,6 +271,7 @@ public class Game : GameWindow
 
         GL.Disable(EnableCap.Blend);
         Context.SwapBuffers();
+        LogInput();
     }
 
     protected override void OnUpdateFrame(FrameEventArgs args)
@@ -308,7 +312,6 @@ public class Game : GameWindow
         {
             Delta = args.Time
         });
-        LogInput();
 
         if (KeyboardState.IsKeyDown(Keys.LeftControl) && KeyboardState.IsKeyDown(Keys.Q))
             Close();
@@ -334,15 +337,20 @@ public class Game : GameWindow
     }
 
     /// <summary>
-    ///     Writes the frame's input once every scene has had it: pointer moves, button and key
-    ///     presses and releases, scroll. Debug builds only, since a moving mouse
-    ///     writes a line a frame. Sampled here rather than in the window callbacks so a line
-    ///     means the polled MouseState/KeyboardState saw it too - what a headless driver has to
-    ///     know before letting go of a button or key (viz.sh in the visualizer-headless skill).
+    ///     Writes the frame's input once the frame that handled it is on screen: pointer moves,
+    ///     button and key presses and releases, scroll, and the text typed since the last frame.
+    ///     Debug builds only, since a moving mouse writes a line a frame. A line means the polled
+    ///     MouseState/KeyboardState saw the input and its result has been drawn - what a headless
+    ///     driver needs before letting go of a button or taking a screenshot (viz.sh in the
+    ///     visualizer-headless skill). Runs after SwapBuffers: OpenTK 5 renders once per update,
+    ///     so the edges read here are the ones that update handled.
     /// </summary>
     [Conditional("DEBUG")]
     private void LogInput()
     {
+        foreach (var text in _pendingText) _inputLogger.TextEntered(text);
+        _pendingText.Clear();
+
         var mouse = MouseState;
         var (x, y) = ((int)mouse.X, (int)mouse.Y);
         if (mouse.Position != _loggedPointer)
@@ -364,11 +372,11 @@ public class Game : GameWindow
             else if (KeyboardState.IsKeyReleased(key)) _inputLogger.KeyReleased(key);
     }
 
-    /// <summary>Text arrives as events, not polled state, so it is traced as each one lands; see <see cref="LogInput" />.</summary>
+    /// <summary>Text arrives as events, not polled state, so it is held for the next drawn frame's <see cref="LogInput" />.</summary>
     [Conditional("DEBUG")]
     private void LogTextInput(TextInputEventArgs e)
     {
-        _inputLogger.TextEntered(e.AsString);
+        _pendingText.Add(e.AsString);
     }
 
     protected override void OnKeyDown(KeyboardKeyEventArgs e)
