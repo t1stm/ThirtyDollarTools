@@ -39,6 +39,14 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
     private Panel _container = root;
 
     /// <summary>
+    ///     Set while <see cref="Sync" /> writes the model into the rows. Writing a field fires
+    ///     its change handler, and committing that back would be an edit nobody made: a fresh
+    ///     load would come up dirty, and a fan-out that changed one half of a modifier row
+    ///     would be undone by the other half. Every handler skips its commit while it is set.
+    /// </summary>
+    private bool _syncing;
+
+    /// <summary>
     ///     The field's key prefix ("Section" in "Section.Label") - the current
     ///     section/card content methods are building rows for.
     /// </summary>
@@ -70,7 +78,15 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
     public void Sync()
     {
         // Snapshot: a sync-triggered handler may Rebuild (and clear) the list.
-        foreach (var sync in _syncs.ToArray()) sync();
+        _syncing = true;
+        try
+        {
+            foreach (var sync in _syncs.ToArray()) sync();
+        }
+        finally
+        {
+            _syncing = false;
+        }
     }
 
     /// <summary>
@@ -135,7 +151,10 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
         var input = new TextInput(context, get())
         {
             Classes = ["inspector-field"],
-            OnValueChanged = i => set(i.Value)
+            OnValueChanged = i =>
+            {
+                if (!_syncing) set(i.Value);
+            }
         };
         Row(label, input);
         _syncs.Add(() =>
@@ -171,7 +190,7 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
         input.OnValueChanged = _ =>
         {
             var value = input.Value;
-            if (value != null || allowNull) edit(() => set(value));
+            if (!_syncing && (value != null || allowNull)) edit(() => set(value));
         };
         Row(label, input);
         _syncs.Add(() =>
@@ -211,7 +230,10 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
     {
         var box = new Checkbox(context, label, get())
         {
-            OnCheckedChanged = b => set(b.Checked),
+            OnCheckedChanged = b =>
+            {
+                if (!_syncing) set(b.Checked);
+            },
             Label =
             {
                 Classes = ["inspector-check-label"]
@@ -297,29 +319,22 @@ public sealed class InspectorForm(UIContext context, Panel root, Action<Action> 
             }
         };
 
-        // Writing either half back during a sync fires its change handler, which would
-        // commit this row's OTHER half over whatever the sync was reporting - a fan-out
-        // that changed the kind under the row would be undone by the row it changed.
-        var syncing = false;
-
         amount.OnValueChanged = _ =>
         {
-            if (syncing || amount.Value is not { } value) return; // mid-edit ("", "-")
+            if (_syncing || amount.Value is not { } value) return; // mid-edit ("", "-")
             edit(() => setAmount(value));
         };
         multiply.OnCheckedChanged = _ =>
         {
-            if (!syncing) edit(() => setMultiply(multiply.Checked));
+            if (!_syncing) edit(() => setMultiply(multiply.Checked));
         };
 
         _fields[$"{Section}.{label}.Kind"] = multiply;
         Row(label, amount, multiply);
         _syncs.Add(() =>
         {
-            syncing = true;
             if (!amount.IsFocused) amount.Value = getAmount();
             multiply.Checked = getMultiply() == true;
-            syncing = false;
         });
     }
 }

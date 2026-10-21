@@ -42,6 +42,30 @@ public class InspectorPanelTests
     }
 
     [Fact]
+    public void LoadingAProject_SyncsTheRows_WithoutMarkingItDirty()
+    {
+        var (_, state, inspector) = NewInspector();
+        var project = new ThirtyDollarProject { AutoResume = true };
+        project.Info.Name = "Amalgam";
+        project.Info.Author = "t1stm";
+        project.RootTiming.BPM = 180;
+        var path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, ProjectFile.Save(project));
+            state.LoadProjectFromFile(path);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        Assert.Equal("Amalgam", ((TextInput)inspector.Field("Project.Name")!).Value);
+        Assert.True(((Checkbox)inspector.Field("Project.Auto resume")!).Checked);
+        Assert.False(state.Dirty);
+    }
+
+    [Fact]
     public void ArrangementMode_EditsProjectFields_ThroughState()
     {
         var (_, state, inspector) = NewInspector();
