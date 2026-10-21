@@ -21,13 +21,17 @@ class arrangement-canvas {
     label-color = $theme.text_dim;
     playhead-color = $theme.playhead;
 
-    // A clip's fill, batched with the lines, and the track name written across it. There
-    // is no selected shade: a selected clip lifts its own color toward white (see
-    // ArrangementView.SelectedLift), so a track keeps its identity while it is picked.
+    // A clip's color, batched with the lines: its name strip, over a body sunk toward the
+    // grid. There is no selected shade: a selected clip takes the ring and lifts its own color
+    // a little toward white (see ArrangementView.SelectedLift), so a track keeps its identity
+    // while it is picked. A faithful clip's beats take the note editor's sound colors.
     clip-color = $theme.accent;
+    grid-color = $theme.grid_background;
+    selection-ring-color = $theme.selection_ring;
+    sound-palette = $theme.sound_palette;
 
-    // The track name across a clip. Dark, not `text`: every fill a clip can take is a
-    // mid-to-light palette entry - lighter still while selected - and `text` carries on
+    // The track name in a clip's strip. Dark, not `text`: every color a strip can take is
+    // a mid-to-light palette entry - lighter still while selected - and `text` carries on
     // none of them (1.4:1 on a selected olive). See ArrangementViewTests's contrast guard,
     // which fails if a palette entry ever goes dark enough to want the light shade back.
     clip-label-color = $theme.text_dark;
@@ -110,6 +114,6 @@ class grid-marquee {
 
 // ---------------------------------------------------------------- clips
 
-// A clip on an arrangement lane has no rule of its own any more: its fill, its selected
-// shade and its name all come from arrangement-canvas's settings above, written into the
-// batches. The name's inset and size live next to that code (ClipPadding, ClipFontSize).
+// A clip on an arrangement lane has no rule of its own any more: its strip, body, ring and
+// name all come from arrangement-canvas's settings above, written into the batches. The
+// name's inset and size live next to that code (ClipPadding, ClipFontSize).

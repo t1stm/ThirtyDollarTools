@@ -527,10 +527,20 @@ public sealed partial class TrackEditorView : Panel
 
     private Vector4 InstrumentColor(Instrument instrument)
     {
-        if (SoundPalette.Length == 0) return default;
+        return PaletteColor(instrument.Name, SoundPalette);
+    }
+
+    /// <summary>
+    ///     A name's stable entry in a palette - hashed here rather than with
+    ///     string.GetHashCode, which is randomized per process. The arrangement's faithful
+    ///     miniatures color their sounds the same way.
+    /// </summary>
+    internal static Vector4 PaletteColor(string name, Vector4[] palette)
+    {
+        if (palette.Length == 0) return default;
         var hash = 0;
-        foreach (var c in instrument.Name) hash = hash * 31 + c;
-        return SoundPalette[(hash & 0x7fffffff) % SoundPalette.Length];
+        foreach (var c in name) hash = hash * 31 + c;
+        return palette[(hash & 0x7fffffff) % palette.Length];
     }
 
     /// <summary>

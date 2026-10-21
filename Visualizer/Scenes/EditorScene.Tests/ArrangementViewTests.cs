@@ -623,13 +623,13 @@ public class ArrangementViewTests
 
         void AssertBoxedInItsClip()
         {
+            // The name lives in the tile's 18 px strip, inset from its sides.
             var slot = view.ClipLabels.Slots[0];
-            var box = view.Blocks[0].Computed;
-            var padding = slot.X - box.AbsoluteX; // ClipPadding, the view's own private business
+            var tile = view.TileOf(view.Blocks[0]) + new Vector4(view.Computed.AbsoluteX, view.Computed.AbsoluteY, 0, 0);
+            var padding = slot.X - tile.X; // ClipPadding, the view's own private business
 
             Assert.NotEqual(Vector4.Zero, slot.Clip); // all-zero reads as "unclipped" in the shader
-            Assert.Equal(new Vector4(box.AbsoluteX + padding, box.AbsoluteY,
-                box.AbsoluteX + box.Width - padding, box.AbsoluteY + box.Height), slot.Clip);
+            Assert.Equal(new Vector4(tile.X + padding, tile.Y, tile.X + tile.Z - padding, tile.Y + 18), slot.Clip);
         }
     }
 
@@ -718,7 +718,7 @@ public class ArrangementViewTests
         // implementation, so a change to either one has to be meant.
         static Vector4 Lift(Vector4 color)
         {
-            return new Vector4(Vector3.Lerp(color.Xyz, Vector3.One, 0.35f), color.W);
+            return new Vector4(Vector3.Lerp(color.Xyz, Vector3.One, 0.16f), color.W);
         }
 
         static float Contrast(Vector4 text, Vector4 background)
@@ -736,5 +736,126 @@ public class ArrangementViewTests
 
             return 0.2126f * Linear(color.X) + 0.7152f * Linear(color.Y) + 0.0722f * Linear(color.Z);
         }
+    }
+
+    [Fact]
+    public void AClip_IsATileCentredInItsLane_HitAcrossTheWholeLane()
+    {
+        var (_, state, view) = NewView();
+        var track = state.AddTrack();
+        state.PlaceTrack(track, 1, 4);
+        view.Layout();
+
+        // Lane 1's line is its first pixel; the clip starts on quarter 4's pixel.
+        var block = view.Blocks[0];
+        var start = 4 * view.PixelsPerQuarter;
+        var laneTop = ArrangementView.RulerHeight + ArrangementView.LaneHeight;
+        var width = (float)(track.DurationMinutes() * state.Project.RootTiming.BPM * view.PixelsPerQuarter);
+        Assert.Equal(new Vector4(start + 2, laneTop + 2, width - 3, 41), view.TileOf(block));
+        Assert.Equal(new Vector4(start + 1, laneTop + 1, width - 1, 43),
+            new Vector4(block.Computed.X, block.Computed.Y, block.Computed.Width, block.Computed.Height));
+
+        // Selected, the ring outlines that whole lane span.
+        state.SelectPlacement(state.Project.Placements[0]);
+        view.Layout();
+        var (rect, color) = view.RingOf(block);
+        Assert.Equal(view.SelectionRingColor, color);
+        Assert.Equal(new Vector4(block.Computed.AbsoluteX, block.Computed.AbsoluteY, block.Computed.Width,
+            block.Computed.Height), rect);
+        // And the body under the strip is the strip's color sunk halfway toward the grid.
+        var strip = view.FillOf(block);
+        Assert.Equal(new Vector4(Vector3.Lerp(strip.Xyz, view.GridColor.Xyz, 0.5f), strip.W), view.BodyOf(block));
+    }
+
+    [Fact]
+    public void PressingAClip_AndReleasingWithoutMoving_LeavesItWhereItWas()
+    {
+        var (ctx, state, view) = NewView();
+        var placement = state.PlaceTrack(state.AddTrack(), 0, 4);
+        view.Layout();
+
+        var block = view.Blocks[0];
+        var (x, y) = (block.Computed.AbsoluteX + 1, block.Computed.AbsoluteY + 10);
+        Press(ctx, view, x, y);
+        Drag(ctx, view, x, y);
+        Release(ctx, view, x, y);
+
+        Assert.Equal(4, placement.StartQuarterNotes);
+        Assert.Equal(0, placement.Channel);
+    }
+
+    [Fact]
+    public void APianoRollClip_ShowsItsNotesInMiniature_AndAnEmptyOneShowsNone()
+    {
+        var (_, state, view) = NewView();
+        var empty = state.AddTrack();
+        state.PlaceTrack(empty, 0, 0);
+        view.Layout();
+        Assert.Empty(view.MiniatureMarks);
+
+        var track = state.AddTrack();
+        var instrument = state.AddInstrument("boom");
+        state.AddNote(track.Segments[0], 0, instrument, 12);
+        state.AddNote(track.Segments[0], 4, instrument, 0).Volume = 0;
+        state.PlaceTrack(track, 1, 0);
+        view.Layout();
+
+        // One dash per note, the highest value on the body's top row and the lowest on its
+        // last, a silent one still faintly there.
+        var tile = view.TileOf(view.Blocks[1]);
+        var marks = view.MiniatureMarks;
+        Assert.Equal(2, marks.Count);
+        Assert.Equal(tile.Y + 22, marks[0].Rect.Y);
+        Assert.Equal(tile.Y + 34, marks[1].Rect.Y);
+        Assert.Equal(tile.X + view.PixelsPerQuarter, marks[1].Rect.X); // step 4 is a quarter in
+        Assert.Equal(1f, marks[0].Color.W);
+        Assert.Equal(0.35f, marks[1].Color.W, 3);
+
+        // A playhead-only layout reuses them, but a selection relights them and a zoom moves them.
+        var resting = marks[0].Color;
+        view.PlayheadQuarters = 1;
+        view.Layout();
+        Assert.Equal(resting, view.MiniatureMarks[0].Color);
+        state.SelectPlacement(state.Project.Placements[1]);
+        view.Layout();
+        Assert.True(view.MiniatureMarks[0].Color.X > resting.X, "the selected clip's miniature did not lift");
+        view.PixelsPerQuarter *= 2;
+        view.InvalidateLayout();
+        view.Layout();
+        Assert.Equal(tile.X + view.PixelsPerQuarter, view.MiniatureMarks[1].Rect.X);
+    }
+
+    [Fact]
+    public void AFaithfulClip_ShowsOneMarkPerBeat_InItsFirstSoundsColor()
+    {
+        var (_, state, view) = NewView();
+        var track = (FaithfulTrack)state.AddTrack(TrackKind.Faithful);
+        Instrument Sound(string name)
+        {
+            var instrument = state.AddInstrument(name);
+            state.SetInstrumentSounds(instrument, [new InstrumentSound { Sound = name }]);
+            return instrument;
+        }
+
+        var (boom, bong, harp) = (Sound("boom"), Sound("bong"), Sound("noteblock_harp"));
+        foreach (var tdw in new[] { "!speed@240", "!bg@#ff0000,0", "!divider" })
+            state.AppendItem(track, FaithfulItem.Parse(tdw)!);
+        // A three-sound "!combine" stack is one beat; the next sound is another.
+        state.AppendItem(track, FaithfulItem.Sound(boom));
+        state.AppendItem(track, FaithfulItem.Parse("!combine")!);
+        state.AppendItem(track, FaithfulItem.Sound(bong));
+        state.AppendItem(track, FaithfulItem.Parse("!combine")!);
+        state.AppendItem(track, FaithfulItem.Sound(harp));
+        state.AppendItem(track, FaithfulItem.Sound(bong));
+        state.PlaceTrack(track, 0, 0);
+        view.Layout();
+
+        // The actions write nothing; each beat is the first sound played on it.
+        var marks = view.MiniatureMarks;
+        Assert.Equal(2, marks.Count);
+        Assert.Equal(TrackEditorView.PaletteColor("boom", view.SoundPalette), marks[0].Color);
+        Assert.Equal(TrackEditorView.PaletteColor("bong", view.SoundPalette), marks[1].Color);
+        Assert.True(marks[1].Rect.X > marks[0].Rect.X);
+        Assert.Equal(6, marks[0].Rect.W);
     }
 }

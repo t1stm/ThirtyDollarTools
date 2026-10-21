@@ -1,4 +1,5 @@
 using EditorScene.State;
+using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
@@ -30,7 +31,10 @@ public partial class ArrangementView
 
         public TrackPlacement Placement { get; }
 
-        /// <summary>This clip's slot in the view's line batch - its position in the clip list.</summary>
+        /// <summary>
+        ///     This clip's name-strip slot in the view's line batch, from its position in the
+        ///     clip list; its shadow is the slot before, its body and ring the two after.
+        /// </summary>
         public required int BatchSlot { get; init; }
 
         /// <summary>Its slot in the clip-name batch, which has a range of its own.</summary>
@@ -38,6 +42,12 @@ public partial class ArrangementView
 
         /// <summary>Whether this clip is part of the selection - picks its fill in the layout.</summary>
         public bool Selected { get; set; }
+
+        /// <summary>
+        ///     The tile the view draws for this clip, view-local (x, y, width, height): centred
+        ///     in its lane, inside the hit box, which is the element itself.
+        /// </summary>
+        public Vector4 Tile { get; set; }
 
         public override bool HandlePress(float x, float y)
         {

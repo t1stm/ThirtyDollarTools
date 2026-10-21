@@ -154,6 +154,20 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
         return walk.Events.Select(walked => (walk.MinutesOf(walked), walked.Source, walked.Event)).ToArray();
     }
 
+    /// <summary>
+    ///     Every sound the track plays, in stream order: when it plays, in minutes from the
+    ///     track's start, and the event as the full walk made it - its volume included, which
+    ///     <see cref="PlayTimes" />' timing-only walk may still hold from before an edit.
+    ///     Actions and the slots the walk consumes are left out. A loop plays its sounds once
+    ///     per pass. Read-only, like <see cref="PlayTimes" />.
+    /// </summary>
+    public IEnumerable<(double Minutes, BaseEvent Event)> PlayedSounds()
+    {
+        var walk = Walk();
+        return walk.Events.Where(walked => walked is { IsSound: true, VisualOnly: false })
+            .Select(walked => (walk.MinutesOf(walked), walked.Event)).ToArray();
+    }
+
     private WalkedSequence? _walk;
     private long _timingSignature;
     private long _contentSignature;
