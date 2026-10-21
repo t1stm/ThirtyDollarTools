@@ -3,49 +3,78 @@
 
   <layout>
     <flex id="import-dialog" class="dialog-frame">
-      <!-- Title text carries the dropped file's name, set by ImportDialog.cs. -->
-      <label id="title-label" class="title-label" value=""/>
+      <flex class="dialog-header">
+        <label class="dialog-title" value="Import"/>
+        <!-- The dropped file's name, set by ImportDialog.cs. -->
+        <label id="file-label" class="dialog-subtitle" value=""/>
+        <panel class="spacer"/>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
 
-      <!-- The two options are color-coded with the same accents the Draw/Select tool
-           toggles use elsewhere - not because import relates to either tool, but so the
-           dialog reuses the app's two existing accent colors instead of introducing a
-           third just to tell the options apart. See dialog-button-primary/-alt. -->
-      <flex class="dialog-options">
-        <flex class="dialog-column">
-          <!-- Faithful is the suggested shape: it keeps the sequence exactly as written,
-               where the piano roll has to fit it onto a bar/beat grid. So it gets the
-               filled button and the piano roll sits under it as a bare label. -->
-          <button id="faithful-track-button" class="[dialog-button-primary,dialog-button-tall]">
-            <label value="Import as Faithful Track"/>
-          </button>
-          <button id="single-track-button" class="dialog-button-shape">
-            <label class="caption-label" value="or as a Piano Roll track"/>
-          </button>
-          <!-- Label has no text-wrap support, so each description is pre-split into
-               short lines that fit the column. -->
-          <flex class="dialog-column-description">
-            <label class="caption-label" value="One new track for this file,"/>
-            <label class="caption-label" value="one instrument per sound."/>
+      <!-- Add Track's layout (TrackTypeDialog.snx.xml): the three ways in a list, and the
+           picked one's card. -->
+      <flex id="import-body" class="track-kind-body">
+        <!-- ImportDialog.cs swaps track-kind-row-idle/-selected as one is picked (a click, 1-3,
+             or Up/Down). Faithful comes first and is picked: it keeps the file as written. The
+             key chip leads, as on the Cut target rows. -->
+        <flex class="track-kind-list">
+          <flex id="faithful-row" class="[track-kind-row,track-kind-row-selected]">
+            <flex class="[key-chip,key-chip-on-card]">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value="1"/>
+            </flex>
+            <label class="track-kind-icon" font="Lucide" value="&#xe2e0;"/>
+            <label class="track-kind-name" value="Faithful track"/>
+          </flex>
+          <flex id="piano-roll-row" class="[track-kind-row,track-kind-row-idle]">
+            <flex class="[key-chip,key-chip-on-card]">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value="2"/>
+            </flex>
+            <label class="track-kind-icon" font="Lucide" value="&#xe560;"/>
+            <label class="track-kind-name" value="Piano Roll track"/>
+          </flex>
+          <flex id="project-row" class="[track-kind-row,track-kind-row-idle]">
+            <flex class="[key-chip,key-chip-on-card]">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value="3"/>
+            </flex>
+            <label class="track-kind-icon" font="Lucide" value="&#xe529;"/>
+            <label class="track-kind-name" value="Replace project"/>
+          </flex>
+
+          <panel class="track-kind-gap"/>
+
+          <!-- What the file holds, where Add Track has its drop hint. Set by ImportDialog.cs. -->
+          <flex class="track-kind-drop">
+            <label class="track-kind-drop-icon" font="Lucide" value="&#xe0cc;"/>
+            <flex class="track-kind-drop-text">
+              <label id="count-label" class="track-kind-drop-label" value=""/>
+              <label id="speed-label" class="track-kind-drop-label" value=""/>
+            </flex>
           </flex>
         </flex>
 
-        <panel class="dialog-divider"/>
-
-        <flex class="dialog-column">
-          <button id="project-button" class="[dialog-button-alt,dialog-button-tall]">
-            <!-- Same light-background-needs-dark-text contrast rule as the Select toggle. -->
-            <label class="dark-label" value="Import as Project"/>
-          </button>
-          <flex class="dialog-column-description">
-            <label class="caption-label" value="Replaces the current project -"/>
-            <label class="caption-label" value="instrument + track per sound."/>
-          </flex>
+        <!-- The picked way's card: what the import makes, three facts, and the name.
+             ImportDialog.cs keeps one preview and one facts block in their slots. -->
+        <flex class="track-kind-details">
+          <panel id="preview-slot" class="track-kind-preview-slot"/>
+          <flex id="facts-slot" class="track-kind-facts-slot"/>
+          <panel class="track-field-row">
+            <label class="[field-label,track-field-label]" value="Name"/>
+            <text-input id="name-input" class="track-field-input"/>
+          </panel>
         </flex>
       </flex>
 
-      <flex class="dialog-actions-compact">
+      <!-- ImportDialog.cs puts the Esc and Enter chips on these, and names the action after
+           the picked way. Replace swaps the blue fill for the red one, and light-label for
+           dark-label. -->
+      <flex class="dialog-actions">
         <button id="cancel-button" class="dialog-button">
           <label value="Cancel"/>
+        </button>
+        <button id="import-button" class="dialog-button-primary">
+          <label class="light-label" value="Import as Faithful Track"/>
         </button>
       </flex>
     </flex>

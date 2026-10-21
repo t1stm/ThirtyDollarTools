@@ -7,7 +7,7 @@
 import "Scenes/Styles/Theme.snx.ss" as theme;
 
 // The panel a dialog's contents stack in: 16 in, 14 between blocks, a 10 radius. Width is
-// per-dialog (below) because it is driven by the content: a two-column import dialog needs far
+// per-dialog (below) because it is driven by the content: a list beside a preview card needs far
 // more room than a yes/no confirm.
 class dialog-frame {
     direction = "vertical";
@@ -312,39 +312,16 @@ class export-note-label {
     font-color = $theme.text_subtle;
 }
 
+// ---------------------------------------------------------------- import
+
+// Add Track's frame and body (below), on its own ids. The card has no color row, so the body
+// is 36 shorter: the preview, three facts and the name.
 id import-dialog {
-    width = 560;
-    padding = 16;
-    spacing = 18;
+    width = 680;
 }
 
-// One option of the import dialog: its button with a short explanation underneath.
-class dialog-column {
-    direction = "vertical";
-    width = 240;
-    spacing = 6;
-}
-
-// The stack of description lines under an option's button.
-class dialog-column-description {
-    direction = "vertical";
-    width = 100%;
-    spacing = 2;
-}
-
-// The vertical rule between the two options. Tall enough to span a button plus its
-// two-line description, so it reads as separating the whole column.
-class dialog-divider {
-    width = 1;
-    height = 84;
-    background = $theme.divider;
-}
-
-// The row the two options sit in.
-class dialog-options {
-    width = 100%;
-    spacing = 20;
-    horizontal-align = "center";
+id import-body {
+    height = 300;
 }
 
 // ---------------------------------------------------------------- add a track
@@ -410,7 +387,8 @@ class track-kind-gap {
     height = 100%;
 }
 
-// "Or drop a .tdw or .wav file on the window." under the list.
+// "Or drop a .tdw or .wav file on the window." under the list; the import dialog's file
+// summary in the same place.
 class track-kind-drop {
     width = 100%;
     padding = 4;
@@ -475,6 +453,21 @@ class track-kind-fact-dot {
 class track-kind-fact-label {
     font-size = 13;
     font-color = $theme.text_dim;
+}
+
+// The import dialog's glyph in place of the dot: a check, or a warning in yellow (changed on
+// the way in) or red (lost). The colors are modifiers listed after it.
+class track-kind-fact-icon {
+    font-size = 14;
+    font-color = $theme.header;
+}
+
+class track-kind-fact-warn {
+    font-color = $theme.accent_yellow;
+}
+
+class track-kind-fact-bad {
+    font-color = $theme.danger;
 }
 
 class track-kind-fields {
@@ -564,6 +557,34 @@ class track-preview-note-purple {
 
 class track-preview-note-green {
     background = $theme.palette_green;
+}
+
+// The import's notes and lanes take their sound's palette color, set in code (as track-swatch's
+// is), so these declare no background.
+class track-preview-sound-note {
+    border-radius = 2;
+}
+
+// Drawn under a note the import snaps onto the grid, 1.5 bigger all round: an outline.
+class track-preview-snapped {
+    border-radius = 3;
+    background = $theme.accent_yellow;
+}
+
+// Project: one lane per sound, its name beside a clip as long as the file.
+class track-preview-lane-name {
+    font-size = 11;
+    font-color = $theme.text_dim;
+}
+
+class track-preview-lane {
+    border-radius = 3;
+}
+
+// What doesn't fit: "+3" after the instruments, "and 11 more tracks" under the lanes.
+class track-preview-more {
+    font-size = 10;
+    font-color = $theme.text_subtle;
 }
 
 // Faithful: the faithful editor at about a third of its size - the Instruments and Actions

@@ -26,6 +26,7 @@ public class Editor : Scene, IFadeInScene
 
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
+    private string? _initialFile;
 
     /// <param name="initialFile">
     ///     A project or sequence to open on boot, from <c>--mode editor -i</c>. Handled as
@@ -43,10 +44,7 @@ public class Editor : Scene, IFadeInScene
 
         _editorInterface = BuildInterface(_context);
         _editorInterface.Resize(clientSize.X, clientSize.Y);
-
-        // Last: a sequence raises the same import dialog a drop does, and that needs the
-        // interface already laid out to attach to.
-        if (initialFile != null) FileDrop([initialFile]);
+        _initialFile = initialFile;
     }
 
     private UIContext NewContext()
@@ -124,6 +122,12 @@ public class Editor : Scene, IFadeInScene
         _editorInterface.SceneShown();
         Game.OnWindowActionUnavailable = (title, message) =>
             MessageDialog.Show(_context, _editorInterface.RootPanel, title, message);
+
+        // Dropped once the editor is first shown rather than when it is built: by then the
+        // loader has the sound atlases in, which the import dialog's previews draw from.
+        if (_initialFile is not { } file) return;
+        _initialFile = null;
+        FileDrop([file]);
     }
 
     public override void Update(UpdateArguments updateArgs)

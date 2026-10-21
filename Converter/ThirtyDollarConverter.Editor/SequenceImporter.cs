@@ -41,6 +41,42 @@ public sealed record ImportResult(
     ImportWarnings Warnings);
 
 /// <summary>
+///     What each <see cref="ImportMode" /> would make of a sequence, worked out by
+///     <see cref="SequenceImporter.Preview" /> without a project: the import dialog's facts and
+///     previews. A Piano Roll track and a project fit the sequence onto the same grid, so they
+///     share <see cref="Grid" />, <see cref="Segments" /> and <see cref="Notes" />.
+/// </summary>
+/// <param name="Events">Every event in the file, actions included.</param>
+/// <param name="FaithfulSounds">The sounds a Faithful track gets an instrument for, by ID, in first-use order.</param>
+/// <param name="FaithfulUnknownSounds">The warnings a Faithful track import reports.</param>
+/// <param name="Grid">The warnings a Piano Roll track or project import reports; null with <see cref="GridError" />.</param>
+/// <param name="GridError">Why the grid can't take the sequence, which only a Faithful track can then import.</param>
+/// <param name="StartBpm">The sequence's opening speed; 0 with <see cref="GridError" />.</param>
+/// <param name="Tracks">A project import's tracks: one per sound, in this order.</param>
+public sealed record ImportPreview(
+    int Events,
+    IReadOnlyList<string> FaithfulSounds,
+    IReadOnlyList<string> FaithfulUnknownSounds,
+    ImportWarnings? Grid,
+    string? GridError,
+    double StartBpm,
+    IReadOnlyList<string> Tracks,
+    IReadOnlyList<PreviewSegment> Segments,
+    IReadOnlyList<PreviewNote> Notes)
+{
+    /// <summary>Distinct sounds the file plays, whether the sample set knows them or not.</summary>
+    public int Sounds => FaithfulSounds.Count + FaithfulUnknownSounds.Count;
+}
+
+/// <summary>A segment of the Piano Roll import's grid.</summary>
+public readonly record struct PreviewSegment(int Numerator, int StepsPerBeat, int Bars);
+
+/// <summary>A note of the Piano Roll import. Cuts are left out: they draw nothing.</summary>
+/// <param name="Time">Where it plays, as a fraction of the sequence's length.</param>
+/// <param name="Snapped">Whether it was rounded onto the grid; see <see cref="ImportWarnings.QuantizedNotes" />.</param>
+public readonly record struct PreviewNote(int Segment, int Step, double Time, string Sound, double Value, bool Snapped);
+
+/// <summary>
 ///     Converts a parsed TDW <see cref="Sequence" /> into the editor's project model -
 ///     the inverse of <see cref="SequenceBuilder" />. Never mutates the input sequence, and
 ///     touches the target <see cref="ThirtyDollarProject" /> only once the conversion has
@@ -121,7 +157,6 @@ public static class SequenceImporter
         // project untouched - the same all-or-nothing contract AddAsTrack has.
         if (events.Length == 0) throw new InvalidOperationException("No events found in this sequence.");
 
-        var unknownSounds = new HashSet<string>();
         var created = new List<Instrument>();
         var items = new List<FaithfulItem>();
 
@@ -149,7 +184,7 @@ public static class SequenceImporter
                 for (var s = 0; s < run.Count; s++)
                 {
                     if (s > 0) items.Add(Combine());
-                    items.Add(SoundItem(project, [run[s]], soundMap, unknownSounds, created) ?? Pause());
+                    items.Add(SoundItem(project, [run[s]], soundMap, created) ?? Pause());
                 }
 
                 continue;
@@ -157,7 +192,7 @@ public static class SequenceImporter
 
             // A run this sample set knows nothing about still held its step, so it leaves a
             // "_pause" behind rather than pulling every later sound one step early.
-            items.Add(SoundItem(project, run, soundMap, unknownSounds, created) ?? Pause());
+            items.Add(SoundItem(project, run, soundMap, created) ?? Pause());
         }
 
         var track = (FaithfulTrack)project.NewTrack(TrackKind.Faithful);
@@ -168,7 +203,68 @@ public static class SequenceImporter
         var placement = project.Place(track, channel, 0);
 
         return new ImportResult(track, created, placement,
-            new ImportWarnings(new Dictionary<string, int>(), 0, [.. unknownSounds.Order()]));
+            new ImportWarnings(new Dictionary<string, int>(), 0, FaithfulUnknownSounds(events, soundMap)));
+    }
+
+    /// <summary>
+    ///     The sounds a Faithful track import leaves as silent steps: the only warning it raises.
+    ///     <see cref="SoundItem" /> skips the same ones.
+    /// </summary>
+    private static List<string> FaithfulUnknownSounds(BaseEvent[] events, IReadOnlyDictionary<string, Sound>? soundMap)
+    {
+        return
+        [
+            .. events.Where(IsSound).Select(ev => ev.SoundEvent!)
+                .Where(sound => CanonicalId(sound, soundMap) is null).Distinct().Order()
+        ];
+    }
+
+    /// <summary>
+    ///     A dry run of every import mode: the warnings each would report, and what it would
+    ///     make, for the import dialog to show before the user picks one. Touches no project.
+    ///     The grid side runs the same fit as <see cref="AddAsTrack" />, so it costs as much.
+    /// </summary>
+    public static ImportPreview Preview(Sequence sequence, IReadOnlyDictionary<string, Sound>? soundMap)
+    {
+        var events = sequence.Events;
+        List<string> faithfulSounds =
+        [
+            .. events.Where(IsSound).Select(ev => CanonicalId(ev.SoundEvent!, soundMap)).OfType<string>().Distinct()
+        ];
+        var unknownSounds = FaithfulUnknownSounds(events, soundMap);
+
+        WalkData walk;
+        List<SegmentPlan> plans;
+        ImportWarnings grid;
+        try
+        {
+            (walk, plans, grid) = Prepare(sequence, soundMap);
+        }
+        catch (InvalidOperationException e)
+        {
+            return new ImportPreview(events.Length, faithfulSounds, unknownSounds, null, e.Message, 0, [], [], []);
+        }
+
+        // Each segment's length in minutes, so a note's place is a share of the whole.
+        var lengths = plans.Select(p => p.Bars * p.Numerator / (double)p.BPM).ToList();
+        var total = lengths.Sum();
+        var notes = new List<PreviewNote>();
+        var start = 0d;
+        for (var i = 0; i < plans.Count; i++)
+        {
+            var plan = plans[i];
+            foreach (var (step, note) in plan.Notes)
+            {
+                if (note.IsCut) continue;
+                var time = total > 0 ? (start + step / (plan.BPM * (double)plan.Spb)) / total : 0;
+                notes.Add(new PreviewNote(i, step, Math.Clamp(time, 0, 1), note.Sound, note.Value, note.Snapped));
+            }
+
+            start += lengths[i];
+        }
+
+        return new ImportPreview(events.Length, faithfulSounds, unknownSounds, grid, null, walk.Regions[0].Speed,
+            walk.SoundOrder, [.. plans.Select(p => new PreviewSegment(p.Numerator, p.Spb, p.Bars))], notes);
     }
 
     /// <summary>
@@ -190,14 +286,12 @@ public static class SequenceImporter
     ///     interval between them lives on the instrument, relative to its first sound.
     /// </summary>
     private static FaithfulItem? SoundItem(ThirtyDollarProject project, List<BaseEvent> run,
-        IReadOnlyDictionary<string, Sound>? soundMap, HashSet<string> unknownSounds, List<Instrument> created)
+        IReadOnlyDictionary<string, Sound>? soundMap, List<Instrument> created)
     {
         var sounds = new List<(string Id, BaseEvent Event)>();
         foreach (var ev in run)
-        {
-            if (CanonicalId(ev.SoundEvent!, soundMap) is { } id) sounds.Add((id, ev));
-            else unknownSounds.Add(ev.SoundEvent!);
-        }
+            if (CanonicalId(ev.SoundEvent!, soundMap) is { } id)
+                sounds.Add((id, ev));
 
         if (sounds.Count == 0) return null;
 
@@ -472,8 +566,9 @@ public static class SequenceImporter
             var stepped = placed.Select(p =>
             {
                 var scaled = p.Step * k;
-                if (!IsWholeStep(scaled)) quantized++;
-                return ((int)Math.Round(scaled), p.Note);
+                if (IsWholeStep(scaled)) return ((int)Math.Round(scaled), p.Note);
+                quantized++;
+                return ((int)Math.Round(scaled), p.Note with { Snapped = true });
             }).OrderBy(p => p.Item1).ToList();
 
             // A group can round to zero steps only when it is a lone "!combine"d stack at
@@ -776,7 +871,8 @@ public static class SequenceImporter
         double? Volume,
         float Pan,
         double Offset,
-        bool IsCut = false);
+        bool IsCut = false,
+        bool Snapped = false);
 
     private sealed record WalkData(
         List<(double Speed, double Length)> Regions,

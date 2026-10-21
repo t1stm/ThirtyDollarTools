@@ -91,28 +91,9 @@ class dialog-button-light {
     }
 }
 
-// The yellow alternative in a two-option dialog. Dark label as well.
-class dialog-button-alt {
-    height = 34;
-    padding = 22;
-    font-size = 14;
-    border-radius = 8;
-    background = $theme.accent_yellow;
-
-    state[hovered] = {
-        background = $theme.accent_yellow_hover;
-    }
-}
-
-// Height only, listed after a fill: the import dialog's two options must line up across the
-// divider between them.
-class dialog-button-tall {
-    height = 40;
-}
-
 // Shape without a fill, for a button that reads as a bare label - the track context
-// menu's Cancel, the import dialog's "or as a Piano Roll track". Nothing shows its edges, so
-// it pads only 5: its text lines up with the text around it.
+// menu's Cancel, the action value dialog's. Nothing shows its edges, so it pads only 5: its
+// text lines up with the text around it.
 class dialog-button-shape {
     height = 34;
     padding = 5;
@@ -208,6 +189,12 @@ class info-chip-label {
 // Applied to the button's Label, not the button.
 class dark-label {
     font-color = $theme.text_dark;
+}
+
+// The white a label starts with, for one whose button swaps to a light fill and back (the
+// import dialog's): removing dark-label alone would leave the dark color behind.
+class light-label {
+    font-color = "#ffffff";
 }
 
 // The subtle-filled button used for chrome that isn't a dialog action: the menu bar,
