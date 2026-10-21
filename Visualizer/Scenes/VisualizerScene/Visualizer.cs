@@ -62,6 +62,7 @@ public class Visualizer : Scene, IGamePreloadable
 
     private int _height;
     private PlayerBar? _playerBar;
+    private CameraScrollBar _scrollBar = null!;
     private ShortcutSheet? _shortcutSheet;
 
     private bool _settingsDirty;
@@ -175,6 +176,7 @@ public class Visualizer : Scene, IGamePreloadable
             SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
         };
         UpdateStaticRenderables(_width, _height, Scale);
+        _scrollBar = new CameraScrollBar(PlayfieldContainer);
 
         var playerBarContext = new UIContext { Camera = _textCamera, RequestCursor = type => _cursorType = type };
         _playerBar = new PlayerBar(playerBarContext,
@@ -264,11 +266,18 @@ public class Visualizer : Scene, IGamePreloadable
         // renders the static layout
         TextContainer.RenderStaticText(_textCamera);
 
-        if (_playerBar is null) return;
-        var idle = TimedEvents.Placement.Length == 0;
-        _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, Game.IsCursorInWindow, (float)deltaTime, idle);
-        _shortcutSheet?.UpdateAlpha((float)deltaTime, idle);
-        _playerBar.RootPanel.Context.Render();
+        if (_playerBar is not null)
+        {
+            var idle = TimedEvents.Placement.Length == 0;
+            _playerBar.UpdateAlpha(Game.MouseState, Game.ClientSize, Game.IsCursorInWindow, (float)deltaTime, idle);
+            _shortcutSheet?.UpdateAlpha((float)deltaTime, idle);
+            _playerBar.RootPanel.Context.Render();
+        }
+
+        // Over the player bar, as a page's scroll bar is over everything on the page - but
+        // not over a dialog, which takes the pointer from it.
+        if (_dialogHost is not { Children.Count: > 0 })
+            _scrollBar.Render(_textCamera);
     }
 
     public override void TransitionedTo()
@@ -390,7 +399,8 @@ public class Visualizer : Scene, IGamePreloadable
             return;
         }
 
-        _playerBar?.MouseEvent(mouseState, Vector2.One);
+        if (!_scrollBar.Mouse(mouseState))
+            _playerBar?.MouseEvent(mouseState, Vector2.One);
         // gets scroll
         var scroll = mouseState.ScrollDelta;
         if (scroll == Vector2.Zero) return;

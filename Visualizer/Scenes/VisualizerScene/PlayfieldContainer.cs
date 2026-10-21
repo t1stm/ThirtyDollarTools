@@ -49,6 +49,18 @@ public class PlayfieldContainer(
     public float LastBPM { get; private set; } = 300;
     public int CurrentSequence { get; private set; }
 
+    /// <summary>How tall the shown playfield is; 0 with nothing loaded.</summary>
+    public float ContentHeight
+    {
+        get
+        {
+            // Read once: a load swaps the array from another thread.
+            var playfields = _playfields;
+            var current = CurrentSequence;
+            return current < playfields.Length ? playfields[current].Height : 0;
+        }
+    }
+
     public void Dispose()
     {
         foreach (var playfield in _playfields)

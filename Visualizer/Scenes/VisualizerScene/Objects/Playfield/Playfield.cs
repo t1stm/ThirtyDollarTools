@@ -32,6 +32,10 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
 
     public bool DisplayCenter { get; set; } = true;
 
+    /// <summary>The laid-out sequence's height, the box behind it included.</summary>
+    public float Height => _chunkGenerator.LayoutHandler.Height + _chunkGenerator.LayoutHandler.Size +
+                           _chunkGenerator.LayoutHandler.VerticalMargin;
+
     public void Dispose()
     {
         _disposed = true;
@@ -65,8 +69,7 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
     public void Render(DollarStoreCamera realCamera, float zoom, double updateDelta)
     {
         var layoutWidth = _chunkGenerator.LayoutHandler.Width;
-        var layoutHeight = _chunkGenerator.LayoutHandler.Height + _chunkGenerator.LayoutHandler.Size +
-                           _chunkGenerator.LayoutHandler.VerticalMargin;
+        var layoutHeight = Height;
 
         var leftMargin = (_temporaryCamera.Width - layoutWidth) / 2f;
         _targetPosition = DisplayCenter ? (-leftMargin, 0, 0) : Vector3.Zero;

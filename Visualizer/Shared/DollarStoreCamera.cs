@@ -24,6 +24,9 @@ public sealed class DollarStoreCamera : Camera
     /// from a setting, and that can move while the camera is alive.</summary>
     public float ScrollSpeed { get; set; }
 
+    /// <summary>Where the camera is scrolling to, as opposed to where it has eased to so far.</summary>
+    public Vector3 TargetPosition => _virtualPosition;
+
     /// <summary>
     ///     How far below <see cref="Camera.Position" /> the visible top edge sits, and above the
     ///     bottom edge the visible bottom. Zoom scales about the viewport's centre, so 200%
