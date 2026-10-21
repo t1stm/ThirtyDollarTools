@@ -1,3 +1,4 @@
+using EditorScene.Scenes.Components;
 using EditorScene.State;
 using OpenTK.Mathematics;
 using Sundex.Components.Labels;
@@ -16,6 +17,9 @@ public partial class TrackEditorView
     private int _longestNoteRevision = -1;
     private float _longestNoteSteps = 1;
     private ProjectTrack? _longestNoteTrack;
+
+    // How many pool blocks from the front may still be placed from the last layout.
+    private int _noteBlocksPlaced;
 
     // Cached cut harvest for the resume marks, keyed the same way.
     private IReadOnlyList<CutPoint>? _cutPoints;
@@ -192,13 +196,16 @@ public partial class TrackEditorView
             }
         }
 
-        // A released block gives up both its hit box and its fill slot.
-        for (var i = noteBlock; i < _noteBlocks.Count; i++)
+        // A released block gives up both its hit box and its slots - only up to the last
+        // layout's high-water mark, past which nothing was placed to release.
+        for (var i = noteBlock; i < _noteBlocksPlaced; i++)
         {
             if (_noteBlocks[i] == _dragging) continue;
             Hide(_noteBlocks[i]);
-            _blockBatch.Hide(NoteBlockSlot + i);
+            for (var slot = 0; slot < SlotsPerNote; slot++) _blockBatch.Hide(NoteBlockSlot + i * SlotsPerNote + slot);
         }
+
+        _noteBlocksPlaced = _dragging is { } pinned ? Math.Max(noteBlock, _noteBlocks.IndexOf(pinned) + 1) : noteBlock;
 
         _automationPath.HideUnused(autoMark);
         PlaceKeyframeBlocks();
@@ -375,14 +382,41 @@ public partial class TrackEditorView
                 Math.Max(0, Math.Min(tileY + _geometry.NoteHeight, gridBottom) - tileY));
         }
 
-        // The element carries the hit box; the batch slot carries the tile.
+        // The element carries the hit box; the batch slots carry the tile.
         block.X = x;
         block.Y = y;
         block.Width = width;
         block.Height = height;
         block.Tile = tile;
-        _blockBatch.Set(block.BatchSlot, Computed.AbsoluteX + tile.X, Computed.AbsoluteY + tile.Y, tile.Z, tile.W,
-            _state.SelectedNotes.Contains(note) ? SelectedNoteColor : InstrumentColor(note.Instrument));
+        DrawNote(block, note, new Vector4(x, y, width, height));
+    }
+
+    /// <summary>
+    ///     A note's three slots: a drop shadow 1 px straight down, the lit tile filled at its
+    ///     volume, and - while it is selected - a ring around the whole cell span, which is
+    ///     the margin the tile keeps from the grid lines (or its own edge, with none to spare).
+    /// </summary>
+    private void DrawNote(NoteBlock block, Note note, Vector4 hit)
+    {
+        var (absX, absY) = (Computed.AbsoluteX, Computed.AbsoluteY);
+        var tile = block.Tile;
+        var selected = _state.SelectedNotes.Contains(note);
+        var radius = Math.Min(NoteRadius, Math.Min(tile.Z, tile.W) / 2);
+
+        if (PixelsPerStep >= MinShadowPixelsPerStep && tile.W > 0)
+            _blockBatch.Set(block.BatchSlot - 1, absX + tile.X, absY + tile.Y + 1, tile.Z, tile.W,
+                new Vector4(0, 0, 0, ShadowAlpha * Shading), ShadedRect.Of(radius));
+        else
+            _blockBatch.Hide(block.BatchSlot - 1);
+
+        _blockBatch.Set(block.BatchSlot, absX + tile.X, absY + tile.Y, tile.Z, tile.W,
+            VolumeFill(NoteColor(note, selected), note.Volume), ShadedRect.Of(radius, strength: Shading));
+
+        if (selected)
+            _blockBatch.Set(block.BatchSlot + 1, absX + hit.X, absY + hit.Y, hit.Z, hit.W, SelectionRingColor,
+                ShadedRect.Of(radius + Math.Min(tile.X - hit.X, tile.Y - hit.Y), outline: 1));
+        else
+            _blockBatch.Hide(block.BatchSlot + 1);
     }
 
     /// <summary>

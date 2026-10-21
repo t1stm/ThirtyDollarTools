@@ -68,13 +68,25 @@ public sealed partial class TrackEditorView : Panel
     // segment strips on top of those. The pieces that must paint over ALL of it - the
     // gutter, the cut rule, the playheads, the marquee - stay ordinary children, which
     // render a layer above both batches.
+    // A note takes three slots: its shadow, its body, then its selection ring - the ring
+    // last, since with no margin to spare it is drawn inside the body's edge.
     private const int NoteBlockSlot = 0;
-    private const int AutomationMarkSlot = NoteBlockSlot + NoteBlockPool;
+    private const int SlotsPerNote = 3;
+    private const int AutomationMarkSlot = NoteBlockSlot + NoteBlockPool * SlotsPerNote;
     private const int ResizeHandleSlot = AutomationMarkSlot + AutomationMarkReserve;
     private const int StripBgSlot = ResizeHandleSlot + 1;
     private const int RulerBgSlot = StripBgSlot + 1;
     private const int StripBlockSlot = RulerBgSlot + 1;
     private const int BlockBatchTotal = StripBlockSlot + StripBlockPool;
+
+    // The note look (docs: the shading plan's "Final" boards): how strong the light and the
+    // volume fill are, how far a selected note lifts its colour, the tile's corner and its
+    // drop shadow - 1 px straight down, and none once a step is too narrow to show it.
+    private const float Shading = 1f;
+    private const float SelectedLift = 0.16f;
+    private const float NoteRadius = 3f;
+    private const float ShadowAlpha = 0.6f;
+    private const float MinShadowPixelsPerStep = 4f;
 
     // ponytail: worst case (StepsPerBeat=1 at 4px/step min zoom) would need ~750 like
     // StepLinePool, but MinBeatLabelSpacingPx bounds real usage to ~110 labels for a
@@ -135,7 +147,7 @@ public sealed partial class TrackEditorView : Panel
         // track which note ended up where.
         for (var i = 0; i < NoteBlockPool; i++)
         {
-            var block = new NoteBlock(context, this) { BatchSlot = NoteBlockSlot + i };
+            var block = new NoteBlock(context, this) { BatchSlot = NoteBlockSlot + i * SlotsPerNote + 1 };
             _noteBlocks.Add(block);
             AddChild(block);
         }
@@ -252,9 +264,17 @@ public sealed partial class TrackEditorView : Panel
     [NamedSetting("automation-end-color")]
     public Vector4 AutomationEndColor { get; set; }
 
-    /// <summary>A note block's fill while it is part of the selection.</summary>
-    [NamedSetting("selected-note-color")]
-    public Vector4 SelectedNoteColor { get; set; }
+    /// <summary>The canvas's own background: what a quiet note's fill sinks toward.</summary>
+    [NamedSetting("grid-color")]
+    public Vector4 GridColor { get; set; }
+
+    /// <summary>How far toward <see cref="GridColor" /> a silent note's fill sinks; a full one doesn't.</summary>
+    [NamedSetting("volume-depth")]
+    public float VolumeDepth { get; set; } = 0.62f;
+
+    /// <summary>The ring a selected note (and its keyframe markers) is drawn with.</summary>
+    [NamedSetting("selection-ring-color")]
+    public Vector4 SelectionRingColor { get; set; }
 
     /// <summary>
     ///     Stable per-sound note colors: an instrument's name picks its index (hashed here
@@ -292,6 +312,26 @@ public sealed partial class TrackEditorView : Panel
     internal Vector4 BlockRectOf(NoteBlock block)
     {
         return _blockBatch.RectOf(block.BatchSlot);
+    }
+
+    /// <summary>Test seam: a block's selection ring - its rect in absolute px, and its color (transparent when hidden).</summary>
+    internal (Vector4 Rect, Vector4 Color, Vector4 Shape) RingOf(NoteBlock block)
+    {
+        var slot = block.BatchSlot + 1;
+        return (_blockBatch.RectOf(slot), _blockBatch.ColorOf(slot), _blockBatch.ShapeOf(slot));
+    }
+
+    /// <summary>Test seam: a block's drop shadow, as <see cref="RingOf" />.</summary>
+    internal (Vector4 Rect, Vector4 Color, Vector4 Shape) ShadowOf(NoteBlock block)
+    {
+        var slot = block.BatchSlot - 1;
+        return (_blockBatch.RectOf(slot), _blockBatch.ColorOf(slot), _blockBatch.ShapeOf(slot));
+    }
+
+    /// <summary>Test seam: the shape a block's tile is drawn with.</summary>
+    internal Vector4 BlockShapeOf(NoteBlock block)
+    {
+        return _blockBatch.ShapeOf(block.BatchSlot);
     }
 
     /// <summary>Test seam: the scroll, zoom and pixel mapping the last layout used.</summary>
@@ -361,6 +401,31 @@ public sealed partial class TrackEditorView : Panel
         var lightened = color + (Vector4.One - color) * amount;
         lightened.W = color.W;
         return lightened;
+    }
+
+    /// <summary>The same colour mixed toward another by <paramref name="amount" />, alpha untouched.</summary>
+    private static Vector4 Mix(Vector4 color, Vector4 toward, float amount)
+    {
+        var mixed = Vector4.Lerp(color, toward, amount);
+        mixed.W = color.W;
+        return mixed;
+    }
+
+    /// <summary>A note's own colour: its instrument's, lifted while it is selected.</summary>
+    private Vector4 NoteColor(Note note, bool selected)
+    {
+        var color = InstrumentColor(note.Instrument);
+        return selected ? Lighten(color, SelectedLift) : color;
+    }
+
+    /// <summary>
+    ///     A note body's fill at a volume: its colour, sunk toward the grid as the volume drops.
+    ///     A null volume plays at 100, and anything above 100 stays at full.
+    /// </summary>
+    internal Vector4 VolumeFill(Vector4 color, double? volume)
+    {
+        var quiet = 1 - Math.Clamp((volume ?? 100) / 100, 0, 1);
+        return Mix(color, GridColor, (float)(VolumeDepth * Shading * quiet));
     }
 
     private static void Hide(UIElement element)

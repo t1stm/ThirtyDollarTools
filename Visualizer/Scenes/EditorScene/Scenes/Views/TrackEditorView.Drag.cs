@@ -1,3 +1,4 @@
+using EditorScene.Scenes.Components;
 using EditorScene.State;
 using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
@@ -174,9 +175,13 @@ public partial class TrackEditorView
         var left = edge > 0 ? Math.Max(tile.X, hitRight - zone) : tile.X;
         var right = edge > 0 ? tile.X + tile.Z : Math.Min(tile.X + tile.Z, hitLeft + zone);
 
-        // The band is the note's own fill, lifted toward white - it reads as the same note.
+        // The band is the note's own fill, lifted toward white and lit the same way, rounded
+        // on the tile's own corners at that end - it reads as a lighter piece of the note.
+        var radius = Math.Min(NoteRadius, Math.Min(tile.Z, tile.W) / 2);
         _blockBatch.Set(ResizeHandleSlot, Computed.AbsoluteX + left, Computed.AbsoluteY + tile.Y,
-            Math.Max(0, right - left), tile.W, Lighten(_blockBatch.ColorOf(hovered.BatchSlot), 0.35f));
+            Math.Max(0, right - left), tile.W, Lighten(_blockBatch.ColorOf(hovered.BatchSlot), 0.35f),
+            ShadedRect.Of(radius, edge > 0 ? ShadedRect.TopRight | ShadedRect.BottomRight
+                : ShadedRect.TopLeft | ShadedRect.BottomLeft, strength: Shading));
         _handleBand = new Vector4(left, tile.Y, Math.Max(0, right - left), tile.W);
     }
 

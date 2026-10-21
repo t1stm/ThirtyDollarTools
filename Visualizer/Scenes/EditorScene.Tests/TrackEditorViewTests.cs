@@ -672,6 +672,79 @@ public class TrackEditorViewTests
     }
 
     [Fact]
+    public void ANotesFill_SinksTowardTheGrid_AsItsVolumeDrops()
+    {
+        var (_, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var full = state.AddNote(track.Segments[0], 0, boom, 0);
+        full.Volume = 100;
+        var unset = state.AddNote(track.Segments[0], 2, boom, 0);
+        var half = state.AddNote(track.Segments[0], 4, boom, 0);
+        half.Volume = 50;
+        var loud = state.AddNote(track.Segments[0], 6, boom, 0);
+        loud.Volume = 150;
+        view.Layout();
+
+        Vector4 Fill(Note note) => view.FillOf(view.NoteBlocks.Single(b => b.Note == note));
+
+        // Null plays at 100, and nothing above 100 gets brighter than full.
+        var color = Fill(full);
+        Assert.Equal(color, Fill(unset));
+        Assert.Equal(color, Fill(loud));
+
+        // Half volume sinks half of volume-depth toward the grid: mix(color, grid, 0.62 x 0.5).
+        var expected = Vector4.Lerp(color, view.GridColor, view.VolumeDepth * 0.5f);
+        expected.W = color.W;
+        var actual = Fill(half);
+        Assert.Equal(expected.X, actual.X, 5);
+        Assert.Equal(expected.Y, actual.Y, 5);
+        Assert.Equal(expected.Z, actual.Z, 5);
+        Assert.True(actual.Xyz.Length < color.Xyz.Length, "a quieter note should be darker");
+        Assert.Equal(0.62f, view.VolumeDepth);
+    }
+
+    [Fact]
+    public void ASelectedNotesRing_SpansItsHitBox_GridLineToGridLine()
+    {
+        var (_, state, view, track) = NewView();
+        var note = state.AddNote(track.Segments[0], 3, MakeInstrument(state, "boom"), 0);
+        state.SelectNote(note);
+        view.Layout();
+
+        var block = view.NoteBlocks.Single(b => b.Note == note);
+        var (rect, _, shape) = view.RingOf(block);
+        Assert.Equal(new Vector4(block.Computed.AbsoluteX, block.Computed.AbsoluteY, block.Computed.Width,
+            block.Computed.Height), rect);
+        // A 1 px outline - exactly the margin the tile keeps - not a fill under the tile.
+        Assert.Equal(1, shape.Z);
+        // And the tile itself is lit, with its drop shadow a pixel below it.
+        Assert.True(view.BlockShapeOf(block).W > 0);
+        Assert.Equal(view.BlockRectOf(block) + new Vector4(0, 1, 0, 0), view.ShadowOf(block).Rect);
+    }
+
+    [Fact]
+    public void RemovedNotes_ReleaseEverySlotTheyPainted()
+    {
+        var (_, state, view, track) = NewView();
+        var boom = MakeInstrument(state, "boom");
+        var notes = Enumerable.Range(0, 4).Select(step => state.AddNote(track.Segments[0], step, boom, 0)).ToList();
+        state.SetNoteSelection(notes); // rings too, so all three slots of each are painted
+        view.Layout();
+
+        foreach (var note in notes.Skip(1)) state.RemoveNote(track.Segments[0], note);
+        view.Layout();
+
+        // Only the first block is still placed; the release reaches the old high-water mark.
+        var released = view.NoteBlocks.Skip(1).Take(3).ToList();
+        Assert.All(released, block =>
+        {
+            Assert.Equal(0, view.FillOf(block).W);
+            Assert.Equal(0, view.RingOf(block).Color.W);
+            Assert.Equal(0, view.ShadowOf(block).Color.W);
+        });
+    }
+
+    [Fact]
     public void BelowEightPixelsPerStep_ATileHasNoMarginToSpare()
     {
         var (_, state, view, track) = NewView();

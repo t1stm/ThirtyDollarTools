@@ -66,10 +66,13 @@ class note-canvas {
     strip-segment-b = $theme.strip_segment_b;
     strip-selected-color = $theme.accent;
 
-    // A note block's fill: its instrument's entry in the palette, or the highlight when
-    // it is part of the selection. The end cap sits on top of a note that gets cut where
-    // it ends, so it takes the brightest shade on the canvas.
-    selected-note-color = $theme.selection_highlight;
+    // A note's fill: its instrument's entry in the palette, sunk toward the canvas's own
+    // background as its volume drops - by volume-depth at silence. A selected note lifts its
+    // own color and takes the ring. The end cap sits on top of a note that gets cut where it
+    // ends, so it takes the brightest shade on the canvas.
+    grid-color = $theme.grid_background;
+    volume-depth = 0.62;
+    selection-ring-color = $theme.selection_ring;
     automation-end-color = $theme.playhead;
     sound-palette = $theme.sound_palette;
 }

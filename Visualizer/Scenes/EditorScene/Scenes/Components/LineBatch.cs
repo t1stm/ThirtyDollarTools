@@ -82,7 +82,8 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
         var list = _stack!.List;
         list.EnsureCount(index + 1);
 
-        var model = Matrix4.CreateScale(width, height, 1f) * Matrix4.CreateTranslation(x, y, 0f);
+        // Scale then translate, written out: the views re-assign thousands of slots per layout.
+        var model = new Matrix4(width, 0, 0, 0, 0, height, 0, 0, 0, 0, 1, 0, x, y, 0, 1);
         var current = list[index];
         if (current.Model == model && current.Color == color && current.Shape == shape) return;
 
@@ -118,8 +119,15 @@ internal class LineBatch : IRenderable, IClippable, IGamePreloadable
     public void Hide(int index)
     {
         if (_stack is null || index >= _stack.List.Count) return;
-        Set(index, 0, 0, 0, 0, default);
+        var list = _stack.List;
+        // Most released slots were released last layout too: one read, no write.
+        if (list[index] is { Color.W: 0 } current && current.Model == Hidden && current.Shape == Vector4.Zero &&
+            current.Color == Vector4.Zero) return;
+
+        list[index] = new ShadedRect { Model = Hidden };
     }
+
+    private static readonly Matrix4 Hidden = Matrix4.CreateScale(0, 0, 1);
 
     /// <summary>The color a slot is currently painted with - a test seam.</summary>
     public Vector4 ColorOf(int index)
