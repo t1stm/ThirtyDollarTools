@@ -74,6 +74,9 @@ public sealed class EventCanvas : Panel
     /// <summary>The slot under the pointer, or null - refreshed every frame while hovered.</summary>
     private int? _hovered;
 
+    /// <summary>The slot under the pointer, or null. Only tracked while <see cref="HighlightHover" /> is on.</summary>
+    public int? Hovered => _hovered;
+
     /// <summary>The slots the hovered one lights - its whole group; see <see cref="HoverRun" />.</summary>
     private (int Start, int End)? _hoverRun;
 

@@ -361,7 +361,7 @@ public class Editor : Scene, IFadeInScene
 
         // Keys that only mean something with a faithful track open, and only after the bind
         // table has passed: the arrows (which match no bind while a modifier is held),
-        // Delete, Enter and Tab.
+        // Delete, Enter, Tab, C and X.
         _editorInterface.FaithfulKeyDown(e);
     }
 

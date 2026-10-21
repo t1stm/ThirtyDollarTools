@@ -129,6 +129,12 @@ public sealed class FaithfulSequence : ScrollView
     public Action<FaithfulItem>? OnEditAction { get; set; }
 
     /// <summary>
+    ///     Right-clicking a cut asks what it should silence - the site's right-click only clears
+    ///     a cut's target. <c>EditorInterface</c> owns the dialog.
+    /// </summary>
+    public Action<FaithfulItem>? OnEditCut { get; set; }
+
+    /// <summary>
     ///     Redraws from the opened faithful track. Call only when the sequence actually
     ///     changed - which is what <see cref="Scenes.EditorInterface" /> does, and only while
     ///     the panel is open - since a rebuild regenerates GL buffers. The rebuild itself is
@@ -304,7 +310,7 @@ public sealed class FaithfulSequence : ScrollView
     /// </summary>
     private void Preview(FaithfulItem? item)
     {
-        if (item?.Note is { } note) OnPreviewNote?.Invoke(note);
+        if (item?.Note is { IsCut: false } note) OnPreviewNote?.Invoke(note);
     }
 
     /// <summary>
@@ -315,6 +321,12 @@ public sealed class FaithfulSequence : ScrollView
     private void PreviewAt(int eventIndex)
     {
         if (ItemAt(eventIndex) is not { } item) return;
+
+        if (item.IsCut)
+        {
+            OnEditCut?.Invoke(item);
+            return;
+        }
 
         if (item.Action is { } action && FaithfulAction.TakesValue(action.SoundEvent))
         {
@@ -365,7 +377,8 @@ public sealed class FaithfulSequence : ScrollView
     /// <summary>Whether the scroll gesture (and the up/down keys) mean anything on this slot.</summary>
     private static bool Adjustable(FaithfulItem item)
     {
-        if (item.Note is not null) return true;
+        // A cut note carries no value, volume or pan of its own - see Note.IsCut.
+        if (item.Note is { } note) return !note.IsCut;
         return item.Action is { } action && FaithfulAction.ScrollRangeFor(action) is not null;
     }
 
@@ -490,6 +503,25 @@ public sealed class FaithfulSequence : ScrollView
     }
 
     /// <summary>
+    ///     X, as on the site: over a sound slot it adds a cut of that slot's instrument right
+    ///     after it - one "!cut@sound" per sound, kept together as one item. Over nothing it
+    ///     adds a bare "!cut" where Tab and C put theirs. Over an action or a cut there is no
+    ///     instrument to aim at, so nothing happens.
+    /// </summary>
+    public void CutHovered()
+    {
+        if (_state.OpenedFaithfulTrack is not { } track) return;
+        if (_canvas.Hovered is not { } slot)
+        {
+            AppendAction("!cut");
+            return;
+        }
+
+        if (ItemAt(slot) is not { Note: { IsCut: false } note } item) return;
+        _state.InsertItemAt(track, FaithfulItem.Cut(note.Instrument), track.Items.IndexOf(item) + 1);
+    }
+
+    /// <summary>
     ///     One notch of the value/volume/pan gesture on an item - the scroll wheel's body and
     ///     the arrow keys'. A sound item's value/volume/pan ride on its <see cref="Note" />;
     ///     an action's single value is what its own notch moves.
@@ -520,7 +552,7 @@ public sealed class FaithfulSequence : ScrollView
     /// </summary>
     private void AdjustOne(FaithfulItem item, int notches)
     {
-        if (item.Note is { } note)
+        if (item.Note is { IsCut: false } note)
         {
             if (CtrlHeld) note.Volume = Math.Clamp((note.Volume ?? 100) + notches * VolumeStep, 0, 500);
             else if (ShiftHeld) note.Pan = Math.Clamp(note.Pan + notches * PanStep, -100, 100);

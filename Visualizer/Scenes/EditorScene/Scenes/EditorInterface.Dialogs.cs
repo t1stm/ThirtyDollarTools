@@ -328,6 +328,40 @@ public partial class EditorInterface
         };
     }
 
+    /// <summary>
+    ///     Right-clicking a cut, or the inspector's Change on one: what it silences. Saving swaps
+    ///     the item for the dialog's, one undo step, as the action dialog does.
+    /// </summary>
+    private void ShowCutTargetDialog(FaithfulItem item)
+    {
+        if (State.OpenedFaithfulTrack is not { } track) return;
+
+        var index = track.Items.IndexOf(item);
+        if (index < 0) return;
+
+        var dialog = new CutTargetDialog(_context, State.Project.Instruments, [.. track.TrackSounds()], item,
+            _playfieldLook);
+        var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
+        modal.OnDismissRequested = _ => Close();
+        modal.OnConfirmRequested = _ => Save();
+        dialog.CloseButton.OnClick = _ => Close();
+        dialog.CancelButton.OnClick = _ => Close();
+        dialog.SaveButton.OnClick = _ => Save();
+        return;
+
+        void Close()
+        {
+            _dialogHost.Close(modal);
+            dialog.Release();
+        }
+
+        void Save()
+        {
+            Close();
+            State.ReplaceItemAt(track, index, dialog.Result);
+        }
+    }
+
     private void ShowTrackContextMenu(ProjectTrack track, float x, float y)
     {
         if (_trackContextMenuModal != null) return;

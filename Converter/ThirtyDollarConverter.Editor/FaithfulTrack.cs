@@ -23,6 +23,25 @@ public sealed class FaithfulItem
     }
 
     /// <summary>
+    ///     A cut of every sound the instrument plays. A cut note, not a list of sound names, so
+    ///     it keeps the instrument link a sound item has: re-layer the instrument and the cut
+    ///     follows it.
+    /// </summary>
+    public static FaithfulItem Cut(Instrument instrument)
+    {
+        return new FaithfulItem { Note = new Note { Step = 0, Instrument = instrument, IsCut = true } };
+    }
+
+    /// <summary>A cut of one sound - the site's own "!cut@sound".</summary>
+    public static FaithfulItem Cut(string sound)
+    {
+        return new FaithfulItem { Action = new IndividualCutEvent([sound]) };
+    }
+
+    /// <summary>Whether this slot silences rather than plays: an instrument cut, "!cut@sound" or a bare "!cut".</summary>
+    public bool IsCut => Note?.IsCut ?? Action is IndividualCutEvent or { SoundEvent: "!cut" };
+
+    /// <summary>
     ///     An action item from its TDW text ("!speed@2@x", "!bg@#ff0000,0.5"). Null when the
     ///     text holds no event - the same parser the saved file is read back with. The text is
     ///     typed by hand in a dialog, so a malformed one (the colour events throw rather than
@@ -95,6 +114,16 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
 
             if (item.Note is not { } note) continue;
 
+            // An instrument cut is one "!cut@sound" per sound, the way the site writes it: a
+            // slot each, grouped by the item like a layered instrument's sounds. No "!combine"
+            // between them - a cut takes no step, so there is nothing to join.
+            if (note.IsCut)
+            {
+                foreach (var sound in note.Instrument.Sounds.Select(sound => sound.Sound).Distinct())
+                    yield return (item, new IndividualCutEvent([sound]));
+                continue;
+            }
+
             var first = true;
             foreach (var ev in note.ToEvents())
             {
@@ -106,7 +135,7 @@ public sealed class FaithfulTrack(TimingInfo timing, int id) : ProjectTrack(timi
     }
 
     /// <summary>Every sound any of this track's sound items can play - what a bare "!cut" silences.</summary>
-    private HashSet<string> TrackSounds()
+    public HashSet<string> TrackSounds()
     {
         return [.. Items.Select(item => item.Note?.Instrument).OfType<Instrument>().SelectMany(i => i.SoundNames)];
     }

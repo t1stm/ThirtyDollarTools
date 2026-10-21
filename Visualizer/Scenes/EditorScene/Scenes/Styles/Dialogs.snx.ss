@@ -657,6 +657,89 @@ class track-preview-wave-bar {
     background = "#a5b5e5";
 }
 
+// ---------------------------------------------------------------- cut target
+
+// Three 184 targets and two 8 gaps fill the 568 inner width. Every id here starts "cut-": the
+// sheet looks ids up among the class names, so an id like "sound-row" picks up that class too.
+id cut-target-dialog {
+    width = 600;
+}
+
+class cut-modes {
+    width = 100%;
+    spacing = 8;
+}
+
+// A target: its key chip, then its name. The fills are track-kind-row-idle/-selected, swapped
+// as one is picked.
+class cut-mode {
+    width = 184;
+    height = 40;
+    padding = 10;
+    spacing = 10;
+    vertical-align = "center";
+    border-radius = 6;
+}
+
+// The instrument list, then the card of the sounds the cut silences.
+class cut-body {
+    width = 100%;
+    height = 248;
+    spacing = 12;
+}
+
+class cut-instruments {
+    direction = "vertical";
+    width = 200;
+    height = 100%;
+    spacing = 6;
+}
+
+class cut-column-label {
+    font-size = 12;
+    font-color = $theme.text_subtle;
+}
+
+// Six and a half 34 rows with their 4 gaps, so a longer list shows it scrolls.
+id cut-instrument-list {
+    width = 100%;
+    height = 226;
+    spacing = 4;
+}
+
+// One instrument: its name and, for a layered one, the count. The fills are
+// track-kind-row-idle/-selected, as the targets' are.
+class cut-instrument {
+    width = 100%;
+    height = 34;
+    padding = 10;
+    spacing = 6;
+    vertical-align = "center";
+    border-radius = 6;
+}
+
+class cut-instrument-name {
+    font-size = 13;
+    font-color = $theme.text;
+}
+
+// 332 inside its padding: five 56 tiles with their 10 margins to a line.
+class cut-sounds {
+    direction = "vertical";
+    width = 100%;
+    height = 100%;
+    padding = 12;
+    spacing = 8;
+    border-radius = 8;
+    background = $theme.background;
+}
+
+// Two and a half lines of tiles, so a track with many sounds shows it scrolls.
+id cut-sound-scroll {
+    width = 100%;
+    height = 164;
+}
+
 // ---------------------------------------------------------------- import warnings
 
 // Four 88-wide cells plus three 8 gaps fit the 388 inner width.

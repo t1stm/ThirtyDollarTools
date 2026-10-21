@@ -1,0 +1,67 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Dialogs/Dialogs.snx.ss"/>
+
+  <layout>
+    <flex id="cut-target-dialog" class="dialog-frame">
+      <flex class="dialog-header">
+        <label class="dialog-title" value="Cut target"/>
+        <!-- How many sounds the cut silences, set by CutTargetDialog.cs. -->
+        <label id="cut-count" class="dialog-subtitle" value=""/>
+        <panel class="spacer"/>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
+
+      <!-- What the cut silences. CutTargetDialog.cs swaps track-kind-row-idle/-selected as
+           one is picked (a click, 1-3, or picking an instrument or a sound below). The key
+           chip leads its label, as KeyChip.Add puts it on a button. -->
+      <flex class="cut-modes">
+        <flex id="cut-every" class="[cut-mode,track-kind-row-idle]">
+          <flex class="[key-chip,key-chip-on-card]">
+            <label class="[key-chip-label,key-chip-label-on-quiet]" value="1"/>
+          </flex>
+          <label class="track-kind-name" value="Every sound"/>
+        </flex>
+        <flex id="cut-whole-instrument" class="[cut-mode,track-kind-row-idle]">
+          <flex class="[key-chip,key-chip-on-card]">
+            <label class="[key-chip-label,key-chip-label-on-quiet]" value="2"/>
+          </flex>
+          <label class="track-kind-name" value="Instrument"/>
+        </flex>
+        <flex id="cut-one-sound" class="[cut-mode,track-kind-row-idle]">
+          <flex class="[key-chip,key-chip-on-card]">
+            <label class="[key-chip-label,key-chip-label-on-quiet]" value="3"/>
+          </flex>
+          <label class="track-kind-name" value="One sound"/>
+        </flex>
+      </flex>
+
+      <flex class="cut-body">
+        <flex class="cut-instruments">
+          <label class="cut-column-label" value="Instruments"/>
+          <!-- One row per instrument with sounds, built in code. -->
+          <scroll-view id="cut-instrument-list"/>
+        </flex>
+
+        <flex class="cut-sounds">
+          <label id="cut-sounds-label" class="cut-column-label" value="Sounds it cuts"/>
+          <!-- The sounds as the faithful palette draws them; the ones the cut silences are lit.
+               CutTargetDialog.cs puts the canvas in. -->
+          <scroll-view id="cut-sound-scroll"/>
+          <label id="cut-caption" class="track-kind-fact-label" value=""/>
+        </flex>
+      </flex>
+
+      <!-- CutTargetDialog.cs puts the Esc and Enter chips on these. -->
+      <flex class="dialog-actions">
+        <button id="cancel-button" class="dialog-button">
+          <label value="Cancel"/>
+        </button>
+        <button id="save-button" class="dialog-button-primary">
+          <label value="Save"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

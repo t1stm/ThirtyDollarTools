@@ -173,6 +173,64 @@ public class FaithfulTrackTests
         Assert.Equal(["clap", "hat", "kick"], cut.CutSounds.Order());
     }
 
+    /// <summary>
+    ///     An instrument cut is one "!cut@sound" per sound, each its own slot of the same item,
+    ///     and takes no step: the sound after it lands where it would without the cut.
+    /// </summary>
+    [Fact]
+    public void InstrumentCut_IsACutPerSoundAndTakesNoStep()
+    {
+        var kit = Layered("kit", "kick", "hat");
+        var track = new FaithfulTrack(new TimingInfo(), 1);
+        track.Items.AddRange([FaithfulItem.Sound(kit), FaithfulItem.Cut(kit), FaithfulItem.Sound(Instrument.Single("clap"))]);
+
+        var cutSlots = track.ExpandTagged().Where(pair => pair.Item == track.Items[1]).Select(pair => pair.Event).ToArray();
+        Assert.Equal(["kick", "hat"], cutSlots.Select(ev => Assert.Single(Assert.IsType<IndividualCutEvent>(ev).CutSounds)));
+        Assert.True(track.Items[1].IsCut);
+
+        Assert.EndsWith("|kick|!combine|hat|!cut@kick|!cut@hat|clap", SequenceText.Serialize(track.ToSequence()));
+        Assert.Equal(SoundTimings(Sequence.FromString("kick|!combine|hat|clap")), SoundTimings(track.ToSequence()));
+    }
+
+    /// <summary>The cut keeps the instrument link: a sound added to the instrument is cut too.</summary>
+    [Fact]
+    public void InstrumentCut_FollowsTheInstrument()
+    {
+        var kit = Layered("kit", "kick");
+        var track = new FaithfulTrack(new TimingInfo(), 1);
+        track.Items.AddRange([FaithfulItem.Sound(kit), FaithfulItem.Cut(kit)]);
+        Assert.Single(track.ToSequence().Events.OfType<IndividualCutEvent>());
+
+        kit.AddSound("hat");
+
+        var cuts = track.ToSequence().Events.OfType<IndividualCutEvent>().SelectMany(cut => cut.CutSounds);
+        Assert.Equal(["hat", "kick"], cuts.Order());
+    }
+
+    [Fact]
+    public void SaveLoad_RoundTripsEveryCutTarget()
+    {
+        var project = new ThirtyDollarProject();
+        var kit = project.NewInstrument("kit");
+        kit.AddSound("kick");
+        kit.AddSound("hat");
+
+        var track = (FaithfulTrack)project.NewTrack(TrackKind.Faithful);
+        track.Items.AddRange([
+            FaithfulItem.Sound(kit),
+            FaithfulItem.Cut(kit),
+            FaithfulItem.Cut("hat"),
+            FaithfulItem.Parse("!cut")!
+        ]);
+
+        var reloaded = Assert.IsType<FaithfulTrack>(Assert.Single(ProjectFile.Load(ProjectFile.Save(project)).Tracks));
+
+        Assert.All(reloaded.Items.Skip(1), item => Assert.True(item.IsCut));
+        Assert.Same(reloaded.Items[0].Note!.Instrument, reloaded.Items[1].Note!.Instrument);
+        Assert.Equal(["hat"], Assert.IsType<IndividualCutEvent>(reloaded.Items[2].Action).CutSounds);
+        Assert.IsNotType<IndividualCutEvent>(reloaded.Items[3].Action);
+    }
+
     [Fact]
     public void SaveLoad_RoundTripsKindAndItems()
     {

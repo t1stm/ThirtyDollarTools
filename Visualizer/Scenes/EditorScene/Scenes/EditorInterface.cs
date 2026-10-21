@@ -179,6 +179,7 @@ public partial class EditorInterface
         _faithfulSequence.OnHint = SetHint;
         _faithfulSequence.OnPreviewNote = note => Playback.PreviewNote(note);
         _faithfulSequence.OnEditAction = ShowActionEditDialog;
+        _faithfulSequence.OnEditCut = ShowCutTargetDialog;
         _arrangement.OnOpenTrack = State.OpenTrack;
         _arrangement.OnSeekQuarters = Playback.Seek;
         _arrangement.OnScrolled = _laneHeader.InvalidateLayout;
@@ -200,6 +201,7 @@ public partial class EditorInterface
                     RootPanel.AddChild(SoundFilterModal);
                 },
                 OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes),
+                OnEditCut = ShowCutTargetDialog,
                 OnChangeTrackColor = ShowTrackColorDialog,
                 OnReplaceWaveFile = ShowWaveReplaceDialog,
                 TrackColor = track => _arrangement.ColorOf(track) // the chip shows the resting fill, never the selected lift

@@ -31,7 +31,7 @@ public partial class EditorInterface
     /// <summary>
     ///     The keys that only mean something with a faithful track open, resolved after the
     ///     bind table has had its go: the arrows (which the table can't match while a
-    ///     modifier is held - see <see cref="NudgeDirection" />), Enter and Tab. Delete is
+    ///     modifier is held - see <see cref="NudgeDirection" />), Enter, Tab, C and X. Delete is
     ///     the bind table's own now (see <see cref="Editor" />'s KeyDown), for every
     ///     selection rather than only a faithful one. False leaves the key to whatever else
     ///     wants it.
@@ -58,6 +58,10 @@ public partial class EditorInterface
             // already returned above, and a focused name field eats plain letters itself.
             case Keys.C:
                 _faithfulSequence.AppendAction("!combine");
+                return true;
+            // Plain X, for the same reason: Ctrl+X is the clipboard cut.
+            case Keys.X:
+                _faithfulSequence.CutHovered();
                 return true;
             default:
                 return false;

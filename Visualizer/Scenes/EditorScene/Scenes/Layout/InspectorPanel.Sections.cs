@@ -1,4 +1,5 @@
 using ThirtyDollarConverter.Editor;
+using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Views;
 
 namespace EditorScene.Scenes.Layout;
@@ -16,6 +17,15 @@ public partial class InspectorPanel
     /// </summary>
     private void FaithfulSection(FaithfulTrack track)
     {
+        // A cut has no value, volume or pan - only what it silences, which Change edits.
+        if (_state.SelectedItem is { IsCut: true } cut)
+        {
+            _form.Header("!cut event");
+            _form.InfoRow("Cuts", () => CutTargetDialog.Describe(cut));
+            _form.ActionRow("Change", () => OnEditCut?.Invoke(cut));
+            return;
+        }
+
         if (_state.SelectedItem?.Note is { } note)
         {
             _form.Header("Sound");

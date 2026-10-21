@@ -80,7 +80,7 @@ internal sealed class HintBarController
         "Draw: click a slot to remove it, Shift+click to copy, drag it to reorder  •  " +
         $"Select: click to select, {Keybinds.PrimaryName}+click to add, Left/Right walk it, " +
         $"{Keybinds.PrimaryName}+Shift+ extends it, Space+ moves it, " +
-        "Enter places another, Del removes, Tab adds a divider, C a combine  •  " +
+        "Enter places another, Del removes, Tab adds a divider, C a combine, X cuts the hovered instrument  •  " +
         $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)} copy/paste  •  " +
         $"Scroll a slot (Up/Down under Select) for value, {Keybinds.PrimaryName}+ volume, Shift+ pan";
 

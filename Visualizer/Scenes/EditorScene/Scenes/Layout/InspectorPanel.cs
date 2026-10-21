@@ -85,6 +85,12 @@ public sealed partial class InspectorPanel
     public Action<IReadOnlyList<Note>>? OnReassignInstrument { get; set; }
 
     /// <summary>
+    ///     Fired by Change on a selected faithful cut. EditorInterface owns the Cut target
+    ///     dialog, the same one a right-click on the cut opens.
+    /// </summary>
+    public Action<FaithfulItem>? OnEditCut { get; set; }
+
+    /// <summary>
     ///     Fired when the user wants to point a wave track at another file. Wired like
     ///     <see cref="OnChangeTrackColor" /> - the inspector owns no file dialog.
     /// </summary>
