@@ -681,6 +681,9 @@ public sealed class EventCanvas : Panel
                 Context.QueueRender(_chunks[i], Index);
 
         _queued = next;
+        // The lit panels only cover queued slots, so a canvas whose selection was set before it
+        // was first drawn (a dialog's tiles) lights nothing until this range has filled.
+        RefreshSelection();
     }
 
     /// <summary>
