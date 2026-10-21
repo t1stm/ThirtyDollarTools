@@ -101,7 +101,7 @@ public sealed partial class ArrangementView : Panel
     ///     out at - reused between frames, since a clip's element carries its geometry as
     ///     layout values rather than numbers this pass can read back.
     /// </summary>
-    private readonly List<(WaveTrack Track, Vector4 Tile, bool Selected)> _waveClips = [];
+    private readonly List<(WaveTrack Track, Vector4 Tile)> _waveClips = [];
 
     private Vector4i? _inheritedClip;
     private bool _refreshDeferred;
@@ -457,7 +457,7 @@ public sealed partial class ArrangementView : Panel
             block.Height = LaneHeight - 1;
             block.Tile = new Vector4(start + 2, laneTop + 2, clipWidth - 3, ClipHeight);
             DrawClip(block, absX, absY);
-            if (placement.Track is WaveTrack wave) _waveClips.Add((wave, block.Tile, block.Selected));
+            if (placement.Track is WaveTrack wave) _waveClips.Add((wave, block.Tile));
             // Confine the name to its own clip's strip, per slot (see LabelBatch.Set's clip):
             // the batch's ClipRect is one scissor for the whole draw call and can only bound
             // the pool as a group, so a clip zoomed narrower than its name would otherwise
@@ -563,7 +563,7 @@ public sealed partial class ArrangementView : Panel
     {
         if (WavePeaks is null) return;
 
-        foreach (var (track, tile, _) in _waveClips)
+        foreach (var (track, tile) in _waveClips)
         {
             if (WavePeaks(track.Path) is not { Length: > 0 } peaks) continue;
             var (clipX, clipY, clipWidth) = (tile.X, tile.Y, tile.Z);
