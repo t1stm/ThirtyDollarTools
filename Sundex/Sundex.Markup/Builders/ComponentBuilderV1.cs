@@ -223,6 +223,16 @@ public class ComponentBuilderV1 : IComponentBuilder
                 break;
             }
 
+            case "link":
+            {
+                var attributes = node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>();
+                attributes.TryGetValue("value", out var text);
+                attributes.TryGetValue("open", out var url);
+                attributes.TryGetValue("font", out var font);
+                element = new Link(context.UIContext, text ?? string.Empty, url ?? string.Empty, font);
+                break;
+            }
+
             case "progress":
             {
                 var background = ExtractBackgroundStyle(node, styleSheet);
