@@ -7,7 +7,7 @@ public class ViewNavigationTests
 {
     private static ViewNavigation MakeArrangementNav()
     {
-        return new ViewNavigation(6f, 96f) { Zoom = 24f };
+        return new ViewNavigation(6f, 96f, 28f, 176f) { Zoom = 24f, RowHeight = 44f };
     }
 
     [Fact]

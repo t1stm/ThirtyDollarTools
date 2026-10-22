@@ -103,11 +103,13 @@ public partial class ArrangementView
     /// <summary>
     ///     FL-style middle-mouse pan of both axes, fed per frame from the scene's mouse
     ///     handler (the framework only routes left/right buttons). A hold that starts
-    ///     inside the view drags the viewport with the pointer until release.
+    ///     inside the view drags the viewport with the pointer until release. With Ctrl
+    ///     held, the same drag scales the lane height instead, as in the note editor.
     /// </summary>
     public void MiddlePan(bool held, float x, float y)
     {
-        if (!_nav.MiddlePan(held, x, y, ContainsPoint(x, y))) return;
+        var rowPointerPx = y - Computed.AbsoluteY - RulerHeight;
+        if (!_nav.MiddleDrag(held, WheelZooms, x, y, rowPointerPx, ContainsPoint(x, y))) return;
         InvalidateLayout();
         OnScrolled?.Invoke();
     }

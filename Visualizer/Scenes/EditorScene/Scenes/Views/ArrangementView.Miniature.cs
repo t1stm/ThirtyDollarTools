@@ -14,22 +14,24 @@ namespace EditorScene.Scenes.Views;
 public partial class ArrangementView
 {
     // The boards' numbers, in px from the clip's top: the dashes fit the track's value range
-    // into rows 22 to 34, the beats are 6 px tall from row 23. A clip spends at most the
+    // into rows 22 to 34, the beats are 6 px tall from row 23. Those are at the default lane
+    // height; a scaled lane moves where both end, keeping the boards' margin to the clip's
+    // bottom (DashFoot, BeatFoot) and never going below 2 px a beat. A clip spends at most the
     // budget on them, like the wave bars, and pixel columns that already hold a mark are
     // skipped, so a dense track costs what its width can show.
     private const float DashTop = 22f;
-    private const float DashRange = 12f;
+    private const float DashFoot = 5f;
     private const float DashHeight = 2f;
     private const float DashLift = 0.35f;
     private const float SelectedDashLift = 0.55f;
     private const float BeatTop = 23f;
-    private const float BeatHeight = 6f;
+    private const float BeatFoot = 12f;
     private const float BeatRadius = 1f;
     private const int MiniatureBudget = 2048;
 
     private readonly Dictionary<ProjectTrack, Miniature> _miniatures = [];
     private readonly List<(Vector4 Rect, Vector4 Color)> _miniatureMarks = [];
-    private readonly int[] _dashColumns = new int[(int)DashRange + 1];
+    private readonly int[] _dashColumns = new int[(int)MaxLaneHeight];
     private int _miniatureRevision = -1;
     private MiniatureKey _miniatureKey;
 
@@ -52,6 +54,7 @@ public partial class ArrangementView
         int Revision,
         int Selection,
         float Zoom,
+        float LaneHeight,
         Vector2 Scroll,
         Vector4 View,
         int Start,
@@ -63,7 +66,7 @@ public partial class ArrangementView
     {
         // The playhead re-lays the view out on every frame of playback without moving a clip:
         // with nothing here changed, the slots already hold this layout's marks.
-        var key = new MiniatureKey(_state.Revision, _selectionVersion, PixelsPerQuarter,
+        var key = new MiniatureKey(_state.Revision, _selectionVersion, PixelsPerQuarter, LaneHeight,
             new Vector2(_nav.ScrollX, _nav.ScrollY), new Vector4(absX, absY, width, Computed.Height), start + used,
             ClipPalette, SoundPalette, ClipColor);
         if (key == _miniatureKey)
@@ -103,7 +106,8 @@ public partial class ArrangementView
         var span = Math.Max(1, miniature.Highest - miniature.Lowest);
         var tint = Vector4.Lerp(color, Vector4.One, selected ? SelectedDashLift : DashLift);
         var right = Math.Min(tile.X + tile.Z - 2, width);
-        Array.Fill(_dashColumns, int.MinValue);
+        var range = (int)Math.Max(0, tile.W - DashTop - DashHeight - DashFoot);
+        Array.Fill(_dashColumns, int.MinValue, 0, range + 1);
 
         var drawn = 0;
         foreach (var dash in miniature.Dashes)
@@ -114,7 +118,7 @@ public partial class ArrangementView
             if (x + dashWidth < 0) continue;
 
             // One dash per row and pixel column: the first one there wins.
-            var row = (int)Math.Round((miniature.Highest - dash.Value) / span * DashRange);
+            var row = (int)Math.Round((miniature.Highest - dash.Value) / span * range);
             var column = (int)MathF.Floor(x);
             if (_dashColumns[row] == column) continue;
             _dashColumns[row] = column;
@@ -129,6 +133,7 @@ public partial class ArrangementView
         ref int used)
     {
         var right = Math.Min(tile.X + tile.Z - 2, width);
+        var beatHeight = Math.Max(2, tile.W - BeatTop - BeatFoot);
         var lastColumn = int.MinValue;
         var drawn = 0;
         foreach (var beat in miniature.Beats)
@@ -144,7 +149,7 @@ public partial class ArrangementView
             lastColumn = column;
 
             var color = TrackEditorView.PaletteColor(beat.Sound, SoundPalette);
-            var rect = new Vector4(x, tile.Y + BeatTop, beatWidth, BeatHeight);
+            var rect = new Vector4(x, tile.Y + BeatTop, beatWidth, beatHeight);
             Mark(start, ref used, rect, absX, absY, color with { W = color.W * Presence(beat.Volume) },
                 ShadedRect.Of(BeatRadius));
             if (++drawn >= MiniatureBudget) break;

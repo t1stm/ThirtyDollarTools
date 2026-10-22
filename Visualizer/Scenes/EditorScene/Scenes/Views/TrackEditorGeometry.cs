@@ -30,7 +30,7 @@ public sealed class TrackEditorGeometry
     public const float MinRowHeight = 4f;
     public const float MaxRowHeight = 300f;
 
-    public readonly ViewNavigation Nav = new(4f, 128f) { Zoom = 64f };
+    public readonly ViewNavigation Nav = new(4f, 128f, MinRowHeight, MaxRowHeight) { Zoom = 64f, RowHeight = 20f };
 
     /// <summary>
     ///     Top of the pinned cut row - docked to the bottom of the viewport, clamped
@@ -66,7 +66,11 @@ public sealed class TrackEditorGeometry
     }
 
     /// <summary>Height of one value row, scaled by the user with <see cref="ScaleRows" />.</summary>
-    public float RowHeight { get; set; } = 20f;
+    public float RowHeight
+    {
+        get => Nav.RowHeight;
+        set => Nav.RowHeight = value;
+    }
 
     /// <summary>
     ///     A fresh view (and every OpenTrack) starts centered on value 0; stays
@@ -97,9 +101,7 @@ public sealed class TrackEditorGeometry
     /// </summary>
     public void ScaleRows(float localY, float dy)
     {
-        var anchorRows = (localY - GridTop + ScrollY) / RowHeight;
-        RowHeight = Math.Clamp(RowHeight * MathF.Pow(1.01f, -dy), MinRowHeight, MaxRowHeight);
-        ScrollY = anchorRows * RowHeight - (localY - GridTop);
+        Nav.ScaleRowsAt(localY - GridTop, dy);
     }
 
     /// <summary>Maps a local x to (segment, local step); null outside the track's grid.</summary>

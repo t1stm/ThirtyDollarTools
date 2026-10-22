@@ -64,15 +64,16 @@ public sealed class LaneHeader : Panel
     {
         var lanes = _arrangement.Channels;
         var scrollY = _arrangement.ScrollY;
+        var laneHeight = _arrangement.LaneHeight;
         for (var lane = 0; lane < _rows.Count; lane++)
         {
             var (mute, solo) = _rows[lane];
-            var rowTop = ArrangementView.RulerHeight + lane * ArrangementView.LaneHeight - scrollY;
-            var rowBottom = rowTop + ArrangementView.LaneHeight;
+            var rowTop = ArrangementView.RulerHeight + lane * laneHeight - scrollY;
+            var rowBottom = rowTop + laneHeight;
             // Scroll-aware: the row's own band must overlap the visible strip below the
             // ruler, matching ArrangementView's divider-line visibility for the same lane.
             var visible = lane < lanes && rowBottom > ArrangementView.RulerHeight && rowTop < Computed.Height;
-            var y = rowTop + (ArrangementView.LaneHeight - 24) / 2;
+            var y = rowTop + (laneHeight - 24) / 2;
 
             mute.Visible = solo.Visible = visible;
             mute.X = 4;

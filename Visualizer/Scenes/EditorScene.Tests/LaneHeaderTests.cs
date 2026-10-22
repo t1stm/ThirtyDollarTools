@@ -24,7 +24,7 @@ public class LaneHeaderTests
         // shared by the divider lines and this header's M/S toggles have to reach as deep:
         // a lane past any fixed pool size still gets its line and its buttons.
         const int channel = 40;
-        var height = ArrangementView.RulerHeight + (channel + 2) * ArrangementView.LaneHeight;
+        var height = ArrangementView.RulerHeight + (channel + 2) * ArrangementView.DefaultLaneHeight;
         var (state, arrangement, header) = NewHeader(height);
         var track = state.AddTrack();
         state.PlaceTrack(track, channel, 0);
@@ -127,7 +127,7 @@ public class LaneHeaderTests
         // because of the change never gets Visible recomputed/queued for render (the
         // header otherwise only relayouts from ArrangementView.OnScrolled).
         const int channel = 40;
-        var height = ArrangementView.RulerHeight + (channel + 2) * ArrangementView.LaneHeight;
+        var height = ArrangementView.RulerHeight + (channel + 2) * ArrangementView.DefaultLaneHeight;
         var (state, arrangement, header) = NewHeader(height);
         arrangement.Layout();
         header.Layout();

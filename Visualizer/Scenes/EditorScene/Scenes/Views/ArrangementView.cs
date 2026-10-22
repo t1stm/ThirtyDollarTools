@@ -18,9 +18,15 @@ namespace EditorScene.Scenes.Views;
 /// </summary>
 public sealed partial class ArrangementView : Panel
 {
-    public const float LaneHeight = 44f;
+    public const float DefaultLaneHeight = 44f;
     public const float RulerHeight = 18f;
     private const int MinChannels = 8;
+
+    // Ctrl+middle drag scales the lanes between these, the way it scales the note editor's
+    // rows: down to a clip that is little more than its name strip, with the lane header's
+    // 24 px M/S toggles still clear of the lines, up to four times the default.
+    public const float MinLaneHeight = 28f;
+    public const float MaxLaneHeight = 4 * DefaultLaneHeight;
 
     // ponytail: fixed pools - 128 bar lines cover a 3k px window at minimum zoom (6 ppq).
     // LaneLinePool is also the LaneHeader's toggle pool and the bound ChannelCount clamps
@@ -48,15 +54,15 @@ public sealed partial class ArrangementView : Panel
     // The boards' numbers: the corner, the strip, the body's depth, the light's strength and
     // the shadow, 2 px straight down.
     private const float ClipRadius = 5f;
-    private const float ClipHeight = LaneHeight - 3;
     private const float StripHeight = 18f;
     private const float BodyDepth = 0.5f;
     private const float Shading = 1f;
     private const float ClipShadowAlpha = 0.55f;
     private const float ClipShadowDrop = 2f;
 
-    // A wave clip's peak envelope: 2 px bars every 3 px, in the body's 16 px of room
-    // (clip rows 21 to 37), lightened off the clip's own color. The budget is per clip, not per frame:
+    // A wave clip's peak envelope: 2 px bars every 3 px, in the body's room from clip row 21
+    // to 4 px short of its bottom (rows 21 to 37 at the default lane height), lightened off
+    // the clip's own color. The budget is per clip, not per frame:
     // a shared one is spent by whichever clips are laid out first, which leaves every
     // lane past it blank in a project of stems. A clip's visible bars are already bounded
     // by the view's width / WaveBarPitch, so the budget only ever binds on an absurdly
@@ -65,7 +71,7 @@ public sealed partial class ArrangementView : Panel
     private const float WaveBarPitch = 3f;
     private const float WaveBarWidth = 2f;
     private const float WaveBarTop = 21f;
-    private const float WaveBarRoom = 16f;
+    private const float WaveBarFoot = 4f;
     private const float WaveBarLift = 0.15f;
     private const int WaveBarBudget = 2048;
 
@@ -87,7 +93,8 @@ public sealed partial class ArrangementView : Panel
     private readonly LineBatch _lineBatch = new();
     private readonly Marquee _marquee;
 
-    private readonly ViewNavigation _nav = new(6f, 96f) { Zoom = 24f };
+    private readonly ViewNavigation _nav = new(6f, 96f, MinLaneHeight, MaxLaneHeight)
+        { Zoom = 24f, RowHeight = DefaultLaneHeight };
     private readonly Panel _playhead;
     private readonly Panel _rulerBackground;
     private readonly EditorState _state;
@@ -301,6 +308,13 @@ public sealed partial class ArrangementView : Panel
     /// </summary>
     public float ScrollY => _nav.ScrollY;
 
+    /// <summary>
+    ///     Height of one lane, scaled by a Ctrl+middle drag between <see cref="MinLaneHeight" />
+    ///     and <see cref="MaxLaneHeight" />. Shared with the lane header, which centres its M/S
+    ///     toggles in it.
+    /// </summary>
+    public float LaneHeight => _nav.RowHeight;
+
     /// <summary>Horizontal zoom. Also the unit scale for hit-to-time math.</summary>
     public float PixelsPerQuarter
     {
@@ -311,7 +325,10 @@ public sealed partial class ArrangementView : Panel
     /// <summary>Drag/place snap, in quarter notes.</summary>
     public double SnapQuarterNotes { get; } = 1;
 
-    /// <summary>While true (Ctrl held), the wheel zooms horizontally instead of panning.</summary>
+    /// <summary>
+    ///     While true (Ctrl held), the wheel zooms horizontally instead of panning, and a
+    ///     middle drag scales the lanes instead of panning.
+    /// </summary>
     public bool WheelZooms { get; set; }
 
     /// <summary>
@@ -455,7 +472,7 @@ public sealed partial class ArrangementView : Panel
             block.Y = laneTop + 1;
             block.Width = clipWidth - 1;
             block.Height = LaneHeight - 1;
-            block.Tile = new Vector4(start + 2, laneTop + 2, clipWidth - 3, ClipHeight);
+            block.Tile = new Vector4(start + 2, laneTop + 2, clipWidth - 3, LaneHeight - 3);
             DrawClip(block, absX, absY);
             if (placement.Track is WaveTrack wave) _waveClips.Add((wave, block.Tile));
             // Confine the name to its own clip's strip, per slot (see LabelBatch.Set's clip):
@@ -573,7 +590,8 @@ public sealed partial class ArrangementView : Panel
             // built, uploaded and then scissored away by the batch's clip rect.
             if (clipY + tile.W <= RulerHeight || clipY >= Computed.Height) continue;
 
-            var middle = clipY + WaveBarTop + WaveBarRoom / 2f;
+            var room = Math.Max(0, tile.W - WaveBarTop - WaveBarFoot);
+            var middle = clipY + WaveBarTop + room / 2f;
             var color = Vector4.Lerp(ColorOf(track), Vector4.One, WaveBarLift);
 
             var first = (int)Math.Max(0, Math.Floor(-clipX / WaveBarPitch));
@@ -587,7 +605,7 @@ public sealed partial class ArrangementView : Panel
                 var peak = peaks[Math.Clamp(bucket, 0, peaks.Length - 1)];
 
                 // A bar even where it is silent: the line reads as "the file runs here".
-                var height = Math.Max(1f, peak * WaveBarRoom);
+                var height = Math.Max(1f, peak * room);
                 _lineBatch.Set(start + used++, absX + x, absY + middle - height / 2f, WaveBarWidth, height, color);
             }
         }

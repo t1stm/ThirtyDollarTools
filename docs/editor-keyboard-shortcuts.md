@@ -98,7 +98,7 @@ Buttons and wheels rather than keys. Their modifier follows the platform primary
 | `Shift+Scroll` (arrangement) | Pan horizontally (time) instead of scrolling lanes |
 | Scroll (no modifier, arrangement) | Scroll lanes vertically |
 | Middle-mouse drag | Pan both axes (FL Studio-style) |
-| `Ctrl+Middle-mouse drag` (note editor) | Scale the note/row height, 4–300 px, anchored to the pointer |
+| `Ctrl+Middle-mouse drag` | Scale the row height (note editor, 4–300 px) or the lane height (arrangement, 28–176 px), anchored to the pointer |
 | `Shift+drag` | Fine-snap |
 
 ## Sound Picker (Instrument editor, adjustments mode)

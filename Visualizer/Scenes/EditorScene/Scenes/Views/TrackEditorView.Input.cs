@@ -15,9 +15,6 @@ public partial class TrackEditorView
 {
     private (TrackSegment segment, Note note)? _placing;
 
-    /// <summary>Last pointer y of a Ctrl+middle row-scaling drag; null while none is running.</summary>
-    private float? _rowScaleY;
-
     public override bool HandleScroll(Vector2 scrollDelta)
     {
         _geometry.CenterPending = false;
@@ -36,20 +33,8 @@ public partial class TrackEditorView
     public void MiddlePan(bool held, float x, float y)
     {
         // ponytail: WheelZooms is just "Ctrl is held" - rename it if it starts lying louder.
-        if (held && WheelZooms)
-        {
-            _geometry.Nav.MiddlePan(false, x, y, false); // cancel any pan already in progress
-            if (_rowScaleY is { } last) _geometry.ScaleRows(y - Computed.AbsoluteY, y - last);
-            else if (!ContainsPoint(x, y)) return;
-
-            _rowScaleY = y;
-            _geometry.CenterPending = false;
-            InvalidateLayout();
-            return;
-        }
-
-        _rowScaleY = null;
-        if (!_geometry.Nav.MiddlePan(held, x, y, ContainsPoint(x, y))) return;
+        var rowPointerPx = y - Computed.AbsoluteY - GridTop;
+        if (!_geometry.Nav.MiddleDrag(held, WheelZooms, x, y, rowPointerPx, ContainsPoint(x, y))) return;
         _geometry.CenterPending = false;
         InvalidateLayout();
     }

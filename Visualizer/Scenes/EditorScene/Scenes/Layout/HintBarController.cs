@@ -89,7 +89,8 @@ internal sealed class HintBarController
         $"Drag a note's border for length, a keyframe marker to shape it ({Keybinds.PrimaryName}+drag: all)  •  " +
         $"{Keybinds.Get(Bind.EditorCopy)}/{Keybinds.Get(Bind.EditorPaste)}/{Keybinds.Get(Bind.EditorCut)} " +
         $"copy/paste/cut, {Keybinds.Get(Bind.EditorSelectAll)} select all  •  " +
-        $"Middle-drag to pan, {Keybinds.PrimaryName}+scroll to zoom, Shift+drag to fine-snap";
+        $"Middle-drag to pan ({Keybinds.PrimaryName}+: row height), {Keybinds.PrimaryName}+scroll to zoom, " +
+        "Shift+drag to fine-snap";
 
     /// <summary>
     ///     Follows the view the grid area now shows: indents the hint text past its gutter -

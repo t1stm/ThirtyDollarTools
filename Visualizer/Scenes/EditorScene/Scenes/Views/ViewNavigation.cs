@@ -7,14 +7,20 @@ namespace EditorScene.Scenes.Views;
 ///     composition) and <see cref="ArrangementView" />. Plain state, no GL.
 ///     <see cref="MaxScrollY" /> decides whether vertical scroll does anything: the note
 ///     editor sets it from its viewport every layout, the arrangement leaves it 0 so a
-///     diagonal middle-drag pans time only.
+///     diagonal middle-drag pans time only. <see cref="RowHeight" /> is the vertical zoom:
+///     the note editor's value rows, the arrangement's lanes.
 /// </summary>
-public sealed class ViewNavigation(float minZoom, float maxZoom)
+public sealed class ViewNavigation(float minZoom, float maxZoom, float minRowHeight, float maxRowHeight)
 {
     private Vector2? _panPointer;
+
+    /// <summary>Last pointer y of a Ctrl+middle row-scaling drag; null while none is running.</summary>
+    private float? _rowScaleY;
+
     public float ScrollX { get; set; }
     public float ScrollY { get; set; }
     public float Zoom { get; set; }
+    public float RowHeight { get; set; }
     public float MaxScrollY { get; set; }
 
     /// <summary>
@@ -38,6 +44,21 @@ public sealed class ViewNavigation(float minZoom, float maxZoom)
         var anchorUnits = (pointerPx + ScrollX) / Zoom;
         Zoom = Math.Clamp(Zoom * MathF.Pow(1.15f, wheelDeltaY), minZoom, maxZoom);
         ScrollX = anchorUnits * Zoom - pointerPx;
+    }
+
+    /// <summary>
+    ///     Pointer-anchored vertical scaling (Ctrl+middle drag): the row under the cursor
+    ///     stays put while the rows grow or shrink. <paramref name="pointerPx" /> is local,
+    ///     already offset past any ruler; <paramref name="dy" /> is the pointer's movement
+    ///     since the last call - negative (upwards) grows the rows. Only the top is clamped
+    ///     here: the bottom bound depends on the new height, so the view's next layout
+    ///     recomputes <see cref="MaxScrollY" /> first.
+    /// </summary>
+    public void ScaleRowsAt(float pointerPx, float dy)
+    {
+        var anchorRows = (pointerPx + ScrollY) / RowHeight;
+        RowHeight = Math.Clamp(RowHeight * MathF.Pow(1.01f, -dy), minRowHeight, maxRowHeight);
+        ScrollY = Math.Max(0, anchorRows * RowHeight - pointerPx);
     }
 
     /// <summary>
@@ -91,5 +112,27 @@ public sealed class ViewNavigation(float minZoom, float maxZoom)
 
         if (startAllowed) _panPointer = new Vector2(x, y);
         return false;
+    }
+
+    /// <summary>
+    ///     The middle button's per-frame feed: a plain hold pans (see <see cref="MiddlePan" />);
+    ///     with <paramref name="scaleRows" /> (Ctrl) held, the same drag scales the row height
+    ///     instead (see <see cref="ScaleRowsAt" />, which <paramref name="rowPointerPx" /> is
+    ///     passed to). Returns whether the viewport may have changed this call.
+    /// </summary>
+    public bool MiddleDrag(bool held, bool scaleRows, float x, float y, float rowPointerPx, bool startAllowed)
+    {
+        if (held && scaleRows)
+        {
+            _panPointer = null; // cancel any pan already in progress
+            if (_rowScaleY is { } last) ScaleRowsAt(rowPointerPx, y - last);
+            else if (!startAllowed) return false;
+
+            _rowScaleY = y;
+            return true;
+        }
+
+        _rowScaleY = null;
+        return MiddlePan(held, x, y, startAllowed);
     }
 }

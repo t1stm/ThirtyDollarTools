@@ -143,8 +143,8 @@ public class ArrangementViewTests
         state.SelectTrack(track);
         view.Layout();
 
-        Press(ctx, view, 98, ArrangementView.RulerHeight + 3 * ArrangementView.LaneHeight + 5);
-        Release(ctx, view, 98, ArrangementView.RulerHeight + 3 * ArrangementView.LaneHeight + 5);
+        Press(ctx, view, 98, ArrangementView.RulerHeight + 3 * ArrangementView.DefaultLaneHeight + 5);
+        Release(ctx, view, 98, ArrangementView.RulerHeight + 3 * ArrangementView.DefaultLaneHeight + 5);
 
         var placement = Assert.Single(state.Project.Placements);
         Assert.Same(track, placement.Track);
@@ -207,6 +207,54 @@ public class ArrangementViewTests
         Release(ctx, view, 200, 100);
         var placement = Assert.Single(state.Project.Placements);
         Assert.Equal(8, placement.StartQuarterNotes);
+    }
+
+    [Fact]
+    public void CtrlMiddleDrag_ScalesTheLanes_KeepingTheLaneUnderThePointer()
+    {
+        var (_, _, view) = NewView();
+        view.WheelZooms = true; // Ctrl held
+
+        // Drag up by 50 px: lanes grow, the pan is suppressed, and the lane position under
+        // the pointer's end point is where it was before the drag.
+        float LaneUnder(float y) => (y - ArrangementView.RulerHeight + view.ScrollY) / view.LaneHeight;
+        var before = LaneUnder(150);
+        view.MiddlePan(true, 200, 200);
+        view.MiddlePan(true, 200, 150);
+        view.MiddlePan(false, 200, 150);
+        view.Layout();
+        Assert.True(view.LaneHeight > ArrangementView.DefaultLaneHeight);
+        Assert.Equal(before, LaneUnder(150), 4);
+    }
+
+    [Fact]
+    public void ScaledLanes_KeepAClipsMiniatureInsideIt_AtBothLimits()
+    {
+        var (_, state, view) = NewView();
+        var track = state.AddTrack();
+        var instrument = state.AddInstrument("boom");
+        state.AddNote(track.Segments[0], 0, instrument, 12);
+        state.AddNote(track.Segments[0], 4, instrument, 0);
+        state.PlaceTrack(track, 0, 0);
+        view.Layout();
+        view.WheelZooms = true; // Ctrl held
+
+        // Anchored just under the ruler, so lane 0 stays in view as it grows.
+        var y = ArrangementView.RulerHeight + 1;
+        foreach (var (dy, limit) in new[] { (-2000f, ArrangementView.MaxLaneHeight), (2000f, ArrangementView.MinLaneHeight) })
+        {
+            view.MiddlePan(true, 200, y);
+            view.MiddlePan(true, 200, y + dy);
+            view.MiddlePan(false, 200, y + dy);
+            view.Layout();
+            Assert.Equal(limit, view.LaneHeight);
+
+            var tile = view.TileOf(view.Blocks[0]);
+            Assert.Equal(limit - 3, tile.W);
+            Assert.Equal(2, view.MiniatureMarks.Count);
+            foreach (var (rect, _) in view.MiniatureMarks)
+                Assert.InRange(rect.Y + rect.W, tile.Y, tile.Y + tile.W);
+        }
     }
 
     [Fact]
@@ -749,7 +797,7 @@ public class ArrangementViewTests
         // Lane 1's line is its first pixel; the clip starts on quarter 4's pixel.
         var block = view.Blocks[0];
         var start = 4 * view.PixelsPerQuarter;
-        var laneTop = ArrangementView.RulerHeight + ArrangementView.LaneHeight;
+        var laneTop = ArrangementView.RulerHeight + ArrangementView.DefaultLaneHeight;
         var width = (float)(track.DurationMinutes() * state.Project.RootTiming.BPM * view.PixelsPerQuarter);
         Assert.Equal(new Vector4(start + 2, laneTop + 2, width - 3, 41), view.TileOf(block));
         Assert.Equal(new Vector4(start + 1, laneTop + 1, width - 1, 43),
