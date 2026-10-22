@@ -322,8 +322,15 @@ public sealed class VoiceList : IDisposable
 
             var left = volume;
             var right = volume;
-            if (pan < 0) right *= PanFactor(1f + pan / 100f);
-            else if (pan > 0) left *= PanFactor(1f - pan / 100f);
+            switch (pan)
+            {
+                case < 0:
+                    right *= PanFactor(1f + pan / 100f);
+                    break;
+                case > 0:
+                    left *= PanFactor(1f - pan / 100f);
+                    break;
+            }
 
             voice.LeftFromLeft = Gain(left);
             if (stereo_output) voice.RightFromRight = Gain(right);
