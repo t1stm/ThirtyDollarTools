@@ -525,6 +525,41 @@ public class TrackEditorViewTests
     }
 
     [Fact]
+    public void OpeningATrack_ScrolledPastItsEnd_BringsItsEndToTheMiddle_UntilTheUserScrolls()
+    {
+        var (_, state, view, _) = NewView();
+        view.PixelsPerStep = 64f;
+        view.Geometry.ScrollX = 50_000; // a longer track left the view far to the right
+        var shorter = state.AddTrack();
+        state.OpenTrack(shorter);
+        view.InvalidateLayout();
+        view.Layout();
+
+        var endPx = shorter.Segments.Sum(s => s.StepCount) * 64f;
+        var revealed = endPx - (800 - TrackEditorView.GutterWidth) / 2;
+        Assert.True(revealed > 0, "the track must be wider than half the view for this to test centring");
+        Assert.Equal(revealed, view.Geometry.ScrollX);
+
+        // Scrolling ends it: the next layout leaves the user's scroll be.
+        view.HandleScroll(new Vector2(-1, 0));
+        view.Layout();
+        Assert.Equal(revealed + 48, view.Geometry.ScrollX);
+    }
+
+    [Fact]
+    public void OpeningATrack_StillInView_KeepsTheScroll()
+    {
+        var (_, state, view, _) = NewView();
+        view.PixelsPerStep = 64f;
+        view.Geometry.ScrollX = 100;
+        state.OpenTrack(state.AddTrack());
+        view.InvalidateLayout();
+        view.Layout();
+
+        Assert.Equal(100, view.Geometry.ScrollX);
+    }
+
+    [Fact]
     public void CtrlMiddleDrag_ScalesTheRowHeight_InsteadOfPanning()
     {
         var (_, _, view, _) = NewView();

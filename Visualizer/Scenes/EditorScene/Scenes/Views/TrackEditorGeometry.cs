@@ -79,6 +79,34 @@ public sealed class TrackEditorGeometry
     public bool CenterPending { get; set; } = true;
 
     /// <summary>
+    ///     Set when a track opens while the view is scrolled past its end - a longer track
+    ///     left it there - which would show nothing but blank grid. While pending (until the
+    ///     user scrolls, like <see cref="CenterPending" />), <see cref="RevealEnd" /> keeps
+    ///     the track's end in the middle of the viewport.
+    /// </summary>
+    public bool RevealEndPending { get; set; }
+
+    /// <summary>
+    ///     Opening <paramref name="contentPx" /> of track: arms <see cref="RevealEndPending" />
+    ///     when the viewport starts past its end. A view still showing any of it is left alone.
+    /// </summary>
+    public void TrackOpened(float contentPx)
+    {
+        RevealEndPending = contentPx <= ScrollX;
+    }
+
+    /// <summary>
+    ///     While <see cref="RevealEndPending" />, scrolls the track's end - <paramref name="contentPx" />
+    ///     from the grid's start - to the middle of the viewport; a track shorter than half of
+    ///     it ends up shown from its start once <see cref="ClampScroll" /> runs. Re-applied on
+    ///     every layout, so the last <see cref="SetViewport" /> width wins.
+    /// </summary>
+    public void RevealEnd(float contentPx)
+    {
+        if (RevealEndPending) ScrollX = contentPx - (ViewWidth - GutterWidth) / 2;
+    }
+
+    /// <summary>
     ///     Recomputes the vertical scroll bounds for the given viewport and, while
     ///     <see cref="CenterPending" />, centers scroll on value 0. Flex parents lay a
     ///     view out more than once per frame with different heights, so only the last

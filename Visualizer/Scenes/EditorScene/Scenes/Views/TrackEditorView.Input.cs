@@ -17,7 +17,7 @@ public partial class TrackEditorView
 
     public override bool HandleScroll(Vector2 scrollDelta)
     {
-        _geometry.CenterPending = false;
+        _geometry.CenterPending = _geometry.RevealEndPending = false;
         var pointerPx = Context.PointerX - Computed.AbsoluteX - GutterWidth;
         _geometry.Nav.Wheel(scrollDelta, WheelZooms, FineSnap, pointerPx);
         InvalidateLayout();
@@ -35,7 +35,7 @@ public partial class TrackEditorView
         // ponytail: WheelZooms is just "Ctrl is held" - rename it if it starts lying louder.
         var rowPointerPx = y - Computed.AbsoluteY - GridTop;
         if (!_geometry.Nav.MiddleDrag(held, WheelZooms, x, y, rowPointerPx, ContainsPoint(x, y))) return;
-        _geometry.CenterPending = false;
+        _geometry.CenterPending = _geometry.RevealEndPending = false;
         InvalidateLayout();
     }
 

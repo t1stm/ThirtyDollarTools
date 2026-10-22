@@ -26,15 +26,26 @@ public partial class TrackEditorView
     private int _cutPointsRevision = -1;
     private ProjectTrack? _cutPointsTrack;
 
+    // The track the last layout showed: the scroll a longer one left behind may be past
+    // the end of the next one opened.
+    private ProjectTrack? _shownTrack;
+
     protected override void DoLayout()
     {
         var track = _state.OpenedTrack;
         var width = Computed.Width;
         var height = Computed.Height;
+        var pps = PixelsPerStep;
+        // The grid only spans the track's segments - everything past the last one is
+        // dead space where clicks can't place, so it must not look placeable.
+        var contentPx = (track?.Segments.Sum(s => s.StepCount) ?? 0) * pps;
+
+        if (track != null && !ReferenceEquals(track, _shownTrack)) _geometry.TrackOpened(contentPx);
+        _shownTrack = track;
         _geometry.SetViewport(width, height);
+        _geometry.RevealEnd(contentPx);
         _geometry.ClampScroll();
 
-        var pps = PixelsPerStep;
         // Auto-scroll (following the playhead) mutates _geometry.ScrollX live - run it
         // before scrollX is snapshotted below, so grid lines (using the snapshot) and
         // PlaceNote (reading _geometry.ScrollX directly) never land a frame apart.
@@ -48,9 +59,6 @@ public partial class TrackEditorView
         var visibleStart = scrollX;
         var visibleEnd = scrollX + Math.Max(0, width - GutterWidth);
 
-        // The grid only spans the track's segments - everything past the last one is
-        // dead space where clicks can't place, so it must not look placeable.
-        var contentPx = (track?.Segments.Sum(s => s.StepCount) ?? 0) * pps;
         var gridWidth = Math.Clamp(contentPx - scrollX, 0, Math.Max(0, width - GutterWidth));
 
         var absX = Computed.AbsoluteX;
@@ -293,7 +301,12 @@ public partial class TrackEditorView
             if (localMinutes < 0 || localMinutes >= duration) continue;
 
             if (_state.IsCurrentlyPlayingAudio && FollowPlayhead)
+            {
+                // Following owns the scroll from here; a reveal still pending would pull it
+                // back to the track's end once playback stops.
+                _geometry.RevealEndPending = false;
                 HandlePlayheadScrollUpdate(track, width, pps, localMinutes);
+            }
 
             var x = GutterWidth + (float)(track.StepPositionAt(localMinutes) * pps) - _geometry.ScrollX;
             if (x < GutterWidth || x >= width) continue;
