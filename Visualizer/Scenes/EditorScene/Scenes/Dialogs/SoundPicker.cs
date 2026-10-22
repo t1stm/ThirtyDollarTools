@@ -19,9 +19,8 @@ namespace EditorScene.Scenes.Dialogs;
 public sealed class SoundPicker : FlexPanel
 {
     /// <summary>
-    ///     One icon cell's box. Each icon's actual width and height are derived from this and
-    ///     its atlas aspect ratio, so it is an input to that calculation rather than a
-    ///     stylesheet setting.
+    ///     One icon cell's box. Every cell is this square, whatever the sound's aspect ratio, so
+    ///     each grid row holds the same number of icons; the image is fitted and centred inside.
     /// </summary>
     private const float SoundElementSize = 40f;
 
@@ -315,7 +314,7 @@ public sealed class SoundPicker : FlexPanel
     private sealed class SoundIcon : SoundImage
     {
         public SoundIcon(UIContext context, SoundPicker picker, string soundName, InstrumentSound? instance,
-            SoundQuad? quad = null) : base(context, quad, SoundElementSize)
+            SoundQuad? quad = null) : base(context, quad, SoundElementSize, square: true)
         {
             SoundName = soundName;
             Instance = instance;

@@ -128,16 +128,26 @@ internal class SoundImage : Panel
 {
     private readonly SoundQuad? _quad;
 
-    public SoundImage(UIContext context, SoundQuad? quad, float size) : base(context)
+    /// <param name="square">
+    ///     Keep the box a <paramref name="size" /> square and centre the image in it, rather than
+    ///     shrinking the box to the image - a grid of these then lines up in equal columns.
+    /// </param>
+    public SoundImage(UIContext context, SoundQuad? quad, float size, bool square = false) : base(context)
     {
         _quad = quad;
-        (var width, var height) = quad?.Fit(size) ?? (size, size);
+        (var width, var height) = square ? (size, size) : quad?.Fit(size) ?? (size, size);
         Width = width;
         Height = height;
         // Chained onto the base hook, not replacing it: its InvalidateCoordinates is what keeps
         // children laid out when a grid moves this element.
         Computed.OnUpdate += () =>
-            _quad?.Place(Computed.AbsoluteX, Computed.AbsoluteY, Computed.Width, Computed.Height);
+        {
+            if (_quad == null) return;
+            // Fitting to the box's long side gives the box itself when it already has the
+            // image's aspect ratio, and the centred image when the box is a square.
+            (var w, var h) = _quad.Fit(MathF.Max(Computed.Width, Computed.Height));
+            _quad.Place(Computed.AbsoluteX + (Computed.Width - w) / 2, Computed.AbsoluteY + (Computed.Height - h) / 2, w, h);
+        };
     }
 
     /// <summary>Frees the quad; call when the element leaves for good. See <see cref="SoundQuad.Release" />.</summary>
