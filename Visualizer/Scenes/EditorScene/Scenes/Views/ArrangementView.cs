@@ -112,6 +112,7 @@ public sealed partial class ArrangementView : Panel
 
     private Vector4i? _inheritedClip;
     private bool _refreshDeferred;
+    private float _laidOutLaneHeight = DefaultLaneHeight;
 
     public ArrangementView(UIContext context, EditorState state) : base(context)
     {
@@ -415,6 +416,14 @@ public sealed partial class ArrangementView : Panel
         // ScrollY down to fit would scroll the view under a still-held pointer, sliding the
         // next track under a level-triggered right-press or delete-drag.
         _nav.MaxScrollY = Math.Max(0, lanesBottom - gridHeight);
+        // The exception is a lane scale: the user's own drag, with nothing held on a clip,
+        // and left unclamped it opens blank space under the last lane as they grow.
+        if (LaneHeight != _laidOutLaneHeight)
+        {
+            _laidOutLaneHeight = LaneHeight;
+            _nav.Clamp();
+        }
+
         var scrollY = _nav.ScrollY;
         var visibleLanesBottom = Math.Max(0, Math.Min(lanesBottom - scrollY, gridHeight));
 
