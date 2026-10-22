@@ -9,20 +9,27 @@ using ThirtyDollarConverter.Encoder.Resamplers;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
+using ThirtyDollarConverter.Voices;
 
 namespace EditorScene;
 
 /// <summary>
-///     Owns the editor's audio session. Holds one persistent render of the mute-filtered
-///     project (<see cref="_rendered" />), updated incrementally through PcmEncoder on every
-///     model edit and mute toggle. While a channel is soloed a second buffer
-///     (<see cref="_soloRendered" />) holds just the soloed channels and plays instead, with
-///     the full mix still updated underneath it, so unsoloing swaps back without a
-///     re-render and discards the solo buffer.
+///     Owns the editor's audio session. Holds the voices of the mute-filtered project
+///     (<see cref="_rendered" />), rebuilt on every model edit and mute toggle and streamed by the
+///     sequence player from the playhead on - nothing is mixed ahead of time beyond
+///     <see cref="RenderAheadSeconds" />. While a channel is soloed a second list
+///     (<see cref="_soloRendered" />) holds just the soloed channels and plays instead, with the
+///     full list still rebuilt underneath it, so unsoloing swaps back to it and drops the solo list.
 /// </summary>
 public class EditorPlayback
 {
     private const int DebounceMs = 250;
+
+    /// <summary>
+    ///     How far ahead of the playhead the song is mixed. Short, so an edit is heard soon - a new
+    ///     list replaces the queued audio anyway - but past any garbage collection.
+    /// </summary>
+    public const double RenderAheadSeconds = 2;
 
     /// <summary>
     ///     Every TDW sequence starts one step at the initial 300 BPM before its first
@@ -60,9 +67,9 @@ public class EditorPlayback
     private bool _modelDirty;
     private bool _playWhenReady;
     private bool _remixPending;
-    private RenderedSequence? _rendered;
+    private VoiceRender? _rendered;
     private bool _rendering;
-    private RenderedSequence? _soloRendered;
+    private VoiceRender? _soloRendered;
 
     private TimedEvents? _timedEvents;
 
@@ -128,6 +135,9 @@ public class EditorPlayback
     public string? PendingError { get; private set; }
 
     public bool IsPlaying => _workflow.SequencePlayer.GetTimingStopwatch().IsRunning;
+
+    /// <summary>The song mixer's CPU load while playing (see <c>VoicePlayback.Load</c>); null otherwise.</summary>
+    public float? CpuLoad => IsPlaying ? _workflow.SequencePlayer.CpuLoad : null;
     public long ElapsedMs => _workflow.SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
 
     public long TotalMs
@@ -516,10 +526,9 @@ public class EditorPlayback
     }
 
     /// <summary>
-    ///     Re-renders the mute-filtered full mix, plus the solo mix while any channel is
-    ///     soloed, then plays whichever is active. Each mix diffs against its own previous
-    ///     buffer; turning solo off swaps playback back to the full buffer, which the
-    ///     background renders have kept up to date.
+    ///     Rebuilds the mute-filtered full list, plus the solo list while any channel is soloed,
+    ///     then plays whichever is active. Each reuses its own previous build's resampled sounds;
+    ///     turning solo off swaps playback back to the full list.
     /// </summary>
     private void StartRender(bool startPlayback)
     {
@@ -542,24 +551,27 @@ public class EditorPlayback
         {
             try
             {
-                _rendered = _rendered != null
-                    ? await Encoder.ComputeIncrementalAudio(_rendered, [full])
-                    : await Encoder.GetSequenceAudio(full);
+                var rendered = await Encoder.BuildVoices([full], _rendered?.ProcessedEvents);
+                _rendered?.Dispose();
+                _rendered = rendered;
 
                 if (solo != null)
                 {
-                    _soloRendered = _soloRendered != null
-                        ? await Encoder.ComputeIncrementalAudio(_soloRendered, [solo])
-                        : await Encoder.GetSequenceAudio(solo);
+                    // a first solo starts from the full list's sounds, which it is a subset of
+                    var soloed = await Encoder.BuildVoices([solo],
+                        _soloRendered?.ProcessedEvents ?? new Dictionary<(string, double), ProcessedEvent>(
+                            rendered.ProcessedEvents));
+                    _soloRendered?.Dispose();
+                    _soloRendered = soloed;
 
-                    Upload(_soloRendered, startPlayback);
+                    Upload(soloed, startPlayback);
                 }
                 else
                 {
-                    _soloRendered?.Mixer?.Dispose();
+                    _soloRendered?.Dispose();
                     _soloRendered = null;
 
-                    Upload(_rendered, startPlayback);
+                    Upload(rendered, startPlayback);
                 }
 
                 _state.Logger.RenderFinished(stopwatch.ElapsedMilliseconds);
@@ -590,7 +602,7 @@ public class EditorPlayback
         PendingError = message;
     }
 
-    private void Upload(RenderedSequence rendered, bool startPlayback)
+    private void Upload(VoiceRender rendered, bool startPlayback)
     {
         startPlayback = startPlayback || _playWhenReady;
         _playWhenReady = false;
@@ -599,8 +611,9 @@ public class EditorPlayback
         if (startPlayback) player.Stop();
 
         var events = rendered.TimedEvents;
+        rendered.Voices.Retain(); // the player's reference, released when it moves on
         player.UpdateSequence(events, ThirtyDollarWorkflow.GenerateSequenceIndexes(events.Placement),
-            rendered, startPlayback);
+            rendered.Voices, RenderAheadSeconds);
         _timedEvents = events;
 
         if (startPlayback) player.Start(_workflow.Game.ThreadRunner);

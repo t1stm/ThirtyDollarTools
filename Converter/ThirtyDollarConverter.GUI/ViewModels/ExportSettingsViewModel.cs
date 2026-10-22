@@ -14,6 +14,7 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
 {
     public ObservableCollection<ResamplerModel> ListItems { get; } = [.. ResamplerService.GetItems()];
     public PercentageScale[] ScaleItems { get; } = Enum.GetValues<PercentageScale>();
+    public RenderMethod[] RenderMethods { get; } = Enum.GetValues<RenderMethod>();
 
     public uint SampleRate
     {
@@ -32,6 +33,19 @@ public partial class ExportSettingsViewModel(EncoderSettings encoderSettings) : 
         get => encoderSettings.CutFadeLengthMs;
         set => this.RaiseAndSetIfChanged(ref encoderSettings.CutFadeLengthMs, value);
     }
+
+    public RenderMethod Renderer
+    {
+        get => encoderSettings.Renderer;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref encoderSettings.Renderer, value);
+            this.RaisePropertyChanged(nameof(UsesSlices));
+        }
+    }
+
+    /// <summary>Thread slices only split the legacy renderer's work.</summary>
+    public bool UsesSlices => Renderer == RenderMethod.LegacyTracks;
 
     public int EncodeSlicesCount
     {

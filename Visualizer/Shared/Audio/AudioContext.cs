@@ -19,4 +19,7 @@ public abstract class AudioContext
     ///     library can hold, is widened to float: the smallest format that keeps it whole.
     /// </summary>
     public abstract AudibleBuffer GetBufferObject(PcmDataHolder pcm);
+
+    /// <summary>A stream to feed float frames into as they're mixed - see <see cref="AudioStream" />.</summary>
+    public abstract AudioStream CreateStream(int sampleRate, int channels);
 }

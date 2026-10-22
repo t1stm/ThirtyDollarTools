@@ -1,4 +1,6 @@
+using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Benchmarks;
 
@@ -17,6 +19,59 @@ public static class Verify
 
         foreach (var cover in Covers.All) await VerifyCover(cover);
         foreach (var kind in Enum.GetValues<EditKind>()) await VerifyEditorEdit(kind);
+
+        Console.WriteLine($"\n{"voice vs legacy",-34} {"Δ",12} {"Δ dB",8} {">1e-3",7}  lengths");
+        foreach (var cover in Covers.All) await VerifyVoice(cover.Name, () => Workbench.LoadSequence(cover.Path));
+        foreach (var (name, path) in VoiceProjects)
+            await VerifyVoice(name, () => path.EndsWith(".tdwproj")
+                ? ProjectFile.Load(File.ReadAllText(Path.Combine(Workbench.SequenceRoot, path))).ToSequence()
+                : Workbench.LoadSequence(path));
+    }
+
+    /// <summary>The projects the voice mixer was measured on, under <see cref="Workbench.SequenceRoot" />.</summary>
+    private static readonly (string Name, string Path)[] VoiceProjects =
+    [
+        ("flower-castle", "flower castle/Flower Castle TDW Cover - Final.tdw"),
+        ("amalgam", "amalgam/Amalgam.tdw"),
+        ("wonder", "wonder/wonder.tdwproj"),
+        ("xnor", "XNOR XNOR XNOR/XNOR XNOR XNOR - MOON.tdw")
+    ];
+
+    /// <summary>
+    ///     A whole song through the voice mixer against the legacy track renderer: the peak
+    ///     difference, that peak against the song's own peak, and how many samples are off by
+    ///     more than 1e-3. Expected: float-summation noise only.
+    /// </summary>
+    private static async Task VerifyVoice(string name, Func<Sequence> load)
+    {
+        Sequence sequence;
+        try
+        {
+            sequence = load();
+        }
+        catch (IOException e)
+        {
+            Console.WriteLine($"{$"voice/{name}",-34} skipped: {e.Message}");
+            return;
+        }
+
+        var legacy = (await Workbench.Encoder().GetSequenceAudio(sequence)).Audio;
+        var voice = (await Workbench.Encoder(RenderMethod.Voice).GetSequenceAudio(sequence)).Audio;
+        var (legacy_length, voice_length, delta) = Workbench.Compare(legacy, voice);
+
+        var peak = 0f;
+        var off = 0;
+        for (var channel = 0; channel < legacy.ChannelCount; channel++)
+        for (var i = 0; i < Math.Min(legacy_length, voice_length); i++)
+        {
+            peak = Math.Max(peak, Math.Abs(legacy.Samples[channel][i]));
+            if (Math.Abs(legacy.Samples[channel][i] - voice.Samples[channel][i]) > 1e-3f) off++;
+        }
+
+        var lengths = legacy_length == voice_length
+            ? $"{legacy_length} (equal)"
+            : $"legacy {legacy_length}, voice {voice_length}";
+        Console.WriteLine($"{$"voice/{name}",-34} {delta,12:E3} {20 * Math.Log10(delta / peak),8:F1} {off,7}  {lengths}");
     }
 
     private static async Task VerifyCover(Cover cover)

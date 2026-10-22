@@ -137,6 +137,16 @@
                     </Grid>
 
                     <Grid ColumnDefinitions="130,*" Margin="0,0,0,8">
+                        <TextBlock Grid.Column="0" Text="Renderer"
+                                   Foreground="{StaticResource WinMuted}"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   ToolTip.Tip="Voice mixes every sound straight into the output. LegacyTracks is the old per-track renderer, kept for comparison." />
+                        <ComboBox Grid.Column="1"
+                                  SelectedItem="{Binding Renderer}"
+                                  ItemsSource="{Binding RenderMethods}" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="130,*" Margin="0,0,0,8" IsEnabled="{Binding UsesSlices}">
                         <TextBlock Grid.Column="0" Text="Thread slices"
                                    Foreground="{StaticResource WinMuted}"
                                    FontSize="12" VerticalAlignment="Center" />

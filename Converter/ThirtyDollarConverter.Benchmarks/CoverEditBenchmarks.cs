@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using ThirtyDollarConverter.Objects;
+using ThirtyDollarConverter.Voices;
 using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Benchmarks;
@@ -18,6 +19,8 @@ public class CoverEditBenchmarks
     private RenderedSequence _rendered = null!;
     private Sequence _sequence = null!;
     private int _step;
+    private Dictionary<(string, double), ProcessedEvent> _voiceCache = null!;
+    private PcmEncoder _voiceEncoder = null!;
 
     public static IEnumerable<Cover> CoverSource => Covers.All;
 
@@ -29,6 +32,10 @@ public class CoverEditBenchmarks
         _encoder = Workbench.Encoder();
         _sequence = Workbench.LoadSequence(Cover.Path);
         _rendered = _encoder.GetSequenceAudio(_sequence).GetAwaiter().GetResult();
+
+        _voiceEncoder = Workbench.Encoder(RenderMethod.Voice);
+        using var voices = _voiceEncoder.BuildVoices([_sequence]).GetAwaiter().GetResult();
+        _voiceCache = voices.ProcessedEvents;
     }
 
     private void Edit()
@@ -64,5 +71,26 @@ public class CoverEditBenchmarks
         Edit();
         _rendered = await _encoder.ComputeIncrementalAudio(_rendered, [_sequence]);
         return _rendered.Audio.GetLength();
+    }
+
+    /// <summary>
+    ///     What an edit costs the streaming player: place, look the resampled sounds up and
+    ///     rebuild the voice list. Nothing is mixed ahead - playback mixes as it goes.
+    /// </summary>
+    [Benchmark]
+    public async Task<int> VoiceRebuild()
+    {
+        Edit();
+        using var render = await _voiceEncoder.BuildVoices([_sequence], _voiceCache);
+        return render.Voices.Count;
+    }
+
+    /// <summary>A whole render through the voice mixer, resampled sounds kept - what an export costs.</summary>
+    [Benchmark]
+    public async Task<int> VoiceRenderWarm()
+    {
+        Edit();
+        var rendered = await _voiceEncoder.GetMultipleSequencesAudio([_sequence], _voiceCache);
+        return rendered.Audio.GetLength();
     }
 }

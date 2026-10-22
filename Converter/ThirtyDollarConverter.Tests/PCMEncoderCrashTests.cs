@@ -1,11 +1,14 @@
 using System.Reflection;
 using Serilog;
 using ThirtyDollarConverter.Encoder.PCM;
+using ThirtyDollarConverter.Legacy;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace ThirtyDollarConverter.Tests;
+
+#pragma warning disable CS0618 // tests the legacy track renderer
 
 public class PcmEncoderCrashTests
 {
@@ -31,7 +34,7 @@ public class PcmEncoderCrashTests
         holder.SampleList.Add(sound, pcmData);
         holder.StringToSoundReferences.Add("test", sound);
 
-        var encoder = new PcmEncoder(holder, settings);
+        var encoder = new LegacyTrackRenderer(new PcmEncoder(holder, settings), holder, settings, _ => { });
         var mixer = new AudioMixer(AudioData<float>.WithLength(1, 2000), AudioLayout.AudioMono);
 
         var ev = new ExtendedEvent
@@ -54,8 +57,8 @@ public class PcmEncoderCrashTests
 
         // Act & Assert
         var exception = Record.Exception(() =>
-            encoder.GetType().GetMethod("RenderEventToSlice", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?.Invoke(encoder, [0, 2000, mixer, 0, placement, processedEvents])
+            encoder.GetType().GetMethod("RenderEventToSlice", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .Invoke(encoder, [0, 2000, mixer, 0, placement, processedEvents])
         );
 
         Assert.Null(exception);

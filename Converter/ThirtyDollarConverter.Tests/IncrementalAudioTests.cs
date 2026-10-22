@@ -19,7 +19,9 @@ public class IncrementalAudioTests
         _settings = new EncoderSettings
         {
             SampleRate = 44100,
-            Channels = 2
+            Channels = 2,
+            // the incremental update is the legacy renderer's; compare it against its own full renders
+            Renderer = RenderMethod.LegacyTracks
         };
         _encoder = new PcmEncoder(_sampleHolder, _settings);
     }

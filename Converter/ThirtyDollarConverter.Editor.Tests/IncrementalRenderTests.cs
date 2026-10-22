@@ -23,7 +23,9 @@ public class IncrementalRenderTests
         // Longer than the rest on purpose: it sets biggestEventLength, which is both how far
         // past an edit the re-rendered range has to reach and what sizes the render.
         holder.SampleList.Add(new Sound { Id = "pad" }, Sine(220, 1.5f));
-        _encoder = new PcmEncoder(holder, new EncoderSettings { SampleRate = 44100, Channels = 2 });
+        // the incremental update is the legacy renderer's; compare it against its own full renders
+        _encoder = new PcmEncoder(holder,
+            new EncoderSettings { SampleRate = 44100, Channels = 2, Renderer = RenderMethod.LegacyTracks });
     }
 
     private static PcmDataHolder Sine(float frequency, float seconds = 0.5f)

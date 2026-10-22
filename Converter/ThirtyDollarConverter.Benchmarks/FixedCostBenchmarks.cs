@@ -5,6 +5,8 @@ using ThirtyDollarConverter.Parser;
 
 namespace ThirtyDollarConverter.Benchmarks;
 
+#pragma warning disable CS0618 // reads the legacy renderer's tracks
+
 /// <summary>
 ///     What an edit costs before a single sample is rendered - the floor an incremental render
 ///     can't go below, whatever its dirty range shrinks to. Measured on the same project the

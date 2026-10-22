@@ -15,4 +15,8 @@ public class Options
 
     [Option("download-location", HelpText = "Changes the exported audio's sample rate.")]
     public string? DownloadLocation { get; set; }
+
+    [Option("renderer", Default = "voice",
+        HelpText = "How the audio is mixed: \"voice\" (default) or \"legacy\", the old per-track renderer.")]
+    public string Renderer { get; set; } = "voice";
 }

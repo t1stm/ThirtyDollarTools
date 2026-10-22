@@ -2,6 +2,8 @@ using ThirtyDollarConverter.Encoder.PCM;
 
 namespace ThirtyDollarConverter.Tests;
 
+#pragma warning disable CS0618 // tests the legacy track renderer's mixer
+
 public class AudioMixerTests
 {
     [Fact]

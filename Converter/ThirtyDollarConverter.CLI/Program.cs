@@ -33,6 +33,20 @@ if (inputs.Length != outputs.Length)
     return;
 }
 
+RenderMethod renderer;
+switch (options.Renderer.ToLowerInvariant())
+{
+    case "voice":
+        renderer = RenderMethod.Voice;
+        break;
+    case "legacy":
+        renderer = RenderMethod.LegacyTracks;
+        break;
+    default:
+        Console.WriteLine($"Unknown renderer \'{options.Renderer}\'. Use \"voice\" or \"legacy\".");
+        return;
+}
+
 var sequences = await Readers.GetSequencesFromFileList(inputs);
 
 var holder = new SampleHolder(serilogLogger)
@@ -56,7 +70,8 @@ for (var i = 0; i < inputs.Length; i++)
         SampleRate = (uint)(options.SampleRate ?? 48000),
         Channels = 2,
         CutFadeLengthMs = 10,
-        Resampler = new HermiteResampler()
+        Resampler = new HermiteResampler(),
+        Renderer = renderer
     }, LogAction, ProgressAction);
 
     var rendered = await encoder.GetSequenceAudio(sequence);

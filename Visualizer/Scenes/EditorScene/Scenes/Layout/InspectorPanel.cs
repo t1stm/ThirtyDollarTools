@@ -1,3 +1,4 @@
+using System.Globalization;
 using EditorScene.State;
 using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
@@ -38,6 +39,7 @@ public sealed partial class InspectorPanel
     /// <summary>A rebuild held back while a field was being typed in; see <see cref="RebuildWhenIdle" />.</summary>
     private bool _rebuildPending;
 
+    private readonly char[] _loadText = new char[24];
     private string? _syncedStatusLabel = "Idle"; // matches InspectorShell.snx.xml's constructed default
     private float _syncedStatusProgress = -1f; // never a valid Progress value, forces the first real SetStatus to apply
 
@@ -133,9 +135,35 @@ public sealed partial class InspectorPanel
         var barVisible = label != null;
         StatusBar.Visible = barVisible;
 
-        if (!barVisible || Equals(progress, _syncedStatusProgress)) return;
+        if (!barVisible || progress.Equals(_syncedStatusProgress)) return;
         _syncedStatusProgress = progress;
         StatusBar.Progress = progress;
+    }
+
+    /// <summary>
+    ///     Shows the playback mixer's CPU load where a render's status goes: "CPU 1.37%" (a typical
+    ///     song mixes in well under 1%), the bar filled to match. Written into a buffer of its own
+    ///     and handed to the label as a span, so a reading that changes allocates nothing.
+    /// </summary>
+    public void SetLoad(float load)
+    {
+        // Piece by piece: an interpolated TryWrite allocates on every call, int.TryFormat doesn't.
+        var hundredths = (int)MathF.Round(load * 10000);
+        var text = _loadText.AsSpan();
+        "CPU ".CopyTo(text);
+        (hundredths / 100).TryFormat(text[4..], out var written, provider: CultureInfo.InvariantCulture);
+        written += 4;
+        text[written++] = '.';
+        (hundredths % 100).TryFormat(text[written..], out var fraction, "D2", CultureInfo.InvariantCulture);
+        written += fraction;
+        text[written++] = '%';
+        StatusLabelElement.SetTextContents(text[..written]);
+        _syncedStatusLabel = null; // the label no longer shows SetStatus's text; its next call writes it again
+
+        StatusBar.Visible = true;
+        if (load.Equals(_syncedStatusProgress)) return;
+        _syncedStatusProgress = load;
+        StatusBar.Progress = load;
     }
 
     /// <summary>The input element showing a field, keyed "Section.Label" (e.g. "Track.Name").</summary>

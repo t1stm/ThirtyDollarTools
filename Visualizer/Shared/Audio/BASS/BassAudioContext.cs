@@ -22,6 +22,8 @@ public class BassAudioContext(ILogger logger) : AudioContext
             Bass.PlaybackBufferLength = 128;
 
             Bass.GlobalSampleVolume = 5000;
+            // the song plays on a stream (BassStream), and has to stay as loud as when it was a sample
+            Bass.GlobalStreamVolume = 5000;
             Bass.Configure(Configuration.UpdateThreads, Environment.ProcessorCount * 2);
             Bass.Configure(Configuration.TruePlayPosition, 0);
 
@@ -69,5 +71,10 @@ public class BassAudioContext(ILogger logger) : AudioContext
     public override BassBuffer GetBufferObject(PcmDataHolder pcm)
     {
         return new BassBuffer(_logger, pcm);
+    }
+
+    public override BassStream CreateStream(int sampleRate, int channels)
+    {
+        return new BassStream(sampleRate, channels);
     }
 }

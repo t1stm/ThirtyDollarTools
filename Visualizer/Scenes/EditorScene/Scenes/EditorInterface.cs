@@ -504,7 +504,9 @@ public partial class EditorInterface
 
         Playback.Update();
         _inspector.Update();
-        _inspector.SetStatus(Playback.StatusLabel, Playback.StatusProgress, Playback.StatusDone, Playback.StatusTotal);
+        // a render's progress wins; otherwise, while playing, how hard the mixer works
+        if (Playback.StatusLabel == null && Playback.CpuLoad is { } load) _inspector.SetLoad(load);
+        else _inspector.SetStatus(Playback.StatusLabel, Playback.StatusProgress, Playback.StatusDone, Playback.StatusTotal);
         if (Playback.TakeError() is { } error) _dialogHost.Alert(error);
         _workflow.AtlasStore.Update(); // animated sound icons advance their frames here
         _projectIo.TickBackup();

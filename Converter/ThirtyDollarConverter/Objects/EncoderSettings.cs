@@ -33,7 +33,8 @@ public class EncoderSettings
     public bool EnableNormalization = true;
 
     /// <summary>
-    ///     How many slices to separate the sequence in for multithreading.
+    ///     How many slices to separate the sequence in for multithreading. Only used by
+    ///     <see cref="RenderMethod.LegacyTracks" />.
     /// </summary>
     public int MultithreadingSlices = Environment.ProcessorCount * 4;
 
@@ -73,6 +74,11 @@ public class EncoderSettings
     ///     affecting the balance between the left and right audio channels.
     /// </summary>
     public PercentageScale PanScale = PercentageScale.EqualPower;
+
+    /// <summary>
+    ///     How the render is mixed. <see cref="RenderMethod.Voice" /> unless asked otherwise.
+    /// </summary>
+    public RenderMethod Renderer = RenderMethod.Voice;
 
     /// <summary>
     ///     Select the resampler you want to use.

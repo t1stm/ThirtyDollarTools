@@ -51,15 +51,20 @@ public static class Workbench
         return _holder = holder;
     }
 
-    /// <summary>The editor's own encoder settings: 48 kHz stereo, no normalization, 4 ms cut fade.</summary>
-    public static PcmEncoder Encoder()
+    /// <summary>
+    ///     The editor's own encoder settings: 48 kHz stereo, no normalization, 4 ms cut fade. The
+    ///     legacy track renderer unless asked otherwise - most of what is measured here is its
+    ///     incremental update.
+    /// </summary>
+    public static PcmEncoder Encoder(RenderMethod renderer = RenderMethod.LegacyTracks)
     {
         return new PcmEncoder(Samples(), new EncoderSettings
         {
             SampleRate = 48000,
             Channels = 2,
             EnableNormalization = false,
-            CutFadeLengthMs = 4
+            CutFadeLengthMs = 4,
+            Renderer = renderer
         });
     }
 

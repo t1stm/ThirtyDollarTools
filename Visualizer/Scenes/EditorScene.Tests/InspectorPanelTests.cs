@@ -888,6 +888,37 @@ public class InspectorPanelTests
         Assert.Equal("Rendering audio…", inspector.StatusLabelElement.Value.ToString().TrimEnd('\0'));
     }
 
+    [Fact]
+    public void SetLoad_ShowsThePercentageAndFillsTheBar()
+    {
+        var (_, _, inspector) = NewInspector();
+
+        inspector.SetLoad(0.0137f);
+        Assert.Equal("CPU 1.37%", inspector.StatusLabelElement.Value.ToString());
+        Assert.True(inspector.StatusBar.Visible);
+        Assert.Equal(0.0137f, inspector.StatusBar.Progress, 4);
+
+        // a render taking over and handing back shows the load again, not a stale label
+        inspector.SetStatus("Rendering audio…", 0.5f);
+        inspector.SetLoad(0.0137f);
+        Assert.Equal("CPU 1.37%", inspector.StatusLabelElement.Value.ToString().TrimEnd('\0'));
+
+        // and stopping shows Idle, though the last SetStatus text was the render's
+        inspector.SetStatus(null, 0f);
+        Assert.Equal("Idle", inspector.StatusLabelElement.Value.ToString().TrimEnd('\0'));
+    }
+
+    [Fact]
+    public void SetLoad_AllocatesNothing_AsTheReadingChanges()
+    {
+        var (_, _, inspector) = NewInspector();
+        inspector.SetLoad(0.0101f);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 50; i++) inspector.SetLoad(0.0101f + i * 0.0001f);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
     // The progress bar's planes are queued for rendering the instant Background is set on
     // their backing Panels (see Panel's Background setter), regardless of Visible - at
     // whatever Index the bar has at that construction moment. A bar built hidden and later

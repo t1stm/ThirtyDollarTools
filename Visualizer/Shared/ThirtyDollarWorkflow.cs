@@ -11,6 +11,7 @@ using ThirtyDollarConverter.Encoder.Resamplers;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
+using ThirtyDollarConverter.Voices;
 using ILogger = Serilog.ILogger;
 
 namespace Shared;
@@ -18,6 +19,13 @@ namespace Shared;
 public class ThirtyDollarWorkflow
 {
     private const int ModifiedSequenceUpdateIntervalMs = 250;
+
+    /// <summary>
+    ///     How far ahead of the playhead the visualizer mixes: long enough that no garbage
+    ///     collection outlasts it. Only file reloads replace the song here, and they take over at
+    ///     the playhead either way.
+    /// </summary>
+    public const double RenderAheadSeconds = 10;
 
     private readonly AssetInfo _assetInfo = new()
     {
@@ -30,7 +38,8 @@ public class ThirtyDollarWorkflow
     /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
     public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
 
-    private RenderedSequence? _renderedSequence;
+    /// <summary>The last build, kept for its resampled sounds: a reload of the same files reuses them.</summary>
+    private VoiceRender? _render;
 
     public ThirtyDollarWorkflow(Game game, ILogger logger, SampleHolder sampleHolder, AtlasStore atlasStore,
         AudioContext? context = null)
@@ -98,8 +107,6 @@ public class ThirtyDollarWorkflow
             sequence_array[index] = sequence;
         }
 
-        if (restartPlayer)
-            _renderedSequence = null;
         await UpdateSequences(sequence_array, restartPlayer);
     }
 
@@ -139,18 +146,24 @@ public class ThirtyDollarWorkflow
             await HandleAfterSequenceLoad(TimedEvents, SequencePlayer);
 
 
+        // A new song resamples afresh - the resampler may have changed since - while a reload
+        // of the same files only resamples what the edit changed.
         var pcm_encoder = new PcmEncoder(SampleHolder, EncoderSettings);
-        _renderedSequence = _renderedSequence == null
-            ? await pcm_encoder.GetMultipleSequencesAudio(sequences)
-            : await pcm_encoder.ComputeIncrementalAudio(_renderedSequence, sequences);
+        var render = await pcm_encoder.BuildVoices(sequences, restartPlayer ? null : _render?.ProcessedEvents);
+        var previous = _render;
+        _render = render;
+        previous?.Dispose();
+
+        // the player's own reference, taken here: this render may be replaced before it starts
+        render.Voices.Retain();
 
         _ = Game.ThreadRunner.RunTask(UpdateExtractedSpeedEvents);
-        Game.ThreadRunner.RunThread(() => UpdateAndStart(_renderedSequence, restartPlayer));
+        Game.ThreadRunner.RunThread(() => UpdateAndStart(render.Voices, restartPlayer));
     }
 
-    private void UpdateAndStart(RenderedSequence renderedSequence, bool restartPlayer)
+    private void UpdateAndStart(VoiceList voices, bool restartPlayer)
     {
-        SequencePlayer.UpdateSequence(TimedEvents, SequenceIndices, renderedSequence, restartPlayer);
+        SequencePlayer.UpdateSequence(TimedEvents, SequenceIndices, voices, RenderAheadSeconds);
         if (restartPlayer)
             SequencePlayer.Start(Game.ThreadRunner);
         else SequencePlayer.AlignToTime();

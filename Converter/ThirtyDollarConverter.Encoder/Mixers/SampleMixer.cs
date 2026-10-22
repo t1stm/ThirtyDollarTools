@@ -26,9 +26,15 @@ public static class SampleMixer
 
         if (offset < 0) offset = 0;
 
-        var s_slice = source.Slice(offset, length);
-        var d_slice = destination[index..];
-        var chunk_size = Vector<float>.Count;
+        Mix(source.Slice(offset, length), destination[index..], FinalVolume(volume, volumeScale));
+    }
+
+    /// <summary>
+    ///     The multiplier <see cref="RenderSample" /> applies for a 0-100+ <paramref name="volume" />:
+    ///     divided by 100, then scaled by <paramref name="volumeScale" />.
+    /// </summary>
+    public static float FinalVolume(double volume, PercentageScale volumeScale)
+    {
         var final_volume = (float)volume / 100f;
         switch (volumeScale)
         {
@@ -38,6 +44,18 @@ public static class SampleMixer
                 break;
         }
 
+        return final_volume;
+    }
+
+    /// <summary>
+    ///     Adds <paramref name="s_slice" /> times <paramref name="final_volume" /> into
+    ///     <paramref name="d_slice" />, over the shorter of the two. Every element gets the same
+    ///     <c>d + s * volume</c> whether it lands in a vector or in the scalar tail, so where a
+    ///     span is split never changes the result.
+    /// </summary>
+    public static void Mix(ReadOnlySpan<float> s_slice, Span<float> d_slice, float final_volume)
+    {
+        var chunk_size = Vector<float>.Count;
         var s_chunked = s_slice.Length - s_slice.Length % chunk_size;
         var d_chunked = d_slice.Length - d_slice.Length % chunk_size;
 
@@ -67,6 +85,7 @@ public static class SampleMixer
     ///     <c>!cut</c>/<c>#icut</c> event: fades over <paramref name="cutFadeLengthMs" />, then holds
     ///     silence until it finds a run of already-silent samples to stop at.
     /// </summary>
+    [Obsolete("Only the legacy track renderer cuts whole tracks; voices are cut one by one.")]
     public static void HandleCut(int start, int end, int currentStart, Span<float> mixSlice, uint sampleRate,
         uint cutFadeLengthMs)
     {

@@ -7,6 +7,7 @@ using Sundex.Core;
 using Sundex.Engine.Threading;
 using ThirtyDollarConverter.Objects;
 using ThirtyDollarConverter.Parser.Custom_Events;
+using ThirtyDollarConverter.Voices;
 
 namespace Shared.Audio;
 
@@ -60,13 +61,14 @@ public class SequencePlayer
         protected set
         {
             field = value;
-            AudioBuffer?.SetVolume(field);
+            Playback?.SetVolume(field);
         }
     } = 0.5f;
 
     protected TimingStopwatchWrapper TimingStopwatch { get; } = new();
 
-    protected AudibleBuffer? AudioBuffer
+    /// <summary>Streams the song; created by the first <see cref="UpdateSequence" />.</summary>
+    protected VoicePlayback? Playback
     {
         get;
         set
@@ -87,6 +89,9 @@ public class SequencePlayer
     }
 
     public int PlacementIndex { get; private set; }
+
+    /// <summary>The song mixer's CPU load - see <see cref="VoicePlayback.Load" />.</summary>
+    public float CpuLoad => Playback?.Load ?? 0;
 
     protected AudioContext? GetAvailableContext()
     {
@@ -156,7 +161,7 @@ public class SequencePlayer
         UpdateLock.Wait();
         try
         {
-            AudioBuffer?.Restart();
+            Playback?.Restart();
         }
         finally
         {
@@ -167,7 +172,7 @@ public class SequencePlayer
     public void SetVolume(float volume)
     {
         Volume = volume;
-        AudioBuffer?.SetVolume(volume);
+        Playback?.SetVolume(volume);
     }
 
     public void Seek(long milliseconds)
@@ -175,7 +180,7 @@ public class SequencePlayer
         UpdateLock.Wait();
         try
         {
-            AudioBuffer?.SeekTime_Milliseconds(milliseconds);
+            Playback?.SeekTime_Milliseconds(milliseconds);
 
             var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
             if (!alternative_lookup.TryGetValue(string.Empty, out var event_action)) return;
@@ -193,7 +198,7 @@ public class SequencePlayer
 
     public void Start(ThreadRunner threadRunner)
     {
-        AudioBuffer?.Play();
+        Playback?.Play();
         threadRunner.RunThread(UpdateLoop);
     }
 
@@ -202,7 +207,7 @@ public class SequencePlayer
         UpdateLock.Wait();
         try
         {
-            AudioBuffer?.Stop();
+            Playback?.Stop();
         }
         finally
         {
@@ -212,11 +217,18 @@ public class SequencePlayer
 
     public void TogglePause()
     {
-        AudioBuffer?.SetPause(AudioBuffer.IsRunning);
+        Playback?.SetPause(Playback.IsRunning);
     }
 
-    public void UpdateSequence(TimedEvents events, SequenceIndices sequenceIndices,
-        RenderedSequence fullSequenceData, bool restartPlayer = true)
+    /// <summary>
+    ///     Switches to a new song, or a new version of it: <paramref name="voices" /> takes over
+    ///     at the playhead (callers that want it from the start stop and start the player around
+    ///     this). Takes over one reference to <paramref name="voices" /> - see
+    ///     <see cref="VoicePlayback.Publish" />.
+    /// </summary>
+    /// <param name="aheadSeconds">How far ahead of the playhead the song is mixed - the owner's choice.</param>
+    public void UpdateSequence(TimedEvents events, SequenceIndices sequenceIndices, VoiceList voices,
+        double aheadSeconds)
     {
         UpdateLock.Wait();
         try
@@ -224,17 +236,10 @@ public class SequencePlayer
             Events = events;
             SequenceIndices = sequenceIndices;
 
-            var currentTime = AudioBuffer?.GetTime_Milliseconds() ?? 0;
-
-            if (AudioBuffer == null)
-                AudioBuffer =
-                    AudioContext.GetBufferObject(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
-            else AudioBuffer.UploadNewData(fullSequenceData.Audio, (int)fullSequenceData.AudioSampleRate);
-
-            if (!restartPlayer)
-                AudioBuffer.SeekTime_Milliseconds(currentTime);
-
-            AudioBuffer.SetVolume(Volume);
+            Playback ??= new VoicePlayback(AudioContext, AudioContext.SampleRate, aheadSeconds);
+            Playback.AheadSeconds = aheadSeconds;
+            Playback.Publish(voices);
+            Playback.SetVolume(Volume);
         }
         finally
         {
@@ -244,7 +249,7 @@ public class SequencePlayer
 
     public void AlignToTime()
     {
-        var current_time = AudioBuffer?.GetTime_Milliseconds() ?? 0;
+        var current_time = Playback?.GetTime_Milliseconds() ?? 0;
         var span = Events.Placement.AsSpan();
         if (span.Length < 1) return;
 
@@ -305,7 +310,7 @@ public class SequencePlayer
 
     public long SetBookmark(int bookmarkIndex)
     {
-        var current_time = AudioBuffer?.GetTime_Milliseconds() ?? 0;
+        var current_time = Playback?.GetTime_Milliseconds() ?? 0;
         SetBookmarkTo(bookmarkIndex, current_time);
         return current_time;
     }
@@ -334,7 +339,7 @@ public class SequencePlayer
         var end_time = end_placement.Index;
 
         var alternative_lookup = EventActions.GetAlternateLookup<ReadOnlySpan<char>>();
-        var currentTime = AudioBuffer?.GetTime_Milliseconds() ?? 0;
+        var currentTime = Playback?.GetTime_Milliseconds() ?? 0;
 
         if (GetIndexFromTime(currentTime) + 1000 > end_time)
             currentTime = GetTimeFromIndex(end_time) + 100;

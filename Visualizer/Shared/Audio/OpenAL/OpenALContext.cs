@@ -100,4 +100,9 @@ public class OpenALContext(ILogger logger) : AudioContext
     {
         return new OpenALBuffer(this, _logger, pcm);
     }
+
+    public override OpenALStream CreateStream(int sampleRate, int channels)
+    {
+        return new OpenALStream(sampleRate, channels);
+    }
 }

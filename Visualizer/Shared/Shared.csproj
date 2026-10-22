@@ -46,4 +46,8 @@
     <PackageReference Include="ManagedBass" Version="4.0.2"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Shared.Tests"/>
+  </ItemGroup>
+
 </Project>

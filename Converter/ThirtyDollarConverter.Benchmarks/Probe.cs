@@ -2,6 +2,8 @@ using System.Diagnostics;
 
 namespace ThirtyDollarConverter.Benchmarks;
 
+#pragma warning disable CS0618 // reads the legacy renderer's tracks
+
 /// <summary>
 ///     Prints the shape and cold-render cost of every scenario - used to size the
 ///     benchmark matrix, not part of it.

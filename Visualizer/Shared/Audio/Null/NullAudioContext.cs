@@ -29,4 +29,9 @@ public class NullAudioContext : AudioContext
     {
         return new NullAudibleBuffer();
     }
+
+    public override AudioStream CreateStream(int sampleRate, int channels)
+    {
+        return new NullStream(sampleRate, channels);
+    }
 }

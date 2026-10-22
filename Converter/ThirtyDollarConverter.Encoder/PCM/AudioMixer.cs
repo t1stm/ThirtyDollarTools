@@ -4,6 +4,7 @@ using ThirtyDollarConverter.Encoder.Mixers;
 
 namespace ThirtyDollarConverter.Encoder.PCM;
 
+[Obsolete("Only the legacy track renderer mixes through per-track buffers.")]
 public class AudioMixer : IDisposable
 {
     public readonly IMixingMethod MixingMethod = new BasicMixer();
