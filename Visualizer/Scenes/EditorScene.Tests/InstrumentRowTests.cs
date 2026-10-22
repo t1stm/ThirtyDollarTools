@@ -10,14 +10,14 @@ public class InstrumentRowTests
     private static (InstrumentRow row, Button edit, Button delete) NewRow(
         EditorTestContext ctx, Instrument instrument,
         Action<Instrument> onPick, Action<Instrument> onEdit, Action<Instrument> onDelete,
-        Action<Instrument>? onPreview = null)
+        Action<Instrument>? onPreview = null, Action<Instrument>? onDuplicate = null)
     {
         var row = EditorTestContext.Styled(new InstrumentRow(ctx, instrument, [], onPick, onPreview ?? (_ => { }),
-            onEdit, onDelete));
+            onDuplicate ?? (_ => { }), onEdit, onDelete));
         row.Width = 428; // the selector's list: 460 less the frame's 2 x 16
         row.Layout();
-        var buttons = row.Children.OfType<Button>().ToArray(); // Preview, Edit, Delete
-        return (row, buttons[1], buttons[2]);
+        var buttons = row.Children.OfType<Button>().ToArray(); // Preview, Duplicate, Edit, Delete
+        return (row, buttons[2], buttons[3]);
     }
 
     private static void Click(EditorTestContext ctx, InstrumentRow row, Button button)
@@ -41,6 +41,24 @@ public class InstrumentRowTests
 
         Assert.Same(instrument, previewed);
         Assert.Null(picked);
+    }
+
+    [Fact]
+    public void ClickingTheDuplicateButton_FiresOnDuplicate_NotOnPickOrEdit()
+    {
+        var ctx = new EditorTestContext();
+        var instrument = new Instrument { Name = "Layer" };
+        Instrument? picked = null;
+        Instrument? edited = null;
+        Instrument? duplicated = null;
+        var (row, _, _) = NewRow(ctx, instrument, i => picked = i, i => edited = i, _ => { },
+            onDuplicate: i => duplicated = i);
+
+        Click(ctx, row, row.Children.OfType<Button>().ElementAt(1));
+
+        Assert.Same(instrument, duplicated);
+        Assert.Null(picked);
+        Assert.Null(edited);
     }
 
     [Fact]

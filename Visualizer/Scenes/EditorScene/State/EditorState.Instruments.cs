@@ -38,6 +38,7 @@ public partial class EditorState
     public Instrument AddInstrument(string name)
     {
         var instrument = Project.NewInstrument(name);
+        Logger.InstrumentAdded(name);
         Touch();
         OnInstrumentsChanged?.Invoke();
         return instrument;

@@ -28,6 +28,10 @@ internal static partial class Logs
     public static partial void TrackAdded(this ILogger logger, string track, TrackKind kind);
 
     [Conditional("DEBUG")]
+    [LoggerMessage(LogLevel.Information, "Instrument added: {Instrument}")]
+    public static partial void InstrumentAdded(this ILogger logger, string instrument);
+
+    [Conditional("DEBUG")]
     [LoggerMessage(LogLevel.Information, "Track converted: {Track} ({Kind})")]
     public static partial void TrackConverted(this ILogger logger, string track, TrackKind kind);
 

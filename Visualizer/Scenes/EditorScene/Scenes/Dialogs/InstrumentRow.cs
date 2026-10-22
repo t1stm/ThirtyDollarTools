@@ -8,8 +8,8 @@ namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
 ///     One instrument-list row: up to four of its sounds' icons, its name and sound count, then
-///     Preview, Edit and Delete icon-buttons. Clicking anywhere else on it picks the instrument.
-///     Pure view - <see cref="InstrumentSelector" /> owns the callbacks and the icons' batch.
+///     Preview, Duplicate, Edit and Delete icon-buttons. Clicking anywhere else on it picks the
+///     instrument. Pure view - <see cref="InstrumentSelector" /> owns the callbacks and the icons' batch.
 /// </summary>
 public sealed class InstrumentRow : FlexPanel
 {
@@ -17,7 +17,8 @@ public sealed class InstrumentRow : FlexPanel
     private readonly SoundImage[] _icons;
 
     internal InstrumentRow(UIContext context, Instrument instrument, SoundImage[] icons, Action<Instrument> onPick,
-        Action<Instrument> onPreview, Action<Instrument> onEdit, Action<Instrument> onDelete) : base(context)
+        Action<Instrument> onPreview, Action<Instrument> onDuplicate, Action<Instrument> onEdit,
+        Action<Instrument> onDelete) : base(context)
     {
         Instrument = instrument;
         _icons = icons;
@@ -47,6 +48,7 @@ public sealed class InstrumentRow : FlexPanel
                 ]
             },
             preview,
+            IconButton(context, Icons.Copy, () => onDuplicate(instrument)),
             IconButton(context, Icons.Pencil, () => onEdit(instrument)),
             IconButton(context, Icons.Trash2, () => onDelete(instrument)),
             new Panel(context) { Classes = ["instrument-row-tail"] }

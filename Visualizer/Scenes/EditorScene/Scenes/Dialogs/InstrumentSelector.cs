@@ -80,6 +80,9 @@ public sealed class InstrumentSelector : FlexPanel
     /// <summary>Fired when a row's play button is used.</summary>
     public Action<Instrument>? OnPreview { get; set; }
 
+    /// <summary>Fired when a row's duplicate button is used.</summary>
+    public Action<Instrument>? OnDuplicate { get; set; }
+
     /// <summary>Fired when a row's edit button is used.</summary>
     public Action<Instrument>? OnEdit { get; set; }
 
@@ -116,7 +119,8 @@ public sealed class InstrumentSelector : FlexPanel
         foreach (var instrument in instruments)
         {
             _list.AddChild(new InstrumentRow(Context, instrument, _list.Images.Icons(instrument, sounds, IconSize, MaxIcons),
-                i => OnPick?.Invoke(i), i => OnPreview?.Invoke(i), i => OnEdit?.Invoke(i), i => OnDelete?.Invoke(i))
+                i => OnPick?.Invoke(i), i => OnPreview?.Invoke(i), i => OnDuplicate?.Invoke(i), i => OnEdit?.Invoke(i),
+                i => OnDelete?.Invoke(i))
             {
                 Selected = instrument == marked
             });

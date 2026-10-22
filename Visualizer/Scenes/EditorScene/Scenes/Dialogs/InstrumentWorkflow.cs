@@ -8,8 +8,8 @@ using ThirtyDollarConverter.Parser;
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     The instrument selector/editor/delete/reassign cluster: opening the picker, creating
-///     or editing an instrument, deleting one behind a confirmation, and reassigning the
+///     The instrument selector/editor/delete/reassign cluster: opening the picker, creating,
+///     duplicating or editing an instrument, deleting one behind a confirmation, and reassigning the
 ///     instrument of the notes the selector was opened for.
 /// </summary>
 public sealed class InstrumentWorkflow
@@ -54,6 +54,15 @@ public sealed class InstrumentWorkflow
         {
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
             OpenNewInstrument();
+        };
+        // The copy lands at the end of the list and the selector stays open on it, named the
+        // way a duplicated track is.
+        _instrumentSelector.OnDuplicate = instrument =>
+        {
+            var copy = state.AddInstrument($"{instrument.Name} copy");
+            state.SetInstrumentSounds(copy, instrument.Sounds);
+            state.SetInstrumentModifiers(copy, instrument.Value, instrument.Volume, instrument.Pan, instrument.Offset);
+            FillSelector();
         };
         _instrumentSelector.OnEdit = instrument =>
         {
