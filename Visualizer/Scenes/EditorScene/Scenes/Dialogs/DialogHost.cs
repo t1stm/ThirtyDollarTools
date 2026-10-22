@@ -99,22 +99,32 @@ public sealed class DialogHost(UIContext context, Panel root)
         selection.OnCancel = _ => Close(modal);
     }
 
-    /// <summary>Generic yes/no confirmation; closes itself either way.</summary>
+    /// <summary>
+    ///     Generic yes/no confirmation; closes itself either way. Enter confirms, and Esc or the
+    ///     backdrop cancel as the Cancel button does, <paramref name="onCancel" /> included.
+    /// </summary>
     public void Confirm(string message, Action onConfirm, Action? onCancel = null,
         string confirmLabel = "Delete", string confirmClass = "dialog-button-danger")
     {
         var dialog = new ConfirmDialog(context, message, confirmLabel, confirmClass);
         var modal = Show(dialog.Element);
-        dialog.CancelButton.OnClick = _ =>
+        modal.OnDismissRequested = _ => Cancel();
+        modal.OnConfirmRequested = _ => Accept();
+        dialog.CancelButton.OnClick = _ => Cancel();
+        dialog.ConfirmButton.OnClick = _ => Accept();
+        return;
+
+        void Cancel()
         {
             Close(modal);
             onCancel?.Invoke();
-        };
-        dialog.ConfirmButton.OnClick = _ =>
+        }
+
+        void Accept()
         {
             Close(modal);
             onConfirm();
-        };
+        }
     }
 
     /// <summary>

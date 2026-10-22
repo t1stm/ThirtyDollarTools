@@ -27,6 +27,10 @@ public sealed class ConfirmDialog
         component.GetID<Label>("message-label").SetTextContents(message);
         ConfirmButton.Label.SetTextContents(confirmLabel);
         ConfirmButton.SetClass(confirmClass, true);
+
+        // After the fill class: the chip's shade is picked from it.
+        KeyChip.Add(CancelButton, "Esc");
+        KeyChip.Add(ConfirmButton, "Enter");
     }
 
     /// <summary>The dialog's root - what the owner mounts into a ModalLayer.</summary>

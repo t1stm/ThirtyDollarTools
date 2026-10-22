@@ -37,6 +37,25 @@ public class DialogHostTests
     }
 
     [Fact]
+    public void Confirm_TakesEnterAsConfirm_AndEscAsCancel()
+    {
+        var ctx = new EditorTestContext();
+        var host = new DialogHost(ctx, new Panel(ctx));
+        var confirmed = 0;
+        var cancelled = 0;
+
+        host.Confirm("Delete this?", () => confirmed++, () => cancelled++);
+        Assert.True(host.TryConfirmTop());
+        Assert.Equal((1, 0), (confirmed, cancelled));
+        Assert.False(host.HasOpenModal);
+
+        host.Confirm("Delete this?", () => confirmed++, () => cancelled++);
+        Assert.True(host.TryCloseTop());
+        Assert.Equal((1, 1), (confirmed, cancelled));
+        Assert.False(host.HasOpenModal);
+    }
+
+    [Fact]
     public void TryKeyTop_HandsTheKeyToTheTopDialog()
     {
         var ctx = new EditorTestContext();
