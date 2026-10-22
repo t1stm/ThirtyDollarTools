@@ -66,7 +66,9 @@ public partial class TrackEditorView
         {
             var y = GridTop + r * rowHeight - scrollY;
             var visibleWidth = y >= GridTop && y + 1 <= gridBottom ? gridWidth : 0;
-            var color = (MaxValue - r) % 12 == 0 ? OctaveLineColor : RowLineColor;
+            // Line r sits on top of row r, so it's the bottom edge of the row above it:
+            // the octave line runs under each multiple of 12 (11|12, -1|0, -13|-12).
+            var color = (MaxValue - r + 1) % 12 == 0 ? OctaveLineColor : RowLineColor;
             _lineBatch.Set(RowLineSlot + r, absX + GutterWidth, absY + y, visibleWidth, 1, color);
         }
 
