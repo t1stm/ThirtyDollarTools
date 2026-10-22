@@ -43,7 +43,11 @@
             </flex>
             <flex class="pane-body">
               <label class="pane-line" value="This is the Thirty Dollar Visualizer. It plays, edits and exports"/>
-              <label class="pane-line" value="covers from thirtydollar.website."/>
+              <flex class="pane-run">
+                <label class="pane-line" value="covers from "/>
+                <link class="pane-line" value="thirtydollar.website" open="https://thirtydollar.website"/>
+                <label class="pane-line" value="."/>
+              </flex>
             </flex>
           </flex>
           <flex class="pane-actions">
@@ -85,7 +89,11 @@
               <label class="pane-title" value="Get the sound library."/>
             </flex>
             <flex class="pane-body">
-              <label class="pane-line" value="Every sound and icon comes from thirtydollar.website, and the"/>
+              <flex class="pane-run">
+                <label class="pane-line" value="Every sound and icon comes from "/>
+                <link class="pane-line" value="thirtydollar.website" open="https://thirtydollar.website"/>
+                <label class="pane-line" value=", and the"/>
+              </flex>
               <label class="pane-line" value="Visualizer needs them all before it can play anything. They are"/>
               <label class="pane-line" value="saved to disk, so later boots start loading straight away."/>
             </flex>

@@ -186,6 +186,14 @@ class pane-line {
     font-color = $muted;
 }
 
+// A pane line made of runs, so part of it can be a link.
+class pane-run {
+    width = auto;
+    height = auto;
+    direction = "horizontal";
+    spacing = 0;
+}
+
 // ---------------------------------------------------------------- controls
 //
 // No state[hovered] blocks on either button class. LoaderInterface owns their alpha while

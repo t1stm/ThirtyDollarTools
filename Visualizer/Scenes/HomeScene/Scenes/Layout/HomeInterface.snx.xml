@@ -55,7 +55,8 @@
            overwrites them once it knows the version and what the check found. -->
       <flex id="footer">
         <label id="version-label" value="Developer Build"/>
-        <label id="update-label" value="Check for updates at github.com/t1stm/ThirtyDollarTools"/>
+        <link id="update-label" value="Check for updates at github.com/t1stm/ThirtyDollarTools"
+              open="https://github.com/t1stm/ThirtyDollarTools/releases"/>
       </flex>
 
       <flex id="topbar">

@@ -10,7 +10,7 @@ context.Band = component.GetID<Panel>("band");
 context.Moai = component.GetID<Image>("moai");
 context.Playhead = component.GetID<Panel>("playhead");
 context.VersionLabel = component.GetID<Label>("version-label");
-context.UpdateLabel = component.GetID<Label>("update-label");
+context.UpdateLabel = component.GetID<Link>("update-label");
 
 // The whole cell is the target, not a button inside it - the row is the affordance.
 component.GetID<Panel>("cell-visualizer").OnClick = _ => context.OnVisualizer();

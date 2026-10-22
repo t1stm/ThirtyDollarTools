@@ -128,7 +128,7 @@ public class HomeInterface
     [SetFromLogic] public Image Moai { get; set; } = null!;
     [SetFromLogic] public Panel Playhead { get; set; } = null!;
     [SetFromLogic] public Label VersionLabel { get; set; } = null!;
-    [SetFromLogic] public Label UpdateLabel { get; set; } = null!;
+    [SetFromLogic] public Link UpdateLabel { get; set; } = null!;
 
     /// <summary>Every cell's steps, left to right, as one row - the sweep reads them in order.</summary>
     [UsedImplicitly] public List<Panel> Steps { get; } = [];

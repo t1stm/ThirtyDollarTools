@@ -143,6 +143,8 @@ public class Home : Scene, IFadeInScene
             _homeInterface.UpdateLabel.SetTextContents(available != null
                 ? $"{available.TagName} is out - {available.HtmlUrl}"
                 : "Update check failed. See the log for details.");
+            // Straight to the release found; a failed check names nothing to open.
+            _homeInterface.UpdateLabel.Url = available?.HtmlUrl ?? string.Empty;
             _homeInterface.UpdateLabel.SetClass("note-attention", available is not null);
             _homeInterface.UpdateLabel.Visible = true;
         }
