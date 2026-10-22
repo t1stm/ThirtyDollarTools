@@ -62,7 +62,7 @@ the numbers as anchors for orientation, not as constants.
 The editor's chrome is pinned to the window edges, so these three hold at any size
 (`EditorInterface`):
 
-- header strip: `HeaderHeight = 32` at the top
+- header strip: `HeaderHeight = 40` at the top
 - track column: `TrackColumnWidth = 260` on the left (inspector column mirrors it on the right)
 - hint bar: `HintBarHeight = 26` at the bottom
 
@@ -83,14 +83,15 @@ Image.open('/tmp/tdviz/shots/x.png').crop((285,425,1100,510)).resize((1630,170))
 
 | Element | Where (1600×840) | Notes |
 |---|---|---|
-| `Editor` title, project name, BPM | left of the header, y≈16 | project name updates live; a `*` marks unsaved |
-| Load / Save / Export | `(287,16)` / `(340,16)` / `(400,16)` | all three open a modal |
-| Track list rows | x 0..250, first row y≈50, ~40 px pitch | colour blip = reorder handle; `×` removes |
-| `+ Add track` | below the last row | opens the track-kind modal |
+| `Editor` title, project name, BPM | left of the header, y≈20 | the project name is a button: it opens the project menu (`New project`, `Open…`, `Save`, `Save As…`, `Export…`, each with its key). Unsaved work shows only as Save's `Ctrl+S` chip turning amber |
+| Save / Save As | `(345,20)` | reads `Save As` until the project has a file, then `Save` |
+| New / Open | `(1426,20)` / `(1538,20)` | **only on a new, untouched project** — gone after the first edit, back after New. Export is in the project menu only (or `Ctrl+E`) |
+| Track list rows | x 0..250, first row y≈58, ~40 px pitch | colour blip = reorder handle; `×` removes |
+| `Add track` | below the last row | `Ctrl+T` chip; opens the track-kind modal |
 | Transport scrubber | y≈748, `0:00 ─── 0:00` | right-hand number is total project length — a model oracle |
 | Play / Stop | `(66,776)` / `(192,776)` | Play becomes Pause while playing |
 | Back | `(130,819)` | leaves the editor |
-| Draw / Select tools | `(1219,50)` / `(1272,50)` in the grid views; `(1200,404)` / `(1250,404)` in the faithful panel | the faithful panel has its own pair — they are not the same buttons |
+| Draw / Select tools | `(752,20)` / `(808,20)`, centred over the grid area (x = 260 + grid width / 2) | one pair for every view, in the header. Picking one (click or `D`/`E`) widens it to show its name for ~1.3 s, so the other button shifts while that runs - re-measure or wait it out before clicking the second |
 | Inspector column | x 1300..1600 | contents depend entirely on the selection, see §7 |
 | Status line | bottom-right, `(1317,815)` | `Idle` / `Rendering audio...` — tells you a background render is in flight |
 | Hint bar | bottom, y≈827 | **read this first, see below** |
@@ -209,20 +210,22 @@ project memory). `Escape` closes the top one.
 
 | Dialog | Reached by |
 |---|---|
-| Track type (Piano Roll / Faithful) | `+ Add track` |
+| Track type (Piano Roll / Faithful) | `Add track`, `Ctrl+T` |
 | Sound picker / instrument editor | `+ New instrument`, or editing an instrument |
 | Action value | clicking a value-taking action; right-clicking a placed one reopens it prefilled |
 | Track colour | track context menu → `Change color…` |
 | Track context menu | right-click a track row: `Open`, `Change color…`, `Duplicate…`, `Convert to Faithful` / `Convert to Piano Roll`, `Remove` |
 | Import (Faithful / Piano Roll / Replace project, keys `1`-`3`) | dropping a `.tdw`, or `-i` on boot |
-| Export | `Export` |
-| Confirm / Unsaved changes / Alert | destructive actions, leaving dirty, and any error |
-| File selection | `Load` and `Save` |
+| Export | project menu → `Export…`, `Ctrl+E` |
+| Confirm / Unsaved changes / Alert | destructive actions, leaving or opening another project (Open, a dropped `.tdwproj`) with unsaved work, and any error |
+| File selection | `Open`, `Save` / `Save As` (`Ctrl+Shift+S` always asks) |
 
 **File dialog specifics** (`Sundex.Components/File Selector/FileSelection.cs`): `Up` walks up
 one directory, rows navigate or select, `Cancel` / `Select` at the bottom. The **Save** dialog
 has a filename field that accepts a full absolute path — use it, it is far faster than
-clicking down a tree. The **Load** dialog has no such field, so you must navigate. The list is
+clicking down a tree. The **Open** dialog has no such field, but clicking its breadcrumb bar
+(`(600,198)` at 1080×720) makes the path editable: type the file's absolute path, `Enter` to
+go there (the file comes up selected), `Enter` again to open it. The list is
 directories first, then files filtered by extension; the 📄 prefix renders as a tofu box
 (known, `// TODO emojis don't render with new label system`).
 
@@ -244,7 +247,8 @@ copy if something doesn't match. `Primary` is `Ctrl` (`Cmd` on macOS).
 | `Delete`, `Backspace` | delete selection |
 | `D` / `E` | Draw tool / Select tool |
 | `Space` / `Shift+Space` | play-pause / restart |
-| `Ctrl+S` / `Ctrl+O` / `Ctrl+N` | save / open / new |
+| `Ctrl+S` / `Ctrl+Shift+S` / `Ctrl+O` / `Ctrl+N` | save / save as / open / new |
+| `Ctrl+E` / `Ctrl+T` | export / add track |
 | arrows | nudge selection (step-or-grid, value-or-lane) |
 | `M` / `S` | mute / solo the selected clips' channels |
 | `Escape` | fallthrough chain: clear selection → close modal → close track → back |
