@@ -17,6 +17,8 @@ namespace HomeScene;
 [PreloadGraphicsContext]
 public class Home : Scene, IFadeInScene
 {
+    private const string DownloadPage = "https://t1stm.github.io/ThirtyDollarTools/#download";
+
     private readonly DollarStoreCamera _camera;
     private readonly Func<bool> _checkingForUpdates;
     private readonly string _version;
@@ -141,10 +143,10 @@ public class Home : Scene, IFadeInScene
             var available = UpdateChecker.Available;
 
             _homeInterface.UpdateLabel.SetTextContents(available != null
-                ? $"{available.TagName} is out - {available.HtmlUrl}"
+                ? $"{available.TagName} is out - t1stm.github.io/ThirtyDollarTools"
                 : "Update check failed. See the log for details.");
-            // Straight to the release found; a failed check names nothing to open.
-            _homeInterface.UpdateLabel.Url = available?.HtmlUrl ?? string.Empty;
+            // To the site's downloads; a failed check names nothing to open.
+            _homeInterface.UpdateLabel.Url = available != null ? DownloadPage : string.Empty;
             _homeInterface.UpdateLabel.SetClass("note-attention", available is not null);
             _homeInterface.UpdateLabel.Visible = true;
         }
