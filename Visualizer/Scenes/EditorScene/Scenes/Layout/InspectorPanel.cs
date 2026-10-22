@@ -39,7 +39,8 @@ public sealed partial class InspectorPanel
     /// <summary>A rebuild held back while a field was being typed in; see <see cref="RebuildWhenIdle" />.</summary>
     private bool _rebuildPending;
 
-    private readonly char[] _loadText = new char[24];
+    private const string LoadPrefix = "Audio Engine CPU ";
+    private readonly char[] _loadText = new char[32];
     private string? _syncedStatusLabel = "Idle"; // matches InspectorShell.snx.xml's constructed default
     private float _syncedStatusProgress = -1f; // never a valid Progress value, forces the first real SetStatus to apply
 
@@ -141,7 +142,7 @@ public sealed partial class InspectorPanel
     }
 
     /// <summary>
-    ///     Shows the playback mixer's CPU load where a render's status goes: "CPU 1.37%" (a typical
+    ///     Shows the playback mixer's CPU load where a render's status goes: "Audio Engine CPU 1.37%" (a typical
     ///     song mixes in well under 1%), the bar filled to match. Written into a buffer of its own
     ///     and handed to the label as a span, so a reading that changes allocates nothing.
     /// </summary>
@@ -150,9 +151,10 @@ public sealed partial class InspectorPanel
         // Piece by piece: an interpolated TryWrite allocates on every call, int.TryFormat doesn't.
         var hundredths = (int)MathF.Round(load * 10000);
         var text = _loadText.AsSpan();
-        "CPU ".CopyTo(text);
-        (hundredths / 100).TryFormat(text[4..], out var written, provider: CultureInfo.InvariantCulture);
-        written += 4;
+        LoadPrefix.CopyTo(text);
+        (hundredths / 100).TryFormat(text[LoadPrefix.Length..], out var written,
+            provider: CultureInfo.InvariantCulture);
+        written += LoadPrefix.Length;
         text[written++] = '.';
         (hundredths % 100).TryFormat(text[written..], out var fraction, "D2", CultureInfo.InvariantCulture);
         written += fraction;

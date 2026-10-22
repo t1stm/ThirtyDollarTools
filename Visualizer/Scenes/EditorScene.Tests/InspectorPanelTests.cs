@@ -894,14 +894,14 @@ public class InspectorPanelTests
         var (_, _, inspector) = NewInspector();
 
         inspector.SetLoad(0.0137f);
-        Assert.Equal("CPU 1.37%", inspector.StatusLabelElement.Value.ToString());
+        Assert.Equal("Audio Engine CPU 1.37%", inspector.StatusLabelElement.Value.ToString());
         Assert.True(inspector.StatusBar.Visible);
         Assert.Equal(0.0137f, inspector.StatusBar.Progress, 4);
 
         // a render taking over and handing back shows the load again, not a stale label
         inspector.SetStatus("Rendering audio…", 0.5f);
         inspector.SetLoad(0.0137f);
-        Assert.Equal("CPU 1.37%", inspector.StatusLabelElement.Value.ToString().TrimEnd('\0'));
+        Assert.Equal("Audio Engine CPU 1.37%", inspector.StatusLabelElement.Value.ToString().TrimEnd('\0'));
 
         // and stopping shows Idle, though the last SetStatus text was the render's
         inspector.SetStatus(null, 0f);
