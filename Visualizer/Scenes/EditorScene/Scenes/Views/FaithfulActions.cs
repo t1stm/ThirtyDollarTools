@@ -46,7 +46,7 @@ public sealed record FaithfulAction(string Name, string? Template, string Hint, 
         new("!cut", null, "Silences every sound this track plays"),
         new("!flash", null, "Flashes the screen"),
         new("!bg", "!bg@#ff0000,0.5", "Fades the background to a color over N seconds"),
-        new("!pulse", "!pulse@4,100", "Pulses the background: repeats, then frequency")
+        new("!pulse", "!pulse@1,2", "Pulses the background: repeats, then frequency")
     ];
 
     /// <summary>The palette entry for an event name, or null - "!divider", "_pause" and friends.</summary>
