@@ -68,7 +68,11 @@ public class StyleSelectorTests
         }
 
         yield return new TrackTypeDialog(ctx, ctx.NewAtlasStore(), [], OpenTK.Mathematics.Vector4.One).Element;
-        yield return new ActionValueDialog(ctx, FaithfulAction.All[0]).Element;
+        // One per list the form builds: modes, common values, targets, colors, and none at all.
+        var track = new FaithfulTrack(new TimingInfo(), 1);
+        track.Items.Add(FaithfulItem.Parse("!target@1")!);
+        foreach (var action in new[] { "!speed", "!stop", "!target", "!bg", "!pulse" })
+            yield return new ActionValueDialog(ctx, FaithfulAction.Find(action)!, track, track.Items.Count).Element;
         yield return new ExportDialog(ctx).Element;
         // Every section kept, so the code-built cells and the overflow line are walked too.
         yield return new ImportWarningsDialog(ctx, "song.tdw", ImportMode.Track, new ImportWarnings(

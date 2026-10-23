@@ -99,13 +99,150 @@ id alert-dialog {
     width = 360;
 }
 
+// A faithful action's value: the strip, then a 210 list beside the card. One width for every
+// action, so the nine-slot strip fits its 52 tiles and 10 gaps inside the 12 padding.
 id action-value-dialog {
-    width = 360;
+    width = 640;
 }
 
-// The whole event as text.
-id value-input {
+class action-description {
+    font-size = 13;
+    font-color = $theme.text_dim;
+}
+
+// The track's slots around the one being added or edited, on the sequence's own canvas shade.
+class action-strip {
     width = 100%;
+    padding = 12;
+    border-radius = 8;
+    background = $theme.grid_background;
+}
+
+// Its height is set per action by ActionValueDialog.cs - the list and the card both fill it.
+class action-body {
+    width = 100%;
+    spacing = 12;
+}
+
+class action-list-column {
+    direction = "vertical";
+    width = 210;
+    height = 100%;
+    spacing = 6;
+}
+
+class action-list {
+    direction = "vertical";
+    width = 100%;
+    spacing = 3;
+}
+
+// A list row: track-kind-row-idle/-selected, swapped by the dialog, give its fill.
+class action-row {
+    width = 100%;
+    height = 36;
+    padding = 8;
+    spacing = 8;
+    vertical-align = "center";
+    border-radius = 6;
+}
+
+// A color row: ten of them fit beside the card at this height.
+class action-row-short {
+    height = 30;
+}
+
+class action-row-name {
+    font-size = 13;
+    font-color = $theme.text;
+}
+
+class action-row-sub {
+    font-size = 12;
+    font-color = $theme.text_subtle;
+}
+
+// A color row's swatch; its fill is set in code.
+class action-row-swatch {
+    width = 16;
+    height = 16;
+    border-radius = 4;
+}
+
+class action-card {
+    direction = "vertical";
+    width = 100%;
+    height = 100%;
+    padding = 12;
+    spacing = 12;
+    border-radius = 8;
+    background = $theme.background;
+}
+
+class action-field {
+    direction = "vertical";
+    width = 100%;
+    spacing = 6;
+}
+
+class action-field-input {
+    width = 100%;
+}
+
+class action-color-row {
+    width = 100%;
+    spacing = 8;
+    vertical-align = "center";
+}
+
+// The typed color; its fill is set in code.
+class action-color-chip {
+    width = 32;
+    height = 32;
+    border-radius = 4;
+}
+
+class action-preview-label {
+    font-size = 13;
+    font-color = $theme.text_dim;
+}
+
+// The !bg / !pulse preview grows into the card's spare height. Its fill is set in code.
+class action-preview-box {
+    width = 100%;
+    height = 100%;
+    border-radius = 8;
+}
+
+// Takes the spare height instead when there is no preview, so the facts sit at the bottom.
+class action-fill {
+    width = 100%;
+    height = 100%;
+}
+
+class action-play-button {
+    direction = "horizontal";
+    height = 28;
+    padding = 10;
+    spacing = 6;
+    font-size = 13;
+    border-radius = 6;
+    background = $theme.surface;
+
+    state[hovered] = {
+        background = $theme.surface_raised;
+    }
+}
+
+class action-play-icon {
+    font-size = 12;
+    font-color = $theme.text;
+}
+
+// What Save writes, as TDW text.
+class action-tdw {
+    font-size = 12;
+    font-color = $theme.text_subtle;
 }
 
 id unsaved-changes-dialog {

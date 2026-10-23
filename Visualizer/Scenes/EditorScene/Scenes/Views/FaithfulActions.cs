@@ -18,8 +18,7 @@ public readonly record struct ScrollRange(double Min, double Max, double Step = 
 ///     and emits nothing.
 ///     <paramref name="Template" /> is the TDW text a fresh item starts from - the site's own
 ///     default, or null for the actions that take no amount. It is offered for editing rather
-///     than applied blind, which is also how "!speed@2@x" and the two-value "!pulse"/"!bg"
-///     payloads get built without a form per action.
+///     than applied blind: the action's form (ActionValueDialog) opens on it.
 ///     <paramref name="Scroll" /> is what the scroll gesture may do to the slot once it is in
 ///     the sequence, or null for the slots that take nothing from the wheel: the valueless
 ///     actions, "_pause", and the two that pack two values into one ("!bg"'s color and fade,

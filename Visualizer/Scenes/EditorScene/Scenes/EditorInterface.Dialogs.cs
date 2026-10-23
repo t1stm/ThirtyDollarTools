@@ -303,41 +303,24 @@ public partial class EditorInterface
     }
 
     /// <summary>
-    ///     Inserts a palette action. One with an amount prompts for it first, exactly as the
-    ///     site does - as the whole TDW text, so "!speed@2@x" and the two-value "!pulse"/"!bg"
-    ///     payloads need no form of their own.
+    ///     Inserts a palette action. One with an amount opens its form first, as the site
+    ///     opens its popup; the rest go straight in.
     /// </summary>
     private void ShowActionValueDialog(FaithfulAction action)
     {
+        if (State.OpenedFaithfulTrack is not { } track) return;
         if (action.Template is null)
         {
-            Append(action.Name);
+            if (FaithfulItem.Parse(action.Name) is { } item) State.AppendItem(track, item);
             return;
         }
 
-        var dialog = new ActionValueDialog(_context, action);
-        var modal = _dialogHost.Show(dialog.Element);
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.AddButton.OnClick = _ =>
-        {
-            _dialogHost.Close(modal);
-            Append(dialog.ValueInput.Value);
-        };
-        return;
-
-        void Append(string tdw)
-        {
-            if (State.OpenedFaithfulTrack is not { } track) return;
-            if (FaithfulItem.Parse(tdw) is { } item) State.AppendItem(track, item);
-            else _dialogHost.Alert($"\"{tdw}\" isn't an event this editor can read.");
-        }
+        ShowActionForm(track, action, track.Items.Count, null);
     }
 
     /// <summary>
-    ///     Right-clicking an action that carries a value reopens its dialog on what the slot
-    ///     says now, which is the site's own right-click. The whole TDW text again, so the
-    ///     packed "!bg@#ff0000,0.5" and "!pulse@4,100" payloads are editable at all - the
-    ///     event's own <c>Stringify</c> writes those two back in their readable form.
+    ///     Right-clicking an action that carries a value reopens its form on what the slot says
+    ///     now, which is the site's own right-click. Saving swaps the item, one undo step.
     /// </summary>
     private void ShowActionEditDialog(FaithfulItem item)
     {
@@ -345,18 +328,37 @@ public partial class EditorInterface
         if (FaithfulAction.Find(action.SoundEvent) is not { } definition) return;
 
         var index = track.Items.IndexOf(item);
-        if (index < 0) return;
+        if (index >= 0) ShowActionForm(track, definition, index, action);
+    }
 
-        var dialog = new ActionValueDialog(_context, definition, action.Stringify());
-        var modal = _dialogHost.Show(dialog.Element);
-        dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.AddButton.OnClick = _ =>
+    /// <summary>The action form for a new item (<paramref name="current" /> null, added at the end) or an edit.</summary>
+    private void ShowActionForm(FaithfulTrack track, FaithfulAction action, int index, BaseEvent? current)
+    {
+        var dialog = new ActionValueDialog(_context, action, track, index, current, _playfieldLook);
+        var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
+        modal.OnDismissRequested = _ => Close();
+        modal.OnConfirmRequested = _ => Save();
+        dialog.CloseButton.OnClick = _ => Close();
+        dialog.CancelButton.OnClick = _ => Close();
+        dialog.SaveButton.OnClick = _ => Save();
+        dialog.Focus();
+        return;
+
+        void Close()
         {
             _dialogHost.Close(modal);
-            var tdw = dialog.ValueInput.Value;
-            if (FaithfulItem.Parse(tdw) is { } edited) State.ReplaceItemAt(track, index, edited);
-            else _dialogHost.Alert($"\"{tdw}\" isn't an event this editor can read.");
-        };
+            dialog.Release();
+        }
+
+        // A field that holds nothing the slot can be (an empty number, a short color) keeps the
+        // form open; the card already says what is wrong.
+        void Save()
+        {
+            if (dialog.Result is not { } result) return;
+            Close();
+            if (current is null) State.AppendItem(track, result);
+            else State.ReplaceItemAt(track, index, result);
+        }
     }
 
     /// <summary>

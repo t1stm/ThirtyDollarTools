@@ -3,19 +3,43 @@
 
   <layout>
     <flex id="action-value-dialog" class="dialog-frame">
-      <!-- Heading, hint and the field's contents are all set by ActionValueDialog.cs. -->
-      <label id="title-label" class="heading-label" value=""/>
-      <label id="hint-label" class="caption-label" value=""/>
-      <!-- The whole event as TDW text, not a number field: it is the one input that can
-           express "!speed@2@x" and the packed "!pulse@4,100" / "!bg@#ff0000,0.5" payloads
-           without a form per action, and it is what the item is saved as anyway. -->
-      <text-input id="value-input"/>
-      <flex class="dialog-actions-compact">
-        <button id="cancel-button" class="dialog-button-shape">
+      <flex class="dialog-header">
+        <!-- Title, token and description are set by ActionValueDialog.cs. -->
+        <label id="title-label" class="dialog-title" value=""/>
+        <flex class="info-chip">
+          <label id="token-label" class="info-chip-label" value=""/>
+        </flex>
+        <panel class="spacer"/>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
+      <label id="description-label" class="action-description" value=""/>
+
+      <!-- The slot drawn where it lands, between the track's own slots around it.
+           ActionValueDialog.cs puts the canvas in. -->
+      <flex id="action-strip" class="action-strip"/>
+
+      <!-- ActionValueDialog.cs sets the body's height per action, and fills the list (modes,
+           common values, targets or colors) and the card (fields, preview, facts). -->
+      <flex id="action-body" class="action-body">
+        <flex id="action-list-column" class="action-list-column">
+          <label id="action-list-label" class="cut-column-label" value=""/>
+          <flex id="action-list" class="action-list"/>
+        </flex>
+        <flex id="action-card" class="action-card"/>
+      </flex>
+
+      <!-- The TDW text Save writes, then Cancel and Add/Save. ActionValueDialog.cs puts the Esc
+           and Enter chips on the buttons. -->
+      <flex class="dialog-actions-split">
+        <label id="tdw-label" class="action-tdw" value=""/>
+        <panel class="spacer"/>
+        <button id="cancel-button" class="dialog-button">
           <label value="Cancel"/>
         </button>
-        <button id="add-button" class="dialog-button-primary">
-          <label id="add-label" value="Add"/>
+        <button id="save-button" class="dialog-button-primary">
+          <label id="save-label" value="Add"/>
         </button>
       </flex>
     </flex>
