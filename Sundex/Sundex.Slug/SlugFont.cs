@@ -92,7 +92,7 @@ public sealed class SlugFont
         // ColorFontSupport.None asks for the base outline. An emoji font's colour layers are a
         // stack of filled shapes, one per palette colour, which a single glyph can't carry.
         if (!_fontMetrics.TryGetGlyphMetrics(codePoint, TextAttributes.None, TextDecorations.None,
-                LayoutMode.HorizontalTopBottom, ColorFontSupport.None, out var glyphMetrics))
+                LayoutMode.HorizontalTopBottom, ColorFontSupport.None, null, out var glyphMetrics))
             return false;
 
         advance = glyphMetrics.AdvanceWidth / (double)_fontMetrics.UnitsPerEm;
@@ -105,7 +105,7 @@ public sealed class SlugFont
             ColorFontSupport = ColorFontSupport.None
         };
 
-        TextRenderer.RenderTextTo(renderer, text, options);
+        TextRenderer.RenderTo(renderer, text, options);
 
         // A glyph with metrics but no ink — space, above all — is not a failure: it still has to
         // advance the pen. Nothing to anchor, though, since an empty shape's bounds are still the

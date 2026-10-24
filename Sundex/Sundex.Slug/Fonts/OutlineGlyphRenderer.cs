@@ -24,6 +24,7 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
     private readonly double _unitsPerEm = unitsPerEm;
 
     private Vector2d _current;
+    private Vector2d _start;
     private bool _inFigure;
 
     public void BeginText(in FontRectangle bounds)
@@ -43,11 +44,19 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
     {
     }
 
-    public void BeginLayer(Paint paint, FillRule fillRule, ClipQuad? clipBounds)
+    public void BeginLayer(Paint? paint, FillRule fillRule)
     {
     }
 
     public void EndLayer()
+    {
+    }
+
+    public void BeginGroup(CompositeMode mode)
+    {
+    }
+
+    public void EndGroup()
     {
     }
 
@@ -60,13 +69,16 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
     public void EndFigure()
     {
         if (!_inFigure) return;
+        // SixLabors leaves the closing edge implicit, so the figure is closed here; an outline
+        // that already returned to its start adds a zero-length edge, which Emit drops.
+        Emit(EdgeSegment.Linear(_current, _start));
         shape.EndContour();
         _inFigure = false;
     }
 
     public void MoveTo(Vector2 point)
     {
-        _current = Transform(point);
+        _current = _start = Transform(point);
     }
 
     public void LineTo(Vector2 point)
@@ -107,7 +119,8 @@ internal sealed class OutlineGlyphRenderer(Shape shape, double unitsPerEm) : IGl
         return TextDecorations.None;
     }
 
-    public void SetDecoration(TextDecorations textDecorations, Vector2 start, Vector2 end, float thickness)
+    public void SetDecoration(TextDecorations textDecorations, Vector2 start, Vector2 end, float thickness,
+        ReadOnlyMemory<float> intersections)
     {
     }
 
