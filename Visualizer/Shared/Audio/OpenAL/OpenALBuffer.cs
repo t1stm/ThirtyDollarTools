@@ -24,8 +24,8 @@ public class OpenALBuffer : AudibleBuffer
 
         var format = channels switch
         {
-            1 => Format.FormatMonoFloat32,
-            2 => Format.FormatStereoFloat32,
+            1 => Format.MonoFloat32,
+            2 => Format.StereoFloat32,
             _ => throw new ArgumentOutOfRangeException(nameof(sampleData), "The given channels count is invalid.")
         };
 
@@ -67,12 +67,12 @@ public class OpenALBuffer : AudibleBuffer
 
         var format = (pcm.Encoding, stereo) switch
         {
-            (Encoding.Int8, false) => Format.FormatMono8,
-            (Encoding.Int8, true) => Format.FormatStereo8,
-            (Encoding.Int16, false) => Format.FormatMono16,
-            (Encoding.Int16, true) => Format.FormatStereo16,
-            (Encoding.Int24 or Encoding.Float32, false) => Format.FormatMonoFloat32,
-            (Encoding.Int24 or Encoding.Float32, true) => Format.FormatStereoFloat32,
+            (Encoding.Int8, false) => Format.Mono8,
+            (Encoding.Int8, true) => Format.Stereo8,
+            (Encoding.Int16, false) => Format.Mono16,
+            (Encoding.Int16, true) => Format.Stereo16,
+            (Encoding.Int24 or Encoding.Float32, false) => Format.MonoFloat32,
+            (Encoding.Int24 or Encoding.Float32, true) => Format.StereoFloat32,
             _ => throw new InvalidDataException($"{(int)pcm.Encoding}-bit samples aren't supported.")
         };
 
@@ -111,8 +111,8 @@ public class OpenALBuffer : AudibleBuffer
 
         var format = channels switch
         {
-            1 => Format.FormatMonoFloat32,
-            2 => Format.FormatStereoFloat32,
+            1 => Format.MonoFloat32,
+            2 => Format.StereoFloat32,
             _ => throw new ArgumentOutOfRangeException(nameof(data), "The given channels count is invalid.")
         };
 

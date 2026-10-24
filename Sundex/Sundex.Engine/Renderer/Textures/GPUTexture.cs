@@ -26,7 +26,7 @@ public class GPUTexture : IBindable
         if (BufferState.HasFlag(BufferState.PendingCreation))
             Create();
 
-        GL.BindTexture(TextureTarget.Texture2d, Handle);
+        GL.BindTexture(TextureTarget.Texture2D, Handle);
         if (BufferState.HasFlag(BufferState.PendingUpload))
             UploadToGPU();
     }
@@ -45,8 +45,8 @@ public class GPUTexture : IBindable
     {
         if (BufferState.HasFlag(BufferState.Failed)) return;
 
-        GL.BindTexture(TextureTarget.Texture2d, Handle);
-        GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat, Width, Height,
+        GL.BindTexture(TextureTarget.Texture2D, Handle);
+        GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat, Width, Height,
             0, PixelFormat.Rgba, PixelType.Byte, IntPtr.Zero);
 
         SetTexParams();
@@ -72,7 +72,7 @@ public class GPUTexture : IBindable
                 // format uploaded here.
                 GL.PixelStorei(PixelStoreParameter.UnpackAlignment, 1);
 
-                GL.TexSubImage2D(TextureTarget.Texture2d, 0, rect?.X ?? 0, rect?.Y ?? 0,
+                GL.TexSubImage2D(TextureTarget.Texture2D, 0, rect?.X ?? 0, rect?.Y ?? 0,
                     rect?.Width ?? Width, rect?.Height ?? Height, pixelInfo.Format, pixelInfo.Type, handle.Pointer);
                 RenderMarker.Debug(
                     "Texture Upload: ",
@@ -87,36 +87,36 @@ public class GPUTexture : IBindable
         switch (MipmapMode)
         {
             case MipmapMode.Enabled:
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
                     (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
                     (int)TextureWrapMode.ClampToEdge);
 
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                     (int)TextureMinFilter.LinearMipmapLinear);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
                     (int)TextureMagFilter.Linear);
 
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureBaseLevel, 0);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMaxLevel,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel,
                     (int)Math.Floor(Math.Log2(Math.Max(Width, Height))));
-                GL.GenerateMipmap(TextureTarget.Texture2d);
+                GL.GenerateMipmap(TextureTarget.Texture2D);
                 break;
 
             case MipmapMode.Disabled:
             default:
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapS,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureWrapS,
                     (int)TextureWrapMode.ClampToEdge);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureWrapT,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureWrapT,
                     (int)TextureWrapMode.ClampToEdge);
 
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter,
                     (int)TextureMinFilter.Linear);
 
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter,
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter,
                     (int)TextureMagFilter.Linear);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureBaseLevel, 0);
-                GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMaxLevel, 0);
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+                GL.TexParameteri(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
                 break;
         }
     }

@@ -36,7 +36,7 @@ public sealed class OpenALStream : AudioStream
     {
         _sampleRate = sampleRate;
         _channels = channels;
-        _format = channels == 1 ? Format.FormatMonoFloat32 : Format.FormatStereoFloat32;
+        _format = channels == 1 ? Format.MonoFloat32 : Format.StereoFloat32;
         _source = AL.GenSource();
     }
 
@@ -76,7 +76,7 @@ public sealed class OpenALStream : AudioStream
                 AL.BufferData(id, _format, samples, interleaved.Length * sizeof(float), _sampleRate);
             }
 
-            var queued = (uint)id;
+            var queued = id;
             AL.SourceQueueBuffers(_source, 1, &queued);
             Enqueue(id, interleaved.Length / _channels);
 
