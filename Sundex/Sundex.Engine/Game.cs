@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
@@ -15,6 +17,8 @@ using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 using Sundex.Engine.Threading;
+
+using MILogger =  Microsoft.Extensions.Logging.ILogger;
 
 namespace Sundex.Engine;
 
@@ -33,7 +37,7 @@ public class Game : GameWindow
     private static readonly Keys[] TracedKeys = [.. Enum.GetValues<Keys>().Where(key => key != Keys.Unknown).Distinct()];
 
     /// <summary>The input trace's logger and the pointer position it last wrote; see <see cref="LogInput" />.</summary>
-    private readonly Microsoft.Extensions.Logging.ILogger _inputLogger;
+    private readonly MILogger _inputLogger;
 
     private Vector2 _loggedPointer = new(float.NaN);
 
@@ -136,7 +140,7 @@ public class Game : GameWindow
     {
         base.OnLoad();
         GetGLInfo(GLInfo);
-        _loggerGL.ForContext<GLInfo>().Information("{@GLInfo}", GLInfo);
+        LogSetup();
 
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.Enable(EnableCap.Multisample);
@@ -178,6 +182,42 @@ public class Game : GameWindow
         ApplyFramebufferSize(framebufferSize.X, framebufferSize.Y);
 
         RenderMarker.Debug("Finished OnLoad() Procedure");
+    }
+
+    /// <summary>
+    ///     Writes the user's setup to the log once the window is up: every display with its
+    ///     resolution, refresh rate and scale, the window's own size and pixel scale, the OS,
+    ///     runtime and culture, and the GL driver with its extensions. Enough to tell a layout or
+    ///     scaling fault in a bug report's log from a setup that is only unusual.
+    /// </summary>
+    private void LogSetup()
+    {
+        var logger = Logger.ForContext("SourceContext", "Setup");
+        var monitors = Monitors.GetMonitors();
+
+        foreach (var monitor in monitors)
+        {
+            var mode = monitor.CurrentVideoMode;
+            logger.Information("Display {Name}: {Width}x{Height} @ {RefreshRate} Hz, scale {ScaleX}x{ScaleY}",
+                monitor.Name, mode.Width, mode.Height, mode.RefreshRate, monitor.HorizontalScale,
+                monitor.VerticalScale);
+        }
+
+        // ponytail: CurrentMonitor goes by window position, which Wayland doesn't report, so
+        // there it may name the first display rather than the one the window is on.
+        TryGetScreenScale(out var scaleX, out var scaleY);
+        logger.Information(
+            "Window on {Display}: {ClientWidth}x{ClientHeight}, framebuffer {FramebufferWidth}x{FramebufferHeight} " +
+            "(scale {ScaleX}x{ScaleY}), {WindowState}, {Platform}",
+            CurrentMonitor.Name, ClientSize.X, ClientSize.Y, FramebufferSize.X, FramebufferSize.Y,
+            scaleX, scaleY, WindowState, GLFW.GetPlatform());
+
+        logger.Information("OS: {OS} ({OSArchitecture}), {Runtime} ({ProcessArchitecture}), culture {Culture}",
+            RuntimeInformation.OSDescription, RuntimeInformation.OSArchitecture,
+            RuntimeInformation.FrameworkDescription, RuntimeInformation.ProcessArchitecture,
+            CultureInfo.CurrentCulture.Name);
+
+        _loggerGL.ForContext<GLInfo>().Information("{@GLInfo}", GLInfo);
     }
 
     private void ReflectionPreloadObjects(Assembly targetAssembly)

@@ -2,7 +2,8 @@ namespace Sundex.Engine;
 
 public class GLInfo
 {
-    public readonly HashSet<string> Extensions = [];
+    // A property rather than a field so the startup {@GLInfo} log line carries the list.
+    public HashSet<string> Extensions { get; } = [];
     public string Vendor { get; set; } = string.Empty;
     public string Renderer { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
