@@ -203,14 +203,16 @@ public class Game : GameWindow
                 monitor.VerticalScale);
         }
 
-        // ponytail: CurrentMonitor goes by window position, which Wayland doesn't report, so
-        // there it may name the first display rather than the one the window is on.
+        // CurrentMonitor goes by window position, which Wayland doesn't report: GLFW raises
+        // FeatureUnavailable and OpenTK's default error callback throws, so it is never asked there.
+        var platform = GLFW.GetPlatform();
+        var display = platform == Platform.Wayland ? "an unknown display" : CurrentMonitor.Name;
         TryGetScreenScale(out var scaleX, out var scaleY);
         logger.Information(
             "Window on {Display}: {ClientWidth}x{ClientHeight}, framebuffer {FramebufferWidth}x{FramebufferHeight} " +
             "(scale {ScaleX}x{ScaleY}), {WindowState}, {Platform}",
-            CurrentMonitor.Name, ClientSize.X, ClientSize.Y, FramebufferSize.X, FramebufferSize.Y,
-            scaleX, scaleY, WindowState, GLFW.GetPlatform());
+            display, ClientSize.X, ClientSize.Y, FramebufferSize.X, FramebufferSize.Y,
+            scaleX, scaleY, WindowState, platform);
 
         logger.Information("OS: {OS} ({OSArchitecture}), {Runtime} ({ProcessArchitecture}), culture {Culture}",
             RuntimeInformation.OSDescription, RuntimeInformation.OSArchitecture,
