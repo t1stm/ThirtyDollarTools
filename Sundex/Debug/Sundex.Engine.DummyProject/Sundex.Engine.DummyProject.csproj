@@ -16,8 +16,8 @@
 
   <ItemGroup>
     <PackageReference Include="OpenTK" Version="5.0.0-pre.15"/>
-    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
-    <PackageReference Include="OpenTK.redist.glfw" Version="3.4.0.47"/>
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0"/>
+    <PackageReference Include="OpenTK.redist.glfw" Version="3.5.1.71"/>
   </ItemGroup>
 
   <ItemGroup>
