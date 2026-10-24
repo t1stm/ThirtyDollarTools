@@ -10,7 +10,7 @@ using Sundex.Engine.Renderer.Abstract;
 
 // UIContext stores its providers in static fields; parallel test classes clobber
 // each other's InjectForTesting calls, so this suite must run sequentially.
-[assembly: CollectionBehavior(DisableTestParallelization = true)]
+[assembly: Xunit.v3.Parallelization(Mode = Xunit.Sdk.ParallelMode.None)]
 
 namespace Sundex.Components.Tests;
 

@@ -20,7 +20,7 @@ using VisualizerScene.Settings;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
 // so this suite must also run sequentially.
-[assembly: CollectionBehavior(DisableTestParallelization = true)]
+[assembly: Xunit.v3.Parallelization(Mode = Xunit.Sdk.ParallelMode.None)]
 
 namespace SettingsScene.Tests;
 
