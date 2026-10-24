@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -173,7 +174,7 @@ public class Visualizer : Scene, IGamePreloadable
         PlayfieldContainer.Camera.OnZoom = zoom =>
         {
             UpdateStaticRenderables(_width, _height, zoom);
-            SetStatusMessage($"[Camera]: Setting zoom to: {zoom:0.##%}");
+            SetStatusMessage(string.Create(CultureInfo.InvariantCulture, $"[Camera]: Setting zoom to: {zoom:0.##%}"));
         };
         UpdateStaticRenderables(_width, _height, Scale);
         _scrollBar = new CameraScrollBar(PlayfieldContainer);
@@ -377,7 +378,7 @@ public class Visualizer : Scene, IGamePreloadable
             case < 1:
                 return;
             case 1:
-                if (locations[0]?.EndsWith(".wav") ?? false)
+                if (locations[0]?.EndsWith(".wav", StringComparison.Ordinal) ?? false)
                 {
                     UpdateBackingTrack(locations[0]!);
                     return;
@@ -565,7 +566,7 @@ public class Visualizer : Scene, IGamePreloadable
         {
             RestartSeekTimer();
             SequencePlayer.SetVolume(Math.Min(1f, SequencePlayer.Volume + 0.01f));
-            SetStatusMessage($"[Playback]: Volume = {SequencePlayer.Volume * 100:0.##}%");
+            SetStatusMessage(string.Create(CultureInfo.InvariantCulture, $"[Playback]: Volume = {SequencePlayer.Volume * 100:0.##}%"));
         }
 
         // check volume decrease
@@ -573,7 +574,7 @@ public class Visualizer : Scene, IGamePreloadable
         {
             RestartSeekTimer();
             SequencePlayer.SetVolume(Math.Max(0f, SequencePlayer.Volume - 0.01f));
-            SetStatusMessage($"[Playback]: Volume = {SequencePlayer.Volume * 100:0.##}%");
+            SetStatusMessage(string.Create(CultureInfo.InvariantCulture, $"[Playback]: Volume = {SequencePlayer.Volume * 100:0.##}%"));
         }
 
         // check previous sequence seeking
@@ -812,7 +813,7 @@ public class Visualizer : Scene, IGamePreloadable
         }
 
         var debug = Overlay.Get<TextSlice>("debug");
-        _debugBuffer.AsSpan().TryWrite(
+        _debugBuffer.AsSpan().TryWrite(CultureInfo.InvariantCulture,
             $"""
              [Debug]
              FPS: {fps:0.##}

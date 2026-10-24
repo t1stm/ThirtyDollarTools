@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ThirtyDollarConverter.Parser;
 
 public abstract class BaseEvent
@@ -65,7 +67,7 @@ public abstract class BaseEvent
     {
         var sound = SoundEvent ?? throw new NullReferenceException();
         if (Value != 0)
-            sound += $"@{Value:0.##}";
+            sound += string.Create(CultureInfo.InvariantCulture, $"@{Value:0.##}");
 
         if (ValueScale != ValueScale.None)
             sound += "@" + ValueScale switch
@@ -78,7 +80,7 @@ public abstract class BaseEvent
             };
 
         if (Volume != null)
-            sound += $"%{Volume:0.##}";
+            sound += string.Create(CultureInfo.InvariantCulture, $"%{Volume:0.##}");
 
         return sound;
     }

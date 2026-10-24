@@ -238,7 +238,7 @@ public sealed class InstrumentEditor : FlexPanel
     public string AllHeaderText => _allHeader.Value.ToString();
 
     /// <summary>A field of the right column by key: "All.Value", "Sound.Volume", ...</summary>
-    public NumericInput? Field(string key) => (key.StartsWith("All.") ? _allForm : _soundForm).Field(key) as NumericInput;
+    public NumericInput? Field(string key) => (key.StartsWith("All.", StringComparison.Ordinal) ? _allForm : _soundForm).Field(key) as NumericInput;
 
     /// <summary>What a wheel notch would tune now, from the held modifiers.</summary>
     private (TuneField Field, double Step) Gesture => ScrollGesture.For(_ctrl, _shift, _alt);

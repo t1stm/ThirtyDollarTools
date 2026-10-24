@@ -671,7 +671,7 @@ public sealed class ActionValueDialog
         {
             label.SetTextContents("Colors");
             foreach (var (name, hex) in Colors)
-                AddRow(context, list, name, () => _hex.Value = hex, () => HexText.StartsWith(hex) && HexValid,
+                AddRow(context, list, name, () => _hex.Value = hex, () => HexText.StartsWith(hex, StringComparison.Ordinal) && HexValid,
                     () => "#" + hex, swatch: hex);
         }
 

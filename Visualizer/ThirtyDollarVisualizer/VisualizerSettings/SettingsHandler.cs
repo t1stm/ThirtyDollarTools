@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace ThirtyDollarVisualizer.VisualizerSettings;
@@ -54,14 +55,17 @@ public static class SettingsHandler
 
             if (property_type == typeof(int))
             {
-                if (!int.TryParse(value, out var int_value)) continue;
+                if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var int_value)) continue;
                 property.SetValue(Settings, int_value, null);
                 continue;
             }
 
             if (property_type == typeof(float))
             {
-                if (!float.TryParse(value, out var float_value)) continue;
+                // Files saved before the switch to the invariant culture hold commas on
+                // comma-decimal locales; reading them back keeps the user's values.
+                if (!float.TryParse(value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture,
+                        out var float_value)) continue;
                 property.SetValue(Settings, float_value, null);
                 continue;
             }
@@ -107,7 +111,7 @@ public static class SettingsHandler
         foreach (var property in properties)
         {
             var name = property.Name;
-            var value = property.GetValue(Settings)?.ToString();
+            var value = Convert.ToString(property.GetValue(Settings), CultureInfo.InvariantCulture);
             if (string.IsNullOrEmpty(value)) continue;
             builder.AppendLine($"{name} = {value}");
         }

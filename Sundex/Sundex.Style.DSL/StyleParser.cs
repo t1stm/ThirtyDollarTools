@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Globalization;
 using Sundex.Style.DSL.Abstract;
 using Sundex.Style.DSL.Abstract.Values;
 using Sundex.Style.DSL.Abstract.Values.Keywords;
@@ -201,7 +202,7 @@ public class StyleParser(
         if (Peek() == '-') Advance();
         while (!IsAtEnd() && (char.IsDigit(Peek()) || Peek() == '.')) Advance();
         var numStr = dsl[start.._pos];
-        if (!float.TryParse(numStr, out var val))
+        if (!float.TryParse(numStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var val))
             throw CreateException($"Failed to parse number: {numStr}");
 
         var unitStart = _pos;

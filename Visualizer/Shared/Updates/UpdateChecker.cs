@@ -13,7 +13,7 @@ public sealed record GitHubRelease(
     DateTimeOffset CreatedAt)
 {
     /// <summary>The nightly workflow tags every branch's build "nightly-{branch}".</summary>
-    public bool IsNightly => TagName.StartsWith("nightly-");
+    public bool IsNightly => TagName.StartsWith("nightly-", StringComparison.Ordinal);
 }
 
 /// <summary>

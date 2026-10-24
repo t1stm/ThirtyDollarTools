@@ -1,3 +1,4 @@
+using System.Globalization;
 using OpenTK.Mathematics;
 using Shared.Helpers.Decoders;
 using Sundex.Engine.Renderer.Abstract.Extensions;
@@ -26,7 +27,7 @@ public class BackgroundEventValue : ISoundValue
 
         var (parsedColor, seconds) = BackgroundParser.ParseFromDouble(value);
         _blip = factory.NewBackgroundBlip(parsedColor);
-        _value = buffer.GetTextSlice(seconds.ToString("0.##"));
+        _value = buffer.GetTextSlice(seconds.ToString("0.##", CultureInfo.InvariantCulture));
         _value.UpdateManually = true;
 
         ScaleMultiplier = 1f;

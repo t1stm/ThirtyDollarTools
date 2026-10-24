@@ -1,3 +1,4 @@
+using System.Globalization;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using Serilog;
@@ -154,7 +155,7 @@ public class RenderableFactory(AtlasStore store)
             return $"{pulses}, {frequency}";
         }
 
-        var valueText = $"{baseEvent.Value:0.##}";
+        var valueText = baseEvent.Value.ToString("0.##", CultureInfo.InvariantCulture);
         valueText = baseEvent.ValueScale switch
         {
             ValueScale.Divide => "/" + valueText,
@@ -176,7 +177,7 @@ public class RenderableFactory(AtlasStore store)
     /// <summary>The volume badge's text ("100%"), or null when the event has no explicit volume.</summary>
     public static string? FormatVolumeText(BaseEvent baseEvent)
     {
-        return baseEvent.Volume is { } volume ? $"{volume:0.##}%" : null;
+        return baseEvent.Volume is { } volume ? string.Create(CultureInfo.InvariantCulture, $"{volume:0.##}%") : null;
     }
 
     /// <summary>
@@ -186,7 +187,7 @@ public class RenderableFactory(AtlasStore store)
     public static string? FormatPanText(BaseEvent baseEvent)
     {
         if (baseEvent is not ExtendedEvent { Pan: not 0 } extendedEvent) return null;
-        var panString = Math.Abs((double)extendedEvent.TDWPan).ToString("0.##");
+        var panString = Math.Abs((double)extendedEvent.TDWPan).ToString("0.##", CultureInfo.InvariantCulture);
         return extendedEvent.Pan > 0 ? $"{panString}>" : $"<{panString}";
     }
 

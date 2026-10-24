@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ThirtyDollarConverter.Parser.Custom_Events;
 
 public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
@@ -42,13 +44,13 @@ public class ExtendedEvent : NormalEvent, ICustomAudibleEvent
     public override string Stringify()
     {
         if (Pan != 0 && OffsetInSeconds != 0)
-            return base.Stringify() + $"^{Pan:0.##}" + $">{OffsetInSeconds}";
+            return base.Stringify() + string.Create(CultureInfo.InvariantCulture, $"^{Pan:0.##}>{OffsetInSeconds}");
 
         if (Pan != 0)
-            return base.Stringify() + $"^{Pan:0.##}";
+            return base.Stringify() + string.Create(CultureInfo.InvariantCulture, $"^{Pan:0.##}");
 
         if (OffsetInSeconds != 0)
-            return base.Stringify() + $">{OffsetInSeconds}";
+            return base.Stringify() + string.Create(CultureInfo.InvariantCulture, $">{OffsetInSeconds}");
 
         return base.Stringify();
     }

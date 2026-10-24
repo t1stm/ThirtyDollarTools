@@ -1,3 +1,4 @@
+using System.Globalization;
 using EditorScene.Scenes.Components;
 using EditorScene.State;
 using JetBrains.Annotations;
@@ -439,7 +440,7 @@ public partial class EditorInterface
 
     private void RefreshProject()
     {
-        _header.RefreshProject(State.Project.Info.Name, $"{State.Project.RootTiming.BPM:0.##} BPM");
+        _header.RefreshProject(State.Project.Info.Name, string.Create(CultureInfo.InvariantCulture, $"{State.Project.RootTiming.BPM:0.##} BPM"));
         RefreshTitle();
 
         _trackList.Rebuild();

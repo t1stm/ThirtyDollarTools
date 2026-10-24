@@ -28,11 +28,11 @@ public static class BmsParser
             var name = body[..space].ToUpperInvariant();
             var value = body[(space + 1)..].Trim();
 
-            if (name.Length == 5 && name.StartsWith("WAV"))
+            if (name.Length == 5 && name.StartsWith("WAV", StringComparison.Ordinal))
                 chart.Sounds[Base36(name[3..])] = Path.GetFileNameWithoutExtension(value);
-            else if (name.Length == 5 && name.StartsWith("BPM"))
+            else if (name.Length == 5 && name.StartsWith("BPM", StringComparison.Ordinal))
                 chart.ExBpms[Base36(name[3..])] = double.Parse(value, Inv);
-            else if (name.Length == 6 && name.StartsWith("STOP"))
+            else if (name.Length == 6 && name.StartsWith("STOP", StringComparison.Ordinal))
                 chart.Stops[Base36(name[4..])] = double.Parse(value, Inv);
             else
                 switch (name)

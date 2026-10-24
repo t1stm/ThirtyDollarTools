@@ -47,7 +47,7 @@ public sealed class UnsavedChangesDialog
         if (path == null) return "Not saved yet. Save asks where to put it.";
 
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        return home.Length > 0 && path.StartsWith(home + Path.DirectorySeparatorChar)
+        return home.Length > 0 && path.StartsWith(home + Path.DirectorySeparatorChar, StringComparison.Ordinal)
             ? "~" + path[home.Length..]
             : path;
     }

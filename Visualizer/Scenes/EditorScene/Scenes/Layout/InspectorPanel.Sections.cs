@@ -1,3 +1,4 @@
+using System.Globalization;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Views;
@@ -56,7 +57,7 @@ public partial class InspectorPanel
         _form.Header("Faithful track");
         _form.TextRow("Name", () => track.Name, v => _state.RenameTrack(track, v));
         _form.InfoRow("Items", () => track.Items.Count.ToString());
-        _form.InfoRow("Length", () => $"{track.DurationMinutes() * 60:0.##} s");
+        _form.InfoRow("Length", () => string.Create(CultureInfo.InvariantCulture, $"{track.DurationMinutes() * 60:0.##} s"));
     }
 
     /// <summary>
@@ -75,7 +76,7 @@ public partial class InspectorPanel
             ? "None"
             : Path.GetFileName(track.Path) + (File.Exists(track.Path) ? "" : " (missing)"));
         _form.ActionRow("Replace", () => OnReplaceWaveFile?.Invoke(track));
-        _form.InfoRow("Length", () => $"{track.DurationSeconds:0.##} s");
+        _form.InfoRow("Length", () => string.Create(CultureInfo.InvariantCulture, $"{track.DurationSeconds:0.##} s"));
         // Up to 8x, not the 2x a note gets: a note is played from a Thirty Dollar sound, which
         // is mastered loud (a bleep is about -9 dBFS RMS), while a reference is usually one stem
         // of a finished mix - the MOON "other" stem is -21 dBFS RMS, and several notes sounding

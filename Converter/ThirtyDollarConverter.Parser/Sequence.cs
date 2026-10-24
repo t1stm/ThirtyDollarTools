@@ -318,7 +318,7 @@ public partial class Sequence
             return new_individual_cut_tdw_event;
         if (TryBookmark(text, out var bookmark_event)) return bookmark_event;
 
-        if (text.StartsWith("!pulse") || text.StartsWith("!bg"))
+        if (text.StartsWith("!pulse", StringComparison.Ordinal) || text.StartsWith("!bg", StringComparison.Ordinal))
             // Special color lines get their own parser. 🗿
             return ParseColorEvent(text);
 
@@ -388,7 +388,7 @@ public partial class Sequence
         [NotNullWhen(true)] out LegacySequenceEvent? legacy)
     {
         legacy = null;
-        if (!text.StartsWith("#legacy")) return false;
+        if (!text.StartsWith("#legacy", StringComparison.Ordinal)) return false;
         legacy = new LegacySequenceEvent();
         sequence.IsNewFormat = false;
         return true;

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Sundex.Style.DSL.Abstract.Values;
 
 public record NumberValue(float Value, string Unit) : IStyleValue
@@ -6,6 +8,6 @@ public record NumberValue(float Value, string Unit) : IStyleValue
 
     public override string ToString()
     {
-        return $"{Value}{Unit}";
+        return string.Create(CultureInfo.InvariantCulture, $"{Value}{Unit}");
     }
 }

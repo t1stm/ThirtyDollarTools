@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ThirtyDollarConverter.Parser;
 
 public class NormalEvent : BaseEvent
@@ -46,7 +48,7 @@ public class NormalEvent : BaseEvent
                 var hex_string = $"{r:X2}{g:X2}{b:X2}{a:X2}";
 
                 var seconds = (parsed_value >> 32) / 1000f;
-                return $"!bg@#{hex_string},{seconds}";
+                return string.Create(CultureInfo.InvariantCulture, $"!bg@#{hex_string},{seconds}");
             }
             case "!pulse":
             {

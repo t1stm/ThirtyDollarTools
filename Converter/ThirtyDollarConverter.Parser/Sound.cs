@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 
 namespace ThirtyDollarConverter.Parser;
@@ -66,5 +67,5 @@ public class Sound
     /// </summary>
     public string IconUrl => Emoji == null
         ? $"{ThirtyDollarAssetUrl}/{Id}.png"
-        : $"{TwemojiPngUrl}/{char.ConvertToUtf32(Emoji, 0).ToString("X").ToLower()}.png";
+        : $"{TwemojiPngUrl}/{char.ConvertToUtf32(Emoji, 0).ToString("x", CultureInfo.InvariantCulture)}.png";
 }

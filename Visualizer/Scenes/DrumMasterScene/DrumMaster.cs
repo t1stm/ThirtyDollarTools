@@ -221,7 +221,7 @@ public class DrumMaster(Game game, ThirtyDollarWorkflow workflow) : Scene(game)
 
     public override void FileDrop(string[] locations)
     {
-        if (locations.Length == 1 && locations[0].EndsWith(".wav"))
+        if (locations.Length == 1 && locations[0].EndsWith(".wav", StringComparison.Ordinal))
         {
             _visualizer.UpdateBackingTrack(locations[0]);
             return;

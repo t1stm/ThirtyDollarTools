@@ -257,7 +257,7 @@ public class SampleHolder(ILogger logger)
         Parallel.ForEach(Directory.GetFiles(SamplesLocation), file =>
         {
             var filename = file.Split(Slash).Last();
-            if (!filename.EndsWith(".wav")) return;
+            if (!filename.EndsWith(".wav", StringComparison.Ordinal)) return;
             var sound = filename.Replace(".wav", "");
 
             if (added_hash_set.Contains(sound)) return;

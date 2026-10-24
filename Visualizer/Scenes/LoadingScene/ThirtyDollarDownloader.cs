@@ -86,7 +86,7 @@ public class ThirtyDollarDownloader(ThreadRunner threadRunner, AssetProvider ass
             sampleDownloadReport.SoundName = sound.Id;
             var imagePath = sampleDownloadReport.DownloadLocation = $"{SampleHolder.ImagesLocation}/{sound.Id}.png";
             var filename = sound.Filename;
-            if (filename.StartsWith("action_"))
+            if (filename.StartsWith("action_", StringComparison.Ordinal))
                 filename = filename.Replace("action_", "!");
 
             LoadTextureToAtlasStore(imagePath, filename);

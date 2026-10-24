@@ -42,6 +42,17 @@ public class StyleParserTests
         }
     }
 
+    // A comma-decimal locale used to read "33.34" as 3334, which pushed two of the Home
+    // screen's three cells off-screen.
+    [Test]
+    [SetCulture("de-DE")]
+    public void Parse_DecimalNumber_IgnoresCurrentCulture()
+    {
+        var sheet = StyleParser.Parse("class cell { width = 33.34%; }");
+        var width = (NumberValue)sheet.Classes["cell"]["width"];
+        Assert.That(width.Value, Is.EqualTo(33.34f));
+    }
+
     [Test]
     public void Parse_AnimationWithKeyframes_ParsesCorrectly()
     {

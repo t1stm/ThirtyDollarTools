@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Sundex.Style.DSL.Abstract.Values;
 
 public record VectorValue(double X, double Y, double? Z = null, double? W = null) : IStyleValue
@@ -22,9 +24,9 @@ public record VectorValue(double X, double Y, double? Z = null, double? W = null
     {
         return $"vec{Count}(" + Count switch
         {
-            2 => $"{X} {Y}",
-            3 => $"{X} {Y} {Z}",
-            4 => $"{X} {Y} {Z} {W}",
+            2 => string.Create(CultureInfo.InvariantCulture, $"{X} {Y}"),
+            3 => string.Create(CultureInfo.InvariantCulture, $"{X} {Y} {Z}"),
+            4 => string.Create(CultureInfo.InvariantCulture, $"{X} {Y} {Z} {W}"),
             _ => throw new InvalidOperationException()
         } + ")";
     }

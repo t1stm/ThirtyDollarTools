@@ -1,3 +1,4 @@
+using System.Globalization;
 using OpenTK.Mathematics;
 using Shared.Animations;
 using Sundex.Core;
@@ -190,9 +191,9 @@ public sealed class SoundRenderable : Renderable
             switch (ev.WorkingValue)
             {
                 case <= 0 when valueChangeWrapMode == ValueChangeWrapMode.ResetToDefault &&
-                               !ev.Value.TryFormat(characters, out written, "0.##"):
+                               !ev.Value.TryFormat(characters, out written, "0.##", CultureInfo.InvariantCulture):
                     throw new Exception("Failed to format to original loop value");
-                case > 0 when !ev.WorkingValue.TryFormat(characters, out written, "0.##"):
+                case > 0 when !ev.WorkingValue.TryFormat(characters, out written, "0.##", CultureInfo.InvariantCulture):
                     throw new Exception("Failed to format to play times");
             }
 

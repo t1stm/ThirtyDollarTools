@@ -1,3 +1,4 @@
+using System.Globalization;
 using EditorScene.State;
 using OpenTK.Mathematics;
 using Sundex.Components.Abstractions;
@@ -198,7 +199,7 @@ public sealed partial class TrackEditorView : Panel
             _gutterText[i] = value switch
             {
                 > 0 => $"+{value}",
-                < 0 => $"{value}",
+                < 0 => value.ToString(CultureInfo.InvariantCulture),
                 _ => $" {value}"
             };
         }

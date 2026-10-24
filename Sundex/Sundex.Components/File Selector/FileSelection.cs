@@ -324,7 +324,7 @@ public sealed class FileSelection : FlexPanel
     {
         var text = _pathInput.Value.Trim();
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        if (text == "~" || text.StartsWith("~/")) text = home + text[1..];
+        if (text == "~" || text.StartsWith("~/", StringComparison.Ordinal)) text = home + text[1..];
 
         string path;
         try
@@ -497,7 +497,7 @@ public sealed class FileSelection : FlexPanel
         var crumbs = new List<(string, string, bool)>();
         string rest;
         string current;
-        if (home.Length > 0 && (path == home || path.StartsWith(home + Path.DirectorySeparatorChar)))
+        if (home.Length > 0 && (path == home || path.StartsWith(home + Path.DirectorySeparatorChar, StringComparison.Ordinal)))
         {
             crumbs.Add(("Home", home, true));
             current = home;

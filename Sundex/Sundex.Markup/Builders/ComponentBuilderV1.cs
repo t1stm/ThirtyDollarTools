@@ -1,3 +1,4 @@
+using System.Globalization;
 using Shared.Renderer.Planes;
 using Shared.Renderer.Planes.Extensions;
 using Sundex.Components.Abstractions;
@@ -240,7 +241,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
                 if (node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>()
                         .TryGetValue("value", out var progressString) &&
-                    float.TryParse(progressString, out var progress))
+                    float.TryParse(progressString, NumberStyles.Float, CultureInfo.InvariantCulture, out var progress))
                     element = new ProgressBar(context.UIContext, background, foreground)
                     {
                         Progress = progress
@@ -290,7 +291,7 @@ public class ComponentBuilderV1 : IComponentBuilder
             {
                 node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var value);
                 element = new NumericInput(context.UIContext,
-                    double.TryParse(value, out var number) ? number : null);
+                    double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number : null);
                 break;
             }
 
@@ -313,7 +314,7 @@ public class ComponentBuilderV1 : IComponentBuilder
 
                 var slider = new Slider(context.UIContext, background, foreground);
                 if (node.Attributes.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue("value", out var sliderValue)
-                    && double.TryParse(sliderValue, out var parsed))
+                    && double.TryParse(sliderValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed))
                     slider.Value = parsed;
 
                 element = slider;
@@ -410,12 +411,12 @@ public class ComponentBuilderV1 : IComponentBuilder
                     element.Height = ParseLiteralOrComputable(value);
                     break;
                 case "padding":
-                    if (float.TryParse(value, out var p))
+                    if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var p))
                         if (element is IPositioningElement pe)
                             pe.Padding = p;
                     break;
                 case "spacing":
-                    if (float.TryParse(value, out var s))
+                    if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var s))
                         switch (element)
                         {
                             case StackPanel sp:
@@ -459,7 +460,7 @@ public class ComponentBuilderV1 : IComponentBuilder
     {
         if (value.EndsWith('%'))
         {
-            if (float.TryParse(value[..^1], out var p))
+            if (float.TryParse(value[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var p))
                 return new LiteralOrComputable(p, true);
         }
         else if (value.Equals("auto", StringComparison.OrdinalIgnoreCase))
@@ -468,12 +469,12 @@ public class ComponentBuilderV1 : IComponentBuilder
         }
         else if (value.EndsWith("px", StringComparison.OrdinalIgnoreCase))
         {
-            if (float.TryParse(value[..^2], out var v))
+            if (float.TryParse(value[..^2], NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
                 return new LiteralOrComputable(v);
         }
         else
         {
-            if (float.TryParse(value, out var v))
+            if (float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
                 return new LiteralOrComputable(v);
         }
 
