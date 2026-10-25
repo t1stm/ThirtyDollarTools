@@ -134,6 +134,24 @@ public class ActionValueDialogTests
     }
 
     [Theory]
+    [InlineData(ValueScale.None, "%")]
+    [InlineData(ValueScale.Add, "%")]
+    [InlineData(ValueScale.Times, "x")]
+    [InlineData(ValueScale.Divide, "/")]
+    public void AFactor_ShowsItsOperatorForAUnit(ValueScale mode, string unit)
+    {
+        var dialog = Add("!volume", Track());
+        dialog.Pick(mode);
+        Assert.Equal(unit, ((NumericInput)dialog.MainField).Unit);
+    }
+
+    [Fact]
+    public void AnEdit_ShowsItsModesUnitFromTheStart()
+    {
+        Assert.Equal("/", ((NumericInput)Edit(Track("!speed@2@/"), 0).MainField).Unit);
+    }
+
+    [Theory]
     [InlineData("!volume@0.5@x")]
     [InlineData("!transpose@-12@+")]
     [InlineData("!bg@#E0AF68,1")]

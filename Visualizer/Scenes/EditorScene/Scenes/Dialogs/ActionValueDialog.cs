@@ -181,9 +181,9 @@ public sealed class ActionValueDialog
             }
             default:
             {
-                _value = new ValueField(context, this) { Classes = ["action-field-input"], Unit = _form.Unit };
+                _value = new ValueField(context, this) { Classes = ["action-field-input"] };
                 Mode = current is not null && Modes.Contains(current.ValueScale) ? current.ValueScale : ValueScale.None;
-                ApplyBounds();
+                ApplyMode();
                 _value.Value = current?.Value ?? StartValue();
                 card.AddChild(Field(context, _form.Label, _value));
                 break;
@@ -334,7 +334,7 @@ public sealed class ActionValueDialog
     {
         if (_value is null || !Modes.Contains(mode)) return false;
         Mode = mode;
-        ApplyBounds();
+        ApplyMode();
         Refresh();
         return true;
     }
@@ -471,12 +471,21 @@ public sealed class ActionValueDialog
         };
     }
 
-    /// <summary>The field's bounds for the current mode - the site's, which the scroll gesture shares.</summary>
-    private void ApplyBounds()
+    /// <summary>
+    ///     The field's bounds for the current mode - the site's, which the scroll gesture shares -
+    ///     and its unit: a multiply or divide takes a factor, not a percent or BPM.
+    /// </summary>
+    private void ApplyMode()
     {
+        _value!.Unit = Mode switch
+        {
+            ValueScale.Times => "x",
+            ValueScale.Divide => "/",
+            _ => _form.Unit
+        };
         var range = FaithfulAction.ScrollRangeFor(new NormalEvent { SoundEvent = _action.Name, ValueScale = Mode })
                     ?? new ScrollRange(double.MinValue, double.MaxValue);
-        _value!.Min = range.Min;
+        _value.Min = range.Min;
         _value.Max = range.Max;
         _value.Step = range.Step;
         _value.ScrollStep = range.Step;
