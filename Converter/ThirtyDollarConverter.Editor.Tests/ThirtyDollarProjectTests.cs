@@ -2,6 +2,17 @@ namespace ThirtyDollarConverter.Editor.Tests;
 
 public class ThirtyDollarProjectTests
 {
+    [Theory]
+    [InlineData("Drums", new string[0], "Drums copy")]
+    [InlineData("Drums", new[] { "Drums", "Drums copy" }, "Drums copy 2")]
+    [InlineData("Drums", new[] { "Drums copy", "Drums copy 2" }, "Drums copy 3")]
+    [InlineData("Drums copy", new[] { "Drums", "Drums copy" }, "Drums copy 2")]
+    [InlineData("Drums copy 2", new[] { "Drums copy", "Drums copy 2" }, "Drums copy 3")]
+    public void CopyName_NumbersPastTakenNames(string name, string[] taken, string expected)
+    {
+        Assert.Equal(expected, ThirtyDollarProject.CopyName(name, taken));
+    }
+
     [Fact]
     public void RemoveTrack_RemovesOnlyThatTrack_AndKeepsIdsUnique()
     {

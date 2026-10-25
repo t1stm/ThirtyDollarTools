@@ -451,7 +451,8 @@ public partial class EditorInterface
     /// <summary>Duplicate's name prompt, reached from the track context menu.</summary>
     private void ShowDuplicateTrackDialog(ProjectTrack track)
     {
-        var dialog = new TrackContextMenu(_context, $"{track.Name} copy");
+        var dialog = new TrackContextMenu(_context,
+            ThirtyDollarProject.CopyName(track.Name, State.Project.Tracks.Select(t => t.Name)));
         var modal = _dialogHost.Show(dialog.Element);
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
         dialog.DuplicateButton.OnClick = _ =>

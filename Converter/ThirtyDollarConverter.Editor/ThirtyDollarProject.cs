@@ -1,4 +1,5 @@
-﻿using ThirtyDollarConverter.Parser;
+﻿using System.Text.RegularExpressions;
+using ThirtyDollarConverter.Parser;
 using ThirtyDollarConverter.Parser.Custom_Events;
 
 namespace ThirtyDollarConverter.Editor;
@@ -73,6 +74,20 @@ public class ThirtyDollarProject
             TrackKind.Wave => new WaveTrack(timing, id),
             _ => new ProjectTrack(timing, id)
         };
+    }
+
+    /// <summary>
+    ///     The name a copy of <paramref name="name" /> gets: "Drums copy", then "Drums copy 2" and
+    ///     up past whatever <paramref name="taken" /> holds. Copying a copy counts on from its
+    ///     original rather than stacking ("Drums copy copy").
+    /// </summary>
+    public static string CopyName(string name, IEnumerable<string> taken)
+    {
+        var original = Regex.Replace(name, @" copy( \d+)?$", "");
+        var used = taken.ToHashSet(StringComparer.Ordinal);
+        var copy = $"{original} copy";
+        for (var n = 2; used.Contains(copy); n++) copy = $"{original} copy {n}";
+        return copy;
     }
 
     /// <summary>Duplicates a track under a fresh id, with all its segments/notes/automations deep-copied.</summary>

@@ -59,7 +59,8 @@ public sealed class InstrumentWorkflow
         // way a duplicated track is.
         _instrumentSelector.OnDuplicate = instrument =>
         {
-            var copy = state.AddInstrument($"{instrument.Name} copy");
+            var copy = state.AddInstrument(
+                ThirtyDollarProject.CopyName(instrument.Name, state.Project.Instruments.Select(i => i.Name)));
             state.SetInstrumentSounds(copy, instrument.Sounds);
             state.SetInstrumentModifiers(copy, instrument.Value, instrument.Volume, instrument.Pan, instrument.Offset);
             FillSelector();
