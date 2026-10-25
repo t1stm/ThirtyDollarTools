@@ -4,6 +4,8 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Renderer.Planes;
+using Shared.Renderer.Planes.Uniforms;
+using Sundex.Core;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Components;
 using Sundex.Components.Abstractions;
@@ -71,15 +73,15 @@ public sealed class ActionValueDialog
         ["!volume"] = new Form("Set volume", "Sets the volume of every sound after it. Default is 100%, max is 600%.",
             "Volume", "%", AllModes),
         ["!stop"] = new Form("Pause", "Waits the given number of beats before the next sound.", "Length", "beats",
-            Presets: [1, 2, 4, 8, 16], BodyHeight: 216),
+            Presets: [1, 2, 4, 8, 16]),
         ["!transpose"] = new Form("Transpose", "Raises or lowers the pitch of every sound after it.", "Pitch",
             "semitones", [ValueScale.None, ValueScale.Add]),
         ["!loopmany"] = new Form("Loop", "Goes back to the loop start this many times, or to the track's start.",
-            "Repeats", "times", Presets: [1, 2, 3, 4, 8], BodyHeight: 216),
+            "Repeats", "times", Presets: [1, 2, 3, 4, 8]),
         ["!jump"] = new Form("Go to target", "Jumps to the target with this number, once.", "Target"),
         ["!target"] = new Form("Target", "A numbered landing point. Go to target jumps here.", "Number"),
         ["!bg"] = new Form("Background color", "Fades the background to a color.", BodyHeight: 350),
-        ["!pulse"] = new Form("Pulse", "Pulses the screen a number of times, ignoring tempo changes.", BodyHeight: 380)
+        ["!pulse"] = new Form("Pulse", "Pulses the screen a number of times, ignoring tempo changes.", BodyHeight: 350)
     };
 
     private readonly FaithfulAction _action;
@@ -111,6 +113,9 @@ public sealed class ActionValueDialog
     private int _shownAt;
 
     private string[] _factTexts = [];
+
+    /// <summary>The "!bg" preview's start color, fade time and end color, under it; null for other actions.</summary>
+    private readonly Label[]? _scale;
 
     /// <param name="context">The editor's UI context.</param>
     /// <param name="action">The palette entry the slot is.</param>
@@ -189,6 +194,22 @@ public sealed class ActionValueDialog
         {
             card.AddChild(new Label(context, "Preview") { Classes = ["action-preview-label"] });
             card.AddChild(_preview);
+            if (_hex is not null)
+            {
+                // Under the fade at rest: where it starts, how long it takes, where it ends.
+                _scale = [new Label(context, "") { Classes = ["action-preview-scale-label"] },
+                    new Label(context, "") { Classes = ["action-preview-scale-label"] },
+                    new Label(context, "") { Classes = ["action-preview-scale-label"] }];
+                card.AddChild(new FlexPanel(context)
+                {
+                    Classes = ["action-preview-scale"],
+                    Children =
+                    [
+                        _scale[0], new Panel(context) { Classes = ["action-preview-scale-gap"] }, _scale[1],
+                        new Panel(context) { Classes = ["action-preview-scale-gap"] }, _scale[2]
+                    ]
+                });
+            }
         }
         // Without a preview, the facts still sit at the bottom of the card.
         else card.AddChild(new Panel(context) { Classes = ["action-fill"] });
@@ -667,6 +688,14 @@ public sealed class ActionValueDialog
                     () => _editing && Math.Abs(_shown.Value - free) < 0.001 ? "this slot" : "free");
             }
         }
+        else if (_pulses is not null)
+        {
+            label.SetTextContents("Common counts");
+            foreach (var n in (double[])[1, 2, 4, 8])
+                AddRow(context, list, $"{n} {Plural(n, "pulse", "pulses")}", () => _pulses.Value = n,
+                    () => _pulses.Value is { } v && Math.Abs(v - n) < 1e-9,
+                    () => $"{Format(n * Math.Round(_every!.Value ?? 1))} beats");
+        }
         else if (_hex is not null)
         {
             label.SetTextContents("Colors");
@@ -675,7 +704,10 @@ public sealed class ActionValueDialog
                     () => "#" + hex, swatch: hex);
         }
 
-        if (_rows.Count == 0 && column.Parent is Panel body) body.RemoveChild(column);
+        // A jump with nowhere to go yet keeps its column, saying so, rather than dropping it.
+        if (_rows.Count == 0 && _action.Name == "!jump")
+            column.AddChild(EmptyState.Build(context, Icons.Target, "No targets in this track yet."));
+        else if (_rows.Count == 0 && column.Parent is Panel body) body.RemoveChild(column);
     }
 
     /// <summary>Whether the value field holds <paramref name="n" /> - a list row's lit state.</summary>
@@ -756,7 +788,16 @@ public sealed class ActionValueDialog
         {
             _preview.From = _hex is not null ? PreviousBackground() : SiteBackground;
             _preview.To = _hex is not null && HexValid ? Rgb(HexText) : _preview.From;
+            _preview.Ramp = _hex is not null;
+            _preview.Ticks = _pulses?.Value is { } pulses ? (int)Math.Round(pulses) : 0;
             _preview.Rest();
+        }
+
+        if (_scale is not null)
+        {
+            _scale[0].SetTextContents("#" + Hex(_preview!.From));
+            _scale[1].SetTextContents(_fade!.Value is { } fade ? $"{Format(fade)} s" : "");
+            _scale[2].SetTextContents(HexValid ? "#" + HexText[..6] : "");
         }
 
         if (_strip is null) return;
@@ -787,7 +828,9 @@ public sealed class ActionValueDialog
         string Unit = "",
         ValueScale[]? Modes = null,
         double[]? Presets = null,
-        float BodyHeight = 180);
+        // Two heights only - every value action's, and the preview actions' - so moving between
+        // actions doesn't resize the dialog each time.
+        float BodyHeight = 216);
 
     private sealed record Row(FlexPanel Panel, Label Sub, Func<bool> On, Func<string> Text);
 
@@ -817,8 +860,13 @@ public sealed class ActionValueDialog
         private const double PulsePeak = 0.4;
         private const float PulseScale = 1.05f;
 
+        /// <summary>Ticks drawn at most; a longer run of pulses fills the strip with these.</summary>
+        private const int MaxTicks = 32;
+
         private readonly Stopwatch _clock = new();
         private readonly ColoredPlane _fill = new();
+        private readonly GradientPlane _ramp = new() { GradientType = GradientType.Linear };
+        private readonly List<Panel> _ticks = [];
         private double _fadeSeconds;
         private double _gap;
         private int _pulses;
@@ -833,17 +881,46 @@ public sealed class ActionValueDialog
         public Vector4 From { get; set; }
         public Vector4 To { get; set; }
 
-        /// <summary>Stops a run and shows the starting color, at rest size.</summary>
+        /// <summary>At rest, show the whole fade left to right instead of only its start ("!bg").</summary>
+        public bool Ramp { get; set; }
+
+        /// <summary>At rest, one tick per pulse along the bottom ("!pulse"); 0 for none.</summary>
+        public int Ticks
+        {
+            get;
+            set
+            {
+                value = Math.Clamp(value, 0, MaxTicks);
+                if (field == value) return;
+                field = value;
+                foreach (var tick in _ticks) RemoveChild(tick);
+                _ticks.Clear();
+                for (var i = 0; i < value; i++)
+                {
+                    var tick = new Panel(Context) { Classes = ["action-preview-tick"] };
+                    _ticks.Add(tick);
+                    AddChild(tick);
+                }
+
+                InvalidateLayout();
+            }
+        }
+
+        /// <summary>Stops a run and shows the box at rest: the fade's ramp, or the starting color, at rest size.</summary>
         public void Rest()
         {
             _clock.Reset();
             _fill.Color = From;
+            _ramp.GradientColors = [From, From, To, To];
+            _ramp.GradientStops = [0, 0.15f, 0.85f, 1];
+            Show(Ramp ? _ramp : _fill);
             Resize(1);
         }
 
         public void PlayFade(double seconds)
         {
             Rest();
+            Show(_fill);
             _pulsing = false;
             _fadeSeconds = seconds;
             _clock.Start();
@@ -887,6 +964,26 @@ public sealed class ActionValueDialog
                     ? 1 - Math.Pow((into - PulsePeak) / (1 - PulsePeak), 2) // ease-in back
                     : 0;
             Resize(1 + (PulseScale - 1) * (float)rise);
+        }
+
+        /// <summary>Swaps the box's fill; the swap requeues, so it is skipped when nothing changes.</summary>
+        private void Show(Renderable fill)
+        {
+            if (!ReferenceEquals(Background, fill)) Background = fill;
+        }
+
+        /// <summary>Spreads the ticks evenly along the bottom, 10 in from the sides.</summary>
+        protected override void DoLayout()
+        {
+            const float inset = 10, bottom = 10;
+            for (var i = 0; i < _ticks.Count; i++)
+            {
+                var t = _ticks.Count == 1 ? 0.5f : i / (float)(_ticks.Count - 1);
+                _ticks[i].X = inset + t * Math.Max(0, Computed.Width - 2 * inset - _ticks[i].Width.Value);
+                _ticks[i].Y = Computed.Height - bottom - _ticks[i].Height.Value;
+            }
+
+            base.DoLayout();
         }
 
         /// <summary>Scales the fill about the box's centre - what a pulse does to the page.</summary>

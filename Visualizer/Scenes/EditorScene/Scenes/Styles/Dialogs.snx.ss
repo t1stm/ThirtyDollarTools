@@ -308,6 +308,31 @@ class action-preview-box {
     border-radius = 8;
 }
 
+// The "!bg" preview's start color, fade time and end color, under the ramp it shows at rest.
+class action-preview-scale {
+    width = 100%;
+    vertical-align = "center";
+}
+
+// Half the free room each, so the fade time sits in the middle; a spacer's 100% each would
+// push the end color out of the card.
+class action-preview-scale-gap {
+    width = 50%;
+}
+
+class action-preview-scale-label {
+    font-size = 12;
+    font-color = $theme.text_dim;
+}
+
+// One "!pulse" repeat, along the bottom of the preview at rest.
+class action-preview-tick {
+    width = 3;
+    height = 12;
+    border-radius = 1;
+    background = $theme.text;
+}
+
 // Takes the spare height instead when there is no preview, so the facts sit at the bottom.
 class action-fill {
     width = 100%;
