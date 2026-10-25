@@ -19,7 +19,7 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     private const int MaxPreallocatedUpdateCapacity = 32;
 
     private int? _newSize;
-    protected Dictionary<int, TDataType> Updates { get; } = new(MaxPreallocatedUpdateCapacity);
+    private Dictionary<int, TDataType> Updates { get; } = new(MaxPreallocatedUpdateCapacity);
     public BufferState BufferState { get; protected set; } = BufferState.PendingCreation;
     public int Handle { get; protected set; }
     public int Capacity { get; protected set; }
@@ -71,18 +71,13 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
 
     public int Count => Capacity;
 
-    public void EnqueueNewData(ReadOnlySpan<TDataType> newData)
-    {
-        for (var i = 0; i < newData.Length; i++) this[i] = newData[i];
-    }
-
     public void Create()
     {
         Handle = GL.GenBuffer();
         BufferState = Handle > 0 ? BufferState.Created : BufferState.Failed;
     }
 
-    protected virtual unsafe void DangerousGLThread_Resize(int capacity)
+    private unsafe void DangerousGLThread_Resize(int capacity)
     {
         Bind();
         GL.BufferData(bufferTarget, capacity * sizeof(TDataType), IntPtr.Zero, BufferUsage.StreamDraw);
@@ -155,6 +150,12 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     ///     The GLBuffer.WithCPUCache extends the GLBuffer functionality by incorporating a CPU-side
     ///     buffer to mirror the GPU buffer's data. This enables efficient read and write operations
     ///     on the CPU while maintaining synchronization with the GPU buffer when necessary.
+    ///     <para>
+    ///         The CPU copy already holds every pending write, so instead of the base class's
+    ///         per-index update map a write only widens the one range the next upload sends. A
+    ///         map beside the copy doubled a buffer's memory until its first upload, and kept
+    ///         its peak size after (a cleared dictionary keeps its capacity).
+    ///     </para>
     ///     <seealso cref="GLBuffer&lt;TDataType&gt;" />
     /// </summary>
     public class WithCPUCache(DeleteQueue deleteQueue, BufferTarget bufferTarget)
@@ -162,43 +163,40 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
     {
         private readonly BufferTarget _bufferTarget = bufferTarget;
         private readonly DeleteQueue _deleteQueue = deleteQueue;
+        private readonly Lock _lock = new();
+
+        // [_dirtyFrom, _dirtyTo): the elements written since the last upload.
+        private int _dirtyFrom = int.MaxValue;
+        private int _dirtyTo;
+
+        /// <summary>The GPU buffer's size in elements; -1 until it has one. Differing from the copy's reallocates it.</summary>
+        private int _gpuCapacity = -1;
 
         protected TDataType[] CPUBuffer { get; set; } = [];
         public ReadOnlySpan<TDataType> Data => CPUBuffer;
 
-        protected override void DangerousGLThread_Resize(int capacity)
-        {
-            var copyEndIndex = Math.Min(CPUBuffer.Length, capacity);
-
-            var newArray = new TDataType[capacity];
-            var oldSpan = CPUBuffer.AsSpan()[..copyEndIndex];
-            oldSpan.CopyTo(newArray);
-
-            CPUBuffer = newArray;
-            Capacity = newArray.Length;
-            Dangerous_SetBufferData(CPUBuffer);
-        }
-
         public void ResizeCPUBuffer(int capacity)
         {
-            _newSize = capacity;
-            Capacity = capacity;
+            lock (_lock)
+            {
+                Capacity = capacity;
 
-            if (capacity < 1)
-                return;
+                if (capacity < 1)
+                    return;
 
-            var oldBuffer = CPUBuffer.AsSpan();
-            CPUBuffer = new TDataType[capacity];
+                var oldBuffer = CPUBuffer.AsSpan();
+                CPUBuffer = new TDataType[capacity];
 
-            var copyLimit = Math.Min(oldBuffer.Length, Capacity);
-            oldBuffer[..copyLimit].CopyTo(CPUBuffer);
+                var copyLimit = Math.Min(oldBuffer.Length, Capacity);
+                oldBuffer[..copyLimit].CopyTo(CPUBuffer);
 
-            EnqueueNewData(CPUBuffer);
+                MarkDirty(0, capacity);
+            }
         }
 
         protected override TDataType ReadMemory(int index)
         {
-            lock (CPUBuffer)
+            lock (_lock)
             {
                 return CPUBuffer[index];
             }
@@ -206,26 +204,64 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
 
         protected override void SetMemory(int index, TDataType value)
         {
-            lock (CPUBuffer)
+            lock (_lock)
             {
                 CPUBuffer[index] = value;
+                MarkDirty(index, index + 1);
             }
+        }
 
-            base.SetMemory(index, value);
+        private void MarkDirty(int from, int to)
+        {
+            _dirtyFrom = Math.Min(_dirtyFrom, from);
+            _dirtyTo = Math.Max(_dirtyTo, to);
+        }
+
+        protected override unsafe void UploadChangesIfAny()
+        {
+            lock (_lock)
+            {
+                if (_dirtyFrom >= _dirtyTo) return;
+                Bind();
+
+                fixed (TDataType* ptr = CPUBuffer)
+                {
+                    if (_gpuCapacity != CPUBuffer.Length)
+                    {
+                        GL.BufferData(_bufferTarget, CPUBuffer.Length * sizeof(TDataType), ptr,
+                            BufferUsage.StreamDraw);
+                        _gpuCapacity = CPUBuffer.Length;
+                    }
+                    else
+                    {
+                        GL.BufferSubData(_bufferTarget, _dirtyFrom * sizeof(TDataType),
+                            (_dirtyTo - _dirtyFrom) * sizeof(TDataType), ptr + _dirtyFrom);
+                    }
+                }
+
+                _dirtyFrom = int.MaxValue;
+                _dirtyTo = 0;
+            }
         }
 
         public override void Dangerous_SetBufferData(ReadOnlySpan<TDataType> newData)
         {
-            if (CPUBuffer.Length != newData.Length)
-                CPUBuffer = [.. newData];
-            else newData.CopyTo(CPUBuffer);
-            base.Dangerous_SetBufferData(newData);
+            lock (_lock)
+            {
+                if (CPUBuffer.Length != newData.Length)
+                    CPUBuffer = [.. newData];
+                else newData.CopyTo(CPUBuffer);
+                base.Dangerous_SetBufferData(newData);
+
+                _gpuCapacity = newData.Length;
+                _dirtyFrom = int.MaxValue;
+                _dirtyTo = 0;
+            }
         }
 
         public override void Dispose()
         {
             CPUBuffer = [];
-            Updates.Clear();
             _deleteQueue.Enqueue(DeleteType.VBO, Handle);
             GC.SuppressFinalize(this);
         }
@@ -233,7 +269,7 @@ public class GLBuffer<TDataType>(DeleteQueue deleteQueue, BufferTarget bufferTar
         public override string ToString()
         {
             return
-                $"GLBuffer<{typeof(TDataType).Name}>.WithCPUCache [Handle: {Handle}, Target: {_bufferTarget}, Capacity: {Capacity}, UpdatesCount: {Updates.Count}]";
+                $"GLBuffer<{typeof(TDataType).Name}>.WithCPUCache [Handle: {Handle}, Target: {_bufferTarget}, Capacity: {Capacity}, Dirty: {Math.Max(0, _dirtyTo - _dirtyFrom)}]";
         }
     }
 }
