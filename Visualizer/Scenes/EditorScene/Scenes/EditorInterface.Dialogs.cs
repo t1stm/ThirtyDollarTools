@@ -131,7 +131,6 @@ public partial class EditorInterface
         dialog.ImportButton.OnClick = _ => Confirm();
         dialog.NameInput.OnCommit = _ => Confirm();
         dialog.CancelButton.OnClick = _ => Close();
-        dialog.CloseButton.OnClick = _ => Close();
         return;
 
         void Close()
@@ -220,7 +219,6 @@ public partial class EditorInterface
             discard();
         };
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
         return;
 
         void Save()
@@ -259,7 +257,6 @@ public partial class EditorInterface
         dialog.AddButton.OnClick = _ => Add();
         dialog.NameInput.OnCommit = _ => Add();
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
         return;
 
         void Add()
@@ -338,7 +335,6 @@ public partial class EditorInterface
         var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
         modal.OnDismissRequested = _ => Close();
         modal.OnConfirmRequested = _ => Save();
-        dialog.CloseButton.OnClick = _ => Close();
         dialog.CancelButton.OnClick = _ => Close();
         dialog.SaveButton.OnClick = _ => Save();
         dialog.Focus();
@@ -377,7 +373,6 @@ public partial class EditorInterface
         var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
         modal.OnDismissRequested = _ => Close();
         modal.OnConfirmRequested = _ => Save();
-        dialog.CloseButton.OnClick = _ => Close();
         dialog.CancelButton.OnClick = _ => Close();
         dialog.SaveButton.OnClick = _ => Save();
         return;
@@ -576,7 +571,6 @@ public partial class EditorInterface
         var modal = _dialogHost.Show(dialog.Element);
         modal.OnConfirmRequested = _ => Export();
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
         dialog.ExportButton.OnClick = _ => Export();
         return;
 

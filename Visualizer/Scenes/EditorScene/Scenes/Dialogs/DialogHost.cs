@@ -36,6 +36,9 @@ public sealed class DialogHost(UIContext context, Panel root)
             OnKeyRequested = onKey
         };
         modal.AddChild(content);
+        // Every dialog's × is its dismiss - Esc and the backdrop's - read when clicked, so an
+        // owner that replaces OnDismissRequested after this still gets it.
+        if (Find(content, "close-button") is { } close) close.OnClick = _ => modal.OnDismissRequested?.Invoke(modal);
         root.AddChild(modal);
         return modal;
     }
@@ -43,6 +46,16 @@ public sealed class DialogHost(UIContext context, Panel root)
     public void Close(ModalLayer modal)
     {
         root.RemoveChild(modal);
+    }
+
+    private static UIElement? Find(UIElement element, string id)
+    {
+        if (element.ID == id) return element;
+        if (element is not Panel panel) return null;
+        foreach (var child in panel.Children)
+            if (Find(child, id) is { } found)
+                return found;
+        return null;
     }
 
     private static bool Contains(UIElement root, UIElement element)

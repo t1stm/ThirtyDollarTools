@@ -1,3 +1,4 @@
+using EditorScene.Scenes;
 using EditorScene.Scenes.Dialogs;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -74,6 +75,47 @@ public class DialogHostTests
         ctx.Focus(inside);
         host.Show(content);
         Assert.Same(inside, ctx.FocusedElement);
+    }
+
+    [Fact]
+    public void Show_WiresTheCloseButtonToTheModalsDismiss_EvenOneSetAfterwards()
+    {
+        var ctx = new EditorTestContext();
+        var host = new DialogHost(ctx, new Panel(ctx));
+        var close = new Button(ctx, "x") { ID = "close-button" };
+        var content = new FlexPanel(ctx) { Children = [new FlexPanel(ctx) { Children = [close] }] };
+        var dismissed = 0;
+
+        var modal = host.Show(content);
+        modal.OnDismissRequested = _ => dismissed++;
+        close.OnClick!(close);
+
+        Assert.Equal(1, dismissed);
+    }
+
+    /// <summary>
+    ///     The documents still without the shared header, each until its own rework. Remove a
+    ///     dialog from here when it gets one; a new dialog never belongs here.
+    /// </summary>
+    private static readonly string[] HeaderPending =
+        ["Track_Context_Menu", "Sound_Filter", "Import_Warnings_Dialog", "Confirm_Dialog", "Instrument_Editor"];
+
+    public static TheoryData<string> DialogDocuments() =>
+    [
+        .. typeof(EditorInterface).Assembly.GetManifestResourceNames()
+            .Where(n => n.Contains(".Dialogs.") && n.EndsWith(".snx.xml") && !HeaderPending.Any(n.Contains))
+    ];
+
+    /// <summary>A dialog's × is what lets a mouse user out; DialogHost.Show wires it by id.</summary>
+    [Theory]
+    [MemberData(nameof(DialogDocuments))]
+    public void EveryDialogDocument_OpensWithAHeaderAndACloseButton(string resource)
+    {
+        using var stream = typeof(EditorInterface).Assembly.GetManifestResourceStream(resource)!;
+        var xml = new StreamReader(stream).ReadToEnd();
+
+        Assert.Contains("class=\"dialog-header\"", xml);
+        Assert.Contains("id=\"close-button\"", xml);
     }
 
     [Fact]
