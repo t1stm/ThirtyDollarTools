@@ -130,6 +130,19 @@ public class ScrollViewTests
     }
 
     [Fact]
+    public void Bar_HidesWhileTheContentFits()
+    {
+        // Three 30 rows fit the 100 view; ten don't. The bar sits at x 202..210.
+        var (ctx, root, view) = NewView(3);
+        Assert.IsNotType<ScrollBar>(view.HitTest(206, 50));
+
+        for (var i = 0; i < 7; i++) view.Children.Add(NewRow(ctx, 30));
+        view.Children = view.Children;
+        root.Layout();
+        Assert.IsType<ScrollBar>(view.HitTest(206, 50));
+    }
+
+    [Fact]
     public void ThumbDrag_ScrollsTheContent()
     {
         var (ctx, root, view) = NewView(10);
