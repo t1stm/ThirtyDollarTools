@@ -4,5 +4,6 @@ public enum UIState
 {
     None,
     Hovered,
-    Pressed
+    Pressed,
+    Disabled
 }

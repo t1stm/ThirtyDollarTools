@@ -362,7 +362,7 @@ public class UIContext : IGamePreloadable
                 for (var e = captured; e != null; e = e.Parent)
                     if (e.OnClick != null)
                     {
-                        e.OnClick(e);
+                        if (!e.Disabled) e.OnClick(e);
                         break;
                     }
         }
