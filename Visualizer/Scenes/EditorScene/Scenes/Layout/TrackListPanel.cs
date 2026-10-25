@@ -51,6 +51,9 @@ public sealed class TrackListPanel : ScrollView
 
     public Action<ProjectTrack, float, float>? OnContextMenu { get; set; }
 
+    /// <summary>The row showing <paramref name="track" />, for anchoring its menu; null when it has none.</summary>
+    public UIElement? RowOf(ProjectTrack track) => Children.OfType<EditorTrack>().FirstOrDefault(row => row.Track == track);
+
     /// <summary>
     ///     What "Add track" does. Set by <see cref="Scenes.EditorInterface" /> to ask which
     ///     kind first (<see cref="Scenes.Dialogs.TrackTypeDialog" />); unset, the row adds a

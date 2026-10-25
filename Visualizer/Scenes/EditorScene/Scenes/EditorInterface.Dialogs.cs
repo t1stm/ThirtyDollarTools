@@ -423,32 +423,38 @@ public partial class EditorInterface
         }
     }
 
+    /// <summary>
+    ///     A track row's right-click menu. Right-clicking a row outside the selection selects it
+    ///     first, so the inspector, the highlight and the menu all name the same track; a row
+    ///     inside a multi-selection keeps it, and the recolor follows the whole selection. The
+    ///     menu hangs beside the row rather than over it.
+    /// </summary>
     private void ShowTrackContextMenu(ProjectTrack track, float x, float y)
     {
         if (_trackContextMenuModal != null) return;
+        if (!State.SelectedTracks.Contains(track)) State.SelectTrack(track);
 
-        var menu = new DropdownMenu(_context, x, y);
+        var menu = _trackList.RowOf(track) is { } row ? DropdownMenu.Beside(row) : new DropdownMenu(_context, x, y);
+        menu.Menu.AddChild(new FlexPanel(_context)
+        {
+            Classes = ["menu-heading"],
+            Children = [new ClippedLabel(_context, track.Name) { Classes = ["menu-heading-label"] }]
+        });
+
         // A wave track has no editor to open and nothing to convert into - it is a file.
-        if (track is WaveTrack wave)
-        {
-            menu.AddItem("Replace file…", () => ShowWaveReplaceDialog(wave));
-        }
-        else
-        {
-            menu.AddItem("Open", () => State.OpenTrack(track));
-        }
+        if (track is WaveTrack wave) menu.AddItem("Replace file…", () => ShowWaveReplaceDialog(wave));
+        else menu.AddItem("Open", () => State.OpenTrack(track));
 
-        // The right-press kept an existing multi-selection the track is part of (see
-        // TrackListPanel.ContextMenu), so the recolor follows it rather than the one row
-        // the pointer happens to be over.
-        menu.AddItem("Change color…", () => ShowTrackColorDialog(
-            State.SelectedTracks.Contains(track) ? State.SelectedTracks : [track]));
+        menu.Menu.AddChild(new Panel(_context) { Classes = ["menu-rule"] });
+        menu.AddItem("Change color…", () => ShowTrackColorDialog(State.SelectedTracks));
         menu.AddItem("Duplicate…", () => ShowDuplicateTrackDialog(track));
         if (track.Kind != TrackKind.Wave)
             menu.AddItem(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
                 () => ConvertTrack(track));
 
-        menu.AddItem("Remove", () => State.RemoveTrack(track));
+        // No key chips: none of these has a key, and a chip would promise one.
+        menu.Menu.AddChild(new Panel(_context) { Classes = ["menu-rule"] });
+        menu.AddItem("Remove", () => State.RemoveTrack(track)).Label.SetClass("danger-label", true);
 
         _dialogHost.Root.AddChild(menu);
         _trackContextMenuModal = menu;

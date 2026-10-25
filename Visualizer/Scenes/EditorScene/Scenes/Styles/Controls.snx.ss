@@ -305,6 +305,20 @@ class menu-rule {
     background = $theme.divider_hover;
 }
 
+// What a context menu is about (a track's name), above its items: dim, small, not clickable.
+// The item padding, so it lines up with their labels. No width: the menu stretches its rows
+// to its widest one, and a percent here would size the menu to the window.
+class menu-heading {
+    height = 26;
+    padding = 6;
+    vertical-align = "center";
+}
+
+class menu-heading-label {
+    font-size = 12;
+    font-color = $theme.text_subtle;
+}
+
 // The subtle fill at list-row scale ("Add track", "+ New instrument"): a surface you can
 // click rather than a call to action.
 class menu-row {
