@@ -191,6 +191,7 @@ public partial class EditorInterface
         var dialog = new ImportWarningsDialog(_context, Path.GetFileName(path), mode, warnings, _playfieldLook);
         var modal = _dialogHost.Show(dialog.Element);
         modal.OnDismissRequested = _ => Close();
+        modal.OnConfirmRequested = _ => Close();
         dialog.KeepButton.OnClick = _ => Close();
         dialog.FaithfulButton.OnClick = _ =>
         {

@@ -3,9 +3,17 @@
 
   <layout>
     <flex id="import-warnings-dialog" class="dialog-frame">
-      <!-- The file and the shape it went in as, set by ImportWarningsDialog.cs. Echoes the
-           import dialog's own "Import "file"" title. -->
-      <label id="title-label" class="title-label" value=""/>
+      <!-- What happened, then the file it happened to, both set by ImportWarningsDialog.cs. -->
+      <flex class="dialog-header">
+        <label id="title-label" class="dialog-title" value=""/>
+        <flex class="info-chip">
+          <label id="file-label" class="info-chip-label" value=""/>
+        </flex>
+        <panel class="spacer"/>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
 
       <!-- One section per kind of warning. ImportWarningsDialog.cs fills the grids with
            the faithful palette's tiles and removes any section the import raised nothing
@@ -33,18 +41,19 @@
            undo step, so switching over is clean. Removed with the button otherwise. -->
       <flex id="faithful-footer" class="warning-section">
         <panel class="rule"/>
-        <label class="caption-label" value="Faithful Tracks are made for TDW sequences: every event stays as written."/>
+        <label class="[caption-label,warning-footer-text]" value="Faithful Tracks are made for TDW sequences: every event stays as written."/>
       </flex>
 
+      <!-- The import already happened the way it was asked for, so keeping it is the primary
+           action, and Enter's. Switching is the quiet alternative, alone at the left. -->
       <flex class="dialog-actions-split">
-        <!-- Filled, like the import dialog's own Faithful option: the suggested shape. -->
-        <button id="faithful-button" class="dialog-button-primary">
-          <label value="Import as Faithful Track"/>
+        <button id="faithful-button" class="dialog-button-quiet">
+          <label class="quiet-label" value="Import as Faithful instead"/>
         </button>
         <panel class="spacer"/>
-        <!-- Relabelled "Keep Piano Roll" beside the faithful button. On its own it is the
-             dialog's only action, so ImportWarningsDialog.cs fills it instead. -->
-        <button id="keep-button" class="dialog-button">
+        <!-- Relabelled "Keep Piano Roll" beside the faithful button; "OK" on its own. The
+             Enter chip is added by ImportWarningsDialog.cs. -->
+        <button id="keep-button" class="dialog-button-primary">
           <label value="OK"/>
         </button>
       </flex>

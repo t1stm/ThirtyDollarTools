@@ -98,7 +98,7 @@ public class DialogHostTests
     ///     dialog from here when it gets one; a new dialog never belongs here.
     /// </summary>
     private static readonly string[] HeaderPending =
-        ["Import_Warnings_Dialog", "Confirm_Dialog", "Instrument_Editor"];
+        ["Confirm_Dialog", "Instrument_Editor"];
 
     public static TheoryData<string> DialogDocuments() =>
     [

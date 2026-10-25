@@ -1008,6 +1008,11 @@ id import-warnings-dialog {
     width = 420;
 }
 
+// The frame's 420 less its 16 padding a side.
+class warning-footer-text {
+    wrap-width = 388;
+}
+
 // One kind of warning: its heading, a line on what became of it, then what it applies to.
 class warning-section {
     direction = "vertical";
