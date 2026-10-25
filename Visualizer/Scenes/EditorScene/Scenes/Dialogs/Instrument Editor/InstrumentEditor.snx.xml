@@ -19,6 +19,10 @@
           <label class="instrument-preview-label" value="Preview"/>
           <panel class="button-tail"/>
         </flex>
+        <!-- Asks first when something changed, like Esc and the backdrop (InstrumentWorkflow). -->
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
       </flex>
 
       <flex class="instrument-editor-body">
@@ -29,11 +33,9 @@
             <flex class="instrument-sounds-header">
               <label class="instrument-section-title" value="Sounds"/>
               <panel class="spacer"/>
-              <!-- The heads' band is rounded on top only, where the list below doesn't meet
-                   it. A corner radius applies to all four corners, so a square panel covers
-                   the bottom two. -->
+              <!-- The heads sit in a band of their own in this row; the rows under them fill
+                   their own read-outs rather than continuing the band down. -->
               <panel class="instrument-column-band">
-                <panel class="instrument-column-band-cover"/>
                 <flex id="column-heads" class="instrument-column-heads"/>
               </panel>
               <panel class="instrument-sounds-header-tail"/>
@@ -62,7 +64,13 @@
              no-selection are here so one pass resolves them; the editor keeps one attached. -->
         <flex id="right-column" class="instrument-editor-right">
           <scroll-zone id="all-card" class="instrument-all-card">
-            <label id="all-header" class="instrument-section-title" value=""/>
+            <flex class="instrument-all-header">
+              <label class="instrument-section-title" value="All sounds"/>
+              <!-- How many sounds the instrument has, kept by InstrumentEditor.cs. -->
+              <flex class="info-chip">
+                <label id="all-count" class="info-chip-label" value=""/>
+              </flex>
+            </flex>
           </scroll-zone>
           <panel class="[rule,instrument-rule]"/>
           <flex id="no-selection" class="instrument-no-selection">
@@ -82,6 +90,10 @@
         </flex>
         <label class="instrument-footer-label" value="value by 0.1"/>
         <panel class="spacer"/>
+        <!-- The Esc and Enter chips are added by InstrumentEditor.cs. -->
+        <button id="cancel-button" class="dialog-button">
+          <label value="Cancel"/>
+        </button>
         <button id="done-button" class="dialog-button-primary">
           <label value="Done"/>
         </button>

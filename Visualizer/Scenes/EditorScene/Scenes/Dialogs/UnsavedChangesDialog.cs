@@ -15,8 +15,9 @@ public sealed class UnsavedChangesDialog
 {
     /// <param name="projectPath">Where the project is saved; null when it never has been.</param>
     /// <param name="title">The question, naming what is about to happen.</param>
+    /// <param name="detail">The card's second line in place of where the project is saved (an instrument's sound count).</param>
     public UnsavedChangesDialog(UIContext context, string projectName = "", string? projectPath = null,
-        string title = "Save before leaving?")
+        string title = "Save before leaving?", string? detail = null)
     {
         var component = Markup.Build(context, "Scenes/Dialogs/Unsaved Changes Dialog/UnsavedChangesDialog.snx.xml");
         Element = component.GetID<FlexPanel>("unsaved-changes-dialog");
@@ -27,7 +28,7 @@ public sealed class UnsavedChangesDialog
 
         component.GetID<Label>("unsaved-changes-title").SetTextContents(title);
         component.GetID<Label>("project-name").SetTextContents(projectName);
-        component.GetID<Label>("project-path").SetTextContents(Where(projectPath));
+        component.GetID<Label>("project-path").SetTextContents(detail ?? Where(projectPath));
 
         KeyChip.Add(CancelButton, "Esc");
         KeyChip.Add(SaveButton, "Enter");

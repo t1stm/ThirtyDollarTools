@@ -15,9 +15,9 @@ import "Scenes/Styles/Theme.snx.ss" as theme;
 
 // The minimum window's size: it covers all of a 1080 x 720 window and sits centred in a
 // larger one.
+// Sized by InstrumentEditor.FitTo: 1080 x 720, less whatever keeps it 24 from every window
+// edge - at the 1080 x 720 minimum window it shrinks rather than touching them.
 id instrument-editor {
-    width = 1080;
-    height = 720;
     padding = 16;
     spacing = 14;
 }
@@ -82,6 +82,12 @@ class instrument-editor-right {
     background = $theme.background;
 }
 
+// The All sounds card's heading: the title, then the sound count in a chip.
+class instrument-all-header {
+    spacing = 8;
+    vertical-align = "center";
+}
+
 class instrument-section-title {
     font-size = 16;
     font-color = $theme.header;
@@ -106,26 +112,19 @@ class instrument-sounds-header {
     vertical-align = "center";
 }
 
-// The column heads' band: the read-out band's 5% white over the dialog's fill, made opaque
-// so the square cover below can overlap it without doubling the tint. Same width as a
-// row's read-out band: 2 x 6 padding + 4 x 70 cells + 3 x 10 gaps = 322.
+// The column heads' band, a pill in the heading row: the read-out band's 5% white over the
+// dialog's fill, made opaque. Same width as a row's read-outs: 2 x 6 padding + 4 x 70 cells
+// + 3 x 10 gaps = 322.
 class instrument-column-band {
     width = 322;
-    height = 38;
+    height = 32;
     border-radius = 6;
-    background = "#222229";
-}
-
-class instrument-column-band-cover {
-    y = 19;
-    width = 322;
-    height = 19;
     background = "#222229";
 }
 
 class instrument-column-heads {
     width = 322;
-    height = 38;
+    height = 32;
     padding = 6;
     spacing = 10;
     vertical-align = "center";
@@ -255,13 +254,15 @@ class sound-row-name-label {
 
 // The read-outs' band and scroll zone, lighter than the row, and lighter again while the
 // pointer is over it. Full row height; 6 at the sides.
+// No fill of its own until hovered: each read-out carries a faint one (sound-row-cell), so
+// the rows don't stack into one tall band under the heads.
 class sound-row-zone {
     direction = "horizontal";
     height = 46;
     padding = 6;
     spacing = 10;
     vertical-align = "center";
-    background = $theme.scroll_zone;
+    background = "#00000000";
 }
 
 class sound-row-zone-hovered {
@@ -277,7 +278,7 @@ class sound-row-cell {
     horizontal-align = "center";
     vertical-align = "center";
     border-radius = 4;
-    background = "#00000000";
+    background = $theme.scroll_zone;
 }
 
 // The cell a scroll here would change.

@@ -496,6 +496,7 @@ public partial class EditorInterface
         _inspectorColumn.X = width - InspectorPanel.PanelWidth;
         _inspectorColumn.Height = height - HeaderHeight;
         _hint.Resize(gridWidth, height);
+        _instrumentWorkflow.FitToWindow(width, height);
         // Centred on the grid area, the view the tools act on; anchored on its own centre.
         _toolSwitch.X = TrackColumnWidth + gridWidth / 2;
         _toolSwitch.Y = HeaderHeight / 2;

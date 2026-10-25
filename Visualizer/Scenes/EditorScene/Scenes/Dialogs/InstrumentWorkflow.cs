@@ -91,8 +91,11 @@ public sealed class InstrumentWorkflow
         _instrumentEditor = new InstrumentEditor(context, atlasStore);
         _instrumentEditorModal = new ModalLayer(context);
         _instrumentEditorModal.AddChild(_instrumentEditor);
-        _instrumentEditorModal.OnDismissRequested = _ => CloseEditor();
+        _instrumentEditorModal.OnDismissRequested = _ => RequestClose();
+        _instrumentEditorModal.OnConfirmRequested = _ => Commit();
         _instrumentEditor.DoneButton.OnClick = _ => Commit();
+        _instrumentEditor.CancelButton.OnClick = _ => RequestClose();
+        _instrumentEditor.CloseButton.OnClick = _ => RequestClose();
         _instrumentEditor.OnPreviewSound = sound => playback.PreviewSound(_instrumentEditor.Working, sound);
         _instrumentEditor.PreviewButton.OnClick = _ => Preview();
     }
@@ -155,6 +158,55 @@ public sealed class InstrumentWorkflow
     private void Preview()
     {
         _playback.PreviewInstrument(_instrumentEditor.Working);
+    }
+
+    /// <summary>
+    ///     Esc, the backdrop, Cancel and the ×: closes an untouched editor, and asks first when
+    ///     closing would lose an edit - Save, Discard, or back to the editor.
+    /// </summary>
+    private void RequestClose()
+    {
+        if (!_instrumentEditor.IsDirty)
+        {
+            CloseEditor();
+            return;
+        }
+
+        // Both modals sit at the same top z-index and would collide, so the editor comes down
+        // while the question is up, and goes back on Cancel - its form is kept as it was.
+        _dialogHost.Root.RemoveChild(_instrumentEditorModal);
+        var count = _instrumentEditor.Working.Sounds.Count;
+        var dialog = new UnsavedChangesDialog(_dialogHost.Root.Context, _instrumentEditor.NameInput.Value, null,
+            "Save this instrument?", $"{count} sound{(count == 1 ? "" : "s")}, not saved yet");
+        var modal = _dialogHost.Show(dialog.Element);
+        modal.OnDismissRequested = _ => Back();
+        modal.OnConfirmRequested = _ => Save();
+        dialog.CancelButton.OnClick = _ => Back();
+        dialog.SaveButton.OnClick = _ => Save();
+        dialog.DiscardButton.OnClick = _ =>
+        {
+            _dialogHost.Close(modal);
+            CloseEditor();
+        };
+        return;
+
+        void Back()
+        {
+            _dialogHost.Close(modal);
+            _dialogHost.Root.AddChild(_instrumentEditorModal);
+        }
+
+        void Save()
+        {
+            _dialogHost.Close(modal);
+            Commit();
+        }
+    }
+
+    /// <summary>Sizes the editor for the window, whether or not it is open.</summary>
+    public void FitToWindow(float width, float height)
+    {
+        _instrumentEditor.FitTo(width, height);
     }
 
     /// <summary>Takes the editor down and drops its cached preview with it.</summary>
