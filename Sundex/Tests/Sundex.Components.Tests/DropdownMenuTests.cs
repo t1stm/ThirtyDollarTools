@@ -35,6 +35,31 @@ public class DropdownMenuTests
     }
 
     [Fact]
+    public void Beside_HangsFromTheElementsTopRightCorner_AndFlipsLeftOfItAtTheEdge()
+    {
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = ViewportWidth, Height = ViewportHeight };
+        var row = new Panel(ctx) { X = 10, Y = 200, Width = 240, Height = 36 };
+        var edgeRow = new Panel(ctx) { X = ViewportWidth - 100, Y = 200, Width = 100, Height = 36 };
+        root.Children = [row, edgeRow];
+        root.Layout();
+
+        var menu = DropdownMenu.Beside(row);
+        menu.AddItem("Open", () => { });
+        root.AddChild(menu);
+        root.Layout();
+        Assert.True(menu.Menu.Computed.AbsoluteX >= 250, "covers the row");
+        Assert.Equal(200, menu.Menu.Computed.AbsoluteY);
+
+        var flipped = DropdownMenu.Beside(edgeRow);
+        flipped.AddItem("Open", () => { });
+        root.AddChild(flipped);
+        root.Layout();
+        var box = flipped.Menu.Computed;
+        Assert.True(box.AbsoluteX + box.Width <= ViewportWidth - 100, "covers the row at the edge");
+    }
+
+    [Fact]
     public void FlipsLeftWhenItWouldOverflowTheRightEdge()
     {
         var (_, _, menu) = Open(1915, 100);
