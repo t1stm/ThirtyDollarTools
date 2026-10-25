@@ -151,7 +151,46 @@ id confirm-dialog {
 }
 
 id alert-dialog {
-    width = 360;
+    width = 420;
+}
+
+// A failure, not a notice: the triangle Import's warnings use, in the danger red.
+class alert-icon {
+    font-size = 16;
+    font-color = $theme.danger;
+}
+
+// The title takes the header's free space and clips there, so a long file name stops short
+// of the ×.
+class alert-title {
+    width = 100%;
+    height = 28;
+    vertical-align = "center";
+}
+
+// The frame's 420 less its 16 padding a side.
+class alert-message {
+    wrap-width = 388;
+}
+
+// The raw error under the message, for a bug report. DialogHost.Details wraps it in code,
+// at a width and size that have to match alert-details-text.
+class alert-details {
+    width = 100%;
+    padding = 10;
+    border-radius = 6;
+    background = $theme.background;
+}
+
+class alert-details-text {
+    font-size = 12;
+    font-color = $theme.text_dim;
+}
+
+// Four lines of alert-details-text; more scroll.
+class alert-details-scroll {
+    width = 100%;
+    height = 58;
 }
 
 // A faithful action's value: the strip, then a 210 list beside the card. One width for every

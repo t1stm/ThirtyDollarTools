@@ -1,8 +1,11 @@
+using System.Text.Json;
 using OpenTK.Windowing.Common;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.File_Selector;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
+using Sundex.Components.Scroll;
 using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
@@ -152,28 +155,131 @@ public sealed class DialogHost(UIContext context, Panel root)
         }
     }
 
+    /// <summary>Puts text on the system clipboard; set by the owner, which has the window. Null copies nothing.</summary>
+    public Action<string>? CopyText { get; set; }
+
+    /// <summary>
+    ///     <see cref="Alert(string, string, string?)" /> for a caught exception: says what happened in
+    ///     plain words, and keeps the exception's own text as the details.
+    /// </summary>
+    /// <param name="writing">Whether the failure was writing a file rather than reading one, for the wording.</param>
+    public void Alert(string title, Exception error, bool writing = false)
+    {
+        var (message, details) = Explain(error, writing);
+        Alert(title, message, details);
+    }
+
+    /// <summary>
+    ///     What an exception means to someone using the editor, and the raw text worth keeping for
+    ///     a bug report (null when the message already is that text). The editor's own failures
+    ///     (InvalidOperation, InvalidData) are written to be read as they are.
+    /// </summary>
+    internal static (string Message, string? Details) Explain(Exception error, bool writing) => error switch
+    {
+        InvalidOperationException or InvalidDataException => (error.Message, null),
+        JsonException => ("This file isn't a project the editor can read. It may be damaged, or not a project at all.",
+            error.Message),
+        DirectoryNotFoundException => (writing ? "That folder doesn't exist. Pick another one." : "That folder doesn't exist any more.",
+            error.Message),
+        FileNotFoundException => ("That file doesn't exist any more.", error.Message),
+        UnauthorizedAccessException => (writing
+            ? "The editor isn't allowed to write there. Pick another folder."
+            : "The editor isn't allowed to read that file.", error.Message),
+        IOException => (writing ? "The file couldn't be written." : "The file couldn't be read.", error.Message),
+        _ => ("The editor ran into an error it doesn't know how to explain.", error.Message)
+    };
+
     /// <summary>
     ///     One-button informational dialog, for surfacing failures that would otherwise be
-    ///     silent (e.g. a failed save). Not for anything the user has to confirm.
+    ///     silent (e.g. a failed save). Not for anything the user has to confirm. Enter, Esc, the
+    ///     × and OK all close it.
     /// </summary>
-    public void Alert(string message)
+    /// <param name="title">What failed, and on what: "Couldn't open broken.tdwproj".</param>
+    /// <param name="message">What happened, in plain words, and what to do about it if anything.</param>
+    /// <param name="details">The raw error, shown dim under the message with a Copy error button; null for none.</param>
+    public void Alert(string title, string message, string? details = null)
     {
-        var ok = new Button(context, "OK") { Classes = ["dialog-button-primary"] };
+        var ok = KeyChip.Add(new Button(context, "OK") { Classes = ["dialog-button-primary"] }, "Enter");
+        var close = new Button(context, Icons.X, font: Icons.Font)
+        {
+            ID = "close-button",
+            Classes = ["icon-button"],
+            Label = { Classes = ["icon-button-icon"] }
+        };
         var content = new FlexPanel(context)
         {
             ID = "alert-dialog",
             Classes = ["dialog-frame"],
             Children =
             [
-                new Label(context, message) { Classes = ["body-label"] },
                 new FlexPanel(context)
                 {
-                    Classes = ["dialog-actions"],
-                    Children = [ok]
-                }
+                    Classes = ["dialog-header"],
+                    Children =
+                    [
+                        new Label(context, Icons.TriangleAlert, Icons.Font) { Classes = ["alert-icon"] },
+                        // Percent-wide and clipped, so a long file name stops short of the ×.
+                        new FlexPanel(context)
+                        {
+                            Classes = ["alert-title"],
+                            Children = [new ClippedLabel(context, title) { Classes = ["dialog-title"] }]
+                        },
+                        close
+                    ]
+                },
+                new Label(context, message) { Classes = ["body-label", "alert-message"] }
             ]
         };
+
+        var actions = new FlexPanel(context) { Classes = ["dialog-actions-split"] };
+        if (details != null)
+        {
+            content.AddChild(Details(details));
+            var copy = new Button(context, "Copy error")
+            {
+                Classes = ["dialog-button-quiet"],
+                Label = { Classes = ["quiet-label"] }
+            };
+            copy.OnClick = _ =>
+            {
+                CopyText?.Invoke($"{title}\n{message}\n\n{details}");
+                copy.Label.SetTextContents("Copied");
+            };
+            actions.AddChild(copy);
+        }
+
+        actions.AddChild(new Panel(context) { Classes = ["spacer"] });
+        actions.AddChild(ok);
+        content.AddChild(actions);
+
         var modal = Show(content);
+        modal.OnConfirmRequested = Close;
         ok.OnClick = _ => Close(modal);
     }
+
+    /// <summary>The raw error, dim and wrapped in an inset box; past four lines it scrolls.</summary>
+    private UIElement Details(string details)
+    {
+        var text = new Label(context, details) { Classes = ["alert-details-text"] };
+        var box = new FlexPanel(context) { Classes = ["alert-details"] };
+        // Styled by the box's sheet only once it is mounted, so the wrap is measured here.
+        text.WrapWidth = AlertDetailsWrapWidth;
+        text.FontSizePx = 12;
+        if (text.Height.Value <= AlertDetailsMaxHeight)
+        {
+            box.AddChild(text);
+            return box;
+        }
+
+        var scroll = new ScrollView(context) { Classes = ["alert-details-scroll"] };
+        scroll.AddChild(text);
+        box.AddChild(scroll);
+        return box;
+    }
+
+    // The alert is 420 wide: 16 frame padding and 10 box padding a side leave 368 for the text.
+    private const float AlertDetailsWrapWidth = 368;
+
+    // Four 12 px lines.
+    private const float AlertDetailsMaxHeight = 4 * 12 * 1.2f + 1;
 }

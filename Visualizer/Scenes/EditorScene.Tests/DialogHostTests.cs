@@ -119,6 +119,62 @@ public class DialogHostTests
     }
 
     [Fact]
+    public void Alert_ClosesOnEnter_AndItsCopyButtonCopiesTheWholeError()
+    {
+        var ctx = new EditorTestContext();
+        var root = new Panel(ctx);
+        var host = new DialogHost(ctx, root);
+        string? copied = null;
+        host.CopyText = text => copied = text;
+
+        host.Alert("Couldn't open broken.tdwproj", "This file isn't a project.", "'n' is an invalid JSON literal.");
+        var copy = Descendants(root).OfType<Button>().Single(b => b.Label.Value.ToString() == "Copy error");
+        copy.OnClick!(copy);
+
+        Assert.Equal("Couldn't open broken.tdwproj\nThis file isn't a project.\n\n'n' is an invalid JSON literal.", copied);
+        Assert.Equal("Copied", copy.Label.Value.ToString().TrimEnd('\0'));
+        Assert.True(host.TryConfirmTop());
+        Assert.False(host.HasOpenModal);
+    }
+
+    [Fact]
+    public void Alert_WithoutDetails_HasNoCopyButton()
+    {
+        var ctx = new EditorTestContext();
+        var root = new Panel(ctx);
+        var host = new DialogHost(ctx, root);
+
+        host.Alert("Couldn't convert “Track 3”", "No sounds found in this sequence.");
+
+        Assert.DoesNotContain(Descendants(root).OfType<Button>(), b => b.Label.Value.ToString() == "Copy error");
+    }
+
+    [Theory]
+    [InlineData(typeof(InvalidOperationException), false, "boom", false)]
+    [InlineData(typeof(System.Text.Json.JsonException), false, "This file isn't a project the editor can read.", true)]
+    [InlineData(typeof(DirectoryNotFoundException), true, "That folder doesn't exist. Pick another one.", true)]
+    [InlineData(typeof(UnauthorizedAccessException), true, "The editor isn't allowed to write there.", true)]
+    [InlineData(typeof(NotSupportedException), false, "The editor ran into an error", true)]
+    public void Explain_SaysWhatHappenedInPlainWords(Type type, bool writing, string start, bool keepsDetails)
+    {
+        var error = (Exception)Activator.CreateInstance(type, "boom")!;
+
+        var (message, details) = DialogHost.Explain(error, writing);
+
+        Assert.StartsWith(start, message);
+        Assert.Equal(keepsDetails ? "boom" : null, details);
+    }
+
+    private static IEnumerable<Sundex.Components.Abstractions.UIElement> Descendants(Sundex.Components.Abstractions.UIElement element)
+    {
+        yield return element;
+        if (element is not Panel panel) yield break;
+        foreach (var child in panel.Children)
+        foreach (var descendant in Descendants(child))
+            yield return descendant;
+    }
+
+    [Fact]
     public void TryKeyTop_HandsTheKeyToTheTopDialog()
     {
         var ctx = new EditorTestContext();

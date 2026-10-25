@@ -512,7 +512,7 @@ public partial class EditorInterface
         }
         catch (Exception e)
         {
-            _dialogHost.Alert($"Couldn't convert \"{track.Name}\":\n\n{e.Message}");
+            _dialogHost.Alert($"Couldn't convert “{track.Name}”", e);
         }
     }
 

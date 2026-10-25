@@ -33,7 +33,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         catch (Exception e)
         {
             logger.LoadFailed(e, path);
-            dialogHost.Alert($"Couldn't open \"{Path.GetFileName(path)}\":\n{e.Message}");
+            dialogHost.Alert($"Couldn't open {Path.GetFileName(path)}", e);
         }
     }
 
@@ -115,7 +115,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
     private void ImportFailed(Exception e, string path)
     {
         logger.ImportFailed(e, path);
-        dialogHost.Alert($"Couldn't import \"{Path.GetFileName(path)}\":\n\n{e.Message}");
+        dialogHost.Alert($"Couldn't import {Path.GetFileName(path)}", e);
     }
 
     public void ExportTdw(string path, SequenceStyle style)
@@ -128,7 +128,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         catch (Exception e)
         {
             logger.ExportFailed(e, path);
-            dialogHost.Alert($"Couldn't export \"{Path.GetFileName(path)}\":\n{e.Message}");
+            dialogHost.Alert($"Couldn't export {Path.GetFileName(path)}", e, writing: true);
         }
     }
 
@@ -152,7 +152,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
         catch (Exception e)
         {
             logger.SaveFailed(e, path);
-            dialogHost.Alert($"Couldn't save \"{Path.GetFileName(path)}\":\n{e.Message}");
+            dialogHost.Alert($"Couldn't save {Path.GetFileName(path)}", e, writing: true);
             return false;
         }
     }

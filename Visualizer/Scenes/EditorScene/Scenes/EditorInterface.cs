@@ -173,6 +173,9 @@ public partial class EditorInterface
 
         RootPanel.DrawTo(context);
         _dialogHost = new DialogHost(context, RootPanel);
+        // The field, not the parameter: a lambda over a constructor parameter moves `this` into a
+        // closure, and the markup logic above resolves its context through these lambdas' target.
+        _dialogHost.CopyText = text => _workflow.Game.ClipboardString = text;
         _projectIo = new ProjectIO(State, _dialogHost, State.Logger) { OnSaved = RefreshTitle };
 
         _defaultTitle = workflow.Game.Title;
@@ -516,7 +519,7 @@ public partial class EditorInterface
         // a render's progress wins; otherwise, while playing, how hard the mixer works
         if (Playback.StatusLabel == null && Playback.CpuLoad is { } load) _inspector.SetLoad(load);
         else _inspector.SetStatus(Playback.StatusLabel, Playback.StatusProgress, Playback.StatusDone, Playback.StatusTotal);
-        if (Playback.TakeError() is { } error) _dialogHost.Alert(error);
+        if (Playback.TakeError() is var (title, error, writing)) _dialogHost.Alert(title, error, writing);
         _workflow.AtlasStore.Update(); // animated sound icons advance their frames here
         _projectIo.TickBackup();
 

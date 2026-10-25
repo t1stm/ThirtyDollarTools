@@ -39,7 +39,7 @@ public class WavePlaybackSyncTests : IDisposable
 
     private WavePlayback NewPlayback()
     {
-        return new WavePlayback(new NullAudioContext(), NullLogger.Instance, _errors.Add);
+        return new WavePlayback(new NullAudioContext(), NullLogger.Instance, (title, _) => _errors.Add(title));
     }
 
     private (ThirtyDollarProject Project, TrackPlacement Placement) ProjectWithClip(double startQuarters = 0)
