@@ -1,5 +1,6 @@
 using JetBrains.Annotations;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
@@ -428,7 +429,7 @@ public partial class EditorInterface
     ///     A track row's right-click menu. Right-clicking a row outside the selection selects it
     ///     first, so the inspector, the highlight and the menu all name the same track; a row
     ///     inside a multi-selection keeps it, and the recolor follows the whole selection. The
-    ///     menu hangs beside the row rather than over it.
+    ///     menu hangs beside the row rather than over it, and C, D and R run its rows while it is up.
     /// </summary>
     private void ShowTrackContextMenu(ProjectTrack track, float x, float y)
     {
@@ -438,6 +439,7 @@ public partial class EditorInterface
         var menu = _trackList.RowOf(track) is { } row ? DropdownMenu.Beside(row) : new DropdownMenu(_context, x, y);
         // The menu's own box is the ring; the rows go in a second box inside it.
         var box = new Dropdown(_context) { Classes = ["context-menu"] };
+        var keys = new Dictionary<Keys, DropdownItem>();
         menu.Menu.SetClass("context-menu-ring", true);
         menu.Menu.AddChild(box);
         box.AddChild(new FlexPanel(_context)
@@ -451,15 +453,22 @@ public partial class EditorInterface
         else Item("Open", () => State.OpenTrack(track));
 
         Rule();
-        Item("Change color…", () => ShowTrackColorDialog(State.SelectedTracks));
-        Item("Duplicate…", () => ShowDuplicateTrackDialog(track));
+        Item("Change color…", () => ShowTrackColorDialog(State.SelectedTracks), Keys.C);
+        Item("Duplicate…", () => ShowDuplicateTrackDialog(track), Keys.D);
         if (track.Kind != TrackKind.Wave)
             Item(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
                 () => ConvertTrack(track));
 
-        // No key chips: none of these has a key, and a chip would promise one.
         Rule();
-        Item("Remove", () => State.RemoveTrack(track)).Label.SetClass("danger-label", true);
+        Item("Remove", () => State.RemoveTrack(track), Keys.R).Label.SetClass("danger-label", true);
+
+        // The menu is modal, so its letters reach nothing behind it.
+        menu.OnKeyRequested = e =>
+        {
+            if (e.Control || e.Alt || e.Command || !keys.TryGetValue(e.Key, out var item)) return false;
+            item.OnClick!(item);
+            return true;
+        };
 
         _dialogHost.Root.AddChild(menu);
         _trackContextMenuModal = menu;
@@ -470,7 +479,9 @@ public partial class EditorInterface
         };
         return;
 
-        DropdownItem Item(string text, Action action)
+        // A row with a key leads with its chip; one without keeps the chip's room, so every
+        // label starts at the same x.
+        DropdownItem Item(string text, Action action, Keys? key = null)
         {
             var item = new DropdownItem(_context, text)
             {
@@ -481,6 +492,17 @@ public partial class EditorInterface
                     action();
                 }
             };
+            if (key is { } k)
+            {
+                KeyChip.Add(item, k.ToString()).Children[0].SetClass("context-menu-key-chip", true);
+                keys[k] = item;
+            }
+            else
+            {
+                item.Children = [new Panel(_context) { Classes = ["context-menu-key-gap"] }, item.Label];
+            }
+
+            item.SetClass("context-menu-key-item", true);
             box.AddChild(item);
             return item;
         }

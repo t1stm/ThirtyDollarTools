@@ -353,6 +353,28 @@ class context-menu-item {
     }
 }
 
+// On every row, after key-button where KeyChip.Add put one: the row's own padding and left
+// edge back, and the chip or its gap in a column of its own before the label.
+class context-menu-key-item {
+    direction = "horizontal";
+    padding = 10;
+    spacing = 8;
+    horizontal-align = "start";
+    vertical-align = "center";
+}
+
+// One letter's chip, fixed wide so the labels after it line up; a row without a key keeps the
+// same room with the gap.
+class context-menu-key-chip {
+    width = 22;
+    horizontal-align = "center";
+}
+
+class context-menu-key-gap {
+    width = 22;
+    height = 1;
+}
+
 // A hairline between the menu's groups, 3 clear above and below and 6 in from either side
 // of the rows: the rows' 186 less 12. The gap is a box of its own because padding is one
 // value for all four sides.
