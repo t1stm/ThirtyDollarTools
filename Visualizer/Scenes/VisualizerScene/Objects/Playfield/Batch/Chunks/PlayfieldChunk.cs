@@ -1,5 +1,4 @@
 using OpenTK.Mathematics;
-using Shared;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Cameras;
 using Sundex.Engine.Text;
@@ -12,21 +11,30 @@ namespace VisualizerScene.Objects.Playfield.Batch.Chunks;
 
 public class PlayfieldChunk : IDisposable, IRenderable, IClippable
 {
-    private const int MaxValueLength = 8;
-    private readonly TextBuffer _textBuffer;
+    private readonly RenderableFactory _factory;
 
-    private PlayfieldChunk(int size, TextProvider provider)
+    /// <summary>The renderables this chunk has cooked up, reused by every <see cref="Fill" />.</summary>
+    private readonly List<SoundRenderable> _pool = [];
+
+    private readonly TextBuffer _textBuffer;
+    private RenderableFactory? _iceFactory;
+
+    /// <summary>An empty chunk, for <see cref="Fill" />. <see cref="GenerateFrom" /> builds and fills one.</summary>
+    public PlayfieldChunk(PlayfieldSettings settings)
     {
-        Renderables = new SoundRenderable[size];
+        var provider = settings.Fonts.LatoBoldProvider;
         _textBuffer = new TextBuffer(provider, provider.AssetProvider.DeleteQueue);
-        _textBuffer.Resize(size * MaxValueLength * 3);
+        _factory = new RenderableFactory(settings.AtlasStore);
+        MainStackCollection.AnimatedStacks = _factory.AnimatedAtlases;
+        MainStackCollection.StaticStacks = _factory.StaticAtlases;
     }
 
     private StackCollection MainStackCollection { get; } = new();
     private StackCollection? CutSoundsStackCollection { get; set; }
     private RenderStack<BackgroundBlip>? BackgroundBlips { get; set; }
 
-    public SoundRenderable[] Renderables { get; private set; }
+    /// <summary>One per event of the slice, null where the event has no sound.</summary>
+    public SoundRenderable[] Renderables { get; private set; } = [];
     public float StartY { get; set; }
     public float EndY { get; set; }
 
@@ -51,6 +59,7 @@ public class PlayfieldChunk : IDisposable, IRenderable, IClippable
     public void Dispose()
     {
         MainStackCollection.Dispose();
+        CutSoundsStackCollection?.Dispose();
         BackgroundBlips?.Dispose();
 
         _textBuffer.Dispose();
@@ -60,60 +69,72 @@ public class PlayfieldChunk : IDisposable, IRenderable, IClippable
     public static PlayfieldChunk GenerateFrom(ReadOnlySpan<BaseEvent> slice, LayoutHandler layoutHandler,
         PlayfieldSettings settings)
     {
-        var fontProvider = settings.Fonts.LatoBoldProvider;
-        var store = settings.AtlasStore;
+        var chunk = new PlayfieldChunk(settings);
+        chunk.Fill(slice, layoutHandler, settings);
+        return chunk;
+    }
+
+    /// <summary>
+    ///     Cooks this chunk up as <paramref name="slice" />, over whatever it held before: the
+    ///     renderables, their text and the stacks they draw with are all reused, so a pooled
+    ///     chunk refilled with a slice no bigger than its last allocates nothing. "#icut" and
+    ///     "!bg" values are the exception - each still builds its own value object.
+    /// </summary>
+    public void Fill(ReadOnlySpan<BaseEvent> slice, LayoutHandler layoutHandler, PlayfieldSettings settings)
+    {
         var sizing = settings.PlayfieldSizing;
         var length = slice.Length;
 
-        var chunk = new PlayfieldChunk(length, fontProvider)
-        {
-            StartY = layoutHandler.Y
-        };
+        _textBuffer.Reset();
+        _factory.Clear();
+        _iceFactory?.Clear();
 
-        var renderables = new SoundRenderable[length];
-        var factory = new RenderableFactory(store);
-        RenderableFactory? iceFactory = null;
+        StartY = layoutHandler.Y;
+        if (Renderables.Length != length) Renderables = new SoundRenderable[length];
+        while (_pool.Count < length) _pool.Add(new SoundRenderable());
 
         for (var i = 0; i < length; i++)
         {
             var baseEvent = slice[i];
-            if (baseEvent.SoundEvent is null) continue;
+            if (baseEvent.SoundEvent is null)
+            {
+                Renderables[i] = null!;
+                continue;
+            }
 
-            var renderable = renderables[i] = factory.CookUp(baseEvent);
+            var renderable = Renderables[i] = _factory.CookUp(baseEvent, _pool[i].Recycle());
 
             switch (baseEvent)
             {
                 case IndividualCutEvent ice:
                 {
-                    iceFactory ??= new RenderableFactory(store);
-                    renderable.Value = new IndividualCutValue(ice, iceFactory, settings.RenderScale, layoutHandler.Size);
+                    _iceFactory ??= new RenderableFactory(settings.AtlasStore);
+                    renderable.Value = new IndividualCutValue(ice, _iceFactory, settings.RenderScale,
+                        layoutHandler.Size);
                     continue;
                 }
 
                 case NormalEvent { SoundEvent: "!bg" }:
-                    renderable.Value = new BackgroundEventValue(baseEvent.Value, factory, chunk._textBuffer,
+                    renderable.Value = new BackgroundEventValue(baseEvent.Value, _factory, _textBuffer,
                         sizing.ValueFontSize, settings.RenderScale);
                     continue;
             }
 
-            RenderableFactory.AssignTextBuffers(renderable, baseEvent, chunk._textBuffer, sizing, settings.RenderScale,
+            RenderableFactory.AssignTextBuffers(renderable, baseEvent, _textBuffer, sizing, settings.RenderScale,
                 settings.SampleHolder);
         }
 
-        chunk.EndY = layoutHandler.Height + layoutHandler.Size;
-        chunk.Renderables = renderables;
-        chunk.MainStackCollection.AnimatedStacks = factory.AnimatedAtlases;
-        chunk.MainStackCollection.StaticStacks = factory.StaticAtlases;
+        EndY = layoutHandler.Height + layoutHandler.Size;
 
-        if (iceFactory is not null)
-        {
-            chunk.CutSoundsStackCollection ??= new StackCollection();
-            chunk.CutSoundsStackCollection.AnimatedStacks = iceFactory.AnimatedAtlases;
-            chunk.CutSoundsStackCollection.StaticStacks = iceFactory.StaticAtlases;
-        }
+        if (_iceFactory is not null && CutSoundsStackCollection is null)
+            CutSoundsStackCollection = new StackCollection
+            {
+                AnimatedStacks = _iceFactory.AnimatedAtlases,
+                StaticStacks = _iceFactory.StaticAtlases,
+                ClipRect = ClipRect
+            };
 
-        chunk.BackgroundBlips = factory.BackgroundBlips;
-        return chunk;
+        BackgroundBlips = _factory.BackgroundBlips;
     }
 
     public void Render(Camera temporaryCamera)

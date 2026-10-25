@@ -88,42 +88,24 @@ public class RenderableFactory(AtlasStore store)
     public static void AssignTextBuffers(SoundRenderable renderable, BaseEvent baseEvent, TextBuffer textBuffer,
         PlayfieldSizing sizing, float renderScale, SampleHolder? sampleHolder = null)
     {
-        if (FormatValueText(baseEvent) is { } valueText)
-        {
-            var valueBuffer = textBuffer.GetTextSlice(valueText, (value, buffer, range) =>
-                new TextSlice(buffer, range)
-                {
-                    Value = value,
-                    FontSize = sizing.ValueFontSize * renderScale
-                }, MaxValueLength);
+        Span<char> text = stackalloc char[MaxValueLength];
+        if (TryFormatValueText(baseEvent, text, out var written))
+            // Room to spare only for the two actions whose number counts down as they play
+            // (SoundRenderable.SetValue); every other value is drawn once, as it is.
+            renderable.Value = PlaceText(renderable.SpareValue, textBuffer, text[..written],
+                baseEvent.SoundEvent is "!loopmany" or "!stop" ? MaxValueLength : written,
+                sizing.ValueFontSize * renderScale);
 
-            renderable.Value = new NormalText(valueBuffer);
-        }
-
-        if (FormatVolumeText(baseEvent) is { } volumeText)
-        {
-            var volumeBuffer = textBuffer.GetTextSlice(volumeText,
-                (value, buffer, range) => new TextSlice(buffer, range)
-                {
-                    Value = value,
-                    FontSize = sizing.VolumeFontSize * renderScale
-                });
-            renderable.Volume = new NormalText(volumeBuffer);
-        }
+        if (TryFormatVolumeText(baseEvent, text, out written))
+            renderable.Volume = PlaceText(renderable.SpareVolume, textBuffer, text[..written], written,
+                sizing.VolumeFontSize * renderScale);
 
         if (baseEvent is not ExtendedEvent extendedEvent) return;
         if (extendedEvent is { Pan: 0, OffsetInSeconds: 0 }) return;
 
-        if (FormatPanText(baseEvent) is { } panText)
-        {
-            var panBuffer = textBuffer.GetTextSlice(panText, (value, buffer, range) =>
-                new TextSlice(buffer, range)
-                {
-                    Value = value,
-                    FontSize = sizing.PanFontSize * renderScale
-                });
-            renderable.Pan = new NormalText(panBuffer);
-        }
+        if (TryFormatPanText(baseEvent, text, out written))
+            renderable.Pan = PlaceText(renderable.SparePan, textBuffer, text[..written], written,
+                sizing.PanFontSize * renderScale);
 
         if (!(extendedEvent.OffsetInSeconds > 0) || sampleHolder is null) return;
 
@@ -140,55 +122,111 @@ public class RenderableFactory(AtlasStore store)
     }
 
     /// <summary>
+    ///     A text slice for one of a renderable's labels: the renderable's spare from its last
+    ///     use when a pooled chunk refills it, else a new one.
+    /// </summary>
+    private static NormalText PlaceText(NormalText? spare, TextBuffer textBuffer, ReadOnlySpan<char> text,
+        int capacity, float fontSize)
+    {
+        if (spare is null) return NewText(textBuffer, text, capacity, fontSize);
+
+        textBuffer.Reuse(spare.Text, text, capacity);
+        spare.Translation = Vector3.Zero;
+        spare.ScaleMultiplier = 1;
+        return spare;
+    }
+
+    /// <summary>
+    ///     A method of its own because the lambda captures <paramref name="fontSize" />: a closure
+    ///     over a parameter is allocated on entry to the method that declares it, whether or not
+    ///     the lambda runs, and in <see cref="PlaceText" /> that was every refilled label.
+    /// </summary>
+    private static NormalText NewText(TextBuffer textBuffer, ReadOnlySpan<char> text, int capacity, float fontSize)
+    {
+        return new NormalText(textBuffer.GetTextSlice(text, (value, buffer, range) => new TextSlice(buffer, range)
+        {
+            Value = value,
+            FontSize = fontSize
+        }, capacity));
+    }
+
+    /// <summary>
     ///     The value badge's text ("+3", "-6", "/2", "100%" for !volume, ...), or null when it
     ///     is suppressed (a zero value on a sound that doesn't always show one). Static, so a
     ///     caller with no TextBuffer or SoundRenderable can use the same conventions.
     /// </summary>
     public static string? FormatValueText(BaseEvent baseEvent)
     {
-        if (baseEvent.Value == 0 && !SoundShouldAlwaysHaveValue(baseEvent.SoundEvent)) return null;
+        Span<char> text = stackalloc char[MaxValueLength];
+        return TryFormatValueText(baseEvent, text, out var written) ? new string(text[..written]) : null;
+    }
+
+    /// <summary>
+    ///     <see cref="FormatValueText" /> into <paramref name="destination" />, for a chunk that
+    ///     lays out hundreds of these per refill and allocates none of them. False when the badge
+    ///     is suppressed, or doesn't fit.
+    /// </summary>
+    private static bool TryFormatValueText(BaseEvent baseEvent, Span<char> destination, out int written)
+    {
+        written = 0;
+        if (baseEvent.Value == 0 && !SoundShouldAlwaysHaveValue(baseEvent.SoundEvent)) return false;
 
         if (baseEvent.SoundEvent == "!pulse")
         {
             // Same order the slot's text has: pulses first, then how many beats apart.
             var (pulses, frequency) = NormalEvent.UnpackPulse(baseEvent.Value);
-            return $"{pulses}, {frequency}";
+            return destination.TryWrite($"{pulses}, {frequency}", out written);
         }
 
-        var valueText = baseEvent.Value.ToString("0.##", CultureInfo.InvariantCulture);
-        valueText = baseEvent.ValueScale switch
+        var prefix = baseEvent.ValueScale switch
         {
-            ValueScale.Divide => "/" + valueText,
-            ValueScale.Times => "x" + valueText,
+            ValueScale.Divide => "/",
+            ValueScale.Times => "x",
             ValueScale.Add when baseEvent is { Value: > 0, SoundEvent: not null } &&
                                 baseEvent.SoundEvent.StartsWith('!')
-                => "+" + valueText,
+                => "+",
             ValueScale.None when baseEvent is { Value: > 0, SoundEvent: not null } &&
                                  !baseEvent.SoundEvent.StartsWith('!')
-                => "+" + valueText,
-            _ => valueText
+                => "+",
+            _ => ""
         };
 
-        if (baseEvent is { SoundEvent: "!volume" } and not { ValueScale: ValueScale.Times } and not
-            { ValueScale: ValueScale.Divide }) valueText += "%";
-        return valueText;
+        var suffix = baseEvent is { SoundEvent: "!volume" } and not { ValueScale: ValueScale.Times } and not
+            { ValueScale: ValueScale.Divide }
+            ? "%"
+            : "";
+        return destination.TryWrite(CultureInfo.InvariantCulture, $"{prefix}{baseEvent.Value:0.##}{suffix}",
+            out written);
     }
 
     /// <summary>The volume badge's text ("100%"), or null when the event has no explicit volume.</summary>
     public static string? FormatVolumeText(BaseEvent baseEvent)
     {
-        return baseEvent.Volume is { } volume ? string.Create(CultureInfo.InvariantCulture, $"{volume:0.##}%") : null;
+        Span<char> text = stackalloc char[MaxValueLength];
+        return TryFormatVolumeText(baseEvent, text, out var written) ? new string(text[..written]) : null;
+    }
+
+    /// <summary><see cref="FormatVolumeText" /> into <paramref name="destination" />.</summary>
+    private static bool TryFormatVolumeText(BaseEvent baseEvent, Span<char> destination, out int written)
+    {
+        written = 0;
+        return baseEvent.Volume is { } volume &&
+               destination.TryWrite(CultureInfo.InvariantCulture, $"{volume:0.##}%", out written);
     }
 
     /// <summary>
-    ///     The pan badge's text ("12&gt;" right, "&lt;12" left), or null when centered/not an
-    ///     <see cref="ExtendedEvent" />.
+    ///     The pan badge's text ("12&gt;" right, "&lt;12" left) into <paramref name="destination" />,
+    ///     or false when centered/not an <see cref="ExtendedEvent" />.
     /// </summary>
-    public static string? FormatPanText(BaseEvent baseEvent)
+    private static bool TryFormatPanText(BaseEvent baseEvent, Span<char> destination, out int written)
     {
-        if (baseEvent is not ExtendedEvent { Pan: not 0 } extendedEvent) return null;
-        var panString = Math.Abs((double)extendedEvent.TDWPan).ToString("0.##", CultureInfo.InvariantCulture);
-        return extendedEvent.Pan > 0 ? $"{panString}>" : $"<{panString}";
+        written = 0;
+        if (baseEvent is not ExtendedEvent { Pan: not 0 } extendedEvent) return false;
+
+        var pan = Math.Abs((double)extendedEvent.TDWPan);
+        return extendedEvent.Pan > 0
+            ? destination.TryWrite(CultureInfo.InvariantCulture, $"{pan:0.##}>", out written)
+            : destination.TryWrite(CultureInfo.InvariantCulture, $"<{pan:0.##}", out written);
     }
 
     private static bool SoundShouldAlwaysHaveValue(ReadOnlySpan<char> sound)
@@ -202,15 +240,19 @@ public class RenderableFactory(AtlasStore store)
     }
 
     /// <summary>
-    ///     Creates a new SoundRenderable from a given Thirty Dollar event.
+    ///     Creates a SoundRenderable from a given Thirty Dollar event, drawn by this factory's
+    ///     stacks.
     /// </summary>
-    public SoundRenderable CookUp(BaseEvent baseEvent)
+    /// <param name="baseEvent">The event.</param>
+    /// <param name="recycled">
+    ///     A <see cref="SoundRenderable.Recycle">recycled</see> renderable to cook up instead of a
+    ///     new one - a pooled chunk's, after <see cref="Clear" />.
+    /// </param>
+    public SoundRenderable CookUp(BaseEvent baseEvent, SoundRenderable? recycled = null)
     {
         var soundName = baseEvent.SoundEvent ?? throw new Exception("Sound name is null");
-        var soundRenderable = new SoundRenderable
-        {
-            IsDivider = soundName == "!divider"
-        };
+        var soundRenderable = recycled ?? new SoundRenderable();
+        soundRenderable.IsDivider = soundName == "!divider";
         var staticSoundLookup = store.StaticSounds;
 
         var renderable = store.AnimatedSounds.GetAlternateLookup<ReadOnlySpan<char>>()
@@ -221,6 +263,17 @@ public class RenderableFactory(AtlasStore store)
               throw new Exception("#missing sound is null");
 
         return renderable;
+    }
+
+    /// <summary>
+    ///     Empties every stack this factory has filled, keeping the stacks and their storage, so
+    ///     a pooled chunk can cook up its next slice into them without allocating.
+    /// </summary>
+    public void Clear()
+    {
+        foreach (var (_, stack) in StaticAtlases) stack.List.Count = 0;
+        foreach (var (_, stack) in AnimatedAtlases) stack.List.Count = 0;
+        BackgroundBlips?.List.Count = 0;
     }
 
     public TrackedBufferReference<BackgroundBlip> NewBackgroundBlip(Vector4 color)
@@ -276,31 +329,8 @@ public class RenderableFactory(AtlasStore store)
             });
 
         renderStack.List.Add(staticSound);
-
-        var trackedReference = renderStack.List.GetReferenceAt(renderStack.List.Count - 1);
-
+        soundRenderable.Bind(renderStack.List, renderStack.List.Count - 1);
         soundRenderable.Scale = (reference.Width, reference.Height, 1);
-
-        soundRenderable.GetModel = () => trackedReference.Value.Data.Model;
-        soundRenderable.SetModel = model =>
-        {
-            var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { Data = oldValue.Data with { Model = model } };
-        };
-
-        soundRenderable.GetRGBA = () => trackedReference.Value.Data.RGBA;
-        soundRenderable.SetRGBA = rgba =>
-        {
-            var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { Data = oldValue.Data with { RGBA = rgba } };
-        };
-
-        soundRenderable.GetOffsetPercentage = () => trackedReference.Value.Data.OffsetPercentage;
-        soundRenderable.SetOffsetPercentage = pct =>
-        {
-            var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { Data = oldValue.Data with { OffsetPercentage = pct } };
-        };
         return soundRenderable;
     }
 
@@ -327,29 +357,7 @@ public class RenderableFactory(AtlasStore store)
             });
 
         renderStack.List.Add(soundData);
-        var trackedReference = renderStack.List.GetReferenceAt(renderStack.List.Count - 1);
-
-        soundRenderable.GetModel = () => trackedReference.Value.Model;
-        soundRenderable.SetModel = matrix =>
-        {
-            var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { Model = matrix };
-        };
-
-        soundRenderable.GetRGBA = () => trackedReference.Value.RGBA;
-        soundRenderable.SetRGBA = rgba =>
-        {
-            var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { RGBA = rgba };
-        };
-
-        soundRenderable.GetOffsetPercentage = () => trackedReference.Value.OffsetPercentage;
-        soundRenderable.SetOffsetPercentage = pct =>
-        {
-            var oldValue = trackedReference.Value;
-            trackedReference.Value = oldValue with { OffsetPercentage = pct };
-        };
-
+        soundRenderable.Bind(renderStack.List, renderStack.List.Count - 1);
         soundRenderable.HasAnimatedTexture = true;
         return soundRenderable;
     }

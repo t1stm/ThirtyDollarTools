@@ -27,14 +27,17 @@ public class StackCollection : IDisposable, IRenderable, IClippable
 
     public void Render(Camera temporaryCamera)
     {
+        // A pooled chunk keeps the stacks of atlases its current slice no longer uses, empty.
         foreach (var (atlas, render_stack) in StaticStacks)
         {
+            if (render_stack.List.Count == 0) continue;
             atlas.Bind();
             render_stack.Render(temporaryCamera);
         }
 
         foreach (var (atlas, render_stack) in AnimatedStacks)
         {
+            if (render_stack.List.Count == 0) continue;
             atlas.Bind();
             render_stack.Shader.Use(); // one bind per stack, rather than grouping stacks by shader
 

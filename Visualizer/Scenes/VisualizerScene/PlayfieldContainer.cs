@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using Shared;
@@ -20,12 +19,10 @@ public class PlayfieldContainer(
     Vector2i initialViewport,
     Vector3? initialCameraPosition = null) : IDisposable
 {
-    private static readonly DollarStoreCamera OffscreenCamera = new((-1, -1, -1), (0, 0));
     private readonly CancellationTokenSource _tokenSource = new();
     private TimedEvents _currentEvents = new();
 
     private Playfield[] _playfields = [];
-    private bool _playfieldsUpdated;
 
     private CancellationToken Token => _tokenSource.Token;
 
@@ -107,7 +104,6 @@ public class PlayfieldContainer(
         {
             Reset();
             _playfields = playfields;
-            _playfieldsUpdated = true;
         }
 
         RegisterSequencePlayerEvents(sequencePlayer);
@@ -130,12 +126,6 @@ public class PlayfieldContainer(
             FlashOverlayPlane.Update();
             Camera.Update(deltaTime);
             StaticCamera.Update(deltaTime);
-
-            if (!_playfieldsUpdated) return;
-
-            foreach (var playfield in _playfields)
-                playfield.Render(OffscreenCamera, 0, 0);
-            _playfieldsUpdated = false;
         }
     }
 
@@ -219,30 +209,23 @@ public class PlayfieldContainer(
         player.SubscribeActionToEvent("!volume", VolumeEventHandler);
     }
 
+    /// <summary>The placement's renderable, null while its chunk isn't built - see <see cref="Playfield" />.</summary>
     private SoundRenderable? GetRenderable(Placement placement, int sequenceIndex)
     {
-        lock (_playfields)
-        {
-            if (sequenceIndex >= _playfields.Length) return null;
-
-            var playfields = _playfields.AsSpan();
-            var objects = CollectionsMarshal.AsSpan(playfields[sequenceIndex].Renderables);
-
-            var len = objects.Length;
-            var placement_idx = (int)placement.SequenceIndex;
-            var element = placement_idx >= len || placement_idx < 0 ? null : objects[placement_idx];
-
-            return element;
-        }
+        // Read once: a load swaps the array from another thread.
+        var playfields = _playfields;
+        return sequenceIndex < playfields.Length
+            ? playfields[sequenceIndex].GetRenderable((int)placement.SequenceIndex)
+            : null;
     }
 
     private void CameraBoundsCheck(Placement placement, int sequenceIndex)
     {
-        var element = GetRenderable(placement, sequenceIndex);
-        if (element == null) return;
-
-        var position = element.Position + element.Translation;
-        var scale = element.Scale;
+        // Read once: a load swaps the array from another thread.
+        var playfields = _playfields;
+        if (sequenceIndex >= playfields.Length ||
+            !playfields[sequenceIndex].TryGetBounds((int)placement.SequenceIndex, out var position, out var scale))
+            return;
 
         switch (CameraFollowMode)
         {
@@ -285,9 +268,10 @@ public class PlayfieldContainer(
     [UsedImplicitly]
     public void NormalSubscription(Placement placement, int index)
     {
+        // The camera follows playback whether or not the chunk is built yet.
+        CameraBoundsCheck(placement, index);
         var element = GetRenderable(placement, index);
         if (element == null) return;
-        CameraBoundsCheck(placement, index);
 
         if ((placement.Event.SoundEvent?.StartsWith('!') ?? false) || placement.Event is ICustomActionEvent)
         {
@@ -366,13 +350,6 @@ public class PlayfieldContainer(
 
     public void ResetAllAnimations()
     {
-        var index = 0;
-        foreach (var placement in _currentEvents.Placement)
-        {
-            var renderable = GetRenderable(placement, index);
-            renderable?.ResetAnimations();
-
-            if (placement.Event is EndEvent) index++;
-        }
+        foreach (var playfield in _playfields) playfield.ResetAnimations();
     }
 }

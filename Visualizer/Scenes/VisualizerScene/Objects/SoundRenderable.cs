@@ -3,7 +3,9 @@ using OpenTK.Mathematics;
 using Shared.Animations;
 using Sundex.Core;
 using Sundex.Core.Animations;
+using Sundex.Engine.Renderer.Data_Buffers;
 using ThirtyDollarConverter.Parser;
+using VisualizerScene.Objects.Playfield.Batch.Objects;
 using VisualizerScene.Objects.Sound_Values;
 
 namespace VisualizerScene.Objects;
@@ -34,27 +36,65 @@ public sealed class SoundRenderable : Renderable
         Scale = (widthHeight.X, widthHeight.Y, 1);
     }
 
+    private static readonly SoundData Unbound = new() { Model = Matrix4.Identity, RGBA = Vector4.One };
+
+    // The instance this renderable draws with: a slot of one of its chunk's render stacks, set
+    // by RenderableFactory.CookUp. Held as list + index rather than closures over a tracked
+    // reference - those were seven objects per sound, and a long song has millions of sounds.
+    private GLBufferList<StaticSound>? _staticList;
+    private GLBufferList<SoundData>? _animatedList;
+    private int _dataIndex;
+
     public ISoundValue? Value { get; set; }
     public NormalText? Pan { get; set; }
     public NormalText? Volume { get; set; }
 
-    public Func<Matrix4> GetModel { get; set; } = () => Matrix4.Identity;
-    public Func<Vector4> GetRGBA { get; set; } = () => Vector4.One;
-    public Func<float> GetOffsetPercentage { get; set; } = () => 0f;
-    public Action<Matrix4> SetModel { get; set; } = _ => { };
-    public Action<Vector4> SetRGBA { get; set; } = _ => { };
-    public Action<float> SetOffsetPercentage { get; set; } = _ => { };
+    /// <summary>
+    ///     The text this renderable showed before its last <see cref="Recycle" />, for
+    ///     <see cref="VisualizerScene.Objects.Playfield.Batch.Chunks.RenderableFactory.AssignTextBuffers" /> to fill again
+    ///     instead of allocating.
+    /// </summary>
+    internal NormalText? SpareValue, SpareVolume, SparePan;
+
+    private SoundData Data
+    {
+        get => _staticList is { } statics ? statics[_dataIndex].Data :
+            _animatedList is { } animated ? animated[_dataIndex] : Unbound;
+        set
+        {
+            if (_staticList is { } statics)
+            {
+                var sound = statics[_dataIndex];
+                sound.Data = value;
+                statics[_dataIndex] = sound;
+            }
+            else
+            {
+                _animatedList?[_dataIndex] = value;
+            }
+        }
+    }
 
     public override Matrix4 Model
     {
-        get => GetModel.Invoke();
-        set => SetModel.Invoke(value);
+        get => Data.Model;
+        set
+        {
+            var data = Data;
+            data.Model = value;
+            Data = data;
+        }
     }
 
     public override Vector4 Color
     {
-        get => GetRGBA();
-        set => SetRGBA(value);
+        get => Data.RGBA;
+        set
+        {
+            var data = Data;
+            data.RGBA = value;
+            Data = data;
+        }
     }
 
     public override Vector3 Scale
@@ -76,6 +116,54 @@ public sealed class SoundRenderable : Renderable
     private void ResetAnimationState()
     {
         _resetAnimationState = true;
+    }
+
+    /// <summary>Draws with slot <paramref name="index" /> of a static atlas's stack.</summary>
+    internal void Bind(GLBufferList<StaticSound> list, int index)
+    {
+        _staticList = list;
+        _animatedList = null;
+        _dataIndex = index;
+    }
+
+    /// <summary>Draws with slot <paramref name="index" /> of an animated atlas's stack.</summary>
+    internal void Bind(GLBufferList<SoundData> list, int index)
+    {
+        _animatedList = list;
+        _staticList = null;
+        _dataIndex = index;
+    }
+
+    public void SetOffsetPercentage(float percentage)
+    {
+        var data = Data;
+        data.OffsetPercentage = percentage;
+        Data = data;
+    }
+
+    /// <summary>
+    ///     Clears this renderable for a pooled chunk to cook it up as another event: unbound,
+    ///     animations stopped, no text - its text objects kept as spares.
+    /// </summary>
+    public SoundRenderable Recycle()
+    {
+        ResetAnimations();
+        _resetAnimationState = false;
+        _bounceScale = 1f;
+
+        if (Value is NormalText value) SpareValue = value;
+        SpareVolume = Volume ?? SpareVolume;
+        SparePan = Pan ?? SparePan;
+        Value = null;
+        Volume = null;
+        Pan = null;
+
+        IsDivider = false;
+        HasAnimatedTexture = false;
+        Translation = Vector3.Zero;
+        _staticList = null;
+        _animatedList = null;
+        return this;
     }
 
     public override void Update()
