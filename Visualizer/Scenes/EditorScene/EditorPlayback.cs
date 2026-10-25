@@ -471,6 +471,25 @@ public class EditorPlayback
     }
 
     /// <summary>
+    ///     How long <see cref="ExportWav" /> would make the file: the same sequence - the whole
+    ///     project, mutes ignored - placed and voiced but not mixed, measured as
+    ///     <see cref="LengthMs" />. Resamples from a copy of the playback's cache, taken only while
+    ///     no render is working on it.
+    /// </summary>
+    public Task<long> ExportLengthMs()
+    {
+        var merged = _state.Project.ToSequence();
+        var cache = !_rendering && _rendered is { } rendered
+            ? new Dictionary<(string, double), ProcessedEvent>(rendered.ProcessedEvents)
+            : null;
+        return Task.Run(async () =>
+        {
+            using var voices = await Encoder.BuildVoices([merged], cache);
+            return LengthMs(voices);
+        });
+    }
+
+    /// <summary>
     ///     Decodes a wave file (or answers from the cache) and reports its length in seconds;
     ///     null when it could not be read, in which case the failure has already been raised as
     ///     an error. Adding a wave track needs the length before the clip can draw.

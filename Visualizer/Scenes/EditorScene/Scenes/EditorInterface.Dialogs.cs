@@ -611,10 +611,18 @@ public partial class EditorInterface
         dialog.ProjectLabel.SetTextContents(State.Project.Info.Name);
         if (State.Project.Tracks.All(track => track.Kind != TrackKind.Wave))
             dialog.Element.RemoveChild(dialog.WaveNote);
+        dialog.SetTracks(State.Project.Tracks.Count(track => track.Kind != TrackKind.Wave));
 
         // Exports land next to the project file; an unsaved project has none and opens home.
         var directory = Path.GetDirectoryName(State.ProjectPath);
-        var modal = _dialogHost.Show(dialog.Element);
+        var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
+
+        // Measured off the update thread; the answer comes back onto it like any other edit.
+        Playback.ExportLengthMs().ContinueWith(length =>
+        {
+            var ms = length.IsCompletedSuccessfully ? length.Result : (long?)null;
+            _pendingEdits.Enqueue(() => dialog.SetLength(ms));
+        });
         modal.OnConfirmRequested = _ => Export();
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
         dialog.ExportButton.OnClick = _ => Export();

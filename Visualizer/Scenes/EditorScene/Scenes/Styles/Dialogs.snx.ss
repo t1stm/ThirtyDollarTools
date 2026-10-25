@@ -554,6 +554,12 @@ class export-row-input {
     width = 180;
 }
 
+// A fact in a field's place: the audio export's length and tracks, level with the labels.
+class export-row-value {
+    x = 150;
+    y = 9;
+}
+
 // A line of icon and text: the checkbox's, the .wav note's.
 class export-line {
     width = 100%;
