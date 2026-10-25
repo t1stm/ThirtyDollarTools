@@ -128,13 +128,15 @@ public sealed class DialogHost(UIContext context, Panel root)
     }
 
     /// <summary>
-    ///     Generic yes/no confirmation; closes itself either way. Enter confirms, and Esc or the
-    ///     backdrop cancel as the Cancel button does, <paramref name="onCancel" /> included.
+    ///     Generic yes/no confirmation; closes itself either way. Enter confirms, and Esc, the ×
+    ///     or the backdrop cancel as the Cancel button does, <paramref name="onCancel" /> included.
     /// </summary>
-    public void Confirm(string message, Action onConfirm, Action? onCancel = null,
+    /// <param name="title">The question, as the dialog's title.</param>
+    /// <param name="message">What saying yes does, under it.</param>
+    public void Confirm(string title, string message, Action onConfirm, Action? onCancel = null,
         string confirmLabel = "Delete", string confirmClass = "dialog-button-danger")
     {
-        var dialog = new ConfirmDialog(context, message, confirmLabel, confirmClass);
+        var dialog = new ConfirmDialog(context, title, message, confirmLabel, confirmClass);
         var modal = Show(dialog.Element);
         modal.OnDismissRequested = _ => Cancel();
         modal.OnConfirmRequested = _ => Accept();
@@ -221,7 +223,7 @@ public sealed class DialogHost(UIContext context, Panel root)
                         // Percent-wide and clipped, so a long file name stops short of the ×.
                         new FlexPanel(context)
                         {
-                            Classes = ["alert-title"],
+                            Classes = ["dialog-title-clip"],
                             Children = [new ClippedLabel(context, title) { Classes = ["dialog-title"] }]
                         },
                         close

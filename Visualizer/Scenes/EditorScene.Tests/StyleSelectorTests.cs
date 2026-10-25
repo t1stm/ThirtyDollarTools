@@ -52,7 +52,7 @@ public class StyleSelectorTests
     {
         var ctx = new EditorTestContext();
 
-        yield return new ConfirmDialog(ctx, "Delete this?").Element;
+        yield return new ConfirmDialog(ctx, "Delete this?", "It goes for good.").Element;
         yield return new UnsavedChangesDialog(ctx).Element;
         yield return new DuplicateTrackDialog(ctx, "Track", "Track copy").Element;
         // Each way's preview and facts show only while it is picked. This file has a snapped

@@ -147,7 +147,12 @@ class empty-state-text {
 // ---------------------------------------------------------------- per dialog
 
 id confirm-dialog {
-    width = 360;
+    width = 380;
+}
+
+// The frame's 380 less its 16 padding a side.
+class confirm-message {
+    wrap-width = 348;
 }
 
 id alert-dialog {
@@ -160,9 +165,9 @@ class alert-icon {
     font-color = $theme.danger;
 }
 
-// The title takes the header's free space and clips there, so a long file name stops short
-// of the ×.
-class alert-title {
+// A title that can carry a long name (the alert's file, the confirm's instrument): it takes the
+// header's free space and clips there, so the name stops short of the ×.
+class dialog-title-clip {
     width = 100%;
     height = 28;
     vertical-align = "center";

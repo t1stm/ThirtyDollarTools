@@ -46,12 +46,12 @@ public class DialogHostTests
         var confirmed = 0;
         var cancelled = 0;
 
-        host.Confirm("Delete this?", () => confirmed++, () => cancelled++);
+        host.Confirm("Delete this?", "It goes for good.", () => confirmed++, () => cancelled++);
         Assert.True(host.TryConfirmTop());
         Assert.Equal((1, 0), (confirmed, cancelled));
         Assert.False(host.HasOpenModal);
 
-        host.Confirm("Delete this?", () => confirmed++, () => cancelled++);
+        host.Confirm("Delete this?", "It goes for good.", () => confirmed++, () => cancelled++);
         Assert.True(host.TryCloseTop());
         Assert.Equal((1, 1), (confirmed, cancelled));
         Assert.False(host.HasOpenModal);
@@ -93,17 +93,10 @@ public class DialogHostTests
         Assert.Equal(1, dismissed);
     }
 
-    /// <summary>
-    ///     The documents still without the shared header, each until its own rework. Remove a
-    ///     dialog from here when it gets one; a new dialog never belongs here.
-    /// </summary>
-    private static readonly string[] HeaderPending =
-        ["Confirm_Dialog"];
-
     public static TheoryData<string> DialogDocuments() =>
     [
         .. typeof(EditorInterface).Assembly.GetManifestResourceNames()
-            .Where(n => n.Contains(".Dialogs.") && n.EndsWith(".snx.xml") && !HeaderPending.Any(n.Contains))
+            .Where(n => n.Contains(".Dialogs.") && n.EndsWith(".snx.xml"))
     ];
 
     /// <summary>A dialog's × is what lets a mouse user out; DialogHost.Show wires it by id.</summary>

@@ -77,8 +77,7 @@ public sealed class InstrumentWorkflow
             // down while the confirm dialog is up and goes back afterwards either way.
             dialogHost.Root.RemoveChild(_instrumentSelectorModal);
 
-            dialogHost.Confirm($"Delete \"{instrument.Name}\"?\n" +
-                               "This removes it from every note that uses it.",
+            dialogHost.Confirm($"Delete “{instrument.Name}”?", "This removes it from every note that uses it.",
                 () =>
                 {
                     state.DeleteInstrumentEverywhere(instrument);

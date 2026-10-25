@@ -137,8 +137,7 @@ public partial class EditorInterface
     /// </summary>
     public void ConfirmImportSequenceFile(string path)
     {
-        _dialogHost.Confirm($"\"{Path.GetFileName(path)}\" has no file extension.\n" +
-                            $"Import it as a TDW sequence?",
+        _dialogHost.Confirm("Import it as a TDW sequence?", $"“{Path.GetFileName(path)}” has no file extension.",
             () => ImportSequenceFile(path),
             confirmLabel: "Continue", confirmClass: "dialog-button-primary");
     }
