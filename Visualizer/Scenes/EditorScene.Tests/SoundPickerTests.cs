@@ -69,6 +69,41 @@ public class SoundPickerTests
         Assert.Empty(picker.Children); // no Selected section, and no icons without atlases
     }
 
+    [Fact]
+    public void MarkInPlace_KeepsAPickInTheGrid_AndReportsTheChange()
+    {
+        var picker = NewPicker(new EditorTestContext());
+        picker.MarkInPlace = true;
+        var changes = 0;
+        picker.OnInstancesChanged = () => changes++;
+
+        picker.SetSelected(["clap"]);
+
+        Assert.Equal(["kick", "clap", "noteblock_harp", "noteblock_bell"], picker.AvailableSounds);
+        Assert.Equal(["clap"], picker.Selected);
+        Assert.Equal(1, changes);
+        Assert.DoesNotContain(picker.Tray, picker.Children); // the host mounts the tray
+    }
+
+    [Fact]
+    public void AFilterThatMatchesNothing_SaysSo_AndOffersToClearIt()
+    {
+        var picker = NewPicker(new EditorTestContext());
+        var cleared = 0;
+        picker.OnClearFilter = () => cleared++;
+
+        picker.Filter("zzz");
+
+        var noMatch = Assert.Single(picker.Children);
+        Assert.Contains("sound-picker-no-match", noMatch.Classes);
+        var clear = ((Sundex.Components.Panels.Panel)noMatch).Children.OfType<Sundex.Components.Labels.Button>().Single();
+        clear.OnClick!(clear);
+        Assert.Equal(1, cleared);
+
+        picker.Filter("");
+        Assert.DoesNotContain(noMatch, picker.Children);
+    }
+
     [Theory]
     [InlineData("noteblock", new[] { "noteblock_harp", "noteblock_bell" })]
     [InlineData("  BELL ", new[] { "noteblock_bell" })] // trimmed, any case

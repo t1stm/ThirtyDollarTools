@@ -89,6 +89,32 @@ class form-row-input {
     x = 190;
 }
 
+// A search field: the magnifier, then the text. The instrument editor's and the sound
+// filter's sound filters.
+class filter-field {
+    width = 230;
+    height = 32;
+    padding = 10;
+    spacing = 8;
+    vertical-align = "center";
+    border-radius = 6;
+    background = $theme.input_background;
+}
+
+class filter-field-icon {
+    font-size = 14;
+    font-color = $theme.text_dim;
+}
+
+class filter-field-input {
+    width = 100%;
+    height = 24;
+    padding = 2;
+    font-size = 14;
+    placeholder-color = $theme.text_muted;
+    background = "#00000000";
+}
+
 // What a list shows while it is empty (EmptyState.cs): an icon and one line, centred in the
 // room the list would take. Side by side for a row-high strip, stacked for a pane.
 class empty-state {
@@ -1064,17 +1090,27 @@ class instrument-selector-empty {
 
 id sound-filter-frame {
     width = 640;
-    padding = 10;
-    spacing = 8;
+    spacing = 12;
 }
 
+// The picks, one row tall from the start, so the grid under it never moves when one is
+// added. More than a row scrolls.
+id sound-filter-tray {
+    width = 100%;
+    height = 58;
+    padding = 4;
+    border-radius = 8;
+    background = $theme.background;
+}
+
+// Percent-wide, so the scroll bar sits inside the frame's padding.
 id sound-filter-list {
-    width = 640;
-    height = 440;
+    width = 100%;
+    height = 360;
 }
 
 id sound-filter-picker {
-    width = 640;
+    width = 100%;
 }
 
 // ---------------------------------------------------------------- file dialog

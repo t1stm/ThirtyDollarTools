@@ -78,6 +78,24 @@ class danger-label {
     font-color = $theme.danger;
 }
 
+// A reset or a way out that must not compete with the main choice (the sound filter's Clear):
+// no fill until hovered, a dim label (quiet-label), 14 at the sides like the quiet danger one.
+class dialog-button-quiet {
+    height = 34;
+    padding = 14;
+    font-size = 14;
+    border-radius = 8;
+    background = "#00000000";
+
+    state[hovered] = {
+        background = $theme.divider;
+    }
+}
+
+class quiet-label {
+    font-color = $theme.text_dim;
+}
+
 // The light-blue action (Duplicate, the builder's Preview). Also needs a dark label.
 class dialog-button-light {
     height = 34;

@@ -47,9 +47,9 @@
           <flex class="instrument-add-header">
             <label class="instrument-section-title" value="Add a sound"/>
             <panel class="spacer"/>
-            <flex class="instrument-filter">
-              <label class="instrument-filter-icon" font="Lucide" value="&#xe151;"/>
-              <text-input id="filter-input" class="instrument-filter-input"/>
+            <flex class="filter-field">
+              <label class="filter-field-icon" font="Lucide" value="&#xe151;"/>
+              <text-input id="filter-input" class="filter-field-input"/>
             </flex>
           </flex>
 

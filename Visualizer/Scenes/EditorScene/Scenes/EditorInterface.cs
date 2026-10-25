@@ -102,7 +102,7 @@ public partial class EditorInterface
         // nothing about their rectangles changes when it does.
         faithfulScale.Changed += _faithfulPalette.RefreshScale;
         _soundFilterPicker = new SoundPicker(context, workflow.AtlasStore)
-            { ID = "sound-filter-picker", MultiSelect = true };
+            { ID = "sound-filter-picker", MultiSelect = true, MarkInPlace = true };
         _toolSwitch = new ToolSwitch(context) { OnPick = SelectTool, OnHint = SetHint };
         _toolSwitch.SetActive(State.ActiveTool);
 
@@ -155,7 +155,8 @@ public partial class EditorInterface
             () => ArrangementPanel, () => TrackEditorPanel, () => OpenedTrackName, () => InstrumentButton,
             () => FaithfulPanel, () => FaithfulBody, () => FaithfulTrackName,
             () => InspectorPanelElement, () => InspectorRows, () => InspectorStatusBar, () => InspectorStatusLabel,
-            () => SoundFilterModal);
+            () => SoundFilterModal, () => SoundFilterTray, () => SoundFilterCount, () => SoundFilterInput,
+            () => SoundFilterClear, () => SoundFilterDone);
         _transport = new TransportController(Playback,
             TransportProgress, TransportElapsed, TransportTotal, TransportPlay);
         _hint = new HintBarController(context, HintBar, HintGutter, HintLines, HintLabel, _gridArea, HeaderHeight);
@@ -168,6 +169,7 @@ public partial class EditorInterface
         _gridArea.RemoveChild(TrackEditorPanel);
         _gridArea.RemoveChild(FaithfulPanel);
         RootPanel.RemoveChild(SoundFilterModal);
+        WireSoundFilter();
 
         RootPanel.DrawTo(context);
         _dialogHost = new DialogHost(context, RootPanel);
@@ -205,6 +207,7 @@ public partial class EditorInterface
                     EnsureSoundFilterItems();
                     _editingTrackAutomation = automation;
                     _soundFilterPicker.SetSelected(automation.Sounds ?? []);
+                    SoundFilterInput.Value = "";
                     RootPanel.AddChild(SoundFilterModal);
                 },
                 OnReassignInstrument = notes => _instrumentWorkflow.OpenSelector(notes),
@@ -299,6 +302,11 @@ public partial class EditorInterface
     [SetFromLogic] public Label HintLabel { get; set; } = null!;
 
     [SetFromLogic] public ModalLayer SoundFilterModal { get; set; } = null!;
+    [SetFromLogic] public ScrollView SoundFilterTray { get; set; } = null!;
+    [SetFromLogic] public Label SoundFilterCount { get; set; } = null!;
+    [SetFromLogic] public TextInput SoundFilterInput { get; set; } = null!;
+    [SetFromLogic] public Button SoundFilterClear { get; set; } = null!;
+    [SetFromLogic] public Button SoundFilterDone { get; set; } = null!;
 
     [SetFromLogic] public Panel InspectorPanelElement { get; set; } = null!;
     [SetFromLogic] public ScrollView InspectorRows { get; set; } = null!;

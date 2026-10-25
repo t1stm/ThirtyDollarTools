@@ -1,5 +1,7 @@
 using JetBrains.Annotations;
 using OpenTK.Windowing.Common;
+using Sundex.Components;
+using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
@@ -43,7 +45,37 @@ public partial class EditorInterface
         return _workflow.SampleHolder.StringToSoundReferences.Values.Distinct().OrderBy(sound => sound.Id);
     }
 
-    /// <summary>Public because SoundFilter.snx.csx wires both the Done button and the backdrop dismiss to it.</summary>
+    /// <summary>The sound filter's tray stand-in while nothing is picked.</summary>
+    private FlexPanel _soundFilterEmpty = null!;
+
+    /// <summary>
+    ///     The sound filter's parts that need the picker, which the markup can't reach: the tray
+    ///     the picks show in, the count, the filter field and Clear.
+    /// </summary>
+    private void WireSoundFilter()
+    {
+        _soundFilterEmpty = EmptyState.Build(_context, Icons.MousePointer2,
+            "Nothing picked yet. Click sounds below to add them.", stacked: false);
+        SoundFilterInput.Placeholder = "Filter sounds";
+        SoundFilterInput.OnValueChanged = input => _soundFilterPicker.Filter(input.Value);
+        _soundFilterPicker.OnClearFilter = () => SoundFilterInput.Value = "";
+        _soundFilterPicker.OnInstancesChanged = RefreshSoundFilterPicks;
+        SoundFilterClear.OnClick = _ => _soundFilterPicker.SetSelected([]);
+        KeyChip.Add(SoundFilterDone, "Enter");
+        RefreshSoundFilterPicks();
+    }
+
+    private void RefreshSoundFilterPicks()
+    {
+        var picked = _soundFilterPicker.Instances.Count;
+        SoundFilterCount.SetTextContents($"{picked} picked");
+        UIElement shown = picked > 0 ? _soundFilterPicker.Tray : _soundFilterEmpty;
+        UIElement hidden = picked > 0 ? _soundFilterEmpty : _soundFilterPicker.Tray;
+        if (hidden.Parent == SoundFilterTray) SoundFilterTray.RemoveChild(hidden);
+        if (shown.Parent != SoundFilterTray) SoundFilterTray.AddChild(shown);
+    }
+
+    /// <summary>Public because SoundFilter.snx.csx wires every way out of the sound filter to it.</summary>
     [UsedImplicitly]
     public void CommitAndCloseSoundFilter()
     {

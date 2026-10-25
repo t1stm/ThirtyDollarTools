@@ -306,29 +306,6 @@ class instrument-add-header {
 }
 
 // 10 at the sides; the contents are centred, so the same 10 at the top is harmless.
-class instrument-filter {
-    width = 230;
-    height = 32;
-    padding = 10;
-    spacing = 8;
-    vertical-align = "center";
-    border-radius = 6;
-    background = $theme.input_background;
-}
-
-class instrument-filter-icon {
-    font-size = 14;
-    font-color = $theme.text_dim;
-}
-
-class instrument-filter-input {
-    width = 100%;
-    height = 24;
-    padding = 2;
-    font-size = 14;
-    placeholder-color = $theme.text_muted;
-    background = "#00000000";
-}
 
 // A3 pads the grid 10. A scroll view also insets its content 6 from the left for its bar,
 // so 4 here and 4 on the picker put the icons 14 in from the left and 8 from the top.

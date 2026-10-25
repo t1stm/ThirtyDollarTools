@@ -120,6 +120,7 @@ public sealed class InstrumentEditor : FlexPanel
         FilterInput = tree.GetID<TextInput>("filter-input");
         FilterInput.Placeholder = "Filter sounds";
         FilterInput.OnValueChanged = input => AvailablePicker.Filter(input.Value);
+        AvailablePicker.OnClearFilter = () => FilterInput.Value = "";
 
         // ---- right
         _allHeader = tree.GetID<Label>("all-header");

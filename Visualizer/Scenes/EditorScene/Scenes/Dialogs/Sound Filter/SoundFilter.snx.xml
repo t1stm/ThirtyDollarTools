@@ -9,12 +9,41 @@
          and detached straight away; EditorInterface attaches it when a filter is edited. -->
     <modal id="sound-filter-modal">
       <flex id="sound-filter-frame" class="dialog-frame">
+        <flex class="dialog-header">
+          <label class="dialog-title" value="Sounds to automate"/>
+          <!-- "N picked", kept by EditorInterface as the picks change. -->
+          <flex class="info-chip">
+            <label id="sound-filter-count" class="info-chip-label" value=""/>
+          </flex>
+          <panel class="spacer"/>
+          <flex class="filter-field">
+            <label class="filter-field-icon" font="Lucide" value="&#xe151;"/>
+            <text-input id="sound-filter-input" class="filter-field-input"/>
+          </flex>
+          <button id="close-button" class="icon-button">
+            <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+          </button>
+        </flex>
+
+        <!-- The picks in pick order, or a line saying there are none; filled by
+             EditorInterface. Always one row tall, so the grid below never shifts. -->
+        <scroll-view id="sound-filter-tray"/>
+
         <scroll-view id="sound-filter-list">
           <sound-picker/>
         </scroll-view>
-        <button id="sound-filter-done">
-          <label value="Done"/>
-        </button>
+
+        <!-- Clear stands apart: it resets the picks, it isn't a way out. Leaving any way
+             commits, so there is no Cancel. The Enter chip is added by EditorInterface. -->
+        <flex class="dialog-actions-split">
+          <button id="sound-filter-clear" class="dialog-button-quiet">
+            <label class="quiet-label" value="Clear"/>
+          </button>
+          <panel class="spacer"/>
+          <button id="sound-filter-done" class="dialog-button-primary">
+            <label value="Done"/>
+          </button>
+        </flex>
       </flex>
     </modal>
   </layout>

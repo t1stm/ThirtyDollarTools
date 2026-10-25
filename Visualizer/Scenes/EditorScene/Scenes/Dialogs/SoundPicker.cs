@@ -5,6 +5,8 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
+using EditorScene.Scenes.Components;
+using Sundex.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
@@ -14,7 +16,9 @@ namespace EditorScene.Scenes.Dialogs;
 ///     In multi-select mode, the picker splits into a "Selected" grid - one icon per
 ///     <see cref="InstrumentSound" /> in <see cref="Instances" /> - and an "Available" grid
 ///     holding every sound that has no instance yet. With <see cref="AvailableOnly" /> the
-///     Selected grid is left out: the instrument editor lists its sounds as rows instead.
+///     Selected grid is left out: the instrument editor lists its sounds as rows instead. With
+///     <see cref="MarkInPlace" /> picks stay in the one grid, marked, and the host shows the
+///     Selected grid (<see cref="Tray" />) wherever it wants it.
 /// </summary>
 public sealed class SoundPicker : FlexPanel
 {
@@ -29,8 +33,10 @@ public sealed class SoundPicker : FlexPanel
     private readonly Dictionary<string, SoundIcon> _availableIcons = [];
     private readonly Dictionary<string, string> _idByName = [];
     private readonly SoundImages _images;
+    private readonly FlexPanel _noMatch;
+    private readonly Label _noMatchLabel;
     private readonly List<string> _order = [];
-    private readonly FlexPanel _selectedGrid;
+    private readonly TrayGrid _selectedGrid;
     private readonly Label _selectedHeader;
     private readonly Dictionary<string, Sound> _soundsById = [];
     private string _filter = "";
@@ -42,8 +48,18 @@ public sealed class SoundPicker : FlexPanel
 
         _selectedHeader = new Label(context, "Selected") { Classes = ["sound-section-header"] };
         _availableHeader = new Label(context, "Available") { Classes = ["sound-section-header"] };
-        _selectedGrid = NewGrid(context);
+        _selectedGrid = new TrayGrid(context, store);
         _availableGrid = NewGrid(context);
+
+        _noMatch = EmptyState.Build(context, Icons.SearchX, "");
+        _noMatch.SetClass("sound-picker-no-match", true);
+        _noMatchLabel = (Label)_noMatch.Children[1];
+        _noMatch.AddChild(new Button(context, "Clear filter")
+        {
+            Classes = ["dialog-button-quiet"],
+            Label = { Classes = ["quiet-label"] },
+            OnClick = _ => OnClearFilter?.Invoke()
+        });
     }
 
     /// <summary>Fired with the sound's name when an icon is clicked (single-select mode).</summary>
@@ -64,6 +80,22 @@ public sealed class SoundPicker : FlexPanel
 
     /// <summary>Fired with the instance a click on an Available icon just added.</summary>
     public Action<InstrumentSound>? OnInstanceAdded { get; set; }
+
+    /// <summary>
+    ///     Multi-select where a pick stays where it is in the grid, ringed and checked, and a
+    ///     second click unpicks it - so a pick never moves the icon under the pointer. The picker
+    ///     then shows no Selected section of its own; the host mounts <see cref="Tray" />.
+    /// </summary>
+    public bool MarkInPlace { get; set; }
+
+    /// <summary>The picks, one icon each in pick order; a click unpicks. Mounted by the host under <see cref="MarkInPlace" />.</summary>
+    public FlexPanel Tray => _selectedGrid;
+
+    /// <summary>Fired after <see cref="Instances" /> changed, by a click or a reseed.</summary>
+    public Action? OnInstancesChanged { get; set; }
+
+    /// <summary>The no-match state's Clear filter button; the host owns the field, so it clears it.</summary>
+    public Action? OnClearFilter { get; set; }
 
     /// <summary>
     ///     The picked sounds, in grid order, each with its own value/volume/pan. The same
@@ -89,7 +121,9 @@ public sealed class SoundPicker : FlexPanel
     ///     atlases have no image for yet is listed here but gets no icon.
     /// </summary>
     public IEnumerable<string> AvailableSounds => _order.Where(name =>
-        !(MultiSelect && Instances.Any(instance => instance.Sound == name)) && Matches(_soundsById[name]));
+        !(MultiSelect && !MarkInPlace && IsPicked(name)) && Matches(_soundsById[name]));
+
+    private bool IsPicked(string name) => Instances.Any(instance => instance.Sound == name);
 
     /// <summary>Whether any text the sound carries - ID, name, source or a tag - contains the filter.</summary>
     private bool Matches(Sound sound)
@@ -193,6 +227,7 @@ public sealed class SoundPicker : FlexPanel
         SyncSelected();
         SyncAvailable();
         RefreshSections();
+        OnInstancesChanged?.Invoke();
     }
 
     private void SyncSelected()
@@ -238,6 +273,7 @@ public sealed class SoundPicker : FlexPanel
         }
 
         if (!_availableGrid.Children.SequenceEqual(ordered)) _availableGrid.Children = ordered;
+        foreach (var (name, icon) in _availableIcons) icon.SetPicked(MarkInPlace && IsPicked(name));
     }
 
     /// <summary>
@@ -247,7 +283,7 @@ public sealed class SoundPicker : FlexPanel
     private void RefreshSections()
     {
         var desired = new List<UIElement>();
-        var showSelected = _selectedGrid.Children.Count > 0;
+        var showSelected = !MarkInPlace && _selectedGrid.Children.Count > 0;
         if (showSelected)
         {
             desired.Add(_selectedHeader);
@@ -258,6 +294,11 @@ public sealed class SoundPicker : FlexPanel
         {
             if (showSelected) desired.Add(_availableHeader);
             desired.Add(_availableGrid);
+        }
+        else if (_filter.Length > 0)
+        {
+            _noMatchLabel.SetTextContents($"No sounds match “{_filter}”.");
+            desired.Add(_noMatch);
         }
 
         if (Children.SequenceEqual(desired)) return;
@@ -282,7 +323,9 @@ public sealed class SoundPicker : FlexPanel
     private SoundIcon? CreateIcon(string soundName, InstrumentSound? instance)
     {
         if (!_soundsById.TryGetValue(soundName, out var sound)) return null;
-        var quad = _images.Add(sound.Filename);
+        // A Selected icon draws from the Selected grid's own batch, so it shows under that
+        // grid's clip wherever the host mounts it (the sound filter's tray).
+        var quad = (instance == null ? _images : _selectedGrid.Images).Add(sound.Filename);
         return quad == null ? null : new SoundIcon(Context, this, soundName, instance, quad);
     }
 
@@ -318,6 +361,7 @@ public sealed class SoundPicker : FlexPanel
         {
             SoundName = soundName;
             Instance = instance;
+            Classes = ["sound-icon"];
             UpdateCursorOnHover = true;
             OnClick = _ =>
             {
@@ -333,6 +377,12 @@ public sealed class SoundPicker : FlexPanel
                     return;
                 }
 
+                if (picker.MarkInPlace && picker.Instances.FirstOrDefault(i => i.Sound == soundName) is { } picked)
+                {
+                    picker.RemoveInstance(picked);
+                    return;
+                }
+
                 var added = picker.AddInstance(soundName);
                 picker.OnInstanceAdded?.Invoke(added);
             };
@@ -342,5 +392,56 @@ public sealed class SoundPicker : FlexPanel
 
         /// <summary>The instance this icon shows, or null for an Available icon.</summary>
         public InstrumentSound? Instance { get; }
+
+        private FlexPanel? _check;
+
+        /// <summary>Rings the icon and puts a check on its corner while its sound is picked (<see cref="MarkInPlace" />).</summary>
+        public void SetPicked(bool picked)
+        {
+            SetClass("sound-icon-picked", picked);
+            if (picked == (_check?.Parent != null)) return;
+            _check ??= new FlexPanel(Context)
+            {
+                Classes = ["sound-icon-check"],
+                X = SoundElementSize - 13,
+                Y = -1,
+                Children = [new Label(Context, Icons.Check, Icons.Font) { Classes = ["sound-icon-check-glyph"] }]
+            };
+            if (picked) AddChild(_check);
+            else RemoveChild(_check);
+        }
+    }
+
+    /// <summary>
+    ///     The Selected grid, with its own image batch: under <see cref="MarkInPlace" /> it lives
+    ///     outside the picker, where the picker's batch and clip can't reach.
+    /// </summary>
+    private sealed class TrayGrid : FlexPanel
+    {
+        public TrayGrid(UIContext context, AtlasStore store) : base(context)
+        {
+            Images = new SoundImages(context, store);
+            Classes = ["sound-grid"];
+        }
+
+        public SoundImages Images { get; }
+
+        protected override void DrawSelf(UIContext context)
+        {
+            base.DrawSelf(context);
+            context.QueueRender(Images.Stacks, Index);
+        }
+
+        public override void StopRendering()
+        {
+            Context.DequeueRender(Images.Stacks, Index);
+            base.StopRendering();
+        }
+
+        public override void ApplyClip(Vector4i? clip)
+        {
+            Images.Stacks.ClipRect = clip;
+            base.ApplyClip(clip);
+        }
     }
 }
