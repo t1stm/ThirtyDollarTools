@@ -1,0 +1,35 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Dialogs/Dialogs.snx.ss"/>
+
+  <layout>
+    <flex id="duplicate-track-dialog" class="dialog-frame">
+      <flex class="dialog-header">
+        <label class="dialog-title" value="Duplicate track"/>
+        <!-- The track being copied, set by DuplicateTrackDialog.cs. -->
+        <flex class="info-chip">
+          <label id="source-label" class="info-chip-label" value=""/>
+        </flex>
+        <panel class="spacer"/>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
+
+      <flex class="dialog-row">
+        <label class="field-label" value="Name"/>
+        <!-- Prefilled with the copy's suggested name by DuplicateTrackDialog.cs after the build. -->
+        <text-input id="duplicate-name-input"/>
+      </flex>
+
+      <!-- The Esc and Enter chips are added by DuplicateTrackDialog.cs. -->
+      <flex class="dialog-actions">
+        <button id="cancel-button" class="dialog-button">
+          <label value="Cancel"/>
+        </button>
+        <button id="duplicate-button" class="dialog-button-primary">
+          <label value="Duplicate"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

@@ -350,12 +350,11 @@ class color-chip {
     border-radius = 4;
 }
 
-id track-context-menu {
-    width = 280;
-    spacing = 12;
+id duplicate-track-dialog {
+    width = 380;
 }
 
-// The new name spans the menu's width.
+// The new name takes the row's width after its label.
 id duplicate-name-input {
     width = 100%;
 }
