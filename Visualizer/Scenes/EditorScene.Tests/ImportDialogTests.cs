@@ -52,7 +52,8 @@ public class ImportDialogTests
         var texts = Texts(NewDialog());
 
         Assert.Contains("Import", texts);
-        Assert.Contains("epic-sequence.tdw", texts);
+        Assert.Contains("epic-sequence", texts); // the base name; the chip says what it is
+        Assert.Contains("TDW sequence", texts);
     }
 
     [Fact]
@@ -174,7 +175,33 @@ public class ImportDialogTests
 
         dialog.Mode = ImportMode.Track;
 
-        Assert.Contains("No sounds found in this sequence.", Texts(dialog));
+        // One problem, then what to do instead - not two warnings.
+        Assert.Contains("Can't go on a grid: no sounds found in this sequence.", Texts(dialog));
+        Assert.Contains("Import it as a Faithful track instead.", Texts(dialog));
         Assert.DoesNotContain(Texts(dialog), text => text.StartsWith("Starts at"));
+    }
+
+    [Fact]
+    public void AWayThatCantImport_IsMarked_AndItsButtonIsDisabled()
+    {
+        var dialog = NewDialog("!speed@200|!divider");
+        Assert.True(dialog.CanImport); // Faithful takes anything
+
+        dialog.Mode = ImportMode.Track;
+
+        Assert.False(dialog.CanImport);
+        Assert.True(dialog.ImportButton.Disabled);
+        Assert.Equal(2, Texts(dialog).Count(text => text == "Not available for this file")); // Piano Roll and Replace
+
+        dialog.Mode = ImportMode.Faithful;
+        Assert.False(dialog.ImportButton.Disabled);
+    }
+
+    [Fact]
+    public void AFileWithNothingKnownInIt_SaysItIsntASequence()
+    {
+        var dialog = NewDialog("hello world");
+
+        Assert.Contains("This doesn't look like a TDW sequence.", Texts(dialog));
     }
 }

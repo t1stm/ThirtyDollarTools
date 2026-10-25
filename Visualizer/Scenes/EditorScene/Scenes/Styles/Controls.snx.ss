@@ -33,7 +33,8 @@ class dialog-button {
     }
 }
 
-// The affirmative action of a dialog (Save, Export, Done).
+// The affirmative action of a dialog (Save, Export, Done). Disabled, it drops to the surface
+// fill; its label takes disabled-label.
 class dialog-button-primary {
     height = 34;
     padding = 22;
@@ -43,6 +44,10 @@ class dialog-button-primary {
 
     state[hovered] = {
         background = $theme.accent_hover;
+    }
+
+    state[disabled] = {
+        background = $theme.surface;
     }
 }
 
@@ -57,6 +62,10 @@ class dialog-button-danger {
 
     state[hovered] = {
         background = $theme.danger_hover;
+    }
+
+    state[disabled] = {
+        background = $theme.surface;
     }
 }
 
@@ -76,6 +85,11 @@ class dialog-button-danger-quiet {
 
 class danger-label {
     font-color = $theme.danger;
+}
+
+// A disabled button's label, listed after any other label color so it wins.
+class disabled-label {
+    font-color = $theme.text_subtle;
 }
 
 // A reset or a way out that must not compete with the main choice (the sound filter's Clear):

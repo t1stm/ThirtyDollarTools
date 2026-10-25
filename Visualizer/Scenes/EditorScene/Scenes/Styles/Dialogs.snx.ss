@@ -746,6 +746,26 @@ class track-kind-fact-bad {
     font-color = $theme.danger;
 }
 
+// What to do instead, after a problem: an info glyph, not a warning.
+class track-kind-fact-hint {
+    font-color = $theme.text_dim;
+}
+
+// A way that can't import the file: its icon and name dimmed, and a note under the name.
+class track-kind-unavailable {
+    font-color = $theme.text_muted;
+}
+
+class track-kind-name-stack {
+    direction = "vertical";
+    spacing = 2;
+}
+
+class track-kind-unavailable-note {
+    font-size = 11;
+    font-color = $theme.text_subtle;
+}
+
 class track-kind-fields {
     direction = "vertical";
     width = 100%;

@@ -173,6 +173,8 @@ public partial class EditorInterface
 
         void Confirm()
         {
+            // Enter and the name field's commit land here too; a way that can't import does nothing.
+            if (!dialog.CanImport) return;
             Close();
             var name = dialog.NameInput.Value.Trim();
             Import(path, sequence, dialog.Mode, name.Length > 0 ? name : Path.GetFileNameWithoutExtension(path));
