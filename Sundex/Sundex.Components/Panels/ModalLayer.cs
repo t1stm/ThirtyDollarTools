@@ -60,9 +60,10 @@ public class ModalLayer : FlexPanel
 
     /// <summary>
     ///     The content's own keys, for content that can't take them itself (a markup-built
-    ///     frame). Return true for a key it used. Tried before the content's own HandleKeyDown.
+    ///     frame, a menu's rows). Return true for a key it used. Tried before the content's own
+    ///     HandleKeyDown.
     /// </summary>
-    public Func<KeyboardKeyEventArgs, bool>? OnKeyRequested { get; init; }
+    public Func<KeyboardKeyEventArgs, bool>? OnKeyRequested { get; set; }
 
     /// <summary>
     ///     Hands its content a key that no focused field took, so a dialog can answer the
