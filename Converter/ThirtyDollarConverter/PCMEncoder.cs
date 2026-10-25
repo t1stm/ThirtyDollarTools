@@ -120,11 +120,36 @@ public class PcmEncoder
     {
         var (timed_events, processed_events) =
             await Prepare(sequences as Sequence[] ?? [.. sequences], existingProcessedEvents);
+        return NewVoiceRender(timed_events, processed_events);
+    }
+
+    /// <summary>
+    ///     <see cref="BuildVoices(IEnumerable{Sequence}, Dictionary{ValueTuple{string, double}, ProcessedEvent}?)" />
+    ///     for a song the caller has already placed, so it isn't placed a second time. Placements
+    ///     that aren't <see cref="Placement.Audible" /> - the visualizer's visual events - are
+    ///     skipped, so a placement made with <see cref="EncoderSettings.AddVisualEvents" /> builds
+    ///     the same voices as one made without. The render keeps <paramref name="timedEvents" />.
+    /// </summary>
+    public async Task<VoiceRender> BuildVoices(TimedEvents timedEvents,
+        Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents = null)
+    {
+        if (timedEvents.TimingSampleRate != _sampleRate)
+            throw new ArgumentException(
+                $"Placed at {timedEvents.TimingSampleRate} Hz, but this encoder renders at {_sampleRate} Hz.",
+                nameof(timedEvents));
+
+        var processed_events = await Resample(timedEvents, existingProcessedEvents);
+        return NewVoiceRender(timedEvents, processed_events);
+    }
+
+    private VoiceRender NewVoiceRender(TimedEvents timedEvents,
+        Dictionary<(string, double), ProcessedEvent> processedEvents)
+    {
         return new VoiceRender
         {
-            TimedEvents = timed_events,
-            Voices = BuildVoiceList(timed_events, processed_events),
-            ProcessedEvents = processed_events,
+            TimedEvents = timedEvents,
+            Voices = BuildVoiceList(timedEvents, processedEvents),
+            ProcessedEvents = processedEvents,
             SampleRate = _sampleRate
         };
     }
@@ -173,11 +198,18 @@ public class PcmEncoder
             TimingSampleRate = (int)_sampleRate
         };
 
-        Log("Calculated placement. Starting sample processing.");
-        var processed_events = await GetAudioSamples(timed_events, existingProcessedEvents);
-        if (existingProcessedEvents != null) RemoveUnusedAudioSamples(processed_events, timed_events);
+        return (timed_events, await Resample(timed_events, existingProcessedEvents));
+    }
 
-        return (timed_events, processed_events);
+    /// <summary>Resampling against <paramref name="existingProcessedEvents" />, pruned as in <see cref="Prepare" />.</summary>
+    private async Task<Dictionary<(string, double), ProcessedEvent>> Resample(TimedEvents timedEvents,
+        Dictionary<(string, double), ProcessedEvent>? existingProcessedEvents)
+    {
+        Log("Calculated placement. Starting sample processing.");
+        var processed_events = await GetAudioSamples(timedEvents, existingProcessedEvents);
+        if (existingProcessedEvents != null) RemoveUnusedAudioSamples(processed_events, timedEvents);
+
+        return processed_events;
     }
 
     private VoiceList BuildVoiceList(TimedEvents events, Dictionary<(string, double), ProcessedEvent> processed)

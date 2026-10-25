@@ -147,9 +147,15 @@ public class ThirtyDollarWorkflow
 
 
         // A new song resamples afresh - the resampler may have changed since - while a reload
-        // of the same files only resamples what the edit changed.
+        // of the same files only resamples what the edit changed. The voices come from the
+        // placement above, visual events and all: placing a long song twice costs gigabytes.
         var pcm_encoder = new PcmEncoder(SampleHolder, EncoderSettings);
-        var render = await pcm_encoder.BuildVoices(sequences, restartPlayer ? null : _render?.ProcessedEvents);
+        var render = await pcm_encoder.BuildVoices(new TimedEvents
+        {
+            Sequences = sequences,
+            Placement = placement,
+            TimingSampleRate = updateRate
+        }, restartPlayer ? null : _render?.ProcessedEvents);
         var previous = _render;
         _render = render;
         previous?.Dispose();

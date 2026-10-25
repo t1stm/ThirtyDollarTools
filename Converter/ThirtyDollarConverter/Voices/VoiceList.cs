@@ -185,8 +185,15 @@ public sealed class VoiceList : IDisposable
             // sized like the legacy renderer's buffers, so both render the same length
             var length = placements.Length > 0 ? (int)placements[^1].Index + longest_sound : 0;
 
-            var voices = ArrayPool<Voice>.Shared.Rent(placements.Length);
-            var next = ArrayPool<int>.Shared.Rent(placements.Length);
+            // Sized to the audible placements alone: a visualizer placement carries as many
+            // visual ones again, and the voices are the biggest thing a long song keeps.
+            var audible = 0;
+            foreach (var placement in placements)
+                if (placement.Audible)
+                    audible++;
+
+            var voices = ArrayPool<Voice>.Shared.Rent(audible);
+            var next = ArrayPool<int>.Shared.Rent(audible);
             var track_count = _trackIndex.Count + 1;
             var rented_heads = track_count > 256 ? ArrayPool<int>.Shared.Rent(track_count) : null;
             var heads = rented_heads != null ? rented_heads.AsSpan(0, track_count) : stackalloc int[track_count];

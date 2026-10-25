@@ -102,6 +102,39 @@ public class VoiceMixerTests
         return [.. Songs];
     }
 
+    /// <summary>
+    ///     The visualizer builds its voices from its own placement, visual events included,
+    ///     instead of placing the song a second time. The visual events must change nothing but
+    ///     how long the trailing silence runs.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SongData))]
+    [InlineData("a|_pause@3|b|!loopmany@2|c|_pause@4")]
+    [InlineData("!speed@120|a|!stop@2|b|!combine|c|!looptarget|a|!loop@1|_pause@2")]
+    public async Task VoicesFromAVisualPlacement_MatchTheirOwnPlacement(string song)
+    {
+        using var own = await Voices(song);
+
+        var sequence = Sequence.FromString(song);
+        var visual = new PlacementCalculator(new EncoderSettings { SampleRate = SampleRate, AddVisualEvents = true })
+            .CalculateMany([sequence]).ToArray();
+        using var placed = await Encoder(RenderMethod.Voice).BuildVoices(new TimedEvents
+        {
+            Sequences = [sequence],
+            Placement = visual,
+            TimingSampleRate = (int)SampleRate
+        });
+
+        var expected = VoiceMixer.MixAll(own.Voices);
+        var actual = VoiceMixer.MixAll(placed.Voices);
+        Assert.True(actual.GetLength() >= expected.GetLength());
+        for (var channel = 0; channel < expected.ChannelCount; channel++)
+        {
+            Assert.Equal(expected.Samples[channel], actual.Samples[channel][..expected.GetLength()]);
+            Assert.All(actual.Samples[channel][expected.GetLength()..], sample => Assert.Equal(0, sample));
+        }
+    }
+
     [Fact]
     public async Task PanReachesBothChannelsDifferently()
     {
