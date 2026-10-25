@@ -14,15 +14,19 @@ namespace Shared.Audio;
 ///         playhead: the feeder drops what it had queued from the old list and mixes the new one
 ///         from there. Seeks work the same way. The clock is the stream's played position, so it
 ///         stops where the song ends. The feeder allocates nothing once it has seen the largest
-///         list it will play.
+///         list it will play and the block size it mixes at.
 ///     </para>
 /// </summary>
 public sealed class VoicePlayback : IBufferStopwatch, IDisposable
 {
-    /// <summary>Frames mixed per pass of the feeder: 21 ms at 48 kHz.</summary>
-    public const int Block = 1024;
+    /// <summary>The range <see cref="BlockFrames" /> is clamped to, and where it starts.</summary>
+    public const int MinBlockFrames = 64, MaxBlockFrames = 65536, DefaultBlockFrames = 4096;
 
     private volatile int _aheadFrames;
+    private volatile int _blockFrames = DefaultBlockFrames;
+
+    // the feeder's scratch, sized to the block it last mixed
+    private float[] _left = [], _right = [], _interleaved = [];
     private readonly VoiceCursor _cursor = new();
     private readonly int _sampleRate;
     private readonly AudioStream _stream;
@@ -67,6 +71,18 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
     {
         get => (double)_aheadFrames / _sampleRate;
         set => _aheadFrames = (int)(value * _sampleRate);
+    }
+
+    /// <summary>
+    ///     Frames mixed per pass of the feeder. Bigger blocks cost less per second of audio on a
+    ///     dense song - each sounding voice pays a fixed cost per block - but a seek, an edit or
+    ///     a swap waits for the first whole block to be mixed before anything plays. Takes
+    ///     effect on the feeder's next pass.
+    /// </summary>
+    public int BlockFrames
+    {
+        get => _blockFrames;
+        set => _blockFrames = Math.Clamp(value, MinBlockFrames, MaxBlockFrames);
     }
 
     /// <summary>
@@ -175,24 +191,30 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
 
     private void Feed()
     {
-        Span<float> left = stackalloc float[Block];
-        Span<float> right = stackalloc float[Block];
-        Span<float> interleaved = stackalloc float[Block * 2];
-
         while (!_stopping)
         {
-            Pump(left, right, interleaved);
+            Pump();
             _wake.Wait(10);
             _wake.Reset();
         }
     }
 
     /// <summary>
-    ///     One pass of the feeder: takes a published list or a seek, then tops the queue up. The
-    ///     spans are scratch of <see cref="Block" />, <see cref="Block" /> and 2 × <see cref="Block" /> floats.
+    ///     One pass of the feeder: takes a published list or a seek, then tops the queue up. Only
+    ///     a changed <see cref="BlockFrames" /> allocates, for the new scratch.
     /// </summary>
-    internal void Pump(Span<float> left, Span<float> right, Span<float> interleaved)
+    internal void Pump()
     {
+        var block = _blockFrames;
+        if (_left.Length != block)
+        {
+            _left = new float[block];
+            _right = new float[block];
+            _interleaved = new float[2 * block];
+        }
+
+        Span<float> left = _left, right = _right, interleaved = _interleaved;
+
         var list = Interlocked.Exchange(ref _pending, null);
         var seek = Interlocked.Read(ref _pendingSeek);
 
@@ -214,7 +236,7 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
 
         while (_stream.QueuedFrames < _aheadFrames)
         {
-            var frames = Math.Min(Block, voices.Length - _cursor.Position);
+            var frames = Math.Min(block, voices.Length - _cursor.Position);
             if (frames <= 0) return;
 
             var start = Stopwatch.GetTimestamp();

@@ -69,6 +69,17 @@ public class SequencePlayer
         }
     } = 0.5f;
 
+    /// <summary>Frames the feeder mixes per pass - see <see cref="VoicePlayback.BlockFrames" />, which clamps it.</summary>
+    public int BlockFrames
+    {
+        get;
+        set
+        {
+            field = value;
+            Playback?.BlockFrames = field;
+        }
+    } = VoicePlayback.DefaultBlockFrames;
+
     protected TimingStopwatchWrapper TimingStopwatch { get; } = new();
 
     /// <summary>Streams the song; created by the first <see cref="UpdateSequence" />.</summary>
@@ -246,6 +257,7 @@ public class SequencePlayer
 
             Playback ??= new VoicePlayback(AudioContext, AudioContext.SampleRate, aheadSeconds());
             Playback.AheadSeconds = aheadSeconds();
+            Playback.BlockFrames = BlockFrames;
             Playback.Publish(voices);
             Playback.SetVolume(Volume);
         }

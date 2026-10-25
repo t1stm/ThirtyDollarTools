@@ -98,6 +98,16 @@ public class VisualizerSettings
         set => SetAndCallModified(out field, value);
     } = 2f;
 
+    /// <summary>
+    ///     Frames the audio feeder mixes per pass, for the visualizer and the editor alike.
+    ///     Mirrored into <see cref="Shared.Audio.SequencePlayer.BlockFrames" />; VoicePlayback clamps it.
+    /// </summary>
+    public int AudioBlockSize
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = Shared.Audio.VoicePlayback.DefaultBlockFrames;
+
     public bool AutomaticScaling
     {
         get;

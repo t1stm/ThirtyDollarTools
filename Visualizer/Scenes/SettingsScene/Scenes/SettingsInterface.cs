@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
+using Shared.Audio;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
@@ -20,7 +21,9 @@ namespace SettingsScene.Scenes;
 ///     One row of the settings screen. The control is chosen from the property's type;
 ///     <see cref="Min" />, <see cref="Max" /> and <see cref="Step" /> are only read for the
 ///     numeric ones, and <see cref="Choices" /> turns a string row into a button that drops
-///     the listed values down instead of a free text field.
+///     the listed values down instead of a free text field. <see cref="PowersOfTwo" /> slides
+///     over the exponent instead, a stop per power of two between <see cref="Min" /> and
+///     <see cref="Max" />: 64 to 65536 is eleven stops rather than a thousand.
 /// </summary>
 public sealed record SettingRow(
     string Property,
@@ -29,7 +32,8 @@ public sealed record SettingRow(
     double Min = 0,
     double Max = 1,
     double Step = 1,
-    string[]? Choices = null);
+    string[]? Choices = null,
+    bool PowersOfTwo = false);
 
 public class SettingsInterface
 {
@@ -68,7 +72,10 @@ public class SettingsInterface
                 ThirtyDollarWorkflow.MinRenderAheadSeconds, ThirtyDollarWorkflow.MaxRenderAheadSeconds, 0.25),
             new SettingRow(nameof(VisualizerSettings.EditorRenderAhead), "Editor lookahead",
                 "The same, while the editor plays.\nShorter remixes less after each edit or seek.",
-                ThirtyDollarWorkflow.MinRenderAheadSeconds, ThirtyDollarWorkflow.MaxRenderAheadSeconds, 0.25)
+                ThirtyDollarWorkflow.MinRenderAheadSeconds, ThirtyDollarWorkflow.MaxRenderAheadSeconds, 0.25),
+            new SettingRow(nameof(VisualizerSettings.AudioBlockSize), "Audio block size",
+                "Samples mixed per pass. Bigger costs less on\ndense songs; seeks and edits wait for one block.",
+                VoicePlayback.MinBlockFrames, VoicePlayback.MaxBlockFrames, PowersOfTwo: true)
         ]),
         // The parameter rows are always present rather than shown with the resampler that
         // reads them: a hidden child still takes its space in the flex, which would leave
@@ -384,24 +391,26 @@ public class SettingsInterface
         var slider = new Slider(UI)
         {
             Classes = ["setting-slider"],
-            Min = row.Min,
-            Max = row.Max,
-            Step = row.Step,
-            Value = current,
+            Min = ToSlider(row.Min),
+            Max = ToSlider(row.Max),
+            Step = row.PowersOfTwo ? 1 : row.Step,
+            Value = ToSlider(current),
             OnValueChanged = s =>
             {
+                var value = row.PowersOfTwo ? Math.Pow(2, Math.Round(s.Value)) : s.Value;
                 // The (object) cast is load-bearing: without it the ternary unifies to float
                 // and SetValue throws on the int properties.
-                property.SetValue(_settings, isInt ? (object)(int)Math.Round(s.Value) : (float)s.Value);
-                readout.SetTextContents(Format(s.Value));
+                property.SetValue(_settings, isInt ? (object)(int)Math.Round(value) : (float)value);
+                readout.SetTextContents(Format(value));
                 _stripDirty = true;
             }
         };
 
         Bind(property, () =>
         {
-            slider.Value = Convert.ToDouble(property.GetValue(_settings));
-            readout.SetTextContents(Format(slider.Value));
+            var value = Convert.ToDouble(property.GetValue(_settings));
+            slider.Value = ToSlider(value);
+            readout.SetTextContents(Format(value));
             _stripDirty = true;
         });
 
@@ -410,6 +419,11 @@ public class SettingsInterface
         string Format(double value)
         {
             return value.ToString(isInt ? "0" : "0.##", CultureInfo.InvariantCulture);
+        }
+
+        double ToSlider(double value)
+        {
+            return row.PowersOfTwo ? Math.Log2(Math.Max(value, 1)) : value;
         }
     }
 

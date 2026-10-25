@@ -123,6 +123,7 @@ public class Loader : Scene, IGamePreloadable
         _workflow.EncoderSettings.Resampler = Resamplers.Create(settings);
         _workflow.RenderAheadSeconds = settings.VisualizerRenderAhead;
         _workflow.EditorRenderAheadSeconds = settings.EditorRenderAhead;
+        _workflow.SequencePlayer.BlockFrames = settings.AudioBlockSize;
         settings.Changed += name =>
         {
             if (Resamplers.Properties.Contains(name))
@@ -131,6 +132,8 @@ public class Loader : Scene, IGamePreloadable
                 _workflow.RenderAheadSeconds = settings.VisualizerRenderAhead;
             else if (name == nameof(VisualizerSettings.EditorRenderAhead))
                 _workflow.EditorRenderAheadSeconds = settings.EditorRenderAhead;
+            else if (name == nameof(VisualizerSettings.AudioBlockSize))
+                _workflow.SequencePlayer.BlockFrames = settings.AudioBlockSize;
         };
 
         _background = new DollarStoreLoaderBackground(game.AssetProvider.DeleteQueue)

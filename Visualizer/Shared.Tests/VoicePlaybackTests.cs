@@ -48,22 +48,25 @@ public class VoicePlaybackTests
         return _encoder.BuildVoices([Sequence.FromString(song)]).GetAwaiter().GetResult();
     }
 
-    [Fact]
-    public void PutsTheOfflineMix_ThroughSeeksAndSwaps()
+    [Theory]
+    [InlineData(VoicePlayback.DefaultBlockFrames)]
+    [InlineData(333)]
+    [InlineData(VoicePlayback.MaxBlockFrames)]
+    public void PutsTheOfflineMix_ThroughSeeksAndSwaps(int block)
     {
         using var first = Build("a|b|!cut@a|a|b@4|!cut|a");
         using var second = Build("b|a|a@3|!cut@a|b");
         var stream = new CaptureStream();
-        using var playback = new VoicePlayback(stream, SampleRate, 1, false);
+        using var playback = new VoicePlayback(stream, SampleRate, 1, false) { BlockFrames = block };
 
         first.Voices.Retain();
         playback.Publish(first.Voices);
-        Pump(playback);
+        playback.Pump();
         Assert.Equal(Interleave(VoiceMixer.MixAll(first.Voices)), stream.Take());
         Assert.InRange(playback.Load, float.Epsilon, 1f); // a whole song mixed, far faster than it plays
 
         playback.SeekTime_Milliseconds(350);
-        Pump(playback);
+        playback.Pump();
         Assert.Equal(Interleave(VoiceMixer.MixAll(first.Voices))[(2 * 350 * 48)..], stream.Take());
         Assert.Equal(350 * 48, stream.Base);
 
@@ -71,7 +74,7 @@ public class VoicePlaybackTests
         stream.Played = 1000;
         second.Voices.Retain();
         playback.Publish(second.Voices);
-        Pump(playback);
+        playback.Pump();
         Assert.Equal(Interleave(VoiceMixer.MixAll(second.Voices))[(2 * (350 * 48 + 1000))..], stream.Take());
     }
 
@@ -81,10 +84,6 @@ public class VoicePlaybackTests
         using var first = Build("a|b|!cut@a|a|b@4|!cut|a");
         using var second = Build("b|a|a@3|!cut@a|b");
         using var playback = new VoicePlayback(new NullStream(SampleRate, 2), SampleRate, 0.05, false);
-
-        var left = new float[VoicePlayback.Block];
-        var right = new float[VoicePlayback.Block];
-        var interleaved = new float[2 * VoicePlayback.Block];
 
         void Run()
         {
@@ -98,13 +97,13 @@ public class VoicePlaybackTests
                     playback.Publish(next);
                 }
 
-                playback.Pump(left, right, interleaved);
+                playback.Pump();
             }
         }
 
         first.Voices.Retain();
         playback.Publish(first.Voices);
-        Run(); // warm-up: the cursor rents its active set, the lock and pool settle
+        Run(); // warm-up: the cursor rents its active set, the scratch is sized, the lock and pool settle
 
         var before = GC.GetAllocatedBytesForCurrentThread();
         Run();
@@ -152,12 +151,6 @@ public class VoicePlaybackTests
         Assert.Equal(5, playback.AheadSeconds, 3);
 
         player.Die();
-    }
-
-    private static void Pump(VoicePlayback playback)
-    {
-        playback.Pump(new float[VoicePlayback.Block], new float[VoicePlayback.Block],
-            new float[2 * VoicePlayback.Block]);
     }
 
     private static float[] Interleave(AudioData<float> audio)
