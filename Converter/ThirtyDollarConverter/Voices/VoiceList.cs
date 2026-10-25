@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading;
 using ThirtyDollarConverter.Encoder.Mixers;
 using ThirtyDollarConverter.Encoder.PCM;
@@ -11,7 +12,8 @@ using ThirtyDollarConverter.Parser.Custom_Events;
 namespace ThirtyDollarConverter.Voices;
 
 /// <summary>
-///     Every audible sound of a render as a <see cref="Voice" />, sorted by start. Mixing any
+///     Every audible sound of a render as a <see cref="Voice" />, sorted by start, with identical
+///     sounds stacked on one another folded into one. Mixing any
 ///     range of the song only reads this list, so playback can stream it a block at a time
 ///     (<see cref="VoiceCursor" />) and an offline render can mix slices of it in parallel
 ///     (<see cref="VoiceMixer" />), and both produce the same floats.
@@ -147,6 +149,7 @@ public sealed class VoiceList : IDisposable
     public sealed class Builder(SampleHolder holder, EncoderSettings settings)
     {
         private readonly Dictionary<(string, double), int> _soundIndex = new();
+        private readonly Dictionary<(int End, int CutAt, int SourceOffset, int Sound), int> _stacked = new();
         private readonly Dictionary<string, int> _trackIndex = new();
 
         /// <summary>
@@ -252,6 +255,7 @@ public sealed class VoiceList : IDisposable
 
             ArrayPool<int>.Shared.Return(next);
             if (rented_heads != null) ArrayPool<int>.Shared.Return(rented_heads);
+            count = MergeStacked(voices, count);
 
             var starts = ArrayPool<int>.Shared.Rent(count);
             var longest = 0;
@@ -279,6 +283,53 @@ public sealed class VoiceList : IDisposable
             }
 
             heads[track] = -1;
+        }
+
+        /// <summary>
+        ///     Folds every voice that plays the same samples as an earlier one - same start, end,
+        ///     cut, offset and sound - into that one, gains summed. Mixing is linear, so only the
+        ///     rounding changes, and black MIDI stacks a third of its notes like this. Runs after
+        ///     the cuts, which move ends. Keeps the order of what is left; returns its count.
+        /// </summary>
+        private int MergeStacked(Voice[] voices, int count)
+        {
+            var kept = 0;
+            for (var run = 0; run < count;)
+            {
+                var end = run + 1;
+                while (end < count && voices[end].Start == voices[run].Start) end++;
+
+                if (end - run == 1)
+                {
+                    voices[kept++] = voices[run];
+                    run = end;
+                    continue;
+                }
+
+                _stacked.Clear();
+                for (var i = run; i < end; i++)
+                {
+                    var voice = voices[i];
+                    ref var into = ref CollectionsMarshal.GetValueRefOrAddDefault(_stacked,
+                        (voice.End, voice.CutAt, voice.SourceOffset, voice.Sound), out var stacked);
+                    if (!stacked)
+                    {
+                        into = kept;
+                        voices[kept++] = voice;
+                        continue;
+                    }
+
+                    ref var target = ref voices[into];
+                    target.LeftFromLeft += voice.LeftFromLeft;
+                    target.RightFromRight += voice.RightFromRight;
+                    target.LeftFromRight += voice.LeftFromRight;
+                    target.RightFromLeft += voice.RightFromLeft;
+                }
+
+                run = end;
+            }
+
+            return kept;
         }
 
         private string Resolve(string sound)
