@@ -131,11 +131,16 @@ public class DropdownMenu : ModalLayer
     /// <summary>
     ///     A right-click outside the menu closes it. Right-press is level-triggered, so the
     ///     press that opened this menu (still held on the first frames) must not immediately
-    ///     close it - hence the RightPressId guard.
+    ///     close it - hence the RightPressId guard. The press that closes it is consumed:
+    ///     still held on the next frame, it would reach what lay under the menu, and a row
+    ///     would open its menu again.
     /// </summary>
     public override bool HandleRightPress(float x, float y)
     {
-        if (Context.RightPressId != _openedOnRightPressId && !Menu.ContainsPoint(x, y)) Close();
+        if (Context.RightPressId == _openedOnRightPressId || Menu.ContainsPoint(x, y)) return true;
+
+        Close();
+        Context.ConsumeRightPress();
         return true;
     }
 

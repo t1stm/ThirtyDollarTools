@@ -1,4 +1,5 @@
 using OpenTK.Mathematics;
+using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 
 namespace Sundex.Components.Tests;
@@ -136,6 +137,44 @@ public class DropdownMenuTests
         ctx.UpdatePointer(root, 800, 800, false, false, false, Vector2.Zero, false);
         ctx.UpdatePointer(root, 800, 800, false, false, false, Vector2.Zero, true);
         Assert.DoesNotContain(menu, root.Children);
+    }
+
+    [Fact]
+    public void ClosingRightPress_DoesNotReachWhatWasUnderTheMenu()
+    {
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = ViewportWidth, Height = ViewportHeight };
+        var row = new RightPressCounter(ctx) { Width = 240, Height = 36 };
+        root.AddChild(row);
+        root.Layout();
+
+        var menu = DropdownMenu.Beside(row);
+        menu.AddItem("Open", () => { });
+        root.AddChild(menu);
+        root.Layout();
+
+        // Right-click the row again: the press closes the menu, and its held frames stay
+        // swallowed - the row would open its menu again on the next one.
+        ctx.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero, true);
+        Assert.DoesNotContain(menu, root.Children);
+        ctx.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero, true);
+        Assert.Equal(0, row.Presses);
+
+        // Released, the next press is the row's again.
+        ctx.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero);
+        ctx.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero, true);
+        Assert.Equal(1, row.Presses);
+    }
+
+    private sealed class RightPressCounter(UIContext context) : Panel(context)
+    {
+        public int Presses { get; private set; }
+
+        public override bool HandleRightPress(float x, float y)
+        {
+            Presses++;
+            return true;
+        }
     }
 
     [Fact]

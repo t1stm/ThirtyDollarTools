@@ -260,6 +260,19 @@ public class UIContext : IGamePreloadable
 
     private bool _rightDown;
 
+    /// <summary>The press <see cref="ConsumeRightPress" /> took; its held frames reach no element.</summary>
+    private int _consumedRightPressId;
+
+    /// <summary>
+    ///     Swallows the rest of the current right-press. For a handler that removes itself on the
+    ///     press - a menu closing - so the element that lay under it doesn't get the same,
+    ///     still-held press on the next frame.
+    /// </summary>
+    public void ConsumeRightPress()
+    {
+        _consumedRightPressId = RightPressId;
+    }
+
     /// <summary>
     ///     Routes a pointer update to the UI tree under <paramref name="root" />: resolves the
     ///     topmost hit (occlusion), maintains hover/pressed chains, capture, click
@@ -345,7 +358,7 @@ public class UIContext : IGamePreloadable
         // Level-triggered, not edge-triggered: fires on every update while the right
         // button is held, so sweep gestures (erase everything crossed) work. Handlers
         // must be idempotent for a stationary pointer.
-        if (isRightDown)
+        if (isRightDown && RightPressId != _consumedRightPressId)
             for (var e = winner; e != null; e = e.Parent)
                 if (e.HandleRightPress(x, y))
                     break;
