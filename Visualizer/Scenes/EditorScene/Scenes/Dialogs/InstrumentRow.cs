@@ -7,9 +7,10 @@ using ThirtyDollarConverter.Editor;
 namespace EditorScene.Scenes.Dialogs;
 
 /// <summary>
-///     One instrument-list row: up to four of its sounds' icons, its name and sound count, then
-///     Preview, Duplicate, Edit and Delete icon-buttons. Clicking anywhere else on it picks the
-///     instrument. Pure view - <see cref="InstrumentSelector" /> owns the callbacks and the icons' batch.
+///     One instrument-list row: its first two sounds' icons, its name and sound count right beside
+///     them, then Preview, Duplicate, Edit and Delete icon-buttons.
+///     Clicking anywhere else on it picks the instrument. Pure view - <see cref="InstrumentSelector" />
+///     owns the callbacks and the icons' batch.
 /// </summary>
 public sealed class InstrumentRow : FlexPanel
 {

@@ -1136,11 +1136,12 @@ class instrument-row-pick {
     vertical-align = "center";
 }
 
-// Up to four 28 icons and their 2 gaps, fixed so every name starts at the same x.
+// Two 28 icons and their 4 gap, fixed so every name starts at the same x - close beside the
+// icons rather than a four-icon slot away.
 class instrument-row-icons {
-    width = 118;
+    width = 60;
     height = 28;
-    spacing = 2;
+    spacing = 4;
     vertical-align = "center";
 }
 

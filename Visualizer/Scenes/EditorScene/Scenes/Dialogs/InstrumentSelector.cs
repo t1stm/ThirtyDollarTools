@@ -1,4 +1,6 @@
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Atlases;
 using Sundex.Components;
 using Sundex.Components.Abstractions;
@@ -20,7 +22,9 @@ namespace EditorScene.Scenes.Dialogs;
 public sealed class InstrumentSelector : FlexPanel
 {
     private const float IconSize = 28;
-    private const int MaxIcons = 4;
+    // Two: a narrow fixed slot keeps every name close beside its icons; the count under the
+    // name says how many there are.
+    private const int MaxIcons = 2;
 
     private readonly Label _caption;
     private readonly FlexPanel _count;
@@ -64,7 +68,7 @@ public sealed class InstrumentSelector : FlexPanel
             OnClick = _ => OnNew?.Invoke(),
             Label = { Classes = ["dark-label"] }
         };
-        KeyChip.Add(newButton, Icons.Plus, Icons.Font);
+        KeyChip.Add(newButton, NewKeyName);
 
         Children =
         [
@@ -72,6 +76,21 @@ public sealed class InstrumentSelector : FlexPanel
             _list,
             new FlexPanel(context) { Classes = ["dialog-actions"], Children = [newButton] }
         ];
+    }
+
+    /// <summary>The New instrument key's name, on its chip; see <see cref="HandleKeyDown" />.</summary>
+    private const string NewKeyName = "Shift+A";
+
+    /// <summary>
+    ///     Shift+A makes a new instrument, as in a 3D editor's "add". Not Space: that is Preview in
+    ///     the instrument editor, and the rows here preview too. Reached through the modal, which
+    ///     hands its content the keys no focused field took.
+    /// </summary>
+    public override bool HandleKeyDown(KeyboardKeyEventArgs e)
+    {
+        if (e is not { Key: Keys.A, Shift: true, Control: false, Alt: false, Command: false }) return false;
+        OnNew?.Invoke();
+        return true;
     }
 
     /// <summary>Fired with the picked instrument.</summary>
