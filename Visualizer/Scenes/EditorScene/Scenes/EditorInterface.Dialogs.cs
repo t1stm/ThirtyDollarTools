@@ -463,16 +463,15 @@ public partial class EditorInterface
     ///     The recolor swatch grid, reached from a track's context menu and from the
     ///     inspector's Color row. The palette is the arrangement's, so the swatches are
     ///     exactly the fills a clip can take. Several tracks recolor together: the grid
-    ///     marks their current swatch only when they already share one.
+    ///     rings their current swatch only when they already share one, and counts a mix.
     /// </summary>
     private void ShowTrackColorDialog(IReadOnlyList<ProjectTrack> tracks)
     {
         if (tracks.Count == 0) return;
 
-        var shared = tracks.All(t => t.ColorIndex == tracks[0].ColorIndex) ? tracks[0].ColorIndex : null;
-        var title = tracks.Count == 1 ? tracks[0].Name : $"{tracks.Count} tracks";
-        var dialog = new TrackColorDialog(_context, title, _arrangement.ClipPalette,
-            _arrangement.ClipColor, shared);
+        var subject = tracks.Count == 1 ? tracks[0].Name : $"{tracks.Count} tracks";
+        var dialog = new TrackColorDialog(_context, subject, _arrangement.ClipPalette,
+            _arrangement.ClipColor, [.. tracks.Select(t => t.ColorIndex)]);
         var modal = _dialogHost.Show(dialog.Element);
         dialog.OnPick = index =>
         {

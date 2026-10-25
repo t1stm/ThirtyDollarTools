@@ -401,6 +401,27 @@ id track-color-dialog {
     spacing = 12;
 }
 
+// Names the colors a mixed selection has, over the grid. The frame's 320 less its padding.
+class track-color-caption {
+    font-size = 13;
+    wrap-width = 288;
+}
+
+// How many of a mixed selection's tracks have a color, on its chip's corner.
+class color-count {
+    height = 16;
+    padding = 5;
+    horizontal-align = "center";
+    vertical-align = "center";
+    border-radius = 8;
+    background = $theme.text;
+}
+
+class color-count-label {
+    font-size = 11;
+    font-color = $theme.text_dark;
+}
+
 class color-grid {
     width = 100%;
     spacing = 8;

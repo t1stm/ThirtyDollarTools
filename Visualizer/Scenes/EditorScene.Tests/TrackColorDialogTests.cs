@@ -16,9 +16,9 @@ public class TrackColorDialogTests
     /// </summary>
     private static (TrackColorDialog dialog, List<UIElement> options) NewDialog(int? current)
     {
-        var dialog = new TrackColorDialog(new EditorTestContext(), "Drums", Palette, new Vector4(0.5f), current);
+        var dialog = new TrackColorDialog(new EditorTestContext(), "Drums", Palette, new Vector4(0.5f), [current]);
         EditorTestContext.Styled(dialog.Element);
-        // The dialog is [title, grid]; the grid is the default swatch, then one per entry.
+        // The dialog is [header, grid]; the grid is the default swatch, then one per entry.
         var grid = (FlexPanel)dialog.Element.Children[1];
         return (dialog, [.. grid.Children]);
     }
@@ -48,6 +48,29 @@ public class TrackColorDialogTests
         var (_, uncolored) = NewDialog(null);
         Assert.Contains("color-option-selected", uncolored[0].Classes); // "Default"
         Assert.Equal(1, uncolored.Count(option => option.Classes.Contains("color-option-selected")));
+    }
+
+    [Fact]
+    public void AMixedSelection_RingsNothing_CountsEachColorInUse_AndNamesThem()
+    {
+        // Two tracks on the default fill, one on palette entry 0.
+        var dialog = new TrackColorDialog(new EditorTestContext(), "3 tracks", Palette, new Vector4(0.5f), [null, 0, null]);
+        EditorTestContext.Styled(dialog.Element);
+        var caption = (Sundex.Components.Labels.Label)dialog.Element.Children[1];
+        var options = ((FlexPanel)dialog.Element.Children[2]).Children;
+
+        Assert.Equal("Mixed: Default and Purple. Picking one recolors all 3.", caption.Value.ToString().TrimEnd('\0'));
+        Assert.DoesNotContain(options, option => option.Classes.Contains("color-option-selected"));
+        Assert.Equal(["2", "1", "", ""], options.Select(CountOn));
+    }
+
+    /// <summary>The count badge on a swatch's chip, or "" when it has none.</summary>
+    private static string CountOn(UIElement option)
+    {
+        var chip = (Panel)((FlexPanel)option).Children[0];
+        return chip.Children is [FlexPanel { Children: [Sundex.Components.Labels.Label count] }]
+            ? count.Value.ToString().TrimEnd('\0')
+            : "";
     }
 
     [Fact]
