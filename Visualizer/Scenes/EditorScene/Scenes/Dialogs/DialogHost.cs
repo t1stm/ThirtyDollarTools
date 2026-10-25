@@ -25,6 +25,10 @@ public sealed class DialogHost(UIContext context, Panel root)
     /// <param name="onKey">The content's other keys (<see cref="TryKeyTop" />); true for a key it used.</param>
     public ModalLayer Show(UIElement content, Action? onConfirm = null, Func<KeyboardKeyEventArgs, bool>? onKey = null)
     {
+        // A field behind the modal would otherwise keep taking keys: the first Esc only
+        // blurred it, and typing went into a box the modal covers.
+        if (context.FocusedElement is { } focused && !Contains(content, focused)) context.Blur();
+
         var modal = new ModalLayer(context)
         {
             OnDismissRequested = Close,
@@ -39,6 +43,14 @@ public sealed class DialogHost(UIContext context, Panel root)
     public void Close(ModalLayer modal)
     {
         root.RemoveChild(modal);
+    }
+
+    private static bool Contains(UIElement root, UIElement element)
+    {
+        for (var e = element; e != null; e = e.Parent)
+            if (ReferenceEquals(e, root))
+                return true;
+        return false;
     }
 
     /// <summary>Whether any modal is mounted; the editor's keybinds stay inactive while one is.</summary>

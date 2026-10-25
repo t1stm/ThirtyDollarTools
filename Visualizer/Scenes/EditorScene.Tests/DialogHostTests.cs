@@ -1,6 +1,7 @@
 using EditorScene.Scenes.Dialogs;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 
@@ -53,6 +54,26 @@ public class DialogHostTests
         Assert.True(host.TryCloseTop());
         Assert.Equal((1, 1), (confirmed, cancelled));
         Assert.False(host.HasOpenModal);
+    }
+
+    [Fact]
+    public void Show_TakesFocusFromAFieldBehindTheModal_ButNotFromOneInsideIt()
+    {
+        var ctx = new EditorTestContext();
+        var root = new Panel(ctx);
+        var host = new DialogHost(ctx, root);
+        var behind = new TextInput(ctx);
+        root.AddChild(behind);
+
+        ctx.Focus(behind);
+        host.Show(new Label(ctx, "dialog"));
+        Assert.Null(ctx.FocusedElement);
+
+        var inside = new TextInput(ctx);
+        var content = new FlexPanel(ctx) { Children = [inside] };
+        ctx.Focus(inside);
+        host.Show(content);
+        Assert.Same(inside, ctx.FocusedElement);
     }
 
     [Fact]
