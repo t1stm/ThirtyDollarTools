@@ -2,6 +2,7 @@ using System.Reflection;
 using JetBrains.Annotations;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Shared;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
@@ -61,7 +62,13 @@ public class SettingsInterface
             new SettingRow(nameof(VisualizerSettings.TransparentFramebuffer), "Transparent framebuffer",
                 "Let the desktop show through the window.\nTakes effect on the next launch."),
             new SettingRow(nameof(VisualizerSettings.AudioBackend), "Audio backend",
-                "Leave empty to pick one automatically.")
+                "Leave empty to pick one automatically."),
+            new SettingRow(nameof(VisualizerSettings.VisualizerRenderAhead), "Visualizer lookahead",
+                "Seconds of audio mixed ahead of the playhead.\nLonger rides out stutters.",
+                ThirtyDollarWorkflow.MinRenderAheadSeconds, ThirtyDollarWorkflow.MaxRenderAheadSeconds, 0.25),
+            new SettingRow(nameof(VisualizerSettings.EditorRenderAhead), "Editor lookahead",
+                "The same, while the editor plays.\nShorter remixes less after each edit or seek.",
+                ThirtyDollarWorkflow.MinRenderAheadSeconds, ThirtyDollarWorkflow.MaxRenderAheadSeconds, 0.25)
         ]),
         // The parameter rows are always present rather than shown with the resampler that
         // reads them: a hidden child still takes its space in the flex, which would leave

@@ -24,6 +24,10 @@ public class SequencePlayer
 
     protected SequenceIndices SequenceIndices = new();
     protected Action<int>? SequenceUpdateAction;
+
+    /// <summary>The playing song's render-ahead, from its <see cref="UpdateSequence" />.</summary>
+    private Func<double>? _aheadSeconds;
+
     private bool _dead;
     private long _oldTime;
     private bool _updateRunning;
@@ -226,20 +230,42 @@ public class SequencePlayer
     ///     this). Takes over one reference to <paramref name="voices" /> - see
     ///     <see cref="VoicePlayback.Publish" />.
     /// </summary>
-    /// <param name="aheadSeconds">How far ahead of the playhead the song is mixed - the owner's choice.</param>
+    /// <param name="aheadSeconds">
+    ///     How far ahead of the playhead the song is mixed - the owner's choice, read again on
+    ///     every <see cref="RefreshAheadSeconds" /> until someone else uploads.
+    /// </param>
     public void UpdateSequence(TimedEvents events, SequenceIndices sequenceIndices, VoiceList voices,
-        double aheadSeconds)
+        Func<double> aheadSeconds)
     {
         UpdateLock.Wait();
         try
         {
             Events = events;
             SequenceIndices = sequenceIndices;
+            _aheadSeconds = aheadSeconds;
 
-            Playback ??= new VoicePlayback(AudioContext, AudioContext.SampleRate, aheadSeconds);
-            Playback.AheadSeconds = aheadSeconds;
+            Playback ??= new VoicePlayback(AudioContext, AudioContext.SampleRate, aheadSeconds());
+            Playback.AheadSeconds = aheadSeconds();
             Playback.Publish(voices);
             Playback.SetVolume(Volume);
+        }
+        finally
+        {
+            UpdateLock.Release();
+        }
+    }
+
+    /// <summary>
+    ///     Re-reads the render-ahead of whoever uploaded the playing song, for a setting moved
+    ///     mid-song: a longer one tops the queue up on the feeder's next pass, a shorter one lets
+    ///     it drain down.
+    /// </summary>
+    public void RefreshAheadSeconds()
+    {
+        UpdateLock.Wait();
+        try
+        {
+            if (Playback != null && _aheadSeconds != null) Playback.AheadSeconds = _aheadSeconds();
         }
         finally
         {

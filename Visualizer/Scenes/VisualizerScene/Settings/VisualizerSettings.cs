@@ -80,6 +80,24 @@ public class VisualizerSettings
         set => SetAndCallModified(out field, value);
     } = 64f;
 
+    /// <summary>
+    ///     Seconds of audio the visualizer keeps mixed ahead of the playhead. Mirrored into
+    ///     <see cref="Shared.ThirtyDollarWorkflow.RenderAheadSeconds" />, which clamps it and
+    ///     applies it to the song already playing.
+    /// </summary>
+    public float VisualizerRenderAhead
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = 10f;
+
+    /// <summary>The editor's, mirrored into <see cref="Shared.ThirtyDollarWorkflow.EditorRenderAheadSeconds" />.</summary>
+    public float EditorRenderAhead
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = 2f;
+
     public bool AutomaticScaling
     {
         get;

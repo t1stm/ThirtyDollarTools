@@ -118,11 +118,19 @@ public class Loader : Scene, IGamePreloadable
         // The resampler is stored as a name plus its parameters, so it is rebuilt whenever
         // one of them changes. Filtered by name because building one is expensive and most
         // settings have nothing to do with it.
+        // The render-aheads are mirrored the same way; the workflow applies a change to the
+        // song already playing.
         _workflow.EncoderSettings.Resampler = Resamplers.Create(settings);
+        _workflow.RenderAheadSeconds = settings.VisualizerRenderAhead;
+        _workflow.EditorRenderAheadSeconds = settings.EditorRenderAhead;
         settings.Changed += name =>
         {
             if (Resamplers.Properties.Contains(name))
                 _workflow.EncoderSettings.Resampler = Resamplers.Create(settings);
+            else if (name == nameof(VisualizerSettings.VisualizerRenderAhead))
+                _workflow.RenderAheadSeconds = settings.VisualizerRenderAhead;
+            else if (name == nameof(VisualizerSettings.EditorRenderAhead))
+                _workflow.EditorRenderAheadSeconds = settings.EditorRenderAhead;
         };
 
         _background = new DollarStoreLoaderBackground(game.AssetProvider.DeleteQueue)

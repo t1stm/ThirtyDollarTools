@@ -17,19 +17,14 @@ namespace EditorScene;
 ///     Owns the editor's audio session. Holds the voices of the mute-filtered project
 ///     (<see cref="_rendered" />), rebuilt on every model edit and mute toggle and streamed by the
 ///     sequence player from the playhead on - nothing is mixed ahead of time beyond
-///     <see cref="RenderAheadSeconds" />. While a channel is soloed a second list
-///     (<see cref="_soloRendered" />) holds just the soloed channels and plays instead, with the
-///     full list still rebuilt underneath it, so unsoloing swaps back to it and drops the solo list.
+///     <see cref="ThirtyDollarWorkflow.EditorRenderAheadSeconds" />. While a channel is soloed a
+///     second list (<see cref="_soloRendered" />) holds just the soloed channels and plays instead,
+///     with the full list still rebuilt underneath it, so unsoloing swaps back to it and drops the
+///     solo list.
 /// </summary>
 public class EditorPlayback
 {
     private const int DebounceMs = 250;
-
-    /// <summary>
-    ///     How far ahead of the playhead the song is mixed. Short, so an edit is heard soon - a new
-    ///     list replaces the queued audio anyway - but past any garbage collection.
-    /// </summary>
-    public const double RenderAheadSeconds = 2;
 
     /// <summary>
     ///     Every TDW sequence starts one step at the initial 300 BPM before its first
@@ -613,7 +608,7 @@ public class EditorPlayback
         var events = rendered.TimedEvents;
         rendered.Voices.Retain(); // the player's reference, released when it moves on
         player.UpdateSequence(events, ThirtyDollarWorkflow.GenerateSequenceIndexes(events.Placement),
-            rendered.Voices, RenderAheadSeconds);
+            rendered.Voices, () => _workflow.EditorRenderAheadSeconds);
         _timedEvents = events;
 
         if (startPlayback) player.Start(_workflow.Game.ThreadRunner);

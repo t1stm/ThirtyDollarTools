@@ -20,12 +20,8 @@ public class ThirtyDollarWorkflow
 {
     private const int ModifiedSequenceUpdateIntervalMs = 250;
 
-    /// <summary>
-    ///     How far ahead of the playhead the visualizer mixes: long enough that no garbage
-    ///     collection outlasts it. Only file reloads replace the song here, and they take over at
-    ///     the playhead either way.
-    /// </summary>
-    public const double RenderAheadSeconds = 10;
+    /// <summary>The range the two render-aheads below are clamped to - a settings file can hold anything.</summary>
+    public const double MinRenderAheadSeconds = 0.25, MaxRenderAheadSeconds = 30;
 
     private readonly AssetInfo _assetInfo = new()
     {
@@ -37,6 +33,36 @@ public class ThirtyDollarWorkflow
 
     /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
     public Func<TimedEvents, SequencePlayer, Task>? HandleAfterSequenceLoad;
+
+    /// <summary>
+    ///     How far ahead of the playhead the visualizer mixes: long enough that no garbage
+    ///     collection outlasts it. Only file reloads replace the song here, and they take over at
+    ///     the playhead either way. Setting it changes the song already playing, if it is ours.
+    /// </summary>
+    public double RenderAheadSeconds
+    {
+        get;
+        set
+        {
+            field = Math.Clamp(value, MinRenderAheadSeconds, MaxRenderAheadSeconds);
+            SequencePlayer.RefreshAheadSeconds();
+        }
+    } = 10;
+
+    /// <summary>
+    ///     How far ahead of the playhead the editor mixes. Short, so an edit or a seek refills
+    ///     little - a new list replaces the queued audio anyway - but past any garbage
+    ///     collection. Lives here because the editor plays through this workflow's player.
+    /// </summary>
+    public double EditorRenderAheadSeconds
+    {
+        get;
+        set
+        {
+            field = Math.Clamp(value, MinRenderAheadSeconds, MaxRenderAheadSeconds);
+            SequencePlayer.RefreshAheadSeconds();
+        }
+    } = 2;
 
     /// <summary>The last build, kept for its resampled sounds: a reload of the same files reuses them.</summary>
     private VoiceRender? _render;
@@ -169,7 +195,7 @@ public class ThirtyDollarWorkflow
 
     private void UpdateAndStart(VoiceList voices, bool restartPlayer)
     {
-        SequencePlayer.UpdateSequence(TimedEvents, SequenceIndices, voices, RenderAheadSeconds);
+        SequencePlayer.UpdateSequence(TimedEvents, SequenceIndices, voices, () => RenderAheadSeconds);
         if (restartPlayer)
             SequencePlayer.Start(Game.ThreadRunner);
         else SequencePlayer.AlignToTime();

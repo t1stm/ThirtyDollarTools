@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Serilog.Core;
 using Shared.Audio;
 using Shared.Audio.Null;
+using Shared.Objects;
 using ThirtyDollarConverter;
 using ThirtyDollarConverter.Encoder.PCM;
 using ThirtyDollarConverter.Objects;
@@ -131,6 +132,26 @@ public class VoicePlaybackTests
         // a seek reads back at once, before the feeder has flushed to it
         playback.SeekTime_Milliseconds(120);
         Assert.Equal(120, playback.GetTime_Milliseconds());
+    }
+
+    /// <summary>A render-ahead setting moved mid-song reaches the playing stream, from whoever uploaded it.</summary>
+    [Fact]
+    public void RefreshAheadSeconds_RereadsTheUploadersValue()
+    {
+        using var render = Build("a|b");
+        var player = new SequencePlayer(Logger.None, new NullAudioContext());
+        var ahead = 2.0;
+
+        render.Voices.Retain();
+        player.UpdateSequence(render.TimedEvents, new SequenceIndices(), render.Voices, () => ahead);
+        var playback = (VoicePlayback)((TimingStopwatchWrapper)player.GetTimingStopwatch()).AudibleBuffer!;
+        Assert.Equal(2, playback.AheadSeconds, 3);
+
+        ahead = 5;
+        player.RefreshAheadSeconds();
+        Assert.Equal(5, playback.AheadSeconds, 3);
+
+        player.Die();
     }
 
     private static void Pump(VoicePlayback playback)
