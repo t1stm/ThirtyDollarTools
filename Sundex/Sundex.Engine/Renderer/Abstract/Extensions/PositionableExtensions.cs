@@ -25,14 +25,16 @@ public static class PositionableExtensions
             var scale = positionable.Scale;
             var newPosition = position;
 
-            if (positionAlign.HasFlag(PositionAlign.CenterX))
+            // Masks, not HasFlag: unoptimized code (a Debug build, Tier 0) boxes both sides of
+            // every HasFlag, and this runs for every label a playfield chunk lays out.
+            if ((positionAlign & PositionAlign.CenterX) == PositionAlign.CenterX)
                 newPosition.X -= scale.X / 2;
-            if (positionAlign.HasFlag(PositionAlign.CenterY))
+            if ((positionAlign & PositionAlign.CenterY) == PositionAlign.CenterY)
                 newPosition.Y -= scale.Y / 2;
 
-            if (positionAlign.HasFlag(PositionAlign.Bottom))
+            if ((positionAlign & PositionAlign.Bottom) == PositionAlign.Bottom)
                 newPosition.Y -= scale.Y;
-            if (positionAlign.HasFlag(PositionAlign.Right))
+            if ((positionAlign & PositionAlign.Right) == PositionAlign.Right)
                 newPosition.X -= scale.X;
 
             positionable.Position = newPosition;
