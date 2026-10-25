@@ -103,9 +103,11 @@ public sealed class VoiceList : IDisposable
     internal void MixRange(int index, int from, int to, int blockStart, Span<float> left, Span<float> right)
     {
         ref readonly var voice = ref _voices[index];
-        var samples = _sounds[voice.Sound].Samples;
+        var sound = _sounds[voice.Sound];
+        var samples = sound.Samples;
         var source_left = samples[0];
-        var source_right = samples.Length > 1 ? samples[1] : source_left;
+        // a mono sound is resampled into both channels, the same samples twice: read one copy
+        var source_right = samples.Length > 1 && sound.SourceChannels > 1 ? samples[1] : source_left;
 
         var plain_end = Math.Min(to, voice.CutAt);
         if (from < plain_end)
@@ -114,18 +116,19 @@ public sealed class VoiceList : IDisposable
             var length = plain_end - from;
             var destination = from - blockStart;
 
-            if (voice.LeftFromLeft != 0)
-                SampleMixer.Mix(source_left.AsSpan(source, length), left.Slice(destination, length),
-                    voice.LeftFromLeft);
-            if (voice.LeftFromRight != 0)
-                SampleMixer.Mix(source_right.AsSpan(source, length), left.Slice(destination, length),
-                    voice.LeftFromRight);
-            if (voice.RightFromRight != 0)
-                SampleMixer.Mix(source_right.AsSpan(source, length), right.Slice(destination, length),
-                    voice.RightFromRight);
-            if (voice.RightFromLeft != 0)
-                SampleMixer.Mix(source_left.AsSpan(source, length), right.Slice(destination, length),
-                    voice.RightFromLeft);
+            // one pass per source channel, into both outputs at once
+            if (source_left == source_right)
+            {
+                MixBoth(source_left.AsSpan(source, length), left, right, destination, length,
+                    voice.LeftFromLeft + voice.LeftFromRight, voice.RightFromRight + voice.RightFromLeft);
+            }
+            else
+            {
+                MixBoth(source_left.AsSpan(source, length), left, right, destination, length,
+                    voice.LeftFromLeft, voice.RightFromLeft);
+                MixBoth(source_right.AsSpan(source, length), left, right, destination, length,
+                    voice.LeftFromRight, voice.RightFromRight);
+            }
         }
 
         // the cut's fade, the same ramp SampleMixer.HandleCut put on the whole track
@@ -140,6 +143,21 @@ public sealed class VoiceList : IDisposable
             if (voice.RightFromRight != 0) right[destination] += source_right[source] * voice.RightFromRight * fade;
             if (voice.RightFromLeft != 0) right[destination] += source_left[source] * voice.RightFromLeft * fade;
         }
+    }
+
+    /// <summary>
+    ///     Adds <paramref name="source" /> into <paramref name="left" /> and <paramref name="right" />
+    ///     at <paramref name="destination" /> with the two gains, skipping a side whose gain is 0 -
+    ///     and never slicing it, as a mono render passes no right channel at all.
+    /// </summary>
+    private static void MixBoth(ReadOnlySpan<float> source, Span<float> left, Span<float> right, int destination,
+        int length, float leftGain, float rightGain)
+    {
+        if (leftGain != 0 && rightGain != 0)
+            SampleMixer.Mix(source, left.Slice(destination, length), right.Slice(destination, length), leftGain,
+                rightGain);
+        else if (leftGain != 0) SampleMixer.Mix(source, left.Slice(destination, length), leftGain);
+        else if (rightGain != 0) SampleMixer.Mix(source, right.Slice(destination, length), rightGain);
     }
 
     /// <summary>

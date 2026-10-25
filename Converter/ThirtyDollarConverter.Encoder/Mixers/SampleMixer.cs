@@ -81,6 +81,38 @@ public static class SampleMixer
     }
 
     /// <summary>
+    ///     <see cref="Mix(ReadOnlySpan{float}, Span{float}, float)" /> into two destinations in one
+    ///     pass, reading <paramref name="s_slice" /> once instead of twice - a mono sound into both
+    ///     channels, or a panned stereo channel into its side and the opposite one. Each element
+    ///     gets the same <c>d + s * volume</c> the one-destination version gives it.
+    /// </summary>
+    public static void Mix(ReadOnlySpan<float> s_slice, Span<float> d_left, Span<float> d_right,
+        float left_volume, float right_volume)
+    {
+        var chunk_size = Vector<float>.Count;
+        var length = Math.Min(s_slice.Length, Math.Min(d_left.Length, d_right.Length));
+        var min = length - length % chunk_size;
+
+        for (var i = 0; i < min; i += chunk_size)
+        {
+            var i_chunk = i + chunk_size;
+
+            var s_vector = new Vector<float>(s_slice[i..i_chunk]);
+            var l = d_left[i..i_chunk];
+            var r = d_right[i..i_chunk];
+
+            (new Vector<float>(l) + s_vector * left_volume).CopyTo(l);
+            (new Vector<float>(r) + s_vector * right_volume).CopyTo(r);
+        }
+
+        for (var i = min; i < length; i++)
+        {
+            d_left[i] += s_slice[i] * left_volume;
+            d_right[i] += s_slice[i] * right_volume;
+        }
+    }
+
+    /// <summary>
     ///     Zeroes out <paramref name="mixSlice" /> from <paramref name="currentStart" /> onward for a
     ///     <c>!cut</c>/<c>#icut</c> event: fades over <paramref name="cutFadeLengthMs" />, then holds
     ///     silence until it finds a run of already-silent samples to stop at.
