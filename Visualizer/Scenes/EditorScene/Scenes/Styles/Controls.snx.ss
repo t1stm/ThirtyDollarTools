@@ -319,12 +319,61 @@ class menu-rule {
     background = $theme.divider_hover;
 }
 
+// A track row's context menu: a box darker than the column it hangs beside, inside a hairline
+// ring. There is no border property, so the ring is the outer box's padding showing around
+// the inner one - the outer is the menu's own Dropdown, the inner a second one holding the
+// rows (each stretches its children to its width).
+class context-menu-ring {
+    width = 196;
+    padding = 1;
+    spacing = 0;
+    border-radius = 9;
+    background = $theme.divider;
+}
+
+class context-menu {
+    padding = 4;
+    spacing = 1;
+    border-radius = 8;
+    background = $theme.background;
+}
+
+// The rows: 30 tall, labels 10 in. A fixed height centers the label whatever the padding.
+class context-menu-item {
+    height = 30;
+    padding = 10;
+    border-radius = 6;
+
+    state[hovered] = {
+        background = $theme.surface;
+    }
+
+    state[pressed] = {
+        background = $theme.divider;
+    }
+}
+
+// A hairline between the menu's groups, 3 clear above and below and 6 in from either side
+// of the rows: the rows' 186 less 12. The gap is a box of its own because padding is one
+// value for all four sides.
+class context-menu-rule-gap {
+    height = 7;
+    horizontal-align = "center";
+    vertical-align = "center";
+}
+
+class context-menu-rule {
+    width = 174;
+    height = 1;
+    background = $theme.divider;
+}
+
 // What a context menu is about (a track's name), above its items: dim, small, not clickable.
 // The item padding, so it lines up with their labels. No width: the menu stretches its rows
-// to its widest one, and a percent here would size the menu to the window.
+// to its own width, and a percent here would size the menu to the window.
 class menu-heading {
-    height = 26;
-    padding = 6;
+    height = 24;
+    padding = 10;
     vertical-align = "center";
 }
 
