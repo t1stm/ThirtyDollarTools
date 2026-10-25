@@ -75,30 +75,72 @@ public class TextBuffer : IRenderable, IClippable, IDisposable
     public TextSlice GetTextSlice(ReadOnlySpan<char> text,
         Func<ReadOnlySpan<char>, TextBuffer, Range, TextSlice> factory, int capacity = -1)
     {
-        if (capacity < 0)
-            capacity = text.Length;
-
-        int charactersCapacity;
-        lock (Characters)
-        {
-            if ((charactersCapacity = Characters.Capacity) < _currentOffset + capacity)
-                Characters.ResizeCPUBuffer(charactersCapacity = _currentOffset + capacity);
-        }
-
-        var range = GetFreeRangeIfExists(capacity, charactersCapacity);
-        if (range == null)
-        {
-            range = new Range(_currentOffset, _currentOffset + capacity);
-            _currentOffset += capacity;
-        }
-
-        var slice = factory(text, this, range.Value);
+        var range = TakeRange(capacity < 0 ? text.Length : capacity);
+        var slice = factory(text, this, range);
         lock (_usedRanges)
         {
-            _usedRanges.Add(slice, range.Value);
+            _usedRanges.Add(slice, range);
         }
 
         return slice;
+    }
+
+    /// <summary>
+    ///     Forgets every slice at once and starts laying text out from the top again, keeping
+    ///     the characters' storage - for an owner that refills the buffer and hands its old
+    ///     slices back in through <see cref="Reuse" /> rather than allocating new ones. A slice
+    ///     from before the reset is dead until then: don't set it or dispose it.
+    /// </summary>
+    public void Reset()
+    {
+        lock (_usedRanges)
+        {
+            _usedRanges.Clear();
+        }
+
+        lock (_freeRanges)
+        {
+            _freeRanges.Clear();
+        }
+
+        _currentOffset = 0;
+    }
+
+    /// <summary>
+    ///     <see cref="GetTextSlice(ReadOnlySpan{char}, int)" /> into a slice this buffer handed
+    ///     out before the last <see cref="Reset" />, so a refill allocates nothing. The slice
+    ///     keeps its own settings (font size, color, manual updates).
+    /// </summary>
+    public void Reuse(TextSlice slice, ReadOnlySpan<char> text, int capacity = -1)
+    {
+        var range = TakeRange(capacity < 0 ? text.Length : capacity);
+        slice.Rebind(range);
+        lock (_usedRanges)
+        {
+            _usedRanges.Add(slice, range);
+        }
+
+        slice.Value = text;
+    }
+
+    private Range TakeRange(int capacity)
+    {
+        int charactersCapacity;
+        lock (Characters)
+        {
+            // Doubling, as a list grows: a chunk adds its slices one at a time, and growing
+            // to the exact size copied the whole buffer on every one of them.
+            if ((charactersCapacity = Characters.Capacity) < _currentOffset + capacity)
+                Characters.ResizeCPUBuffer(charactersCapacity =
+                    Math.Max(_currentOffset + capacity, charactersCapacity * 2));
+        }
+
+        var range = GetFreeRangeIfExists(capacity, charactersCapacity);
+        if (range != null) return range.Value;
+
+        var taken = new Range(_currentOffset, _currentOffset + capacity);
+        _currentOffset += capacity;
+        return taken;
     }
 
     private Range? GetFreeRangeIfExists(int capacity, int charactersCapacity)

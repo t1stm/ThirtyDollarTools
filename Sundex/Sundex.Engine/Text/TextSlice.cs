@@ -11,27 +11,29 @@ namespace Sundex.Engine.Text;
 public class TextSlice(TextBuffer textBuffer, Range range)
     : IPositionable, IDisposable
 {
-    private readonly char[] _value = new char[range.End.Value - range.Start.Value];
+    // Can outgrow the range after a Rebind to a shorter one; _capacity is the range's length.
+    private char[] _value = new char[range.End.Value - range.Start.Value];
+    private int _capacity = range.End.Value - range.Start.Value;
 
     public int Length { get; private set; }
-    public int Offset { get; } = range.Start.Value;
+    public int Offset { get; private set; } = range.Start.Value;
 
     public bool UpdateManually { get; set; }
 
     public ReadOnlySpan<char> Value
     {
-        get => _value;
+        get => _value.AsSpan(0, _capacity);
         set
         {
-            Span<char> destination = _value;
-            if (_value.Length < value.Length)
+            var destination = _value.AsSpan(0, _capacity);
+            if (_capacity < value.Length)
                 throw new InvalidOperationException("TextSlice capacity exceeded.");
 
             value.CopyTo(destination);
             Length = value.Length;
 
-            if (_value.Length > value.Length)
-                _value.AsSpan(value.Length).Clear();
+            if (_capacity > value.Length)
+                destination[value.Length..].Clear();
 
             if (UpdateManually) return;
             UpdateCharacters();
@@ -78,6 +80,19 @@ public class TextSlice(TextBuffer textBuffer, Range range)
     {
         textBuffer.Remove(this);
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    ///     Moves this slice to another range of its buffer, empty, for
+    ///     <see cref="TextBuffer.Reuse" />. Keeps its storage when the new range fits in it.
+    /// </summary>
+    internal void Rebind(Range range)
+    {
+        Offset = range.Start.Value;
+        _capacity = range.End.Value - range.Start.Value;
+        if (_value.Length < _capacity) _value = new char[_capacity];
+        else _value.AsSpan(0, _capacity).Clear();
+        Length = 0;
     }
 
     public Vector3 Scale { get; set; }
