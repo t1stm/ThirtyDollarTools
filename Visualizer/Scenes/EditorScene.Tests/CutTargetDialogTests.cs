@@ -30,6 +30,29 @@ public class CutTargetDialogTests
 
     private static KeyboardKeyEventArgs Key(Keys key) => new(key, 0, 0, false);
 
+    [Fact]
+    public void ATrackWithNothingInIt_SaysSo_InBothPanes()
+    {
+        var context = new EditorTestContext();
+        var dialog = new CutTargetDialog(context, context.NewAtlasStore(), [Empty], [], FaithfulItem.Parse("!cut")!);
+
+        var texts = Walk(dialog.Element).OfType<Sundex.Components.Labels.Label>()
+            .Select(label => label.Value.ToString().TrimEnd('\0')).ToList();
+        Assert.Contains("No instruments with sounds yet.", texts);
+        Assert.Contains("This track plays no sounds yet.", texts);
+    }
+
+    [Fact]
+    public void ASoundsPaneWithSounds_HasNoEmptyState()
+    {
+        var dialog = Open(FaithfulItem.Parse("!cut")!);
+
+        var texts = Walk(dialog.Element).OfType<Sundex.Components.Labels.Label>()
+            .Select(label => label.Value.ToString().TrimEnd('\0')).ToList();
+        Assert.DoesNotContain("This track plays no sounds yet.", texts);
+        Assert.DoesNotContain("No instruments with sounds yet.", texts);
+    }
+
     private static IEnumerable<UIElement> Walk(UIElement element)
     {
         yield return element;

@@ -1015,12 +1015,12 @@ class cut-instrument {
     border-radius = 6;
 }
 
-// Up to four 24 icons and their 2 gaps, fixed so every name starts at the same x - the
-// instrument selector's instrument-row-icons, a size down.
+// Two 24 icons and their 4 gap, fixed so every name starts at the same x, close beside them -
+// the instrument selector's instrument-row-icons, a size down.
 class cut-instrument-icons {
-    width = 102;
+    width = 52;
     height = 24;
-    spacing = 2;
+    spacing = 4;
     vertical-align = "center";
 }
 
