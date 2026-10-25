@@ -1,6 +1,7 @@
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared.Atlases;
+using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Labels;
@@ -43,10 +44,11 @@ public sealed class CutTargetDialog
     private const float TileSize = 56;
     private const float TileMargin = 10;
     private const float IconSize = 24;
-    private const int MaxIcons = 4;
+    // Two, so the name sits close beside them - the instrument selector's rows, a size down.
+    private const int MaxIcons = 2;
 
     /// <summary>Longest instrument name a row shows - a 310 px row at 13 px text, icons before it and count after.</summary>
-    private const int NameLimit = 23;
+    private const int NameLimit = 28;
 
     private readonly Label _caption;
     private readonly Label _count;
@@ -60,6 +62,11 @@ public sealed class CutTargetDialog
 
     /// <summary>The sounds the tiles show, in tile order.</summary>
     private string[] _shown = [];
+
+    /// <summary>What the sounds card shows while the target has no sounds to show; in its scroll view only then.</summary>
+    private readonly FlexPanel _noSounds;
+
+    private readonly ScrollView _soundScroll;
 
     /// <param name="store">The atlases the instrument rows' icons come from.</param>
     /// <param name="instruments">The project's instruments; the ones with no sounds are left out.</param>
@@ -101,7 +108,10 @@ public sealed class CutTargetDialog
         // The instrument selector's list: a row leads with up to four of its sounds' icons, drawn
         // as one batch by the list (a row, its icon strip, then the icon - the depth it queues at).
         _list = new InstrumentEditor.SoundList(context, store) { ID = "cut-instrument-list" };
-        component.GetID<FlexPanel>("cut-instrument-column").AddChild(_list);
+        // With nothing to aim at, the column says so rather than showing an empty list.
+        component.GetID<FlexPanel>("cut-instrument-column").AddChild(_instruments.Count > 0
+            ? _list
+            : EmptyState.Build(context, Icons.Drum, "No instruments with sounds yet."));
         foreach (var instrument in _instruments)
         {
             var row = new FlexPanel(context)
@@ -125,6 +135,9 @@ public sealed class CutTargetDialog
             _rows.Add((instrument, row));
         }
 
+        _soundScroll = component.GetID<ScrollView>("cut-sound-scroll");
+        _noSounds = EmptyState.Build(context, Icons.VolumeX, "This track plays no sounds yet.");
+
         if (look is not null)
         {
             _tiles = new EventCanvas(context, look, TileSize, TileMargin)
@@ -134,7 +147,7 @@ public sealed class CutTargetDialog
                 OnPick = index => Pick(_shown[index]),
                 IsSelected = index => Target != CutTarget.Sound || _shown[index] == Sound
             };
-            component.GetID<ScrollView>("cut-sound-scroll").AddChild(_tiles);
+            _soundScroll.AddChild(_tiles);
         }
 
         Start(cut);
@@ -328,6 +341,10 @@ public sealed class CutTargetDialog
             CutTarget.Instrument => "Follows the instrument if its sounds change.",
             _ => "Silences this sound only."
         });
+
+        var stands = _noSounds.Parent == _soundScroll;
+        if (shown.Length == 0 && !stands) _soundScroll.AddChild(_noSounds);
+        else if (shown.Length > 0 && stands) _soundScroll.RemoveChild(_noSounds);
 
         if (_tiles is null) return;
         if (!shown.SequenceEqual(_shown))

@@ -89,14 +89,113 @@ class form-row-input {
     x = 190;
 }
 
+// A search field: the magnifier, then the text. The instrument editor's and the sound
+// filter's sound filters.
+class filter-field {
+    width = 230;
+    height = 32;
+    padding = 10;
+    spacing = 8;
+    vertical-align = "center";
+    border-radius = 6;
+    background = $theme.input_background;
+}
+
+class filter-field-icon {
+    font-size = 14;
+    font-color = $theme.text_dim;
+}
+
+class filter-field-input {
+    width = 100%;
+    height = 24;
+    padding = 2;
+    font-size = 14;
+    placeholder-color = $theme.text_muted;
+    background = "#00000000";
+}
+
+// What a list shows while it is empty (EmptyState.cs): an icon and one line, centred in the
+// room the list would take. Side by side for a row-high strip, stacked for a pane.
+class empty-state {
+    width = 100%;
+    height = 100%;
+    spacing = 8;
+    horizontal-align = "center";
+    vertical-align = "center";
+}
+
+class empty-state-stacked {
+    direction = "vertical";
+    spacing = 10;
+}
+
+class empty-state-icon {
+    font-size = 16;
+    font-color = $theme.text_subtle;
+}
+
+class empty-state-icon-large {
+    font-size = 28;
+}
+
+class empty-state-text {
+    font-size = 13;
+    font-color = $theme.text_dim;
+}
+
 // ---------------------------------------------------------------- per dialog
 
 id confirm-dialog {
-    width = 360;
+    width = 380;
+}
+
+// The frame's 380 less its 16 padding a side.
+class confirm-message {
+    wrap-width = 348;
 }
 
 id alert-dialog {
-    width = 360;
+    width = 420;
+}
+
+// A failure, not a notice: the triangle Import's warnings use, in the danger red.
+class alert-icon {
+    font-size = 16;
+    font-color = $theme.danger;
+}
+
+// A title that can carry a long name (the alert's file, the confirm's instrument): it takes the
+// header's free space and clips there, so the name stops short of the ×.
+class dialog-title-clip {
+    width = 100%;
+    height = 28;
+    vertical-align = "center";
+}
+
+// The frame's 420 less its 16 padding a side.
+class alert-message {
+    wrap-width = 388;
+}
+
+// The raw error under the message, for a bug report. DialogHost.Details wraps it in code,
+// at a width and size that have to match alert-details-text.
+class alert-details {
+    width = 100%;
+    padding = 10;
+    border-radius = 6;
+    background = $theme.background;
+}
+
+class alert-details-text {
+    font-size = 12;
+    font-color = $theme.text_dim;
+}
+
+// Four lines of alert-details-text; more scroll.
+class alert-details-scroll {
+    width = 100%;
+    height = 58;
 }
 
 // A faithful action's value: the strip, then a 210 list beside the card. One width for every
@@ -214,6 +313,31 @@ class action-preview-box {
     border-radius = 8;
 }
 
+// The "!bg" preview's start color, fade time and end color, under the ramp it shows at rest.
+class action-preview-scale {
+    width = 100%;
+    vertical-align = "center";
+}
+
+// Half the free room each, so the fade time sits in the middle; a spacer's 100% each would
+// push the end color out of the card.
+class action-preview-scale-gap {
+    width = 50%;
+}
+
+class action-preview-scale-label {
+    font-size = 12;
+    font-color = $theme.text_dim;
+}
+
+// One "!pulse" repeat, along the bottom of the preview at rest.
+class action-preview-tick {
+    width = 3;
+    height = 12;
+    border-radius = 1;
+    background = $theme.text;
+}
+
 // Takes the spare height instead when there is no preview, so the facts sit at the bottom.
 class action-fill {
     width = 100%;
@@ -282,6 +406,27 @@ id track-color-dialog {
     spacing = 12;
 }
 
+// Names the colors a mixed selection has, over the grid. The frame's 320 less its padding.
+class track-color-caption {
+    font-size = 13;
+    wrap-width = 288;
+}
+
+// How many of a mixed selection's tracks have a color, on its chip's corner.
+class color-count {
+    height = 16;
+    padding = 5;
+    horizontal-align = "center";
+    vertical-align = "center";
+    border-radius = 8;
+    background = $theme.text;
+}
+
+class color-count-label {
+    font-size = 11;
+    font-color = $theme.text_dark;
+}
+
 class color-grid {
     width = 100%;
     spacing = 8;
@@ -321,12 +466,11 @@ class color-chip {
     border-radius = 4;
 }
 
-id track-context-menu {
-    width = 280;
-    spacing = 12;
+id duplicate-track-dialog {
+    width = 380;
 }
 
-// The new name spans the menu's width.
+// The new name takes the row's width after its label.
 id duplicate-name-input {
     width = 100%;
 }
@@ -413,6 +557,12 @@ class export-row-input {
     x = 150;
     y = 2;
     width = 180;
+}
+
+// A fact in a field's place: the audio export's length and tracks, level with the labels.
+class export-row-value {
+    x = 150;
+    y = 9;
 }
 
 // A line of icon and text: the checkbox's, the .wav note's.
@@ -605,6 +755,26 @@ class track-kind-fact-warn {
 
 class track-kind-fact-bad {
     font-color = $theme.danger;
+}
+
+// What to do instead, after a problem: an info glyph, not a warning.
+class track-kind-fact-hint {
+    font-color = $theme.text_dim;
+}
+
+// A way that can't import the file: its icon and name dimmed, and a note under the name.
+class track-kind-unavailable {
+    font-color = $theme.text_muted;
+}
+
+class track-kind-name-stack {
+    direction = "vertical";
+    spacing = 2;
+}
+
+class track-kind-unavailable-note {
+    font-size = 11;
+    font-color = $theme.text_subtle;
 }
 
 class track-kind-fields {
@@ -876,12 +1046,12 @@ class cut-instrument {
     border-radius = 6;
 }
 
-// Up to four 24 icons and their 2 gaps, fixed so every name starts at the same x - the
-// instrument selector's instrument-row-icons, a size down.
+// Two 24 icons and their 4 gap, fixed so every name starts at the same x, close beside them -
+// the instrument selector's instrument-row-icons, a size down.
 class cut-instrument-icons {
-    width = 102;
+    width = 52;
     height = 24;
-    spacing = 2;
+    spacing = 4;
     vertical-align = "center";
 }
 
@@ -913,6 +1083,11 @@ id cut-sound-scroll {
 // Four 88-wide cells plus three 8 gaps fit the 388 inner width.
 id import-warnings-dialog {
     width = 420;
+}
+
+// The frame's 420 less its 16 padding a side.
+class warning-footer-text {
+    wrap-width = 388;
 }
 
 // One kind of warning: its heading, a line on what became of it, then what it applies to.
@@ -992,11 +1167,12 @@ class instrument-row-pick {
     vertical-align = "center";
 }
 
-// Up to four 28 icons and their 2 gaps, fixed so every name starts at the same x.
+// Two 28 icons and their 4 gap, fixed so every name starts at the same x - close beside the
+// icons rather than a four-icon slot away.
 class instrument-row-icons {
-    width = 118;
+    width = 60;
     height = 28;
-    spacing = 2;
+    spacing = 4;
     vertical-align = "center";
 }
 
@@ -1036,17 +1212,27 @@ class instrument-selector-empty {
 
 id sound-filter-frame {
     width = 640;
-    padding = 10;
-    spacing = 8;
+    spacing = 12;
 }
 
+// The picks, one row tall from the start, so the grid under it never moves when one is
+// added. More than a row scrolls.
+id sound-filter-tray {
+    width = 100%;
+    height = 58;
+    padding = 4;
+    border-radius = 8;
+    background = $theme.background;
+}
+
+// Percent-wide, so the scroll bar sits inside the frame's padding.
 id sound-filter-list {
-    width = 640;
-    height = 440;
+    width = 100%;
+    height = 360;
 }
 
 id sound-filter-picker {
-    width = 640;
+    width = 100%;
 }
 
 // ---------------------------------------------------------------- file dialog

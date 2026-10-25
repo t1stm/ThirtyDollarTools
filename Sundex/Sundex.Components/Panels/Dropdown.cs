@@ -60,6 +60,9 @@ public class DropdownMenu : ModalLayer
 
     private readonly UIElement? _anchorElement;
     private readonly float _anchorX, _anchorY;
+
+    /// <summary>Hang beside <see cref="_anchorElement" /> rather than under it; see <see cref="Beside" />.</summary>
+    private readonly bool _beside;
     private readonly int _openedOnRightPressId;
 
     /// <summary>Anchors the menu at a point - a right-click's cursor position.</summary>
@@ -69,9 +72,10 @@ public class DropdownMenu : ModalLayer
         _anchorY = y;
     }
 
-    private DropdownMenu(UIContext context, UIElement anchor) : this(context)
+    private DropdownMenu(UIContext context, UIElement anchor, bool beside) : this(context)
     {
         _anchorElement = anchor;
+        _beside = beside;
     }
 
     private DropdownMenu(UIContext context) : base(context)
@@ -95,7 +99,17 @@ public class DropdownMenu : ModalLayer
     /// </summary>
     public static DropdownMenu Below(UIElement element)
     {
-        return new DropdownMenu(element.Context, element);
+        return new DropdownMenu(element.Context, element, false);
+    }
+
+    /// <summary>
+    ///     Anchors the menu beside an element: its top-left at the element's top-right corner,
+    ///     or left of it / bottom-aligned near a viewport edge. What a row's context menu wants:
+    ///     opened at the cursor, it would cover the very row it is about.
+    /// </summary>
+    public static DropdownMenu Beside(UIElement element)
+    {
+        return new DropdownMenu(element.Context, element, true);
     }
 
     /// <summary>The styled menu box. Items go here.</summary>
@@ -117,11 +131,16 @@ public class DropdownMenu : ModalLayer
     /// <summary>
     ///     A right-click outside the menu closes it. Right-press is level-triggered, so the
     ///     press that opened this menu (still held on the first frames) must not immediately
-    ///     close it - hence the RightPressId guard.
+    ///     close it - hence the RightPressId guard. The press that closes it is consumed:
+    ///     still held on the next frame, it would reach what lay under the menu, and a row
+    ///     would open its menu again.
     /// </summary>
     public override bool HandleRightPress(float x, float y)
     {
-        if (Context.RightPressId != _openedOnRightPressId && !Menu.ContainsPoint(x, y)) Close();
+        if (Context.RightPressId == _openedOnRightPressId || Menu.ContainsPoint(x, y)) return true;
+
+        Close();
+        Context.ConsumeRightPress();
         return true;
     }
 
@@ -137,9 +156,15 @@ public class DropdownMenu : ModalLayer
         // near/far pair is its own box, so a flip right-aligns to it (or sits above it)
         // instead of jumping the button's width away.
         float nearX, farX, nearY, farY;
-        if (_anchorElement is { } anchor)
+        if (_anchorElement is { } anchor && _beside)
         {
             var box = anchor.Computed;
+            (nearX, farX) = (box.AbsoluteX + box.Width + CursorGap, box.AbsoluteX - CursorGap);
+            (nearY, farY) = (box.AbsoluteY, box.AbsoluteY + box.Height);
+        }
+        else if (_anchorElement is { } below)
+        {
+            var box = below.Computed;
             (nearX, farX) = (box.AbsoluteX, box.AbsoluteX + box.Width);
             (nearY, farY) = (box.AbsoluteY + box.Height, box.AbsoluteY);
         }

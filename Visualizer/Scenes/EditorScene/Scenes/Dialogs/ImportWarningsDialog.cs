@@ -33,7 +33,7 @@ public sealed class ImportWarningsDialog
     /// <summary>Longest caption a cell shows, its count included - an 88 px cell at 11 px text.</summary>
     private const int CaptionLimit = 13;
 
-    private const int FileNameLimit = 24;
+    private const int FileNameLimit = 28;
 
     private readonly List<EventCanvas> _tiles = [];
 
@@ -49,14 +49,15 @@ public sealed class ImportWarningsDialog
         FaithfulButton = component.GetID<Button>("faithful-button");
         KeepButton = component.GetID<Button>("keep-button");
 
-        var shape = mode switch
+        component.GetID<Label>("title-label").SetTextContents(mode switch
         {
-            ImportMode.Track => "a Piano Roll track",
-            ImportMode.Faithful => "a Faithful Track",
-            _ => "a project"
-        };
-        component.GetID<Label>("title-label")
-            .SetTextContents($"Imported \"{FaithfulPalette.Shorten(fileName, FileNameLimit)}\" as {shape}");
+            ImportMode.Track => "Imported as Piano Roll",
+            ImportMode.Faithful => "Imported as a Faithful track",
+            _ => "Imported as a project"
+        });
+        // The base name: the label font has no 🗿, and the extension says nothing the title doesn't.
+        component.GetID<Label>("file-label")
+            .SetTextContents(FaithfulPalette.Shorten(Path.GetFileNameWithoutExtension(fileName), FileNameLimit));
 
         Section("ignored-section", warnings.IgnoredEvents.Count > 0, section =>
             Fill(section, component.GetID<FlexPanel>("ignored-grid"),
@@ -88,9 +89,9 @@ public sealed class ImportWarningsDialog
         {
             Element.RemoveChild(component.GetID<FlexPanel>("faithful-footer"));
             ((Panel)FaithfulButton.Parent!).RemoveChild(FaithfulButton);
-            // Appended after dialog-button, so its fill wins.
-            KeepButton.SetClass("dialog-button-primary", true);
         }
+
+        KeyChip.Add(KeepButton, "Enter");
 
         return;
 
@@ -105,7 +106,7 @@ public sealed class ImportWarningsDialog
     /// <summary>The dialog's root - what the owner mounts into a ModalLayer.</summary>
     public FlexPanel Element { get; }
 
-    /// <summary>Redoes the import as a Faithful Track - the suggested action. Out of the tree unless <see cref="OffersFaithful" />.</summary>
+    /// <summary>Redoes the import as a Faithful Track - the quiet alternative. Out of the tree unless <see cref="OffersFaithful" />.</summary>
     public Button FaithfulButton { get; }
 
     public Button KeepButton { get; }

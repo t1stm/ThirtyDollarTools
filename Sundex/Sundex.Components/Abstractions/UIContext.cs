@@ -260,6 +260,26 @@ public class UIContext : IGamePreloadable
 
     private bool _rightDown;
 
+    /// <summary>The press <see cref="ConsumeRightPress" /> took; its held frames reach no element.</summary>
+    private int _consumedRightPressId;
+
+    /// <summary>
+    ///     What had focus when the last key went down. Its character arrives right after it, in the
+    ///     same batch of window events, so the next frame's pointer update ends the key's claim -
+    ///     text with no key of its own (an input method's) then goes wherever focus is.
+    /// </summary>
+    private (UIElement? Focus, bool Pending) _keyFocus;
+
+    /// <summary>
+    ///     Swallows the rest of the current right-press. For a handler that removes itself on the
+    ///     press - a menu closing - so the element that lay under it doesn't get the same,
+    ///     still-held press on the next frame.
+    /// </summary>
+    public void ConsumeRightPress()
+    {
+        _consumedRightPressId = RightPressId;
+    }
+
     /// <summary>
     ///     Routes a pointer update to the UI tree under <paramref name="root" />: resolves the
     ///     topmost hit (occlusion), maintains hover/pressed chains, capture, click
@@ -271,6 +291,7 @@ public class UIContext : IGamePreloadable
         bool isDown, bool wasPressed, bool wasReleased, Vector2 scrollDelta,
         bool isRightDown = false)
     {
+        _keyFocus = default;
         PointerX = x;
         PointerY = y;
         PointerDown = isDown;
@@ -345,7 +366,7 @@ public class UIContext : IGamePreloadable
         // Level-triggered, not edge-triggered: fires on every update while the right
         // button is held, so sweep gestures (erase everything crossed) work. Handlers
         // must be idempotent for a stationary pointer.
-        if (isRightDown)
+        if (isRightDown && RightPressId != _consumedRightPressId)
             for (var e = winner; e != null; e = e.Parent)
                 if (e.HandleRightPress(x, y))
                     break;
@@ -362,7 +383,7 @@ public class UIContext : IGamePreloadable
                 for (var e = captured; e != null; e = e.Parent)
                     if (e.OnClick != null)
                     {
-                        e.OnClick(e);
+                        if (!e.Disabled) e.OnClick(e);
                         break;
                     }
         }
@@ -463,9 +484,14 @@ public class UIContext : IGamePreloadable
         old?.NotifyFocusLost();
     }
 
-    /// <summary>Forwards a unicode text input event to the focused element.</summary>
+    /// <summary>
+    ///     Forwards a unicode text input event to the focused element - unless focus moved since
+    ///     the key that typed it went down: a letter that opens a dialog with a name field must not
+    ///     type itself into the field it just focused.
+    /// </summary>
     public void DispatchTextInput(TextInputEventArgs e)
     {
+        if (_keyFocus is { Pending: true } key && !ReferenceEquals(FocusedElement, key.Focus)) return;
         FocusedElement?.HandleTextInput(e);
     }
 
@@ -475,6 +501,7 @@ public class UIContext : IGamePreloadable
     /// <returns>True when the event was consumed by the UI.</returns>
     public bool DispatchKeyDown(KeyboardKeyEventArgs e)
     {
+        _keyFocus = (FocusedElement, true);
         if (FocusedElement == null) return false;
         if (FocusedElement.HandleKeyDown(e)) return true;
         if (e.Key != Keys.Escape) return false;

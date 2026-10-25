@@ -1,5 +1,8 @@
 using JetBrains.Annotations;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using Sundex.Components;
+using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using ThirtyDollarConverter.Editor;
@@ -43,7 +46,37 @@ public partial class EditorInterface
         return _workflow.SampleHolder.StringToSoundReferences.Values.Distinct().OrderBy(sound => sound.Id);
     }
 
-    /// <summary>Public because SoundFilter.snx.csx wires both the Done button and the backdrop dismiss to it.</summary>
+    /// <summary>The sound filter's tray stand-in while nothing is picked.</summary>
+    private FlexPanel _soundFilterEmpty = null!;
+
+    /// <summary>
+    ///     The sound filter's parts that need the picker, which the markup can't reach: the tray
+    ///     the picks show in, the count, the filter field and Clear.
+    /// </summary>
+    private void WireSoundFilter()
+    {
+        _soundFilterEmpty = EmptyState.Build(_context, Icons.MousePointer2,
+            "Nothing picked yet. Click sounds below to add them.", stacked: false);
+        SoundFilterInput.Placeholder = "Filter sounds";
+        SoundFilterInput.OnValueChanged = input => _soundFilterPicker.Filter(input.Value);
+        _soundFilterPicker.OnClearFilter = () => SoundFilterInput.Value = "";
+        _soundFilterPicker.OnInstancesChanged = RefreshSoundFilterPicks;
+        SoundFilterClear.OnClick = _ => _soundFilterPicker.SetSelected([]);
+        KeyChip.Add(SoundFilterDone, "Enter");
+        RefreshSoundFilterPicks();
+    }
+
+    private void RefreshSoundFilterPicks()
+    {
+        var picked = _soundFilterPicker.Instances.Count;
+        SoundFilterCount.SetTextContents($"{picked} picked");
+        UIElement shown = picked > 0 ? _soundFilterPicker.Tray : _soundFilterEmpty;
+        UIElement hidden = picked > 0 ? _soundFilterEmpty : _soundFilterPicker.Tray;
+        if (hidden.Parent == SoundFilterTray) SoundFilterTray.RemoveChild(hidden);
+        if (shown.Parent != SoundFilterTray) SoundFilterTray.AddChild(shown);
+    }
+
+    /// <summary>Public because SoundFilter.snx.csx wires every way out of the sound filter to it.</summary>
     [UsedImplicitly]
     public void CommitAndCloseSoundFilter()
     {
@@ -105,8 +138,7 @@ public partial class EditorInterface
     /// </summary>
     public void ConfirmImportSequenceFile(string path)
     {
-        _dialogHost.Confirm($"\"{Path.GetFileName(path)}\" has no file extension.\n" +
-                            $"Import it as a TDW sequence?",
+        _dialogHost.Confirm("Import it as a TDW sequence?", $"“{Path.GetFileName(path)}” has no file extension.",
             () => ImportSequenceFile(path),
             confirmLabel: "Continue", confirmClass: "dialog-button-primary");
     }
@@ -131,7 +163,6 @@ public partial class EditorInterface
         dialog.ImportButton.OnClick = _ => Confirm();
         dialog.NameInput.OnCommit = _ => Confirm();
         dialog.CancelButton.OnClick = _ => Close();
-        dialog.CloseButton.OnClick = _ => Close();
         return;
 
         void Close()
@@ -142,6 +173,8 @@ public partial class EditorInterface
 
         void Confirm()
         {
+            // Enter and the name field's commit land here too; a way that can't import does nothing.
+            if (!dialog.CanImport) return;
             Close();
             var name = dialog.NameInput.Value.Trim();
             Import(path, sequence, dialog.Mode, name.Length > 0 ? name : Path.GetFileNameWithoutExtension(path));
@@ -160,6 +193,7 @@ public partial class EditorInterface
         var dialog = new ImportWarningsDialog(_context, Path.GetFileName(path), mode, warnings, _playfieldLook);
         var modal = _dialogHost.Show(dialog.Element);
         modal.OnDismissRequested = _ => Close();
+        modal.OnConfirmRequested = _ => Close();
         dialog.KeepButton.OnClick = _ => Close();
         dialog.FaithfulButton.OnClick = _ =>
         {
@@ -220,7 +254,6 @@ public partial class EditorInterface
             discard();
         };
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
         return;
 
         void Save()
@@ -259,7 +292,6 @@ public partial class EditorInterface
         dialog.AddButton.OnClick = _ => Add();
         dialog.NameInput.OnCommit = _ => Add();
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
         return;
 
         void Add()
@@ -338,7 +370,6 @@ public partial class EditorInterface
         var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
         modal.OnDismissRequested = _ => Close();
         modal.OnConfirmRequested = _ => Save();
-        dialog.CloseButton.OnClick = _ => Close();
         dialog.CancelButton.OnClick = _ => Close();
         dialog.SaveButton.OnClick = _ => Save();
         dialog.Focus();
@@ -377,7 +408,6 @@ public partial class EditorInterface
         var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
         modal.OnDismissRequested = _ => Close();
         modal.OnConfirmRequested = _ => Save();
-        dialog.CloseButton.OnClick = _ => Close();
         dialog.CancelButton.OnClick = _ => Close();
         dialog.SaveButton.OnClick = _ => Save();
         return;
@@ -395,32 +425,50 @@ public partial class EditorInterface
         }
     }
 
+    /// <summary>
+    ///     A track row's right-click menu. Right-clicking a row outside the selection selects it
+    ///     first, so the inspector, the highlight and the menu all name the same track; a row
+    ///     inside a multi-selection keeps it, and the recolor follows the whole selection. The
+    ///     menu hangs beside the row rather than over it, and C, D and R run its rows while it is up.
+    /// </summary>
     private void ShowTrackContextMenu(ProjectTrack track, float x, float y)
     {
         if (_trackContextMenuModal != null) return;
+        if (!State.SelectedTracks.Contains(track)) State.SelectTrack(track);
 
-        var menu = new DropdownMenu(_context, x, y);
+        var menu = _trackList.RowOf(track) is { } row ? DropdownMenu.Beside(row) : new DropdownMenu(_context, x, y);
+        // The menu's own box is the ring; the rows go in a second box inside it.
+        var box = new Dropdown(_context) { Classes = ["context-menu"] };
+        var keys = new Dictionary<Keys, DropdownItem>();
+        menu.Menu.SetClass("context-menu-ring", true);
+        menu.Menu.AddChild(box);
+        box.AddChild(new FlexPanel(_context)
+        {
+            Classes = ["menu-heading"],
+            Children = [new ClippedLabel(_context, track.Name) { Classes = ["menu-heading-label"] }]
+        });
+
         // A wave track has no editor to open and nothing to convert into - it is a file.
-        if (track is WaveTrack wave)
-        {
-            menu.AddItem("Replace file…", () => ShowWaveReplaceDialog(wave));
-        }
-        else
-        {
-            menu.AddItem("Open", () => State.OpenTrack(track));
-        }
+        if (track is WaveTrack wave) Item("Replace file…", () => ShowWaveReplaceDialog(wave));
+        else Item("Open", () => State.OpenTrack(track));
 
-        // The right-press kept an existing multi-selection the track is part of (see
-        // TrackListPanel.ContextMenu), so the recolor follows it rather than the one row
-        // the pointer happens to be over.
-        menu.AddItem("Change color…", () => ShowTrackColorDialog(
-            State.SelectedTracks.Contains(track) ? State.SelectedTracks : [track]));
-        menu.AddItem("Duplicate…", () => ShowDuplicateTrackDialog(track));
+        Rule();
+        Item("Change color…", () => ShowTrackColorDialog(State.SelectedTracks), Keys.C);
+        Item("Duplicate…", () => ShowDuplicateTrackDialog(track), Keys.D);
         if (track.Kind != TrackKind.Wave)
-            menu.AddItem(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
+            Item(track.Kind == TrackKind.Faithful ? "Convert to Piano Roll" : "Convert to Faithful",
                 () => ConvertTrack(track));
 
-        menu.AddItem("Remove", () => State.RemoveTrack(track));
+        Rule();
+        Item("Remove", () => State.RemoveTrack(track), Keys.R).Label.SetClass("danger-label", true);
+
+        // The menu is modal, so its letters reach nothing behind it.
+        menu.OnKeyRequested = e =>
+        {
+            if (e.Control || e.Alt || e.Command || !keys.TryGetValue(e.Key, out var item)) return false;
+            item.OnClick!(item);
+            return true;
+        };
 
         _dialogHost.Root.AddChild(menu);
         _trackContextMenuModal = menu;
@@ -429,22 +477,59 @@ public partial class EditorInterface
             _dialogHost.Root.RemoveChild(m);
             _trackContextMenuModal = null;
         };
+        return;
+
+        // A row with a key leads with its chip; one without keeps the chip's room, so every
+        // label starts at the same x.
+        DropdownItem Item(string text, Action action, Keys? key = null)
+        {
+            var item = new DropdownItem(_context, text)
+            {
+                Classes = ["context-menu-item"],
+                OnClick = _ =>
+                {
+                    menu.Close();
+                    action();
+                }
+            };
+            if (key is { } k)
+            {
+                KeyChip.Add(item, k.ToString()).Children[0].SetClass("context-menu-key-chip", true);
+                keys[k] = item;
+            }
+            else
+            {
+                item.Children = [new Panel(_context) { Classes = ["context-menu-key-gap"] }, item.Label];
+            }
+
+            item.SetClass("context-menu-key-item", true);
+            box.AddChild(item);
+            return item;
+        }
+
+        void Rule()
+        {
+            box.AddChild(new FlexPanel(_context)
+            {
+                Classes = ["context-menu-rule-gap"],
+                Children = [new Panel(_context) { Classes = ["context-menu-rule"] }]
+            });
+        }
     }
 
     /// <summary>
     ///     The recolor swatch grid, reached from a track's context menu and from the
     ///     inspector's Color row. The palette is the arrangement's, so the swatches are
     ///     exactly the fills a clip can take. Several tracks recolor together: the grid
-    ///     marks their current swatch only when they already share one.
+    ///     rings their current swatch only when they already share one, and counts a mix.
     /// </summary>
     private void ShowTrackColorDialog(IReadOnlyList<ProjectTrack> tracks)
     {
         if (tracks.Count == 0) return;
 
-        var shared = tracks.All(t => t.ColorIndex == tracks[0].ColorIndex) ? tracks[0].ColorIndex : null;
-        var title = tracks.Count == 1 ? tracks[0].Name : $"{tracks.Count} tracks";
-        var dialog = new TrackColorDialog(_context, title, _arrangement.ClipPalette,
-            _arrangement.ClipColor, shared);
+        var subject = tracks.Count == 1 ? tracks[0].Name : $"{tracks.Count} tracks";
+        var dialog = new TrackColorDialog(_context, subject, _arrangement.ClipPalette,
+            _arrangement.ClipColor, [.. tracks.Select(t => t.ColorIndex)]);
         var modal = _dialogHost.Show(dialog.Element);
         dialog.OnPick = index =>
         {
@@ -456,14 +541,20 @@ public partial class EditorInterface
     /// <summary>Duplicate's name prompt, reached from the track context menu.</summary>
     private void ShowDuplicateTrackDialog(ProjectTrack track)
     {
-        var dialog = new TrackContextMenu(_context, $"{track.Name} copy");
+        var dialog = new DuplicateTrackDialog(_context, track.Name,
+            ThirtyDollarProject.CopyName(track.Name, State.Project.Tracks.Select(t => t.Name)));
         var modal = _dialogHost.Show(dialog.Element);
+        modal.OnConfirmRequested = _ => Duplicate();
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.DuplicateButton.OnClick = _ =>
+        dialog.DuplicateButton.OnClick = _ => Duplicate();
+        dialog.Focus();
+        return;
+
+        void Duplicate()
         {
-            State.DuplicateTrack(track, dialog.NameInput.Value);
             _dialogHost.Close(modal);
-        };
+            State.DuplicateTrack(track, dialog.Name);
+        }
     }
 
     /// <summary>
@@ -479,7 +570,7 @@ public partial class EditorInterface
         }
         catch (Exception e)
         {
-            _dialogHost.Alert($"Couldn't convert \"{track.Name}\":\n\n{e.Message}");
+            _dialogHost.Alert($"Couldn't convert “{track.Name}”", e);
         }
     }
 
@@ -570,13 +661,20 @@ public partial class EditorInterface
         dialog.ProjectLabel.SetTextContents(State.Project.Info.Name);
         if (State.Project.Tracks.All(track => track.Kind != TrackKind.Wave))
             dialog.Element.RemoveChild(dialog.WaveNote);
+        dialog.SetTracks(State.Project.Tracks.Count(track => track.Kind != TrackKind.Wave));
 
         // Exports land next to the project file; an unsaved project has none and opens home.
         var directory = Path.GetDirectoryName(State.ProjectPath);
-        var modal = _dialogHost.Show(dialog.Element);
+        var modal = _dialogHost.Show(dialog.Element, onKey: dialog.HandleKey);
+
+        // Measured off the update thread; the answer comes back onto it like any other edit.
+        Playback.ExportLengthMs().ContinueWith(length =>
+        {
+            var ms = length.IsCompletedSuccessfully ? length.Result : (long?)null;
+            _pendingEdits.Enqueue(() => dialog.SetLength(ms));
+        });
         modal.OnConfirmRequested = _ => Export();
         dialog.CancelButton.OnClick = _ => _dialogHost.Close(modal);
-        dialog.CloseButton.OnClick = _ => _dialogHost.Close(modal);
         dialog.ExportButton.OnClick = _ => Export();
         return;
 

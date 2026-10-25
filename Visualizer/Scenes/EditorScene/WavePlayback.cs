@@ -19,7 +19,7 @@ namespace EditorScene;
 ///     but not its code: a clip here starts at an offset, carries its own gain, follows mute and
 ///     solo, and holds still outside its own span.
 /// </summary>
-public sealed class WavePlayback(AudioContext context, ILogger logger, Action<string> onError)
+public sealed class WavePlayback(AudioContext context, ILogger logger, Action<string, Exception> onError)
 {
     /// <summary>
     ///     How far a clip may sit from where the transport says it should be before it is
@@ -246,7 +246,7 @@ public sealed class WavePlayback(AudioContext context, ILogger logger, Action<st
         catch (Exception e)
         {
             logger.WaveReadFailed(e, path);
-            onError($"Couldn't read \"{Path.GetFileName(path)}\":\n{e.Message}");
+            onError($"Couldn't read {Path.GetFileName(path)}", e);
             return null;
         }
     }

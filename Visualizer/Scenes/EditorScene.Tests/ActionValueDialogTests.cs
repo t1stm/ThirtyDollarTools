@@ -53,6 +53,51 @@ public class ActionValueDialogTests
         Assert.Equal((6, 4), Edit(track, 10).StripWindow);
     }
 
+    /// <summary>Every value action shares one body height and the two preview actions another, so moving between them doesn't resize the dialog each time.</summary>
+    [Fact]
+    public void BodyHeights_AreOneForValueActions_AndOneForPreviews()
+    {
+        float Body(string action) => Descendants(Add(action, Track()).Element)
+            .Single(e => e.ID == "action-body").Height.Value;
+
+        var values = new[] { "!speed", "!volume", "!stop", "!transpose", "!loopmany", "!jump", "!target" }
+            .Select(Body).Distinct();
+        var previews = new[] { "!bg", "!pulse" }.Select(Body).Distinct();
+
+        Assert.Single(values);
+        Assert.Single(previews);
+    }
+
+    [Fact]
+    public void AJump_WithNoTargets_KeepsItsColumn_SayingSo()
+    {
+        var dialog = Add("!jump", Track());
+
+        var labels = Descendants(dialog.Element).OfType<Sundex.Components.Labels.Label>()
+            .Select(label => label.Value.ToString().TrimEnd('\0'));
+        Assert.Contains("No targets in this track yet.", labels);
+    }
+
+    [Fact]
+    public void APulse_OffersCommonCounts()
+    {
+        var dialog = Add("!pulse", Track());
+
+        var labels = Descendants(dialog.Element).OfType<Sundex.Components.Labels.Label>()
+            .Select(label => label.Value.ToString().TrimEnd('\0')).ToList();
+        Assert.Contains("Common counts", labels);
+        Assert.Contains("4 pulses", labels);
+    }
+
+    private static IEnumerable<Sundex.Components.Abstractions.UIElement> Descendants(Sundex.Components.Abstractions.UIElement element)
+    {
+        yield return element;
+        if (element is not Sundex.Components.Panels.Panel panel) yield break;
+        foreach (var child in panel.Children)
+        foreach (var descendant in Descendants(child))
+            yield return descendant;
+    }
+
     [Fact]
     public void ANewSlot_StartsFromThePalettesDefault()
     {
@@ -86,6 +131,24 @@ public class ActionValueDialogTests
         dialog.Pick(ValueScale.Times); // Multiply goes from 0.01 to 1000
         ((NumericInput)dialog.MainField).Value = 5000;
         Assert.Equal("!speed@1000@x", dialog.Tdw);
+    }
+
+    [Theory]
+    [InlineData(ValueScale.None, "%")]
+    [InlineData(ValueScale.Add, "%")]
+    [InlineData(ValueScale.Times, "x")]
+    [InlineData(ValueScale.Divide, "/")]
+    public void AFactor_ShowsItsOperatorForAUnit(ValueScale mode, string unit)
+    {
+        var dialog = Add("!volume", Track());
+        dialog.Pick(mode);
+        Assert.Equal(unit, ((NumericInput)dialog.MainField).Unit);
+    }
+
+    [Fact]
+    public void AnEdit_ShowsItsModesUnitFromTheStart()
+    {
+        Assert.Equal("/", ((NumericInput)Edit(Track("!speed@2@/"), 0).MainField).Unit);
     }
 
     [Theory]

@@ -232,6 +232,22 @@ public abstract class UIElement
     }
 
     public Action<UIElement>? OnClick { get; set; }
+
+    /// <summary>
+    ///     While true the element takes no clicks, shows no hover or press, and is styled by its
+    ///     sheet's <c>state[disabled]</c> block instead. A click on it stops here rather than
+    ///     falling through to an ancestor's handler.
+    /// </summary>
+    public bool Disabled
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            SyncPointerState();
+        }
+    }
     public Action<UIElement>? OnHoverEnter { get; set; }
     public Action<UIElement>? OnHoverExit { get; set; }
     public Action<UIElement>? OnFocus { get; set; }
@@ -447,7 +463,10 @@ public abstract class UIElement
     /// <summary>Recomputes <see cref="CurrentState" /> from the pointer flags. Called by the context.</summary>
     internal void SyncPointerState()
     {
-        CurrentState = IsPressed ? UIState.Pressed : IsHovered ? UIState.Hovered : UIState.None;
+        CurrentState = Disabled ? UIState.Disabled
+            : IsPressed ? UIState.Pressed
+            : IsHovered ? UIState.Hovered
+            : UIState.None;
     }
 
     /// <summary>
@@ -456,7 +475,7 @@ public abstract class UIElement
     /// <param name="uiContext">The current UI context.</param>
     public virtual void Update(UIContext uiContext)
     {
-        if (IsHovered && Cursor != CursorType.Default)
+        if (IsHovered && !Disabled && Cursor != CursorType.Default)
             uiContext.RequestCursor(Cursor);
     }
 
@@ -615,6 +634,9 @@ public abstract class UIElement
         return true;
     }
 
+    /// <summary>The <c>state[...]</c> blocks a sheet can give an element, one per non-idle <see cref="UIState" />.</summary>
+    private static readonly string[] StateNames = ["hovered", "pressed", "disabled"];
+
     private void ApplyOwnStyle(StyleSheet styleSheet)
     {
         StoredStyleSheet = styleSheet;
@@ -653,14 +675,10 @@ public abstract class UIElement
         _baseSnapshot.Clear();
         foreach (var (propertyInfo, attribute) in properties)
         {
-            var hasOverride =
-                styleSheet.GetStateOverrideForTag(ID, "hovered")?.ContainsKey(attribute.Name) == true ||
-                styleSheet.GetStateOverrideForTag(ID, "pressed")?.ContainsKey(attribute.Name) == true ||
-                Classes.Any(cls =>
-                    styleSheet.GetStateOverrideForTag(cls, "hovered")?.ContainsKey(attribute.Name) == true ||
-                    styleSheet.GetStateOverrideForTag(cls, "pressed")?.ContainsKey(attribute.Name) == true) ||
-                styleSheet.GetStateOverrideForTag(Tag, "hovered")?.ContainsKey(attribute.Name) == true ||
-                styleSheet.GetStateOverrideForTag(Tag, "pressed")?.ContainsKey(attribute.Name) == true;
+            var hasOverride = StateNames.Any(state =>
+                styleSheet.GetStateOverrideForTag(ID, state)?.ContainsKey(attribute.Name) == true ||
+                Classes.Any(cls => styleSheet.GetStateOverrideForTag(cls, state)?.ContainsKey(attribute.Name) == true) ||
+                styleSheet.GetStateOverrideForTag(Tag, state)?.ContainsKey(attribute.Name) == true);
 
             if (hasOverride)
                 _baseSnapshot[attribute.Name] = (propertyInfo, propertyInfo.GetValue(this));
@@ -685,6 +703,7 @@ public abstract class UIElement
         {
             UIState.Hovered => "hovered",
             UIState.Pressed => "pressed",
+            UIState.Disabled => "disabled",
             _ => null
         };
 

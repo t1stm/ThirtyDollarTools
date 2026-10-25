@@ -13,31 +13,28 @@
 
       <flex class="track-kind-body">
         <!-- The three kinds. TrackTypeDialog.cs swaps track-kind-row-idle/-selected as one is
-             picked (a click, 1-3, or Up/Down). -->
+             picked (a click, 1-3, or Up/Down). Each leads with its key, as Import's do. -->
         <flex class="track-kind-list">
           <flex id="piano-roll-row" class="[track-kind-row,track-kind-row-selected]">
-            <label class="track-kind-icon" font="Lucide" value="&#xe560;"/>
-            <label class="track-kind-name" value="Piano Roll"/>
-            <panel class="spacer"/>
             <flex class="[key-chip,key-chip-on-card]">
               <label class="[key-chip-label,key-chip-label-on-quiet]" value="1"/>
             </flex>
+            <label class="track-kind-icon" font="Lucide" value="&#xe560;"/>
+            <label class="track-kind-name" value="Piano Roll"/>
           </flex>
           <flex id="faithful-row" class="[track-kind-row,track-kind-row-idle]">
-            <label class="track-kind-icon" font="Lucide" value="&#xe2e0;"/>
-            <label class="track-kind-name" value="Faithful"/>
-            <panel class="spacer"/>
             <flex class="[key-chip,key-chip-on-card]">
               <label class="[key-chip-label,key-chip-label-on-quiet]" value="2"/>
             </flex>
+            <label class="track-kind-icon" font="Lucide" value="&#xe2e0;"/>
+            <label class="track-kind-name" value="Faithful"/>
           </flex>
           <flex id="wave-row" class="[track-kind-row,track-kind-row-idle]">
-            <label class="track-kind-icon" font="Lucide" value="&#xe55b;"/>
-            <label class="track-kind-name" value="Wave"/>
-            <panel class="spacer"/>
             <flex class="[key-chip,key-chip-on-card]">
               <label class="[key-chip-label,key-chip-label-on-quiet]" value="3"/>
             </flex>
+            <label class="track-kind-icon" font="Lucide" value="&#xe55b;"/>
+            <label class="track-kind-name" value="Wave"/>
           </flex>
 
           <panel class="track-kind-gap"/>

@@ -17,7 +17,8 @@ public class ImportWarningsDialogTests
         var dialog = new ImportWarningsDialog(new EditorTestContext(), "song.tdw", ImportMode.Track, Everything);
         var text = Texts(dialog.Element);
 
-        Assert.Contains("Imported \"song.tdw\" as a Piano Roll track", text);
+        Assert.Contains("Imported as Piano Roll", text);
+        Assert.Contains("song", text); // the base name, in the header's chip
         Assert.Contains("!divider", text);
         Assert.Contains("x92", text);
         Assert.Contains("mystery", text);
@@ -26,9 +27,10 @@ public class ImportWarningsDialogTests
         Assert.True(dialog.OffersFaithful);
         Assert.Contains(dialog.FaithfulButton, Walk(dialog.Element));
         Assert.Equal("Keep Piano Roll", dialog.KeepButton.Label.Value.ToString());
-        // Faithful is the suggested shape for a TDW sequence, so it holds the fill.
-        Assert.Contains("dialog-button-primary", dialog.FaithfulButton.Classes);
-        Assert.DoesNotContain("dialog-button-primary", dialog.KeepButton.Classes);
+        // The import already happened as asked, so keeping it holds the fill (and Enter);
+        // switching to Faithful is the quiet alternative.
+        Assert.Contains("dialog-button-primary", dialog.KeepButton.Classes);
+        Assert.Contains("dialog-button-quiet", dialog.FaithfulButton.Classes);
     }
 
     [Fact]

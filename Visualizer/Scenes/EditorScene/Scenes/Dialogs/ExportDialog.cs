@@ -1,3 +1,5 @@
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
@@ -15,10 +17,11 @@ public enum ExportFormat
 }
 
 /// <summary>
-///     The export form (ModalLayer content): pick a format, then its options - the
-///     <see cref="SequenceStyle" /> cosmetics for a .tdw, nothing for a .wav - and one export
-///     action named after the format. Pure form - the owner handles file dialogs and the actual
-///     writing. The tree is ExportDialog.snx.xml; the input bounds and the format swap are here.
+///     The export form (ModalLayer content): pick a format (a click, or 1 and 2), then its
+///     options - the <see cref="SequenceStyle" /> cosmetics for a .tdw, what goes into the file for
+///     a .wav - and one export action named after the format. Pure form - the owner handles file
+///     dialogs and the actual writing. The tree is ExportDialog.snx.xml; the input bounds and the
+///     format swap are here.
 /// </summary>
 public sealed class ExportDialog
 {
@@ -27,6 +30,8 @@ public sealed class ExportDialog
     private readonly FlexPanel _tdwOptions;
     private readonly FlexPanel _wavCard;
     private readonly FlexPanel _wavOptions;
+    private readonly Label _wavLength;
+    private readonly Label _wavTracks;
 
     public ExportDialog(UIContext context)
     {
@@ -40,6 +45,8 @@ public sealed class ExportDialog
         CancelButton = component.GetID<Button>("cancel-button");
         CloseButton = component.GetID<Button>("close-button");
         WaveNote = component.GetID<FlexPanel>("wave-note");
+        _wavLength = component.GetID<Label>("wav-length");
+        _wavTracks = component.GetID<Label>("wav-tracks");
         _options = component.GetID<FlexPanel>("export-options");
         _tdwOptions = component.GetID<FlexPanel>("tdw-options");
         _wavOptions = component.GetID<FlexPanel>("wav-options");
@@ -113,6 +120,37 @@ public sealed class ExportDialog
             ExportButton.Value = tdw ? "Export .tdw…" : "Export .wav…";
         }
     } = ExportFormat.Tdw;
+
+    /// <summary>The audio's track count, for the .wav options.</summary>
+    public void SetTracks(int count)
+    {
+        _wavTracks.SetTextContents(count == 1 ? "1, alone in the file" : $"{count}, mixed into one file");
+    }
+
+    /// <summary>
+    ///     The audio's length once measured (<see cref="EditorPlayback.ExportLengthMs" />), or null
+    ///     when the measuring failed; "Measuring…" until then.
+    /// </summary>
+    public void SetLength(long? ms)
+    {
+        _wavLength.SetTextContents(ms is { } t ? $"{t / 60000}:{t / 1000 % 60:00}.{t % 1000 / 100}" : "Couldn't be measured");
+    }
+
+    /// <summary>1 and 2 pick a format. Only reaches the dialog while no field has focus.</summary>
+    /// <returns>True for a key the dialog used.</returns>
+    public bool HandleKey(KeyboardKeyEventArgs e)
+    {
+        if (e.Control || e.Alt || e.Command) return false;
+        ExportFormat? format = e.Key switch
+        {
+            Keys.D1 or Keys.KeyPad1 => ExportFormat.Tdw,
+            Keys.D2 or Keys.KeyPad2 => ExportFormat.Wav,
+            _ => null
+        };
+        if (format is not { } picked) return false;
+        Format = picked;
+        return true;
+    }
 
     /// <summary>The style the form currently describes.</summary>
     public SequenceStyle Style => new()

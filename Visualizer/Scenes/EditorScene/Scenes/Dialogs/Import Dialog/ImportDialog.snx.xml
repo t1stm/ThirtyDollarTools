@@ -5,8 +5,11 @@
     <flex id="import-dialog" class="dialog-frame">
       <flex class="dialog-header">
         <label class="dialog-title" value="Import"/>
-        <!-- The dropped file's name, set by ImportDialog.cs. -->
+        <!-- The dropped file's base name, set by ImportDialog.cs, and what it is. -->
         <label id="file-label" class="dialog-subtitle" value=""/>
+        <flex class="info-chip">
+          <label class="info-chip-label" value="TDW sequence"/>
+        </flex>
         <panel class="spacer"/>
         <button id="close-button" class="icon-button">
           <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>

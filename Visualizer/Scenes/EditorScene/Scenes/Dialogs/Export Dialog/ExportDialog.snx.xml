@@ -16,6 +16,10 @@
       <flex class="export-cards">
         <flex id="tdw-card" class="[export-card,export-card-selected]">
           <flex class="export-card-title">
+            <!-- The key that picks it (ExportDialog.HandleKey), ahead of its name as on Import. -->
+            <flex class="[key-chip,key-chip-on-card]">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value="1"/>
+            </flex>
             <label class="export-card-icon" font="Lucide" value="&#xe0cc;"/>
             <label class="body-label" value="Sequence"/>
             <flex class="key-chip">
@@ -26,6 +30,9 @@
         </flex>
         <flex id="wav-card" class="[export-card,export-card-idle]">
           <flex class="export-card-title">
+            <flex class="[key-chip,key-chip-on-card]">
+              <label class="[key-chip-label,key-chip-label-on-quiet]" value="2"/>
+            </flex>
             <label class="export-card-icon" font="Lucide" value="&#xe55b;"/>
             <label class="body-label" value="Audio"/>
             <flex class="key-chip">
@@ -55,10 +62,22 @@
           </flex>
         </flex>
 
-        <!-- True per EditorPlayback.ExportWav: it mixes every track, muted or not. -->
-        <flex id="wav-options" class="export-line">
-          <label class="export-line-icon" font="Lucide" value="&#xe1ab;"/>
-          <label class="field-label" value="Every track is in the file. Mute and solo are ignored."/>
+        <!-- What goes into the file, in the rows the sequence options use. True per
+             EditorPlayback.ExportWav: it mixes every track, muted or not. The length and track
+             count are set by the owner; the length once it has been measured. -->
+        <flex id="wav-options" class="export-option-rows">
+          <panel class="export-row">
+            <label class="[field-label,export-row-label]" value="Length"/>
+            <label id="wav-length" class="[body-label,export-row-value]" value="Measuring…"/>
+          </panel>
+          <panel class="export-row">
+            <label class="[field-label,export-row-label]" value="Tracks"/>
+            <label id="wav-tracks" class="[body-label,export-row-value]" value=""/>
+          </panel>
+          <panel class="export-row">
+            <label class="[field-label,export-row-label]" value="Mute and solo"/>
+            <label class="[body-label,export-row-value]" value="Ignored, every track plays"/>
+          </panel>
         </flex>
       </flex>
 

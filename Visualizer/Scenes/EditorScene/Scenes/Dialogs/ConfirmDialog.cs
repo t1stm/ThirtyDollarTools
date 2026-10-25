@@ -12,11 +12,13 @@ namespace EditorScene.Scenes.Dialogs;
 /// </summary>
 public sealed class ConfirmDialog
 {
+    /// <param name="title">The question: "Delete “Drums”?".</param>
+    /// <param name="message">What saying yes does: "This removes it from every note that uses it."</param>
     /// <param name="confirmClass">
     ///     The confirm button's fill, as one of Controls.snx.ss's dialog-button classes;
     ///     destructive red by default.
     /// </param>
-    public ConfirmDialog(UIContext context, string message, string confirmLabel = "Delete",
+    public ConfirmDialog(UIContext context, string title, string message, string confirmLabel = "Delete",
         string confirmClass = "dialog-button-danger")
     {
         var component = Markup.Build(context, "Scenes/Dialogs/Confirm Dialog/ConfirmDialog.snx.xml");
@@ -24,6 +26,7 @@ public sealed class ConfirmDialog
         ConfirmButton = component.GetID<Button>("confirm-button");
         CancelButton = component.GetID<Button>("cancel-button");
 
+        component.GetID<Label>("title-label").SetTextContents(title);
         component.GetID<Label>("message-label").SetTextContents(message);
         ConfirmButton.Label.SetTextContents(confirmLabel);
         ConfirmButton.SetClass(confirmClass, true);

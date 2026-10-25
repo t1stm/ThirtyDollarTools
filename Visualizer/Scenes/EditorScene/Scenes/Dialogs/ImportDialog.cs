@@ -39,6 +39,10 @@ public sealed class ImportDialog
     private readonly Panel _previewSlot;
     private readonly FlexPanel[] _rows;
     private readonly Label _chip;
+    private readonly Panel _chipBox;
+
+    /// <summary>Whether each of <see cref="Modes" /> can import this file - the grid ones can't when it fails.</summary>
+    private readonly bool[] _available;
 
     /// <param name="context">The editor's UI context.</param>
     /// <param name="store">The sound atlases, for the previews' icons.</param>
@@ -68,7 +72,9 @@ public sealed class ImportDialog
             component.GetID<FlexPanel>("project-row")
         ];
 
-        component.GetID<Label>("file-label").SetTextContents(FaithfulPalette.Shorten(fileName, FileNameLimit));
+        // The base name: the label font has no 🗿, and the chip beside it says what the file is.
+        component.GetID<Label>("file-label")
+            .SetTextContents(FaithfulPalette.Shorten(Path.GetFileNameWithoutExtension(fileName), FileNameLimit));
         component.GetID<Label>("count-label").SetTextContents(
             $"{Count(preview.Events, "event")}, {Count(preview.Sounds, "sound")}.");
         component.GetID<Label>("speed-label").SetTextContents(
@@ -79,22 +85,28 @@ public sealed class ImportDialog
         _faithful.Fill(sounds, preview.FaithfulSounds, sequence.Events.Select(ev => ev.SoundEvent ?? ""));
         _project = new ProjectPreview(context, store, sounds, preview, palette);
         _previews = [_faithful, TrackKindPreview.PianoRoll(context, preview, palette), _project];
+        // Nothing the sample set or the action list knows: likely not a sequence at all.
+        var notTdw = preview.FaithfulSounds.Count == 0 &&
+                     !sequence.Events.Any(ev => ev.SoundEvent?.StartsWith('!') == true);
         _facts =
         [
-            Facts(context, FaithfulFacts(preview)),
-            Facts(context, PianoRollFacts(preview)),
-            Facts(context, ProjectFacts(preview, projectName, dirty))
+            Facts(context, FaithfulFacts(preview, notTdw)),
+            Facts(context, PianoRollFacts(preview, notTdw)),
+            Facts(context, ProjectFacts(preview, projectName, dirty, notTdw))
         ];
+        _available = [true, preview.Grid is not null, preview.Grid is not null];
 
         KeyChip.Add(CancelButton, "Esc");
         KeyChip.Add(ImportButton, "Enter");
-        _chip = (Label)((Panel)ImportButton.Children[0]).Children[0];
+        _chipBox = (Panel)ImportButton.Children[0];
+        _chip = (Label)_chipBox.Children[0];
 
         for (var i = 0; i < Modes.Length; i++)
         {
             var mode = Modes[i];
             _rows[i].UpdateCursorOnHover = true;
             _rows[i].OnClick = _ => Mode = mode;
+            if (!_available[i]) Unavailable(context, _rows[i]);
         }
 
         Show(_previewSlot, _previews[0]);
@@ -112,6 +124,13 @@ public sealed class ImportDialog
 
     public Button CancelButton { get; }
     public Button CloseButton { get; }
+
+    /// <summary>
+    ///     Whether the picked way can import the file. False for the grid ways when the file has
+    ///     nothing a grid can hold: <see cref="ImportButton" /> is disabled then, and the owner's
+    ///     Enter does nothing, rather than letting the import fail into an alert.
+    /// </summary>
+    public bool CanImport => _available[Array.IndexOf(Modes, Mode)];
 
     /// <summary>The picked way: marks its row, shows its preview and facts, and names the action.</summary>
     public ImportMode Mode
@@ -142,6 +161,21 @@ public sealed class ImportDialog
             ImportButton.SetClass("key-button", true);
             ImportButton.Label.SetClass("dark-label", replace);
             _chip.SetClass("key-chip-label-on-accent", !replace);
+
+            // Last, so the dim label wins over whichever fill's label went on above.
+            var can = CanImport;
+            ImportButton.Label.SetClass("disabled-label", false);
+            ImportButton.Label.SetClass("disabled-label", !can);
+            ImportButton.Disabled = !can;
+            // A chip promises its key; Enter does nothing while the button can't. Taken out rather
+            // than hidden, which would leave its room on the button.
+            var chip = _chipBox;
+            if (!can && chip.Parent == ImportButton) ImportButton.RemoveChild(chip);
+            else if (can && chip.Parent != ImportButton)
+            {
+                ImportButton.AddChild(chip); // AddChild queues it; the reorder below doesn't
+                ImportButton.Children = [chip, .. ImportButton.Children.Where(child => child != chip)];
+            }
             ImportButton.Value = value switch
             {
                 ImportMode.Track => "Import as Piano Roll",
@@ -187,15 +221,19 @@ public sealed class ImportDialog
     {
         Ok,
         Warn,
-        Bad
+        Bad,
+        Hint
     }
 
-    private static (Tone, string)[] FaithfulFacts(ImportPreview preview)
+    /// <summary>Leads every way's facts when the file has no sound or action the editor knows.</summary>
+    private static readonly (Tone, string) NotTdw = (Tone.Warn, "This doesn't look like a TDW sequence.");
+
+    private static (Tone, string)[] FaithfulFacts(ImportPreview preview, bool notTdw)
     {
         var unknown = preview.FaithfulUnknownSounds.Count;
         return
         [
-            (Tone.Ok, "Every sound and action, in the order it plays."),
+            notTdw ? NotTdw : (Tone.Ok, "Every sound and action, in the order it plays."),
             (Tone.Ok, "!speed, dividers and combines stay as written."),
             unknown == 0
                 ? (Tone.Ok, "One new track, with an instrument per sound.")
@@ -203,9 +241,9 @@ public sealed class ImportDialog
         ];
     }
 
-    private static (Tone, string)[] PianoRollFacts(ImportPreview preview)
+    private static (Tone, string)[] PianoRollFacts(ImportPreview preview, bool notTdw)
     {
-        if (preview.Grid is not { } grid) return GridFailed(preview);
+        if (preview.Grid is not { } grid) return GridFailed(preview, notTdw);
 
         var actions = grid.IgnoredEvents.Values.Sum();
         var unknown = grid.UnknownSounds.Count;
@@ -225,13 +263,16 @@ public sealed class ImportDialog
         ];
     }
 
-    private static (Tone, string)[] ProjectFacts(ImportPreview preview, string projectName, bool dirty)
+    private static (Tone, string)[] ProjectFacts(ImportPreview preview, string projectName, bool dirty, bool notTdw)
     {
+        // Nothing to replace with: why, rather than what it would replace.
+        if (preview.Grid is null) return GridFailed(preview, notTdw);
+
         // The name gets what the rest of its line leaves of FactLimit.
         var replaces = dirty
             ? (Tone.Bad, $"Replaces {FaithfulPalette.Shorten(projectName, FactLimit - 36)}. Unsaved changes are lost.")
             : (Tone.Warn, $"Replaces {FaithfulPalette.Shorten(projectName, FactLimit - 10)}.");
-        if (preview.Grid is not { } grid) return [replaces, .. GridFailed(preview)];
+        var grid = preview.Grid;
 
         List<string> losses = [];
         if (grid.QuantizedNotes > 0) losses.Add($"{Count(grid.QuantizedNotes, "note")} snapped");
@@ -260,12 +301,34 @@ public sealed class ImportDialog
         };
     }
 
-    /// <summary>A file the grid can't take, which only a Faithful track imports (Preview's GridError).</summary>
-    private static (Tone, string)[] GridFailed(ImportPreview preview) =>
+    /// <summary>
+    ///     A file the grid can't take, which only a Faithful track imports: why (Preview's
+    ///     GridError) as the one problem, then what to do instead.
+    /// </summary>
+    private static (Tone, string)[] GridFailed(ImportPreview preview, bool notTdw) =>
     [
-        (Tone.Bad, "Doesn't fit onto a grid. Import it as Faithful."),
-        (Tone.Bad, preview.GridError!)
+        .. notTdw ? [NotTdw] : Array.Empty<(Tone, string)>(),
+        (Tone.Bad, $"Can't go on a grid: {char.ToLowerInvariant(preview.GridError![0])}{preview.GridError[1..]}"),
+        (Tone.Hint, "Import it as a Faithful track instead.")
     ];
+
+    /// <summary>
+    ///     Dims a way that can't import this file and says so under its name. It can still be
+    ///     picked, to read why in its facts.
+    /// </summary>
+    private static void Unavailable(UIContext context, FlexPanel row)
+    {
+        var name = (Label)row.Children[^1];
+        var icon = row.Children[^2];
+        icon.SetClass("track-kind-unavailable", true);
+        name.SetClass("track-kind-unavailable", true);
+        row.RemoveChild(name);
+        row.AddChild(new FlexPanel(context)
+        {
+            Classes = ["track-kind-name-stack"],
+            Children = [name, new Label(context, "Not available for this file") { Classes = ["track-kind-unavailable-note"] }]
+        });
+    }
 
     private static FlexPanel Facts(UIContext context, IEnumerable<(Tone Tone, string Text)> facts)
     {
@@ -279,12 +342,18 @@ public sealed class ImportDialog
                     Classes = ["track-kind-fact"],
                     Children =
                     [
-                        new Label(context, fact.Tone == Tone.Ok ? Icons.Check : Icons.TriangleAlert, Icons.Font)
+                        new Label(context, fact.Tone switch
+                        {
+                            Tone.Ok => Icons.Check,
+                            Tone.Hint => Icons.Info,
+                            _ => Icons.TriangleAlert
+                        }, Icons.Font)
                         {
                             Classes = fact.Tone switch
                             {
                                 Tone.Warn => ["track-kind-fact-icon", "track-kind-fact-warn"],
                                 Tone.Bad => ["track-kind-fact-icon", "track-kind-fact-bad"],
+                                Tone.Hint => ["track-kind-fact-icon", "track-kind-fact-hint"],
                                 _ => ["track-kind-fact-icon"]
                             }
                         },

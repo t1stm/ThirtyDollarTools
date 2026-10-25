@@ -3,9 +3,18 @@
 
   <layout>
     <flex id="confirm-dialog" class="dialog-frame">
-      <!-- Message text and the confirm button's label and fill class are all caller
-           arguments, applied by ConfirmDialog.cs after the build. -->
-      <label id="message-label" class="body-label" value=""/>
+      <!-- The question is the title, what it does the message; both, and the confirm button's
+           label and fill class, are caller arguments applied by ConfirmDialog.cs. -->
+      <flex class="dialog-header">
+        <!-- Clipped before the ×: the question can carry a long name. -->
+        <flex class="dialog-title-clip">
+          <clipped-label id="title-label" class="dialog-title"/>
+        </flex>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
+      <label id="message-label" class="[body-label,confirm-message]" value=""/>
       <flex class="dialog-actions">
         <button id="cancel-button" class="dialog-button">
           <label value="Cancel"/>

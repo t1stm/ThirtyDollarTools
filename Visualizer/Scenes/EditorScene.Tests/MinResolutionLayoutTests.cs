@@ -159,10 +159,12 @@ public class MinResolutionLayoutTests
         var instrument = new ThirtyDollarConverter.Editor.Instrument();
         for (var i = 0; i < 7; i++) instrument.AddSound("kick");
         editor.Load("Seven", instrument);
+        editor.FitTo(1080, 720);
         root.Layout();
 
+        // 24 in from every edge of the minimum window, rather than touching them.
         var frame = editor.Computed;
-        Assert.Equal((1080f, 720f), (frame.Width, frame.Height));
+        Assert.Equal((1032f, 672f), (frame.Width, frame.Height));
 
         Assert.Equal(7, editor.Rows.Count);
         Assert.Equal(InstrumentEditor.VisibleRows * 46 + 5 * 4, editor.SoundsList.Computed.Height);

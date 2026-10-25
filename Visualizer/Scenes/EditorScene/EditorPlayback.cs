@@ -72,7 +72,7 @@ public class EditorPlayback
     {
         _workflow = workflow;
         _state = state;
-        _wave = new WavePlayback(workflow.SequencePlayer.AudioContext, state.Logger, SetError);
+        _wave = new WavePlayback(workflow.SequencePlayer.AudioContext, state.Logger, (title, e) => SetError(title, e));
         Encoder = new PcmEncoder(workflow.SampleHolder, workflow.EncoderSettings,
             indexReport: (done, total) =>
             {
@@ -127,7 +127,7 @@ public class EditorPlayback
     ///     Set when a render or export fails; consume with <see cref="TakeError" /> to show
     ///     one dialog per failure.
     /// </summary>
-    public string? PendingError { get; private set; }
+    public (string Title, Exception Error, bool Writing)? PendingError { get; private set; }
 
     public bool IsPlaying => _workflow.SequencePlayer.GetTimingStopwatch().IsRunning;
 
@@ -135,14 +135,21 @@ public class EditorPlayback
     public float? CpuLoad => IsPlaying ? _workflow.SequencePlayer.CpuLoad : null;
     public long ElapsedMs => _workflow.SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
 
-    public long TotalMs
+    /// <summary>
+    ///     How long the uploaded render plays: until its last sound has rung out, not only until
+    ///     the last one starts - so the transport's total is never passed by playback. 0 before
+    ///     the first upload.
+    /// </summary>
+    public long TotalMs { get; private set; }
+
+    /// <summary>A render's length in ms: its voices' end, or its last placement when that is later.</summary>
+    internal static long LengthMs(VoiceRender render)
     {
-        get
-        {
-            var placement = _timedEvents?.Placement;
-            if (placement is not { Length: > 0 }) return 0;
-            return (long)placement[^1].Index * 1000 / _timedEvents!.TimingSampleRate;
-        }
+        var placement = render.TimedEvents.Placement;
+        var lastStart = placement.Length > 0
+            ? (long)placement[^1].Index * 1000 / render.TimedEvents.TimingSampleRate
+            : 0;
+        return Math.Max(lastStart, (long)render.Voices.Length * 1000 / render.SampleRate);
     }
 
     /// <summary>Playhead position on the arrangement timeline; negative during the lead-in.</summary>
@@ -152,7 +159,7 @@ public class EditorPlayback
     public bool HasSession => _timedEvents != null;
 
     /// <summary>Returns the pending error, if any, and clears it - one failure shows one dialog.</summary>
-    public string? TakeError()
+    public (string Title, Exception Error, bool Writing)? TakeError()
     {
         var error = PendingError;
         PendingError = null;
@@ -454,12 +461,31 @@ public class EditorPlayback
             catch (Exception e)
             {
                 _state.Logger.ExportFailed(e, path);
-                SetError($"WAV export failed:\n{e.Message}");
+                SetError("Couldn't export the audio", e, writing: true);
             }
             finally
             {
                 StatusLabel = null;
             }
+        });
+    }
+
+    /// <summary>
+    ///     How long <see cref="ExportWav" /> would make the file: the same sequence - the whole
+    ///     project, mutes ignored - placed and voiced but not mixed, measured as
+    ///     <see cref="LengthMs" />. Resamples from a copy of the playback's cache, taken only while
+    ///     no render is working on it.
+    /// </summary>
+    public Task<long> ExportLengthMs()
+    {
+        var merged = _state.Project.ToSequence();
+        var cache = !_rendering && _rendered is { } rendered
+            ? new Dictionary<(string, double), ProcessedEvent>(rendered.ProcessedEvents)
+            : null;
+        return Task.Run(async () =>
+        {
+            using var voices = await Encoder.BuildVoices([merged], cache);
+            return LengthMs(voices);
         });
     }
 
@@ -575,7 +601,7 @@ public class EditorPlayback
             catch (Exception e)
             {
                 _state.Logger.RenderFailed(e);
-                SetError($"Render failed:\n{e.Message}");
+                SetError("Couldn't render the audio", e);
             }
             finally
             {
@@ -590,11 +616,13 @@ public class EditorPlayback
     ///     run of failing re-renders raises one dialog instead of one per edit. A successful
     ///     render or export clears the memory, so the same message alerts again later.
     /// </summary>
-    private void SetError(string message)
+    /// <param name="writing">Whether it failed writing a file, for the alert's wording.</param>
+    private void SetError(string title, Exception error, bool writing = false)
     {
+        var message = $"{title}: {error.Message}";
         if (message == _lastAlertedError) return;
         _lastAlertedError = message;
-        PendingError = message;
+        PendingError = (title, error, writing);
     }
 
     private void Upload(VoiceRender rendered, bool startPlayback)
@@ -610,6 +638,7 @@ public class EditorPlayback
         player.UpdateSequence(events, ThirtyDollarWorkflow.GenerateSequenceIndexes(events.Placement),
             rendered.Voices, () => _workflow.EditorRenderAheadSeconds);
         _timedEvents = events;
+        TotalMs = LengthMs(rendered);
 
         if (startPlayback) player.Start(_workflow.Game.ThreadRunner);
         else player.AlignToTime();

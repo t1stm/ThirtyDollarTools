@@ -172,13 +172,29 @@ public class InstrumentEditorTests
     {
         var editor = NewEditor(new EditorTestContext());
         editor.Load("Layer", Layered("kick", "clap"));
-        Assert.Equal("All sounds - 2", editor.AllHeaderText);
+        Assert.Equal("2", editor.AllCountText);
 
         editor.Duplicate(editor.Working.Sounds[0]);
-        Assert.Equal("All sounds - 3", editor.AllHeaderText);
+        Assert.Equal("3", editor.AllCountText);
 
         editor.Load("Instrument", null);
-        Assert.Equal("All sounds - 0", editor.AllHeaderText);
+        Assert.Equal("0", editor.AllCountText);
+    }
+
+    [Fact]
+    public void IsDirty_OnlyOnceSomethingChangedSinceLoad()
+    {
+        var editor = NewEditor(new EditorTestContext());
+        editor.Load("Instrument", null);
+        Assert.False(editor.IsDirty); // a fresh, untouched editor closes without asking
+
+        editor.AvailablePicker.AddInstance("kick");
+        Assert.True(editor.IsDirty);
+
+        editor.Load("Layer", Layered("kick"));
+        Assert.False(editor.IsDirty);
+        editor.NameInput.Value = "Layer 2";
+        Assert.True(editor.IsDirty);
     }
 
     [Fact]

@@ -244,16 +244,16 @@ public class Editor : Scene, IFadeInScene
         if (_context.DispatchKeyDown(e)) return;
         var state = _editorInterface.State;
 
-        // Escape isn't a shortcut but a fallthrough chain - clear selection, close modal,
-        // close track, back - so it sits ahead of the bind table and isn't rebindable.
+        // Escape isn't a shortcut but a fallthrough chain - close modal, clear selection,
+        // close track, back - so it sits ahead of the bind table and isn't rebindable. The
+        // modal goes first: it is on top, and one opened over selected notes (the inspector's
+        // Change) would otherwise need a second press.
         if (e.Key == Keys.Escape)
         {
+            if (_editorInterface.TryCloseTopModal()) return;
             if (state.SelectedNotes.Count > 0 || state.SelectedPlacements.Count > 0) state.ClearSelection();
-            else if (!_editorInterface.TryCloseTopModal())
-            {
-                if (state.OpenedTrack != null) state.CloseTrack();
-                else _editorInterface.RequestBack();
-            }
+            else if (state.OpenedTrack != null) state.CloseTrack();
+            else _editorInterface.RequestBack();
 
             return;
         }

@@ -260,6 +260,35 @@ public class InputRoutingTests
     }
 
     [Fact]
+    public void AKeyThatMovesFocus_DoesNotTypeIntoTheNewField()
+    {
+        var (ctx, root) = NewTree();
+        var field = new KeyRecorder(ctx) { Width = 100, Height = 30, Focusable = true };
+        root.Children = [field];
+        root.Layout();
+
+        // D opens a dialog and focuses its name field; D's character follows the key.
+        Assert.False(ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.D, 0, 0, false)));
+        ctx.Focus(field);
+        ctx.DispatchTextInput(new TextInputEventArgs('d'));
+        Assert.Equal("", field.Text);
+
+        // Keys typed into the field once it has focus do reach it.
+        Assert.True(ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.X, 0, 0, false)));
+        ctx.DispatchTextInput(new TextInputEventArgs('x'));
+        Assert.Equal("x", field.Text);
+
+        // Text with no key of its own (an input method's) goes to the field once the last
+        // key's frame is over, whatever had focus when that key went down.
+        ctx.Blur();
+        ctx.DispatchKeyDown(new KeyboardKeyEventArgs(Keys.F1, 0, 0, false));
+        ctx.Focus(field);
+        ctx.UpdatePointer(root, 0, 0, false, false, false, Vector2.Zero);
+        ctx.DispatchTextInput(new TextInputEventArgs('y'));
+        Assert.Equal("xy", field.Text);
+    }
+
+    [Fact]
     public void DetachedSubtree_GetsCorrectIndicesAndHoverAfterAddChild()
     {
         // Mirrors the settings screen: a row with a toggle button is composed while

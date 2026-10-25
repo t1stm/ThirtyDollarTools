@@ -49,6 +49,25 @@ public class InstrumentPreviewTests
         return instrument;
     }
 
+    /// <summary>
+    ///     The transport's total and the export's Length are the render's length: until the last
+    ///     sound has rung out, as long as the WAV written from the same sequence - not the last
+    ///     sound's start, which playback ran past.
+    /// </summary>
+    [Fact]
+    public async Task LengthMs_IsTheWrittenAudiosLength_TailIncluded()
+    {
+        var encoder = new PcmEncoder(Holder(), Settings);
+        var sequence = Sequence.FromString("short|long");
+
+        using var voices = await encoder.BuildVoices([sequence]);
+        var audio = (await encoder.GetSequenceAudio(sequence)).Audio;
+        var lastStart = (long)voices.TimedEvents.Placement[^1].Index * 1000 / voices.TimedEvents.TimingSampleRate;
+
+        Assert.Equal((long)audio.GetLength() * 1000 / SampleRate, EditorPlayback.LengthMs(voices));
+        Assert.True(EditorPlayback.LengthMs(voices) >= lastStart + 100, "the 100 ms tail of the last sound is missing");
+    }
+
     [Fact]
     public async Task RenderCombo_LayersEverySoundFromTheFirstSample()
     {

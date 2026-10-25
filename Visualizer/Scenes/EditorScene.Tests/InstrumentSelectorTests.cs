@@ -32,6 +32,25 @@ public class InstrumentSelectorTests
     }
 
     [Fact]
+    public void ShiftA_MakesANewInstrument_PlainAOrCtrlShiftADoNot()
+    {
+        var ctx = new EditorTestContext();
+        var selector = new InstrumentSelector(ctx, ctx.NewAtlasStore());
+        var made = 0;
+        selector.OnNew = () => made++;
+
+        Assert.False(selector.HandleKeyDown(new OpenTK.Windowing.Common.KeyboardKeyEventArgs(
+            OpenTK.Windowing.GraphicsLibraryFramework.Keys.A, 0, 0, false)));
+        Assert.True(selector.HandleKeyDown(new OpenTK.Windowing.Common.KeyboardKeyEventArgs(
+            OpenTK.Windowing.GraphicsLibraryFramework.Keys.A, 0, OpenTK.Windowing.GraphicsLibraryFramework.KeyModifiers.Shift, false)));
+        Assert.False(selector.HandleKeyDown(new OpenTK.Windowing.Common.KeyboardKeyEventArgs(
+            OpenTK.Windowing.GraphicsLibraryFramework.Keys.A, 0,
+            OpenTK.Windowing.GraphicsLibraryFramework.KeyModifiers.Shift | OpenTK.Windowing.GraphicsLibraryFramework.KeyModifiers.Control, false)));
+
+        Assert.Equal(1, made);
+    }
+
+    [Fact]
     public void Fill_ThenClickingARow_FiresOnPick()
     {
         var ctx = new EditorTestContext();

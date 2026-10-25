@@ -35,7 +35,7 @@ public sealed class InstrumentEditor : FlexPanel
     /// <summary>The tuning fields' labels, in <see cref="TuneField" /> order.</summary>
     private static readonly string[] FieldLabels = ["Value", "Volume", "Pan", "Offset"];
 
-    private readonly Label _allHeader;
+    private readonly Label _allCount;
     private readonly Label[] _chipLabels;
     private readonly Label[] _columnNames;
     private readonly InspectorForm _allForm;
@@ -120,9 +120,10 @@ public sealed class InstrumentEditor : FlexPanel
         FilterInput = tree.GetID<TextInput>("filter-input");
         FilterInput.Placeholder = "Filter sounds";
         FilterInput.OnValueChanged = input => AvailablePicker.Filter(input.Value);
+        AvailablePicker.OnClearFilter = () => FilterInput.Value = "";
 
         // ---- right
-        _allHeader = tree.GetID<Label>("all-header");
+        _allCount = tree.GetID<Label>("all-count");
         AllCard = tree.GetID<ScrollZone>("all-card");
         AllCard.OnScroll = TuneAll;
         AllCard.OnHoverEnter = _ => SetHover(null, true);
@@ -166,6 +167,10 @@ public sealed class InstrumentEditor : FlexPanel
         FineChip = tree.GetID<FlexPanel>("fine-chip");
         ((Label)FineChip.Children[0]).Value = $"{Keybinds.PrimaryName}+Shift+Scroll";
         DoneButton = tree.GetID<Button>("done-button");
+        CancelButton = tree.GetID<Button>("cancel-button");
+        CloseButton = tree.GetID<Button>("close-button");
+        KeyChip.Add(CancelButton, "Esc");
+        KeyChip.Add(DoneButton, "Enter");
 
         Children = [.. ((Panel)tree.Element).Children];
 
@@ -201,6 +206,8 @@ public sealed class InstrumentEditor : FlexPanel
     public TextInput FilterInput { get; }
     public SoundPicker AvailablePicker { get; }
     public Button DoneButton { get; }
+    public Button CancelButton { get; }
+    public Button CloseButton { get; }
 
     /// <summary>The "All sounds" card: the instrument-wide fields, and a scroll zone for them.</summary>
     public ScrollZone AllCard { get; }
@@ -234,8 +241,34 @@ public sealed class InstrumentEditor : FlexPanel
     /// <summary>The result tiles' values, in <see cref="TuneField" /> order.</summary>
     public IReadOnlyList<string> ResultTexts => [.. _results.Select(result => result.Value.ToString().TrimEnd('\0'))];
 
-    /// <summary>The "All sounds - N" heading's text.</summary>
-    public string AllHeaderText => _allHeader.Value.ToString();
+    /// <summary>The "All sounds" heading's count chip.</summary>
+    public string AllCountText => _allCount.Value.ToString().TrimEnd('\0');
+
+    /// <summary>
+    ///     Whether the form holds anything <see cref="Load" /> didn't give it - a name, a field, a
+    ///     sound added, removed or tuned - so closing it would lose work.
+    /// </summary>
+    public bool IsDirty => Snapshot() != _loaded;
+
+    private string _loaded = "";
+
+    /// <summary>The form's contents as one comparable string.</summary>
+    private string Snapshot() =>
+        $"{NameInput.Value}|{Working.Value}|{Working.Volume}|{Working.Pan}|{Working.Offset}|" +
+        string.Join('|', AvailablePicker.Instances.Select(s => $"{s.Sound}:{s.Value}:{s.Volume}:{s.Pan}:{s.Offset}"));
+
+    /// <summary>The frame's size at the most room it can have: <see cref="FitTo" /> gives it less when the window is small.</summary>
+    private const float FullWidth = 1080, FullHeight = 720;
+
+    /// <summary>How far the frame stays from every window edge.</summary>
+    private const float WindowMargin = 24;
+
+    /// <summary>Sizes the frame for a window: full size, less whatever keeps it <see cref="WindowMargin" /> from each edge.</summary>
+    public void FitTo(float windowWidth, float windowHeight)
+    {
+        Width = Math.Min(FullWidth, windowWidth - 2 * WindowMargin);
+        Height = Math.Min(FullHeight, windowHeight - 2 * WindowMargin);
+    }
 
     /// <summary>A field of the right column by key: "All.Value", "Sound.Volume", ...</summary>
     public NumericInput? Field(string key) => (key.StartsWith("All.", StringComparison.Ordinal) ? _allForm : _soundForm).Field(key) as NumericInput;
@@ -405,6 +438,7 @@ public sealed class InstrumentEditor : FlexPanel
 
         RebuildRows();
         Select(Working.Sounds.FirstOrDefault());
+        _loaded = Snapshot();
     }
 
     public void Select(InstrumentSound? sound)
@@ -569,7 +603,7 @@ public sealed class InstrumentEditor : FlexPanel
     /// <summary>Redraws everything that shows a value: headings, read-outs, fields and results.</summary>
     private void Refresh()
     {
-        _allHeader.Value = $"All sounds - {Working.Sounds.Count}";
+        _allCount.Value = Working.Sounds.Count.ToString();
         foreach (var row in _rows) row.Refresh();
         _allForm.Sync();
         _soundForm.Sync();

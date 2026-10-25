@@ -9,8 +9,8 @@ namespace Sundex.Components.Scroll;
 ///     Vertical scroll container: stacks its children top-to-bottom, offsets them by
 ///     <see cref="ScrollY" />, clips them to its bounds (scissor via <see cref="UIElement.ApplyClip" />),
 ///     handles wheel input, and hosts a draggable <see cref="ScrollBar" /> at its right edge.
-///     The bar overlays the content's right edge and stays visible when content fits
-///     (full-height thumb) - hiding queued renderables isn't supported by the framework yet.
+///     The bar overlays the content's right edge and hides while the content fits. Its gutter
+///     stays reserved either way, so rows don't reflow when it comes and goes.
 /// </summary>
 public class ScrollView : Panel
 {
@@ -121,6 +121,7 @@ public class ScrollView : Panel
 
         base.DoLayout(); // background + children layout
 
+        _bar.Visible = MaxScroll > 0;
         _bar.Index = Index + 2; // above content rows for hit-testing/render order
         _bar.ScrollBlock.Height = LiteralOrComputable.Percent(
             ContentHeight > 0 ? Math.Clamp(100f * innerHeight / ContentHeight, 10, 100) : 100);

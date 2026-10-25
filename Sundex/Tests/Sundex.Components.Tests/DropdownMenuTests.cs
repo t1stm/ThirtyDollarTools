@@ -1,4 +1,5 @@
 using OpenTK.Mathematics;
+using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 
 namespace Sundex.Components.Tests;
@@ -32,6 +33,31 @@ public class DropdownMenuTests
         var (_, _, menu) = Open(100, 100);
         Assert.True(menu.Menu.Computed.AbsoluteX > 100);
         Assert.True(menu.Menu.Computed.AbsoluteY >= 100);
+    }
+
+    [Fact]
+    public void Beside_HangsFromTheElementsTopRightCorner_AndFlipsLeftOfItAtTheEdge()
+    {
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = ViewportWidth, Height = ViewportHeight };
+        var row = new Panel(ctx) { X = 10, Y = 200, Width = 240, Height = 36 };
+        var edgeRow = new Panel(ctx) { X = ViewportWidth - 100, Y = 200, Width = 100, Height = 36 };
+        root.Children = [row, edgeRow];
+        root.Layout();
+
+        var menu = DropdownMenu.Beside(row);
+        menu.AddItem("Open", () => { });
+        root.AddChild(menu);
+        root.Layout();
+        Assert.True(menu.Menu.Computed.AbsoluteX >= 250, "covers the row");
+        Assert.Equal(200, menu.Menu.Computed.AbsoluteY);
+
+        var flipped = DropdownMenu.Beside(edgeRow);
+        flipped.AddItem("Open", () => { });
+        root.AddChild(flipped);
+        root.Layout();
+        var box = flipped.Menu.Computed;
+        Assert.True(box.AbsoluteX + box.Width <= ViewportWidth - 100, "covers the row at the edge");
     }
 
     [Fact]
@@ -111,6 +137,44 @@ public class DropdownMenuTests
         ctx.UpdatePointer(root, 800, 800, false, false, false, Vector2.Zero, false);
         ctx.UpdatePointer(root, 800, 800, false, false, false, Vector2.Zero, true);
         Assert.DoesNotContain(menu, root.Children);
+    }
+
+    [Fact]
+    public void ClosingRightPress_DoesNotReachWhatWasUnderTheMenu()
+    {
+        var ctx = new TestUIContext();
+        var root = new Panel(ctx) { Width = ViewportWidth, Height = ViewportHeight };
+        var row = new RightPressCounter(ctx) { Width = 240, Height = 36 };
+        root.AddChild(row);
+        root.Layout();
+
+        var menu = DropdownMenu.Beside(row);
+        menu.AddItem("Open", () => { });
+        root.AddChild(menu);
+        root.Layout();
+
+        // Right-click the row again: the press closes the menu, and its held frames stay
+        // swallowed - the row would open its menu again on the next one.
+        ctx.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero, true);
+        Assert.DoesNotContain(menu, root.Children);
+        ctx.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero, true);
+        Assert.Equal(0, row.Presses);
+
+        // Released, the next press is the row's again.
+        ctx.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero);
+        ctx.UpdatePointer(root, 20, 20, false, false, false, Vector2.Zero, true);
+        Assert.Equal(1, row.Presses);
+    }
+
+    private sealed class RightPressCounter(UIContext context) : Panel(context)
+    {
+        public int Presses { get; private set; }
+
+        public override bool HandleRightPress(float x, float y)
+        {
+            Presses++;
+            return true;
+        }
     }
 
     [Fact]

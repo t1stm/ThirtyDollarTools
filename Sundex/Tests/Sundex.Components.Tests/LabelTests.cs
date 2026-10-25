@@ -67,6 +67,35 @@ public class LabelTests
         Assert.NotEqual(0, GetTextSliceFontSize(label));
     }
 
+    [Fact]
+    public void WrapWidth_BreaksAtTheLastSpaceBeforeTheLimit()
+    {
+        // The mock glyph is 0.6 em, so 9.6 px a character at 16 px: "aaa bbb" is 67.2 px and
+        // fits under 80, the "c" after it would not.
+        var context = new TestUIContext();
+        var label = new Label(context, "aaa bbb ccc");
+        var oneLine = label.Height.Value;
+
+        label.WrapWidth = 80;
+
+        Assert.Equal("aaa bbb ccc", label.Value.ToString());
+        Assert.Equal("aaa bbb\nccc", GetTextSlice(label).Value.TrimEnd('\0').ToString());
+        Assert.True(label.Height.Value > oneLine);
+        Assert.True(label.Width.Value <= 80);
+    }
+
+    [Fact]
+    public void WrapWidth_RewrapsNewTextAndKeepsExistingBreaks()
+    {
+        var context = new TestUIContext();
+        var label = new Label(context, "") { WrapWidth = 80 };
+
+        label.SetTextContents("one\ntwo six four");
+
+        Assert.Equal("one\ntwo six four", label.Value.ToString());
+        Assert.Equal("one\ntwo six\nfour", GetTextSlice(label).Value.TrimEnd('\0').ToString());
+    }
+
     private static Vector3 GetTextSlicePosition(Label label)
     {
         return GetTextSlice(label).Position;
