@@ -135,14 +135,21 @@ public class EditorPlayback
     public float? CpuLoad => IsPlaying ? _workflow.SequencePlayer.CpuLoad : null;
     public long ElapsedMs => _workflow.SequencePlayer.GetTimingStopwatch().ElapsedMilliseconds;
 
-    public long TotalMs
+    /// <summary>
+    ///     How long the uploaded render plays: until its last sound has rung out, not only until
+    ///     the last one starts - so the transport's total is never passed by playback. 0 before
+    ///     the first upload.
+    /// </summary>
+    public long TotalMs { get; private set; }
+
+    /// <summary>A render's length in ms: its voices' end, or its last placement when that is later.</summary>
+    internal static long LengthMs(VoiceRender render)
     {
-        get
-        {
-            var placement = _timedEvents?.Placement;
-            if (placement is not { Length: > 0 }) return 0;
-            return (long)placement[^1].Index * 1000 / _timedEvents!.TimingSampleRate;
-        }
+        var placement = render.TimedEvents.Placement;
+        var lastStart = placement.Length > 0
+            ? (long)placement[^1].Index * 1000 / render.TimedEvents.TimingSampleRate
+            : 0;
+        return Math.Max(lastStart, (long)render.Voices.Length * 1000 / render.SampleRate);
     }
 
     /// <summary>Playhead position on the arrangement timeline; negative during the lead-in.</summary>
@@ -612,6 +619,7 @@ public class EditorPlayback
         player.UpdateSequence(events, ThirtyDollarWorkflow.GenerateSequenceIndexes(events.Placement),
             rendered.Voices, () => _workflow.EditorRenderAheadSeconds);
         _timedEvents = events;
+        TotalMs = LengthMs(rendered);
 
         if (startPlayback) player.Start(_workflow.Game.ThreadRunner);
         else player.AlignToTime();
