@@ -55,7 +55,7 @@ public sealed class InstrumentSelector : FlexPanel
         _empty = new FlexPanel(context)
         {
             Classes = ["instrument-selector-empty"],
-            Children = [new Label(context, "No instruments yet") { Classes = ["field-label"] }]
+            Children = [EmptyState.Build(context, Icons.Drum, "No instruments yet. New instrument makes one.")]
         };
 
         var newButton = new Button(context, "New instrument")

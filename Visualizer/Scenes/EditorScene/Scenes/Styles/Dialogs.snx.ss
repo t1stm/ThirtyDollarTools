@@ -89,6 +89,35 @@ class form-row-input {
     x = 190;
 }
 
+// What a list shows while it is empty (EmptyState.cs): an icon and one line, centred in the
+// room the list would take. Side by side for a row-high strip, stacked for a pane.
+class empty-state {
+    width = 100%;
+    height = 100%;
+    spacing = 8;
+    horizontal-align = "center";
+    vertical-align = "center";
+}
+
+class empty-state-stacked {
+    direction = "vertical";
+    spacing = 10;
+}
+
+class empty-state-icon {
+    font-size = 16;
+    font-color = $theme.text_subtle;
+}
+
+class empty-state-icon-large {
+    font-size = 28;
+}
+
+class empty-state-text {
+    font-size = 13;
+    font-color = $theme.text_dim;
+}
+
 // ---------------------------------------------------------------- per dialog
 
 id confirm-dialog {

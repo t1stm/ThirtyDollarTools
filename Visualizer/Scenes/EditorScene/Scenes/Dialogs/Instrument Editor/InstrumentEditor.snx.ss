@@ -192,6 +192,7 @@ id instrument-sounds-list {
 class instrument-sounds-empty {
     width = 100%;
     height = 46;
+    spacing = 8;
     horizontal-align = "center";
     vertical-align = "center";
     border-radius = 6;

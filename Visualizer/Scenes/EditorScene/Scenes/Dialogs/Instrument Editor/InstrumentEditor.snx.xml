@@ -39,7 +39,8 @@
               <panel class="instrument-sounds-header-tail"/>
             </flex>
             <flex id="sounds-empty" class="instrument-sounds-empty">
-              <label class="instrument-hint-label" value="No sounds yet. Pick one below to start the instrument."/>
+              <label class="empty-state-icon" font="Lucide" value="&#xe122;"/>
+              <label class="empty-state-text" value="No sounds yet. Pick one below to start the instrument."/>
             </flex>
           </flex>
 
