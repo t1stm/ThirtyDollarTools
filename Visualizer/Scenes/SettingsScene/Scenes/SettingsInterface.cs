@@ -75,7 +75,9 @@ public class SettingsInterface
                 ThirtyDollarWorkflow.MinRenderAheadSeconds, ThirtyDollarWorkflow.MaxRenderAheadSeconds, 0.25),
             new SettingRow(nameof(VisualizerSettings.AudioBlockSize), "Audio block size",
                 "Samples mixed per pass. Bigger costs less on\ndense songs; seeks and edits wait for one block.",
-                VoicePlayback.MinBlockFrames, VoicePlayback.MaxBlockFrames, PowersOfTwo: true)
+                VoicePlayback.MinBlockFrames, VoicePlayback.MaxBlockFrames, PowersOfTwo: true),
+            new SettingRow(nameof(VisualizerSettings.GpuAudioMixing), "Mix audio on the GPU",
+                "Needs OpenGL 4.3. Off, the CPU mixes, which\ncan't keep up with the densest songs.")
         ]),
         // The parameter rows are always present rather than shown with the resampler that
         // reads them: a hidden child still takes its space in the flex, which would leave

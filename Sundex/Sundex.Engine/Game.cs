@@ -281,8 +281,9 @@ public class Game : GameWindow
 
         glInfo.SupportsKHRDebug = glInfo.Extensions.Contains("GL_KHR_debug");
         glInfo.SupportsDirectStateAccess = glInfo.Extensions.Contains("GL_ARB_direct_state_access");
-        glInfo.SupportsComputeShaders = glInfo.Extensions.Contains("GL_ARB_compute_shader") &&
-                                        glInfo.Extensions.Contains("GL_ARB_shader_storage_buffer_object");
+        // compute shaders and storage buffers are core from 4.3, the version the kernels' GLSL asks for
+        var version = GL.GetInteger(GetPName.MajorVersion) * 10 + GL.GetInteger(GetPName.MinorVersion);
+        glInfo.SupportsComputeShaders = version >= 43;
 
         glInfo.Vendor = GL.GetString(StringName.Vendor) ?? "";
         glInfo.Renderer = GL.GetString(StringName.Renderer) ?? "";

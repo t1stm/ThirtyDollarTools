@@ -230,6 +230,32 @@ public class GpuVoiceCursorTests
     }
 
     [Fact]
+    public void SwitchedOff_TheCpuMixes_AndOnAgainTheGpuDoes()
+    {
+        using var render = Build(First);
+        using var cursor = new GpuVoiceCursor();
+        cursor.Attach(render.Voices, 0);
+        var reference = Interleave(VoiceMixer.MixAll(render.Voices));
+        var left = new float[1024];
+        var right = new float[1024];
+
+        Assert.False(cursor.TryRender(left, right, false));
+        var taken = cursor.TakeNext()!;
+
+        // off: the next block comes from the CPU unforced, and the block on the GPU is dropped
+        cursor.Enabled = false;
+        Assert.True(cursor.TryRender(left, right, false));
+        Assert.Equal(reference[..2048], Interleave(left, right));
+        Assert.True(GpuVoiceCursor.IsAbandoned(taken));
+        cursor.Complete(taken);
+        Assert.Equal(0, cursor.Takeovers); // the user's choice isn't the GPU failing
+
+        cursor.Enabled = true;
+        Assert.Equal(reference[2048..], Drain(cursor, 1024));
+        cursor.Attach(null, 0);
+    }
+
+    [Fact]
     public void AfterAFailure_TheCpuMixesEverything()
     {
         using var render = Build(First);

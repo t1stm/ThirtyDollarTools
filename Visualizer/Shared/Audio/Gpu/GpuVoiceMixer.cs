@@ -41,7 +41,7 @@ public sealed class GpuVoiceMixer(ILogger logger) : IDisposable
     private bool _begun;
     private GpuVoiceCursor? _cursor;
     private GpuVoiceCursor.Slot? _current;
-    private bool _failed;
+    private volatile bool _failed;
     private GpuVoiceKernels? _kernels;
 
     /// <summary>Running estimate of a voice-frame's GPU cost; starts pessimistic, the first measurements correct it.</summary>
@@ -61,6 +61,22 @@ public sealed class GpuVoiceMixer(ILogger logger) : IDisposable
     /// <summary>Blocks the CPU mixed because the GPU was late or gone.</summary>
     public int Takeovers => Volatile.Read(ref _cursor)?.Takeovers ?? 0;
 
+    /// <summary>The user's switch: off mixes every block on the CPU, from the next one on. Any thread.</summary>
+    public bool Enabled
+    {
+        get => _enabled;
+        set
+        {
+            _enabled = value;
+            Volatile.Read(ref _cursor)?.Enabled = value;
+        }
+    }
+
+    private volatile bool _enabled = true;
+
+    /// <summary>Whether blocks are going to the GPU: switched on, and nothing has failed.</summary>
+    public bool Active => _enabled && !_failed;
+
     public void Dispose()
     {
         _kernels?.Dispose();
@@ -73,7 +89,7 @@ public sealed class GpuVoiceMixer(ILogger logger) : IDisposable
     /// <summary>A cursor for the player's <see cref="VoicePlayback" />; this mixer serves the newest one. Any thread.</summary>
     public GpuVoiceCursor CreateCursor()
     {
-        var cursor = new GpuVoiceCursor();
+        var cursor = new GpuVoiceCursor { Enabled = _enabled };
         if (_failed) cursor.Fail();
         Volatile.Write(ref _cursor, cursor);
         return cursor;
@@ -84,6 +100,10 @@ public sealed class GpuVoiceMixer(ILogger logger) : IDisposable
     {
         var cursor = Volatile.Read(ref _cursor);
         if (_failed || cursor == null || cursor.IsDisposed) return;
+
+        // switched off from the start: never touch the GPU. Switched off later, the pump runs on
+        // to free what was in flight; the cursor asks for nothing new.
+        if (_kernels == null && !_enabled) return;
 
         try
         {

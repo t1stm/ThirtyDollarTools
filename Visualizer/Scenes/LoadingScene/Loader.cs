@@ -124,6 +124,7 @@ public class Loader : Scene, IGamePreloadable
         _workflow.RenderAheadSeconds = settings.VisualizerRenderAhead;
         _workflow.EditorRenderAheadSeconds = settings.EditorRenderAhead;
         _workflow.SequencePlayer.BlockFrames = settings.AudioBlockSize;
+        _workflow.GpuMixing = settings.GpuAudioMixing;
         settings.Changed += name =>
         {
             if (Resamplers.Properties.Contains(name))
@@ -134,6 +135,8 @@ public class Loader : Scene, IGamePreloadable
                 _workflow.EditorRenderAheadSeconds = settings.EditorRenderAhead;
             else if (name == nameof(VisualizerSettings.AudioBlockSize))
                 _workflow.SequencePlayer.BlockFrames = settings.AudioBlockSize;
+            else if (name == nameof(VisualizerSettings.GpuAudioMixing))
+                _workflow.GpuMixing = settings.GpuAudioMixing;
         };
 
         _background = new DollarStoreLoaderBackground(game.AssetProvider.DeleteQueue)

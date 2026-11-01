@@ -14,6 +14,9 @@ public class GLInfo
     public bool SupportsKHRDebug { get; set; }
     public bool SupportsDirectStateAccess { get; set; }
 
-    /// <summary>Compute shaders that read and write storage buffers - what the GPU voice mixer runs on.</summary>
+    /// <summary>
+    ///     OpenGL 4.3 or newer, where compute shaders and storage buffers are core - what the GPU
+    ///     voice mixer runs on.
+    /// </summary>
     public bool SupportsComputeShaders { get; set; }
 }

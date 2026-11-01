@@ -114,7 +114,7 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
     {
         if (!_supported)
         {
-            Finish("unsupported", "the context has no compute shaders or storage buffers");
+            Finish("unsupported", "the context is older than OpenGL 4.3");
             return;
         }
 

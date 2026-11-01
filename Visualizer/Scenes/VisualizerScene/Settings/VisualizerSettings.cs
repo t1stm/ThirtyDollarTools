@@ -108,6 +108,16 @@ public class VisualizerSettings
         set => SetAndCallModified(out field, value);
     } = Shared.Audio.VoicePlayback.DefaultBlockFrames;
 
+    /// <summary>
+    ///     Mix the song on the GPU where the context can (OpenGL 4.3). Mirrored into
+    ///     <see cref="Shared.ThirtyDollarWorkflow.GpuMixing" />, which applies it to the song playing.
+    /// </summary>
+    public bool GpuAudioMixing
+    {
+        get;
+        set => SetAndCallModified(out field, value);
+    } = true;
+
     public bool AutomaticScaling
     {
         get;

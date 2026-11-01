@@ -299,8 +299,8 @@ public class SettingsInterfaceMarkupTests
     [Fact]
     public void ChangingASettingElsewhere_UpdatesTheControls()
     {
-        // Both defaulted-on bools off to start with, so every box starts unticked.
-        var settings = new VisualizerSettings { AutomaticScaling = false, UseVsync = false };
+        // The defaulted-on bools off to start with, so every box starts unticked.
+        var settings = new VisualizerSettings { AutomaticScaling = false, UseVsync = false, GpuAudioMixing = false };
         var ui = NewInterface(settings);
 
         var checkboxes = Descendants(ui.RootPanel).OfType<Checkbox>().ToArray();
@@ -317,6 +317,7 @@ public class SettingsInterfaceMarkupTests
         settings.AutomaticScaling = true;
         settings.UseVsync = true;
         settings.TransparentFramebuffer = true;
+        settings.GpuAudioMixing = true;
         settings.LineAmount = 8;
         settings.Greeting = "HELLO";
 

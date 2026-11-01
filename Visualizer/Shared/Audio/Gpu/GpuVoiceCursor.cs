@@ -36,7 +36,7 @@ public sealed class GpuVoiceCursor : IVoiceCursor
 
     private readonly VoiceCursor _ahead = new();
     private readonly Slot[] _slots = new Slot[SlotCount];
-    private volatile bool _cpuOnly;
+    private volatile bool _failed;
     private volatile bool _disposed;
 
     /// <summary>Ring counters: the oldest block not handed back yet, and the next slot to fill. Feeder only.</summary>
@@ -49,6 +49,18 @@ public sealed class GpuVoiceCursor : IVoiceCursor
     {
         for (var i = 0; i < SlotCount; i++) _slots[i] = new Slot(i);
     }
+
+    /// <summary>
+    ///     Off, every block is mixed on the feeder as <see cref="VoiceCursor" /> mixes it, and what
+    ///     was in flight is dropped; on again, blocks go back to the GPU. Any thread.
+    /// </summary>
+    public bool Enabled
+    {
+        get => _enabled;
+        set => _enabled = value;
+    }
+
+    private volatile bool _enabled = true;
 
     /// <summary>Blocks the CPU mixed because the GPU was late or gone - for the debug overlay.</summary>
     public int Takeovers => Volatile.Read(ref _takeovers);
@@ -76,7 +88,7 @@ public sealed class GpuVoiceCursor : IVoiceCursor
     {
         var frames = left.Length;
         var list = _ahead.List;
-        if (list == null || _cpuOnly) return RenderHere(left, right, list != null);
+        if (list == null || _failed || !_enabled) return RenderHere(left, right, list != null && _failed);
 
         Fill(list, frames);
 
@@ -136,7 +148,7 @@ public sealed class GpuVoiceCursor : IVoiceCursor
     /// </summary>
     internal void Fail()
     {
-        _cpuOnly = true;
+        _failed = true;
     }
 
     /// <summary>Render thread: the oldest requested block, now <see cref="Running" /> and the caller's, or null.</summary>

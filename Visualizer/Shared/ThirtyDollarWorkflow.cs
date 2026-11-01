@@ -81,10 +81,9 @@ public class ThirtyDollarWorkflow
         SequencePlayer = new SequencePlayer(logger, context);
         AtlasStore = atlasStore;
 
-        // The song mixes on the GPU when the context has compute shaders and there is something to
-        // hear: a --no-audio run, and TDV_GPU_MIXER=0 for comparing, keep the CPU mixer.
-        if (game.GLInfo.SupportsComputeShaders && SequencePlayer.AudioContext is not NullAudioContext &&
-            Environment.GetEnvironmentVariable("TDV_GPU_MIXER") != "0")
+        // The song can mix on the GPU when the context has compute shaders and there is something
+        // to hear; a --no-audio run keeps the CPU mixer. GpuMixing switches it.
+        if (game.GLInfo.SupportsComputeShaders && SequencePlayer.AudioContext is not NullAudioContext)
         {
             var mixer = GpuMixer = new GpuVoiceMixer(logger);
             SequencePlayer.CursorFactory = mixer.CreateCursor;
@@ -121,8 +120,18 @@ public class ThirtyDollarWorkflow
     public ILogger Logger { get; }
     public SequencePlayer SequencePlayer { get; }
 
-    /// <summary>Mixes the player's song on the GPU, once per frame; null when the CPU mixes it all.</summary>
+    /// <summary>Mixes the player's song on the GPU, once per frame; null when the context can't.</summary>
     public GpuVoiceMixer? GpuMixer { get; }
+
+    /// <summary>
+    ///     Whether the song mixes on the GPU where it can: the "Mix audio on the GPU" setting,
+    ///     applied to the song already playing from its next block.
+    /// </summary>
+    public bool GpuMixing
+    {
+        get => GpuMixer?.Enabled ?? false;
+        set => GpuMixer?.Enabled = value;
+    }
 
     private bool AutoUpdate { get; set; } = true;
     public bool ShowDebugInfo { get; set; }
