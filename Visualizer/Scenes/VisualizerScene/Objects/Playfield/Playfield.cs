@@ -16,6 +16,14 @@ namespace VisualizerScene.Objects.Playfield;
 ///     a twelve-million-event sequence built whole took over 100 GB - and playing allocates
 ///     nothing: a refill reuses everything the chunk's last fill built. The pool only grows when
 ///     more chunks are wanted at once than ever before, as when zooming out.
+///     <para>
+///         Each chunk is built in its own frame, its top at Y 0, and drawn by moving it into the
+///         camera's view rather than the camera down to it: the camera is placed relative to the
+///         chunk in double (<see cref="DollarStoreCamera.PreciseY" />), so what reaches the GPU
+///         stays a few thousand pixels from the origin however long the sequence. Built in one
+///         float frame, the end of a twelve-million-event sequence sat ~5e7 px down, where a
+///         float steps by 4 px, and everything there juddered.
+///     </para>
 /// </summary>
 public class Playfield(PlayfieldSettings settings) : IDisposable
 {
@@ -95,7 +103,7 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
     public void UpdateSounds(Sequence sequence)
     {
         var events = sequence.Events;
-        var layouts = _chunkGenerator.LayOut(events);
+        var layouts = _chunkGenerator.LayOut(events, out var height);
         var handler = _chunkGenerator.LayoutHandler;
 
         var slotOf = new int[layouts.Length];
@@ -103,7 +111,7 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
 
         lock (_renderLock)
         {
-            Height = handler.Height + handler.Size + handler.VerticalMargin;
+            Height = (float)(height + handler.Size + handler.VerticalMargin);
             _events = events;
             _layouts = layouts;
             _slotOf = slotOf;
@@ -128,7 +136,6 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
 
         _temporaryCamera.SetOffset(_currentPosition =
             SteppingFunctions.Exponential(_currentPosition, _targetPosition, updateDelta));
-        _temporaryCamera.UpdateMatrix();
 
         // get generic camera values
         var camera_height = _temporaryCamera.Height;
@@ -137,21 +144,26 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
         var clamped_scale = Math.Min(zoom, 1f);
         var height_scale = camera_height / clamped_scale - camera_height;
 
-        // get render culling camera values
-        var camera_y = _temporaryCamera.Position.Y;
+        // get render culling camera values - in double, see the class summary
+        var camera_y = _temporaryCamera.PreciseY;
         var camera_yh = camera_y + camera_height;
 
         // fix values when the zoom is changed
         camera_y -= height_scale / 2;
         camera_yh += height_scale / 2;
 
-        // position object box
-        _objectBox.Position = (0, 0, 0);
-        _objectBox.Scale = (layoutWidth, layoutHeight, 0);
-        _objectBox.BorderRadius = 0f;
+        // The object box: only the part on screen, so its edges stay as sharp as the chunks.
+        var box_top = Math.Max(0, camera_y);
+        var box_bottom = Math.Min(layoutHeight, camera_yh);
+        if (box_bottom > box_top)
+        {
+            _objectBox.Position = (0, 0, 0);
+            _objectBox.Scale = (layoutWidth, (float)(box_bottom - box_top), 0);
+            _objectBox.BorderRadius = 0f;
 
-        _objectBox.UpdateModel(false);
-        _objectBox.Render(_temporaryCamera);
+            _objectBox.UpdateModel(false);
+            _objectBox.Render(CameraFrom(box_top));
+        }
 
         lock (_renderLock)
         {
@@ -175,12 +187,23 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
             // A chunk still being filled is skipped this frame; it is a frame or two away.
             for (var chunk = first; chunk <= last; chunk++)
                 if (_slotOf[chunk] is var id and >= 0 && Volatile.Read(ref _slots[id].State) == Ready)
-                    _slots[id].Chunk.Render(_temporaryCamera);
+                    _slots[id].Chunk.Render(CameraFrom(layouts[chunk].StartY));
         }
     }
 
+    /// <summary>
+    ///     The temporary camera, placed to draw something whose own Y 0 sits at
+    ///     <paramref name="originY" />. Only Position moves: PreciseY keeps the real camera's.
+    /// </summary>
+    private DollarStoreCamera CameraFrom(double originY)
+    {
+        var position = _temporaryCamera.Position;
+        _temporaryCamera.Position = (position.X, (float)(_temporaryCamera.PreciseY - originY), position.Z);
+        return _temporaryCamera;
+    }
+
     /// <summary>The first chunk whose bottom is at or below <paramref name="y" />; the chunks are in Y order.</summary>
-    private static int FirstChunkEndingBelow(ChunkLayout[] layouts, float y)
+    private static int FirstChunkEndingBelow(ChunkLayout[] layouts, double y)
     {
         int low = 0, high = layouts.Length;
         while (low < high)
@@ -328,13 +351,6 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
     /// </summary>
     public bool TryGetBounds(int index, out Vector3 position, out Vector3 scale)
     {
-        if (GetRenderable(index) is { } renderable)
-        {
-            position = renderable.Position + renderable.Translation;
-            scale = renderable.Scale;
-            return true;
-        }
-
         var events = _events;
         var layouts = _layouts;
         var chunk = index / _chunkGenerator.ChunkSize;
@@ -344,14 +360,24 @@ public class Playfield(PlayfieldSettings settings) : IDisposable
             return false;
         }
 
-        lock (_lookupGenerator)
+        // Both are in the chunk's own frame; the sequence's is StartY further down.
+        if (GetRenderable(index) is { } renderable)
         {
-            var box = _lookupGenerator.BoxPosition(events, index, layouts[chunk].State);
-            var size = _lookupGenerator.LayoutHandler.Size;
-            position = (box.X, box.Y, 0);
-            scale = (size, size, 0);
+            position = renderable.Position + renderable.Translation;
+            scale = renderable.Scale;
+        }
+        else
+        {
+            lock (_lookupGenerator)
+            {
+                var box = _lookupGenerator.BoxPosition(events, index, layouts[chunk].State);
+                var size = _lookupGenerator.LayoutHandler.Size;
+                position = (box.X, box.Y, 0);
+                scale = (size, size, 0);
+            }
         }
 
+        position.Y = (float)(layouts[chunk].StartY + position.Y);
         return true;
     }
 

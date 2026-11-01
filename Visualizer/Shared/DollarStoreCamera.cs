@@ -1,6 +1,5 @@
 using OpenTK.Mathematics;
 using Shared.Animations;
-using Sundex.Core.Animations;
 using Sundex.Engine.Renderer.Cameras;
 
 namespace Shared;
@@ -16,6 +15,7 @@ public sealed class DollarStoreCamera : Camera
         virtualPosition, viewport)
     {
         _virtualPosition = virtualPosition;
+        PreciseY = virtualPosition.Y;
         ScrollSpeed = scrollSpeed;
         UpdateMatrix();
     }
@@ -26,6 +26,13 @@ public sealed class DollarStoreCamera : Camera
 
     /// <summary>Where the camera is scrolling to, as opposed to where it has eased to so far.</summary>
     public Vector3 TargetPosition => _virtualPosition;
+
+    /// <summary>
+    ///     <see cref="Camera.Position" />'s Y in double. Tens of millions of pixels down a long
+    ///     sequence a float's step is several pixels, so easing in float stutters; anything
+    ///     drawn that far down draws relative to this instead (see the playfield).
+    /// </summary>
+    public double PreciseY { get; private set; }
 
     /// <summary>
     ///     How far below <see cref="Camera.Position" /> the visible top edge sits, and above the
@@ -56,6 +63,7 @@ public sealed class DollarStoreCamera : Camera
     {
         _virtualPosition = position;
         InnerPosition = position;
+        PreciseY = position.Y;
     }
 
     public void ScrollDelta(Vector3 delta)
@@ -71,6 +79,7 @@ public sealed class DollarStoreCamera : Camera
     {
         Viewport = camera.Viewport;
         InnerPosition = camera.Position;
+        PreciseY = camera.PreciseY;
         InnerVPMatrix = camera.GetVPMatrix();
         RenderScale = camera.RenderScale;
         Scale = camera.Scale;
@@ -100,10 +109,18 @@ public sealed class DollarStoreCamera : Camera
             _pulseAnimation.Reset();
         }
 
-        var current = Position;
-        var target = _virtualPosition;
+        // Position set from outside since the last step: take it over.
+        if ((float)PreciseY != Position.Y) PreciseY = Position.Y;
 
-        Position = SteppingFunctions.Exponential(current, target, secondsLastFrame, 0.01f, ScrollSpeed);
+        // SteppingFunctions.Exponential's smoothing, in double - see PreciseY.
+        var current = new Vector3d(Position.X, PreciseY, Position.Z);
+        var target = new Vector3d(_virtualPosition.X, _virtualPosition.Y, _virtualPosition.Z);
+        current = Vector3d.Distance(current, target) < 0.01
+            ? target
+            : current + (target - current) * (1 - Math.Exp(-ScrollSpeed * secondsLastFrame));
+
+        PreciseY = current.Y;
+        Position = ((float)current.X, (float)current.Y, (float)current.Z);
     }
 
     public void Pulse(int times = 1, float frequency = 0)

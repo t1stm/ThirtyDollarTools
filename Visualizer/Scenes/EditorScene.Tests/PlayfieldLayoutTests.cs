@@ -55,7 +55,7 @@ public class PlayfieldLayoutTests
 
         LayoutHandler NewLayout() => new(64, 16, new GapBox(6), new GapBox(0, 400, 0, 0));
         var generator = new ChunkGenerator(null!, NewLayout());
-        var layouts = generator.LayOut(events);
+        var layouts = generator.LayOut(events, out var height);
 
         var walk = NewLayout();
         walk.Reset();
@@ -64,7 +64,7 @@ public class PlayfieldLayoutTests
             expected[i] = walk.GetNewPosition(events[i].SoundEvent == "!divider");
 
         Assert.Equal(3, layouts.Length);
-        Assert.Equal(walk.Height, generator.LayoutHandler.Height);
+        Assert.Equal(walk.Height, height);
         for (var chunk = 0; chunk < layouts.Length; chunk++)
         {
             var first = chunk * generator.ChunkSize;
@@ -75,6 +75,36 @@ public class PlayfieldLayoutTests
 
         var lookup = new ChunkGenerator(null!, NewLayout());
         for (var i = 0; i < events.Length; i++)
-            Assert.Equal(expected[i], lookup.BoxPosition(events, i, layouts[i / lookup.ChunkSize].State));
+        {
+            var layout = layouts[i / lookup.ChunkSize];
+            var box = lookup.BoxPosition(events, i, layout.State);
+            Assert.Equal(expected[i], new Vector2(box.X, (float)(layout.StartY + box.Y)));
+        }
+    }
+
+    /// <summary>
+    ///     ~1e8 px down - past the end of a twelve-million-event sequence - a float steps by 8 px,
+    ///     so one walk in a single float frame spaces lines 72 or 80 apart instead of 76. Each
+    ///     chunk laid out in its own frame keeps every line exactly 76 apart.
+    /// </summary>
+    [Fact]
+    public void LayOut_FarFromTheOrigin_KeepsLinesEvenlySpaced()
+    {
+        const float top = 1e8f;
+        var events = new BaseEvent[3 * 512];
+        for (var i = 0; i < events.Length; i++) events[i] = new NormalEvent { SoundEvent = "a" };
+
+        LayoutHandler NewLayout() => new(64, 16, new GapBox(6), new GapBox(0, top, 0, 0));
+        var generator = new ChunkGenerator(null!, NewLayout());
+        var layouts = generator.LayOut(events, out _);
+
+        // 512 sounds, 16 to a line: 32 lines of 64 + 2 * 6 a chunk.
+        for (var chunk = 0; chunk < layouts.Length; chunk++)
+        {
+            Assert.Equal(top + chunk * 32 * 76d, layouts[chunk].StartY);
+            for (var line = 0; line < 32; line++)
+                Assert.Equal(line * 76f,
+                    generator.BoxPosition(events, chunk * 512 + line * 16, layouts[chunk].State).Y);
+        }
     }
 }

@@ -57,32 +57,44 @@ public class ChunkGenerator(PlayfieldSettings settings, LayoutHandler? layout = 
 
     /// <summary>
     ///     Lays out every chunk of <paramref name="events" /> without building one: the state each
-    ///     starts from and the Y range it covers, as <see cref="PositionChunk" /> would leave them.
-    ///     A walk of the events and nothing more, so a view can keep this for a whole long
-    ///     sequence and build only the chunks it draws. Leaves the handler at the end of the
-    ///     sequence, so its <see cref="LayoutHandler.Height" /> is the whole layout's.
+    ///     starts from and the Y range it covers. A walk of the events and nothing more, so a view
+    ///     can keep this for a whole long sequence and build only the chunks it draws.
+    ///     <para>
+    ///         Each chunk is laid out in its own frame: its <see cref="ChunkLayout.State" /> starts
+    ///         at Y 0, and <see cref="ChunkLayout.StartY" /> (a double) is where that 0 sits. A float
+    ///         is several pixels coarse tens of millions of pixels down, so a whole long sequence
+    ///         laid out in one float frame draws unevenly spaced and judders.
+    ///     </para>
     /// </summary>
-    public ChunkLayout[] LayOut(BaseEvent[] events)
+    /// <param name="height">The whole layout's <see cref="LayoutHandler.Height" />.</param>
+    public ChunkLayout[] LayOut(BaseEvent[] events, out double height)
     {
         var layouts = new ChunkLayout[(events.Length + ChunkSize - 1) / ChunkSize];
-        var state = StartState();
+        var (soundIndex, origin, worldHeight) = StartState();
+        double start = origin;
+        (int SoundIndex, float Y, float Height) state = (soundIndex, 0, worldHeight - origin);
 
         for (var chunk = 0; chunk < layouts.Length; chunk++)
         {
+            LayoutHandler.SeekTo(state.SoundIndex, state.Y, state.Height);
+
             var end = Math.Min(events.Length, (chunk + 1) * ChunkSize);
             for (var i = chunk * ChunkSize; i < end; i++)
                 LayoutHandler.GetNewPosition(events[i].SoundEvent == "!divider");
 
-            layouts[chunk] = new ChunkLayout(state, state.Y, LayoutHandler.Y + LayoutHandler.Size);
-            state = (LayoutHandler.CurrentSoundIndex, LayoutHandler.Y, LayoutHandler.Height);
+            layouts[chunk] = new ChunkLayout(state, start, start + LayoutHandler.Y + LayoutHandler.Size);
+            start += LayoutHandler.Y;
+            state = (LayoutHandler.CurrentSoundIndex, 0, LayoutHandler.Height - LayoutHandler.Y);
         }
 
+        height = start + state.Height;
         return layouts;
     }
 
     /// <summary>
     ///     The top-left of the box event <paramref name="index" /> is laid out in, walked from
     ///     its chunk's recorded <paramref name="state" /> - for an event whose chunk isn't built.
+    ///     In the state's frame: from a <see cref="LayOut" /> state, add the chunk's StartY.
     /// </summary>
     public Vector2 BoxPosition(BaseEvent[] events, int index, (int SoundIndex, float Y, float Height) state)
     {
@@ -178,6 +190,7 @@ public class ChunkGenerator(PlayfieldSettings settings, LayoutHandler? layout = 
 /// <summary>
 ///     Where one chunk of a sequence sits, worked out by <see cref="ChunkGenerator.LayOut" />
 ///     without building it: the layout state it starts from (see
-///     <see cref="ChunkGenerator.PositionChunk" />) and the Y range it covers.
+///     <see cref="ChunkGenerator.PositionChunk" />), in the chunk's own frame where its top is
+///     0, and the Y range it covers in the sequence's.
 /// </summary>
-public readonly record struct ChunkLayout((int SoundIndex, float Y, float Height) State, float StartY, float EndY);
+public readonly record struct ChunkLayout((int SoundIndex, float Y, float Height) State, double StartY, double EndY);
