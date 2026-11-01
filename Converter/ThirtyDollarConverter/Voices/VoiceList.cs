@@ -27,16 +27,18 @@ namespace ThirtyDollarConverter.Voices;
 public sealed class VoiceList : IDisposable
 {
     private int _references = 1;
+    private readonly int _soundCount;
     private AudioData<float>[] _sounds;
     private int[] _starts;
     private Voice[] _voices;
 
-    private VoiceList(Voice[] voices, int[] starts, AudioData<float>[] sounds, int count, int length, int longest,
-        int channels, int fadeLength)
+    private VoiceList(Voice[] voices, int[] starts, AudioData<float>[] sounds, int soundCount, int count, int length,
+        int longest, int channels, int fadeLength)
     {
         _voices = voices;
         _starts = starts;
         _sounds = sounds;
+        _soundCount = soundCount;
         Count = count;
         Length = length;
         Longest = longest;
@@ -57,7 +59,12 @@ public sealed class VoiceList : IDisposable
     /// <summary>Samples a cut voice fades over.</summary>
     public int FadeLength { get; }
 
-    internal ReadOnlySpan<Voice> Voices => _voices.AsSpan(0, Count);
+    /// <summary>The voices, sorted by start. Read-only for a mixer of another kind; empty once disposed.</summary>
+    public ReadOnlySpan<Voice> Voices => _voices.AsSpan(0, Math.Min(Count, _voices.Length));
+
+    /// <summary>The sounds <see cref="Voice.Sound" /> indexes; empty once disposed.</summary>
+    public ReadOnlySpan<AudioData<float>> Sounds => _sounds.AsSpan(0, Math.Min(_soundCount, _sounds.Length));
+
     internal ReadOnlySpan<int> Starts => _starts.AsSpan(0, Count);
 
     public void Dispose()
@@ -92,6 +99,29 @@ public sealed class VoiceList : IDisposable
         }
 
         return low;
+    }
+
+    /// <summary>
+    ///     Mixes the voices in <paramref name="active" /> - indices, as <see cref="VoiceCursor.Advance" />
+    ///     returns them - into <paramref name="left" /> and <paramref name="right" /> (overwriting
+    ///     them), which hold the block that starts at output sample <paramref name="from" />. Each
+    ///     sample gets its voices' terms in the order of <paramref name="active" />, so mixing a
+    ///     cursor's blocks this way adds the same floats as <see cref="VoiceMixer.MixAll" />.
+    /// </summary>
+    public void MixBlock(ReadOnlySpan<int> active, int from, Span<float> left, Span<float> right)
+    {
+        left.Clear();
+        right.Clear();
+
+        var to = from + left.Length;
+        var voices = Voices;
+        foreach (var index in active)
+        {
+            ref readonly var voice = ref voices[index];
+            if (voice.End <= from || voice.Start >= to) continue;
+
+            MixRange(index, Math.Max(from, voice.Start), Math.Min(to, voice.End), from, left, right);
+        }
     }
 
     /// <summary>
@@ -283,7 +313,8 @@ public sealed class VoiceList : IDisposable
                 longest = Math.Max(longest, voices[i].End - voices[i].Start);
             }
 
-            return new VoiceList(voices, starts, sounds, count, length, longest, (int)settings.Channels, fade);
+            return new VoiceList(voices, starts, sounds, _soundIndex.Count, count, length, longest,
+                (int)settings.Channels, fade);
         }
 
         /// <summary>
