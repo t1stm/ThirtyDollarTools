@@ -6,7 +6,8 @@ namespace Shared.Audio;
 
 /// <summary>
 ///     Plays a <see cref="VoiceList" /> by mixing it a block at a time on a feeder thread of its
-///     own and keeping an <see cref="AudioStream" /> topped up to <c>aheadSeconds</c> in front of
+///     own - through an <see cref="IVoiceCursor" />, the CPU's <see cref="VoiceCursor" /> unless
+///     given one that mixes elsewhere - and keeping an <see cref="AudioStream" /> topped up to <c>aheadSeconds</c> in front of
 ///     the playhead. The stream's queue is native memory the audio device reads without entering
 ///     managed code, so a garbage collection only pauses the feeder and the queue covers it.
 ///     <para>
@@ -27,7 +28,7 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
 
     // the feeder's scratch, sized to the block it last mixed
     private float[] _left = [], _right = [], _interleaved = [];
-    private readonly VoiceCursor _cursor = new();
+    private readonly IVoiceCursor _cursor;
     private readonly int _sampleRate;
     private readonly AudioStream _stream;
     private readonly Thread? _thread;
@@ -45,9 +46,15 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
     private long _busyTicks;
     private int _busyFrames;
     private float _load;
+    private int _underruns;
+    private bool _fedSinceFlush;
 
-    public VoicePlayback(AudioContext context, int sampleRate, double aheadSeconds)
-        : this(context.CreateStream(sampleRate, 2), sampleRate, aheadSeconds, true)
+    /// <summary>
+    ///     Plays on a stream of <paramref name="context" />, mixing through <paramref name="cursor" /> -
+    ///     the CPU's <see cref="VoiceCursor" /> unless given one - which is disposed with this.
+    /// </summary>
+    public VoicePlayback(AudioContext context, int sampleRate, double aheadSeconds, IVoiceCursor? cursor = null)
+        : this(context.CreateStream(sampleRate, 2), sampleRate, aheadSeconds, true, cursor)
     {
     }
 
@@ -55,8 +62,10 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
     ///     Without <paramref name="startFeeder" />, nothing feeds the stream until something calls
     ///     <see cref="Pump" /> - the allocation test drives it on its own thread.
     /// </summary>
-    internal VoicePlayback(AudioStream stream, int sampleRate, double aheadSeconds, bool startFeeder)
+    internal VoicePlayback(AudioStream stream, int sampleRate, double aheadSeconds, bool startFeeder,
+        IVoiceCursor? cursor = null)
     {
+        _cursor = cursor ?? new VoiceCursor();
         _stream = stream;
         _sampleRate = sampleRate;
         _aheadFrames = (int)(aheadSeconds * sampleRate);
@@ -91,6 +100,13 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
     ///     over every quarter second of mixed audio; holds its last value while nothing is mixed.
     /// </summary>
     public float Load => Volatile.Read(ref _load);
+
+    /// <summary>
+    ///     Times the feeder found the queue empty while playing, short of the song's end, after it
+    ///     had held audio since the last flush: the device ran dry mid-song, so something was heard
+    ///     late or not at all. The wait for a seek's first block isn't counted.
+    /// </summary>
+    public int Underruns => Volatile.Read(ref _underruns);
 
     public bool IsRunning { get; private set; }
     public TimeSpan Elapsed => TimeSpan.FromMilliseconds(ElapsedMilliseconds);
@@ -226,6 +242,7 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
             if (list != null) _cursor.Attach(list, (int)position)?.Dispose();
             else _cursor.Seek((int)position);
             _stream.Flush(position);
+            _fedSinceFlush = false;
 
             // a seek that arrived meanwhile stays pending for the next pass
             Interlocked.CompareExchange(ref _pendingSeek, -1, seek);
@@ -234,13 +251,17 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
         var voices = _cursor.List;
         if (voices == null) return;
 
-        while (_stream.QueuedFrames < _aheadFrames)
+        // under this, a cursor that mixes elsewhere is told to mix a late block itself
+        var low_water = Math.Min(Math.Max(2 * block, _sampleRate / 4), _aheadFrames / 2);
+        long queued;
+        while ((queued = _stream.QueuedFrames) < _aheadFrames)
         {
             var frames = Math.Min(block, voices.Length - _cursor.Position);
             if (frames <= 0) return;
+            if (queued == 0 && _fedSinceFlush && IsRunning) Interlocked.Increment(ref _underruns);
 
             var start = Stopwatch.GetTimestamp();
-            _cursor.Render(left[..frames], right[..frames]);
+            if (!_cursor.TryRender(left[..frames], right[..frames], queued < low_water)) return;
             if (voices.Channels < 2) left[..frames].CopyTo(right);
 
             for (var i = 0; i < frames; i++)
@@ -250,6 +271,7 @@ public sealed class VoicePlayback : IBufferStopwatch, IDisposable
             }
 
             _stream.Put(interleaved[..(frames * 2)]);
+            _fedSinceFlush = true;
             MeasureLoad(Stopwatch.GetTimestamp() - start, frames);
         }
     }

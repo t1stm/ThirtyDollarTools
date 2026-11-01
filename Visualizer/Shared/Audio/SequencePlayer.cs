@@ -82,6 +82,12 @@ public class SequencePlayer
 
     protected TimingStopwatchWrapper TimingStopwatch { get; } = new();
 
+    /// <summary>
+    ///     Makes the cursor the song is mixed through when the first <see cref="UpdateSequence" />
+    ///     creates the playback; null mixes on the CPU. Set it before then.
+    /// </summary>
+    public Func<IVoiceCursor>? CursorFactory { get; set; }
+
     /// <summary>Streams the song; created by the first <see cref="UpdateSequence" />.</summary>
     protected VoicePlayback? Playback
     {
@@ -107,6 +113,9 @@ public class SequencePlayer
 
     /// <summary>The song mixer's CPU load - see <see cref="VoicePlayback.Load" />.</summary>
     public float CpuLoad => Playback?.Load ?? 0;
+
+    /// <summary>Times the song's queue ran dry while playing - see <see cref="VoicePlayback.Underruns" />.</summary>
+    public int Underruns => Playback?.Underruns ?? 0;
 
     protected AudioContext? GetAvailableContext()
     {
@@ -255,7 +264,7 @@ public class SequencePlayer
             SequenceIndices = sequenceIndices;
             _aheadSeconds = aheadSeconds;
 
-            Playback ??= new VoicePlayback(AudioContext, AudioContext.SampleRate, aheadSeconds());
+            Playback ??= new VoicePlayback(AudioContext, AudioContext.SampleRate, aheadSeconds(), CursorFactory?.Invoke());
             Playback.AheadSeconds = aheadSeconds();
             Playback.BlockFrames = BlockFrames;
             Playback.Publish(voices);

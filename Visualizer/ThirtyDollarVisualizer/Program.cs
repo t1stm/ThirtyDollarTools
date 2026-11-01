@@ -172,7 +172,7 @@ game.Enqueue(instance =>
         {
             Preloads = BuildPreloads(version, sequence, greeting, scale, mode),
             // Scene names, as LoadScene registers them: "visualizer", "drum-master",
-            // "editor", "settings", "text-bench". An unknown one falls back to the home
+            // "editor", "settings", "text-bench", "gpu-mix-bench". An unknown one falls back to the home
             // screen and says so in the log - see Loader.UpdateExit.
             ExitTo = mode ?? "home"
         });
@@ -224,6 +224,11 @@ static ScenePreload[] BuildPreloads(VersionInfo? version, string? sequence, stri
 
         // Only --mode text-bench opens it, and it builds nothing until it is shown.
         new ScenePreload("Preparing the text benchmark", (game, _) =>
-            game.SceneManager.LoadScene<TextBenchScene>("text-bench", _ => new TextBenchScene(game)))
+            game.SceneManager.LoadScene<TextBenchScene>("text-bench", _ => new TextBenchScene(game))),
+
+        // Only --mode gpu-mix-bench opens it; it reads -i once it is shown.
+        new ScenePreload("Preparing the GPU mixer benchmark", (game, workflow) =>
+            game.SceneManager.LoadScene<GpuMixBenchScene>("gpu-mix-bench",
+                _ => new GpuMixBenchScene(game, workflow, sequence)))
     ];
 }

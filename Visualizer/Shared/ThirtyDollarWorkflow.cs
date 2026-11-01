@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Shared.Atlases;
 using Shared.Audio;
+using Shared.Audio.Gpu;
+using Shared.Audio.Null;
 using Shared.Objects;
 using Sundex.Engine.Asset_Management.Extensions;
 using Sundex.Engine;
@@ -29,6 +31,9 @@ public class ThirtyDollarWorkflow
     }; // cached to avoid re-allocating each update
 
     private readonly AssetProvider _assetProvider;
+    private readonly Stopwatch _audioLog = Stopwatch.StartNew();
+    private int _audioLogFrames;
+    private double _audioLogFrameMax;
     private readonly Stopwatch _fileUpdateStopwatch;
 
     /// <summary>Called after the sequence has finished loading, but before the audio events have finished processing.</summary>
@@ -75,6 +80,18 @@ public class ThirtyDollarWorkflow
         Logger = logger.ForContext<ThirtyDollarWorkflow>();
         SequencePlayer = new SequencePlayer(logger, context);
         AtlasStore = atlasStore;
+
+        // The song mixes on the GPU when the context has compute shaders and there is something to
+        // hear: a --no-audio run, and TDV_GPU_MIXER=0 for comparing, keep the CPU mixer.
+        if (game.GLInfo.SupportsComputeShaders && SequencePlayer.AudioContext is not NullAudioContext &&
+            Environment.GetEnvironmentVariable("TDV_GPU_MIXER") != "0")
+        {
+            var mixer = GpuMixer = new GpuVoiceMixer(logger);
+            SequencePlayer.CursorFactory = mixer.CreateCursor;
+            game.UpdateFrame += _ => mixer.Pump();
+        }
+
+        game.UpdateFrame += frame => LogAudio(frame.Time);
         SampleHolder = sampleHolder;
 
         EncoderSettings = new EncoderSettings
@@ -104,11 +121,41 @@ public class ThirtyDollarWorkflow
     public ILogger Logger { get; }
     public SequencePlayer SequencePlayer { get; }
 
+    /// <summary>Mixes the player's song on the GPU, once per frame; null when the CPU mixes it all.</summary>
+    public GpuVoiceMixer? GpuMixer { get; }
+
     private bool AutoUpdate { get; set; } = true;
     public bool ShowDebugInfo { get; set; }
     public SequenceIndices SequenceIndices { get; private set; } = new();
     public SequenceInfo[] SequenceInfos { get; private set; } = [];
     public Placement[] ExtractedSpeedEvents { get; private set; } = [];
+
+    /// <summary>
+    ///     Once a second while playing, Debug builds log the mixer's state - what a headless run
+    ///     checks playback against (<c>viz.sh wait '\[Audio\]'</c>): the playhead, the feeder's
+    ///     CPU load, the GPU's time per second of audio, blocks the CPU took over, underruns, and
+    ///     the frame times over that second - the mixer shares the GPU with the frame's draws.
+    /// </summary>
+    [Conditional("DEBUG")]
+    private void LogAudio(double frameSeconds)
+    {
+        var clock = SequencePlayer.GetTimingStopwatch();
+        if (!clock.IsRunning) return;
+
+        _audioLogFrames++;
+        _audioLogFrameMax = Math.Max(_audioLogFrameMax, frameSeconds);
+        if (_audioLog.ElapsedMilliseconds < 1000) return;
+
+        Logger.Debug(
+            "[Audio] at={At:0.0}s cpu={Cpu:0.0}% gpu={Gpu:0.00}ms/s takeovers={Takeovers} underruns={Underruns} " +
+            "frame_mean={Mean:0.00}ms frame_max={Max:0.00}ms",
+            clock.ElapsedMilliseconds / 1000.0, SequencePlayer.CpuLoad * 100, GpuMixer?.MsPerSecond ?? 0,
+            GpuMixer?.Takeovers ?? 0, SequencePlayer.Underruns,
+            _audioLog.Elapsed.TotalMilliseconds / _audioLogFrames, 1000 * _audioLogFrameMax);
+        _audioLog.Restart();
+        _audioLogFrames = 0;
+        _audioLogFrameMax = 0;
+    }
 
     /// <summary>
     ///     This method updates the current sequence.

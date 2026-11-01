@@ -731,6 +731,7 @@ public class Visualizer : Scene, IGamePreloadable
         var fps = _fpsCounter.GetAverageFPS(1 / deltaTime);
         var audio_backend = SequencePlayer.AudioContext.Name;
         var audio_engine_load = SequencePlayer.CpuLoad * 100;
+        var gpu_mixer = _workflow.GpuMixer;
 
         var volume = PlayfieldContainer.SequenceVolume;
         var soundReferences =
@@ -820,6 +821,7 @@ public class Visualizer : Scene, IGamePreloadable
              FPS: {fps:0.##}
              Audio Backend: {audio_backend}
              Audio Engine CPU: {audio_engine_load:0.00}%
+             Audio Engine GPU: {(gpu_mixer is null ? "off" : "on")}, {gpu_mixer?.MsPerSecond ?? 0:0.00} ms/s, {gpu_mixer?.Takeovers ?? 0} blocks on the CPU
              Resampler: {_workflow.EncoderSettings.Resampler.Name}
 
              Sequence ({PlayfieldContainer.CurrentSequence + 1} - {Sequences.Length}): {sequence_location}

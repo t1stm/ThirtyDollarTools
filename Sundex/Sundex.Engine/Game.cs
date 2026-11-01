@@ -109,7 +109,8 @@ public class Game : GameWindow
     /// </summary>
     public bool IsCursorInWindow { get; private set; }
 
-    private GLInfo GLInfo { get; } = new();
+    /// <summary>What the context supports; filled in once it exists, before any scene initializes.</summary>
+    public GLInfo GLInfo { get; } = new();
 
     /// <summary>
     ///     Ratio between physical framebuffer pixels and logical window (client) size, measured
@@ -280,6 +281,8 @@ public class Game : GameWindow
 
         glInfo.SupportsKHRDebug = glInfo.Extensions.Contains("GL_KHR_debug");
         glInfo.SupportsDirectStateAccess = glInfo.Extensions.Contains("GL_ARB_direct_state_access");
+        glInfo.SupportsComputeShaders = glInfo.Extensions.Contains("GL_ARB_compute_shader") &&
+                                        glInfo.Extensions.Contains("GL_ARB_shader_storage_buffer_object");
 
         glInfo.Vendor = GL.GetString(StringName.Vendor) ?? "";
         glInfo.Renderer = GL.GetString(StringName.Renderer) ?? "";
