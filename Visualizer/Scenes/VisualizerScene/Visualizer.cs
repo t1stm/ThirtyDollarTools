@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
@@ -814,6 +815,22 @@ public class Visualizer : Scene, IGamePreloadable
             }
         }
 
+        // The mixer's share of a VSync frame, or its milliseconds per frame without VSync.
+        // ponytail: the frame is taken from the measured FPS, which is the refresh rate only
+        // while frames keep up; read the monitor's rate if dropped frames ever matter here.
+        Span<char> gpu_buffer = stackalloc char[16];
+        scoped ReadOnlySpan<char> gpu_text = "off";
+        if (gpu_mixer is { Active: true })
+        {
+            var ms = gpu_mixer.MsPerFrame;
+            int gpu_written;
+            if (Game.VSync == VSyncMode.Off)
+                gpu_buffer.TryWrite(CultureInfo.InvariantCulture, $"{ms:0.000} ms", out gpu_written);
+            else
+                gpu_buffer.TryWrite(CultureInfo.InvariantCulture, $"{ms * fps / 10:0.00}%", out gpu_written);
+            gpu_text = gpu_buffer[..gpu_written];
+        }
+
         var debug = Overlay.Get<TextSlice>("debug");
         _debugBuffer.AsSpan().TryWrite(CultureInfo.InvariantCulture,
             $"""
@@ -821,7 +838,7 @@ public class Visualizer : Scene, IGamePreloadable
              FPS: {fps:0.##}
              Audio Backend: {audio_backend}
              Audio Engine CPU: {audio_engine_load:0.00}%
-             Audio Engine GPU: {(gpu_mixer is { Active: true } ? "on" : "off")}, {gpu_mixer?.MsPerSecond ?? 0:0.00} ms/s, {gpu_mixer?.Takeovers ?? 0} blocks on the CPU
+             Audio Engine GPU: {gpu_text}
              Resampler: {_workflow.EncoderSettings.Resampler.Name}
 
              Sequence ({PlayfieldContainer.CurrentSequence + 1} - {Sequences.Length}): {sequence_location}

@@ -27,6 +27,9 @@ public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) :
 
     private const int Queries = 8;
 
+    /// <summary>Frames <see cref="MsPerFrame" /> is averaged over.</summary>
+    private const int FramesPerMeasure = 30;
+
     private readonly GLSync[] _fences = new GLSync[GpuVoiceCursor.SlotCount];
     private readonly GpuVoiceCursor.Slot?[] _inFlight = new GpuVoiceCursor.Slot?[GpuVoiceCursor.SlotCount];
     private readonly ILogger _logger = logger.ForContext<GpuVoiceMixer>();
@@ -52,6 +55,17 @@ public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) :
     private double _busyNs;
     private long _busyFrames;
     private float _msPerSecond;
+
+    // measured GPU time against the frames it was spread over - see MsPerFrame
+    private double _frameNs;
+    private int _frames;
+    private float _msPerFrame;
+
+    /// <summary>
+    ///     GPU milliseconds spent mixing per rendered frame, frames without a dispatch included,
+    ///     averaged over <see cref="FramesPerMeasure" /> frames.
+    /// </summary>
+    public float MsPerFrame => Volatile.Read(ref _msPerFrame);
 
     /// <summary>
     ///     GPU milliseconds spent per second of audio mixed, measured over every quarter second of
@@ -99,6 +113,7 @@ public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) :
     /// <summary>Render thread, once per frame.</summary>
     public void Pump()
     {
+        CountFrame();
         var cursor = Volatile.Read(ref _cursor);
         if (_failed || cursor == null || cursor.IsDisposed) return;
 
@@ -174,6 +189,7 @@ public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) :
             var ns = (double)(end - begin);
             if (_queryVoiceFrames[q] > 0) _nsPerVoiceFrame = 0.8 * _nsPerVoiceFrame + 0.2 * (ns / _queryVoiceFrames[q]);
 
+            _frameNs += ns;
             _busyNs += ns;
             _busyFrames += _queryAudioFrames[q];
             if (_busyFrames < VoicePlayback.DefaultBlockFrames * 3) continue;
@@ -182,6 +198,16 @@ public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) :
             _busyNs = 0;
             _busyFrames = 0;
         }
+    }
+
+    /// <summary>Publishes <see cref="MsPerFrame" /> once every <see cref="FramesPerMeasure" /> frames.</summary>
+    private void CountFrame()
+    {
+        if (++_frames < FramesPerMeasure) return;
+
+        Volatile.Write(ref _msPerFrame, (float)(_frameNs / 1e6 / _frames));
+        _frameNs = 0;
+        _frames = 0;
     }
 
     /// <summary>Dispatches requested blocks, oldest first, until the frame's budget is spent.</summary>
