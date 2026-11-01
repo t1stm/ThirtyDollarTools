@@ -1,0 +1,19 @@
+#version 430 core
+layout(local_size_x = 256) in;
+
+layout(std430, binding = 4) readonly buffer PartialSums { vec2 partialSums[]; };
+layout(std430, binding = 5) writeonly buffer MixOutput { vec2 mixOutput[]; }; // interleaved L, R
+
+uniform int frames;
+uniform int chunks;
+uniform int stride;
+uniform int outputOffset;
+
+void main() {
+    int t = int(gl_GlobalInvocationID.x);
+    if (t >= frames) return;
+
+    precise vec2 sum = vec2(0.0);
+    for (int c = 0; c < chunks; c++) sum += partialSums[c * stride + t];
+    mixOutput[outputOffset + t] = sum;
+}

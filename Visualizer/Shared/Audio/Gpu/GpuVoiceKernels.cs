@@ -1,14 +1,18 @@
 using OpenTK.Graphics.OpenGL;
 using Sundex.Engine;
+using Sundex.Engine.Asset_Management;
+using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.Asset_Management.Types.Shader;
+using Sundex.Engine.Renderer.Shaders;
 using ThirtyDollarConverter.Encoder.PCM;
 using ThirtyDollarConverter.Voices;
 
 namespace Shared.Audio.Gpu;
 
 /// <summary>
-///     The GPU half of the voice mixer: two compute programs and the buffers they read, on the
-///     app's own GL context, so every call belongs to the render thread. One block is mixed in
-///     two passes. Pass 1 gives each workgroup a <see cref="Tile" /> of the block's samples and a
+///     The GPU half of the voice mixer: two compute programs - <c>Assets/Shaders/Audio/voice-mix.comp</c>
+///     and <c>voice-reduce.comp</c>, from the shader pool - and the buffers they read, on the app's
+///     own GL context, so every call belongs to the render thread. One block is mixed in two passes. Pass 1 gives each workgroup a <see cref="Tile" /> of the block's samples and a
 ///     chunk of its sounding voices, and writes that chunk's sum; pass 2 adds the chunks up in
 ///     index order, so a block comes out the same from run to run.
 ///     <para>
@@ -26,124 +30,10 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
     private const uint SamplesBinding = 0, SoundsBinding = 1, VoicesBinding = 2, ActiveBinding = 3,
         PartialsBinding = 4, OutputBinding = 5;
 
-    private const string MixSource = """
-        #version 430 core
-        layout(local_size_x = 256) in;
+    private const string MixLocation = "Assets/Shaders/Audio/voice-mix", ReduceLocation = "Assets/Shaders/Audio/voice-reduce";
 
-        // VoiceList's Voice, field for field: 5 ints, then 4 floats, 36 bytes
-        struct Voice { int start; int end; int cutAt; int sourceOffset; int sound; float ll; float rr; float lr; float rl; };
-
-        layout(std430, binding = 0) readonly buffer SampleData { float sampleData[]; };
-        layout(std430, binding = 1) readonly buffer SoundTable { ivec2 soundTable[]; }; // left, right offsets
-        layout(std430, binding = 2) readonly buffer VoiceData { Voice voiceData[]; };
-        layout(std430, binding = 3) readonly buffer ActiveIndex { int activeIndex[]; };
-        layout(std430, binding = 4) writeonly buffer PartialSums { vec2 partialSums[]; };
-
-        uniform int blockStart;
-        uniform int frames;
-        uniform int activeCount;
-        uniform int chunkVoices;
-        uniform int chunkOffset;
-        uniform int fadeLength;
-        uniform int stride;
-
-        shared ivec4 groupRange[256]; // start, end, cutAt, mono
-        shared ivec2 groupBase[256];  // where output sample 0 would read, left and right
-        shared vec4 groupGain[256];   // ll, rr, lr, rl
-        shared vec2 groupMono[256];   // ll + lr, rr + rl: a mono sound's single pass
-
-        void main() {
-            int lane = int(gl_LocalInvocationID.x);
-            int t = int(gl_WorkGroupID.x) * 256 + lane;
-            int chunk = chunkOffset + int(gl_WorkGroupID.y);
-            int first = chunk * chunkVoices;
-            int last = min(first + chunkVoices, activeCount);
-            int at = blockStart + t;
-            bool inBlock = t < frames;
-
-            precise float left = 0.0;
-            precise float right = 0.0;
-
-            for (int base = first; base < last; base += 256) {
-                int n = min(256, last - base);
-                barrier();
-                if (lane < n) {
-                    Voice v = voiceData[activeIndex[base + lane]];
-                    ivec2 sound = soundTable[v.sound];
-                    int shift = v.sourceOffset - v.start;
-                    groupRange[lane] = ivec4(v.start, v.end, v.cutAt, sound.x == sound.y ? 1 : 0);
-                    groupBase[lane] = ivec2(sound.x + shift, sound.y + shift);
-                    groupGain[lane] = vec4(v.ll, v.rr, v.lr, v.rl);
-                    groupMono[lane] = vec2(v.ll + v.lr, v.rr + v.rl);
-                }
-                barrier();
-
-                if (inBlock) {
-                    for (int k = 0; k < n; k++) {
-                        ivec4 range = groupRange[k];
-                        if (at < range.x || at >= range.y) continue;
-
-                        ivec2 b = groupBase[k];
-                        if (at < range.z) {
-                            if (range.w != 0) {
-                                float s = sampleData[b.x + at];
-                                vec2 g = groupMono[k];
-                                left += s * g.x;
-                                right += s * g.y;
-                            } else {
-                                // one source channel into both outputs, then the other
-                                float sl = sampleData[b.x + at];
-                                float sr = sampleData[b.y + at];
-                                vec4 g = groupGain[k];
-                                left += sl * g.x;
-                                right += sl * g.w;
-                                left += sr * g.z;
-                                right += sr * g.y;
-                            }
-                        } else {
-                            precise float fade = float(range.z + fadeLength - at) / float(fadeLength);
-                            float sl = sampleData[b.x + at];
-                            float sr = sampleData[b.y + at];
-                            vec4 g = groupGain[k];
-                            left += sl * g.x * fade;
-                            left += sr * g.z * fade;
-                            right += sr * g.y * fade;
-                            right += sl * g.w * fade;
-                        }
-                    }
-                }
-            }
-
-            if (inBlock) partialSums[chunk * stride + t] = vec2(left, right);
-        }
-        """;
-
-    private const string ReduceSource = """
-        #version 430 core
-        layout(local_size_x = 256) in;
-
-        layout(std430, binding = 4) readonly buffer PartialSums { vec2 partialSums[]; };
-        layout(std430, binding = 5) writeonly buffer MixOutput { vec2 mixOutput[]; }; // interleaved L, R
-
-        uniform int frames;
-        uniform int chunks;
-        uniform int stride;
-        uniform int outputOffset;
-
-        void main() {
-            int t = int(gl_GlobalInvocationID.x);
-            if (t >= frames) return;
-
-            precise vec2 sum = vec2(0.0);
-            for (int c = 0; c < chunks; c++) sum += partialSums[c * stride + t];
-            mixOutput[outputOffset + t] = sum;
-        }
-        """;
-
-    private readonly int _mix, _reduce;
+    private readonly Shader _mix, _reduce;
     private readonly int _samples, _sounds, _voices, _active, _partials, _output;
-    private readonly int _uBlockStart, _uFrames, _uActiveCount, _uChunkVoices, _uChunkOffset, _uFadeLength, _uStride;
-    private readonly int _rFrames, _rChunks, _rStride, _rOutputOffset;
 
     /// <summary>Where each uploaded sound's channels start in the samples buffer, in floats.</summary>
     private readonly Dictionary<AudioData<float>, (int Left, int Right)> _soundOffsets =
@@ -153,24 +43,16 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
     private int[] _table = [];
     private int _outputFrames;
 
-    public GpuVoiceKernels(int chunkVoices = 1024)
+    /// <summary>Compiles both programs now, so a kernel that won't build fails here rather than mid-mix.</summary>
+    public GpuVoiceKernels(AssetProvider assetProvider, int chunkVoices = 1024)
     {
         ChunkVoices = chunkVoices;
         MaxBufferBytes = GL.GetInteger64((GetPName)All.MaxShaderStorageBlockSize);
 
-        _mix = Link(MixSource);
-        _reduce = Link(ReduceSource);
-        _uBlockStart = GL.GetUniformLocation(_mix, "blockStart");
-        _uFrames = GL.GetUniformLocation(_mix, "frames");
-        _uActiveCount = GL.GetUniformLocation(_mix, "activeCount");
-        _uChunkVoices = GL.GetUniformLocation(_mix, "chunkVoices");
-        _uChunkOffset = GL.GetUniformLocation(_mix, "chunkOffset");
-        _uFadeLength = GL.GetUniformLocation(_mix, "fadeLength");
-        _uStride = GL.GetUniformLocation(_mix, "stride");
-        _rFrames = GL.GetUniformLocation(_reduce, "frames");
-        _rChunks = GL.GetUniformLocation(_reduce, "chunks");
-        _rStride = GL.GetUniformLocation(_reduce, "stride");
-        _rOutputOffset = GL.GetUniformLocation(_reduce, "outputOffset");
+        _mix = LoadCompute(assetProvider, MixLocation);
+        _reduce = LoadCompute(assetProvider, ReduceLocation);
+        _mix.Use();
+        _reduce.Use();
 
         // every binding gets storage up front, so a dispatch never sees an empty buffer
         _samples = Create(16);
@@ -198,10 +80,9 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
 
     public void Dispose()
     {
+        // the programs belong to the shader pool
         List?.Dispose();
         List = null;
-        GL.DeleteProgram(_mix);
-        GL.DeleteProgram(_reduce);
         foreach (var buffer in (ReadOnlySpan<int>)[_samples, _sounds, _voices, _active, _partials, _output])
             GL.DeleteBuffer(buffer);
     }
@@ -316,14 +197,14 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
         if (chunkCount <= 0) return;
 
         Bind();
-        GL.UseProgram(_mix);
-        GL.Uniform1i(_uBlockStart, blockStart);
-        GL.Uniform1i(_uFrames, frames);
-        GL.Uniform1i(_uActiveCount, activeCount);
-        GL.Uniform1i(_uChunkVoices, ChunkVoices);
-        GL.Uniform1i(_uChunkOffset, firstChunk);
-        GL.Uniform1i(_uFadeLength, List?.FadeLength ?? 1);
-        GL.Uniform1i(_uStride, Stride(frames));
+        _mix.Use();
+        _mix.SetUniform("blockStart", blockStart);
+        _mix.SetUniform("frames", frames);
+        _mix.SetUniform("activeCount", activeCount);
+        _mix.SetUniform("chunkVoices", ChunkVoices);
+        _mix.SetUniform("chunkOffset", firstChunk);
+        _mix.SetUniform("fadeLength", List?.FadeLength ?? 1);
+        _mix.SetUniform("stride", Stride(frames));
         GL.DispatchCompute((uint)(Stride(frames) / Tile), (uint)chunkCount, 1);
         GL.MemoryBarrier(MemoryBarrierMask.ShaderStorageBarrierBit);
     }
@@ -332,11 +213,11 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
     public void Reduce(int frames, int chunks, int slot)
     {
         Bind();
-        GL.UseProgram(_reduce);
-        GL.Uniform1i(_rFrames, frames);
-        GL.Uniform1i(_rChunks, chunks);
-        GL.Uniform1i(_rStride, Stride(frames));
-        GL.Uniform1i(_rOutputOffset, slot * _outputFrames);
+        _reduce.Use();
+        _reduce.SetUniform("frames", frames);
+        _reduce.SetUniform("chunks", chunks);
+        _reduce.SetUniform("stride", Stride(frames));
+        _reduce.SetUniform("outputOffset", slot * _outputFrames);
         GL.DispatchCompute((uint)(Stride(frames) / Tile), 1, 1);
         GL.MemoryBarrier(MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.BufferUpdateBarrierBit);
     }
@@ -436,29 +317,11 @@ public sealed unsafe class GpuVoiceKernels : IDisposable
         Allocate(buffer, capacity, null, usage);
     }
 
-    private static int Link(string source)
+    /// <summary>A compute program from the shader pool, loaded the way the draws' shaders are: <c>location.comp</c>.</summary>
+    private static Shader LoadCompute(AssetProvider assetProvider, string location)
     {
-        var shader = GL.CreateShader(ShaderType.ComputeShader);
-        GL.ShaderSource(shader, source);
-        GL.CompileShader(shader);
-        GL.GetShaderi(shader, ShaderParameterName.CompileStatus, out var compiled);
-        if (compiled == 0)
-        {
-            GL.GetShaderInfoLog(shader, out var log);
-            GL.DeleteShader(shader);
-            throw new InvalidOperationException($"Voice mixer kernel failed to compile: {log}");
-        }
-
-        var program = GL.CreateProgram();
-        GL.AttachShader(program, shader);
-        GL.LinkProgram(program);
-        GL.DetachShader(program, shader);
-        GL.DeleteShader(shader);
-        GL.GetProgrami(program, ProgramProperty.LinkStatus, out var linked);
-        if (linked != 0) return program;
-
-        GL.GetProgramInfoLog(program, out var error);
-        GL.DeleteProgram(program);
-        throw new InvalidOperationException($"Voice mixer kernel failed to link: {error}");
+        return assetProvider.ShaderPool.GetOrLoad(location, provider =>
+            new Shader(provider, provider.LoadShaders(
+                ShaderInfo.CreateFromUnknownStorage(ShaderType.ComputeShader, location + ".comp"))) { IsPedantic = true });
     }
 }

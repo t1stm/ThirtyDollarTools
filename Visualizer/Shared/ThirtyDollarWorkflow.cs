@@ -85,7 +85,7 @@ public class ThirtyDollarWorkflow
         // to hear; a --no-audio run keeps the CPU mixer. GpuMixing switches it.
         if (game.GLInfo.SupportsComputeShaders && SequencePlayer.AudioContext is not NullAudioContext)
         {
-            var mixer = GpuMixer = new GpuVoiceMixer(logger);
+            var mixer = GpuMixer = new GpuVoiceMixer(logger, game.AssetProvider);
             SequencePlayer.CursorFactory = mixer.CreateCursor;
             game.UpdateFrame += _ => mixer.Pump();
         }

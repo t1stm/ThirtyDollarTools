@@ -1,6 +1,7 @@
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using Serilog;
+using Sundex.Engine.Asset_Management;
 
 namespace Shared.Audio.Gpu;
 
@@ -16,7 +17,7 @@ namespace Shared.Audio.Gpu;
 ///         logged once and hands every block back to the CPU for the rest of the session.
 ///     </para>
 /// </summary>
-public sealed class GpuVoiceMixer(ILogger logger) : IDisposable
+public sealed class GpuVoiceMixer(ILogger logger, AssetProvider assetProvider) : IDisposable
 {
     /// <summary>GPU time per frame while keeping up, and the most it grows to while blocks pile up.</summary>
     private const double BudgetMs = 2, MaxBudgetMs = 8;
@@ -130,7 +131,7 @@ public sealed class GpuVoiceMixer(ILogger logger) : IDisposable
 
     private GpuVoiceKernels Create()
     {
-        var kernels = new GpuVoiceKernels();
+        var kernels = new GpuVoiceKernels(assetProvider);
         kernels.EnsureOutput(GpuVoiceCursor.SlotCount, VoicePlayback.MaxBlockFrames);
         for (var i = 0; i < _queries.Length; i++) _queries[i] = GL.GenQuery();
         _logger.Information("GPU voice mixer ready: storage buffers up to {Mb} MB", kernels.MaxBufferBytes >> 20);

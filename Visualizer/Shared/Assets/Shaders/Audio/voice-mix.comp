@@ -1,0 +1,89 @@
+#version 430 core
+layout(local_size_x = 256) in;
+
+// VoiceList's Voice, field for field: 5 ints, then 4 floats, 36 bytes
+struct Voice { int start; int end; int cutAt; int sourceOffset; int sound; float ll; float rr; float lr; float rl; };
+
+layout(std430, binding = 0) readonly buffer SampleData { float sampleData[]; };
+layout(std430, binding = 1) readonly buffer SoundTable { ivec2 soundTable[]; }; // left, right offsets
+layout(std430, binding = 2) readonly buffer VoiceData { Voice voiceData[]; };
+layout(std430, binding = 3) readonly buffer ActiveIndex { int activeIndex[]; };
+layout(std430, binding = 4) writeonly buffer PartialSums { vec2 partialSums[]; };
+
+uniform int blockStart;
+uniform int frames;
+uniform int activeCount;
+uniform int chunkVoices;
+uniform int chunkOffset;
+uniform int fadeLength;
+uniform int stride;
+
+shared ivec4 groupRange[256]; // start, end, cutAt, mono
+shared ivec2 groupBase[256];  // where output sample 0 would read, left and right
+shared vec4 groupGain[256];   // ll, rr, lr, rl
+shared vec2 groupMono[256];   // ll + lr, rr + rl: a mono sound's single pass
+
+void main() {
+    int lane = int(gl_LocalInvocationID.x);
+    int t = int(gl_WorkGroupID.x) * 256 + lane;
+    int chunk = chunkOffset + int(gl_WorkGroupID.y);
+    int first = chunk * chunkVoices;
+    int last = min(first + chunkVoices, activeCount);
+    int at = blockStart + t;
+    bool inBlock = t < frames;
+
+    precise float left = 0.0;
+    precise float right = 0.0;
+
+    for (int base = first; base < last; base += 256) {
+        int n = min(256, last - base);
+        barrier();
+        if (lane < n) {
+            Voice v = voiceData[activeIndex[base + lane]];
+            ivec2 sound = soundTable[v.sound];
+            int shift = v.sourceOffset - v.start;
+            groupRange[lane] = ivec4(v.start, v.end, v.cutAt, sound.x == sound.y ? 1 : 0);
+            groupBase[lane] = ivec2(sound.x + shift, sound.y + shift);
+            groupGain[lane] = vec4(v.ll, v.rr, v.lr, v.rl);
+            groupMono[lane] = vec2(v.ll + v.lr, v.rr + v.rl);
+        }
+        barrier();
+
+        if (inBlock) {
+            for (int k = 0; k < n; k++) {
+                ivec4 range = groupRange[k];
+                if (at < range.x || at >= range.y) continue;
+
+                ivec2 b = groupBase[k];
+                if (at < range.z) {
+                    if (range.w != 0) {
+                        float s = sampleData[b.x + at];
+                        vec2 g = groupMono[k];
+                        left += s * g.x;
+                        right += s * g.y;
+                    } else {
+                        // one source channel into both outputs, then the other
+                        float sl = sampleData[b.x + at];
+                        float sr = sampleData[b.y + at];
+                        vec4 g = groupGain[k];
+                        left += sl * g.x;
+                        right += sl * g.w;
+                        left += sr * g.z;
+                        right += sr * g.y;
+                    }
+                } else {
+                    precise float fade = float(range.z + fadeLength - at) / float(fadeLength);
+                    float sl = sampleData[b.x + at];
+                    float sr = sampleData[b.y + at];
+                    vec4 g = groupGain[k];
+                    left += sl * g.x * fade;
+                    left += sr * g.z * fade;
+                    right += sr * g.y * fade;
+                    right += sl * g.w * fade;
+                }
+            }
+        }
+    }
+
+    if (inBlock) partialSums[chunk * stride + t] = vec2(left, right);
+}

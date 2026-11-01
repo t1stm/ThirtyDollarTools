@@ -178,7 +178,7 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
             return (left, right, Stopwatch.GetElapsedTime(start).TotalSeconds);
         });
 
-        _kernels = new GpuVoiceKernels(Env("GPU_MIX_CHUNK", 1024));
+        _kernels = new GpuVoiceKernels(Game.AssetProvider, Env("GPU_MIX_CHUNK", 1024));
         var upload = Stopwatch.GetTimestamp();
         if (!_kernels.SetList(list))
         {
