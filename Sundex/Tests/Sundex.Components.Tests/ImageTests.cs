@@ -1,8 +1,14 @@
+using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
 using OpenTK.Mathematics;
+using Serilog;
+using Shared;
 using Shared.Renderer.Planes;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Panels;
+using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Renderer.Textures;
@@ -34,7 +40,6 @@ public class ImageTests
     private static async Task Settle(Image image, UIContext context)
     {
         if (image.LoadTask is { } task) await task;
-        // Rethrows anything the worker threw, so a broken load fails the test loudly.
         context.AssetProvider.ThreadRunner.Update();
         image.Update(context);
     }
@@ -386,15 +391,266 @@ public class ImageTests
         Assert.Equal(6, below.Computed.Y);
     }
 
+    private const string Missing = "Assets/does-not-exist.png";
+
     [Fact]
-    public async Task BadSrc_SurfacesOnTheThreadRunner()
+    public async Task BadSrc_EntersErroredState()
     {
         var context = new TestUIContext();
-        var image = new Image(context) { Src = "Assets/does-not-exist.png" };
+        var image = new Image(context) { Src = Missing };
+
+        await Settle(image, context);
+
+        Assert.True(image.Errored);
+        Assert.Equal(UIState.Errored, image.CurrentState);
+        Assert.False(image.IsLoaded);
+        // Nothing left for the frame loop to rethrow.
+        context.AssetProvider.ThreadRunner.Update();
+    }
+
+    [Fact]
+    public async Task BadSrc_CallsOnErrorOnceOnTheUpdateThread()
+    {
+        var context = new TestUIContext();
+        var failures = new List<Exception>();
+        var image = new Image(context) { OnError = (_, failure) => failures.Add(failure), Src = Missing };
 
         await image.LoadTask!;
+        // The worker is done and has told no one: only the update pass may.
+        Assert.Empty(failures);
 
-        Assert.Throws<FileNotFoundException>(() => context.AssetProvider.ThreadRunner.Update());
+        image.Update(context);
+        image.Update(context);
+
+        Assert.IsType<FileNotFoundException>(Assert.Single(failures));
+    }
+
+    [Fact]
+    public async Task BadSrc_ShowsThePlaceholderCentredAtItsCap()
+    {
+        var context = new TestUIContext();
+        var image = new Image(context) { Width = 400, Height = 100, Src = Missing };
+
+        await Settle(image, context);
+        await Settle(image, context);
+        image.Layout();
+
+        Assert.True(image.ShowsPlaceholder);
+        Assert.False(image.IsLoaded);
+        Assert.Equal(new Vector3(48, 48, 1), PlaneOf(image).Scale);
+        Assert.Equal(new Vector3(176, 26, 0), PlaneOf(image).Position);
+        Assert.Equal(Missing, image.Src);
+        // The placeholder is not a fetch of what was asked for.
+        Assert.Equal(1, image.LoadCount);
+    }
+
+    [Fact]
+    public async Task BadSrc_PointerCannotClearTheState()
+    {
+        var context = new TestUIContext();
+        var image = new Image(context) { Width = 10, Height = 10, Src = Missing };
+        image.Layout();
+        await Settle(image, context);
+
+        context.UpdatePointer(image, 5, 5, false, false, false, Vector2.Zero);
+        Assert.True(image.IsHovered);
+        Assert.Equal(UIState.Errored, image.CurrentState);
+
+        context.UpdatePointer(image, 50, 50, false, false, false, Vector2.Zero);
+        Assert.Equal(UIState.Errored, image.CurrentState);
+    }
+
+    [Fact]
+    public async Task BadSrc_AppliesTheErroredRule()
+    {
+        var context = new TestUIContext();
+        var image = new Image(context) { Classes = ["shot"] };
+        image.ApplyStyleSheet(Sheet("""
+                                    class shot {
+                                        height = 300;
+                                        state[errored] = {
+                                            height = 96;
+                                        }
+                                    }
+                                    """));
+        Assert.Equal(300, image.Height.Value);
+
+        image.Src = Missing;
+        await Settle(image, context);
+
+        Assert.Equal(96, image.Height.Value);
+    }
+
+    [Fact]
+    public async Task BadSrc_FallsBackOnTheErroredRulesSrc()
+    {
+        var context = new TestUIContext();
+        var image = new Image(context) { Classes = ["cover"] };
+        image.ApplyStyleSheet(Sheet($$"""
+                                     class cover {
+                                         state[errored] = {
+                                             src = "{{Tall}}";
+                                             storage = "assembly";
+                                         }
+                                     }
+                                     """));
+
+        image.Src = Missing;
+        await Settle(image, context);
+        await Settle(image, context);
+
+        Assert.True(image.Errored);
+        Assert.False(image.ShowsPlaceholder);
+        Assert.Equal(6, image.Texture!.Height);
+        Assert.Equal(2, image.LoadCount);
+    }
+
+    [Fact]
+    public async Task BadSrc_AFailingFallbackEndsOnThePlaceholder()
+    {
+        var context = new TestUIContext();
+        var failures = 0;
+        var image = new Image(context) { Classes = ["cover"], OnError = (_, _) => failures++ };
+        image.ApplyStyleSheet(Sheet("""
+                                    class cover {
+                                        state[errored] = {
+                                            src = "Assets/also-missing.png";
+                                        }
+                                    }
+                                    """));
+
+        image.Src = Missing;
+        for (var i = 0; i < 5; i++) await Settle(image, context);
+
+        Assert.True(image.ShowsPlaceholder);
+        Assert.Equal(2, image.LoadCount);
+        Assert.Equal(2, failures);
+    }
+
+    [Fact]
+    public async Task BadSrc_AFailingPlaceholderLeavesItEmpty()
+    {
+        var context = new NoPlaceholderContext();
+        var image = new Image(context) { Src = Missing };
+
+        for (var i = 0; i < 5; i++) await Settle(image, context);
+
+        Assert.True(image.Errored);
+        Assert.Null(image.Texture);
+        Assert.False(PlaneOf(image).IsVisible);
+    }
+
+    [Fact]
+    public async Task BadSrc_AFillRuleTakesThePlaceOfThePlaceholder()
+    {
+        var context = new TestUIContext();
+        var image = new Image(context) { Classes = ["shot"] };
+        image.ApplyStyleSheet(Sheet("""
+                                    class shot {
+                                        state[errored] = {
+                                            background = "#ff0000";
+                                        }
+                                    }
+                                    """));
+
+        image.Src = Missing;
+        for (var i = 0; i < 3; i++) await Settle(image, context);
+
+        Assert.IsType<ColoredPlane>(image.Background);
+        Assert.False(image.ShowsPlaceholder);
+        Assert.Null(image.Texture);
+    }
+
+    [Fact]
+    public async Task NewSrc_LeavesTheErroredState()
+    {
+        var context = new TestUIContext();
+        var image = new Image(context) { Classes = ["shot"] };
+        image.ApplyStyleSheet(Sheet("""
+                                    class shot {
+                                        height = 300;
+                                        state[errored] = {
+                                            height = 96;
+                                        }
+                                    }
+                                    """));
+        image.Src = Missing;
+        for (var i = 0; i < 3; i++) await Settle(image, context);
+        Assert.True(image.ShowsPlaceholder);
+
+        image.Src = Wide;
+
+        // The value written, not what the base snapshot held.
+        Assert.Equal(Wide, image.Src);
+        Assert.Equal(UIState.None, image.CurrentState);
+        Assert.Equal(300, image.Height.Value);
+
+        await Settle(image, context);
+
+        Assert.True(image.IsLoaded);
+        Assert.False(image.ShowsPlaceholder);
+        Assert.Equal(4, image.Texture!.Width);
+        Assert.Equal(2, image.LoadCount);
+    }
+
+    [Fact]
+    public async Task DeadUrl_EntersErroredState()
+    {
+        var context = new TestUIContext();
+        // Port 1 on loopback refuses at once, with no network involved.
+        var image = new Image(context) { Src = "http://127.0.0.1:1/shot.png" };
+
+        await Settle(image, context);
+
+        Assert.True(image.Errored);
+    }
+
+    [Fact]
+    public async Task NotFoundPage_NeverReachesTheDecoder()
+    {
+        using var server = new TcpListener(IPAddress.Loopback, 0);
+        server.Start();
+        var serving = ServeNotFound(server);
+
+        var context = new TestUIContext();
+        Exception? failure = null;
+        var image = new Image(context)
+        {
+            OnError = (_, e) => failure = e,
+            Src = $"http://127.0.0.1:{((IPEndPoint)server.LocalEndpoint).Port}/shot.png"
+        };
+
+        await Settle(image, context);
+        await serving;
+
+        Assert.IsType<HttpRequestException>(failure);
+    }
+
+    [Theory]
+    [InlineData(2, 2, 1)]
+    [InlineData(100, 4, 2)]
+    public async Task DecodeWidth_OnlyEverShrinks(int decodeWidth, int width, int height)
+    {
+        var context = new TestUIContext();
+        var image = new Image(context) { DecodeWidth = decodeWidth, Src = Wide };
+
+        await Settle(image, context);
+
+        Assert.Equal(width, image.Texture!.Width);
+        Assert.Equal(height, image.Texture.Height);
+    }
+
+    [Fact]
+    public async Task AutoHeight_FollowsTheAspectUnderAFixedWidth()
+    {
+        var context = new TestUIContext();
+        var image = new Image(context) { Width = 100, Height = LiteralOrComputable.AutoSize, Src = Wide };
+
+        await Settle(image, context);
+        image.Layout();
+
+        Assert.Equal(100, image.Computed.Width);
+        Assert.Equal(50, image.Computed.Height);
     }
 
     [Fact]
@@ -434,5 +690,29 @@ public class ImageTests
         {
             Location = "https://example.com/definitely-not-here.png"
         }));
+    }
+
+    private static async Task ServeNotFound(TcpListener server)
+    {
+        var cancel = TestContext.Current.CancellationToken;
+        using var client = await server.AcceptTcpClientAsync(cancel);
+        var stream = client.GetStream();
+        _ = await stream.ReadAsync(new byte[1024], cancel);
+        await stream.WriteAsync("HTTP/1.1 404 Not Found\r\nContent-Length: 4\r\nConnection: close\r\n\r\nnope"u8.ToArray(), cancel);
+    }
+
+    /// <summary>A host that never listed this library in its asset assemblies.</summary>
+    private sealed class NoPlaceholderContext : UIContext
+    {
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        public NoPlaceholderContext()
+        {
+            InjectForTesting(
+                new AssetProvider(new LoggerConfiguration().CreateLogger(), [Assembly.GetExecutingAssembly()],
+                    new GLInfo()),
+                new MockFontProvider(),
+                new MockTextProvider());
+            Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
+        }
     }
 }

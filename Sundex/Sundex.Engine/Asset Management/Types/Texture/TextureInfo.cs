@@ -22,4 +22,10 @@ public class TextureInfo : ILoaderInfo
     ///     If unset/equal to 0, this will be updated when the texture is loaded.
     /// </summary>
     public int Height { get; set; }
+
+    /// <summary>
+    ///     The widest the decoded pixels may be, in pixels. Unlike <see cref="Width" /> this only
+    ///     ever shrinks, keeping the aspect ratio: an image already narrower stays as it is.
+    /// </summary>
+    public int MaxWidth { get; init; }
 }

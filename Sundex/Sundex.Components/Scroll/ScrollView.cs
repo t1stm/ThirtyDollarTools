@@ -36,6 +36,9 @@ public class ScrollView : Panel
 
     public override string Tag => "scroll-view";
 
+    /// <summary>The width a child may fill: the box less the padding and the bar's reserved gutter.</summary>
+    protected float InnerWidth => Math.Max(0, Computed.Width - 2 * Padding - _bar.Width.Value - 2 * ScrollBarGutter);
+
     /// <summary>Total stacked height of the children, computed during layout.</summary>
     public float ContentHeight { get; private set; }
 
@@ -76,7 +79,7 @@ public class ScrollView : Panel
 
     protected override void DoLayout()
     {
-        var innerWidth = Math.Max(0, Computed.Width - 2 * Padding - _bar.Width.Value - 2 * ScrollBarGutter);
+        var innerWidth = InnerWidth;
         var innerHeight = Math.Max(0, Computed.Height - 2 * Padding);
 
         // Measure once, then stack with the scroll offset applied.

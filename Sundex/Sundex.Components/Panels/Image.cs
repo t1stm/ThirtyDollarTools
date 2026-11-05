@@ -26,8 +26,9 @@ public enum TextureFit
 ///     A panel whose background is a single <see cref="TexturedPlane" />, fed by
 ///     <see cref="Src" /> through the normal <c>AssetProvider</c> loading path. The fetch and
 ///     decode run on <c>AssetProvider.ThreadRunner</c>, so a slow disk or a remote URL never
-///     stalls a frame and a failed load surfaces as an exception on the update thread instead
-///     of being swallowed.
+///     stalls a frame. A failed load puts the element in its <c>state[errored]</c> block, calls
+///     <see cref="OnError" /> and logs a warning; with no rule to say otherwise it then shows a
+///     bundled placeholder.
 ///     <para>
 ///         <see cref="Src" />, <see cref="Storage" /> and <see cref="TextureFit" /> are all
 ///         [NamedSetting]s: they can come from markup attributes, from a stylesheet rule, from a
@@ -36,6 +37,12 @@ public enum TextureFit
 /// </summary>
 public class Image : Panel
 {
+    /// <summary>Lucide's image-off, embedded in this assembly.</summary>
+    private const string PlaceholderLocation = "Assets/Textures/image-invalid.png";
+
+    /// <summary>The placeholder never draws larger than this, so a wide frame does not blow it up.</summary>
+    private const float PlaceholderSize = 48;
+
     private readonly TexturedPlane _plane;
 
     /// <summary>
@@ -52,6 +59,14 @@ public class Image : Panel
     private bool _deferLoad;
 
     private bool _loadDeferred;
+
+    /// <summary>A worker's failure, waiting to be handled on the update thread. Same hand-off as <see cref="_pending" />.</summary>
+    private LoadFailure? _failure;
+
+    /// <summary>Set while a load leaving the error state runs its style pass: the caller is about to name what loads.</summary>
+    private bool _holdLoad;
+
+    private bool _loadingPlaceholder;
 
     /// <summary>Decoded pixels waiting to be turned into a GPU texture on the update thread.</summary>
     private ImageData? _pending;
@@ -95,6 +110,8 @@ public class Image : Panel
         set
         {
             if (field == value) return;
+            // Before the write: leaving the state restores the base snapshot over this property.
+            ClearErroredFromCode();
             field = value;
             RequestLoad();
         }
@@ -112,6 +129,7 @@ public class Image : Panel
         set
         {
             if (field == value) return;
+            ClearErroredFromCode();
             field = value;
             RequestLoad();
         }
@@ -123,6 +141,22 @@ public class Image : Panel
         get;
         set => UpdateSetDirty(ref field, value);
     } = TextureFit.Stretch;
+
+    /// <summary>
+    ///     The widest the decoded pixels may be, 0 for no limit. Only ever shrinks. Set it before
+    ///     <see cref="Src" />: the element keeps its decoded pixels for the texture's lifetime, so a
+    ///     large image shown small otherwise costs its full size in memory, twice.
+    /// </summary>
+    public int DecodeWidth { get; set; }
+
+    /// <summary>
+    ///     Called on the update thread when a load fails, once per failed load: <see cref="Src" />,
+    ///     and then a <c>state[errored]</c> rule's own <c>src</c> if that fails too.
+    /// </summary>
+    public Action<Image, Exception>? OnError { get; set; }
+
+    /// <summary>True while the texture on show is the bundled placeholder rather than <see cref="Src" />.</summary>
+    public bool ShowsPlaceholder { get; private set; }
 
     /// <summary>The fetch currently in flight, if any. Await it in tests instead of polling.</summary>
     public Task? LoadTask { get; private set; }
@@ -137,7 +171,7 @@ public class Image : Panel
     public GPUTexture? Texture => _texture;
 
     /// <summary>True once <see cref="Src" /> has been fetched, decoded and handed to GL.</summary>
-    public bool IsLoaded => _texture is not null;
+    public bool IsLoaded => _texture is not null && !ShowsPlaceholder;
 
     /// <summary>
     ///     Keeps this element in the update set unconditionally. The base implementation drops
@@ -199,6 +233,10 @@ public class Image : Panel
 
         // Exchange, not read-then-clear: a worker publishing between the two would be lost.
         if (Interlocked.Exchange(ref _pending, null) is { } pixels) ApplyTexture(pixels);
+        // A fetch superseded after the worker's own check must not fail the one that replaced it.
+        if (Interlocked.Exchange(ref _failure, null) is { } failure &&
+            failure.Generation == Volatile.Read(ref _generation))
+            HandleFailure(failure.Exception);
     }
 
     /// <summary>
@@ -228,6 +266,9 @@ public class Image : Panel
     {
         ReleaseTexture();
 
+        ShowsPlaceholder = _loadingPlaceholder;
+        _loadingPlaceholder = false;
+        Context.AssetProvider.ThreadRunner.Logger.Debug("Image landed: {Src}", ShowsPlaceholder ? PlaceholderLocation : Src);
         _texture = texture;
         _pixels = pixels;
         _plane.Texture = texture;
@@ -250,15 +291,26 @@ public class Image : Panel
     /// <remarks>
     ///     An auto-sized image takes the texture's pixel dimensions, so
     ///     <c>&lt;image src="..."/&gt;</c> with no width/height sizes itself - and stays
-    ///     zero-sized, i.e. invisible, until the bytes land.
+    ///     zero-sized, i.e. invisible, until the bytes land. With a fixed width and an auto height
+    ///     the height follows the texture's aspect instead.
     /// </remarks>
     public override (float width, float height) Measure(float parentWidth, float parentHeight)
     {
         var (width, height) = base.Measure(parentWidth, parentHeight);
         if (_texture is not { } texture) return (width, height);
 
+        if (ShowsPlaceholder)
+        {
+            if (Width.Auto) width = PlaceholderSize;
+            if (Height.Auto) height = PlaceholderSize;
+            return (width, height);
+        }
+
+        if (Height.Auto)
+            height = Width.Auto || texture.Width <= 0
+                ? texture.Height
+                : (ParentAssignedWidth ?? width) * texture.Height / texture.Width;
         if (Width.Auto) width = texture.Width;
-        if (Height.Auto) height = texture.Height;
         return (width, height);
     }
 
@@ -267,13 +319,15 @@ public class Image : Panel
         // Lays the plane out over the whole box, which is exactly Stretch.
         base.DoLayout();
 
-        if (TextureFit != TextureFit.Fit || _texture is not { Width: > 0, Height: > 0 } texture) return;
+        if ((TextureFit != TextureFit.Fit && !ShowsPlaceholder) ||
+            _texture is not { Width: > 0, Height: > 0 } texture) return;
 
         var boxWidth = Computed.Width;
         var boxHeight = Computed.Height;
         if (boxWidth <= 0 || boxHeight <= 0) return;
 
         var scale = Math.Min(boxWidth / texture.Width, boxHeight / texture.Height);
+        if (ShowsPlaceholder) scale = Math.Min(scale, PlaceholderSize / Math.Max(texture.Width, texture.Height));
         var width = texture.Width * scale;
         var height = texture.Height * scale;
 
@@ -297,8 +351,19 @@ public class Image : Panel
 
     private void FlushDeferredLoad()
     {
-        if (!_loadDeferred) return;
+        if (!_loadDeferred || _holdLoad) return;
         StartLoad();
+    }
+
+    /// <summary>Code naming something new to load ends the failure. Style passes never do.</summary>
+    private void ClearErroredFromCode()
+    {
+        if (_deferLoad || !Errored) return;
+
+        _holdLoad = true;
+        Errored = false;
+        _holdLoad = false;
+        _loadDeferred = false;
     }
 
     private void StartLoad()
@@ -311,6 +376,7 @@ public class Image : Panel
 
         _requestedSrc = src;
         _requestedStorage = storage;
+        _loadingPlaceholder = false;
 
         // Invalidates any fetch already running, whether or not a new one starts.
         var generation = Interlocked.Increment(ref _generation);
@@ -323,26 +389,70 @@ public class Image : Panel
         }
 
         LoadCount++;
+        Fetch(src, storage, DecodeWidth, generation);
+    }
+
+    private void Fetch(string src, StorageLocation storage, int maxWidth, int generation)
+    {
         LoadTask = Context.AssetProvider.ThreadRunner.RunTask(() =>
         {
-            var holder = Context.AssetProvider.Load<TextureHolder, TextureInfo>(new TextureInfo
+            try
             {
-                AssetInfo = new AssetInfo
+                var holder = Context.AssetProvider.Load<TextureHolder, TextureInfo>(new TextureInfo
                 {
-                    Location = src,
-                    Storage = storage
+                    MaxWidth = maxWidth,
+                    AssetInfo = new AssetInfo
+                    {
+                        Location = src,
+                        Storage = storage
+                    }
+                });
+
+                if (Volatile.Read(ref _generation) != generation)
+                {
+                    holder.Texture.Dispose();
+                    return;
                 }
-            });
 
-            if (Volatile.Read(ref _generation) != generation)
-            {
-                holder.Texture.Dispose();
-                return;
+                // Superseding a decode that hasn't been picked up yet - drop it, not this one.
+                Interlocked.Exchange(ref _pending, holder.Texture)?.Dispose();
             }
-
-            // Superseding a decode that hasn't been picked up yet - drop it, not this one.
-            Interlocked.Exchange(ref _pending, holder.Texture)?.Dispose();
+            catch (Exception e)
+            {
+                Interlocked.Exchange(ref _failure, new LoadFailure(e, generation));
+            }
         });
+    }
+
+    /// <summary>
+    ///     Runs on the update thread. The state goes first, so its rules have applied by the time
+    ///     <see cref="OnError" /> looks. It cannot loop: a <c>state[errored]</c> <c>src</c> that fails
+    ///     lands back here with nothing new to load and takes the placeholder, and a placeholder
+    ///     that fails ends there.
+    /// </summary>
+    private void HandleFailure(Exception failure)
+    {
+        var logger = Context.AssetProvider.ThreadRunner.Logger;
+        if (_loadingPlaceholder)
+        {
+            _loadingPlaceholder = false;
+            logger.Warning(failure, "The invalid-image placeholder failed to load.");
+            return;
+        }
+
+        logger.Warning(failure, "Failed to load image {Src}.", Src);
+
+        var failedSrc = Src;
+        var failedStorage = Storage;
+        ClearTexture();
+        Errored = true;
+        OnError?.Invoke(this, failure);
+
+        // The state named something else to load, or a fill to show instead of a texture.
+        if (Src != failedSrc || Storage != failedStorage || !ReferenceEquals(Background, _plane)) return;
+
+        _loadingPlaceholder = true;
+        Fetch(PlaceholderLocation, StorageLocation.Assembly, 0, Interlocked.Increment(ref _generation));
     }
 
     private void ReleaseTexture()
@@ -358,6 +468,7 @@ public class Image : Panel
 
         _texture = null;
         _pixels = null;
+        ShowsPlaceholder = false;
         _plane.Texture = null;
         _plane.IsVisible = false;
     }
@@ -375,4 +486,6 @@ public class Image : Panel
         while (root.Parent is { } parent) root = parent;
         root.Layout();
     }
+
+    private sealed record LoadFailure(Exception Exception, int Generation);
 }

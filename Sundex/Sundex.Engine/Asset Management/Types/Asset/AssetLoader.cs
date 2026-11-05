@@ -185,6 +185,8 @@ public class AssetLoader : IAssetLoader<AssetStream, AssetInfo>, IMetadataLoader
     {
         var httpClient = HttpClient.Value;
         var connection = httpClient.GetAsync(createInfo.Location).GetAwaiter().GetResult();
+        // Or a 404 page reaches the image decoder as if it were the image.
+        connection.EnsureSuccessStatusCode();
         createInfo.Storage = StorageLocation.Network;
 
         return new AssetStream

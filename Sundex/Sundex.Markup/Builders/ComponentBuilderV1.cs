@@ -6,6 +6,7 @@ using Sundex.Components.Abstractions.Values;
 using Sundex.Components.Bars;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
+using Sundex.Components.Markdown;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using Sundex.Core;
@@ -263,6 +264,12 @@ public class ComponentBuilderV1 : IComponentBuilder
                                 registeredClasses, children))
                     ]
                 };
+                break;
+            }
+
+            case "markdown":
+            {
+                element = new MarkdownView(context.UIContext);
                 break;
             }
 

@@ -39,6 +39,8 @@ public static class Icons
     public const string SearchX = "";
     public const string VolumeX = "";
     public const string Target = "";
+    public const string Image = "";
+    public const string ExternalLink = "";
 
     /// <summary>Every icon above, for tests that check each one renders.</summary>
     public static readonly (string Name, string Glyph)[] All =
@@ -69,6 +71,8 @@ public static class Icons
         (nameof(Music), Music),
         (nameof(SearchX), SearchX),
         (nameof(VolumeX), VolumeX),
-        (nameof(Target), Target)
+        (nameof(Target), Target),
+        (nameof(Image), Image),
+        (nameof(ExternalLink), ExternalLink)
     ];
 }

@@ -5,5 +5,6 @@ public enum UIState
     None,
     Hovered,
     Pressed,
-    Disabled
+    Disabled,
+    Errored
 }

@@ -35,6 +35,7 @@
     <EmbeddedResource Include="Layouts/**/*.xml"/>
     <EmbeddedResource Include="Layouts/**/*.txt"/>
     <EmbeddedResource Include="Assets/**/*.png"/>
+    <EmbeddedResource Include="Assets/Markdown/*.md"/>
   </ItemGroup>
 
 </Project>

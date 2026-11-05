@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Assets\Textures\image-invalid.png"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
     <ProjectReference Include="..\..\Visualizer\Shared\Shared.csproj"/>
   </ItemGroup>

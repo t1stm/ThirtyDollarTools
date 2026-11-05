@@ -37,6 +37,12 @@ public class Link : Label
 
     public bool CanOpen => !string.IsNullOrWhiteSpace(Url);
 
+    /// <summary>
+    ///     Draws the underline without the pointer being over this label: a link broken into one
+    ///     label per word underlines all of them together.
+    /// </summary>
+    public bool Underlined { get; set; }
+
     public override string Tag => "link";
 
     /// <summary>
@@ -45,11 +51,19 @@ public class Link : Label
     /// </summary>
     public bool Open()
     {
-        if (!CanOpen) return false;
+        return CanOpen && Open(Url);
+    }
 
+    /// <inheritdoc cref="Open()" />
+    /// <remarks>
+    ///     The shell runs whatever it is handed, a path to a program included, so a URL that came
+    ///     from outside the app must be checked to be http(s) first.
+    /// </remarks>
+    public static bool Open(string url)
+    {
         try
         {
-            Process.Start(new ProcessStartInfo(Url) { UseShellExecute = true })?.Dispose();
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })?.Dispose();
             return true;
         }
         catch (Win32Exception)
@@ -84,7 +98,7 @@ public class Link : Label
 
         // Per frame rather than on hover change: Color carries ElementAlpha fades too.
         _underline.Color = Color;
-        var scale = IsHovered && CanOpen ? _underlineScale : Vector3.Zero;
+        var scale = (IsHovered || Underlined) && CanOpen ? _underlineScale : Vector3.Zero;
         if (_underline.Scale != scale) _underline.Scale = scale;
     }
 

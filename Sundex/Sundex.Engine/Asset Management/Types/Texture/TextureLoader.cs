@@ -32,6 +32,9 @@ public class TextureLoader : IAssetLoader<TextureHolder, TextureInfo>
         using var stream = assetStream.Stream;
         var image = Image.Load<Rgba32>(stream);
 
+        if (createInfo.MaxWidth > 0 && image.Width > createInfo.MaxWidth)
+            image.Mutate(context => context.Resize(createInfo.MaxWidth, 0));
+
         switch (createInfo.Width, createInfo.Height)
         {
             case (not 0, not 0):

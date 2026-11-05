@@ -248,6 +248,23 @@ public abstract class UIElement
             SyncPointerState();
         }
     }
+
+    /// <summary>
+    ///     While true the element is styled by its sheet's <c>state[errored]</c> block: what it was
+    ///     meant to show has failed (<see cref="Panels.Image" />). Ranks below disabled and above the
+    ///     pointer states, so a passing pointer cannot clear it.
+    /// </summary>
+    public bool Errored
+    {
+        get;
+        protected set
+        {
+            if (field == value) return;
+            field = value;
+            SyncPointerState();
+        }
+    }
+
     public Action<UIElement>? OnHoverEnter { get; set; }
     public Action<UIElement>? OnHoverExit { get; set; }
     public Action<UIElement>? OnFocus { get; set; }
@@ -464,6 +481,7 @@ public abstract class UIElement
     internal void SyncPointerState()
     {
         CurrentState = Disabled ? UIState.Disabled
+            : Errored ? UIState.Errored
             : IsPressed ? UIState.Pressed
             : IsHovered ? UIState.Hovered
             : UIState.None;
@@ -635,7 +653,7 @@ public abstract class UIElement
     }
 
     /// <summary>The <c>state[...]</c> blocks a sheet can give an element, one per non-idle <see cref="UIState" />.</summary>
-    private static readonly string[] StateNames = ["hovered", "pressed", "disabled"];
+    private static readonly string[] StateNames = ["hovered", "pressed", "disabled", "errored"];
 
     private void ApplyOwnStyle(StyleSheet styleSheet)
     {
@@ -704,6 +722,7 @@ public abstract class UIElement
             UIState.Hovered => "hovered",
             UIState.Pressed => "pressed",
             UIState.Disabled => "disabled",
+            UIState.Errored => "errored",
             _ => null
         };
 
