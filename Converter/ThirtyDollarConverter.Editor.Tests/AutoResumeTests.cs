@@ -100,6 +100,18 @@ public class AutoResumeTests
     }
 
     [Fact]
+    public void TwoCutsAtOneInstant_ResumeTheNoteOnce()
+    {
+        // Two chord notes ending together put two cuts on the same instant. The sequence
+        // merges them into one cut, so one resume repairs them; a resume per cut would
+        // stack the long note on itself and double its volume from there on.
+        var a = LongNote(0, Long(0, 8));
+        var cuts = new List<CutPoint> { Cut(2), Cut(2), Cut(2, true, "other"), Cut(5) };
+
+        Assert.Equal([2.0, 5.0], ResumesOf(a, cuts).Select(r => Math.Round(r.Minutes / StepMinutes, 6)));
+    }
+
+    [Fact]
     public void AlignedGrids_GenerateNoResumesAtAll()
     {
         // The hand-tuned case Grid offset already reaches: B's cuts land on A's own

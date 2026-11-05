@@ -384,6 +384,19 @@ public class AudioKeyframeManager
             if (!cut.Sounds.Overlaps(sounds)) continue;
             if (!cut.Generated) yield break;
 
+            // Cuts on one instant are one cut once the sequence merges them, so they get one
+            // resume for every sound any of them silenced - a resume each would stack the
+            // note on itself. Chord notes ending together put such runs everywhere.
+            var silenced = cut.Sounds;
+            while (i + 1 < cuts.Count && cuts[i + 1].Minutes < cut.Minutes + CoincidentMinutes)
+            {
+                var next = cuts[++i];
+                if (!next.Sounds.Overlaps(sounds)) continue;
+                if (!next.Generated) yield break;
+                if (silenced.IsSupersetOf(next.Sounds)) continue;
+                silenced = new HashSet<string>(silenced.Concat(next.Sounds));
+            }
+
             var elapsed = (cut.Minutes - ringingMinutes) * 60d * Math.Pow(2, ringing.Value / 12);
             yield return new GeneratedNote(cut.Minutes, new Note
             {
@@ -394,7 +407,7 @@ public class AudioKeyframeManager
                 Pan = ringing.Pan,
                 Offset = ringing.Offset,
                 AutoOffsetSeconds = splices ? ringing.AutoOffsetSeconds + elapsed : 0
-            }, -1, cut.Sounds);
+            }, -1, silenced);
         }
     }
 
