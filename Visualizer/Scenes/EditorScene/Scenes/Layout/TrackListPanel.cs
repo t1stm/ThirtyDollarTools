@@ -1,4 +1,3 @@
-using EditorScene.Scenes.Components;
 using EditorScene.State;
 using OpenTK.Mathematics;
 using Shared.Renderer.Planes;

@@ -1,4 +1,4 @@
-// The editor's palette, as sheet variables. Nothing but `var` declarations - import it
+// The interface's palette, as sheet variables: the editor's, and the dialogs on Home. Nothing but `var` declarations - import it
 // with an alias and reach a value as `$theme.name`:
 //
 //     import "Scenes/Styles/Theme.snx.ss" as theme;
@@ -8,7 +8,7 @@
 // file-local, so a sheet that imports another sheet does not silently inherit these
 // names. Every sheet that wants them says so.
 //
-// This is the editor's whole palette. The canvas shades at the bottom are named by
+// This is the whole palette. The canvas shades at the bottom are named by
 // Scenes/Views/GridViews.snx.ss and nothing else.
 
 // ---------------------------------------------------------------- chrome

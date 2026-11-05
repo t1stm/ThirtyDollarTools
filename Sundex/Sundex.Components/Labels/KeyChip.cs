@@ -1,7 +1,6 @@
-using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 
-namespace EditorScene.Scenes.Components;
+namespace Sundex.Components.Labels;
 
 /// <summary>
 ///     Puts a key's name in front of a dialog button's label, the way the instrument builder's

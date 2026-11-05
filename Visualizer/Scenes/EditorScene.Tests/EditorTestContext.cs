@@ -34,7 +34,7 @@ public class EditorTestContext : UIContext
     {
         InjectForTesting(
             new AssetProvider(new LoggerConfiguration().CreateLogger(),
-                [typeof(EditorInterface).Assembly, Assembly.GetExecutingAssembly()], new GLInfo()),
+                [typeof(EditorInterface).Assembly, SharedAssembly.Assembly, Assembly.GetExecutingAssembly()], new GLInfo()),
             new MockFontProvider(),
             new MockTextProvider());
         Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
@@ -82,7 +82,7 @@ public class EditorTestContext : UIContext
     private static StyleSheet LoadStyles()
     {
         var provider = new AssetProvider(new LoggerConfiguration().CreateLogger(),
-            [typeof(EditorInterface).Assembly], new GLInfo());
+            [typeof(EditorInterface).Assembly, SharedAssembly.Assembly], new GLInfo());
 
         string Read(string path)
         {

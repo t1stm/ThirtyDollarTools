@@ -1,4 +1,4 @@
-// The editor's shared control vocabulary: buttons, text fields and label roles that
+// The shared control vocabulary: buttons, text fields and label roles that
 // more than one screen uses. Anything used by exactly one component lives in that
 // component's own sheet next to its .cs instead.
 //

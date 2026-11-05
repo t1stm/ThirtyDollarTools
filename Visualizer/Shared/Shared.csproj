@@ -33,6 +33,9 @@
     <EmbeddedResource Include="Assets\Textures\action_icut.png"/>
     <EmbeddedResource Include="Assets\Textures\action_missing.png"/>
     <EmbeddedResource Include="Assets\Textures\moai.png"/>
+    <EmbeddedResource Include="Scenes\Styles\Controls.snx.ss"/>
+    <EmbeddedResource Include="Scenes\Styles\Dialogs.snx.ss"/>
+    <EmbeddedResource Include="Scenes\Styles\Theme.snx.ss"/>
   </ItemGroup>
 
   <ItemGroup>

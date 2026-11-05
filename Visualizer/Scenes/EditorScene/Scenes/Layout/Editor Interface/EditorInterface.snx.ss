@@ -10,6 +10,7 @@
 import "Scenes/Styles/Theme.snx.ss" as theme;
 import "Scenes/Styles/Controls.snx.ss";
 import "Scenes/Styles/Dialogs.snx.ss";
+import "Scenes/Styles/EditorDialogs.snx.ss";
 import "Scenes/Styles/Panels.snx.ss";
 import "Scenes/Layout/Inspector Panel/InspectorPanel.snx.ss";
 import "Scenes/Dialogs/Sound Picker/SoundPicker.snx.ss";

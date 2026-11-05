@@ -6,7 +6,6 @@ using Sundex.Components.File_Selector;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
-using EditorScene.Scenes.Components;
 
 namespace EditorScene.Scenes.Dialogs;
 
