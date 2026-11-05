@@ -186,13 +186,15 @@ public partial class EditorState
 
     public void LoadProjectFromFile(string path)
     {
-        Replace(ProjectFile.Load(File.ReadAllText(path)));
+        using (var stream = File.OpenRead(path))
+            Replace(ProjectFile.Load(stream));
         ProjectPath = path;
     }
 
     public void SaveProjectToFile(string path)
     {
-        File.WriteAllText(path, SaveProject());
+        ProjectFile.SaveToFile(Project, path);
+        Dirty = false;
         ProjectPath = path;
     }
 

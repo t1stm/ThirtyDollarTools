@@ -17,7 +17,23 @@ public static class SequenceText
     /// </summary>
     public static string Serialize(Sequence sequence)
     {
-        return string.Join("|", sequence.Events.Select(e => e.SoundEvent == "!divider" ? "!divider\n" : Stringify(e)));
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        Serialize(sequence, writer);
+        return writer.ToString();
+    }
+
+    /// <summary>
+    ///     The same text, written as it is made: a tau-sized sequence runs past the ~1G-character
+    ///     ceiling of a .NET string.
+    /// </summary>
+    public static void Serialize(Sequence sequence, TextWriter writer)
+    {
+        for (var i = 0; i < sequence.Events.Length; i++)
+        {
+            if (i > 0) writer.Write('|');
+            var e = sequence.Events[i];
+            writer.Write(e.SoundEvent == "!divider" ? "!divider\n" : Stringify(e));
+        }
     }
 
     private static string Stringify(BaseEvent e)

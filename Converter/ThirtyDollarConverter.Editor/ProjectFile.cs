@@ -22,7 +22,59 @@ public static class ProjectFile
 
     public static string Save(ThirtyDollarProject project)
     {
-        var dto = new ProjectDto(
+        return JsonSerializer.Serialize(ToDto(project), Options);
+    }
+
+    /// <summary>
+    ///     Streams the file instead of building it as one string: a tau-sized project is
+    ///     gigabytes of JSON, past the ~1G-character ceiling of a .NET string.
+    /// </summary>
+    public static void Save(ThirtyDollarProject project, Stream stream)
+    {
+        JsonSerializer.Serialize(stream, ToDto(project), Options);
+    }
+
+    /// <summary>
+    ///     Writes the project next to <paramref name="path" /> and moves it into place, so a save
+    ///     that fails part way (a full disk, say) leaves the previous file as it was.
+    /// </summary>
+    public static void SaveToFile(ThirtyDollarProject project, string path)
+    {
+        // ponytail: the move replaces a symlink and the old file's permissions instead of keeping
+        // them; resolve the link and copy the mode first if projects ever need that.
+        var temporary = path + ".tmp";
+        try
+        {
+            using (var stream = File.Create(temporary))
+            {
+                Save(project, stream);
+                // On disk before the rename, or a power cut could leave the new name with no data.
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(temporary, path, overwrite: true);
+        }
+        catch
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+            throw;
+        }
+    }
+
+    public static ThirtyDollarProject Load(string json)
+    {
+        return FromDto(JsonSerializer.Deserialize<ProjectDto>(json, Options));
+    }
+
+    /// <summary>Reads the file as it streams in - see <see cref="Save(ThirtyDollarProject, Stream)" />.</summary>
+    public static ThirtyDollarProject Load(Stream stream)
+    {
+        return FromDto(JsonSerializer.Deserialize<ProjectDto>(stream, Options));
+    }
+
+    private static ProjectDto ToDto(ThirtyDollarProject project)
+    {
+        return new ProjectDto(
             project.Info,
             project.RootTiming,
             [
@@ -82,14 +134,11 @@ public static class ProjectFile
             ],
             project.Transpose == 0 ? null : project.Transpose,
             project.AutoResume ? null : false);
-
-        return JsonSerializer.Serialize(dto, Options);
     }
 
-    public static ThirtyDollarProject Load(string json)
+    private static ThirtyDollarProject FromDto(ProjectDto? parsed)
     {
-        var dto = JsonSerializer.Deserialize<ProjectDto>(json, Options)
-                  ?? throw new InvalidDataException("Not a Thirty Dollar project file.");
+        var dto = parsed ?? throw new InvalidDataException("Not a Thirty Dollar project file.");
 
         var project = new ThirtyDollarProject
         {

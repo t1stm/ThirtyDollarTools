@@ -169,7 +169,7 @@ public sealed class ProjectIO(EditorState state, DialogHost dialogHost, ILogger 
             Directory.CreateDirectory(BackupDirectory);
             var name = string.Concat(state.Project.Info.Name.Split(Path.GetInvalidFileNameChars()));
             var fileName = $"{name}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.tdwproj";
-            File.WriteAllText(Path.Combine(BackupDirectory, fileName), ProjectFile.Save(state.Project));
+            ProjectFile.SaveToFile(state.Project, Path.Combine(BackupDirectory, fileName));
             PruneBackups();
         }
         catch (Exception e)

@@ -431,4 +431,27 @@ public class ProjectFileTests
         plain.NewTrack();
         Assert.DoesNotContain("colorIndex", ProjectFile.Save(plain));
     }
+
+    [Fact]
+    public void SaveToFile_FailingPartWay_LeavesThePreviousFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"project-file-{Guid.NewGuid():N}.tdwproj");
+        try
+        {
+            ProjectFile.SaveToFile(MakeProject(), path);
+            var saved = File.ReadAllBytes(path);
+
+            // JSON has no NaN, so the serializer throws with the file half written.
+            var broken = MakeProject();
+            broken.Transpose = float.NaN;
+            Assert.Throws<ArgumentException>(() => ProjectFile.SaveToFile(broken, path));
+
+            Assert.Equal(saved, File.ReadAllBytes(path));
+            Assert.False(File.Exists(path + ".tmp"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }
