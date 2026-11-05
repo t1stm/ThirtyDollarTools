@@ -73,4 +73,31 @@ public class UpdateCheckerTests
         var noDate = Stable with { Date = null };
         Assert.Null(UpdateChecker.PickNewer(Releases, noDate, true, true));
     }
+
+    [Fact]
+    public void NewerListsEveryAcceptedReleaseNewestFirst()
+    {
+        var newer = UpdateChecker.Newer(Releases, Stable, true, true);
+        Assert.Equal(["nightly-master", "v1.1.8-prerelease-1", "v1.1.7"], newer.Select(release => release.TagName));
+    }
+
+    [Fact]
+    public void TheNotesComeFromTheSameResponse()
+    {
+        const string json = """
+                            [{"tag_name":"v2","html_url":"https://a","prerelease":false,"draft":false,
+                              "created_at":"2026-10-21T00:00:00Z","name":"Two","body":"notes"},
+                             {"tag_name":"v3","html_url":"https://b","prerelease":false,"draft":false,
+                              "created_at":"2026-10-22T00:00:00Z","name":null,"body":null}]
+                            """;
+
+        var releases = System.Text.Json.JsonSerializer.Deserialize<GitHubRelease[]>(json, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower
+        })!;
+
+        Assert.Equal("Two", releases[0].Name);
+        Assert.Equal("notes", releases[0].Body);
+        Assert.Null(releases[1].Body);
+    }
 }

@@ -9,6 +9,7 @@ using Shared;
 using Shared.Audio;
 using Shared.Updates;
 using Sundex.Components;
+using Sundex.Components.Markdown;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
@@ -217,6 +218,9 @@ public class Loader : Scene, IGamePreloadable
             [
                 ("Lato Bold (interface)", _context.TextProvider),
                 ("Lucide (icons)", _context.GetTextProvider(Icons.Font)),
+                // Its own provider, not the visualizer's below: the update notes' first click
+                // would otherwise pay for it.
+                ("Lato Regular (Markdown)", _context.GetTextProvider(MarkdownView.BodyFont)),
                 ("Lato Regular", Visualizer.VisualizerFonts.LatoRegularProvider),
                 ("Lato Bold", Visualizer.VisualizerFonts.LatoBoldProvider)
             ];

@@ -16,5 +16,7 @@
     <EmbeddedResource Include="Scenes\Layout\HomeInterface.snx.xml"/>
     <EmbeddedResource Include="Scenes\Layout\HomeInterface.snx.ss"/>
     <EmbeddedResource Include="Scenes\Layout\HomeInterface.snx.csx"/>
+    <EmbeddedResource Include="Scenes\Layout\UpdateDialog.snx.xml"/>
+    <EmbeddedResource Include="Scenes\Layout\UpdateDialog.snx.ss"/>
   </ItemGroup>
 </Project>

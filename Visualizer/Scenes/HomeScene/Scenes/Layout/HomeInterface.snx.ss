@@ -4,6 +4,10 @@
 // means the same thing here as it does over a note: identity, not decoration. The lit
 // step colour is the editor's playhead colour, for the same reason.
 
+// Whatever mounts on the root takes the root's sheet (Panel.AddChild), so the update dialog's rules
+// have to be in it, hover states and all.
+import "Scenes/Layout/UpdateDialog.snx.ss";
+
 // ---------------------------------------------------------------- chrome
 
 id stage {
@@ -199,7 +203,8 @@ id version-label {
     font-color = "#565f89";
 }
 
-id update-label {
+// A class rather than an id, or it would outrank note-attention below: ids apply last.
+class update-note {
     font-size = 13;
     font-color = "#565f89";
 }
@@ -217,7 +222,7 @@ id topbar {
     horizontal-align = "end";
 }
 
-component button {
+id settings-button {
     background = "#1c1f2e";
     border-radius = 8;
     width = 104;

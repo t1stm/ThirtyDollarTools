@@ -1,0 +1,54 @@
+<sundex version="1.0">
+  <style language="sundex" src="Scenes/Layout/UpdateDialog.snx.ss"/>
+
+  <layout>
+    <flex id="update-dialog" class="dialog-frame">
+      <flex class="dialog-header">
+        <flex id="update-title-clip" class="update-title-clip">
+          <clipped-label id="update-title" class="dialog-title"/>
+        </flex>
+        <label id="update-subtitle" class="dialog-subtitle" value=""/>
+        <panel class="spacer"/>
+        <button id="close-button" class="icon-button">
+          <label class="icon-button-icon" font="Lucide" value="&#xe1b2;"/>
+        </button>
+      </flex>
+
+      <flex id="update-build" class="project-card">
+        <flex class="update-build-side">
+          <label class="update-build-caption" value="Your build"/>
+          <label id="update-your-tag" class="update-build-tag" value=""/>
+        </flex>
+        <flex class="update-build-gain">
+          <flex id="update-tiles" class="update-tiles"/>
+          <label id="update-gain" class="update-build-caption" value=""/>
+        </flex>
+        <flex class="[update-build-side,update-build-side-end]">
+          <label class="update-build-caption" value="Newest"/>
+          <label id="update-newest-tag" class="[update-build-tag,update-build-tag-newest]" value=""/>
+        </flex>
+      </flex>
+
+      <!-- UpdateDialog.cs keeps one of these two: the notes, or the line saying there are none. -->
+      <markdown id="update-notes" class="update-notes"/>
+      <flex id="update-empty" class="update-empty">
+        <label id="update-empty-label" class="empty-state-text" value=""/>
+      </flex>
+
+      <panel class="rule"/>
+
+      <flex class="dialog-actions-split">
+        <button id="update-release-page" class="[dialog-button-quiet,update-release-page]">
+          <label class="quiet-label" value="Release page"/>
+        </button>
+        <panel class="spacer"/>
+        <button id="update-later" class="dialog-button">
+          <label value="Later"/>
+        </button>
+        <button id="update-open" class="dialog-button-primary">
+          <label class="light-label" value="Open download page"/>
+        </button>
+      </flex>
+    </flex>
+  </layout>
+</sundex>

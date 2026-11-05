@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using HomeScene.Scenes;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
@@ -8,7 +10,6 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using Sundex.Engine;
 using Sundex.Engine.Renderer.Attributes;
-using Sundex.Engine.Renderer.Enums;
 using Sundex.Engine.Scenes;
 using Sundex.Engine.Scenes.Arguments;
 
@@ -29,6 +30,9 @@ public class Home : Scene, IFadeInScene
     private CursorType _cursorType = CursorType.Default;
     private Vector2 _lastScale = Vector2.One;
     private bool _updateNoteShown;
+
+    /// <summary>Built on the first click and kept, so reopening fetches nothing and keeps the scroll.</summary>
+    private UpdateDialog? _updateDialog;
 
     /// <param name="checkingForUpdates">
     ///     Whether the update check runs. When it does, the "check regularly" line is dropped
@@ -84,6 +88,7 @@ public class Home : Scene, IFadeInScene
         // not yet carrying it.
         ui.Alpha = _homeInterface.Alpha;
         _updateNoteShown = false;
+        _updateDialog = null;
 
         _context = context;
         _homeInterface = ui;
@@ -143,10 +148,12 @@ public class Home : Scene, IFadeInScene
             var available = UpdateChecker.Available;
 
             _homeInterface.UpdateLabel.SetTextContents(available != null
-                ? $"{available.TagName} is out - t1stm.github.io/ThirtyDollarTools"
+                ? $"{available.TagName} is out - see what's new"
                 : "Update check failed. See the log for details.");
-            // To the site's downloads; a failed check names nothing to open.
+            // The site's downloads, for the pointer and underline; a failed check names nothing to
+            // open. The click goes to the dialog, whose primary button opens the same page.
             _homeInterface.UpdateLabel.Url = available != null ? DownloadPage : string.Empty;
+            if (available != null) _homeInterface.UpdateLabel.OnClick = _ => OpenUpdateDialog();
             _homeInterface.UpdateLabel.SetClass("note-attention", available is not null);
             _homeInterface.UpdateLabel.Visible = true;
         }
@@ -163,6 +170,36 @@ public class Home : Scene, IFadeInScene
 
         if (Game.Cursor != cursor)
             Game.Cursor = cursor;
+    }
+
+    private void OpenUpdateDialog()
+    {
+        if (UpdateChecker.Build is not { } build) return;
+
+        var stopwatch = Stopwatch.StartNew();
+        _updateDialog ??= new UpdateDialog(_context, UpdateChecker.Releases, build, DownloadPage);
+        if (_updateDialog.IsOpen) return;
+
+        _homeInterface.RootPanel.AddChild(_updateDialog.Modal);
+        Logger.Debug("[Home] Update dialog opened in {Elapsed} ms", stopwatch.ElapsedMilliseconds);
+    }
+
+    /// <summary>The order of the editor's dialogs: Esc, then the dialog's own keys, then Enter.</summary>
+    public override void KeyDown(KeyboardKeyEventArgs e)
+    {
+        if (_context.DispatchKeyDown(e)) return;
+        if (_updateDialog is not { IsOpen: true, Modal: var modal }) return;
+
+        if (e.Key == Keys.Escape)
+        {
+            modal.OnDismissRequested?.Invoke(modal);
+            return;
+        }
+
+        if (modal.HandleKeyDown(e)) return;
+
+        // Once per press: a held key would open the browser again and again.
+        if (e.Key is Keys.Enter or Keys.KeyPadEnter && !e.IsRepeat) modal.OnConfirmRequested?.Invoke(modal);
     }
 
     public override void Resize(int w, int h)

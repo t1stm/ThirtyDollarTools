@@ -11,6 +11,7 @@ using Sundex.Engine;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Markup;
+using Sundex.Style.DSL.Abstract.Values;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
 // so this suite must also run sequentially.
@@ -105,6 +106,19 @@ public class HomeInterfaceMarkupTests
     {
         var component = new SundexContext(_context).NewComponent(LoadMarkup());
         Assert.True(component.StyleSheet?.Classes.ContainsKey(cls), $"stylesheet lost class \"{cls}\"");
+    }
+
+    /// <summary>The note's base colour must lose to this class, which an id's would not.</summary>
+    [Fact]
+    public void UpdateNote_TurnsAmberWhenThereIsSomethingToActOn()
+    {
+        var home = new HomeInterface(_context, () => { }, () => { }, () => { }, () => { });
+        var muted = home.UpdateLabel.Color;
+
+        home.UpdateLabel.SetClass("note-attention", true);
+
+        Assert.NotEqual(muted, home.UpdateLabel.Color);
+        Assert.Equal(new ColorValue("#e0af68").Vector, home.UpdateLabel.Color);
     }
 
     /// <summary>

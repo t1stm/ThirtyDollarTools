@@ -65,6 +65,9 @@ cmd_start() {
     # past UpdateCheckAsked, which is what puts the first-run setup wizard on screen.
     [ -f "$settings" ] || printf '%s\n' '# headless runs - skips the first-run setup' \
         'UpdateCheckAsked = True' 'CheckForUpdates = False' >"$settings"
+    # VIZ_UPDATE_CHECK=1 turns the check on for this run. A dev build has no date to check from,
+    # so it goes with TDT_PRETEND_BUILD_DATE.
+    sed -i "s/^CheckForUpdates = .*/CheckForUpdates = $([ -n "${VIZ_UPDATE_CHECK:-}" ] && echo True || echo False)/" "$settings"
 
     local audio=(--no-audio)
     [ -n "${VIZ_AUDIO:-}" ] && audio=()

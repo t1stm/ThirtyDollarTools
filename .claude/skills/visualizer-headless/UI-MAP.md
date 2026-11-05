@@ -48,7 +48,10 @@ bash $S/viz.sh start --mode visualizer -i cover.tdw
 An unknown `--mode` silently falls back to Home and says so in the log.
 
 **Home** (1600×840): three cards on one row — Visualizer ≈ `(308, 497)`, Drum Master
-≈ `(800, 497)`, Editor ≈ `(1290, 497)`. Settings button top-right ≈ `(1515, 50)`.
+≈ `(800, 497)`, Editor ≈ `(1290, 497)`. Settings button top-right ≈ `(1515, 50)`. The footer's amber
+note (only with an update check, see SKILL.md) opens the **update dialog**: the release's notes in a
+`MarkdownView` (wheel, arrows, Page Up/Down, Home, End), Esc/×/backdrop/Later close, Enter opens the
+site's download page, and reopening keeps the scroll.
 
 ---
 

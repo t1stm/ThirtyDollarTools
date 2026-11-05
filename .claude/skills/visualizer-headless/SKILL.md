@@ -70,6 +70,22 @@ selected|removed|converted`, `Note added`, `Item added`, `Clip placed`, `Pasted`
 timeout after an input usually means the input missed - but it can also be a true
 negative, such as clicking an action that takes no value and waiting for a dialog.
 
+## The update dialog
+
+A dev build has no date, so it never checks for updates and Home shows no update note. Debug builds
+take the date from the environment, and `VIZ_UPDATE_CHECK=1` turns the check on. Each boot spends one
+real GitHub call (60 an hour), so don't restart in a loop:
+
+```bash
+VIZ_UPDATE_CHECK=1 TDT_PRETEND_BUILD_DATE=2026-08-10 TDT_PRETEND_BUILD_TAG=v2.0.0-rc5 \
+    VIZ_SIZE=1080x720 bash $S/viz.sh start
+bash $S/viz.sh wait 'A newer release is available' 20
+```
+
+`TDT_RELEASE_BODY=<file>` swaps the newest release's body for that file, for an image at a dead URL.
+Click the amber note, then wait on the log (`DBG`, not the `Editor` lines): `\[Home\] Update dialog
+opened`, `Image landed: <url>`, `Failed to load image <url>`.
+
 ## Text benchmark
 
 `--mode text-bench` fills the window with text and times its draw on the GPU (the Slug
