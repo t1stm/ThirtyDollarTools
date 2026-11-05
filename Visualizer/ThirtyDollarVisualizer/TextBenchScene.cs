@@ -1,3 +1,4 @@
+#if DEBUG
 using System.Diagnostics;
 using System.Text;
 using OpenTK.Mathematics;
@@ -196,3 +197,4 @@ public class TextBenchScene : Scene
     {
     }
 }
+#endif

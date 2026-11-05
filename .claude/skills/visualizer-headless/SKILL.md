@@ -73,7 +73,8 @@ negative, such as clicking an action that takes no value and waiting for a dialo
 ## Text benchmark
 
 `--mode text-bench` fills the window with text and times its draw on the GPU (the Slug
-plan's 4 ms gate, `docs/handover/sundex-slug-plan.md`):
+plan's 4 ms gate, `docs/handover/sundex-slug-plan.md`). Debug builds only, like
+`--mode gpu-mix-bench`; a Release build logs `No scene named` and opens Home:
 
 ```bash
 bash $S/viz.sh stop; VIZ_SIZE=1920x1080 bash $S/viz.sh start --mode text-bench

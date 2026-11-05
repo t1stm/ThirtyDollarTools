@@ -1,3 +1,4 @@
+#if DEBUG
 using System.Diagnostics;
 using System.Globalization;
 using OpenTK.Graphics;
@@ -415,3 +416,4 @@ public sealed class GpuMixBenchScene(Game game, ThirtyDollarWorkflow workflow, s
     {
     }
 }
+#endif
