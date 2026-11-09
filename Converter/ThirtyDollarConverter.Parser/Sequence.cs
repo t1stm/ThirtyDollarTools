@@ -28,6 +28,13 @@ public partial class Sequence
 
     /// <summary>
     ///     Parses a sequence stored in a string.
+    ///     <para>
+    ///         Identical tokens share one event: <see cref="Events" /> holds the same instance at
+    ///         every slot a token's text repeats in. A long song is mostly repeats, so an object
+    ///         per slot was most of its memory. Change a slot by replacing it with a
+    ///         <see cref="BaseEvent.Copy" />, never in place - an in-place edit changes every slot
+    ///         that shares it.
+    ///     </para>
     /// </summary>
     /// <param name="data">The string containing the sequence.</param>
     /// <returns>The parsed sequence.</returns>
@@ -36,6 +43,8 @@ public partial class Sequence
         var sequence = new Sequence();
         var split = data.Split('|');
         var list = new List<BaseEvent>();
+        // a token's event and how many times it repeats ("=4"), parsed once per distinct text
+        var parsed = new Dictionary<string, (BaseEvent Event, float Repeats)>();
 
         using var enumerator = split.AsEnumerable().GetEnumerator();
         while (enumerator.MoveNext())
@@ -56,18 +65,24 @@ public partial class Sequence
                     continue; // Define event, so skip adding it to the sequence.
             }
 
-            var new_event = ParseEvent(text, sequence);
-            var repeats = new_event.PlayTimes;
-            new_event.PlayTimes = 1;
-
-            if (new_event.SoundEvent is not null)
-                sequence.UsedSounds.Add(new_event.SoundEvent);
-
-            for (var i = 0; i < repeats; i++)
+            // ParseEvent's side effects on the sequence (used sounds, separated channels, the
+            // format flag) only ever add, so the first parse of a text has already made them all.
+            if (!parsed.TryGetValue(text, out var token))
             {
-                if (ProcessDefines(sequence, new_event, list)) continue;
-                var copy = new_event.Copy();
-                list.Add(copy);
+                var new_event = ParseEvent(text, sequence);
+                token = (new_event, new_event.PlayTimes);
+                new_event.PlayTimes = 1;
+
+                if (new_event.SoundEvent is not null)
+                    sequence.UsedSounds.Add(new_event.SoundEvent);
+                parsed.Add(text, token);
+            }
+
+            for (var i = 0; i < token.Repeats; i++)
+            {
+                // a define can be declared after a token's first use, so this is asked every time
+                if (ProcessDefines(sequence, token.Event, list)) continue;
+                list.Add(token.Event);
             }
         }
 

@@ -79,7 +79,12 @@ public class PlacementCalculator
     public IEnumerable<Placement> CalculateOne(Sequence sequence, ulong? startTime = null)
     {
         if (sequence == null) throw new Exception("Null Sequence");
-        sequence = sequence.Copy();
+        // Only the stateful actions are written to as the walk goes, so only they get this
+        // walk's own copy - the rest stay the caller's (shared, see Sequence.FromString) and
+        // are never written to.
+        sequence = new Sequence { Events = Array.ConvertAll(sequence.Events, slot => IsStateful(slot) ? slot.Copy() : slot) };
+        // one instance per distinct placed event, see Share
+        var shared = new Dictionary<EventKey, BaseEvent>();
 
         var bpm = 300.0;
         var transpose = 0.0;
@@ -125,7 +130,7 @@ public class PlacementCalculator
                 {
                     Index = position,
                     SequenceIndex = index,
-                    Event = copy,
+                    Event = Share(shared, copy),
                     Audible = ev.SoundEvent is not "_pause"
                 };
 
@@ -192,7 +197,7 @@ public class PlacementCalculator
                     {
                         Index = position,
                         SequenceIndex = index,
-                        Event = copy,
+                        Event = Share(shared, copy),
                         Audible = false
                     };
                     break;
@@ -217,7 +222,7 @@ public class PlacementCalculator
                             {
                                 Index = position,
                                 SequenceIndex = index,
-                                Event = ev.Copy(),
+                                Event = Share(shared, ev),
                                 Audible = false
                             };
                     }
@@ -238,7 +243,7 @@ public class PlacementCalculator
                         {
                             Index = position,
                             SequenceIndex = index,
-                            Event = ev.Copy(),
+                            Event = Share(shared, ev),
                             Audible = false
                         };
 
@@ -358,7 +363,8 @@ public class PlacementCalculator
                 {
                     Index = position,
                     SequenceIndex = index,
-                    Event = ev,
+                    // a stateful action stays this walk's live copy, as "!loop" and "!jump" do
+                    Event = IsStateful(ev) ? ev : Share(shared, ev),
                     Audible = audible
                 };
             if (modify_index) index++;
@@ -385,10 +391,50 @@ public class PlacementCalculator
         for (var i = index; i < (ulong)sequence.Events.LongLength; i++)
         {
             var current_event = sequence.Events[i];
-            if (except.Any(r => r == current_event.SoundEvent)) continue;
+            // the rest are shared with the caller, and nothing reads their flag or counter
+            if (!IsStateful(current_event) || except.Any(r => r == current_event.SoundEvent)) continue;
 
             current_event.Triggered = false;
             current_event.WorkingValue = current_event.Value;
         }
     }
+
+    /// <summary>
+    ///     The actions whose <see cref="BaseEvent.Triggered" /> or <see cref="BaseEvent.WorkingValue" />
+    ///     the walk reads or writes - every other event it only reads.
+    /// </summary>
+    private static bool IsStateful(BaseEvent baseEvent)
+    {
+        return baseEvent.SoundEvent is "!loop" or "!jump" or "!target" or "!loopmany" or "!stop";
+    }
+
+    /// <summary>
+    ///     The one instance of <paramref name="baseEvent" />'s values every placement with those
+    ///     values points at. Copied on first sight, so it never changes when
+    ///     <paramref name="baseEvent" /> does; placement events are read-only.
+    /// </summary>
+    private static BaseEvent Share(Dictionary<EventKey, BaseEvent> shared, BaseEvent baseEvent)
+    {
+        // cuts, bookmarks, legacy markers: rare, and their values aren't all in the key
+        if (baseEvent is not NormalEvent) return baseEvent.Copy();
+
+        var extended = baseEvent as ExtendedEvent;
+        var key = new EventKey(baseEvent.GetType(), baseEvent.SoundEvent, baseEvent.Value, baseEvent.ValueScale,
+            baseEvent.Volume, baseEvent.WorkingVolume, baseEvent.WorkingValue, baseEvent.PlayTimes,
+            extended?.Pan ?? 0, extended?.OffsetInSeconds ?? 0);
+        if (!shared.TryGetValue(key, out var instance)) shared.Add(key, instance = baseEvent.Copy());
+        return instance;
+    }
+
+    private readonly record struct EventKey(
+        Type Type,
+        string? Sound,
+        double Value,
+        ValueScale Scale,
+        double? Volume,
+        double WorkingVolume,
+        double WorkingValue,
+        float PlayTimes,
+        float Pan,
+        double Offset);
 }

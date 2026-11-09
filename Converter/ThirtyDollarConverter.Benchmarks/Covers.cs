@@ -37,14 +37,16 @@ public static class Covers
     /// </summary>
     public static bool RetuneMiddleEvent(Sequence sequence, int step)
     {
-        var sounds = new List<BaseEvent>();
-        foreach (var ev in sequence.Events)
-            if (ev.SoundEvent is { } name && !name.StartsWith('!') && name != "_pause")
-                sounds.Add(ev);
+        var sounds = new List<int>();
+        for (var index = 0; index < sequence.Events.Length; index++)
+            if (sequence.Events[index].SoundEvent is { } name && !name.StartsWith('!') && name != "_pause")
+                sounds.Add(index);
 
         if (sounds.Count == 0) return false;
 
-        var target = sounds[sounds.Count / 2];
+        // a copy in the slot: parsed slots share one instance per token, see Sequence.FromString
+        var slot = sounds[sounds.Count / 2];
+        var target = sequence.Events[slot] = sequence.Events[slot].Copy();
         var value = step % 5 - 2; // -2..2, never sitting on the same value twice in a row
         target.Value = value;
         target.WorkingValue = value;
