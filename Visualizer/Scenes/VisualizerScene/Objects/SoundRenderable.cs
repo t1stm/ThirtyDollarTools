@@ -36,7 +36,7 @@ public sealed class SoundRenderable : Renderable
         Scale = (widthHeight.X, widthHeight.Y, 1);
     }
 
-    private static readonly SoundData Unbound = new() { Model = Matrix4.Identity, RGBA = Vector4.One };
+    private static readonly SoundData Unbound = new();
 
     // The instance this renderable draws with: a slot of one of its chunk's render stacks, set
     // by RenderableFactory.CookUp. Held as list + index rather than closures over a tracked
@@ -75,13 +75,21 @@ public sealed class SoundRenderable : Renderable
         }
     }
 
+    /// <summary>
+    ///     Kept as the quad's <see cref="SoundData.Box" />: the matrix's translation and scale.
+    ///     Sounds never rotate (no sound animation does), so nothing else is lost.
+    /// </summary>
     public override Matrix4 Model
     {
-        get => Data.Model;
+        get
+        {
+            var box = Data.Box;
+            return Matrix4.CreateScale(box.Z, box.W, 1) * Matrix4.CreateTranslation(box.X, box.Y, 0);
+        }
         set
         {
             var data = Data;
-            data.Model = value;
+            data.Box = new Vector4(value.M41, value.M42, value.M11, value.M22);
             Data = data;
         }
     }

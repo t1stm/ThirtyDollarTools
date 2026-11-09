@@ -49,7 +49,7 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
                 StackCollection.AnimatedStacks.Add(framedAtlas, stack);
             }
 
-            stack.List.Add(new SoundData { Model = Matrix4.Identity, RGBA = Vector4.One });
+            stack.List.Add(new SoundData());
             var reference = stack.List.GetReferenceAt(stack.List.Count - 1);
 
             var aspectRatio = framedAtlas.CurrentRectangle.Width / (float)framedAtlas.CurrentRectangle.Height;
@@ -63,7 +63,7 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
         }
         else if (store.StaticSounds.TryGetValue(soundName, out var staticAtlas))
         {
-            if (!staticAtlas.TryGetSound(soundName, out var rect))
+            if (!staticAtlas.TryGetSound(soundName, out var rect, out var uvIndex))
                 return;
 
             if (!StackCollection.StaticStacks.TryGetValue(staticAtlas, out var stack))
@@ -75,8 +75,8 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
 
             var staticSound = new StaticSound
             {
-                Data = new SoundData { Model = Matrix4.Identity, RGBA = Vector4.One },
-                TextureUV = QuadUV.FromRectangle(rect, staticAtlas.Width, staticAtlas.Height)
+                Data = new SoundData(),
+                UVIndex = uvIndex
             };
 
             stack.List.Add(staticSound);

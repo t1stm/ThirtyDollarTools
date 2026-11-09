@@ -31,20 +31,19 @@ public class SoundListElement : FlexPanel
 
     private void UpdateMatrix()
     {
-        var matrix = Matrix4.CreateScale(Computed.Width, Computed.Height, 1) *
-                     Matrix4.CreateTranslation(Computed.AbsoluteX, Computed.AbsoluteY, 0);
+        var box = new Vector4(Computed.AbsoluteX, Computed.AbsoluteY, Computed.Width, Computed.Height);
 
         if (StaticReference != null)
         {
             var value = StaticReference.Value;
-            value.Data.Model = matrix;
+            value.Data.Box = box;
             StaticReference.Value = value;
         }
 
         if (AnimatedReference == null) return;
         {
             var value = AnimatedReference.Value;
-            value.Model = matrix;
+            value.Box = box;
             AnimatedReference.Value = value;
         }
     }

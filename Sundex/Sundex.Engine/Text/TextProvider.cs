@@ -21,10 +21,11 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
 
     private readonly GlyphProvider _glyphProvider = new(fontProvider, fontName);
 
-    // ponytail: one texture pair per provider, so two providers over one font upload it
+    // ponytail: one texture set per provider, so two providers over one font upload it
     // twice (~7 MiB each). Cache them per SlugFontData if that ever matters.
     private GPUTexture? _curves;
     private GPUTexture? _bands;
+    private GPUTexture? _glyphs;
 
     public IAssetProvider AssetProvider { get; } = provider;
 
@@ -36,19 +37,23 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
     public IGlyphProvider GlyphProvider => _glyphProvider;
 
     /// <summary>
-    ///     Binds the curve texture to unit 0 and the band texture to unit 1, and activates the
-    ///     shader program. Unit 0 is left active, since everything else binds there.
+    ///     Binds the curve texture to unit 0, the band texture to unit 1 and the glyph table to
+    ///     unit 2, and activates the shader program. Unit 0 is left active, since everything else
+    ///     binds there.
     /// </summary>
     /// <param name="camera">The camera that contains the VP matrix to use in the shader.</param>
     public void BindAndSetUniforms(Camera camera)
     {
-        if (_curves is null || _bands is null)
+        if (_curves is null || _bands is null || _glyphs is null)
         {
             var data = _glyphProvider.SlugData;
             _curves = CreateTexture(data.Curves, data.CurveRows);
             _bands = CreateTexture(data.Bands, data.BandRows);
+            _glyphs = CreateTexture(data.Glyphs, data.GlyphRows);
         }
 
+        GL.ActiveTexture(TextureUnit.Texture2);
+        _glyphs.Bind();
         GL.ActiveTexture(TextureUnit.Texture1);
         _bands.Bind();
         GL.ActiveTexture(TextureUnit.Texture0);
@@ -58,6 +63,7 @@ public class TextProvider(IAssetProvider provider, IFontProvider fontProvider, s
         _shader.SetUniform("uVPMatrix", camera.GetVPMatrix());
         _shader.SetUniform("uCurves", 0);
         _shader.SetUniform("uBands", 1);
+        _shader.SetUniform("uGlyphs", 2);
 
         RenderMarker.Debug("Bound Slug Textures and Set Uniforms: ", fontName, MarkerType.Hidden);
     }

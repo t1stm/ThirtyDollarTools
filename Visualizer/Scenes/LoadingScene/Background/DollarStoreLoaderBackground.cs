@@ -76,16 +76,15 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
                 Shader = StaticShader
             });
 
-        var rect = staticAtlas.GetSoundUV(sound);
+        if (!staticAtlas.TryGetSound(sound, out _, out var uvIndex)) return;
         var staticSound = new StaticSound
         {
             Data = new SoundData
             {
-                Model = Matrix4.Identity * Matrix4.CreateScale(SoundSize, SoundSize, 1) *
-                        Matrix4.CreateTranslation(RandomFloat(0, _camera.Width), RandomFloat(0, _camera.Height), 0),
+                Box = (RandomFloat(0, _camera.Width), RandomFloat(0, _camera.Height), SoundSize, SoundSize),
                 RGBA = SoundColorMultiply
             },
-            TextureUV = QuadUV.FromRectangle(rect, staticAtlas.Width, staticAtlas.Height)
+            UVIndex = uvIndex
         };
 
         renderBuffer.List.Add(staticSound);
@@ -106,8 +105,7 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
 
         var soundData = new SoundData
         {
-            Model = Matrix4.Identity * Matrix4.CreateScale(SoundSize, SoundSize, 1) *
-                    Matrix4.CreateTranslation(RandomFloat(0, _camera.Width), RandomFloat(0, _camera.Height), 0),
+            Box = (RandomFloat(0, _camera.Width), RandomFloat(0, _camera.Height), SoundSize, SoundSize),
             RGBA = SoundColorMultiply
         };
 
@@ -168,16 +166,16 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
             {
                 var oldValue = sound.Reference.Value;
 
-                var x = oldValue.Model.M41;
-                var y = oldValue.Model.M42;
+                var x = oldValue.Box.X;
+                var y = oldValue.Box.Y;
                 var w = x + SoundSize;
                 var h = y + SoundSize;
 
                 if (!_draining)
                     sound.Velocity = GetNewVelocity(sound.Velocity, x, y, w, h, _camera.Viewport);
-                else oldValue.RGBA.W = alpha;
+                else oldValue.RGBA = SoundColorMultiply with { W = alpha };
 
-                oldValue.Model *= Matrix4.CreateTranslation(sound.Velocity.X, sound.Velocity.Y, 0);
+                oldValue.Box.Xy += sound.Velocity;
                 sound.Reference.Value = oldValue;
             }
 
@@ -185,16 +183,16 @@ public class DollarStoreLoaderBackground(DeleteQueue deleteQueue) : IGamePreload
             {
                 var oldValue = sound.Reference.Value;
 
-                var x = oldValue.Data.Model.M41;
-                var y = oldValue.Data.Model.M42;
+                var x = oldValue.Data.Box.X;
+                var y = oldValue.Data.Box.Y;
                 var w = x + SoundSize;
                 var h = y + SoundSize;
 
                 if (!_draining)
                     sound.Velocity = GetNewVelocity(sound.Velocity, x, y, w, h, _camera.Viewport);
-                else oldValue.Data.RGBA.W = alpha;
+                else oldValue.Data.RGBA = SoundColorMultiply with { W = alpha };
 
-                oldValue.Data.Model *= Matrix4.CreateTranslation(sound.Velocity.X, sound.Velocity.Y, 0);
+                oldValue.Data.Box.Xy += sound.Velocity;
                 sound.Reference.Value = oldValue;
             }
         }

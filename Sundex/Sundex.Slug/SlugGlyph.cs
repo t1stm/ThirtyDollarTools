@@ -23,6 +23,13 @@ namespace Sundex.Slug;
 public readonly record struct SlugGlyph(float Advance, Vector4 EmRect, Vector4 Banding, Vector4 GlyphData)
 {
     /// <summary>
+    ///     The glyph's row in <see cref="SlugFontData.Glyphs" />, which holds its <see cref="EmRect" />,
+    ///     <see cref="Banding" /> and <see cref="GlyphData" /> for the shader to read, so an instance
+    ///     only has to carry this.
+    /// </summary>
+    public int Index { get; init; }
+
+    /// <summary>
     ///     The shift that puts the padded ink box's bottom-left corner at the pen position, in ems.
     ///     With <see cref="TextScale" /> this is the <c>Translate</c>/<c>Scale</c> pair the engine's
     ///     line layout already places quads with, at a relative size of 1.

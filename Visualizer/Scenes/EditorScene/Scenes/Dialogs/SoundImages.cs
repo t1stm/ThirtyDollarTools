@@ -59,21 +59,21 @@ internal sealed class SoundImages(UIContext context, AtlasStore store)
                 Stacks.AnimatedStacks.Add(framedAtlas, stack);
             }
 
-            stack.List.Add(new SoundData { Model = Matrix4.Identity, RGBA = Vector4.One });
+            stack.List.Add(new SoundData());
             var reference = stack.List.GetReferenceAt(stack.List.Count - 1);
 
             return new SoundQuad(framedAtlas.CurrentRectangle.Width / (float)framedAtlas.CurrentRectangle.Height,
-                model =>
+                box =>
                 {
                     var value = reference.Value;
-                    value.Model = model;
+                    value.Box = box;
                     reference.Value = value;
                 },
                 () => stack.List.Remove(reference));
         }
 
         if (store.StaticSounds.TryGetValue(atlasKey, out var staticAtlas) &&
-            staticAtlas.TryGetSound(atlasKey, out var rect))
+            staticAtlas.TryGetSound(atlasKey, out var rect, out var uvIndex))
         {
             if (!Stacks.StaticStacks.TryGetValue(staticAtlas, out var stack))
             {
@@ -84,16 +84,16 @@ internal sealed class SoundImages(UIContext context, AtlasStore store)
 
             stack.List.Add(new StaticSound
             {
-                Data = new SoundData { Model = Matrix4.Identity, RGBA = Vector4.One },
-                TextureUV = QuadUV.FromRectangle(rect, staticAtlas.Width, staticAtlas.Height)
+                Data = new SoundData(),
+                UVIndex = uvIndex
             });
             var reference = stack.List.GetReferenceAt(stack.List.Count - 1);
 
             return new SoundQuad(rect.Width / (float)rect.Height,
-                model =>
+                box =>
                 {
                     var value = reference.Value;
-                    value.Data.Model = model;
+                    value.Data.Box = box;
                     reference.Value = value;
                 },
                 () => stack.List.Remove(reference));
@@ -104,13 +104,12 @@ internal sealed class SoundImages(UIContext context, AtlasStore store)
 }
 
 /// <summary>One instance in a <see cref="SoundImages" /> batch.</summary>
-internal sealed class SoundQuad(float aspect, Action<Matrix4> place, Action release)
+internal sealed class SoundQuad(float aspect, Action<Vector4> place, Action release)
 {
     /// <summary>Width and height that fit a <paramref name="size" /> square at the image's aspect ratio.</summary>
     public (float Width, float Height) Fit(float size) => aspect > 1 ? (size, size / aspect) : (size * aspect, size);
 
-    public void Place(float x, float y, float width, float height) =>
-        place(Matrix4.CreateScale(width, height, 1) * Matrix4.CreateTranslation(x, y, 0));
+    public void Place(float x, float y, float width, float height) => place(new Vector4(x, y, width, height));
 
     /// <summary>
     ///     Frees the instance. The batch is queued as a whole, so an instance left behind keeps

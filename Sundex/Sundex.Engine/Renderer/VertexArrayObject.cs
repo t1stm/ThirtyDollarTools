@@ -101,7 +101,15 @@ public class VertexArrayObject : IBindable, IGamePreloadable, IDisposable
             var el = elements[i];
             var vi = (uint)(_vertexIndex + i);
 
-            GL.VertexAttribPointer(vi, el.Count, el.Type, el.Normalized, layout.GetStride(), new IntPtr(offset));
+            // Integer attributes reach an `in uint`/`in int` input only through the I variant; the
+            // plain one converts them to float.
+            if (!el.Normalized && el.Type is VertexAttribPointerType.UnsignedByte or VertexAttribPointerType.Byte
+                    or VertexAttribPointerType.UnsignedShort or VertexAttribPointerType.Short
+                    or VertexAttribPointerType.UnsignedInt or VertexAttribPointerType.Int)
+                GL.VertexAttribIPointer(vi, el.Count, (VertexAttribIType)el.Type, layout.GetStride(),
+                    new IntPtr(offset));
+            else
+                GL.VertexAttribPointer(vi, el.Count, el.Type, el.Normalized, layout.GetStride(), new IntPtr(offset));
             GL.EnableVertexAttribArray(vi);
 
             offset += el.Count * el.Type.GetSize();

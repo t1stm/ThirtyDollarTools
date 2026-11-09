@@ -175,9 +175,7 @@ public class TextSlice(TextBuffer textBuffer, Range range)
             {
                 Color = Color,
                 ClipRect = ClipRect,
-                EmRect = Convert(glyph.EmRect),
-                Banding = Convert(glyph.Banding),
-                GlyphData = Convert(glyph.GlyphData)
+                Glyph = (uint)glyph.Index
             };
 
             // The quad is the glyph's padded ink box: the positioning provider places it from
@@ -208,6 +206,4 @@ public class TextSlice(TextBuffer textBuffer, Range range)
 
         ArrayPool<FlexLineItemPlacementLayout>.Shared.Return(layouts);
     }
-
-    private static Vector4 Convert(System.Numerics.Vector4 v) => new(v.X, v.Y, v.Z, v.W);
 }

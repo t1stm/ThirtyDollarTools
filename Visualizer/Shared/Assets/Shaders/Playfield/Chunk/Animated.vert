@@ -1,9 +1,9 @@
 #version 330 core
 
 layout (location = 0) in vec3 aPosition; // Static Quad Coords that only have one Static VBO
-layout (location = 1) in mat4 aModel; // SoundData->Model
-layout (location = 5) in vec4 aRGBA; // SoundData->RGBA
-layout (location = 6) in float aOffsetPercentage; // SoundData->OffsetPercentage
+layout (location = 1) in vec4 aBox; // SoundData->Box: top-left corner, then width and height
+layout (location = 2) in vec4 aRGBA; // SoundData->RGBA
+layout (location = 3) in float aOffsetPercentage; // SoundData->OffsetPercentage
 
 out vec2 fragmentCoords;
 out vec4 RGBA;
@@ -26,7 +26,7 @@ vec2 getFragCoordsBasedOnVertexID(int vertexID) {
 }
 
 void main() {
-    vec4 finalCoords = u_VPMatrix * aModel * vec4(aPosition, 1.0);
+    vec4 finalCoords = u_VPMatrix * vec4(aPosition.xy * aBox.zw + aBox.xy, 0.0, 1.0);
     gl_Position = finalCoords;
     RGBA = aRGBA;
     vec2 fragCoords = getFragCoordsBasedOnVertexID(gl_VertexID);

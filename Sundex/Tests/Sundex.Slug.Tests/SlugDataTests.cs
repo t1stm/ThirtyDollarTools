@@ -106,6 +106,18 @@ public class SlugDataTests(ITestOutputHelper output)
     ///     The band-count search runs its helpers <c>Vector&lt;T&gt;</c>-wide. They must agree with the
     ///     scalar maths <c>TryGetBandRange</c> uses at every length, including the scalar tail.
     /// </summary>
+    [Theory]
+    [MemberData(nameof(Fonts))]
+    public void GlyphTableRowHoldsTheGlyphsShaderData(string fontName)
+    {
+        foreach (var (label, glyph, data) in AllGlyphs(fontName))
+        {
+            Assert.True(glyph.EmRect == GlyphTexel(data, glyph, 0), $"{label}: em rect differs from its table row");
+            Assert.True(glyph.Banding == GlyphTexel(data, glyph, 1), $"{label}: banding differs from its table row");
+            Assert.True(glyph.GlyphData == GlyphTexel(data, glyph, 2), $"{label}: glyph data differs from its table row");
+        }
+    }
+
     [Fact]
     public void BandHelpersMatchScalarMaths()
     {
@@ -165,6 +177,14 @@ public class SlugDataTests(ITestOutputHelper output)
             if (!Rune.TryCreate(codePoint.Value, out var rune)) continue;
             yield return ($"{fontName} U+{rune.Value:X4}", data.GetGlyph(rune.ToString()), data);
         }
+    }
+
+    /// <summary>Texel <paramref name="texel" /> of <paramref name="glyph" />'s row, read the way Batched.vert reads it.</summary>
+    private static Vector4 GlyphTexel(SlugFontData data, SlugGlyph glyph, int texel)
+    {
+        var index = glyph.Index * SlugFontData.TexelsPerGlyph + texel;
+        var start = ((index >> 12) * Width + (index & (Width - 1))) * 4;
+        return new Vector4(data.Glyphs[start], data.Glyphs[start + 1], data.Glyphs[start + 2], data.Glyphs[start + 3]);
     }
 
     internal record struct DecodedCurve(int X, int Y, Vector2 P1, Vector2 P2, Vector2 P3)

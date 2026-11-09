@@ -35,7 +35,7 @@ public class GPUTextureAtlas(
         Texture.QueueUploadToGPU(image, rectangle);
     }
 
-    public void Bind()
+    public virtual void Bind()
     {
         Texture.Bind();
     }

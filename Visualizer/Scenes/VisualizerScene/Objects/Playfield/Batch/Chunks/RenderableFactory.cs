@@ -307,19 +307,15 @@ public class RenderableFactory(AtlasStore store)
             return null;
         }
 
-        var found = atlas.TryGetSound(soundName, out var reference);
+        var found = atlas.TryGetSound(soundName, out var reference, out var uvIndex);
         if (!found) return null;
 
-        var soundData = new SoundData
-        {
-            Model = Matrix4.Identity,
-            RGBA = Vector4.One
-        };
+        var soundData = new SoundData();
 
         var staticSound = new StaticSound
         {
             Data = soundData,
-            TextureUV = QuadUV.FromRectangle(reference, atlas.Width, atlas.Height)
+            UVIndex = uvIndex
         };
 
         if (!staticAtlases.TryGetValue(atlas, out var renderStack))
@@ -344,11 +340,7 @@ public class RenderableFactory(AtlasStore store)
         var rect = animatedAtlas.CurrentRectangle;
         soundRenderable.Scale = (rect.Width, rect.Height, 1);
 
-        var soundData = new SoundData
-        {
-            Model = Matrix4.Identity,
-            RGBA = Vector4.One
-        };
+        var soundData = new SoundData();
 
         if (!animatedAtlases.TryGetValue(animatedAtlas, out var renderStack))
             animatedAtlases.Add(animatedAtlas, renderStack = new RenderStack<SoundData>(_deleteQueue)

@@ -95,18 +95,54 @@ public class VertexBufferLayout
     }
 
     /// <summary>
+    ///     Adds a new <see cref="ushort" /> vertex attribute to the layout.
+    /// </summary>
+    /// <param name="count">The amount of <see cref="ushort" /> to add.</param>
+    /// <param name="perInstance">Whether the value should be used per vertex or per instance.</param>
+    /// <returns>The modified vertex buffer layout.</returns>
+    public VertexBufferLayout PushUShort(int count, bool perInstance = false)
+    {
+        _elements.Add(new VertexBufferElement
+        {
+            Type = VertexAttribPointerType.UnsignedShort,
+            Count = count,
+            Normalized = false,
+            Divisor = perInstance ? 1 : 0
+        });
+        _stride += sizeof(ushort) * count;
+
+        return this;
+    }
+
+    /// <summary>
+    ///     Adds unused bytes to the end of each vertex, to keep the next one aligned. Only valid as
+    ///     the last push: attribute offsets are counted from the attributes alone.
+    /// </summary>
+    /// <param name="bytes">The amount of bytes to skip.</param>
+    /// <returns>The modified vertex buffer layout.</returns>
+    public VertexBufferLayout Pad(int bytes)
+    {
+        _stride += bytes;
+        return this;
+    }
+
+    /// <summary>
     ///     Adds a new <see cref="byte" /> vertex attribute to the layout.
     /// </summary>
     /// <param name="count">The amount of <see cref="byte" /> to add.</param>
     /// <param name="perInstance">Whether the value should be used per vertex or per instance.</param>
+    /// <param name="normalized">
+    ///     Whether the shader reads the bytes as 0..1 floats (a <c>vec</c> input) rather than as
+    ///     integers (a <c>uvec</c>). See <see cref="PackedColor" />.
+    /// </param>
     /// <returns>The modified vertex buffer layout.</returns>
-    public VertexBufferLayout PushByte(int count, bool perInstance = false)
+    public VertexBufferLayout PushByte(int count, bool perInstance = false, bool normalized = false)
     {
         _elements.Add(new VertexBufferElement
         {
             Type = VertexAttribPointerType.UnsignedByte,
             Count = count,
-            Normalized = false,
+            Normalized = normalized,
             Divisor = perInstance ? 1 : 0
         });
         _stride += sizeof(byte) * count;

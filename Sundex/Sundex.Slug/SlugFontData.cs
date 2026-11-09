@@ -7,19 +7,19 @@ using Sundex.Slug.Geometry;
 namespace Sundex.Slug;
 
 /// <summary>
-///     A whole font as Slug curve and band data: two RGBA32F textures' worth of floats, plus the
+///     A whole font as Slug curve and band data: three RGBA32F textures' worth of floats, plus the
 ///     per-glyph record that points into them. Built once per font, up front, for every codepoint
 ///     the font maps; nothing is generated on demand afterwards.
 ///     <para>
-///         Plain arrays, no GL: the engine wraps <see cref="Curves" /> and <see cref="Bands" /> in
-///         textures <see cref="TextureWidth" /> texels wide and <see cref="CurveRows" /> /
-///         <see cref="BandRows" /> tall. The layout follows Eric Lengyel's reference Slug shaders;
+///         Plain arrays, no GL: the engine wraps <see cref="Curves" />, <see cref="Bands" /> and
+///         <see cref="Glyphs" /> in textures <see cref="TextureWidth" /> texels wide and
+///         <see cref="CurveRows" /> / <see cref="BandRows" /> / <see cref="GlyphRows" /> tall. The layout follows Eric Lengyel's reference Slug shaders;
 ///         see <c>docs/handover/sundex-slug-plan.md</c>, "Data layout".
 ///     </para>
 /// </summary>
 public sealed class SlugFontData
 {
-    /// <summary>Both textures' width in texels: the reference shader's <c>kLogBandTextureWidth 12</c>.</summary>
+    /// <summary>Every texture's width in texels: the reference shader's <c>kLogBandTextureWidth 12</c>.</summary>
     public const int TextureWidth = 4096;
 
     /// <summary>
@@ -38,15 +38,20 @@ public sealed class SlugFontData
     /// <summary>The most bands a glyph may use on either axis.</summary>
     internal const int MaxBands = 16;
 
+    /// <summary>A glyph's texels in <see cref="Glyphs" />: its em rect, banding and glyph data.</summary>
+    public const int TexelsPerGlyph = 3;
+
     private const int FloatsPerTexel = 4;
     private const int FloatsPerRow = TextureWidth * FloatsPerTexel;
 
     private readonly Dictionary<int, SlugGlyph> _glyphs;
 
-    private SlugFontData(float[] curves, float[] bands, Dictionary<int, SlugGlyph> glyphs, SlugGlyph notDef)
+    private SlugFontData(float[] curves, float[] bands, float[] glyphTable, Dictionary<int, SlugGlyph> glyphs,
+        SlugGlyph notDef)
     {
         Curves = curves;
         Bands = bands;
+        Glyphs = glyphTable;
         _glyphs = glyphs;
         NotDef = notDef;
     }
@@ -60,8 +65,16 @@ public sealed class SlugFontData
     /// <summary>The band texture: per glyph, its band headers then its curve lists. Only <c>.xy</c> is used.</summary>
     public float[] Bands { get; }
 
+    /// <summary>
+    ///     The glyph table: <see cref="TexelsPerGlyph" /> texels per glyph at
+    ///     <see cref="SlugGlyph.Index" /> × <see cref="TexelsPerGlyph" />, flowing across rows:
+    ///     <c>EmRect</c>, <c>Banding</c>, <c>GlyphData</c>.
+    /// </summary>
+    public float[] Glyphs { get; }
+
     public int CurveRows => Curves.Length / FloatsPerRow;
     public int BandRows => Bands.Length / FloatsPerRow;
+    public int GlyphRows => Glyphs.Length / FloatsPerRow;
 
     /// <summary>How many codepoints map to a glyph of their own, not counting <see cref="NotDef" />.</summary>
     public int GlyphCount => _glyphs.Count;
@@ -142,6 +155,7 @@ public sealed class SlugFontData
     {
         private readonly List<float> _bands = [];
         private readonly List<float> _curves = [];
+        private readonly List<float> _glyphTable = [];
         private readonly List<Curve> _glyphCurves = [];
         private readonly List<int>[] _lists = new List<int>[MaxBands];
 
@@ -172,8 +186,9 @@ public sealed class SlugFontData
             {
                 // Space and friends: a single empty band each way, so the shader's loops run zero times.
                 var emptyLoc = ReserveHeaders(2);
-                return new SlugGlyph((float)advance, new Vector4(-QuadPadding, -QuadPadding, QuadPadding, QuadPadding), Vector4.Zero,
-                    new Vector4(emptyLoc.X, emptyLoc.Y, 0, 0));
+                return Record(new SlugGlyph((float)advance,
+                    new Vector4(-QuadPadding, -QuadPadding, QuadPadding, QuadPadding), Vector4.Zero,
+                    new Vector4(emptyLoc.X, emptyLoc.Y, 0, 0)));
             }
 
             var bounds = shape.GetBounds();
@@ -189,17 +204,27 @@ public sealed class SlugFontData
             WriteBands(glyphStart, 0, b, t - b, nh, vertical: false);
             WriteBands(glyphStart, nh, l, r - l, nv, vertical: true);
 
-            return new SlugGlyph((float)advance,
+            return Record(new SlugGlyph((float)advance,
                 new Vector4(l - QuadPadding, b - QuadPadding, r + QuadPadding, t + QuadPadding),
                 new Vector4(BandScale(nv, r - l), BandScale(nh, t - b),
                     -l * BandScale(nv, r - l), -b * BandScale(nh, t - b)),
-                new Vector4(loc.X, loc.Y, nv - 1, nh - 1));
+                new Vector4(loc.X, loc.Y, nv - 1, nh - 1)));
         }
 
-        /// <summary>Pads both textures out to whole rows and hands them over.</summary>
+        /// <summary>Pads the textures out to whole rows and hands them over.</summary>
         public SlugFontData Finish(Dictionary<int, SlugGlyph> glyphs, SlugGlyph notDef)
         {
-            return new SlugFontData(ToRows(_curves), ToRows(_bands), glyphs, notDef);
+            return new SlugFontData(ToRows(_curves), ToRows(_bands), ToRows(_glyphTable), glyphs, notDef);
+        }
+
+        /// <summary>Appends <paramref name="glyph" /> to the glyph table and returns it with its row.</summary>
+        private SlugGlyph Record(SlugGlyph glyph)
+        {
+            var index = _glyphTable.Count / (TexelsPerGlyph * FloatsPerTexel);
+            AddTexel(_glyphTable, glyph.EmRect.X, glyph.EmRect.Y, glyph.EmRect.Z, glyph.EmRect.W);
+            AddTexel(_glyphTable, glyph.Banding.X, glyph.Banding.Y, glyph.Banding.Z, glyph.Banding.W);
+            AddTexel(_glyphTable, glyph.GlyphData.X, glyph.GlyphData.Y, glyph.GlyphData.Z, glyph.GlyphData.W);
+            return glyph with { Index = index };
         }
 
         private static float BandScale(int count, float extent)

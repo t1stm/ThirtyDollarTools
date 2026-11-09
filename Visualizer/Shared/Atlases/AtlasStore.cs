@@ -1,10 +1,8 @@
 using Serilog;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using Sundex.Engine.Asset_Management;
 using Sundex.Engine.Asset_Management.Types.Asset;
 using Sundex.Engine.Asset_Management.Types.Texture;
-using Sundex.Engine.Renderer.Textures.Atlases;
 
 namespace Shared.Atlases;
 
@@ -97,19 +95,15 @@ public class AtlasStore(AssetProvider assetProvider, ILogger logger)
 
         var frame = image.Frames[0];
 
-        var atlas = StaticAtlases.FirstOrDefault(soundAtlas => soundAtlas.Atlas.CanFit(frame.Width, frame.Height));
+        var atlas = StaticAtlases.FirstOrDefault(soundAtlas =>
+            !soundAtlas.IsFull && soundAtlas.Atlas.CanFit(frame.Width, frame.Height));
         if (atlas == null)
-            StaticAtlases.Add(atlas = new StaticSoundAtlas(4096, 4096)
+            StaticAtlases.Add(atlas = new StaticSoundAtlas(4096, 4096, assetProvider.DeleteQueue)
             {
                 AtlasID = $"StaticAtlas_{StaticAtlases.Count}"
             });
 
         StaticSounds[soundName] = atlas;
-        AddImageFrameToAtlas(frame, soundName, atlas);
-    }
-
-    private static void AddImageFrameToAtlas(ImageFrame<Rgba32> frame, string frameName, GPUTextureAtlas atlas)
-    {
-        atlas.AddTexture(frameName, frame);
+        atlas.AddSound(soundName, frame);
     }
 }
