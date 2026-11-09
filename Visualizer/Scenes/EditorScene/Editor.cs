@@ -352,6 +352,10 @@ public class Editor : Scene, IFadeInScene
             case Bind.EditorAddTrack:
                 _editorInterface.AddTrack();
                 return;
+            // Either kind of track: a faithful one is an OpenedTrack too.
+            case Bind.EditorCloseTrack:
+                state.CloseTrack();
+                return;
             case Bind.EditorNudgeLeft:
                 _editorInterface.NudgeSelection(-1, 0);
                 return;
