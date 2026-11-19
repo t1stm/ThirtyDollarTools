@@ -4,7 +4,7 @@ using OpenTK.Mathematics;
 using Serilog;
 using Shared.Atlases;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.AssetManagement;
 using ThirtyDollarConverter.Editor;
 using ThirtyDollarConverter.Parser;
 
@@ -26,6 +26,8 @@ public class InstrumentEditorTests
     {
         var editor = EditorTestContext.Styled(NewEditor(ctx));
         var root = EditorTestContext.Styled(new Panel(ctx) { Width = 1080, Height = 720 });
+        // Sized as the workflow sizes it: an auto-height frame gives its 100%-tall body no room.
+        editor.FitTo(1080, 720);
         root.AddChild(editor);
         root.Layout();
         return (editor, root);

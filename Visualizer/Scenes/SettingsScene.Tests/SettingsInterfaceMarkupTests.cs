@@ -10,12 +10,13 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Inputs;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Components.Tests;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Testing;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Engine;
-using Sundex.Engine.Asset_Management;
-using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.AssetManagement;
+using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
+using Sundex.Markup.Legacy;
 using VisualizerScene.Settings;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
@@ -25,16 +26,15 @@ using VisualizerScene.Settings;
 namespace SettingsScene.Tests;
 
 /// <summary>Headless UIContext over the SettingsScene assembly's embedded assets.</summary>
-public class SettingsTestContext : UIContext
+public class SettingsTestContext : TestUIContext
 {
+    static SettingsTestContext() => CSharp.Register();
+
     [SetsRequiredMembers]
     public SettingsTestContext()
+        : base(new LoggerConfiguration().CreateLogger(),
+            [typeof(SettingsInterface).Assembly, Assembly.GetExecutingAssembly()])
     {
-        InjectForTesting(
-            new AssetProvider(new LoggerConfiguration().CreateLogger(),
-                [typeof(SettingsInterface).Assembly, Assembly.GetExecutingAssembly()], new GLInfo()),
-            new MockFontProvider(),
-            new MockTextProvider());
         Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1600, 900));
     }
 }

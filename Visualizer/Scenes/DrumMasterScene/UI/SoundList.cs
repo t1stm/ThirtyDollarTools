@@ -9,7 +9,7 @@ using VisualizerScene.Objects.Playfield.Batch.Objects;
 
 namespace DrumMasterScene.UI;
 
-public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context), IDisposable
+public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
 {
     private const string AnimatedShaderLocation = "Assets/Shaders/Playfield/Chunk/Animated";
     private const string StaticShaderLocation = "Assets/Shaders/Playfield/Chunk/Static";
@@ -23,10 +23,10 @@ public class SoundList(UIContext context, AtlasStore store) : FlexPanel(context)
     public override bool Wrap { get; set; } = true;
     public StackCollection StackCollection { get; private set; } = new();
 
-    public void Dispose()
+    protected override void OnDispose()
     {
         StackCollection.Dispose();
-        GC.SuppressFinalize(this);
+        base.OnDispose();
     }
 
     public void Clear()

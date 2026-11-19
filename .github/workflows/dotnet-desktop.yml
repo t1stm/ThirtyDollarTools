@@ -7,9 +7,10 @@ on:
     paths:
       - 'Visualizer/**'
       - 'Converter/**'
-      - 'Sundex/**'
       - 'BASS.Redist/**'
       - 'Directory.Build.props'
+      - 'Sundex.props'
+      - 'UseLocalSundex.sh'
       - 'ThirtyDollarTools.slnx'
       - '.github/workflows/dotnet-desktop.yml'
       - '.github/changelog-config.json'
@@ -33,16 +34,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Require Sundex package references
+        run: |
+          if git grep -nE '(Include|Path)="[^"]*[/\\]Sundex\.[^"/\\]+\.csproj"' -- '*.csproj' '*.slnx'; then
+            echo "::error::Restore the package references with UseLocalSundex.sh --restore before committing."
+            exit 1
+          fi
+
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.x'
 
       - name: Cache NuGet packages
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'Sundex.props') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 

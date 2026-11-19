@@ -55,6 +55,7 @@ public partial class EditorInterface
     /// </summary>
     private void WireSoundFilter()
     {
+        SoundFilterModal.AutoFocusContent = false;
         _soundFilterEmpty = EmptyState.Build(_context, Icons.MousePointer2,
             "Nothing picked yet. Click sounds below to add them.", stacked: false);
         SoundFilterInput.Placeholder = "Filter sounds";

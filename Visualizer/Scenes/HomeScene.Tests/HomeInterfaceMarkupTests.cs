@@ -5,12 +5,13 @@ using OpenTK.Mathematics;
 using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Tests;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Testing;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Engine;
-using Sundex.Engine.Asset_Management;
-using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.AssetManagement;
+using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
+using Sundex.Markup.Legacy;
 using Sundex.Style.DSL.Abstract.Values;
 
 // UIContext stores its providers in static fields (see Sundex.Components.Tests),
@@ -20,19 +21,15 @@ using Sundex.Style.DSL.Abstract.Values;
 namespace HomeScene.Tests;
 
 /// <summary>Headless UIContext over the HomeScene assembly's embedded assets.</summary>
-public class HomeTestContext : UIContext
+public class HomeTestContext : TestUIContext
 {
+    static HomeTestContext() => CSharp.Register();
+
     [SetsRequiredMembers]
     public HomeTestContext()
+        : base(new LoggerConfiguration().CreateLogger(),
+            [typeof(HomeInterface).Assembly, SharedAssembly.Assembly, Assembly.GetExecutingAssembly()])
     {
-        InjectForTesting(
-            new AssetProvider(new LoggerConfiguration().CreateLogger(),
-                // Shared is in here for the same reason the app has it: the masthead's moai
-                // is an embedded resource of that assembly, not of HomeScene.
-                [typeof(HomeInterface).Assembly, SharedAssembly.Assembly, Assembly.GetExecutingAssembly()],
-                new GLInfo()),
-            new MockFontProvider(),
-            new MockTextProvider());
         Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1600, 900));
     }
 }

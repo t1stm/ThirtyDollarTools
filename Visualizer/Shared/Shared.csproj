@@ -14,16 +14,6 @@
     <EmbeddedResource Include="Assets\Fonts\Twemoji.Mozilla.ttf"/>
     <EmbeddedResource Include="Assets\Shaders\Audio\voice-mix.comp"/>
     <EmbeddedResource Include="Assets\Shaders\Audio\voice-reduce.comp"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\colored.vert"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\instanced.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\instanced.vert"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\shaded-instanced.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Colored\shaded-instanced.vert"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Gradient\gradient.vert"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.frag"/>
-    <EmbeddedResource Include="Assets\Shaders\Planes\Textured\textured.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.frag"/>
     <EmbeddedResource Include="Assets\Shaders\Playfield\Background\Blip.vert"/>
     <EmbeddedResource Include="Assets\Shaders\Playfield\Chunk\Animated.frag"/>
@@ -41,13 +31,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Converter\ThirtyDollarConverter.Encoder\ThirtyDollarConverter.Encoder.csproj"/>
     <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Style.DSL\Sundex.Style.DSL.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Core\Sundex.Core.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+    <PackageReference Include="Sundex.Style.DSL" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Core" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Engine" Version="$(SundexVersion)"/>
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0"/>
     <PackageReference Include="ManagedBass" Version="4.0.2"/>
   </ItemGroup>
 

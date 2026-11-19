@@ -2,8 +2,8 @@ using EditorScene.State;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
-using Sundex.Engine.Asset_Management.Extensions;
-using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.AssetManagement.Extensions;
+using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
 using EditorScene.Scenes.Views;
 

@@ -33,10 +33,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
     <ProjectReference Include="..\..\BASS.Redist\BASS.Redist.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+    <PackageReference Include="Sundex.Engine" Version="$(SundexVersion)"/>
     <ProjectReference Include="..\Scenes\DrumMasterScene\DrumMasterScene.csproj"/>
     <ProjectReference Include="..\Scenes\SettingsScene\SettingsScene.csproj"/>
-    <ProjectReference Include="..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
+    <PackageReference Include="Sundex.Components" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Markup.Legacy" Version="$(SundexVersion)"/>
     <ProjectReference Include="..\Scenes\EditorScene\EditorScene.csproj"/>
     <ProjectReference Include="..\Scenes\HomeScene\HomeScene.csproj"/>
     <ProjectReference Include="..\Scenes\LoadingScene\LoadingScene.csproj"/>

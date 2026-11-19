@@ -6,7 +6,7 @@ using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
 using Sundex.Components.Markdown;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
 
 namespace HomeScene.Scenes;
@@ -36,8 +36,10 @@ public sealed class UpdateDialog
         subtitle.SetTextContents(ReleaseNotes.Subtitle(newest));
 
         var header = (FlexPanel)close.Parent!;
-        component.GetID<FlexPanel>("update-title-clip").Width = Math.Min(title.Width.Value,
-            frame.Width.Value - 2 * frame.Padding - subtitle.Width.Value - close.Width.Value - 3 * header.Spacing);
+        // Labels size themselves to their text (their Width is auto): measure them.
+        component.GetID<FlexPanel>("update-title-clip").Width = Math.Min(title.Measure(float.MaxValue, float.MaxValue).width,
+            frame.Width.Value - 2 * frame.Padding - subtitle.Measure(float.MaxValue, float.MaxValue).width -
+            close.Width.Value - 3 * header.Spacing);
 
         component.GetID<Label>("update-your-tag").SetTextContents(build.Tag);
         component.GetID<Label>("update-newest-tag").SetTextContents(newest.TagName);
@@ -73,6 +75,7 @@ public sealed class UpdateDialog
 
         Modal = new ModalLayer(context)
         {
+            AutoFocusContent = false,
             OnDismissRequested = _ => Close(),
             OnConfirmRequested = _ => Link.Open(downloadPage),
             OnKeyRequested = HandleKey

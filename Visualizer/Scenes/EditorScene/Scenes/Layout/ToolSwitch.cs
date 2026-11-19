@@ -130,7 +130,9 @@ public sealed class ToolSwitch : FlexPanel
             _chipLabel = new Label(context, Keybinds.Get(bind).ToString()) { Classes = ["key-chip-label"] };
             _chip = new FlexPanel(context) { Classes = ["key-chip"], Children = [_chipLabel] };
             _name = new Label(context, name) { Classes = ["tool-segment-name", "tool-segment-text"] };
-            Reveal = new RevealPanel(context) { Width = 0, Height = 18, Children = [_name] };
+            // Hidden while folded: a flex child at a literal 0 width counts as unsized and would
+            // grow to the name.
+            Reveal = new RevealPanel(context) { Width = 0, Height = 18, Visible = false, Children = [_name] };
 
             Button = new Button(context, _icon)
             {
@@ -202,9 +204,12 @@ public sealed class ToolSwitch : FlexPanel
             _moving = moving;
 
             var open = _open.Value(now);
-            Reveal.Width = NameGap * open + Math.Min(_name.Width.Value, NameCap * open);
+            // The name sizes itself to its text, so its Width and Height are auto: measure it.
+            var (nameWidth, nameHeight) = _name.Measure(float.MaxValue, float.MaxValue);
+            Reveal.Width = NameGap * open + Math.Min(nameWidth, NameCap * open);
+            Reveal.Visible = open > 0;
             _name.X = NameGap * open;
-            _name.Y = (Reveal.Height.Value - _name.Height.Value) / 2;
+            _name.Y = (Reveal.Height.Value - nameHeight) / 2;
             // Re-applied every moving frame: a restyle (the tool changing, a hover) puts the
             // styled alpha back.
             _alpha.Apply(_name, _fade.Value(now));

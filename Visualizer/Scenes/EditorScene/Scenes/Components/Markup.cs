@@ -1,6 +1,6 @@
 using Sundex.Components.Abstractions;
 using Sundex.Components.Labels;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
 
 namespace EditorScene.Scenes.Components;

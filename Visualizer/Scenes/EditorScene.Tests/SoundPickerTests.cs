@@ -1,6 +1,6 @@
 using Serilog;
 using Shared.Atlases;
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.AssetManagement;
 using ThirtyDollarConverter.Parser;
 using EditorScene.Scenes.Dialogs;
 

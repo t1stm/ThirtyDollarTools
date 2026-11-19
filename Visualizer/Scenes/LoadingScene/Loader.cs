@@ -12,7 +12,7 @@ using Sundex.Components;
 using Sundex.Components.Markdown;
 using Sundex.Components.Abstractions;
 using Sundex.Engine;
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.AssetManagement;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Scenes;
@@ -213,7 +213,7 @@ public class Loader : Scene, IGamePreloadable
         return ThreadRunner.RunTask(() =>
         {
             // The interface's own font and its icons, and the two the visualizer's text
-            // container and player bar draw with. Twemoji is skipped: no label uses it.
+            // container and player bar draw with.
             (string Name, ITextProvider Provider)[] fonts =
             [
                 ("Lato Bold (interface)", _context.TextProvider),

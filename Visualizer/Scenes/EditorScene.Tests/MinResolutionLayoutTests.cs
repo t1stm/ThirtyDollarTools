@@ -2,8 +2,8 @@ using EditorScene.Scenes.Dialogs;
 using EditorScene.Scenes.Layout;
 using Sundex.Components.Labels;
 using Sundex.Components.Panels;
-using Sundex.Engine.Asset_Management.Extensions;
-using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.AssetManagement.Extensions;
+using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
 
 namespace EditorScene.Tests;
@@ -150,7 +150,7 @@ public class MinResolutionLayoutTests
     [Fact]
     public void InstrumentEditor_FitsTheMinimumWindow_WithSevenSounds()
     {
-        var atlases = new Shared.Atlases.AtlasStore((Sundex.Engine.Asset_Management.AssetProvider)_context.AssetProvider,
+        var atlases = new Shared.Atlases.AtlasStore((Sundex.Engine.AssetManagement.AssetProvider)_context.AssetProvider,
             new Serilog.LoggerConfiguration().CreateLogger());
         var editor = EditorTestContext.Styled(new InstrumentEditor(_context, atlases));
         var root = EditorTestContext.Styled(new Panel(_context) { Width = 1080, Height = 720 });

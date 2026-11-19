@@ -2,7 +2,7 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
 using Shared.Atlases;
-using Shared.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Core;
 using Sundex.Engine.Renderer.Abstract.Extensions;
 using Sundex.Engine.Renderer.Enums;

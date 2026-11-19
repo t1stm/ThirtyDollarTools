@@ -1,5 +1,5 @@
 using EditorScene.State;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.AssetManagement.Extensions;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using EditorScene.Scenes;
@@ -10,13 +10,14 @@ using Sundex.Components.Labels;
 using Sundex.Components.Panels;
 using Sundex.Components.Scroll;
 using Sundex.Markup;
+using Sundex.Markup.Legacy;
 using Serilog;
 using Shared;
 using Sundex.Components.Abstractions;
-using Sundex.Components.Tests;
+using Sundex.Testing;
 using Sundex.Engine;
-using Sundex.Engine.Asset_Management;
-using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.AssetManagement;
+using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Core;
 using Sundex.Style.DSL;
@@ -27,16 +28,15 @@ namespace EditorScene.Tests;
 ///     Headless UIContext over the EditorScene assembly's embedded assets, with the
 ///     shared mock font/text providers from Sundex.Components.Tests.
 /// </summary>
-public class EditorTestContext : UIContext
+public class EditorTestContext : TestUIContext
 {
+    static EditorTestContext() => CSharp.Register();
+
     [SetsRequiredMembers]
     public EditorTestContext()
+        : base(new LoggerConfiguration().CreateLogger(),
+            [typeof(EditorInterface).Assembly, SharedAssembly.Assembly, Assembly.GetExecutingAssembly()])
     {
-        InjectForTesting(
-            new AssetProvider(new LoggerConfiguration().CreateLogger(),
-                [typeof(EditorInterface).Assembly, SharedAssembly.Assembly, Assembly.GetExecutingAssembly()], new GLInfo()),
-            new MockFontProvider(),
-            new MockTextProvider());
         Camera = new DollarStoreCamera(Vector3.Zero, new Vector2i(1920, 1080));
     }
 

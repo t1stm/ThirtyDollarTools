@@ -93,7 +93,7 @@ public class LaneHeaderTests
         }
 
         Assert.True(mute.Visible);
-        Assert.True(mute.Drawn);
+        Assert.True(Sundex.Testing.TestUIContext.IsDrawn(mute));
     }
 
     [Fact]

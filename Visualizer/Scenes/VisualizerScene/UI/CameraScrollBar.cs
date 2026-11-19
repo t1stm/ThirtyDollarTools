@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Shared.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Engine.Renderer.Cameras;
 
 namespace VisualizerScene.UI;

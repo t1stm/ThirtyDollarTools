@@ -1,6 +1,7 @@
 bin/
 obj/
 /packages/
+.sundex-local/
 riderModule.iml
 /_ReSharper.Caches/
 catastrophe_tdw_v2.🗿

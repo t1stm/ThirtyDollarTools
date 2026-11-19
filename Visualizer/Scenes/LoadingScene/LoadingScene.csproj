@@ -8,9 +8,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Converter\ThirtyDollarConverter\ThirtyDollarConverter.csproj"/>
-    <ProjectReference Include="..\..\..\Sundex\Sundex.Markup\Sundex.Markup.csproj"/>
-    <ProjectReference Include="..\..\..\Sundex\Sundex.Components\Sundex.Components.csproj"/>
-    <ProjectReference Include="..\..\..\Sundex\Sundex.Engine\Sundex.Engine.csproj"/>
+    <PackageReference Include="Sundex.Markup" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Components" Version="$(SundexVersion)"/>
+    <PackageReference Include="Sundex.Engine" Version="$(SundexVersion)"/>
     <ProjectReference Include="..\HomeScene\HomeScene.csproj"/>
     <ProjectReference Include="..\..\Shared\Shared.csproj"/>
     <ProjectReference Include="..\VisualizerScene\VisualizerScene.csproj"/>

@@ -1,8 +1,8 @@
 using OpenTK.Graphics.OpenGL;
 using Sundex.Engine;
-using Sundex.Engine.Asset_Management;
-using Sundex.Engine.Asset_Management.Extensions;
-using Sundex.Engine.Asset_Management.Types.Shader;
+using Sundex.Engine.AssetManagement;
+using Sundex.Engine.AssetManagement.Extensions;
+using Sundex.Engine.AssetManagement.Types.Shader;
 using Sundex.Engine.Renderer.Shaders;
 using ThirtyDollarConverter.Encoder.PCM;
 using ThirtyDollarConverter.Voices;

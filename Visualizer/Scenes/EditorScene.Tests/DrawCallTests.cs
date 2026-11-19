@@ -5,7 +5,7 @@ using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Text;
 using ThirtyDollarConverter.Editor;
 using EditorScene.Scenes.Views;
-using Shared.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 
 namespace EditorScene.Tests;
 

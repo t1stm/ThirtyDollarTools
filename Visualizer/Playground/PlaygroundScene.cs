@@ -3,7 +3,7 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Shared;
-using Shared.Renderer.Planes;
+using Sundex.Core.Renderer.Planes;
 using Sundex.Components;
 using Sundex.Components.Abstractions;
 using Sundex.Components.Abstractions.Values;

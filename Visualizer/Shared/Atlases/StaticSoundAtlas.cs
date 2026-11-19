@@ -2,7 +2,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using Sundex.Engine.Renderer.Data_Buffers;
+using Sundex.Engine.Renderer.Buffers;
 using Sundex.Engine.Renderer.Queues;
 using Sundex.Engine.Renderer.Textures.Atlases;
 

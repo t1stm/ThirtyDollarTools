@@ -2,7 +2,7 @@ using EditorScene.Scenes.Components;
 using EditorScene.Scenes.Layout;
 using EditorScene.State;
 using Sundex.Components.Labels;
-using Sundex.Engine.Asset_Management.Extensions;
+using Sundex.Engine.AssetManagement.Extensions;
 using Sundex.Markup;
 
 namespace EditorScene.Tests;

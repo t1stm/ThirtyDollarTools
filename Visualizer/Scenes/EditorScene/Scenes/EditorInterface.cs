@@ -172,7 +172,7 @@ public partial class EditorInterface
         WireSoundFilter();
 
         RootPanel.DrawTo(context);
-        _dialogHost = new DialogHost(context, RootPanel);
+        _dialogHost = new DialogHost(context, RootPanel, Component.StyleSheet);
         // The field, not the parameter: a lambda over a constructor parameter moves `this` into a
         // closure, and the markup logic above resolves its context through these lambdas' target.
         _dialogHost.CopyText = text => _workflow.Game.ClipboardString = text;

@@ -4,7 +4,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Gif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
-using Sundex.Engine.Asset_Management.Types.Texture;
+using Sundex.Engine.AssetManagement.Types.Texture;
 using Sundex.Engine.Renderer.Shaders;
 using Sundex.Engine.Renderer.Textures.Atlases;
 

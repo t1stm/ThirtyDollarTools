@@ -1,7 +1,7 @@
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using Serilog;
-using Sundex.Engine.Asset_Management;
+using Sundex.Engine.AssetManagement;
 
 namespace Shared.Audio.Gpu;
 

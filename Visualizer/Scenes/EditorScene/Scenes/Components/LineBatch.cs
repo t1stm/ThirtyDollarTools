@@ -1,9 +1,9 @@
 using JetBrains.Annotations;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
-using Sundex.Engine.Asset_Management;
-using Sundex.Engine.Asset_Management.Extensions;
-using Sundex.Engine.Asset_Management.Types.Shader;
+using Sundex.Engine.AssetManagement;
+using Sundex.Engine.AssetManagement.Extensions;
+using Sundex.Engine.AssetManagement.Types.Shader;
 using Sundex.Engine.Renderer.Abstract;
 using Sundex.Engine.Renderer.Attributes;
 using Sundex.Engine.Renderer.Cameras;
@@ -15,7 +15,7 @@ namespace EditorScene.Scenes.Components;
 
 /// <summary>
 ///     A pool of rects (grid/bar lines, markers, block fills) drawn as one instanced draw
-///     call instead of one <see cref="Shared.Renderer.Planes.ColoredPlane" /> - and one
+///     call instead of one <see cref="Sundex.Core.Renderer.Planes.ColoredPlane" /> - and one
 ///     uniform-buffer upload - per rect. Reuses the visualizer's instanced quad plumbing
 ///     (<see cref="RenderStack{TDataType}" />) with an instance of its own,
 ///     <see cref="ShadedRect" />: a rect is flat unless it is given a shape, which rounds

@@ -1,6 +1,6 @@
 using LoadingScene.Scenes;
-using Sundex.Engine.Asset_Management.Extensions;
-using Sundex.Engine.Asset_Management.Types.Asset;
+using Sundex.Engine.AssetManagement.Extensions;
+using Sundex.Engine.AssetManagement.Types.Asset;
 using Sundex.Markup;
 
 namespace LoadingScene.Tests;
